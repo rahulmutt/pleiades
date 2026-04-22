@@ -1,10 +1,15 @@
-//! JPL Horizons reference snapshot backend for validation and comparison.
+//! JPL Horizons reference snapshot backend for validation, comparison, and
+//! selected asteroid support.
 //!
 //! This crate provides a narrow, source-backed backend based on a checked-in
 //! JPL Horizons vector snapshot. The backend is intentionally limited to a
 //! small set of canonical epochs so the stage-4 validation workflow can
 //! compare the algorithmic backends against a reproducible reference corpus
 //! with a broader time span than the original single-epoch snapshot.
+//!
+//! The checked-in snapshot now also includes a small set of named asteroids so
+//! the shared body taxonomy can exercise source-backed asteroid support without
+//! changing the comparison corpus used by validation reports.
 
 #![forbid(unsafe_code)]
 
@@ -41,6 +46,16 @@ pub fn reference_epochs() -> &'static [Instant] {
 /// Returns the parsed reference snapshot entries.
 pub fn reference_snapshot() -> &'static [SnapshotEntry] {
     snapshot_entries()
+}
+
+/// Returns the comparison-only subset used by the stage-4 validation corpus.
+pub fn comparison_snapshot() -> &'static [SnapshotEntry] {
+    comparison_snapshot_entries()
+}
+
+/// Returns the comparison-only body coverage used by validation tooling.
+pub fn comparison_bodies() -> &'static [pleiades_backend::CelestialBody] {
+    comparison_body_list()
 }
 
 /// A reference-backend implementation backed by JPL Horizons snapshot data.
@@ -202,6 +217,34 @@ fn snapshot_bodies() -> &'static [pleiades_backend::CelestialBody] {
         .as_slice()
 }
 
+fn comparison_snapshot_entries() -> &'static [SnapshotEntry] {
+    static SNAPSHOT: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
+    SNAPSHOT
+        .get_or_init(|| {
+            snapshot_entries()
+                .iter()
+                .filter(|entry| is_comparison_body(&entry.body))
+                .cloned()
+                .collect()
+        })
+        .as_slice()
+}
+
+fn comparison_body_list() -> &'static [pleiades_backend::CelestialBody] {
+    static BODIES: OnceLock<Vec<pleiades_backend::CelestialBody>> = OnceLock::new();
+    BODIES
+        .get_or_init(|| {
+            let mut bodies = Vec::new();
+            for entry in comparison_snapshot_entries() {
+                if !bodies.contains(&entry.body) {
+                    bodies.push(entry.body.clone());
+                }
+            }
+            bodies
+        })
+        .as_slice()
+}
+
 fn snapshot_instants() -> &'static [Instant] {
     static INSTANTS: OnceLock<Vec<Instant>> = OnceLock::new();
     INSTANTS
@@ -279,8 +322,28 @@ fn parse_body(body: &str, line_number: usize) -> pleiades_backend::CelestialBody
         "Uranus" => pleiades_backend::CelestialBody::Uranus,
         "Neptune" => pleiades_backend::CelestialBody::Neptune,
         "Pluto" => pleiades_backend::CelestialBody::Pluto,
+        "Ceres" => pleiades_backend::CelestialBody::Ceres,
+        "Pallas" => pleiades_backend::CelestialBody::Pallas,
+        "Juno" => pleiades_backend::CelestialBody::Juno,
+        "Vesta" => pleiades_backend::CelestialBody::Vesta,
         other => panic!("unsupported body '{other}' on line {line_number}"),
     }
+}
+
+fn is_comparison_body(body: &pleiades_backend::CelestialBody) -> bool {
+    matches!(
+        body,
+        pleiades_backend::CelestialBody::Sun
+            | pleiades_backend::CelestialBody::Moon
+            | pleiades_backend::CelestialBody::Mercury
+            | pleiades_backend::CelestialBody::Venus
+            | pleiades_backend::CelestialBody::Mars
+            | pleiades_backend::CelestialBody::Jupiter
+            | pleiades_backend::CelestialBody::Saturn
+            | pleiades_backend::CelestialBody::Uranus
+            | pleiades_backend::CelestialBody::Neptune
+            | pleiades_backend::CelestialBody::Pluto
+    )
 }
 
 fn parse_f64(value: &str, line_number: usize, column: &str) -> f64 {
@@ -306,6 +369,18 @@ mod tests {
         assert!(metadata
             .body_coverage
             .contains(&pleiades_backend::CelestialBody::Pluto));
+        assert!(metadata
+            .body_coverage
+            .contains(&pleiades_backend::CelestialBody::Ceres));
+        assert!(metadata
+            .body_coverage
+            .contains(&pleiades_backend::CelestialBody::Pallas));
+        assert!(metadata
+            .body_coverage
+            .contains(&pleiades_backend::CelestialBody::Juno));
+        assert!(metadata
+            .body_coverage
+            .contains(&pleiades_backend::CelestialBody::Vesta));
         assert!(metadata.nominal_range.start.is_some());
         assert!(metadata.nominal_range.end.is_some());
         let start = metadata
@@ -377,5 +452,31 @@ mod tests {
             .expect("reference snapshot should include ecliptic coordinates");
         assert!(ecliptic.longitude.degrees().is_finite());
         assert!(ecliptic.latitude.degrees().is_finite());
+    }
+
+    #[test]
+    fn snapshot_backend_resolves_ceres_at_j2000() {
+        let backend = JplSnapshotBackend;
+        let request = EphemerisRequest {
+            body: pleiades_backend::CelestialBody::Ceres,
+            instant: reference_instant(),
+            observer: None,
+            frame: CoordinateFrame::Ecliptic,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparent: Apparentness::Mean,
+        };
+
+        let result = backend
+            .position(&request)
+            .expect("reference snapshot should resolve the asteroid entry");
+        let ecliptic = result
+            .ecliptic
+            .expect("reference snapshot should include ecliptic coordinates");
+        assert!((ecliptic.longitude.degrees() - 184.459642854516).abs() < 1e-12);
+        assert!((ecliptic.latitude.degrees() - 11.838531252961646).abs() < 1e-12);
+        assert!(
+            (ecliptic.distance_au.expect("distance should exist") - 2.2568850705531642).abs()
+                < 1e-12
+        );
     }
 }

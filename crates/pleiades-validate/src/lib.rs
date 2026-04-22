@@ -16,7 +16,7 @@ use pleiades_core::{
     TimeScale, ZodiacMode,
 };
 use pleiades_elp::ElpBackend;
-use pleiades_jpl::{reference_snapshot, JplSnapshotBackend};
+use pleiades_jpl::{comparison_snapshot, JplSnapshotBackend};
 use pleiades_vsop87::Vsop87Backend;
 
 const DEFAULT_BENCHMARK_ROUNDS: usize = 10_000;
@@ -58,7 +58,7 @@ pub struct CorpusSummary {
 impl ValidationCorpus {
     /// Creates the default JPL snapshot corpus.
     pub fn jpl_snapshot() -> Self {
-        let requests = reference_snapshot()
+        let requests = comparison_snapshot()
             .iter()
             .map(|entry| EphemerisRequest {
                 body: entry.body.clone(),
@@ -72,7 +72,7 @@ impl ValidationCorpus {
 
         Self {
             name: "JPL Horizons comparison window".to_string(),
-            description: "Source-backed comparison corpus built from the checked-in JPL Horizons snapshot across a small set of reference epochs.",
+            description: "Source-backed comparison corpus built from the checked-in JPL Horizons snapshot across a small set of reference epochs, restricted to the bodies shared by the algorithmic comparison backend.",
             requests,
         }
     }
@@ -838,19 +838,32 @@ mod tests {
         sidereal_longitude, Apparentness, Ayanamsa, CoordinateFrame, JulianDay, TimeScale,
         ZodiacMode,
     };
-    use pleiades_jpl::reference_bodies;
+    use pleiades_jpl::comparison_bodies;
 
     #[test]
-    fn default_corpus_covers_the_reference_snapshot() {
+    fn default_corpus_covers_the_comparison_snapshot() {
         let corpus = default_corpus();
         let summary = corpus.summary();
         assert_eq!(corpus.requests.len(), 20);
         assert_eq!(summary.epoch_count, 3);
-        assert_eq!(summary.body_count, reference_bodies().len());
+        assert_eq!(summary.body_count, comparison_bodies().len());
         assert!(corpus
             .requests
             .iter()
             .all(|request| request.instant.scale == TimeScale::Tt));
+        assert!(corpus.requests.iter().all(|request| matches!(
+            request.body,
+            CelestialBody::Sun
+                | CelestialBody::Moon
+                | CelestialBody::Mercury
+                | CelestialBody::Venus
+                | CelestialBody::Mars
+                | CelestialBody::Jupiter
+                | CelestialBody::Saturn
+                | CelestialBody::Uranus
+                | CelestialBody::Neptune
+                | CelestialBody::Pluto
+        )));
         assert!(corpus
             .requests
             .iter()

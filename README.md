@@ -14,7 +14,7 @@ The repository is in the stage-4 validation phase, with the chart MVP already in
 - the tropical chart workflow works end to end with approximate Sun/Moon/planet backends and a CLI chart report,
 - sidereal conversion is available in the chart layer,
 - house placement works for the full baseline catalog (Equal, Whole Sign, Porphyry, Placidus, Koch, Regiomontanus, Campanus, Alcabitius, Topocentric, Morinus, Meridian, and Axial variants),
-- a checked-in JPL Horizons snapshot corpus now spans multiple comparison epochs for validation, and `pleiades-validate` can compare, benchmark, and report on that corpus.
+- a checked-in JPL Horizons snapshot corpus now spans multiple comparison epochs for validation, includes selected asteroid entries, and `pleiades-validate` can compare, benchmark, and report on the planetary comparison subset.
 
 ## Local development
 
