@@ -255,3 +255,7 @@ Implemented the next Stage 6 catalog-breadth slice:
 - `pleiades-core` publishes the new built-ins in the compatibility profile, and the release profile identifier was bumped to `0.6.3`
 
 Remaining Stage 6 work: keep catalog breadth and release notes aligned as additional Swiss Ephemeris ayanamsa modes are scheduled.
+
+## 2026-04-22 — release bundle checksums added
+
+- The release bundle manifest now includes deterministic FNV-1a checksums for the compatibility profile, API stability posture, and validation report, and the CLI release-bundle summary surfaces them for verification.

@@ -296,6 +296,12 @@ pub struct ReleaseBundle {
     pub api_stability_bytes: usize,
     /// Number of bytes written for the validation report.
     pub validation_report_bytes: usize,
+    /// Deterministic checksum for the compatibility profile contents.
+    pub compatibility_profile_checksum: u64,
+    /// Deterministic checksum for the API stability posture contents.
+    pub api_stability_checksum: u64,
+    /// Deterministic checksum for the validation report contents.
+    pub validation_report_checksum: u64,
 }
 
 /// Errors produced while assembling a release bundle.
@@ -431,13 +437,28 @@ impl fmt::Display for ReleaseBundle {
         )?;
         writeln!(
             f,
+            "  compatibility profile checksum: 0x{:016x}",
+            self.compatibility_profile_checksum
+        )?;
+        writeln!(
+            f,
             "  API stability posture bytes: {}",
             self.api_stability_bytes
         )?;
         writeln!(
             f,
+            "  API stability posture checksum: 0x{:016x}",
+            self.api_stability_checksum
+        )?;
+        writeln!(
+            f,
             "  validation report bytes: {}",
             self.validation_report_bytes
+        )?;
+        writeln!(
+            f,
+            "  validation report checksum: 0x{:016x}",
+            self.validation_report_checksum
         )
     }
 }
@@ -595,6 +616,19 @@ pub fn benchmark_backend(
     })
 }
 
+/// Computes a deterministic 64-bit checksum for bundle text.
+fn checksum64(text: &str) -> u64 {
+    const FNV_OFFSET_BASIS: u64 = 0xcbf2_9ce4_8422_2325;
+    const FNV_PRIME: u64 = 0x0000_0001_0000_01b3;
+
+    let mut hash = FNV_OFFSET_BASIS;
+    for byte in text.as_bytes() {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(FNV_PRIME);
+    }
+    hash
+}
+
 /// Writes a release bundle containing the compatibility profile, API posture, validation report, and a manifest.
 pub fn render_release_bundle(
     rounds: usize,
@@ -610,8 +644,11 @@ pub fn render_release_bundle(
     let api_stability_path = output_dir.join("api-stability.txt");
     let report_path = output_dir.join("validation-report.txt");
     let manifest_path = output_dir.join("bundle-manifest.txt");
+    let compatibility_profile_checksum = checksum64(&profile_text);
+    let api_stability_checksum = checksum64(&api_stability_text);
+    let validation_report_checksum = checksum64(&validation_report);
     let manifest_text = format!(
-        "Release bundle manifest\nprofile: compatibility-profile.txt\napi stability posture: api-stability.txt\nvalidation report: validation-report.txt\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
+        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
         current_compatibility_profile().profile_id,
         current_api_stability_profile().profile_id,
         rounds,
@@ -631,6 +668,9 @@ pub fn render_release_bundle(
         compatibility_profile_bytes: profile_text.len(),
         api_stability_bytes: api_stability_text.len(),
         validation_report_bytes: validation_report.len(),
+        compatibility_profile_checksum,
+        api_stability_checksum,
+        validation_report_checksum,
     })
 }
 
@@ -1327,6 +1367,7 @@ mod tests {
         assert!(rendered.contains("API stability posture:"));
         assert!(rendered.contains("api-stability.txt"));
         assert!(rendered.contains("validation-report.txt"));
+        assert!(rendered.contains("checksum: 0x"));
 
         let profile = std::fs::read_to_string(bundle_dir.join("compatibility-profile.txt"))
             .expect("compatibility profile should be written");
@@ -1345,6 +1386,9 @@ mod tests {
         assert!(manifest.contains("compatibility-profile.txt"));
         assert!(manifest.contains("api-stability.txt"));
         assert!(manifest.contains("validation-report.txt"));
+        assert!(manifest.contains("profile checksum (fnv1a-64): 0x"));
+        assert!(manifest.contains("api stability checksum (fnv1a-64): 0x"));
+        assert!(manifest.contains("validation report checksum (fnv1a-64): 0x"));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
     }
