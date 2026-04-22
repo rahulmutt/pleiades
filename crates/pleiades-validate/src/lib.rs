@@ -7,6 +7,8 @@
 #![forbid(unsafe_code)]
 
 use std::fmt;
+use std::fs;
+use std::path::{Path, PathBuf};
 use std::time::Instant as StdInstant;
 
 mod artifact;
@@ -274,6 +276,55 @@ pub struct ValidationReport {
     pub candidate_benchmark: BenchmarkReport,
 }
 
+/// A generated release bundle containing the compatibility profile and validation report.
+#[derive(Clone, Debug)]
+pub struct ReleaseBundle {
+    /// Output directory chosen by the caller.
+    pub output_dir: PathBuf,
+    /// Path to the generated compatibility profile file.
+    pub compatibility_profile_path: PathBuf,
+    /// Path to the generated validation report file.
+    pub validation_report_path: PathBuf,
+    /// Path to the generated bundle manifest.
+    pub manifest_path: PathBuf,
+    /// Number of bytes written for the compatibility profile.
+    pub compatibility_profile_bytes: usize,
+    /// Number of bytes written for the validation report.
+    pub validation_report_bytes: usize,
+}
+
+/// Errors produced while assembling a release bundle.
+#[derive(Debug)]
+pub enum ReleaseBundleError {
+    /// File-system failure while creating or writing the bundle.
+    Io(std::io::Error),
+    /// Validation failure while rendering the compatibility profile or report.
+    Validation(EphemerisError),
+}
+
+impl fmt::Display for ReleaseBundleError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Io(error) => write!(f, "{error}"),
+            Self::Validation(error) => write!(f, "{error}"),
+        }
+    }
+}
+
+impl std::error::Error for ReleaseBundleError {}
+
+impl From<std::io::Error> for ReleaseBundleError {
+    fn from(error: std::io::Error) -> Self {
+        Self::Io(error)
+    }
+}
+
+impl From<EphemerisError> for ReleaseBundleError {
+    fn from(error: EphemerisError) -> Self {
+        Self::Validation(error)
+    }
+}
+
 impl fmt::Display for ValidationReport {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Validation report")?;
@@ -339,6 +390,34 @@ impl fmt::Display for ValidationReport {
     }
 }
 
+impl fmt::Display for ReleaseBundle {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "Release bundle")?;
+        writeln!(f, "  output directory: {}", self.output_dir.display())?;
+        writeln!(
+            f,
+            "  compatibility profile: {}",
+            self.compatibility_profile_path.display()
+        )?;
+        writeln!(
+            f,
+            "  validation report: {}",
+            self.validation_report_path.display()
+        )?;
+        writeln!(f, "  manifest: {}", self.manifest_path.display())?;
+        writeln!(
+            f,
+            "  compatibility profile bytes: {}",
+            self.compatibility_profile_bytes
+        )?;
+        writeln!(
+            f,
+            "  validation report bytes: {}",
+            self.validation_report_bytes
+        )
+    }
+}
+
 /// Builds the default validation corpus.
 pub fn default_corpus() -> ValidationCorpus {
     ValidationCorpus::jpl_snapshot()
@@ -372,6 +451,13 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("validate-artifact") => {
             ensure_no_extra_args(&args[1..], "validate-artifact")?;
             render_artifact_report().map_err(render_artifact_error)
+        }
+        Some("bundle-release") => {
+            let (output_dir, rounds) =
+                parse_release_bundle_args(&args[1..], DEFAULT_BENCHMARK_ROUNDS)?;
+            render_release_bundle(rounds, output_dir)
+                .map(|bundle| bundle.to_string())
+                .map_err(render_release_bundle_error)
         }
         Some("help") | Some("--help") | Some("-h") | None => Ok(help_text()),
         Some(other) => Err(format!("unknown command: {other}\n\n{}", help_text())),
@@ -474,6 +560,39 @@ pub fn benchmark_backend(
         rounds,
         sample_count: corpus.requests.len(),
         elapsed: start.elapsed(),
+    })
+}
+
+/// Writes a release bundle containing the compatibility profile, validation report, and a manifest.
+pub fn render_release_bundle(
+    rounds: usize,
+    output_dir: impl AsRef<Path>,
+) -> Result<ReleaseBundle, ReleaseBundleError> {
+    let output_dir = output_dir.as_ref();
+    fs::create_dir_all(output_dir)?;
+
+    let profile_text = current_compatibility_profile().to_string();
+    let validation_report = render_validation_report(rounds)?;
+    let profile_path = output_dir.join("compatibility-profile.txt");
+    let report_path = output_dir.join("validation-report.txt");
+    let manifest_path = output_dir.join("bundle-manifest.txt");
+    let manifest_text = format!(
+        "Release bundle manifest\nprofile: compatibility-profile.txt\nvalidation report: validation-report.txt\nprofile id: {}\nvalidation rounds: {}\n",
+        current_compatibility_profile().profile_id,
+        rounds,
+    );
+
+    fs::write(&profile_path, profile_text.as_bytes())?;
+    fs::write(&report_path, validation_report.as_bytes())?;
+    fs::write(&manifest_path, manifest_text.as_bytes())?;
+
+    Ok(ReleaseBundle {
+        output_dir: output_dir.to_path_buf(),
+        compatibility_profile_path: profile_path,
+        validation_report_path: report_path,
+        manifest_path,
+        compatibility_profile_bytes: profile_text.len(),
+        validation_report_bytes: validation_report.len(),
     })
 }
 
@@ -832,10 +951,43 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = default_corpus().requests.len();
     format!(
-        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus\n  report [--rounds N]       Render the full validation report\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus\n  report [--rounds N]       Render the full validation report\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  bundle-release --out DIR  Write the release compatibility profile, validation report, and manifest\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
+}
+
+fn parse_release_bundle_args(
+    args: &[&str],
+    default_rounds: usize,
+) -> Result<(PathBuf, usize), String> {
+    let mut output_dir: Option<PathBuf> = None;
+    let mut rounds = default_rounds;
+    let mut iter = args.iter().copied();
+
+    while let Some(arg) = iter.next() {
+        match arg {
+            "--out" | "--output" => {
+                let value = iter
+                    .next()
+                    .ok_or_else(|| format!("missing value for {arg}"))?;
+                output_dir = Some(PathBuf::from(value));
+            }
+            "--rounds" => {
+                let value = iter
+                    .next()
+                    .ok_or_else(|| "missing value for --rounds".to_string())?;
+                rounds = value
+                    .parse::<usize>()
+                    .map_err(|error| format!("invalid value for --rounds: {error}"))?;
+            }
+            other => return Err(format!("unknown argument: {other}")),
+        }
+    }
+
+    let output_dir =
+        output_dir.ok_or_else(|| "missing required --out <dir> argument".to_string())?;
+    Ok((output_dir, rounds))
 }
 
 fn render_error(error: EphemerisError) -> String {
@@ -843,6 +995,10 @@ fn render_error(error: EphemerisError) -> String {
 }
 
 fn render_artifact_error(error: crate::artifact::ArtifactInspectionError) -> String {
+    error.to_string()
+}
+
+fn render_release_bundle_error(error: ReleaseBundleError) -> String {
     error.to_string()
 }
 
@@ -854,6 +1010,22 @@ mod tests {
         ZodiacMode,
     };
     use pleiades_jpl::comparison_bodies;
+
+    fn unique_temp_dir(prefix: &str) -> std::path::PathBuf {
+        let unique = format!(
+            "{}-{}-{}",
+            prefix,
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("system clock should be after UNIX_EPOCH")
+                .as_nanos()
+        );
+        let path = std::env::temp_dir().join(unique);
+        let _ = std::fs::remove_dir_all(&path);
+        std::fs::create_dir_all(&path).expect("temporary directory should be creatable");
+        path
+    }
 
     #[test]
     fn default_corpus_covers_the_comparison_snapshot() {
@@ -979,6 +1151,41 @@ mod tests {
         assert!(rendered.contains("benchmark [--rounds N]"));
         assert!(rendered.contains("report [--rounds N]"));
         assert!(rendered.contains("validate-artifact"));
+        assert!(rendered.contains("bundle-release --out DIR"));
+    }
+
+    #[test]
+    fn release_bundle_writes_expected_artifacts() {
+        let bundle_dir = unique_temp_dir("pleiades-release-bundle");
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        let rendered = render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        assert!(rendered.contains("Release bundle"));
+        assert!(rendered.contains("compatibility-profile.txt"));
+        assert!(rendered.contains("validation-report.txt"));
+
+        let profile = std::fs::read_to_string(bundle_dir.join("compatibility-profile.txt"))
+            .expect("compatibility profile should be written");
+        let report = std::fs::read_to_string(bundle_dir.join("validation-report.txt"))
+            .expect("validation report should be written");
+        let manifest = std::fs::read_to_string(bundle_dir.join("bundle-manifest.txt"))
+            .expect("manifest should be written");
+
+        assert!(profile.contains("Compatibility profile: pleiades-compatibility-profile/0.2.0"));
+        assert!(report.contains("Validation report"));
+        assert!(manifest.contains("Release bundle manifest"));
+        assert!(manifest.contains("validation rounds: 1"));
+        assert!(manifest.contains("compatibility-profile.txt"));
+        assert!(manifest.contains("validation-report.txt"));
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
     }
 
     #[test]
