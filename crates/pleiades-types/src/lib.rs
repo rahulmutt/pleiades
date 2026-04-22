@@ -438,6 +438,8 @@ pub enum HouseSystem {
     Equal,
     /// Equal houses with the Midheaven on cusp 10.
     EqualMidheaven,
+    /// Equal houses with the first house anchored at 0° Aries.
+    EqualAries,
     /// Vehlow equal houses, with the Ascendant centered in house 1.
     Vehlow,
     /// Sripati houses.

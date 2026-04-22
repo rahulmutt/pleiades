@@ -151,6 +151,7 @@ pub fn calculate_houses(request: &HouseRequest) -> Result<HouseSnapshot, HouseEr
     let cusps = match &request.system {
         HouseSystem::Equal => equal_houses(angles.ascendant),
         HouseSystem::EqualMidheaven => equal_midheaven_houses(angles.midheaven),
+        HouseSystem::EqualAries => equal_aries_houses(),
         HouseSystem::Vehlow => vehlow_equal_houses(angles.ascendant),
         HouseSystem::Sripati => sripati_houses(angles),
         HouseSystem::WholeSign => whole_sign_houses(angles.ascendant),
@@ -279,6 +280,10 @@ fn vehlow_equal_houses(ascendant: Longitude) -> [Longitude; 12] {
     core::array::from_fn(|index| {
         Longitude::from_degrees(ascendant.degrees() - 15.0 + (index as f64) * 30.0)
     })
+}
+
+fn equal_aries_houses() -> [Longitude; 12] {
+    core::array::from_fn(|index| Longitude::from_degrees((index as f64) * 30.0))
 }
 
 fn whole_sign_houses(ascendant: Longitude) -> [Longitude; 12] {
@@ -630,6 +635,7 @@ fn catalog_name(system: &HouseSystem) -> &'static str {
         HouseSystem::Campanus => "Campanus",
         HouseSystem::Equal => "Equal",
         HouseSystem::EqualMidheaven => "Equal (MC)",
+        HouseSystem::EqualAries => "Equal (1=Aries)",
         HouseSystem::Vehlow => "Vehlow Equal",
         HouseSystem::Sripati => "Sripati",
         HouseSystem::WholeSign => "Whole Sign",
@@ -748,6 +754,15 @@ mod tests {
             snapshot.cusps[9],
             midpoint_longitude(porphyry.cusps[8], porphyry.cusps[9])
         );
+    }
+
+    #[test]
+    fn equal_aries_houses_start_at_zero_aries() {
+        let snapshot = calculate_houses(&sample_request(HouseSystem::EqualAries))
+            .expect("equal Aries houses should work");
+        assert_eq!(snapshot.cusps[0].degrees(), 0.0);
+        assert_eq!(snapshot.cusps[1].degrees(), 30.0);
+        assert_eq!(snapshot.cusps[11].degrees(), 330.0);
     }
 
     #[test]

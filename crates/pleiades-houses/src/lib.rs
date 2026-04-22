@@ -182,6 +182,13 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         false,
     ),
     HouseSystemDescriptor::new(
+        HouseSystem::EqualAries,
+        "Equal (1=Aries)",
+        &["Equal/1=Aries", "Equal Aries", "Aries houses"],
+        "Fixed zodiac-sign houses anchored at 0° Aries.",
+        false,
+    ),
+    HouseSystemDescriptor::new(
         HouseSystem::Vehlow,
         "Vehlow Equal",
         &["Vehlow", "Vehlow equal"],
@@ -197,7 +204,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
     ),
 ];
 
-static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 15] = [
+static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 16] = [
     HouseSystemDescriptor::new(
         HouseSystem::Placidus,
         "Placidus",
@@ -290,6 +297,13 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 15] = [
         false,
     ),
     HouseSystemDescriptor::new(
+        HouseSystem::EqualAries,
+        "Equal (1=Aries)",
+        &["Equal/1=Aries", "Equal Aries", "Aries houses"],
+        "Fixed zodiac-sign houses anchored at 0° Aries.",
+        false,
+    ),
+    HouseSystemDescriptor::new(
         HouseSystem::Vehlow,
         "Vehlow Equal",
         &["Vehlow", "Vehlow equal"],
@@ -379,6 +393,10 @@ mod tests {
             resolve_house_system("Equal (from MC)"),
             Some(HouseSystem::EqualMidheaven)
         );
+        assert_eq!(
+            resolve_house_system("Equal Aries"),
+            Some(HouseSystem::EqualAries)
+        );
         assert_eq!(resolve_house_system("vehlow"), Some(HouseSystem::Vehlow));
         assert_eq!(resolve_house_system("Śrīpati"), Some(HouseSystem::Sripati));
     }
@@ -390,7 +408,7 @@ mod tests {
             .map(|entry| entry.canonical_name)
             .collect();
 
-        for expected in ["Equal (MC)", "Vehlow Equal", "Sripati"] {
+        for expected in ["Equal (MC)", "Equal (1=Aries)", "Vehlow Equal", "Sripati"] {
             assert!(names.contains(&expected), "missing {expected}");
         }
     }

@@ -215,6 +215,10 @@ mod tests {
         assert!(profile
             .release_house_systems
             .iter()
+            .any(|entry| entry.canonical_name == "Equal (1=Aries)"));
+        assert!(profile
+            .release_house_systems
+            .iter()
             .any(|entry| entry.canonical_name == "Sripati"));
     }
 }

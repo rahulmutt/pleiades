@@ -53,8 +53,8 @@ impl CompatibilityProfile {
 /// Returns the current compatibility profile.
 pub const fn current_compatibility_profile() -> CompatibilityProfile {
     CompatibilityProfile {
-        profile_id: "pleiades-compatibility-profile/0.3.0",
-        summary: "Stage 6 release profile: the baseline catalogs remain published as a routine release artifact while the target Swiss-Ephemeris-class compatibility catalog stays explicit, including the first release-specific house-system additions.",
+        profile_id: "pleiades-compatibility-profile/0.4.0",
+        summary: "Stage 6 release profile: the baseline catalogs remain published as a routine release artifact while the target Swiss-Ephemeris-class compatibility catalog stays explicit, including the first release-specific house-system additions and fixed zodiac-sign house coverage.",
         target_house_scope: &[
             "Target house scope: the full Swiss-Ephemeris-class house-system catalog remains the long-term compatibility goal.",
             "Baseline milestone: Placidus, Koch, Porphyry, Regiomontanus, Campanus, Equal, Whole Sign, Alcabitius, Meridian/Axial variants, Topocentric, and Morinus are shipped today.",
@@ -70,7 +70,7 @@ pub const fn current_compatibility_profile() -> CompatibilityProfile {
         baseline_ayanamsas: baseline_ayanamsas(),
         release_ayanamsas: &[],
         release_notes: &[
-            "Release-specific house-system additions now include Equal (MC), Vehlow Equal, and Sripati.",
+            "Release-specific house-system additions now include Equal (MC), Equal (1=Aries), Vehlow Equal, and Sripati.",
             "The compatibility profile is intended to be archived with release validation outputs and release notes.",
         ],
         known_gaps: &[
@@ -190,6 +190,10 @@ mod tests {
             .iter()
             .any(|entry| entry.canonical_name == "Sripati"));
         assert!(profile
+            .release_house_systems
+            .iter()
+            .any(|entry| entry.canonical_name == "Equal (1=Aries)"));
+        assert!(profile
             .baseline_ayanamsas
             .iter()
             .any(|entry| entry.canonical_name == "Lahiri"));
@@ -219,6 +223,7 @@ mod tests {
         assert!(rendered.contains("Baseline compatibility milestone:"));
         assert!(rendered.contains("Release-specific coverage beyond baseline:"));
         assert!(rendered.contains("Equal (MC)"));
+        assert!(rendered.contains("Equal (1=Aries)"));
         assert!(rendered.contains("Vehlow Equal"));
         assert!(rendered.contains("Sripati"));
         assert!(rendered.contains("Known gaps:"));

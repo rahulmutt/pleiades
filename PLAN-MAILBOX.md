@@ -145,3 +145,13 @@ Implemented the next Stage 6 slice:
 - `pleiades-cli` and `pleiades-validate` now report the updated compatibility profile identifier and release-specific coverage sections
 
 Remaining Stage 6 work: broader catalog breadth, API posture review, and any remaining release-hardening polish that depends on additional coverage.
+
+## 2026-04-22 — fixed zodiac-sign house addition
+
+Implemented the next Stage 6 catalog-breadth slice:
+
+- `pleiades-types` gained `HouseSystem::EqualAries` for the fixed 0° Aries house variant
+- `pleiades-houses` now catalogs, resolves, documents, and calculates Equal (1=Aries)
+- the compatibility profile, CLI, and validation output now reflect the additional release-specific house-system coverage
+
+Remaining Stage 6 work: broader catalog breadth, API posture review, and any remaining release-hardening polish that depends on additional coverage.
