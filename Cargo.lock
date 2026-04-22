@@ -81,6 +81,12 @@ version = "0.1.0"
 [[package]]
 name = "pleiades-validate"
 version = "0.1.0"
+dependencies = [
+ "pleiades-core",
+ "pleiades-elp",
+ "pleiades-jpl",
+ "pleiades-vsop87",
+]
 
 [[package]]
 name = "pleiades-vsop87"

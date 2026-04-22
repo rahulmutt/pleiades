@@ -7,3 +7,7 @@ rust-version.workspace = true
 publish = false
 
 [dependencies]
+pleiades-core = { path = "../pleiades-core" }
+pleiades-elp = { path = "../pleiades-elp" }
+pleiades-jpl = { path = "../pleiades-jpl" }
+pleiades-vsop87 = { path = "../pleiades-vsop87" }

@@ -54,3 +54,13 @@ Implemented the next Stage 3 slice:
 - Stage 3 progress notes and Stage 2 handoff text were updated to reflect the expanded baseline coverage
 
 Stage 3 is now effectively complete at the baseline level; Stage 4 validation and later-stage hardening remain the next major follow-up.
+
+## 2026-04-22 — Stage 4 validation slice landed
+
+Implemented the first Stage 4 slice:
+
+- `pleiades-jpl` now ships a narrow JPL Horizons reference snapshot backend keyed to the J2000.0 corpus, with checked-in source data and provenance metadata
+- `pleiades-validate` now compares the JPL snapshot backend against the algorithmic composite backend, benchmarks the corpus, and renders reproducible report output
+- validation reports include backend capability matrices, corpus metadata, and per-body delta summaries so later artifacts can stay comparable
+
+Next recommended slice: broaden the validation corpus/time coverage, add archived report outputs, and preserve any discovered regressions in the test corpus.

@@ -4,16 +4,17 @@ Fast, pure Rust ephemeride utilities for astrological software.
 
 ## Current status
 
-The repository is in the stage-3 chart-MVP phase:
+The repository is in the stage-4 validation phase, with the chart MVP already in place:
 
 - the Rust workspace exists and is organized around `pleiades-*` crates,
 - the local developer toolchain is managed through `mise.toml`,
 - the CI workflow runs formatting, linting, and tests in pure Rust mode,
-- the shared type system, backend contract, and thin façade are now implemented,
-- the baseline house and ayanamsa catalogs plus the compatibility profile scaffold are now published,
-- the tropical chart workflow now works end to end with approximate Sun/Moon/planet backends and a CLI chart report,
+- the shared type system, backend contract, and thin façade are implemented,
+- the baseline house and ayanamsa catalogs plus the compatibility profile scaffold are published,
+- the tropical chart workflow works end to end with approximate Sun/Moon/planet backends and a CLI chart report,
 - sidereal conversion is available in the chart layer,
-- house placement now works for the full baseline catalog (Equal, Whole Sign, Porphyry, Placidus, Koch, Regiomontanus, Campanus, Alcabitius, Topocentric, Morinus, Meridian, and Axial variants).
+- house placement works for the full baseline catalog (Equal, Whole Sign, Porphyry, Placidus, Koch, Regiomontanus, Campanus, Alcabitius, Topocentric, Morinus, Meridian, and Axial variants),
+- a narrow JPL Horizons snapshot backend is now available for validation, and `pleiades-validate` can compare, benchmark, and report on that snapshot corpus.
 
 ## Local development
 
