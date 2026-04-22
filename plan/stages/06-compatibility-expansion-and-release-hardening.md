@@ -45,6 +45,7 @@ This final stage should behave like a sequence of release-quality increments, no
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] `pleiades-ayanamsa` now backfills explicit sidereal metadata for `Udayagiri` and `Lahiri (VP285)`, reusing the Lahiri-family 285 CE zero point so the compatibility profile no longer treats those variants as metadata gaps.
 - [x] The compatibility profile now distinguishes target scope, baseline milestone, release-specific coverage, and known gaps.
 - [x] Validation reports now include the release compatibility profile so the stage-6 release artifact bundle carries the current coverage summary.
 - [x] `pleiades-validate bundle-release --out DIR` now writes the compatibility profile, API stability posture, validation report, and a manifest for a reproducible release bundle.

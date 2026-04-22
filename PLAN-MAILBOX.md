@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-22 — Udayagiri and Lahiri VP285 ayanamsa metadata backfill added
+
+Implemented another small Stage 6 metadata-backfill slice:
+
+- `pleiades-ayanamsa` now carries explicit zero-point metadata for `Ayanamsa::Udayagiri` and `Ayanamsa::LahiriVP285`, reusing the published Lahiri-family 285 CE reference point so the compatibility profile no longer lists those variants as gaps
+- `pleiades-core` and the release compatibility profile now reflect the narrower ayanamsa-metadata gap in the release notes and known-gap text, and `Krishnamurti (VP291)` remains scheduled for later metadata/source work
+- regression coverage now asserts the new metadata-backed entries remain on the chart-layer sidereal path
+
+Remaining Stage 6 work: keep backfilling the remaining ayanamsa metadata gaps and catalog breadth while the release profile stays synchronized with the catalog.
+
 ## 2026-04-22 — Direct-placement chart helper added
 
 Implemented a small Stage 6 chart-ergonomics slice:

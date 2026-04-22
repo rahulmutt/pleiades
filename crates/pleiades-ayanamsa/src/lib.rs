@@ -393,9 +393,9 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Ayanamsa::Udayagiri,
         "Udayagiri",
         &["Udayagiri ayanamsa"],
-        "Udayagiri sidereal mode used as a historical reference-frame variant.",
-        None,
-        None,
+        "Udayagiri sidereal mode treated as the Lahiri/Chitrapaksha 285 CE reference family in the Swiss Ephemeris interoperability catalog.",
+        Some(JulianDay::from_days(1_825_235.164_583)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::DjwhalKhul,
@@ -449,9 +449,9 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Ayanamsa::LahiriVP285,
         "Lahiri (VP285)",
         &["Lahiri VP285", "VP285"],
-        "Lahiri variant aligned with the VP285 reference family.",
-        None,
-        None,
+        "Lahiri VP285 reference family anchored to the 285 CE mean-sun zero point used by Swiss Ephemeris.",
+        Some(JulianDay::from_days(1_825_235.164_583)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::KrishnamurtiVP291,
@@ -865,9 +865,9 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
         Ayanamsa::Udayagiri,
         "Udayagiri",
         &["Udayagiri ayanamsa"],
-        "Udayagiri sidereal mode used as a historical reference-frame variant.",
-        None,
-        None,
+        "Udayagiri sidereal mode treated as the Lahiri/Chitrapaksha 285 CE reference family in the Swiss Ephemeris interoperability catalog.",
+        Some(JulianDay::from_days(1_825_235.164_583)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::DjwhalKhul,
@@ -921,9 +921,9 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
         Ayanamsa::LahiriVP285,
         "Lahiri (VP285)",
         &["Lahiri VP285", "VP285"],
-        "Lahiri variant aligned with the VP285 reference family.",
-        None,
-        None,
+        "Lahiri VP285 reference family anchored to the 285 CE mean-sun zero point used by Swiss Ephemeris.",
+        Some(JulianDay::from_days(1_825_235.164_583)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::KrishnamurtiVP291,
@@ -1419,6 +1419,17 @@ mod tests {
         assert_eq!(valens.epoch, Some(JulianDay::from_days(1_775_845.5)));
         assert_eq!(valens.offset_degrees, Some(Angle::from_degrees(-2.942_2)));
 
+        let udayagiri = descriptor(&Ayanamsa::Udayagiri).expect("Udayagiri descriptor");
+        assert_eq!(
+            udayagiri.epoch,
+            Some(JulianDay::from_days(1_825_235.164_583))
+        );
+        assert_eq!(udayagiri.offset_degrees, Some(Angle::from_degrees(0.0)));
+
+        let vp285 = descriptor(&Ayanamsa::LahiriVP285).expect("Lahiri VP285 descriptor");
+        assert_eq!(vp285.epoch, Some(JulianDay::from_days(1_825_235.164_583)));
+        assert_eq!(vp285.offset_degrees, Some(Angle::from_degrees(0.0)));
+
         let kugler3 =
             descriptor(&Ayanamsa::BabylonianKugler3).expect("Babylonian Kugler 3 descriptor");
         assert_eq!(kugler3.epoch, Some(JulianDay::from_days(1_774_637.420_172)));
@@ -1559,6 +1570,14 @@ mod tests {
             .without_sidereal_metadata
             .iter()
             .all(|name| *name != "Galactic Center (Mardyks)"));
+        assert!(coverage
+            .without_sidereal_metadata
+            .iter()
+            .all(|name| *name != "Udayagiri"));
+        assert!(coverage
+            .without_sidereal_metadata
+            .iter()
+            .all(|name| *name != "Lahiri (VP285)"));
     }
 
     #[test]
