@@ -19,7 +19,7 @@ That gives this development arc:
 
 ### Orientation
 
-- [plan/overview.md](plan/overview.md) — how to read and use this plan
+- [plan/overview.md](plan/overview.md) — how to read and maintain this plan set
 
 ### Sequential stages
 
@@ -36,6 +36,35 @@ That gives this development arc:
 - [plan/tracks/02-domain-and-public-api.md](plan/tracks/02-domain-and-public-api.md)
 - [plan/tracks/03-backends-and-distribution.md](plan/tracks/03-backends-and-distribution.md)
 - [plan/tracks/04-validation-and-release.md](plan/tracks/04-validation-and-release.md)
+
+## Directory structure
+
+The current `plan/**` layout is intentionally simple:
+
+- `plan/overview.md` — entry point and usage guidance
+- `plan/stages/*.md` — the ordered delivery path; read these top to bottom
+- `plan/tracks/*.md` — cross-cutting concerns that span multiple stages
+
+This structure keeps the plan readable while still separating **sequence** from **responsibility**:
+
+- use a **stage document** to answer “what should happen next?”
+- use a **track document** to answer “what standards apply to this area?”
+
+## Recommended reading paths
+
+### For a new contributor
+
+1. [SPEC.md](SPEC.md)
+2. [plan/overview.md](plan/overview.md)
+3. stage documents in order
+4. the relevant track document for the area being worked on
+
+### For maintainers planning the next milestone
+
+1. review the current stage's exit criteria
+2. verify the workable-state rule is satisfied
+3. identify the next smallest reviewable increment inside the next stage
+4. check track documents for cross-cutting requirements before implementation begins
 
 ## Stage sequencing rationale
 
@@ -64,7 +93,8 @@ Each stage should end with all of the following true:
 - the workspace builds and tests successfully,
 - the public API is internally coherent for what is implemented,
 - at least one realistic user or maintainer workflow is supported,
-- known gaps versus the full specification are documented explicitly.
+- known gaps versus the full specification are documented explicitly,
+- contributors can tell which parts are production-ready, experimental, or not yet started.
 
 ## Stage outcomes at a glance
 
@@ -77,6 +107,17 @@ Each stage should end with all of the following true:
 | 5 | Fast packaged 1500-2500 backend | Serves the common deployment target |
 | 6 | Broad compatibility plus release discipline | Makes the project dependable for consumers |
 
+## Stage dependency map
+
+| Stage | Depends on | Enables next |
+| --- | --- | --- |
+| 1. Workspace bootstrap | none | all later work lands in the right crates and toolchain |
+| 2. Domain types and backend contract | stage 1 | backend and domain implementations can proceed without repeated shared-type redesign |
+| 3. Chart MVP with algorithmic baseline | stages 1-2 | practical end-user workflows and early consumer feedback |
+| 4. Reference backend and validation | stages 1-3 | trustworthy comparisons, regression detection, and artifact-source generation |
+| 5. Compression and packaged data | stages 1-4 | fast offline deployment for the common 1500-2500 window |
+| 6. Compatibility expansion and release hardening | stages 1-5 | dependable releases with broad interoperability coverage |
+
 ## Readiness checklist for moving between stages
 
 Do not advance a stage just because code exists. Advance when the current stage also has:
@@ -84,7 +125,8 @@ Do not advance a stage just because code exists. Advance when the current stage 
 - tests for the newly introduced behavior,
 - updated docs or compatibility notes,
 - explicit limits and failure modes,
-- no layering violations against `spec/architecture.md`.
+- no layering violations against `spec/architecture.md`,
+- a clear statement of what the next stage is allowed to assume.
 
 ## Cross-cutting priorities
 
@@ -95,3 +137,14 @@ These priorities apply in every stage:
 - add tests and docs together with behavior,
 - publish capability and compatibility information as features expand,
 - prefer minimal, reviewable increments over speculative rewrites.
+
+## Plan maintenance rules
+
+When this repository evolves, update this plan set with the code/spec changes instead of letting it drift.
+
+At minimum:
+
+- update the relevant stage document when scope or sequencing changes,
+- update the relevant track document when expectations or standards change,
+- keep `PLAN.md` as the stable top-level index into `plan/**`,
+- avoid adding one-off planning files at the repository root when they belong under `plan/stages/` or `plan/tracks/`.

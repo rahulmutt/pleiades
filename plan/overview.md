@@ -23,7 +23,12 @@ If you are starting from scratch, read in this order:
 
 - [plan/overview.md](overview.md) — how to use the plan
 - [plan/stages/](stages/) — sequential implementation stages
-- [plan/tracks/](tracks/) — cross-cutting workstreams and ownership boundaries
+- [plan/tracks/](tracks/) — cross-cutting workstreams and quality boundaries
+
+The structure is intentionally shallow so contributors can find the current plan quickly:
+
+- if the question is about **ordering**, start in `plan/stages/`
+- if the question is about **standards or scope for a subsystem**, start in `plan/tracks/`
 
 ## Stage-first Rule
 
@@ -32,7 +37,8 @@ The repository should remain in a workable state after every stage. That means e
 - a buildable workspace,
 - tests that cover the new behavior,
 - enough documentation for contributors to continue,
-- explicit notes about what is not done yet.
+- explicit notes about what is not done yet,
+- no ambiguity about whether the next stage is extending a stable base or cleaning up missing foundations.
 
 ## Track List
 
@@ -40,3 +46,12 @@ The repository should remain in a workable state after every stage. That means e
 - [plan/tracks/02-domain-and-public-api.md](tracks/02-domain-and-public-api.md)
 - [plan/tracks/03-backends-and-distribution.md](tracks/03-backends-and-distribution.md)
 - [plan/tracks/04-validation-and-release.md](tracks/04-validation-and-release.md)
+
+## Maintenance guidance
+
+When adding or revising planning material:
+
+- prefer editing the existing stage or track document instead of creating overlapping notes,
+- keep `PLAN.md` as the authoritative top-level index,
+- make sequencing changes in stage documents and policy/quality changes in track documents,
+- ensure plan changes still reflect `SPEC.md` and the normative documents in `spec/*.md`.
