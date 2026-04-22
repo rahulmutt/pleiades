@@ -9,7 +9,7 @@ Pleiades must:
 - provide ephemeris functionality comparable in scope to Swiss Ephemeris for astrology-oriented use cases
 - be implemented in **pure Rust**, with **no C/C++ dependencies**
 - expose a modular backend abstraction so multiple data sources and algorithm families can coexist
-- support astrology features including the Sun, Moon, planets, an extensible asteroid/body catalog, **the full target house-system catalog**, **the full target ayanamsa catalog**, sidereal/tropical modes, and derived chart quantities
+- support astrology features including the Sun, Moon, planets, an extensible asteroid/body catalog, **the full house-system catalog and the full ayanamsa catalog required for Swiss-Ephemeris-class astrology workflows**, sidereal/tropical modes, and derived chart quantities
 - define a compressed data representation optimized for the common historical/future window **1500-2500 CE**
 - organize **every first-party sub-crate** under names of the form **`pleiades-*`**
 
@@ -71,7 +71,7 @@ Additional backend crates may be added as needed, provided they follow the same 
 The project is considered aligned with this specification when it can:
 
 - compute Sun, Moon, planetary, and selected asteroid positions through a backend-agnostic API
-- compute the full target astrological house-system catalog and the full target ayanamsa catalog
+- compute the full compatibility house-system catalog and the full compatibility ayanamsa catalog
 - switch among at least two backend families with no API break for consumers
 - distribute a compressed ephemeris dataset covering 1500-2500
 - build and test on supported targets using pure Rust dependencies only
@@ -88,10 +88,10 @@ This spec set satisfies the bootstrap prompt by making the following requirement
 | Compressed representation optimized for common use in 1500-2500 | [spec/data-compression.md](spec/data-compression.md), [spec/backends.md](spec/backends.md) |
 | All first-party sub-crates named `pleiades-*` | [spec/architecture.md](spec/architecture.md) |
 
-The main gap in the earlier draft was wording around house systems and ayanamsas: some sections implied only an initial subset was required. The revised sub-specs now make the **end-state requirement** explicit: a stable release is not complete until the full target house-system and ayanamsa catalogs are implemented, even though delivery may be phased during development.
+The main gap in the earlier draft was wording around house systems and ayanamsas: some sections implied only an initial subset was required. The revised sub-specs now make the **end-state requirement** explicit: a stable release is not complete until the full house-system and ayanamsa catalogs expected for Swiss-Ephemeris-class astrology compatibility are implemented, even though delivery may be phased during development.
 
 ## Document Status
 
-Status: Draft 2
+Status: Draft 3
 Owner: Project maintainers
 Last updated: 2026-04-22

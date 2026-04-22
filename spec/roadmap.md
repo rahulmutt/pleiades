@@ -11,8 +11,8 @@
 
 - implement `pleiades-vsop87` for major planets and solar coordinates
 - implement `pleiades-elp` for lunar coordinates
-- implement the initial ayanamsa catalog and extensible registration model, with an explicit path to the full target catalog
-- implement the initial house-system milestone on top of an API designed for the full target catalog
+- implement the initial ayanamsa catalog and extensible registration model, with an explicit path to the full compatibility catalog
+- implement the initial house-system milestone on top of an API designed for the full compatibility catalog
 
 ## Phase 3: Reference Data Backend
 
@@ -34,10 +34,11 @@
 - publish error statistics
 - stabilize public API
 
-## Phase 6: Expansion
+## Phase 6: Expansion and Compatibility Completion
 
 - composite backend routing
 - more asteroid coverage
-- complete the remaining target house-system and ayanamsa catalogs required for stable project conformance
+- complete the remaining house-system and ayanamsa compatibility catalogs required for stable project conformance
+- publish and maintain the versioned compatibility profile for built-in systems and aliases
 - topocentric refinements
 - optional higher-level chart utilities
