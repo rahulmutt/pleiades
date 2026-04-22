@@ -1013,20 +1013,29 @@ fn apparent_midheaven_declination(sidereal_time_deg: f64, obliquity_deg: f64) ->
 
 fn topocentric_latitude(latitude_deg: f64, elevation_m: Option<f64>) -> Result<Angle, HouseError> {
     let latitude = latitude_deg.to_radians();
-    let radius_m = 6_371_000.0;
-    let scale = match elevation_m {
-        Some(elevation) if elevation.is_finite() => radius_m / (radius_m + elevation),
+    let elevation = match elevation_m {
+        Some(elevation) if elevation.is_finite() => elevation,
         Some(_) => {
             return Err(HouseError::new(
                 HouseErrorKind::InvalidLatitude,
                 "observer elevation must be finite when provided",
             ))
         }
-        None => 1.0,
+        None => 0.0,
     };
 
-    let sin_effective = (scale * latitude.sin()).clamp(-1.0, 1.0);
-    Ok(Angle::from_degrees(sin_effective.asin().to_degrees()))
+    // Use the geodetic-to-geocentric conversion for the observer latitude, so
+    // topocentric house placement reflects the actual Earth ellipsoid instead
+    // of a rough spherical approximation.
+    let semi_major_m = 6_378_137.0;
+    let flattening = 1.0 / 298.257_223_563;
+    let eccentricity_sq = flattening * (2.0 - flattening);
+    let sin_lat = latitude.sin();
+    let cos_lat = latitude.cos();
+    let prime_vertical = semi_major_m / (1.0 - eccentricity_sq * sin_lat * sin_lat).sqrt();
+    let x = (prime_vertical + elevation) * cos_lat;
+    let z = (prime_vertical * (1.0 - eccentricity_sq) + elevation) * sin_lat;
+    Ok(Angle::from_degrees(z.atan2(x).to_degrees()))
 }
 
 fn solve_placidian_cusp(
@@ -1336,6 +1345,15 @@ mod tests {
         assert_eq!(snapshot.cusps[0].degrees(), 0.0);
         assert_eq!(snapshot.cusps[1].degrees(), 30.0);
         assert_eq!(snapshot.cusps[11].degrees(), 330.0);
+    }
+
+    #[test]
+    fn topocentric_latitude_uses_geocentric_correction() {
+        let sea_level = topocentric_latitude(45.0, None).expect("latitude should convert");
+        let mountain = topocentric_latitude(45.0, Some(2_000.0)).expect("latitude should convert");
+
+        assert!((sea_level.degrees() - 44.807_576).abs() < 1.0e-6);
+        assert!(mountain.degrees() > sea_level.degrees());
     }
 
     #[test]

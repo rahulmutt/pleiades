@@ -161,7 +161,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         HouseSystem::Topocentric,
         "Topocentric",
         &["Polich-Page", "Polich Page"],
-        "Topocentric (Polich-Page) house system.",
+        "Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.",
         true,
     ),
     HouseSystemDescriptor::new(
@@ -401,7 +401,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         HouseSystem::Topocentric,
         "Topocentric",
         &["Polich-Page", "Polich Page"],
-        "Topocentric (Polich-Page) house system.",
+        "Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.",
         true,
     ),
     HouseSystemDescriptor::new(

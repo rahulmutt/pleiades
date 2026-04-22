@@ -317,3 +317,13 @@ Implemented a small Stage 6 maintenance slice:
 - tests now verify both descriptors and their sidereal-offset availability, keeping the metadata and runtime helper behavior synchronized
 
 Remaining Stage 6 work: continue filling out any remaining ayanamsa breadth while keeping metadata-backed modes and the release profile synchronized.
+
+## 2026-04-22 — topocentric refinement landed
+
+Implemented the next Stage 6 maintenance slice:
+
+- `pleiades-houses` now converts geodetic observer latitude to geocentric latitude with an elevation-aware ellipsoid model for Topocentric (Polich-Page)
+- the Topocentric catalog note now documents the latitude correction so the compatibility profile and crate docs reflect the refined implementation
+- a regression test now pins the geocentric correction at 45° latitude and checks that elevation nudges the effective latitude as expected
+
+Remaining Stage 6 work: broader catalog breadth, optional higher-level helpers, and any remaining release-hardening polish that depends on additional coverage.

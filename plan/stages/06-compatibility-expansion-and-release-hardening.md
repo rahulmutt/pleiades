@@ -71,6 +71,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] The validation CLI help text now documents the `generate-report` alias alongside `report`, keeping the release tooling and command-line documentation aligned.
 - [x] Babylonian (Huber) and Galactic Equator (IAU 1958) now carry explicit sidereal-offset reference metadata, and the compatibility profile notes them as exceptions to the broader ayanamsa-metadata gap.
 - [x] Release bundle generation now has a matching verification command that re-reads the staged artifacts, checks the manifest checksums, and is exercised by the release smoke task so the release artifact path is validated end to end.
+- [x] Topocentric (Polich-Page) now uses a geodetic-to-geocentric latitude correction with elevation-aware ellipsoid handling, and the catalog note reflects the refined implementation.
 
 ## Exit criteria
 
