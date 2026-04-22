@@ -21,6 +21,11 @@ That gives this development arc:
 
 - [plan/overview.md](plan/overview.md) — how to read and maintain this plan set
 
+### Checklists
+
+- [plan/checklists/01-stage-gates.md](plan/checklists/01-stage-gates.md) — completion gates for each stage
+- [plan/checklists/02-release-artifacts.md](plan/checklists/02-release-artifacts.md) — non-code outputs and release bundle expectations
+
 ### Sequential stages
 
 - [plan/stages/01-workspace-bootstrap.md](plan/stages/01-workspace-bootstrap.md)
@@ -39,16 +44,18 @@ That gives this development arc:
 
 ## Directory structure
 
-The current `plan/**` layout is intentionally simple:
+The current `plan/**` layout is intentionally simple and now separates **sequence**, **responsibility**, and **gates**:
 
 - `plan/overview.md` — entry point and usage guidance
 - `plan/stages/*.md` — the ordered delivery path; read these top to bottom
 - `plan/tracks/*.md` — cross-cutting concerns that span multiple stages
+- `plan/checklists/*.md` — shared completion gates and release-output expectations
 
-This structure keeps the plan readable while still separating **sequence** from **responsibility**:
+This structure keeps the plan readable while still separating **sequence** from **responsibility** and **quality control**:
 
 - use a **stage document** to answer “what should happen next?”
 - use a **track document** to answer “what standards apply to this area?”
+- use a **checklist document** to answer “what must be true before we call this done?”
 
 ## Recommended reading paths
 
@@ -57,7 +64,8 @@ This structure keeps the plan readable while still separating **sequence** from 
 1. [SPEC.md](SPEC.md)
 2. [plan/overview.md](plan/overview.md)
 3. stage documents in order
-4. the relevant track document for the area being worked on
+4. [plan/checklists/01-stage-gates.md](plan/checklists/01-stage-gates.md)
+5. the relevant track document for the area being worked on
 
 ### For maintainers planning the next milestone
 
@@ -128,6 +136,8 @@ Do not advance a stage just because code exists. Advance when the current stage 
 - no layering violations against `spec/architecture.md`,
 - a clear statement of what the next stage is allowed to assume.
 
+Use [plan/checklists/01-stage-gates.md](plan/checklists/01-stage-gates.md) as the shared gate before moving forward.
+
 ## Cross-cutting priorities
 
 These priorities apply in every stage:
@@ -146,5 +156,6 @@ At minimum:
 
 - update the relevant stage document when scope or sequencing changes,
 - update the relevant track document when expectations or standards change,
+- update the relevant checklist when completion or release expectations change,
 - keep `PLAN.md` as the stable top-level index into `plan/**`,
-- avoid adding one-off planning files at the repository root when they belong under `plan/stages/` or `plan/tracks/`.
+- avoid adding one-off planning files at the repository root when they belong under `plan/stages/`, `plan/tracks/`, or `plan/checklists/`.
