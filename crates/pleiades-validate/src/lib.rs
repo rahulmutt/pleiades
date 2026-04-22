@@ -20,6 +20,9 @@ use pleiades_vsop87::Vsop87Backend;
 
 const DEFAULT_BENCHMARK_ROUNDS: usize = 10_000;
 const BANNER: &str = "pleiades-validate stage 4 tool";
+const REGRESSION_LONGITUDE_THRESHOLD_DEG: f64 = 45.0;
+const REGRESSION_LATITUDE_THRESHOLD_DEG: f64 = 1.0;
+const REGRESSION_DISTANCE_THRESHOLD_AU: f64 = 0.25;
 
 /// The comparison corpus used by the default validation commands.
 #[derive(Clone, Debug)]
@@ -104,6 +107,21 @@ pub struct ComparisonReport {
     pub summary: ComparisonSummary,
 }
 
+/// A notable regression observed in a comparison report.
+#[derive(Clone, Debug, PartialEq)]
+pub struct RegressionFinding {
+    /// Body that triggered the regression note.
+    pub body: CelestialBody,
+    /// Absolute longitude delta in degrees.
+    pub longitude_delta_deg: f64,
+    /// Absolute latitude delta in degrees.
+    pub latitude_delta_deg: f64,
+    /// Absolute distance delta in astronomical units.
+    pub distance_delta_au: Option<f64>,
+    /// Human-readable note describing why the sample is notable.
+    pub note: String,
+}
+
 /// Benchmark summary for a backend.
 #[derive(Clone, Debug)]
 pub struct BenchmarkReport {
@@ -157,6 +175,8 @@ impl fmt::Display for ValidationReport {
         writeln!(f)?;
         writeln!(f, "Comparison summary")?;
         write_comparison_summary(f, &self.comparison.summary)?;
+        writeln!(f)?;
+        write_regression_section(f, &self.comparison.notable_regressions())?;
         writeln!(f)?;
         writeln!(f, "Benchmark summary")?;
         writeln!(
@@ -359,6 +379,8 @@ impl fmt::Display for ComparisonReport {
         writeln!(f)?;
         write_comparison_summary(f, &self.summary)?;
         writeln!(f)?;
+        write_regression_section(f, &self.notable_regressions())?;
+        writeln!(f)?;
         writeln!(f, "Samples")?;
         for sample in &self.samples {
             writeln!(
@@ -390,6 +412,13 @@ impl fmt::Display for BenchmarkReport {
             "Nanoseconds per request: {}",
             format_ns(self.nanoseconds_per_request())
         )
+    }
+}
+
+impl ComparisonReport {
+    /// Returns the samples that exceed the built-in regression thresholds.
+    pub fn notable_regressions(&self) -> Vec<RegressionFinding> {
+        self.samples.iter().filter_map(regression_finding).collect()
     }
 }
 
@@ -463,6 +492,70 @@ fn write_comparison_summary(
         writeln!(f, "  mean distance delta: {:.12} AU", value)?;
     }
     Ok(())
+}
+
+fn write_regression_section(
+    f: &mut fmt::Formatter<'_>,
+    findings: &[RegressionFinding],
+) -> fmt::Result {
+    writeln!(f, "Notable regressions")?;
+    if findings.is_empty() {
+        writeln!(f, "  none")?;
+        return Ok(());
+    }
+
+    for finding in findings {
+        writeln!(
+            f,
+            "  {}: Δlon={:.12}°, Δlat={:.12}°, Δdist={}, {}",
+            finding.body.built_in_name().unwrap_or("Custom"),
+            finding.longitude_delta_deg,
+            finding.latitude_delta_deg,
+            finding
+                .distance_delta_au
+                .map(|value| format!("{value:.12} AU"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            finding.note
+        )?;
+    }
+    Ok(())
+}
+
+fn regression_finding(sample: &ComparisonSample) -> Option<RegressionFinding> {
+    let mut notes = Vec::new();
+    if sample.longitude_delta_deg >= REGRESSION_LONGITUDE_THRESHOLD_DEG {
+        notes.push(format!(
+            "longitude delta exceeds {:.1}°",
+            REGRESSION_LONGITUDE_THRESHOLD_DEG
+        ));
+    }
+    if sample.latitude_delta_deg >= REGRESSION_LATITUDE_THRESHOLD_DEG {
+        notes.push(format!(
+            "latitude delta exceeds {:.1}°",
+            REGRESSION_LATITUDE_THRESHOLD_DEG
+        ));
+    }
+    if sample
+        .distance_delta_au
+        .is_some_and(|value| value >= REGRESSION_DISTANCE_THRESHOLD_AU)
+    {
+        notes.push(format!(
+            "distance delta exceeds {:.2} AU",
+            REGRESSION_DISTANCE_THRESHOLD_AU
+        ));
+    }
+
+    if notes.is_empty() {
+        return None;
+    }
+
+    Some(RegressionFinding {
+        body: sample.body.clone(),
+        longitude_delta_deg: sample.longitude_delta_deg,
+        latitude_delta_deg: sample.latitude_delta_deg,
+        distance_delta_au: sample.distance_delta_au,
+        note: notes.join(", "),
+    })
 }
 
 fn format_bodies(bodies: &[CelestialBody]) -> String {
@@ -598,6 +691,31 @@ mod tests {
         assert!(report.contains("Reference backend"));
         assert!(report.contains("Candidate backend"));
         assert!(report.contains("Comparison summary"));
+        assert!(report.contains("Notable regressions"));
+    }
+
+    #[test]
+    fn comparison_report_surfaces_regressions() {
+        let corpus = default_corpus();
+        let report = compare_backends(
+            &default_reference_backend(),
+            &default_candidate_backend(),
+            &corpus,
+        )
+        .expect("comparison should succeed");
+
+        let regressions = report.notable_regressions();
+        assert!(!regressions.is_empty());
+        assert!(regressions
+            .iter()
+            .any(|finding| finding.body == CelestialBody::Mars));
+        assert!(regressions
+            .iter()
+            .any(|finding| finding.body == CelestialBody::Neptune));
+        assert!(regressions
+            .iter()
+            .any(|finding| finding.body == CelestialBody::Pluto));
+        assert!(report.to_string().contains("Notable regressions"));
     }
 
     #[test]
