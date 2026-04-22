@@ -24,6 +24,7 @@ dependencies = [
  "pleiades-data",
  "pleiades-elp",
  "pleiades-jpl",
+ "pleiades-validate",
  "pleiades-vsop87",
 ]
 

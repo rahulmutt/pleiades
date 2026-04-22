@@ -365,3 +365,13 @@ Implemented the next Stage 6 catalog-breadth slice:
 - the stage-6 plan should keep this batch grouped with the other ayanamsa-breadth notes so the release profile stays synchronized with the catalog
 
 Remaining Stage 6 work: keep filling out ayanamsa breadth and any release-hardening polish that depends on additional catalog coverage.
+
+## 2026-04-22 — backend capability matrix surfaced in the CLI
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-cli` now exposes `backend-matrix` / `capability-matrix` and reuses the validation report renderer to print the implemented backend capability matrices directly from the user-facing CLI
+- the CLI help text now advertises the backend matrix command alongside the existing compatibility and API-posture views
+- README wording now points out that maintainers can inspect body coverage, time-range notes, and accuracy classes without leaving the repository
+
+Remaining Stage 6 work: keep catalog breadth and release notes aligned as new compatibility entries land, and continue any release-hardening polish that depends on broader coverage or automation.

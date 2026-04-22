@@ -15,6 +15,7 @@ use pleiades_core::{
 use pleiades_data::PackagedDataBackend;
 use pleiades_elp::ElpBackend;
 use pleiades_jpl::JplSnapshotBackend;
+use pleiades_validate::render_backend_matrix_report;
 use pleiades_vsop87::Vsop87Backend;
 
 fn banner() -> &'static str {
@@ -29,9 +30,12 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("api-stability") | Some("api-posture") => {
             Ok(current_api_stability_profile().to_string())
         }
+        Some("backend-matrix") | Some("capability-matrix") => {
+            render_backend_matrix_report().map_err(render_error)
+        }
         Some("chart") => render_chart(&args[1..]),
         Some("help") | Some("--help") | Some("-h") => Ok(format!(
-            "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  chart                  Render a basic chart report\n  help                   Show this help text",
+            "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  backend-matrix         Print the implemented backend capability matrices\n  capability-matrix      Alias for backend-matrix\n  chart                  Render a basic chart report\n  help                   Show this help text",
             banner()
         )),
         _ => Ok(banner().to_string()),
@@ -200,6 +204,17 @@ mod tests {
         assert!(rendered.contains("API stability posture: pleiades-api-stability/0.1.0"));
         assert!(rendered.contains("Stable consumer surfaces:"));
         assert!(rendered.contains("Experimental or operational surfaces:"));
+    }
+
+    #[test]
+    fn backend_matrix_command_renders_the_implemented_catalog() {
+        let rendered = render_cli(&["backend-matrix"]).expect("backend matrix should render");
+        assert!(rendered.contains("Implemented backend matrices"));
+        assert!(rendered.contains("JPL snapshot reference backend"));
+        assert!(rendered.contains("VSOP87 planetary backend"));
+        assert!(rendered.contains("ELP lunar backend"));
+        assert!(rendered.contains("Packaged data backend"));
+        assert!(rendered.contains("Composite routed backend"));
     }
 
     #[test]

@@ -76,6 +76,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] Topocentric (Polich-Page) now uses a geodetic-to-geocentric latitude correction with elevation-aware ellipsoid handling, and the catalog note reflects the refined implementation.
 - [x] The chart façade now exposes a motion-direction helper for body placements, so future chart reports and consumers can surface retrograde/direct state from backend motion data without adding backend-specific logic.
 - [x] `pleiades-core::ChartSnapshot` now offers direct body lookup and retrograde-summary helpers, and chart rendering emits a retrograde-body summary when motion data is available.
+- [x] `pleiades-cli` now exposes the implemented backend capability matrices directly via `backend-matrix` / `capability-matrix`, so maintainers can inspect coverage, range, and accuracy notes from the user-facing CLI.
 
 ## Exit criteria
 
