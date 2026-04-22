@@ -75,12 +75,14 @@ pub const fn current_compatibility_profile() -> CompatibilityProfile {
         release_notes: &[
             "Release-specific house-system additions now include Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter (poli-equatorial), Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen SD, Pullen SR, Sunshine, and Gauquelin sectors, with the Whole Sign (house 1 = Aries) label also resolving as an interoperability alias.",
             "Release-specific ayanamsa additions now include J2000, J1900, B1950, DeLuce, Yukteshwar, PVR Pushya-paksha, Sheoran, True Revati, True Mula, Suryasiddhanta (Revati), Suryasiddhanta (Citra), Lahiri (ICRC), Lahiri (1940), Usha Shashi, Suryasiddhanta (499 CE), Aryabhata (499 CE), Sassanian, Hipparchus, Babylonian (Kugler 1), Babylonian (Kugler 2), Babylonian (Kugler 3), Babylonian (Huber), Babylonian (Eta Piscium), Babylonian (Aldebaran), Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs), True Pushya, Udayagiri, Djwhal Khul, JN Bhasin, Suryasiddhanta (Mean Sun), Aryabhata (Mean Sun), Babylonian (Britton), Aryabhata (522 CE), Lahiri (VP285), Krishnamurti (VP291), True Sheoran, Valens Moon, Galactic Center (Rgilbrand), Galactic Center (Mardyks), Galactic Center (Mula/Wilhelm), Dhruva Galactic Center (Middle Mula), Galactic Center (Cochrane), Galactic Equator (IAU 1958), Galactic Equator (True), Galactic Equator (Mula), Galactic Equator (Fiorenza), Galactic Center, and Galactic Equator, and the plain Moon alias also resolves to Valens Moon for compatibility with existing label variants.",
+            "Non-standard ayanamsa labels such as True Balarama, Aphoric, and Takra are intentionally treated as custom definitions until a documented source mapping is added.",
             "The compatibility profile is intended to be archived with release validation outputs and release notes.",
         ],
         known_gaps: &[
             "Stage 4 validation against external reference data is still the next source of accuracy tightening for house formulas.",
             "Additional Swiss Ephemeris ayanamsa modes remain scheduled for future release-breadth batches, even after adding the Hipparchus, Babylonian house/sissy/true-geoc/true-topc/true-obs/house-obs, Galactic, True Pushya, Djwhal Khul, JN Bhasin, mean-sun, and VP285/VP291 families to the catalog.",
             "The newly added historical/reference-frame and formula-variant ayanamsa modes are catalogued and resolvable, but most do not yet carry sidereal offset metadata for chart-layer conversion; Babylonian (Huber), Galactic Equator (IAU 1958), Udayagiri, and Valens Moon now do.",
+            "Labels outside the published compatibility profile, including ad hoc names such as True Balarama, Aphoric, and Takra, should be modeled as custom ayanamsa definitions rather than assumed to be built-ins.",
         ],
     }
 }
@@ -542,5 +544,7 @@ mod tests {
         assert!(rendered.contains("Known gaps:"));
         assert!(rendered.contains("Placidus"));
         assert!(rendered.contains("Lahiri"));
+        assert!(rendered.contains("True Balarama"));
+        assert!(rendered.contains("custom definitions"));
     }
 }

@@ -1085,6 +1085,7 @@ const SIDEREAL_PRECESSION_DEGREES_PER_CENTURY: f64 = 1.396_971_277_777_777_8;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pleiades_types::CustomAyanamsa;
 
     #[test]
     fn baseline_catalog_includes_required_milestone_entries() {
@@ -1335,5 +1336,22 @@ mod tests {
             .expect("Valens Moon offset should exist")
             .degrees()
             .is_finite());
+    }
+
+    #[test]
+    fn custom_ayanamsa_uses_explicit_epoch_and_offset_metadata() {
+        let custom = Ayanamsa::Custom(CustomAyanamsa {
+            name: "True Balarama".to_owned(),
+            description: Some("Custom label for a non-built-in sidereal variant".to_owned()),
+            epoch: Some(JulianDay::from_days(2_451_545.0)),
+            offset_degrees: Some(Angle::from_degrees(12.5)),
+        });
+        let instant = Instant::new(
+            JulianDay::from_days(2_451_545.0),
+            pleiades_types::TimeScale::Tt,
+        );
+
+        let offset = sidereal_offset(&custom, instant).expect("custom offset should exist");
+        assert_eq!(offset, Angle::from_degrees(12.5));
     }
 }

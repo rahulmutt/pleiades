@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-22 — non-standard ayanamsa labels now treated as custom-definition territory
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-core` now calls out non-standard ayanamsa labels such as True Balarama, Aphoric, and Takra in the compatibility profile as custom-definition territory instead of implying that they are built-in Swiss Ephemeris selections
+- `pleiades-ayanamsa` now has a regression test that exercises the `Ayanamsa::Custom` sidereal-offset path with a project-specific label, so maintainers have a concrete example for custom compatibility mappings
+- the Stage 6 plan progress notes should be updated to reflect the new custom-label guidance slice once the change is recorded
+
+Remaining Stage 6 work: keep catalog breadth, release notes, and custom-label interoperability guidance synchronized as additional compatibility entries land.
+
 ## 2026-04-22 — body display formatting now preserves custom body identifiers
 
 Implemented a small Stage 6 ergonomics slice:
