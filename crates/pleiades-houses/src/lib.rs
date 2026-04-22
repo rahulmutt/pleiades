@@ -202,9 +202,16 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         "Midpoint variant of the Porphyry quadrants used in Jyotiṣa.",
         false,
     ),
+    HouseSystemDescriptor::new(
+        HouseSystem::Carter,
+        "Carter (poli-equatorial)",
+        &["Carter", "Poli-Equatorial", "Poli-equatorial"],
+        "Equal right-ascension segments anchored on the Ascendant's meridian.",
+        false,
+    ),
 ];
 
-static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 16] = [
+static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 17] = [
     HouseSystemDescriptor::new(
         HouseSystem::Placidus,
         "Placidus",
@@ -238,6 +245,13 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 16] = [
         "Campanus",
         &["Campanus houses"],
         "Great-circle division system.",
+        false,
+    ),
+    HouseSystemDescriptor::new(
+        HouseSystem::Carter,
+        "Carter (poli-equatorial)",
+        &["Carter", "Poli-Equatorial", "Poli-equatorial"],
+        "Equal right-ascension segments anchored on the Ascendant's meridian.",
         false,
     ),
     HouseSystemDescriptor::new(
@@ -389,6 +403,7 @@ mod tests {
             Some(HouseSystem::WholeSign)
         );
         assert_eq!(resolve_house_system("w. koch"), Some(HouseSystem::Koch));
+        assert_eq!(resolve_house_system("Carter"), Some(HouseSystem::Carter));
         assert_eq!(
             resolve_house_system("Equal (from MC)"),
             Some(HouseSystem::EqualMidheaven)
@@ -408,7 +423,13 @@ mod tests {
             .map(|entry| entry.canonical_name)
             .collect();
 
-        for expected in ["Equal (MC)", "Equal (1=Aries)", "Vehlow Equal", "Sripati"] {
+        for expected in [
+            "Equal (MC)",
+            "Equal (1=Aries)",
+            "Vehlow Equal",
+            "Sripati",
+            "Carter (poli-equatorial)",
+        ] {
             assert!(names.contains(&expected), "missing {expected}");
         }
     }

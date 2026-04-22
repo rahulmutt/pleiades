@@ -7,8 +7,9 @@
 //!
 //! Equal, Whole Sign, and Porphyry remain the simplest space/ecliptic systems.
 //! Placidus, Koch, Alcabitius, and Topocentric use iterative or time-divisional
-//! formulas. Regiomontanus, Campanus, Morinus, Meridian, and Axial variants
-//! are projected from their equatorial or prime-vertical constructions.
+//! formulas. Regiomontanus, Campanus, Carter, Morinus, Meridian, and Axial
+//! variants are projected from their equatorial or prime-vertical
+//! constructions.
 //!
 //! The formulas are intentionally explicit and documented so later validation
 //! work can tighten them further without changing the public API surface.
@@ -166,6 +167,7 @@ pub fn calculate_houses(request: &HouseRequest) -> Result<HouseSnapshot, HouseEr
         HouseSystem::Campanus => {
             campanus_houses(request.instant, &request.observer, obliquity, angles)
         }
+        HouseSystem::Carter => carter_houses(angles, obliquity),
         HouseSystem::Alcabitius => {
             alcabitius_houses(request.instant, &request.observer, obliquity, angles)
         }
@@ -500,6 +502,18 @@ fn equatorial_projection_houses(
     })
 }
 
+fn carter_houses(angles: HouseAngles, obliquity: Angle) -> [Longitude; 12] {
+    let reference_ra =
+        right_ascension_from_ecliptic_longitude(angles.ascendant, obliquity.degrees().to_radians());
+
+    core::array::from_fn(|index| {
+        ecliptic_longitude_from_ra(
+            reference_ra + (index as f64) * 30.0,
+            obliquity.degrees().to_radians(),
+        )
+    })
+}
+
 fn sripati_houses(angles: HouseAngles) -> [Longitude; 12] {
     let porphyry = porphyry_houses(angles);
     core::array::from_fn(|index| {
@@ -596,6 +610,13 @@ fn solve_placidian_cusp(
     })
 }
 
+fn right_ascension_from_ecliptic_longitude(longitude: Longitude, obliquity: f64) -> f64 {
+    let longitude = longitude.degrees().to_radians();
+    (longitude.sin() * obliquity.cos())
+        .atan2(longitude.cos())
+        .to_degrees()
+}
+
 fn ecliptic_longitude_from_ra(ra_deg: f64, obliquity: f64) -> Longitude {
     let ra = ra_deg.to_radians();
     Longitude::from_degrees(ra.sin().atan2(ra.cos() * obliquity.cos()).to_degrees())
@@ -633,6 +654,7 @@ fn catalog_name(system: &HouseSystem) -> &'static str {
         HouseSystem::Porphyry => "Porphyry",
         HouseSystem::Regiomontanus => "Regiomontanus",
         HouseSystem::Campanus => "Campanus",
+        HouseSystem::Carter => "Carter (poli-equatorial)",
         HouseSystem::Equal => "Equal",
         HouseSystem::EqualMidheaven => "Equal (MC)",
         HouseSystem::EqualAries => "Equal (1=Aries)",
@@ -652,7 +674,7 @@ fn catalog_name(system: &HouseSystem) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pleiades_types::Latitude;
+    use pleiades_types::{Angle, Latitude};
 
     fn observer() -> ObserverLocation {
         ObserverLocation::new(
@@ -772,6 +794,7 @@ mod tests {
             HouseSystem::Koch,
             HouseSystem::Regiomontanus,
             HouseSystem::Campanus,
+            HouseSystem::Carter,
             HouseSystem::Alcabitius,
             HouseSystem::Meridian,
             HouseSystem::Axial,
@@ -782,6 +805,19 @@ mod tests {
                 .expect("baseline quadrant system should calculate");
             assert_eq!(snapshot.cusps.len(), 12);
         }
+    }
+
+    #[test]
+    fn carter_houses_follow_ascendant_centered_equatorial_spacing() {
+        let request = sample_request(HouseSystem::Carter).with_obliquity(Angle::from_degrees(0.0));
+        let snapshot = calculate_houses(&request).expect("carter houses should work");
+        assert!(
+            (snapshot.cusps[0].degrees() - snapshot.angles.ascendant.degrees()).abs() < 1.0e-10
+        );
+        assert_eq!(
+            (snapshot.cusps[1].degrees() - snapshot.cusps[0].degrees()).rem_euclid(360.0),
+            30.0
+        );
     }
 
     #[test]

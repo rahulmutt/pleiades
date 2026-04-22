@@ -165,3 +165,13 @@ Implemented the next Stage 6 catalog-breadth slice:
 - `pleiades-core` now surfaces the expanded ayanamsa catalog in the release compatibility profile, and the CLI/validation paths inherit the broader resolution set automatically
 
 Remaining Stage 6 work: broader house-system breadth, API posture review, and any remaining release-hardening polish that depends on additional coverage.
+
+## 2026-04-22 — Carter house-system breadth added
+
+Implemented the next Stage 6 catalog-breadth slice:
+
+- `pleiades-types` gained `HouseSystem::Carter` for the poli-equatorial house system
+- `pleiades-houses` now catalogs, resolves, documents, and calculates Carter (poli-equatorial)
+- `pleiades-core` and the release compatibility profile now expose Carter in the release-specific house-system coverage set
+
+Remaining Stage 6 work: broader house-system breadth, API posture review, and any remaining release-hardening polish that depends on additional coverage.

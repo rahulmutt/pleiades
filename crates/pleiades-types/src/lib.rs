@@ -434,6 +434,8 @@ pub enum HouseSystem {
     Regiomontanus,
     /// Campanus.
     Campanus,
+    /// Carter (poli-equatorial) houses.
+    Carter,
     /// Equal houses.
     Equal,
     /// Equal houses with the Midheaven on cusp 10.
