@@ -46,6 +46,8 @@ pub struct ChartRequest {
     pub bodies: Vec<CelestialBody>,
     /// Desired zodiac mode.
     pub zodiac_mode: ZodiacMode,
+    /// Preferred apparentness for backend position queries.
+    pub apparentness: Apparentness,
     /// Optional house-system request.
     pub house_system: Option<HouseSystem>,
 }
@@ -58,6 +60,7 @@ impl ChartRequest {
             observer: None,
             bodies: default_chart_bodies().to_vec(),
             zodiac_mode: ZodiacMode::Tropical,
+            apparentness: Apparentness::Mean,
             house_system: None,
         }
     }
@@ -77,6 +80,12 @@ impl ChartRequest {
     /// Sets the zodiac mode.
     pub fn with_zodiac_mode(mut self, zodiac_mode: ZodiacMode) -> Self {
         self.zodiac_mode = zodiac_mode;
+        self
+    }
+
+    /// Sets the preferred apparentness.
+    pub fn with_apparentness(mut self, apparentness: Apparentness) -> Self {
+        self.apparentness = apparentness;
         self
     }
 
@@ -292,7 +301,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                     observer: request.observer.clone(),
                     frame: pleiades_types::CoordinateFrame::Ecliptic,
                     zodiac_mode: backend_zodiac_mode.clone(),
-                    apparent: Apparentness::Mean,
+                    apparent: request.apparentness,
                 };
                 let mut position = self.backend.position(&body_request)?;
                 let sign = if matches!(request.zodiac_mode, ZodiacMode::Sidereal { .. })
@@ -470,6 +479,25 @@ mod tests {
             request.zodiac_mode
         );
         assert_eq!(chart.placements[0].sign, Some(ZodiacSign::Pisces));
+    }
+
+    #[test]
+    fn chart_snapshot_preserves_apparentness_choice() {
+        let engine = ChartEngine::new(ToyChartBackend);
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2451545.0),
+            TimeScale::Tt,
+        ))
+        .with_bodies(vec![CelestialBody::Sun])
+        .with_apparentness(Apparentness::Apparent);
+
+        let chart = engine
+            .chart(&request)
+            .expect("apparent chart should render");
+        assert_eq!(
+            chart.placements[0].position.apparent,
+            Apparentness::Apparent
+        );
     }
 
     #[test]
