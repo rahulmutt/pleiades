@@ -9,3 +9,4 @@ publish = false
 [dependencies]
 pleiades-backend = { path = "../pleiades-backend" }
 pleiades-compression = { path = "../pleiades-compression" }
+pleiades-jpl = { path = "../pleiades-jpl" }

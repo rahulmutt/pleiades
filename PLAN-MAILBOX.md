@@ -114,3 +114,13 @@ Implemented the first Stage 6 release-hardening slice:
 - CLI help text and plan notes were updated to describe the profile as a release artifact instead of only a stage-3 baseline note
 
 Next recommended slice: keep the compatibility profile current as catalog breadth expands, then move on to the remaining Stage 6 release-hardening work (automation, API posture, and broader catalog coverage).
+
+## 2026-04-22 — packaged artifact coverage broadened
+
+Implemented the next Stage 5 slice:
+
+- `pleiades-data` now generates its bundled artifact from the checked-in JPL reference snapshot instead of hardcoded Sun/Moon constants
+- the packaged artifact now covers the full comparison-body planetary set (`Sun` through `Pluto`) with two interpolated segments for the inner bodies and point segments for the outer bodies at J2000
+- `validate-artifact` now reports the broader body coverage automatically, and the codec roundtrip tests now assert the expanded packaged body count
+
+Stage 5 now appears complete; the remaining planned work is the Stage 6 release-hardening backlog (automation, broader catalog breadth, and public API posture).

@@ -50,6 +50,7 @@ version = "0.1.0"
 dependencies = [
  "pleiades-backend",
  "pleiades-compression",
+ "pleiades-jpl",
 ]
 
 [[package]]

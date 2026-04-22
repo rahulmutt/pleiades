@@ -991,6 +991,8 @@ mod tests {
         assert!(report.contains("Bodies"));
         assert!(report.contains("Sun"));
         assert!(report.contains("Moon"));
+        assert!(report.contains("Jupiter"));
+        assert!(report.contains("Pluto"));
         assert!(report.contains("boundary checks"));
         assert!(report.contains("Model error envelope"));
         assert!(report.contains("baseline backend"));

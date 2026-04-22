@@ -1,49 +1,43 @@
 //! Packaged compressed ephemeris backend for the common 1500-2500 range.
 //!
 //! This crate now ships a small stage-5 prototype artifact backed by the
-//! `pleiades-compression` codec. The bundled data currently covers Sun and Moon
-//! positions via quantized linear segments fitted to checked-in reference
-//! epochs, and the backend falls back to other providers when callers request
-//! bodies outside that packaged slice.
+//! `pleiades-compression` codec. The bundled data currently covers the
+//! comparison-body planetary set via quantized linear segments fitted to
+//! checked-in reference epochs, and the backend falls back to other providers
+//! when callers request bodies outside that packaged slice.
 
 #![forbid(unsafe_code)]
 
+use std::cmp::Ordering;
 use std::sync::OnceLock;
 
 use pleiades_backend::{
     AccuracyClass, Apparentness, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
     BackendProvenance, CelestialBody, CoordinateFrame, EclipticCoordinates, EphemerisBackend,
-    EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult, Instant, JulianDay,
+    EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult, Instant,
     QualityAnnotation, TimeRange, TimeScale, ZodiacMode,
 };
 use pleiades_compression::{
     ArtifactHeader, BodyArtifact, ChannelKind, CompressedArtifact, PolynomialChannel, Segment,
 };
+use pleiades_jpl::{reference_snapshot, SnapshotEntry};
 
 const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data prototype";
-const ARTIFACT_SOURCE: &str = "Quantized linear segments fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the Sun and Moon.";
-const SUN_1800_JD: f64 = 2_378_499.0;
-const SUN_2000_JD: f64 = 2_451_545.0;
-const SUN_2500_JD: f64 = 2_634_167.0;
-const SUN_1800_LONGITUDE: f64 = 285.778_468_393_866_8;
-const SUN_1800_LATITUDE: f64 = -0.024_401_746_407_338_283;
-const SUN_1800_DISTANCE: f64 = 0.983_232_199_627_031_7;
-const SUN_2000_LONGITUDE: f64 = 280.377_822_768_143_5;
-const SUN_2000_LATITUDE: f64 = 0.000_238_038_039_435_946_87;
-const SUN_2000_DISTANCE: f64 = 0.983_327_678_869_055_9;
-const SUN_2500_LONGITUDE: f64 = 274.030_996_829_848_1;
-const SUN_2500_LATITUDE: f64 = 0.064_094_000_674_339_67;
-const SUN_2500_DISTANCE: f64 = 0.983_818_643_245_76;
-const MOON_1800_LONGITUDE: f64 = 21.707_800_882_436_008;
-const MOON_1800_LATITUDE: f64 = -1.326_602_070_741_392_1;
-const MOON_1800_DISTANCE: f64 = 0.002_690_214_220_051_901_4;
-const MOON_2000_LONGITUDE: f64 = 223.318_924_130_496_44;
-const MOON_2000_LATITUDE: f64 = 5.170_871_614_272_694;
-const MOON_2000_DISTANCE: f64 = 0.002_690_202_995_704_765;
-const MOON_2500_LONGITUDE: f64 = 272.026_168_351_137_6;
-const MOON_2500_LATITUDE: f64 = 4.909_877_340_766_432;
-const MOON_2500_DISTANCE: f64 = 0.002_387_075_486_659_366_2;
+const ARTIFACT_SOURCE: &str = "Quantized linear segments fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set, with J2000 point segments for the outer planets and Pluto.";
+const PACKAGED_BODIES: [CelestialBody; 10] = [
+    CelestialBody::Sun,
+    CelestialBody::Moon,
+    CelestialBody::Mercury,
+    CelestialBody::Venus,
+    CelestialBody::Mars,
+    CelestialBody::Jupiter,
+    CelestialBody::Saturn,
+    CelestialBody::Uranus,
+    CelestialBody::Neptune,
+    CelestialBody::Pluto,
+];
+const AU_IN_KM: f64 = 149_597_870.7;
 
 /// Returns the canonical package name for this crate.
 pub const fn package_name() -> &'static str {
@@ -61,7 +55,7 @@ pub fn packaged_lookup(
     body: &CelestialBody,
     instant: Instant,
 ) -> Result<EclipticCoordinates, pleiades_compression::CompressionError> {
-    packaged_artifact().lookup_ecliptic(body, instant)
+    packaged_artifact().lookup_ecliptic(body, normalize_lookup_instant(instant))
 }
 
 /// Returns a packaged-data backend instance.
@@ -167,7 +161,7 @@ impl EphemerisBackend for PackagedDataBackend {
         }
 
         let ecliptic = packaged_artifact()
-            .lookup_ecliptic(&req.body, req.instant)
+            .lookup_ecliptic(&req.body, normalize_lookup_instant(req.instant))
             .map_err(map_artifact_error)?;
 
         let mut result = EphemerisResult::new(
@@ -187,58 +181,7 @@ impl EphemerisBackend for PackagedDataBackend {
 fn build_packaged_artifact() -> CompressedArtifact {
     let mut artifact = CompressedArtifact::new(
         ArtifactHeader::new(ARTIFACT_LABEL, ARTIFACT_SOURCE),
-        vec![
-            BodyArtifact::new(
-                CelestialBody::Sun,
-                vec![
-                    segment(SegmentSpec {
-                        start_jd: SUN_1800_JD,
-                        end_jd: SUN_2000_JD,
-                        start_longitude: SUN_1800_LONGITUDE,
-                        end_longitude: SUN_2000_LONGITUDE,
-                        start_latitude: SUN_1800_LATITUDE,
-                        end_latitude: SUN_2000_LATITUDE,
-                        start_distance: SUN_1800_DISTANCE,
-                        end_distance: SUN_2000_DISTANCE,
-                    }),
-                    segment(SegmentSpec {
-                        start_jd: SUN_2000_JD,
-                        end_jd: SUN_2500_JD,
-                        start_longitude: SUN_2000_LONGITUDE,
-                        end_longitude: SUN_2500_LONGITUDE,
-                        start_latitude: SUN_2000_LATITUDE,
-                        end_latitude: SUN_2500_LATITUDE,
-                        start_distance: SUN_2000_DISTANCE,
-                        end_distance: SUN_2500_DISTANCE,
-                    }),
-                ],
-            ),
-            BodyArtifact::new(
-                CelestialBody::Moon,
-                vec![
-                    segment(SegmentSpec {
-                        start_jd: SUN_1800_JD,
-                        end_jd: SUN_2000_JD,
-                        start_longitude: MOON_1800_LONGITUDE,
-                        end_longitude: MOON_2000_LONGITUDE,
-                        start_latitude: MOON_1800_LATITUDE,
-                        end_latitude: MOON_2000_LATITUDE,
-                        start_distance: MOON_1800_DISTANCE,
-                        end_distance: MOON_2000_DISTANCE,
-                    }),
-                    segment(SegmentSpec {
-                        start_jd: SUN_2000_JD,
-                        end_jd: SUN_2500_JD,
-                        start_longitude: MOON_2000_LONGITUDE,
-                        end_longitude: MOON_2500_LONGITUDE,
-                        start_latitude: MOON_2000_LATITUDE,
-                        end_latitude: MOON_2500_LATITUDE,
-                        start_distance: MOON_2000_DISTANCE,
-                        end_distance: MOON_2500_DISTANCE,
-                    }),
-                ],
-            ),
-        ],
+        packaged_body_artifacts(),
     );
     artifact.checksum = artifact
         .checksum()
@@ -246,42 +189,81 @@ fn build_packaged_artifact() -> CompressedArtifact {
     artifact
 }
 
-#[derive(Clone, Copy)]
-struct SegmentSpec {
-    start_jd: f64,
-    end_jd: f64,
-    start_longitude: f64,
-    end_longitude: f64,
-    start_latitude: f64,
-    end_latitude: f64,
-    start_distance: f64,
-    end_distance: f64,
+fn packaged_body_artifacts() -> Vec<BodyArtifact> {
+    let mut artifacts = Vec::new();
+    let snapshot = reference_snapshot();
+
+    for body in PACKAGED_BODIES {
+        let mut entries: Vec<&SnapshotEntry> =
+            snapshot.iter().filter(|entry| entry.body == body).collect();
+        if entries.is_empty() {
+            continue;
+        }
+
+        entries.sort_by(|left, right| {
+            left.epoch
+                .julian_day
+                .days()
+                .partial_cmp(&right.epoch.julian_day.days())
+                .unwrap_or(Ordering::Equal)
+        });
+
+        let segments = if entries.len() == 1 {
+            vec![segment_from_entries(entries[0], entries[0])]
+        } else {
+            entries
+                .windows(2)
+                .map(|pair| segment_from_entries(pair[0], pair[1]))
+                .collect()
+        };
+
+        artifacts.push(BodyArtifact::new(body, segments));
+    }
+
+    artifacts
 }
 
-fn segment(spec: SegmentSpec) -> Segment {
+fn segment_from_entries(start: &SnapshotEntry, end: &SnapshotEntry) -> Segment {
+    let start_coordinates = coordinates(start);
+    let end_coordinates = coordinates(end);
     Segment::new(
-        Instant::new(JulianDay::from_days(spec.start_jd), TimeScale::Tt),
-        Instant::new(JulianDay::from_days(spec.end_jd), TimeScale::Tt),
+        Instant::new(start.epoch.julian_day, TimeScale::Tt),
+        Instant::new(end.epoch.julian_day, TimeScale::Tt),
         vec![
             PolynomialChannel::linear(
                 ChannelKind::Longitude,
                 9,
-                spec.start_longitude,
-                spec.end_longitude,
+                start_coordinates.longitude.degrees(),
+                end_coordinates.longitude.degrees(),
             ),
             PolynomialChannel::linear(
                 ChannelKind::Latitude,
                 9,
-                spec.start_latitude,
-                spec.end_latitude,
+                start_coordinates.latitude.degrees(),
+                end_coordinates.latitude.degrees(),
             ),
             PolynomialChannel::linear(
                 ChannelKind::DistanceAu,
                 12,
-                spec.start_distance,
-                spec.end_distance,
+                start_coordinates.distance_au.unwrap_or_default(),
+                end_coordinates.distance_au.unwrap_or_default(),
             ),
         ],
+    )
+}
+
+fn coordinates(entry: &SnapshotEntry) -> EclipticCoordinates {
+    let radius_km =
+        (entry.x_km * entry.x_km + entry.y_km * entry.y_km + entry.z_km * entry.z_km).sqrt();
+    let longitude = entry.y_km.atan2(entry.x_km).to_degrees();
+    let latitude = (entry.z_km / radius_km)
+        .clamp(-1.0, 1.0)
+        .asin()
+        .to_degrees();
+    EclipticCoordinates::new(
+        pleiades_backend::Longitude::from_degrees(longitude),
+        pleiades_backend::Latitude::from_degrees(latitude),
+        Some(radius_km / AU_IN_KM),
     )
 }
 
@@ -313,6 +295,14 @@ fn artifact_time_range(artifact: &CompressedArtifact) -> TimeRange {
         }
     }
     TimeRange::new(start, end)
+}
+
+fn normalize_lookup_instant(instant: Instant) -> Instant {
+    match instant.scale {
+        TimeScale::Tt => instant,
+        TimeScale::Tdb => Instant::new(instant.julian_day, TimeScale::Tt),
+        _ => instant,
+    }
 }
 
 fn map_artifact_error(error: pleiades_compression::CompressionError) -> EphemerisError {
@@ -352,21 +342,26 @@ mod tests {
         let decoded =
             CompressedArtifact::decode(&encoded).expect("packaged artifact should decode");
         assert_eq!(decoded.header.generation_label, ARTIFACT_LABEL);
-        assert_eq!(decoded.bodies.len(), 2);
+        assert_eq!(decoded.bodies.len(), PACKAGED_BODIES.len());
         assert_eq!(decoded.checksum, artifact.checksum);
     }
 
     #[test]
     fn lookup_uses_packaged_segments() {
-        let ecliptic = packaged_lookup(
-            &CelestialBody::Sun,
-            Instant::new(JulianDay::from_days(SUN_2000_JD), TimeScale::Tt),
-        )
-        .expect("packaged lookup should succeed");
+        let reference = reference_snapshot()
+            .iter()
+            .find(|entry| {
+                entry.body == CelestialBody::Sun
+                    && (entry.epoch.julian_day.days() - 2_451_545.0).abs() < f64::EPSILON
+            })
+            .expect("reference snapshot should include the Sun at J2000");
+        let ecliptic = packaged_lookup(&CelestialBody::Sun, reference.epoch)
+            .expect("packaged lookup should succeed");
+        let expected = coordinates(reference);
 
-        assert!((ecliptic.longitude.degrees() - SUN_2000_LONGITUDE).abs() < 1e-8);
-        assert!((ecliptic.latitude.degrees() - SUN_2000_LATITUDE).abs() < 1e-8);
-        assert!((ecliptic.distance_au.unwrap() - SUN_2000_DISTANCE).abs() < 1e-12);
+        assert!((ecliptic.longitude.degrees() - expected.longitude.degrees()).abs() < 1e-8);
+        assert!((ecliptic.latitude.degrees() - expected.latitude.degrees()).abs() < 1e-8);
+        assert!((ecliptic.distance_au.unwrap() - expected.distance_au.unwrap()).abs() < 1e-12);
     }
 
     #[test]
@@ -376,5 +371,7 @@ mod tests {
         assert_eq!(metadata.family, BackendFamily::CompressedData);
         assert!(metadata.body_coverage.contains(&CelestialBody::Sun));
         assert!(metadata.body_coverage.contains(&CelestialBody::Moon));
+        assert!(metadata.body_coverage.contains(&CelestialBody::Jupiter));
+        assert!(metadata.body_coverage.contains(&CelestialBody::Pluto));
     }
 }
