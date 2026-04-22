@@ -266,8 +266,8 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         "Hipparchus",
         &["Hipparchos"],
         "Swiss Ephemeris' Hipparchus sidereal mode, named for the Greek astronomer whose precession model underlies the historical reference frame.",
-        None,
-        None,
+        Some(JulianDay::from_days(1_674_484.0)),
+        Some(Angle::from_degrees(-9.333_333_333_333_334)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianKugler1,
@@ -306,16 +306,16 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         "Babylonian (Eta Piscium)",
         &["Babylonian Eta Piscium", "Eta Piscium"],
         "Babylonian sidereal mode aligned to the Eta Piscium fiducial star.",
-        None,
-        None,
+        Some(JulianDay::from_days(1_807_871.964_797)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianAldebaran,
         "Babylonian (Aldebaran)",
         &["Babylonian Aldebaran", "Babylonian 15 Tau", "15 Tau"],
         "Babylonian sidereal mode aligned to Aldebaran / 15 Taurus.",
-        None,
-        None,
+        Some(JulianDay::from_days(1_801_643.133_503)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianHouse,
@@ -377,9 +377,9 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Ayanamsa::GalacticEquator,
         "Galactic Equator",
         &["Galactic equator", "Gal. Eq."],
-        "Galactic-equator sidereal reference mode.",
-        None,
-        None,
+        "Galactic-equator sidereal reference mode. The true/modern variant is anchored to the 1665728.603158 JD zero point described in the Swiss Ephemeris documentation.",
+        Some(JulianDay::from_days(1_665_728.603_158)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::TruePushya,
@@ -410,8 +410,8 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         "JN Bhasin",
         &["J. N. Bhasin", "Bhasin"],
         "J. N. Bhasin sidereal mode.",
-        None,
-        None,
+        Some(JulianDay::from_days(2_454_239.282_537)),
+        Some(Angle::from_degrees(0.013_968_911_416_666_667)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::Suryasiddhanta499MeanSun,
@@ -526,9 +526,9 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Ayanamsa::GalacticEquatorTrue,
         "Galactic Equator (True)",
         &["True galactic equator", "Galactic equator true"],
-        "Galactic-equator reference mode using the true-galactic definition.",
-        None,
-        None,
+        "Galactic-equator reference mode using the true-galactic definition. The true/modern variant is anchored to the 1665728.603158 JD zero point described in the Swiss Ephemeris documentation.",
+        Some(JulianDay::from_days(1_665_728.603_158)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticEquatorMula,
@@ -738,8 +738,8 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
         "Hipparchus",
         &["Hipparchos"],
         "Swiss Ephemeris' Hipparchus sidereal mode, named for the Greek astronomer whose precession model underlies the historical reference frame.",
-        None,
-        None,
+        Some(JulianDay::from_days(1_674_484.0)),
+        Some(Angle::from_degrees(-9.333_333_333_333_334)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianKugler1,
@@ -778,16 +778,16 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
         "Babylonian (Eta Piscium)",
         &["Babylonian Eta Piscium", "Eta Piscium"],
         "Babylonian sidereal mode aligned to the Eta Piscium fiducial star.",
-        None,
-        None,
+        Some(JulianDay::from_days(1_807_871.964_797)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianAldebaran,
         "Babylonian (Aldebaran)",
         &["Babylonian Aldebaran", "Babylonian 15 Tau", "15 Tau"],
         "Babylonian sidereal mode aligned to Aldebaran / 15 Taurus.",
-        None,
-        None,
+        Some(JulianDay::from_days(1_801_643.133_503)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianHouse,
@@ -849,9 +849,9 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
         Ayanamsa::GalacticEquator,
         "Galactic Equator",
         &["Galactic equator", "Gal. Eq."],
-        "Galactic-equator sidereal reference mode.",
-        None,
-        None,
+        "Galactic-equator sidereal reference mode. The true/modern variant is anchored to the 1665728.603158 JD zero point described in the Swiss Ephemeris documentation.",
+        Some(JulianDay::from_days(1_665_728.603_158)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::TruePushya,
@@ -882,8 +882,8 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
         "JN Bhasin",
         &["J. N. Bhasin", "Bhasin"],
         "J. N. Bhasin sidereal mode.",
-        None,
-        None,
+        Some(JulianDay::from_days(2_454_239.282_537)),
+        Some(Angle::from_degrees(0.013_968_911_416_666_667)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::Suryasiddhanta499MeanSun,
@@ -998,9 +998,9 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
         Ayanamsa::GalacticEquatorTrue,
         "Galactic Equator (True)",
         &["True galactic equator", "Galactic equator true"],
-        "Galactic-equator reference mode using the true-galactic definition.",
-        None,
-        None,
+        "Galactic-equator reference mode using the true-galactic definition. The true/modern variant is anchored to the 1665728.603158 JD zero point described in the Swiss Ephemeris documentation.",
+        Some(JulianDay::from_days(1_665_728.603_158)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticEquatorMula,
@@ -1344,12 +1344,46 @@ mod tests {
 
     #[test]
     fn selected_release_ayanamsas_carry_reference_metadata() {
-        let huber = descriptor(&Ayanamsa::BabylonianHuber).expect("Huber descriptor");
-        assert_eq!(huber.epoch, Some(JulianDay::from_days(1_721_171.5)));
+        let hipparchus = descriptor(&Ayanamsa::Hipparchus).expect("Hipparchus descriptor");
+        assert_eq!(hipparchus.epoch, Some(JulianDay::from_days(1_674_484.0)));
         assert_eq!(
-            huber.offset_degrees,
-            Some(Angle::from_degrees(-0.120_555_555_555_555_55))
+            hipparchus.offset_degrees,
+            Some(Angle::from_degrees(-9.333_333_333_333_334))
         );
+
+        let jn_bhasin = descriptor(&Ayanamsa::JnBhasin).expect("JN Bhasin descriptor");
+        assert_eq!(
+            jn_bhasin.epoch,
+            Some(JulianDay::from_days(2_454_239.282_537))
+        );
+        assert_eq!(
+            jn_bhasin.offset_degrees,
+            Some(Angle::from_degrees(0.013_968_911_416_666_667))
+        );
+
+        let eta_piscium =
+            descriptor(&Ayanamsa::BabylonianEtaPiscium).expect("Babylonian Eta Piscium descriptor");
+        assert_eq!(
+            eta_piscium.epoch,
+            Some(JulianDay::from_days(1_807_871.964_797))
+        );
+        assert_eq!(eta_piscium.offset_degrees, Some(Angle::from_degrees(0.0)));
+
+        let aldebaran =
+            descriptor(&Ayanamsa::BabylonianAldebaran).expect("Babylonian Aldebaran descriptor");
+        assert_eq!(
+            aldebaran.epoch,
+            Some(JulianDay::from_days(1_801_643.133_503))
+        );
+        assert_eq!(aldebaran.offset_degrees, Some(Angle::from_degrees(0.0)));
+
+        let galactic_true =
+            descriptor(&Ayanamsa::GalacticEquatorTrue).expect("Galactic Equator (True) descriptor");
+        assert_eq!(
+            galactic_true.epoch,
+            Some(JulianDay::from_days(1_665_728.603_158))
+        );
+        assert_eq!(galactic_true.offset_degrees, Some(Angle::from_degrees(0.0)));
 
         let galactic = descriptor(&Ayanamsa::GalacticEquatorIau1958)
             .expect("Galactic Equator (IAU 1958) descriptor");

@@ -90,6 +90,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] The compatibility profile now calls out non-standard ayanamsa labels like True Balarama, Aphoric, and Takra as custom-definition territory, and the ayanamsa crate has a regression test covering custom sidereal offsets for project-specific labels.
 - [x] The equal-house interoperability notes now recognize `Wang` as an alias for `Equal`, and the profile/test surface now renders that mapping explicitly so downstream equal-house consumers can round-trip the label without ambiguity.
 - [x] The compatibility profile now includes an ayanamsa sidereal-metadata coverage summary, so release consumers can see which built-ins still lack epoch/offset metadata for chart-layer sidereal conversion at a glance.
+- [x] Additional historical sidereal metadata has been filled in for Hipparchus, JN Bhasin, Babylonian (Eta Piscium), Babylonian (Aldebaran), and the Galactic Equator entries, reducing the remaining release-line ayanamsa metadata gaps called out by the profile.
 
 ## Exit criteria
 
