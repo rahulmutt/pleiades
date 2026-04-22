@@ -7,9 +7,9 @@
 #![forbid(unsafe_code)]
 
 use pleiades_core::{
-    default_chart_bodies, resolve_ayanamsa, Ayanamsa, CelestialBody, ChartEngine, ChartRequest,
-    CompositeBackend, EphemerisError, Instant, JulianDay, Latitude, Longitude, ObserverLocation,
-    TimeScale, ZodiacMode,
+    default_chart_bodies, resolve_ayanamsa, resolve_house_system, Ayanamsa, CelestialBody,
+    ChartEngine, ChartRequest, CompositeBackend, EphemerisError, HouseSystem, Instant, JulianDay,
+    Latitude, Longitude, ObserverLocation, TimeScale, ZodiacMode,
 };
 use pleiades_elp::ElpBackend;
 use pleiades_vsop87::Vsop87Backend;
@@ -38,6 +38,7 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
     let mut lon: Option<f64> = None;
     let mut bodies: Vec<CelestialBody> = Vec::new();
     let mut zodiac_mode = ZodiacMode::Tropical;
+    let mut house_system: Option<HouseSystem> = None;
 
     let mut iter = args.iter().copied();
     while let Some(arg) = iter.next() {
@@ -54,9 +55,15 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
                     ayanamsa: parse_ayanamsa(label)?,
                 };
             }
+            "--house-system" => {
+                let label = iter
+                    .next()
+                    .ok_or_else(|| "missing value for --house-system".to_string())?;
+                house_system = Some(parse_house_system(label)?);
+            }
             "--help" | "-h" => {
                 return Ok(format!(
-                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--ayanamsa <name>] [--body <name> ...]",
+                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--ayanamsa <name>] [--house-system <name>] [--body <name> ...]",
                     banner()
                 ));
             }
@@ -87,6 +94,9 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
         .with_zodiac_mode(zodiac_mode);
     if let Some(observer) = observer {
         request = request.with_observer(observer);
+    }
+    if let Some(house_system) = house_system {
+        request = request.with_house_system(house_system);
     }
 
     engine
@@ -121,6 +131,10 @@ fn parse_body(value: Option<&str>) -> Result<CelestialBody, String> {
 
 fn parse_ayanamsa(value: &str) -> Result<Ayanamsa, String> {
     resolve_ayanamsa(value).ok_or_else(|| format!("unsupported ayanamsa name: {value}"))
+}
+
+fn parse_house_system(value: &str) -> Result<HouseSystem, String> {
+    resolve_house_system(value).ok_or_else(|| format!("unsupported house system name: {value}"))
 }
 
 fn render_error(error: EphemerisError) -> String {
@@ -164,6 +178,27 @@ mod tests {
         assert!(rendered.contains("Backend:"));
         assert!(rendered.contains("Sun"));
         assert!(rendered.contains("Moon"));
+    }
+
+    #[test]
+    fn chart_command_can_render_house_information() {
+        let rendered = render_chart(&[
+            "--jd",
+            "2451545.0",
+            "--lat",
+            "0.0",
+            "--lon",
+            "0.0",
+            "--house-system",
+            "Whole Sign",
+            "--body",
+            "Sun",
+        ])
+        .expect("house-aware chart should render");
+        assert!(rendered.contains("House system:"));
+        assert!(rendered.contains("House cusps:"));
+        assert!(rendered.contains("Sun"));
+        assert!(rendered.contains(" 1:"));
     }
 
     #[test]

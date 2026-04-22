@@ -203,7 +203,7 @@ impl Instant {
 pub struct ObserverLocation {
     /// Geographic latitude.
     pub latitude: Latitude,
-    /// Geographic longitude.
+    /// Geographic longitude, expressed in degrees east of Greenwich.
     pub longitude: Longitude,
     /// Optional elevation above sea level in meters.
     pub elevation_m: Option<f64>,

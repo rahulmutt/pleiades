@@ -12,7 +12,8 @@ The repository is in the stage-3 chart-MVP phase:
 - the shared type system, backend contract, and thin façade are now implemented,
 - the baseline house and ayanamsa catalogs plus the compatibility profile scaffold are now published,
 - the tropical chart workflow now works end to end with approximate Sun/Moon/planet backends and a CLI chart report,
-- sidereal conversion and fuller house placement coverage will continue in later slices.
+- sidereal conversion is available in the chart layer,
+- house placement now works for the simpler baseline systems (Equal, Whole Sign, and Porphyry), with the remaining quadrant families still pending.
 
 ## Local development
 

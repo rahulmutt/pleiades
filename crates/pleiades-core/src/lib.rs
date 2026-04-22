@@ -80,8 +80,9 @@ pub use pleiades_backend::{
     EphemerisRequest, EphemerisResult, QualityAnnotation,
 };
 pub use pleiades_houses::{
-    baseline_house_systems, descriptor as house_system_descriptor, resolve_house_system,
-    HouseSystemDescriptor,
+    baseline_house_systems, calculate_houses, descriptor as house_system_descriptor,
+    house_for_longitude, resolve_house_system, HouseAngles, HouseError, HouseErrorKind,
+    HouseRequest, HouseSnapshot, HouseSystemDescriptor,
 };
 pub use pleiades_types::{
     Angle, Ayanamsa, CelestialBody, CoordinateFrame, CustomAyanamsa, CustomBodyId,

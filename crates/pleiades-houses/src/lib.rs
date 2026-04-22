@@ -1,9 +1,9 @@
 //! House-system catalog definitions and compatibility metadata.
 //!
-//! This crate currently focuses on the catalog layer: it enumerates the
-//! baseline built-in house systems, their common aliases, and a few notes about
-//! latitude-sensitive behavior. The actual house computation algorithms will be
-//! added in later stages on top of this stable vocabulary.
+//! This crate currently focuses on the catalog layer and the first chart MVP
+//! house-placement helpers: it enumerates the baseline built-in house systems,
+//! their common aliases, and a few notes about latitude-sensitive behavior, and
+//! it now exposes a small calculation path for the simpler baseline systems.
 //!
 //! # Examples
 //!
@@ -15,8 +15,28 @@
 //!
 //! assert_eq!(resolve_house_system("Polich-Page"), Some(pleiades_types::HouseSystem::Topocentric));
 //! ```
+//!
+//! ```
+//! use pleiades_houses::{calculate_houses, HouseRequest};
+//! use pleiades_types::{HouseSystem, Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale};
+//!
+//! let request = HouseRequest::new(
+//!     Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+//!     ObserverLocation::new(Latitude::from_degrees(0.0), Longitude::from_degrees(0.0), None),
+//!     HouseSystem::WholeSign,
+//! );
+//! let houses = calculate_houses(&request).expect("house calculation should work");
+//! assert_eq!(houses.cusps.len(), 12);
+//! ```
 
 #![forbid(unsafe_code)]
+
+mod houses;
+
+pub use houses::{
+    calculate_houses, house_for_longitude, HouseAngles, HouseError, HouseErrorKind, HouseRequest,
+    HouseSnapshot,
+};
 
 use pleiades_types::HouseSystem;
 

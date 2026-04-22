@@ -12,7 +12,10 @@ use pleiades_backend::{
     Apparentness, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
     EphemerisResult,
 };
-use pleiades_types::{CelestialBody, Instant, Longitude, ObserverLocation, ZodiacMode, ZodiacSign};
+use pleiades_houses::{calculate_houses, house_for_longitude, HouseRequest, HouseSnapshot};
+use pleiades_types::{
+    CelestialBody, HouseSystem, Instant, Longitude, ObserverLocation, ZodiacMode, ZodiacSign,
+};
 
 use crate::ChartEngine;
 
@@ -43,6 +46,8 @@ pub struct ChartRequest {
     pub bodies: Vec<CelestialBody>,
     /// Desired zodiac mode.
     pub zodiac_mode: ZodiacMode,
+    /// Optional house-system request.
+    pub house_system: Option<HouseSystem>,
 }
 
 impl ChartRequest {
@@ -53,6 +58,7 @@ impl ChartRequest {
             observer: None,
             bodies: default_chart_bodies().to_vec(),
             zodiac_mode: ZodiacMode::Tropical,
+            house_system: None,
         }
     }
 
@@ -73,6 +79,12 @@ impl ChartRequest {
         self.zodiac_mode = zodiac_mode;
         self
     }
+
+    /// Sets the house system.
+    pub fn with_house_system(mut self, house_system: HouseSystem) -> Self {
+        self.house_system = Some(house_system);
+        self
+    }
 }
 
 /// A single body placement within a chart.
@@ -84,6 +96,8 @@ pub struct BodyPlacement {
     pub position: EphemerisResult,
     /// The body’s zodiac sign in the requested mode, when ecliptic longitude is available.
     pub sign: Option<ZodiacSign>,
+    /// The one-based house number, when house placement was requested.
+    pub house: Option<usize>,
 }
 
 /// A chart snapshot suitable for user-facing reports.
@@ -97,6 +111,8 @@ pub struct ChartSnapshot {
     pub observer: Option<ObserverLocation>,
     /// Zodiac mode used for the chart.
     pub zodiac_mode: ZodiacMode,
+    /// Optional house snapshot.
+    pub houses: Option<HouseSnapshot>,
     /// Ordered body placements.
     pub placements: Vec<BodyPlacement>,
 }
@@ -129,6 +145,16 @@ impl fmt::Display for ChartSnapshot {
             )?;
         }
         writeln!(f, "Zodiac mode: {:?}", self.zodiac_mode)?;
+        if let Some(houses) = &self.houses {
+            let house_name = crate::house_system_descriptor(&houses.system)
+                .map(|descriptor| descriptor.canonical_name)
+                .unwrap_or("Custom");
+            writeln!(f, "House system: {}", house_name)?;
+            writeln!(f, "House cusps:")?;
+            for (index, cusp) in houses.cusps.iter().enumerate() {
+                writeln!(f, "  - {:>2}: {}", index + 1, cusp)?;
+            }
+        }
         writeln!(f, "Bodies:")?;
         for placement in &self.placements {
             let longitude = placement
@@ -141,12 +167,17 @@ impl fmt::Display for ChartSnapshot {
                 .sign
                 .map(|sign| sign.to_string())
                 .unwrap_or_else(|| "n/a".to_string());
+            let house = placement
+                .house
+                .map(|house| house.to_string())
+                .unwrap_or_else(|| "n/a".to_string());
             writeln!(
                 f,
-                "  - {:<12} {:>9}  {:<10}  {:?}",
+                "  - {:<12} {:>9}  {:<10}  {:>3}  {:?}",
                 placement.body.built_in_name().unwrap_or("Custom"),
                 longitude,
                 sign,
+                house,
                 placement.position.quality,
             )?;
         }
@@ -183,6 +214,19 @@ pub fn sidereal_longitude(
     }
 }
 
+fn map_house_error(error: pleiades_houses::HouseError) -> EphemerisError {
+    let kind = match error.kind {
+        pleiades_houses::HouseErrorKind::UnsupportedHouseSystem => {
+            EphemerisErrorKind::InvalidRequest
+        }
+        pleiades_houses::HouseErrorKind::InvalidLatitude => EphemerisErrorKind::InvalidObserver,
+        pleiades_houses::HouseErrorKind::NumericalFailure => EphemerisErrorKind::NumericalFailure,
+        _ => EphemerisErrorKind::InvalidRequest,
+    };
+
+    EphemerisError::new(kind, error.message)
+}
+
 impl<B: EphemerisBackend> ChartEngine<B> {
     /// Assembles a basic chart snapshot from the backend.
     pub fn chart(&self, request: &ChartRequest) -> Result<ChartSnapshot, EphemerisError> {
@@ -194,6 +238,48 @@ impl<B: EphemerisBackend> ChartEngine<B> {
             request.zodiac_mode.clone()
         } else {
             ZodiacMode::Tropical
+        };
+
+        let houses = if let Some(system) = &request.house_system {
+            let observer = request.observer.clone().ok_or_else(|| {
+                EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    "house placement requires an observer location",
+                )
+            })?;
+
+            let house_request = HouseRequest::new(request.instant, observer, system.clone());
+            let mut snapshot = calculate_houses(&house_request).map_err(map_house_error)?;
+
+            if matches!(request.zodiac_mode, ZodiacMode::Sidereal { .. }) {
+                for cusp in &mut snapshot.cusps {
+                    *cusp = sidereal_longitude(*cusp, request.instant, &request.zodiac_mode)?;
+                }
+                snapshot.angles.ascendant = sidereal_longitude(
+                    snapshot.angles.ascendant,
+                    request.instant,
+                    &request.zodiac_mode,
+                )?;
+                snapshot.angles.descendant = sidereal_longitude(
+                    snapshot.angles.descendant,
+                    request.instant,
+                    &request.zodiac_mode,
+                )?;
+                snapshot.angles.midheaven = sidereal_longitude(
+                    snapshot.angles.midheaven,
+                    request.instant,
+                    &request.zodiac_mode,
+                )?;
+                snapshot.angles.imum_coeli = sidereal_longitude(
+                    snapshot.angles.imum_coeli,
+                    request.instant,
+                    &request.zodiac_mode,
+                )?;
+            }
+
+            Some(snapshot)
+        } else {
+            None
         };
 
         let placements = request
@@ -231,10 +317,17 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                 if matches!(request.zodiac_mode, ZodiacMode::Sidereal { .. }) {
                     position.zodiac_mode = request.zodiac_mode.clone();
                 }
+                let house = houses.as_ref().and_then(|snapshot| {
+                    position
+                        .ecliptic
+                        .as_ref()
+                        .map(|coords| house_for_longitude(coords.longitude, &snapshot.cusps))
+                });
                 Ok(BodyPlacement {
                     body: body.clone(),
                     position,
                     sign,
+                    house,
                 })
             })
             .collect::<Result<Vec<_>, EphemerisError>>()?;
@@ -244,6 +337,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
             instant: request.instant,
             observer: request.observer.clone(),
             zodiac_mode: request.zodiac_mode.clone(),
+            houses,
             placements,
         })
     }
@@ -376,5 +470,32 @@ mod tests {
             request.zodiac_mode
         );
         assert_eq!(chart.placements[0].sign, Some(ZodiacSign::Pisces));
+    }
+
+    #[test]
+    fn chart_snapshot_supports_house_placement() {
+        let engine = ChartEngine::new(ToyChartBackend);
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2451545.0),
+            TimeScale::Tt,
+        ))
+        .with_observer(pleiades_types::ObserverLocation::new(
+            Latitude::from_degrees(0.0),
+            Longitude::from_degrees(0.0),
+            None,
+        ))
+        .with_house_system(crate::HouseSystem::WholeSign)
+        .with_bodies(vec![CelestialBody::Sun, CelestialBody::Moon]);
+
+        let chart = engine
+            .chart(&request)
+            .expect("house-aware chart should render");
+        assert!(chart.houses.is_some());
+        assert_eq!(chart.placements.len(), 2);
+        assert!(chart
+            .placements
+            .iter()
+            .all(|placement| placement.house.is_some()));
+        assert!(chart.to_string().contains("House system: Whole Sign"));
     }
 }

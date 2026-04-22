@@ -33,3 +33,14 @@ Implemented the next Stage 3 slice:
 - compatibility-profile output was updated to describe the current sidereal chart capability and the remaining house-placement gap
 
 Remaining Stage 3 work: house placement for the baseline catalog, plus any chart ergonomics needed to polish the workflow.
+
+## 2026-04-22 — baseline house placement started
+
+Implemented the next Stage 3 slice:
+
+- `pleiades-houses` now exposes a first-pass calculation API for Equal, Whole Sign, and Porphyry houses, with explicit unsupported errors for the remaining baseline systems
+- `pleiades-core` can request house placement during chart assembly, surface the resulting cusps, and assign bodies to houses
+- `pleiades-cli chart` accepts `--house-system <name>` and can print house cusps alongside the body report
+- the compatibility profile and README now distinguish the implemented house-placement subset from the remaining quadrant-style systems
+
+Remaining Stage 3 work: the more complex baseline house families (Placidus, Koch, Regiomontanus, Campanus, Alcabitius, Topocentric, Morinus, Meridian, and Axial variants) still need dedicated implementations.
