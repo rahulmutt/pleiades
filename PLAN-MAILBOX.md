@@ -124,3 +124,13 @@ Implemented the next Stage 5 slice:
 - `validate-artifact` now reports the broader body coverage automatically, and the codec roundtrip tests now assert the expanded packaged body count
 
 Stage 5 now appears complete; the remaining planned work is the Stage 6 release-hardening backlog (automation, broader catalog breadth, and public API posture).
+
+## 2026-04-22 — release bundle smoke test automated
+
+Implemented the next Stage 6 slice:
+
+- `mise.toml` now exposes a `release-smoke` task that runs `pleiades-validate bundle-release` into a temporary directory and verifies the profile, report, and manifest outputs
+- the GitHub CI workflow now exercises that release smoke check through `mise run ci`, so release bundle regressions are caught automatically
+- `README.md` documents the release smoke check for maintainers who want to exercise the release bundle path locally
+
+Remaining Stage 6 work: catalog breadth expansion and any broader release-hardening polish that depends on additional coverage.

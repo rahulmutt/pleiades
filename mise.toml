@@ -10,5 +10,15 @@ run = "cargo clippy --workspace --all-targets --all-features -- -D warnings"
 [tasks.test]
 run = "cargo test --workspace"
 
+[tasks.release-smoke]
+run = """
+tmpdir=$(mktemp -d)
+trap 'rm -rf "$tmpdir"' EXIT
+cargo run -q -p pleiades-validate -- bundle-release --out "$tmpdir" --rounds 1 >/dev/null
+test -s "$tmpdir/compatibility-profile.txt"
+test -s "$tmpdir/validation-report.txt"
+test -s "$tmpdir/bundle-manifest.txt"
+"""
+
 [tasks.ci]
-depends = ["fmt", "lint", "test"]
+depends = ["fmt", "lint", "test", "release-smoke"]

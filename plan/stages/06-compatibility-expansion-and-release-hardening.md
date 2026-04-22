@@ -48,7 +48,8 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] The compatibility profile now distinguishes target scope, baseline milestone, release-specific coverage, and known gaps.
 - [x] Validation reports now include the release compatibility profile so the stage-6 release artifact bundle carries the current coverage summary.
 - [x] `pleiades-validate bundle-release --out DIR` now writes the compatibility profile, validation report, and a manifest for a reproducible release bundle.
-- [ ] Remaining catalog breadth and broader release automation are still the next planned slices.
+- [x] `mise run release-smoke` now exercises the release bundle command locally and in CI so release artifacts stay under automation.
+- [ ] Remaining catalog breadth is still the next planned slice.
 
 ## Exit criteria
 

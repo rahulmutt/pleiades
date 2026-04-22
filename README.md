@@ -35,6 +35,12 @@ cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace
 ```
 
+For a release-style smoke check of the validation bundle, run:
+
+```bash
+mise run release-smoke
+```
+
 ## Workspace layout
 
 The first-party crates live under `crates/` and follow the `pleiades-*` naming rule required by the specification.
