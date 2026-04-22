@@ -21,6 +21,8 @@ Sidereal conversion must be a domain-layer transformation rather than a backend-
 
 ## House Systems
 
+The house module must model a complete and extensible catalog of astrological house systems, while allowing phased implementation.
+
 The house module must provide a common interface that accepts:
 
 - instant
@@ -34,7 +36,7 @@ The module must return:
 - derived angles including ASC, MC, IC, DSC where meaningful
 - explicit error/status for systems that fail at extreme latitudes or special cases
 
-## Required House System Catalog
+## Initial Mandatory House System Catalog
 
 At minimum, include support for:
 
@@ -50,6 +52,8 @@ At minimum, include support for:
 - Morinus
 - Meridian when represented as a distinct system
 - Vehlow Equal may be included as an extension
+
+The long-term project target is support for the broader house-system ecosystem used by astrology software, with each system documented for formula, assumptions, and failure modes.
 
 ## Ayanamsa Model
 

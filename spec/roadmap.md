@@ -12,7 +12,7 @@
 - implement `pleiades-vsop87` for major planets and solar coordinates
 - implement `pleiades-elp` for lunar coordinates
 - implement first ayanamsa catalog
-- implement major house systems
+- implement the initial mandatory house-system catalog, leaving room for later expansion to the broader house-system ecosystem
 
 ## Phase 3: Reference Data Backend
 

@@ -32,12 +32,13 @@ The project is a Rust workspace composed of small focused crates.
 
 ## Dependency Rules
 
-1. `pleiades-types` must not depend on backend crates.
-2. `pleiades-backend` may depend on `pleiades-types` only.
-3. Backend crates may depend on `pleiades-types` and `pleiades-backend`.
-4. `pleiades-core` may depend on all domain crates and on backend traits, but should not require a specific backend by default.
-5. `pleiades-data` may depend on `pleiades-compression` and the backend trait crate.
-6. Tooling crates may depend on all first-party crates.
+1. Every first-party workspace crate must be named with the `pleiades-*` prefix; there are no naming exceptions for shipped sub-crates.
+2. `pleiades-types` must not depend on backend crates.
+3. `pleiades-backend` may depend on `pleiades-types` only.
+4. Backend crates may depend on `pleiades-types` and `pleiades-backend`.
+5. `pleiades-core` may depend on all domain crates and on backend traits, but should not require a specific backend by default.
+6. `pleiades-data` may depend on `pleiades-compression` and the backend trait crate.
+7. Tooling crates may depend on all first-party crates.
 
 ## Layering
 

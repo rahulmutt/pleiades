@@ -23,7 +23,7 @@ The system must support:
 - topocentric adjustments where supported by the chosen backend/model
 
 ### FR-3 House Systems
-The system must provide a house computation module supporting all major house systems expected in astrology software, including at minimum:
+The system must provide a house computation module supporting a complete and extensible catalog of astrological house systems. The initial mandatory catalog must include at minimum:
 
 - Placidus
 - Koch
@@ -37,7 +37,7 @@ The system must provide a house computation module supporting all major house sy
 - Topocentric / Polich-Page
 - Morinus
 
-Where a system has latitude/pathology constraints, those constraints must be explicit in the API.
+Where a system has latitude/pathology constraints, those constraints must be explicit in the API. The specification goal remains support for the broader house-system catalog beyond the initial mandatory list.
 
 ### FR-4 Ayanamsa
 The system must support a pluggable ayanamsa catalog, including at minimum:
@@ -88,7 +88,7 @@ The public Rust API must present stable domain types for:
 ## Non-Functional Requirements
 
 ### NFR-1 Purity
-The project must compile and run without required C/C++ dependencies.
+The project must compile and run without required C/C++ dependencies. CI and release validation must reject first-party crates that introduce mandatory native build or runtime requirements.
 
 ### NFR-2 Performance
 Common chart computations should be optimized for low-latency use in interactive astrology software.

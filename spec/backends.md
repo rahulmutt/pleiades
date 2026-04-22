@@ -4,6 +4,8 @@
 
 Pleiades must support multiple backend families because no single approach optimizes accuracy, size, speed, and licensing equally.
 
+Each backend implementation must live in its own first-party `pleiades-*` crate so data sources and algorithm families remain independently versioned, testable, and optional.
+
 ## Required Initial Backends
 
 ### `pleiades-jpl`

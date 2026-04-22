@@ -55,6 +55,7 @@ Benchmarks should measure:
 A release should not ship unless:
 
 - all supported crates build in pure Rust mode on CI targets
+- dependency and build audits confirm there are no mandatory C/C++ toolchain, FFI, or native runtime requirements
 - backend capability docs are current
 - validation reports are generated and archived
 - compressed artifacts pass checksum and error-threshold checks
