@@ -311,6 +311,8 @@ pub enum ReleaseBundleError {
     Io(std::io::Error),
     /// Validation failure while rendering the compatibility profile, API posture, or report.
     Validation(EphemerisError),
+    /// Release-bundle verification failed after writing or reading the staged artifacts.
+    Verification(String),
 }
 
 impl fmt::Display for ReleaseBundleError {
@@ -318,6 +320,9 @@ impl fmt::Display for ReleaseBundleError {
         match self {
             Self::Io(error) => write!(f, "{error}"),
             Self::Validation(error) => write!(f, "{error}"),
+            Self::Verification(message) => {
+                write!(f, "release bundle verification failed: {message}")
+            }
         }
     }
 }
@@ -514,6 +519,12 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
                 .map(|bundle| bundle.to_string())
                 .map_err(render_release_bundle_error)
         }
+        Some("verify-release-bundle") => {
+            let (output_dir, _) = parse_release_bundle_args(&args[1..], DEFAULT_BENCHMARK_ROUNDS)?;
+            verify_release_bundle(output_dir)
+                .map(|bundle| bundle.to_string())
+                .map_err(render_release_bundle_error)
+        }
         Some("help") | Some("--help") | Some("-h") | None => Ok(help_text()),
         Some(other) => Err(format!("unknown command: {other}\n\n{}", help_text())),
     }
@@ -661,19 +672,158 @@ pub fn render_release_bundle(
     fs::write(&report_path, validation_report.as_bytes())?;
     fs::write(&manifest_path, manifest_text.as_bytes())?;
 
+    verify_release_bundle(output_dir)
+}
+
+#[derive(Debug)]
+struct ParsedReleaseBundleManifest {
+    profile_path: String,
+    profile_checksum: u64,
+    api_stability_path: String,
+    api_stability_checksum: u64,
+    validation_report_path: String,
+    validation_report_checksum: u64,
+    profile_id: String,
+    api_stability_posture_id: String,
+    _validation_rounds: usize,
+}
+
+impl ParsedReleaseBundleManifest {
+    fn parse(text: &str) -> Result<Self, ReleaseBundleError> {
+        Ok(Self {
+            profile_path: parse_manifest_string(text, "profile:")?,
+            profile_checksum: parse_manifest_checksum(text, "profile checksum (fnv1a-64):")?,
+            api_stability_path: parse_manifest_string(text, "api stability posture:")?,
+            api_stability_checksum: parse_manifest_checksum(
+                text,
+                "api stability checksum (fnv1a-64):",
+            )?,
+            validation_report_path: parse_manifest_string(text, "validation report:")?,
+            validation_report_checksum: parse_manifest_checksum(
+                text,
+                "validation report checksum (fnv1a-64):",
+            )?,
+            profile_id: parse_manifest_string(text, "profile id:")?,
+            api_stability_posture_id: parse_manifest_string(text, "api stability posture id:")?,
+            _validation_rounds: parse_manifest_usize(text, "validation rounds:")?,
+        })
+    }
+}
+
+fn verify_release_bundle(
+    output_dir: impl AsRef<Path>,
+) -> Result<ReleaseBundle, ReleaseBundleError> {
+    let output_dir = output_dir.as_ref();
+    let profile_path = output_dir.join("compatibility-profile.txt");
+    let api_stability_path = output_dir.join("api-stability.txt");
+    let validation_report_path = output_dir.join("validation-report.txt");
+    let manifest_path = output_dir.join("bundle-manifest.txt");
+
+    let profile_text = fs::read_to_string(&profile_path)?;
+    let api_stability_text = fs::read_to_string(&api_stability_path)?;
+    let validation_report_text = fs::read_to_string(&validation_report_path)?;
+    let manifest_text = fs::read_to_string(&manifest_path)?;
+
+    let manifest = ParsedReleaseBundleManifest::parse(&manifest_text)?;
+    if manifest.profile_path != "compatibility-profile.txt" {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected profile file entry: {}",
+            manifest.profile_path
+        )));
+    }
+    if manifest.api_stability_path != "api-stability.txt" {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected API stability file entry: {}",
+            manifest.api_stability_path
+        )));
+    }
+    if manifest.validation_report_path != "validation-report.txt" {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected validation report file entry: {}",
+            manifest.validation_report_path
+        )));
+    }
+
+    let compatibility_profile_checksum = checksum64(&profile_text);
+    let api_stability_checksum = checksum64(&api_stability_text);
+    let validation_report_checksum = checksum64(&validation_report_text);
+    let profile_id = extract_prefixed_value(&profile_text, "Compatibility profile: ")?;
+    let api_stability_posture_id =
+        extract_prefixed_value(&api_stability_text, "API stability posture: ")?;
+
+    if manifest.profile_id != profile_id {
+        return Err(ReleaseBundleError::Verification(format!(
+            "profile id mismatch: manifest has {}, file has {}",
+            manifest.profile_id, profile_id
+        )));
+    }
+    if manifest.api_stability_posture_id != api_stability_posture_id {
+        return Err(ReleaseBundleError::Verification(format!(
+            "API stability posture id mismatch: manifest has {}, file has {}",
+            manifest.api_stability_posture_id, api_stability_posture_id
+        )));
+    }
+    if manifest.profile_checksum != compatibility_profile_checksum {
+        return Err(ReleaseBundleError::Verification(format!(
+            "compatibility profile checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.profile_checksum, compatibility_profile_checksum
+        )));
+    }
+    if manifest.api_stability_checksum != api_stability_checksum {
+        return Err(ReleaseBundleError::Verification(format!(
+            "API stability checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.api_stability_checksum, api_stability_checksum
+        )));
+    }
+    if manifest.validation_report_checksum != validation_report_checksum {
+        return Err(ReleaseBundleError::Verification(format!(
+            "validation report checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.validation_report_checksum, validation_report_checksum
+        )));
+    }
+
     Ok(ReleaseBundle {
         output_dir: output_dir.to_path_buf(),
         compatibility_profile_path: profile_path,
         api_stability_path,
-        validation_report_path: report_path,
+        validation_report_path,
         manifest_path,
         compatibility_profile_bytes: profile_text.len(),
         api_stability_bytes: api_stability_text.len(),
-        validation_report_bytes: validation_report.len(),
+        validation_report_bytes: validation_report_text.len(),
         compatibility_profile_checksum,
         api_stability_checksum,
         validation_report_checksum,
     })
+}
+
+fn parse_manifest_string(text: &str, prefix: &str) -> Result<String, ReleaseBundleError> {
+    extract_prefixed_value(text, prefix).map(|value| value.to_string())
+}
+
+fn parse_manifest_usize(text: &str, prefix: &str) -> Result<usize, ReleaseBundleError> {
+    let value = extract_prefixed_value(text, prefix)?;
+    value.parse::<usize>().map_err(|error| {
+        ReleaseBundleError::Verification(format!("invalid {prefix} value: {error}"))
+    })
+}
+
+fn parse_manifest_checksum(text: &str, prefix: &str) -> Result<u64, ReleaseBundleError> {
+    let value = extract_prefixed_value(text, prefix)?;
+    let value = value.strip_prefix("0x").ok_or_else(|| {
+        ReleaseBundleError::Verification(format!("missing 0x prefix for {prefix}"))
+    })?;
+    u64::from_str_radix(value, 16).map_err(|error| {
+        ReleaseBundleError::Verification(format!("invalid {prefix} value: {error}"))
+    })
+}
+
+fn extract_prefixed_value<'a>(text: &'a str, prefix: &str) -> Result<&'a str, ReleaseBundleError> {
+    text.lines()
+        .find_map(|line| line.strip_prefix(prefix).map(str::trim))
+        .ok_or_else(|| {
+            ReleaseBundleError::Verification(format!("missing manifest entry: {prefix}"))
+        })
 }
 
 /// Renders the validation report used by the CLI.
@@ -1134,7 +1284,7 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = default_corpus().requests.len();
     format!(
-        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix            Print the implemented backend capability matrices\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  bundle-release --out DIR  Write the release compatibility profile, API posture, validation report, and manifest\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix            Print the implemented backend capability matrices\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  bundle-release --out DIR  Write the release compatibility profile, API posture, validation report, and manifest\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
@@ -1350,6 +1500,7 @@ mod tests {
         assert!(rendered.contains("validate-artifact"));
         assert!(rendered.contains("api-stability"));
         assert!(rendered.contains("bundle-release --out DIR"));
+        assert!(rendered.contains("verify-release-bundle"));
     }
 
     #[test]
@@ -1412,6 +1563,44 @@ mod tests {
         assert!(manifest.contains("profile checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("api stability checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("validation report checksum (fnv1a-64): 0x"));
+
+        let verified = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect("bundle verification should render");
+        assert!(verified.contains("Release bundle"));
+        assert!(verified.contains("bundle-manifest.txt"));
+        assert!(verified.contains("validation report checksum: 0x"));
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_checksum_mismatches() {
+        let bundle_dir = unique_temp_dir("pleiades-release-bundle-corrupt");
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let manifest_path = bundle_dir.join("bundle-manifest.txt");
+        let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
+        let corrupted = manifest.replace(
+            "profile checksum (fnv1a-64):",
+            "profile checksum (fnv1a-64): 0x0000000000000000 #",
+        );
+        std::fs::write(&manifest_path, corrupted).expect("manifest should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect_err("verification should fail for a corrupted manifest");
+        assert!(
+            error.contains("release bundle verification failed")
+                || error.contains("invalid profile checksum")
+                || error.contains("missing 0x prefix")
+        );
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
     }
