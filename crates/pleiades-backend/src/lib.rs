@@ -440,9 +440,18 @@ impl<A: EphemerisBackend, B: EphemerisBackend> EphemerisBackend for CompositeBac
     }
 
     fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
-        if self.primary.supports_body(req.body.clone()) {
-            self.primary.position(req)
-        } else if self.secondary.supports_body(req.body.clone()) {
+        let primary_supports = self.primary.supports_body(req.body.clone());
+        let secondary_supports = self.secondary.supports_body(req.body.clone());
+
+        if primary_supports {
+            match self.primary.position(req) {
+                Ok(result) => Ok(result),
+                Err(error) if secondary_supports && should_fallback_to_secondary(&error.kind) => {
+                    self.secondary.position(req)
+                }
+                Err(error) => Err(error),
+            }
+        } else if secondary_supports {
             self.secondary.position(req)
         } else {
             Err(EphemerisError::new(
@@ -515,6 +524,18 @@ fn min_accuracy(primary: AccuracyClass, secondary: AccuracyClass) -> AccuracyCla
         (High, _) | (_, High) => High,
         (Exact, Exact) => Exact,
     }
+}
+
+fn should_fallback_to_secondary(kind: &EphemerisErrorKind) -> bool {
+    matches!(
+        kind,
+        EphemerisErrorKind::UnsupportedBody
+            | EphemerisErrorKind::UnsupportedCoordinateFrame
+            | EphemerisErrorKind::UnsupportedTimeScale
+            | EphemerisErrorKind::InvalidObserver
+            | EphemerisErrorKind::MissingDataset
+            | EphemerisErrorKind::InvalidRequest
+    )
 }
 
 #[cfg(test)]

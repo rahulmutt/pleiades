@@ -29,6 +29,15 @@ Compression is only worth stabilizing after the type system, algorithmic behavio
 ## Workable state at end of stage
 Applications targeting the common 1500-2500 window can use a compact offline backend with predictable speed and documented error characteristics, while broader-range or validation workloads can still use other backends.
 
+## Progress update
+
+Stage 5 compression work has started as of 2026-04-22.
+
+- [x] `pleiades-compression` now defines a versioned artifact header, quantized polynomial channels, binary encode/decode logic, checksums, and artifact roundtrip tests.
+- [x] `pleiades-data` now ships a bundled prototype artifact covering Sun and Moon, with packaged lookup support and a compressed-data backend implementation.
+- [x] The CLI now composes packaged data ahead of the algorithmic backends so chart queries automatically use packaged lookups when available and still fall back for bodies outside the bundled slice.
+- [ ] Measured artifact error envelopes, broader body coverage, and dedicated artifact-inspection tooling remain for later slices.
+
 ## Suggested implementation slices
 
 1. Prototype artifact layout and decode logic with one or two bodies before generalizing across the full packaged set.

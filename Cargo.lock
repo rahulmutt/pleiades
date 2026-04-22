@@ -21,6 +21,7 @@ name = "pleiades-cli"
 version = "0.1.0"
 dependencies = [
  "pleiades-core",
+ "pleiades-data",
  "pleiades-elp",
  "pleiades-vsop87",
 ]

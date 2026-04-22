@@ -11,6 +11,7 @@ use pleiades_core::{
     ChartEngine, ChartRequest, CompositeBackend, EphemerisError, HouseSystem, Instant, JulianDay,
     Latitude, Longitude, ObserverLocation, TimeScale, ZodiacMode,
 };
+use pleiades_data::PackagedDataBackend;
 use pleiades_elp::ElpBackend;
 use pleiades_vsop87::Vsop87Backend;
 
@@ -87,7 +88,10 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
         bodies = default_chart_bodies().to_vec();
     }
 
-    let backend = CompositeBackend::new(Vsop87Backend::new(), ElpBackend::new());
+    let backend = CompositeBackend::new(
+        PackagedDataBackend::new(),
+        CompositeBackend::new(Vsop87Backend::new(), ElpBackend::new()),
+    );
     let engine = ChartEngine::new(backend);
     let mut request = ChartRequest::new(instant)
         .with_bodies(bodies)
