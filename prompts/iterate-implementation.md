@@ -9,5 +9,5 @@
 5. If while implementing something, you find that you need to update the plan, write your notes to PLAN-MAILBOX.md
 
 6. Once you're satisfied with your output update the relevant plan files with your progress.
-  4a. Make sure to lint and format code changes and run the tests.
-  4b. Make a git commit with a meaningful message and push it.
+  6a. Make sure to lint and format code changes and run the tests.
+  6b. Make a git commit with a meaningful message and push it.
