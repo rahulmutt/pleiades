@@ -66,6 +66,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] The public API stability posture is now published through `pleiades-core`, surfaced in the CLI, and included in validation reports so consumers can tell which surfaces are stable versus tooling-internal.
 - [x] The CLI chart workflow now routes selected asteroid bodies through the JPL snapshot fallback at supported comparison epochs, so the release-line composite backend can exercise the stage-4 asteroid coverage without changing the primary packaged/chart path.
 - [x] The chart request façade now makes apparent-versus-mean selection explicit so callers can opt into backend position queries without the chart layer hiding that assumption.
+- [x] The validation CLI help text now documents the `generate-report` alias alongside `report`, keeping the release tooling and command-line documentation aligned.
 
 ## Exit criteria
 
