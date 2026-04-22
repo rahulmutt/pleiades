@@ -245,6 +245,15 @@ impl BenchmarkReport {
     }
 }
 
+/// A preserved archive of regression cases from a comparison run.
+#[derive(Clone, Debug)]
+pub struct RegressionArchive {
+    /// Corpus that produced the archived cases.
+    pub corpus_name: String,
+    /// Regression findings that should stay visible in reports and tests.
+    pub cases: Vec<RegressionFinding>,
+}
+
 /// A full validation report containing comparison and benchmark data.
 #[derive(Clone, Debug)]
 pub struct ValidationReport {
@@ -254,6 +263,8 @@ pub struct ValidationReport {
     pub benchmark_corpus: CorpusSummary,
     /// Comparison output.
     pub comparison: ComparisonReport,
+    /// Archived regression cases preserved from the comparison corpus.
+    pub archived_regressions: RegressionArchive,
     /// Benchmark output for the reference backend.
     pub reference_benchmark: BenchmarkReport,
     /// Benchmark output for the candidate backend.
@@ -279,7 +290,13 @@ impl fmt::Display for ValidationReport {
         writeln!(f, "Comparison summary")?;
         write_comparison_summary(f, &self.comparison.summary)?;
         writeln!(f)?;
-        write_regression_section(f, &self.comparison.notable_regressions())?;
+        write_regression_section(
+            f,
+            "Notable regressions",
+            &self.comparison.notable_regressions(),
+        )?;
+        writeln!(f)?;
+        write_regression_archive_section(f, &self.archived_regressions)?;
         writeln!(f)?;
         writeln!(f, "Benchmark summaries")?;
         writeln!(f, "Reference benchmark")?;
@@ -459,11 +476,13 @@ pub fn render_validation_report(rounds: usize) -> Result<String, EphemerisError>
     let comparison = compare_backends(&reference, &candidate, &comparison_corpus)?;
     let reference_benchmark = benchmark_backend(&reference, &comparison_corpus, rounds)?;
     let candidate_benchmark = benchmark_backend(&candidate, &benchmark_corpus, rounds)?;
+    let archived_regressions = comparison.regression_archive();
 
     Ok(ValidationReport {
         comparison_corpus: comparison_corpus.summary(),
         benchmark_corpus: benchmark_corpus.summary(),
         comparison,
+        archived_regressions,
         reference_benchmark,
         candidate_benchmark,
     }
@@ -494,7 +513,7 @@ impl fmt::Display for ComparisonReport {
         writeln!(f)?;
         write_comparison_summary(f, &self.summary)?;
         writeln!(f)?;
-        write_regression_section(f, &self.notable_regressions())?;
+        write_regression_section(f, "Notable regressions", &self.notable_regressions())?;
         writeln!(f)?;
         writeln!(f, "Samples")?;
         for sample in &self.samples {
@@ -534,6 +553,14 @@ impl ComparisonReport {
     /// Returns the samples that exceed the built-in regression thresholds.
     pub fn notable_regressions(&self) -> Vec<RegressionFinding> {
         self.samples.iter().filter_map(regression_finding).collect()
+    }
+
+    /// Returns a preserved archive of the current regression findings.
+    pub fn regression_archive(&self) -> RegressionArchive {
+        RegressionArchive {
+            corpus_name: self.corpus_name.clone(),
+            cases: self.notable_regressions(),
+        }
     }
 }
 
@@ -624,15 +651,44 @@ fn write_comparison_summary(
 
 fn write_regression_section(
     f: &mut fmt::Formatter<'_>,
+    title: &str,
     findings: &[RegressionFinding],
 ) -> fmt::Result {
-    writeln!(f, "Notable regressions")?;
+    writeln!(f, "{}", title)?;
     if findings.is_empty() {
         writeln!(f, "  none")?;
         return Ok(());
     }
 
     for finding in findings {
+        writeln!(
+            f,
+            "  {}: Δlon={:.12}°, Δlat={:.12}°, Δdist={}, {}",
+            finding.body.built_in_name().unwrap_or("Custom"),
+            finding.longitude_delta_deg,
+            finding.latitude_delta_deg,
+            finding
+                .distance_delta_au
+                .map(|value| format!("{value:.12} AU"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            finding.note
+        )?;
+    }
+    Ok(())
+}
+
+fn write_regression_archive_section(
+    f: &mut fmt::Formatter<'_>,
+    archive: &RegressionArchive,
+) -> fmt::Result {
+    writeln!(f, "Archived regression cases")?;
+    writeln!(f, "  corpus: {}", archive.corpus_name)?;
+    if archive.cases.is_empty() {
+        writeln!(f, "  none")?;
+        return Ok(());
+    }
+
+    for finding in &archive.cases {
         writeln!(
             f,
             "  {}: Δlon={:.12}°, Δlat={:.12}°, Δdist={}, {}",
@@ -824,6 +880,7 @@ mod tests {
         assert!(report.contains("Candidate backend"));
         assert!(report.contains("Comparison summary"));
         assert!(report.contains("Notable regressions"));
+        assert!(report.contains("Archived regression cases"));
         assert!(report.contains("Reference benchmark"));
         assert!(report.contains("Candidate benchmark"));
     }
@@ -859,6 +916,14 @@ mod tests {
         assert!(regressions
             .iter()
             .any(|finding| finding.body == CelestialBody::Pluto));
+
+        let archive = report.regression_archive();
+        assert_eq!(archive.corpus_name, corpus.name);
+        assert_eq!(archive.cases.len(), regressions.len());
+        assert!(archive
+            .cases
+            .iter()
+            .any(|finding| finding.body == CelestialBody::Mars));
         assert!(report.to_string().contains("Notable regressions"));
     }
 

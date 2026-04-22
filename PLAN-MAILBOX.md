@@ -74,3 +74,13 @@ Implemented the next Stage 4 slice:
 - benchmark command output now uses the representative window corpus, while the comparison report remains locked to the source-backed JPL snapshot
 
 Remaining Stage 4 work: broaden time-range comparison coverage, add archived validation outputs, and capture any additional regression cases in the corpus.
+
+## 2026-04-22 — archived regression cases preserved
+
+Implemented the next Stage 4 slice:
+
+- `pleiades-validate` now preserves notable regression findings as an explicit archived regression case set in the rendered validation report
+- validation reports now distinguish the live comparison summary from the archived regression case list so previously observed deltas remain visible in the test corpus
+- regression archive coverage is exercised by tests for both the comparison report and the full validation report
+
+Remaining Stage 4 work: broaden time-range comparison coverage and add asteroid support.

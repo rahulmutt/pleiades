@@ -54,7 +54,8 @@ Stage 4 validation has started as of 2026-04-22.
 - [x] `pleiades-validate` now exposes compare-backends, benchmark, and report commands that operate on the snapshot corpus.
 - [x] Validation reports render backend capability matrices, corpus metadata, per-body deltas, and a dedicated notable-regressions section against the JPL snapshot.
 - [x] Validation reports now distinguish the single-epoch comparison corpus from a representative 1500-2500 benchmark corpus, so the time-window coverage for stage-4 benchmarking is explicit.
-- [ ] Broader time-range comparison coverage, asteroid support, and archived regression cases remain for later Stage 4 slices.
+- [x] Archived regression cases are now preserved in the validation report so previously observed deltas remain visible in the test corpus.
+- [ ] Broader time-range comparison coverage and asteroid support remain for later Stage 4 slices.
 
 ## Risks to avoid
 
