@@ -420,6 +420,32 @@ impl fmt::Display for CustomBodyId {
     }
 }
 
+impl fmt::Display for CelestialBody {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Sun => f.write_str("Sun"),
+            Self::Moon => f.write_str("Moon"),
+            Self::Mercury => f.write_str("Mercury"),
+            Self::Venus => f.write_str("Venus"),
+            Self::Mars => f.write_str("Mars"),
+            Self::Jupiter => f.write_str("Jupiter"),
+            Self::Saturn => f.write_str("Saturn"),
+            Self::Uranus => f.write_str("Uranus"),
+            Self::Neptune => f.write_str("Neptune"),
+            Self::Pluto => f.write_str("Pluto"),
+            Self::MeanNode => f.write_str("Mean Node"),
+            Self::TrueNode => f.write_str("True Node"),
+            Self::MeanApogee => f.write_str("Mean Apogee"),
+            Self::TrueApogee => f.write_str("True Apogee"),
+            Self::Ceres => f.write_str("Ceres"),
+            Self::Pallas => f.write_str("Pallas"),
+            Self::Juno => f.write_str("Juno"),
+            Self::Vesta => f.write_str("Vesta"),
+            Self::Custom(custom) => fmt::Display::fmt(custom, f),
+        }
+    }
+}
+
 /// A built-in or custom house system selection.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[non_exhaustive]
@@ -822,9 +848,14 @@ mod tests {
     #[test]
     fn built_in_body_names_are_stable() {
         assert_eq!(CelestialBody::Sun.built_in_name(), Some("Sun"));
+        assert_eq!(CelestialBody::Sun.to_string(), "Sun");
         assert_eq!(
             CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros")).built_in_name(),
             None
+        );
+        assert_eq!(
+            CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros")).to_string(),
+            "asteroid:433-Eros"
         );
     }
 

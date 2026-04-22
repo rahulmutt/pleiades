@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-22 — body display formatting now preserves custom body identifiers
+
+Implemented a small Stage 6 ergonomics slice:
+
+- `pleiades-types` now gives `CelestialBody` a `Display` implementation that renders custom body identifiers via the shared `CustomBodyId` format instead of collapsing them to a generic label
+- chart and validation/report formatting now use that shared display path, so custom bodies show up consistently in user-facing output and future custom-body backends have a stable rendering path
+- the Stage 6 plan notes should reflect the new ergonomics slice once the progress update is recorded
+
+Remaining Stage 6 work: keep the compatibility profile and release-facing ergonomics aligned as additional catalog breadth or custom-body support lands.
+
 ## 2026-04-22 — artifact validation now reports body-class error envelopes
 
 Implemented a small Stage 5 reporting slice:

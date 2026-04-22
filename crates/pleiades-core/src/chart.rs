@@ -217,18 +217,13 @@ impl fmt::Display for ChartSnapshot {
             writeln!(
                 f,
                 "  - {:<12} {:>9}  {:<10}  {:>3}  {:<10}  {:?}",
-                placement.body.built_in_name().unwrap_or("Custom"),
-                longitude,
-                sign,
-                house,
-                motion,
-                placement.position.quality,
+                placement.body, longitude, sign, house, motion, placement.position.quality,
             )?;
         }
 
-        let retrograde_bodies: Vec<&str> = self
+        let retrograde_bodies: Vec<String> = self
             .retrograde_placements()
-            .map(|placement| placement.body.built_in_name().unwrap_or("Custom"))
+            .map(|placement| placement.body.to_string())
             .collect();
         if !retrograde_bodies.is_empty() {
             writeln!(f, "Retrograde bodies: {}", retrograde_bodies.join(", "))?;
@@ -663,5 +658,42 @@ mod tests {
         );
         assert_eq!(chart.retrograde_placements().count(), 1);
         assert!(chart.to_string().contains("Retrograde bodies: Mars"));
+    }
+
+    #[test]
+    fn chart_snapshot_renders_custom_body_identifiers() {
+        let instant = Instant::new(
+            pleiades_types::JulianDay::from_days(2451545.0),
+            TimeScale::Tt,
+        );
+        let custom_body =
+            CelestialBody::Custom(pleiades_types::CustomBodyId::new("asteroid", "433-Eros"));
+        let mut result = EphemerisResult::new(
+            BackendId::new("toy-chart"),
+            custom_body.clone(),
+            instant,
+            pleiades_types::CoordinateFrame::Ecliptic,
+            ZodiacMode::Tropical,
+            Apparentness::Apparent,
+        );
+        result.motion = Some(pleiades_types::Motion::new(Some(-0.01), None, None));
+
+        let chart = ChartSnapshot {
+            backend_id: BackendId::new("toy-chart"),
+            instant,
+            observer: None,
+            zodiac_mode: ZodiacMode::Tropical,
+            houses: None,
+            placements: vec![BodyPlacement {
+                body: custom_body,
+                position: result,
+                sign: None,
+                house: None,
+            }],
+        };
+
+        let rendered = chart.to_string();
+        assert!(rendered.contains("asteroid:433-Eros"));
+        assert!(rendered.contains("Retrograde bodies: asteroid:433-Eros"));
     }
 }

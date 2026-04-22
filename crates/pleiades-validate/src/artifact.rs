@@ -491,7 +491,7 @@ impl fmt::Display for ArtifactInspectionReport {
             writeln!(
                 f,
                 "  {}: {} segments, {} → {}, {} samples, {} boundary checks, max boundary Δlon={:.12}°, Δlat={:.12}°, Δdist={}",
-                body.body.built_in_name().unwrap_or("Custom"),
+                body.body,
                 body.segment_count,
                 body.earliest.julian_day,
                 body.latest.julian_day,
@@ -563,7 +563,7 @@ impl fmt::Display for ArtifactInspectionReport {
                 writeln!(
                     f,
                     "    {}: Δlon={:.12}°, Δlat={:.12}°, Δdist={}, {}",
-                    finding.body.built_in_name().unwrap_or("Custom"),
+                    finding.body,
                     finding.longitude_delta_deg,
                     finding.latitude_delta_deg,
                     finding

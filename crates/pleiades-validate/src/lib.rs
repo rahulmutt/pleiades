@@ -405,7 +405,7 @@ impl fmt::Display for ValidationReport {
             writeln!(
                 f,
                 "  {}: Δlon={:.12}°, Δlat={:.12}°, Δdist={}",
-                sample.body.built_in_name().unwrap_or("Custom"),
+                sample.body,
                 sample.longitude_delta_deg,
                 sample.latitude_delta_deg,
                 sample
@@ -924,7 +924,7 @@ impl fmt::Display for ComparisonReport {
             writeln!(
                 f,
                 "  {}: Δlon={:.12}°, Δlat={:.12}°, Δdist={}",
-                sample.body.built_in_name().unwrap_or("Custom"),
+                sample.body,
                 sample.longitude_delta_deg,
                 sample.latitude_delta_deg,
                 sample
@@ -1073,7 +1073,7 @@ fn write_regression_section(
         writeln!(
             f,
             "  {}: Δlon={:.12}°, Δlat={:.12}°, Δdist={}, {}",
-            finding.body.built_in_name().unwrap_or("Custom"),
+            finding.body,
             finding.longitude_delta_deg,
             finding.latitude_delta_deg,
             finding
@@ -1101,7 +1101,7 @@ fn write_regression_archive_section(
         writeln!(
             f,
             "  {}: Δlon={:.12}°, Δlat={:.12}°, Δdist={}, {}",
-            finding.body.built_in_name().unwrap_or("Custom"),
+            finding.body,
             finding.longitude_delta_deg,
             finding.latitude_delta_deg,
             finding
@@ -1213,7 +1213,7 @@ fn write_backend_catalog(
 fn format_bodies(bodies: &[CelestialBody]) -> String {
     bodies
         .iter()
-        .map(|body| body.built_in_name().unwrap_or("Custom"))
+        .map(|body| body.to_string())
         .collect::<Vec<_>>()
         .join(", ")
 }

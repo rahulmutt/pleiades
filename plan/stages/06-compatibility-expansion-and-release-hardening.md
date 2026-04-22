@@ -82,6 +82,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] The compatibility profile now also captures a couple of Swiss-Ephemeris label variants that were still missing from the release notes layer: `Whole Sign (house 1 = Aries)` resolves to `Equal (1=Aries)`, and `Moon` resolves to `Valens Moon`.
 - [x] The Babylonian house-family ayanamsa batch is now catalogued too: Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), and Babylonian (House Obs) are resolved, rendered in the compatibility profile, and available through the shared catalog path as the next breadth increment.
 - [x] The backend capability matrices now render each backend's nominal supported time range in addition to accuracy and body coverage, making the release-facing capability docs easier to audit.
+- [x] Shared `CelestialBody` display formatting now preserves custom body identifiers across chart, validation, and artifact reports, so future custom-body or asteroid-oriented extensions have a stable user-facing rendering path.
 
 ## Exit criteria
 
