@@ -23,6 +23,7 @@ dependencies = [
  "pleiades-core",
  "pleiades-data",
  "pleiades-elp",
+ "pleiades-jpl",
  "pleiades-vsop87",
 ]
 

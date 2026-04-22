@@ -13,6 +13,7 @@ use pleiades_core::{
 };
 use pleiades_data::PackagedDataBackend;
 use pleiades_elp::ElpBackend;
+use pleiades_jpl::JplSnapshotBackend;
 use pleiades_vsop87::Vsop87Backend;
 
 fn banner() -> &'static str {
@@ -93,7 +94,10 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
 
     let backend = CompositeBackend::new(
         PackagedDataBackend::new(),
-        CompositeBackend::new(Vsop87Backend::new(), ElpBackend::new()),
+        CompositeBackend::new(
+            CompositeBackend::new(Vsop87Backend::new(), ElpBackend::new()),
+            JplSnapshotBackend::new(),
+        ),
     );
     let engine = ChartEngine::new(backend);
     let mut request = ChartRequest::new(instant)
@@ -132,6 +136,10 @@ fn parse_body(value: Option<&str>) -> Result<CelestialBody, String> {
         "uranus" => Ok(CelestialBody::Uranus),
         "neptune" => Ok(CelestialBody::Neptune),
         "pluto" => Ok(CelestialBody::Pluto),
+        "ceres" => Ok(CelestialBody::Ceres),
+        "pallas" => Ok(CelestialBody::Pallas),
+        "juno" => Ok(CelestialBody::Juno),
+        "vesta" => Ok(CelestialBody::Vesta),
         other => Err(format!("unsupported body name: {other}")),
     }
 }
@@ -227,5 +235,13 @@ mod tests {
                 .expect("sidereal chart should render");
         assert!(rendered.contains("Sidereal"));
         assert!(rendered.contains("Lahiri"));
+    }
+
+    #[test]
+    fn chart_command_routes_selected_asteroids_via_jpl_fallback() {
+        let rendered = render_chart(&["--jd", "2451545.0", "--body", "Ceres"])
+            .expect("asteroid chart should render");
+        assert!(rendered.contains("Ceres"));
+        assert!(rendered.contains("Backend:"));
     }
 }

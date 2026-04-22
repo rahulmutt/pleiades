@@ -10,4 +10,5 @@ publish = false
 pleiades-core = { path = "../pleiades-core" }
 pleiades-data = { path = "../pleiades-data" }
 pleiades-elp = { path = "../pleiades-elp" }
+pleiades-jpl = { path = "../pleiades-jpl" }
 pleiades-vsop87 = { path = "../pleiades-vsop87" }

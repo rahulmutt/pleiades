@@ -60,6 +60,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] The Sunshine house family is now catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
 - [x] The Gauquelin-sector family is now catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
 - [x] The public API stability posture is now published through `pleiades-core`, surfaced in the CLI, and included in validation reports so consumers can tell which surfaces are stable versus tooling-internal.
+- [x] The CLI chart workflow now routes selected asteroid bodies through the JPL snapshot fallback at supported comparison epochs, so the release-line composite backend can exercise the stage-4 asteroid coverage without changing the primary packaged/chart path.
 
 ## Exit criteria
 
