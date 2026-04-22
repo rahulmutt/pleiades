@@ -184,7 +184,12 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
     HouseSystemDescriptor::new(
         HouseSystem::EqualAries,
         "Equal (1=Aries)",
-        &["Equal/1=Aries", "Equal Aries", "Aries houses"],
+        &[
+            "Equal/1=Aries",
+            "Equal Aries",
+            "Aries houses",
+            "Whole Sign (house 1 = Aries)",
+        ],
         "Fixed zodiac-sign houses anchored at 0° Aries.",
         false,
     ),
@@ -435,7 +440,12 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
     HouseSystemDescriptor::new(
         HouseSystem::EqualAries,
         "Equal (1=Aries)",
-        &["Equal/1=Aries", "Equal Aries", "Aries houses"],
+        &[
+            "Equal/1=Aries",
+            "Equal Aries",
+            "Aries houses",
+            "Whole Sign (house 1 = Aries)",
+        ],
         "Fixed zodiac-sign houses anchored at 0° Aries.",
         false,
     ),
@@ -535,6 +545,10 @@ mod tests {
             Some(HouseSystem::EqualAries)
         );
         assert_eq!(resolve_house_system("vehlow"), Some(HouseSystem::Vehlow));
+        assert_eq!(
+            resolve_house_system("Whole Sign (house 1 = Aries)"),
+            Some(HouseSystem::EqualAries)
+        );
         assert_eq!(resolve_house_system("Azimuth"), Some(HouseSystem::Horizon));
         assert_eq!(resolve_house_system("Ram school"), Some(HouseSystem::Apc));
         assert_eq!(

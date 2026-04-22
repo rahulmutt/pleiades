@@ -73,8 +73,8 @@ pub const fn current_compatibility_profile() -> CompatibilityProfile {
         baseline_ayanamsas: baseline_ayanamsas(),
         release_ayanamsas: release_ayanamsas(),
         release_notes: &[
-            "Release-specific house-system additions now include Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter (poli-equatorial), Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen SD, Pullen SR, Sunshine, and Gauquelin sectors.",
-            "Release-specific ayanamsa additions now include J2000, J1900, B1950, DeLuce, Yukteshwar, PVR Pushya-paksha, Sheoran, True Revati, True Mula, Suryasiddhanta (Revati), Suryasiddhanta (Citra), Lahiri (ICRC), Lahiri (1940), Usha Shashi, Suryasiddhanta (499 CE), Aryabhata (499 CE), Sassanian, Hipparchus, Babylonian (Kugler 1), Babylonian (Kugler 2), Babylonian (Kugler 3), Babylonian (Huber), Babylonian (Eta Piscium), Babylonian (Aldebaran), True Pushya, Udayagiri, Djwhal Khul, JN Bhasin, Suryasiddhanta (Mean Sun), Aryabhata (Mean Sun), Babylonian (Britton), Aryabhata (522 CE), Lahiri (VP285), Krishnamurti (VP291), True Sheoran, Valens Moon, Galactic Center (Rgilbrand), Galactic Center (Mardyks), Galactic Center (Mula/Wilhelm), Dhruva Galactic Center (Middle Mula), Galactic Center (Cochrane), Galactic Equator (IAU 1958), Galactic Equator (True), Galactic Equator (Mula), Galactic Equator (Fiorenza), Galactic Center, and Galactic Equator.",
+            "Release-specific house-system additions now include Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter (poli-equatorial), Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen SD, Pullen SR, Sunshine, and Gauquelin sectors, with the Whole Sign (house 1 = Aries) label also resolving as an interoperability alias.",
+            "Release-specific ayanamsa additions now include J2000, J1900, B1950, DeLuce, Yukteshwar, PVR Pushya-paksha, Sheoran, True Revati, True Mula, Suryasiddhanta (Revati), Suryasiddhanta (Citra), Lahiri (ICRC), Lahiri (1940), Usha Shashi, Suryasiddhanta (499 CE), Aryabhata (499 CE), Sassanian, Hipparchus, Babylonian (Kugler 1), Babylonian (Kugler 2), Babylonian (Kugler 3), Babylonian (Huber), Babylonian (Eta Piscium), Babylonian (Aldebaran), True Pushya, Udayagiri, Djwhal Khul, JN Bhasin, Suryasiddhanta (Mean Sun), Aryabhata (Mean Sun), Babylonian (Britton), Aryabhata (522 CE), Lahiri (VP285), Krishnamurti (VP291), True Sheoran, Valens Moon, Galactic Center (Rgilbrand), Galactic Center (Mardyks), Galactic Center (Mula/Wilhelm), Dhruva Galactic Center (Middle Mula), Galactic Center (Cochrane), Galactic Equator (IAU 1958), Galactic Equator (True), Galactic Equator (Mula), Galactic Equator (Fiorenza), Galactic Center, and Galactic Equator, and the plain Moon alias also resolves to Valens Moon for compatibility with existing label variants.",
             "The compatibility profile is intended to be archived with release validation outputs and release notes.",
         ],
         known_gaps: &[
@@ -477,6 +477,8 @@ mod tests {
         assert!(rendered.contains("Alias mappings for built-in ayanamsas:"));
         assert!(rendered.contains("Polich-Page, Polich Page -> Topocentric"));
         assert!(rendered.contains("Chitrapaksha -> Lahiri"));
+        assert!(rendered.contains("Whole Sign (house 1 = Aries) -> Equal (1=Aries)"));
+        assert!(rendered.contains("Valens, Moon, Moon sign ayanamsa -> Valens Moon"));
         assert!(rendered.contains("Equal (MC)"));
         assert!(rendered.contains("Equal (1=Aries)"));
         assert!(rendered.contains("Vehlow Equal"));

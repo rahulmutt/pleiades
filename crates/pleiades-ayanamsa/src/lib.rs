@@ -496,7 +496,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::ValensMoon,
         "Valens Moon",
-        &["Valens", "Moon sign ayanamsa"],
+        &["Valens", "Moon", "Moon sign ayanamsa"],
         "Valens Moon sidereal mode, catalogued with the Swiss Ephemeris reference epoch and offset from the header metadata.",
         Some(JulianDay::from_days(1_775_845.5)),
         Some(Angle::from_degrees(-2.942_2)),
@@ -920,7 +920,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 52] = [
     AyanamsaDescriptor::new(
         Ayanamsa::ValensMoon,
         "Valens Moon",
-        &["Valens", "Moon sign ayanamsa"],
+        &["Valens", "Moon", "Moon sign ayanamsa"],
         "Valens Moon sidereal mode, catalogued with the Swiss Ephemeris reference epoch and offset from the header metadata.",
         Some(JulianDay::from_days(1_775_845.5)),
         Some(Angle::from_degrees(-2.942_2)),
@@ -1035,6 +1035,7 @@ mod tests {
             Some(Ayanamsa::Lahiri1940)
         );
         assert_eq!(resolve_ayanamsa("Revati"), Some(Ayanamsa::UshaShashi));
+        assert_eq!(resolve_ayanamsa("Moon"), Some(Ayanamsa::ValensMoon));
         assert_eq!(resolve_ayanamsa("Aryabhata"), Some(Ayanamsa::Aryabhata499));
         assert_eq!(resolve_ayanamsa("Zij al-Shah"), Some(Ayanamsa::Sassanian));
         assert_eq!(resolve_ayanamsa("De Luce"), Some(Ayanamsa::DeLuce));
