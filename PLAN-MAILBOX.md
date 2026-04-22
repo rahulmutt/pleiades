@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-22 — Ayanamsa metadata coverage summary added
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-ayanamsa` now exposes a metadata-coverage summary for built-in ayanamsas, counting which entries carry both reference epoch and offset metadata and listing the remaining gaps
+- `pleiades-core` and `pleiades-cli` now render that coverage summary in the compatibility profile so release consumers can see the sidereal-metadata gap at a glance
+- the new coverage summary is regression-tested in both the ayanamsa crate and the profile rendering path
+
+Remaining Stage 6 work: continue filling out ayanamsa metadata and catalog breadth while keeping the release profile synchronized with the catalog.
+
 ## 2026-04-22 — Cochrane ayanamsa metadata backfill added
 
 Implemented a small Stage 6 metadata-backfill slice:

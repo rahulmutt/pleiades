@@ -74,6 +74,11 @@ impl AyanamsaDescriptor {
                 .iter()
                 .any(|alias| alias.eq_ignore_ascii_case(label))
     }
+
+    /// Returns `true` when both reference metadata fields are present.
+    pub fn has_sidereal_metadata(&self) -> bool {
+        self.epoch.is_some() && self.offset_degrees.is_some()
+    }
 }
 
 const BASELINE_AYANAMSAS: &[AyanamsaDescriptor] = &[
@@ -1038,6 +1043,44 @@ pub const fn built_in_ayanamsas() -> &'static [AyanamsaDescriptor] {
     &BUILT_IN_AYANAMSAS
 }
 
+/// A summary of which built-in ayanamsas have sidereal reference metadata.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AyanamsaMetadataCoverage {
+    /// Total number of built-in ayanamsas.
+    pub total: usize,
+    /// Built-in entries that provide both a reference epoch and a reference offset.
+    pub with_sidereal_metadata: usize,
+    /// Canonical names for built-in entries that are still missing one or both fields.
+    pub without_sidereal_metadata: Vec<&'static str>,
+}
+
+impl AyanamsaMetadataCoverage {
+    /// Returns `true` when every built-in ayanamsa carries sidereal metadata.
+    pub fn is_complete(&self) -> bool {
+        self.without_sidereal_metadata.is_empty()
+    }
+}
+
+/// Returns a coverage summary for the built-in ayanamsa catalog.
+pub fn metadata_coverage() -> AyanamsaMetadataCoverage {
+    let mut without_sidereal_metadata = Vec::new();
+    let mut with_sidereal_metadata = 0;
+
+    for entry in built_in_ayanamsas() {
+        if entry.has_sidereal_metadata() {
+            with_sidereal_metadata += 1;
+        } else {
+            without_sidereal_metadata.push(entry.canonical_name);
+        }
+    }
+
+    AyanamsaMetadataCoverage {
+        total: built_in_ayanamsas().len(),
+        with_sidereal_metadata,
+        without_sidereal_metadata,
+    }
+}
+
 /// Finds the descriptor for a typed ayanamsa selection.
 pub fn descriptor(ayanamsa: &Ayanamsa) -> Option<&'static AyanamsaDescriptor> {
     built_in_ayanamsas()
@@ -1415,6 +1458,24 @@ mod tests {
             ),
             Some(Angle::from_degrees(0.0))
         );
+    }
+
+    #[test]
+    fn metadata_coverage_reports_remaining_gaps() {
+        let coverage = metadata_coverage();
+        let expected_without: Vec<_> = built_in_ayanamsas()
+            .iter()
+            .filter(|entry| !entry.has_sidereal_metadata())
+            .map(|entry| entry.canonical_name)
+            .collect();
+
+        assert_eq!(coverage.total, built_in_ayanamsas().len());
+        assert_eq!(
+            coverage.with_sidereal_metadata + coverage.without_sidereal_metadata.len(),
+            coverage.total
+        );
+        assert_eq!(coverage.without_sidereal_metadata, expected_without);
+        assert_eq!(coverage.is_complete(), expected_without.is_empty());
     }
 
     #[test]

@@ -10,7 +10,8 @@
 use core::fmt;
 
 use pleiades_ayanamsa::{
-    baseline_ayanamsas, built_in_ayanamsas, release_ayanamsas, AyanamsaDescriptor,
+    baseline_ayanamsas, built_in_ayanamsas, metadata_coverage, release_ayanamsas,
+    AyanamsaDescriptor,
 };
 use pleiades_houses::{
     baseline_house_systems, built_in_house_systems, release_house_systems, HouseSystemDescriptor,
@@ -227,6 +228,26 @@ impl fmt::Display for CompatibilityProfile {
                 f,
                 "Release-specific notes beyond baseline:",
                 self.release_notes,
+            )?;
+        }
+        writeln!(f)?;
+        let coverage = metadata_coverage();
+        writeln!(f, "Ayanamsa sidereal metadata coverage:")?;
+        writeln!(
+            f,
+            "- entries with both a reference epoch and offset: {}/{}",
+            coverage.with_sidereal_metadata, coverage.total
+        )?;
+        if coverage.is_complete() {
+            writeln!(
+                f,
+                "- all built-in ayanamsas can participate in chart-layer sidereal conversion."
+            )?;
+        } else {
+            writeln!(
+                f,
+                "- missing metadata: {}",
+                coverage.without_sidereal_metadata.join(", ")
             )?;
         }
         writeln!(f)?;
@@ -501,6 +522,9 @@ mod tests {
         assert!(rendered.contains("Release-specific coverage beyond baseline:"));
         assert!(rendered.contains("Alias mappings for built-in house systems:"));
         assert!(rendered.contains("Alias mappings for built-in ayanamsas:"));
+        assert!(rendered.contains("Ayanamsa sidereal metadata coverage:"));
+        assert!(rendered.contains("entries with both a reference epoch and offset"));
+        assert!(rendered.contains("missing metadata:"));
         assert!(rendered.contains("Polich-Page, Polich Page -> Topocentric"));
         assert!(rendered.contains("Chitrapaksha -> Lahiri"));
         assert!(rendered.contains("Whole Sign (house 1 = Aries) -> Equal (1=Aries)"));
