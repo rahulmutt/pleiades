@@ -13,7 +13,7 @@ The repository is in the stage-6 release-hardening phase, with the chart MVP and
 - the baseline house and ayanamsa catalogs plus the compatibility profile scaffold are published,
 - the tropical chart workflow works end to end with approximate Sun/Moon/planet backends and a CLI chart report,
 - sidereal conversion is available in the chart layer,
-- house placement works for the full baseline catalog (Equal, Whole Sign, Porphyry, Placidus, Koch, Regiomontanus, Campanus, Alcabitius, Topocentric, Morinus, Meridian, and Axial variants),
+- house placement works for the full baseline catalog (Equal, Whole Sign, Porphyry, Placidus, Koch, Regiomontanus, Campanus, Alcabitius, Topocentric, Morinus, Meridian, and Axial variants), and the Sunshine house family is now available in the release-specific catalog,
 - a checked-in JPL Horizons snapshot corpus now spans multiple comparison epochs for validation, includes selected asteroid entries, and `pleiades-validate` can compare, benchmark, report on the planetary comparison subset, inspect the bundled compressed artifact, and write a reproducible release bundle with the compatibility profile and validation report.
 
 ## Local development

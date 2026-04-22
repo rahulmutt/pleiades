@@ -256,9 +256,16 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         "Sinusoidal-ratio variant with ratio-derived house spacing.",
         false,
     ),
+    HouseSystemDescriptor::new(
+        HouseSystem::Sunshine,
+        "Sunshine",
+        &["Sunshine houses", "Makransky Sunshine", "Treindl Sunshine"],
+        "Sunshine house system based on the Sun's diurnal and nocturnal arcs; the 1st house is the Ascendant and the 10th house is the MC.",
+        true,
+    ),
 ];
 
-static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 23] = [
+static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 24] = [
     HouseSystemDescriptor::new(
         HouseSystem::Placidus,
         "Placidus",
@@ -398,6 +405,13 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 23] = [
         false,
     ),
     HouseSystemDescriptor::new(
+        HouseSystem::Sunshine,
+        "Sunshine",
+        &["Sunshine houses", "Makransky Sunshine", "Treindl Sunshine"],
+        "Sunshine house system based on the Sun's diurnal and nocturnal arcs; the 1st house is the Ascendant and the 10th house is the MC.",
+        true,
+    ),
+    HouseSystemDescriptor::new(
         HouseSystem::EqualMidheaven,
         "Equal (MC)",
         &["Equal from MC", "Equal (from MC)"],
@@ -515,6 +529,14 @@ mod tests {
         );
         assert_eq!(resolve_house_system("Śrīpati"), Some(HouseSystem::Sripati));
         assert_eq!(
+            resolve_house_system("Sunshine"),
+            Some(HouseSystem::Sunshine)
+        );
+        assert_eq!(
+            resolve_house_system("Treindl Sunshine"),
+            Some(HouseSystem::Sunshine)
+        );
+        assert_eq!(
             resolve_house_system("Savard-A"),
             Some(HouseSystem::Albategnius)
         );
@@ -547,6 +569,7 @@ mod tests {
             "Albategnius",
             "Pullen SD",
             "Pullen SR",
+            "Sunshine",
         ] {
             assert!(names.contains(&expected), "missing {expected}");
         }

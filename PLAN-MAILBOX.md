@@ -196,3 +196,13 @@ Implemented the next Stage 6 breadth slice:
 - plan notes were updated so the remaining breadth work now points at the sinusoidal, Albategnius, Sunshine, and Gauquelin-sector families
 
 Next recommended slice: keep adding the remaining specialized house families in small batches, then revisit any remaining API-posture polish if those additions expose new constraints.
+
+## 2026-04-22 — Sunshine house family added
+
+Implemented the next Stage 6 breadth slice:
+
+- `pleiades-types` gained `HouseSystem::Sunshine` for the Sunshine house family
+- `pleiades-houses` now catalogs, resolves, documents, and calculates Sunshine using a pure-Rust Sun-declination and arc-segmentation implementation derived from the Swiss Ephemeris formula set
+- `pleiades-core`, the compatibility profile, and the README now reflect Sunshine as release-specific coverage
+
+Remaining Stage 6 work: the Gauquelin-sector family, plus any API posture review and release-hardening polish that depends on additional coverage.

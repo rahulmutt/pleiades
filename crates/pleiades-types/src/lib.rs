@@ -470,6 +470,8 @@ pub enum HouseSystem {
     Topocentric,
     /// Morinus.
     Morinus,
+    /// Sunshine (Bob Makransky / Dieter Treindl family).
+    Sunshine,
     /// A custom house system definition.
     Custom(CustomHouseSystem),
 }

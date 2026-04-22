@@ -181,6 +181,9 @@ pub fn calculate_houses(request: &HouseRequest) -> Result<HouseSnapshot, HouseEr
         HouseSystem::Albategnius => albategnius_houses(angles),
         HouseSystem::PullenSd => pullen_sd_houses(angles),
         HouseSystem::PullenSr => pullen_sr_houses(angles),
+        HouseSystem::Sunshine => {
+            sunshine_houses(request.instant, &request.observer, obliquity, angles)
+        }
         HouseSystem::Meridian | HouseSystem::Axial | HouseSystem::Morinus => {
             equatorial_projection_houses(request.instant, &request.observer, obliquity)
         }
@@ -830,6 +833,129 @@ fn topocentric_houses(
     placidus_houses(instant, &corrected_observer, obliquity, corrected_angles)
 }
 
+fn sunshine_houses(
+    instant: Instant,
+    observer: &ObserverLocation,
+    obliquity: Angle,
+    angles: HouseAngles,
+) -> [Longitude; 12] {
+    const SUNSHINE_KEEP_MC_SOUTH: bool = false;
+
+    let sidereal_time = local_sidereal_time(instant, observer.longitude).degrees();
+    let latitude = observer.latitude.degrees();
+    let obliquity_deg = obliquity.degrees();
+    let sundec = apparent_solar_declination(instant, obliquity).degrees();
+    let mc_under_horizon = latitude.signum() != 0.0
+        && (latitude - apparent_midheaven_declination(sidereal_time, obliquity_deg)).abs() > 90.0;
+
+    let mut cusps = [Longitude::from_degrees(0.0); 12];
+    let mut ascendant = angles.ascendant;
+    let mut midheaven = angles.midheaven;
+    let acmc = signed_longitude_difference(ascendant.degrees(), midheaven.degrees());
+    if acmc < 0.0 {
+        ascendant = longitude_opposite(ascendant);
+        if !SUNSHINE_KEEP_MC_SOUTH {
+            midheaven = longitude_opposite(midheaven);
+        }
+    }
+
+    cusps[0] = ascendant;
+    cusps[3] = longitude_opposite(midheaven);
+    cusps[6] = longitude_opposite(ascendant);
+    cusps[9] = midheaven;
+
+    let offsets = sunshine_offsets(latitude, sundec);
+    let sin_ecl = obliquity_deg.to_radians().sin();
+    let cos_ecl = obliquity_deg.to_radians().cos();
+
+    for house in [2usize, 3, 5, 6, 8, 9, 11, 12] {
+        let offset = offsets[house];
+        let xhs = 2.0
+            * (sundec.to_radians().cos() * (offset.to_radians() / 2.0).sin())
+                .asin()
+                .to_degrees();
+        let cosa = (sundec.to_radians().tan() * (xhs.to_radians() / 2.0).tan()).clamp(-1.0, 1.0);
+        let alph = cosa.acos().to_degrees();
+        let (alpha2, b) = if house > 7 {
+            (180.0 - alph, 90.0 - latitude + sundec)
+        } else {
+            (alph, 90.0 - latitude - sundec)
+        };
+
+        let cosc = xhs.to_radians().cos() * b.to_radians().cos()
+            + xhs.to_radians().sin() * b.to_radians().sin() * alpha2.to_radians().cos();
+        let c = cosc.clamp(-1.0, 1.0).acos().to_degrees();
+        let sinzd = if c.abs() < f64::EPSILON {
+            0.0
+        } else {
+            xhs.to_radians().sin() * alpha2.to_radians().sin() / c.to_radians().sin()
+        };
+        let zd = sinzd.clamp(-1.0, 1.0).asin().to_degrees();
+        let rax = (latitude.to_radians().cos() * zd.to_radians().tan())
+            .atan()
+            .to_degrees();
+        let pole = (sinzd * latitude.to_radians().sin())
+            .clamp(-1.0, 1.0)
+            .asin()
+            .to_degrees();
+        let pole = if house <= 6 { -pole } else { pole };
+        let a = if house <= 6 {
+            sidereal_time + 180.0 + rax
+        } else {
+            sidereal_time + rax
+        };
+        cusps[house - 1] = asc1(a, pole, sin_ecl, cos_ecl);
+    }
+
+    if mc_under_horizon && !SUNSHINE_KEEP_MC_SOUTH {
+        for house in [2usize, 3, 5, 6, 8, 9, 11, 12] {
+            cusps[house - 1] = longitude_opposite(cusps[house - 1]);
+        }
+    }
+
+    cusps
+}
+
+fn sunshine_offsets(latitude_deg: f64, sun_declination_deg: f64) -> [f64; 13] {
+    let mut offsets = [0.0; 13];
+    let tan_product = sun_declination_deg.to_radians().tan() * latitude_deg.to_radians().tan();
+    let ascensional_difference = tan_product.clamp(-1.0, 1.0).asin().to_degrees();
+    let nocturnal_semi_arc = 90.0 - ascensional_difference;
+    let diurnal_semi_arc = 90.0 + ascensional_difference;
+    offsets[2] = -2.0 * nocturnal_semi_arc / 3.0;
+    offsets[3] = -nocturnal_semi_arc / 3.0;
+    offsets[5] = nocturnal_semi_arc / 3.0;
+    offsets[6] = 2.0 * nocturnal_semi_arc / 3.0;
+    offsets[8] = -2.0 * diurnal_semi_arc / 3.0;
+    offsets[9] = -diurnal_semi_arc / 3.0;
+    offsets[11] = diurnal_semi_arc / 3.0;
+    offsets[12] = 2.0 * diurnal_semi_arc / 3.0;
+    offsets
+}
+
+fn apparent_solar_declination(instant: Instant, obliquity: Angle) -> Angle {
+    let days = instant.julian_day.days() - 2_451_545.0;
+    let mean_longitude = Angle::from_degrees(280.460 + 0.985_647_4 * days).normalized_0_360();
+    let mean_anomaly = Angle::from_degrees(357.528 + 0.985_600_3 * days).normalized_0_360();
+    let lambda = Angle::from_degrees(
+        mean_longitude.degrees()
+            + 1.915 * mean_anomaly.radians().sin()
+            + 0.020 * (2.0 * mean_anomaly.radians()).sin(),
+    )
+    .normalized_0_360();
+    Angle::from_degrees(
+        (obliquity.radians().sin() * lambda.radians().sin())
+            .asin()
+            .to_degrees(),
+    )
+}
+
+fn apparent_midheaven_declination(sidereal_time_deg: f64, obliquity_deg: f64) -> f64 {
+    (sidereal_time_deg.to_radians().sin() * obliquity_deg.to_radians().tan())
+        .atan()
+        .to_degrees()
+}
+
 fn topocentric_latitude(latitude_deg: f64, elevation_m: Option<f64>) -> Result<Angle, HouseError> {
     let latitude = latitude_deg.to_radians();
     let radius_m = 6_371_000.0;
@@ -923,6 +1049,45 @@ fn midpoint_longitude(start: Longitude, end: Longitude) -> Longitude {
     interpolate_longitude(start, end, 0.5)
 }
 
+fn asc1(x1: f64, pole_height: f64, sine: f64, cose: f64) -> Longitude {
+    let x1 = normalize_degrees(x1);
+    let quadrant = (x1 / 90.0).floor() as i32 + 1;
+    let lon = match quadrant {
+        1 => asc2(x1, pole_height, sine, cose),
+        2 => 180.0 - asc2(180.0 - x1, -pole_height, sine, cose),
+        3 => 180.0 + asc2(x1 - 180.0, -pole_height, sine, cose),
+        _ => 360.0 - asc2(360.0 - x1, pole_height, sine, cose),
+    };
+    Longitude::from_degrees(lon)
+}
+
+fn asc2(x: f64, pole_height: f64, sine: f64, cose: f64) -> f64 {
+    let mut value = -pole_height.to_radians().tan() * sine + cose * x.to_radians().cos();
+    if value.abs() < 1.0e-12 {
+        value = 0.0;
+    }
+    let sinx = x.to_radians().sin();
+    let mut longitude = if sinx.abs() < 1.0e-12 {
+        if value < 0.0 {
+            -1.0e-12
+        } else {
+            1.0e-12
+        }
+    } else if value == 0.0 {
+        if sinx < 0.0 {
+            -90.0
+        } else {
+            90.0
+        }
+    } else {
+        (sinx / value).atan().to_degrees()
+    };
+    if longitude < 0.0 {
+        longitude += 180.0;
+    }
+    longitude
+}
+
 fn longitude_opposite(longitude: Longitude) -> Longitude {
     Longitude::from_degrees(longitude.degrees() + 180.0)
 }
@@ -995,6 +1160,7 @@ fn catalog_name(system: &HouseSystem) -> &'static str {
         HouseSystem::Axial => "Axial",
         HouseSystem::Topocentric => "Topocentric",
         HouseSystem::Morinus => "Morinus",
+        HouseSystem::Sunshine => "Sunshine",
         HouseSystem::Custom(_) => "Custom",
         _ => "Unspecified",
     }
@@ -1166,6 +1332,18 @@ mod tests {
                 180.0
             );
         }
+    }
+
+    #[test]
+    fn sunshine_release_system_is_available() {
+        let snapshot = calculate_houses(&sample_request(HouseSystem::Sunshine))
+            .expect("sunshine houses should work");
+        assert_eq!(snapshot.cusps.len(), 12);
+        assert!(snapshot.cusps[0].degrees().is_finite());
+        assert!(snapshot.cusps[9].degrees().is_finite());
+        assert!(snapshot.cusps[3].degrees().is_finite());
+        assert!(snapshot.cusps[6].degrees().is_finite());
+        assert_ne!(snapshot.cusps[0], snapshot.cusps[9]);
     }
 
     #[test]

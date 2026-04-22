@@ -55,7 +55,8 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] Horizon/Azimuth and APC are now catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
 - [x] Krusinski-Pisa-Goelzer is now catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
 - [x] Albategnius and the Pullen sinusoidal house families are now catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
-- [ ] Remaining house-system breadth now focuses on the Sunshine and Gauquelin-sector families still called out by the stage-6 plan.
+- [x] The Sunshine house family is now catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
+- [ ] Remaining house-system breadth now focuses on the Gauquelin-sector family still called out by the stage-6 plan.
 
 ## Exit criteria
 
