@@ -21,6 +21,7 @@ use pleiades_core::{
     CoordinateFrame, EclipticCoordinates, EphemerisBackend, EphemerisError, EphemerisErrorKind,
     EphemerisRequest, EphemerisResult, Instant, JulianDay, Longitude, TimeScale, ZodiacMode,
 };
+use pleiades_data::PackagedDataBackend;
 use pleiades_elp::ElpBackend;
 use pleiades_jpl::{comparison_snapshot, JplSnapshotBackend};
 use pleiades_vsop87::Vsop87Backend;
@@ -339,6 +340,12 @@ impl fmt::Display for ValidationReport {
         writeln!(f, "API stability posture")?;
         writeln!(f, "{}", current_api_stability_profile())?;
         writeln!(f)?;
+        write_backend_catalog(
+            f,
+            "Implemented backend matrices",
+            &implemented_backend_catalog(),
+        )?;
+        writeln!(f)?;
         writeln!(f, "Comparison corpus")?;
         write_corpus_summary(f, &self.comparison_corpus)?;
         writeln!(f)?;
@@ -456,6 +463,10 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("compare-backends") => {
             ensure_no_extra_args(&args[1..], "compare-backends")?;
             render_comparison_report().map_err(render_error)
+        }
+        Some("backend-matrix") => {
+            ensure_no_extra_args(&args[1..], "backend-matrix")?;
+            render_backend_matrix_report().map_err(render_error)
         }
         Some("benchmark") => {
             let rounds = parse_rounds(&args[1..], DEFAULT_BENCHMARK_ROUNDS)?;
@@ -658,6 +669,50 @@ pub fn render_benchmark_report(rounds: usize) -> Result<String, EphemerisError> 
     let corpus = benchmark_corpus();
     let candidate = default_candidate_backend();
     Ok(benchmark_backend(&candidate, &corpus, rounds)?.to_string())
+}
+
+/// Renders a backend capability matrix for the implemented backend catalog.
+pub fn render_backend_matrix_report() -> Result<String, EphemerisError> {
+    let mut rendered = String::new();
+    fmt::write(
+        &mut rendered,
+        format_args!("Implemented backend matrices\n\n"),
+    )
+    .map_err(|_| {
+        EphemerisError::new(
+            EphemerisErrorKind::NumericalFailure,
+            "failed to render backend capability matrix",
+        )
+    })?;
+
+    for entry in implemented_backend_catalog() {
+        fmt::write(&mut rendered, format_args!("{}\n", entry.label)).map_err(|_| {
+            EphemerisError::new(
+                EphemerisErrorKind::NumericalFailure,
+                "failed to render backend capability matrix",
+            )
+        })?;
+        fmt::write(
+            &mut rendered,
+            format_args!("{}\n\n", BackendMatrixDisplay(&entry.metadata)),
+        )
+        .map_err(|_| {
+            EphemerisError::new(
+                EphemerisErrorKind::NumericalFailure,
+                "failed to render backend capability matrix",
+            )
+        })?;
+    }
+
+    Ok(rendered)
+}
+
+struct BackendMatrixDisplay<'a>(&'a BackendMetadata);
+
+impl fmt::Display for BackendMatrixDisplay<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write_backend_matrix(f, self.0)
+    }
 }
 
 impl fmt::Display for ComparisonReport {
@@ -898,6 +953,50 @@ fn regression_finding(sample: &ComparisonSample) -> Option<RegressionFinding> {
     })
 }
 
+fn implemented_backend_catalog() -> Vec<BackendMatrixEntry> {
+    vec![
+        BackendMatrixEntry {
+            label: "JPL snapshot reference backend",
+            metadata: default_reference_backend().metadata(),
+        },
+        BackendMatrixEntry {
+            label: "VSOP87 planetary backend",
+            metadata: Vsop87Backend::new().metadata(),
+        },
+        BackendMatrixEntry {
+            label: "ELP lunar backend",
+            metadata: ElpBackend::new().metadata(),
+        },
+        BackendMatrixEntry {
+            label: "Packaged data backend",
+            metadata: PackagedDataBackend::new().metadata(),
+        },
+        BackendMatrixEntry {
+            label: "Composite routed backend",
+            metadata: default_candidate_backend().metadata(),
+        },
+    ]
+}
+
+struct BackendMatrixEntry {
+    label: &'static str,
+    metadata: BackendMetadata,
+}
+
+fn write_backend_catalog(
+    f: &mut fmt::Formatter<'_>,
+    title: &str,
+    catalog: &[BackendMatrixEntry],
+) -> fmt::Result {
+    writeln!(f, "{}", title)?;
+    for entry in catalog {
+        writeln!(f, "{}", entry.label)?;
+        write_backend_matrix(f, &entry.metadata)?;
+        writeln!(f)?;
+    }
+    Ok(())
+}
+
 fn format_bodies(bodies: &[CelestialBody]) -> String {
     bodies
         .iter()
@@ -978,7 +1077,7 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = default_corpus().requests.len();
     format!(
-        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus\n  report [--rounds N]       Render the full validation report\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  bundle-release --out DIR  Write the release compatibility profile, API posture, validation report, and manifest\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix            Print the implemented backend capability matrices\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus\n  report [--rounds N]       Render the full validation report\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  bundle-release --out DIR  Write the release compatibility profile, API posture, validation report, and manifest\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
@@ -1116,6 +1215,12 @@ mod tests {
         assert!(report.contains("Validation report"));
         assert!(report.contains("Compatibility profile"));
         assert!(report.contains("API stability posture"));
+        assert!(report.contains("Implemented backend matrices"));
+        assert!(report.contains("JPL snapshot reference backend"));
+        assert!(report.contains("VSOP87 planetary backend"));
+        assert!(report.contains("ELP lunar backend"));
+        assert!(report.contains("Packaged data backend"));
+        assert!(report.contains("Composite routed backend"));
         assert!(report.contains("Target compatibility catalog:"));
         assert!(report.contains("Comparison corpus"));
         assert!(report.contains("JPL Horizons comparison window"));
@@ -1176,6 +1281,7 @@ mod tests {
     fn cli_help_lists_the_validation_commands() {
         let rendered = render_cli(&["help"]).expect("help should render");
         assert!(rendered.contains("compare-backends"));
+        assert!(rendered.contains("backend-matrix"));
         assert!(rendered.contains("benchmark [--rounds N]"));
         assert!(rendered.contains("report [--rounds N]"));
         assert!(rendered.contains("validate-artifact"));
@@ -1190,6 +1296,17 @@ mod tests {
         assert!(rendered.contains("Stable consumer surfaces:"));
         assert!(rendered.contains("Experimental or operational surfaces:"));
         assert!(rendered.contains("Deprecation policy:"));
+    }
+
+    #[test]
+    fn backend_matrix_command_renders_the_implemented_catalog() {
+        let rendered = render_cli(&["backend-matrix"]).expect("backend matrix should render");
+        assert!(rendered.contains("Implemented backend matrices"));
+        assert!(rendered.contains("JPL snapshot reference backend"));
+        assert!(rendered.contains("VSOP87 planetary backend"));
+        assert!(rendered.contains("ELP lunar backend"));
+        assert!(rendered.contains("Packaged data backend"));
+        assert!(rendered.contains("Composite routed backend"));
     }
 
     #[test]
