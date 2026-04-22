@@ -121,6 +121,46 @@ const BASELINE_AYANAMSAS: &[AyanamsaDescriptor] = &[
 
 const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
+        Ayanamsa::J2000,
+        "J2000",
+        &["J2000.0"],
+        "Swiss Ephemeris J2000 sidereal frame anchored to the standard J2000.0 epoch.",
+        Some(JulianDay::from_days(2_451_545.0)),
+        Some(Angle::from_degrees(23.853_177_78)),
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::J1900,
+        "J1900",
+        &["J1900.0"],
+        "Swiss Ephemeris J1900 sidereal frame anchored to the standard J1900.0 epoch.",
+        Some(JulianDay::from_days(2_415_020.0)),
+        Some(Angle::from_degrees(0.0)),
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::B1950,
+        "B1950",
+        &["B1950.0"],
+        "Swiss Ephemeris B1950 sidereal frame anchored to the FK4 B1950.0 epoch.",
+        Some(JulianDay::from_days(2_433_281.5)),
+        Some(Angle::from_degrees(0.0)),
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::TrueRevati,
+        "True Revati",
+        &["True Revati ayanamsa"],
+        "True-nakshatra mode with the Revati reference point fixed to the Swiss Ephemeris zero date.",
+        Some(JulianDay::from_days(1_926_902.658_267)),
+        Some(Angle::from_degrees(0.0)),
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::TrueMula,
+        "True Mula",
+        &["True Mula ayanamsa", "Chandra Hari"],
+        "True-nakshatra mode with the Mula reference point fixed to the Swiss Ephemeris zero date.",
+        Some(JulianDay::from_days(1_805_889.671_313)),
+        Some(Angle::from_degrees(0.0)),
+    ),
+    AyanamsaDescriptor::new(
         Ayanamsa::LahiriIcrc,
         "Lahiri (ICRC)",
         &["ICRC Lahiri", "Lahiri ICRC"],
@@ -170,7 +210,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     ),
 ];
 
-static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 11] = [
+static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 16] = [
     AyanamsaDescriptor::new(
         Ayanamsa::Lahiri,
         "Lahiri",
@@ -210,6 +250,46 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 11] = [
         "True Chitra / Chitra-based sidereal variant.",
         Some(JulianDay::from_days(2_435_553.5)),
         Some(Angle::from_degrees(23.245_524_743)),
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::J2000,
+        "J2000",
+        &["J2000.0"],
+        "Swiss Ephemeris J2000 sidereal frame anchored to the standard J2000.0 epoch.",
+        Some(JulianDay::from_days(2_451_545.0)),
+        Some(Angle::from_degrees(23.853_177_78)),
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::J1900,
+        "J1900",
+        &["J1900.0"],
+        "Swiss Ephemeris J1900 sidereal frame anchored to the standard J1900.0 epoch.",
+        Some(JulianDay::from_days(2_415_020.0)),
+        Some(Angle::from_degrees(0.0)),
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::B1950,
+        "B1950",
+        &["B1950.0"],
+        "Swiss Ephemeris B1950 sidereal frame anchored to the FK4 B1950.0 epoch.",
+        Some(JulianDay::from_days(2_433_281.5)),
+        Some(Angle::from_degrees(0.0)),
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::TrueRevati,
+        "True Revati",
+        &["True Revati ayanamsa"],
+        "True-nakshatra mode with the Revati reference point fixed to the Swiss Ephemeris zero date.",
+        Some(JulianDay::from_days(1_926_902.658_267)),
+        Some(Angle::from_degrees(0.0)),
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::TrueMula,
+        "True Mula",
+        &["True Mula ayanamsa", "Chandra Hari"],
+        "True-nakshatra mode with the Mula reference point fixed to the Swiss Ephemeris zero date.",
+        Some(JulianDay::from_days(1_805_889.671_313)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::LahiriIcrc,
@@ -350,6 +430,11 @@ mod tests {
             Some(Ayanamsa::FaganBradley)
         );
         assert_eq!(resolve_ayanamsa("chitrapaksha"), Some(Ayanamsa::Lahiri));
+        assert_eq!(resolve_ayanamsa("J2000.0"), Some(Ayanamsa::J2000));
+        assert_eq!(resolve_ayanamsa("J1900.0"), Some(Ayanamsa::J1900));
+        assert_eq!(resolve_ayanamsa("B1950.0"), Some(Ayanamsa::B1950));
+        assert_eq!(resolve_ayanamsa("True Revati"), Some(Ayanamsa::TrueRevati));
+        assert_eq!(resolve_ayanamsa("True Mula"), Some(Ayanamsa::TrueMula));
         assert_eq!(resolve_ayanamsa("ICRC Lahiri"), Some(Ayanamsa::LahiriIcrc));
         assert_eq!(
             resolve_ayanamsa("Panchanga Darpan Lahiri"),
@@ -368,6 +453,11 @@ mod tests {
             .collect();
 
         for expected in [
+            "J2000",
+            "J1900",
+            "B1950",
+            "True Revati",
+            "True Mula",
             "Lahiri (ICRC)",
             "Lahiri (1940)",
             "Usha Shashi",

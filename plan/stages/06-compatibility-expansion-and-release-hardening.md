@@ -51,6 +51,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] `mise run release-smoke` now exercises the release bundle command locally and in CI so release artifacts stay under automation.
 - [x] The first release-specific house-system additions are now implemented: Equal (MC), Equal (1=Aries), Vehlow Equal, and Sripati are catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
 - [x] The first release-specific ayanamsa additions are now implemented: Lahiri (ICRC), Lahiri (1940), Usha Shashi, Suryasiddhanta (499 CE), Aryabhata (499 CE), and Sassanian are catalogued, resolved, rendered in the compatibility profile, and exposed through the shared ayanamsa resolution path.
+- [x] Swiss Ephemeris reference-frame and true-nakshatra ayanamsa modes are now catalogued too: J2000, J1900, B1950, True Revati, and True Mula are resolved, rendered in the compatibility profile, and available through the shared catalog path.
 - [x] Carter (poli-equatorial) is now catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
 - [x] Horizon/Azimuth and APC are now catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
 - [x] Krusinski-Pisa-Goelzer is now catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.

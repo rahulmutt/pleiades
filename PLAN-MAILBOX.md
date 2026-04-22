@@ -237,3 +237,13 @@ Implemented a release-hardening polish slice:
 - release bundle output and documentation now call out the extra posture artifact explicitly
 
 Next recommended slice: keep the release bundle manifest aligned with future profile changes, or move on to any remaining stage-6 maintenance work that depends on new catalog breadth.
+
+## 2026-04-22 — Swiss Ephemeris ayanamsa breadth expanded
+
+Implemented the next Stage 6 catalog-breadth slice:
+
+- `pleiades-types` gained `Ayanamsa::J2000`, `Ayanamsa::J1900`, `Ayanamsa::B1950`, `Ayanamsa::TrueRevati`, and `Ayanamsa::TrueMula`
+- `pleiades-ayanamsa` now catalogs, resolves, and exposes those Swiss Ephemeris reference-frame and true-nakshatra modes with compatibility metadata
+- `pleiades-core`, the compatibility profile, the CLI, and validation output now surface the broadened ayanamsa catalog and version bump
+
+Remaining Stage 6 work: the rest of the Swiss Ephemeris ayanamsa breadth, plus any additional release-hardening polish that depends on further catalog coverage.

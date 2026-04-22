@@ -514,6 +514,16 @@ pub enum Ayanamsa {
     FaganBradley,
     /// True Chitra.
     TrueChitra,
+    /// J2000.0 reference-frame mode.
+    J2000,
+    /// J1900.0 reference-frame mode.
+    J1900,
+    /// B1950.0 reference-frame mode.
+    B1950,
+    /// True Revati.
+    TrueRevati,
+    /// True Mula.
+    TrueMula,
     /// The 1956 Indian Astronomical Ephemeris / ICRC Lahiri definition.
     LahiriIcrc,
     /// Lahiri's 1940 zero-date variant.
