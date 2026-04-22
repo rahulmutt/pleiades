@@ -3,7 +3,9 @@
 //! This crate focuses on the catalog layer and the first chart MVP house-
 //! placement helpers: it enumerates the baseline built-in house systems, their
 //! common aliases, latitude-sensitive notes, and the Stage 3 baseline house
-//! formulas that power the chart workflow.
+//! formulas that power the chart workflow. It also carries the first Stage 6
+//! compatibility-expansion additions so release profiles can distinguish the
+//! baseline milestone from newer catalog breadth.
 //!
 //! # Examples
 //!
@@ -171,21 +173,163 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
     ),
 ];
 
+const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
+    HouseSystemDescriptor::new(
+        HouseSystem::EqualMidheaven,
+        "Equal (MC)",
+        &["Equal from MC", "Equal (from MC)"],
+        "Equal houses anchored at the Midheaven instead of the Ascendant.",
+        false,
+    ),
+    HouseSystemDescriptor::new(
+        HouseSystem::Vehlow,
+        "Vehlow Equal",
+        &["Vehlow", "Vehlow equal"],
+        "Equal-house variant with the Ascendant centered in house 1.",
+        false,
+    ),
+    HouseSystemDescriptor::new(
+        HouseSystem::Sripati,
+        "Sripati",
+        &["Śrīpati"],
+        "Midpoint variant of the Porphyry quadrants used in Jyotiṣa.",
+        false,
+    ),
+];
+
+static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 15] = [
+    HouseSystemDescriptor::new(
+        HouseSystem::Placidus,
+        "Placidus",
+        &["Placidus house system"],
+        "Quadrant system; can fail or become unstable at extreme latitudes.",
+        true,
+    ),
+    HouseSystemDescriptor::new(
+        HouseSystem::Koch,
+        "Koch",
+        &["W. Koch"],
+        "Quadrant system with documented high-latitude pathologies.",
+        true,
+    ),
+    HouseSystemDescriptor::new(
+        HouseSystem::Porphyry,
+        "Porphyry",
+        &["Equal Quadrant"],
+        "Simple quadrant division used as a robust fallback.",
+        false,
+    ),
+    HouseSystemDescriptor::new(
+        HouseSystem::Regiomontanus,
+        "Regiomontanus",
+        &["Regiomontanus houses"],
+        "Classical quadrant system with historical interoperability value.",
+        false,
+    ),
+    HouseSystemDescriptor::new(
+        HouseSystem::Campanus,
+        "Campanus",
+        &["Campanus houses"],
+        "Great-circle division system.",
+        false,
+    ),
+    HouseSystemDescriptor::new(
+        HouseSystem::Equal,
+        "Equal",
+        &["Equal houses"],
+        "Equal-house system anchored on the ascendant.",
+        false,
+    ),
+    HouseSystemDescriptor::new(
+        HouseSystem::WholeSign,
+        "Whole Sign",
+        &["Whole Sign houses", "Whole-sign"],
+        "Whole-sign system anchored on the rising sign.",
+        false,
+    ),
+    HouseSystemDescriptor::new(
+        HouseSystem::Alcabitius,
+        "Alcabitius",
+        &["Alcabitius houses"],
+        "Classical semi-arc family system.",
+        false,
+    ),
+    HouseSystemDescriptor::new(
+        HouseSystem::Meridian,
+        "Meridian",
+        &["Meridian houses"],
+        "Meridian-style systems and documented axial variants.",
+        false,
+    ),
+    HouseSystemDescriptor::new(
+        HouseSystem::Axial,
+        "Axial",
+        &["Axial variants"],
+        "Documented axial variants used by some astrology packages.",
+        false,
+    ),
+    HouseSystemDescriptor::new(
+        HouseSystem::Topocentric,
+        "Topocentric",
+        &["Polich-Page", "Polich Page"],
+        "Topocentric (Polich-Page) house system.",
+        true,
+    ),
+    HouseSystemDescriptor::new(
+        HouseSystem::Morinus,
+        "Morinus",
+        &["Morinus houses"],
+        "Morinus house system with historical interoperability value.",
+        false,
+    ),
+    HouseSystemDescriptor::new(
+        HouseSystem::EqualMidheaven,
+        "Equal (MC)",
+        &["Equal from MC", "Equal (from MC)"],
+        "Equal houses anchored at the Midheaven instead of the Ascendant.",
+        false,
+    ),
+    HouseSystemDescriptor::new(
+        HouseSystem::Vehlow,
+        "Vehlow Equal",
+        &["Vehlow", "Vehlow equal"],
+        "Equal-house variant with the Ascendant centered in house 1.",
+        false,
+    ),
+    HouseSystemDescriptor::new(
+        HouseSystem::Sripati,
+        "Sripati",
+        &["Śrīpati"],
+        "Midpoint variant of the Porphyry quadrants used in Jyotiṣa.",
+        false,
+    ),
+];
+
 /// Returns the baseline built-in house-system catalog.
 pub const fn baseline_house_systems() -> &'static [HouseSystemDescriptor] {
     BASELINE_HOUSE_SYSTEMS
 }
 
+/// Returns the release-specific house-system additions beyond the baseline milestone.
+pub const fn release_house_systems() -> &'static [HouseSystemDescriptor] {
+    RELEASE_HOUSE_SYSTEMS
+}
+
+/// Returns the full built-in house-system catalog shipped by this release line.
+pub const fn built_in_house_systems() -> &'static [HouseSystemDescriptor] {
+    &BUILT_IN_HOUSE_SYSTEMS
+}
+
 /// Finds the descriptor for a typed house-system selection.
 pub fn descriptor(system: &HouseSystem) -> Option<&'static HouseSystemDescriptor> {
-    BASELINE_HOUSE_SYSTEMS
+    built_in_house_systems()
         .iter()
         .find(|entry| entry.system == *system)
 }
 
 /// Resolves a house-system label to a built-in type.
 pub fn resolve_house_system(label: &str) -> Option<HouseSystem> {
-    BASELINE_HOUSE_SYSTEMS
+    built_in_house_systems()
         .iter()
         .find(|entry| entry.matches_label(label))
         .map(|entry| entry.system.clone())
@@ -231,5 +375,23 @@ mod tests {
             Some(HouseSystem::WholeSign)
         );
         assert_eq!(resolve_house_system("w. koch"), Some(HouseSystem::Koch));
+        assert_eq!(
+            resolve_house_system("Equal (from MC)"),
+            Some(HouseSystem::EqualMidheaven)
+        );
+        assert_eq!(resolve_house_system("vehlow"), Some(HouseSystem::Vehlow));
+        assert_eq!(resolve_house_system("Śrīpati"), Some(HouseSystem::Sripati));
+    }
+
+    #[test]
+    fn release_additions_are_merged_into_the_built_in_catalog() {
+        let names: Vec<_> = built_in_house_systems()
+            .iter()
+            .map(|entry| entry.canonical_name)
+            .collect();
+
+        for expected in ["Equal (MC)", "Vehlow Equal", "Sripati"] {
+            assert!(names.contains(&expected), "missing {expected}");
+        }
     }
 }

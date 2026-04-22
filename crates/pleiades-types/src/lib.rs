@@ -436,6 +436,12 @@ pub enum HouseSystem {
     Campanus,
     /// Equal houses.
     Equal,
+    /// Equal houses with the Midheaven on cusp 10.
+    EqualMidheaven,
+    /// Vehlow equal houses, with the Ascendant centered in house 1.
+    Vehlow,
+    /// Sripati houses.
+    Sripati,
     /// Whole sign houses.
     WholeSign,
     /// Alcabitius.

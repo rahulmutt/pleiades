@@ -205,12 +205,16 @@ mod tests {
     fn compatibility_profile_surfaces_current_baseline() {
         let profile = current_compatibility_profile();
         assert!(profile
-            .house_systems
+            .baseline_house_systems
             .iter()
             .any(|entry| entry.canonical_name == "Topocentric"));
         assert!(profile
-            .ayanamsas
+            .baseline_ayanamsas
             .iter()
             .any(|entry| entry.canonical_name == "Fagan/Bradley"));
+        assert!(profile
+            .release_house_systems
+            .iter()
+            .any(|entry| entry.canonical_name == "Sripati"));
     }
 }

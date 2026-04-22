@@ -10,7 +10,9 @@
 use core::fmt;
 
 use pleiades_ayanamsa::{baseline_ayanamsas, AyanamsaDescriptor};
-use pleiades_houses::{baseline_house_systems, HouseSystemDescriptor};
+use pleiades_houses::{
+    baseline_house_systems, built_in_house_systems, release_house_systems, HouseSystemDescriptor,
+};
 
 /// A release-scoped compatibility profile.
 #[derive(Clone, Copy, Debug)]
@@ -25,8 +27,16 @@ pub struct CompatibilityProfile {
     pub target_ayanamsa_scope: &'static [&'static str],
     /// Built-in house systems shipped in this release line.
     pub house_systems: &'static [HouseSystemDescriptor],
+    /// House systems that belong to the published baseline milestone.
+    pub baseline_house_systems: &'static [HouseSystemDescriptor],
+    /// Release-specific house-system additions beyond the baseline milestone.
+    pub release_house_systems: &'static [HouseSystemDescriptor],
     /// Built-in ayanamsas shipped in this release line.
     pub ayanamsas: &'static [AyanamsaDescriptor],
+    /// Built-in ayanamsas that belong to the published baseline milestone.
+    pub baseline_ayanamsas: &'static [AyanamsaDescriptor],
+    /// Release-specific ayanamsa additions beyond the baseline milestone.
+    pub release_ayanamsas: &'static [AyanamsaDescriptor],
     /// Explicitly documented release-specific notes beyond the baseline milestone.
     pub release_notes: &'static [&'static str],
     /// Explicitly documented gaps that remain for later stages.
@@ -43,8 +53,8 @@ impl CompatibilityProfile {
 /// Returns the current compatibility profile.
 pub const fn current_compatibility_profile() -> CompatibilityProfile {
     CompatibilityProfile {
-        profile_id: "pleiades-compatibility-profile/0.2.0",
-        summary: "Stage 6 release profile: the baseline catalogs remain published as a routine release artifact while the target Swiss-Ephemeris-class compatibility catalog stays explicit.",
+        profile_id: "pleiades-compatibility-profile/0.3.0",
+        summary: "Stage 6 release profile: the baseline catalogs remain published as a routine release artifact while the target Swiss-Ephemeris-class compatibility catalog stays explicit, including the first release-specific house-system additions.",
         target_house_scope: &[
             "Target house scope: the full Swiss-Ephemeris-class house-system catalog remains the long-term compatibility goal.",
             "Baseline milestone: Placidus, Koch, Porphyry, Regiomontanus, Campanus, Equal, Whole Sign, Alcabitius, Meridian/Axial variants, Topocentric, and Morinus are shipped today.",
@@ -53,10 +63,14 @@ pub const fn current_compatibility_profile() -> CompatibilityProfile {
             "Target ayanamsa scope: the full Swiss-Ephemeris-class ayanamsa catalog remains the long-term compatibility goal.",
             "Baseline milestone: Lahiri, Raman, Krishnamurti, Fagan/Bradley, True Chitra, and documented aliases/custom variants are shipped today.",
         ],
-        house_systems: baseline_house_systems(),
+        house_systems: built_in_house_systems(),
+        baseline_house_systems: baseline_house_systems(),
+        release_house_systems: release_house_systems(),
         ayanamsas: baseline_ayanamsas(),
+        baseline_ayanamsas: baseline_ayanamsas(),
+        release_ayanamsas: &[],
         release_notes: &[
-            "No additional catalog breadth beyond the baseline milestone is claimed in this release line yet.",
+            "Release-specific house-system additions now include Equal (MC), Vehlow Equal, and Sripati.",
             "The compatibility profile is intended to be archived with release validation outputs and release notes.",
         ],
         known_gaps: &[
@@ -88,7 +102,7 @@ impl fmt::Display for CompatibilityProfile {
         writeln!(f)?;
         writeln!(f, "Baseline compatibility milestone:")?;
         writeln!(f, "House systems:")?;
-        for entry in self.house_systems {
+        for entry in self.baseline_house_systems {
             write!(f, "- {}", entry.canonical_name)?;
             if !entry.aliases.is_empty() {
                 write!(f, " (aliases: {})", entry.aliases.join(", "))?;
@@ -99,7 +113,7 @@ impl fmt::Display for CompatibilityProfile {
             writeln!(f, " — {}", entry.notes)?;
         }
         writeln!(f, "Ayanamsas:")?;
-        for entry in self.ayanamsas {
+        for entry in self.baseline_ayanamsas {
             write!(f, "- {}", entry.canonical_name)?;
             if !entry.aliases.is_empty() {
                 write!(f, " (aliases: {})", entry.aliases.join(", "))?;
@@ -112,12 +126,44 @@ impl fmt::Display for CompatibilityProfile {
             }
             writeln!(f, " — {}", entry.notes)?;
         }
-        writeln!(f)?;
-        write_scope_section(
-            f,
-            "Release-specific coverage beyond baseline:",
-            self.release_notes,
-        )?;
+        if !self.release_house_systems.is_empty() || !self.release_ayanamsas.is_empty() {
+            writeln!(f)?;
+            writeln!(f, "Release-specific coverage beyond baseline:")?;
+            if !self.release_house_systems.is_empty() {
+                writeln!(f, "House systems:")?;
+                for entry in self.release_house_systems {
+                    write!(f, "- {}", entry.canonical_name)?;
+                    if !entry.aliases.is_empty() {
+                        write!(f, " (aliases: {})", entry.aliases.join(", "))?;
+                    }
+                    writeln!(f, " — {}", entry.notes)?;
+                }
+            }
+            if !self.release_ayanamsas.is_empty() {
+                writeln!(f, "Ayanamsas:")?;
+                for entry in self.release_ayanamsas {
+                    write!(f, "- {}", entry.canonical_name)?;
+                    if !entry.aliases.is_empty() {
+                        write!(f, " (aliases: {})", entry.aliases.join(", "))?;
+                    }
+                    if let Some(epoch) = entry.epoch {
+                        write!(f, " [epoch: {}]", epoch)?;
+                    }
+                    if let Some(offset) = entry.offset_degrees {
+                        write!(f, " [offset: {}]", offset)?;
+                    }
+                    writeln!(f, " — {}", entry.notes)?;
+                }
+            }
+        }
+        if !self.release_notes.is_empty() {
+            writeln!(f)?;
+            write_scope_section(
+                f,
+                "Release-specific notes beyond baseline:",
+                self.release_notes,
+            )?;
+        }
         writeln!(f)?;
         write_scope_section(f, "Known gaps:", self.known_gaps)?;
         Ok(())
@@ -129,14 +175,22 @@ mod tests {
     use super::*;
 
     #[test]
-    fn profile_includes_baseline_catalogs() {
+    fn profile_includes_baseline_and_release_catalogs() {
         let profile = current_compatibility_profile();
         assert!(profile
             .house_systems
             .iter()
+            .any(|entry| entry.canonical_name == "Equal (MC)"));
+        assert!(profile
+            .baseline_house_systems
+            .iter()
             .any(|entry| entry.canonical_name == "Placidus"));
         assert!(profile
-            .ayanamsas
+            .release_house_systems
+            .iter()
+            .any(|entry| entry.canonical_name == "Sripati"));
+        assert!(profile
+            .baseline_ayanamsas
             .iter()
             .any(|entry| entry.canonical_name == "Lahiri"));
         assert!(profile
@@ -150,7 +204,7 @@ mod tests {
         assert!(profile
             .release_notes
             .iter()
-            .any(|note| note.contains("release notes")));
+            .any(|note| note.contains("Equal (MC)")));
         assert!(profile
             .known_gaps
             .iter()
@@ -164,6 +218,9 @@ mod tests {
         assert!(rendered.contains("Target ayanamsa catalog:"));
         assert!(rendered.contains("Baseline compatibility milestone:"));
         assert!(rendered.contains("Release-specific coverage beyond baseline:"));
+        assert!(rendered.contains("Equal (MC)"));
+        assert!(rendered.contains("Vehlow Equal"));
+        assert!(rendered.contains("Sripati"));
         assert!(rendered.contains("Known gaps:"));
         assert!(rendered.contains("Placidus"));
         assert!(rendered.contains("Lahiri"));

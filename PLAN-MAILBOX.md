@@ -134,3 +134,14 @@ Implemented the next Stage 6 slice:
 - `README.md` documents the release smoke check for maintainers who want to exercise the release bundle path locally
 
 Remaining Stage 6 work: catalog breadth expansion and any broader release-hardening polish that depends on additional coverage.
+
+## 2026-04-22 — release catalog breadth expanded
+
+Implemented the next Stage 6 slice:
+
+- `pleiades-types` gained new house-system variants for Equal (MC), Vehlow Equal, and Sripati
+- `pleiades-houses` now catalogs, resolves, documents, and calculates those three release-specific house systems alongside the baseline milestone
+- `pleiades-core` and the release compatibility profile now distinguish the new release-specific house-system coverage from the baseline milestone
+- `pleiades-cli` and `pleiades-validate` now report the updated compatibility profile identifier and release-specific coverage sections
+
+Remaining Stage 6 work: broader catalog breadth, API posture review, and any remaining release-hardening polish that depends on additional coverage.

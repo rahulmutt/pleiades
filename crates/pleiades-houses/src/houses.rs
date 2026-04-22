@@ -150,6 +150,9 @@ pub fn calculate_houses(request: &HouseRequest) -> Result<HouseSnapshot, HouseEr
     let angles = derive_angles(request.instant, &request.observer, obliquity);
     let cusps = match &request.system {
         HouseSystem::Equal => equal_houses(angles.ascendant),
+        HouseSystem::EqualMidheaven => equal_midheaven_houses(angles.midheaven),
+        HouseSystem::Vehlow => vehlow_equal_houses(angles.ascendant),
+        HouseSystem::Sripati => sripati_houses(angles),
         HouseSystem::WholeSign => whole_sign_houses(angles.ascendant),
         HouseSystem::Porphyry => porphyry_houses(angles),
         HouseSystem::Placidus => {
@@ -263,6 +266,18 @@ fn mean_obliquity(instant: Instant) -> Angle {
 fn equal_houses(ascendant: Longitude) -> [Longitude; 12] {
     core::array::from_fn(|index| {
         Longitude::from_degrees(ascendant.degrees() + (index as f64) * 30.0)
+    })
+}
+
+fn equal_midheaven_houses(midheaven: Longitude) -> [Longitude; 12] {
+    core::array::from_fn(|index| {
+        Longitude::from_degrees(midheaven.degrees() + 90.0 + (index as f64) * 30.0)
+    })
+}
+
+fn vehlow_equal_houses(ascendant: Longitude) -> [Longitude; 12] {
+    core::array::from_fn(|index| {
+        Longitude::from_degrees(ascendant.degrees() - 15.0 + (index as f64) * 30.0)
     })
 }
 
@@ -480,6 +495,14 @@ fn equatorial_projection_houses(
     })
 }
 
+fn sripati_houses(angles: HouseAngles) -> [Longitude; 12] {
+    let porphyry = porphyry_houses(angles);
+    core::array::from_fn(|index| {
+        let previous = porphyry[(index + 11) % 12];
+        midpoint_longitude(previous, porphyry[index])
+    })
+}
+
 fn topocentric_houses(
     instant: Instant,
     observer: &ObserverLocation,
@@ -578,6 +601,10 @@ fn interpolate_longitude(start: Longitude, end: Longitude, fraction: f64) -> Lon
     Longitude::from_degrees(start.degrees() + span * fraction)
 }
 
+fn midpoint_longitude(start: Longitude, end: Longitude) -> Longitude {
+    interpolate_longitude(start, end, 0.5)
+}
+
 fn longitude_opposite(longitude: Longitude) -> Longitude {
     Longitude::from_degrees(longitude.degrees() + 180.0)
 }
@@ -602,6 +629,9 @@ fn catalog_name(system: &HouseSystem) -> &'static str {
         HouseSystem::Regiomontanus => "Regiomontanus",
         HouseSystem::Campanus => "Campanus",
         HouseSystem::Equal => "Equal",
+        HouseSystem::EqualMidheaven => "Equal (MC)",
+        HouseSystem::Vehlow => "Vehlow Equal",
+        HouseSystem::Sripati => "Sripati",
         HouseSystem::WholeSign => "Whole Sign",
         HouseSystem::Alcabitius => "Alcabitius",
         HouseSystem::Meridian => "Meridian",
@@ -669,13 +699,55 @@ mod tests {
     }
 
     #[test]
-    fn porphyry_divides_quadrants_evenly() {
-        let snapshot = calculate_houses(&sample_request(HouseSystem::Porphyry))
+    fn equal_midheaven_and_vehlow_variants_are_available() {
+        let mc_snapshot = calculate_houses(&sample_request(HouseSystem::EqualMidheaven))
+            .expect("equal (MC) houses should work");
+        assert!(
+            (mc_snapshot.cusps[9].degrees() - mc_snapshot.angles.midheaven.degrees()).abs()
+                < 1.0e-12
+        );
+        assert_eq!(
+            (mc_snapshot.cusps[1].degrees() - mc_snapshot.cusps[0].degrees()).rem_euclid(360.0),
+            30.0
+        );
+        assert_eq!(
+            (mc_snapshot.cusps[0].degrees() - mc_snapshot.angles.midheaven.degrees())
+                .rem_euclid(360.0),
+            90.0
+        );
+
+        let vehlow_snapshot = calculate_houses(&sample_request(HouseSystem::Vehlow))
+            .expect("vehlow houses should work");
+        assert_eq!(
+            (vehlow_snapshot.angles.ascendant.degrees() - vehlow_snapshot.cusps[0].degrees())
+                .rem_euclid(360.0),
+            15.0
+        );
+        assert_eq!(
+            (vehlow_snapshot.cusps[1].degrees() - vehlow_snapshot.cusps[0].degrees())
+                .rem_euclid(360.0),
+            30.0
+        );
+    }
+
+    #[test]
+    fn sripati_midpoints_follow_porphyry_segments() {
+        let snapshot = calculate_houses(&sample_request(HouseSystem::Sripati))
+            .expect("sripati houses should work");
+        let porphyry = calculate_houses(&sample_request(HouseSystem::Porphyry))
             .expect("porphyry houses should work");
-        assert_eq!(snapshot.cusps[0], snapshot.angles.ascendant);
-        assert_eq!(snapshot.cusps[3], snapshot.angles.imum_coeli);
-        assert_eq!(snapshot.cusps[6], snapshot.angles.descendant);
-        assert_eq!(snapshot.cusps[9], snapshot.angles.midheaven);
+        assert_eq!(
+            snapshot.cusps[0],
+            midpoint_longitude(porphyry.cusps[11], porphyry.cusps[0])
+        );
+        assert_eq!(
+            snapshot.cusps[3],
+            midpoint_longitude(porphyry.cusps[2], porphyry.cusps[3])
+        );
+        assert_eq!(
+            snapshot.cusps[9],
+            midpoint_longitude(porphyry.cusps[8], porphyry.cusps[9])
+        );
     }
 
     #[test]

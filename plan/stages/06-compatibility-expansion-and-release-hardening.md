@@ -49,6 +49,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] Validation reports now include the release compatibility profile so the stage-6 release artifact bundle carries the current coverage summary.
 - [x] `pleiades-validate bundle-release --out DIR` now writes the compatibility profile, validation report, and a manifest for a reproducible release bundle.
 - [x] `mise run release-smoke` now exercises the release bundle command locally and in CI so release artifacts stay under automation.
+- [x] The first release-specific house-system additions are now implemented: Equal (MC), Vehlow Equal, and Sripati are catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
 - [ ] Remaining catalog breadth is still the next planned slice.
 
 ## Exit criteria
