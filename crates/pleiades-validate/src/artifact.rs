@@ -1,8 +1,12 @@
 use core::fmt;
 
+use crate::{compare_backends, default_candidate_backend, ComparisonReport, ValidationCorpus};
 use pleiades_compression::{CompressedArtifact, CompressionError};
-use pleiades_core::{Angle, CelestialBody, EclipticCoordinates, Instant};
-use pleiades_data::packaged_artifact;
+use pleiades_core::{
+    Angle, Apparentness, CelestialBody, CoordinateFrame, EclipticCoordinates, EphemerisRequest,
+    Instant, JulianDay, ZodiacMode,
+};
+use pleiades_data::{packaged_artifact, packaged_backend};
 
 /// A report describing the bundled compressed artifact and its boundary checks.
 #[derive(Clone, Debug)]
@@ -29,6 +33,8 @@ pub struct ArtifactInspectionReport {
     pub earliest: Instant,
     /// Latest covered instant.
     pub latest: Instant,
+    /// Comparison report against the algorithmic baseline.
+    pub model_comparison: ComparisonReport,
     /// Per-body validation summaries.
     pub bodies: Vec<ArtifactBodyInspection>,
 }
@@ -60,7 +66,7 @@ impl ArtifactInspectionReport {
     fn from_artifact(
         artifact: &CompressedArtifact,
         encoded_bytes: usize,
-    ) -> Result<Self, CompressionError> {
+    ) -> Result<Self, ArtifactInspectionError> {
         let decoded = CompressedArtifact::decode(&artifact.encode()?)?;
         let mut bodies = Vec::with_capacity(decoded.bodies.len());
         let mut segment_count = 0usize;
@@ -91,6 +97,13 @@ impl ArtifactInspectionReport {
             bodies.push(inspection);
         }
 
+        let comparison_corpus = artifact_comparison_corpus(&decoded);
+        let model_comparison = compare_backends(
+            &default_candidate_backend(),
+            &packaged_backend(),
+            &comparison_corpus,
+        )?;
+
         Ok(Self {
             generation_label: decoded.header.generation_label,
             source: decoded.header.source,
@@ -103,13 +116,14 @@ impl ArtifactInspectionReport {
             segment_count,
             earliest: earliest.unwrap_or_else(|| artifact_first_instant(artifact)),
             latest: latest.unwrap_or_else(|| artifact_first_instant(artifact)),
+            model_comparison,
             bodies,
         })
     }
 }
 
 /// Renders the bundled artifact validation report.
-pub fn render_artifact_report() -> Result<String, CompressionError> {
+pub fn render_artifact_report() -> Result<String, ArtifactInspectionError> {
     let artifact = packaged_artifact();
     let encoded = artifact.encode()?;
     let report = ArtifactInspectionReport::from_artifact(artifact, encoded.len())?;
@@ -119,7 +133,7 @@ pub fn render_artifact_report() -> Result<String, CompressionError> {
 fn inspect_body(
     artifact: &CompressedArtifact,
     body: &pleiades_compression::BodyArtifact,
-) -> Result<ArtifactBodyInspection, CompressionError> {
+) -> Result<ArtifactBodyInspection, ArtifactInspectionError> {
     let mut sample_count = 0usize;
     let mut boundary_checks = 0usize;
     let mut max_boundary_longitude_delta_deg: f64 = 0.0;
@@ -175,11 +189,37 @@ fn inspect_body(
     })
 }
 
+fn artifact_comparison_corpus(artifact: &CompressedArtifact) -> ValidationCorpus {
+    let mut requests = Vec::new();
+
+    for body in &artifact.bodies {
+        for segment in &body.segments {
+            let midpoint = midpoint(segment.start, segment.end);
+            for instant in [segment.start, midpoint, segment.end] {
+                requests.push(EphemerisRequest {
+                    body: body.body.clone(),
+                    instant,
+                    observer: None,
+                    frame: CoordinateFrame::Ecliptic,
+                    zodiac_mode: ZodiacMode::Tropical,
+                    apparent: Apparentness::Mean,
+                });
+            }
+        }
+    }
+
+    ValidationCorpus {
+        name: "Packaged artifact error envelope".to_string(),
+        description: "Comparison corpus built from packaged artifact coverage at segment endpoints and midpoints so the bundled data can be measured against the algorithmic baseline.",
+        requests,
+    }
+}
+
 fn midpoint(start: Instant, end: Instant) -> Instant {
     let start_days = start.julian_day.days();
     let end_days = end.julian_day.days();
     Instant::new(
-        pleiades_core::JulianDay::from_days((start_days + end_days) / 2.0),
+        JulianDay::from_days((start_days + end_days) / 2.0),
         start.scale,
     )
 }
@@ -265,6 +305,73 @@ impl fmt::Display for ArtifactInspectionReport {
                     .unwrap_or_else(|| "n/a".to_string())
             )?;
         }
+
+        writeln!(f)?;
+        writeln!(f, "Model error envelope")?;
+        writeln!(
+            f,
+            "  baseline backend: {}",
+            self.model_comparison.reference_backend.id
+        )?;
+        writeln!(
+            f,
+            "  candidate backend: {}",
+            self.model_comparison.candidate_backend.id
+        )?;
+        writeln!(f, "  corpus: {}", self.model_comparison.corpus_name)?;
+        writeln!(
+            f,
+            "  samples: {}",
+            self.model_comparison.summary.sample_count
+        )?;
+        writeln!(
+            f,
+            "  max longitude delta: {:.12}°",
+            self.model_comparison.summary.max_longitude_delta_deg
+        )?;
+        writeln!(
+            f,
+            "  mean longitude delta: {:.12}°",
+            self.model_comparison.summary.mean_longitude_delta_deg
+        )?;
+        writeln!(
+            f,
+            "  max latitude delta: {:.12}°",
+            self.model_comparison.summary.max_latitude_delta_deg
+        )?;
+        writeln!(
+            f,
+            "  mean latitude delta: {:.12}°",
+            self.model_comparison.summary.mean_latitude_delta_deg
+        )?;
+        if let Some(value) = self.model_comparison.summary.max_distance_delta_au {
+            writeln!(f, "  max distance delta: {:.12} AU", value)?;
+        }
+        if let Some(value) = self.model_comparison.summary.mean_distance_delta_au {
+            writeln!(f, "  mean distance delta: {:.12} AU", value)?;
+        }
+
+        let notable_regressions = self.model_comparison.notable_regressions();
+        writeln!(f, "  notable regressions")?;
+        if notable_regressions.is_empty() {
+            writeln!(f, "    none")?;
+        } else {
+            for finding in notable_regressions {
+                writeln!(
+                    f,
+                    "    {}: Δlon={:.12}°, Δlat={:.12}°, Δdist={}, {}",
+                    finding.body.built_in_name().unwrap_or("Custom"),
+                    finding.longitude_delta_deg,
+                    finding.latitude_delta_deg,
+                    finding
+                        .distance_delta_au
+                        .map(|value| format!("{value:.12} AU"))
+                        .unwrap_or_else(|| "n/a".to_string()),
+                    finding.note
+                )?;
+            }
+        }
+
         Ok(())
     }
 }
@@ -274,5 +381,37 @@ fn yes_no(value: bool) -> &'static str {
         "ok"
     } else {
         "failed"
+    }
+}
+
+/// Errors produced while building the artifact inspection report.
+#[derive(Debug)]
+pub enum ArtifactInspectionError {
+    /// Compression or codec failure while decoding the packaged artifact.
+    Compression(CompressionError),
+    /// Validation failure while comparing the packaged artifact to the baseline backend.
+    Validation(pleiades_core::EphemerisError),
+}
+
+impl core::fmt::Display for ArtifactInspectionError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Compression(error) => write!(f, "{error}"),
+            Self::Validation(error) => write!(f, "{error}"),
+        }
+    }
+}
+
+impl std::error::Error for ArtifactInspectionError {}
+
+impl From<CompressionError> for ArtifactInspectionError {
+    fn from(error: CompressionError) -> Self {
+        Self::Compression(error)
+    }
+}
+
+impl From<pleiades_core::EphemerisError> for ArtifactInspectionError {
+    fn from(error: pleiades_core::EphemerisError) -> Self {
+        Self::Validation(error)
     }
 }

@@ -368,7 +368,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("validate-artifact") => {
             ensure_no_extra_args(&args[1..], "validate-artifact")?;
-            render_artifact_report().map_err(render_compression_error)
+            render_artifact_report().map_err(render_artifact_error)
         }
         Some("help") | Some("--help") | Some("-h") | None => Ok(help_text()),
         Some(other) => Err(format!("unknown command: {other}\n\n{}", help_text())),
@@ -839,7 +839,7 @@ fn render_error(error: EphemerisError) -> String {
     error.to_string()
 }
 
-fn render_compression_error(error: pleiades_compression::CompressionError) -> String {
+fn render_artifact_error(error: crate::artifact::ArtifactInspectionError) -> String {
     error.to_string()
 }
 
@@ -987,6 +987,8 @@ mod tests {
         assert!(report.contains("Sun"));
         assert!(report.contains("Moon"));
         assert!(report.contains("boundary checks"));
+        assert!(report.contains("Model error envelope"));
+        assert!(report.contains("baseline backend"));
     }
 
     #[test]
