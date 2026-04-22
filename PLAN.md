@@ -13,9 +13,23 @@ That gives this development arc:
 5. add packaged data and performance-oriented distribution,
 6. complete compatibility breadth and release hardening.
 
-`spec/roadmap.md` remains the concise normative roadmap. This plan is the execution-oriented companion that explains sequencing, dependencies, stage outcomes, and cross-cutting workstreams.
+`spec/roadmap.md` remains the concise normative roadmap. This plan is the execution-oriented companion that explains sequencing, dependencies, stage outcomes, cross-cutting workstreams, and how contributors should move through the repository without introducing architecture drift.
+
+## Planning principles
+
+These principles govern the entire `plan/**` tree:
+
+- **Every stage ends in a usable repository state.** No stage is allowed to defer basic buildability, documentation, or testability to a later cleanup phase.
+- **Each stage should unlock a real maintainer or user workflow.** If a stage only adds scaffolding with no practical next action, it is too large or ordered incorrectly.
+- **Complexity should be introduced only after the simpler prerequisite is stable.** Types and contracts come before algorithms, algorithms before reference validation, and validation before compression/release hardening.
+- **Cross-cutting standards live outside the stage docs.** Sequencing belongs in `plan/stages/`, expectations in `plan/tracks/`, gates in `plan/checklists/`, and traceability material in `plan/appendices/`.
+- **The plan must track the spec.** If sequencing changes because the spec changes, update both together instead of letting planning documents drift.
 
 ## Plan Index
+
+### Start here
+
+- [plan/overview.md](plan/overview.md) — orientation, reading order, and directory usage
 
 ### Orientation
 
@@ -29,6 +43,7 @@ That gives this development arc:
 ### Appendices
 
 - [plan/appendices/01-stage-to-spec-map.md](plan/appendices/01-stage-to-spec-map.md) — traceability from execution stages back to normative spec documents
+- [plan/appendices/02-stage-workable-state-matrix.md](plan/appendices/02-stage-workable-state-matrix.md) — stage-by-stage summary of the minimum usable repository state and the workflow each stage unlocks
 
 ### Sequential stages
 
@@ -47,6 +62,8 @@ That gives this development arc:
 - [plan/tracks/04-validation-and-release.md](plan/tracks/04-validation-and-release.md)
 
 ## Directory structure
+
+This plan uses a deliberately small top-level structure so contributors can find the right planning document quickly without scattering ad hoc notes across the repository.
 
 The current `plan/**` layout is intentionally simple and now separates **sequence**, **responsibility**, and **gates**:
 
@@ -111,14 +128,14 @@ Each stage should end with all of the following true:
 
 ## Stage outcomes at a glance
 
-| Stage | Primary result | Why it matters |
-| --- | --- | --- |
-| 1 | Reproducible Rust workspace with correct crate boundaries | Prevents architecture drift from the start |
-| 2 | Stable core types and backend contracts | Lets multiple backends evolve without API churn |
-| 3 | First useful end-to-end chart workflow | Creates immediate product value |
-| 4 | Validation-grade reference backend and reports | Grounds correctness claims in evidence |
-| 5 | Fast packaged 1500-2500 backend | Serves the common deployment target |
-| 6 | Broad compatibility plus release discipline | Makes the project dependable for consumers |
+| Stage | Primary result | First unlocked workflow | Why it matters |
+| --- | --- | --- | --- |
+| 1 | Reproducible Rust workspace with correct crate boundaries | Contributor can clone, enter the managed tool environment, and run workspace checks | Prevents architecture drift from the start |
+| 2 | Stable core types and backend contracts | Backend author can implement a toy backend and compile against shared APIs | Lets multiple backends evolve without API churn |
+| 3 | First useful end-to-end chart workflow | User can generate a practical chart through `pleiades-core`/CLI with documented limits | Creates immediate product value |
+| 4 | Validation-grade reference backend and reports | Maintainer can compare algorithmic results against reference data reproducibly | Grounds correctness claims in evidence |
+| 5 | Fast packaged 1500-2500 backend | Application can ship a compact offline backend for the common date range | Serves the common deployment target |
+| 6 | Broad compatibility plus release discipline | Release maintainer can publish a version with explicit coverage, evidence, and artifacts | Makes the project dependable for consumers |
 
 ## Stage dependency map
 
@@ -130,6 +147,18 @@ Each stage should end with all of the following true:
 | 4. Reference backend and validation | stages 1-3 | trustworthy comparisons, regression detection, and artifact-source generation |
 | 5. Compression and packaged data | stages 1-4 | fast offline deployment for the common 1500-2500 window |
 | 6. Compatibility expansion and release hardening | stages 1-5 | dependable releases with broad interoperability coverage |
+
+## Recommended execution loop inside each stage
+
+Use the same lightweight loop throughout the plan:
+
+1. reread the stage doc and the relevant spec drivers,
+2. pick the next smallest slice that preserves buildability,
+3. check the relevant track doc for cross-cutting expectations,
+4. implement code, tests, and docs together,
+5. validate against the stage gate before calling the slice or stage complete.
+
+This keeps the plan practical instead of treating stages as one large branch or milestone.
 
 ## Readiness checklist for moving between stages
 

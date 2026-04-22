@@ -63,6 +63,7 @@ Inside a stage, prefer the smallest slice that still leaves one coherent maintai
 ## Appendix List
 
 - [plan/appendices/01-stage-to-spec-map.md](appendices/01-stage-to-spec-map.md)
+- [plan/appendices/02-stage-workable-state-matrix.md](appendices/02-stage-workable-state-matrix.md)
 
 ## Maintenance guidance
 
