@@ -361,6 +361,162 @@ pub trait EphemerisBackend: Send + Sync {
     }
 }
 
+/// A simple composite backend that routes requests to one of two providers.
+///
+/// The primary backend is consulted first. If it does not advertise support for
+/// the requested body, the secondary backend is tried instead.
+#[derive(Debug)]
+pub struct CompositeBackend<A, B> {
+    primary: A,
+    secondary: B,
+}
+
+impl<A, B> CompositeBackend<A, B> {
+    /// Creates a new routing backend.
+    pub const fn new(primary: A, secondary: B) -> Self {
+        Self { primary, secondary }
+    }
+
+    /// Returns the primary backend.
+    pub const fn primary(&self) -> &A {
+        &self.primary
+    }
+
+    /// Returns the secondary backend.
+    pub const fn secondary(&self) -> &B {
+        &self.secondary
+    }
+}
+
+impl<A: EphemerisBackend, B: EphemerisBackend> EphemerisBackend for CompositeBackend<A, B> {
+    fn metadata(&self) -> BackendMetadata {
+        let primary = self.primary.metadata();
+        let secondary = self.secondary.metadata();
+        BackendMetadata {
+            id: BackendId::new(format!(
+                "composite:{}+{}",
+                primary.id.as_str(),
+                secondary.id.as_str()
+            )),
+            version: primary.version.clone(),
+            family: BackendFamily::Composite,
+            provenance: BackendProvenance {
+                summary: format!(
+                    "Composite routing backend combining {} and {}.",
+                    primary.provenance.summary, secondary.provenance.summary
+                ),
+                data_sources: combine_sources(
+                    &primary.provenance.data_sources,
+                    &secondary.provenance.data_sources,
+                ),
+            },
+            nominal_range: intersect_ranges(primary.nominal_range, secondary.nominal_range),
+            supported_time_scales: intersect_strings(
+                &primary.supported_time_scales,
+                &secondary.supported_time_scales,
+            ),
+            body_coverage: combine_bodies(&primary.body_coverage, &secondary.body_coverage),
+            supported_frames: intersect_strings(
+                &primary.supported_frames,
+                &secondary.supported_frames,
+            ),
+            capabilities: BackendCapabilities {
+                geocentric: primary.capabilities.geocentric && secondary.capabilities.geocentric,
+                topocentric: primary.capabilities.topocentric && secondary.capabilities.topocentric,
+                apparent: primary.capabilities.apparent && secondary.capabilities.apparent,
+                mean: primary.capabilities.mean && secondary.capabilities.mean,
+                batch: primary.capabilities.batch && secondary.capabilities.batch,
+                native_sidereal: primary.capabilities.native_sidereal
+                    && secondary.capabilities.native_sidereal,
+            },
+            accuracy: min_accuracy(primary.accuracy, secondary.accuracy),
+            deterministic: primary.deterministic && secondary.deterministic,
+            offline: primary.offline && secondary.offline,
+        }
+    }
+
+    fn supports_body(&self, body: CelestialBody) -> bool {
+        self.primary.supports_body(body.clone()) || self.secondary.supports_body(body)
+    }
+
+    fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+        if self.primary.supports_body(req.body.clone()) {
+            self.primary.position(req)
+        } else if self.secondary.supports_body(req.body.clone()) {
+            self.secondary.position(req)
+        } else {
+            Err(EphemerisError::new(
+                EphemerisErrorKind::UnsupportedBody,
+                "no backend in the composite router supports the requested body",
+            ))
+        }
+    }
+}
+
+fn combine_sources(primary: &[String], secondary: &[String]) -> Vec<String> {
+    let mut combined = primary.to_vec();
+    for source in secondary {
+        if !combined.iter().any(|existing| existing == source) {
+            combined.push(source.clone());
+        }
+    }
+    combined
+}
+
+fn combine_bodies(primary: &[CelestialBody], secondary: &[CelestialBody]) -> Vec<CelestialBody> {
+    let mut combined = primary.to_vec();
+    for body in secondary {
+        if !combined.contains(body) {
+            combined.push(body.clone());
+        }
+    }
+    combined
+}
+
+fn intersect_strings<T: Clone + PartialEq>(primary: &[T], secondary: &[T]) -> Vec<T> {
+    primary
+        .iter()
+        .filter(|value| secondary.contains(value))
+        .cloned()
+        .collect()
+}
+
+fn intersect_ranges(primary: TimeRange, secondary: TimeRange) -> TimeRange {
+    let start = match (primary.start, secondary.start) {
+        (Some(a), Some(b)) => Some(if a.julian_day.days() >= b.julian_day.days() {
+            a
+        } else {
+            b
+        }),
+        (Some(a), None) => Some(a),
+        (None, Some(b)) => Some(b),
+        (None, None) => None,
+    };
+    let end = match (primary.end, secondary.end) {
+        (Some(a), Some(b)) => Some(if a.julian_day.days() <= b.julian_day.days() {
+            a
+        } else {
+            b
+        }),
+        (Some(a), None) => Some(a),
+        (None, Some(b)) => Some(b),
+        (None, None) => None,
+    };
+    TimeRange::new(start, end)
+}
+
+fn min_accuracy(primary: AccuracyClass, secondary: AccuracyClass) -> AccuracyClass {
+    use AccuracyClass::*;
+
+    match (primary, secondary) {
+        (Unknown, _) | (_, Unknown) => Unknown,
+        (Approximate, _) | (_, Approximate) => Approximate,
+        (Moderate, _) | (_, Moderate) => Moderate,
+        (High, _) | (_, High) => High,
+        (Exact, Exact) => Exact,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -449,5 +605,71 @@ mod tests {
         let metadata = backend.metadata();
         assert_eq!(metadata.id.as_str(), "toy");
         assert!(metadata.body_coverage.contains(&CelestialBody::Sun));
+    }
+
+    #[test]
+    fn composite_backend_routes_by_body() {
+        struct MoonBackend;
+
+        impl EphemerisBackend for MoonBackend {
+            fn metadata(&self) -> BackendMetadata {
+                BackendMetadata {
+                    id: BackendId::new("moon"),
+                    version: "0.1.0".to_string(),
+                    family: BackendFamily::Algorithmic,
+                    provenance: BackendProvenance::new("moon backend"),
+                    nominal_range: TimeRange::new(None, None),
+                    supported_time_scales: vec![TimeScale::Tt],
+                    body_coverage: vec![CelestialBody::Moon],
+                    supported_frames: vec![CoordinateFrame::Ecliptic],
+                    capabilities: BackendCapabilities::default(),
+                    accuracy: AccuracyClass::Approximate,
+                    deterministic: true,
+                    offline: true,
+                }
+            }
+
+            fn supports_body(&self, body: CelestialBody) -> bool {
+                body == CelestialBody::Moon
+            }
+
+            fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+                Ok(EphemerisResult::new(
+                    BackendId::new("moon"),
+                    req.body.clone(),
+                    req.instant,
+                    req.frame,
+                    req.zodiac_mode.clone(),
+                    req.apparent,
+                ))
+            }
+        }
+
+        let composite = CompositeBackend::new(ToyBackend, MoonBackend);
+        let sun_request = EphemerisRequest::new(
+            CelestialBody::Sun,
+            Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt),
+        );
+        let moon_request = EphemerisRequest::new(
+            CelestialBody::Moon,
+            Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt),
+        );
+
+        assert_eq!(
+            composite
+                .position(&sun_request)
+                .unwrap()
+                .backend_id
+                .as_str(),
+            "toy"
+        );
+        assert_eq!(
+            composite
+                .position(&moon_request)
+                .unwrap()
+                .backend_id
+                .as_str(),
+            "moon"
+        );
     }
 }

@@ -10,3 +10,15 @@ Implemented the first Stage 3 slice:
 - `pleiades-cli` can print the compatibility profile for quick inspection
 
 Next recommended slice: start the actual algorithmic chart workflow by wiring in a minimal Sun/Moon backend path, then layer tropical-to-sidereal and chart assembly helpers on top.
+
+## 2026-04-22 — tropical chart MVP landed
+
+Implemented the next Stage 3 slice:
+
+- `pleiades-vsop87` now computes approximate tropical positions for the Sun and major planets with a pure-Rust orbital-elements model
+- `pleiades-elp` now computes an approximate tropical Moon position with a pure-Rust analytical model
+- `pleiades-backend` gained a simple composite router for Moon-plus-planets workflows
+- `pleiades-core` can assemble a basic tropical chart snapshot with zodiac sign placements
+- `pleiades-cli chart` renders the new chart report using the composite backend
+
+Remaining Stage 3 work: sidereal conversion, fuller house placement, and any missing chart ergonomics needed to make the workflow feel production-ready.

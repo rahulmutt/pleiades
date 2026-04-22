@@ -48,7 +48,8 @@ Stage 3 is now underway as of 2026-04-22.
 - [x] Baseline ayanamsa catalog metadata is available in `pleiades-ayanamsa`, including aliases and compatibility notes.
 - [x] `pleiades-core` publishes a versioned compatibility profile that surfaces the current built-ins and known gaps.
 - [x] `pleiades-cli` can print the compatibility profile for quick inspection.
-- [ ] The algorithmic chart workflow and backend math still remain to be implemented.
+- [x] A tropical chart MVP now exists: `pleiades-vsop87` and `pleiades-elp` provide approximate Sun/Moon/planet positions, `pleiades-core` assembles sign placements, and `pleiades-cli chart` renders a basic report.
+- [ ] Sidereal conversion and house placement for the full baseline catalog still remain to be implemented.
 
 ## Workable state at end of stage
 A user can compute a practical astrology chart in pure Rust for common modern use cases with documented limits, even though full compatibility breadth and reference-data validation are not complete yet.

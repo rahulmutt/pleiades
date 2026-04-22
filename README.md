@@ -11,7 +11,8 @@ The repository is in the stage-3 chart-MVP phase:
 - the CI workflow runs formatting, linting, and tests in pure Rust mode,
 - the shared type system, backend contract, and thin façade are now implemented,
 - the baseline house and ayanamsa catalogs plus the compatibility profile scaffold are now published,
-- the algorithmic chart workflow and backend math will arrive in later stages.
+- the tropical chart workflow now works end to end with approximate Sun/Moon/planet backends and a CLI chart report,
+- sidereal conversion and fuller house placement coverage will continue in later slices.
 
 ## Local development
 

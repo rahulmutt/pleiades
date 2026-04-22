@@ -8,3 +8,5 @@ publish = false
 
 [dependencies]
 pleiades-core = { path = "../pleiades-core" }
+pleiades-elp = { path = "../pleiades-elp" }
+pleiades-vsop87 = { path = "../pleiades-vsop87" }

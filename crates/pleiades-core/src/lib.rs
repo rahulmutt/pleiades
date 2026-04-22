@@ -64,16 +64,18 @@
 
 #![forbid(unsafe_code)]
 
+mod chart;
 mod compatibility;
 
+pub use chart::{default_chart_bodies, BodyPlacement, ChartRequest, ChartSnapshot};
 pub use compatibility::{current_compatibility_profile, CompatibilityProfile};
 pub use pleiades_ayanamsa::{
     baseline_ayanamsas, descriptor as ayanamsa_descriptor, resolve_ayanamsa, AyanamsaDescriptor,
 };
 pub use pleiades_backend::{
     AccuracyClass, Apparentness, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
-    BackendProvenance, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
-    EphemerisResult, QualityAnnotation,
+    BackendProvenance, CompositeBackend, EphemerisBackend, EphemerisError, EphemerisErrorKind,
+    EphemerisRequest, EphemerisResult, QualityAnnotation,
 };
 pub use pleiades_houses::{
     baseline_house_systems, descriptor as house_system_descriptor, resolve_house_system,
@@ -82,7 +84,7 @@ pub use pleiades_houses::{
 pub use pleiades_types::{
     Angle, Ayanamsa, CelestialBody, CoordinateFrame, CustomAyanamsa, CustomBodyId,
     CustomHouseSystem, EclipticCoordinates, EquatorialCoordinates, HouseSystem, Instant, JulianDay,
-    Latitude, Longitude, Motion, ObserverLocation, TimeRange, TimeScale, ZodiacMode,
+    Latitude, Longitude, Motion, ObserverLocation, TimeRange, TimeScale, ZodiacMode, ZodiacSign,
 };
 
 /// A thin façade around a backend implementation.
