@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-22 — artifact validation now reports body-class error envelopes
+
+Implemented a small Stage 5 reporting slice:
+
+- `pleiades-validate validate-artifact` now groups the packaged-artifact comparison deltas into body-class envelopes so the report shows separate error summaries for luminaries, major planets, lunar points, asteroids, and custom bodies
+- the artifact-validation test now checks for the new body-class section in addition to the existing boundary and checksum coverage
+- the Stage 5 plan note was updated to reflect the more explicit error-envelope reporting
+
+Remaining Stage 5 work: keep the packaged artifact coverage and validation story aligned if the artifact body set grows again.
+
 ## 2026-04-22 — Babylonian house-family ayanamsa breadth added
 
 Implemented another Stage 6 catalog-breadth slice:

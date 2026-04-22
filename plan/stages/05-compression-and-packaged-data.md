@@ -37,7 +37,7 @@ Stage 5 compression and packaged-data work is complete as of 2026-04-22.
 - [x] `pleiades-data` now ships a bundled artifact generated from the checked-in JPL reference snapshot, covering the comparison-body planetary set with packaged lookup support and a compressed-data backend implementation.
 - [x] The CLI now composes packaged data ahead of the algorithmic backends so chart queries automatically use packaged lookups when available and still fall back for bodies outside the bundled slice.
 - [x] `pleiades-validate` now exposes `validate-artifact` to inspect the bundled compressed artifact, verify encode/decode and checksum behavior, and report segment-boundary continuity for the packaged bodies.
-- [x] `validate-artifact` now reports measured artifact error envelopes against the algorithmic baseline, and the packaged artifact coverage now spans the comparison-body planetary set.
+- [x] `validate-artifact` now reports measured artifact error envelopes against the algorithmic baseline, including body-class-specific summaries for luminaries, major planets, lunar points, asteroids, and custom bodies, and the packaged artifact coverage now spans the comparison-body planetary set.
 
 ## Suggested implementation slices
 

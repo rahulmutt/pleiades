@@ -1646,6 +1646,9 @@ mod tests {
         assert!(report.contains("Pluto"));
         assert!(report.contains("boundary checks"));
         assert!(report.contains("Model error envelope"));
+        assert!(report.contains("Body-class error envelopes"));
+        assert!(report.contains("Luminaries"));
+        assert!(report.contains("Major planets"));
         assert!(report.contains("baseline backend"));
     }
 

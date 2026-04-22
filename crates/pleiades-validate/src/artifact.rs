@@ -1,6 +1,9 @@
 use core::fmt;
 
-use crate::{compare_backends, default_candidate_backend, ComparisonReport, ValidationCorpus};
+use crate::{
+    compare_backends, default_candidate_backend, ComparisonReport, ComparisonSample,
+    ValidationCorpus,
+};
 use pleiades_compression::{CompressedArtifact, CompressionError};
 use pleiades_core::{
     Angle, Apparentness, CelestialBody, CoordinateFrame, EclipticCoordinates, EphemerisRequest,
@@ -269,6 +272,202 @@ fn boundary_delta(left: &EclipticCoordinates, right: &EclipticCoordinates) -> Bo
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum BodyClass {
+    Luminary,
+    MajorPlanet,
+    LunarPoint,
+    Asteroid,
+    Custom,
+}
+
+impl BodyClass {
+    const ALL: [Self; 5] = [
+        Self::Luminary,
+        Self::MajorPlanet,
+        Self::LunarPoint,
+        Self::Asteroid,
+        Self::Custom,
+    ];
+
+    const fn label(self) -> &'static str {
+        match self {
+            Self::Luminary => "Luminaries",
+            Self::MajorPlanet => "Major planets",
+            Self::LunarPoint => "Lunar points",
+            Self::Asteroid => "Asteroids",
+            Self::Custom => "Custom bodies",
+        }
+    }
+
+    const fn index(self) -> usize {
+        match self {
+            Self::Luminary => 0,
+            Self::MajorPlanet => 1,
+            Self::LunarPoint => 2,
+            Self::Asteroid => 3,
+            Self::Custom => 4,
+        }
+    }
+}
+
+fn body_class(body: &CelestialBody) -> BodyClass {
+    match body {
+        CelestialBody::Sun | CelestialBody::Moon => BodyClass::Luminary,
+        CelestialBody::Mercury
+        | CelestialBody::Venus
+        | CelestialBody::Mars
+        | CelestialBody::Jupiter
+        | CelestialBody::Saturn
+        | CelestialBody::Uranus
+        | CelestialBody::Neptune
+        | CelestialBody::Pluto => BodyClass::MajorPlanet,
+        CelestialBody::MeanNode
+        | CelestialBody::TrueNode
+        | CelestialBody::MeanApogee
+        | CelestialBody::TrueApogee => BodyClass::LunarPoint,
+        CelestialBody::Ceres
+        | CelestialBody::Pallas
+        | CelestialBody::Juno
+        | CelestialBody::Vesta => BodyClass::Asteroid,
+        CelestialBody::Custom(_) => BodyClass::Custom,
+        _ => BodyClass::Custom,
+    }
+}
+
+#[derive(Clone, Debug)]
+struct BodyClassSummary {
+    class: BodyClass,
+    sample_count: usize,
+    max_longitude_delta_deg: f64,
+    sum_longitude_delta_deg: f64,
+    max_latitude_delta_deg: f64,
+    sum_latitude_delta_deg: f64,
+    max_distance_delta_au: Option<f64>,
+    sum_distance_delta_au: f64,
+    distance_count: usize,
+}
+
+impl BodyClassSummary {
+    const fn new(class: BodyClass) -> Self {
+        Self {
+            class,
+            sample_count: 0,
+            max_longitude_delta_deg: 0.0,
+            sum_longitude_delta_deg: 0.0,
+            max_latitude_delta_deg: 0.0,
+            sum_latitude_delta_deg: 0.0,
+            max_distance_delta_au: None,
+            sum_distance_delta_au: 0.0,
+            distance_count: 0,
+        }
+    }
+
+    fn update(&mut self, sample: &ComparisonSample) {
+        self.sample_count += 1;
+        self.max_longitude_delta_deg = self.max_longitude_delta_deg.max(sample.longitude_delta_deg);
+        self.sum_longitude_delta_deg += sample.longitude_delta_deg;
+        self.max_latitude_delta_deg = self.max_latitude_delta_deg.max(sample.latitude_delta_deg);
+        self.sum_latitude_delta_deg += sample.latitude_delta_deg;
+
+        if let Some(distance_delta_au) = sample.distance_delta_au {
+            self.max_distance_delta_au = Some(
+                self.max_distance_delta_au
+                    .map_or(distance_delta_au, |current| current.max(distance_delta_au)),
+            );
+            self.sum_distance_delta_au += distance_delta_au;
+            self.distance_count += 1;
+        }
+    }
+
+    fn mean_longitude_delta_deg(&self) -> f64 {
+        if self.sample_count == 0 {
+            0.0
+        } else {
+            self.sum_longitude_delta_deg / self.sample_count as f64
+        }
+    }
+
+    fn mean_latitude_delta_deg(&self) -> f64 {
+        if self.sample_count == 0 {
+            0.0
+        } else {
+            self.sum_latitude_delta_deg / self.sample_count as f64
+        }
+    }
+
+    fn mean_distance_delta_au(&self) -> Option<f64> {
+        if self.distance_count == 0 {
+            None
+        } else {
+            Some(self.sum_distance_delta_au / self.distance_count as f64)
+        }
+    }
+
+    fn render(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.sample_count == 0 {
+            return Ok(());
+        }
+
+        writeln!(f, "  {}", self.class.label())?;
+        writeln!(f, "    samples: {}", self.sample_count)?;
+        writeln!(
+            f,
+            "    max longitude delta: {:.12}°",
+            self.max_longitude_delta_deg
+        )?;
+        writeln!(
+            f,
+            "    mean longitude delta: {:.12}°",
+            self.mean_longitude_delta_deg()
+        )?;
+        writeln!(
+            f,
+            "    max latitude delta: {:.12}°",
+            self.max_latitude_delta_deg
+        )?;
+        writeln!(
+            f,
+            "    mean latitude delta: {:.12}°",
+            self.mean_latitude_delta_deg()
+        )?;
+        if let Some(value) = self.max_distance_delta_au {
+            writeln!(f, "    max distance delta: {:.12} AU", value)?;
+        }
+        if let Some(value) = self.mean_distance_delta_au() {
+            writeln!(f, "    mean distance delta: {:.12} AU", value)?;
+        }
+
+        Ok(())
+    }
+}
+
+fn write_body_class_envelopes(
+    f: &mut fmt::Formatter<'_>,
+    samples: &[ComparisonSample],
+) -> fmt::Result {
+    writeln!(f, "Body-class error envelopes")?;
+
+    let mut summaries = BodyClass::ALL.map(BodyClassSummary::new);
+    for sample in samples {
+        summaries[body_class(&sample.body).index()].update(sample);
+    }
+
+    let mut has_entries = false;
+    for summary in &summaries {
+        if summary.sample_count > 0 {
+            has_entries = true;
+            summary.render(f)?;
+        }
+    }
+
+    if !has_entries {
+        writeln!(f, "  none")?;
+    }
+
+    Ok(())
+}
+
 impl fmt::Display for ArtifactInspectionReport {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Artifact validation report")?;
@@ -350,6 +549,10 @@ impl fmt::Display for ArtifactInspectionReport {
         if let Some(value) = self.model_comparison.summary.mean_distance_delta_au {
             writeln!(f, "  mean distance delta: {:.12} AU", value)?;
         }
+
+        writeln!(f)?;
+        write_body_class_envelopes(f, &self.model_comparison.samples)?;
+        writeln!(f)?;
 
         let notable_regressions = self.model_comparison.notable_regressions();
         writeln!(f, "  notable regressions")?;
