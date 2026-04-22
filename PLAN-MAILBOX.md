@@ -269,3 +269,13 @@ Implemented the next Stage 6 catalog-breadth slice:
 - `pleiades-core`, the compatibility profile, the CLI, validation output, README, and the Stage 6 plan notes now reflect the broadened release-specific ayanamsa coverage
 
 Remaining Stage 6 work: keep catalog breadth and release notes aligned as additional Swiss Ephemeris ayanamsa modes are scheduled.
+
+## 2026-04-22 — historical/reference-frame ayanamsa batch added
+
+Implemented another Stage 6 catalog-breadth slice:
+
+- `pleiades-types` now includes `Hipparchus`, the Babylonian Kugler 1/2/3, Huber, Eta Piscium, Aldebaran, Galactic Center, and Galactic Equator ayanamsa variants
+- `pleiades-ayanamsa` now catalogs, resolves, and documents those historical/reference-frame ayanamsa modes with compatibility aliases
+- `pleiades-core`, the compatibility profile, the README, and the Stage 6 progress notes now surface the new breadth batch as release-specific catalog coverage
+
+Remaining Stage 6 work: continue filling out the remaining Swiss Ephemeris ayanamsa breadth and keep the release profile synchronized.

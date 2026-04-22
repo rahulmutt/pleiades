@@ -55,8 +55,8 @@ impl CompatibilityProfile {
 /// Returns the current compatibility profile.
 pub const fn current_compatibility_profile() -> CompatibilityProfile {
     CompatibilityProfile {
-        profile_id: "pleiades-compatibility-profile/0.6.4",
-        summary: "Stage 6 release profile: the baseline catalogs remain published as a routine release artifact while the target Swiss-Ephemeris-class compatibility catalog stays explicit, including the release-specific house-system additions across the Carter, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen, Sunshine, and Gauquelin families, plus the expanded ayanamsa coverage for J2000/J1900/B1950, DeLuce, Yukteshwar, PVR Pushya-paksha, Sheoran, and the true-nakshatra reference modes.",
+        profile_id: "pleiades-compatibility-profile/0.6.5",
+        summary: "Stage 6 release profile: the baseline catalogs remain published as a routine release artifact while the target Swiss-Ephemeris-class compatibility catalog stays explicit, including the release-specific house-system additions across the Carter, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen, Sunshine, and Gauquelin families, plus the expanded ayanamsa coverage for J2000/J1900/B1950, DeLuce, Yukteshwar, PVR Pushya-paksha, Sheoran, the true-nakshatra reference modes, and the newly added Hipparchus, Babylonian, and Galactic reference-frame modes.",
 
         target_house_scope: &[
             "Target house scope: the full Swiss-Ephemeris-class house-system catalog remains the long-term compatibility goal.",
@@ -74,12 +74,13 @@ pub const fn current_compatibility_profile() -> CompatibilityProfile {
         release_ayanamsas: release_ayanamsas(),
         release_notes: &[
             "Release-specific house-system additions now include Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter (poli-equatorial), Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen SD, Pullen SR, Sunshine, and Gauquelin sectors.",
-            "Release-specific ayanamsa additions now include J2000, J1900, B1950, DeLuce, Yukteshwar, PVR Pushya-paksha, Sheoran, True Revati, True Mula, Lahiri (ICRC), Lahiri (1940), Usha Shashi, Suryasiddhanta (499 CE), Aryabhata (499 CE), and Sassanian.",
+            "Release-specific ayanamsa additions now include J2000, J1900, B1950, DeLuce, Yukteshwar, PVR Pushya-paksha, Sheoran, True Revati, True Mula, Lahiri (ICRC), Lahiri (1940), Usha Shashi, Suryasiddhanta (499 CE), Aryabhata (499 CE), Sassanian, Hipparchus, Babylonian (Kugler 1), Babylonian (Kugler 2), Babylonian (Kugler 3), Babylonian (Huber), Babylonian (Eta Piscium), Babylonian (Aldebaran), Galactic Center, and Galactic Equator.",
             "The compatibility profile is intended to be archived with release validation outputs and release notes.",
         ],
         known_gaps: &[
             "Stage 4 validation against external reference data is still the next source of accuracy tightening for house formulas.",
-            "Additional Swiss Ephemeris ayanamsa modes remain scheduled for future release-breadth batches, even after adding PVR Pushya-paksha and Sheoran to the catalog.",
+            "Additional Swiss Ephemeris ayanamsa modes remain scheduled for future release-breadth batches, even after adding the Hipparchus, Babylonian, and Galactic reference-frame family to the catalog.",
+            "The newly added historical/reference-frame ayanamsa modes are catalogued and resolvable, but most do not yet carry sidereal offset metadata for chart-layer conversion.",
         ],
     }
 }
@@ -274,6 +275,26 @@ mod tests {
             .iter()
             .any(|entry| entry.canonical_name == "Sassanian"));
         assert!(profile
+            .release_ayanamsas
+            .iter()
+            .any(|entry| entry.canonical_name == "Hipparchus"));
+        assert!(profile
+            .release_ayanamsas
+            .iter()
+            .any(|entry| entry.canonical_name == "Babylonian (Kugler 1)"));
+        assert!(profile
+            .release_ayanamsas
+            .iter()
+            .any(|entry| entry.canonical_name == "Babylonian (Aldebaran)"));
+        assert!(profile
+            .release_ayanamsas
+            .iter()
+            .any(|entry| entry.canonical_name == "Galactic Center"));
+        assert!(profile
+            .release_ayanamsas
+            .iter()
+            .any(|entry| entry.canonical_name == "Galactic Equator"));
+        assert!(profile
             .target_house_scope
             .iter()
             .any(|line| line.contains("Swiss-Ephemeris-class house-system catalog")));
@@ -320,6 +341,11 @@ mod tests {
         assert!(rendered.contains("True Mula"));
         assert!(rendered.contains("Lahiri (ICRC)"));
         assert!(rendered.contains("Sassanian"));
+        assert!(rendered.contains("Hipparchus"));
+        assert!(rendered.contains("Babylonian (Kugler 1)"));
+        assert!(rendered.contains("Babylonian (Aldebaran)"));
+        assert!(rendered.contains("Galactic Center"));
+        assert!(rendered.contains("Galactic Equator"));
         assert!(rendered.contains("Known gaps:"));
         assert!(rendered.contains("Placidus"));
         assert!(rendered.contains("Lahiri"));

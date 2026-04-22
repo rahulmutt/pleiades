@@ -544,6 +544,24 @@ pub enum Ayanamsa {
     PvrPushyaPaksha,
     /// Sheoran ayanamsa.
     Sheoran,
+    /// Hipparchus / Hipparchos ayanamsa.
+    Hipparchus,
+    /// Babylonian (Kugler 1).
+    BabylonianKugler1,
+    /// Babylonian (Kugler 2).
+    BabylonianKugler2,
+    /// Babylonian (Kugler 3).
+    BabylonianKugler3,
+    /// Babylonian (Huber).
+    BabylonianHuber,
+    /// Babylonian (Eta Piscium).
+    BabylonianEtaPiscium,
+    /// Babylonian (Aldebaran / 15 Tau).
+    BabylonianAldebaran,
+    /// Galactic Center.
+    GalacticCenter,
+    /// Galactic Equator.
+    GalacticEquator,
     /// A custom ayanamsa formula or offset table.
     Custom(CustomAyanamsa),
 }

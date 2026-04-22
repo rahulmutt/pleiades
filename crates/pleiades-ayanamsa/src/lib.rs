@@ -240,9 +240,81 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(2_451_545.0)),
         Some(Angle::from_degrees(23.0)),
     ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::Hipparchus,
+        "Hipparchus",
+        &["Hipparchos"],
+        "Swiss Ephemeris' Hipparchus sidereal mode, named for the Greek astronomer whose precession model underlies the historical reference frame.",
+        None,
+        None,
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::BabylonianKugler1,
+        "Babylonian (Kugler 1)",
+        &["Babylonian Kugler 1", "Babylonian 1"],
+        "Babylonian sidereal mode associated with Kugler's first reconstruction.",
+        None,
+        None,
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::BabylonianKugler2,
+        "Babylonian (Kugler 2)",
+        &["Babylonian Kugler 2", "Babylonian 2"],
+        "Babylonian sidereal mode associated with Kugler's second reconstruction.",
+        None,
+        None,
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::BabylonianKugler3,
+        "Babylonian (Kugler 3)",
+        &["Babylonian Kugler 3", "Babylonian 3"],
+        "Babylonian sidereal mode associated with Kugler's third reconstruction.",
+        None,
+        None,
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::BabylonianHuber,
+        "Babylonian (Huber)",
+        &["Babylonian Huber"],
+        "Babylonian sidereal mode associated with Huber's reconstruction.",
+        None,
+        None,
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::BabylonianEtaPiscium,
+        "Babylonian (Eta Piscium)",
+        &["Babylonian Eta Piscium", "Eta Piscium"],
+        "Babylonian sidereal mode aligned to the Eta Piscium fiducial star.",
+        None,
+        None,
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::BabylonianAldebaran,
+        "Babylonian (Aldebaran)",
+        &["Babylonian Aldebaran", "Babylonian 15 Tau", "15 Tau"],
+        "Babylonian sidereal mode aligned to Aldebaran / 15 Taurus.",
+        None,
+        None,
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::GalacticCenter,
+        "Galactic Center",
+        &["Gal. Center = 0 Sag", "0 Sag", "Galactic center"],
+        "Galactic-center sidereal reference mode.",
+        None,
+        None,
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::GalacticEquator,
+        "Galactic Equator",
+        &["Galactic equator", "Gal. Eq."],
+        "Galactic-equator sidereal reference mode.",
+        None,
+        None,
+    ),
 ];
 
-static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 20] = [
+static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 29] = [
     AyanamsaDescriptor::new(
         Ayanamsa::Lahiri,
         "Lahiri",
@@ -403,6 +475,78 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 20] = [
         Some(JulianDay::from_days(2_451_545.0)),
         Some(Angle::from_degrees(23.0)),
     ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::Hipparchus,
+        "Hipparchus",
+        &["Hipparchos"],
+        "Swiss Ephemeris' Hipparchus sidereal mode, named for the Greek astronomer whose precession model underlies the historical reference frame.",
+        None,
+        None,
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::BabylonianKugler1,
+        "Babylonian (Kugler 1)",
+        &["Babylonian Kugler 1", "Babylonian 1"],
+        "Babylonian sidereal mode associated with Kugler's first reconstruction.",
+        None,
+        None,
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::BabylonianKugler2,
+        "Babylonian (Kugler 2)",
+        &["Babylonian Kugler 2", "Babylonian 2"],
+        "Babylonian sidereal mode associated with Kugler's second reconstruction.",
+        None,
+        None,
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::BabylonianKugler3,
+        "Babylonian (Kugler 3)",
+        &["Babylonian Kugler 3", "Babylonian 3"],
+        "Babylonian sidereal mode associated with Kugler's third reconstruction.",
+        None,
+        None,
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::BabylonianHuber,
+        "Babylonian (Huber)",
+        &["Babylonian Huber"],
+        "Babylonian sidereal mode associated with Huber's reconstruction.",
+        None,
+        None,
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::BabylonianEtaPiscium,
+        "Babylonian (Eta Piscium)",
+        &["Babylonian Eta Piscium", "Eta Piscium"],
+        "Babylonian sidereal mode aligned to the Eta Piscium fiducial star.",
+        None,
+        None,
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::BabylonianAldebaran,
+        "Babylonian (Aldebaran)",
+        &["Babylonian Aldebaran", "Babylonian 15 Tau", "15 Tau"],
+        "Babylonian sidereal mode aligned to Aldebaran / 15 Taurus.",
+        None,
+        None,
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::GalacticCenter,
+        "Galactic Center",
+        &["Gal. Center = 0 Sag", "0 Sag", "Galactic center"],
+        "Galactic-center sidereal reference mode.",
+        None,
+        None,
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::GalacticEquator,
+        "Galactic Equator",
+        &["Galactic equator", "Gal. Eq."],
+        "Galactic-equator sidereal reference mode.",
+        None,
+        None,
+    ),
 ];
 
 /// Returns the baseline built-in ayanamsa catalog.
@@ -522,6 +666,20 @@ mod tests {
             Some(Ayanamsa::PvrPushyaPaksha)
         );
         assert_eq!(resolve_ayanamsa("Sunil Sheoran"), Some(Ayanamsa::Sheoran));
+        assert_eq!(resolve_ayanamsa("Hipparchos"), Some(Ayanamsa::Hipparchus));
+        assert_eq!(
+            resolve_ayanamsa("Babylonian 1"),
+            Some(Ayanamsa::BabylonianKugler1)
+        );
+        assert_eq!(
+            resolve_ayanamsa("15 Tau"),
+            Some(Ayanamsa::BabylonianAldebaran)
+        );
+        assert_eq!(resolve_ayanamsa("0 Sag"), Some(Ayanamsa::GalacticCenter));
+        assert_eq!(
+            resolve_ayanamsa("Gal. Eq."),
+            Some(Ayanamsa::GalacticEquator)
+        );
     }
 
     #[test]
@@ -547,6 +705,15 @@ mod tests {
             "Yukteshwar",
             "PVR Pushya-paksha",
             "Sheoran",
+            "Hipparchus",
+            "Babylonian (Kugler 1)",
+            "Babylonian (Kugler 2)",
+            "Babylonian (Kugler 3)",
+            "Babylonian (Huber)",
+            "Babylonian (Eta Piscium)",
+            "Babylonian (Aldebaran)",
+            "Galactic Center",
+            "Galactic Equator",
         ] {
             assert!(names.contains(&expected), "missing {expected}");
         }

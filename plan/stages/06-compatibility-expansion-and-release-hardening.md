@@ -55,6 +55,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] The next ayanamsa breadth batch is now implemented too: DeLuce and Yukteshwar are catalogued, resolved, rendered in the compatibility profile, and available through the shared catalog path alongside the existing release-specific ayanamsas.
 - [x] Swiss Ephemeris reference-frame and true-nakshatra ayanamsa modes are now catalogued too: J2000, J1900, B1950, True Revati, and True Mula are resolved, rendered in the compatibility profile, and available through the shared catalog path.
 - [x] The PVR Pushya-paksha and Sheoran ayanamsa modes are now catalogued too: both are resolved, rendered in the compatibility profile, and available through the shared catalog path as the next Stage 6 ayanamsa breadth increment.
+- [x] Swiss Ephemeris historical/reference-frame ayanamsa modes now include Hipparchus, Babylonian (Kugler 1/2/3), Babylonian (Huber), Babylonian (Eta Piscium), Babylonian (Aldebaran), Galactic Center, and Galactic Equator; they are catalogued, resolved, and surfaced through the compatibility profile as the next breadth batch.
 - [x] Carter (poli-equatorial) is now catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
 - [x] Horizon/Azimuth and APC are now catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
 - [x] Krusinski-Pisa-Goelzer is now catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
