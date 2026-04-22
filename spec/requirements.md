@@ -23,7 +23,11 @@ The system must support:
 - topocentric adjustments where supported by the chosen backend/model
 
 ### FR-3 House Systems
-The system must provide a house computation module supporting a complete and extensible catalog of astrological house systems. The initial mandatory catalog must include at minimum:
+The system must provide a house computation module supporting a complete and extensible catalog of astrological house systems.
+
+The specification end state is support for the full project catalog of house systems used in astrology software. Implementation may be phased, but the architecture and public API must not assume that only a small fixed subset will ever exist.
+
+The initial milestone catalog must include at minimum:
 
 - Placidus
 - Koch
@@ -37,10 +41,14 @@ The system must provide a house computation module supporting a complete and ext
 - Topocentric / Polich-Page
 - Morinus
 
-Where a system has latitude/pathology constraints, those constraints must be explicit in the API. The specification goal remains support for the broader house-system catalog beyond the initial mandatory list.
+Where a system has latitude/pathology constraints, those constraints must be explicit in the API.
 
 ### FR-4 Ayanamsa
-The system must support a pluggable ayanamsa catalog, including at minimum:
+The system must support a pluggable, extensible ayanamsa catalog.
+
+The specification end state is support for the project’s full ayanamsa catalog used by target astrology software. Implementation may be phased, but the API must allow named built-ins and user-defined variants without redesign.
+
+The initial milestone catalog must include at minimum:
 
 - Lahiri
 - Raman
@@ -59,7 +67,7 @@ The system must expose a common backend trait that:
 - reports uncertainty/accuracy class where known
 
 ### FR-6 Multiple Backend Implementations
-The workspace must include separate crates for multiple backends, including examples of:
+The workspace must include separate first-party crates for multiple backends, including examples of:
 
 - a JPL-based data backend
 - a formula-based planetary backend

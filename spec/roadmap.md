@@ -11,8 +11,8 @@
 
 - implement `pleiades-vsop87` for major planets and solar coordinates
 - implement `pleiades-elp` for lunar coordinates
-- implement first ayanamsa catalog
-- implement the initial mandatory house-system catalog, leaving room for later expansion to the broader house-system ecosystem
+- implement the initial ayanamsa catalog and extensible registration model
+- implement the initial milestone house-system catalog on top of an API designed for the full target catalog
 
 ## Phase 3: Reference Data Backend
 
@@ -38,5 +38,6 @@
 
 - composite backend routing
 - more asteroid coverage
+- fill out the remaining targeted house-system and ayanamsa catalogs
 - topocentric refinements
 - optional higher-level chart utilities
