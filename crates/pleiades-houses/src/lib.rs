@@ -235,9 +235,30 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         "Great-circle house system centered on the ascendant and zenith; latitude-sensitive near the poles.",
         true,
     ),
+    HouseSystemDescriptor::new(
+        HouseSystem::Albategnius,
+        "Albategnius",
+        &["Savard-A", "Savard A", "Savard's Albategnius"],
+        "Quartered latitude-circle variant associated with Savard's Albategnius proposal.",
+        false,
+    ),
+    HouseSystemDescriptor::new(
+        HouseSystem::PullenSd,
+        "Pullen SD",
+        &["Neo-Porphyry", "Pullen sinusoidal delta"],
+        "Sinusoidal-delta variant that smooths quadrant spacing toward the angles.",
+        false,
+    ),
+    HouseSystemDescriptor::new(
+        HouseSystem::PullenSr,
+        "Pullen SR",
+        &["Pullen sinusoidal ratio"],
+        "Sinusoidal-ratio variant with ratio-derived house spacing.",
+        false,
+    ),
 ];
 
-static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 20] = [
+static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 23] = [
     HouseSystemDescriptor::new(
         HouseSystem::Placidus,
         "Placidus",
@@ -305,6 +326,27 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 20] = [
         ],
         "Great-circle house system centered on the ascendant and zenith; latitude-sensitive near the poles.",
         true,
+    ),
+    HouseSystemDescriptor::new(
+        HouseSystem::Albategnius,
+        "Albategnius",
+        &["Savard-A", "Savard A", "Savard's Albategnius"],
+        "Quartered latitude-circle variant associated with Savard's Albategnius proposal.",
+        false,
+    ),
+    HouseSystemDescriptor::new(
+        HouseSystem::PullenSd,
+        "Pullen SD",
+        &["Neo-Porphyry", "Pullen sinusoidal delta"],
+        "Sinusoidal-delta variant that smooths quadrant spacing toward the angles.",
+        false,
+    ),
+    HouseSystemDescriptor::new(
+        HouseSystem::PullenSr,
+        "Pullen SR",
+        &["Pullen sinusoidal ratio"],
+        "Sinusoidal-ratio variant with ratio-derived house spacing.",
+        false,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Equal,
@@ -472,6 +514,18 @@ mod tests {
             Some(HouseSystem::KrusinskiPisaGoelzer)
         );
         assert_eq!(resolve_house_system("Śrīpati"), Some(HouseSystem::Sripati));
+        assert_eq!(
+            resolve_house_system("Savard-A"),
+            Some(HouseSystem::Albategnius)
+        );
+        assert_eq!(
+            resolve_house_system("Neo-Porphyry"),
+            Some(HouseSystem::PullenSd)
+        );
+        assert_eq!(
+            resolve_house_system("Pullen sinusoidal ratio"),
+            Some(HouseSystem::PullenSr)
+        );
     }
 
     #[test]
@@ -490,6 +544,9 @@ mod tests {
             "Horizon/Azimuth",
             "APC",
             "Krusinski-Pisa-Goelzer",
+            "Albategnius",
+            "Pullen SD",
+            "Pullen SR",
         ] {
             assert!(names.contains(&expected), "missing {expected}");
         }

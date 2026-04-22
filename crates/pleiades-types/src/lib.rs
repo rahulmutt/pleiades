@@ -456,6 +456,12 @@ pub enum HouseSystem {
     WholeSign,
     /// Alcabitius.
     Alcabitius,
+    /// Albategnius / Savard-A.
+    Albategnius,
+    /// Pullen sinusoidal delta (Neo-Porphyry).
+    PullenSd,
+    /// Pullen sinusoidal ratio.
+    PullenSr,
     /// Meridian-style systems.
     Meridian,
     /// Axial variants documented by specific software.

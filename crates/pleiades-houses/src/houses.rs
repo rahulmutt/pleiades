@@ -178,6 +178,9 @@ pub fn calculate_houses(request: &HouseRequest) -> Result<HouseSnapshot, HouseEr
         HouseSystem::Alcabitius => {
             alcabitius_houses(request.instant, &request.observer, obliquity, angles)
         }
+        HouseSystem::Albategnius => albategnius_houses(angles),
+        HouseSystem::PullenSd => pullen_sd_houses(angles),
+        HouseSystem::PullenSr => pullen_sr_houses(angles),
         HouseSystem::Meridian | HouseSystem::Axial | HouseSystem::Morinus => {
             equatorial_projection_houses(request.instant, &request.observer, obliquity)
         }
@@ -679,6 +682,138 @@ fn sripati_houses(angles: HouseAngles) -> [Longitude; 12] {
     })
 }
 
+fn complete_opposite_houses(cusps: &mut [Longitude; 12]) {
+    cusps[3] = longitude_opposite(cusps[9]);
+    cusps[4] = longitude_opposite(cusps[10]);
+    cusps[5] = longitude_opposite(cusps[11]);
+    cusps[6] = longitude_opposite(cusps[0]);
+    cusps[7] = longitude_opposite(cusps[1]);
+    cusps[8] = longitude_opposite(cusps[2]);
+}
+
+fn albategnius_houses(angles: HouseAngles) -> [Longitude; 12] {
+    let mut cusps = [Longitude::from_degrees(0.0); 12];
+    cusps[0] = angles.ascendant;
+    cusps[9] = angles.midheaven;
+
+    let mut ascendant = angles.ascendant;
+    let mut acmc = signed_longitude_difference(ascendant.degrees(), angles.midheaven.degrees());
+    if acmc < 0.0 {
+        ascendant = longitude_opposite(ascendant);
+        acmc = signed_longitude_difference(ascendant.degrees(), angles.midheaven.degrees());
+    }
+    cusps[0] = ascendant;
+
+    let q1 = 180.0 - acmc;
+    let d = (acmc - 90.0) / 4.0;
+    if acmc <= 30.0 {
+        cusps[10] = Longitude::from_degrees(angles.midheaven.degrees() + acmc / 2.0);
+        cusps[11] = cusps[10];
+    } else {
+        cusps[10] = Longitude::from_degrees(angles.midheaven.degrees() + 30.0 + d);
+        cusps[11] = Longitude::from_degrees(angles.midheaven.degrees() + 60.0 + 3.0 * d);
+    }
+
+    let d = (q1 - 90.0) / 4.0;
+    if q1 <= 30.0 {
+        cusps[1] = Longitude::from_degrees(ascendant.degrees() + q1 / 2.0);
+        cusps[2] = cusps[1];
+    } else {
+        cusps[1] = Longitude::from_degrees(ascendant.degrees() + 30.0 + d);
+        cusps[2] = Longitude::from_degrees(ascendant.degrees() + 60.0 + 3.0 * d);
+    }
+
+    complete_opposite_houses(&mut cusps);
+    cusps
+}
+
+fn pullen_sd_houses(angles: HouseAngles) -> [Longitude; 12] {
+    let mut cusps = [Longitude::from_degrees(0.0); 12];
+    cusps[0] = angles.ascendant;
+    cusps[9] = angles.midheaven;
+
+    let mut ascendant = angles.ascendant;
+    let mut acmc = signed_longitude_difference(ascendant.degrees(), angles.midheaven.degrees());
+    if acmc < 0.0 {
+        ascendant = longitude_opposite(ascendant);
+        acmc = signed_longitude_difference(ascendant.degrees(), angles.midheaven.degrees());
+    }
+    cusps[0] = ascendant;
+
+    let q1 = 180.0 - acmc;
+    let d = (acmc - 90.0) / 4.0;
+    if acmc <= 30.0 {
+        cusps[10] = Longitude::from_degrees(angles.midheaven.degrees() + acmc / 2.0);
+        cusps[11] = cusps[10];
+    } else {
+        cusps[10] = Longitude::from_degrees(angles.midheaven.degrees() + 30.0 + d);
+        cusps[11] = Longitude::from_degrees(angles.midheaven.degrees() + 60.0 + 3.0 * d);
+    }
+
+    let d = (q1 - 90.0) / 4.0;
+    if q1 <= 30.0 {
+        cusps[1] = Longitude::from_degrees(ascendant.degrees() + q1 / 2.0);
+        cusps[2] = cusps[1];
+    } else {
+        cusps[1] = Longitude::from_degrees(ascendant.degrees() + 30.0 + d);
+        cusps[2] = Longitude::from_degrees(ascendant.degrees() + 60.0 + 3.0 * d);
+    }
+
+    complete_opposite_houses(&mut cusps);
+    cusps
+}
+
+fn pullen_sr_houses(angles: HouseAngles) -> [Longitude; 12] {
+    let mut cusps = [Longitude::from_degrees(0.0); 12];
+    cusps[0] = angles.ascendant;
+    cusps[9] = angles.midheaven;
+
+    let mut ascendant = angles.ascendant;
+    let mut acmc = signed_longitude_difference(ascendant.degrees(), angles.midheaven.degrees());
+    if acmc < 0.0 {
+        ascendant = longitude_opposite(ascendant);
+        acmc = signed_longitude_difference(ascendant.degrees(), angles.midheaven.degrees());
+    }
+    cusps[0] = ascendant;
+
+    let mut q = acmc;
+    if q > 90.0 {
+        q = 180.0 - q;
+    }
+
+    let (x, xr, xr3, xr4) = if q < 1.0e-30 {
+        (0.0, 0.0, 0.0, 180.0)
+    } else {
+        let c = (180.0 - q) / q;
+        let csq = c * c;
+        let ccr = (csq - c).cbrt();
+        let cqx = (2.0_f64.powf(2.0 / 3.0) * ccr + 1.0).sqrt();
+        let r1 = 0.5 * cqx;
+        let r2 = 0.5 * (-2.0 * (1.0 - 2.0 * c) / cqx - 2.0_f64.powf(2.0 / 3.0) * ccr + 2.0).sqrt();
+        let r = r1 + r2 - 0.5;
+        let x = q / (2.0 * r + 1.0);
+        let xr = r * x;
+        let xr3 = xr * r * r;
+        let xr4 = xr3 * r;
+        (x, xr, xr3, xr4)
+    };
+
+    if acmc > 90.0 {
+        cusps[10] = Longitude::from_degrees(angles.midheaven.degrees() + xr3);
+        cusps[11] = Longitude::from_degrees(cusps[10].degrees() + xr4);
+        cusps[1] = Longitude::from_degrees(ascendant.degrees() + xr);
+        cusps[2] = Longitude::from_degrees(cusps[1].degrees() + x);
+    } else {
+        cusps[10] = Longitude::from_degrees(angles.midheaven.degrees() + xr);
+        cusps[11] = Longitude::from_degrees(cusps[10].degrees() + x);
+        cusps[1] = Longitude::from_degrees(ascendant.degrees() + xr3);
+        cusps[2] = Longitude::from_degrees(cusps[1].degrees() + xr4);
+    }
+
+    complete_opposite_houses(&mut cusps);
+    cusps
+}
+
 fn topocentric_houses(
     instant: Instant,
     observer: &ObserverLocation,
@@ -853,6 +988,9 @@ fn catalog_name(system: &HouseSystem) -> &'static str {
         HouseSystem::Sripati => "Sripati",
         HouseSystem::WholeSign => "Whole Sign",
         HouseSystem::Alcabitius => "Alcabitius",
+        HouseSystem::Albategnius => "Albategnius",
+        HouseSystem::PullenSd => "Pullen SD",
+        HouseSystem::PullenSr => "Pullen SR",
         HouseSystem::Meridian => "Meridian",
         HouseSystem::Axial => "Axial",
         HouseSystem::Topocentric => "Topocentric",
@@ -1010,6 +1148,24 @@ mod tests {
             (snapshot.cusps[1].degrees() - snapshot.cusps[0].degrees()).rem_euclid(360.0),
             30.0
         );
+    }
+
+    #[test]
+    fn albategnius_and_pullen_release_systems_are_available() {
+        for system in [
+            HouseSystem::Albategnius,
+            HouseSystem::PullenSd,
+            HouseSystem::PullenSr,
+        ] {
+            let snapshot = calculate_houses(&sample_request(system.clone()))
+                .expect("release house system should calculate");
+            assert_eq!(snapshot.cusps.len(), 12);
+            assert_eq!(snapshot.cusps[9], snapshot.angles.midheaven);
+            assert_eq!(
+                (snapshot.cusps[6].degrees() - snapshot.cusps[0].degrees()).rem_euclid(360.0),
+                180.0
+            );
+        }
     }
 
     #[test]

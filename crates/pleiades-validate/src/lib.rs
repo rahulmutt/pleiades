@@ -1178,7 +1178,7 @@ mod tests {
         let manifest = std::fs::read_to_string(bundle_dir.join("bundle-manifest.txt"))
             .expect("manifest should be written");
 
-        assert!(profile.contains("Compatibility profile: pleiades-compatibility-profile/0.5.0"));
+        assert!(profile.contains("Compatibility profile: pleiades-compatibility-profile/0.6.0"));
         assert!(report.contains("Validation report"));
         assert!(manifest.contains("Release bundle manifest"));
         assert!(manifest.contains("validation rounds: 1"));

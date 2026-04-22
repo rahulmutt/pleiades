@@ -54,7 +54,8 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] Carter (poli-equatorial) is now catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
 - [x] Horizon/Azimuth and APC are now catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
 - [x] Krusinski-Pisa-Goelzer is now catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
-- [ ] Remaining house-system breadth now focuses on the sinusoidal, Albategnius, Sunshine, and Gauquelin-sector families still called out by the stage-6 plan.
+- [x] Albategnius and the Pullen sinusoidal house families are now catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
+- [ ] Remaining house-system breadth now focuses on the Sunshine and Gauquelin-sector families still called out by the stage-6 plan.
 
 ## Exit criteria
 
