@@ -1,5 +1,14 @@
 # PLAN-MAILBOX
 
+## 2026-04-22 — house lookup helper added to ChartSnapshot
+
+Implemented a small Stage 6 optional-helper slice:
+
+- `pleiades-core::ChartSnapshot` now exposes `house_for_body`, paralleling the existing body lookup and motion-direction helpers so chart consumers can ask for a body's house number without re-scanning placements
+- API stability wording and README status notes now mention the new house lookup helper, and the regression test exercises the helper alongside the retrograde summary
+
+Remaining Stage 6 work: broader catalog breadth and any remaining optional helper polish that depends on additional coverage.
+
 ## 2026-04-22 — non-standard ayanamsa labels now treated as custom-definition territory
 
 Implemented a small Stage 6 release-hardening slice:

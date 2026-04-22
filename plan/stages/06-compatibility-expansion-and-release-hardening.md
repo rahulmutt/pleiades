@@ -76,7 +76,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] Release bundle generation now has a matching verification command that re-reads the staged artifacts, checks the manifest checksums, and is exercised by the release smoke task so the release artifact path is validated end to end.
 - [x] Topocentric (Polich-Page) now uses a geodetic-to-geocentric latitude correction with elevation-aware ellipsoid handling, and the catalog note reflects the refined implementation.
 - [x] The chart façade now exposes a motion-direction helper for body placements, so future chart reports and consumers can surface retrograde/direct state from backend motion data without adding backend-specific logic.
-- [x] `pleiades-core::ChartSnapshot` now offers direct body lookup and retrograde-summary helpers, and chart rendering emits a retrograde-body summary when motion data is available.
+- [x] `pleiades-core::ChartSnapshot` now offers direct body lookup, house lookup, and retrograde-summary helpers, and chart rendering emits a retrograde-body summary when motion data is available.
 - [x] `pleiades-cli` now exposes the implemented backend capability matrices directly via `backend-matrix` / `capability-matrix`, so maintainers can inspect coverage, range, and accuracy notes from the user-facing CLI.
 - [x] The compatibility profile now renders an explicit alias-mapping appendix for built-in house systems and ayanamsas, making interoperability lookups easier to audit from the release artifact itself.
 - [x] The compatibility profile now also captures a couple of Swiss-Ephemeris label variants that were still missing from the release notes layer: `Whole Sign (house 1 = Aries)` resolves to `Equal (1=Aries)`, and `Moon` resolves to `Valens Moon`.

@@ -42,7 +42,7 @@ pub const fn current_api_stability_profile() -> ApiStabilityProfile {
             "pleiades-types defines the stable units, identifiers, and request/response primitives.",
             "pleiades-backend's EphemerisBackend trait and metadata model are the primary backend-facing contract.",
             "pleiades-core's ChartEngine, ChartRequest, ChartSnapshot, and compatibility-profile helpers are the stable façade used by consumers.",
-            "ChartSnapshot body-placement helpers include direct lookup, motion-direction classification, and retrograde summaries for backend motion data when present.",
+            "ChartSnapshot body-placement helpers include direct lookup, house lookup, motion-direction classification, and retrograde summaries for backend motion data when present.",
             "House-system and ayanamsa resolution helpers are stable lookup surfaces for built-ins and custom entries.",
         ],
         experimental_surfaces: &[

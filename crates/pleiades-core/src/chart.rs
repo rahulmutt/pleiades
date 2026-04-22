@@ -150,6 +150,11 @@ impl ChartSnapshot {
         self.placement_for(body)?.motion_direction()
     }
 
+    /// Returns the house number for a requested body, if house placement was computed.
+    pub fn house_for_body(&self, body: &CelestialBody) -> Option<usize> {
+        self.placement_for(body)?.house
+    }
+
     /// Returns the placements that are currently classified as retrograde.
     pub fn retrograde_placements(&self) -> impl Iterator<Item = &BodyPlacement> {
         self.placements.iter().filter(|placement| {
@@ -640,18 +645,21 @@ mod tests {
                     body: CelestialBody::Sun,
                     position: direct,
                     sign: Some(ZodiacSign::Aries),
-                    house: None,
+                    house: Some(1),
                 },
                 BodyPlacement {
                     body: CelestialBody::Mars,
                     position: retrograde,
                     sign: Some(ZodiacSign::Cancer),
-                    house: None,
+                    house: Some(8),
                 },
             ],
         };
 
         assert!(chart.placement_for(&CelestialBody::Sun).is_some());
+        assert_eq!(chart.house_for_body(&CelestialBody::Sun), Some(1));
+        assert_eq!(chart.house_for_body(&CelestialBody::Mars), Some(8));
+        assert_eq!(chart.house_for_body(&CelestialBody::Mercury), None);
         assert_eq!(
             chart.motion_direction_for(&CelestialBody::Mars),
             Some(MotionDirection::Retrograde)
