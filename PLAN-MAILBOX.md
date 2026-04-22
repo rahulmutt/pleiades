@@ -22,3 +22,14 @@ Implemented the next Stage 3 slice:
 - `pleiades-cli chart` renders the new chart report using the composite backend
 
 Remaining Stage 3 work: sidereal conversion, fuller house placement, and any missing chart ergonomics needed to make the workflow feel production-ready.
+
+## 2026-04-22 — sidereal chart conversion added
+
+Implemented the next Stage 3 slice:
+
+- `pleiades-ayanamsa` now carries baseline epoch/offset metadata for built-in sidereal catalog entries and exposes a deterministic offset helper for custom or built-in definitions
+- `pleiades-core` now exposes `sidereal_longitude` and uses it inside chart assembly when a sidereal zodiac mode is requested
+- `pleiades-cli chart` accepts `--ayanamsa <name>` and can render sidereal chart output on top of the tropical backends
+- compatibility-profile output was updated to describe the current sidereal chart capability and the remaining house-placement gap
+
+Remaining Stage 3 work: house placement for the baseline catalog, plus any chart ergonomics needed to polish the workflow.

@@ -38,12 +38,11 @@ impl CompatibilityProfile {
 pub const fn current_compatibility_profile() -> CompatibilityProfile {
     CompatibilityProfile {
         profile_id: "pleiades-compatibility-profile/0.1.0",
-        summary: "Stage 3 compatibility scaffold: baseline catalogs are published, while chart assembly and backend math remain to be implemented.",
+        summary: "Stage 3 compatibility scaffold: baseline catalogs are published and tropical/sidereal chart assembly works, while house placement remains to be implemented.",
         house_systems: baseline_house_systems(),
         ayanamsas: baseline_ayanamsas(),
         known_gaps: &[
-            "No end-to-end chart workflow yet: algorithmic planet and Moon backends are still stubs.",
-            "House-system and ayanamsa crates currently provide catalog metadata, not numerical calculations.",
+            "House placement for the baseline compatibility catalog still remains to be implemented.",
             "Compatibility coverage will expand as Stage 3 continues and later stages add validation.",
         ],
     }
@@ -101,7 +100,7 @@ mod tests {
         assert!(profile
             .known_gaps
             .iter()
-            .any(|gap| gap.contains("chart workflow")));
+            .any(|gap| gap.contains("House placement")));
     }
 
     #[test]

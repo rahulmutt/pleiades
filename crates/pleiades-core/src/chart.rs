@@ -7,11 +7,12 @@
 
 use core::fmt;
 
+use pleiades_ayanamsa::sidereal_offset;
 use pleiades_backend::{
     Apparentness, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
     EphemerisResult,
 };
-use pleiades_types::{CelestialBody, Instant, ObserverLocation, ZodiacMode, ZodiacSign};
+use pleiades_types::{CelestialBody, Instant, Longitude, ObserverLocation, ZodiacMode, ZodiacSign};
 
 use crate::ChartEngine;
 
@@ -81,7 +82,7 @@ pub struct BodyPlacement {
     pub body: CelestialBody,
     /// The raw backend result.
     pub position: EphemerisResult,
-    /// The body’s tropical zodiac sign, when ecliptic longitude is available.
+    /// The body’s zodiac sign in the requested mode, when ecliptic longitude is available.
     pub sign: Option<ZodiacSign>,
 }
 
@@ -153,15 +154,47 @@ impl fmt::Display for ChartSnapshot {
     }
 }
 
+/// Converts a tropical longitude into the requested zodiac mode.
+///
+/// Tropical mode returns the input unchanged. Sidereal mode subtracts the
+/// resolved ayanamsa for the provided instant.
+pub fn sidereal_longitude(
+    longitude: Longitude,
+    instant: Instant,
+    zodiac_mode: &ZodiacMode,
+) -> Result<Longitude, EphemerisError> {
+    match zodiac_mode {
+        ZodiacMode::Tropical => Ok(longitude),
+        ZodiacMode::Sidereal { ayanamsa } => {
+            let offset = sidereal_offset(ayanamsa, instant).ok_or_else(|| {
+                EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    "sidereal conversion requires an ayanamsa with reference offset metadata",
+                )
+            })?;
+            Ok(Longitude::from_degrees(
+                longitude.degrees() - offset.degrees(),
+            ))
+        }
+        _ => Err(EphemerisError::new(
+            EphemerisErrorKind::InvalidRequest,
+            "unsupported zodiac mode",
+        )),
+    }
+}
+
 impl<B: EphemerisBackend> ChartEngine<B> {
     /// Assembles a basic chart snapshot from the backend.
     pub fn chart(&self, request: &ChartRequest) -> Result<ChartSnapshot, EphemerisError> {
-        if request.zodiac_mode != ZodiacMode::Tropical {
-            return Err(EphemerisError::new(
-                EphemerisErrorKind::InvalidRequest,
-                "the chart MVP currently assembles tropical charts only",
-            ));
-        }
+        let metadata = self.backend.metadata();
+        let backend_id = metadata.id.clone();
+        let native_sidereal = matches!(request.zodiac_mode, ZodiacMode::Sidereal { .. })
+            && metadata.capabilities.native_sidereal;
+        let backend_zodiac_mode = if native_sidereal {
+            request.zodiac_mode.clone()
+        } else {
+            ZodiacMode::Tropical
+        };
 
         let placements = request
             .bodies
@@ -172,14 +205,32 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                     instant: request.instant,
                     observer: request.observer.clone(),
                     frame: pleiades_types::CoordinateFrame::Ecliptic,
-                    zodiac_mode: request.zodiac_mode.clone(),
+                    zodiac_mode: backend_zodiac_mode.clone(),
                     apparent: Apparentness::Mean,
                 };
-                let position = self.backend.position(&body_request)?;
-                let sign = position
-                    .ecliptic
-                    .as_ref()
-                    .map(|coords| ZodiacSign::from_longitude(coords.longitude));
+                let mut position = self.backend.position(&body_request)?;
+                let sign = if matches!(request.zodiac_mode, ZodiacMode::Sidereal { .. })
+                    && !native_sidereal
+                {
+                    let instant = position.instant;
+                    let longitude = position.ecliptic.as_mut().map(|coords| &mut coords.longitude);
+                    let longitude = longitude.ok_or_else(|| {
+                        EphemerisError::new(
+                            EphemerisErrorKind::InvalidRequest,
+                            "sidereal chart assembly requires ecliptic coordinates from the backend",
+                        )
+                    })?;
+                    *longitude = sidereal_longitude(*longitude, instant, &request.zodiac_mode)?;
+                    Some(ZodiacSign::from_longitude(*longitude))
+                } else {
+                    position
+                        .ecliptic
+                        .as_ref()
+                        .map(|coords| ZodiacSign::from_longitude(coords.longitude))
+                };
+                if matches!(request.zodiac_mode, ZodiacMode::Sidereal { .. }) {
+                    position.zodiac_mode = request.zodiac_mode.clone();
+                }
                 Ok(BodyPlacement {
                     body: body.clone(),
                     position,
@@ -189,7 +240,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
             .collect::<Result<Vec<_>, EphemerisError>>()?;
 
         Ok(ChartSnapshot {
-            backend_id: self.backend.metadata().id,
+            backend_id,
             instant: request.instant,
             observer: request.observer.clone(),
             zodiac_mode: request.zodiac_mode.clone(),
@@ -268,6 +319,24 @@ mod tests {
     }
 
     #[test]
+    fn sidereal_longitude_applies_ayanamsa() {
+        let instant = Instant::new(
+            pleiades_types::JulianDay::from_days(2451545.0),
+            TimeScale::Tt,
+        );
+        let sidereal = sidereal_longitude(
+            Longitude::from_degrees(5.0),
+            instant,
+            &ZodiacMode::Sidereal {
+                ayanamsa: crate::Ayanamsa::Lahiri,
+            },
+        )
+        .expect("sidereal conversion should work");
+
+        assert_eq!(ZodiacSign::from_longitude(sidereal), ZodiacSign::Pisces);
+    }
+
+    #[test]
     fn chart_snapshot_assigns_signs() {
         let engine = ChartEngine::new(ToyChartBackend);
         let request = ChartRequest::new(Instant::new(
@@ -284,5 +353,28 @@ mod tests {
         let rendered = chart.to_string();
         assert!(rendered.contains("Sun"));
         assert!(rendered.contains("Moon"));
+    }
+
+    #[test]
+    fn chart_snapshot_supports_sidereal_signs() {
+        let engine = ChartEngine::new(ToyChartBackend);
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2451545.0),
+            TimeScale::Tt,
+        ))
+        .with_bodies(vec![CelestialBody::Sun])
+        .with_zodiac_mode(ZodiacMode::Sidereal {
+            ayanamsa: crate::Ayanamsa::Lahiri,
+        });
+
+        let chart = engine
+            .chart(&request)
+            .expect("sidereal chart should render");
+        assert_eq!(chart.zodiac_mode, request.zodiac_mode);
+        assert_eq!(
+            chart.placements[0].position.zodiac_mode,
+            request.zodiac_mode
+        );
+        assert_eq!(chart.placements[0].sign, Some(ZodiacSign::Pisces));
     }
 }

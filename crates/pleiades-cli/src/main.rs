@@ -1,14 +1,15 @@
 //! Command-line entry point for inspection, chart queries, and data tooling.
 //!
-//! The CLI now exposes the compatibility profile and a small tropical chart
-//! report command so contributors can exercise the first end-to-end workflow
-//! without leaving the repository.
+//! The CLI now exposes the compatibility profile and a small chart report
+//! command so contributors can exercise the first end-to-end workflow without
+//! leaving the repository.
 
 #![forbid(unsafe_code)]
 
 use pleiades_core::{
-    default_chart_bodies, CelestialBody, ChartEngine, ChartRequest, CompositeBackend,
-    EphemerisError, Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale,
+    default_chart_bodies, resolve_ayanamsa, Ayanamsa, CelestialBody, ChartEngine, ChartRequest,
+    CompositeBackend, EphemerisError, Instant, JulianDay, Latitude, Longitude, ObserverLocation,
+    TimeScale, ZodiacMode,
 };
 use pleiades_elp::ElpBackend;
 use pleiades_vsop87::Vsop87Backend;
@@ -24,7 +25,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("chart") => render_chart(&args[1..]),
         Some("help") | Some("--help") | Some("-h") => Ok(format!(
-            "{}\n\nCommands:\n  compatibility-profile  Print the current compatibility profile\n  profile                Alias for compatibility-profile\n  chart                  Render a basic tropical chart report\n  help                   Show this help text",
+            "{}\n\nCommands:\n  compatibility-profile  Print the current compatibility profile\n  profile                Alias for compatibility-profile\n  chart                  Render a basic chart report\n  help                   Show this help text",
             banner()
         )),
         _ => Ok(banner().to_string()),
@@ -36,6 +37,7 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
     let mut lat: Option<f64> = None;
     let mut lon: Option<f64> = None;
     let mut bodies: Vec<CelestialBody> = Vec::new();
+    let mut zodiac_mode = ZodiacMode::Tropical;
 
     let mut iter = args.iter().copied();
     while let Some(arg) = iter.next() {
@@ -44,9 +46,17 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
             "--lat" => lat = Some(parse_f64(iter.next(), "--lat")?),
             "--lon" => lon = Some(parse_f64(iter.next(), "--lon")?),
             "--body" => bodies.push(parse_body(iter.next())?),
+            "--ayanamsa" => {
+                let label = iter
+                    .next()
+                    .ok_or_else(|| "missing value for --ayanamsa".to_string())?;
+                zodiac_mode = ZodiacMode::Sidereal {
+                    ayanamsa: parse_ayanamsa(label)?,
+                };
+            }
             "--help" | "-h" => {
                 return Ok(format!(
-                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--body <name> ...]",
+                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--ayanamsa <name>] [--body <name> ...]",
                     banner()
                 ));
             }
@@ -72,7 +82,9 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
 
     let backend = CompositeBackend::new(Vsop87Backend::new(), ElpBackend::new());
     let engine = ChartEngine::new(backend);
-    let mut request = ChartRequest::new(instant).with_bodies(bodies);
+    let mut request = ChartRequest::new(instant)
+        .with_bodies(bodies)
+        .with_zodiac_mode(zodiac_mode);
     if let Some(observer) = observer {
         request = request.with_observer(observer);
     }
@@ -105,6 +117,10 @@ fn parse_body(value: Option<&str>) -> Result<CelestialBody, String> {
         "pluto" => Ok(CelestialBody::Pluto),
         other => Err(format!("unsupported body name: {other}")),
     }
+}
+
+fn parse_ayanamsa(value: &str) -> Result<Ayanamsa, String> {
+    resolve_ayanamsa(value).ok_or_else(|| format!("unsupported ayanamsa name: {value}"))
 }
 
 fn render_error(error: EphemerisError) -> String {
@@ -148,5 +164,14 @@ mod tests {
         assert!(rendered.contains("Backend:"));
         assert!(rendered.contains("Sun"));
         assert!(rendered.contains("Moon"));
+    }
+
+    #[test]
+    fn chart_command_accepts_sidereal_ayanamsa() {
+        let rendered =
+            render_chart(&["--jd", "2451545.0", "--ayanamsa", "Lahiri", "--body", "Sun"])
+                .expect("sidereal chart should render");
+        assert!(rendered.contains("Sidereal"));
+        assert!(rendered.contains("Lahiri"));
     }
 }

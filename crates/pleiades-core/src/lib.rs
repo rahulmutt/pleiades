@@ -67,7 +67,9 @@
 mod chart;
 mod compatibility;
 
-pub use chart::{default_chart_bodies, BodyPlacement, ChartRequest, ChartSnapshot};
+pub use chart::{
+    default_chart_bodies, sidereal_longitude, BodyPlacement, ChartRequest, ChartSnapshot,
+};
 pub use compatibility::{current_compatibility_profile, CompatibilityProfile};
 pub use pleiades_ayanamsa::{
     baseline_ayanamsas, descriptor as ayanamsa_descriptor, resolve_ayanamsa, AyanamsaDescriptor,
