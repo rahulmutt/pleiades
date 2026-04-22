@@ -91,6 +91,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] The equal-house interoperability notes now recognize `Wang` as an alias for `Equal`, and the profile/test surface now renders that mapping explicitly so downstream equal-house consumers can round-trip the label without ambiguity.
 - [x] The compatibility profile now includes an ayanamsa sidereal-metadata coverage summary, so release consumers can see which built-ins still lack epoch/offset metadata for chart-layer sidereal conversion at a glance.
 - [x] Additional historical sidereal metadata has been filled in for Hipparchus, JN Bhasin, Babylonian (Eta Piscium), Babylonian (Aldebaran), and the Galactic Equator entries, reducing the remaining release-line ayanamsa metadata gaps called out by the profile.
+- [x] Babylonian (Kugler 1) and Babylonian (Kugler 2) now carry explicit zero-point metadata too, extending the historical sidereal metadata batch and shrinking the compatibility-profile gap list a little further.
 
 ## Exit criteria
 

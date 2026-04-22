@@ -273,17 +273,17 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Ayanamsa::BabylonianKugler1,
         "Babylonian (Kugler 1)",
         &["Babylonian Kugler 1", "Babylonian 1"],
-        "Babylonian sidereal mode associated with Kugler's first reconstruction.",
-        None,
-        None,
+        "Babylonian sidereal mode associated with Kugler's first reconstruction, with the Swiss Ephemeris zero point at JD 1833923.577692 (+0309/01/05 01:51:52.62 UT).",
+        Some(JulianDay::from_days(1_833_923.577_692)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianKugler2,
         "Babylonian (Kugler 2)",
         &["Babylonian Kugler 2", "Babylonian 2"],
-        "Babylonian sidereal mode associated with Kugler's second reconstruction.",
-        None,
-        None,
+        "Babylonian sidereal mode associated with Kugler's second reconstruction, with the Swiss Ephemeris zero point at JD 1797039.206820 (+0208/01/10 16:57:49.23 UT).",
+        Some(JulianDay::from_days(1_797_039.206_820)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianKugler3,
@@ -745,17 +745,17 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
         Ayanamsa::BabylonianKugler1,
         "Babylonian (Kugler 1)",
         &["Babylonian Kugler 1", "Babylonian 1"],
-        "Babylonian sidereal mode associated with Kugler's first reconstruction.",
-        None,
-        None,
+        "Babylonian sidereal mode associated with Kugler's first reconstruction, with the Swiss Ephemeris zero point at JD 1833923.577692 (+0309/01/05 01:51:52.62 UT).",
+        Some(JulianDay::from_days(1_833_923.577_692)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianKugler2,
         "Babylonian (Kugler 2)",
         &["Babylonian Kugler 2", "Babylonian 2"],
-        "Babylonian sidereal mode associated with Kugler's second reconstruction.",
-        None,
-        None,
+        "Babylonian sidereal mode associated with Kugler's second reconstruction, with the Swiss Ephemeris zero point at JD 1797039.206820 (+0208/01/10 16:57:49.23 UT).",
+        Some(JulianDay::from_days(1_797_039.206_820)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianKugler3,
@@ -1199,6 +1199,10 @@ mod tests {
             Some(Ayanamsa::BabylonianKugler1)
         );
         assert_eq!(
+            resolve_ayanamsa("Babylonian 2"),
+            Some(Ayanamsa::BabylonianKugler2)
+        );
+        assert_eq!(
             resolve_ayanamsa("15 Tau"),
             Some(Ayanamsa::BabylonianAldebaran)
         );
@@ -1360,6 +1364,16 @@ mod tests {
             jn_bhasin.offset_degrees,
             Some(Angle::from_degrees(0.013_968_911_416_666_667))
         );
+
+        let kugler1 =
+            descriptor(&Ayanamsa::BabylonianKugler1).expect("Babylonian Kugler 1 descriptor");
+        assert_eq!(kugler1.epoch, Some(JulianDay::from_days(1_833_923.577_692)));
+        assert_eq!(kugler1.offset_degrees, Some(Angle::from_degrees(0.0)));
+
+        let kugler2 =
+            descriptor(&Ayanamsa::BabylonianKugler2).expect("Babylonian Kugler 2 descriptor");
+        assert_eq!(kugler2.epoch, Some(JulianDay::from_days(1_797_039.206_820)));
+        assert_eq!(kugler2.offset_degrees, Some(Angle::from_degrees(0.0)));
 
         let eta_piscium =
             descriptor(&Ayanamsa::BabylonianEtaPiscium).expect("Babylonian Eta Piscium descriptor");
