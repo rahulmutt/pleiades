@@ -380,9 +380,9 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Ayanamsa::TruePushya,
         "True Pushya",
         &["Pushya", "True Pushya ayanamsa"],
-        "True-nakshatra Pushya reference mode exposed by Swiss Ephemeris.",
-        None,
-        None,
+        "True-nakshatra Pushya reference mode exposed by Swiss Ephemeris and anchored to the published zero date.",
+        Some(JulianDay::from_days(1_855_769.248_315)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::Udayagiri,
@@ -396,9 +396,9 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Ayanamsa::DjwhalKhul,
         "Djwhal Khul",
         &["Djwhal", "Djwhal Khul ayanamsa"],
-        "Djwhal Khul sidereal mode.",
-        None,
-        None,
+        "Djwhal Khul sidereal mode, anchored to the published zero date used by the Swiss Ephemeris family.",
+        Some(JulianDay::from_days(1_706_703.948_006)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::JnBhasin,
@@ -852,9 +852,9 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
         Ayanamsa::TruePushya,
         "True Pushya",
         &["Pushya", "True Pushya ayanamsa"],
-        "True-nakshatra Pushya reference mode exposed by Swiss Ephemeris.",
-        None,
-        None,
+        "True-nakshatra Pushya reference mode exposed by Swiss Ephemeris and anchored to the published zero date.",
+        Some(JulianDay::from_days(1_855_769.248_315)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::Udayagiri,
@@ -868,9 +868,9 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
         Ayanamsa::DjwhalKhul,
         "Djwhal Khul",
         &["Djwhal", "Djwhal Khul ayanamsa"],
-        "Djwhal Khul sidereal mode.",
-        None,
-        None,
+        "Djwhal Khul sidereal mode, anchored to the published zero date used by the Swiss Ephemeris family.",
+        Some(JulianDay::from_days(1_706_703.948_006)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::JnBhasin,
@@ -1320,6 +1320,17 @@ mod tests {
         assert_eq!(valens.epoch, Some(JulianDay::from_days(1_775_845.5)));
         assert_eq!(valens.offset_degrees, Some(Angle::from_degrees(-2.942_2)));
 
+        let true_pushya = descriptor(&Ayanamsa::TruePushya).expect("True Pushya descriptor");
+        assert_eq!(
+            true_pushya.epoch,
+            Some(JulianDay::from_days(1_855_769.248_315))
+        );
+        assert_eq!(true_pushya.offset_degrees, Some(Angle::from_degrees(0.0)));
+
+        let djwhal = descriptor(&Ayanamsa::DjwhalKhul).expect("Djwhal Khul descriptor");
+        assert_eq!(djwhal.epoch, Some(JulianDay::from_days(1_706_703.948_006)));
+        assert_eq!(djwhal.offset_degrees, Some(Angle::from_degrees(0.0)));
+
         let instant = Instant::new(
             JulianDay::from_days(2_451_545.0),
             pleiades_types::TimeScale::Tt,
@@ -1332,6 +1343,26 @@ mod tests {
             .expect("Galactic Equator offset should exist")
             .degrees()
             .is_finite());
+        assert_eq!(
+            sidereal_offset(
+                &Ayanamsa::TruePushya,
+                Instant::new(
+                    JulianDay::from_days(1_855_769.248_315),
+                    pleiades_types::TimeScale::Tt
+                ),
+            ),
+            Some(Angle::from_degrees(0.0))
+        );
+        assert_eq!(
+            sidereal_offset(
+                &Ayanamsa::DjwhalKhul,
+                Instant::new(
+                    JulianDay::from_days(1_706_703.948_006),
+                    pleiades_types::TimeScale::Tt
+                ),
+            ),
+            Some(Angle::from_degrees(0.0))
+        );
         assert!(sidereal_offset(&Ayanamsa::ValensMoon, instant)
             .expect("Valens Moon offset should exist")
             .degrees()

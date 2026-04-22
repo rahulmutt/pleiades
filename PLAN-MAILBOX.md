@@ -1,5 +1,16 @@
 # PLAN-MAILBOX
 
+## 2026-04-22 — True Pushya and Djwhal Khul metadata backfill added
+
+Implemented a small Stage 6 metadata-backfill slice:
+
+- `pleiades-ayanamsa` now carries explicit zero-point epoch/offset metadata for `Ayanamsa::TruePushya` and `Ayanamsa::DjwhalKhul`, so the chart-layer sidereal helper can derive offsets for those published reference modes instead of treating them as unresolved catalog entries
+- `pleiades-core` now reflects the narrower ayanamsa-metadata gap in the compatibility profile, and the Stage 6 progress notes should mention the new metadata-backed exceptions instead of the earlier Udayagiri placeholder
+- the new descriptor coverage is regression-tested alongside the existing Huber, Galactic Equator, and Valens Moon metadata checks
+
+Remaining Stage 6 work: continue filling out any remaining ayanamsa metadata and catalog breadth while keeping the release profile synchronized with the catalog.
+
+
 ## 2026-04-22 — house-scoped placement helper added to ChartSnapshot
 
 Implemented a small Stage 6 optional-helper slice:
