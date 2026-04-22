@@ -50,7 +50,8 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] `pleiades-validate bundle-release --out DIR` now writes the compatibility profile, validation report, and a manifest for a reproducible release bundle.
 - [x] `mise run release-smoke` now exercises the release bundle command locally and in CI so release artifacts stay under automation.
 - [x] The first release-specific house-system additions are now implemented: Equal (MC), Equal (1=Aries), Vehlow Equal, and Sripati are catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
-- [ ] Remaining catalog breadth is still the next planned slice.
+- [x] The first release-specific ayanamsa additions are now implemented: Lahiri (ICRC), Lahiri (1940), Usha Shashi, Suryasiddhanta (499 CE), Aryabhata (499 CE), and Sassanian are catalogued, resolved, rendered in the compatibility profile, and exposed through the shared ayanamsa resolution path.
+- [ ] Remaining house-system breadth is still the next planned slice.
 
 ## Exit criteria
 

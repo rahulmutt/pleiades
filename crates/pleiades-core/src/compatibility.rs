@@ -9,7 +9,9 @@
 
 use core::fmt;
 
-use pleiades_ayanamsa::{baseline_ayanamsas, AyanamsaDescriptor};
+use pleiades_ayanamsa::{
+    baseline_ayanamsas, built_in_ayanamsas, release_ayanamsas, AyanamsaDescriptor,
+};
 use pleiades_houses::{
     baseline_house_systems, built_in_house_systems, release_house_systems, HouseSystemDescriptor,
 };
@@ -54,7 +56,7 @@ impl CompatibilityProfile {
 pub const fn current_compatibility_profile() -> CompatibilityProfile {
     CompatibilityProfile {
         profile_id: "pleiades-compatibility-profile/0.4.0",
-        summary: "Stage 6 release profile: the baseline catalogs remain published as a routine release artifact while the target Swiss-Ephemeris-class compatibility catalog stays explicit, including the first release-specific house-system additions and fixed zodiac-sign house coverage.",
+        summary: "Stage 6 release profile: the baseline catalogs remain published as a routine release artifact while the target Swiss-Ephemeris-class compatibility catalog stays explicit, including the first release-specific house-system additions, historical ayanamsa anchor variants, and fixed zodiac-sign house coverage.",
         target_house_scope: &[
             "Target house scope: the full Swiss-Ephemeris-class house-system catalog remains the long-term compatibility goal.",
             "Baseline milestone: Placidus, Koch, Porphyry, Regiomontanus, Campanus, Equal, Whole Sign, Alcabitius, Meridian/Axial variants, Topocentric, and Morinus are shipped today.",
@@ -66,11 +68,12 @@ pub const fn current_compatibility_profile() -> CompatibilityProfile {
         house_systems: built_in_house_systems(),
         baseline_house_systems: baseline_house_systems(),
         release_house_systems: release_house_systems(),
-        ayanamsas: baseline_ayanamsas(),
+        ayanamsas: built_in_ayanamsas(),
         baseline_ayanamsas: baseline_ayanamsas(),
-        release_ayanamsas: &[],
+        release_ayanamsas: release_ayanamsas(),
         release_notes: &[
             "Release-specific house-system additions now include Equal (MC), Equal (1=Aries), Vehlow Equal, and Sripati.",
+            "Release-specific ayanamsa additions now include Lahiri (ICRC), Lahiri (1940), Usha Shashi, Suryasiddhanta (499 CE), Aryabhata (499 CE), and Sassanian.",
             "The compatibility profile is intended to be archived with release validation outputs and release notes.",
         ],
         known_gaps: &[
@@ -198,6 +201,14 @@ mod tests {
             .iter()
             .any(|entry| entry.canonical_name == "Lahiri"));
         assert!(profile
+            .release_ayanamsas
+            .iter()
+            .any(|entry| entry.canonical_name == "Lahiri (ICRC)"));
+        assert!(profile
+            .release_ayanamsas
+            .iter()
+            .any(|entry| entry.canonical_name == "Sassanian"));
+        assert!(profile
             .target_house_scope
             .iter()
             .any(|line| line.contains("Swiss-Ephemeris-class house-system catalog")));
@@ -226,6 +237,8 @@ mod tests {
         assert!(rendered.contains("Equal (1=Aries)"));
         assert!(rendered.contains("Vehlow Equal"));
         assert!(rendered.contains("Sripati"));
+        assert!(rendered.contains("Lahiri (ICRC)"));
+        assert!(rendered.contains("Sassanian"));
         assert!(rendered.contains("Known gaps:"));
         assert!(rendered.contains("Placidus"));
         assert!(rendered.contains("Lahiri"));

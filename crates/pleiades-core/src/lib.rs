@@ -73,7 +73,8 @@ pub use chart::{
 };
 pub use compatibility::{current_compatibility_profile, CompatibilityProfile};
 pub use pleiades_ayanamsa::{
-    baseline_ayanamsas, descriptor as ayanamsa_descriptor, resolve_ayanamsa, AyanamsaDescriptor,
+    baseline_ayanamsas, built_in_ayanamsas, descriptor as ayanamsa_descriptor, release_ayanamsas,
+    resolve_ayanamsa, AyanamsaDescriptor,
 };
 pub use pleiades_backend::{
     AccuracyClass, Apparentness, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,

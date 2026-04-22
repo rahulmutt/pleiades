@@ -496,6 +496,18 @@ pub enum Ayanamsa {
     FaganBradley,
     /// True Chitra.
     TrueChitra,
+    /// The 1956 Indian Astronomical Ephemeris / ICRC Lahiri definition.
+    LahiriIcrc,
+    /// Lahiri's 1940 zero-date variant.
+    Lahiri1940,
+    /// Usha/Shashi, anchored to the Revati tradition.
+    UshaShashi,
+    /// Suryasiddhanta-equinox variant anchored in 499 CE.
+    Suryasiddhanta499,
+    /// Aryabhata-equinox variant anchored in 499 CE.
+    Aryabhata499,
+    /// Sassanian zero-point variant anchored in 564 CE.
+    Sassanian,
     /// A custom ayanamsa formula or offset table.
     Custom(CustomAyanamsa),
 }

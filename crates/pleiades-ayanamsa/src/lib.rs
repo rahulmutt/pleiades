@@ -3,7 +3,9 @@
 //! This crate currently focuses on the catalog layer: it enumerates the
 //! baseline built-in ayanamsas, their common aliases, and notes about their
 //! intended interoperability role. It also carries the baseline epoch/offset
-//! metadata used by the chart-layer sidereal conversion helper.
+//! metadata used by the chart-layer sidereal conversion helper, plus a first
+//! stage-6 batch of historical anchor-point variants so the release profile can
+//! distinguish baseline coverage from broader compatibility breadth.
 //!
 //! # Examples
 //!
@@ -117,21 +119,173 @@ const BASELINE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     ),
 ];
 
+const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
+    AyanamsaDescriptor::new(
+        Ayanamsa::LahiriIcrc,
+        "Lahiri (ICRC)",
+        &["ICRC Lahiri", "Lahiri ICRC"],
+        "The 1956 Indian Calendar Reform Committee standard with a round 23°15′ reference value.",
+        Some(JulianDay::from_days(2_435_553.5)),
+        Some(Angle::from_degrees(23.25)),
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::Lahiri1940,
+        "Lahiri (1940)",
+        &["Lahiri original", "Panchanga Darpan Lahiri"],
+        "Lahiri's earlier zero-date variant published in Panchanga Darpan.",
+        Some(JulianDay::from_days(2_415_020.0)),
+        Some(Angle::from_degrees(22.445_972_222_222_223)),
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::UshaShashi,
+        "Usha Shashi",
+        &["Ushashashi", "Usha-Shashi", "Revati"],
+        "Revati-bound zero-point variant used in the Greek-Arabic-Hindu tradition.",
+        Some(JulianDay::from_days(2_415_020.5)),
+        Some(Angle::from_degrees(18.660_961_111_111_11)),
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::Suryasiddhanta499,
+        "Suryasiddhanta (499 CE)",
+        &["Surya Siddhanta", "Suryasiddhanta"],
+        "Suryasiddhanta zero-point variant anchored to the 499 CE equinox.",
+        Some(JulianDay::from_days(1_903_396.812_865_393_5)),
+        Some(Angle::from_degrees(0.0)),
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::Aryabhata499,
+        "Aryabhata (499 CE)",
+        &["Aryabhata", "Aryabhatan Kaliyuga"],
+        "Aryabhata zero-point variant anchored to the 499 CE dawn tradition.",
+        Some(JulianDay::from_days(1_903_396.789_532_060_3)),
+        Some(Angle::from_degrees(0.0)),
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::Sassanian,
+        "Sassanian",
+        &["Zij al-Shah"],
+        "Sassanian zero-point variant anchored to the 564 CE table-reform epoch.",
+        Some(JulianDay::from_days(1_927_135.874_779_3)),
+        Some(Angle::from_degrees(0.0)),
+    ),
+];
+
+static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 11] = [
+    AyanamsaDescriptor::new(
+        Ayanamsa::Lahiri,
+        "Lahiri",
+        &["Chitrapaksha"],
+        "Default Indian sidereal standard in many astrology workflows.",
+        Some(JulianDay::from_days(2_435_553.5)),
+        Some(Angle::from_degrees(23.245_524_743)),
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::Raman,
+        "Raman",
+        &["B. V. Raman"],
+        "Popular named sidereal offset used in classical astrology software.",
+        Some(JulianDay::from_days(2_415_020.0)),
+        Some(Angle::from_degrees(21.014_44)),
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::Krishnamurti,
+        "Krishnamurti",
+        &["KP"],
+        "Krishnamurti Paddhati ayanamsa.",
+        Some(JulianDay::from_days(2_415_020.0)),
+        Some(Angle::from_degrees(22.363_889)),
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::FaganBradley,
+        "Fagan/Bradley",
+        &["Fagan Bradley", "Fagan-Bradley"],
+        "Western sidereal reference used by several astrology packages.",
+        Some(JulianDay::from_days(2_433_282.423_46)),
+        Some(Angle::from_degrees(24.042_044_444)),
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::TrueChitra,
+        "True Chitra",
+        &["Chitra"],
+        "True Chitra / Chitra-based sidereal variant.",
+        Some(JulianDay::from_days(2_435_553.5)),
+        Some(Angle::from_degrees(23.245_524_743)),
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::LahiriIcrc,
+        "Lahiri (ICRC)",
+        &["ICRC Lahiri", "Lahiri ICRC"],
+        "The 1956 Indian Calendar Reform Committee standard with a round 23°15′ reference value.",
+        Some(JulianDay::from_days(2_435_553.5)),
+        Some(Angle::from_degrees(23.25)),
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::Lahiri1940,
+        "Lahiri (1940)",
+        &["Lahiri original", "Panchanga Darpan Lahiri"],
+        "Lahiri's earlier zero-date variant published in Panchanga Darpan.",
+        Some(JulianDay::from_days(2_415_020.0)),
+        Some(Angle::from_degrees(22.445_972_222_222_223)),
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::UshaShashi,
+        "Usha Shashi",
+        &["Ushashashi", "Usha-Shashi", "Revati"],
+        "Revati-bound zero-point variant used in the Greek-Arabic-Hindu tradition.",
+        Some(JulianDay::from_days(2_415_020.5)),
+        Some(Angle::from_degrees(18.660_961_111_111_11)),
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::Suryasiddhanta499,
+        "Suryasiddhanta (499 CE)",
+        &["Surya Siddhanta", "Suryasiddhanta"],
+        "Suryasiddhanta zero-point variant anchored to the 499 CE equinox.",
+        Some(JulianDay::from_days(1_903_396.812_865_393_5)),
+        Some(Angle::from_degrees(0.0)),
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::Aryabhata499,
+        "Aryabhata (499 CE)",
+        &["Aryabhata", "Aryabhatan Kaliyuga"],
+        "Aryabhata zero-point variant anchored to the 499 CE dawn tradition.",
+        Some(JulianDay::from_days(1_903_396.789_532_060_3)),
+        Some(Angle::from_degrees(0.0)),
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::Sassanian,
+        "Sassanian",
+        &["Zij al-Shah"],
+        "Sassanian zero-point variant anchored to the 564 CE table-reform epoch.",
+        Some(JulianDay::from_days(1_927_135.874_779_3)),
+        Some(Angle::from_degrees(0.0)),
+    ),
+];
+
 /// Returns the baseline built-in ayanamsa catalog.
 pub const fn baseline_ayanamsas() -> &'static [AyanamsaDescriptor] {
     BASELINE_AYANAMSAS
 }
 
+/// Returns the release-specific ayanamsa additions beyond the baseline milestone.
+pub const fn release_ayanamsas() -> &'static [AyanamsaDescriptor] {
+    RELEASE_AYANAMSAS
+}
+
+/// Returns the full built-in ayanamsa catalog shipped by this release line.
+pub const fn built_in_ayanamsas() -> &'static [AyanamsaDescriptor] {
+    &BUILT_IN_AYANAMSAS
+}
+
 /// Finds the descriptor for a typed ayanamsa selection.
 pub fn descriptor(ayanamsa: &Ayanamsa) -> Option<&'static AyanamsaDescriptor> {
-    BASELINE_AYANAMSAS
+    built_in_ayanamsas()
         .iter()
         .find(|entry| entry.ayanamsa == *ayanamsa)
 }
 
 /// Resolves an ayanamsa label to a built-in type.
 pub fn resolve_ayanamsa(label: &str) -> Option<Ayanamsa> {
-    BASELINE_AYANAMSAS
+    built_in_ayanamsas()
         .iter()
         .find(|entry| entry.matches_label(label))
         .map(|entry| entry.ayanamsa.clone())
@@ -196,6 +350,33 @@ mod tests {
             Some(Ayanamsa::FaganBradley)
         );
         assert_eq!(resolve_ayanamsa("chitrapaksha"), Some(Ayanamsa::Lahiri));
+        assert_eq!(resolve_ayanamsa("ICRC Lahiri"), Some(Ayanamsa::LahiriIcrc));
+        assert_eq!(
+            resolve_ayanamsa("Panchanga Darpan Lahiri"),
+            Some(Ayanamsa::Lahiri1940)
+        );
+        assert_eq!(resolve_ayanamsa("Revati"), Some(Ayanamsa::UshaShashi));
+        assert_eq!(resolve_ayanamsa("Aryabhata"), Some(Ayanamsa::Aryabhata499));
+        assert_eq!(resolve_ayanamsa("Zij al-Shah"), Some(Ayanamsa::Sassanian));
+    }
+
+    #[test]
+    fn release_catalog_includes_stage_six_ayanamsa_variants() {
+        let names: Vec<_> = release_ayanamsas()
+            .iter()
+            .map(|entry| entry.canonical_name)
+            .collect();
+
+        for expected in [
+            "Lahiri (ICRC)",
+            "Lahiri (1940)",
+            "Usha Shashi",
+            "Suryasiddhanta (499 CE)",
+            "Aryabhata (499 CE)",
+            "Sassanian",
+        ] {
+            assert!(names.contains(&expected), "missing {expected}");
+        }
     }
 
     #[test]

@@ -155,3 +155,13 @@ Implemented the next Stage 6 catalog-breadth slice:
 - the compatibility profile, CLI, and validation output now reflect the additional release-specific house-system coverage
 
 Remaining Stage 6 work: broader catalog breadth, API posture review, and any remaining release-hardening polish that depends on additional coverage.
+
+## 2026-04-22 — historical ayanamsa breadth expanded
+
+Implemented the next Stage 6 catalog-breadth slice:
+
+- `pleiades-types` gained additional ayanamsa variants for Lahiri (ICRC), Lahiri (1940), Usha Shashi, Suryasiddhanta (499 CE), Aryabhata (499 CE), and Sassanian
+- `pleiades-ayanamsa` now catalogs, resolves, and exposes those historical anchor-point variants alongside the baseline milestone
+- `pleiades-core` now surfaces the expanded ayanamsa catalog in the release compatibility profile, and the CLI/validation paths inherit the broader resolution set automatically
+
+Remaining Stage 6 work: broader house-system breadth, API posture review, and any remaining release-hardening polish that depends on additional coverage.
