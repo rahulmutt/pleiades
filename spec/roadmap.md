@@ -38,7 +38,7 @@
 
 - composite backend routing
 - more asteroid coverage
-- complete the remaining house-system and ayanamsa compatibility catalogs required for stable project conformance
-- publish and maintain the versioned compatibility profile for built-in systems and aliases
+- complete the remaining house-system and ayanamsa catalog entries beyond the baseline compatibility milestone
+- publish and maintain the versioned compatibility profile for built-in systems, aliases, and milestone coverage
 - topocentric refinements
 - optional higher-level chart utilities

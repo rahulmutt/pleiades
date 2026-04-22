@@ -48,12 +48,11 @@ The target end state is support for the full house-system catalog targeted by as
 - Equal
 - Whole Sign
 - Alcabitius
-- Topocentric
+- Meridian and documented Axial variants
+- Topocentric (Polich-Page)
 - Morinus
-- Meridian when represented as a distinct system
-- Vehlow Equal may be included as an extension
 
-Each implemented system must be documented for formula, assumptions, and failure modes. The API must remain open to the rest of the targeted house-system ecosystem without redesign or breakage.
+Each implemented system must be documented for formula, assumptions, aliases, and failure modes. The API must remain open to the rest of the targeted house-system ecosystem without redesign or breakage.
 
 The project must also publish a versioned compatibility profile that enumerates the exact built-in house systems, aliases, and naming conventions exposed by each release so consumers can reason about interoperability with existing astrology software.
 
@@ -69,6 +68,8 @@ Ayanamsa support must include:
 - custom ayanamsa registration
 - deterministic conversion from tropical longitude to sidereal longitude
 - a versioned compatibility profile that enumerates built-ins, aliases, and naming differences versus other astrology software
+
+The first compatibility milestone must include Lahiri, Raman, Krishnamurti, Fagan/Bradley, True Chitra, and any documented near-equivalent variants exposed either as distinct built-ins or explicit aliases.
 
 ## Derived Quantities
 

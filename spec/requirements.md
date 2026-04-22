@@ -28,7 +28,7 @@ The system must provide a house computation module supporting a complete and ext
 
 Stable project conformance requires support for the full set of house systems needed for Swiss-Ephemeris-class astrology compatibility, not merely an initial subset. Implementation may be phased during development, but the architecture and public API must not assume that only a small fixed subset will ever exist.
 
-At minimum, the compatibility target must cover the mainstream systems expected in established astrology software, including:
+The baseline built-in catalog for the first compatibility milestone must include at minimum:
 
 - Placidus
 - Koch
@@ -38,48 +38,36 @@ At minimum, the compatibility target must cover the mainstream systems expected 
 - Equal
 - Whole Sign
 - Alcabitius
-- Meridian / Axial variants where documented
-- Topocentric / Polich-Page
-- Morinus
-- any additional distinct systems required to achieve the project's declared compatibility target
-
-The initial implementation milestone must include at minimum:
-
-- Placidus
-- Koch
-- Porphyry
-- Regiomontanus
-- Campanus
-- Equal
-- Whole Sign
-- Alcabitius
-- Meridian / Axial variants where documented
-- Topocentric / Polich-Page
+- Meridian and documented Axial variants
+- Topocentric (Polich-Page)
 - Morinus
 
-Where a system has latitude/pathology constraints, those constraints must be explicit in the API.
+Stable conformance additionally requires any further distinct house systems needed to meet the project's published compatibility target.
+
+Where a system has latitude/pathology constraints, those constraints must be explicit in the API and in the compatibility profile.
 
 ### FR-4 Ayanamsa
 The system must support a pluggable, extensible ayanamsa catalog.
 
 Stable project conformance requires support for the full set of ayanamsas needed for Swiss-Ephemeris-class astrology compatibility, not merely an initial subset. Implementation may be phased during development, but the API must allow named built-ins and user-defined variants without redesign.
 
-At minimum, the compatibility target must cover the mainstream named ayanamsas expected in established astrology software, plus any additional built-ins required for the declared compatibility target.
-
-The initial implementation milestone must include at minimum:
+The baseline built-in catalog for the first compatibility milestone must include at minimum:
 
 - Lahiri
 - Raman
 - Krishnamurti
 - Fagan/Bradley
-- True Chitra or equivalent documented variants
+- True Chitra and any documented near-equivalent variants exposed as distinct built-ins or aliases
 - custom user-defined ayanamsa formulas or offset tables
+
+Stable conformance additionally requires any further named built-ins needed to meet the project's published compatibility target.
 
 ### FR-4a Compatibility Profile Publication
 The project must publish a versioned compatibility profile that enumerates the exact built-in house systems and ayanamsas provided by each release. That profile must clearly distinguish:
 
 - the stable compatibility target
-- the subset implemented in the current milestone
+- the baseline compatibility milestone implemented so far
+- any additional release-specific coverage beyond the baseline milestone
 - any aliases or naming differences versus other astrology software
 
 ### FR-5 Backend Abstraction

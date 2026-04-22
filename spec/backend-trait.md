@@ -32,7 +32,7 @@ pub trait EphemerisBackend: Send + Sync {
 }
 ```
 
-The exact API may evolve, but the semantics above are normative.
+The exact API may evolve, but the semantics above are normative: one-request/one-result querying is mandatory, and batch querying must be supported either as an all-or-error vector API like the sketch above or as a documented per-item-result variant with equivalent capability.
 
 ## Request Model
 
