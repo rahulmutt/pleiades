@@ -246,4 +246,12 @@ Implemented the next Stage 6 catalog-breadth slice:
 - `pleiades-ayanamsa` now catalogs, resolves, and exposes those Swiss Ephemeris reference-frame and true-nakshatra modes with compatibility metadata
 - `pleiades-core`, the compatibility profile, the CLI, and validation output now surface the broadened ayanamsa catalog and version bump
 
-Remaining Stage 6 work: the rest of the Swiss Ephemeris ayanamsa breadth, plus any additional release-hardening polish that depends on further catalog coverage.
+## 2026-04-22 — DeLuce and Yukteshwar added
+
+Implemented the next Stage 6 catalog-breadth slice:
+
+- `pleiades-types` now includes `Ayanamsa::DeLuce` and `Ayanamsa::Yukteshwar`
+- `pleiades-ayanamsa` catalogs, resolves, and documents DeLuce and Yukteshwar with aliases for De Luce / Yukteswar / Sri Yukteswar spellings
+- `pleiades-core` publishes the new built-ins in the compatibility profile, and the release profile identifier was bumped to `0.6.3`
+
+Remaining Stage 6 work: keep catalog breadth and release notes aligned as additional Swiss Ephemeris ayanamsa modes are scheduled.

@@ -536,6 +536,10 @@ pub enum Ayanamsa {
     Aryabhata499,
     /// Sassanian zero-point variant anchored in 564 CE.
     Sassanian,
+    /// DeLuce ayanamsa.
+    DeLuce,
+    /// Yukteshwar ayanamsa.
+    Yukteshwar,
     /// A custom ayanamsa formula or offset table.
     Custom(CustomAyanamsa),
 }

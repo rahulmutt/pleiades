@@ -208,9 +208,25 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(1_927_135.874_779_3)),
         Some(Angle::from_degrees(0.0)),
     ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::DeLuce,
+        "DeLuce",
+        &["De Luce", "DeLuce ayanamsa"],
+        "Swiss Ephemeris DeLuce sidereal mode, documented by Astrodienst as a standard built-in ayanamsa option.",
+        Some(JulianDay::from_days(2_451_545.0)),
+        Some(Angle::from_degrees(23.245_522_556)),
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::Yukteshwar,
+        "Yukteshwar",
+        &["Yukteswar", "Sri Yukteswar", "Sri Yukteshwar"],
+        "Swiss Ephemeris Yukteshwar sidereal mode, documented as a built-in ayanamsa option with a Sri Yukteswar-compatible naming family.",
+        Some(JulianDay::from_days(2_451_545.0)),
+        Some(Angle::from_degrees(22.628_888_9)),
+    ),
 ];
 
-static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 16] = [
+static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 18] = [
     AyanamsaDescriptor::new(
         Ayanamsa::Lahiri,
         "Lahiri",
@@ -339,6 +355,22 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 16] = [
         Some(JulianDay::from_days(1_927_135.874_779_3)),
         Some(Angle::from_degrees(0.0)),
     ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::DeLuce,
+        "DeLuce",
+        &["De Luce", "DeLuce ayanamsa"],
+        "Swiss Ephemeris DeLuce sidereal mode, documented by Astrodienst as a standard built-in ayanamsa option.",
+        Some(JulianDay::from_days(2_451_545.0)),
+        Some(Angle::from_degrees(23.245_522_556)),
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::Yukteshwar,
+        "Yukteshwar",
+        &["Yukteswar", "Sri Yukteswar", "Sri Yukteshwar"],
+        "Swiss Ephemeris Yukteshwar sidereal mode, documented as a built-in ayanamsa option with a Sri Yukteswar-compatible naming family.",
+        Some(JulianDay::from_days(2_451_545.0)),
+        Some(Angle::from_degrees(22.628_888_9)),
+    ),
 ];
 
 /// Returns the baseline built-in ayanamsa catalog.
@@ -443,6 +475,12 @@ mod tests {
         assert_eq!(resolve_ayanamsa("Revati"), Some(Ayanamsa::UshaShashi));
         assert_eq!(resolve_ayanamsa("Aryabhata"), Some(Ayanamsa::Aryabhata499));
         assert_eq!(resolve_ayanamsa("Zij al-Shah"), Some(Ayanamsa::Sassanian));
+        assert_eq!(resolve_ayanamsa("De Luce"), Some(Ayanamsa::DeLuce));
+        assert_eq!(resolve_ayanamsa("Yukteswar"), Some(Ayanamsa::Yukteshwar));
+        assert_eq!(
+            resolve_ayanamsa("Sri Yukteshwar"),
+            Some(Ayanamsa::Yukteshwar)
+        );
     }
 
     #[test]
@@ -464,6 +502,8 @@ mod tests {
             "Suryasiddhanta (499 CE)",
             "Aryabhata (499 CE)",
             "Sassanian",
+            "DeLuce",
+            "Yukteshwar",
         ] {
             assert!(names.contains(&expected), "missing {expected}");
         }
