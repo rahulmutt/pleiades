@@ -84,7 +84,7 @@ pub use pleiades_ayanamsa::{
 pub use pleiades_backend::{
     AccuracyClass, Apparentness, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
     BackendProvenance, CompositeBackend, EphemerisBackend, EphemerisError, EphemerisErrorKind,
-    EphemerisRequest, EphemerisResult, QualityAnnotation,
+    EphemerisRequest, EphemerisResult, QualityAnnotation, RoutingBackend,
 };
 pub use pleiades_houses::{
     baseline_house_systems, calculate_houses, descriptor as house_system_descriptor,

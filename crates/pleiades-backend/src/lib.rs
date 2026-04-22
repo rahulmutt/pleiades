@@ -462,6 +462,166 @@ impl<A: EphemerisBackend, B: EphemerisBackend> EphemerisBackend for CompositeBac
     }
 }
 
+/// A routing backend that can chain any number of providers.
+///
+/// The router queries providers in priority order and falls back to later
+/// backends when the earlier ones report a retryable routing error. This makes
+/// it convenient to compose packaged, algorithmic, and reference-data
+/// backends without nesting multiple binary composites.
+#[derive(Default)]
+pub struct RoutingBackend {
+    backends: Vec<Box<dyn EphemerisBackend>>,
+}
+
+impl RoutingBackend {
+    /// Creates a new routing backend from a prioritized list of providers.
+    pub fn new(backends: Vec<Box<dyn EphemerisBackend>>) -> Self {
+        Self { backends }
+    }
+
+    /// Returns the configured provider chain.
+    pub fn backends(&self) -> &[Box<dyn EphemerisBackend>] {
+        &self.backends
+    }
+
+    /// Returns `true` if no providers are configured.
+    pub fn is_empty(&self) -> bool {
+        self.backends.is_empty()
+    }
+}
+
+impl EphemerisBackend for RoutingBackend {
+    fn metadata(&self) -> BackendMetadata {
+        let backends: Vec<&dyn EphemerisBackend> = self
+            .backends
+            .iter()
+            .map(|backend| backend.as_ref())
+            .collect();
+        let metadatas: Vec<BackendMetadata> =
+            backends.iter().map(|backend| backend.metadata()).collect();
+
+        if metadatas.is_empty() {
+            return BackendMetadata {
+                id: BackendId::new("routing:empty"),
+                version: "routing[none]".to_string(),
+                family: BackendFamily::Composite,
+                provenance: BackendProvenance::new("Routing backend with no configured providers."),
+                nominal_range: TimeRange::new(None, None),
+                supported_time_scales: Vec::new(),
+                body_coverage: Vec::new(),
+                supported_frames: Vec::new(),
+                capabilities: BackendCapabilities {
+                    geocentric: false,
+                    topocentric: false,
+                    apparent: false,
+                    mean: false,
+                    batch: false,
+                    native_sidereal: false,
+                },
+                accuracy: AccuracyClass::Unknown,
+                deterministic: true,
+                offline: true,
+            };
+        }
+
+        let mut id_parts = Vec::with_capacity(metadatas.len());
+        let mut version_parts = Vec::with_capacity(metadatas.len());
+        let mut provenance_parts = Vec::with_capacity(metadatas.len());
+        let mut data_sources = Vec::new();
+        let mut nominal_range = metadatas[0].nominal_range;
+        let mut supported_time_scales = metadatas[0].supported_time_scales.clone();
+        let mut body_coverage = metadatas[0].body_coverage.clone();
+        let mut supported_frames = metadatas[0].supported_frames.clone();
+        let mut capabilities = metadatas[0].capabilities.clone();
+        let mut accuracy = metadatas[0].accuracy;
+        let mut deterministic = metadatas[0].deterministic;
+        let mut offline = metadatas[0].offline;
+
+        for metadata in &metadatas {
+            id_parts.push(metadata.id.as_str().to_string());
+            version_parts.push(metadata.version.clone());
+            provenance_parts.push(metadata.provenance.summary.clone());
+            data_sources = combine_sources(&data_sources, &metadata.provenance.data_sources);
+            nominal_range = intersect_ranges(nominal_range, metadata.nominal_range);
+            supported_time_scales =
+                intersect_strings(&supported_time_scales, &metadata.supported_time_scales);
+            body_coverage = combine_bodies(&body_coverage, &metadata.body_coverage);
+            supported_frames = intersect_strings(&supported_frames, &metadata.supported_frames);
+            capabilities.geocentric &= metadata.capabilities.geocentric;
+            capabilities.topocentric &= metadata.capabilities.topocentric;
+            capabilities.apparent &= metadata.capabilities.apparent;
+            capabilities.mean &= metadata.capabilities.mean;
+            capabilities.batch &= metadata.capabilities.batch;
+            capabilities.native_sidereal &= metadata.capabilities.native_sidereal;
+            accuracy = min_accuracy(accuracy, metadata.accuracy);
+            deterministic &= metadata.deterministic;
+            offline &= metadata.offline;
+        }
+
+        BackendMetadata {
+            id: BackendId::new(format!("routing:{}", id_parts.join("+"))),
+            version: format!("routing[{}]", version_parts.join("+")),
+            family: BackendFamily::Composite,
+            provenance: BackendProvenance {
+                summary: format!(
+                    "Routing backend combining {} provider(s): {}.",
+                    metadatas.len(),
+                    provenance_parts.join("; ")
+                ),
+                data_sources,
+            },
+            nominal_range,
+            supported_time_scales,
+            body_coverage,
+            supported_frames,
+            capabilities,
+            accuracy,
+            deterministic,
+            offline,
+        }
+    }
+
+    fn supports_body(&self, body: CelestialBody) -> bool {
+        self.backends
+            .iter()
+            .any(|backend| backend.supports_body(body.clone()))
+    }
+
+    fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+        let mut saw_support = false;
+        let mut last_retryable_error = None;
+
+        for backend in &self.backends {
+            if !backend.supports_body(req.body.clone()) {
+                continue;
+            }
+
+            saw_support = true;
+            match backend.position(req) {
+                Ok(result) => return Ok(result),
+                Err(error) if should_fallback_to_secondary(&error.kind) => {
+                    last_retryable_error = Some(error);
+                }
+                Err(error) => return Err(error),
+            }
+        }
+
+        if let Some(error) = last_retryable_error {
+            Err(error)
+        } else if saw_support {
+            Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "configured providers could not satisfy the requested body and request shape",
+            ))
+        } else {
+            Err(EphemerisError::new(
+                EphemerisErrorKind::UnsupportedBody,
+                "no backend in the routing chain supports the requested body",
+            ))
+        }
+    }
+}
+
 fn combine_sources(primary: &[String], secondary: &[String]) -> Vec<String> {
     let mut combined = primary.to_vec();
     for source in secondary {
@@ -690,6 +850,148 @@ mod tests {
                 .unwrap()
                 .backend_id
                 .as_str(),
+            "moon"
+        );
+    }
+
+    #[test]
+    fn routing_backend_tries_later_providers_and_merges_metadata() {
+        struct FailingSunBackend;
+
+        impl EphemerisBackend for FailingSunBackend {
+            fn metadata(&self) -> BackendMetadata {
+                BackendMetadata {
+                    id: BackendId::new("fail-sun"),
+                    version: "0.1.0".to_string(),
+                    family: BackendFamily::Algorithmic,
+                    provenance: BackendProvenance::new("failing Sun backend"),
+                    nominal_range: TimeRange::new(None, None),
+                    supported_time_scales: vec![TimeScale::Tt],
+                    body_coverage: vec![CelestialBody::Sun],
+                    supported_frames: vec![CoordinateFrame::Ecliptic],
+                    capabilities: BackendCapabilities::default(),
+                    accuracy: AccuracyClass::Approximate,
+                    deterministic: true,
+                    offline: true,
+                }
+            }
+
+            fn supports_body(&self, body: CelestialBody) -> bool {
+                body == CelestialBody::Sun
+            }
+
+            fn position(&self, _req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+                Err(EphemerisError::new(
+                    EphemerisErrorKind::UnsupportedCoordinateFrame,
+                    "retry with the next provider",
+                ))
+            }
+        }
+
+        struct RecoverySunBackend;
+
+        impl EphemerisBackend for RecoverySunBackend {
+            fn metadata(&self) -> BackendMetadata {
+                BackendMetadata {
+                    id: BackendId::new("recovery-sun"),
+                    version: "0.1.0".to_string(),
+                    family: BackendFamily::Algorithmic,
+                    provenance: BackendProvenance::new("recovery Sun backend"),
+                    nominal_range: TimeRange::new(None, None),
+                    supported_time_scales: vec![TimeScale::Tt],
+                    body_coverage: vec![CelestialBody::Sun],
+                    supported_frames: vec![CoordinateFrame::Ecliptic],
+                    capabilities: BackendCapabilities::default(),
+                    accuracy: AccuracyClass::Approximate,
+                    deterministic: true,
+                    offline: true,
+                }
+            }
+
+            fn supports_body(&self, body: CelestialBody) -> bool {
+                body == CelestialBody::Sun
+            }
+
+            fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+                let mut result = EphemerisResult::new(
+                    BackendId::new("recovery-sun"),
+                    req.body.clone(),
+                    req.instant,
+                    req.frame,
+                    req.zodiac_mode.clone(),
+                    req.apparent,
+                );
+                result.quality = QualityAnnotation::Exact;
+                result.ecliptic = Some(EclipticCoordinates::new(
+                    Longitude::from_degrees(10.0),
+                    Latitude::from_degrees(0.0),
+                    Some(1.0),
+                ));
+                Ok(result)
+            }
+        }
+
+        struct MoonBackend;
+
+        impl EphemerisBackend for MoonBackend {
+            fn metadata(&self) -> BackendMetadata {
+                BackendMetadata {
+                    id: BackendId::new("moon"),
+                    version: "0.1.0".to_string(),
+                    family: BackendFamily::Algorithmic,
+                    provenance: BackendProvenance::new("moon backend"),
+                    nominal_range: TimeRange::new(None, None),
+                    supported_time_scales: vec![TimeScale::Tt],
+                    body_coverage: vec![CelestialBody::Moon],
+                    supported_frames: vec![CoordinateFrame::Ecliptic],
+                    capabilities: BackendCapabilities::default(),
+                    accuracy: AccuracyClass::Approximate,
+                    deterministic: true,
+                    offline: true,
+                }
+            }
+
+            fn supports_body(&self, body: CelestialBody) -> bool {
+                body == CelestialBody::Moon
+            }
+
+            fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+                Ok(EphemerisResult::new(
+                    BackendId::new("moon"),
+                    req.body.clone(),
+                    req.instant,
+                    req.frame,
+                    req.zodiac_mode.clone(),
+                    req.apparent,
+                ))
+            }
+        }
+
+        let routing = RoutingBackend::new(vec![
+            Box::new(FailingSunBackend),
+            Box::new(RecoverySunBackend),
+            Box::new(MoonBackend),
+        ]);
+        let sun_request = EphemerisRequest::new(
+            CelestialBody::Sun,
+            Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt),
+        );
+        let moon_request = EphemerisRequest::new(
+            CelestialBody::Moon,
+            Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt),
+        );
+
+        let metadata = routing.metadata();
+        assert!(metadata.body_coverage.contains(&CelestialBody::Sun));
+        assert!(metadata.body_coverage.contains(&CelestialBody::Moon));
+        assert!(metadata.provenance.summary.contains("3 provider(s)"));
+
+        assert_eq!(
+            routing.position(&sun_request).unwrap().backend_id.as_str(),
+            "recovery-sun"
+        );
+        assert_eq!(
+            routing.position(&moon_request).unwrap().backend_id.as_str(),
             "moon"
         );
     }
