@@ -289,9 +289,9 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Ayanamsa::BabylonianKugler3,
         "Babylonian (Kugler 3)",
         &["Babylonian Kugler 3", "Babylonian 3"],
-        "Babylonian sidereal mode associated with Kugler's third reconstruction.",
-        None,
-        None,
+        "Babylonian sidereal mode associated with Kugler's third reconstruction, with the Swiss Ephemeris zero point at JD 1774637.420172 (+0146/09/09 22:05:02.88 UT).",
+        Some(JulianDay::from_days(1_774_637.420_172)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianHuber,
@@ -433,9 +433,9 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Ayanamsa::BabylonianBritton,
         "Babylonian (Britton)",
         &["Babylonian Britton"],
-        "Babylonian sidereal mode associated with Britton's reconstruction.",
-        None,
-        None,
+        "Babylonian sidereal mode associated with Britton's reconstruction, with the Swiss Ephemeris zero point at JD 1805415.712776 (+0230/12/17 05:06:23.86 UT).",
+        Some(JulianDay::from_days(1_805_415.712_776)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::Aryabhata522,
@@ -481,9 +481,9 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Ayanamsa::GalacticCenterMardyks,
         "Galactic Center (Mardyks)",
         &["Mardyks", "Galactic center Mardyks"],
-        "Galactic-center reference mode attributed to Mardyks.",
-        None,
-        None,
+        "Galactic-center reference mode attributed to Mardyks, with the Swiss Ephemeris zero point at JD 1662951.794251 (-0160/11/27 07:03:43.27 UT).",
+        Some(JulianDay::from_days(1_662_951.794_251)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticCenterMulaWilhelm,
@@ -761,9 +761,9 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
         Ayanamsa::BabylonianKugler3,
         "Babylonian (Kugler 3)",
         &["Babylonian Kugler 3", "Babylonian 3"],
-        "Babylonian sidereal mode associated with Kugler's third reconstruction.",
-        None,
-        None,
+        "Babylonian sidereal mode associated with Kugler's third reconstruction, with the Swiss Ephemeris zero point at JD 1774637.420172 (+0146/09/09 22:05:02.88 UT).",
+        Some(JulianDay::from_days(1_774_637.420_172)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianHuber,
@@ -905,9 +905,9 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
         Ayanamsa::BabylonianBritton,
         "Babylonian (Britton)",
         &["Babylonian Britton"],
-        "Babylonian sidereal mode associated with Britton's reconstruction.",
-        None,
-        None,
+        "Babylonian sidereal mode associated with Britton's reconstruction, with the Swiss Ephemeris zero point at JD 1805415.712776 (+0230/12/17 05:06:23.86 UT).",
+        Some(JulianDay::from_days(1_805_415.712_776)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::Aryabhata522,
@@ -953,9 +953,9 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
         Ayanamsa::GalacticCenterMardyks,
         "Galactic Center (Mardyks)",
         &["Mardyks", "Galactic center Mardyks"],
-        "Galactic-center reference mode attributed to Mardyks.",
-        None,
-        None,
+        "Galactic-center reference mode attributed to Mardyks, with the Swiss Ephemeris zero point at JD 1662951.794251 (-0160/11/27 07:03:43.27 UT).",
+        Some(JulianDay::from_days(1_662_951.794_251)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticCenterMulaWilhelm,
@@ -1419,6 +1419,16 @@ mod tests {
         assert_eq!(valens.epoch, Some(JulianDay::from_days(1_775_845.5)));
         assert_eq!(valens.offset_degrees, Some(Angle::from_degrees(-2.942_2)));
 
+        let kugler3 =
+            descriptor(&Ayanamsa::BabylonianKugler3).expect("Babylonian Kugler 3 descriptor");
+        assert_eq!(kugler3.epoch, Some(JulianDay::from_days(1_774_637.420_172)));
+        assert_eq!(kugler3.offset_degrees, Some(Angle::from_degrees(0.0)));
+
+        let britton =
+            descriptor(&Ayanamsa::BabylonianBritton).expect("Babylonian Britton descriptor");
+        assert_eq!(britton.epoch, Some(JulianDay::from_days(1_805_415.712_776)));
+        assert_eq!(britton.offset_degrees, Some(Angle::from_degrees(0.0)));
+
         let cochrane = descriptor(&Ayanamsa::GalacticCenterCochrane)
             .expect("Galactic Center (Cochrane) descriptor");
         assert_eq!(
@@ -1426,6 +1436,11 @@ mod tests {
             Some(JulianDay::from_days(1_662_951.794_251))
         );
         assert_eq!(cochrane.offset_degrees, Some(Angle::from_degrees(0.0)));
+
+        let mardyks = descriptor(&Ayanamsa::GalacticCenterMardyks)
+            .expect("Galactic Center (Mardyks) descriptor");
+        assert_eq!(mardyks.epoch, Some(JulianDay::from_days(1_662_951.794_251)));
+        assert_eq!(mardyks.offset_degrees, Some(Angle::from_degrees(0.0)));
 
         let true_pushya = descriptor(&Ayanamsa::TruePushya).expect("True Pushya descriptor");
         assert_eq!(
@@ -1532,6 +1547,18 @@ mod tests {
         );
         assert_eq!(coverage.without_sidereal_metadata, expected_without);
         assert_eq!(coverage.is_complete(), expected_without.is_empty());
+        assert!(coverage
+            .without_sidereal_metadata
+            .iter()
+            .all(|name| *name != "Babylonian (Kugler 3)"));
+        assert!(coverage
+            .without_sidereal_metadata
+            .iter()
+            .all(|name| *name != "Babylonian (Britton)"));
+        assert!(coverage
+            .without_sidereal_metadata
+            .iter()
+            .all(|name| *name != "Galactic Center (Mardyks)"));
     }
 
     #[test]

@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-22 — Additional ayanamsa metadata backfill added
+
+Implemented another small Stage 6 release-hardening slice:
+
+- `pleiades-ayanamsa` now carries explicit zero-point epoch/offset metadata for `Ayanamsa::BabylonianKugler3`, `Ayanamsa::BabylonianBritton`, and `Ayanamsa::GalacticCenterMardyks`, matching the Swiss Ephemeris reference values now reflected in the catalog
+- `pleiades-core` and the compatibility profile now reflect the narrower ayanamsa-metadata gap in the release notes and known-gap text, and the profile summary stays synchronized with the updated catalog breadth
+- the new descriptor coverage is regression-tested alongside the existing historical/reference-frame metadata checks, so the release profile can keep treating those three entries as metadata-backed rather than unresolved
+
+Remaining Stage 6 work: keep filling out any remaining ayanamsa metadata and catalog breadth while the release profile stays synchronized with the catalog.
+
 ## 2026-04-22 — Ayanamsa metadata coverage summary added
 
 Implemented a small Stage 6 release-hardening slice:
