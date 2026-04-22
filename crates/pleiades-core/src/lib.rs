@@ -221,5 +221,13 @@ mod tests {
             .release_house_systems
             .iter()
             .any(|entry| entry.canonical_name == "Sripati"));
+        assert!(profile
+            .release_house_systems
+            .iter()
+            .any(|entry| entry.canonical_name == "Horizon/Azimuth"));
+        assert!(profile
+            .release_house_systems
+            .iter()
+            .any(|entry| entry.canonical_name == "APC"));
     }
 }

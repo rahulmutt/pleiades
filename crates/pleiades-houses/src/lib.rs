@@ -209,9 +209,23 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         "Equal right-ascension segments anchored on the Ascendant's meridian.",
         false,
     ),
+    HouseSystemDescriptor::new(
+        HouseSystem::Horizon,
+        "Horizon/Azimuth",
+        &["Horizon", "Azimuth", "horizon/azimut"],
+        "Azimuthal house system that anchors house 1 due East and house 10 at the MC.",
+        true,
+    ),
+    HouseSystemDescriptor::new(
+        HouseSystem::Apc,
+        "APC",
+        &["Ram school", "Ramschool", "APC houses"],
+        "APC (Ram school) houses with non-opposite quadrant pairs and polar adjustments.",
+        true,
+    ),
 ];
 
-static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 17] = [
+static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 19] = [
     HouseSystemDescriptor::new(
         HouseSystem::Placidus,
         "Placidus",
@@ -253,6 +267,20 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 17] = [
         &["Carter", "Poli-Equatorial", "Poli-equatorial"],
         "Equal right-ascension segments anchored on the Ascendant's meridian.",
         false,
+    ),
+    HouseSystemDescriptor::new(
+        HouseSystem::Horizon,
+        "Horizon/Azimuth",
+        &["Horizon", "Azimuth", "horizon/azimut"],
+        "Azimuthal house system that anchors house 1 due East and house 10 at the MC.",
+        true,
+    ),
+    HouseSystemDescriptor::new(
+        HouseSystem::Apc,
+        "APC",
+        &["Ram school", "Ramschool", "APC houses"],
+        "APC (Ram school) houses with non-opposite quadrant pairs and polar adjustments.",
+        true,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Equal,
@@ -413,6 +441,8 @@ mod tests {
             Some(HouseSystem::EqualAries)
         );
         assert_eq!(resolve_house_system("vehlow"), Some(HouseSystem::Vehlow));
+        assert_eq!(resolve_house_system("Azimuth"), Some(HouseSystem::Horizon));
+        assert_eq!(resolve_house_system("Ram school"), Some(HouseSystem::Apc));
         assert_eq!(resolve_house_system("Śrīpati"), Some(HouseSystem::Sripati));
     }
 
@@ -429,6 +459,8 @@ mod tests {
             "Vehlow Equal",
             "Sripati",
             "Carter (poli-equatorial)",
+            "Horizon/Azimuth",
+            "APC",
         ] {
             assert!(names.contains(&expected), "missing {expected}");
         }

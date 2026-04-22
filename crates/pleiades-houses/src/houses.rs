@@ -168,6 +168,10 @@ pub fn calculate_houses(request: &HouseRequest) -> Result<HouseSnapshot, HouseEr
             campanus_houses(request.instant, &request.observer, obliquity, angles)
         }
         HouseSystem::Carter => carter_houses(angles, obliquity),
+        HouseSystem::Horizon => {
+            horizon_houses(request.instant, &request.observer, obliquity, angles)
+        }
+        HouseSystem::Apc => apc_houses(request.instant, &request.observer, obliquity, angles),
         HouseSystem::Alcabitius => {
             alcabitius_houses(request.instant, &request.observer, obliquity, angles)
         }
@@ -244,6 +248,16 @@ fn derive_angles(instant: Instant, observer: &ObserverLocation, obliquity: Angle
             .to_degrees(),
     );
     HouseAngles::new(ascendant, midheaven)
+}
+
+fn ascendant_for(sidereal_time_deg: f64, latitude_deg: f64, obliquity_rad: f64) -> Longitude {
+    let theta = sidereal_time_deg.to_radians();
+    let latitude = latitude_deg.to_radians();
+    Longitude::from_degrees(
+        (-theta.cos())
+            .atan2(theta.sin() * obliquity_rad.cos() + latitude.tan() * obliquity_rad.sin())
+            .to_degrees(),
+    )
 }
 
 fn local_sidereal_time(instant: Instant, longitude: Longitude) -> Angle {
@@ -514,6 +528,109 @@ fn carter_houses(angles: HouseAngles, obliquity: Angle) -> [Longitude; 12] {
     })
 }
 
+fn horizon_houses(
+    instant: Instant,
+    observer: &ObserverLocation,
+    obliquity: Angle,
+    angles: HouseAngles,
+) -> [Longitude; 12] {
+    let sidereal_time =
+        (local_sidereal_time(instant, observer.longitude).degrees() + 180.0).rem_euclid(360.0);
+    let obliquity = obliquity.degrees().to_radians();
+    let latitude = observer.latitude.degrees();
+    let transformed_latitude = if latitude >= 0.0 {
+        90.0 - latitude
+    } else {
+        -90.0 - latitude
+    };
+    let transformed_latitude_rad = transformed_latitude.to_radians();
+    let fh1 = (transformed_latitude_rad.sin() / 2.0).asin().to_degrees();
+    let fh2 = ((3.0_f64).sqrt() / 2.0 * transformed_latitude_rad.sin())
+        .asin()
+        .to_degrees();
+    let cosfi = transformed_latitude_rad.cos();
+    let xh1 = if cosfi.abs() < f64::EPSILON {
+        if transformed_latitude >= 0.0 {
+            90.0
+        } else {
+            270.0
+        }
+    } else {
+        (3.0_f64.sqrt() / cosfi).atan().to_degrees()
+    };
+    let xh2 = if cosfi.abs() < f64::EPSILON {
+        if transformed_latitude >= 0.0 {
+            90.0
+        } else {
+            270.0
+        }
+    } else {
+        (1.0 / 3.0_f64.sqrt() / cosfi).atan().to_degrees()
+    };
+
+    let mut cusps = [Longitude::from_degrees(0.0); 12];
+    cusps[0] = ascendant_for(sidereal_time + 90.0, transformed_latitude, obliquity);
+    cusps[9] = angles.midheaven;
+    cusps[10] = ascendant_for(sidereal_time + 90.0 - xh1, fh1, obliquity);
+    cusps[11] = ascendant_for(sidereal_time + 90.0 - xh2, fh2, obliquity);
+    cusps[1] = ascendant_for(sidereal_time + 90.0 + xh2, fh2, obliquity);
+    cusps[2] = ascendant_for(sidereal_time + 90.0 + xh1, fh1, obliquity);
+    cusps[3] = longitude_opposite(cusps[9]);
+    cusps[4] = longitude_opposite(cusps[10]);
+    cusps[5] = longitude_opposite(cusps[11]);
+    cusps[6] = longitude_opposite(cusps[0]);
+    cusps[7] = longitude_opposite(cusps[1]);
+    cusps[8] = longitude_opposite(cusps[2]);
+    cusps
+}
+
+fn apc_sector(n: usize, latitude_rad: f64, obliquity_rad: f64, sidereal_rad: f64) -> Longitude {
+    let tan_lat = latitude_rad.tan();
+    let tan_obliquity = obliquity_rad.tan();
+    let kv = (tan_lat * tan_obliquity * sidereal_rad.cos())
+        .atan2(1.0 + tan_lat * tan_obliquity * sidereal_rad.sin());
+    let sin_kv = kv.sin();
+    let is_below_hor = n < 8;
+    let k = if is_below_hor {
+        (n as isize - 1) as f64
+    } else {
+        (n as isize - 13) as f64
+    };
+    let a = if is_below_hor {
+        kv + sidereal_rad
+            + core::f64::consts::FRAC_PI_2
+            + k * (core::f64::consts::FRAC_PI_2 - kv) / 3.0
+    } else {
+        kv + sidereal_rad
+            + core::f64::consts::FRAC_PI_2
+            + k * (core::f64::consts::FRAC_PI_2 + kv) / 3.0
+    };
+    let y = sin_kv * sidereal_rad.sin() + a.sin();
+    let x = obliquity_rad.cos() * (sin_kv * sidereal_rad.cos() + a.cos())
+        + obliquity_rad.sin() * tan_lat * (sidereal_rad - a).sin();
+    Longitude::from_degrees(y.atan2(x).to_degrees())
+}
+
+fn apc_houses(
+    instant: Instant,
+    observer: &ObserverLocation,
+    obliquity: Angle,
+    angles: HouseAngles,
+) -> [Longitude; 12] {
+    let sidereal_rad = local_sidereal_time(instant, observer.longitude)
+        .degrees()
+        .to_radians();
+    let latitude_rad = observer.latitude.degrees().to_radians();
+    let obliquity_rad = obliquity.degrees().to_radians();
+
+    let mut cusps = core::array::from_fn(|index| {
+        apc_sector(index + 1, latitude_rad, obliquity_rad, sidereal_rad)
+    });
+    cusps[0] = angles.ascendant;
+    cusps[9] = angles.midheaven;
+    cusps
+}
+
 fn sripati_houses(angles: HouseAngles) -> [Longitude; 12] {
     let porphyry = porphyry_houses(angles);
     core::array::from_fn(|index| {
@@ -655,6 +772,8 @@ fn catalog_name(system: &HouseSystem) -> &'static str {
         HouseSystem::Regiomontanus => "Regiomontanus",
         HouseSystem::Campanus => "Campanus",
         HouseSystem::Carter => "Carter (poli-equatorial)",
+        HouseSystem::Horizon => "Horizon/Azimuth",
+        HouseSystem::Apc => "APC",
         HouseSystem::Equal => "Equal",
         HouseSystem::EqualMidheaven => "Equal (MC)",
         HouseSystem::EqualAries => "Equal (1=Aries)",
@@ -818,6 +937,21 @@ mod tests {
             (snapshot.cusps[1].degrees() - snapshot.cusps[0].degrees()).rem_euclid(360.0),
             30.0
         );
+    }
+
+    #[test]
+    fn horizon_and_apc_release_systems_are_available() {
+        let horizon = calculate_houses(&sample_request(HouseSystem::Horizon))
+            .expect("horizon houses should work");
+        assert_eq!(horizon.cusps.len(), 12);
+        assert_eq!(horizon.cusps[9], horizon.angles.midheaven);
+        assert_ne!(horizon.cusps[0], horizon.angles.ascendant);
+
+        let apc =
+            calculate_houses(&sample_request(HouseSystem::Apc)).expect("apc houses should work");
+        assert_eq!(apc.cusps.len(), 12);
+        assert_eq!(apc.cusps[0], apc.angles.ascendant);
+        assert_eq!(apc.cusps[9], apc.angles.midheaven);
     }
 
     #[test]

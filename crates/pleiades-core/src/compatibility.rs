@@ -56,7 +56,7 @@ impl CompatibilityProfile {
 pub const fn current_compatibility_profile() -> CompatibilityProfile {
     CompatibilityProfile {
         profile_id: "pleiades-compatibility-profile/0.4.0",
-        summary: "Stage 6 release profile: the baseline catalogs remain published as a routine release artifact while the target Swiss-Ephemeris-class compatibility catalog stays explicit, including the first release-specific house-system additions, Carter (poli-equatorial), historical ayanamsa anchor variants, and fixed zodiac-sign house coverage.",
+        summary: "Stage 6 release profile: the baseline catalogs remain published as a routine release artifact while the target Swiss-Ephemeris-class compatibility catalog stays explicit, including the first release-specific house-system additions, Carter (poli-equatorial), Horizon/Azimuth, APC, historical ayanamsa anchor variants, and fixed zodiac-sign house coverage.",
         target_house_scope: &[
             "Target house scope: the full Swiss-Ephemeris-class house-system catalog remains the long-term compatibility goal.",
             "Baseline milestone: Placidus, Koch, Porphyry, Regiomontanus, Campanus, Equal, Whole Sign, Alcabitius, Meridian/Axial variants, Topocentric, and Morinus are shipped today.",
@@ -72,7 +72,7 @@ pub const fn current_compatibility_profile() -> CompatibilityProfile {
         baseline_ayanamsas: baseline_ayanamsas(),
         release_ayanamsas: release_ayanamsas(),
         release_notes: &[
-            "Release-specific house-system additions now include Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, and Carter (poli-equatorial).",
+            "Release-specific house-system additions now include Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter (poli-equatorial), Horizon/Azimuth, and APC.",
             "Release-specific ayanamsa additions now include Lahiri (ICRC), Lahiri (1940), Usha Shashi, Suryasiddhanta (499 CE), Aryabhata (499 CE), and Sassanian.",
             "The compatibility profile is intended to be archived with release validation outputs and release notes.",
         ],
@@ -199,6 +199,14 @@ mod tests {
         assert!(profile
             .release_house_systems
             .iter()
+            .any(|entry| entry.canonical_name == "Horizon/Azimuth"));
+        assert!(profile
+            .release_house_systems
+            .iter()
+            .any(|entry| entry.canonical_name == "APC"));
+        assert!(profile
+            .release_house_systems
+            .iter()
             .any(|entry| entry.canonical_name == "Equal (1=Aries)"));
         assert!(profile
             .baseline_ayanamsas
@@ -242,6 +250,8 @@ mod tests {
         assert!(rendered.contains("Vehlow Equal"));
         assert!(rendered.contains("Sripati"));
         assert!(rendered.contains("Carter (poli-equatorial)"));
+        assert!(rendered.contains("Horizon/Azimuth"));
+        assert!(rendered.contains("APC"));
         assert!(rendered.contains("Lahiri (ICRC)"));
         assert!(rendered.contains("Sassanian"));
         assert!(rendered.contains("Known gaps:"));

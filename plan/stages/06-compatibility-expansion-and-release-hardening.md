@@ -52,7 +52,8 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] The first release-specific house-system additions are now implemented: Equal (MC), Equal (1=Aries), Vehlow Equal, and Sripati are catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
 - [x] The first release-specific ayanamsa additions are now implemented: Lahiri (ICRC), Lahiri (1940), Usha Shashi, Suryasiddhanta (499 CE), Aryabhata (499 CE), and Sassanian are catalogued, resolved, rendered in the compatibility profile, and exposed through the shared ayanamsa resolution path.
 - [x] Carter (poli-equatorial) is now catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
-- [ ] Remaining house-system breadth is still the next planned slice.
+- [x] Horizon/Azimuth and APC are now catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
+- [ ] Remaining house-system breadth is still the next planned slice, especially the remaining Swiss-Ephemeris-class specialized systems and sector-based variants.
 
 ## Exit criteria
 

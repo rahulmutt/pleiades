@@ -175,3 +175,13 @@ Implemented the next Stage 6 catalog-breadth slice:
 - `pleiades-core` and the release compatibility profile now expose Carter in the release-specific house-system coverage set
 
 Remaining Stage 6 work: broader house-system breadth, API posture review, and any remaining release-hardening polish that depends on additional coverage.
+
+## 2026-04-22 — Horizon/Azimuth and APC added
+
+Implemented another Stage 6 catalog-breadth slice:
+
+- `pleiades-types` gained `HouseSystem::Horizon` and `HouseSystem::Apc`
+- `pleiades-houses` now catalogs, resolves, documents, and calculates Horizon/Azimuth and APC using the shared compatibility profile path
+- `pleiades-core` and the release compatibility profile now expose the new release-specific coverage set entries
+
+Remaining Stage 6 work: the rest of the specialized house-system breadth, plus any API posture review and release-hardening polish that depends on additional coverage.

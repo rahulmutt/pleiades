@@ -436,6 +436,10 @@ pub enum HouseSystem {
     Campanus,
     /// Carter (poli-equatorial) houses.
     Carter,
+    /// Horizon/Azimuth houses.
+    Horizon,
+    /// APC houses.
+    Apc,
     /// Equal houses.
     Equal,
     /// Equal houses with the Midheaven on cusp 10.
