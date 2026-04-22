@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-22 — backend capability matrices now include nominal ranges
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-validate` and the CLI backend-matrix output now render each backend's nominal supported time range alongside the existing accuracy, coverage, and capability notes
+- this makes the public capability documentation more explicit for the JPL snapshot, algorithmic backends, and packaged-data backend without changing the underlying routing or query behavior
+- the stage-6 plan notes now call out the range rendering so the release-hardening backlog stays synchronized with the current docs surface
+
+Remaining Stage 6 work: keep the capability docs aligned with future backend additions or move on to any remaining release-hardening polish that depends on broader coverage.
+
 ## 2026-04-22
 
 Implemented the first Stage 3 slice:

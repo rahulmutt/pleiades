@@ -19,7 +19,8 @@ use pleiades_core::{
     current_api_stability_profile, current_compatibility_profile, default_chart_bodies,
     Apparentness, BackendCapabilities, BackendMetadata, CelestialBody, CompositeBackend,
     CoordinateFrame, EclipticCoordinates, EphemerisBackend, EphemerisError, EphemerisErrorKind,
-    EphemerisRequest, EphemerisResult, Instant, JulianDay, Longitude, TimeScale, ZodiacMode,
+    EphemerisRequest, EphemerisResult, Instant, JulianDay, Longitude, TimeRange, TimeScale,
+    ZodiacMode,
 };
 use pleiades_data::PackagedDataBackend;
 use pleiades_elp::ElpBackend;
@@ -1005,6 +1006,11 @@ fn write_backend_matrix(f: &mut fmt::Formatter<'_>, backend: &BackendMetadata) -
     writeln!(f, "  offline: {}", backend.offline)?;
     writeln!(
         f,
+        "  nominal range: {}",
+        format_time_range(&backend.nominal_range)
+    )?;
+    writeln!(
+        f,
         "  time scales: {}",
         format_time_scales(&backend.supported_time_scales)
     )?;
@@ -1248,6 +1254,26 @@ fn format_capabilities(capabilities: &BackendCapabilities) -> String {
         capabilities.batch,
         capabilities.native_sidereal
     )
+}
+
+fn format_time_range(range: &TimeRange) -> String {
+    match (range.start, range.end) {
+        (Some(start), Some(end)) => format!("{} → {}", format_instant(start), format_instant(end)),
+        (Some(start), None) => format!("from {}", format_instant(start)),
+        (None, Some(end)) => format!("through {}", format_instant(end)),
+        (None, None) => "unbounded".to_string(),
+    }
+}
+
+fn format_instant(instant: Instant) -> String {
+    let scale = match instant.scale {
+        TimeScale::Utc => "UTC",
+        TimeScale::Ut1 => "UT1",
+        TimeScale::Tt => "TT",
+        TimeScale::Tdb => "TDB",
+        _ => "Other",
+    };
+    format!("JD {:.1} ({scale})", instant.julian_day.days())
 }
 
 fn format_ns(value: f64) -> String {
@@ -1517,6 +1543,7 @@ mod tests {
         let rendered = render_cli(&["backend-matrix"]).expect("backend matrix should render");
         assert!(rendered.contains("Implemented backend matrices"));
         assert!(rendered.contains("JPL snapshot reference backend"));
+        assert!(rendered.contains("nominal range:"));
         assert!(rendered.contains("VSOP87 planetary backend"));
         assert!(rendered.contains("ELP lunar backend"));
         assert!(rendered.contains("Packaged data backend"));
