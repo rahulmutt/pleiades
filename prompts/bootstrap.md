@@ -5,4 +5,3 @@ Generate SPEC.md, a top-level specification file that links to logically decompo
   3a. You may use any pure-Rust crates for various backend implementations. Each backend implementation should be a separate crate.
 4. Design a compressed representation for common use for data between 1500-2500.
 5. All sub-crate names should have the form `pleiades-*` .
-
