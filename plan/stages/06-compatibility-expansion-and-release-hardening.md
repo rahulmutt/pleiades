@@ -41,6 +41,14 @@ The project is not just functional but dependable: consumers can tell exactly wh
 
 This final stage should behave like a sequence of release-quality increments, not a catch-all bucket for unfinished foundational work.
 
+## Progress update
+
+Stage 6 release hardening has started as of 2026-04-22.
+
+- [x] The compatibility profile now distinguishes target scope, baseline milestone, release-specific coverage, and known gaps.
+- [x] Validation reports now include the release compatibility profile so the stage-6 release artifact bundle carries the current coverage summary.
+- [ ] Remaining catalog breadth and release automation are still the next planned slices.
+
 ## Exit criteria
 
 - release compatibility profile is published and current

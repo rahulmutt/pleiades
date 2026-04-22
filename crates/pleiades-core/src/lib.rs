@@ -1,9 +1,10 @@
 //! High-level façade that combines backend queries with astrology-domain logic.
 //!
-//! Stage 3 starts layering in catalog and compatibility information while
-//! keeping the façade intentionally thin. It still delegates query execution to
-//! a backend, but it now also exposes the versioned compatibility profile used
-//! by the CLI and release notes.
+//! Later stages layer in catalog, compatibility, and release-profile
+//! information while keeping the façade intentionally thin. It still delegates
+//! query execution to a backend, but it now also exposes the versioned
+//! compatibility profile used by the CLI, validation reports, and release
+//! notes.
 //!
 //! # Examples
 //!

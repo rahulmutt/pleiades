@@ -26,7 +26,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("chart") => render_chart(&args[1..]),
         Some("help") | Some("--help") | Some("-h") => Ok(format!(
-            "{}\n\nCommands:\n  compatibility-profile  Print the current compatibility profile\n  profile                Alias for compatibility-profile\n  chart                  Render a basic chart report\n  help                   Show this help text",
+            "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  chart                  Render a basic chart report\n  help                   Show this help text",
             banner()
         )),
         _ => Ok(banner().to_string()),
@@ -169,9 +169,11 @@ mod tests {
     #[test]
     fn profile_command_renders_catalogs() {
         let rendered = render_cli(&["compatibility-profile"]).expect("profile should render");
-        assert!(rendered.contains("Built-in house systems:"));
+        assert!(rendered.contains("Compatibility profile: pleiades-compatibility-profile/0.2.0"));
+        assert!(rendered.contains("Target compatibility catalog:"));
+        assert!(rendered.contains("Baseline compatibility milestone:"));
         assert!(rendered.contains("Topocentric"));
-        assert!(rendered.contains("Built-in ayanamsas:"));
+        assert!(rendered.contains("Target ayanamsa catalog:"));
         assert!(rendered.contains("Lahiri"));
     }
 

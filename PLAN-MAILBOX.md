@@ -104,3 +104,13 @@ Implemented the next Stage 5 slice:
 - the stage-5 plan now reflects that artifact-inspection tooling is in place, leaving measured error envelopes and broader body coverage as the remaining follow-up
 
 Remaining Stage 5 work: measured artifact error envelopes and broader body coverage.
+
+## 2026-04-22 — stage 6 release profile slice landed
+
+Implemented the first Stage 6 release-hardening slice:
+
+- `pleiades-core` now renders a release-grade compatibility profile that explicitly separates target scope, the baseline milestone, release-specific coverage notes, and remaining gaps
+- `pleiades-validate report` now includes that compatibility profile so the validation bundle carries the release-coverage summary by default
+- CLI help text and plan notes were updated to describe the profile as a release artifact instead of only a stage-3 baseline note
+
+Next recommended slice: keep the compatibility profile current as catalog breadth expands, then move on to the remaining Stage 6 release-hardening work (automation, API posture, and broader catalog coverage).

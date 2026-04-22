@@ -14,10 +14,10 @@ mod artifact;
 pub use artifact::{render_artifact_report, ArtifactBodyInspection, ArtifactInspectionReport};
 
 use pleiades_core::{
-    default_chart_bodies, Apparentness, BackendCapabilities, BackendMetadata, CelestialBody,
-    CompositeBackend, CoordinateFrame, EclipticCoordinates, EphemerisBackend, EphemerisError,
-    EphemerisErrorKind, EphemerisRequest, EphemerisResult, Instant, JulianDay, Longitude,
-    TimeScale, ZodiacMode,
+    current_compatibility_profile, default_chart_bodies, Apparentness, BackendCapabilities,
+    BackendMetadata, CelestialBody, CompositeBackend, CoordinateFrame, EclipticCoordinates,
+    EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
+    Instant, JulianDay, Longitude, TimeScale, ZodiacMode,
 };
 use pleiades_elp::ElpBackend;
 use pleiades_jpl::{comparison_snapshot, JplSnapshotBackend};
@@ -277,6 +277,9 @@ pub struct ValidationReport {
 impl fmt::Display for ValidationReport {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Validation report")?;
+        writeln!(f)?;
+        writeln!(f, "Compatibility profile")?;
+        writeln!(f, "{}", current_compatibility_profile())?;
         writeln!(f)?;
         writeln!(f, "Comparison corpus")?;
         write_corpus_summary(f, &self.comparison_corpus)?;
@@ -912,6 +915,8 @@ mod tests {
     fn validation_report_includes_corpus_metadata() {
         let report = render_validation_report(10).expect("validation report should render");
         assert!(report.contains("Validation report"));
+        assert!(report.contains("Compatibility profile"));
+        assert!(report.contains("Target compatibility catalog:"));
         assert!(report.contains("Comparison corpus"));
         assert!(report.contains("JPL Horizons comparison window"));
         assert!(report.contains("Benchmark corpus"));
