@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-22 — sign-scoped chart helper added
+
+Implemented a small Stage 6 optional-helper slice:
+
+- `pleiades-core::ChartSnapshot` now exposes `sign_for_body` and `placements_in_sign` alongside the existing body, house, motion, and retrograde lookup helpers, so downstream chart consumers can ask sign-scoped questions without re-scanning placements manually
+- API stability wording, the README, and the Stage 6 progress notes should be updated to reflect the new sign-scoped helper surface once the change is recorded
+
+Remaining Stage 6 work: broader catalog breadth and any remaining optional helper polish that depends on additional coverage.
+
+
 ## 2026-04-22 — Sheoran ayanamsa metadata backfill added
 
 Implemented another small Stage 6 metadata-backfill slice:

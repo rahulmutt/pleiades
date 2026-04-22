@@ -151,9 +151,21 @@ impl ChartSnapshot {
         self.placement_for(body)?.motion_direction()
     }
 
+    /// Returns the sign for a requested body, if sign placement was computed.
+    pub fn sign_for_body(&self, body: &CelestialBody) -> Option<ZodiacSign> {
+        self.placement_for(body)?.sign
+    }
+
     /// Returns the house number for a requested body, if house placement was computed.
     pub fn house_for_body(&self, body: &CelestialBody) -> Option<usize> {
         self.placement_for(body)?.house
+    }
+
+    /// Returns all placements assigned to a requested zodiac sign.
+    pub fn placements_in_sign(&self, sign: ZodiacSign) -> impl Iterator<Item = &BodyPlacement> {
+        self.placements
+            .iter()
+            .filter(move |placement| placement.sign == Some(sign))
     }
 
     /// Returns all placements assigned to a requested house number.
@@ -665,6 +677,14 @@ mod tests {
         };
 
         assert!(chart.placement_for(&CelestialBody::Sun).is_some());
+        assert_eq!(
+            chart.sign_for_body(&CelestialBody::Sun),
+            Some(ZodiacSign::Aries)
+        );
+        assert_eq!(
+            chart.sign_for_body(&CelestialBody::Mars),
+            Some(ZodiacSign::Cancer)
+        );
         assert_eq!(chart.house_for_body(&CelestialBody::Sun), Some(1));
         assert_eq!(chart.house_for_body(&CelestialBody::Mars), Some(8));
         assert_eq!(chart.house_for_body(&CelestialBody::Mercury), None);
@@ -672,6 +692,17 @@ mod tests {
             chart.motion_direction_for(&CelestialBody::Mars),
             Some(MotionDirection::Retrograde)
         );
+        assert_eq!(
+            chart
+                .placements_in_sign(ZodiacSign::Cancer)
+                .map(|placement| placement.body.clone())
+                .collect::<Vec<_>>(),
+            vec![CelestialBody::Mars]
+        );
+        assert!(chart
+            .placements_in_sign(ZodiacSign::Pisces)
+            .next()
+            .is_none());
         assert_eq!(
             chart
                 .placements_in_house(8)
