@@ -10,7 +10,8 @@ The system must support computation of at least:
 - Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto
 - true and mean lunar node
 - true and mean apogee/perigee where supported and documented
-- selected major asteroids, with initial priority on Ceres, Pallas, Juno, and Vesta
+- Ceres, Pallas, Juno, and Vesta in the baseline catalog
+- an extensible identifier model for additional numbered/named asteroids and other supported points
 
 ### FR-2 Coordinate and Reference Support
 The system must support:
@@ -25,9 +26,9 @@ The system must support:
 ### FR-3 House Systems
 The system must provide a house computation module supporting a complete and extensible catalog of astrological house systems.
 
-The specification end state is support for the full project catalog of house systems used in astrology software. Implementation may be phased, but the architecture and public API must not assume that only a small fixed subset will ever exist.
+Stable project conformance requires support for the full target catalog of house systems used by the project. Implementation may be phased during development, but the architecture and public API must not assume that only a small fixed subset will ever exist.
 
-The initial milestone catalog must include at minimum:
+The initial implementation milestone must include at minimum:
 
 - Placidus
 - Koch
@@ -46,9 +47,9 @@ Where a system has latitude/pathology constraints, those constraints must be exp
 ### FR-4 Ayanamsa
 The system must support a pluggable, extensible ayanamsa catalog.
 
-The specification end state is support for the project’s full ayanamsa catalog used by target astrology software. Implementation may be phased, but the API must allow named built-ins and user-defined variants without redesign.
+Stable project conformance requires support for the full target ayanamsa catalog used by target astrology software. Implementation may be phased during development, but the API must allow named built-ins and user-defined variants without redesign.
 
-The initial milestone catalog must include at minimum:
+The initial implementation milestone must include at minimum:
 
 - Lahiri
 - Raman

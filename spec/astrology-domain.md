@@ -7,7 +7,7 @@ The domain layer must define a stable body taxonomy covering:
 - luminaries: Sun, Moon
 - planets: Mercury through Pluto
 - lunar points: mean node, true node, mean apogee, osculating/true apogee where modeled
-- asteroids: at least Ceres, Pallas, Juno, Vesta in the initial release
+- baseline asteroids: Ceres, Pallas, Juno, Vesta
 - extensible identifiers for additional numbered/named bodies
 
 ## Zodiac Modes
@@ -21,7 +21,7 @@ Sidereal conversion must be a domain-layer transformation rather than a backend-
 
 ## House Systems
 
-The house module must model a complete and extensible catalog of astrological house systems, while allowing phased implementation of that catalog.
+The house module must model a complete and extensible catalog of astrological house systems. Development may be phased, but stable project conformance requires that the full target catalog be implemented.
 
 The house module must provide a common interface that accepts:
 
@@ -36,9 +36,9 @@ The module must return:
 - derived angles including ASC, MC, IC, DSC where meaningful
 - explicit error/status for systems that fail at extreme latitudes or special cases
 
-## Initial Milestone House System Catalog
+## Initial Implementation Milestone
 
-The project end state is support for the full house-system catalog targeted by astrology software. The first implementation milestone must include at minimum:
+The target end state is support for the full house-system catalog targeted by astrology software. The first implementation milestone must include at minimum:
 
 - Placidus
 - Koch
@@ -53,9 +53,11 @@ The project end state is support for the full house-system catalog targeted by a
 - Meridian when represented as a distinct system
 - Vehlow Equal may be included as an extension
 
-Each implemented system must be documented for formula, assumptions, and failure modes, and the catalog must remain open to the rest of the targeted house-system ecosystem without API breakage.
+Each implemented system must be documented for formula, assumptions, and failure modes. The API must remain open to the rest of the targeted house-system ecosystem without redesign or breakage.
 
 ## Ayanamsa Model
+
+Ayanamsa support must include a complete extensible catalog model. Development may be phased, but stable project conformance requires the full target ayanamsa catalog.
 
 Ayanamsa support must include:
 
