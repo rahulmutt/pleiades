@@ -326,4 +326,12 @@ Implemented the next Stage 6 maintenance slice:
 - the Topocentric catalog note now documents the latitude correction so the compatibility profile and crate docs reflect the refined implementation
 - a regression test now pins the geocentric correction at 45° latitude and checks that elevation nudges the effective latitude as expected
 
-Remaining Stage 6 work: broader catalog breadth, optional higher-level helpers, and any remaining release-hardening polish that depends on additional coverage.
+## 2026-04-22 — motion-direction helper added
+
+Implemented another small Stage 6 optional-helper slice:
+
+- `pleiades-types::Motion` now exposes a sign-based longitude-direction helper and the shared `MotionDirection` enum
+- `pleiades-core::BodyPlacement` re-exports that direction classification for chart consumers
+- `pleiades-core` chart rendering now has a dedicated motion column when backend motion data is available, so future reports can surface retrograde/direct state without backend-specific logic
+
+Remaining Stage 6 work: broader catalog breadth, additional optional helpers where they add real chart value, and any remaining release-hardening polish that depends on additional coverage.

@@ -94,7 +94,8 @@ pub use pleiades_houses::{
 pub use pleiades_types::{
     Angle, Ayanamsa, CelestialBody, CoordinateFrame, CustomAyanamsa, CustomBodyId,
     CustomHouseSystem, EclipticCoordinates, EquatorialCoordinates, HouseSystem, Instant, JulianDay,
-    Latitude, Longitude, Motion, ObserverLocation, TimeRange, TimeScale, ZodiacMode, ZodiacSign,
+    Latitude, Longitude, Motion, MotionDirection, ObserverLocation, TimeRange, TimeScale,
+    ZodiacMode, ZodiacSign,
 };
 
 /// A thin façade around a backend implementation.

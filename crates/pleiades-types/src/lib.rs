@@ -677,6 +677,28 @@ impl EquatorialCoordinates {
     }
 }
 
+/// The coarse direction of longitudinal motion.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum MotionDirection {
+    /// Motion is prograde or direct.
+    Direct,
+    /// Motion is effectively stationary at the chosen precision.
+    Stationary,
+    /// Motion is retrograde.
+    Retrograde,
+}
+
+impl fmt::Display for MotionDirection {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let label = match self {
+            Self::Direct => "Direct",
+            Self::Stationary => "Stationary",
+            Self::Retrograde => "Retrograde",
+        };
+        f.write_str(label)
+    }
+}
+
 /// Apparent motion data for a position sample.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Motion {
@@ -700,6 +722,22 @@ impl Motion {
             latitude_deg_per_day,
             distance_au_per_day,
         }
+    }
+
+    /// Returns the coarse longitudinal motion direction when that speed is available.
+    ///
+    /// The classification is sign-based: positive speed is direct, negative speed is retrograde,
+    /// and an exact zero speed is stationary.
+    pub fn longitude_direction(self) -> Option<MotionDirection> {
+        self.longitude_deg_per_day.map(|speed| {
+            if speed > 0.0 {
+                MotionDirection::Direct
+            } else if speed < 0.0 {
+                MotionDirection::Retrograde
+            } else {
+                MotionDirection::Stationary
+            }
+        })
     }
 }
 
@@ -797,5 +835,22 @@ mod tests {
             JulianDay::from_days(2451545.5),
             TimeScale::Utc
         )));
+    }
+
+    #[test]
+    fn motion_direction_tracks_the_sign_of_longitude_speed() {
+        assert_eq!(
+            Motion::new(Some(0.12), None, None).longitude_direction(),
+            Some(MotionDirection::Direct)
+        );
+        assert_eq!(
+            Motion::new(Some(-0.04), None, None).longitude_direction(),
+            Some(MotionDirection::Retrograde)
+        );
+        assert_eq!(
+            Motion::new(Some(0.0), None, None).longitude_direction(),
+            Some(MotionDirection::Stationary)
+        );
+        assert_eq!(Motion::new(None, None, None).longitude_direction(), None);
     }
 }

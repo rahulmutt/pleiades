@@ -14,7 +14,8 @@ use pleiades_backend::{
 };
 use pleiades_houses::{calculate_houses, house_for_longitude, HouseRequest, HouseSnapshot};
 use pleiades_types::{
-    CelestialBody, HouseSystem, Instant, Longitude, ObserverLocation, ZodiacMode, ZodiacSign,
+    CelestialBody, HouseSystem, Instant, Longitude, MotionDirection, ObserverLocation, ZodiacMode,
+    ZodiacSign,
 };
 
 use crate::ChartEngine;
@@ -138,6 +139,13 @@ impl ChartSnapshot {
     }
 }
 
+impl BodyPlacement {
+    /// Returns the coarse direction of longitudinal motion when the backend supplied motion data.
+    pub fn motion_direction(&self) -> Option<MotionDirection> {
+        self.position.motion.as_ref()?.longitude_direction()
+    }
+}
+
 impl fmt::Display for ChartSnapshot {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Backend: {}", self.backend_id)?;
@@ -180,13 +188,18 @@ impl fmt::Display for ChartSnapshot {
                 .house
                 .map(|house| house.to_string())
                 .unwrap_or_else(|| "n/a".to_string());
+            let motion = placement
+                .motion_direction()
+                .map(|direction| direction.to_string())
+                .unwrap_or_else(|| "n/a".to_string());
             writeln!(
                 f,
-                "  - {:<12} {:>9}  {:<10}  {:>3}  {:?}",
+                "  - {:<12} {:>9}  {:<10}  {:>3}  {:<10}  {:?}",
                 placement.body.built_in_name().unwrap_or("Custom"),
                 longitude,
                 sign,
                 house,
+                motion,
                 placement.position.quality,
             )?;
         }
@@ -525,5 +538,33 @@ mod tests {
             .iter()
             .all(|placement| placement.house.is_some()));
         assert!(chart.to_string().contains("House system: Whole Sign"));
+    }
+
+    #[test]
+    fn body_placement_exposes_motion_direction() {
+        let mut result = EphemerisResult::new(
+            BackendId::new("toy-chart"),
+            CelestialBody::Mars,
+            Instant::new(
+                pleiades_types::JulianDay::from_days(2451545.0),
+                TimeScale::Tt,
+            ),
+            pleiades_types::CoordinateFrame::Ecliptic,
+            ZodiacMode::Tropical,
+            Apparentness::Apparent,
+        );
+        result.motion = Some(pleiades_types::Motion::new(Some(-0.012), None, None));
+
+        let placement = BodyPlacement {
+            body: CelestialBody::Mars,
+            position: result,
+            sign: None,
+            house: None,
+        };
+
+        assert_eq!(
+            placement.motion_direction(),
+            Some(MotionDirection::Retrograde)
+        );
     }
 }
