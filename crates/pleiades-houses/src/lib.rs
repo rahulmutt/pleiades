@@ -177,7 +177,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
     HouseSystemDescriptor::new(
         HouseSystem::EqualMidheaven,
         "Equal (MC)",
-        &["Equal from MC", "Equal (from MC)"],
+        &["Equal from MC", "Equal (from MC)", "Equal MC", "Equal Midheaven"],
         "Equal houses anchored at the Midheaven instead of the Ascendant.",
         false,
     ),
@@ -433,7 +433,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
     HouseSystemDescriptor::new(
         HouseSystem::EqualMidheaven,
         "Equal (MC)",
-        &["Equal from MC", "Equal (from MC)"],
+        &["Equal from MC", "Equal (from MC)", "Equal MC", "Equal Midheaven"],
         "Equal houses anchored at the Midheaven instead of the Ascendant.",
         false,
     ),
@@ -538,6 +538,14 @@ mod tests {
         assert_eq!(resolve_house_system("Carter"), Some(HouseSystem::Carter));
         assert_eq!(
             resolve_house_system("Equal (from MC)"),
+            Some(HouseSystem::EqualMidheaven)
+        );
+        assert_eq!(
+            resolve_house_system("Equal MC"),
+            Some(HouseSystem::EqualMidheaven)
+        );
+        assert_eq!(
+            resolve_house_system("Equal Midheaven"),
             Some(HouseSystem::EqualMidheaven)
         );
         assert_eq!(

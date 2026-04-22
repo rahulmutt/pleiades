@@ -51,6 +51,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] The release bundle manifest now records deterministic FNV-1a checksums for the published text artifacts, and the CLI bundle summary surfaces those checksums for release verification.
 - [x] `mise run release-smoke` now exercises the release bundle command locally and in CI so release artifacts stay under automation.
 - [x] The first release-specific house-system additions are now implemented: Equal (MC), Equal (1=Aries), Vehlow Equal, and Sripati are catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
+- [x] Equal (MC) now also accepts the common `Equal MC` and `Equal Midheaven` label variants, tightening the release-line house-system interoperability mapping.
 - [x] The first release-specific ayanamsa additions are now implemented: Lahiri (ICRC), Lahiri (1940), Usha Shashi, Suryasiddhanta (499 CE), Aryabhata (499 CE), and Sassanian are catalogued, resolved, rendered in the compatibility profile, and exposed through the shared ayanamsa resolution path.
 - [x] The next ayanamsa breadth batch is now implemented too: DeLuce and Yukteshwar are catalogued, resolved, rendered in the compatibility profile, and available through the shared catalog path alongside the existing release-specific ayanamsas.
 - [x] Udayagiri has now been added as the next historical/reference-frame ayanamsa batch entry, keeping the release profile synchronized with the catalog breadth increments.
