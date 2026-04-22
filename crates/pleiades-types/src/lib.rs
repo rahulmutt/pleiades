@@ -526,6 +526,8 @@ pub enum Ayanamsa {
     TrueMula,
     /// True Pushya.
     TruePushya,
+    /// Udayagiri.
+    Udayagiri,
     /// Djwhal Khul.
     DjwhalKhul,
     /// J. N. Bhasin.

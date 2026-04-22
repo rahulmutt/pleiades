@@ -321,6 +321,14 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         None,
     ),
     AyanamsaDescriptor::new(
+        Ayanamsa::Udayagiri,
+        "Udayagiri",
+        &["Udayagiri ayanamsa"],
+        "Udayagiri sidereal mode used as a historical reference-frame variant.",
+        None,
+        None,
+    ),
+    AyanamsaDescriptor::new(
         Ayanamsa::DjwhalKhul,
         "Djwhal Khul",
         &["Djwhal", "Djwhal Khul ayanamsa"],
@@ -466,7 +474,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     ),
 ];
 
-static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 48] = [
+static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 49] = [
     AyanamsaDescriptor::new(
         Ayanamsa::Lahiri,
         "Lahiri",
@@ -704,6 +712,14 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 48] = [
         "True Pushya",
         &["Pushya", "True Pushya ayanamsa"],
         "True-nakshatra Pushya reference mode exposed by Swiss Ephemeris.",
+        None,
+        None,
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::Udayagiri,
+        "Udayagiri",
+        &["Udayagiri ayanamsa"],
+        "Udayagiri sidereal mode used as a historical reference-frame variant.",
         None,
         None,
     ),
@@ -985,6 +1001,7 @@ mod tests {
             Some(Ayanamsa::GalacticEquator)
         );
         assert_eq!(resolve_ayanamsa("True Pushya"), Some(Ayanamsa::TruePushya));
+        assert_eq!(resolve_ayanamsa("Udayagiri"), Some(Ayanamsa::Udayagiri));
         assert_eq!(resolve_ayanamsa("Djwhal"), Some(Ayanamsa::DjwhalKhul));
         assert_eq!(resolve_ayanamsa("Bhasin"), Some(Ayanamsa::JnBhasin));
         assert_eq!(
@@ -1030,6 +1047,7 @@ mod tests {
             "Babylonian (Eta Piscium)",
             "Babylonian (Aldebaran)",
             "True Pushya",
+            "Udayagiri",
             "Djwhal Khul",
             "JN Bhasin",
             "Suryasiddhanta (Mean Sun)",

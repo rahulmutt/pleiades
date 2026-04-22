@@ -345,3 +345,13 @@ Implemented a small Stage 6 optional-helper slice:
 - the API stability profile now names the lookup and retrograde helpers as part of the stable chart façade, and the README notes the new ergonomics
 
 Remaining Stage 6 work: broader catalog breadth and any remaining optional helper polish that depends on additional coverage.
+
+## 2026-04-22 — Udayagiri ayanamsa breadth added
+
+Implemented a small Stage 6 catalog-breadth slice:
+
+- `pleiades-types` gained `Ayanamsa::Udayagiri`
+- `pleiades-ayanamsa` now catalogs, resolves, and surfaces Udayagiri in the release compatibility profile
+- `pleiades-core`, the README, and the Stage 6 plan notes now reflect the new breadth entry
+
+Next recommended slice: continue the remaining Swiss Ephemeris ayanamsa breadth or move to any additional release-hardening polish that depends on broader compatibility coverage.
