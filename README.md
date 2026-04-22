@@ -4,13 +4,14 @@ Fast, pure Rust ephemeride utilities for astrological software.
 
 ## Current status
 
-The repository is in the stage-2 semantic-foundation phase:
+The repository is in the stage-3 chart-MVP phase:
 
 - the Rust workspace exists and is organized around `pleiades-*` crates,
 - the local developer toolchain is managed through `mise.toml`,
 - the CI workflow runs formatting, linting, and tests in pure Rust mode,
 - the shared type system, backend contract, and thin façade are now implemented,
-- the algorithmic backends and chart-level astronomy features will arrive in later stages.
+- the baseline house and ayanamsa catalogs plus the compatibility profile scaffold are now published,
+- the algorithmic chart workflow and backend math will arrive in later stages.
 
 ## Local development
 

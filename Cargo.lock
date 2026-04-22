@@ -19,6 +19,9 @@ dependencies = [
 [[package]]
 name = "pleiades-cli"
 version = "0.1.0"
+dependencies = [
+ "pleiades-core",
+]
 
 [[package]]
 name = "pleiades-compression"

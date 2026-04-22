@@ -1,8 +1,9 @@
 //! High-level façade that combines backend queries with astrology-domain logic.
 //!
-//! This crate stays intentionally thin in stage 2: it re-exports the stable
-//! shared types and provides a small backend wrapper that keeps orchestration in
-//! one place without hiding the lower-level contracts.
+//! Stage 3 starts layering in catalog and compatibility information while
+//! keeping the façade intentionally thin. It still delegates query execution to
+//! a backend, but it now also exposes the versioned compatibility profile used
+//! by the CLI and release notes.
 //!
 //! # Examples
 //!
@@ -63,10 +64,20 @@
 
 #![forbid(unsafe_code)]
 
+mod compatibility;
+
+pub use compatibility::{current_compatibility_profile, CompatibilityProfile};
+pub use pleiades_ayanamsa::{
+    baseline_ayanamsas, descriptor as ayanamsa_descriptor, resolve_ayanamsa, AyanamsaDescriptor,
+};
 pub use pleiades_backend::{
     AccuracyClass, Apparentness, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
     BackendProvenance, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
     EphemerisResult, QualityAnnotation,
+};
+pub use pleiades_houses::{
+    baseline_house_systems, descriptor as house_system_descriptor, resolve_house_system,
+    HouseSystemDescriptor,
 };
 pub use pleiades_types::{
     Angle, Ayanamsa, CelestialBody, CoordinateFrame, CustomAyanamsa, CustomBodyId,
@@ -182,5 +193,18 @@ mod tests {
             engine.position(&request).unwrap().backend_id.as_str(),
             "simple"
         );
+    }
+
+    #[test]
+    fn compatibility_profile_surfaces_current_baseline() {
+        let profile = current_compatibility_profile();
+        assert!(profile
+            .house_systems
+            .iter()
+            .any(|entry| entry.canonical_name == "Topocentric"));
+        assert!(profile
+            .ayanamsas
+            .iter()
+            .any(|entry| entry.canonical_name == "Fagan/Bradley"));
     }
 }
