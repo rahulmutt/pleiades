@@ -2,7 +2,7 @@
 
 2. Study PLAN.md and the referenced plan/**/*.md as needed.
 
-3. Pick the next best thing to implement from the plan.
+3. Pick the next best thing to implement from the plan and implement it.
 
 4. If while implementing something, you find that you need to update the spec, write your notes to SPEC-MAILBOX.md
 
