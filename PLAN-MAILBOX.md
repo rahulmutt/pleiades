@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-22 — Direct-placement chart helper added
+
+Implemented a small Stage 6 chart-ergonomics slice:
+
+- `pleiades-core::ChartSnapshot` now exposes `placements_with_motion_direction` plus a convenience `direct_placements` helper so callers can partition chart bodies by motion state without rescanning the placements vector manually
+- the API stability posture, README status notes, and Stage 6 progress notes were updated to mention the new direct/retrograde helper surface explicitly
+- regression coverage now exercises both the retrograde and direct motion paths in the chart façade tests
+
+Remaining Stage 6 work: keep the release-facing chart helpers, catalog breadth, and compatibility profile synchronized as the release hardening work continues.
+
 ## 2026-04-22 — Additional ayanamsa metadata backfill added
 
 Implemented another small Stage 6 release-hardening slice:

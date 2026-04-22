@@ -202,6 +202,21 @@ impl ChartSnapshot {
         })
     }
 
+    /// Returns the placements that are currently classified with a requested motion direction.
+    pub fn placements_with_motion_direction(
+        &self,
+        direction: MotionDirection,
+    ) -> impl Iterator<Item = &BodyPlacement> {
+        self.placements
+            .iter()
+            .filter(move |placement| placement.motion_direction() == Some(direction))
+    }
+
+    /// Returns the placements that are currently classified as direct.
+    pub fn direct_placements(&self) -> impl Iterator<Item = &BodyPlacement> {
+        self.placements_with_motion_direction(MotionDirection::Direct)
+    }
+
     /// Returns the major aspects found in the chart using the built-in orb defaults.
     pub fn major_aspects(&self) -> Vec<AspectMatch> {
         self.aspects_with_definitions(default_aspect_definitions())
@@ -847,6 +862,7 @@ mod tests {
             Latitude::from_degrees(0.0),
             None,
         ));
+        direct.motion = Some(pleiades_types::Motion::new(Some(0.01), None, None));
 
         let chart = ChartSnapshot {
             backend_id: BackendId::new("toy-chart"),
@@ -906,6 +922,20 @@ mod tests {
         );
         assert!(chart.placements_in_house(12).next().is_none());
         assert_eq!(chart.retrograde_placements().count(), 1);
+        assert_eq!(
+            chart
+                .placements_with_motion_direction(MotionDirection::Direct)
+                .map(|placement| placement.body.clone())
+                .collect::<Vec<_>>(),
+            vec![CelestialBody::Sun]
+        );
+        assert_eq!(
+            chart
+                .direct_placements()
+                .map(|placement| placement.body.clone())
+                .collect::<Vec<_>>(),
+            vec![CelestialBody::Sun]
+        );
         assert!(chart.to_string().contains("Retrograde bodies: Mars"));
     }
 
