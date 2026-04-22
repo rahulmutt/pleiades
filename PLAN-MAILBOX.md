@@ -518,3 +518,13 @@ Implemented a small Stage 6 release-hardening slice:
 - README wording now points out that maintainers can inspect body coverage, time-range notes, and accuracy classes without leaving the repository
 
 Remaining Stage 6 work: keep catalog breadth and release notes aligned as new compatibility entries land, and continue any release-hardening polish that depends on broader coverage or automation.
+
+## 2026-04-22 — Galactic Equator (Fiorenza) ayanamsa metadata backfill added
+
+Implemented a small Stage 6 metadata-backfill slice:
+
+- `pleiades-ayanamsa` now carries explicit J2000.0 epoch/offset metadata for `Ayanamsa::GalacticEquatorFiorenza`, using the published 25° reference value
+- `pleiades-core` now reflects that narrower ayanamsa-metadata gap in the compatibility profile, and the Stage 6 progress notes should mention Galactic Equator (Fiorenza) alongside the other metadata-backed exceptions
+- the metadata-coverage summary and compatibility-profile rendering should be updated if any downstream expectations still assume the older missing-metadata set
+
+Remaining Stage 6 work: continue filling out any remaining ayanamsa metadata and catalog breadth while keeping the release profile synchronized with the catalog.
