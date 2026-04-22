@@ -524,6 +524,16 @@ pub enum Ayanamsa {
     TrueRevati,
     /// True Mula.
     TrueMula,
+    /// True Pushya.
+    TruePushya,
+    /// Djwhal Khul.
+    DjwhalKhul,
+    /// J. N. Bhasin.
+    JnBhasin,
+    /// Suryasiddhanta mean-sun variant.
+    Suryasiddhanta499MeanSun,
+    /// Aryabhata mean-sun variant.
+    Aryabhata499MeanSun,
     /// The 1956 Indian Astronomical Ephemeris / ICRC Lahiri definition.
     LahiriIcrc,
     /// Lahiri's 1940 zero-date variant.
@@ -558,10 +568,38 @@ pub enum Ayanamsa {
     BabylonianEtaPiscium,
     /// Babylonian (Aldebaran / 15 Tau).
     BabylonianAldebaran,
+    /// Babylonian (Britton).
+    BabylonianBritton,
+    /// Aryabhata (522 CE).
+    Aryabhata522,
+    /// Lahiri (VP285).
+    LahiriVP285,
+    /// Krishnamurti (VP291).
+    KrishnamurtiVP291,
+    /// True Sheoran.
+    TrueSheoran,
     /// Galactic Center.
     GalacticCenter,
+    /// Galactic Center (Rgilbrand).
+    GalacticCenterRgilbrand,
+    /// Galactic Center (Mardyks).
+    GalacticCenterMardyks,
+    /// Galactic Center (Mula/Wilhelm).
+    GalacticCenterMulaWilhelm,
+    /// Galactic Center (Cochrane).
+    GalacticCenterCochrane,
     /// Galactic Equator.
     GalacticEquator,
+    /// Galactic Equator (IAU 1958).
+    GalacticEquatorIau1958,
+    /// Galactic Equator (True).
+    GalacticEquatorTrue,
+    /// Galactic Equator (Mula).
+    GalacticEquatorMula,
+    /// Galactic Equator (Fiorenza).
+    GalacticEquatorFiorenza,
+    /// Valens Moon.
+    ValensMoon,
     /// A custom ayanamsa formula or offset table.
     Custom(CustomAyanamsa),
 }

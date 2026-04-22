@@ -279,3 +279,13 @@ Implemented another Stage 6 catalog-breadth slice:
 - `pleiades-core`, the compatibility profile, the README, and the Stage 6 progress notes now surface the new breadth batch as release-specific catalog coverage
 
 Remaining Stage 6 work: continue filling out the remaining Swiss Ephemeris ayanamsa breadth and keep the release profile synchronized.
+
+## 2026-04-22 — remaining Swiss Ephemeris ayanamsa breadth batch added
+
+Implemented the next Stage 6 catalog-breadth slice:
+
+- `pleiades-types` gained the remaining named legacy ayanamsa variants and formula modes from the Swiss Ephemeris header: True Pushya, Djwhal Khul, JN Bhasin, Suryasiddhanta (Mean Sun), Aryabhata (Mean Sun), Babylonian (Britton), Aryabhata (522 CE), Lahiri (VP285), Krishnamurti (VP291), True Sheoran, and the remaining Galactic Center / Galactic Equator variants
+- `pleiades-ayanamsa` now catalogs, resolves, and documents those newly added modes with explicit aliases where the header/naming family suggests them
+- `pleiades-core`, the compatibility profile, the CLI, and validation output now surface the expanded ayanamsa breadth and the release profile version was bumped again
+
+Remaining Stage 6 work: keep catalog breadth and release notes aligned as any final Swiss Ephemeris ayanamsa modes are scheduled, plus the rest of the release-hardening backlog.
