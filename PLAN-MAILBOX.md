@@ -64,3 +64,13 @@ Implemented the first Stage 4 slice:
 - validation reports include backend capability matrices, corpus metadata, and per-body delta summaries so later artifacts can stay comparable
 
 Next recommended slice: broaden the validation corpus/time coverage, add archived report outputs, and preserve any discovered regressions in the test corpus.
+
+## 2026-04-22 — benchmark corpus now spans the target window
+
+Implemented the next Stage 4 slice:
+
+- `pleiades-validate` now distinguishes the single-epoch JPL comparison corpus from a three-epoch representative benchmark corpus spanning 1500-2500 CE
+- validation reports now print explicit corpus summaries so maintainers can see the comparison and benchmark time coverage at a glance
+- benchmark command output now uses the representative window corpus, while the comparison report remains locked to the source-backed JPL snapshot
+
+Remaining Stage 4 work: broaden time-range comparison coverage, add archived validation outputs, and capture any additional regression cases in the corpus.

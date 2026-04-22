@@ -10,9 +10,10 @@ use std::fmt;
 use std::time::Instant as StdInstant;
 
 use pleiades_core::{
-    Apparentness, BackendCapabilities, BackendMetadata, CelestialBody, CompositeBackend,
-    CoordinateFrame, EclipticCoordinates, EphemerisBackend, EphemerisError, EphemerisErrorKind,
-    EphemerisRequest, EphemerisResult, Instant, Longitude, TimeScale, ZodiacMode,
+    default_chart_bodies, Apparentness, BackendCapabilities, BackendMetadata, CelestialBody,
+    CompositeBackend, CoordinateFrame, EclipticCoordinates, EphemerisBackend, EphemerisError,
+    EphemerisErrorKind, EphemerisRequest, EphemerisResult, Instant, JulianDay, Longitude,
+    TimeScale, ZodiacMode,
 };
 use pleiades_elp::ElpBackend;
 use pleiades_jpl::{reference_bodies, reference_instant, JplSnapshotBackend};
@@ -24,13 +25,34 @@ const REGRESSION_LONGITUDE_THRESHOLD_DEG: f64 = 45.0;
 const REGRESSION_LATITUDE_THRESHOLD_DEG: f64 = 1.0;
 const REGRESSION_DISTANCE_THRESHOLD_AU: f64 = 0.25;
 
-/// The comparison corpus used by the default validation commands.
+/// A validation corpus made up of request samples.
 #[derive(Clone, Debug)]
 pub struct ValidationCorpus {
     /// Human-readable corpus name.
     pub name: String,
+    /// Short description of what the corpus covers.
+    pub description: &'static str,
     /// Requests sent to both backends.
     pub requests: Vec<EphemerisRequest>,
+}
+
+/// A compact summary of a validation corpus.
+#[derive(Clone, Debug)]
+pub struct CorpusSummary {
+    /// Human-readable corpus name.
+    pub name: String,
+    /// Short description of what the corpus covers.
+    pub description: &'static str,
+    /// Total number of requests in the corpus.
+    pub request_count: usize,
+    /// Number of unique instants covered by the corpus.
+    pub epoch_count: usize,
+    /// Number of unique bodies covered by the corpus.
+    pub body_count: usize,
+    /// Earliest Julian day in the corpus.
+    pub earliest_julian_day: f64,
+    /// Latest Julian day in the corpus.
+    pub latest_julian_day: f64,
 }
 
 impl ValidationCorpus {
@@ -51,6 +73,80 @@ impl ValidationCorpus {
 
         Self {
             name: "JPL Horizons J2000 snapshot".to_string(),
+            description: "Single-epoch source-backed comparison corpus built from the checked-in JPL Horizons snapshot.",
+            requests,
+        }
+    }
+
+    /// Creates a representative benchmark corpus spanning the target 1500-2500 window.
+    pub fn representative_window() -> Self {
+        let bodies = default_chart_bodies();
+        let instants = [
+            Instant::new(JulianDay::from_days(2_268_924.0), TimeScale::Tt),
+            Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+            Instant::new(JulianDay::from_days(2_634_167.0), TimeScale::Tt),
+        ];
+
+        Self::from_epochs(
+            "Representative 1500-2500 window",
+            "Three-epoch benchmark corpus that exercises the algorithmic backend across the compression target range.",
+            &instants,
+            bodies,
+        )
+    }
+
+    /// Returns a compact metadata summary for display purposes.
+    pub fn summary(&self) -> CorpusSummary {
+        let mut epochs = self
+            .requests
+            .iter()
+            .map(|request| request.instant.julian_day.days())
+            .collect::<Vec<_>>();
+        epochs.sort_by(|left, right| left.partial_cmp(right).unwrap_or(std::cmp::Ordering::Equal));
+        epochs.dedup_by(|left, right| (*left - *right).abs() <= f64::EPSILON);
+
+        let mut bodies = Vec::new();
+        for request in &self.requests {
+            if !bodies.contains(&request.body) {
+                bodies.push(request.body.clone());
+            }
+        }
+
+        CorpusSummary {
+            name: self.name.clone(),
+            description: self.description,
+            request_count: self.requests.len(),
+            epoch_count: epochs.len(),
+            body_count: bodies.len(),
+            earliest_julian_day: epochs.first().copied().unwrap_or_default(),
+            latest_julian_day: epochs.last().copied().unwrap_or_default(),
+        }
+    }
+
+    fn from_epochs(
+        name: impl Into<String>,
+        description: &'static str,
+        instants: &[Instant],
+        bodies: &[CelestialBody],
+    ) -> Self {
+        let requests = instants
+            .iter()
+            .copied()
+            .flat_map(|instant| {
+                bodies.iter().cloned().map(move |body| EphemerisRequest {
+                    body,
+                    instant,
+                    observer: None,
+                    frame: CoordinateFrame::Ecliptic,
+                    zodiac_mode: ZodiacMode::Tropical,
+                    apparent: Apparentness::Mean,
+                })
+            })
+            .collect();
+
+        Self {
+            name: name.into(),
+            description,
             requests,
         }
     }
@@ -152,8 +248,10 @@ impl BenchmarkReport {
 /// A full validation report containing comparison and benchmark data.
 #[derive(Clone, Debug)]
 pub struct ValidationReport {
-    /// Corpus name.
-    pub corpus_name: String,
+    /// Comparison corpus summary.
+    pub comparison_corpus: CorpusSummary,
+    /// Benchmark corpus summary.
+    pub benchmark_corpus: CorpusSummary,
     /// Comparison output.
     pub comparison: ComparisonReport,
     /// Benchmark output for the reference backend.
@@ -165,7 +263,12 @@ pub struct ValidationReport {
 impl fmt::Display for ValidationReport {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Validation report")?;
-        writeln!(f, "Corpus: {}", self.corpus_name)?;
+        writeln!(f)?;
+        writeln!(f, "Comparison corpus")?;
+        write_corpus_summary(f, &self.comparison_corpus)?;
+        writeln!(f)?;
+        writeln!(f, "Benchmark corpus")?;
+        write_corpus_summary(f, &self.benchmark_corpus)?;
         writeln!(f)?;
         writeln!(f, "Reference backend")?;
         write_backend_matrix(f, &self.comparison.reference_backend)?;
@@ -178,15 +281,20 @@ impl fmt::Display for ValidationReport {
         writeln!(f)?;
         write_regression_section(f, &self.comparison.notable_regressions())?;
         writeln!(f)?;
-        writeln!(f, "Benchmark summary")?;
+        writeln!(f, "Benchmark summaries")?;
+        writeln!(f, "Reference benchmark")?;
+        writeln!(f, "  corpus: {}", self.reference_benchmark.corpus_name)?;
         writeln!(
             f,
-            "  reference: {} ns/request",
+            "  ns/request: {}",
             format_ns(self.reference_benchmark.nanoseconds_per_request())
         )?;
+        writeln!(f)?;
+        writeln!(f, "Candidate benchmark")?;
+        writeln!(f, "  corpus: {}", self.candidate_benchmark.corpus_name)?;
         writeln!(
             f,
-            "  candidate: {} ns/request",
+            "  ns/request: {}",
             format_ns(self.candidate_benchmark.nanoseconds_per_request())
         )?;
         writeln!(f)?;
@@ -216,6 +324,11 @@ pub fn default_corpus() -> ValidationCorpus {
 /// Returns the CLI banner.
 pub fn banner() -> &'static str {
     BANNER
+}
+
+/// Creates the default benchmark corpus.
+pub fn benchmark_corpus() -> ValidationCorpus {
+    ValidationCorpus::representative_window()
 }
 
 /// Renders the command-line interface output.
@@ -339,15 +452,17 @@ pub fn benchmark_backend(
 
 /// Renders the validation report used by the CLI.
 pub fn render_validation_report(rounds: usize) -> Result<String, EphemerisError> {
-    let corpus = default_corpus();
+    let comparison_corpus = default_corpus();
+    let benchmark_corpus = benchmark_corpus();
     let reference = default_reference_backend();
     let candidate = default_candidate_backend();
-    let comparison = compare_backends(&reference, &candidate, &corpus)?;
-    let reference_benchmark = benchmark_backend(&reference, &corpus, rounds)?;
-    let candidate_benchmark = benchmark_backend(&candidate, &corpus, rounds)?;
+    let comparison = compare_backends(&reference, &candidate, &comparison_corpus)?;
+    let reference_benchmark = benchmark_backend(&reference, &comparison_corpus, rounds)?;
+    let candidate_benchmark = benchmark_backend(&candidate, &benchmark_corpus, rounds)?;
 
     Ok(ValidationReport {
-        corpus_name: corpus.name,
+        comparison_corpus: comparison_corpus.summary(),
+        benchmark_corpus: benchmark_corpus.summary(),
         comparison,
         reference_benchmark,
         candidate_benchmark,
@@ -365,7 +480,7 @@ pub fn render_comparison_report() -> Result<String, EphemerisError> {
 
 /// Renders a benchmark report used by the CLI.
 pub fn render_benchmark_report(rounds: usize) -> Result<String, EphemerisError> {
-    let corpus = default_corpus();
+    let corpus = benchmark_corpus();
     let candidate = default_candidate_backend();
     Ok(benchmark_backend(&candidate, &corpus, rounds)?.to_string())
 }
@@ -436,6 +551,19 @@ fn angular_delta(reference: Longitude, candidate: Longitude) -> f64 {
         .normalized_signed()
         .degrees())
     .abs()
+}
+
+fn write_corpus_summary(f: &mut fmt::Formatter<'_>, corpus: &CorpusSummary) -> fmt::Result {
+    writeln!(f, "  name: {}", corpus.name)?;
+    writeln!(f, "  description: {}", corpus.description)?;
+    writeln!(f, "  requests: {}", corpus.request_count)?;
+    writeln!(f, "  epochs: {}", corpus.epoch_count)?;
+    writeln!(f, "  bodies: {}", corpus.body_count)?;
+    writeln!(
+        f,
+        "  julian day span: {:.1} → {:.1}",
+        corpus.earliest_julian_day, corpus.latest_julian_day
+    )
 }
 
 fn write_backend_matrix(f: &mut fmt::Formatter<'_>, backend: &BackendMetadata) -> fmt::Result {
@@ -638,7 +766,7 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = reference_bodies().len();
     format!(
-        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  benchmark [--rounds N]    Benchmark the candidate backend on the default corpus\n  report [--rounds N]       Render the full validation report\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus\n  report [--rounds N]       Render the full validation report\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
@@ -681,17 +809,33 @@ mod tests {
     fn benchmark_report_renders_a_time_summary() {
         let report = render_benchmark_report(10).expect("benchmark should render");
         assert!(report.contains("Benchmark report"));
+        assert!(report.contains("Representative 1500-2500 window"));
         assert!(report.contains("Nanoseconds per request:"));
     }
 
     #[test]
-    fn validation_report_includes_matrix_sections() {
+    fn validation_report_includes_corpus_metadata() {
         let report = render_validation_report(10).expect("validation report should render");
         assert!(report.contains("Validation report"));
+        assert!(report.contains("Comparison corpus"));
+        assert!(report.contains("Benchmark corpus"));
+        assert!(report.contains("Representative 1500-2500 window"));
         assert!(report.contains("Reference backend"));
         assert!(report.contains("Candidate backend"));
         assert!(report.contains("Comparison summary"));
         assert!(report.contains("Notable regressions"));
+        assert!(report.contains("Reference benchmark"));
+        assert!(report.contains("Candidate benchmark"));
+    }
+
+    #[test]
+    fn benchmark_corpus_spans_the_target_window() {
+        let corpus = benchmark_corpus();
+        let summary = corpus.summary();
+        assert_eq!(summary.epoch_count, 3);
+        assert_eq!(summary.body_count, default_chart_bodies().len());
+        assert_eq!(summary.request_count, 30);
+        assert!(summary.earliest_julian_day < summary.latest_julian_day);
     }
 
     #[test]
