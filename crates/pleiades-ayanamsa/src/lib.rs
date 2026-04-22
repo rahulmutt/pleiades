@@ -164,17 +164,17 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Ayanamsa::SuryasiddhantaRevati,
         "Suryasiddhanta (Revati)",
         &["SS Revati", "Suryasiddhanta Revati", "Surya Siddhanta Revati"],
-        "Swiss Ephemeris SS Revati mode; a Surya Siddhanta Revati reference kept catalogued for interoperability even though no sidereal-offset metadata is published yet.",
-        None,
-        None,
+        "Swiss Ephemeris SS Revati mode, anchored to the published Revati zero point used by the Surya Siddhanta family.",
+        Some(JulianDay::from_days(1_924_230.267_296)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::SuryasiddhantaCitra,
         "Suryasiddhanta (Citra)",
         &["SS Citra", "Suryasiddhanta Citra", "Surya Siddhanta Citra"],
-        "Swiss Ephemeris SS Citra mode; a Surya Siddhanta Citra reference kept catalogued for interoperability even though no sidereal-offset metadata is published yet.",
-        None,
-        None,
+        "Swiss Ephemeris SS Citra mode, anchored to the published Citra zero point used by the Surya Siddhanta family.",
+        Some(JulianDay::from_days(1_903_396.812_865_4)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::LahiriIcrc,
@@ -636,17 +636,17 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
         Ayanamsa::SuryasiddhantaRevati,
         "Suryasiddhanta (Revati)",
         &["SS Revati", "Suryasiddhanta Revati", "Surya Siddhanta Revati"],
-        "Swiss Ephemeris SS Revati mode; a Surya Siddhanta Revati reference kept catalogued for interoperability even though no sidereal-offset metadata is published yet.",
-        None,
-        None,
+        "Swiss Ephemeris SS Revati mode, anchored to the published Revati zero point used by the Surya Siddhanta family.",
+        Some(JulianDay::from_days(1_924_230.267_296)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::SuryasiddhantaCitra,
         "Suryasiddhanta (Citra)",
         &["SS Citra", "Suryasiddhanta Citra", "Surya Siddhanta Citra"],
-        "Swiss Ephemeris SS Citra mode; a Surya Siddhanta Citra reference kept catalogued for interoperability even though no sidereal-offset metadata is published yet.",
-        None,
-        None,
+        "Swiss Ephemeris SS Citra mode, anchored to the published Citra zero point used by the Surya Siddhanta family.",
+        Some(JulianDay::from_days(1_903_396.812_865_4)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::LahiriIcrc,
@@ -1334,6 +1334,22 @@ mod tests {
             Some(JulianDay::from_days(1_855_769.248_315))
         );
         assert_eq!(true_pushya.offset_degrees, Some(Angle::from_degrees(0.0)));
+
+        let ss_revati =
+            descriptor(&Ayanamsa::SuryasiddhantaRevati).expect("Suryasiddhanta Revati descriptor");
+        assert_eq!(
+            ss_revati.epoch,
+            Some(JulianDay::from_days(1_924_230.267_296))
+        );
+        assert_eq!(ss_revati.offset_degrees, Some(Angle::from_degrees(0.0)));
+
+        let ss_citra =
+            descriptor(&Ayanamsa::SuryasiddhantaCitra).expect("Suryasiddhanta Citra descriptor");
+        assert_eq!(
+            ss_citra.epoch,
+            Some(JulianDay::from_days(1_903_396.812_865_4))
+        );
+        assert_eq!(ss_citra.offset_degrees, Some(Angle::from_degrees(0.0)));
 
         let djwhal = descriptor(&Ayanamsa::DjwhalKhul).expect("Djwhal Khul descriptor");
         assert_eq!(djwhal.epoch, Some(JulianDay::from_days(1_706_703.948_006)));
