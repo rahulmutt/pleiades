@@ -84,3 +84,13 @@ Implemented the next Stage 4 slice:
 - regression archive coverage is exercised by tests for both the comparison report and the full validation report
 
 Remaining Stage 4 work: broaden time-range comparison coverage and add asteroid support.
+
+## 2026-04-22 — multi-epoch comparison coverage added
+
+Implemented the next Stage 4 slice:
+
+- `pleiades-jpl` now loads a checked-in multi-epoch Horizons snapshot rather than a single-epoch corpus, which lets the validation layer compare several bodies across a broader date span
+- `pleiades-validate` now builds its comparison corpus from the snapshot rows, so the validation report exercises multiple epochs instead of only J2000.0
+- the Stage 4 plan now reflects that the broader comparison coverage is implemented, while selected asteroid support remains the next open slice
+
+Remaining Stage 4 work: selected asteroid support.

@@ -1,7 +1,7 @@
 //! Validation, comparison, and benchmarking helpers for the workspace.
 //!
 //! The validation crate compares the algorithmic chart backends against the
-//! narrow JPL Horizons snapshot backend and renders reproducible reports for
+//! checked-in JPL Horizons snapshot corpus and renders reproducible reports for
 //! stage-4 work.
 
 #![forbid(unsafe_code)]
@@ -16,7 +16,7 @@ use pleiades_core::{
     TimeScale, ZodiacMode,
 };
 use pleiades_elp::ElpBackend;
-use pleiades_jpl::{reference_bodies, reference_instant, JplSnapshotBackend};
+use pleiades_jpl::{reference_snapshot, JplSnapshotBackend};
 use pleiades_vsop87::Vsop87Backend;
 
 const DEFAULT_BENCHMARK_ROUNDS: usize = 10_000;
@@ -58,12 +58,11 @@ pub struct CorpusSummary {
 impl ValidationCorpus {
     /// Creates the default JPL snapshot corpus.
     pub fn jpl_snapshot() -> Self {
-        let instant = Instant::new(reference_instant().julian_day, TimeScale::Tt);
-        let requests = reference_bodies()
+        let requests = reference_snapshot()
             .iter()
-            .map(|body| EphemerisRequest {
-                body: body.clone(),
-                instant,
+            .map(|entry| EphemerisRequest {
+                body: entry.body.clone(),
+                instant: Instant::new(entry.epoch.julian_day, TimeScale::Tt),
                 observer: None,
                 frame: CoordinateFrame::Ecliptic,
                 zodiac_mode: ZodiacMode::Tropical,
@@ -72,8 +71,8 @@ impl ValidationCorpus {
             .collect();
 
         Self {
-            name: "JPL Horizons J2000 snapshot".to_string(),
-            description: "Single-epoch source-backed comparison corpus built from the checked-in JPL Horizons snapshot.",
+            name: "JPL Horizons comparison window".to_string(),
+            description: "Source-backed comparison corpus built from the checked-in JPL Horizons snapshot across a small set of reference epochs.",
             requests,
         }
     }
@@ -820,7 +819,7 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 }
 
 fn help_text() -> String {
-    let corpus_size = reference_bodies().len();
+    let corpus_size = default_corpus().requests.len();
     format!(
         "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus\n  report [--rounds N]       Render the full validation report\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
@@ -839,16 +838,31 @@ mod tests {
         sidereal_longitude, Apparentness, Ayanamsa, CoordinateFrame, JulianDay, TimeScale,
         ZodiacMode,
     };
+    use pleiades_jpl::reference_bodies;
 
     #[test]
     fn default_corpus_covers_the_reference_snapshot() {
         let corpus = default_corpus();
-        assert_eq!(corpus.requests.len(), 10);
-        assert_eq!(
-            corpus.requests[0].instant.julian_day,
-            reference_instant().julian_day
-        );
-        assert_eq!(corpus.requests[0].instant.scale, TimeScale::Tt);
+        let summary = corpus.summary();
+        assert_eq!(corpus.requests.len(), 20);
+        assert_eq!(summary.epoch_count, 3);
+        assert_eq!(summary.body_count, reference_bodies().len());
+        assert!(corpus
+            .requests
+            .iter()
+            .all(|request| request.instant.scale == TimeScale::Tt));
+        assert!(corpus
+            .requests
+            .iter()
+            .any(|request| request.instant.julian_day.days() == 2_378_499.0));
+        assert!(corpus
+            .requests
+            .iter()
+            .any(|request| request.instant.julian_day.days() == 2_451_545.0));
+        assert!(corpus
+            .requests
+            .iter()
+            .any(|request| request.instant.julian_day.days() == 2_634_167.0));
         assert_eq!(corpus.requests[0].frame, CoordinateFrame::Ecliptic);
         assert_eq!(corpus.requests[0].apparent, Apparentness::Mean);
     }
@@ -856,7 +870,7 @@ mod tests {
     #[test]
     fn comparison_report_uses_the_snapshot_backend() {
         let report = render_comparison_report().expect("comparison should render");
-        assert!(report.contains("JPL Horizons J2000 snapshot"));
+        assert!(report.contains("JPL Horizons comparison window"));
         assert!(report.contains("Reference backend:"));
         assert!(report.contains("Candidate backend:"));
     }
@@ -874,6 +888,7 @@ mod tests {
         let report = render_validation_report(10).expect("validation report should render");
         assert!(report.contains("Validation report"));
         assert!(report.contains("Comparison corpus"));
+        assert!(report.contains("JPL Horizons comparison window"));
         assert!(report.contains("Benchmark corpus"));
         assert!(report.contains("Representative 1500-2500 window"));
         assert!(report.contains("Reference backend"));

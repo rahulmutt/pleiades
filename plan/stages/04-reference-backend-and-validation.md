@@ -53,9 +53,9 @@ Stage 4 validation has started as of 2026-04-22.
 - [x] `pleiades-jpl` now ships a narrow JPL Horizons reference snapshot backend at J2000.0 with explicit provenance metadata and a checked-in source data file.
 - [x] `pleiades-validate` now exposes compare-backends, benchmark, and report commands that operate on the snapshot corpus.
 - [x] Validation reports render backend capability matrices, corpus metadata, per-body deltas, and a dedicated notable-regressions section against the JPL snapshot.
-- [x] Validation reports now distinguish the single-epoch comparison corpus from a representative 1500-2500 benchmark corpus, so the time-window coverage for stage-4 benchmarking is explicit.
+- [x] Validation reports now distinguish the multi-epoch JPL comparison corpus from a representative 1500-2500 benchmark corpus, so the time-window coverage for stage-4 comparison and benchmarking is explicit.
 - [x] Archived regression cases are now preserved in the validation report so previously observed deltas remain visible in the test corpus.
-- [ ] Broader time-range comparison coverage and asteroid support remain for later Stage 4 slices.
+- [ ] Selected asteroid support remains for later Stage 4 slices.
 
 ## Risks to avoid
 

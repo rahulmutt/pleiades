@@ -2,8 +2,9 @@
 //!
 //! This crate provides a narrow, source-backed backend based on a checked-in
 //! JPL Horizons vector snapshot. The backend is intentionally limited to a
-//! single canonical epoch so the stage-4 validation workflow can compare the
-//! algorithmic backends against a reproducible reference corpus.
+//! small set of canonical epochs so the stage-4 validation workflow can
+//! compare the algorithmic backends against a reproducible reference corpus
+//! with a broader time span than the original single-epoch snapshot.
 
 #![forbid(unsafe_code)]
 
@@ -32,6 +33,11 @@ pub fn reference_bodies() -> &'static [pleiades_backend::CelestialBody] {
     snapshot_bodies()
 }
 
+/// The instants covered by the checked-in reference snapshot.
+pub fn reference_epochs() -> &'static [Instant] {
+    snapshot_instants()
+}
+
 /// Returns the parsed reference snapshot entries.
 pub fn reference_snapshot() -> &'static [SnapshotEntry] {
     snapshot_entries()
@@ -50,23 +56,21 @@ impl JplSnapshotBackend {
 
 impl EphemerisBackend for JplSnapshotBackend {
     fn metadata(&self) -> BackendMetadata {
-        let bodies = reference_snapshot()
-            .iter()
-            .map(|entry| entry.body.clone())
-            .collect();
+        let bodies = reference_bodies().to_vec();
+        let epochs = reference_epochs();
         BackendMetadata {
             id: BackendId::new("jpl-snapshot"),
             version: "0.1.0".to_string(),
             family: BackendFamily::ReferenceData,
             provenance: BackendProvenance {
-                summary: "NASA/JPL Horizons DE441 geocentric ecliptic snapshot at J2000.0"
+                summary: "NASA/JPL Horizons DE441 geocentric ecliptic snapshot across a small set of reference epochs"
                     .to_string(),
                 data_sources: vec![
-                    "NASA/JPL Horizons API vector table (DE441)".to_string(),
-                    "Checked-in reference snapshot at JDTDB 2451545.0".to_string(),
+                    "NASA/JPL Horizons API vector tables (DE441)".to_string(),
+                    "Checked-in reference snapshot at canonical comparison epochs".to_string(),
                 ],
             },
-            nominal_range: TimeRange::new(Some(reference_instant()), Some(reference_instant())),
+            nominal_range: TimeRange::new(epochs.first().copied(), epochs.last().copied()),
             supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
             body_coverage: bodies,
             supported_frames: vec![CoordinateFrame::Ecliptic],
@@ -93,13 +97,6 @@ impl EphemerisBackend for JplSnapshotBackend {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::UnsupportedTimeScale,
                 "the JPL snapshot backend only serves TT or TDB requests",
-            ));
-        }
-
-        if (req.instant.julian_day.days() - REFERENCE_EPOCH_JD).abs() > f64::EPSILON {
-            return Err(EphemerisError::new(
-                EphemerisErrorKind::OutOfRangeInstant,
-                "the JPL snapshot backend only serves the J2000.0 reference instant",
             ));
         }
 
@@ -133,11 +130,14 @@ impl EphemerisBackend for JplSnapshotBackend {
 
         let entry = snapshot_entries()
             .iter()
-            .find(|entry| entry.body == req.body)
+            .find(|entry| {
+                entry.body == req.body
+                    && entry.epoch.julian_day.days() == req.instant.julian_day.days()
+            })
             .ok_or_else(|| {
                 EphemerisError::new(
-                    EphemerisErrorKind::UnsupportedBody,
-                    "the requested body is not present in the JPL snapshot corpus",
+                    EphemerisErrorKind::OutOfRangeInstant,
+                    "the requested body is not present in the JPL snapshot corpus at that instant",
                 )
             })?;
 
@@ -161,6 +161,8 @@ impl EphemerisBackend for JplSnapshotBackend {
 pub struct SnapshotEntry {
     /// The body covered by the entry.
     pub body: pleiades_backend::CelestialBody,
+    /// The epoch covered by the entry.
+    pub epoch: Instant,
     /// Cartesian X position in kilometers.
     pub x_km: f64,
     /// Cartesian Y position in kilometers.
@@ -189,10 +191,28 @@ fn snapshot_bodies() -> &'static [pleiades_backend::CelestialBody] {
     static BODIES: OnceLock<Vec<pleiades_backend::CelestialBody>> = OnceLock::new();
     BODIES
         .get_or_init(|| {
-            snapshot_entries()
-                .iter()
-                .map(|entry| entry.body.clone())
-                .collect()
+            let mut bodies = Vec::new();
+            for entry in snapshot_entries() {
+                if !bodies.contains(&entry.body) {
+                    bodies.push(entry.body.clone());
+                }
+            }
+            bodies
+        })
+        .as_slice()
+}
+
+fn snapshot_instants() -> &'static [Instant] {
+    static INSTANTS: OnceLock<Vec<Instant>> = OnceLock::new();
+    INSTANTS
+        .get_or_init(|| {
+            let mut instants = Vec::new();
+            for entry in snapshot_entries() {
+                if !instants.contains(&entry.epoch) {
+                    instants.push(entry.epoch);
+                }
+            }
+            instants
         })
         .as_slice()
 }
@@ -200,7 +220,7 @@ fn snapshot_bodies() -> &'static [pleiades_backend::CelestialBody] {
 fn load_snapshot() -> Vec<SnapshotEntry> {
     include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/data/j2000_snapshot.csv"
+        "/data/reference_snapshot.csv"
     ))
     .lines()
     .enumerate()
@@ -215,6 +235,9 @@ fn parse_snapshot_line(line_number: usize, line: &str) -> Option<SnapshotEntry> 
     }
 
     let mut parts = trimmed.split(',').map(str::trim);
+    let epoch_jd = parts
+        .next()
+        .unwrap_or_else(|| panic!("missing epoch on line {line_number}"));
     let body = parts
         .next()
         .unwrap_or_else(|| panic!("missing body on line {line_number}"));
@@ -234,6 +257,10 @@ fn parse_snapshot_line(line_number: usize, line: &str) -> Option<SnapshotEntry> 
 
     Some(SnapshotEntry {
         body: parse_body(body, line_number),
+        epoch: Instant::new(
+            JulianDay::from_days(parse_f64(epoch_jd, line_number, "epoch_jd")),
+            TimeScale::Tdb,
+        ),
         x_km: parse_f64(x_km, line_number, "x_km"),
         y_km: parse_f64(y_km, line_number, "y_km"),
         z_km: parse_f64(z_km, line_number, "z_km"),
@@ -268,7 +295,7 @@ mod tests {
     use pleiades_backend::{Apparentness, EphemerisRequest};
 
     #[test]
-    fn reference_snapshot_covers_the_expected_bodies() {
+    fn reference_snapshot_covers_the_expected_bodies_and_epochs() {
         let metadata = JplSnapshotBackend::new().metadata();
         assert!(metadata
             .body_coverage
@@ -276,7 +303,18 @@ mod tests {
         assert!(metadata
             .body_coverage
             .contains(&pleiades_backend::CelestialBody::Moon));
-        assert_eq!(metadata.nominal_range.start, metadata.nominal_range.end);
+        assert!(metadata
+            .body_coverage
+            .contains(&pleiades_backend::CelestialBody::Pluto));
+        assert!(metadata.nominal_range.start.is_some());
+        assert!(metadata.nominal_range.end.is_some());
+        let start = metadata
+            .nominal_range
+            .start
+            .expect("start epoch should exist");
+        let end = metadata.nominal_range.end.expect("end epoch should exist");
+        assert!(start.julian_day.days() < end.julian_day.days());
+        assert_eq!(reference_epochs().len(), 3);
     }
 
     #[test]
@@ -309,10 +347,35 @@ mod tests {
     fn snapshot_data_matches_the_known_j2000_sun_longitude() {
         let entry = reference_snapshot()
             .iter()
-            .find(|entry| entry.body == pleiades_backend::CelestialBody::Sun)
-            .expect("sun entry should exist");
+            .find(|entry| {
+                entry.body == pleiades_backend::CelestialBody::Sun
+                    && entry.epoch.julian_day.days() == REFERENCE_EPOCH_JD
+            })
+            .expect("sun entry should exist at J2000");
 
         let longitude = entry.ecliptic().longitude.degrees();
         assert!((longitude - 280.3778227681435).abs() < 1e-9);
+    }
+
+    #[test]
+    fn snapshot_backend_resolves_a_later_epoch() {
+        let backend = JplSnapshotBackend;
+        let request = EphemerisRequest {
+            body: pleiades_backend::CelestialBody::Mars,
+            instant: Instant::new(JulianDay::from_days(2_634_167.0), TimeScale::Tt),
+            observer: None,
+            frame: CoordinateFrame::Ecliptic,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparent: Apparentness::Mean,
+        };
+
+        let result = backend
+            .position(&request)
+            .expect("reference snapshot should resolve at the later epoch");
+        let ecliptic = result
+            .ecliptic
+            .expect("reference snapshot should include ecliptic coordinates");
+        assert!(ecliptic.longitude.degrees().is_finite());
+        assert!(ecliptic.latitude.degrees().is_finite());
     }
 }
