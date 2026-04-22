@@ -137,14 +137,14 @@ Remaining Stage 6 work: catalog breadth expansion and any broader release-harden
 
 ## 2026-04-22 — release catalog breadth expanded
 
-Implemented the next Stage 6 slice:
+Implemented the next Stage 6 catalog-breadth slice:
 
 - `pleiades-types` gained new house-system variants for Equal (MC), Vehlow Equal, and Sripati
 - `pleiades-houses` now catalogs, resolves, documents, and calculates those three release-specific house systems alongside the baseline milestone
 - `pleiades-core` and the release compatibility profile now distinguish the new release-specific house-system coverage from the baseline milestone
 - `pleiades-cli` and `pleiades-validate` now report the updated compatibility profile identifier and release-specific coverage sections
 
-Remaining Stage 6 work: broader catalog breadth, API posture review, and any remaining release-hardening polish that depends on additional coverage.
+Remaining Stage 6 work: broader house-system breadth, API posture review, and any remaining release-hardening polish that depends on additional coverage.
 
 ## 2026-04-22 — fixed zodiac-sign house addition
 
@@ -227,3 +227,13 @@ Implemented the remaining Stage 6 release-hardening slice that makes the public 
 - the README now states which surfaces are intended to be stable, which remain tooling-internal, and how deprecations will be handled
 
 Stage 6 now has a clear consumer-facing API posture; the next maintenance work is to keep that profile aligned with future release changes.
+
+## 2026-04-22 — release bundle now includes API stability posture
+
+Implemented a release-hardening polish slice:
+
+- `pleiades-validate bundle-release --out DIR` now writes `api-stability.txt` alongside the compatibility profile and validation report
+- the bundle manifest now records the API stability posture identifier so release archives can be traced back to both public profiles
+- release bundle output and documentation now call out the extra posture artifact explicitly
+
+Next recommended slice: keep the release bundle manifest aligned with future profile changes, or move on to any remaining stage-6 maintenance work that depends on new catalog breadth.

@@ -276,19 +276,23 @@ pub struct ValidationReport {
     pub candidate_benchmark: BenchmarkReport,
 }
 
-/// A generated release bundle containing the compatibility profile and validation report.
+/// A generated release bundle containing the compatibility profile, API posture, and validation report.
 #[derive(Clone, Debug)]
 pub struct ReleaseBundle {
     /// Output directory chosen by the caller.
     pub output_dir: PathBuf,
     /// Path to the generated compatibility profile file.
     pub compatibility_profile_path: PathBuf,
+    /// Path to the generated API stability posture file.
+    pub api_stability_path: PathBuf,
     /// Path to the generated validation report file.
     pub validation_report_path: PathBuf,
     /// Path to the generated bundle manifest.
     pub manifest_path: PathBuf,
     /// Number of bytes written for the compatibility profile.
     pub compatibility_profile_bytes: usize,
+    /// Number of bytes written for the API stability posture.
+    pub api_stability_bytes: usize,
     /// Number of bytes written for the validation report.
     pub validation_report_bytes: usize,
 }
@@ -298,7 +302,7 @@ pub struct ReleaseBundle {
 pub enum ReleaseBundleError {
     /// File-system failure while creating or writing the bundle.
     Io(std::io::Error),
-    /// Validation failure while rendering the compatibility profile or report.
+    /// Validation failure while rendering the compatibility profile, API posture, or report.
     Validation(EphemerisError),
 }
 
@@ -404,6 +408,11 @@ impl fmt::Display for ReleaseBundle {
         )?;
         writeln!(
             f,
+            "  API stability posture: {}",
+            self.api_stability_path.display()
+        )?;
+        writeln!(
+            f,
             "  validation report: {}",
             self.validation_report_path.display()
         )?;
@@ -412,6 +421,11 @@ impl fmt::Display for ReleaseBundle {
             f,
             "  compatibility profile bytes: {}",
             self.compatibility_profile_bytes
+        )?;
+        writeln!(
+            f,
+            "  API stability posture bytes: {}",
+            self.api_stability_bytes
         )?;
         writeln!(
             f,
@@ -570,7 +584,7 @@ pub fn benchmark_backend(
     })
 }
 
-/// Writes a release bundle containing the compatibility profile, validation report, and a manifest.
+/// Writes a release bundle containing the compatibility profile, API posture, validation report, and a manifest.
 pub fn render_release_bundle(
     rounds: usize,
     output_dir: impl AsRef<Path>,
@@ -579,26 +593,32 @@ pub fn render_release_bundle(
     fs::create_dir_all(output_dir)?;
 
     let profile_text = current_compatibility_profile().to_string();
+    let api_stability_text = current_api_stability_profile().to_string();
     let validation_report = render_validation_report(rounds)?;
     let profile_path = output_dir.join("compatibility-profile.txt");
+    let api_stability_path = output_dir.join("api-stability.txt");
     let report_path = output_dir.join("validation-report.txt");
     let manifest_path = output_dir.join("bundle-manifest.txt");
     let manifest_text = format!(
-        "Release bundle manifest\nprofile: compatibility-profile.txt\nvalidation report: validation-report.txt\nprofile id: {}\nvalidation rounds: {}\n",
+        "Release bundle manifest\nprofile: compatibility-profile.txt\napi stability posture: api-stability.txt\nvalidation report: validation-report.txt\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
         current_compatibility_profile().profile_id,
+        current_api_stability_profile().profile_id,
         rounds,
     );
 
     fs::write(&profile_path, profile_text.as_bytes())?;
+    fs::write(&api_stability_path, api_stability_text.as_bytes())?;
     fs::write(&report_path, validation_report.as_bytes())?;
     fs::write(&manifest_path, manifest_text.as_bytes())?;
 
     Ok(ReleaseBundle {
         output_dir: output_dir.to_path_buf(),
         compatibility_profile_path: profile_path,
+        api_stability_path,
         validation_report_path: report_path,
         manifest_path,
         compatibility_profile_bytes: profile_text.len(),
+        api_stability_bytes: api_stability_text.len(),
         validation_report_bytes: validation_report.len(),
     })
 }
@@ -958,7 +978,7 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = default_corpus().requests.len();
     format!(
-        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus\n  report [--rounds N]       Render the full validation report\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  bundle-release --out DIR  Write the release compatibility profile, validation report, and manifest\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus\n  report [--rounds N]       Render the full validation report\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  bundle-release --out DIR  Write the release compatibility profile, API posture, validation report, and manifest\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
@@ -1187,20 +1207,26 @@ mod tests {
 
         assert!(rendered.contains("Release bundle"));
         assert!(rendered.contains("compatibility-profile.txt"));
+        assert!(rendered.contains("API stability posture:"));
+        assert!(rendered.contains("api-stability.txt"));
         assert!(rendered.contains("validation-report.txt"));
 
         let profile = std::fs::read_to_string(bundle_dir.join("compatibility-profile.txt"))
             .expect("compatibility profile should be written");
+        let api_stability = std::fs::read_to_string(bundle_dir.join("api-stability.txt"))
+            .expect("API stability posture should be written");
         let report = std::fs::read_to_string(bundle_dir.join("validation-report.txt"))
             .expect("validation report should be written");
         let manifest = std::fs::read_to_string(bundle_dir.join("bundle-manifest.txt"))
             .expect("manifest should be written");
 
         assert!(profile.contains("Compatibility profile: pleiades-compatibility-profile/0.6.1"));
+        assert!(api_stability.contains("API stability posture: pleiades-api-stability/0.1.0"));
         assert!(report.contains("Validation report"));
         assert!(manifest.contains("Release bundle manifest"));
         assert!(manifest.contains("validation rounds: 1"));
         assert!(manifest.contains("compatibility-profile.txt"));
+        assert!(manifest.contains("api-stability.txt"));
         assert!(manifest.contains("validation-report.txt"));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
