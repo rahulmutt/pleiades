@@ -497,9 +497,9 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Ayanamsa::ValensMoon,
         "Valens Moon",
         &["Valens", "Moon sign ayanamsa"],
-        "Valens Moon sidereal mode.",
-        None,
-        None,
+        "Valens Moon sidereal mode, catalogued with the Swiss Ephemeris reference epoch and offset from the header metadata.",
+        Some(JulianDay::from_days(1_775_845.5)),
+        Some(Angle::from_degrees(-2.942_2)),
     ),
 ];
 
@@ -921,9 +921,9 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 52] = [
         Ayanamsa::ValensMoon,
         "Valens Moon",
         &["Valens", "Moon sign ayanamsa"],
-        "Valens Moon sidereal mode.",
-        None,
-        None,
+        "Valens Moon sidereal mode, catalogued with the Swiss Ephemeris reference epoch and offset from the header metadata.",
+        Some(JulianDay::from_days(1_775_845.5)),
+        Some(Angle::from_degrees(-2.942_2)),
     ),
 ];
 
@@ -1212,6 +1212,10 @@ mod tests {
         );
         assert_eq!(galactic.offset_degrees, Some(Angle::from_degrees(0.0)));
 
+        let valens = descriptor(&Ayanamsa::ValensMoon).expect("Valens Moon descriptor");
+        assert_eq!(valens.epoch, Some(JulianDay::from_days(1_775_845.5)));
+        assert_eq!(valens.offset_degrees, Some(Angle::from_degrees(-2.942_2)));
+
         let instant = Instant::new(
             JulianDay::from_days(2_451_545.0),
             pleiades_types::TimeScale::Tt,
@@ -1222,6 +1226,10 @@ mod tests {
             .is_finite());
         assert!(sidereal_offset(&Ayanamsa::GalacticEquatorIau1958, instant)
             .expect("Galactic Equator offset should exist")
+            .degrees()
+            .is_finite());
+        assert!(sidereal_offset(&Ayanamsa::ValensMoon, instant)
+            .expect("Valens Moon offset should exist")
             .degrees()
             .is_finite());
     }

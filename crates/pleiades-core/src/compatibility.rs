@@ -80,7 +80,7 @@ pub const fn current_compatibility_profile() -> CompatibilityProfile {
         known_gaps: &[
             "Stage 4 validation against external reference data is still the next source of accuracy tightening for house formulas.",
             "Additional Swiss Ephemeris ayanamsa modes remain scheduled for future release-breadth batches, even after adding the Hipparchus, Babylonian, Galactic, True Pushya, Djwhal Khul, JN Bhasin, mean-sun, and VP285/VP291 families to the catalog.",
-            "The newly added historical/reference-frame and formula-variant ayanamsa modes are catalogued and resolvable, but most do not yet carry sidereal offset metadata for chart-layer conversion; Babylonian (Huber), Galactic Equator (IAU 1958), and Udayagiri now do.",
+            "The newly added historical/reference-frame and formula-variant ayanamsa modes are catalogued and resolvable, but most do not yet carry sidereal offset metadata for chart-layer conversion; Babylonian (Huber), Galactic Equator (IAU 1958), Udayagiri, and Valens Moon now do.",
         ],
     }
 }

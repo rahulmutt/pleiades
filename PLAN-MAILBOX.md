@@ -280,15 +280,15 @@ Remaining Stage 6 work: keep catalog breadth and release notes aligned as additi
 
 - The release bundle manifest now includes deterministic FNV-1a checksums for the compatibility profile, API stability posture, and validation report, and the CLI release-bundle summary surfaces them for verification.
 
-## 2026-04-22 — additional ayanamsa breadth added
+## 2026-04-22 — Valens Moon ayanamsa metadata added
 
-Implemented the next Stage 6 catalog-breadth slice:
+Implemented a small Stage 6 metadata-backfill slice:
 
-- `pleiades-types` gained `Ayanamsa::PvrPushyaPaksha` and `Ayanamsa::Sheoran`
-- `pleiades-ayanamsa` now catalogs, resolves, documents, and exposes PVR Pushya-paksha and Sheoran as release-specific ayanamsa modes with aliases drawn from the Swiss Ephemeris naming family
-- `pleiades-core`, the compatibility profile, the CLI, validation output, README, and the Stage 6 plan notes now reflect the broadened release-specific ayanamsa coverage
+- `pleiades-ayanamsa` now carries the Swiss Ephemeris reference epoch and offset metadata for `Ayanamsa::ValensMoon`, matching the values published in the upstream header
+- `pleiades-core` now reflects that metadata-backed exception in the compatibility profile, so the remaining ayanamsa metadata gap is a little narrower
+- tests now verify the Valens Moon descriptor and the sidereal-offset helper path alongside the existing Huber and Galactic Equator reference metadata checks
 
-Remaining Stage 6 work: keep catalog breadth and release notes aligned as additional Swiss Ephemeris ayanamsa modes are scheduled.
+Remaining Stage 6 work: keep filling out any remaining ayanamsa metadata and catalog breadth while the release profile stays synchronized with the catalog.
 
 ## 2026-04-22 — historical/reference-frame ayanamsa batch added
 
