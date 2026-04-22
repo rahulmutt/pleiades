@@ -441,6 +441,19 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         None,
     ),
     AyanamsaDescriptor::new(
+        Ayanamsa::DhruvaGalacticCenterMula,
+        "Dhruva Galactic Center (Middle Mula)",
+        &[
+            "Dhruva/Gal.Center/Mula",
+            "Dhruva Galactic Center Middle Mula",
+            "Dhruva Middle Mula",
+            "Middle of Mula",
+        ],
+        "Dhruva projection of the Galactic Center to the middle of Mula for interoperability with Wilhelm-style sidereal selections.",
+        None,
+        None,
+    ),
+    AyanamsaDescriptor::new(
         Ayanamsa::GalacticCenterCochrane,
         "Galactic Center (Cochrane)",
         &["Cochrane", "Galactic center Cochrane"],
@@ -490,7 +503,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     ),
 ];
 
-static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 51] = [
+static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 52] = [
     AyanamsaDescriptor::new(
         Ayanamsa::Lahiri,
         "Lahiri",
@@ -852,6 +865,19 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 51] = [
         None,
     ),
     AyanamsaDescriptor::new(
+        Ayanamsa::DhruvaGalacticCenterMula,
+        "Dhruva Galactic Center (Middle Mula)",
+        &[
+            "Dhruva/Gal.Center/Mula",
+            "Dhruva Galactic Center Middle Mula",
+            "Dhruva Middle Mula",
+            "Middle of Mula",
+        ],
+        "Dhruva projection of the Galactic Center to the middle of Mula for interoperability with Wilhelm-style sidereal selections.",
+        None,
+        None,
+    ),
+    AyanamsaDescriptor::new(
         Ayanamsa::GalacticCenterCochrane,
         "Galactic Center (Cochrane)",
         &["Cochrane", "Galactic center Cochrane"],
@@ -1037,6 +1063,10 @@ mod tests {
         );
         assert_eq!(resolve_ayanamsa("0 Sag"), Some(Ayanamsa::GalacticCenter));
         assert_eq!(
+            resolve_ayanamsa("Dhruva/Gal.Center/Mula"),
+            Some(Ayanamsa::DhruvaGalacticCenterMula)
+        );
+        assert_eq!(
             resolve_ayanamsa("Gal. Eq."),
             Some(Ayanamsa::GalacticEquator)
         );
@@ -1103,6 +1133,7 @@ mod tests {
             "Galactic Center (Rgilbrand)",
             "Galactic Center (Mardyks)",
             "Galactic Center (Mula/Wilhelm)",
+            "Dhruva Galactic Center (Middle Mula)",
             "Galactic Center (Cochrane)",
             "Galactic Equator",
             "Galactic Equator (IAU 1958)",

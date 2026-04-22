@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-22 — Dhruva Galactic Center (Middle Mula) ayanamsa added
+
+Implemented another Stage 6 catalog-breadth slice:
+
+- `pleiades-types` now includes a dedicated `DhruvaGalacticCenterMula` ayanamsa variant for the middle-of-Mula galactic-center selection
+- `pleiades-ayanamsa` now catalogs, resolves, and documents Dhruva Galactic Center (Middle Mula) with explicit aliases for the Swiss Ephemeris / Wilhelm naming family
+- `pleiades-core`, the compatibility profile, the README, and the Stage 6 progress notes now surface the new breadth entry so release notes stay synchronized with the catalog
+
+Remaining Stage 6 work: keep catalog breadth and the release profile synchronized as additional Swiss Ephemeris ayanamsa modes are scheduled.
+
 ## 2026-04-22 — backend capability matrices now include nominal ranges
 
 Implemented a small Stage 6 release-hardening slice:

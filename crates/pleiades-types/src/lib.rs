@@ -592,6 +592,8 @@ pub enum Ayanamsa {
     GalacticCenterMardyks,
     /// Galactic Center (Mula/Wilhelm).
     GalacticCenterMulaWilhelm,
+    /// Dhruva Galactic Center (Middle Mula).
+    DhruvaGalacticCenterMula,
     /// Galactic Center (Cochrane).
     GalacticCenterCochrane,
     /// Galactic Equator.
