@@ -13,6 +13,7 @@
 
 #![forbid(unsafe_code)]
 
+use core::fmt;
 use std::sync::OnceLock;
 
 use pleiades_backend::{
@@ -45,7 +46,7 @@ pub fn reference_epochs() -> &'static [Instant] {
 
 /// Returns the parsed reference snapshot entries.
 pub fn reference_snapshot() -> &'static [SnapshotEntry] {
-    snapshot_entries()
+    snapshot_entries().unwrap_or(&[])
 }
 
 /// Returns the comparison-only subset used by the stage-4 validation corpus.
@@ -73,6 +74,7 @@ impl EphemerisBackend for JplSnapshotBackend {
     fn metadata(&self) -> BackendMetadata {
         let bodies = reference_bodies().to_vec();
         let epochs = reference_epochs();
+        let dataset_missing = snapshot_error().is_some();
         BackendMetadata {
             id: BackendId::new("jpl-snapshot"),
             version: "0.1.0".to_string(),
@@ -85,7 +87,11 @@ impl EphemerisBackend for JplSnapshotBackend {
                     "Checked-in reference snapshot at canonical comparison epochs".to_string(),
                 ],
             },
-            nominal_range: TimeRange::new(epochs.first().copied(), epochs.last().copied()),
+            nominal_range: if dataset_missing {
+                TimeRange::new(None, None)
+            } else {
+                TimeRange::new(epochs.first().copied(), epochs.last().copied())
+            },
             supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
             body_coverage: bodies,
             supported_frames: vec![CoordinateFrame::Ecliptic],
@@ -104,7 +110,9 @@ impl EphemerisBackend for JplSnapshotBackend {
     }
 
     fn supports_body(&self, body: pleiades_backend::CelestialBody) -> bool {
-        snapshot_entries().iter().any(|entry| entry.body == body)
+        snapshot_entries()
+            .map(|entries| entries.iter().any(|entry| entry.body == body))
+            .unwrap_or(false)
     }
 
     fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
@@ -143,11 +151,19 @@ impl EphemerisBackend for JplSnapshotBackend {
             ));
         }
 
+        if let Some(error) = snapshot_error() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::MissingDataset,
+                format!("the JPL snapshot corpus could not be loaded: {error}"),
+            ));
+        }
+
         let entry = snapshot_entries()
-            .iter()
-            .find(|entry| {
-                entry.body == req.body
-                    && entry.epoch.julian_day.days() == req.instant.julian_day.days()
+            .and_then(|entries| {
+                entries.iter().find(|entry| {
+                    entry.body == req.body
+                        && entry.epoch.julian_day.days() == req.instant.julian_day.days()
+                })
             })
             .ok_or_else(|| {
                 EphemerisError::new(
@@ -197,9 +213,80 @@ impl SnapshotEntry {
     }
 }
 
-fn snapshot_entries() -> &'static [SnapshotEntry] {
-    static SNAPSHOT: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
-    SNAPSHOT.get_or_init(load_snapshot).as_slice()
+enum SnapshotState {
+    Loaded(Vec<SnapshotEntry>),
+    Failed(SnapshotLoadError),
+}
+
+impl SnapshotState {
+    fn entries(&self) -> Option<&[SnapshotEntry]> {
+        match self {
+            Self::Loaded(entries) => Some(entries.as_slice()),
+            Self::Failed(_) => None,
+        }
+    }
+
+    fn error(&self) -> Option<&SnapshotLoadError> {
+        match self {
+            Self::Loaded(_) => None,
+            Self::Failed(error) => Some(error),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct SnapshotLoadError {
+    line_number: usize,
+    kind: SnapshotLoadErrorKind,
+}
+
+impl SnapshotLoadError {
+    fn new(line_number: usize, kind: SnapshotLoadErrorKind) -> Self {
+        Self { line_number, kind }
+    }
+}
+
+impl fmt::Display for SnapshotLoadError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "line {}: {}", self.line_number, self.kind)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum SnapshotLoadErrorKind {
+    MissingColumn { column: &'static str },
+    UnexpectedExtraColumns,
+    UnsupportedBody { body: String },
+    InvalidNumber { column: &'static str, value: String },
+}
+
+impl fmt::Display for SnapshotLoadErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::MissingColumn { column } => write!(f, "missing {column} column"),
+            Self::UnexpectedExtraColumns => f.write_str("unexpected extra columns"),
+            Self::UnsupportedBody { body } => write!(f, "unsupported body '{body}'"),
+            Self::InvalidNumber { column, value } => {
+                write!(f, "invalid {column} value '{value}'")
+            }
+        }
+    }
+}
+
+fn snapshot_state() -> &'static SnapshotState {
+    static STATE: OnceLock<SnapshotState> = OnceLock::new();
+    STATE.get_or_init(|| match load_snapshot() {
+        Ok(entries) => SnapshotState::Loaded(entries),
+        Err(error) => SnapshotState::Failed(error),
+    })
+}
+
+fn snapshot_entries() -> Option<&'static [SnapshotEntry]> {
+    snapshot_state().entries()
+}
+
+fn snapshot_error() -> Option<&'static SnapshotLoadError> {
+    snapshot_state().error()
 }
 
 fn snapshot_bodies() -> &'static [pleiades_backend::CelestialBody] {
@@ -207,9 +294,11 @@ fn snapshot_bodies() -> &'static [pleiades_backend::CelestialBody] {
     BODIES
         .get_or_init(|| {
             let mut bodies = Vec::new();
-            for entry in snapshot_entries() {
-                if !bodies.contains(&entry.body) {
-                    bodies.push(entry.body.clone());
+            if let Some(entries) = snapshot_entries() {
+                for entry in entries {
+                    if !bodies.contains(&entry.body) {
+                        bodies.push(entry.body.clone());
+                    }
                 }
             }
             bodies
@@ -222,7 +311,8 @@ fn comparison_snapshot_entries() -> &'static [SnapshotEntry] {
     SNAPSHOT
         .get_or_init(|| {
             snapshot_entries()
-                .iter()
+                .into_iter()
+                .flatten()
                 .filter(|entry| is_comparison_body(&entry.body))
                 .cloned()
                 .collect()
@@ -250,9 +340,11 @@ fn snapshot_instants() -> &'static [Instant] {
     INSTANTS
         .get_or_init(|| {
             let mut instants = Vec::new();
-            for entry in snapshot_entries() {
-                if !instants.contains(&entry.epoch) {
-                    instants.push(entry.epoch);
+            if let Some(entries) = snapshot_entries() {
+                for entry in entries {
+                    if !instants.contains(&entry.epoch) {
+                        instants.push(entry.epoch);
+                    }
                 }
             }
             instants
@@ -260,58 +352,76 @@ fn snapshot_instants() -> &'static [Instant] {
         .as_slice()
 }
 
-fn load_snapshot() -> Vec<SnapshotEntry> {
-    include_str!(concat!(
+fn load_snapshot() -> Result<Vec<SnapshotEntry>, SnapshotLoadError> {
+    load_snapshot_from_str(include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/data/reference_snapshot.csv"
-    ))
-    .lines()
-    .enumerate()
-    .filter_map(|(index, line)| parse_snapshot_line(index + 1, line))
-    .collect()
+    )))
 }
 
-fn parse_snapshot_line(line_number: usize, line: &str) -> Option<SnapshotEntry> {
+fn load_snapshot_from_str(source: &str) -> Result<Vec<SnapshotEntry>, SnapshotLoadError> {
+    source
+        .lines()
+        .enumerate()
+        .map(|(index, line)| parse_snapshot_line(index + 1, line))
+        .try_fold(Vec::new(), |mut entries, record| {
+            if let Some(entry) = record? {
+                entries.push(entry);
+            }
+            Ok(entries)
+        })
+}
+
+fn parse_snapshot_line(
+    line_number: usize,
+    line: &str,
+) -> Result<Option<SnapshotEntry>, SnapshotLoadError> {
     let trimmed = line.trim();
     if trimmed.is_empty() || trimmed.starts_with('#') {
-        return None;
+        return Ok(None);
     }
 
     let mut parts = trimmed.split(',').map(str::trim);
-    let epoch_jd = parts
-        .next()
-        .unwrap_or_else(|| panic!("missing epoch on line {line_number}"));
-    let body = parts
-        .next()
-        .unwrap_or_else(|| panic!("missing body on line {line_number}"));
-    let x_km = parts
-        .next()
-        .unwrap_or_else(|| panic!("missing x coordinate on line {line_number}"));
-    let y_km = parts
-        .next()
-        .unwrap_or_else(|| panic!("missing y coordinate on line {line_number}"));
-    let z_km = parts
-        .next()
-        .unwrap_or_else(|| panic!("missing z coordinate on line {line_number}"));
+    let epoch_jd = next_part(&mut parts, line_number, "epoch")?;
+    let body = next_part(&mut parts, line_number, "body")?;
+    let x_km = next_part(&mut parts, line_number, "x")?;
+    let y_km = next_part(&mut parts, line_number, "y")?;
+    let z_km = next_part(&mut parts, line_number, "z")?;
 
     if parts.next().is_some() {
-        panic!("unexpected extra columns on line {line_number}");
+        return Err(SnapshotLoadError::new(
+            line_number,
+            SnapshotLoadErrorKind::UnexpectedExtraColumns,
+        ));
     }
 
-    Some(SnapshotEntry {
-        body: parse_body(body, line_number),
+    Ok(Some(SnapshotEntry {
+        body: parse_body(body, line_number)?,
         epoch: Instant::new(
-            JulianDay::from_days(parse_f64(epoch_jd, line_number, "epoch_jd")),
+            JulianDay::from_days(parse_f64(epoch_jd, line_number, "epoch_jd")?),
             TimeScale::Tdb,
         ),
-        x_km: parse_f64(x_km, line_number, "x_km"),
-        y_km: parse_f64(y_km, line_number, "y_km"),
-        z_km: parse_f64(z_km, line_number, "z_km"),
+        x_km: parse_f64(x_km, line_number, "x_km")?,
+        y_km: parse_f64(y_km, line_number, "y_km")?,
+        z_km: parse_f64(z_km, line_number, "z_km")?,
+    }))
+}
+
+fn next_part<'a>(
+    parts: &mut impl Iterator<Item = &'a str>,
+    line_number: usize,
+    column: &'static str,
+) -> Result<&'a str, SnapshotLoadError> {
+    parts.next().ok_or_else(|| {
+        SnapshotLoadError::new(line_number, SnapshotLoadErrorKind::MissingColumn { column })
     })
 }
 
-fn parse_body(body: &str, line_number: usize) -> pleiades_backend::CelestialBody {
-    match body {
+fn parse_body(
+    body: &str,
+    line_number: usize,
+) -> Result<pleiades_backend::CelestialBody, SnapshotLoadError> {
+    let body = match body {
         "Sun" => pleiades_backend::CelestialBody::Sun,
         "Moon" => pleiades_backend::CelestialBody::Moon,
         "Mercury" => pleiades_backend::CelestialBody::Mercury,
@@ -326,8 +436,17 @@ fn parse_body(body: &str, line_number: usize) -> pleiades_backend::CelestialBody
         "Pallas" => pleiades_backend::CelestialBody::Pallas,
         "Juno" => pleiades_backend::CelestialBody::Juno,
         "Vesta" => pleiades_backend::CelestialBody::Vesta,
-        other => panic!("unsupported body '{other}' on line {line_number}"),
-    }
+        other => {
+            return Err(SnapshotLoadError::new(
+                line_number,
+                SnapshotLoadErrorKind::UnsupportedBody {
+                    body: other.to_string(),
+                },
+            ))
+        }
+    };
+
+    Ok(body)
 }
 
 fn is_comparison_body(body: &pleiades_backend::CelestialBody) -> bool {
@@ -346,10 +465,20 @@ fn is_comparison_body(body: &pleiades_backend::CelestialBody) -> bool {
     )
 }
 
-fn parse_f64(value: &str, line_number: usize, column: &str) -> f64 {
-    value
-        .parse::<f64>()
-        .unwrap_or_else(|error| panic!("invalid {column} value on line {line_number}: {error}"))
+fn parse_f64(
+    value: &str,
+    line_number: usize,
+    column: &'static str,
+) -> Result<f64, SnapshotLoadError> {
+    value.parse::<f64>().map_err(|_error| {
+        SnapshotLoadError::new(
+            line_number,
+            SnapshotLoadErrorKind::InvalidNumber {
+                column,
+                value: value.to_string(),
+            },
+        )
+    })
 }
 
 #[cfg(test)]
@@ -390,6 +519,17 @@ mod tests {
         let end = metadata.nominal_range.end.expect("end epoch should exist");
         assert!(start.julian_day.days() < end.julian_day.days());
         assert_eq!(reference_epochs().len(), 3);
+    }
+
+    #[test]
+    fn parser_reports_malformed_rows_without_panicking() {
+        let error = load_snapshot_from_str("2451545.0,Sun,1.0,2.0\n")
+            .expect_err("missing columns should be reported");
+        assert!(format!("{error}").contains("missing z"));
+
+        let error = load_snapshot_from_str("2451545.0,Comet,1.0,2.0,3.0\n")
+            .expect_err("unsupported bodies should be reported");
+        assert!(format!("{error}").contains("unsupported body 'Comet'"));
     }
 
     #[test]
