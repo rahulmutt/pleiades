@@ -224,9 +224,25 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(2_451_545.0)),
         Some(Angle::from_degrees(22.628_888_9)),
     ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::PvrPushyaPaksha,
+        "PVR Pushya-paksha",
+        &["Pushya-paksha", "Pushya Paksha", "P.V.R. Narasimha Rao", "PVR"],
+        "P.V.R. Narasimha Rao's Pushya-paksha ayanamsa, exposed in Swiss Ephemeris as a built-in sidereal mode.",
+        Some(JulianDay::from_days(2_451_545.0)),
+        Some(Angle::from_degrees(23.0)),
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::Sheoran,
+        "Sheoran",
+        &["Sunil Sheoran", "Vedic Sheoran", "Sheoran ayanamsa"],
+        "Sheoran's Vedic ayanamsa, catalogued as a built-in sidereal mode in Swiss Ephemeris.",
+        Some(JulianDay::from_days(2_451_545.0)),
+        Some(Angle::from_degrees(23.0)),
+    ),
 ];
 
-static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 18] = [
+static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 20] = [
     AyanamsaDescriptor::new(
         Ayanamsa::Lahiri,
         "Lahiri",
@@ -371,6 +387,22 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 18] = [
         Some(JulianDay::from_days(2_451_545.0)),
         Some(Angle::from_degrees(22.628_888_9)),
     ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::PvrPushyaPaksha,
+        "PVR Pushya-paksha",
+        &["Pushya-paksha", "Pushya Paksha", "P.V.R. Narasimha Rao", "PVR"],
+        "P.V.R. Narasimha Rao's Pushya-paksha ayanamsa, exposed in Swiss Ephemeris as a built-in sidereal mode.",
+        Some(JulianDay::from_days(2_451_545.0)),
+        Some(Angle::from_degrees(23.0)),
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::Sheoran,
+        "Sheoran",
+        &["Sunil Sheoran", "Vedic Sheoran", "Sheoran ayanamsa"],
+        "Sheoran's Vedic ayanamsa, catalogued as a built-in sidereal mode in Swiss Ephemeris.",
+        Some(JulianDay::from_days(2_451_545.0)),
+        Some(Angle::from_degrees(23.0)),
+    ),
 ];
 
 /// Returns the baseline built-in ayanamsa catalog.
@@ -481,6 +513,15 @@ mod tests {
             resolve_ayanamsa("Sri Yukteshwar"),
             Some(Ayanamsa::Yukteshwar)
         );
+        assert_eq!(
+            resolve_ayanamsa("P.V.R. Narasimha Rao"),
+            Some(Ayanamsa::PvrPushyaPaksha)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Pushya-paksha"),
+            Some(Ayanamsa::PvrPushyaPaksha)
+        );
+        assert_eq!(resolve_ayanamsa("Sunil Sheoran"), Some(Ayanamsa::Sheoran));
     }
 
     #[test]
@@ -504,6 +545,8 @@ mod tests {
             "Sassanian",
             "DeLuce",
             "Yukteshwar",
+            "PVR Pushya-paksha",
+            "Sheoran",
         ] {
             assert!(names.contains(&expected), "missing {expected}");
         }

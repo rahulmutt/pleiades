@@ -180,7 +180,7 @@ mod tests {
     #[test]
     fn profile_command_renders_catalogs() {
         let rendered = render_cli(&["compatibility-profile"]).expect("profile should render");
-        assert!(rendered.contains("Compatibility profile: pleiades-compatibility-profile/0.6.3"));
+        assert!(rendered.contains("Compatibility profile: pleiades-compatibility-profile/0.6.4"));
         assert!(rendered.contains("Target compatibility catalog:"));
         assert!(rendered.contains("Baseline compatibility milestone:"));
         assert!(rendered.contains("Release-specific coverage beyond baseline:"));

@@ -540,6 +540,10 @@ pub enum Ayanamsa {
     DeLuce,
     /// Yukteshwar ayanamsa.
     Yukteshwar,
+    /// P.V.R. Narasimha Rao's Pushya-paksha ayanamsa.
+    PvrPushyaPaksha,
+    /// Sheoran ayanamsa.
+    Sheoran,
     /// A custom ayanamsa formula or offset table.
     Custom(CustomAyanamsa),
 }

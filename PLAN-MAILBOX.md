@@ -259,3 +259,13 @@ Remaining Stage 6 work: keep catalog breadth and release notes aligned as additi
 ## 2026-04-22 — release bundle checksums added
 
 - The release bundle manifest now includes deterministic FNV-1a checksums for the compatibility profile, API stability posture, and validation report, and the CLI release-bundle summary surfaces them for verification.
+
+## 2026-04-22 — additional ayanamsa breadth added
+
+Implemented the next Stage 6 catalog-breadth slice:
+
+- `pleiades-types` gained `Ayanamsa::PvrPushyaPaksha` and `Ayanamsa::Sheoran`
+- `pleiades-ayanamsa` now catalogs, resolves, documents, and exposes PVR Pushya-paksha and Sheoran as release-specific ayanamsa modes with aliases drawn from the Swiss Ephemeris naming family
+- `pleiades-core`, the compatibility profile, the CLI, validation output, README, and the Stage 6 plan notes now reflect the broadened release-specific ayanamsa coverage
+
+Remaining Stage 6 work: keep catalog breadth and release notes aligned as additional Swiss Ephemeris ayanamsa modes are scheduled.

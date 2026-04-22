@@ -54,6 +54,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] The first release-specific ayanamsa additions are now implemented: Lahiri (ICRC), Lahiri (1940), Usha Shashi, Suryasiddhanta (499 CE), Aryabhata (499 CE), and Sassanian are catalogued, resolved, rendered in the compatibility profile, and exposed through the shared ayanamsa resolution path.
 - [x] The next ayanamsa breadth batch is now implemented too: DeLuce and Yukteshwar are catalogued, resolved, rendered in the compatibility profile, and available through the shared catalog path alongside the existing release-specific ayanamsas.
 - [x] Swiss Ephemeris reference-frame and true-nakshatra ayanamsa modes are now catalogued too: J2000, J1900, B1950, True Revati, and True Mula are resolved, rendered in the compatibility profile, and available through the shared catalog path.
+- [x] The PVR Pushya-paksha and Sheoran ayanamsa modes are now catalogued too: both are resolved, rendered in the compatibility profile, and available through the shared catalog path as the next Stage 6 ayanamsa breadth increment.
 - [x] Carter (poli-equatorial) is now catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
 - [x] Horizon/Azimuth and APC are now catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
 - [x] Krusinski-Pisa-Goelzer is now catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
