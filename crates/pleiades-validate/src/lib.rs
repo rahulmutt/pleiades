@@ -9,6 +9,10 @@
 use std::fmt;
 use std::time::Instant as StdInstant;
 
+mod artifact;
+
+pub use artifact::{render_artifact_report, ArtifactBodyInspection, ArtifactInspectionReport};
+
 use pleiades_core::{
     default_chart_bodies, Apparentness, BackendCapabilities, BackendMetadata, CelestialBody,
     CompositeBackend, CoordinateFrame, EclipticCoordinates, EphemerisBackend, EphemerisError,
@@ -361,6 +365,10 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("report") | Some("generate-report") => {
             let rounds = parse_rounds(&args[1..], DEFAULT_BENCHMARK_ROUNDS)?;
             render_validation_report(rounds).map_err(render_error)
+        }
+        Some("validate-artifact") => {
+            ensure_no_extra_args(&args[1..], "validate-artifact")?;
+            render_artifact_report().map_err(render_compression_error)
         }
         Some("help") | Some("--help") | Some("-h") | None => Ok(help_text()),
         Some(other) => Err(format!("unknown command: {other}\n\n{}", help_text())),
@@ -821,13 +829,17 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = default_corpus().requests.len();
     format!(
-        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus\n  report [--rounds N]       Render the full validation report\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus\n  report [--rounds N]       Render the full validation report\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
 }
 
 fn render_error(error: EphemerisError) -> String {
+    error.to_string()
+}
+
+fn render_compression_error(error: pleiades_compression::CompressionError) -> String {
     error.to_string()
 }
 
@@ -961,6 +973,20 @@ mod tests {
         assert!(rendered.contains("compare-backends"));
         assert!(rendered.contains("benchmark [--rounds N]"));
         assert!(rendered.contains("report [--rounds N]"));
+        assert!(rendered.contains("validate-artifact"));
+    }
+
+    #[test]
+    fn artifact_validation_report_mentions_boundary_checks() {
+        let report = render_artifact_report().expect("artifact report should render");
+        assert!(report.contains("Artifact validation report"));
+        assert!(report.contains("stage-5 packaged-data prototype"));
+        assert!(report.contains("roundtrip decode: ok"));
+        assert!(report.contains("checksum verified: ok"));
+        assert!(report.contains("Bodies"));
+        assert!(report.contains("Sun"));
+        assert!(report.contains("Moon"));
+        assert!(report.contains("boundary checks"));
     }
 
     #[test]

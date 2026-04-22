@@ -36,7 +36,8 @@ Stage 5 compression work has started as of 2026-04-22.
 - [x] `pleiades-compression` now defines a versioned artifact header, quantized polynomial channels, binary encode/decode logic, checksums, and artifact roundtrip tests.
 - [x] `pleiades-data` now ships a bundled prototype artifact covering Sun and Moon, with packaged lookup support and a compressed-data backend implementation.
 - [x] The CLI now composes packaged data ahead of the algorithmic backends so chart queries automatically use packaged lookups when available and still fall back for bodies outside the bundled slice.
-- [ ] Measured artifact error envelopes, broader body coverage, and dedicated artifact-inspection tooling remain for later slices.
+- [x] `pleiades-validate` now exposes `validate-artifact` to inspect the bundled compressed artifact, verify encode/decode and checksum behavior, and report segment-boundary continuity for the packaged bodies.
+- [ ] Measured artifact error envelopes and broader body coverage remain for later slices.
 
 ## Suggested implementation slices
 

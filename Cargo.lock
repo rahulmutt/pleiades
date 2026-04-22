@@ -83,7 +83,9 @@ version = "0.1.0"
 name = "pleiades-validate"
 version = "0.1.0"
 dependencies = [
+ "pleiades-compression",
  "pleiades-core",
+ "pleiades-data",
  "pleiades-elp",
  "pleiades-jpl",
  "pleiades-vsop87",

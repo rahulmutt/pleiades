@@ -94,3 +94,13 @@ Implemented the next Stage 4 slice:
 - the Stage 4 plan now reflects that the broader comparison coverage is implemented, while selected asteroid support remains the next open slice
 
 Remaining Stage 4 work: selected asteroid support.
+
+## 2026-04-22 — artifact inspection tooling added
+
+Implemented the next Stage 5 slice:
+
+- `pleiades-validate` now exposes `validate-artifact`, which inspects the bundled compressed artifact, verifies encode/decode and checksum behavior, and reports body- and boundary-level coverage
+- the validation report now calls out the packaged artifact’s segment continuity checks so edge behavior is visible in a dedicated command
+- the stage-5 plan now reflects that artifact-inspection tooling is in place, leaving measured error envelopes and broader body coverage as the remaining follow-up
+
+Remaining Stage 5 work: measured artifact error envelopes and broader body coverage.
