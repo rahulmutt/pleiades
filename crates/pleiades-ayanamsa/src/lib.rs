@@ -252,9 +252,9 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Ayanamsa::Sheoran,
         "Sheoran",
         &["Sunil Sheoran", "Vedic Sheoran", "Sheoran ayanamsa"],
-        "Sheoran's Vedic ayanamsa, catalogued as a built-in sidereal mode in Swiss Ephemeris.",
-        Some(JulianDay::from_days(2_451_545.0)),
-        Some(Angle::from_degrees(23.0)),
+        "Sheoran's Vedic ayanamsa, anchored to the published zero point used by Swiss Ephemeris.",
+        Some(JulianDay::from_days(1_789_947.090_881)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::Hipparchus,
@@ -724,9 +724,9 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
         Ayanamsa::Sheoran,
         "Sheoran",
         &["Sunil Sheoran", "Vedic Sheoran", "Sheoran ayanamsa"],
-        "Sheoran's Vedic ayanamsa, catalogued as a built-in sidereal mode in Swiss Ephemeris.",
-        Some(JulianDay::from_days(2_451_545.0)),
-        Some(Angle::from_degrees(23.0)),
+        "Sheoran's Vedic ayanamsa, anchored to the published zero point used by Swiss Ephemeris.",
+        Some(JulianDay::from_days(1_789_947.090_881)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::Hipparchus,
@@ -1331,6 +1331,10 @@ mod tests {
         assert_eq!(djwhal.epoch, Some(JulianDay::from_days(1_706_703.948_006)));
         assert_eq!(djwhal.offset_degrees, Some(Angle::from_degrees(0.0)));
 
+        let sheoran = descriptor(&Ayanamsa::Sheoran).expect("Sheoran descriptor");
+        assert_eq!(sheoran.epoch, Some(JulianDay::from_days(1_789_947.090_881)));
+        assert_eq!(sheoran.offset_degrees, Some(Angle::from_degrees(0.0)));
+
         let instant = Instant::new(
             JulianDay::from_days(2_451_545.0),
             pleiades_types::TimeScale::Tt,
@@ -1358,6 +1362,16 @@ mod tests {
                 &Ayanamsa::DjwhalKhul,
                 Instant::new(
                     JulianDay::from_days(1_706_703.948_006),
+                    pleiades_types::TimeScale::Tt
+                ),
+            ),
+            Some(Angle::from_degrees(0.0))
+        );
+        assert_eq!(
+            sidereal_offset(
+                &Ayanamsa::Sheoran,
+                Instant::new(
+                    JulianDay::from_days(1_789_947.090_881),
                     pleiades_types::TimeScale::Tt
                 ),
             ),
