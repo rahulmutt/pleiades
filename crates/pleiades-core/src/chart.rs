@@ -1,4 +1,4 @@
-//! Chart assembly helpers built on top of backend position queries.
+//! Chart assembly and higher-level chart helpers built on top of backend position queries.
 //!
 //! The first chart MVP keeps the workflow intentionally small: callers provide
 //! a set of bodies, the façade queries the backend, and the result captures the
@@ -137,6 +137,28 @@ impl ChartSnapshot {
     pub fn is_empty(&self) -> bool {
         self.placements.is_empty()
     }
+
+    /// Returns the first placement for a requested body, if present.
+    pub fn placement_for(&self, body: &CelestialBody) -> Option<&BodyPlacement> {
+        self.placements
+            .iter()
+            .find(|placement| &placement.body == body)
+    }
+
+    /// Returns the motion direction for a requested body, if it is known.
+    pub fn motion_direction_for(&self, body: &CelestialBody) -> Option<MotionDirection> {
+        self.placement_for(body)?.motion_direction()
+    }
+
+    /// Returns the placements that are currently classified as retrograde.
+    pub fn retrograde_placements(&self) -> impl Iterator<Item = &BodyPlacement> {
+        self.placements.iter().filter(|placement| {
+            matches!(
+                placement.motion_direction(),
+                Some(MotionDirection::Retrograde)
+            )
+        })
+    }
 }
 
 impl BodyPlacement {
@@ -203,6 +225,15 @@ impl fmt::Display for ChartSnapshot {
                 placement.position.quality,
             )?;
         }
+
+        let retrograde_bodies: Vec<&str> = self
+            .retrograde_placements()
+            .map(|placement| placement.body.built_in_name().unwrap_or("Custom"))
+            .collect();
+        if !retrograde_bodies.is_empty() {
+            writeln!(f, "Retrograde bodies: {}", retrograde_bodies.join(", "))?;
+        }
+
         Ok(())
     }
 }
@@ -566,5 +597,71 @@ mod tests {
             placement.motion_direction(),
             Some(MotionDirection::Retrograde)
         );
+    }
+
+    #[test]
+    fn chart_snapshot_supports_body_lookup_and_retrograde_summary() {
+        let instant = Instant::new(
+            pleiades_types::JulianDay::from_days(2451545.0),
+            TimeScale::Tt,
+        );
+        let mut retrograde = EphemerisResult::new(
+            BackendId::new("toy-chart"),
+            CelestialBody::Mars,
+            instant,
+            pleiades_types::CoordinateFrame::Ecliptic,
+            ZodiacMode::Tropical,
+            Apparentness::Apparent,
+        );
+        retrograde.ecliptic = Some(EclipticCoordinates::new(
+            Longitude::from_degrees(90.0),
+            Latitude::from_degrees(0.0),
+            None,
+        ));
+        retrograde.motion = Some(pleiades_types::Motion::new(Some(-0.01), None, None));
+
+        let mut direct = EphemerisResult::new(
+            BackendId::new("toy-chart"),
+            CelestialBody::Sun,
+            instant,
+            pleiades_types::CoordinateFrame::Ecliptic,
+            ZodiacMode::Tropical,
+            Apparentness::Apparent,
+        );
+        direct.ecliptic = Some(EclipticCoordinates::new(
+            Longitude::from_degrees(15.0),
+            Latitude::from_degrees(0.0),
+            None,
+        ));
+
+        let chart = ChartSnapshot {
+            backend_id: BackendId::new("toy-chart"),
+            instant,
+            observer: None,
+            zodiac_mode: ZodiacMode::Tropical,
+            houses: None,
+            placements: vec![
+                BodyPlacement {
+                    body: CelestialBody::Sun,
+                    position: direct,
+                    sign: Some(ZodiacSign::Aries),
+                    house: None,
+                },
+                BodyPlacement {
+                    body: CelestialBody::Mars,
+                    position: retrograde,
+                    sign: Some(ZodiacSign::Cancer),
+                    house: None,
+                },
+            ],
+        };
+
+        assert!(chart.placement_for(&CelestialBody::Sun).is_some());
+        assert_eq!(
+            chart.motion_direction_for(&CelestialBody::Mars),
+            Some(MotionDirection::Retrograde)
+        );
+        assert_eq!(chart.retrograde_placements().count(), 1);
+        assert!(chart.to_string().contains("Retrograde bodies: Mars"));
     }
 }

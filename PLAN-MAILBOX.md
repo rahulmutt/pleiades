@@ -335,3 +335,13 @@ Implemented another small Stage 6 optional-helper slice:
 - `pleiades-core` chart rendering now has a dedicated motion column when backend motion data is available, so future reports can surface retrograde/direct state without backend-specific logic
 
 Remaining Stage 6 work: broader catalog breadth, additional optional helpers where they add real chart value, and any remaining release-hardening polish that depends on additional coverage.
+
+## 2026-04-22 — chart lookup helpers and retrograde summary added
+
+Implemented a small Stage 6 optional-helper slice:
+
+- `pleiades-core::ChartSnapshot` now exposes direct body lookup and motion-direction helpers, plus a retrograde-placement iterator for downstream chart consumers
+- `ChartSnapshot` rendering now emits a retrograde-body summary when motion data is available, making the higher-level chart report easier to scan without re-deriving the same classification elsewhere
+- the API stability profile now names the lookup and retrograde helpers as part of the stable chart façade, and the README notes the new ergonomics
+
+Remaining Stage 6 work: broader catalog breadth and any remaining optional helper polish that depends on additional coverage.

@@ -73,6 +73,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] Release bundle generation now has a matching verification command that re-reads the staged artifacts, checks the manifest checksums, and is exercised by the release smoke task so the release artifact path is validated end to end.
 - [x] Topocentric (Polich-Page) now uses a geodetic-to-geocentric latitude correction with elevation-aware ellipsoid handling, and the catalog note reflects the refined implementation.
 - [x] The chart façade now exposes a motion-direction helper for body placements, so future chart reports and consumers can surface retrograde/direct state from backend motion data without adding backend-specific logic.
+- [x] `pleiades-core::ChartSnapshot` now offers direct body lookup and retrograde-summary helpers, and chart rendering emits a retrograde-body summary when motion data is available.
 
 ## Exit criteria
 

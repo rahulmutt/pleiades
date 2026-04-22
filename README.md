@@ -13,6 +13,7 @@ The repository is in the stage-6 release-hardening phase, with the chart MVP and
 - the baseline house and ayanamsa catalogs plus the compatibility profile scaffold are published,
 - the tropical chart workflow works end to end with approximate Sun/Moon/planet backends and a CLI chart report,
 - sidereal conversion is available in the chart layer,
+- `ChartSnapshot` now offers lookup helpers plus a retrograde summary so downstream chart reports can ask higher-level questions without re-scanning placements manually,
 - house placement works for the full baseline catalog (Equal, Whole Sign, Porphyry, Placidus, Koch, Regiomontanus, Campanus, Alcabitius, Topocentric, Morinus, Meridian, and Axial variants), and the release-specific catalog now also includes Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen SD/SR, Sunshine, and Gauquelin sectors,
 - the release compatibility profile and API stability posture are both published through `pleiades-core`, surfaced in the CLI and validation reports, and kept in sync with the current release notes,
 - the compatibility catalog now includes the release-specific ayanamsa breadth for J2000, J1900, B1950, DeLuce, Yukteshwar, PVR Pushya-paksha, Sheoran, True Revati, True Mula, Lahiri (ICRC), Lahiri (1940), Usha Shashi, Suryasiddhanta (499 CE), Aryabhata (499 CE), Sassanian, Hipparchus, Babylonian (Kugler 1/2/3), Babylonian (Huber), Babylonian (Eta Piscium), Babylonian (Aldebaran), Galactic Center, and Galactic Equator,
