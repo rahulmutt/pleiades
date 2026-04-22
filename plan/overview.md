@@ -2,11 +2,12 @@
 
 This directory turns the product specification into an execution plan that is easier to follow during day-to-day development.
 
-The plan is organized in three complementary views:
+The plan is organized in four complementary views:
 
 - **Stages**: the main delivery sequence from foundations to release hardening.
 - **Tracks**: cross-cutting workstreams that run through multiple stages.
 - **Checklists**: shared completion gates and release-output expectations.
+- **Appendices**: reference material that helps maintainers keep the plan aligned with the spec.
 
 Use the stages when deciding **what to build next**. Use the tracks when deciding **where a task belongs** and what other work it depends on. Use the checklists when deciding **whether a stage or release is actually done**.
 
@@ -26,12 +27,14 @@ If you are starting from scratch, read in this order:
 - [plan/stages/](stages/) — sequential implementation stages
 - [plan/tracks/](tracks/) — cross-cutting workstreams and quality boundaries
 - [plan/checklists/](checklists/) — reusable stage gates and release-output expectations
+- [plan/appendices/](appendices/) — supporting reference material and traceability aids
 
 The structure is intentionally shallow so contributors can find the current plan quickly:
 
 - if the question is about **ordering**, start in `plan/stages/`
 - if the question is about **standards or scope for a subsystem**, start in `plan/tracks/`
 - if the question is about **completion criteria or release outputs**, start in `plan/checklists/`
+- if the question is about **which spec documents govern a stage**, start in `plan/appendices/`
 
 ## Stage-first Rule
 
@@ -42,6 +45,8 @@ The repository should remain in a workable state after every stage. That means e
 - enough documentation for contributors to continue,
 - explicit notes about what is not done yet,
 - no ambiguity about whether the next stage is extending a stable base or cleaning up missing foundations.
+
+Inside a stage, prefer the smallest slice that still leaves one coherent maintainer workflow intact. The stage documents therefore include suggested slice sequencing, not just destination-state goals.
 
 ## Track List
 
@@ -54,6 +59,10 @@ The repository should remain in a workable state after every stage. That means e
 
 - [plan/checklists/01-stage-gates.md](checklists/01-stage-gates.md)
 - [plan/checklists/02-release-artifacts.md](checklists/02-release-artifacts.md)
+
+## Appendix List
+
+- [plan/appendices/01-stage-to-spec-map.md](appendices/01-stage-to-spec-map.md)
 
 ## Maintenance guidance
 

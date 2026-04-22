@@ -28,13 +28,16 @@ Once the project already has a useful algorithmic chart path, reference data can
 ## Workable state at end of stage
 The project remains usable for chart generation, but now also has an evidence-backed path for comparing implementations, detecting regressions, and generating trustworthy downstream artifacts.
 
-## Suggested tasks
+## Suggested implementation slices
 
-1. Implement a narrow but solid JPL-backed slice before broadening coverage.
-2. Define validation report formats and storage conventions.
-3. Compare VSOP87/ELP outputs against reference values over representative date ranges.
-4. Expand asteroid support only when the validation story is clear.
-5. Integrate validation commands into CI or release checks where feasible.
+1. Implement a narrow but solid JPL-backed slice for a small body set before broadening coverage.
+2. Define validation report formats, fixture layout, and storage conventions early so later reports stay comparable.
+3. Add `pleiades-validate` commands for compare-backends and benchmark on the narrow slice first.
+4. Compare VSOP87/ELP outputs against reference values over representative date ranges and preserve discovered regressions.
+5. Expand body coverage or asteroid support only when the validation workflow is already proving useful.
+6. Integrate validation commands into CI or release checks where feasible.
+
+This stage should improve trustworthiness in layers: first provenance, then comparisons, then breadth.
 
 ## Exit criteria
 

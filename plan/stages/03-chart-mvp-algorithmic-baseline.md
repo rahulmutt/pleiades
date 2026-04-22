@@ -43,14 +43,16 @@ This is the earliest point where the project can become directly useful to consu
 ## Workable state at end of stage
 A user can compute a practical astrology chart in pure Rust for common modern use cases with documented limits, even though full compatibility breadth and reference-data validation are not complete yet.
 
-## Suggested tasks
+## Suggested implementation slices
 
-1. Implement planetary and lunar query paths with documented provenance.
-2. Add tropical-to-sidereal conversion in the domain layer.
-3. Implement baseline house systems incrementally, starting with systems with simpler and more robust formulas.
-4. Provide a chart object or report structure containing positions, sign placement, and house placement.
-5. Add CLI examples and sample outputs.
-6. Publish the first machine-readable or human-readable compatibility profile.
+1. Implement the smallest useful backend path first: Sun/major planets via `pleiades-vsop87` and Moon via `pleiades-elp`, with documented provenance.
+2. Add tropical-to-sidereal conversion in the domain layer so sidereal support does not become backend-specific.
+3. Implement chart assembly in `pleiades-core` for a narrow but real workflow: positions, sign placement, and house placement.
+4. Add baseline house systems incrementally, starting with simpler and more robust formulas before latitude-sensitive systems.
+5. Add the baseline ayanamsa milestone and explicit aliases/near-equivalents.
+6. Expose the workflow through `pleiades-cli` and publish the first compatibility profile describing what is actually implemented.
+
+A good checkpoint partway through this stage is a tropical chart workflow even before the full baseline sidereal and house catalog is finished.
 
 ## Recommended validation
 

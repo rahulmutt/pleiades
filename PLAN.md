@@ -26,6 +26,10 @@ That gives this development arc:
 - [plan/checklists/01-stage-gates.md](plan/checklists/01-stage-gates.md) — completion gates for each stage
 - [plan/checklists/02-release-artifacts.md](plan/checklists/02-release-artifacts.md) — non-code outputs and release bundle expectations
 
+### Appendices
+
+- [plan/appendices/01-stage-to-spec-map.md](plan/appendices/01-stage-to-spec-map.md) — traceability from execution stages back to normative spec documents
+
 ### Sequential stages
 
 - [plan/stages/01-workspace-bootstrap.md](plan/stages/01-workspace-bootstrap.md)
@@ -50,8 +54,9 @@ The current `plan/**` layout is intentionally simple and now separates **sequenc
 - `plan/stages/*.md` — the ordered delivery path; read these top to bottom
 - `plan/tracks/*.md` — cross-cutting concerns that span multiple stages
 - `plan/checklists/*.md` — shared completion gates and release-output expectations
+- `plan/appendices/*.md` — traceability aids and other supporting reference material
 
-This structure keeps the plan readable while still separating **sequence** from **responsibility** and **quality control**:
+This structure keeps the plan readable while still separating **sequence** from **responsibility**, **quality control**, and **traceability**:
 
 - use a **stage document** to answer “what should happen next?”
 - use a **track document** to answer “what standards apply to this area?”
@@ -137,6 +142,17 @@ Do not advance a stage just because code exists. Advance when the current stage 
 - a clear statement of what the next stage is allowed to assume.
 
 Use [plan/checklists/01-stage-gates.md](plan/checklists/01-stage-gates.md) as the shared gate before moving forward.
+
+## Slice-sizing rule inside each stage
+
+Each stage should be implemented as a series of **small, independently shippable slices** rather than one large merge. A good slice:
+
+- changes one architectural concern at a time,
+- leaves the workspace buildable and testable,
+- adds docs/tests together with behavior,
+- makes the next slice simpler instead of compensating for hidden debt.
+
+The stage documents describe recommended slice order so maintainers can keep progress incremental without losing the larger roadmap.
 
 ## Cross-cutting priorities
 

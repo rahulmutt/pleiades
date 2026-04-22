@@ -30,13 +30,16 @@ Breadth and polish should build on a proven foundation: stable types, useful MVP
 ## Workable state at end of stage
 The project is not just functional but dependable: consumers can tell exactly what compatibility they are getting in each release, performance and accuracy are characterized, and extension paths remain open.
 
-## Suggested tasks
+## Suggested implementation slices
 
-1. Turn the compatibility profile into a routine release artifact.
-2. Complete the remaining catalog entries in prioritized batches.
-3. Add interoperability tests for naming/alias behavior.
-4. Harden CI and release automation around validation and artifact publication.
-5. Review public APIs for long-term stability and document any intentional limitations.
+1. Turn the compatibility profile into a routine release artifact before adding substantial new catalog breadth.
+2. Complete remaining house systems and ayanamsas in prioritized batches, grouped by shared formulas or interoperability value.
+3. Add interoperability tests for naming, alias behavior, and documented constraints as each batch lands.
+4. Harden CI and release automation around validation, report publication, and artifact publication.
+5. Review public APIs for long-term stability, deprecations, and documented intentional limitations.
+6. Expand optional higher-level helpers only after the compatibility and release story is already dependable.
+
+This final stage should behave like a sequence of release-quality increments, not a catch-all bucket for unfinished foundational work.
 
 ## Exit criteria
 

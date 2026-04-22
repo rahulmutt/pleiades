@@ -31,14 +31,15 @@ The spec puts strong emphasis on crate boundaries, reproducibility, and pure-Rus
 ## Workable state at end of stage
 A contributor can clone the repo, enter the managed tool environment, run formatting/lint/tests, and understand where new functionality belongs.
 
-## Suggested tasks
+## Suggested implementation slices
 
-1. Create the workspace manifest and member crates.
-2. Configure shared lint settings and edition/toolchain policy.
-3. Add baseline dependencies only where needed.
-4. Set up `cargo fmt`, `clippy`, and `cargo test` in CI.
-5. Add placeholder modules and docs that codify layering rules.
-6. Add one smoke test per crate or one workspace integration smoke test.
+1. Create the workspace manifest and empty `pleiades-*` member crates so architecture is visible immediately.
+2. Configure `mise.toml`, shared lint settings, and edition/toolchain policy so the repo is reproducible before feature work begins.
+3. Add placeholder modules, crate docs, and dependency boundaries that codify layering rules.
+4. Set up `cargo fmt`, `clippy`, and `cargo test` in CI or equivalent automation.
+5. Add one smoke test per crate or one workspace integration smoke test to prove the skeleton is alive.
+
+Each slice should keep the workspace buildable; avoid deferring crate-boundary cleanup to Stage 2.
 
 ## Exit criteria
 

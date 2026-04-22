@@ -29,13 +29,16 @@ Compression is only worth stabilizing after the type system, algorithmic behavio
 ## Workable state at end of stage
 Applications targeting the common 1500-2500 window can use a compact offline backend with predictable speed and documented error characteristics, while broader-range or validation workloads can still use other backends.
 
-## Suggested tasks
+## Suggested implementation slices
 
-1. Prototype segment sizing and polynomial/residual strategies by body class.
-2. Measure file size, latency, and error tradeoffs.
-3. Validate artifact edges and segment-boundary behavior thoroughly.
-4. Add CLI tooling to inspect artifact metadata and query packaged results.
-5. Document regeneration from public inputs end to end.
+1. Prototype artifact layout and decode logic with one or two bodies before generalizing across the full packaged set.
+2. Experiment with segment sizing and polynomial/residual strategies by body class using reproducible benchmarks.
+3. Measure file size, latency, and error tradeoffs before freezing the format.
+4. Add `pleiades-data` lookup support and make fallback/composition behavior explicit where packaged coverage is incomplete.
+5. Validate artifact edges and segment-boundary behavior thoroughly.
+6. Add CLI tooling to inspect artifact metadata and query packaged results, then document regeneration from public inputs end to end.
+
+Do not optimize for maximum compression first; optimize for deterministic generation and maintainable decoding, then tighten size/performance iteratively.
 
 ## Recommended validation
 

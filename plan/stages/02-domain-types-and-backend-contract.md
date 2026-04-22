@@ -29,14 +29,16 @@ Before implementing algorithms or parsing datasets, the project needs a type sys
 ## Workable state at end of stage
 A backend author can implement the contract for a toy backend, and an application author can compile code against the public types even before full astronomical functionality exists.
 
-## Suggested tasks
+## Suggested implementation slices
 
-1. Define angle/unit conventions, including normalization ranges.
-2. Define time-scale model and document Delta T policy boundaries.
-3. Define strongly typed request/result structs.
-4. Define capability metadata for body coverage, date range, topocentric support, and uncertainty.
-5. Add a mock backend for tests and examples.
-6. Add rustdoc examples showing a minimal position query flow.
+1. Define angle, coordinate, and time primitives first, including normalization and unit semantics.
+2. Add body identifiers, observer types, and frame enums once the low-level numerical vocabulary is stable.
+3. Define backend request/result structs and structured error categories.
+4. Define backend metadata and capability reporting with enough room for composite routing and future backends.
+5. Add a mock or toy backend used by tests, examples, and compile-time API validation.
+6. Add rustdoc examples showing a minimal position query flow through the shared contract.
+
+Keep `pleiades-core` intentionally thin in this stage; it should prove orchestration, not hide unresolved semantics.
 
 ## Recommended validation
 
