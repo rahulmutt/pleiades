@@ -534,9 +534,9 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Ayanamsa::GalacticEquatorMula,
         "Galactic Equator (Mula)",
         &["Mula galactic equator", "Galactic equator Mula"],
-        "Galactic-equator reference mode aligned to the Mula tradition.",
-        None,
-        None,
+        "Galactic-equator reference mode aligned to the Mula tradition and anchored to the Swiss Ephemeris mid-Mula zero point.",
+        Some(JulianDay::from_days(1_840_527.426_262)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticEquatorFiorenza,
@@ -1006,9 +1006,9 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
         Ayanamsa::GalacticEquatorMula,
         "Galactic Equator (Mula)",
         &["Mula galactic equator", "Galactic equator Mula"],
-        "Galactic-equator reference mode aligned to the Mula tradition.",
-        None,
-        None,
+        "Galactic-equator reference mode aligned to the Mula tradition and anchored to the Swiss Ephemeris mid-Mula zero point.",
+        Some(JulianDay::from_days(1_840_527.426_262)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticEquatorFiorenza,
@@ -1406,6 +1406,14 @@ mod tests {
             Some(JulianDay::from_days(1_667_118.376_332))
         );
         assert_eq!(galactic.offset_degrees, Some(Angle::from_degrees(0.0)));
+
+        let galactic_mula =
+            descriptor(&Ayanamsa::GalacticEquatorMula).expect("Galactic Equator (Mula) descriptor");
+        assert_eq!(
+            galactic_mula.epoch,
+            Some(JulianDay::from_days(1_840_527.426_262))
+        );
+        assert_eq!(galactic_mula.offset_degrees, Some(Angle::from_degrees(0.0)));
 
         let valens = descriptor(&Ayanamsa::ValensMoon).expect("Valens Moon descriptor");
         assert_eq!(valens.epoch, Some(JulianDay::from_days(1_775_845.5)));
