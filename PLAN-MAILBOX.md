@@ -216,3 +216,14 @@ Implemented the next Stage 6 breadth slice:
 - `pleiades-core`, the compatibility profile, and the README now reflect Gauquelin sectors as release-specific coverage
 
 Remaining Stage 6 work: any API posture review and release-hardening polish that depends on additional coverage.
+
+## 2026-04-22 — API stability posture published
+
+Implemented the remaining Stage 6 release-hardening slice that makes the public API posture explicit:
+
+- `pleiades-core` now publishes a versioned API stability profile alongside the compatibility profile
+- `pleiades-cli` can print the API stability posture directly with `api-stability` / `api-posture`
+- `pleiades-validate` includes the API stability posture in validation reports and exposes the same command-line view for release automation
+- the README now states which surfaces are intended to be stable, which remain tooling-internal, and how deprecations will be handled
+
+Stage 6 now has a clear consumer-facing API posture; the next maintenance work is to keep that profile aligned with future release changes.

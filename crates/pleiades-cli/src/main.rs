@@ -7,9 +7,9 @@
 #![forbid(unsafe_code)]
 
 use pleiades_core::{
-    default_chart_bodies, resolve_ayanamsa, resolve_house_system, Ayanamsa, CelestialBody,
-    ChartEngine, ChartRequest, CompositeBackend, EphemerisError, HouseSystem, Instant, JulianDay,
-    Latitude, Longitude, ObserverLocation, TimeScale, ZodiacMode,
+    current_api_stability_profile, default_chart_bodies, resolve_ayanamsa, resolve_house_system,
+    Ayanamsa, CelestialBody, ChartEngine, ChartRequest, CompositeBackend, EphemerisError,
+    HouseSystem, Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale, ZodiacMode,
 };
 use pleiades_data::PackagedDataBackend;
 use pleiades_elp::ElpBackend;
@@ -24,9 +24,12 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("compatibility-profile") | Some("profile") => {
             Ok(pleiades_core::current_compatibility_profile().to_string())
         }
+        Some("api-stability") | Some("api-posture") => {
+            Ok(current_api_stability_profile().to_string())
+        }
         Some("chart") => render_chart(&args[1..]),
         Some("help") | Some("--help") | Some("-h") => Ok(format!(
-            "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  chart                  Render a basic chart report\n  help                   Show this help text",
+            "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  chart                  Render a basic chart report\n  help                   Show this help text",
             banner()
         )),
         _ => Ok(banner().to_string()),
@@ -176,6 +179,14 @@ mod tests {
         assert!(rendered.contains("Topocentric"));
         assert!(rendered.contains("Target ayanamsa catalog:"));
         assert!(rendered.contains("Lahiri"));
+    }
+
+    #[test]
+    fn api_stability_command_renders_the_posture() {
+        let rendered = render_cli(&["api-stability"]).expect("api posture should render");
+        assert!(rendered.contains("API stability posture: pleiades-api-stability/0.1.0"));
+        assert!(rendered.contains("Stable consumer surfaces:"));
+        assert!(rendered.contains("Experimental or operational surfaces:"));
     }
 
     #[test]

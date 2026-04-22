@@ -16,10 +16,10 @@ mod artifact;
 pub use artifact::{render_artifact_report, ArtifactBodyInspection, ArtifactInspectionReport};
 
 use pleiades_core::{
-    current_compatibility_profile, default_chart_bodies, Apparentness, BackendCapabilities,
-    BackendMetadata, CelestialBody, CompositeBackend, CoordinateFrame, EclipticCoordinates,
-    EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
-    Instant, JulianDay, Longitude, TimeScale, ZodiacMode,
+    current_api_stability_profile, current_compatibility_profile, default_chart_bodies,
+    Apparentness, BackendCapabilities, BackendMetadata, CelestialBody, CompositeBackend,
+    CoordinateFrame, EclipticCoordinates, EphemerisBackend, EphemerisError, EphemerisErrorKind,
+    EphemerisRequest, EphemerisResult, Instant, JulianDay, Longitude, TimeScale, ZodiacMode,
 };
 use pleiades_elp::ElpBackend;
 use pleiades_jpl::{comparison_snapshot, JplSnapshotBackend};
@@ -332,6 +332,9 @@ impl fmt::Display for ValidationReport {
         writeln!(f, "Compatibility profile")?;
         writeln!(f, "{}", current_compatibility_profile())?;
         writeln!(f)?;
+        writeln!(f, "API stability posture")?;
+        writeln!(f, "{}", current_api_stability_profile())?;
+        writeln!(f)?;
         writeln!(f, "Comparison corpus")?;
         write_corpus_summary(f, &self.comparison_corpus)?;
         writeln!(f)?;
@@ -451,6 +454,10 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("validate-artifact") => {
             ensure_no_extra_args(&args[1..], "validate-artifact")?;
             render_artifact_report().map_err(render_artifact_error)
+        }
+        Some("api-stability") | Some("api-posture") => {
+            ensure_no_extra_args(&args[1..], "api-stability")?;
+            Ok(current_api_stability_profile().to_string())
         }
         Some("bundle-release") => {
             let (output_dir, rounds) =
@@ -951,7 +958,7 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = default_corpus().requests.len();
     format!(
-        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus\n  report [--rounds N]       Render the full validation report\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  bundle-release --out DIR  Write the release compatibility profile, validation report, and manifest\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus\n  report [--rounds N]       Render the full validation report\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  bundle-release --out DIR  Write the release compatibility profile, validation report, and manifest\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
@@ -1088,6 +1095,7 @@ mod tests {
         let report = render_validation_report(10).expect("validation report should render");
         assert!(report.contains("Validation report"));
         assert!(report.contains("Compatibility profile"));
+        assert!(report.contains("API stability posture"));
         assert!(report.contains("Target compatibility catalog:"));
         assert!(report.contains("Comparison corpus"));
         assert!(report.contains("JPL Horizons comparison window"));
@@ -1151,7 +1159,17 @@ mod tests {
         assert!(rendered.contains("benchmark [--rounds N]"));
         assert!(rendered.contains("report [--rounds N]"));
         assert!(rendered.contains("validate-artifact"));
+        assert!(rendered.contains("api-stability"));
         assert!(rendered.contains("bundle-release --out DIR"));
+    }
+
+    #[test]
+    fn api_stability_command_renders_the_posture() {
+        let rendered = render_cli(&["api-stability"]).expect("api posture should render");
+        assert!(rendered.contains("API stability posture: pleiades-api-stability/0.1.0"));
+        assert!(rendered.contains("Stable consumer surfaces:"));
+        assert!(rendered.contains("Experimental or operational surfaces:"));
+        assert!(rendered.contains("Deprecation policy:"));
     }
 
     #[test]

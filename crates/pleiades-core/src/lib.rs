@@ -3,8 +3,8 @@
 //! Later stages layer in catalog, compatibility, and release-profile
 //! information while keeping the façade intentionally thin. It still delegates
 //! query execution to a backend, but it now also exposes the versioned
-//! compatibility profile used by the CLI, validation reports, and release
-//! notes.
+//! compatibility profile and API stability posture used by the CLI,
+//! validation reports, and release notes.
 //!
 //! # Examples
 //!
@@ -12,7 +12,7 @@
 //! use pleiades_core::{ChartEngine, EphemerisBackend, EphemerisRequest, EphemerisResult, BackendMetadata,
 //!     BackendId, BackendFamily, BackendProvenance, BackendCapabilities, AccuracyClass, TimeRange,
 //!     CelestialBody, CoordinateFrame, Instant, JulianDay, TimeScale, EphemerisError,
-//!     EphemerisErrorKind};
+//!     EphemerisErrorKind, current_api_stability_profile};
 //!
 //! struct DemoBackend;
 //!
@@ -61,13 +61,18 @@
 //! );
 //! let result = engine.position(&request).expect("demo backend should succeed");
 //! assert_eq!(result.backend_id.as_str(), "demo");
+//!
+//! let posture = current_api_stability_profile();
+//! assert!(posture.summary.contains("stable consumer surface"));
 //! ```
 
 #![forbid(unsafe_code)]
 
+mod api_stability;
 mod chart;
 mod compatibility;
 
+pub use api_stability::{current_api_stability_profile, ApiStabilityProfile};
 pub use chart::{
     default_chart_bodies, sidereal_longitude, BodyPlacement, ChartRequest, ChartSnapshot,
 };

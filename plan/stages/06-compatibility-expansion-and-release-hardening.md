@@ -57,6 +57,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] Albategnius and the Pullen sinusoidal house families are now catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
 - [x] The Sunshine house family is now catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
 - [x] The Gauquelin-sector family is now catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
+- [x] The public API stability posture is now published through `pleiades-core`, surfaced in the CLI, and included in validation reports so consumers can tell which surfaces are stable versus tooling-internal.
 
 ## Exit criteria
 

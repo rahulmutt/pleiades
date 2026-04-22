@@ -39,7 +39,7 @@ Stage 1 bootstrap is complete as of 2026-04-22.
 - [x] Managed Rust toolchain and standard developer tasks added in `mise.toml`.
 - [x] CI workflow added to run format, lint, and test checks in pure Rust mode.
 - [x] Crate skeletons and rustdoc stubs added for every current workspace member.
-- [ ] Stage 2 domain types and backend contract remain to be implemented.
+- [x] Stage 2 domain types and backend contract have since landed, along with the later stage work that builds on them.
 
 ## Suggested implementation slices
 
