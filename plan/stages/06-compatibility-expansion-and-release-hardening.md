@@ -85,6 +85,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] The backend capability matrices now render each backend's nominal supported time range in addition to accuracy and body coverage, making the release-facing capability docs easier to audit.
 - [x] Shared `CelestialBody` display formatting now preserves custom body identifiers across chart, validation, and artifact reports, so future custom-body or asteroid-oriented extensions have a stable user-facing rendering path.
 - [x] The compatibility profile now calls out non-standard ayanamsa labels like True Balarama, Aphoric, and Takra as custom-definition territory, and the ayanamsa crate has a regression test covering custom sidereal offsets for project-specific labels.
+- [x] The equal-house interoperability notes now recognize `Wang` as an alias for `Equal`, and the profile/test surface now renders that mapping explicitly so downstream equal-house consumers can round-trip the label without ambiguity.
 
 ## Exit criteria
 

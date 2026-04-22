@@ -125,8 +125,8 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
     HouseSystemDescriptor::new(
         HouseSystem::Equal,
         "Equal",
-        &["Equal houses"],
-        "Equal-house system anchored on the ascendant.",
+        &["Equal houses", "Wang"],
+        "Equal-house system anchored on the ascendant; Wang is treated as an interoperability alias for the equal-house-from-Ascendant convention.",
         false,
     ),
     HouseSystemDescriptor::new(
@@ -370,8 +370,8 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
     HouseSystemDescriptor::new(
         HouseSystem::Equal,
         "Equal",
-        &["Equal houses"],
-        "Equal-house system anchored on the ascendant.",
+        &["Equal houses", "Wang"],
+        "Equal-house system anchored on the ascendant; Wang is treated as an interoperability alias for the equal-house-from-Ascendant convention.",
         false,
     ),
     HouseSystemDescriptor::new(
@@ -545,6 +545,7 @@ mod tests {
             Some(HouseSystem::EqualAries)
         );
         assert_eq!(resolve_house_system("vehlow"), Some(HouseSystem::Vehlow));
+        assert_eq!(resolve_house_system("Wang"), Some(HouseSystem::Equal));
         assert_eq!(
             resolve_house_system("Whole Sign (house 1 = Aries)"),
             Some(HouseSystem::EqualAries)

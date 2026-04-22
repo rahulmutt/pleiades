@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-22 — Wang alias recognized as equal-house interoperability coverage
+
+Implemented a small Stage 6 compatibility-alias slice:
+
+- `pleiades-houses` now treats `Wang` as an alias for `HouseSystem::Equal`, matching the equal-house-from-Ascendant convention used by downstream interoperability labels
+- `pleiades-core` release notes and alias-rendering tests now surface that mapping in the compatibility profile so the release artifact shows the new equivalence explicitly
+- no spec update was required; this is a catalog/interop refinement that stays within the existing Stage 6 compatibility-expansion scope
+
+Remaining Stage 6 work: keep filling out any remaining catalog breadth and metadata while the release profile stays synchronized with the catalog.
+
 ## 2026-04-22 — aspect helper slice added to ChartSnapshot
 
 Implemented a small Stage 6 optional-helper slice:
