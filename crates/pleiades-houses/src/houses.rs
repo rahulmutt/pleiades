@@ -172,6 +172,9 @@ pub fn calculate_houses(request: &HouseRequest) -> Result<HouseSnapshot, HouseEr
             horizon_houses(request.instant, &request.observer, obliquity, angles)
         }
         HouseSystem::Apc => apc_houses(request.instant, &request.observer, obliquity, angles),
+        HouseSystem::KrusinskiPisaGoelzer => {
+            krusinski_pisa_goelzer_houses(request.instant, &request.observer, obliquity, angles)
+        }
         HouseSystem::Alcabitius => {
             alcabitius_houses(request.instant, &request.observer, obliquity, angles)
         }
@@ -631,6 +634,43 @@ fn apc_houses(
     cusps
 }
 
+fn krusinski_pisa_goelzer_houses(
+    instant: Instant,
+    observer: &ObserverLocation,
+    obliquity: Angle,
+    angles: HouseAngles,
+) -> [Longitude; 12] {
+    let sidereal_time = local_sidereal_time(instant, observer.longitude).degrees();
+    let latitude = observer.latitude.degrees();
+    let obliquity_deg = obliquity.degrees();
+
+    let mut ascendant = angles.ascendant;
+    if signed_longitude_difference(ascendant.degrees(), angles.midheaven.degrees()) < 0.0 {
+        ascendant = longitude_opposite(ascendant);
+    }
+
+    let mut house_circle_point = [ascendant.degrees(), 0.0, 1.0];
+    spherical_cotrans(&mut house_circle_point, -obliquity_deg);
+    house_circle_point[0] = normalize_degrees(house_circle_point[0] - (sidereal_time - 90.0));
+    spherical_cotrans(&mut house_circle_point, -(90.0 - latitude));
+    let horizon_offset = house_circle_point[0];
+
+    let mut cusps = [Longitude::from_degrees(0.0); 12];
+    for index in 0..6 {
+        let mut point = [30.0 * index as f64, 0.0, 1.0];
+        spherical_cotrans(&mut point, 90.0);
+        point[0] = normalize_degrees(point[0] + horizon_offset);
+        spherical_cotrans(&mut point, 90.0 - latitude);
+        point[0] = normalize_degrees(point[0] + (sidereal_time - 90.0));
+        cusps[index] = ecliptic_longitude_from_ra(point[0], obliquity_deg.to_radians());
+        cusps[index + 6] = longitude_opposite(cusps[index]);
+    }
+
+    cusps[0] = ascendant;
+    cusps[6] = longitude_opposite(ascendant);
+    cusps
+}
+
 fn sripati_houses(angles: HouseAngles) -> [Longitude; 12] {
     let porphyry = porphyry_houses(angles);
     core::array::from_fn(|index| {
@@ -764,6 +804,37 @@ fn longitude_in_arc(longitude: f64, start: f64, end: f64) -> bool {
     }
 }
 
+fn normalize_degrees(degrees: f64) -> f64 {
+    degrees.rem_euclid(360.0)
+}
+
+fn signed_longitude_difference(a: f64, b: f64) -> f64 {
+    let delta = normalize_degrees(a - b);
+    if delta >= 180.0 {
+        delta - 360.0
+    } else {
+        delta
+    }
+}
+
+fn spherical_cotrans(coord: &mut [f64; 3], angle_deg: f64) {
+    let lon = coord[0].to_radians();
+    let lat = coord[1].to_radians();
+    let radius = coord[2];
+    let x = radius * lat.cos() * lon.cos();
+    let y = radius * lat.cos() * lon.sin();
+    let z = radius * lat.sin();
+
+    let angle = angle_deg.to_radians();
+    let y_rot = y * angle.cos() + z * angle.sin();
+    let z_rot = -y * angle.sin() + z * angle.cos();
+    let radius = (x * x + y_rot * y_rot + z_rot * z_rot).sqrt();
+
+    coord[0] = y_rot.atan2(x).to_degrees();
+    coord[1] = z_rot.atan2((x * x + y_rot * y_rot).sqrt()).to_degrees();
+    coord[2] = radius;
+}
+
 fn catalog_name(system: &HouseSystem) -> &'static str {
     match system {
         HouseSystem::Placidus => "Placidus",
@@ -774,6 +845,7 @@ fn catalog_name(system: &HouseSystem) -> &'static str {
         HouseSystem::Carter => "Carter (poli-equatorial)",
         HouseSystem::Horizon => "Horizon/Azimuth",
         HouseSystem::Apc => "APC",
+        HouseSystem::KrusinskiPisaGoelzer => "Krusinski-Pisa-Goelzer",
         HouseSystem::Equal => "Equal",
         HouseSystem::EqualMidheaven => "Equal (MC)",
         HouseSystem::EqualAries => "Equal (1=Aries)",
@@ -919,6 +991,7 @@ mod tests {
             HouseSystem::Axial,
             HouseSystem::Morinus,
             HouseSystem::Topocentric,
+            HouseSystem::KrusinskiPisaGoelzer,
         ] {
             let snapshot = calculate_houses(&sample_request(system.clone()))
                 .expect("baseline quadrant system should calculate");
@@ -952,6 +1025,19 @@ mod tests {
         assert_eq!(apc.cusps.len(), 12);
         assert_eq!(apc.cusps[0], apc.angles.ascendant);
         assert_eq!(apc.cusps[9], apc.angles.midheaven);
+    }
+
+    #[test]
+    fn krusinski_pisa_goelzer_release_system_is_available() {
+        let snapshot = calculate_houses(&sample_request(HouseSystem::KrusinskiPisaGoelzer))
+            .expect("krusinski-pisa-goelzer houses should work");
+        assert_eq!(snapshot.cusps.len(), 12);
+        assert!(snapshot.cusps[0].degrees().is_finite());
+        assert_eq!(
+            (snapshot.cusps[6].degrees() - snapshot.cusps[0].degrees()).rem_euclid(360.0),
+            180.0
+        );
+        assert_ne!(snapshot.cusps[0], snapshot.cusps[9]);
     }
 
     #[test]

@@ -223,9 +223,21 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         "APC (Ram school) houses with non-opposite quadrant pairs and polar adjustments.",
         true,
     ),
+    HouseSystemDescriptor::new(
+        HouseSystem::KrusinskiPisaGoelzer,
+        "Krusinski-Pisa-Goelzer",
+        &[
+            "Krusinski",
+            "Krusinski-Pisa",
+            "Krusinski Pisa",
+            "Pisa-Goelzer",
+        ],
+        "Great-circle house system centered on the ascendant and zenith; latitude-sensitive near the poles.",
+        true,
+    ),
 ];
 
-static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 19] = [
+static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 20] = [
     HouseSystemDescriptor::new(
         HouseSystem::Placidus,
         "Placidus",
@@ -280,6 +292,18 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 19] = [
         "APC",
         &["Ram school", "Ramschool", "APC houses"],
         "APC (Ram school) houses with non-opposite quadrant pairs and polar adjustments.",
+        true,
+    ),
+    HouseSystemDescriptor::new(
+        HouseSystem::KrusinskiPisaGoelzer,
+        "Krusinski-Pisa-Goelzer",
+        &[
+            "Krusinski",
+            "Krusinski-Pisa",
+            "Krusinski Pisa",
+            "Pisa-Goelzer",
+        ],
+        "Great-circle house system centered on the ascendant and zenith; latitude-sensitive near the poles.",
         true,
     ),
     HouseSystemDescriptor::new(
@@ -443,6 +467,10 @@ mod tests {
         assert_eq!(resolve_house_system("vehlow"), Some(HouseSystem::Vehlow));
         assert_eq!(resolve_house_system("Azimuth"), Some(HouseSystem::Horizon));
         assert_eq!(resolve_house_system("Ram school"), Some(HouseSystem::Apc));
+        assert_eq!(
+            resolve_house_system("Krusinski"),
+            Some(HouseSystem::KrusinskiPisaGoelzer)
+        );
         assert_eq!(resolve_house_system("Śrīpati"), Some(HouseSystem::Sripati));
     }
 
@@ -461,6 +489,7 @@ mod tests {
             "Carter (poli-equatorial)",
             "Horizon/Azimuth",
             "APC",
+            "Krusinski-Pisa-Goelzer",
         ] {
             assert!(names.contains(&expected), "missing {expected}");
         }

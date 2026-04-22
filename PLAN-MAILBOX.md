@@ -185,3 +185,14 @@ Implemented another Stage 6 catalog-breadth slice:
 - `pleiades-core` and the release compatibility profile now expose the new release-specific coverage set entries
 
 Remaining Stage 6 work: the rest of the specialized house-system breadth, plus any API posture review and release-hardening polish that depends on additional coverage.
+
+## 2026-04-22 — Krusinski-Pisa-Goelzer house breadth added
+
+Implemented the next Stage 6 breadth slice:
+
+- `pleiades-types` gained `HouseSystem::KrusinskiPisaGoelzer`
+- `pleiades-houses` now catalogs, resolves, documents, and calculates Krusinski-Pisa-Goelzer with a dedicated pure-Rust implementation and alias coverage
+- `pleiades-core` and the compatibility profile now expose the new release-specific coverage entry, and the profile version was bumped to `0.5.0`
+- plan notes were updated so the remaining breadth work now points at the sinusoidal, Albategnius, Sunshine, and Gauquelin-sector families
+
+Next recommended slice: keep adding the remaining specialized house families in small batches, then revisit any remaining API-posture polish if those additions expose new constraints.

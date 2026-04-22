@@ -440,6 +440,8 @@ pub enum HouseSystem {
     Horizon,
     /// APC houses.
     Apc,
+    /// Krusinski-Pisa-Goelzer houses.
+    KrusinskiPisaGoelzer,
     /// Equal houses.
     Equal,
     /// Equal houses with the Midheaven on cusp 10.
