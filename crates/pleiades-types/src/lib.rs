@@ -514,6 +514,10 @@ pub enum Ayanamsa {
     FaganBradley,
     /// True Chitra.
     TrueChitra,
+    /// Suryasiddhanta (Revati) / SS Revati.
+    SuryasiddhantaRevati,
+    /// Suryasiddhanta (Citra) / SS Citra.
+    SuryasiddhantaCitra,
     /// J2000.0 reference-frame mode.
     J2000,
     /// J1900.0 reference-frame mode.

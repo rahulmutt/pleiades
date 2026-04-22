@@ -305,7 +305,7 @@ Remaining Stage 6 work: keep catalog breadth and release notes aligned as any fi
 Implemented a release-hardening maintenance slice:
 
 - `pleiades-houses` and `pleiades-ayanamsa` now have round-trip coverage tests that verify the built-in catalogs, baseline milestones, release-specific additions, and alias resolution stay internally aligned
-- `pleiades-core` now checks that the published compatibility profile’s release-note text continues to mention every release-specific house-system and ayanamsa entry, reducing drift between the catalog data and the release summary, and the compatibility-profile identifier was bumped to `0.6.7` to reflect the content update
+- `pleiades-core` now checks that the published compatibility profile’s release-note text continues to mention every release-specific house-system and ayanamsa entry, reducing drift between the catalog data and the release summary, and the compatibility-profile identifier was bumped to `0.6.8` to reflect the latest content update
 - the next recommended follow-up is to keep using the same invariant pattern whenever new catalog breadth lands, so the compatibility profile stays synchronized automatically
 
 ## 2026-04-22 — metadata-backed ayanamsa metadata added
@@ -355,3 +355,13 @@ Implemented a small Stage 6 catalog-breadth slice:
 - `pleiades-core`, the README, and the Stage 6 plan notes now reflect the new breadth entry
 
 Next recommended slice: continue the remaining Swiss Ephemeris ayanamsa breadth or move to any additional release-hardening polish that depends on broader compatibility coverage.
+
+## 2026-04-22 — SS Revati/Citra breadth identified
+
+Implemented the next Stage 6 catalog-breadth slice:
+
+- `pleiades-types` now has explicit ayanamsa variants for Suryasiddhanta (Revati) and Suryasiddhanta (Citra)
+- `pleiades-ayanamsa` and the compatibility profile can now catalog, resolve, and display the Swiss Ephemeris SS Revati and SS Citra breadth entries alongside the existing true-nakshatra modes
+- the stage-6 plan should keep this batch grouped with the other ayanamsa-breadth notes so the release profile stays synchronized with the catalog
+
+Remaining Stage 6 work: keep filling out ayanamsa breadth and any release-hardening polish that depends on additional catalog coverage.

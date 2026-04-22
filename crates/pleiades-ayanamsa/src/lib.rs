@@ -161,6 +161,22 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
+        Ayanamsa::SuryasiddhantaRevati,
+        "Suryasiddhanta (Revati)",
+        &["SS Revati", "Suryasiddhanta Revati", "Surya Siddhanta Revati"],
+        "Swiss Ephemeris SS Revati mode; a Surya Siddhanta Revati reference kept catalogued for interoperability even though no sidereal-offset metadata is published yet.",
+        None,
+        None,
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::SuryasiddhantaCitra,
+        "Suryasiddhanta (Citra)",
+        &["SS Citra", "Suryasiddhanta Citra", "Surya Siddhanta Citra"],
+        "Swiss Ephemeris SS Citra mode; a Surya Siddhanta Citra reference kept catalogued for interoperability even though no sidereal-offset metadata is published yet.",
+        None,
+        None,
+    ),
+    AyanamsaDescriptor::new(
         Ayanamsa::LahiriIcrc,
         "Lahiri (ICRC)",
         &["ICRC Lahiri", "Lahiri ICRC"],
@@ -474,7 +490,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     ),
 ];
 
-static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 49] = [
+static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 51] = [
     AyanamsaDescriptor::new(
         Ayanamsa::Lahiri,
         "Lahiri",
@@ -554,6 +570,22 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 49] = [
         "True-nakshatra mode with the Mula reference point fixed to the Swiss Ephemeris zero date.",
         Some(JulianDay::from_days(1_805_889.671_313)),
         Some(Angle::from_degrees(0.0)),
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::SuryasiddhantaRevati,
+        "Suryasiddhanta (Revati)",
+        &["SS Revati", "Suryasiddhanta Revati", "Surya Siddhanta Revati"],
+        "Swiss Ephemeris SS Revati mode; a Surya Siddhanta Revati reference kept catalogued for interoperability even though no sidereal-offset metadata is published yet.",
+        None,
+        None,
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::SuryasiddhantaCitra,
+        "Suryasiddhanta (Citra)",
+        &["SS Citra", "Suryasiddhanta Citra", "Surya Siddhanta Citra"],
+        "Swiss Ephemeris SS Citra mode; a Surya Siddhanta Citra reference kept catalogued for interoperability even though no sidereal-offset metadata is published yet.",
+        None,
+        None,
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::LahiriIcrc,
@@ -963,6 +995,14 @@ mod tests {
         assert_eq!(resolve_ayanamsa("B1950.0"), Some(Ayanamsa::B1950));
         assert_eq!(resolve_ayanamsa("True Revati"), Some(Ayanamsa::TrueRevati));
         assert_eq!(resolve_ayanamsa("True Mula"), Some(Ayanamsa::TrueMula));
+        assert_eq!(
+            resolve_ayanamsa("SS Revati"),
+            Some(Ayanamsa::SuryasiddhantaRevati)
+        );
+        assert_eq!(
+            resolve_ayanamsa("SS Citra"),
+            Some(Ayanamsa::SuryasiddhantaCitra)
+        );
         assert_eq!(resolve_ayanamsa("ICRC Lahiri"), Some(Ayanamsa::LahiriIcrc));
         assert_eq!(
             resolve_ayanamsa("Panchanga Darpan Lahiri"),
@@ -1029,6 +1069,8 @@ mod tests {
             "B1950",
             "True Revati",
             "True Mula",
+            "Suryasiddhanta (Revati)",
+            "Suryasiddhanta (Citra)",
             "Lahiri (ICRC)",
             "Lahiri (1940)",
             "Usha Shashi",
