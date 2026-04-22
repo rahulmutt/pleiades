@@ -1,0 +1,22 @@
+[workspace]
+members = [
+    "crates/pleiades-ayanamsa",
+    "crates/pleiades-backend",
+    "crates/pleiades-cli",
+    "crates/pleiades-compression",
+    "crates/pleiades-core",
+    "crates/pleiades-data",
+    "crates/pleiades-elp",
+    "crates/pleiades-houses",
+    "crates/pleiades-jpl",
+    "crates/pleiades-types",
+    "crates/pleiades-validate",
+    "crates/pleiades-vsop87",
+]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+license = "MIT OR Apache-2.0"
+version = "0.1.0"
+rust-version = "1.95.0"

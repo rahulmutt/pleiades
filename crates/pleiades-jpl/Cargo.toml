@@ -1,0 +1,11 @@
+[package]
+name = "pleiades-jpl"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+pleiades-backend = { path = "../pleiades-backend" }
+pleiades-types = { path = "../pleiades-types" }

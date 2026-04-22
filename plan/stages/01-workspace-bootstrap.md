@@ -31,6 +31,16 @@ The spec puts strong emphasis on crate boundaries, reproducibility, and pure-Rus
 ## Workable state at end of stage
 A contributor can clone the repo, enter the managed tool environment, run formatting/lint/tests, and understand where new functionality belongs.
 
+## Progress update
+
+Stage 1 bootstrap is complete as of 2026-04-22.
+
+- [x] Workspace manifest added with the full set of required `pleiades-*` first-party crates.
+- [x] Managed Rust toolchain and standard developer tasks added in `mise.toml`.
+- [x] CI workflow added to run format, lint, and test checks in pure Rust mode.
+- [x] Crate skeletons and rustdoc stubs added for every current workspace member.
+- [ ] Stage 2 domain types and backend contract remain to be implemented.
+
 ## Suggested implementation slices
 
 1. Create the workspace manifest and empty `pleiades-*` member crates so architecture is visible immediately.
