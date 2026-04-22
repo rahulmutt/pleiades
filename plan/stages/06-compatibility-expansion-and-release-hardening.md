@@ -77,6 +77,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] The chart façade now exposes a motion-direction helper for body placements, so future chart reports and consumers can surface retrograde/direct state from backend motion data without adding backend-specific logic.
 - [x] `pleiades-core::ChartSnapshot` now offers direct body lookup and retrograde-summary helpers, and chart rendering emits a retrograde-body summary when motion data is available.
 - [x] `pleiades-cli` now exposes the implemented backend capability matrices directly via `backend-matrix` / `capability-matrix`, so maintainers can inspect coverage, range, and accuracy notes from the user-facing CLI.
+- [x] The compatibility profile now renders an explicit alias-mapping appendix for built-in house systems and ayanamsas, making interoperability lookups easier to audit from the release artifact itself.
 - [x] The backend capability matrices now render each backend's nominal supported time range in addition to accuracy and body coverage, making the release-facing capability docs easier to audit.
 
 ## Exit criteria

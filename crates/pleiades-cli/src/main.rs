@@ -192,6 +192,8 @@ mod tests {
         assert!(rendered.contains("Release-specific coverage beyond baseline:"));
         assert!(rendered.contains("Topocentric"));
         assert!(rendered.contains("Target ayanamsa catalog:"));
+        assert!(rendered.contains("Alias mappings for built-in house systems:"));
+        assert!(rendered.contains("Alias mappings for built-in ayanamsas:"));
         assert!(rendered.contains("J2000"));
         assert!(rendered.contains("True Pushya"));
         assert!(rendered.contains("Djwhal Khul"));

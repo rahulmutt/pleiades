@@ -97,6 +97,64 @@ fn write_scope_section(
     Ok(())
 }
 
+trait AliasProfileEntry {
+    fn canonical_name(&self) -> &'static str;
+    fn aliases(&self) -> &'static [&'static str];
+}
+
+impl AliasProfileEntry for HouseSystemDescriptor {
+    fn canonical_name(&self) -> &'static str {
+        self.canonical_name
+    }
+
+    fn aliases(&self) -> &'static [&'static str] {
+        self.aliases
+    }
+}
+
+impl AliasProfileEntry for AyanamsaDescriptor {
+    fn canonical_name(&self) -> &'static str {
+        self.canonical_name
+    }
+
+    fn aliases(&self) -> &'static [&'static str] {
+        self.aliases
+    }
+}
+
+fn write_alias_section<T: AliasProfileEntry>(
+    f: &mut fmt::Formatter<'_>,
+    title: &str,
+    entries: &[T],
+) -> fmt::Result {
+    let mut has_aliases = false;
+    for entry in entries {
+        if !entry.aliases().is_empty() {
+            has_aliases = true;
+            break;
+        }
+    }
+
+    if !has_aliases {
+        return Ok(());
+    }
+
+    writeln!(f, "{}", title)?;
+    for entry in entries {
+        if entry.aliases().is_empty() {
+            continue;
+        }
+
+        writeln!(
+            f,
+            "- {} -> {}",
+            entry.aliases().join(", "),
+            entry.canonical_name()
+        )?;
+    }
+    Ok(())
+}
+
 impl fmt::Display for CompatibilityProfile {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Compatibility profile: {}", self.profile_id)?;
@@ -169,6 +227,14 @@ impl fmt::Display for CompatibilityProfile {
                 self.release_notes,
             )?;
         }
+        writeln!(f)?;
+        write_alias_section(
+            f,
+            "Alias mappings for built-in house systems:",
+            self.house_systems,
+        )?;
+        writeln!(f)?;
+        write_alias_section(f, "Alias mappings for built-in ayanamsas:", self.ayanamsas)?;
         writeln!(f)?;
         write_scope_section(f, "Known gaps:", self.known_gaps)?;
         Ok(())
@@ -403,6 +469,10 @@ mod tests {
         assert!(rendered.contains("Target ayanamsa catalog:"));
         assert!(rendered.contains("Baseline compatibility milestone:"));
         assert!(rendered.contains("Release-specific coverage beyond baseline:"));
+        assert!(rendered.contains("Alias mappings for built-in house systems:"));
+        assert!(rendered.contains("Alias mappings for built-in ayanamsas:"));
+        assert!(rendered.contains("Polich-Page, Polich Page -> Topocentric"));
+        assert!(rendered.contains("Chitrapaksha -> Lahiri"));
         assert!(rendered.contains("Equal (MC)"));
         assert!(rendered.contains("Equal (1=Aries)"));
         assert!(rendered.contains("Vehlow Equal"));
