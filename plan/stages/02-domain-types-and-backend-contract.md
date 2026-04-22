@@ -37,7 +37,7 @@ Stage 2 foundation is in place as of 2026-04-22.
 - [x] `pleiades-backend` now defines request/result types, backend metadata, capability flags, structured errors, and batch-query semantics.
 - [x] `pleiades-core` now provides a thin façade that delegates to a backend without hiding the lower-level contract.
 - [x] Toy backend coverage and rustdoc examples compile successfully under workspace tests.
-- [ ] Stage 3 algorithmic backends and chart assembly remain to be implemented.
+- [x] Stage 3 algorithmic backends and chart assembly are in place, and the baseline house-system catalog is now implemented in `pleiades-houses`.
 
 ## Suggested implementation slices
 

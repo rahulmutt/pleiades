@@ -44,3 +44,13 @@ Implemented the next Stage 3 slice:
 - the compatibility profile and README now distinguish the implemented house-placement subset from the remaining quadrant-style systems
 
 Remaining Stage 3 work: the more complex baseline house families (Placidus, Koch, Regiomontanus, Campanus, Alcabitius, Topocentric, Morinus, Meridian, and Axial variants) still need dedicated implementations.
+
+## 2026-04-22 — baseline quadrant-house implementations completed
+
+Implemented the next Stage 3 slice:
+
+- `pleiades-houses` now implements the full baseline house catalog, including Placidus, Koch, Regiomontanus, Campanus, Alcabitius, Topocentric, Morinus, Meridian, and Axial variants
+- the compatibility profile now reports those systems as implemented rather than pending
+- Stage 3 progress notes and Stage 2 handoff text were updated to reflect the expanded baseline coverage
+
+Stage 3 is now effectively complete at the baseline level; Stage 4 validation and later-stage hardening remain the next major follow-up.

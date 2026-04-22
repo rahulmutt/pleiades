@@ -1,9 +1,9 @@
 //! House-system catalog definitions and compatibility metadata.
 //!
-//! This crate currently focuses on the catalog layer and the first chart MVP
-//! house-placement helpers: it enumerates the baseline built-in house systems,
-//! their common aliases, and a few notes about latitude-sensitive behavior, and
-//! it now exposes a small calculation path for the simpler baseline systems.
+//! This crate focuses on the catalog layer and the first chart MVP house-
+//! placement helpers: it enumerates the baseline built-in house systems, their
+//! common aliases, latitude-sensitive notes, and the Stage 3 baseline house
+//! formulas that power the chart workflow.
 //!
 //! # Examples
 //!

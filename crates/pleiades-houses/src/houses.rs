@@ -1,13 +1,17 @@
 //! House-system calculations for the baseline chart MVP.
 //!
 //! The catalog layer in this crate already enumerates the target compatibility
-//! set. This module adds the first concrete house-placement workflow on top of
-//! that vocabulary. The initial implementation focuses on the simpler and more
-//! robust systems first: Equal, Whole Sign, and Porphyry.
+//! set. This module now implements the first practical house-placement
+//! workflows for the baseline systems so the chart layer can offer real house
+//! cusps instead of catalog-only placeholders.
 //!
-//! More latitude-sensitive or time-divisional systems are still catalogued,
-//! but remain explicit unsupported cases for this slice so callers get a clear
-//! error instead of a silent approximation.
+//! Equal, Whole Sign, and Porphyry remain the simplest space/ecliptic systems.
+//! Placidus, Koch, Alcabitius, and Topocentric use iterative or time-divisional
+//! formulas. Regiomontanus, Campanus, Morinus, Meridian, and Axial variants
+//! are projected from their equatorial or prime-vertical constructions.
+//!
+//! The formulas are intentionally explicit and documented so later validation
+//! work can tighten them further without changing the public API surface.
 
 use core::fmt;
 
@@ -144,10 +148,29 @@ pub fn calculate_houses(request: &HouseRequest) -> Result<HouseSnapshot, HouseEr
         .obliquity
         .unwrap_or_else(|| mean_obliquity(request.instant));
     let angles = derive_angles(request.instant, &request.observer, obliquity);
-    let cusps = match request.system {
+    let cusps = match &request.system {
         HouseSystem::Equal => equal_houses(angles.ascendant),
         HouseSystem::WholeSign => whole_sign_houses(angles.ascendant),
         HouseSystem::Porphyry => porphyry_houses(angles),
+        HouseSystem::Placidus => {
+            placidus_houses(request.instant, &request.observer, obliquity, angles)?
+        }
+        HouseSystem::Koch => koch_houses(request.instant, &request.observer, obliquity, angles)?,
+        HouseSystem::Regiomontanus => {
+            regiomontanus_houses(request.instant, &request.observer, obliquity, angles)
+        }
+        HouseSystem::Campanus => {
+            campanus_houses(request.instant, &request.observer, obliquity, angles)
+        }
+        HouseSystem::Alcabitius => {
+            alcabitius_houses(request.instant, &request.observer, obliquity, angles)
+        }
+        HouseSystem::Meridian | HouseSystem::Axial | HouseSystem::Morinus => {
+            equatorial_projection_houses(request.instant, &request.observer, obliquity)
+        }
+        HouseSystem::Topocentric => {
+            topocentric_houses(request.instant, &request.observer, obliquity)?
+        }
         _ => {
             return Err(HouseError::new(
                 HouseErrorKind::UnsupportedHouseSystem,
@@ -267,6 +290,289 @@ fn porphyry_houses(angles: HouseAngles) -> [Longitude; 12] {
     cusps
 }
 
+fn placidus_houses(
+    instant: Instant,
+    observer: &ObserverLocation,
+    obliquity: Angle,
+    angles: HouseAngles,
+) -> Result<[Longitude; 12], HouseError> {
+    let mut cusps = [Longitude::from_degrees(0.0); 12];
+    cusps[0] = angles.ascendant;
+    cusps[3] = angles.imum_coeli;
+    cusps[6] = angles.descendant;
+    cusps[9] = angles.midheaven;
+
+    let st = local_sidereal_time(instant, observer.longitude).degrees();
+    cusps[10] = solve_placidian_cusp(st, observer.latitude.degrees(), obliquity.degrees(), 11)?;
+    cusps[11] = solve_placidian_cusp(st, observer.latitude.degrees(), obliquity.degrees(), 12)?;
+    cusps[1] = solve_placidian_cusp(st, observer.latitude.degrees(), obliquity.degrees(), 2)?;
+    cusps[2] = solve_placidian_cusp(st, observer.latitude.degrees(), obliquity.degrees(), 3)?;
+
+    cusps[4] = longitude_opposite(cusps[10]);
+    cusps[5] = longitude_opposite(cusps[11]);
+    cusps[7] = longitude_opposite(cusps[1]);
+    cusps[8] = longitude_opposite(cusps[2]);
+
+    Ok(cusps)
+}
+
+fn koch_houses(
+    instant: Instant,
+    observer: &ObserverLocation,
+    obliquity: Angle,
+    angles: HouseAngles,
+) -> Result<[Longitude; 12], HouseError> {
+    let mut cusps = [Longitude::from_degrees(0.0); 12];
+    cusps[0] = angles.ascendant;
+    cusps[3] = angles.imum_coeli;
+    cusps[6] = angles.descendant;
+    cusps[9] = angles.midheaven;
+
+    let st = local_sidereal_time(instant, observer.longitude).degrees();
+    let latitude = observer.latitude.degrees().to_radians();
+    let obliquity = obliquity.degrees().to_radians();
+    let z = (st.to_radians().sin() * latitude.tan() * obliquity.tan())
+        .clamp(-1.0, 1.0)
+        .asin()
+        .to_degrees();
+
+    for house in 1..=12 {
+        if matches!(house, 1 | 4 | 7 | 10) {
+            continue;
+        }
+
+        let b = house_phase(house);
+        let hemisphere_sign = if b < 180.0 { 1.0 } else { -1.0 };
+        let k = if b < 180.0 { 1.0 } else { -1.0 };
+        let h = st + b + hemisphere_sign * z;
+        let x = h.to_radians().cos() * obliquity.cos() - k * latitude.tan() * obliquity.sin();
+        let y = h.to_radians().sin();
+        cusps[house - 1] = Longitude::from_degrees(y.atan2(x).to_degrees());
+    }
+
+    Ok(cusps)
+}
+
+fn alcabitius_houses(
+    instant: Instant,
+    observer: &ObserverLocation,
+    obliquity: Angle,
+    angles: HouseAngles,
+) -> [Longitude; 12] {
+    let mut cusps = [Longitude::from_degrees(0.0); 12];
+    cusps[0] = angles.ascendant;
+    cusps[3] = angles.imum_coeli;
+    cusps[6] = angles.descendant;
+    cusps[9] = angles.midheaven;
+
+    let st = local_sidereal_time(instant, observer.longitude).degrees();
+    let latitude = observer.latitude.degrees().to_radians();
+    let obliquity = obliquity.degrees().to_radians();
+    let ascendant_longitude = angles.ascendant.degrees().to_radians();
+    let ascendant_declination = (ascendant_longitude.sin() * obliquity.sin()).asin();
+    let ascensional_difference = (latitude.tan() * ascendant_declination.tan())
+        .clamp(-1.0, 1.0)
+        .asin()
+        .to_degrees();
+    let diurnal = 90.0 + ascensional_difference;
+    let nocturnal = 90.0 - ascensional_difference;
+
+    let above = [10usize, 11, 12];
+    for (index, house) in above.iter().enumerate() {
+        let offset = diurnal * (index as f64) / 3.0;
+        let ra = st + offset;
+        cusps[*house - 1] = ecliptic_longitude_from_ra(ra, obliquity);
+    }
+
+    let below = [1usize, 2, 3];
+    for (index, house) in below.iter().enumerate() {
+        let offset = diurnal + nocturnal * ((index as f64) + 1.0) / 3.0;
+        let ra = st + offset;
+        cusps[*house - 1] = ecliptic_longitude_from_ra(ra, obliquity);
+    }
+
+    cusps[4] = longitude_opposite(cusps[10]);
+    cusps[5] = longitude_opposite(cusps[11]);
+    cusps[7] = longitude_opposite(cusps[1]);
+    cusps[8] = longitude_opposite(cusps[2]);
+
+    cusps
+}
+
+fn regiomontanus_houses(
+    instant: Instant,
+    observer: &ObserverLocation,
+    obliquity: Angle,
+    angles: HouseAngles,
+) -> [Longitude; 12] {
+    let mut cusps = [Longitude::from_degrees(0.0); 12];
+    cusps[0] = angles.ascendant;
+    cusps[3] = angles.imum_coeli;
+    cusps[6] = angles.descendant;
+    cusps[9] = angles.midheaven;
+
+    let st = local_sidereal_time(instant, observer.longitude)
+        .degrees()
+        .to_radians();
+    let latitude = observer.latitude.degrees().to_radians();
+    let obliquity = obliquity.degrees().to_radians();
+
+    for house in 1..=12 {
+        if matches!(house, 1 | 4 | 7 | 10) {
+            continue;
+        }
+
+        let d = house_phase(house).to_radians();
+        let v = d.sin() * latitude.sin() * obliquity.sin();
+        let x = (st + d).cos() * latitude.cos() * obliquity.cos() - v;
+        let y = (st + d).sin() * latitude.cos();
+        cusps[house - 1] = Longitude::from_degrees(y.atan2(x).to_degrees());
+    }
+
+    cusps
+}
+
+fn campanus_houses(
+    instant: Instant,
+    observer: &ObserverLocation,
+    obliquity: Angle,
+    angles: HouseAngles,
+) -> [Longitude; 12] {
+    let mut cusps = [Longitude::from_degrees(0.0); 12];
+    cusps[0] = angles.ascendant;
+    cusps[3] = angles.imum_coeli;
+    cusps[6] = angles.descendant;
+    cusps[9] = angles.midheaven;
+
+    let st = local_sidereal_time(instant, observer.longitude)
+        .degrees()
+        .to_radians();
+    let latitude = observer.latitude.degrees().to_radians();
+    let obliquity = obliquity.degrees().to_radians();
+
+    for house in 1..=12 {
+        if matches!(house, 1 | 4 | 7 | 10) {
+            continue;
+        }
+
+        let z = house_phase(house).to_radians();
+        let p = (z.sin() * latitude.cos()).atan2(z.cos());
+        let v = p.sin() * latitude.sin() * obliquity.sin();
+        let x = (st + z).cos() * latitude.cos() * obliquity.cos() - v;
+        let y = (st + z).sin();
+        cusps[house - 1] = Longitude::from_degrees(y.atan2(x).to_degrees());
+    }
+
+    cusps
+}
+
+fn equatorial_projection_houses(
+    instant: Instant,
+    observer: &ObserverLocation,
+    obliquity: Angle,
+) -> [Longitude; 12] {
+    let st = local_sidereal_time(instant, observer.longitude).degrees();
+
+    core::array::from_fn(|index| {
+        let house = index + 1;
+        let ra = st + house_phase(house);
+        ecliptic_longitude_from_ra(ra, obliquity.degrees().to_radians())
+    })
+}
+
+fn topocentric_houses(
+    instant: Instant,
+    observer: &ObserverLocation,
+    obliquity: Angle,
+) -> Result<[Longitude; 12], HouseError> {
+    let corrected_latitude =
+        topocentric_latitude(observer.latitude.degrees(), observer.elevation_m)?;
+    let corrected_observer = ObserverLocation::new(
+        corrected_latitude.into(),
+        observer.longitude,
+        observer.elevation_m,
+    );
+    let corrected_angles = derive_angles(instant, &corrected_observer, obliquity);
+    placidus_houses(instant, &corrected_observer, obliquity, corrected_angles)
+}
+
+fn topocentric_latitude(latitude_deg: f64, elevation_m: Option<f64>) -> Result<Angle, HouseError> {
+    let latitude = latitude_deg.to_radians();
+    let radius_m = 6_371_000.0;
+    let scale = match elevation_m {
+        Some(elevation) if elevation.is_finite() => radius_m / (radius_m + elevation),
+        Some(_) => {
+            return Err(HouseError::new(
+                HouseErrorKind::InvalidLatitude,
+                "observer elevation must be finite when provided",
+            ))
+        }
+        None => 1.0,
+    };
+
+    let sin_effective = (scale * latitude.sin()).clamp(-1.0, 1.0);
+    Ok(Angle::from_degrees(sin_effective.asin().to_degrees()))
+}
+
+fn solve_placidian_cusp(
+    st_deg: f64,
+    latitude_deg: f64,
+    obliquity_deg: f64,
+    house: usize,
+) -> Result<Longitude, HouseError> {
+    let k = match house {
+        11 => 1.0 / 3.0,
+        12 => 2.0 / 3.0,
+        2 => -2.0 / 3.0,
+        3 => -1.0 / 3.0,
+        _ => {
+            return Err(HouseError::new(
+                HouseErrorKind::UnsupportedHouseSystem,
+                format!("invalid placidian house {}", house),
+            ))
+        }
+    };
+
+    let latitude = latitude_deg.to_radians();
+    let obliquity = obliquity_deg.to_radians();
+    let c = latitude.cos();
+    let s = latitude.sin() * obliquity.tan();
+    let mut q = 90.0;
+
+    for _ in 0..32 {
+        let ra = st_deg + q;
+        let q_rad = q.to_radians();
+        let ra_rad = ra.to_radians();
+        let f = c * q_rad.cos() + k * s * ra_rad.sin();
+        let fp = (-c * q_rad.sin() + k * s * ra_rad.cos()) * core::f64::consts::PI / 180.0;
+        if fp.abs() < 1.0e-12 {
+            return Err(HouseError::new(
+                HouseErrorKind::NumericalFailure,
+                "placidian cusp iteration encountered a zero derivative",
+            ));
+        }
+
+        let delta = -f / fp;
+        q += delta;
+        if delta.abs() < 1.0e-8 {
+            break;
+        }
+    }
+
+    let ra = st_deg + q;
+    let lon = ecliptic_longitude_from_ra(ra, obliquity);
+    Ok(match house {
+        11 | 12 => lon,
+        2 | 3 => longitude_opposite(lon),
+        _ => unreachable!(),
+    })
+}
+
+fn ecliptic_longitude_from_ra(ra_deg: f64, obliquity: f64) -> Longitude {
+    let ra = ra_deg.to_radians();
+    Longitude::from_degrees(ra.sin().atan2(ra.cos() * obliquity.cos()).to_degrees())
+}
+
 fn interpolate_longitude(start: Longitude, end: Longitude, fraction: f64) -> Longitude {
     let span = (end.degrees() - start.degrees()).rem_euclid(360.0);
     Longitude::from_degrees(start.degrees() + span * fraction)
@@ -274,6 +580,10 @@ fn interpolate_longitude(start: Longitude, end: Longitude, fraction: f64) -> Lon
 
 fn longitude_opposite(longitude: Longitude) -> Longitude {
     Longitude::from_degrees(longitude.degrees() + 180.0)
+}
+
+fn house_phase(house: usize) -> f64 {
+    ((house + 2) % 12) as f64 * 30.0
 }
 
 fn longitude_in_arc(longitude: f64, start: f64, end: f64) -> bool {
@@ -316,18 +626,21 @@ mod tests {
         )
     }
 
-    #[test]
-    fn equal_houses_step_in_thirty_degree_increments() {
-        let request = HouseRequest::new(
+    fn sample_request(system: HouseSystem) -> HouseRequest {
+        HouseRequest::new(
             Instant::new(
                 pleiades_types::JulianDay::from_days(2_451_545.0),
                 pleiades_types::TimeScale::Tt,
             ),
             observer(),
-            HouseSystem::Equal,
-        );
+            system,
+        )
+    }
 
-        let snapshot = calculate_houses(&request).expect("equal houses should work");
+    #[test]
+    fn equal_houses_step_in_thirty_degree_increments() {
+        let snapshot = calculate_houses(&sample_request(HouseSystem::Equal))
+            .expect("equal houses should work");
         assert_eq!(snapshot.cusps.len(), 12);
         assert_eq!(
             snapshot.cusps[0].degrees(),
@@ -345,16 +658,8 @@ mod tests {
 
     #[test]
     fn whole_sign_houses_start_at_the_rising_sign_boundary() {
-        let request = HouseRequest::new(
-            Instant::new(
-                pleiades_types::JulianDay::from_days(2_451_545.0),
-                pleiades_types::TimeScale::Tt,
-            ),
-            observer(),
-            HouseSystem::WholeSign,
-        );
-
-        let snapshot = calculate_houses(&request).expect("whole sign houses should work");
+        let snapshot = calculate_houses(&sample_request(HouseSystem::WholeSign))
+            .expect("whole sign houses should work");
         assert_eq!(snapshot.cusps[0].degrees() % 30.0, 0.0);
         assert!(snapshot.cusps[0].degrees() <= snapshot.angles.ascendant.degrees());
         assert_eq!(
@@ -365,16 +670,8 @@ mod tests {
 
     #[test]
     fn porphyry_divides_quadrants_evenly() {
-        let request = HouseRequest::new(
-            Instant::new(
-                pleiades_types::JulianDay::from_days(2_451_545.0),
-                pleiades_types::TimeScale::Tt,
-            ),
-            observer(),
-            HouseSystem::Porphyry,
-        );
-
-        let snapshot = calculate_houses(&request).expect("porphyry houses should work");
+        let snapshot = calculate_houses(&sample_request(HouseSystem::Porphyry))
+            .expect("porphyry houses should work");
         assert_eq!(snapshot.cusps[0], snapshot.angles.ascendant);
         assert_eq!(snapshot.cusps[3], snapshot.angles.imum_coeli);
         assert_eq!(snapshot.cusps[6], snapshot.angles.descendant);
@@ -382,19 +679,22 @@ mod tests {
     }
 
     #[test]
-    fn unsupported_house_systems_are_reported_explicitly() {
-        let request = HouseRequest::new(
-            Instant::new(
-                pleiades_types::JulianDay::from_days(2_451_545.0),
-                pleiades_types::TimeScale::Tt,
-            ),
-            observer(),
+    fn baseline_quadrant_systems_are_implemented() {
+        for system in [
             HouseSystem::Placidus,
-        );
-
-        let error =
-            calculate_houses(&request).expect_err("placidus should be unsupported in this slice");
-        assert_eq!(error.kind, HouseErrorKind::UnsupportedHouseSystem);
+            HouseSystem::Koch,
+            HouseSystem::Regiomontanus,
+            HouseSystem::Campanus,
+            HouseSystem::Alcabitius,
+            HouseSystem::Meridian,
+            HouseSystem::Axial,
+            HouseSystem::Morinus,
+            HouseSystem::Topocentric,
+        ] {
+            let snapshot = calculate_houses(&sample_request(system.clone()))
+                .expect("baseline quadrant system should calculate");
+            assert_eq!(snapshot.cusps.len(), 12);
+        }
     }
 
     #[test]

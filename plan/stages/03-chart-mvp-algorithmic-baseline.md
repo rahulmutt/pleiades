@@ -42,7 +42,7 @@ This is the earliest point where the project can become directly useful to consu
 
 ## Progress update
 
-Stage 3 is now underway as of 2026-04-22.
+Stage 3 baseline implementation is complete as of 2026-04-22.
 
 - [x] Baseline house-system catalog metadata is available in `pleiades-houses`, including aliases and latitude-sensitivity notes.
 - [x] Baseline ayanamsa catalog metadata is available in `pleiades-ayanamsa`, including aliases and compatibility notes.
@@ -50,8 +50,8 @@ Stage 3 is now underway as of 2026-04-22.
 - [x] `pleiades-cli` can print the compatibility profile for quick inspection.
 - [x] A tropical chart MVP now exists: `pleiades-vsop87` and `pleiades-elp` provide approximate Sun/Moon/planet positions, `pleiades-core` assembles sign placements, and `pleiades-cli chart` renders a basic report.
 - [x] Sidereal conversion now happens in the chart layer above tropical backend output, and the CLI can request sidereal charts by ayanamsa name.
-- [x] House placement now works for the simpler baseline systems (Equal, Whole Sign, and Porphyry) through `pleiades-houses`, `pleiades-core`, and `pleiades-cli`.
-- [ ] The remaining quadrant-style baseline systems (Placidus, Koch, Regiomontanus, Campanus, Alcabitius, Topocentric, Morinus, Meridian, and Axial variants) still need dedicated implementations.
+- [x] House placement now works for the full stage-3 baseline catalog (Equal, Whole Sign, Porphyry, Placidus, Koch, Regiomontanus, Campanus, Alcabitius, Topocentric, Morinus, Meridian, and Axial variants) through `pleiades-houses`, `pleiades-core`, and `pleiades-cli`.
+- [x] Stage 3 house-system coverage is now implemented with explicit formulas across the full baseline catalog, while Stage 4 validation remains the next major follow-up.
 
 ## Workable state at end of stage
 A user can compute a practical astrology chart in pure Rust for common modern use cases with documented limits, even though full compatibility breadth and reference-data validation are not complete yet.

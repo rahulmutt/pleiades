@@ -38,12 +38,12 @@ impl CompatibilityProfile {
 pub const fn current_compatibility_profile() -> CompatibilityProfile {
     CompatibilityProfile {
         profile_id: "pleiades-compatibility-profile/0.1.0",
-        summary: "Stage 3 compatibility scaffold: baseline catalogs are published, tropical/sidereal chart assembly works, and the simpler house-placement systems now produce real cusps while the remaining quadrant families stay pending.",
+        summary: "Stage 3 compatibility profile: the baseline catalogs are published, tropical/sidereal chart assembly works, and the full stage-3 baseline house catalog now produces real cusps.",
         house_systems: baseline_house_systems(),
         ayanamsas: baseline_ayanamsas(),
         known_gaps: &[
-            "Placidus, Koch, Regiomontanus, Campanus, Alcabitius, Topocentric, and Morinus are still catalogued but not yet calculated by the baseline house engine.",
-            "Compatibility coverage will expand as Stage 3 continues and later stages add validation.",
+            "House-system formulas are implemented at baseline precision and still need Stage 4 validation against external reference data.",
+            "Compatibility coverage will keep expanding as later stages add compressed data, broader catalogs, and release hardening.",
         ],
     }
 }
@@ -100,7 +100,7 @@ mod tests {
         assert!(profile
             .known_gaps
             .iter()
-            .any(|gap| gap.contains("Placidus")));
+            .any(|gap| gap.contains("validation")));
     }
 
     #[test]

@@ -13,7 +13,7 @@ The repository is in the stage-3 chart-MVP phase:
 - the baseline house and ayanamsa catalogs plus the compatibility profile scaffold are now published,
 - the tropical chart workflow now works end to end with approximate Sun/Moon/planet backends and a CLI chart report,
 - sidereal conversion is available in the chart layer,
-- house placement now works for the simpler baseline systems (Equal, Whole Sign, and Porphyry), with the remaining quadrant families still pending.
+- house placement now works for the full baseline catalog (Equal, Whole Sign, Porphyry, Placidus, Koch, Regiomontanus, Campanus, Alcabitius, Topocentric, Morinus, Meridian, and Axial variants).
 
 ## Local development
 
