@@ -505,9 +505,9 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Ayanamsa::GalacticCenterCochrane,
         "Galactic Center (Cochrane)",
         &["Cochrane", "Galactic center Cochrane"],
-        "Galactic-center reference mode attributed to Cochrane.",
-        None,
-        None,
+        "Galactic-center reference mode attributed to Cochrane and catalogued with the Swiss Ephemeris zero-point epoch.",
+        Some(JulianDay::from_days(1_662_951.794_251)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticEquatorIau1958,
@@ -977,9 +977,9 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
         Ayanamsa::GalacticCenterCochrane,
         "Galactic Center (Cochrane)",
         &["Cochrane", "Galactic center Cochrane"],
-        "Galactic-center reference mode attributed to Cochrane.",
-        None,
-        None,
+        "Galactic-center reference mode attributed to Cochrane and catalogued with the Swiss Ephemeris zero-point epoch.",
+        Some(JulianDay::from_days(1_662_951.794_251)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticEquatorIau1958,
@@ -1320,6 +1320,14 @@ mod tests {
         assert_eq!(valens.epoch, Some(JulianDay::from_days(1_775_845.5)));
         assert_eq!(valens.offset_degrees, Some(Angle::from_degrees(-2.942_2)));
 
+        let cochrane = descriptor(&Ayanamsa::GalacticCenterCochrane)
+            .expect("Galactic Center (Cochrane) descriptor");
+        assert_eq!(
+            cochrane.epoch,
+            Some(JulianDay::from_days(1_662_951.794_251))
+        );
+        assert_eq!(cochrane.offset_degrees, Some(Angle::from_degrees(0.0)));
+
         let true_pushya = descriptor(&Ayanamsa::TruePushya).expect("True Pushya descriptor");
         assert_eq!(
             true_pushya.epoch,
@@ -1381,6 +1389,16 @@ mod tests {
             .expect("Valens Moon offset should exist")
             .degrees()
             .is_finite());
+        assert_eq!(
+            sidereal_offset(
+                &Ayanamsa::GalacticCenterCochrane,
+                Instant::new(
+                    JulianDay::from_days(1_662_951.794_251),
+                    pleiades_types::TimeScale::Tt
+                ),
+            ),
+            Some(Angle::from_degrees(0.0))
+        );
     }
 
     #[test]

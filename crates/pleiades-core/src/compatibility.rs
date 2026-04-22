@@ -56,7 +56,7 @@ impl CompatibilityProfile {
 pub const fn current_compatibility_profile() -> CompatibilityProfile {
     CompatibilityProfile {
         profile_id: "pleiades-compatibility-profile/0.6.9",
-        summary: "Stage 6 release profile: the baseline catalogs remain published as a routine release artifact while the target Swiss-Ephemeris-class compatibility catalog stays explicit, including the release-specific house-system additions across the Carter, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen, Sunshine, and Gauquelin families, plus the expanded ayanamsa coverage for J2000/J1900/B1950, DeLuce, Yukteshwar, PVR Pushya-paksha, Sheoran, the true-nakshatra and Suryasiddhanta Revati/Citra reference modes, the Hipparchus/Babylonian/Galactic reference-frame modes, the latest True Pushya, Udayagiri, Djwhal Khul, JN Bhasin, mean-sun, VP285/VP291, Valens Moon, Dhruva Galactic Center (Middle Mula), the Babylonian house/sissy/true-geoc/true-topc/true-obs/house-obs variants, and additional Galactic Equator/Center variants.",
+        summary: "Stage 6 release profile: the baseline catalogs remain published as a routine release artifact while the target Swiss-Ephemeris-class compatibility catalog stays explicit, including the release-specific house-system additions across the Carter, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen, Sunshine, and Gauquelin families, plus the expanded ayanamsa coverage for J2000/J1900/B1950, DeLuce, Yukteshwar, PVR Pushya-paksha, Sheoran, the true-nakshatra and Suryasiddhanta Revati/Citra reference modes, the Hipparchus/Babylonian/Galactic reference-frame modes, the latest True Pushya, Udayagiri, Djwhal Khul, JN Bhasin, mean-sun, VP285/VP291, Valens Moon, Dhruva Galactic Center (Middle Mula), Galactic Center (Cochrane), the Babylonian house/sissy/true-geoc/true-topc/true-obs/house-obs variants, and additional Galactic Equator/Center variants.",
 
         target_house_scope: &[
             "Target house scope: the full Swiss-Ephemeris-class house-system catalog remains the long-term compatibility goal.",
@@ -81,7 +81,7 @@ pub const fn current_compatibility_profile() -> CompatibilityProfile {
         known_gaps: &[
             "Stage 4 validation against external reference data is still the next source of accuracy tightening for house formulas.",
             "Additional Swiss Ephemeris ayanamsa modes remain scheduled for future release-breadth batches, even after adding the Hipparchus, Babylonian house/sissy/true-geoc/true-topc/true-obs/house-obs, Galactic, True Pushya, Djwhal Khul, JN Bhasin, mean-sun, and VP285/VP291 families to the catalog.",
-            "The newly added historical/reference-frame and formula-variant ayanamsa modes are catalogued and resolvable, but most do not yet carry sidereal offset metadata for chart-layer conversion; Babylonian (Huber), Galactic Equator (IAU 1958), True Pushya, Djwhal Khul, Sheoran, and Valens Moon now do.",
+            "The newly added historical/reference-frame and formula-variant ayanamsa modes are catalogued and resolvable, but most do not yet carry sidereal offset metadata for chart-layer conversion; Babylonian (Huber), Galactic Center (Cochrane), Galactic Equator (IAU 1958), True Pushya, Djwhal Khul, Sheoran, and Valens Moon now do.",
             "Labels outside the published compatibility profile, including ad hoc names such as True Balarama, Aphoric, and Takra, should be modeled as custom ayanamsa definitions rather than assumed to be built-ins.",
         ],
     }

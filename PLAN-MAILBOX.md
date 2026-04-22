@@ -1,5 +1,16 @@
 # PLAN-MAILBOX
 
+## 2026-04-22 — Cochrane ayanamsa metadata backfill added
+
+Implemented a small Stage 6 metadata-backfill slice:
+
+- `pleiades-ayanamsa` now carries explicit zero-point epoch/offset metadata for `Ayanamsa::GalacticCenterCochrane`, based on the Swiss Ephemeris Cochrane zero epoch at JD 1662951.794251
+- `pleiades-core` now reflects that narrower ayanamsa-metadata gap in the compatibility profile, and the Stage 6 progress notes should mention Galactic Center (Cochrane) alongside the other metadata-backed exceptions
+- the new descriptor coverage is regression-tested alongside the existing Huber, Galactic Equator, True Pushya, Djwhal Khul, Sheoran, and Valens Moon metadata checks
+
+Remaining Stage 6 work: keep filling out any remaining ayanamsa metadata and catalog breadth while the release profile stays synchronized with the catalog.
+
+
 ## 2026-04-22 — Wang alias recognized as equal-house interoperability coverage
 
 Implemented a small Stage 6 compatibility-alias slice:
