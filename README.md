@@ -45,7 +45,9 @@ For a release-style smoke check of the validation bundle, run:
 mise run release-smoke
 ```
 
-That smoke check now generates the bundle and verifies its manifest checksums through `pleiades-validate`.
+That smoke check generates the bundle and verifies its manifest checksums through `pleiades-validate`.
+
+For a step-by-step description of the release workflow, see [docs/release-reproducibility.md](docs/release-reproducibility.md).
 
 ## Workspace layout
 
