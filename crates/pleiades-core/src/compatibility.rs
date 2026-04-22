@@ -56,7 +56,7 @@ impl CompatibilityProfile {
 pub const fn current_compatibility_profile() -> CompatibilityProfile {
     CompatibilityProfile {
         profile_id: "pleiades-compatibility-profile/0.6.9",
-        summary: "Stage 6 release profile: the baseline catalogs remain published as a routine release artifact while the target Swiss-Ephemeris-class compatibility catalog stays explicit, including the release-specific house-system additions across the Carter, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen, Sunshine, and Gauquelin families, plus the expanded ayanamsa coverage for J2000/J1900/B1950, DeLuce, Yukteshwar, PVR Pushya-paksha, Sheoran, the true-nakshatra and Suryasiddhanta Revati/Citra reference modes, the Hipparchus/Babylonian/Galactic reference-frame modes, the latest True Pushya, Udayagiri, Djwhal Khul, JN Bhasin, mean-sun, VP285/VP291, Valens Moon, Dhruva Galactic Center (Middle Mula), and additional Galactic Equator/Center variants.",
+        summary: "Stage 6 release profile: the baseline catalogs remain published as a routine release artifact while the target Swiss-Ephemeris-class compatibility catalog stays explicit, including the release-specific house-system additions across the Carter, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen, Sunshine, and Gauquelin families, plus the expanded ayanamsa coverage for J2000/J1900/B1950, DeLuce, Yukteshwar, PVR Pushya-paksha, Sheoran, the true-nakshatra and Suryasiddhanta Revati/Citra reference modes, the Hipparchus/Babylonian/Galactic reference-frame modes, the latest True Pushya, Udayagiri, Djwhal Khul, JN Bhasin, mean-sun, VP285/VP291, Valens Moon, Dhruva Galactic Center (Middle Mula), the Babylonian house/sissy/true-geoc/true-topc/true-obs/house-obs variants, and additional Galactic Equator/Center variants.",
 
         target_house_scope: &[
             "Target house scope: the full Swiss-Ephemeris-class house-system catalog remains the long-term compatibility goal.",
@@ -74,12 +74,12 @@ pub const fn current_compatibility_profile() -> CompatibilityProfile {
         release_ayanamsas: release_ayanamsas(),
         release_notes: &[
             "Release-specific house-system additions now include Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter (poli-equatorial), Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen SD, Pullen SR, Sunshine, and Gauquelin sectors, with the Whole Sign (house 1 = Aries) label also resolving as an interoperability alias.",
-            "Release-specific ayanamsa additions now include J2000, J1900, B1950, DeLuce, Yukteshwar, PVR Pushya-paksha, Sheoran, True Revati, True Mula, Suryasiddhanta (Revati), Suryasiddhanta (Citra), Lahiri (ICRC), Lahiri (1940), Usha Shashi, Suryasiddhanta (499 CE), Aryabhata (499 CE), Sassanian, Hipparchus, Babylonian (Kugler 1), Babylonian (Kugler 2), Babylonian (Kugler 3), Babylonian (Huber), Babylonian (Eta Piscium), Babylonian (Aldebaran), True Pushya, Udayagiri, Djwhal Khul, JN Bhasin, Suryasiddhanta (Mean Sun), Aryabhata (Mean Sun), Babylonian (Britton), Aryabhata (522 CE), Lahiri (VP285), Krishnamurti (VP291), True Sheoran, Valens Moon, Galactic Center (Rgilbrand), Galactic Center (Mardyks), Galactic Center (Mula/Wilhelm), Dhruva Galactic Center (Middle Mula), Galactic Center (Cochrane), Galactic Equator (IAU 1958), Galactic Equator (True), Galactic Equator (Mula), Galactic Equator (Fiorenza), Galactic Center, and Galactic Equator, and the plain Moon alias also resolves to Valens Moon for compatibility with existing label variants.",
+            "Release-specific ayanamsa additions now include J2000, J1900, B1950, DeLuce, Yukteshwar, PVR Pushya-paksha, Sheoran, True Revati, True Mula, Suryasiddhanta (Revati), Suryasiddhanta (Citra), Lahiri (ICRC), Lahiri (1940), Usha Shashi, Suryasiddhanta (499 CE), Aryabhata (499 CE), Sassanian, Hipparchus, Babylonian (Kugler 1), Babylonian (Kugler 2), Babylonian (Kugler 3), Babylonian (Huber), Babylonian (Eta Piscium), Babylonian (Aldebaran), Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs), True Pushya, Udayagiri, Djwhal Khul, JN Bhasin, Suryasiddhanta (Mean Sun), Aryabhata (Mean Sun), Babylonian (Britton), Aryabhata (522 CE), Lahiri (VP285), Krishnamurti (VP291), True Sheoran, Valens Moon, Galactic Center (Rgilbrand), Galactic Center (Mardyks), Galactic Center (Mula/Wilhelm), Dhruva Galactic Center (Middle Mula), Galactic Center (Cochrane), Galactic Equator (IAU 1958), Galactic Equator (True), Galactic Equator (Mula), Galactic Equator (Fiorenza), Galactic Center, and Galactic Equator, and the plain Moon alias also resolves to Valens Moon for compatibility with existing label variants.",
             "The compatibility profile is intended to be archived with release validation outputs and release notes.",
         ],
         known_gaps: &[
             "Stage 4 validation against external reference data is still the next source of accuracy tightening for house formulas.",
-            "Additional Swiss Ephemeris ayanamsa modes remain scheduled for future release-breadth batches, even after adding the Hipparchus, Babylonian, Galactic, True Pushya, Djwhal Khul, JN Bhasin, mean-sun, and VP285/VP291 families to the catalog.",
+            "Additional Swiss Ephemeris ayanamsa modes remain scheduled for future release-breadth batches, even after adding the Hipparchus, Babylonian house/sissy/true-geoc/true-topc/true-obs/house-obs, Galactic, True Pushya, Djwhal Khul, JN Bhasin, mean-sun, and VP285/VP291 families to the catalog.",
             "The newly added historical/reference-frame and formula-variant ayanamsa modes are catalogued and resolvable, but most do not yet carry sidereal offset metadata for chart-layer conversion; Babylonian (Huber), Galactic Equator (IAU 1958), Udayagiri, and Valens Moon now do.",
         ],
     }
@@ -363,6 +363,30 @@ mod tests {
         assert!(profile
             .release_ayanamsas
             .iter()
+            .any(|entry| entry.canonical_name == "Babylonian (House)"));
+        assert!(profile
+            .release_ayanamsas
+            .iter()
+            .any(|entry| entry.canonical_name == "Babylonian (Sissy)"));
+        assert!(profile
+            .release_ayanamsas
+            .iter()
+            .any(|entry| entry.canonical_name == "Babylonian (True Geoc)"));
+        assert!(profile
+            .release_ayanamsas
+            .iter()
+            .any(|entry| entry.canonical_name == "Babylonian (True Topc)"));
+        assert!(profile
+            .release_ayanamsas
+            .iter()
+            .any(|entry| entry.canonical_name == "Babylonian (True Obs)"));
+        assert!(profile
+            .release_ayanamsas
+            .iter()
+            .any(|entry| entry.canonical_name == "Babylonian (House Obs)"));
+        assert!(profile
+            .release_ayanamsas
+            .iter()
             .any(|entry| entry.canonical_name == "True Pushya"));
         assert!(profile
             .release_ayanamsas
@@ -506,6 +530,12 @@ mod tests {
         assert!(rendered.contains("Hipparchus"));
         assert!(rendered.contains("Babylonian (Kugler 1)"));
         assert!(rendered.contains("Babylonian (Aldebaran)"));
+        assert!(rendered.contains("Babylonian (House)"));
+        assert!(rendered.contains("Babylonian (Sissy)"));
+        assert!(rendered.contains("Babylonian (True Geoc)"));
+        assert!(rendered.contains("Babylonian (True Topc)"));
+        assert!(rendered.contains("Babylonian (True Obs)"));
+        assert!(rendered.contains("Babylonian (House Obs)"));
         assert!(rendered.contains("Galactic Center"));
         assert!(rendered.contains("Dhruva Galactic Center (Middle Mula)"));
         assert!(rendered.contains("Galactic Equator"));

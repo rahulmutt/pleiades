@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-22 — Babylonian house-family ayanamsa breadth added
+
+Implemented another Stage 6 catalog-breadth slice:
+
+- `pleiades-types` now includes the Babylonian house-family ayanamsa variants for House, Sissy, True Geoc, True Topc, True Obs, and House Obs
+- `pleiades-ayanamsa` now catalogs, resolves, and documents those modes with explicit Swiss Ephemeris-style identifiers and aliases
+- `pleiades-core` and the release compatibility profile now surface the new breadth batch in the release summary and release-note text so the catalog stays synchronized with the profile
+
+Remaining Stage 6 work: keep filling out any still-scheduled ayanamsa breadth while the release profile stays synchronized with the catalog.
+
 ## 2026-04-22 — Dhruva Galactic Center (Middle Mula) ayanamsa added
 
 Implemented another Stage 6 catalog-breadth slice:

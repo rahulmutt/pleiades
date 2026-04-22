@@ -80,6 +80,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] `pleiades-cli` now exposes the implemented backend capability matrices directly via `backend-matrix` / `capability-matrix`, so maintainers can inspect coverage, range, and accuracy notes from the user-facing CLI.
 - [x] The compatibility profile now renders an explicit alias-mapping appendix for built-in house systems and ayanamsas, making interoperability lookups easier to audit from the release artifact itself.
 - [x] The compatibility profile now also captures a couple of Swiss-Ephemeris label variants that were still missing from the release notes layer: `Whole Sign (house 1 = Aries)` resolves to `Equal (1=Aries)`, and `Moon` resolves to `Valens Moon`.
+- [x] The Babylonian house-family ayanamsa batch is now catalogued too: Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), and Babylonian (House Obs) are resolved, rendered in the compatibility profile, and available through the shared catalog path as the next breadth increment.
 - [x] The backend capability matrices now render each backend's nominal supported time range in addition to accuracy and body coverage, making the release-facing capability docs easier to audit.
 
 ## Exit criteria

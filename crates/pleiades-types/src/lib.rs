@@ -574,6 +574,18 @@ pub enum Ayanamsa {
     BabylonianEtaPiscium,
     /// Babylonian (Aldebaran / 15 Tau).
     BabylonianAldebaran,
+    /// Babylonian (House).
+    BabylonianHouse,
+    /// Babylonian (Sissy).
+    BabylonianSissy,
+    /// Babylonian (True Geoc).
+    BabylonianTrueGeoc,
+    /// Babylonian (True Topc).
+    BabylonianTrueTopc,
+    /// Babylonian (True Obs).
+    BabylonianTrueObs,
+    /// Babylonian (House Obs).
+    BabylonianHouseObs,
     /// Babylonian (Britton).
     BabylonianBritton,
     /// Aryabhata (522 CE).
