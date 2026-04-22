@@ -2,8 +2,9 @@
 //!
 //! The first chart MVP keeps the workflow intentionally small: callers provide
 //! a set of bodies, the façade queries the backend, and the result captures the
-//! body placements plus their zodiac signs. House placement is still a later
-//! slice, but this is enough to support a real tropical chart report end to end.
+//! body placements plus their zodiac signs. House placement can be requested
+//! explicitly for chart-aware consumers, which keeps the workflow practical
+//! without hardwiring more chart logic than the façade needs.
 
 use core::fmt;
 
@@ -153,6 +154,13 @@ impl ChartSnapshot {
     /// Returns the house number for a requested body, if house placement was computed.
     pub fn house_for_body(&self, body: &CelestialBody) -> Option<usize> {
         self.placement_for(body)?.house
+    }
+
+    /// Returns all placements assigned to a requested house number.
+    pub fn placements_in_house(&self, house: usize) -> impl Iterator<Item = &BodyPlacement> {
+        self.placements
+            .iter()
+            .filter(move |placement| placement.house == Some(house))
     }
 
     /// Returns the placements that are currently classified as retrograde.
@@ -664,6 +672,14 @@ mod tests {
             chart.motion_direction_for(&CelestialBody::Mars),
             Some(MotionDirection::Retrograde)
         );
+        assert_eq!(
+            chart
+                .placements_in_house(8)
+                .map(|placement| placement.body.clone())
+                .collect::<Vec<_>>(),
+            vec![CelestialBody::Mars]
+        );
+        assert!(chart.placements_in_house(12).next().is_none());
         assert_eq!(chart.retrograde_placements().count(), 1);
         assert!(chart.to_string().contains("Retrograde bodies: Mars"));
     }

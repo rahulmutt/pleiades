@@ -1,11 +1,11 @@
 # PLAN-MAILBOX
 
-## 2026-04-22 — house lookup helper added to ChartSnapshot
+## 2026-04-22 — house-scoped placement helper added to ChartSnapshot
 
 Implemented a small Stage 6 optional-helper slice:
 
-- `pleiades-core::ChartSnapshot` now exposes `house_for_body`, paralleling the existing body lookup and motion-direction helpers so chart consumers can ask for a body's house number without re-scanning placements
-- API stability wording and README status notes now mention the new house lookup helper, and the regression test exercises the helper alongside the retrograde summary
+- `pleiades-core::ChartSnapshot` now exposes `placements_in_house` alongside the existing body lookup, house lookup, and motion-direction helpers so chart consumers can ask which bodies fall into a house without re-scanning placements manually
+- API stability wording and README status notes now mention the new house-scoped placement helper, and the regression test exercises it alongside the retrograde summary
 
 Remaining Stage 6 work: broader catalog breadth and any remaining optional helper polish that depends on additional coverage.
 
