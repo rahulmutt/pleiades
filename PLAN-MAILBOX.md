@@ -299,3 +299,11 @@ Implemented the next Stage 6 catalog-breadth slice:
 - `pleiades-core`, the compatibility profile, the CLI, and validation output now surface the expanded ayanamsa breadth and the release profile version was bumped again
 
 Remaining Stage 6 work: keep catalog breadth and release notes aligned as any final Swiss Ephemeris ayanamsa modes are scheduled, plus the rest of the release-hardening backlog.
+
+## 2026-04-22 — catalog alignment invariants added
+
+Implemented a release-hardening maintenance slice:
+
+- `pleiades-houses` and `pleiades-ayanamsa` now have round-trip coverage tests that verify the built-in catalogs, baseline milestones, release-specific additions, and alias resolution stay internally aligned
+- `pleiades-core` now checks that the published compatibility profile’s release-note text continues to mention every release-specific house-system and ayanamsa entry, reducing drift between the catalog data and the release summary, and the compatibility-profile identifier was bumped to `0.6.7` to reflect the content update
+- the next recommended follow-up is to keep using the same invariant pattern whenever new catalog breadth lands, so the compatibility profile stays synchronized automatically

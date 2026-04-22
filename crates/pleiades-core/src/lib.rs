@@ -239,4 +239,26 @@ mod tests {
             .iter()
             .any(|entry| entry.canonical_name == "Gauquelin sectors"));
     }
+
+    #[test]
+    fn release_notes_cover_release_catalog_entries() {
+        let profile = current_compatibility_profile();
+        let release_notes = profile.release_notes.join("\n");
+
+        for entry in profile.release_house_systems {
+            assert!(
+                release_notes.contains(entry.canonical_name),
+                "release notes should mention house-system {}",
+                entry.canonical_name
+            );
+        }
+
+        for entry in profile.release_ayanamsas {
+            assert!(
+                release_notes.contains(entry.canonical_name),
+                "release notes should mention ayanamsa {}",
+                entry.canonical_name
+            );
+        }
+    }
 }

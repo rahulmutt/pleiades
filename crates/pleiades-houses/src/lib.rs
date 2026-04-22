@@ -594,4 +594,43 @@ mod tests {
             assert!(names.contains(&expected), "missing {expected}");
         }
     }
+
+    #[test]
+    fn house_catalog_round_trips_all_built_ins_and_aliases() {
+        use std::collections::HashSet;
+
+        let built_in = built_in_house_systems();
+        let mut unique_names = HashSet::new();
+
+        assert_eq!(
+            built_in.len(),
+            baseline_house_systems().len() + release_house_systems().len()
+        );
+
+        for entry in baseline_house_systems()
+            .iter()
+            .chain(release_house_systems().iter())
+        {
+            assert!(
+                unique_names.insert(entry.canonical_name),
+                "duplicate canonical house-system name {}",
+                entry.canonical_name
+            );
+            assert_eq!(
+                descriptor(&entry.system).map(|d| d.canonical_name),
+                Some(entry.canonical_name)
+            );
+            assert_eq!(
+                resolve_house_system(entry.canonical_name),
+                Some(entry.system.clone())
+            );
+            for alias in entry.aliases {
+                assert_eq!(resolve_house_system(alias), Some(entry.system.clone()));
+            }
+        }
+
+        for entry in built_in {
+            assert!(unique_names.contains(entry.canonical_name));
+        }
+    }
 }

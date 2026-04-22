@@ -1056,6 +1056,45 @@ mod tests {
     }
 
     #[test]
+    fn ayanamsa_catalog_round_trips_all_built_ins_and_aliases() {
+        use std::collections::HashSet;
+
+        let built_in = built_in_ayanamsas();
+        let mut unique_names = HashSet::new();
+
+        assert_eq!(
+            built_in.len(),
+            baseline_ayanamsas().len() + release_ayanamsas().len()
+        );
+
+        for entry in baseline_ayanamsas()
+            .iter()
+            .chain(release_ayanamsas().iter())
+        {
+            assert!(
+                unique_names.insert(entry.canonical_name),
+                "duplicate canonical ayanamsa name {}",
+                entry.canonical_name
+            );
+            assert_eq!(
+                descriptor(&entry.ayanamsa).map(|d| d.canonical_name),
+                Some(entry.canonical_name)
+            );
+            assert_eq!(
+                resolve_ayanamsa(entry.canonical_name),
+                Some(entry.ayanamsa.clone())
+            );
+            for alias in entry.aliases {
+                assert_eq!(resolve_ayanamsa(alias), Some(entry.ayanamsa.clone()));
+            }
+        }
+
+        for entry in built_in {
+            assert!(unique_names.contains(entry.canonical_name));
+        }
+    }
+
+    #[test]
     fn sidereal_offset_is_available_for_baseline_ayanamsas() {
         let instant = Instant::new(
             JulianDay::from_days(2_451_545.0),
