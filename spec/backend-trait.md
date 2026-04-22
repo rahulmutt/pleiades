@@ -42,9 +42,11 @@ The exact API may evolve, but the semantics above are normative: one-request/one
 - instant/time scale
 - observer location for topocentric calculations
 - desired coordinate frame
-- zodiac mode (tropical/sidereal)
+- zodiac mode preference (tropical/sidereal)
 - ayanamsa selection when sidereal mode is chosen
 - flags for apparent vs mean values where meaningful
+
+Backends are not required to natively model sidereal coordinates if the domain layer can deterministically derive them from tropical coordinates plus the selected ayanamsa. Capability metadata must make that distinction explicit.
 
 ## Result Model
 

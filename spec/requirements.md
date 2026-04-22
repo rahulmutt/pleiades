@@ -26,7 +26,7 @@ The system must support:
 ### FR-3 House Systems
 The system must provide a house computation module supporting a complete and extensible catalog of astrological house systems.
 
-Stable project conformance requires support for the full set of house systems needed for Swiss-Ephemeris-class astrology compatibility, not merely an initial subset. Implementation may be phased during development, but the architecture and public API must not assume that only a small fixed subset will ever exist.
+The target compatibility catalog is the full set of house systems needed for Swiss-Ephemeris-class astrology compatibility, not merely an initial subset. Implementation may be phased during development, but the architecture and public API must not assume that only a small fixed subset will ever exist.
 
 The baseline built-in catalog for the first compatibility milestone must include at minimum:
 
@@ -42,14 +42,14 @@ The baseline built-in catalog for the first compatibility milestone must include
 - Topocentric (Polich-Page)
 - Morinus
 
-Stable conformance additionally requires any further distinct house systems needed to meet the project's published compatibility target.
+Release coverage is not complete until any further distinct house systems needed to meet the published target compatibility catalog are implemented.
 
 Where a system has latitude/pathology constraints, those constraints must be explicit in the API and in the compatibility profile.
 
 ### FR-4 Ayanamsa
 The system must support a pluggable, extensible ayanamsa catalog.
 
-Stable project conformance requires support for the full set of ayanamsas needed for Swiss-Ephemeris-class astrology compatibility, not merely an initial subset. Implementation may be phased during development, but the API must allow named built-ins and user-defined variants without redesign.
+The target compatibility catalog is the full set of ayanamsas needed for Swiss-Ephemeris-class astrology compatibility, not merely an initial subset. Implementation may be phased during development, but the API must allow named built-ins and user-defined variants without redesign.
 
 The baseline built-in catalog for the first compatibility milestone must include at minimum:
 
@@ -60,15 +60,16 @@ The baseline built-in catalog for the first compatibility milestone must include
 - True Chitra and any documented near-equivalent variants exposed as distinct built-ins or aliases
 - custom user-defined ayanamsa formulas or offset tables
 
-Stable conformance additionally requires any further named built-ins needed to meet the project's published compatibility target.
+Release coverage is not complete until any further named built-ins needed to meet the published target compatibility catalog are implemented.
 
 ### FR-4a Compatibility Profile Publication
 The project must publish a versioned compatibility profile that enumerates the exact built-in house systems and ayanamsas provided by each release. That profile must clearly distinguish:
 
-- the stable compatibility target
+- the target compatibility catalog
 - the baseline compatibility milestone implemented so far
 - any additional release-specific coverage beyond the baseline milestone
 - any aliases or naming differences versus other astrology software
+- any known constraints, gaps, or latitude-specific failure modes relevant to interoperability
 
 ### FR-5 Backend Abstraction
 The system must expose a common backend trait that:
@@ -78,6 +79,7 @@ The system must expose a common backend trait that:
 - exposes supported time range and capability metadata
 - distinguishes between data-backed and purely algorithmic implementations
 - reports uncertainty/accuracy class where known
+- does not require every backend to natively implement sidereal transforms when the domain layer can apply a deterministic ayanamsa conversion above tropical coordinates
 
 ### FR-6 Multiple Backend Implementations
 The workspace must include separate first-party crates for multiple backends, with each implementation living in its own `pleiades-*` crate, including examples of:

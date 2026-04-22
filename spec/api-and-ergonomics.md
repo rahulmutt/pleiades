@@ -18,6 +18,13 @@ A typical caller should be able to:
 
 `pleiades-core` should expose a façade that hides multi-crate orchestration while preserving access to lower-level crates for advanced users.
 
+The façade should make a clear distinction between:
+
+- raw backend-oriented coordinate queries
+- domain-layer transforms such as sidereal conversion, house placement, and chart assembly
+
+This keeps backend contracts simpler while still giving end users a convenient astrology-focused API.
+
 ## Type Safety
 
 The API should prefer:

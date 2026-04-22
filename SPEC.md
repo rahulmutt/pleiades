@@ -72,10 +72,20 @@ Additional backend crates may be added as needed, provided they follow the same 
 The project is considered aligned with this specification when it can:
 
 - compute Sun, Moon, planetary, and selected asteroid positions through a backend-agnostic API
-- compute the full compatibility house-system catalog and the full compatibility ayanamsa catalog
+- compute the target compatibility house-system catalog and the target compatibility ayanamsa catalog
 - switch among at least two backend families with no API break for consumers
 - distribute a compressed ephemeris dataset covering 1500-2500
 - build and test on supported targets using pure Rust dependencies only
+
+## Conformance Terminology
+
+To keep phased delivery compatible with the long-term scope, the spec uses the following terms consistently:
+
+- **Target compatibility catalog**: the full end-state built-in catalog of house systems and ayanamsas needed for Swiss-Ephemeris-class astrology compatibility.
+- **Baseline compatibility milestone**: the minimum built-in subset that must exist before broader catalog completion; this is a delivery milestone, not the final scope boundary.
+- **Release compatibility profile**: a versioned manifest published for each release that enumerates the exact built-ins, aliases, constraints, and gaps shipped in that release.
+
+Interim releases may implement only the baseline milestone plus incremental additions, but the architecture and public APIs must remain open to the full target compatibility catalog without redesign.
 
 ## Bootstrap Compliance Checklist
 
@@ -89,7 +99,7 @@ This spec set satisfies the bootstrap prompt by making the following requirement
 | Compressed representation optimized for common use in 1500-2500 | [spec/data-compression.md](spec/data-compression.md), [spec/backends.md](spec/backends.md) |
 | All first-party sub-crates named `pleiades-*` | [spec/architecture.md](spec/architecture.md) |
 
-The main gap in the earlier draft was wording around house systems and ayanamsas: some sections implied only an initial subset was required. The revised sub-specs now make the **end-state requirement** explicit: a stable release is not complete until the full house-system and ayanamsa catalogs expected for Swiss-Ephemeris-class astrology compatibility are implemented, even though delivery may be phased during development and tracked via a versioned compatibility profile.
+The main gap in the earlier draft was wording around house systems and ayanamsas: some sections implied only an initial subset was required. The revised sub-specs now make the **end-state requirement** explicit while still allowing phased delivery: the target compatibility catalog remains the full house-system and ayanamsa set expected for Swiss-Ephemeris-class astrology workflows, and each interim release must publish a compatibility profile that makes current coverage and gaps explicit.
 
 ## Document Status
 
