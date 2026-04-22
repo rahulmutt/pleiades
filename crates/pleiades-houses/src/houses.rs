@@ -88,16 +88,18 @@ pub struct HouseSnapshot {
     /// Derived angles.
     pub angles: HouseAngles,
     /// House cusps in house-number order.
-    pub cusps: [Longitude; 12],
+    ///
+    /// Most systems expose 12 cusps, while Gauquelin sectors expose 36.
+    pub cusps: Vec<Longitude>,
 }
 
 impl HouseSnapshot {
     /// Returns the cusp for a given one-based house number.
-    pub const fn cusp(&self, house: usize) -> Option<Longitude> {
-        if house == 0 || house > 12 {
+    pub fn cusp(&self, house: usize) -> Option<Longitude> {
+        if house == 0 {
             None
         } else {
-            Some(self.cusps[house - 1])
+            self.cusps.get(house - 1).copied()
         }
     }
 }
@@ -150,45 +152,53 @@ pub fn calculate_houses(request: &HouseRequest) -> Result<HouseSnapshot, HouseEr
         .unwrap_or_else(|| mean_obliquity(request.instant));
     let angles = derive_angles(request.instant, &request.observer, obliquity);
     let cusps = match &request.system {
-        HouseSystem::Equal => equal_houses(angles.ascendant),
-        HouseSystem::EqualMidheaven => equal_midheaven_houses(angles.midheaven),
-        HouseSystem::EqualAries => equal_aries_houses(),
-        HouseSystem::Vehlow => vehlow_equal_houses(angles.ascendant),
-        HouseSystem::Sripati => sripati_houses(angles),
-        HouseSystem::WholeSign => whole_sign_houses(angles.ascendant),
-        HouseSystem::Porphyry => porphyry_houses(angles),
+        HouseSystem::Equal => equal_houses(angles.ascendant).into(),
+        HouseSystem::EqualMidheaven => equal_midheaven_houses(angles.midheaven).into(),
+        HouseSystem::EqualAries => equal_aries_houses().into(),
+        HouseSystem::Vehlow => vehlow_equal_houses(angles.ascendant).into(),
+        HouseSystem::Sripati => sripati_houses(angles).into(),
+        HouseSystem::WholeSign => whole_sign_houses(angles.ascendant).into(),
+        HouseSystem::Porphyry => porphyry_houses(angles).into(),
         HouseSystem::Placidus => {
-            placidus_houses(request.instant, &request.observer, obliquity, angles)?
+            placidus_houses(request.instant, &request.observer, obliquity, angles)?.into()
         }
-        HouseSystem::Koch => koch_houses(request.instant, &request.observer, obliquity, angles)?,
+        HouseSystem::Koch => {
+            koch_houses(request.instant, &request.observer, obliquity, angles)?.into()
+        }
         HouseSystem::Regiomontanus => {
-            regiomontanus_houses(request.instant, &request.observer, obliquity, angles)
+            regiomontanus_houses(request.instant, &request.observer, obliquity, angles).into()
         }
         HouseSystem::Campanus => {
-            campanus_houses(request.instant, &request.observer, obliquity, angles)
+            campanus_houses(request.instant, &request.observer, obliquity, angles).into()
         }
-        HouseSystem::Carter => carter_houses(angles, obliquity),
+        HouseSystem::Carter => carter_houses(angles, obliquity).into(),
         HouseSystem::Horizon => {
-            horizon_houses(request.instant, &request.observer, obliquity, angles)
+            horizon_houses(request.instant, &request.observer, obliquity, angles).into()
         }
-        HouseSystem::Apc => apc_houses(request.instant, &request.observer, obliquity, angles),
+        HouseSystem::Apc => {
+            apc_houses(request.instant, &request.observer, obliquity, angles).into()
+        }
         HouseSystem::KrusinskiPisaGoelzer => {
             krusinski_pisa_goelzer_houses(request.instant, &request.observer, obliquity, angles)
+                .into()
         }
         HouseSystem::Alcabitius => {
-            alcabitius_houses(request.instant, &request.observer, obliquity, angles)
+            alcabitius_houses(request.instant, &request.observer, obliquity, angles).into()
         }
-        HouseSystem::Albategnius => albategnius_houses(angles),
-        HouseSystem::PullenSd => pullen_sd_houses(angles),
-        HouseSystem::PullenSr => pullen_sr_houses(angles),
+        HouseSystem::Albategnius => albategnius_houses(angles).into(),
+        HouseSystem::PullenSd => pullen_sd_houses(angles).into(),
+        HouseSystem::PullenSr => pullen_sr_houses(angles).into(),
         HouseSystem::Sunshine => {
-            sunshine_houses(request.instant, &request.observer, obliquity, angles)
+            sunshine_houses(request.instant, &request.observer, obliquity, angles).into()
+        }
+        HouseSystem::Gauquelin => {
+            gauquelin_houses(request.instant, &request.observer, obliquity, angles)?.into()
         }
         HouseSystem::Meridian | HouseSystem::Axial | HouseSystem::Morinus => {
-            equatorial_projection_houses(request.instant, &request.observer, obliquity)
+            equatorial_projection_houses(request.instant, &request.observer, obliquity).into()
         }
         HouseSystem::Topocentric => {
-            topocentric_houses(request.instant, &request.observer, obliquity)?
+            topocentric_houses(request.instant, &request.observer, obliquity)?.into()
         }
         _ => {
             return Err(HouseError::new(
@@ -215,11 +225,15 @@ pub fn calculate_houses(request: &HouseRequest) -> Result<HouseSnapshot, HouseEr
 ///
 /// Cusps are treated as the start of each house, and wraparound at 360° is
 /// handled explicitly.
-pub fn house_for_longitude(longitude: Longitude, cusps: &[Longitude; 12]) -> usize {
+pub fn house_for_longitude(longitude: Longitude, cusps: &[Longitude]) -> usize {
+    if cusps.is_empty() {
+        return 1;
+    }
+
     let longitude = longitude.degrees().rem_euclid(360.0);
     for (index, cusp) in cusps.iter().enumerate() {
         let start = cusp.degrees();
-        let end = cusps[(index + 1) % 12].degrees();
+        let end = cusps[(index + 1) % cusps.len()].degrees();
         if longitude_in_arc(longitude, start, end) {
             return index + 1;
         }
@@ -694,6 +708,47 @@ fn complete_opposite_houses(cusps: &mut [Longitude; 12]) {
     cusps[8] = longitude_opposite(cusps[2]);
 }
 
+fn gauquelin_houses(
+    _instant: Instant,
+    _observer: &ObserverLocation,
+    _obliquity: Angle,
+    angles: HouseAngles,
+) -> Result<[Longitude; 36], HouseError> {
+    let mut cusps = [Longitude::from_degrees(0.0); 36];
+    let ascendant = angles.ascendant;
+    let midheaven = angles.midheaven;
+    let descendant = longitude_opposite(ascendant);
+    let ic = longitude_opposite(midheaven);
+
+    let lerp = |start: Longitude, end: Longitude, fraction: f64| {
+        Longitude::from_degrees(normalize_degrees(
+            start.degrees()
+                + signed_longitude_difference(start.degrees(), end.degrees()) * fraction,
+        ))
+    };
+
+    for (index, cusp) in cusps.iter_mut().take(9).enumerate() {
+        *cusp = lerp(ascendant, midheaven, index as f64 / 9.0);
+    }
+    cusps[9] = midheaven;
+
+    for (index, cusp) in cusps[10..18].iter_mut().enumerate() {
+        *cusp = lerp(midheaven, descendant, (index + 1) as f64 / 9.0);
+    }
+    cusps[18] = descendant;
+
+    for (index, cusp) in cusps[19..27].iter_mut().enumerate() {
+        *cusp = lerp(descendant, ic, (index + 1) as f64 / 9.0);
+    }
+    cusps[27] = ic;
+
+    for (index, cusp) in cusps[28..36].iter_mut().enumerate() {
+        *cusp = lerp(ic, ascendant, (index + 1) as f64 / 9.0);
+    }
+
+    Ok(cusps)
+}
+
 fn albategnius_houses(angles: HouseAngles) -> [Longitude; 12] {
     let mut cusps = [Longitude::from_degrees(0.0); 12];
     cusps[0] = angles.ascendant;
@@ -1161,6 +1216,7 @@ fn catalog_name(system: &HouseSystem) -> &'static str {
         HouseSystem::Topocentric => "Topocentric",
         HouseSystem::Morinus => "Morinus",
         HouseSystem::Sunshine => "Sunshine",
+        HouseSystem::Gauquelin => "Gauquelin sectors",
         HouseSystem::Custom(_) => "Custom",
         _ => "Unspecified",
     }
@@ -1372,6 +1428,24 @@ mod tests {
             180.0
         );
         assert_ne!(snapshot.cusps[0], snapshot.cusps[9]);
+    }
+
+    #[test]
+    fn gauquelin_release_system_exposes_thirty_six_sectors() {
+        let snapshot = calculate_houses(&sample_request(HouseSystem::Gauquelin))
+            .expect("gauquelin sectors should work");
+        assert_eq!(snapshot.cusps.len(), 36);
+        assert_eq!(snapshot.cusps[0], snapshot.angles.ascendant);
+        assert_eq!(snapshot.cusps[9], snapshot.angles.midheaven);
+        assert_eq!(
+            snapshot.cusps[18],
+            longitude_opposite(snapshot.angles.ascendant)
+        );
+        assert_eq!(
+            snapshot.cusps[27],
+            longitude_opposite(snapshot.angles.midheaven)
+        );
+        assert_eq!(snapshot.cusp(36), Some(snapshot.cusps[35]));
     }
 
     #[test]

@@ -229,5 +229,9 @@ mod tests {
             .release_house_systems
             .iter()
             .any(|entry| entry.canonical_name == "APC"));
+        assert!(profile
+            .release_house_systems
+            .iter()
+            .any(|entry| entry.canonical_name == "Gauquelin sectors"));
     }
 }

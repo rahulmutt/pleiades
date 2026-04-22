@@ -263,9 +263,16 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         "Sunshine house system based on the Sun's diurnal and nocturnal arcs; the 1st house is the Ascendant and the 10th house is the MC.",
         true,
     ),
+    HouseSystemDescriptor::new(
+        HouseSystem::Gauquelin,
+        "Gauquelin sectors",
+        &["G", "Gauquelin", "Gauquelin sector", "Gauquelin sectors"],
+        "Thirty-six sectors used by the Gauquelin-sector family.",
+        true,
+    ),
 ];
 
-static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 24] = [
+static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
     HouseSystemDescriptor::new(
         HouseSystem::Placidus,
         "Placidus",
@@ -412,6 +419,13 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 24] = [
         true,
     ),
     HouseSystemDescriptor::new(
+        HouseSystem::Gauquelin,
+        "Gauquelin sectors",
+        &["G", "Gauquelin", "Gauquelin sector", "Gauquelin sectors"],
+        "Thirty-six sectors used by the Gauquelin-sector family.",
+        true,
+    ),
+    HouseSystemDescriptor::new(
         HouseSystem::EqualMidheaven,
         "Equal (MC)",
         &["Equal from MC", "Equal (from MC)"],
@@ -536,6 +550,11 @@ mod tests {
             resolve_house_system("Treindl Sunshine"),
             Some(HouseSystem::Sunshine)
         );
+        assert_eq!(resolve_house_system("G"), Some(HouseSystem::Gauquelin));
+        assert_eq!(
+            resolve_house_system("Gauquelin sectors"),
+            Some(HouseSystem::Gauquelin)
+        );
         assert_eq!(
             resolve_house_system("Savard-A"),
             Some(HouseSystem::Albategnius)
@@ -570,6 +589,7 @@ mod tests {
             "Pullen SD",
             "Pullen SR",
             "Sunshine",
+            "Gauquelin sectors",
         ] {
             assert!(names.contains(&expected), "missing {expected}");
         }

@@ -472,6 +472,8 @@ pub enum HouseSystem {
     Morinus,
     /// Sunshine (Bob Makransky / Dieter Treindl family).
     Sunshine,
+    /// Gauquelin sectors.
+    Gauquelin,
     /// A custom house system definition.
     Custom(CustomHouseSystem),
 }

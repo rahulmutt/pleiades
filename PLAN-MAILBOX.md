@@ -206,3 +206,13 @@ Implemented the next Stage 6 breadth slice:
 - `pleiades-core`, the compatibility profile, and the README now reflect Sunshine as release-specific coverage
 
 Remaining Stage 6 work: the Gauquelin-sector family, plus any API posture review and release-hardening polish that depends on additional coverage.
+
+## 2026-04-22 — Gauquelin sector family added
+
+Implemented the next Stage 6 breadth slice:
+
+- `pleiades-types` gained `HouseSystem::Gauquelin` for the 36-sector Gauquelin house family
+- `pleiades-houses` now catalogs, resolves, documents, and calculates Gauquelin sectors with a pure-Rust 36-sector implementation anchored on the release profile’s house-angle model
+- `pleiades-core`, the compatibility profile, and the README now reflect Gauquelin sectors as release-specific coverage
+
+Remaining Stage 6 work: any API posture review and release-hardening polish that depends on additional coverage.
