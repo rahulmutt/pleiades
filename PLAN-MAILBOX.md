@@ -1,5 +1,16 @@
 # PLAN-MAILBOX
 
+## 2026-04-22 — aspect helper slice added to ChartSnapshot
+
+Implemented a small Stage 6 optional-helper slice:
+
+- `pleiades-core::ChartSnapshot` now exposes angular separation and built-in major-aspect matching helpers, plus chart rendering now includes a simple aspects section when ecliptic positions are available
+- the API stability posture and README should be updated to mention the new aspect-oriented helper surface once the change is recorded
+- tests now cover a sextile example end to end through the core façade and CLI rendering path
+
+Remaining Stage 6 work: broader catalog breadth and any remaining optional helper polish that depends on additional coverage.
+
+
 ## 2026-04-22 — sign-scoped chart helper added
 
 Implemented a small Stage 6 optional-helper slice:

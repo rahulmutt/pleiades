@@ -15,8 +15,8 @@ use pleiades_backend::{
 };
 use pleiades_houses::{calculate_houses, house_for_longitude, HouseRequest, HouseSnapshot};
 use pleiades_types::{
-    CelestialBody, HouseSystem, Instant, Longitude, MotionDirection, ObserverLocation, ZodiacMode,
-    ZodiacSign,
+    Angle, CelestialBody, HouseSystem, Instant, Longitude, MotionDirection, ObserverLocation,
+    ZodiacMode, ZodiacSign,
 };
 
 use crate::ChartEngine;
@@ -161,6 +161,23 @@ impl ChartSnapshot {
         self.placement_for(body)?.house
     }
 
+    /// Returns the angular separation between two bodies when both have ecliptic longitudes.
+    pub fn angular_separation(&self, left: &CelestialBody, right: &CelestialBody) -> Option<Angle> {
+        let left = self
+            .placement_for(left)?
+            .position
+            .ecliptic
+            .as_ref()?
+            .longitude;
+        let right = self
+            .placement_for(right)?
+            .position
+            .ecliptic
+            .as_ref()?
+            .longitude;
+        Some(angle_separation(left, right))
+    }
+
     /// Returns all placements assigned to a requested zodiac sign.
     pub fn placements_in_sign(&self, sign: ZodiacSign) -> impl Iterator<Item = &BodyPlacement> {
         self.placements
@@ -184,12 +201,140 @@ impl ChartSnapshot {
             )
         })
     }
+
+    /// Returns the major aspects found in the chart using the built-in orb defaults.
+    pub fn major_aspects(&self) -> Vec<AspectMatch> {
+        self.aspects_with_definitions(default_aspect_definitions())
+    }
+
+    /// Returns aspect matches using custom aspect definitions.
+    pub fn aspects_with_definitions(&self, definitions: &[AspectDefinition]) -> Vec<AspectMatch> {
+        let mut matches = Vec::new();
+
+        for (left_index, left) in self.placements.iter().enumerate() {
+            let Some(left_longitude) = left
+                .position
+                .ecliptic
+                .as_ref()
+                .map(|coords| coords.longitude)
+            else {
+                continue;
+            };
+
+            for right in self.placements.iter().skip(left_index + 1) {
+                let Some(right_longitude) = right
+                    .position
+                    .ecliptic
+                    .as_ref()
+                    .map(|coords| coords.longitude)
+                else {
+                    continue;
+                };
+
+                let separation = angle_separation(left_longitude, right_longitude);
+                if let Some(definition) = best_aspect_definition(separation, definitions) {
+                    matches.push(AspectMatch {
+                        left: left.body.clone(),
+                        right: right.body.clone(),
+                        kind: definition.kind,
+                        separation,
+                        orb: Angle::from_degrees(
+                            (separation.degrees() - definition.exact_degrees).abs(),
+                        ),
+                    });
+                }
+            }
+        }
+
+        matches
+    }
 }
 
 impl BodyPlacement {
     /// Returns the coarse direction of longitudinal motion when the backend supplied motion data.
     pub fn motion_direction(&self) -> Option<MotionDirection> {
         self.position.motion.as_ref()?.longitude_direction()
+    }
+}
+
+/// A major aspect family in the chart façade.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum AspectKind {
+    /// Bodies are aligned near the same longitude.
+    Conjunction,
+    /// Bodies are separated by roughly 60 degrees.
+    Sextile,
+    /// Bodies are separated by roughly 90 degrees.
+    Square,
+    /// Bodies are separated by roughly 120 degrees.
+    Trine,
+    /// Bodies are separated by roughly 180 degrees.
+    Opposition,
+}
+
+impl AspectKind {
+    /// Returns the canonical display name for the aspect family.
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::Conjunction => "Conjunction",
+            Self::Sextile => "Sextile",
+            Self::Square => "Square",
+            Self::Trine => "Trine",
+            Self::Opposition => "Opposition",
+        }
+    }
+}
+
+impl fmt::Display for AspectKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.name())
+    }
+}
+
+/// An aspect definition used for configurable matching.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct AspectDefinition {
+    /// The aspect family.
+    pub kind: AspectKind,
+    /// The exact angular separation that defines the aspect.
+    pub exact_degrees: f64,
+    /// The maximum allowed orb in degrees.
+    pub orb_degrees: f64,
+}
+
+impl AspectDefinition {
+    /// Creates a new aspect definition.
+    pub const fn new(kind: AspectKind, exact_degrees: f64, orb_degrees: f64) -> Self {
+        Self {
+            kind,
+            exact_degrees,
+            orb_degrees,
+        }
+    }
+}
+
+/// A matched aspect between two bodies.
+#[derive(Clone, Debug, PartialEq)]
+pub struct AspectMatch {
+    /// The body on the left side of the pairing.
+    pub left: CelestialBody,
+    /// The body on the right side of the pairing.
+    pub right: CelestialBody,
+    /// The matched aspect family.
+    pub kind: AspectKind,
+    /// The measured angular separation between the bodies.
+    pub separation: Angle,
+    /// The absolute orb from the exact aspect angle.
+    pub orb: Angle,
+}
+
+impl fmt::Display for AspectMatch {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{} {} {} (separation: {}, orb: {})",
+            self.left, self.kind, self.right, self.separation, self.orb
+        )
     }
 }
 
@@ -254,8 +399,57 @@ impl fmt::Display for ChartSnapshot {
             writeln!(f, "Retrograde bodies: {}", retrograde_bodies.join(", "))?;
         }
 
+        let aspects = self.major_aspects();
+        if !aspects.is_empty() {
+            writeln!(f, "Aspects:")?;
+            for aspect in aspects {
+                writeln!(f, "  - {}", aspect)?;
+            }
+        }
+
         Ok(())
     }
+}
+
+const DEFAULT_ASPECT_DEFINITIONS: [AspectDefinition; 5] = [
+    AspectDefinition::new(AspectKind::Conjunction, 0.0, 8.0),
+    AspectDefinition::new(AspectKind::Sextile, 60.0, 4.0),
+    AspectDefinition::new(AspectKind::Square, 90.0, 6.0),
+    AspectDefinition::new(AspectKind::Trine, 120.0, 6.0),
+    AspectDefinition::new(AspectKind::Opposition, 180.0, 8.0),
+];
+
+fn default_aspect_definitions() -> &'static [AspectDefinition] {
+    &DEFAULT_ASPECT_DEFINITIONS
+}
+
+fn angle_separation(left: Longitude, right: Longitude) -> Angle {
+    let difference = (right.degrees() - left.degrees()).rem_euclid(360.0);
+    let separation = if difference > 180.0 {
+        360.0 - difference
+    } else {
+        difference
+    };
+    Angle::from_degrees(separation)
+}
+
+fn best_aspect_definition(
+    separation: Angle,
+    definitions: &[AspectDefinition],
+) -> Option<AspectDefinition> {
+    definitions
+        .iter()
+        .copied()
+        .filter(|definition| {
+            (separation.degrees() - definition.exact_degrees).abs() <= definition.orb_degrees
+        })
+        .min_by(|left, right| {
+            let left_orb = (separation.degrees() - left.exact_degrees).abs();
+            let right_orb = (separation.degrees() - right.exact_degrees).abs();
+            left_orb
+                .partial_cmp(&right_orb)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        })
 }
 
 /// Converts a tropical longitude into the requested zodiac mode.
@@ -713,6 +907,79 @@ mod tests {
         assert!(chart.placements_in_house(12).next().is_none());
         assert_eq!(chart.retrograde_placements().count(), 1);
         assert!(chart.to_string().contains("Retrograde bodies: Mars"));
+    }
+
+    #[test]
+    fn chart_snapshot_exposes_major_aspects_and_angular_separation() {
+        let instant = Instant::new(
+            pleiades_types::JulianDay::from_days(2451545.0),
+            TimeScale::Tt,
+        );
+        let mut sun = EphemerisResult::new(
+            BackendId::new("toy-chart"),
+            CelestialBody::Sun,
+            instant,
+            pleiades_types::CoordinateFrame::Ecliptic,
+            ZodiacMode::Tropical,
+            Apparentness::Apparent,
+        );
+        sun.ecliptic = Some(EclipticCoordinates::new(
+            Longitude::from_degrees(15.0),
+            Latitude::from_degrees(0.0),
+            None,
+        ));
+
+        let mut moon = EphemerisResult::new(
+            BackendId::new("toy-chart"),
+            CelestialBody::Moon,
+            instant,
+            pleiades_types::CoordinateFrame::Ecliptic,
+            ZodiacMode::Tropical,
+            Apparentness::Apparent,
+        );
+        moon.ecliptic = Some(EclipticCoordinates::new(
+            Longitude::from_degrees(75.0),
+            Latitude::from_degrees(0.0),
+            None,
+        ));
+
+        let chart = ChartSnapshot {
+            backend_id: BackendId::new("toy-chart"),
+            instant,
+            observer: None,
+            zodiac_mode: ZodiacMode::Tropical,
+            houses: None,
+            placements: vec![
+                BodyPlacement {
+                    body: CelestialBody::Sun,
+                    position: sun,
+                    sign: Some(ZodiacSign::Aries),
+                    house: Some(1),
+                },
+                BodyPlacement {
+                    body: CelestialBody::Moon,
+                    position: moon,
+                    sign: Some(ZodiacSign::Taurus),
+                    house: Some(2),
+                },
+            ],
+        };
+
+        assert_eq!(
+            chart.angular_separation(&CelestialBody::Sun, &CelestialBody::Moon),
+            Some(Angle::from_degrees(60.0))
+        );
+
+        let aspects = chart.major_aspects();
+        assert_eq!(aspects.len(), 1);
+        let aspect = &aspects[0];
+        assert_eq!(aspect.left, CelestialBody::Sun);
+        assert_eq!(aspect.right, CelestialBody::Moon);
+        assert_eq!(aspect.kind, AspectKind::Sextile);
+        assert_eq!(aspect.separation, Angle::from_degrees(60.0));
+        assert_eq!(aspect.orb, Angle::from_degrees(0.0));
+        assert!(chart.to_string().contains("Aspects:"));
+        assert!(chart.to_string().contains("Sun Sextile Moon"));
     }
 
     #[test]

@@ -229,6 +229,14 @@ mod tests {
     }
 
     #[test]
+    fn chart_command_renders_aspect_information() {
+        let rendered = render_chart(&["--jd", "2451545.0", "--body", "Sun", "--body", "Moon"])
+            .expect("chart should render");
+        assert!(rendered.contains("Aspects:"));
+        assert!(rendered.contains("Sun Sextile Moon"));
+    }
+
+    #[test]
     fn chart_command_can_render_house_information() {
         let rendered = render_chart(&[
             "--jd",
