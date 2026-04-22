@@ -277,8 +277,8 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         "Babylonian (Huber)",
         &["Babylonian Huber"],
         "Babylonian sidereal mode associated with Huber's reconstruction.",
-        None,
-        None,
+        Some(JulianDay::from_days(1_721_171.5)),
+        Some(Angle::from_degrees(-0.120_555_555_555_555_55)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianEtaPiscium,
@@ -429,8 +429,8 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         "Galactic Equator (IAU 1958)",
         &["IAU 1958", "Galactic equator IAU 1958"],
         "Galactic-equator reference mode using the IAU 1958 definition.",
-        None,
-        None,
+        Some(JulianDay::from_days(1_667_118.376_332)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticEquatorTrue,
@@ -664,8 +664,8 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 48] = [
         "Babylonian (Huber)",
         &["Babylonian Huber"],
         "Babylonian sidereal mode associated with Huber's reconstruction.",
-        None,
-        None,
+        Some(JulianDay::from_days(1_721_171.5)),
+        Some(Angle::from_degrees(-0.120_555_555_555_555_55)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianEtaPiscium,
@@ -816,8 +816,8 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 48] = [
         "Galactic Equator (IAU 1958)",
         &["IAU 1958", "Galactic equator IAU 1958"],
         "Galactic-equator reference mode using the IAU 1958 definition.",
-        None,
-        None,
+        Some(JulianDay::from_days(1_667_118.376_332)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticEquatorTrue,
@@ -1102,5 +1102,36 @@ mod tests {
         );
         let offset = sidereal_offset(&Ayanamsa::Lahiri, instant).expect("offset should exist");
         assert!(offset.degrees().is_finite());
+    }
+
+    #[test]
+    fn selected_release_ayanamsas_carry_reference_metadata() {
+        let huber = descriptor(&Ayanamsa::BabylonianHuber).expect("Huber descriptor");
+        assert_eq!(huber.epoch, Some(JulianDay::from_days(1_721_171.5)));
+        assert_eq!(
+            huber.offset_degrees,
+            Some(Angle::from_degrees(-0.120_555_555_555_555_55))
+        );
+
+        let galactic = descriptor(&Ayanamsa::GalacticEquatorIau1958)
+            .expect("Galactic Equator (IAU 1958) descriptor");
+        assert_eq!(
+            galactic.epoch,
+            Some(JulianDay::from_days(1_667_118.376_332))
+        );
+        assert_eq!(galactic.offset_degrees, Some(Angle::from_degrees(0.0)));
+
+        let instant = Instant::new(
+            JulianDay::from_days(2_451_545.0),
+            pleiades_types::TimeScale::Tt,
+        );
+        assert!(sidereal_offset(&Ayanamsa::BabylonianHuber, instant)
+            .expect("Huber offset should exist")
+            .degrees()
+            .is_finite());
+        assert!(sidereal_offset(&Ayanamsa::GalacticEquatorIau1958, instant)
+            .expect("Galactic Equator offset should exist")
+            .degrees()
+            .is_finite());
     }
 }

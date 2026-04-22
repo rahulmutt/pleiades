@@ -307,3 +307,13 @@ Implemented a release-hardening maintenance slice:
 - `pleiades-houses` and `pleiades-ayanamsa` now have round-trip coverage tests that verify the built-in catalogs, baseline milestones, release-specific additions, and alias resolution stay internally aligned
 - `pleiades-core` now checks that the published compatibility profile’s release-note text continues to mention every release-specific house-system and ayanamsa entry, reducing drift between the catalog data and the release summary, and the compatibility-profile identifier was bumped to `0.6.7` to reflect the content update
 - the next recommended follow-up is to keep using the same invariant pattern whenever new catalog breadth lands, so the compatibility profile stays synchronized automatically
+
+## 2026-04-22 — metadata-backed ayanamsa metadata added
+
+Implemented a small Stage 6 maintenance slice:
+
+- `pleiades-ayanamsa` now carries explicit epoch/offset metadata for Babylonian (Huber) and Galactic Equator (IAU 1958)
+- `pleiades-core` now calls out those metadata-backed exceptions in the compatibility profile so the remaining ayanamsa metadata gap is more precise
+- tests now verify both descriptors and their sidereal-offset availability, keeping the metadata and runtime helper behavior synchronized
+
+Remaining Stage 6 work: continue filling out any remaining ayanamsa breadth while keeping metadata-backed modes and the release profile synchronized.
