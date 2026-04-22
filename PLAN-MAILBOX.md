@@ -280,6 +280,16 @@ Implemented another Stage 6 catalog-breadth slice:
 
 Remaining Stage 6 work: continue filling out the remaining Swiss Ephemeris ayanamsa breadth and keep the release profile synchronized.
 
+## 2026-04-22 — selected asteroid coverage surfaced in validation reports
+
+Implemented a small Stage 4 visibility slice:
+
+- `pleiades-jpl` now exposes the source-backed asteroid subset from the checked-in Horizons snapshot as a dedicated helper alongside the reference corpus helpers
+- `pleiades-validate` now renders a dedicated selected-asteroid coverage section in validation reports, so the JPL snapshot’s Ceres/Pallas/Juno/Vesta support is visible without disturbing the planetary comparison corpus
+- tests now assert both the JPL asteroid helper and the validation-report section so the stage-4 asteroid visibility stays covered
+
+Remaining Stage 4 work: if we continue expanding source-backed coverage, the next incremental step should be additional bodies or epochs that are justified by available public data.
+
 ## 2026-04-22 — remaining Swiss Ephemeris ayanamsa breadth batch added
 
 Implemented the next Stage 6 catalog-breadth slice:

@@ -23,7 +23,7 @@ use pleiades_core::{
 };
 use pleiades_data::PackagedDataBackend;
 use pleiades_elp::ElpBackend;
-use pleiades_jpl::{comparison_snapshot, JplSnapshotBackend};
+use pleiades_jpl::{comparison_snapshot, reference_asteroids, JplSnapshotBackend};
 use pleiades_vsop87::Vsop87Backend;
 
 const DEFAULT_BENCHMARK_ROUNDS: usize = 10_000;
@@ -351,6 +351,8 @@ impl fmt::Display for ValidationReport {
             "Implemented backend matrices",
             &implemented_backend_catalog(),
         )?;
+        writeln!(f)?;
+        write_reference_asteroid_section(f)?;
         writeln!(f)?;
         writeln!(f, "Comparison corpus")?;
         write_corpus_summary(f, &self.comparison_corpus)?;
@@ -956,6 +958,21 @@ fn write_regression_archive_section(
     Ok(())
 }
 
+fn write_reference_asteroid_section(f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    writeln!(f, "Selected asteroid coverage")?;
+    let asteroids = reference_asteroids();
+    if asteroids.is_empty() {
+        writeln!(f, "  none")?;
+    } else {
+        writeln!(f, "  bodies: {}", format_bodies(asteroids))?;
+        writeln!(
+            f,
+            "  note: comparison reports stay on the planetary subset while the JPL snapshot preserves selected asteroid coverage."
+        )?;
+    }
+    Ok(())
+}
+
 fn regression_finding(sample: &ComparisonSample) -> Option<RegressionFinding> {
     let mut notes = Vec::new();
     if sample.longitude_delta_deg >= REGRESSION_LONGITUDE_THRESHOLD_DEG {
@@ -1256,6 +1273,11 @@ mod tests {
         assert!(report.contains("Compatibility profile"));
         assert!(report.contains("API stability posture"));
         assert!(report.contains("Implemented backend matrices"));
+        assert!(report.contains("Selected asteroid coverage"));
+        assert!(report.contains("Ceres"));
+        assert!(report.contains("Pallas"));
+        assert!(report.contains("Juno"));
+        assert!(report.contains("Vesta"));
         assert!(report.contains("JPL snapshot reference backend"));
         assert!(report.contains("VSOP87 planetary backend"));
         assert!(report.contains("ELP lunar backend"));

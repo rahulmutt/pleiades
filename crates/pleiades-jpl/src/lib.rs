@@ -49,6 +49,11 @@ pub fn reference_snapshot() -> &'static [SnapshotEntry] {
     snapshot_entries().unwrap_or(&[])
 }
 
+/// Returns the source-backed asteroid subset present in the reference snapshot.
+pub fn reference_asteroids() -> &'static [pleiades_backend::CelestialBody] {
+    reference_asteroid_list()
+}
+
 /// Returns the comparison-only subset used by the stage-4 validation corpus.
 pub fn comparison_snapshot() -> &'static [SnapshotEntry] {
     comparison_snapshot_entries()
@@ -335,6 +340,21 @@ fn comparison_body_list() -> &'static [pleiades_backend::CelestialBody] {
         .as_slice()
 }
 
+fn reference_asteroid_list() -> &'static [pleiades_backend::CelestialBody] {
+    static BODIES: OnceLock<Vec<pleiades_backend::CelestialBody>> = OnceLock::new();
+    BODIES
+        .get_or_init(|| {
+            let mut bodies = Vec::new();
+            for entry in snapshot_entries().into_iter().flatten() {
+                if is_reference_asteroid(&entry.body) && !bodies.contains(&entry.body) {
+                    bodies.push(entry.body.clone());
+                }
+            }
+            bodies
+        })
+        .as_slice()
+}
+
 fn snapshot_instants() -> &'static [Instant] {
     static INSTANTS: OnceLock<Vec<Instant>> = OnceLock::new();
     INSTANTS
@@ -465,6 +485,16 @@ fn is_comparison_body(body: &pleiades_backend::CelestialBody) -> bool {
     )
 }
 
+fn is_reference_asteroid(body: &pleiades_backend::CelestialBody) -> bool {
+    matches!(
+        body,
+        pleiades_backend::CelestialBody::Ceres
+            | pleiades_backend::CelestialBody::Pallas
+            | pleiades_backend::CelestialBody::Juno
+            | pleiades_backend::CelestialBody::Vesta
+    )
+}
+
 fn parse_f64(
     value: &str,
     line_number: usize,
@@ -510,6 +540,15 @@ mod tests {
         assert!(metadata
             .body_coverage
             .contains(&pleiades_backend::CelestialBody::Vesta));
+        assert_eq!(
+            reference_asteroids(),
+            [
+                pleiades_backend::CelestialBody::Ceres,
+                pleiades_backend::CelestialBody::Pallas,
+                pleiades_backend::CelestialBody::Juno,
+                pleiades_backend::CelestialBody::Vesta,
+            ]
+        );
         assert!(metadata.nominal_range.start.is_some());
         assert!(metadata.nominal_range.end.is_some());
         let start = metadata
