@@ -29,6 +29,16 @@ Before implementing algorithms or parsing datasets, the project needs a type sys
 ## Workable state at end of stage
 A backend author can implement the contract for a toy backend, and an application author can compile code against the public types even before full astronomical functionality exists.
 
+## Progress update
+
+Stage 2 foundation is in place as of 2026-04-22.
+
+- [x] `pleiades-types` now defines the angle, time, body, observer, frame, house-system, and ayanamsa primitives needed by later stages.
+- [x] `pleiades-backend` now defines request/result types, backend metadata, capability flags, structured errors, and batch-query semantics.
+- [x] `pleiades-core` now provides a thin façade that delegates to a backend without hiding the lower-level contract.
+- [x] Toy backend coverage and rustdoc examples compile successfully under workspace tests.
+- [ ] Stage 3 algorithmic backends and chart assembly remain to be implemented.
+
 ## Suggested implementation slices
 
 1. Define angle, coordinate, and time primitives first, including normalization and unit semantics.
