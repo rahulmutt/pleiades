@@ -102,7 +102,8 @@ cargo run -q -p pleiades-validate -- help
 Rough command overview:
 
 - `compare-backends`: compare the checked-in JPL snapshot against the algorithmic composite backend
-- `backend-matrix` / `backend-matrix-summary`: print detailed or compact backend capability matrices
+- `backend-matrix` / `capability-matrix`: print detailed backend capability matrices
+- `backend-matrix-summary` / `matrix-summary`: print compact backend capability matrices
 - `benchmark [--rounds N]`: benchmark the candidate backend on the representative corpus
 - `report` / `generate-report`: render the full validation report
 - `validation-report-summary` / `validation-summary` / `report-summary`: compact validation report summary

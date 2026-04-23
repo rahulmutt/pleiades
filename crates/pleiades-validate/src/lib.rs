@@ -834,11 +834,11 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "compare-backends")?;
             render_comparison_report().map_err(render_error)
         }
-        Some("backend-matrix") => {
+        Some("backend-matrix") | Some("capability-matrix") => {
             ensure_no_extra_args(&args[1..], "backend-matrix")?;
             render_backend_matrix_report().map_err(render_error)
         }
-        Some("backend-matrix-summary") => {
+        Some("backend-matrix-summary") | Some("matrix-summary") => {
             ensure_no_extra_args(&args[1..], "backend-matrix-summary")?;
             Ok(render_backend_matrix_summary())
         }
@@ -3315,7 +3315,7 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = default_corpus().requests.len();
     format!(
-        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix            Print the implemented backend capability matrices\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  compatibility-profile     Print the release compatibility profile\n  profile                   Alias for compatibility-profile\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus with guard epochs\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validation-report-summary [--rounds N]  Render a compact validation report summary\n  report-summary [--rounds N]  Alias for validation-report-summary
+        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix            Print the implemented backend capability matrices\n  capability-matrix         Alias for backend-matrix\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  matrix-summary            Alias for backend-matrix-summary\n  compatibility-profile     Print the release compatibility profile\n  profile                   Alias for compatibility-profile\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus with guard epochs\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validation-report-summary [--rounds N]  Render a compact validation report summary\n  report-summary [--rounds N]  Alias for validation-report-summary
   validation-summary        Alias for validation-report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes
   release-checklist         Print the release maintainer checklist
   release-checklist-summary Print the compact release checklist summary
@@ -3774,7 +3774,9 @@ mod tests {
         let rendered = render_cli(&["help"]).expect("help should render");
         assert!(rendered.contains("compare-backends"));
         assert!(rendered.contains("backend-matrix"));
+        assert!(rendered.contains("capability-matrix"));
         assert!(rendered.contains("backend-matrix-summary"));
+        assert!(rendered.contains("matrix-summary"));
         assert!(rendered.contains("compatibility-profile"));
         assert!(rendered.contains("Alias for compatibility-profile"));
         assert!(rendered.contains("benchmark [--rounds N]"));
@@ -4018,6 +4020,16 @@ mod tests {
         assert!(rendered.contains("Distinct bodies covered:"));
         assert!(rendered.contains("Distinct coordinate frames:"));
         assert!(rendered.contains("Distinct time scales:"));
+
+        let capability_matrix =
+            render_cli(&["capability-matrix"]).expect("capability matrix should render");
+        assert_eq!(
+            capability_matrix,
+            render_cli(&["backend-matrix"]).expect("backend matrix should render")
+        );
+
+        let matrix_summary = render_cli(&["matrix-summary"]).expect("matrix summary should render");
+        assert_eq!(matrix_summary, rendered);
     }
 
     #[test]
