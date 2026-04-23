@@ -39,15 +39,17 @@ To inspect the release artifacts directly, generate a bundle in a directory of y
 cargo run -q -p pleiades-validate -- bundle-release --out /tmp/pleiades-release
 ```
 
-The validation tool can also render the compact profile summary, release notes, release checklist, release summary, API stability summary, artifact summary, and validation summary directly when you only need the individual maintainer-facing artifacts, and the user-facing CLI mirrors the release-notes, release-checklist, release-summary, api-stability-summary, artifact-summary, and validation-summary renderers too; the compact release summary now also includes the custom-definition label counts that keep the release posture self-describing, a packaged-artifact cross-reference, and the compact validation-summary alias in its summary-view list:
+The validation tool can also render the compact profile summary, release notes, release checklist, release-checklist summary, release summary, API stability summary, artifact summary, and validation summary directly when you only need the individual maintainer-facing artifacts, and the user-facing CLI mirrors the release-notes, release-checklist, release-checklist-summary, release-summary, api-stability-summary, artifact-summary, and validation-summary renderers too; the compact release summary now also includes the custom-definition label counts that keep the release posture self-describing, a packaged-artifact cross-reference, and the compact validation-summary alias in its summary-view list:
 
 ```bash
 cargo run -q -p pleiades-validate -- compatibility-profile-summary
 cargo run -q -p pleiades-validate -- release-notes
 cargo run -q -p pleiades-validate -- release-checklist
+cargo run -q -p pleiades-validate -- release-checklist-summary
 cargo run -q -p pleiades-validate -- release-summary
 cargo run -q -p pleiades-cli -- release-notes
 cargo run -q -p pleiades-cli -- release-checklist
+cargo run -q -p pleiades-cli -- release-checklist-summary
 cargo run -q -p pleiades-cli -- release-summary
 cargo run -q -p pleiades-cli -- validation-summary
 cargo run -q -p pleiades-validate -- backend-matrix-summary
@@ -63,6 +65,7 @@ The bundle currently writes these text artifacts:
 - `release-notes.txt`
 - `release-summary.txt`
 - `release-checklist.txt`
+- `release-checklist-summary.txt`
 - `backend-matrix.txt`
 - `backend-matrix-summary.txt`
 - `api-stability.txt`
@@ -73,7 +76,7 @@ The bundle currently writes these text artifacts:
 - `bundle-manifest.txt` (includes the recorded source revision, workspace status, Rust compiler version, profile/API identifiers, and validation-round count)
 - `bundle-manifest.checksum.txt` (records the checksum used to verify the staged manifest itself)
 
-The generated `release-checklist.txt` now also embeds the canonical `bundle-release` and `verify-release-bundle` commands plus a pointer back to this guide, so the bundle stays self-describing for maintainers.
+The generated `release-checklist.txt` now also embeds the canonical `bundle-release` and `verify-release-bundle` commands plus a pointer back to this guide, while `release-checklist-summary.txt` provides a compact audit view for quick release review, so the bundle stays self-describing for maintainers.
 
 Verify the staged bundle with:
 

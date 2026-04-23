@@ -54,7 +54,7 @@ Rough command overview:
 - `api-stability-summary` / `api-posture-summary`: compact API stability summary
 - `backend-matrix` / `capability-matrix`: print implemented backend capability matrices
 - `backend-matrix-summary` / `matrix-summary`: compact backend matrix summary
-- `release-notes`, `release-checklist`, `release-summary`: maintainer-facing release metadata
+- `release-notes`, `release-checklist`, `release-checklist-summary`, `release-summary`: maintainer-facing release metadata
 - `artifact-summary`: compact summary of the packaged compressed artifact
 - `validation-summary` / `report-summary`: compact validation report summary
 - `chart`: render a basic chart report from a Julian day and optional observer settings
@@ -108,7 +108,7 @@ Rough command overview:
 - `validate-artifact`: inspect and validate the packaged compressed artifact in detail
 - `artifact-summary`: compact packaged-artifact summary
 - `workspace-audit` / `audit`: check the workspace for mandatory native build hooks
-- `api-stability`, `api-stability-summary`, `compatibility-profile-summary`, `release-notes`, `release-checklist`, `release-summary`: release-facing report helpers
+- `api-stability`, `api-stability-summary`, `compatibility-profile-summary`, `release-notes`, `release-checklist`, `release-checklist-summary`, `release-summary`: release-facing report helpers
 - `bundle-release --out DIR`: write a staged release bundle to a directory
 - `verify-release-bundle --out DIR`: verify a previously staged release bundle
 
