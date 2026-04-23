@@ -194,7 +194,8 @@ mod tests {
         assert!(rendered.contains("Target ayanamsa catalog:"));
         assert!(rendered.contains("Alias mappings for built-in house systems:"));
         assert!(rendered.contains("Alias mappings for built-in ayanamsas:"));
-        assert!(rendered.contains("Ayanamsa sidereal metadata coverage:"));
+        assert!(rendered.contains("Coverage summary:"));
+        assert!(rendered.contains("ayanamsa sidereal metadata:"));
         assert!(rendered.contains("J2000"));
         assert!(rendered.contains("True Pushya"));
         assert!(rendered.contains("Djwhal Khul"));

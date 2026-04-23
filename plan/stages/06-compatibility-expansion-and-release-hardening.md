@@ -48,6 +48,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] `pleiades-ayanamsa` now backfills explicit sidereal metadata for `True Sheoran`, `Galactic Center (Rgilbrand)`, and `Galactic Center (Mula/Wilhelm)`, using the published Swiss Ephemeris zero points so the compatibility profile no longer treats those historical/reference-frame entries as metadata gaps.
 - [x] `pleiades-ayanamsa` now backfills explicit sidereal metadata for `Udayagiri` and `Lahiri (VP285)`, reusing the Lahiri-family 285 CE zero point so the compatibility profile no longer treats those variants as metadata gaps.
 - [x] The compatibility profile now distinguishes target scope, baseline milestone, release-specific coverage, and known gaps.
+- [x] The compatibility profile now also includes a compact coverage summary for house-system breadth, ayanamsa breadth, and sidereal-metadata coverage, and the CLI profile rendering follows the same wording.
 - [x] Validation reports now include the release compatibility profile so the stage-6 release artifact bundle carries the current coverage summary.
 - [x] `pleiades-validate bundle-release --out DIR` now writes the compatibility profile, backend capability matrix, API stability posture, validation report, and a manifest for a reproducible release bundle.
 - [x] The release bundle manifest now records deterministic FNV-1a checksums for the published text artifacts, and the CLI bundle summary surfaces those checksums for release verification.

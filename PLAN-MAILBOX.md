@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Compatibility profile now includes a compact coverage summary
+
+Implemented a small Stage 6 release-hardening refinement:
+
+- `pleiades-core::CompatibilityProfile` now renders a compact coverage summary that reports house-system breadth, ayanamsa breadth, and sidereal-metadata coverage in one place before the detailed custom-definition and alias sections
+- the CLI compatibility-profile output and the corresponding tests were updated to match the new wording, so maintainers now see the coverage summary consistently across the core and user-facing surfaces
+- Stage 6 progress notes should mention the coverage-summary refinement as part of the ongoing release-hardening work
+
+Remaining Stage 6 work: keep the compatibility profile synchronized as catalog breadth, metadata backfills, or release notes continue to evolve.
+
 ## 2026-04-23 — Babylonian house-family labels now render with custom-definition detail
 
 Implemented a small Stage 6 release-hardening slice:

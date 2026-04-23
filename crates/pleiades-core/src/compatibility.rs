@@ -271,10 +271,24 @@ impl fmt::Display for CompatibilityProfile {
         }
         writeln!(f)?;
         let coverage = metadata_coverage();
-        writeln!(f, "Ayanamsa sidereal metadata coverage:")?;
+        writeln!(f, "Coverage summary:")?;
         writeln!(
             f,
-            "- entries with both a reference epoch and offset: {}/{}",
+            "- house systems: {} total ({} baseline, {} release-specific)",
+            self.house_systems.len(),
+            self.baseline_house_systems.len(),
+            self.release_house_systems.len()
+        )?;
+        writeln!(
+            f,
+            "- ayanamsas: {} total ({} baseline, {} release-specific)",
+            self.ayanamsas.len(),
+            self.baseline_ayanamsas.len(),
+            self.release_ayanamsas.len()
+        )?;
+        writeln!(
+            f,
+            "- ayanamsa sidereal metadata: {}/{} entries with both a reference epoch and offset",
             coverage.with_sidereal_metadata, coverage.total
         )?;
         if coverage.is_complete() {
@@ -290,6 +304,11 @@ impl fmt::Display for CompatibilityProfile {
             )?;
         }
         if !self.custom_definition_labels.is_empty() {
+            writeln!(
+                f,
+                "- custom-definition labels: {}",
+                self.custom_definition_labels.len()
+            )?;
             writeln!(f)?;
             write_custom_definition_section(f, self.custom_definition_labels, self.ayanamsas)?;
         }
@@ -583,10 +602,12 @@ mod tests {
         assert!(rendered.contains("Release-specific coverage beyond baseline:"));
         assert!(rendered.contains("Alias mappings for built-in house systems:"));
         assert!(rendered.contains("Alias mappings for built-in ayanamsas:"));
-        assert!(rendered.contains("Ayanamsa sidereal metadata coverage:"));
-        assert!(rendered.contains("entries with both a reference epoch and offset"));
+        assert!(rendered.contains("Coverage summary:"));
+        assert!(rendered.contains("house systems:"));
+        assert!(rendered.contains("ayanamsas:"));
+        assert!(rendered.contains("ayanamsa sidereal metadata:"));
         assert!(rendered.contains("missing metadata:"));
-        assert!(rendered.contains("Custom-definition labels:"));
+        assert!(rendered.contains("custom-definition labels:"));
         assert!(rendered.contains("Babylonian (House) (aliases: Babylonian House, BABYL_HOUSE)"));
         assert!(rendered
             .contains("Babylonian (House Obs) (aliases: Babylonian House Obs, BABYL_HOUSE_OBS)"));
@@ -641,5 +662,7 @@ mod tests {
         assert!(rendered.contains("Lahiri"));
         assert!(rendered.contains("True Balarama"));
         assert!(rendered.contains("custom definitions"));
+        assert!(rendered.contains("house systems: 25 total"));
+        assert!(rendered.contains("ayanamsas: 58 total"));
     }
 }
