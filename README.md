@@ -92,7 +92,7 @@ Notes:
 
 ### `pleiades-validate`
 
-Use `pleiades-validate` for comparison reports, benchmarks, artifact inspection, workspace audits, and release-bundle generation:
+Use `pleiades-validate` for comparison reports, benchmarks, artifact inspection, workspace audits, compatibility-profile verification, and release-bundle generation:
 
 ```bash
 cargo run -q -p pleiades-validate -- help
@@ -108,7 +108,9 @@ Rough command overview:
 - `validate-artifact`: inspect and validate the packaged compressed artifact in detail
 - `artifact-summary`: compact packaged-artifact summary
 - `workspace-audit` / `audit`: check the workspace for mandatory native build hooks
-- `api-stability`, `api-stability-summary`, `compatibility-profile-summary`, `release-notes`, `release-checklist`, `release-checklist-summary`, `release-summary`: release-facing report helpers
+- `compatibility-profile-summary`: compact compatibility profile summary
+- `verify-compatibility-profile`: verify the release compatibility profile against the canonical catalogs
+- `api-stability`, `api-stability-summary`, `release-notes`, `release-checklist`, `release-checklist-summary`, `release-summary`: release-facing report helpers
 - `bundle-release --out DIR`: write a staged release bundle to a directory
 - `verify-release-bundle --out DIR`: verify a previously staged release bundle
 
@@ -126,6 +128,9 @@ cargo run -q -p pleiades-validate -- validate-artifact
 
 # Run the workspace native-build audit
 cargo run -q -p pleiades-validate -- audit
+
+# Verify that the compatibility profile still matches the canonical catalogs
+cargo run -q -p pleiades-validate -- verify-compatibility-profile
 
 # Generate and then verify a release bundle
 cargo run -q -p pleiades-validate -- bundle-release --out /tmp/pleiades-release

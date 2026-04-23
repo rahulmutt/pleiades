@@ -24,6 +24,9 @@ pub use house_validation::{
     house_validation_report, HouseValidationReport, HouseValidationSample, HouseValidationScenario,
 };
 
+use pleiades_ayanamsa::{
+    baseline_ayanamsas, built_in_ayanamsas, release_ayanamsas, resolve_ayanamsa,
+};
 use pleiades_core::{
     current_api_stability_profile, current_compatibility_profile,
     current_release_profile_identifiers, default_chart_bodies, AccuracyClass, Apparentness,
@@ -34,6 +37,9 @@ use pleiades_core::{
 };
 use pleiades_data::PackagedDataBackend;
 use pleiades_elp::ElpBackend;
+use pleiades_houses::{
+    baseline_house_systems, built_in_house_systems, release_house_systems, resolve_house_system,
+};
 use pleiades_jpl::{comparison_snapshot, reference_asteroids, JplSnapshotBackend};
 use pleiades_vsop87::Vsop87Backend;
 
@@ -877,6 +883,10 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "compatibility-profile-summary")?;
             Ok(render_compatibility_profile_summary())
         }
+        Some("verify-compatibility-profile") => {
+            ensure_no_extra_args(&args[1..], "verify-compatibility-profile")?;
+            verify_compatibility_profile().map_err(render_error)
+        }
         Some("release-notes") => {
             ensure_no_extra_args(&args[1..], "release-notes")?;
             Ok(render_release_notes_text())
@@ -1048,6 +1058,169 @@ pub fn render_release_checklist_summary() -> String {
 /// Renders the compact release summary used by release tooling.
 pub fn render_release_summary() -> String {
     render_release_summary_text()
+}
+
+/// Verifies that the release compatibility profile stays synchronized with the
+/// canonical house-system and ayanamsa catalogs.
+pub fn verify_compatibility_profile() -> Result<String, EphemerisError> {
+    let profile = current_compatibility_profile();
+    let release_profiles = current_release_profile_identifiers();
+
+    if profile.profile_id != release_profiles.compatibility_profile_id {
+        return Err(EphemerisError::new(
+            EphemerisErrorKind::InvalidRequest,
+            format!(
+                "compatibility profile identifier mismatch: profile {} does not match release profile {}",
+                profile.profile_id, release_profiles.compatibility_profile_id
+            ),
+        ));
+    }
+
+    ensure_profile_slice_matches(
+        "house-system catalog",
+        profile.house_systems,
+        built_in_house_systems(),
+    )?;
+    ensure_profile_slice_matches(
+        "baseline house-system slice",
+        profile.baseline_house_systems,
+        baseline_house_systems(),
+    )?;
+    ensure_profile_slice_matches(
+        "release house-system slice",
+        profile.release_house_systems,
+        release_house_systems(),
+    )?;
+    ensure_profile_slice_matches("ayanamsa catalog", profile.ayanamsas, built_in_ayanamsas())?;
+    ensure_profile_slice_matches(
+        "baseline ayanamsa slice",
+        profile.baseline_ayanamsas,
+        baseline_ayanamsas(),
+    )?;
+    ensure_profile_slice_matches(
+        "release ayanamsa slice",
+        profile.release_ayanamsas,
+        release_ayanamsas(),
+    )?;
+
+    let house_labels_checked = verify_house_system_aliases(profile.house_systems)?;
+    let ayanamsa_labels_checked = verify_ayanamsa_aliases(profile.ayanamsas)?;
+
+    let mut text = String::new();
+    text.push_str("Compatibility profile verification\n");
+    text.push_str("Profile: ");
+    text.push_str(profile.profile_id);
+    text.push('\n');
+    text.push_str("House systems verified: ");
+    text.push_str(&profile.house_systems.len().to_string());
+    text.push_str(" descriptors, ");
+    text.push_str(&house_labels_checked.to_string());
+    text.push_str(" labels\n");
+    text.push_str("Ayanamsas verified: ");
+    text.push_str(&profile.ayanamsas.len().to_string());
+    text.push_str(" descriptors, ");
+    text.push_str(&ayanamsa_labels_checked.to_string());
+    text.push_str(" labels\n");
+    text.push_str("Baseline/release slices: ");
+    text.push_str(&profile.baseline_house_systems.len().to_string());
+    text.push_str(" house baseline + ");
+    text.push_str(&profile.release_house_systems.len().to_string());
+    text.push_str(" house release, ");
+    text.push_str(&profile.baseline_ayanamsas.len().to_string());
+    text.push_str(" ayanamsa baseline + ");
+    text.push_str(&profile.release_ayanamsas.len().to_string());
+    text.push_str(" ayanamsa release\n");
+    Ok(text)
+}
+
+fn ensure_profile_slice_matches<T>(
+    label: &str,
+    actual: &[T],
+    expected: &[T],
+) -> Result<(), EphemerisError>
+where
+    T: PartialEq + fmt::Debug,
+{
+    if actual != expected {
+        return Err(EphemerisError::new(
+            EphemerisErrorKind::InvalidRequest,
+            format!(
+                "compatibility profile {label} mismatch: expected {} entries, found {}",
+                expected.len(),
+                actual.len()
+            ),
+        ));
+    }
+
+    Ok(())
+}
+
+fn verify_house_system_aliases(
+    entries: &[pleiades_houses::HouseSystemDescriptor],
+) -> Result<usize, EphemerisError> {
+    let mut labels_checked = 0usize;
+
+    for entry in entries {
+        labels_checked += 1;
+        if resolve_house_system(entry.canonical_name) != Some(entry.system.clone()) {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile house-system alias mismatch: canonical label '{}' should resolve to {:?}",
+                    entry.canonical_name, entry.system
+                ),
+            ));
+        }
+
+        for alias in entry.aliases {
+            labels_checked += 1;
+            if resolve_house_system(alias) != Some(entry.system.clone()) {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "compatibility profile house-system alias mismatch: alias '{}' should resolve to {:?}",
+                        alias, entry.system
+                    ),
+                ));
+            }
+        }
+    }
+
+    Ok(labels_checked)
+}
+
+fn verify_ayanamsa_aliases(
+    entries: &[pleiades_ayanamsa::AyanamsaDescriptor],
+) -> Result<usize, EphemerisError> {
+    let mut labels_checked = 0usize;
+
+    for entry in entries {
+        labels_checked += 1;
+        if resolve_ayanamsa(entry.canonical_name) != Some(entry.ayanamsa.clone()) {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile ayanamsa alias mismatch: canonical label '{}' should resolve to {:?}",
+                    entry.canonical_name, entry.ayanamsa
+                ),
+            ));
+        }
+
+        for alias in entry.aliases {
+            labels_checked += 1;
+            if resolve_ayanamsa(alias) != Some(entry.ayanamsa.clone()) {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "compatibility profile ayanamsa alias mismatch: alias '{}' should resolve to {:?}",
+                        alias, entry.ayanamsa
+                    ),
+                ));
+            }
+        }
+    }
+
+    Ok(labels_checked)
 }
 
 fn render_compatibility_profile_summary_text() -> String {
@@ -3134,7 +3307,7 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = default_corpus().requests.len();
     format!(
-        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix            Print the implemented backend capability matrices\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus with guard epochs\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  report-summary [--rounds N]  Render a compact validation report summary\n  validation-summary        Alias for report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  release-notes             Print the release compatibility notes
+        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix            Print the implemented backend capability matrices\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus with guard epochs\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  report-summary [--rounds N]  Render a compact validation report summary\n  validation-summary        Alias for report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes
   release-checklist         Print the release maintainer checklist
   release-checklist-summary Print the compact release checklist summary
   checklist-summary        Alias for release-checklist-summary
@@ -3597,6 +3770,7 @@ mod tests {
         assert!(rendered.contains("api-stability"));
         assert!(rendered.contains("api-stability-summary"));
         assert!(rendered.contains("compatibility-profile-summary"));
+        assert!(rendered.contains("verify-compatibility-profile"));
         assert!(rendered.contains("release-notes"));
         assert!(rendered.contains("release-checklist"));
         assert!(rendered.contains("release-checklist-summary"));
@@ -3655,6 +3829,21 @@ mod tests {
         assert!(rendered.contains("Custom-definition labels:"));
         assert!(rendered.contains("Validation reference points:"));
         assert!(rendered.contains("Compatibility caveats:"));
+    }
+
+    #[test]
+    fn compatibility_profile_verification_command_checks_the_catalogs() {
+        let rendered = render_cli(&["verify-compatibility-profile"])
+            .expect("compatibility profile verification should render");
+        let release_profiles = current_release_profile_identifiers();
+        assert!(rendered.contains("Compatibility profile verification"));
+        assert!(rendered.contains(&format!(
+            "Profile: {}",
+            release_profiles.compatibility_profile_id
+        )));
+        assert!(rendered.contains("House systems verified:"));
+        assert!(rendered.contains("Ayanamsas verified:"));
+        assert!(rendered.contains("Baseline/release slices:"));
     }
 
     #[test]

@@ -18,6 +18,7 @@ run = """
 tmpdir=$(mktemp -d)
 trap 'rm -rf "$tmpdir"' EXIT
 cargo run -q -p pleiades-validate -- workspace-audit >/dev/null
+cargo run -q -p pleiades-validate -- verify-compatibility-profile >/dev/null
 cargo run -q -p pleiades-validate -- validate-artifact >/dev/null
 cargo run -q -p pleiades-validate -- bundle-release --out "$tmpdir" --rounds 1 >/dev/null
 cargo run -q -p pleiades-validate -- verify-release-bundle --out "$tmpdir" >/dev/null

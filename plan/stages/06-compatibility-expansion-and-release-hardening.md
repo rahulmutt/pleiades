@@ -58,6 +58,7 @@ These are durable planning decisions that should remain true even as individual 
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] `pleiades-validate` now also exposes a `verify-compatibility-profile` command that checks the current release profile against the canonical house-system and ayanamsa catalogs, and the release-smoke task now exercises that audit before bundle generation so catalog drift is easier to catch early in the release workflow.
 - [x] The Sripati house-system source-label appendix and resolver now also accept the exact `Sripati house system` and `Sripati table of houses` spellings alongside `Sripati`, `S sripati`, and `Śrīpati`, and the compatibility profile identifier has been bumped to `0.6.76` so the new alias batch stays versioned with the current profile.
 - [x] The Meridian house-system source-label appendix and resolver now also accept the exact `Axial Rotation` and `Axial rotation system` spellings alongside `Meridian`, `ARMC`, and the existing Swiss Ephemeris `X` code path, and the compatibility profile identifier has been bumped to `0.6.75` so the axis-rotation alias batch stays versioned with the current profile.
 - [x] Release-bundle verification now also treats a missing `bundle-manifest.checksum.txt` sidecar as a release verification failure with an explicit `missing bundle manifest checksum sidecar file` message, closing the last quiet missing-file gap in the staged bundle verifier.
