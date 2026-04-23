@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.88";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.89";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -270,6 +270,7 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "Equal (from MC)",
             "Equal (from MC) table of houses",
             "Equal (MC) table of houses",
+            "Equal (MC) house system",
             "Equal MC",
             "Equal Midheaven",
             "Equal/MC = 10th",
@@ -1105,6 +1106,9 @@ mod tests {
         assert!(rendered.contains("D equal / MC, Equal from MC, Equal (from MC), Equal (from MC) table of houses, Equal (MC) table of houses, Equal (MC) house system, Equal MC, Equal/MC, Equal Midheaven, Equal/MC = 10th -> Equal (MC)"));
         assert!(rendered.contains("Equal (MC) table of houses"));
         assert!(rendered.contains("Equal (MC) house system"));
+        assert!(rendered.contains(
+            "Equal (MC) table of houses, Equal (MC) house system, Equal MC, Equal Midheaven, Equal/MC = 10th -> Equal (MC)"
+        ));
         assert!(rendered.contains(
             "N, Equal/1=Aries, Equal Aries, Aries houses, Whole Sign (house 1 = Aries), Whole Sign (house 1 = Aries) table of houses, Equal (1=Aries) table of houses, Equal (1=Aries) house system, N whole sign houses, 1. house = Aries, Whole sign houses, 1. house = Aries, Equal/1=0 Aries, Equal (cusp 1 = 0° Aries) -> Equal (1=Aries)"
         ));
