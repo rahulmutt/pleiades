@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Fagan/Bradley and Usha Shashi source-label appendix widened
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-core::CompatibilityProfile` now includes source-label appendix entries for the baseline Fagan/Bradley and Usha Shashi ayanamsa forms, keeping the release-facing search labels aligned with the aliases already accepted by `pleiades-ayanamsa`
+- the compatibility profile identifier was bumped to `0.6.33`, and the README / Stage 6 progress notes were updated so the release-facing status text stays synchronized with the new source-label batch
+- regression coverage now checks both the rendered release-profile text and the specific appendix lines for the new entries
+
+Remaining Stage 6 work: keep the release-facing compatibility profile, README, and validation output synchronized as additional interoperability labels land.
+
 ## 2026-04-23 — Release-bundle summary wording synced with validation-round count
 
 Implemented a small Stage 6 release-hardening documentation slice:
