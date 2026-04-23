@@ -2758,6 +2758,7 @@ mod tests {
         assert!(report.contains("House validation corpus"));
         assert!(report.contains("Mid-latitude reference chart"));
         assert!(report.contains("Polar stress chart"));
+        assert!(report.contains("Southern hemisphere reference chart"));
         assert!(report.contains("Reference backend"));
         assert!(report.contains("Candidate backend"));
         assert!(report.contains("Comparison summary"));
@@ -2789,6 +2790,16 @@ mod tests {
         assert_eq!(summary.body_count, default_chart_bodies().len());
         assert!(summary.request_count > 0);
         assert!(summary.earliest_julian_day <= summary.latest_julian_day);
+    }
+
+    #[test]
+    fn house_validation_report_includes_southern_hemisphere_scenario() {
+        let report = house_validation_report();
+        assert_eq!(report.scenarios.len(), 3);
+        assert!(report
+            .scenarios
+            .iter()
+            .any(|scenario| scenario.label == "Southern hemisphere reference chart"));
     }
 
     #[test]

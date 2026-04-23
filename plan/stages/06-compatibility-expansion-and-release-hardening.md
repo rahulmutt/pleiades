@@ -63,6 +63,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] `pleiades-validate` now also exposes a standalone backend-matrix summary command and stages a matching `backend-matrix-summary.txt` release artifact, so maintainers have a compact audit view alongside the full backend capability matrix.
 - [x] `pleiades-validate` now prefixes `backend-matrix-summary.txt` with the current compatibility-profile identifier, so the compact backend audit view is self-describing alongside the other staged release summaries.
 - [x] Release-bundle verification now also has a regression test that catches tampered `backend-matrix-summary.txt` contents directly, so the new compact audit artifact is protected by the same checksum coverage as the other staged release files.
+- [x] The house-validation corpus now includes a southern hemisphere reference chart alongside the mid-latitude and polar scenarios, widening the stage-6 regression sweep for latitude-sensitive house formulas.
 
 - [x] The release notes artifact now carries the current API stability summary and deprecation policy snapshot alongside the compatibility-profile-derived release notes, keeping the bundle's maintainer-facing release guidance synchronized with the public API posture.
 - [x] The release bundle manifest now also records the Rust compiler version alongside the source revision and workspace status, and the bundle display / reproducibility docs now surface that extra provenance detail so staged bundles are easier to audit across toolchains.

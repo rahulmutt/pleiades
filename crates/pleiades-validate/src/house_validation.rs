@@ -63,6 +63,14 @@ impl HouseValidationReport {
                     Some(0.0),
                 ),
             ),
+            (
+                "Southern hemisphere reference chart",
+                ObserverLocation::new(
+                    Latitude::from_degrees(-33.8688),
+                    Longitude::from_degrees(151.2093),
+                    None,
+                ),
+            ),
         ]
         .into_iter()
         .map(|(label, observer)| HouseValidationScenario {
