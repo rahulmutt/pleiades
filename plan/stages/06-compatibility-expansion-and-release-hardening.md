@@ -100,6 +100,8 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] Krishnamurti (VP291) now carries explicit zero-point metadata too, closing one of the remaining release-note ayanamsa gaps and keeping the compatibility profile aligned with the catalog.
 - [x] Galactic Equator (Mula) now carries its explicit Swiss Ephemeris mid-Mula zero-point metadata too, and the compatibility profile now reflects that release-note correction.
 - [x] The next historical/reference-frame metadata batch is now filled in as well: Galactic Center, Suryasiddhanta (Mean Sun), Aryabhata (Mean Sun), Aryabhata (522 CE), and Dhruva Galactic Center (Middle Mula) now carry explicit zero-point metadata, so the compatibility profile no longer treats those entries as sidereal-metadata gaps.
+- [x] The ayanamsa interoperability map now also includes exact Swiss Ephemeris source-label aliases for the Babylonian/Kugler family, the galactic-reference entries, the mean-sun variants, and related Stage 6 breadth additions, so the release profile and CLI can accept the source names users actually see in Swiss Ephemeris docs.
+- [x] The compatibility profile identifier has now been bumped to `0.6.10` to capture the source-label alias interoperability batch while keeping the release profile versioned and explicit.
 
 ## Exit criteria
 

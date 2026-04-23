@@ -160,7 +160,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::TrueMula,
         "True Mula",
-        &["True Mula ayanamsa", "Chandra Hari"],
+        &["True Mula (Chandra Hari)", "True Mula ayanamsa", "Chandra Hari"],
         "True-nakshatra mode with the Mula reference point fixed to the Swiss Ephemeris zero date.",
         Some(JulianDay::from_days(1_805_889.671_313)),
         Some(Angle::from_degrees(0.0)),
@@ -200,7 +200,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::UshaShashi,
         "Usha Shashi",
-        &["Ushashashi", "Usha-Shashi", "Revati"],
+        &["Ushashashi", "Usha-Shashi", "Usha/Shashi", "Revati"],
         "Revati-bound zero-point variant used in the Greek-Arabic-Hindu tradition.",
         Some(JulianDay::from_days(2_415_020.5)),
         Some(Angle::from_degrees(18.660_961_111_111_11)),
@@ -248,7 +248,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::PvrPushyaPaksha,
         "PVR Pushya-paksha",
-        &["Pushya-paksha", "Pushya Paksha", "P.V.R. Narasimha Rao", "PVR"],
+        &["Pushya-paksha", "Pushya Paksha", "P.V.R. Narasimha Rao", "PVR", "True Pushya (PVRN Rao)"],
         "P.V.R. Narasimha Rao's Pushya-paksha ayanamsa, exposed in Swiss Ephemeris as a built-in sidereal mode.",
         Some(JulianDay::from_days(2_451_545.0)),
         Some(Angle::from_degrees(23.0)),
@@ -256,7 +256,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::Sheoran,
         "Sheoran",
-        &["Sunil Sheoran", "Vedic Sheoran", "Sheoran ayanamsa"],
+        &["Sunil Sheoran", "Vedic Sheoran", "Sheoran ayanamsa", "\"Vedic\"/Sheoran"],
         "Sheoran's Vedic ayanamsa, anchored to the published zero point used by Swiss Ephemeris.",
         Some(JulianDay::from_days(1_789_947.090_881)),
         Some(Angle::from_degrees(0.0)),
@@ -272,7 +272,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianKugler1,
         "Babylonian (Kugler 1)",
-        &["Babylonian Kugler 1", "Babylonian 1"],
+        &["Babylonian/Kugler 1", "Babylonian Kugler 1", "Babylonian 1"],
         "Babylonian sidereal mode associated with Kugler's first reconstruction, with the Swiss Ephemeris zero point at JD 1833923.577692 (+0309/01/05 01:51:52.62 UT).",
         Some(JulianDay::from_days(1_833_923.577_692)),
         Some(Angle::from_degrees(0.0)),
@@ -280,7 +280,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianKugler2,
         "Babylonian (Kugler 2)",
-        &["Babylonian Kugler 2", "Babylonian 2"],
+        &["Babylonian/Kugler 2", "Babylonian Kugler 2", "Babylonian 2"],
         "Babylonian sidereal mode associated with Kugler's second reconstruction, with the Swiss Ephemeris zero point at JD 1797039.206820 (+0208/01/10 16:57:49.23 UT).",
         Some(JulianDay::from_days(1_797_039.206_820)),
         Some(Angle::from_degrees(0.0)),
@@ -288,7 +288,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianKugler3,
         "Babylonian (Kugler 3)",
-        &["Babylonian Kugler 3", "Babylonian 3"],
+        &["Babylonian/Kugler 3", "Babylonian Kugler 3", "Babylonian 3"],
         "Babylonian sidereal mode associated with Kugler's third reconstruction, with the Swiss Ephemeris zero point at JD 1774637.420172 (+0146/09/09 22:05:02.88 UT).",
         Some(JulianDay::from_days(1_774_637.420_172)),
         Some(Angle::from_degrees(0.0)),
@@ -296,7 +296,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianHuber,
         "Babylonian (Huber)",
-        &["Babylonian Huber"],
+        &["Babylonian/Huber", "Babylonian Huber"],
         "Babylonian sidereal mode associated with Huber's reconstruction.",
         Some(JulianDay::from_days(1_721_171.5)),
         Some(Angle::from_degrees(-0.120_555_555_555_555_55)),
@@ -304,7 +304,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianEtaPiscium,
         "Babylonian (Eta Piscium)",
-        &["Babylonian Eta Piscium", "Eta Piscium"],
+        &["Babylonian/Eta Piscium", "Babylonian Eta Piscium", "Eta Piscium"],
         "Babylonian sidereal mode aligned to the Eta Piscium fiducial star.",
         Some(JulianDay::from_days(1_807_871.964_797)),
         Some(Angle::from_degrees(0.0)),
@@ -312,7 +312,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianAldebaran,
         "Babylonian (Aldebaran)",
-        &["Babylonian Aldebaran", "Babylonian 15 Tau", "15 Tau"],
+        &["Babylonian/Aldebaran = 15 Tau", "Babylonian Aldebaran", "Babylonian 15 Tau", "15 Tau"],
         "Babylonian sidereal mode aligned to Aldebaran / 15 Taurus.",
         Some(JulianDay::from_days(1_801_643.133_503)),
         Some(Angle::from_degrees(0.0)),
@@ -368,7 +368,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticCenter,
         "Galactic Center",
-        &["Gal. Center = 0 Sag", "0 Sag", "Galactic center"],
+        &["Galact. Center = 0 Sag", "Gal. Center = 0 Sag", "0 Sag", "Galactic center"],
         "Galactic-center sidereal reference mode fixed at 0 Sagittarius.",
         Some(JulianDay::from_days(1_746_340.540_490)),
         Some(Angle::from_degrees(0.0)),
@@ -408,7 +408,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::JnBhasin,
         "JN Bhasin",
-        &["J. N. Bhasin", "Bhasin"],
+        &["J. N. Bhasin", "J.N. Bhasin", "Bhasin"],
         "J. N. Bhasin sidereal mode.",
         Some(JulianDay::from_days(2_454_239.282_537)),
         Some(Angle::from_degrees(0.013_968_911_416_666_667)),
@@ -416,7 +416,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::Suryasiddhanta499MeanSun,
         "Suryasiddhanta (Mean Sun)",
-        &["Suryasiddhanta mean sun", "Suryasiddhanta MSUN"],
+        &["Suryasiddhanta, mean Sun", "Suryasiddhanta mean sun", "Suryasiddhanta MSUN"],
         "Suryasiddhanta mean-sun variant anchored to the published 514 CE zero point used by Swiss Ephemeris.",
         Some(JulianDay::from_days(1_909_045.584_433)),
         Some(Angle::from_degrees(0.0)),
@@ -424,7 +424,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::Aryabhata499MeanSun,
         "Aryabhata (Mean Sun)",
-        &["Aryabhata mean sun", "Aryabhata MSUN"],
+        &["Aryabhata, mean Sun", "Aryabhata mean sun", "Aryabhata MSUN"],
         "Aryabhata mean-sun variant anchored to the published 516 CE zero point used by Swiss Ephemeris.",
         Some(JulianDay::from_days(1_909_650.815_331)),
         Some(Angle::from_degrees(0.0)),
@@ -432,7 +432,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianBritton,
         "Babylonian (Britton)",
-        &["Babylonian Britton"],
+        &["Babylonian/Britton", "Babylonian Britton"],
         "Babylonian sidereal mode associated with Britton's reconstruction, with the Swiss Ephemeris zero point at JD 1805415.712776 (+0230/12/17 05:06:23.86 UT).",
         Some(JulianDay::from_days(1_805_415.712_776)),
         Some(Angle::from_degrees(0.0)),
@@ -456,7 +456,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::KrishnamurtiVP291,
         "Krishnamurti (VP291)",
-        &["KP VP291", "Krishnamurti VP291", "VP291"],
+        &["KP VP291", "Krishnamurti VP291", "Krishnamurti-Senthilathiban", "VP291"],
         "Krishnamurti variant aligned with the VP291 reference family and anchored to the published 291 CE zero point.",
         Some(JulianDay::from_days(1_827_424.663_554)),
         Some(Angle::from_degrees(0.0)),
@@ -472,7 +472,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticCenterRgilbrand,
         "Galactic Center (Rgilbrand)",
-        &["Rgilbrand", "Galactic center Rgilbrand"],
+        &["Galactic Center (Gil Brand)", "Gil Brand", "Rgilbrand", "Galactic center Rgilbrand"],
         "Galactic-center reference mode attributed to Rgilbrand, with the Swiss Ephemeris zero point at JD 1861740.329525 (+0385/03/03 19:54:30.99 UT).",
         Some(JulianDay::from_days(1_861_740.329_525)),
         Some(Angle::from_degrees(0.0)),
@@ -480,7 +480,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticCenterMardyks,
         "Galactic Center (Mardyks)",
-        &["Mardyks", "Galactic center Mardyks"],
+        &["Skydram (Mardyks)", "Mardyks", "Galactic center Mardyks"],
         "Galactic-center reference mode attributed to Mardyks, with the Swiss Ephemeris zero point at JD 1662951.794251 (-0160/11/27 07:03:43.27 UT).",
         Some(JulianDay::from_days(1_662_951.794_251)),
         Some(Angle::from_degrees(0.0)),
@@ -488,7 +488,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticCenterMulaWilhelm,
         "Galactic Center (Mula/Wilhelm)",
-        &["Mula Wilhelm", "Wilhelm", "Galactic center Mula/Wilhelm"],
+        &["Dhruva/Gal.Center/Mula (Wilhelm)", "Mula Wilhelm", "Wilhelm", "Galactic center Mula/Wilhelm"],
         "Galactic-center reference mode aligned to the Mula/Wilhelm tradition, with the Swiss Ephemeris zero point at JD 1946834.818321 (+0618/02/25 07:38:22.96 UT).",
         Some(JulianDay::from_days(1_946_834.818_321)),
         Some(Angle::from_degrees(0.0)),
@@ -509,7 +509,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticCenterCochrane,
         "Galactic Center (Cochrane)",
-        &["Cochrane", "Galactic center Cochrane"],
+        &["Cochrane (Gal.Center = 0 Cap)", "Gal. Center = 0 Cap", "Cochrane", "Galactic center Cochrane"],
         "Galactic-center reference mode attributed to Cochrane and catalogued with the Swiss Ephemeris zero-point epoch.",
         Some(JulianDay::from_days(1_662_951.794_251)),
         Some(Angle::from_degrees(0.0)),
@@ -517,7 +517,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticEquatorIau1958,
         "Galactic Equator (IAU 1958)",
-        &["IAU 1958", "Galactic equator IAU 1958"],
+        &["Galactic Equator (IAU1958)", "IAU 1958", "Galactic equator IAU 1958"],
         "Galactic-equator reference mode using the IAU 1958 definition.",
         Some(JulianDay::from_days(1_667_118.376_332)),
         Some(Angle::from_degrees(0.0)),
@@ -533,7 +533,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticEquatorMula,
         "Galactic Equator (Mula)",
-        &["Mula galactic equator", "Galactic equator Mula"],
+        &["Galactic Equator mid-Mula", "Mula galactic equator", "Galactic equator Mula"],
         "Galactic-equator reference mode aligned to the Mula tradition and anchored to the Swiss Ephemeris mid-Mula zero point.",
         Some(JulianDay::from_days(1_840_527.426_262)),
         Some(Angle::from_degrees(0.0)),
@@ -549,7 +549,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::ValensMoon,
         "Valens Moon",
-        &["Valens", "Moon", "Moon sign ayanamsa"],
+        &["Vettius Valens", "Valens", "Moon", "Moon sign ayanamsa"],
         "Valens Moon sidereal mode, catalogued with the Swiss Ephemeris reference epoch and offset from the header metadata.",
         Some(JulianDay::from_days(1_775_845.5)),
         Some(Angle::from_degrees(-2.942_2)),
@@ -632,7 +632,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
     AyanamsaDescriptor::new(
         Ayanamsa::TrueMula,
         "True Mula",
-        &["True Mula ayanamsa", "Chandra Hari"],
+        &["True Mula (Chandra Hari)", "True Mula ayanamsa", "Chandra Hari"],
         "True-nakshatra mode with the Mula reference point fixed to the Swiss Ephemeris zero date.",
         Some(JulianDay::from_days(1_805_889.671_313)),
         Some(Angle::from_degrees(0.0)),
@@ -672,7 +672,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
     AyanamsaDescriptor::new(
         Ayanamsa::UshaShashi,
         "Usha Shashi",
-        &["Ushashashi", "Usha-Shashi", "Revati"],
+        &["Ushashashi", "Usha-Shashi", "Usha/Shashi", "Revati"],
         "Revati-bound zero-point variant used in the Greek-Arabic-Hindu tradition.",
         Some(JulianDay::from_days(2_415_020.5)),
         Some(Angle::from_degrees(18.660_961_111_111_11)),
@@ -720,7 +720,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
     AyanamsaDescriptor::new(
         Ayanamsa::PvrPushyaPaksha,
         "PVR Pushya-paksha",
-        &["Pushya-paksha", "Pushya Paksha", "P.V.R. Narasimha Rao", "PVR"],
+        &["Pushya-paksha", "Pushya Paksha", "P.V.R. Narasimha Rao", "PVR", "True Pushya (PVRN Rao)"],
         "P.V.R. Narasimha Rao's Pushya-paksha ayanamsa, exposed in Swiss Ephemeris as a built-in sidereal mode.",
         Some(JulianDay::from_days(2_451_545.0)),
         Some(Angle::from_degrees(23.0)),
@@ -728,7 +728,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
     AyanamsaDescriptor::new(
         Ayanamsa::Sheoran,
         "Sheoran",
-        &["Sunil Sheoran", "Vedic Sheoran", "Sheoran ayanamsa"],
+        &["Sunil Sheoran", "Vedic Sheoran", "Sheoran ayanamsa", "\"Vedic\"/Sheoran"],
         "Sheoran's Vedic ayanamsa, anchored to the published zero point used by Swiss Ephemeris.",
         Some(JulianDay::from_days(1_789_947.090_881)),
         Some(Angle::from_degrees(0.0)),
@@ -744,7 +744,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianKugler1,
         "Babylonian (Kugler 1)",
-        &["Babylonian Kugler 1", "Babylonian 1"],
+        &["Babylonian/Kugler 1", "Babylonian Kugler 1", "Babylonian 1"],
         "Babylonian sidereal mode associated with Kugler's first reconstruction, with the Swiss Ephemeris zero point at JD 1833923.577692 (+0309/01/05 01:51:52.62 UT).",
         Some(JulianDay::from_days(1_833_923.577_692)),
         Some(Angle::from_degrees(0.0)),
@@ -752,7 +752,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianKugler2,
         "Babylonian (Kugler 2)",
-        &["Babylonian Kugler 2", "Babylonian 2"],
+        &["Babylonian/Kugler 2", "Babylonian Kugler 2", "Babylonian 2"],
         "Babylonian sidereal mode associated with Kugler's second reconstruction, with the Swiss Ephemeris zero point at JD 1797039.206820 (+0208/01/10 16:57:49.23 UT).",
         Some(JulianDay::from_days(1_797_039.206_820)),
         Some(Angle::from_degrees(0.0)),
@@ -760,7 +760,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianKugler3,
         "Babylonian (Kugler 3)",
-        &["Babylonian Kugler 3", "Babylonian 3"],
+        &["Babylonian/Kugler 3", "Babylonian Kugler 3", "Babylonian 3"],
         "Babylonian sidereal mode associated with Kugler's third reconstruction, with the Swiss Ephemeris zero point at JD 1774637.420172 (+0146/09/09 22:05:02.88 UT).",
         Some(JulianDay::from_days(1_774_637.420_172)),
         Some(Angle::from_degrees(0.0)),
@@ -768,7 +768,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianHuber,
         "Babylonian (Huber)",
-        &["Babylonian Huber"],
+        &["Babylonian/Huber", "Babylonian Huber"],
         "Babylonian sidereal mode associated with Huber's reconstruction.",
         Some(JulianDay::from_days(1_721_171.5)),
         Some(Angle::from_degrees(-0.120_555_555_555_555_55)),
@@ -776,7 +776,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianEtaPiscium,
         "Babylonian (Eta Piscium)",
-        &["Babylonian Eta Piscium", "Eta Piscium"],
+        &["Babylonian/Eta Piscium", "Babylonian Eta Piscium", "Eta Piscium"],
         "Babylonian sidereal mode aligned to the Eta Piscium fiducial star.",
         Some(JulianDay::from_days(1_807_871.964_797)),
         Some(Angle::from_degrees(0.0)),
@@ -784,7 +784,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianAldebaran,
         "Babylonian (Aldebaran)",
-        &["Babylonian Aldebaran", "Babylonian 15 Tau", "15 Tau"],
+        &["Babylonian/Aldebaran = 15 Tau", "Babylonian Aldebaran", "Babylonian 15 Tau", "15 Tau"],
         "Babylonian sidereal mode aligned to Aldebaran / 15 Taurus.",
         Some(JulianDay::from_days(1_801_643.133_503)),
         Some(Angle::from_degrees(0.0)),
@@ -840,7 +840,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticCenter,
         "Galactic Center",
-        &["Gal. Center = 0 Sag", "0 Sag", "Galactic center"],
+        &["Galact. Center = 0 Sag", "Gal. Center = 0 Sag", "0 Sag", "Galactic center"],
         "Galactic-center sidereal reference mode fixed at 0 Sagittarius.",
         Some(JulianDay::from_days(1_746_340.540_490)),
         Some(Angle::from_degrees(0.0)),
@@ -880,7 +880,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
     AyanamsaDescriptor::new(
         Ayanamsa::JnBhasin,
         "JN Bhasin",
-        &["J. N. Bhasin", "Bhasin"],
+        &["J. N. Bhasin", "J.N. Bhasin", "Bhasin"],
         "J. N. Bhasin sidereal mode.",
         Some(JulianDay::from_days(2_454_239.282_537)),
         Some(Angle::from_degrees(0.013_968_911_416_666_667)),
@@ -888,7 +888,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
     AyanamsaDescriptor::new(
         Ayanamsa::Suryasiddhanta499MeanSun,
         "Suryasiddhanta (Mean Sun)",
-        &["Suryasiddhanta mean sun", "Suryasiddhanta MSUN"],
+        &["Suryasiddhanta, mean Sun", "Suryasiddhanta mean sun", "Suryasiddhanta MSUN"],
         "Suryasiddhanta mean-sun variant anchored to the published 514 CE zero point used by Swiss Ephemeris.",
         Some(JulianDay::from_days(1_909_045.584_433)),
         Some(Angle::from_degrees(0.0)),
@@ -896,7 +896,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
     AyanamsaDescriptor::new(
         Ayanamsa::Aryabhata499MeanSun,
         "Aryabhata (Mean Sun)",
-        &["Aryabhata mean sun", "Aryabhata MSUN"],
+        &["Aryabhata, mean Sun", "Aryabhata mean sun", "Aryabhata MSUN"],
         "Aryabhata mean-sun variant anchored to the published 516 CE zero point used by Swiss Ephemeris.",
         Some(JulianDay::from_days(1_909_650.815_331)),
         Some(Angle::from_degrees(0.0)),
@@ -904,7 +904,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianBritton,
         "Babylonian (Britton)",
-        &["Babylonian Britton"],
+        &["Babylonian/Britton", "Babylonian Britton"],
         "Babylonian sidereal mode associated with Britton's reconstruction, with the Swiss Ephemeris zero point at JD 1805415.712776 (+0230/12/17 05:06:23.86 UT).",
         Some(JulianDay::from_days(1_805_415.712_776)),
         Some(Angle::from_degrees(0.0)),
@@ -928,7 +928,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
     AyanamsaDescriptor::new(
         Ayanamsa::KrishnamurtiVP291,
         "Krishnamurti (VP291)",
-        &["KP VP291", "Krishnamurti VP291", "VP291"],
+        &["KP VP291", "Krishnamurti VP291", "Krishnamurti-Senthilathiban", "VP291"],
         "Krishnamurti variant aligned with the VP291 reference family and anchored to the published 291 CE zero point.",
         Some(JulianDay::from_days(1_827_424.663_554)),
         Some(Angle::from_degrees(0.0)),
@@ -944,7 +944,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticCenterRgilbrand,
         "Galactic Center (Rgilbrand)",
-        &["Rgilbrand", "Galactic center Rgilbrand"],
+        &["Galactic Center (Gil Brand)", "Gil Brand", "Rgilbrand", "Galactic center Rgilbrand"],
         "Galactic-center reference mode attributed to Rgilbrand, with the Swiss Ephemeris zero point at JD 1861740.329525 (+0385/03/03 19:54:30.99 UT).",
         Some(JulianDay::from_days(1_861_740.329_525)),
         Some(Angle::from_degrees(0.0)),
@@ -952,7 +952,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticCenterMardyks,
         "Galactic Center (Mardyks)",
-        &["Mardyks", "Galactic center Mardyks"],
+        &["Skydram (Mardyks)", "Mardyks", "Galactic center Mardyks"],
         "Galactic-center reference mode attributed to Mardyks, with the Swiss Ephemeris zero point at JD 1662951.794251 (-0160/11/27 07:03:43.27 UT).",
         Some(JulianDay::from_days(1_662_951.794_251)),
         Some(Angle::from_degrees(0.0)),
@@ -960,7 +960,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticCenterMulaWilhelm,
         "Galactic Center (Mula/Wilhelm)",
-        &["Mula Wilhelm", "Wilhelm", "Galactic center Mula/Wilhelm"],
+        &["Dhruva/Gal.Center/Mula (Wilhelm)", "Mula Wilhelm", "Wilhelm", "Galactic center Mula/Wilhelm"],
         "Galactic-center reference mode aligned to the Mula/Wilhelm tradition, with the Swiss Ephemeris zero point at JD 1946834.818321 (+0618/02/25 07:38:22.96 UT).",
         Some(JulianDay::from_days(1_946_834.818_321)),
         Some(Angle::from_degrees(0.0)),
@@ -981,7 +981,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticCenterCochrane,
         "Galactic Center (Cochrane)",
-        &["Cochrane", "Galactic center Cochrane"],
+        &["Cochrane (Gal.Center = 0 Cap)", "Gal. Center = 0 Cap", "Cochrane", "Galactic center Cochrane"],
         "Galactic-center reference mode attributed to Cochrane and catalogued with the Swiss Ephemeris zero-point epoch.",
         Some(JulianDay::from_days(1_662_951.794_251)),
         Some(Angle::from_degrees(0.0)),
@@ -989,7 +989,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticEquatorIau1958,
         "Galactic Equator (IAU 1958)",
-        &["IAU 1958", "Galactic equator IAU 1958"],
+        &["Galactic Equator (IAU1958)", "IAU 1958", "Galactic equator IAU 1958"],
         "Galactic-equator reference mode using the IAU 1958 definition.",
         Some(JulianDay::from_days(1_667_118.376_332)),
         Some(Angle::from_degrees(0.0)),
@@ -1005,7 +1005,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticEquatorMula,
         "Galactic Equator (Mula)",
-        &["Mula galactic equator", "Galactic equator Mula"],
+        &["Galactic Equator mid-Mula", "Mula galactic equator", "Galactic equator Mula"],
         "Galactic-equator reference mode aligned to the Mula tradition and anchored to the Swiss Ephemeris mid-Mula zero point.",
         Some(JulianDay::from_days(1_840_527.426_262)),
         Some(Angle::from_degrees(0.0)),
@@ -1021,7 +1021,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
     AyanamsaDescriptor::new(
         Ayanamsa::ValensMoon,
         "Valens Moon",
-        &["Valens", "Moon", "Moon sign ayanamsa"],
+        &["Vettius Valens", "Valens", "Moon", "Moon sign ayanamsa"],
         "Valens Moon sidereal mode, catalogued with the Swiss Ephemeris reference epoch and offset from the header metadata.",
         Some(JulianDay::from_days(1_775_845.5)),
         Some(Angle::from_degrees(-2.942_2)),
@@ -1189,42 +1189,111 @@ mod tests {
             Some(Ayanamsa::PvrPushyaPaksha)
         );
         assert_eq!(
+            resolve_ayanamsa("True Pushya (PVRN Rao)"),
+            Some(Ayanamsa::PvrPushyaPaksha)
+        );
+        assert_eq!(
             resolve_ayanamsa("Pushya-paksha"),
             Some(Ayanamsa::PvrPushyaPaksha)
         );
+        assert_eq!(resolve_ayanamsa("Usha/Shashi"), Some(Ayanamsa::UshaShashi));
         assert_eq!(resolve_ayanamsa("Sunil Sheoran"), Some(Ayanamsa::Sheoran));
+        assert_eq!(
+            resolve_ayanamsa("\"Vedic\"/Sheoran"),
+            Some(Ayanamsa::Sheoran)
+        );
         assert_eq!(resolve_ayanamsa("Hipparchos"), Some(Ayanamsa::Hipparchus));
         assert_eq!(
-            resolve_ayanamsa("Babylonian 1"),
+            resolve_ayanamsa("Babylonian/Kugler 1"),
             Some(Ayanamsa::BabylonianKugler1)
         );
         assert_eq!(
-            resolve_ayanamsa("Babylonian 2"),
+            resolve_ayanamsa("Babylonian/Kugler 2"),
             Some(Ayanamsa::BabylonianKugler2)
         );
         assert_eq!(
-            resolve_ayanamsa("15 Tau"),
+            resolve_ayanamsa("Babylonian/Kugler 3"),
+            Some(Ayanamsa::BabylonianKugler3)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Babylonian/Huber"),
+            Some(Ayanamsa::BabylonianHuber)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Babylonian/Eta Piscium"),
+            Some(Ayanamsa::BabylonianEtaPiscium)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Babylonian/Aldebaran = 15 Tau"),
             Some(Ayanamsa::BabylonianAldebaran)
         );
-        assert_eq!(resolve_ayanamsa("0 Sag"), Some(Ayanamsa::GalacticCenter));
         assert_eq!(
-            resolve_ayanamsa("Dhruva/Gal.Center/Mula"),
-            Some(Ayanamsa::DhruvaGalacticCenterMula)
+            resolve_ayanamsa("Babylonian/Britton"),
+            Some(Ayanamsa::BabylonianBritton)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Galact. Center = 0 Sag"),
+            Some(Ayanamsa::GalacticCenter)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Cochrane (Gal.Center = 0 Cap)"),
+            Some(Ayanamsa::GalacticCenterCochrane)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Galactic Center (Gil Brand)"),
+            Some(Ayanamsa::GalacticCenterRgilbrand)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Skydram (Mardyks)"),
+            Some(Ayanamsa::GalacticCenterMardyks)
+        );
+        assert_eq!(
+            resolve_ayanamsa("True Mula (Chandra Hari)"),
+            Some(Ayanamsa::TrueMula)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Dhruva/Gal.Center/Mula (Wilhelm)"),
+            Some(Ayanamsa::GalacticCenterMulaWilhelm)
         );
         assert_eq!(
             resolve_ayanamsa("Gal. Eq."),
             Some(Ayanamsa::GalacticEquator)
         );
+        assert_eq!(
+            resolve_ayanamsa("Galactic Equator (IAU1958)"),
+            Some(Ayanamsa::GalacticEquatorIau1958)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Galactic Equator mid-Mula"),
+            Some(Ayanamsa::GalacticEquatorMula)
+        );
         assert_eq!(resolve_ayanamsa("True Pushya"), Some(Ayanamsa::TruePushya));
         assert_eq!(resolve_ayanamsa("Udayagiri"), Some(Ayanamsa::Udayagiri));
         assert_eq!(resolve_ayanamsa("Djwhal"), Some(Ayanamsa::DjwhalKhul));
+        assert_eq!(resolve_ayanamsa("J.N. Bhasin"), Some(Ayanamsa::JnBhasin));
         assert_eq!(resolve_ayanamsa("Bhasin"), Some(Ayanamsa::JnBhasin));
+        assert_eq!(
+            resolve_ayanamsa("Suryasiddhanta, mean Sun"),
+            Some(Ayanamsa::Suryasiddhanta499MeanSun)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Aryabhata, mean Sun"),
+            Some(Ayanamsa::Aryabhata499MeanSun)
+        );
         assert_eq!(
             resolve_ayanamsa("Aryabhata 522"),
             Some(Ayanamsa::Aryabhata522)
         );
         assert_eq!(resolve_ayanamsa("VP285"), Some(Ayanamsa::LahiriVP285));
         assert_eq!(resolve_ayanamsa("VP291"), Some(Ayanamsa::KrishnamurtiVP291));
+        assert_eq!(
+            resolve_ayanamsa("Krishnamurti-Senthilathiban"),
+            Some(Ayanamsa::KrishnamurtiVP291)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Vettius Valens"),
+            Some(Ayanamsa::ValensMoon)
+        );
         assert_eq!(
             resolve_ayanamsa("True Sheoran"),
             Some(Ayanamsa::TrueSheoran)
