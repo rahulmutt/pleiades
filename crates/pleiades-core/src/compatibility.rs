@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.61";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.62";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -268,7 +268,7 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "Vehlow",
             "Vehlow equal",
         ],
-        "Sripati" => &["S", "Śrīpati"],
+        "Sripati" => &["S", "S sripati", "Śrīpati"],
         "Carter (poli-equatorial)" => &[
             "Carter",
             "Carter's poli-equatorial table of houses",
@@ -328,6 +328,7 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
         ],
         "Sunshine" => &[
             "I",
+            "I sunshine",
             "Sunshine",
             "Sunshine houses",
             "Sunshine house system",
@@ -1125,9 +1126,11 @@ mod tests {
             "Aryabhata, Aryabhata 499, Aryabhata 499 CE, Aryabhatan Kaliyuga, Aryabhata Kaliyuga -> Aryabhata (499 CE)"
         ));
         assert!(rendered.contains(
-            "I, Sunshine, Sunshine houses, Sunshine house system, Sunshine table of houses, by Bob Makransky, Makransky Sunshine, Bob Makransky, Treindl Sunshine -> Sunshine"
+            "I, I sunshine, Sunshine, Sunshine houses, Sunshine house system, Sunshine table of houses, by Bob Makransky, Makransky Sunshine, Bob Makransky, Treindl Sunshine -> Sunshine"
         ));
-        assert!(rendered.contains("S, Śrīpati -> Sripati"));
+        assert!(rendered.contains("I sunshine"));
+        assert!(rendered.contains("S, S sripati, Śrīpati -> Sripati"));
+        assert!(rendered.contains("S sripati"));
         assert!(rendered.contains("P/K/R/C/O/E/W/N/V/A/H/B/M/S/I/G"));
         assert!(rendered.contains("plus the additional T/U/X/Y interoperability codes"));
         assert!(rendered.contains("A equal, E equal = A, Equal houses, Equal house system, Equal House, Equal table of houses, Wang, Equal (cusp 1 = Asc) -> Equal"));

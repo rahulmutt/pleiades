@@ -254,7 +254,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
     HouseSystemDescriptor::new(
         HouseSystem::Sripati,
         "Sripati",
-        &["Śrīpati"],
+        &["S sripati", "Śrīpati"],
         "Midpoint variant of the Porphyry quadrants used in Jyotiṣa.",
         false,
     ),
@@ -339,6 +339,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         HouseSystem::Sunshine,
         "Sunshine",
         &[
+            "I sunshine",
             "Sunshine houses",
             "Sunshine house system",
             "Sunshine table of houses, by Bob Makransky",
@@ -552,6 +553,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         HouseSystem::Sunshine,
         "Sunshine",
         &[
+            "I sunshine",
             "Sunshine houses",
             "Sunshine house system",
             "Sunshine table of houses, by Bob Makransky",
@@ -619,7 +621,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
     HouseSystemDescriptor::new(
         HouseSystem::Sripati,
         "Sripati",
-        &["Śrīpati"],
+        &["S sripati", "Śrīpati"],
         "Midpoint variant of the Porphyry quadrants used in Jyotiṣa.",
         false,
     ),
@@ -763,6 +765,10 @@ mod tests {
         );
         assert_eq!(
             resolve_house_system("Sunshine table of houses, by Bob Makransky"),
+            Some(HouseSystem::Sunshine)
+        );
+        assert_eq!(
+            resolve_house_system("I sunshine"),
             Some(HouseSystem::Sunshine)
         );
         assert_eq!(
@@ -965,6 +971,10 @@ mod tests {
             Some(HouseSystem::Sunshine)
         );
         assert_eq!(resolve_house_system("Śrīpati"), Some(HouseSystem::Sripati));
+        assert_eq!(
+            resolve_house_system("S sripati"),
+            Some(HouseSystem::Sripati)
+        );
         assert_eq!(
             resolve_house_system("Sunshine"),
             Some(HouseSystem::Sunshine)
