@@ -85,7 +85,7 @@ const BASELINE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::Lahiri,
         "Lahiri",
-        &["Chitrapaksha"],
+        &["Chitra Paksha", "Chitrapaksha", "Chitra-paksha"],
         "Default Indian sidereal standard in many astrology workflows.",
         Some(JulianDay::from_days(2_435_553.5)),
         Some(Angle::from_degrees(23.245_524_743)),
@@ -407,7 +407,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Ayanamsa::Udayagiri,
         "Udayagiri",
         &["Udayagiri ayanamsa"],
-        "Udayagiri sidereal mode treated as the Lahiri/Chitrapaksha 285 CE reference family in the Swiss Ephemeris interoperability catalog.",
+        "Udayagiri sidereal mode treated as the Lahiri/Chitrapaksha/Chitra Paksha 285 CE reference family in the Swiss Ephemeris interoperability catalog.",
         Some(JulianDay::from_days(1_825_235.164_583)),
         Some(Angle::from_degrees(0.0)),
     ),
@@ -574,7 +574,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
     AyanamsaDescriptor::new(
         Ayanamsa::Lahiri,
         "Lahiri",
-        &["Chitrapaksha"],
+        &["Chitra Paksha", "Chitrapaksha", "Chitra-paksha"],
         "Default Indian sidereal standard in many astrology workflows.",
         Some(JulianDay::from_days(2_435_553.5)),
         Some(Angle::from_degrees(23.245_524_743)),
@@ -899,7 +899,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Ayanamsa::Udayagiri,
         "Udayagiri",
         &["Udayagiri ayanamsa"],
-        "Udayagiri sidereal mode treated as the Lahiri/Chitrapaksha 285 CE reference family in the Swiss Ephemeris interoperability catalog.",
+        "Udayagiri sidereal mode treated as the Lahiri/Chitrapaksha/Chitra Paksha 285 CE reference family in the Swiss Ephemeris interoperability catalog.",
         Some(JulianDay::from_days(1_825_235.164_583)),
         Some(Angle::from_degrees(0.0)),
     ),
@@ -1212,6 +1212,8 @@ mod tests {
             resolve_ayanamsa("fagan-bradley"),
             Some(Ayanamsa::FaganBradley)
         );
+        assert_eq!(resolve_ayanamsa("Chitra Paksha"), Some(Ayanamsa::Lahiri));
+        assert_eq!(resolve_ayanamsa("Chitra-paksha"), Some(Ayanamsa::Lahiri));
         assert_eq!(resolve_ayanamsa("chitrapaksha"), Some(Ayanamsa::Lahiri));
         assert_eq!(resolve_ayanamsa("B.V. Raman"), Some(Ayanamsa::Raman));
         assert_eq!(resolve_ayanamsa("B V Raman"), Some(Ayanamsa::Raman));

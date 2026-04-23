@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Lahiri transliteration batch widened to include Chitra Paksha spellings
+
+Implemented a small Stage 6 release-hardening alias slice:
+
+- `pleiades-ayanamsa` now accepts the `Chitra Paksha` and `Chitra-paksha` transliterations alongside `Chitrapaksha` for Lahiri, and the compatibility profile / README / plan notes were updated to reflect the broader baseline sidereal spellings
+- the compatibility profile identifier was bumped to `0.6.48`, and the Stage 6 progress notes were updated so the release profile stays synchronized with the new alias batch
+- no spec change was needed; this remains within the existing release-profile and interoperability-label scope
+
+Remaining Stage 6 work: keep the release-facing compatibility profile, README, and validation output synchronized as additional interoperability labels land.
+
 ## 2026-04-23 — Sri Yukteshwar transliteration now appears in the release profile
 
 Implemented a small Stage 6 release-hardening compatibility slice:
