@@ -1,5 +1,16 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — API stability summary now carries the compatibility-profile identifier
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-validate::render_api_stability_summary()` now prefixes the compact API stability summary with the current compatibility-profile identifier, keeping the API posture audit cross-referenced with the release profile in staged bundles and CLI output
+- regression coverage now checks the new compatibility-profile line in both the standalone summary command and the staged bundle artifact, and the release-reproducibility docs / README were updated to describe the cross-reference explicitly
+- no spec update was needed; this stays within the existing release-summary and reproducibility scope
+
+Remaining Stage 6 work: keep the release summaries, bundle manifest, and reproducibility docs synchronized as further hardening slices land.
+
+
 ## 2026-04-23 — Backend matrix summary now carries the compatibility-profile identifier
 
 Implemented a small Stage 6 release-hardening polish slice:

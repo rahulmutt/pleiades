@@ -1899,11 +1899,15 @@ pub fn render_api_stability_summary() -> String {
 
 fn render_api_stability_summary_text() -> String {
     let profile = current_api_stability_profile();
+    let release_profiles = current_release_profile_identifiers();
     let mut text = String::new();
 
     text.push_str("API stability summary\n");
     text.push_str("Profile: ");
     text.push_str(profile.profile_id);
+    text.push('\n');
+    text.push_str("Compatibility profile: ");
+    text.push_str(release_profiles.compatibility_profile_id);
     text.push('\n');
     text.push_str("Stable surfaces: ");
     text.push_str(&profile.stable_surfaces.len().to_string());
@@ -2928,6 +2932,10 @@ mod tests {
             "Profile: {}",
             release_profiles.api_stability_profile_id
         )));
+        assert!(rendered.contains(&format!(
+            "Compatibility profile: {}",
+            release_profiles.compatibility_profile_id
+        )));
         assert!(rendered.contains("Stable surfaces:"));
         assert!(rendered.contains("Experimental surfaces:"));
         assert!(rendered.contains("Deprecation policy items:"));
@@ -3169,6 +3177,10 @@ version = "0.9.0"
         assert!(api_stability_summary.contains(&format!(
             "Profile: {}",
             release_profiles.api_stability_profile_id
+        )));
+        assert!(api_stability_summary.contains(&format!(
+            "Compatibility profile: {}",
+            release_profiles.compatibility_profile_id
         )));
         assert!(report.contains("Validation report"));
         assert!(manifest.contains("Release bundle manifest"));
