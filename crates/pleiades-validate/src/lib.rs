@@ -1509,7 +1509,15 @@ fn write_backend_matrix(f: &mut fmt::Formatter<'_>, backend: &BackendMetadata) -
         "  capabilities: {}",
         format_capabilities(&backend.capabilities)
     )?;
-    writeln!(f, "  provenance: {}", backend.provenance.summary)
+    writeln!(f, "  provenance: {}", backend.provenance.summary)?;
+    if !backend.provenance.data_sources.is_empty() {
+        writeln!(
+            f,
+            "  provenance sources: {}",
+            backend.provenance.data_sources.join("; ")
+        )?;
+    }
+    Ok(())
 }
 
 fn write_comparison_summary(
@@ -2037,6 +2045,12 @@ mod tests {
         assert!(rendered.contains("Implemented backend matrices"));
         assert!(rendered.contains("JPL snapshot reference backend"));
         assert!(rendered.contains("nominal range:"));
+        assert!(rendered.contains("provenance sources:"));
+        assert!(
+            rendered.contains("Paul Schlyter-style mean orbital elements for the Sun and planets")
+        );
+        assert!(rendered.contains("Meeus-style truncated lunar orbit formulas"));
+        assert!(rendered.contains("NASA/JPL Horizons API vector tables (DE441)"));
         assert!(rendered.contains("VSOP87 planetary backend"));
         assert!(rendered.contains("ELP lunar backend"));
         assert!(rendered.contains("Packaged data backend"));

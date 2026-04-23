@@ -58,6 +58,7 @@ Stage 4 validation has started as of 2026-04-22.
 - [x] Selected asteroid support is now present in the JPL snapshot backend, the validation corpus intentionally remains on the planetary comparison subset so existing report baselines stay stable, and validation reports now surface the supported asteroid set separately for release notes and backend-matrix inspection.
 - [x] The validation report now also renders a compact house-validation corpus for a mid-latitude reference chart and a polar stress chart, so baseline house formulas and their latitude-sensitive behavior stay visible in the stage-4 artifact.
 - [x] The JPL snapshot loader now reports malformed rows as structured load errors instead of panicking, so reference data issues fail explicitly and can be surfaced by validation tooling.
+- [x] The backend capability matrix now includes provenance data-source details alongside the existing summary metadata, so release-facing validation output exposes the reference material behind each implemented backend more explicitly.
 
 ## Risks to avoid
 
