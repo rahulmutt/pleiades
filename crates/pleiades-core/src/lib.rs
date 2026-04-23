@@ -279,6 +279,8 @@ mod tests {
             release_notes.contains("asteroid:433-Eros"),
             "release notes should mention the source-backed custom asteroid"
         );
+        assert!(release_notes.contains("Equal (MC) house system"));
+        assert!(release_notes.contains("Equal (1=Aries) house system"));
     }
 
     #[test]
