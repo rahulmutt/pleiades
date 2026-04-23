@@ -4,9 +4,9 @@
 
 3. Pick the next best thing to implement from the plan and implement it.
 
-4. If while implementing something, you find that you need to update the spec, write your notes to SPEC-MAILBOX.md
+4. If while implementing something, you find complications or new aspects reveal themselves that were not previously considered, feel free to update the specs with your findings in an organized way. 
 
-5. If while implementing something, you find that you need to update the plan, write your notes to PLAN-MAILBOX.md
+4. If while implementing something, you find complications or new aspects reveal themselves that were not previously considered, feel free to update the plans to schedule the new tasks / projects. 
 
 6. Once you're satisfied with your output update the relevant plan files with your progress.
   6a. Make sure to lint and format code changes and run the tests.
