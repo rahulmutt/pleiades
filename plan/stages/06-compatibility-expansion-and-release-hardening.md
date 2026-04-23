@@ -142,6 +142,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] The API stability posture summary now also names the sign-summary, house-summary, motion-summary, and motion-direction filter helpers explicitly, keeping the release-facing chart-helper wording synchronized with the stable `ChartSnapshot` surface.
 
 - [x] The house-system interoperability labels now also include `WvA`, `Bob Makransky`, and `Vehlow-equal`, and the compatibility profile/source-label appendix rendering now exposes those spellings alongside the existing APC, Sunshine, and Vehlow entries.
+- [x] The `True Citra` ayanamsa now also accepts the `True Citra Paksha` and `True Chitrapaksha` interoperability spellings, and the compatibility profile identifier has been bumped to `0.6.27` so the release profile stays synchronized with that alias batch.
 - [x] The compatibility and API-stability profile identifiers are now centralized and publicly re-exported from `pleiades-core`, and the CLI / validation tests derive their expectations from those shared profile values instead of duplicating the release strings.
 
 ## Exit criteria
