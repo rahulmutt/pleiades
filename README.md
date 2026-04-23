@@ -47,6 +47,8 @@ For a workspace-native dependency audit, run:
 mise run audit
 ```
 
+That audit checks the workspace manifests, lockfile, and crate-root `build.rs` files for mandatory native build hooks.
+
 For a release-style smoke check of the validation bundle, run:
 
 ```bash

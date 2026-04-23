@@ -1979,6 +1979,21 @@ fn audit_lockfile_text(path: &Path, text: &str) -> Vec<WorkspaceAuditViolation> 
     violations
 }
 
+fn audit_build_script_path(manifest_path: &Path) -> Option<WorkspaceAuditViolation> {
+    let build_script = manifest_path.parent()?.join("build.rs");
+    if build_script.is_file() {
+        Some(WorkspaceAuditViolation {
+            path: build_script,
+            rule: "package.build-script",
+            detail:
+                "package includes a build.rs script, which violates the pure-Rust workspace policy"
+                    .to_string(),
+        })
+    } else {
+        None
+    }
+}
+
 /// Renders the workspace audit used by the CLI and release smoke checks.
 pub fn workspace_audit_report() -> Result<WorkspaceAuditReport, std::io::Error> {
     let workspace_root = fs::canonicalize(workspace_root())?;
@@ -1989,6 +2004,9 @@ pub fn workspace_audit_report() -> Result<WorkspaceAuditReport, std::io::Error> 
     for path in &manifest_paths {
         let text = fs::read_to_string(path)?;
         violations.extend(audit_manifest_text(path, &text));
+        if let Some(violation) = audit_build_script_path(path) {
+            violations.push(violation);
+        }
     }
 
     if lockfile_path.is_file() {
@@ -3559,6 +3577,21 @@ bindgen = { version = "0.69" }
         assert!(manifest_violations
             .iter()
             .any(|violation| violation.detail.contains("bindgen")));
+
+        let build_script_dir = unique_temp_dir("pleiades-workspace-audit-build-script");
+        let build_script_manifest = build_script_dir.join("Cargo.toml");
+        let build_script_path = build_script_dir.join("build.rs");
+        std::fs::write(
+            &build_script_manifest,
+            "[package]\nname = \"example-build-script\"\nversion = \"0.1.0\"\n",
+        )
+        .expect("manifest should be writable");
+        std::fs::write(&build_script_path, "fn main() {}\n").expect("build.rs should be writable");
+        let build_script_violation =
+            audit_build_script_path(&build_script_manifest).expect("build.rs should be detected");
+        assert_eq!(build_script_violation.rule, "package.build-script");
+        assert_eq!(build_script_violation.path, build_script_path);
+        assert!(build_script_violation.detail.contains("build.rs"));
 
         let lockfile = r#"[[package]]
 name = "openssl-sys"

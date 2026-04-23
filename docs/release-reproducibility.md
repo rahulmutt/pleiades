@@ -15,7 +15,7 @@ mise run test
 
 These are the same commands expected by the workspace CI and by the stage-gate checklists.
 
-The CI gate also runs a workspace-native dependency audit:
+The CI gate also runs a workspace-native dependency audit that checks manifests, lockfile entries, and crate-root `build.rs` files:
 
 ```bash
 mise run audit
