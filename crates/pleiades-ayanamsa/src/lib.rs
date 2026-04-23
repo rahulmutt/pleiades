@@ -104,6 +104,7 @@ const BASELINE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         "Krishnamurti",
         &[
             "KP",
+            "Krishnamurti Ayanamsha",
             "Krishnamurti (Swiss)",
             "Krishnamurti Paddhati",
             "KP ayanamsa",
@@ -115,7 +116,7 @@ const BASELINE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::FaganBradley,
         "Fagan/Bradley",
-        &["Fagan Bradley", "Fagan-Bradley"],
+        &["Fagan/Bradley Ayanamsha", "Fagan Bradley", "Fagan-Bradley"],
         "Western sidereal reference used by several astrology packages.",
         Some(JulianDay::from_days(2_433_282.423_46)),
         Some(Angle::from_degrees(24.042_044_444)),
@@ -598,6 +599,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         "Krishnamurti",
         &[
             "KP",
+            "Krishnamurti Ayanamsha",
             "Krishnamurti (Swiss)",
             "Krishnamurti Paddhati",
             "KP ayanamsa",
@@ -609,7 +611,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
     AyanamsaDescriptor::new(
         Ayanamsa::FaganBradley,
         "Fagan/Bradley",
-        &["Fagan Bradley", "Fagan-Bradley"],
+        &["Fagan/Bradley Ayanamsha", "Fagan Bradley", "Fagan-Bradley"],
         "Western sidereal reference used by several astrology packages.",
         Some(JulianDay::from_days(2_433_282.423_46)),
         Some(Angle::from_degrees(24.042_044_444)),
