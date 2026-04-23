@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.77";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.78";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -71,7 +71,7 @@ impl CompatibilityProfile {
 pub const fn current_compatibility_profile() -> CompatibilityProfile {
     CompatibilityProfile {
         profile_id: CURRENT_COMPATIBILITY_PROFILE_ID,
-        summary: "Stage 6 release profile: the baseline catalogs remain published as a routine release artifact while the target Swiss-Ephemeris-class compatibility catalog stays explicit, including the release-specific house-system additions across the Carter, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen, Sunshine, and Gauquelin families, plus the expanded ayanamsa coverage for J2000/J1900/B1950, True Citra and the True Citra Paksha / True Chitra Paksha / True Chitrapaksha interoperability spellings, DeLuce, Yukteshwar including the Sri Yukteshwar / Shri Yukteswar / Shri Yukteshwar transliterations, PVR Pushya-paksha, Sheoran, and the Sunil Sheoran / Vedic Sheoran / Sheoran ayanamsa source spellings, the true-nakshatra and Suryasiddhanta Revati/Citra reference modes, the Hipparchus/Babylonian/Galactic reference-frame modes, the latest True Pushya, Udayagiri, Lahiri (VP285), Krishnamurti (VP291), Krishnamurti ayanamsa, Djwhal Khul, JN Bhasin, mean-sun, Valens Moon, and the Valens / Moon sign ayanamsa source spellings, Dhruva Galactic Center (Middle Mula), Galactic Center (Cochrane/Mardyks), Galactic Equator (Mula), the Babylonian house/sissy/true-geoc/true-topc/true-obs/house-obs variants, the backfilled True Sheoran, Galactic Center (Rgilbrand), and Galactic Center (Mula/Wilhelm) zero-point metadata, the additional Galactic Equator/Center variants, the exact Swiss Ephemeris source-label aliases for the Babylonian/Kugler family plus the Babylonian 1/2/3 shorthand forms and Babylonian Huber, the galactic-reference, mean-sun, Sassanian/Zij al-Shah, Aryabhata 499/522, and the Surya Siddhanta / Suryasiddhanta 499/499 CE source-form entries, the expanded APC and Horizon/Azimuth interoperability aliases, the baseline Fagan/Bradley and Usha Shashi source-label appendix entries, the Babylonian house-family labels now rendered as explicit custom-definition territory rather than unresolved release gaps, and the `Equal (MC)` / `Equal (1=Aries)` source-label appendix entries for the release-line equal-house variants, plus the Wang, Aries houses, P.V.R. Narasimha Rao, and True Mula (Chandra Hari) source-label appendix entries for the ascendant-anchored equal-house and true-Mula variants, along with the exact Swiss Ephemeris house-table code spellings surfaced in the source-label appendix and the Equal table of houses, Whole Sign system, and Morinus house system spellings now called out explicitly in the quick-audit text.",
+        summary: "Stage 6 release profile: the baseline catalogs remain published as a routine release artifact while the target Swiss-Ephemeris-class compatibility catalog stays explicit, including the release-specific house-system additions across the Carter, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen, Sunshine, and Gauquelin families, plus the expanded ayanamsa coverage for J2000/J1900/B1950, True Citra and the True Citra Paksha / True Chitra Paksha / True Chitrapaksha interoperability spellings, DeLuce, Yukteshwar including the Sri Yukteshwar / Shri Yukteswar / Shri Yukteshwar transliterations, PVR Pushya-paksha, Sheoran, and the Sunil Sheoran / Vedic Sheoran / Sheoran ayanamsa source spellings, the true-nakshatra and Suryasiddhanta Revati/Citra reference modes, the Hipparchus/Babylonian/Galactic reference-frame modes, the latest True Pushya, Udayagiri, Lahiri (VP285), Krishnamurti (VP291), Krishnamurti ayanamsa, Djwhal Khul, JN Bhasin, mean-sun, Valens Moon, and the Valens / Moon sign ayanamsa source spellings, Dhruva Galactic Center (Middle Mula), Galactic Center (Cochrane/Mardyks), Galactic Equator (Mula), the Babylonian house/sissy/true-geoc/true-topc/true-obs/house-obs variants, the backfilled True Sheoran, Galactic Center (Rgilbrand), and Galactic Center (Mula/Wilhelm) zero-point metadata, the additional Galactic Equator/Center variants, the exact Swiss Ephemeris source-label aliases for the Babylonian/Kugler family plus the Babylonian 1/2/3 shorthand forms and Babylonian Huber, the galactic-reference, mean-sun, Sassanian/Sasanian/Zij al-Shah, Aryabhata 499/522, and the Surya Siddhanta / Suryasiddhanta 499/499 CE source-form entries, the expanded APC and Horizon/Azimuth interoperability aliases, the baseline Fagan/Bradley and Usha Shashi source-label appendix entries, the Babylonian house-family labels now rendered as explicit custom-definition territory rather than unresolved release gaps, and the `Equal (MC)` / `Equal (1=Aries)` source-label appendix entries for the release-line equal-house variants, plus the Wang, Aries houses, P.V.R. Narasimha Rao, and True Mula (Chandra Hari) source-label appendix entries for the ascendant-anchored equal-house and true-Mula variants, along with the exact Swiss Ephemeris house-table code spellings surfaced in the source-label appendix and the Equal table of houses, Whole Sign system, and Morinus house system spellings now called out explicitly in the quick-audit text.",
 
         target_house_scope: &[
             "Target house scope: the full Swiss-Ephemeris-class house-system catalog remains the long-term compatibility goal.",
@@ -515,7 +515,7 @@ fn ayanamsa_source_label_aliases(canonical_name: &str) -> &'static [&'static str
             "Galactic center Cochrane",
         ],
         "Galactic Center" => &["Galact. Center = 0 Sag"],
-        "Sassanian" => &["Zij al-Shah"],
+        "Sassanian" => &["Zij al-Shah", "Sasanian"],
         "Galactic Equator (IAU 1958)" => &[
             "Galactic Equator (IAU1958)",
             "IAU 1958",
@@ -1097,7 +1097,7 @@ mod tests {
         assert!(
             rendered.contains("Fiorenza, Galactic equator Fiorenza -> Galactic Equator (Fiorenza)")
         );
-        assert!(rendered.contains("Zij al-Shah -> Sassanian"));
+        assert!(rendered.contains("Zij al-Shah, Sasanian -> Sassanian"));
         assert!(
             rendered.contains("Vettius Valens, Valens, Moon, Moon sign ayanamsa -> Valens Moon")
         );

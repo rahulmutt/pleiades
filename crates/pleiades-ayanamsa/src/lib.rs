@@ -253,7 +253,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::Sassanian,
         "Sassanian",
-        &["Zij al-Shah"],
+        &["Zij al-Shah", "Sasanian"],
         "Sassanian zero-point variant anchored to the 564 CE table-reform epoch.",
         Some(JulianDay::from_days(1_927_135.874_779_3)),
         Some(Angle::from_degrees(0.0)),
@@ -759,7 +759,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
     AyanamsaDescriptor::new(
         Ayanamsa::Sassanian,
         "Sassanian",
-        &["Zij al-Shah"],
+        &["Zij al-Shah", "Sasanian"],
         "Sassanian zero-point variant anchored to the 564 CE table-reform epoch.",
         Some(JulianDay::from_days(1_927_135.874_779_3)),
         Some(Angle::from_degrees(0.0)),
@@ -1350,6 +1350,7 @@ mod tests {
             Some(Ayanamsa::Suryasiddhanta499)
         );
         assert_eq!(resolve_ayanamsa("Zij al-Shah"), Some(Ayanamsa::Sassanian));
+        assert_eq!(resolve_ayanamsa("Sasanian"), Some(Ayanamsa::Sassanian));
         assert_eq!(resolve_ayanamsa("De Luce"), Some(Ayanamsa::DeLuce));
         assert_eq!(resolve_ayanamsa("Yukteswar"), Some(Ayanamsa::Yukteshwar));
         assert_eq!(

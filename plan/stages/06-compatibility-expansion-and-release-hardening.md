@@ -58,6 +58,7 @@ These are durable planning decisions that should remain true even as individual 
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] The Sassanian ayanamsa entry now also accepts the `Sasanian` spelling in both `pleiades-ayanamsa` and the release compatibility profile, and the compatibility profile identifier has been bumped to `0.6.78` so the updated historical spelling stays versioned with the current profile.
 - [x] The Meridian house-system descriptors in `pleiades-houses` now also enumerate `Axial Rotation` and `Axial rotation system` alongside `ARMC` and the Meridian code path, so the crate-local catalog round-trip stays aligned with the existing release-profile alias batch.
 - [x] The Pullen SD and Pullen SR house-system resolvers now also accept the exact `Pullen SD (Neo-Porphyry) table of houses` and `Pullen SR (Sinusoidal Ratio) table of houses` source labels already published in the compatibility profile, so the runtime resolver and the release-facing appendix stay aligned for the remaining sinusoidal house-family labels.
 - [x] `pleiades-cli` now mirrors `verify-compatibility-profile` alongside the existing release summary and compatibility-profile renderers, so the primary inspection CLI can perform the same catalog-alignment audit as the validation tool without forcing maintainers to switch commands mid-workflow.
