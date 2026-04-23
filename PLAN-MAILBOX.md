@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — True Citra alias batch now reflected in the release profile summary
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-core::CompatibilityProfile` now calls out the `True Citra Paksha` and `True Chitrapaksha` interoperability spellings explicitly in the release profile summary, so the release-facing profile text matches the alias batch already accepted by `pleiades-ayanamsa`
+- the compatibility profile identifier was bumped to `0.6.28`, and the README / Stage 6 progress notes were updated so the release-facing status text stays synchronized with the current profile wording
+- no spec update was required for this slice; the existing compatibility-profile requirements already cover alias documentation and versioned release profiles
+
+Remaining Stage 6 work: keep the release-facing compatibility profile, README, and validation output synchronized as additional interoperability labels land.
+
 ## 2026-04-23 — Compatibility and API-stability profile identifiers re-exported from pleiades-core
 
 Implemented the planned Stage 6 release-hardening slice:
