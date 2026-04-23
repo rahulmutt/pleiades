@@ -45,6 +45,7 @@ This final stage should behave like a sequence of release-quality increments, no
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] The compatibility profile's source-label appendix now also surfaces the Aryabhata 499/522 and Suryasiddhanta 499 source spellings explicitly, keeping the release-facing ayanamsa interoperability map aligned with the latest historical/reference-frame breadth additions.
 - [x] `pleiades-houses` now recognizes `Topocentric house system` as an interoperability alias for `Topocentric`, and the compatibility profile now renders that variant explicitly alongside the existing Polich-Page spellings.
 - [x] `pleiades-ayanamsa` now backfills explicit sidereal metadata for `True Sheoran`, `Galactic Center (Rgilbrand)`, and `Galactic Center (Mula/Wilhelm)`, using the published Swiss Ephemeris zero points so the compatibility profile no longer treats those historical/reference-frame entries as metadata gaps.
 - [x] `pleiades-ayanamsa` now backfills explicit sidereal metadata for `Udayagiri` and `Lahiri (VP285)`, reusing the Lahiri-family 285 CE zero point so the compatibility profile no longer treats those variants as metadata gaps.
