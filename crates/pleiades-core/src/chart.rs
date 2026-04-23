@@ -234,6 +234,19 @@ impl ChartSnapshot {
         self.placements_with_motion_direction(MotionDirection::Direct)
     }
 
+    /// Returns a summary of the chart's zodiac-sign placements.
+    pub fn sign_summary(&self) -> SignSummary {
+        let mut summary = SignSummary::default();
+
+        for placement in &self.placements {
+            if let Some(sign) = placement.sign {
+                summary.increment(sign);
+            }
+        }
+
+        summary
+    }
+
     /// Returns a summary of the chart's motion-direction classifications.
     pub fn motion_summary(&self) -> MotionSummary {
         let mut summary = MotionSummary::default();
@@ -302,6 +315,107 @@ impl BodyPlacement {
     /// Returns the coarse direction of longitudinal motion when the backend supplied motion data.
     pub fn motion_direction(&self) -> Option<MotionDirection> {
         self.position.motion.as_ref()?.longitude_direction()
+    }
+}
+
+/// A summary of zodiac-sign placements in a chart snapshot.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct SignSummary {
+    /// Placements in Aries.
+    pub aries: usize,
+    /// Placements in Taurus.
+    pub taurus: usize,
+    /// Placements in Gemini.
+    pub gemini: usize,
+    /// Placements in Cancer.
+    pub cancer: usize,
+    /// Placements in Leo.
+    pub leo: usize,
+    /// Placements in Virgo.
+    pub virgo: usize,
+    /// Placements in Libra.
+    pub libra: usize,
+    /// Placements in Scorpio.
+    pub scorpio: usize,
+    /// Placements in Sagittarius.
+    pub sagittarius: usize,
+    /// Placements in Capricorn.
+    pub capricorn: usize,
+    /// Placements in Aquarius.
+    pub aquarius: usize,
+    /// Placements in Pisces.
+    pub pisces: usize,
+}
+
+impl SignSummary {
+    fn increment(&mut self, sign: ZodiacSign) {
+        match sign {
+            ZodiacSign::Aries => self.aries += 1,
+            ZodiacSign::Taurus => self.taurus += 1,
+            ZodiacSign::Gemini => self.gemini += 1,
+            ZodiacSign::Cancer => self.cancer += 1,
+            ZodiacSign::Leo => self.leo += 1,
+            ZodiacSign::Virgo => self.virgo += 1,
+            ZodiacSign::Libra => self.libra += 1,
+            ZodiacSign::Scorpio => self.scorpio += 1,
+            ZodiacSign::Sagittarius => self.sagittarius += 1,
+            ZodiacSign::Capricorn => self.capricorn += 1,
+            ZodiacSign::Aquarius => self.aquarius += 1,
+            ZodiacSign::Pisces => self.pisces += 1,
+            _ => {}
+        }
+    }
+
+    /// Returns `true` when the snapshot contains at least one sign placement.
+    pub fn has_known_signs(self) -> bool {
+        self.aries
+            + self.taurus
+            + self.gemini
+            + self.cancer
+            + self.leo
+            + self.virgo
+            + self.libra
+            + self.scorpio
+            + self.sagittarius
+            + self.capricorn
+            + self.aquarius
+            + self.pisces
+            > 0
+    }
+}
+
+impl fmt::Display for SignSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut wrote_any = false;
+        for (count, sign) in [
+            (self.aries, ZodiacSign::Aries),
+            (self.taurus, ZodiacSign::Taurus),
+            (self.gemini, ZodiacSign::Gemini),
+            (self.cancer, ZodiacSign::Cancer),
+            (self.leo, ZodiacSign::Leo),
+            (self.virgo, ZodiacSign::Virgo),
+            (self.libra, ZodiacSign::Libra),
+            (self.scorpio, ZodiacSign::Scorpio),
+            (self.sagittarius, ZodiacSign::Sagittarius),
+            (self.capricorn, ZodiacSign::Capricorn),
+            (self.aquarius, ZodiacSign::Aquarius),
+            (self.pisces, ZodiacSign::Pisces),
+        ] {
+            if count == 0 {
+                continue;
+            }
+            if wrote_any {
+                f.write_str(", ")?;
+            }
+            wrote_any = true;
+            write!(f, "{} {}", count, sign)?;
+        }
+
+        if !wrote_any {
+            f.write_str("no sign placements")?;
+        }
+
+        Ok(())
     }
 }
 
@@ -457,6 +571,11 @@ impl fmt::Display for ChartSnapshot {
                 "  - {:<12} {:>9}  {:<10}  {:>3}  {:<10}  {:?}",
                 placement.body, longitude, sign, house, motion, placement.position.quality,
             )?;
+        }
+
+        let sign_summary = self.sign_summary();
+        if sign_summary.has_known_signs() {
+            writeln!(f, "Sign summary: {}", sign_summary)?;
         }
 
         let motion_summary = self.motion_summary();
@@ -811,9 +930,12 @@ mod tests {
         assert_eq!(chart.len(), 2);
         assert_eq!(chart.placements[0].sign, Some(ZodiacSign::Aries));
         assert_eq!(chart.placements[1].sign, Some(ZodiacSign::Taurus));
+        assert_eq!(chart.sign_summary().aries, 1);
+        assert_eq!(chart.sign_summary().taurus, 1);
         let rendered = chart.to_string();
         assert!(rendered.contains("Sun"));
         assert!(rendered.contains("Moon"));
+        assert!(rendered.contains("Sign summary: 1 Aries, 1 Taurus"));
     }
 
     #[test]

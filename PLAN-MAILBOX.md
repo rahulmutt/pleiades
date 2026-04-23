@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Sign-summary helper added to the chart façade
+
+Implemented a small Stage 6 chart-ergonomics slice:
+
+- `pleiades-core::ChartSnapshot` now exposes a `sign_summary` helper that counts occupied zodiac signs in one pass, so chart consumers can summarize sign occupancy without rescanning placements manually
+- chart rendering now emits a `Sign summary:` line ahead of the motion summary when sign data is present, keeping the report output aligned with the new helper
+- regression coverage now exercises the summary counts and the rendered report text, and the API stability posture / README / Stage 6 progress notes should mention the new sign-summary surface explicitly
+
+Remaining Stage 6 work: keep the release-facing chart helpers, catalog breadth, and compatibility profile synchronized as the release hardening work continues.
+
 ## 2026-04-23 — Stationary motion helper added to the chart façade
 
 Implemented a small Stage 6 chart-ergonomics slice:

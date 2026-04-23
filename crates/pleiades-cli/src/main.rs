@@ -228,6 +228,7 @@ mod tests {
         assert!(rendered.contains("Backend:"));
         assert!(rendered.contains("Sun"));
         assert!(rendered.contains("Moon"));
+        assert!(rendered.contains("Sign summary:"));
     }
 
     #[test]
