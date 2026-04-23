@@ -1214,9 +1214,11 @@ mod tests {
         assert!(rendered.contains("Albategnius"));
         assert!(rendered.contains("Savard-A, Savard A, Savard's Albategnius -> Albategnius"));
         assert!(rendered.contains("Pullen SD"));
-        assert!(rendered.contains("Neo-Porphyry, Pullen sinusoidal delta -> Pullen SD"));
+        assert!(rendered.contains("Pullen SD (Neo-Porphyry) table of houses, Neo-Porphyry, Pullen sinusoidal delta -> Pullen SD"));
         assert!(rendered.contains("Pullen SR"));
-        assert!(rendered.contains("Pullen sinusoidal ratio -> Pullen SR"));
+        assert!(rendered.contains(
+            "Pullen SR (Sinusoidal Ratio) table of houses, Pullen sinusoidal ratio -> Pullen SR"
+        ));
         assert!(rendered.contains("Babylonian/Kugler 1, Babylonian 1 -> Babylonian (Kugler 1)"));
         assert!(rendered.contains("Babylonian/Kugler 2, Babylonian 2 -> Babylonian (Kugler 2)"));
         assert!(rendered.contains("Babylonian/Kugler 3, Babylonian 3 -> Babylonian (Kugler 3)"));
