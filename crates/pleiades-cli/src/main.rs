@@ -438,6 +438,7 @@ mod tests {
         let release_notes = render_cli(&["release-notes"]).expect("release notes should render");
         assert!(release_notes.contains("Release notes"));
         assert!(release_notes.contains("Release notes summary: release-notes-summary"));
+        assert!(release_notes.contains("Release checklist summary: release-checklist-summary"));
         assert!(release_notes.contains("API stability posture:"));
         assert!(release_notes.contains("Bundle provenance:"));
 
@@ -446,6 +447,9 @@ mod tests {
         assert!(release_notes_summary.contains("Release notes summary"));
         assert!(release_notes_summary.contains("API stability summary line:"));
         assert!(release_notes_summary.contains("Release notes: release-notes"));
+        assert!(
+            release_notes_summary.contains("Release checklist summary: release-checklist-summary")
+        );
         assert!(release_notes_summary
             .contains("See release-notes for the full maintainer-facing artifact."));
         assert!(release_notes_summary
