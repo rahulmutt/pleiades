@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Motion-direction filter helper now appears in the API stability posture
+
+Implemented a small Stage 6 release-hardening sync slice:
+
+- `pleiades-core::ApiStabilityProfile` now names the generic `placements_with_motion_direction` helper explicitly, so the stable chart-surface wording matches the public `ChartSnapshot` API a little more closely
+- the README now mentions the same motion-direction filter helper alongside the existing direct/stationary/unknown-motion/retrograde helpers, and the Stage 6 progress notes were updated to keep the release-hardening tracker synchronized
+- regression coverage now checks that the API stability posture still mentions the motion-direction filter helper by name, keeping the release-facing stability text aligned with the code surface
+
+Remaining Stage 6 work: keep the API posture, chart helpers, catalog breadth, and compatibility profile synchronized as release-hardening polish continues.
+
 ## 2026-04-23 — APC source-label appendix refined
 
 Implemented a small Stage 6 release-hardening slice:
