@@ -1,5 +1,16 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Release bundle now ships release notes
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-validate bundle-release --out DIR` now writes a derived `release-notes.txt` artifact alongside the compatibility profile, backend matrix, API posture, validation report, and manifest
+- the release notes file summarizes the current release-specific coverage, custom-definition labels, and known gaps, and the bundle manifest now records deterministic checksums for that file too
+- the release bundle verification path checks the new file and checksum, and the release-bundle tests now exercise both the happy path and a checksum-corruption regression for the new artifact
+- the release reproducibility docs, release-artifact checklist, README, and Stage 6 progress notes were updated to mention the new bundle artifact explicitly
+
+Remaining Stage 6 work: keep the release bundle contents synchronized with any future compatibility-profile or validation-report changes.
+
 ## 2026-04-23 — True Citra ayanamsa breadth added
 
 Implemented a small Stage 6 release-hardening slice:

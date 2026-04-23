@@ -15,6 +15,7 @@ It complements the stage documents by making release expectations explicit.
 ### Public-facing compatibility and capability documentation
 
 - release compatibility profile listing built-in house systems, ayanamsas, aliases, and known constraints
+- release notes summarizing the current coverage additions and remaining limitations
 - backend capability matrices listing body coverage, ranges, modes, and expected accuracy class
 - user-visible notes about unsupported features or documented failure modes
 
@@ -50,6 +51,7 @@ A mature release should be accompanied by:
 
 - source tag or versioned release commit
 - compatibility profile for that release
+- release notes derived from the published profile and release-specific coverage
 - capability matrix for each shipped backend
 - validation report bundle or links to archived reports
 - packaged artifact metadata and checksums when artifacts are shipped
