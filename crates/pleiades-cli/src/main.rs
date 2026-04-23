@@ -10,8 +10,8 @@
 use pleiades_core::{
     current_api_stability_profile, default_chart_bodies, resolve_ayanamsa, resolve_house_system,
     Apparentness, Ayanamsa, CelestialBody, ChartEngine, ChartRequest, CompositeBackend,
-    EphemerisError, HouseSystem, Instant, JulianDay, Latitude, Longitude, ObserverLocation,
-    RoutingBackend, TimeScale, ZodiacMode,
+    CustomBodyId, EphemerisError, HouseSystem, Instant, JulianDay, Latitude, Longitude,
+    ObserverLocation, RoutingBackend, TimeScale, ZodiacMode,
 };
 use pleiades_data::PackagedDataBackend;
 use pleiades_elp::ElpBackend;
@@ -61,7 +61,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
 
 fn help_text() -> String {
     format!(
-        "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary        Alias for compatibility-profile-summary\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  api-stability-summary  Print the compact API stability summary\n  api-posture-summary    Alias for api-stability-summary\n  backend-matrix         Print the implemented backend capability matrices\n  capability-matrix      Alias for backend-matrix\n  backend-matrix-summary Print the compact backend capability matrix summary\n  matrix-summary         Alias for backend-matrix-summary\n  release-notes          Print the release compatibility notes\n  release-checklist      Print the release maintainer checklist\n  validation-summary     Print the compact validation report summary\n  report-summary         Alias for validation-summary\n  chart                  Render a basic chart report\n    --mean               Force mean positions for backend queries\n    --apparent           Force apparent positions for backend queries\n  help                   Show this help text",
+        "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary        Alias for compatibility-profile-summary\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  api-stability-summary  Print the compact API stability summary\n  api-posture-summary    Alias for api-stability-summary\n  backend-matrix         Print the implemented backend capability matrices\n  capability-matrix      Alias for backend-matrix\n  backend-matrix-summary Print the compact backend capability matrix summary\n  matrix-summary         Alias for backend-matrix-summary\n  release-notes          Print the release compatibility notes\n  release-checklist      Print the release maintainer checklist\n  validation-summary     Print the compact validation report summary\n  report-summary         Alias for validation-summary\n  chart                  Render a basic chart report\n    --mean               Force mean positions for backend queries\n    --apparent           Force apparent positions for backend queries\n    --body <name>        Use a built-in body or a custom catalog:designation identifier\n  help                   Show this help text",
         banner()
     )
 }
@@ -113,7 +113,7 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
             }
             "--help" | "-h" => {
                 return Ok(format!(
-                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--mean|--apparent] [--ayanamsa <name>] [--house-system <name>] [--body <name> ...]",
+                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--mean|--apparent] [--ayanamsa <name>] [--house-system <name>] [--body <name> ...]\n\nBody names may be built-in bodies such as Sun or Moon, or custom identifiers in the form catalog:designation.",
                     banner()
                 ));
             }
@@ -172,29 +172,53 @@ fn parse_f64(value: Option<&str>, flag: &str) -> Result<f64, String> {
 
 fn parse_body(value: Option<&str>) -> Result<CelestialBody, String> {
     let value = value.ok_or_else(|| "missing value for --body".to_string())?;
-    match value.to_ascii_lowercase().as_str() {
-        "sun" => Ok(CelestialBody::Sun),
-        "moon" => Ok(CelestialBody::Moon),
-        "mercury" => Ok(CelestialBody::Mercury),
-        "venus" => Ok(CelestialBody::Venus),
-        "mars" => Ok(CelestialBody::Mars),
-        "jupiter" => Ok(CelestialBody::Jupiter),
-        "saturn" => Ok(CelestialBody::Saturn),
-        "uranus" => Ok(CelestialBody::Uranus),
-        "neptune" => Ok(CelestialBody::Neptune),
-        "pluto" => Ok(CelestialBody::Pluto),
-        "ceres" => Ok(CelestialBody::Ceres),
-        "pallas" => Ok(CelestialBody::Pallas),
-        "juno" => Ok(CelestialBody::Juno),
-        "vesta" => Ok(CelestialBody::Vesta),
-        "mean node" | "mean lunar node" => Ok(CelestialBody::MeanNode),
-        "true node" | "true lunar node" => Ok(CelestialBody::TrueNode),
-        "mean apogee" => Ok(CelestialBody::MeanApogee),
-        "true apogee" => Ok(CelestialBody::TrueApogee),
-        "mean perigee" => Ok(CelestialBody::MeanPerigee),
-        "true perigee" => Ok(CelestialBody::TruePerigee),
-        other => Err(format!("unsupported body name: {other}")),
+    if let Some(body) = parse_builtin_body(value) {
+        return Ok(body);
     }
+
+    parse_custom_body(value)
+}
+
+fn parse_builtin_body(value: &str) -> Option<CelestialBody> {
+    match value.to_ascii_lowercase().as_str() {
+        "sun" => Some(CelestialBody::Sun),
+        "moon" => Some(CelestialBody::Moon),
+        "mercury" => Some(CelestialBody::Mercury),
+        "venus" => Some(CelestialBody::Venus),
+        "mars" => Some(CelestialBody::Mars),
+        "jupiter" => Some(CelestialBody::Jupiter),
+        "saturn" => Some(CelestialBody::Saturn),
+        "uranus" => Some(CelestialBody::Uranus),
+        "neptune" => Some(CelestialBody::Neptune),
+        "pluto" => Some(CelestialBody::Pluto),
+        "ceres" => Some(CelestialBody::Ceres),
+        "pallas" => Some(CelestialBody::Pallas),
+        "juno" => Some(CelestialBody::Juno),
+        "vesta" => Some(CelestialBody::Vesta),
+        "mean node" | "mean lunar node" => Some(CelestialBody::MeanNode),
+        "true node" | "true lunar node" => Some(CelestialBody::TrueNode),
+        "mean apogee" => Some(CelestialBody::MeanApogee),
+        "true apogee" => Some(CelestialBody::TrueApogee),
+        "mean perigee" => Some(CelestialBody::MeanPerigee),
+        "true perigee" => Some(CelestialBody::TruePerigee),
+        _ => None,
+    }
+}
+
+fn parse_custom_body(value: &str) -> Result<CelestialBody, String> {
+    let (catalog, designation) = value
+        .split_once(':')
+        .ok_or_else(|| format!("unsupported body name: {value}"))?;
+    let catalog = catalog.trim();
+    let designation = designation.trim();
+    if catalog.is_empty() || designation.is_empty() {
+        return Err(format!("unsupported body name: {value}"));
+    }
+
+    Ok(CelestialBody::Custom(CustomBodyId::new(
+        catalog,
+        designation,
+    )))
 }
 
 fn parse_ayanamsa(value: &str) -> Result<Ayanamsa, String> {
@@ -225,7 +249,7 @@ fn main() {
 mod tests {
     use pleiades_core::current_release_profile_identifiers;
 
-    use super::{banner, parse_body, render_chart, render_cli, CelestialBody};
+    use super::{banner, parse_body, render_chart, render_cli, CelestialBody, CustomBodyId};
 
     #[test]
     fn banner_mentions_package() {
@@ -425,6 +449,16 @@ mod tests {
             parse_body(Some("true perigee")).unwrap(),
             CelestialBody::TruePerigee
         );
+    }
+
+    #[test]
+    fn parse_body_accepts_custom_catalog_designations() {
+        let body = parse_body(Some("asteroid:433-Eros")).expect("custom body should parse");
+        assert_eq!(
+            body,
+            CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros"))
+        );
+        assert_eq!(body.to_string(), "asteroid:433-Eros");
     }
 
     #[test]
