@@ -1125,21 +1125,9 @@ fn verify_release_bundle(
     let manifest_text = fs::read_to_string(&manifest_path)?;
 
     let manifest = ParsedReleaseBundleManifest::parse(&manifest_text)?;
-    if manifest.source_revision.is_empty() {
-        return Err(ReleaseBundleError::Verification(
-            "missing source revision entry".to_string(),
-        ));
-    }
-    if manifest.workspace_status.is_empty() {
-        return Err(ReleaseBundleError::Verification(
-            "missing workspace status entry".to_string(),
-        ));
-    }
-    if manifest.rustc_version.is_empty() {
-        return Err(ReleaseBundleError::Verification(
-            "missing rustc version entry".to_string(),
-        ));
-    }
+    ensure_non_empty_manifest_value(&manifest.source_revision, "source revision")?;
+    ensure_non_empty_manifest_value(&manifest.workspace_status, "workspace status")?;
+    ensure_non_empty_manifest_value(&manifest.rustc_version, "rustc version")?;
     if manifest.profile_path != "compatibility-profile.txt" {
         return Err(ReleaseBundleError::Verification(format!(
             "unexpected profile file entry: {}",
@@ -1266,6 +1254,19 @@ fn verify_release_bundle(
 
 fn parse_manifest_string(text: &str, prefix: &str) -> Result<String, ReleaseBundleError> {
     extract_prefixed_value(text, prefix).map(|value| value.to_string())
+}
+
+fn ensure_non_empty_manifest_value(
+    value: &str,
+    field_name: &str,
+) -> Result<(), ReleaseBundleError> {
+    if value.is_empty() {
+        Err(ReleaseBundleError::Verification(format!(
+            "missing {field_name} entry"
+        )))
+    } else {
+        Ok(())
+    }
 }
 
 fn parse_manifest_usize(text: &str, prefix: &str) -> Result<usize, ReleaseBundleError> {
@@ -2115,6 +2116,45 @@ mod tests {
         path
     }
 
+    fn assert_release_bundle_rejects_missing_manifest_entry(
+        bundle_dir_prefix: &str,
+        manifest_line_prefix: &str,
+        expected_fragments: &[&str],
+    ) {
+        let bundle_dir = unique_temp_dir(bundle_dir_prefix);
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let manifest_path = bundle_dir.join("bundle-manifest.txt");
+        let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
+        let filtered = manifest
+            .lines()
+            .filter(|line| !line.starts_with(manifest_line_prefix))
+            .map(str::to_owned)
+            .collect::<Vec<_>>()
+            .join("\n");
+        std::fs::write(&manifest_path, format!("{filtered}\n"))
+            .expect("manifest should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect_err("verification should fail for a manifest missing the requested entry");
+        assert!(
+            expected_fragments
+                .iter()
+                .any(|fragment| error.contains(fragment)),
+            "unexpected error: {error}"
+        );
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
     #[test]
     fn default_corpus_covers_the_comparison_snapshot() {
         let corpus = default_corpus();
@@ -2475,37 +2515,39 @@ version = "0.9.0"
     }
 
     #[test]
-    fn verify_release_bundle_rejects_missing_rustc_version_entry() {
-        let bundle_dir = unique_temp_dir("pleiades-release-bundle-missing-rustc");
-        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-        render_cli(&[
-            "bundle-release",
-            "--out",
-            &bundle_dir_string,
-            "--rounds",
-            "1",
-        ])
-        .expect("bundle release should render");
-
-        let manifest_path = bundle_dir.join("bundle-manifest.txt");
-        let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
-        let filtered = manifest
-            .lines()
-            .filter(|line| !line.starts_with("rustc version:"))
-            .map(str::to_owned)
-            .collect::<Vec<_>>()
-            .join("\n");
-        std::fs::write(&manifest_path, format!("{filtered}\n"))
-            .expect("manifest should be writable");
-
-        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
-            .expect_err("verification should fail for a manifest missing the rustc version entry");
-        assert!(
-            error.contains("missing manifest entry: rustc version:")
-                || error.contains("missing rustc version entry")
+    fn verify_release_bundle_rejects_missing_source_revision_entry() {
+        assert_release_bundle_rejects_missing_manifest_entry(
+            "pleiades-release-bundle-missing-source-revision",
+            "source revision:",
+            &[
+                "missing manifest entry: source revision:",
+                "missing source revision entry",
+            ],
         );
+    }
 
-        let _ = std::fs::remove_dir_all(&bundle_dir);
+    #[test]
+    fn verify_release_bundle_rejects_missing_workspace_status_entry() {
+        assert_release_bundle_rejects_missing_manifest_entry(
+            "pleiades-release-bundle-missing-workspace-status",
+            "workspace status:",
+            &[
+                "missing manifest entry: workspace status:",
+                "missing workspace status entry",
+            ],
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_missing_rustc_version_entry() {
+        assert_release_bundle_rejects_missing_manifest_entry(
+            "pleiades-release-bundle-missing-rustc",
+            "rustc version:",
+            &[
+                "missing manifest entry: rustc version:",
+                "missing rustc version entry",
+            ],
+        );
     }
 
     #[test]

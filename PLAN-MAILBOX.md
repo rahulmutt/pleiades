@@ -1,5 +1,16 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Release-bundle verification now covers all provenance entries
+
+Implemented a small Stage 6 release-hardening test slice:
+
+- `pleiades-validate` now explicitly rejects staged release bundles whose manifest is missing any of the provenance entries recorded for the bundle, covering source revision, workspace status, and Rust compiler version with shared regression coverage
+- the Stage 6 progress notes were updated so the plan tracker reflects that provenance-field verification is now covered alongside the manifest checksum checks
+- no spec update was needed; this remains within the existing release-artifact verification and reproducibility scope
+
+Remaining Stage 6 work: keep the release bundle manifest, verification checks, and reproducibility docs synchronized as further hardening slices land.
+
+
 ## 2026-04-23 — Compatibility profile known-gap wording refreshed
 
 Implemented a small Stage 6 release-hardening cleanup:
