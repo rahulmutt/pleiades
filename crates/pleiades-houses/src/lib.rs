@@ -161,6 +161,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
             "Whole Sign table of houses",
             "Whole-sign",
             "Whole Sign system",
+            "Whole Sign house system",
         ],
         "Whole-sign system anchored on the rising sign.",
         false,
@@ -525,6 +526,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
             "Whole Sign table of houses",
             "Whole-sign",
             "Whole Sign system",
+            "Whole Sign house system",
         ],
         "Whole-sign system anchored on the rising sign.",
         false,
@@ -813,6 +815,10 @@ mod tests {
         );
         assert_eq!(
             resolve_house_system("Whole Sign system"),
+            Some(HouseSystem::WholeSign)
+        );
+        assert_eq!(
+            resolve_house_system("Whole Sign house system"),
             Some(HouseSystem::WholeSign)
         );
         assert_eq!(

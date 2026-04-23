@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.69";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.70";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -231,6 +231,7 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "Whole Sign table of houses",
             "Whole-sign",
             "Whole Sign system",
+            "Whole Sign house system",
         ],
         "Alcabitius" => &[
             "Alcabitius houses",
@@ -1097,6 +1098,7 @@ mod tests {
             "X, Meridian houses, Meridian table of houses, ARMC, X axial rotation system/ Meridian houses -> Meridian"
         ));
         assert!(rendered.contains("M, Morinus houses, Morinus house system -> Morinus"));
+        assert!(rendered.contains("Whole Sign house system -> Whole Sign"));
         assert!(rendered.contains("Equal table of houses, Whole Sign system, and Morinus house system spellings now called out explicitly in the quick-audit text"));
         assert!(rendered.contains("horizon/azimuth"));
         assert!(rendered
@@ -1190,7 +1192,7 @@ mod tests {
         ));
         assert!(rendered.contains("D equal / MC, Equal from MC, Equal (from MC), Equal (from MC) table of houses, Equal MC, Equal Midheaven, Equal (MC), Equal/MC = 10th -> Equal (MC)"));
         assert!(rendered.contains(
-            "W equal, whole sign, Whole Sign houses, Whole Sign table of houses, Whole-sign, Whole Sign system -> Whole Sign"
+            "W equal, whole sign, Whole Sign houses, Whole Sign table of houses, Whole-sign, Whole Sign system, Whole Sign house system -> Whole Sign"
         ));
         assert!(
             rendered.contains("V equal Vehlow, Vehlow, Vehlow equal, Vehlow-equal, Vehlow-equal table of houses -> Vehlow Equal")
