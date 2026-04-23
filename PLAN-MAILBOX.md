@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Surya Siddhanta 499 spellings now resolve through the release profile
+
+Implemented a small Stage 6 release-hardening compatibility slice:
+
+- `pleiades-ayanamsa` now accepts the exact `Surya Siddhanta 499` and `Surya Siddhanta 499 CE` spellings in addition to the existing `Suryasiddhanta 499` / `Suryasiddhanta 499 CE` aliases, and the compatibility profile now surfaces those forms in the source-label appendix
+- the compatibility profile identifier was bumped to `0.6.42`, and the README / Stage 6 progress notes were updated so the release-facing wording stays synchronized with the new source-form batch
+- regression coverage now checks the new resolver spellings and the rendered source-label appendix line so the release artifact stays searchable by both Surya/Suryasiddhanta variants
+
+Remaining Stage 6 work: keep the release-facing compatibility profile, README, and validation output synchronized as additional interoperability labels land.
+
 ## 2026-04-23 — Release-bundle verification now covers all provenance entries
 
 Implemented a small Stage 6 release-hardening test slice:

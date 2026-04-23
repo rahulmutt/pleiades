@@ -216,7 +216,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::Suryasiddhanta499,
         "Suryasiddhanta (499 CE)",
-        &["Suryasiddhanta 499", "Suryasiddhanta 499 CE", "Surya Siddhanta", "Suryasiddhanta"],
+        &["Suryasiddhanta 499", "Surya Siddhanta 499", "Suryasiddhanta 499 CE", "Surya Siddhanta 499 CE", "Surya Siddhanta", "Suryasiddhanta"],
         "Suryasiddhanta zero-point variant anchored to the 499 CE equinox.",
         Some(JulianDay::from_days(1_903_396.812_865_393_5)),
         Some(Angle::from_degrees(0.0)),
@@ -702,7 +702,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
     AyanamsaDescriptor::new(
         Ayanamsa::Suryasiddhanta499,
         "Suryasiddhanta (499 CE)",
-        &["Suryasiddhanta 499", "Suryasiddhanta 499 CE", "Surya Siddhanta", "Suryasiddhanta"],
+        &["Suryasiddhanta 499", "Surya Siddhanta 499", "Suryasiddhanta 499 CE", "Surya Siddhanta 499 CE", "Surya Siddhanta", "Suryasiddhanta"],
         "Suryasiddhanta zero-point variant anchored to the 499 CE equinox.",
         Some(JulianDay::from_days(1_903_396.812_865_393_5)),
         Some(Angle::from_degrees(0.0)),
@@ -1260,7 +1260,15 @@ mod tests {
             Some(Ayanamsa::Suryasiddhanta499)
         );
         assert_eq!(
+            resolve_ayanamsa("Surya Siddhanta 499"),
+            Some(Ayanamsa::Suryasiddhanta499)
+        );
+        assert_eq!(
             resolve_ayanamsa("Suryasiddhanta 499 CE"),
+            Some(Ayanamsa::Suryasiddhanta499)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Surya Siddhanta 499 CE"),
             Some(Ayanamsa::Suryasiddhanta499)
         );
         assert_eq!(resolve_ayanamsa("Zij al-Shah"), Some(Ayanamsa::Sassanian));
