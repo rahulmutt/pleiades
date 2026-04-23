@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.64";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.65";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -239,7 +239,7 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "T topocentric",
             "Topocentric house system",
         ],
-        "Morinus" => &["M", "Morinus houses"],
+        "Morinus" => &["M", "Morinus houses", "Morinus house system"],
         "Equal (MC)" => &[
             "D equal / MC",
             "Equal from MC",
@@ -1073,7 +1073,7 @@ mod tests {
         assert!(rendered.contains(
             "X, Meridian houses, Meridian table of houses, ARMC, X axial rotation system/ Meridian houses -> Meridian"
         ));
-        assert!(rendered.contains("M, Morinus houses -> Morinus"));
+        assert!(rendered.contains("M, Morinus houses, Morinus house system -> Morinus"));
         assert!(rendered.contains("horizon/azimuth"));
         assert!(rendered
             .contains("Y, APC, Ram school, Ram's school, Ramschool, WvA, Y APC houses, APC houses, APC, also known as “Ram school”, table of houses, APC house system, Ascendant Parallel Circle -> APC"));

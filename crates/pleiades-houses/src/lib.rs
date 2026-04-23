@@ -197,7 +197,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
     HouseSystemDescriptor::new(
         HouseSystem::Morinus,
         "Morinus",
-        &["Morinus houses"],
+        &["Morinus houses", "Morinus house system"],
         "Morinus house system with historical interoperability value.",
         false,
     ),
@@ -545,7 +545,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
     HouseSystemDescriptor::new(
         HouseSystem::Morinus,
         "Morinus",
-        &["Morinus houses"],
+        &["Morinus houses", "Morinus house system"],
         "Morinus house system with historical interoperability value.",
         false,
     ),
