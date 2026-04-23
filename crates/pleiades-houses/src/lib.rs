@@ -230,6 +230,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
             "Aries houses",
             "Whole Sign (house 1 = Aries)",
             "Whole Sign (house 1 = Aries) table of houses",
+            "N whole sign houses, 1. house = Aries",
             "Whole sign houses, 1. house = Aries",
             "Equal/1=0 Aries",
             "Equal (cusp 1 = 0° Aries)",
@@ -594,6 +595,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
             "Aries houses",
             "Whole Sign (house 1 = Aries)",
             "Whole Sign (house 1 = Aries) table of houses",
+            "N whole sign houses, 1. house = Aries",
             "Whole sign houses, 1. house = Aries",
             "Equal/1=0 Aries",
             "Equal (cusp 1 = 0° Aries)",
@@ -896,6 +898,10 @@ mod tests {
         );
         assert_eq!(
             resolve_house_system("Whole Sign (house 1 = Aries)"),
+            Some(HouseSystem::EqualAries)
+        );
+        assert_eq!(
+            resolve_house_system("N whole sign houses, 1. house = Aries"),
             Some(HouseSystem::EqualAries)
         );
         assert_eq!(

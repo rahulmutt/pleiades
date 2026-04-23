@@ -58,6 +58,7 @@ These are durable planning decisions that should remain true even as individual 
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] The Swiss Ephemeris `N whole sign houses, 1. house = Aries` wording now round-trips through `pleiades-houses` and the compatibility-profile source-label appendix, keeping the whole-sign house-table code spelling aligned with the release-facing alias batch; the compatibility profile identifier has been bumped to `0.6.61`.
 - [x] The compact release summary now also cross-references the compatibility-profile, backend-matrix, API-stability, validation-report, and packaged-artifact summaries, so the quick-audit path stays aligned with the shipped release surface.
 - [x] The compact release summary now also cross-references the packaged-artifact summary, and the release reproducibility guide now lists `artifact-summary` alongside the other maintainer-facing bundle views so the quick-audit path stays aligned with the shipped release surface.
 - [x] The baseline `Fagan/Bradley` and `Krishnamurti` ayanamsa entries now also accept the exact Swiss Ephemeris source-label forms `Fagan/Bradley Ayanamsha` and `Krishnamurti Ayanamsha`, the compatibility profile source-label appendix now renders those forms explicitly, and the compatibility profile identifier has been bumped to `0.6.60` so the release-facing alias batch stays versioned with the current profile.

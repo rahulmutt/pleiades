@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.60";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.61";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -251,6 +251,7 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
         ],
         "Equal (1=Aries)" => &[
             "N",
+            "N whole sign houses, 1. house = Aries",
             "Equal/1=Aries",
             "Equal Aries",
             "Aries houses",
@@ -1018,7 +1019,7 @@ mod tests {
         assert!(rendered.contains("Babylonian/Kugler 1, Babylonian 1 -> Babylonian (Kugler 1)"));
         assert!(rendered.contains("D equal / MC, Equal from MC, Equal (from MC), Equal (from MC) table of houses, Equal MC, Equal Midheaven, Equal (MC), Equal/MC = 10th -> Equal (MC)"));
         assert!(rendered.contains(
-            "N, Equal/1=Aries, Equal Aries, Aries houses, Whole Sign (house 1 = Aries), Whole Sign (house 1 = Aries) table of houses, Whole sign houses, 1. house = Aries, Equal/1=0 Aries, Equal (cusp 1 = 0° Aries) -> Equal (1=Aries)"
+            "N, N whole sign houses, 1. house = Aries, Equal/1=Aries, Equal Aries, Aries houses, Whole Sign (house 1 = Aries), Whole Sign (house 1 = Aries) table of houses, Whole sign houses, 1. house = Aries, Equal/1=0 Aries, Equal (cusp 1 = 0° Aries) -> Equal (1=Aries)"
         ));
         assert!(rendered.contains(
             "Galactic Center (Gil Brand), Gil Brand, Rgilbrand, Galactic center Rgilbrand -> Galactic Center (Rgilbrand)"
@@ -1080,7 +1081,7 @@ mod tests {
         ));
         assert!(rendered
             .contains("Usha Shashi, Ushashashi, Usha-Shashi, Usha/Shashi, Revati -> Usha Shashi"));
-        assert!(rendered.contains("Whole Sign (house 1 = Aries), Whole Sign (house 1 = Aries) table of houses, Whole sign houses, 1. house = Aries, Equal/1=0 Aries, Equal (cusp 1 = 0° Aries) -> Equal (1=Aries)"));
+        assert!(rendered.contains("Whole Sign (house 1 = Aries), Whole Sign (house 1 = Aries) table of houses, N whole sign houses, 1. house = Aries, Whole sign houses, 1. house = Aries, Equal/1=0 Aries, Equal (cusp 1 = 0° Aries) -> Equal (1=Aries)"));
         assert!(rendered.contains(
             "A equal, E equal = A, Equal houses, Equal house system, Equal House, Equal table of houses, Wang, Equal (cusp 1 = Asc) -> Equal"
         ));
@@ -1100,7 +1101,7 @@ mod tests {
         );
         assert!(rendered.contains("Equal (MC)"));
         assert!(rendered.contains("Equal (1=Aries)"));
-        assert!(rendered.contains("N, Equal/1=Aries, Equal Aries, Aries houses, Whole Sign (house 1 = Aries), Whole Sign (house 1 = Aries) table of houses, Whole sign houses, 1. house = Aries, Equal/1=0 Aries, Equal (cusp 1 = 0° Aries) -> Equal (1=Aries)"));
+        assert!(rendered.contains("N, Equal/1=Aries, Equal Aries, Aries houses, Whole Sign (house 1 = Aries), Whole Sign (house 1 = Aries) table of houses, N whole sign houses, 1. house = Aries, Whole sign houses, 1. house = Aries, Equal/1=0 Aries, Equal (cusp 1 = 0° Aries) -> Equal (1=Aries)"));
         assert!(
             rendered.contains("V equal Vehlow, Vehlow, Vehlow equal, Vehlow-equal, Vehlow-equal table of houses -> Vehlow Equal")
         );
