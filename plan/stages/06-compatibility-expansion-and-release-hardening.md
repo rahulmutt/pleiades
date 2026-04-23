@@ -104,6 +104,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] The ayanamsa interoperability map now also includes exact Swiss Ephemeris source-label aliases for the Babylonian/Kugler family, the galactic-reference entries, the mean-sun variants, and related Stage 6 breadth additions, so the release profile and CLI can accept the source names users actually see in Swiss Ephemeris docs.
 - [x] The compatibility profile identifier has now been bumped to `0.6.10` to capture the source-label alias interoperability batch while keeping the release profile versioned and explicit.
 - [x] The Babylonian house-family source labels (`BABYL_HOUSE`, `BABYL_SISSY`, `BABYL_TRUE_GEOC`, `BABYL_TRUE_TOPC`, `BABYL_TRUE_OBS`, and `BABYL_HOUSE_OBS`) now resolve as exact aliases too, and the compatibility profile identifier has been bumped to `0.6.11` to keep the release artifact aligned with the new interoperability batch.
+- [x] The compatibility profile now renders the Babylonian house-family labels in a dedicated custom-definition section instead of mixing them into the unresolved-gap list, so the release artifact separates published gaps from interoperability-only labels more clearly.
 
 ## Exit criteria
 
