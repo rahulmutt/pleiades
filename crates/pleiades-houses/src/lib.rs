@@ -133,6 +133,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
             "Equal houses",
             "Equal house system",
             "Equal House",
+            "Equal table of houses",
             "Wang",
             "Equal (cusp 1 = Asc)",
         ],
@@ -145,6 +146,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         &[
             "W equal, whole sign",
             "Whole Sign houses",
+            "Whole Sign table of houses",
             "Whole-sign",
             "Whole Sign system",
         ],
@@ -163,6 +165,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         "Meridian",
         &[
             "Meridian houses",
+            "Meridian table of houses",
             "ARMC",
             "X axial rotation system/ Meridian houses",
         ],
@@ -183,6 +186,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
             "Polich-Page",
             "Polich/Page",
             "Polich Page",
+            "Polich-Page \"topocentric\" table of houses",
             "T Polich/Page (\"topocentric\")",
             "T topocentric",
             "Topocentric house system",
@@ -207,6 +211,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
             "D equal / MC",
             "Equal from MC",
             "Equal (from MC)",
+            "Equal (from MC) table of houses",
             "Equal MC",
             "Equal Midheaven",
             "Equal (MC)",
@@ -223,6 +228,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
             "Equal Aries",
             "Aries houses",
             "Whole Sign (house 1 = Aries)",
+            "Whole Sign (house 1 = Aries) table of houses",
             "Whole sign houses, 1. house = Aries",
             "Equal/1=0 Aries",
             "Equal (cusp 1 = 0° Aries)",
@@ -238,6 +244,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
             "Vehlow",
             "Vehlow equal",
             "Vehlow-equal",
+            "Vehlow-equal table of houses",
         ],
         "Equal-house variant with the Ascendant centered in house 1.",
         false,
@@ -252,7 +259,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
     HouseSystemDescriptor::new(
         HouseSystem::Carter,
         "Carter (poli-equatorial)",
-        &["Carter", "Poli-Equatorial", "Poli-equatorial"],
+        &["Carter", "Carter's poli-equatorial table of houses", "Poli-Equatorial", "Poli-equatorial"],
         "Equal right-ascension segments anchored on the Ascendant's meridian.",
         false,
     ),
@@ -282,6 +289,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
             "WvA",
             "Y APC houses",
             "APC houses",
+            "APC, also known as “Ram school”, table of houses",
             "APC house system",
             "Ascendant Parallel Circle",
         ],
@@ -296,6 +304,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
             "Krusinski-Pisa",
             "Krusinski Pisa",
             "Krusinski/Pisa/Goelzer",
+            "Krusinski-Pisa-Goelzer table of houses",
             "U krusinski-pisa-goelzer",
             "Krusinski/Pisa/Goelzer house system",
             "Pisa-Goelzer",
@@ -330,6 +339,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         &[
             "Sunshine houses",
             "Sunshine house system",
+            "Sunshine table of houses, by Bob Makransky",
             "Makransky Sunshine",
             "Bob Makransky",
             "Treindl Sunshine",
@@ -340,7 +350,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
     HouseSystemDescriptor::new(
         HouseSystem::Gauquelin,
         "Gauquelin sectors",
-        &["G", "Gauquelin", "Gauquelin sector", "Gauquelin sectors"],
+        &["G", "Gauquelin", "Gauquelin sector", "Gauquelin sectors", "Gauquelin table of sectors"],
         "Thirty-six sectors used by the Gauquelin-sector family.",
         true,
     ),
@@ -385,7 +395,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
     HouseSystemDescriptor::new(
         HouseSystem::Carter,
         "Carter (poli-equatorial)",
-        &["Carter", "Poli-Equatorial", "Poli-equatorial"],
+        &["Carter", "Carter's poli-equatorial table of houses", "Poli-Equatorial", "Poli-equatorial"],
         "Equal right-ascension segments anchored on the Ascendant's meridian.",
         false,
     ),
@@ -415,6 +425,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
             "WvA",
             "Y APC houses",
             "APC houses",
+            "APC, also known as “Ram school”, table of houses",
             "APC house system",
             "Ascendant Parallel Circle",
         ],
@@ -429,6 +440,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
             "Krusinski-Pisa",
             "Krusinski Pisa",
             "Krusinski/Pisa/Goelzer",
+            "Krusinski-Pisa-Goelzer table of houses",
             "U krusinski-pisa-goelzer",
             "Krusinski/Pisa/Goelzer house system",
             "Pisa-Goelzer",
@@ -466,6 +478,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
             "Equal houses",
             "Equal house system",
             "Equal House",
+            "Equal table of houses",
             "Wang",
             "Equal (cusp 1 = Asc)",
         ],
@@ -478,6 +491,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         &[
             "W equal, whole sign",
             "Whole Sign houses",
+            "Whole Sign table of houses",
             "Whole-sign",
             "Whole Sign system",
         ],
@@ -496,6 +510,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         "Meridian",
         &[
             "Meridian houses",
+            "Meridian table of houses",
             "ARMC",
             "X axial rotation system/ Meridian houses",
         ],
@@ -516,6 +531,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
             "Polich-Page",
             "Polich/Page",
             "Polich Page",
+            "Polich-Page \"topocentric\" table of houses",
             "T Polich/Page (\"topocentric\")",
             "T topocentric",
             "Topocentric house system",
@@ -536,6 +552,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         &[
             "Sunshine houses",
             "Sunshine house system",
+            "Sunshine table of houses, by Bob Makransky",
             "Makransky Sunshine",
             "Bob Makransky",
             "Treindl Sunshine",
@@ -546,7 +563,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
     HouseSystemDescriptor::new(
         HouseSystem::Gauquelin,
         "Gauquelin sectors",
-        &["G", "Gauquelin", "Gauquelin sector", "Gauquelin sectors"],
+        &["G", "Gauquelin", "Gauquelin sector", "Gauquelin sectors", "Gauquelin table of sectors"],
         "Thirty-six sectors used by the Gauquelin-sector family.",
         true,
     ),
@@ -557,6 +574,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
             "D equal / MC",
             "Equal from MC",
             "Equal (from MC)",
+            "Equal (from MC) table of houses",
             "Equal MC",
             "Equal Midheaven",
             "Equal (MC)",
@@ -573,6 +591,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
             "Equal Aries",
             "Aries houses",
             "Whole Sign (house 1 = Aries)",
+            "Whole Sign (house 1 = Aries) table of houses",
             "Whole sign houses, 1. house = Aries",
             "Equal/1=0 Aries",
             "Equal (cusp 1 = 0° Aries)",
@@ -588,6 +607,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
             "Vehlow",
             "Vehlow equal",
             "Vehlow-equal",
+            "Vehlow-equal table of houses",
         ],
         "Equal-house variant with the Ascendant centered in house 1.",
         false,
@@ -700,6 +720,50 @@ mod tests {
         assert_eq!(
             resolve_house_system("Topocentric house system"),
             Some(HouseSystem::Topocentric)
+        );
+        assert_eq!(
+            resolve_house_system("Polich-Page \"topocentric\" table of houses"),
+            Some(HouseSystem::Topocentric)
+        );
+        assert_eq!(
+            resolve_house_system("Equal table of houses"),
+            Some(HouseSystem::Equal)
+        );
+        assert_eq!(
+            resolve_house_system("Equal (from MC) table of houses"),
+            Some(HouseSystem::EqualMidheaven)
+        );
+        assert_eq!(
+            resolve_house_system("Whole Sign table of houses"),
+            Some(HouseSystem::WholeSign)
+        );
+        assert_eq!(
+            resolve_house_system("Whole Sign (house 1 = Aries) table of houses"),
+            Some(HouseSystem::EqualAries)
+        );
+        assert_eq!(
+            resolve_house_system("Vehlow-equal table of houses"),
+            Some(HouseSystem::Vehlow)
+        );
+        assert_eq!(
+            resolve_house_system("Carter's poli-equatorial table of houses"),
+            Some(HouseSystem::Carter)
+        );
+        assert_eq!(
+            resolve_house_system("APC, also known as “Ram school”, table of houses"),
+            Some(HouseSystem::Apc)
+        );
+        assert_eq!(
+            resolve_house_system("Krusinski-Pisa-Goelzer table of houses"),
+            Some(HouseSystem::KrusinskiPisaGoelzer)
+        );
+        assert_eq!(
+            resolve_house_system("Sunshine table of houses, by Bob Makransky"),
+            Some(HouseSystem::Sunshine)
+        );
+        assert_eq!(
+            resolve_house_system("Gauquelin table of sectors"),
+            Some(HouseSystem::Gauquelin)
         );
         assert_eq!(
             resolve_house_system("whole sign houses"),

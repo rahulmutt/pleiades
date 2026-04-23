@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.55";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.56";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -203,12 +203,14 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "Equal houses",
             "Equal house system",
             "Equal House",
+            "Equal table of houses",
             "Wang",
             "Equal (cusp 1 = Asc)",
         ],
         "Whole Sign" => &[
             "W equal, whole sign",
             "Whole Sign houses",
+            "Whole Sign table of houses",
             "Whole-sign",
             "Whole Sign system",
         ],
@@ -216,6 +218,7 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
         "Meridian" => &[
             "X",
             "Meridian houses",
+            "Meridian table of houses",
             "ARMC",
             "X axial rotation system/ Meridian houses",
         ],
@@ -225,6 +228,7 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "Polich-Page",
             "Polich/Page",
             "Polich Page",
+            "Polich-Page \"topocentric\" table of houses",
             "T Polich/Page (\"topocentric\")",
             "T topocentric",
             "Topocentric house system",
@@ -234,6 +238,7 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "D equal / MC",
             "Equal from MC",
             "Equal (from MC)",
+            "Equal (from MC) table of houses",
             "Equal MC",
             "Equal Midheaven",
             "Equal/MC = 10th",
@@ -243,19 +248,32 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "Equal Aries",
             "Aries houses",
             "Whole Sign (house 1 = Aries)",
+            "Whole Sign (house 1 = Aries) table of houses",
             "Whole sign houses, 1. house = Aries",
             "Equal/1=0 Aries",
             "Equal (cusp 1 = 0° Aries)",
         ],
-        "Vehlow Equal" => &["V equal Vehlow", "Vehlow-equal", "Vehlow", "Vehlow equal"],
+        "Vehlow Equal" => &[
+            "V equal Vehlow",
+            "Vehlow-equal table of houses",
+            "Vehlow-equal",
+            "Vehlow",
+            "Vehlow equal",
+        ],
         "Sripati" => &["S", "Śrīpati"],
-        "Carter (poli-equatorial)" => &["Carter", "Poli-Equatorial", "Poli-equatorial"],
+        "Carter (poli-equatorial)" => &[
+            "Carter",
+            "Carter's poli-equatorial table of houses",
+            "Poli-Equatorial",
+            "Poli-equatorial",
+        ],
         "Horizon/Azimuth" => &[
             "Horizon/Azimuth",
             "Horizon",
             "Azimuth",
             "Horizontal",
             "Azimuthal",
+            "Horizon/Azimuth table of houses",
             "Horizon house system",
             "Azimuthal house system",
             "horizon/azimut",
@@ -270,6 +288,7 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "WvA",
             "Y APC houses",
             "APC houses",
+            "APC, also known as “Ram school”, table of houses",
             "APC house system",
             "Ascendant Parallel Circle",
         ],
@@ -279,23 +298,43 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "Krusinski-Pisa",
             "Krusinski Pisa",
             "Krusinski/Pisa/Goelzer",
+            "Krusinski-Pisa-Goelzer table of houses",
             "U krusinski-pisa-goelzer",
             "Krusinski/Pisa/Goelzer house system",
             "Pisa-Goelzer",
         ],
-        "Albategnius" => &["Savard-A", "Savard A", "Savard's Albategnius"],
-        "Pullen SD" => &["Neo-Porphyry", "Pullen sinusoidal delta"],
-        "Pullen SR" => &["Pullen sinusoidal ratio"],
+        "Albategnius" => &[
+            "Albategnius table of houses",
+            "Savard-A",
+            "Savard A",
+            "Savard's Albategnius",
+        ],
+        "Pullen SD" => &[
+            "Pullen SD (Neo-Porphyry) table of houses",
+            "Neo-Porphyry",
+            "Pullen sinusoidal delta",
+        ],
+        "Pullen SR" => &[
+            "Pullen SR (Sinusoidal Ratio) table of houses",
+            "Pullen sinusoidal ratio",
+        ],
         "Sunshine" => &[
             "I",
             "Sunshine",
             "Sunshine houses",
             "Sunshine house system",
+            "Sunshine table of houses, by Bob Makransky",
             "Makransky Sunshine",
             "Bob Makransky",
             "Treindl Sunshine",
         ],
-        "Gauquelin sectors" => &["G", "Gauquelin", "Gauquelin sector", "Gauquelin sectors"],
+        "Gauquelin sectors" => &[
+            "G",
+            "Gauquelin",
+            "Gauquelin sector",
+            "Gauquelin sectors",
+            "Gauquelin table of sectors",
+        ],
         _ => &[],
     }
 }
@@ -965,9 +1004,9 @@ mod tests {
         assert!(rendered
             .contains("Babylonian sidereal mode labeled BABYL_HOUSE_OBS in Swiss Ephemeris."));
         assert!(rendered.contains("Babylonian/Kugler 1, Babylonian 1 -> Babylonian (Kugler 1)"));
-        assert!(rendered.contains("D equal / MC, Equal from MC, Equal (from MC), Equal MC, Equal Midheaven, Equal (MC), Equal/MC = 10th -> Equal (MC)"));
+        assert!(rendered.contains("D equal / MC, Equal from MC, Equal (from MC), Equal (from MC) table of houses, Equal MC, Equal Midheaven, Equal (MC), Equal/MC = 10th -> Equal (MC)"));
         assert!(rendered.contains(
-            "Equal/1=Aries, Equal Aries, Aries houses, Whole Sign (house 1 = Aries), Whole sign houses, 1. house = Aries, Equal/1=0 Aries, Equal (cusp 1 = 0° Aries) -> Equal (1=Aries)"
+            "Equal/1=Aries, Equal Aries, Aries houses, Whole Sign (house 1 = Aries), Whole Sign (house 1 = Aries) table of houses, Whole sign houses, 1. house = Aries, Equal/1=0 Aries, Equal (cusp 1 = 0° Aries) -> Equal (1=Aries)"
         ));
         assert!(rendered.contains(
             "Galactic Center (Gil Brand), Gil Brand, Rgilbrand, Galactic center Rgilbrand -> Galactic Center (Rgilbrand)"
@@ -1006,16 +1045,16 @@ mod tests {
         assert!(rendered.contains("De Luce, DeLuce ayanamsa -> DeLuce"));
         assert!(rendered.contains("Yukteswar, Sri Yukteswar, Sri Yukteshwar, Shri Yukteswar, Shri Yukteshwar -> Yukteshwar"));
         assert!(rendered.contains(
-            "T, Polich-Page, Polich/Page, Polich Page, T Polich/Page (\"topocentric\"), T topocentric, Topocentric house system -> Topocentric"
+            "T, Polich-Page, Polich/Page, Polich Page, Polich-Page \"topocentric\" table of houses, T Polich/Page (\"topocentric\"), T topocentric, Topocentric house system -> Topocentric"
         ));
         assert!(rendered
             .contains("Horizontal, Azimuthal, Horizon house system, Azimuthal house system"));
         assert!(rendered.contains(
-            "X, Meridian houses, ARMC, X axial rotation system/ Meridian houses -> Meridian"
+            "X, Meridian houses, Meridian table of houses, ARMC, X axial rotation system/ Meridian houses -> Meridian"
         ));
         assert!(rendered.contains("horizon/azimuth"));
         assert!(rendered
-            .contains("Y, APC, Ram school, Ram's school, Ramschool, WvA, Y APC houses, APC houses, APC house system, Ascendant Parallel Circle -> APC"));
+            .contains("Y, APC, Ram school, Ram's school, Ramschool, WvA, Y APC houses, APC houses, APC, also known as “Ram school”, table of houses, APC house system, Ascendant Parallel Circle -> APC"));
         assert!(rendered.contains("Chitra Paksha, Chitrapaksha, Chitra-paksha -> Lahiri"));
         assert!(rendered.contains("source-label appendix entries for Lahiri / Chitrapaksha / Chitra Paksha, True Chitra / Chitra, Krishnamurti (Swiss) / Krishnamurti Paddhati / KP ayanamsa, Fagan/Bradley, Fagan Bradley / Fagan-Bradley, Usha Shashi, and the Yukteshwar / Sri Yukteshwar / Shri Yukteshwar transliterations"));
         assert!(rendered.contains("source-label appendix entries for P.V.R. Narasimha Rao, Aries houses, and True Mula (Chandra Hari)"));
@@ -1027,18 +1066,18 @@ mod tests {
         assert!(rendered.contains("Fagan/Bradley, Fagan Bradley, Fagan-Bradley -> Fagan/Bradley"));
         assert!(rendered
             .contains("Usha Shashi, Ushashashi, Usha-Shashi, Usha/Shashi, Revati -> Usha Shashi"));
-        assert!(rendered.contains("Whole Sign (house 1 = Aries), Whole sign houses, 1. house = Aries, Equal/1=0 Aries, Equal (cusp 1 = 0° Aries) -> Equal (1=Aries)"));
+        assert!(rendered.contains("Whole Sign (house 1 = Aries), Whole Sign (house 1 = Aries) table of houses, Whole sign houses, 1. house = Aries, Equal/1=0 Aries, Equal (cusp 1 = 0° Aries) -> Equal (1=Aries)"));
         assert!(rendered.contains(
-            "A equal, E equal = A, Equal houses, Equal house system, Equal House, Wang, Equal (cusp 1 = Asc) -> Equal"
+            "A equal, E equal = A, Equal houses, Equal house system, Equal House, Equal table of houses, Wang, Equal (cusp 1 = Asc) -> Equal"
         ));
         let source_label_section = rendered
             .split("Source-label aliases for built-in house systems:")
             .nth(1)
             .expect("source-label house appendix should be present");
         assert!(source_label_section.contains(
-            "A equal, E equal = A, Equal houses, Equal house system, Equal House, Wang, Equal (cusp 1 = Asc) -> Equal"
+            "A equal, E equal = A, Equal houses, Equal house system, Equal House, Equal table of houses, Wang, Equal (cusp 1 = Asc) -> Equal"
         ));
-        assert!(rendered.contains("D equal / MC, Equal from MC, Equal (from MC), Equal MC, Equal Midheaven, Equal (MC), Equal/MC = 10th -> Equal (MC)"));
+        assert!(rendered.contains("D equal / MC, Equal from MC, Equal (from MC), Equal (from MC) table of houses, Equal MC, Equal Midheaven, Equal (MC), Equal/MC = 10th -> Equal (MC)"));
         assert!(rendered.contains("J2000.0 -> J2000"));
         assert!(rendered.contains("J1900.0 -> J1900"));
         assert!(rendered.contains("B1950.0 -> B1950"));
@@ -1047,16 +1086,16 @@ mod tests {
         );
         assert!(rendered.contains("Equal (MC)"));
         assert!(rendered.contains("Equal (1=Aries)"));
-        assert!(rendered.contains("Equal/1=Aries, Equal Aries, Aries houses, Whole Sign (house 1 = Aries), Whole sign houses, 1. house = Aries, Equal/1=0 Aries, Equal (cusp 1 = 0° Aries) -> Equal (1=Aries)"));
+        assert!(rendered.contains("Equal/1=Aries, Equal Aries, Aries houses, Whole Sign (house 1 = Aries), Whole Sign (house 1 = Aries) table of houses, Whole sign houses, 1. house = Aries, Equal/1=0 Aries, Equal (cusp 1 = 0° Aries) -> Equal (1=Aries)"));
         assert!(
-            rendered.contains("V equal Vehlow, Vehlow, Vehlow equal, Vehlow-equal -> Vehlow Equal")
+            rendered.contains("V equal Vehlow, Vehlow, Vehlow equal, Vehlow-equal, Vehlow-equal table of houses -> Vehlow Equal")
         );
         assert!(rendered.contains("Sripati"));
         assert!(rendered.contains("Carter (poli-equatorial)"));
         assert!(rendered.contains("Horizon/Azimuth"));
         assert!(rendered.contains("APC"));
         assert!(rendered.contains("Krusinski-Pisa-Goelzer"));
-        assert!(rendered.contains("U, Krusinski, Krusinski-Pisa, Krusinski Pisa, Krusinski/Pisa/Goelzer, U krusinski-pisa-goelzer, Krusinski/Pisa/Goelzer house system, Pisa-Goelzer -> Krusinski-Pisa-Goelzer"));
+        assert!(rendered.contains("U, Krusinski, Krusinski-Pisa, Krusinski Pisa, Krusinski/Pisa/Goelzer, Krusinski-Pisa-Goelzer table of houses, U krusinski-pisa-goelzer, Krusinski/Pisa/Goelzer house system, Pisa-Goelzer -> Krusinski-Pisa-Goelzer"));
         assert!(rendered.contains("Albategnius"));
         assert!(rendered.contains("Savard-A, Savard A, Savard's Albategnius -> Albategnius"));
         assert!(rendered.contains("Pullen SD"));
@@ -1071,27 +1110,27 @@ mod tests {
             "Aryabhata, Aryabhata 499, Aryabhata 499 CE, Aryabhatan Kaliyuga, Aryabhata Kaliyuga -> Aryabhata (499 CE)"
         ));
         assert!(rendered.contains(
-            "I, Sunshine, Sunshine houses, Sunshine house system, Makransky Sunshine, Bob Makransky, Treindl Sunshine -> Sunshine"
+            "I, Sunshine, Sunshine houses, Sunshine house system, Sunshine table of houses, by Bob Makransky, Makransky Sunshine, Bob Makransky, Treindl Sunshine -> Sunshine"
         ));
         assert!(rendered.contains("S, Śrīpati -> Sripati"));
         assert!(rendered.contains("P/K/R/C/O/E/W/V/A/H/B/M/S/I/G"));
         assert!(rendered.contains("plus the additional T/U/X/Y interoperability codes"));
-        assert!(rendered.contains("A equal, E equal = A, Equal houses, Equal house system, Equal House, Wang, Equal (cusp 1 = Asc) -> Equal"));
-        assert!(rendered.contains("D equal / MC, Equal from MC, Equal (from MC), Equal MC, Equal Midheaven, Equal (MC), Equal/MC = 10th -> Equal (MC)"));
+        assert!(rendered.contains("A equal, E equal = A, Equal houses, Equal house system, Equal House, Equal table of houses, Wang, Equal (cusp 1 = Asc) -> Equal"));
+        assert!(rendered.contains("D equal / MC, Equal from MC, Equal (from MC), Equal (from MC) table of houses, Equal MC, Equal Midheaven, Equal (MC), Equal/MC = 10th -> Equal (MC)"));
         assert!(rendered.contains(
-            "W equal, whole sign, Whole Sign houses, Whole-sign, Whole Sign system -> Whole Sign"
+            "W equal, whole sign, Whole Sign houses, Whole Sign table of houses, Whole-sign, Whole Sign system -> Whole Sign"
         ));
         assert!(
-            rendered.contains("V equal Vehlow, Vehlow, Vehlow equal, Vehlow-equal -> Vehlow Equal")
+            rendered.contains("V equal Vehlow, Vehlow, Vehlow equal, Vehlow-equal, Vehlow-equal table of houses -> Vehlow Equal")
         );
         assert!(rendered.contains(
-            "X, Meridian houses, ARMC, X axial rotation system/ Meridian houses -> Meridian"
+            "X, Meridian houses, Meridian table of houses, ARMC, X axial rotation system/ Meridian houses -> Meridian"
         ));
-        assert!(rendered.contains("Y, APC, Ram school, Ram's school, Ramschool, WvA, Y APC houses, APC houses, APC house system, Ascendant Parallel Circle -> APC"));
-        assert!(rendered.contains("T, Polich-Page, Polich/Page, Polich Page, T Polich/Page (\"topocentric\"), T topocentric, Topocentric house system -> Topocentric"));
+        assert!(rendered.contains("Y, APC, Ram school, Ram's school, Ramschool, WvA, Y APC houses, APC houses, APC, also known as “Ram school”, table of houses, APC house system, Ascendant Parallel Circle -> APC"));
+        assert!(rendered.contains("T, Polich-Page, Polich/Page, Polich Page, Polich-Page \"topocentric\" table of houses, T Polich/Page (\"topocentric\"), T topocentric, Topocentric house system -> Topocentric"));
         assert!(rendered.contains("Gauquelin sectors"));
         assert!(rendered
-            .contains("G, Gauquelin, Gauquelin sector, Gauquelin sectors -> Gauquelin sectors"));
+            .contains("G, Gauquelin, Gauquelin sector, Gauquelin sectors, Gauquelin table of sectors -> Gauquelin sectors"));
         assert!(rendered.contains("J2000"));
         assert!(rendered.contains("DeLuce"));
         assert!(rendered.contains("Yukteshwar"));
