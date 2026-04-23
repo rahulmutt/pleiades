@@ -356,6 +356,10 @@ pub enum CelestialBody {
     MeanApogee,
     /// The true lunar apogee.
     TrueApogee,
+    /// The mean lunar perigee.
+    MeanPerigee,
+    /// The true lunar perigee.
+    TruePerigee,
     /// Ceres.
     Ceres,
     /// Pallas.
@@ -386,6 +390,8 @@ impl CelestialBody {
             Self::TrueNode => Some("True Node"),
             Self::MeanApogee => Some("Mean Apogee"),
             Self::TrueApogee => Some("True Apogee"),
+            Self::MeanPerigee => Some("Mean Perigee"),
+            Self::TruePerigee => Some("True Perigee"),
             Self::Ceres => Some("Ceres"),
             Self::Pallas => Some("Pallas"),
             Self::Juno => Some("Juno"),
@@ -437,6 +443,8 @@ impl fmt::Display for CelestialBody {
             Self::TrueNode => f.write_str("True Node"),
             Self::MeanApogee => f.write_str("Mean Apogee"),
             Self::TrueApogee => f.write_str("True Apogee"),
+            Self::MeanPerigee => f.write_str("Mean Perigee"),
+            Self::TruePerigee => f.write_str("True Perigee"),
             Self::Ceres => f.write_str("Ceres"),
             Self::Pallas => f.write_str("Pallas"),
             Self::Juno => f.write_str("Juno"),
@@ -851,6 +859,11 @@ mod tests {
     fn built_in_body_names_are_stable() {
         assert_eq!(CelestialBody::Sun.built_in_name(), Some("Sun"));
         assert_eq!(CelestialBody::Sun.to_string(), "Sun");
+        assert_eq!(
+            CelestialBody::MeanApogee.built_in_name(),
+            Some("Mean Apogee")
+        );
+        assert_eq!(CelestialBody::TruePerigee.to_string(), "True Perigee");
         assert_eq!(
             CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros")).built_in_name(),
             None

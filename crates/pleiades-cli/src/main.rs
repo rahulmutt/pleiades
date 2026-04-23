@@ -146,6 +146,10 @@ fn parse_body(value: Option<&str>) -> Result<CelestialBody, String> {
         "pallas" => Ok(CelestialBody::Pallas),
         "juno" => Ok(CelestialBody::Juno),
         "vesta" => Ok(CelestialBody::Vesta),
+        "mean apogee" => Ok(CelestialBody::MeanApogee),
+        "true apogee" => Ok(CelestialBody::TrueApogee),
+        "mean perigee" => Ok(CelestialBody::MeanPerigee),
+        "true perigee" => Ok(CelestialBody::TruePerigee),
         other => Err(format!("unsupported body name: {other}")),
     }
 }
@@ -176,7 +180,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::{banner, render_chart, render_cli};
+    use super::{banner, parse_body, render_chart, render_cli, CelestialBody};
 
     #[test]
     fn banner_mentions_package() {
@@ -276,5 +280,25 @@ mod tests {
             .expect("asteroid chart should render");
         assert!(rendered.contains("Ceres"));
         assert!(rendered.contains("Backend:"));
+    }
+
+    #[test]
+    fn parse_body_accepts_lunar_apogee_and_perigee_labels() {
+        assert_eq!(
+            parse_body(Some("mean apogee")).unwrap(),
+            CelestialBody::MeanApogee
+        );
+        assert_eq!(
+            parse_body(Some("true apogee")).unwrap(),
+            CelestialBody::TrueApogee
+        );
+        assert_eq!(
+            parse_body(Some("mean perigee")).unwrap(),
+            CelestialBody::MeanPerigee
+        );
+        assert_eq!(
+            parse_body(Some("true perigee")).unwrap(),
+            CelestialBody::TruePerigee
+        );
     }
 }

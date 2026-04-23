@@ -325,7 +325,9 @@ fn body_class(body: &CelestialBody) -> BodyClass {
         CelestialBody::MeanNode
         | CelestialBody::TrueNode
         | CelestialBody::MeanApogee
-        | CelestialBody::TrueApogee => BodyClass::LunarPoint,
+        | CelestialBody::TrueApogee
+        | CelestialBody::MeanPerigee
+        | CelestialBody::TruePerigee => BodyClass::LunarPoint,
         CelestialBody::Ceres
         | CelestialBody::Pallas
         | CelestialBody::Juno

@@ -479,6 +479,8 @@ fn encode_celestial_body(
         CelestialBody::TrueNode => write_u8(bytes, 11),
         CelestialBody::MeanApogee => write_u8(bytes, 12),
         CelestialBody::TrueApogee => write_u8(bytes, 13),
+        CelestialBody::MeanPerigee => write_u8(bytes, 20),
+        CelestialBody::TruePerigee => write_u8(bytes, 21),
         CelestialBody::Ceres => write_u8(bytes, 14),
         CelestialBody::Pallas => write_u8(bytes, 15),
         CelestialBody::Juno => write_u8(bytes, 16),
@@ -518,6 +520,8 @@ fn decode_celestial_body(cursor: &mut Cursor<'_>) -> Result<CelestialBody, Compr
         15 => CelestialBody::Pallas,
         16 => CelestialBody::Juno,
         17 => CelestialBody::Vesta,
+        20 => CelestialBody::MeanPerigee,
+        21 => CelestialBody::TruePerigee,
         255 => {
             let catalog = cursor.read_string()?;
             let designation = cursor.read_string()?;
@@ -767,5 +771,27 @@ mod tests {
             )
             .expect_err("missing bodies should error");
         assert_eq!(error.kind, CompressionErrorKind::MissingBody);
+    }
+
+    #[test]
+    fn encode_decode_roundtrip_preserves_lunar_apogee_and_perigee_bodies() {
+        let artifact = CompressedArtifact::new(
+            ArtifactHeader::new("demo", "lunar point fixture"),
+            vec![
+                BodyArtifact::new(CelestialBody::MeanApogee, Vec::new()),
+                BodyArtifact::new(CelestialBody::TrueApogee, Vec::new()),
+                BodyArtifact::new(CelestialBody::MeanPerigee, Vec::new()),
+                BodyArtifact::new(CelestialBody::TruePerigee, Vec::new()),
+            ],
+        );
+
+        let encoded = artifact.encode().expect("artifact should encode");
+        let decoded = CompressedArtifact::decode(&encoded).expect("artifact should decode");
+
+        assert_eq!(decoded.bodies.len(), 4);
+        assert_eq!(decoded.bodies[0].body, CelestialBody::MeanApogee);
+        assert_eq!(decoded.bodies[1].body, CelestialBody::TrueApogee);
+        assert_eq!(decoded.bodies[2].body, CelestialBody::MeanPerigee);
+        assert_eq!(decoded.bodies[3].body, CelestialBody::TruePerigee);
     }
 }
