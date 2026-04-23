@@ -378,6 +378,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
             "I sunshine",
             "Sunshine houses",
             "Sunshine house system",
+            "Sunshine table of houses",
             "Sunshine table of houses, by Bob Makransky",
             "Makransky Sunshine",
             "Bob Makransky",
@@ -624,6 +625,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
             "I sunshine",
             "Sunshine houses",
             "Sunshine house system",
+            "Sunshine table of houses",
             "Sunshine table of houses, by Bob Makransky",
             "Makransky Sunshine",
             "Bob Makransky",
@@ -853,6 +855,10 @@ mod tests {
         assert_eq!(
             resolve_house_system("Krusinski-Pisa-Goelzer table of houses"),
             Some(HouseSystem::KrusinskiPisaGoelzer)
+        );
+        assert_eq!(
+            resolve_house_system("Sunshine table of houses"),
+            Some(HouseSystem::Sunshine)
         );
         assert_eq!(
             resolve_house_system("Sunshine table of houses, by Bob Makransky"),

@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.85";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.86";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -365,6 +365,7 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "Sunshine",
             "Sunshine houses",
             "Sunshine house system",
+            "Sunshine table of houses",
             "Sunshine table of houses, by Bob Makransky",
             "Makransky Sunshine",
             "Bob Makransky",
@@ -1270,7 +1271,7 @@ mod tests {
             "Aryabhata, Aryabhata 499, Aryabhata 499 CE, Aryabhatan Kaliyuga, Aryabhata Kaliyuga -> Aryabhata (499 CE)"
         ));
         assert!(rendered.contains(
-            "I, I sunshine, Sunshine, Sunshine houses, Sunshine house system, Sunshine table of houses, by Bob Makransky, Makransky Sunshine, Bob Makransky, Treindl Sunshine -> Sunshine"
+            "I, I sunshine, Sunshine, Sunshine houses, Sunshine house system, Sunshine table of houses, Sunshine table of houses, by Bob Makransky, Makransky Sunshine, Bob Makransky, Treindl Sunshine -> Sunshine"
         ));
         assert!(rendered.contains("I sunshine"));
         assert!(rendered.contains(
