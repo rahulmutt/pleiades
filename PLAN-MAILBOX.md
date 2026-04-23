@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Backend matrix summary now carries the compatibility-profile identifier
+
+Implemented a small Stage 6 release-hardening polish slice:
+
+- `pleiades-validate::render_backend_matrix_summary()` now prefixes the compact backend-matrix summary with the current compatibility-profile identifier, so the release-facing audit view is self-describing without needing to cross-reference the full backend matrix output
+- regression coverage now checks the new profile line in the summary output, and the Stage 6 progress notes were updated so the release-hardening tracker records the summary-format refinement
+- no spec update was needed; this stays within the existing release-summary and reproducibility scope
+
+Remaining Stage 6 work: keep the release summaries, bundle manifest, and reproducibility docs synchronized as further hardening slices land.
+
 ## 2026-04-23 — Lahiri transliteration batch widened to include Chitra Paksha spellings
 
 Implemented a small Stage 6 release-hardening alias slice:

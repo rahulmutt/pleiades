@@ -1771,6 +1771,7 @@ pub fn render_backend_matrix_summary() -> String {
 }
 
 fn render_backend_matrix_summary_text() -> String {
+    let release_profiles = current_release_profile_identifiers();
     let catalog = implemented_backend_catalog();
     let mut family_counts: BTreeMap<String, usize> = BTreeMap::new();
     let mut bodies: Vec<String> = Vec::new();
@@ -1829,6 +1830,9 @@ fn render_backend_matrix_summary_text() -> String {
 
     let mut text = String::new();
     text.push_str("Backend matrix summary\n");
+    text.push_str("Profile: ");
+    text.push_str(release_profiles.compatibility_profile_id);
+    text.push('\n');
     text.push_str("Backends: ");
     text.push_str(&catalog.len().to_string());
     text.push('\n');
@@ -3088,6 +3092,10 @@ version = "0.9.0"
         assert!(backend_matrix.contains("Implemented backend matrices"));
         assert!(backend_matrix.contains("JPL snapshot reference backend"));
         assert!(backend_matrix_summary.contains("Backend matrix summary"));
+        assert!(backend_matrix_summary.contains(&format!(
+            "Profile: {}",
+            release_profiles.compatibility_profile_id
+        )));
         assert!(backend_matrix_summary.contains("Backends: 5"));
         assert!(backend_matrix_summary.contains("Algorithmic: 2"));
         assert!(backend_matrix_summary.contains("Composite: 1"));
