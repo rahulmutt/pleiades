@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.84";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.85";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -89,7 +89,7 @@ pub const fn current_compatibility_profile() -> CompatibilityProfile {
         release_ayanamsas: release_ayanamsas(),
         release_notes: &[
             "The JPL snapshot backend preserves selected asteroid coverage, including the source-backed custom body asteroid:433-Eros, and the validation report surfaces that subset separately from the planetary comparison corpus.",
-            "Release-specific house-system additions now include Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter (poli-equatorial), Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Krusinski/Pisa/Goelzer, Albategnius, Pullen SD, Pullen SR, Sunshine, including the Bob Makransky and Treindl Sunshine source labels for Sunshine, and Gauquelin sectors, with the Whole Sign (house 1 = Aries) label, the Whole sign houses, 1. house = Aries source spelling, Wang alias, Equal MC / Equal/MC / Equal Midheaven aliases, Equal (cusp 1 = Asc) source spelling, Equal (MC) and Equal (1=Aries) source-label appendix entries, including the Equal (MC) table of houses, Equal (MC) house system, Equal (1=Aries) table of houses, and Equal (1=Aries) house system spellings, APC houses / Ascendant Parallel Circle / WvA aliases, Horizon / Horizontal / Azimuthal aliases, the exact Topocentric source labels `Polich-Page \"topocentric\" table of houses` and `T Polich/Page (\"topocentric\")`, the `Horizon/Azimuth house system` and `Horizon/Azimuth table of houses` source labels, the Vehlow-equal source label, the Bob Makransky source label for Sunshine, the Topocentric house system alias, the baseline Placidus and Koch table-of-houses source spellings, the remaining Albategnius / Pullen / Gauquelin source labels, the Swiss Ephemeris single-letter house-table codes P/K/R/C/O/E/W/N/V/A/H/B/M/S/I/G plus the additional T/U/X/Y interoperability codes resolving to their corresponding built-ins, and the exact Swiss Ephemeris house-table code spellings A equal, D equal / MC, E equal = A, N whole sign houses, 1. house = Aries, S sripati, I sunshine, W equal, whole sign, V equal Vehlow, T topocentric, U Krusinski-Pisa-Goelzer, Zariel, X axial rotation system/ Meridian houses, and Y APC houses.",
+            "Release-specific house-system additions now include Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter (poli-equatorial), Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Krusinski/Pisa/Goelzer, Albategnius, Pullen SD, Pullen SR, Sunshine, including the Bob Makransky and Treindl Sunshine source labels for Sunshine, and Gauquelin sectors, with the Whole Sign (house 1 = Aries) label, the Whole sign houses, 1. house = Aries source spelling, Wang alias, Equal MC / Equal/MC / Equal Midheaven aliases, Equal (cusp 1 = Asc) source spelling, Equal (MC) and Equal (1=Aries) source-label appendix entries, including the Equal (MC) table of houses, Equal (MC) house system, Equal (1=Aries) table of houses, and Equal (1=Aries) house system spellings, APC houses / Ascendant Parallel Circle / WvA aliases, Horizon / Horizontal / Azimuthal aliases, the exact Topocentric source labels `Polich-Page \"topocentric\" table of houses` and `T Polich/Page (\"topocentric\")`, the `Horizon/Azimuth house system` and `Horizon/Azimuth table of houses` source labels, the Vehlow-equal source label, the Bob Makransky source label for Sunshine, the Topocentric house system alias, the baseline Placidus and Koch table-of-houses source spellings, the remaining Albategnius / Pullen / Gauquelin source labels, the Swiss Ephemeris single-letter house-table codes P/K/R/C/O/E/W/N/V/A/H/B/M/S/I/G plus the additional T/U/X/Y interoperability codes resolving to their corresponding built-ins, and the exact Swiss Ephemeris house-table code spellings A equal, D equal / MC, E equal = A, N whole sign houses, 1. house = Aries, S sripati, I sunshine, W equal, whole sign, V equal Vehlow, T topocentric, U Krusinski-Pisa-Goelzer, Zariel, X axial rotation system/ Meridian houses, and Y APC houses, plus the explicit Meridian house system, Horizontal house system, and Azimuth house system spellings.",
             "The compatibility profile now also renders a source-label appendix for the built-in house systems so common Placidus, Koch, Equal, Whole Sign, Topocentric, Vehlow, Meridian, Zariel, ARMC, Sunshine, APC, and Horizon/Azimuth spellings — including the Swiss Ephemeris \"Equal (cusp 1 = Asc)\", \"Whole Sign (house 1 = Aries)\", \"Polich-Page \\\"topocentric\\\" table of houses\", \"T Polich/Page (\\\"topocentric\\\")\", \"Horizon/Azimuth house system\", and \"Horizon/Azimuth table of houses\" forms — are searchable alongside the ayanamsa appendix, and the latest release-specific house-system label batches now also surface the exact Placidus table of houses, Koch table of houses, Albategnius, Pullen, and Gauquelin search forms, plus the exact Equal table of houses, Whole Sign system, and Morinus house system spellings now called out explicitly in the quick-audit text.",
             "The compatibility profile now also surfaces the exact Swiss Ephemeris house-table code spellings A equal, D equal / MC, E equal = A, N whole sign houses, 1. house = Aries, S sripati, I sunshine, W equal, whole sign, V equal Vehlow, T topocentric, U Krusinski-Pisa-Goelzer, Zariel, X axial rotation system/ Meridian houses, and Y APC houses so the code-style interoperability forms remain searchable alongside the canonical house names.",
             "The Equal (MC) and Equal (1=Aries) release-line house entries now also accept the plain Equal (MC) house system and Equal (1=Aries) house system spellings, keeping the release-facing alias batch aligned with common source-label wording.",
@@ -244,6 +244,7 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "X",
             "Meridian houses",
             "Meridian table of houses",
+            "Meridian house system",
             "ARMC",
             "Axial Rotation",
             "Axial rotation system",
@@ -313,6 +314,8 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "Horizon/Azimuth table of houses",
             "Horizon house system",
             "Horizon/Azimuth house system",
+            "Horizontal house system",
+            "Azimuth house system",
             "Azimuthal house system",
             "horizon/azimut",
             "horizon/azimuth",
@@ -1166,16 +1169,19 @@ mod tests {
         assert!(rendered.contains("Polich-Page \"topocentric\" table of houses"));
         assert!(rendered.contains("T Polich/Page (\"topocentric\")"));
         assert!(rendered.contains(
-            "Horizon, Azimuth, Horizontal, Azimuthal, Horizon house system, Horizon/Azimuth house system, Horizon/Azimuth table of houses, Azimuthal house system, horizon/azimut, horizon/azimuth -> Horizon/Azimuth"
+            "Horizon, Azimuth, Horizontal, Azimuthal, Horizon/Azimuth table of houses, Horizon house system, Horizon/Azimuth house system, Horizontal house system, Azimuth house system, Azimuthal house system, horizon/azimut, horizon/azimuth -> Horizon/Azimuth"
         ));
         assert!(rendered.contains(
-            "X, Meridian houses, Meridian table of houses, ARMC, Axial Rotation, Axial rotation system, Zariel, X axial rotation system/ Meridian houses -> Meridian"
+            "X, Meridian houses, Meridian table of houses, Meridian house system, ARMC, Axial Rotation, Axial rotation system, Zariel, X axial rotation system/ Meridian houses -> Meridian"
         ));
         assert!(rendered.contains("M, Morinus houses, Morinus house system -> Morinus"));
         assert!(rendered.contains("Whole Sign house system -> Whole Sign"));
         assert!(rendered.contains("Equal table of houses, Whole Sign system, and Morinus house system spellings now called out explicitly in the quick-audit text"));
         assert!(rendered.contains("horizon/azimuth"));
         assert!(rendered.contains("Horizon/Azimuth house system"));
+        assert!(rendered.contains("Horizontal house system"));
+        assert!(rendered.contains("Azimuth house system"));
+        assert!(rendered.contains("Meridian house system"));
         assert!(rendered.contains("Horizon/Azimuth table of houses"));
         assert!(rendered
             .contains("Y, APC, Ram school, Ram's school, Ramschool, WvA, Y APC houses, APC houses, APC, also known as “Ram school”, table of houses, APC house system, Ascendant Parallel Circle -> APC"));
@@ -1293,7 +1299,7 @@ mod tests {
             rendered.contains("V equal Vehlow, Vehlow, Vehlow equal, Vehlow-equal, Vehlow-equal table of houses -> Vehlow Equal")
         );
         assert!(rendered.contains(
-            "X, Meridian houses, Meridian table of houses, ARMC, Axial Rotation, Axial rotation system, Zariel, X axial rotation system/ Meridian houses -> Meridian"
+            "X, Meridian houses, Meridian table of houses, Meridian house system, ARMC, Axial Rotation, Axial rotation system, Zariel, X axial rotation system/ Meridian houses -> Meridian"
         ));
         assert!(rendered.contains("Y, APC, Ram school, Ram's school, Ramschool, WvA, Y APC houses, APC houses, APC, also known as “Ram school”, table of houses, APC house system, Ascendant Parallel Circle -> APC"));
         assert!(rendered.contains("T, Polich-Page, Polich/Page, Polich Page, Polich-Page \"topocentric\" table of houses, T Polich/Page (\"topocentric\"), T topocentric, Topocentric house system -> Topocentric"));

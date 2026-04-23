@@ -183,6 +183,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         &[
             "Meridian houses",
             "Meridian table of houses",
+            "Meridian house system",
             "ARMC",
             "Axial Rotation",
             "Axial rotation system",
@@ -299,6 +300,8 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
             "Azimuthal",
             "Horizon house system",
             "Horizon/Azimuth house system",
+            "Horizontal house system",
+            "Azimuth house system",
             "Horizon/Azimuth table of houses",
             "Azimuthal house system",
             "horizon/azimut",
@@ -457,6 +460,8 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
             "Azimuthal",
             "Horizon house system",
             "Horizon/Azimuth house system",
+            "Horizontal house system",
+            "Azimuth house system",
             "Horizon/Azimuth table of houses",
             "Azimuthal house system",
             "horizon/azimut",
@@ -573,6 +578,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         &[
             "Meridian houses",
             "Meridian table of houses",
+            "Meridian house system",
             "ARMC",
             "Axial Rotation",
             "Axial rotation system",
@@ -892,6 +898,10 @@ mod tests {
             Some(HouseSystem::Meridian)
         );
         assert_eq!(resolve_house_system("Zariel"), Some(HouseSystem::Meridian));
+        assert_eq!(
+            resolve_house_system("Meridian house system"),
+            Some(HouseSystem::Meridian)
+        );
         assert_eq!(resolve_house_system("A equal"), Some(HouseSystem::Equal));
         assert_eq!(
             resolve_house_system("D equal / MC"),
@@ -1030,6 +1040,14 @@ mod tests {
             Some(HouseSystem::Horizon)
         );
         assert_eq!(
+            resolve_house_system("Horizontal house system"),
+            Some(HouseSystem::Horizon)
+        );
+        assert_eq!(
+            resolve_house_system("Azimuth house system"),
+            Some(HouseSystem::Horizon)
+        );
+        assert_eq!(
             resolve_house_system("horizon/azimuth"),
             Some(HouseSystem::Horizon)
         );
@@ -1066,6 +1084,14 @@ mod tests {
         );
         assert_eq!(
             resolve_house_system("Horizon/Azimuth house system"),
+            Some(HouseSystem::Horizon)
+        );
+        assert_eq!(
+            resolve_house_system("Horizontal house system"),
+            Some(HouseSystem::Horizon)
+        );
+        assert_eq!(
+            resolve_house_system("Azimuth house system"),
             Some(HouseSystem::Horizon)
         );
         assert_eq!(
