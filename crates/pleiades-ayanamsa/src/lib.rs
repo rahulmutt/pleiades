@@ -143,7 +143,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::TrueCitra,
         "True Citra",
-        &["True Citra", "True Citra ayanamsa"],
+        &["True Citra ayanamsa"],
         "True Citra sidereal mode with the published zero point used by Swiss Ephemeris-style interoperability tables.",
         Some(JulianDay::from_days(1_825_182.872_330)),
         Some(Angle::from_degrees(50.256_748_3)),
@@ -644,7 +644,6 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Ayanamsa::TrueCitra,
         "True Citra",
         &[
-            "True Citra",
             "True Citra ayanamsa",
             "True Citra Paksha",
             "True Chitra Paksha",
@@ -1603,6 +1602,13 @@ mod tests {
         ] {
             assert!(names.contains(&expected), "missing {expected}");
         }
+    }
+
+    #[test]
+    fn release_descriptor_aliases_do_not_repeat_canonical_labels() {
+        assert!(built_in_ayanamsas()
+            .iter()
+            .all(|entry| { !entry.aliases.contains(&entry.canonical_name) }));
     }
 
     #[test]

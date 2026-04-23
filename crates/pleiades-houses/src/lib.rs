@@ -235,7 +235,6 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
             "Equal (MC) table of houses",
             "Equal MC",
             "Equal Midheaven",
-            "Equal (MC)",
             "Equal/MC = 10th",
         ],
         "Equal houses anchored at the Midheaven instead of the Ascendant.",
@@ -384,7 +383,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
     HouseSystemDescriptor::new(
         HouseSystem::Gauquelin,
         "Gauquelin sectors",
-        &["G", "Gauquelin", "Gauquelin sector", "Gauquelin sectors", "Gauquelin table of sectors"],
+        &["G", "Gauquelin", "Gauquelin sector", "Gauquelin table of sectors"],
         "Thirty-six sectors used by the Gauquelin-sector family.",
         true,
     ),
@@ -627,7 +626,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
     HouseSystemDescriptor::new(
         HouseSystem::Gauquelin,
         "Gauquelin sectors",
-        &["G", "Gauquelin", "Gauquelin sector", "Gauquelin sectors", "Gauquelin table of sectors"],
+        &["G", "Gauquelin", "Gauquelin sector", "Gauquelin table of sectors"],
         "Thirty-six sectors used by the Gauquelin-sector family.",
         true,
     ),
@@ -642,7 +641,6 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
             "Equal (MC) table of houses",
             "Equal MC",
             "Equal Midheaven",
-            "Equal (MC)",
             "Equal/MC = 10th",
         ],
         "Equal houses anchored at the Midheaven instead of the Ascendant.",
@@ -1140,6 +1138,13 @@ mod tests {
         ] {
             assert!(names.contains(&expected), "missing {expected}");
         }
+    }
+
+    #[test]
+    fn release_descriptor_aliases_do_not_repeat_canonical_labels() {
+        assert!(built_in_house_systems()
+            .iter()
+            .all(|entry| { !entry.aliases.contains(&entry.canonical_name) }));
     }
 
     #[test]
