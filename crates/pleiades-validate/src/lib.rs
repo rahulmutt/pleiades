@@ -2421,6 +2421,70 @@ version = "0.9.0"
     }
 
     #[test]
+    fn verify_release_bundle_rejects_api_stability_checksum_mismatches() {
+        let bundle_dir = unique_temp_dir("pleiades-release-bundle-corrupt-api-stability");
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let manifest_path = bundle_dir.join("bundle-manifest.txt");
+        let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
+        let corrupted = manifest.replace(
+            "api stability checksum (fnv1a-64):",
+            "api stability checksum (fnv1a-64): 0x0000000000000000 #",
+        );
+        std::fs::write(&manifest_path, corrupted).expect("manifest should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect_err("verification should fail for a corrupted API stability checksum");
+        assert!(
+            error.contains("release bundle verification failed")
+                || error.contains("invalid api stability checksum")
+                || error.contains("missing 0x prefix")
+        );
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_validation_report_checksum_mismatches() {
+        let bundle_dir = unique_temp_dir("pleiades-release-bundle-corrupt-validation-report");
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let manifest_path = bundle_dir.join("bundle-manifest.txt");
+        let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
+        let corrupted = manifest.replace(
+            "validation report checksum (fnv1a-64):",
+            "validation report checksum (fnv1a-64): 0x0000000000000000 #",
+        );
+        std::fs::write(&manifest_path, corrupted).expect("manifest should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect_err("verification should fail for a corrupted validation report checksum");
+        assert!(
+            error.contains("release bundle verification failed")
+                || error.contains("invalid validation report checksum")
+                || error.contains("missing 0x prefix")
+        );
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
     fn artifact_validation_report_mentions_boundary_checks() {
         let report = render_artifact_report().expect("artifact report should render");
         assert!(report.contains("Artifact validation report"));
