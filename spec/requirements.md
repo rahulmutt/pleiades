@@ -2,6 +2,16 @@
 
 ## Functional Requirements
 
+### Compatibility Catalog Policy
+For this specification set, the **target compatibility catalog** means the full built-in house-system and ayanamsa compatibility surface Pleiades intends to provide for Swiss-Ephemeris-class astrology interoperability, including documented aliases, naming differences, and operational constraints.
+
+Phased delivery is allowed, but release notes and compatibility profiles must always distinguish between:
+
+- the full target compatibility catalog
+- the baseline compatibility milestone currently guaranteed
+- additional release-specific coverage beyond the baseline milestone
+- known gaps or constraints that still affect interoperability
+
 ### FR-1 Body Support
 The system must support computation of at least:
 
@@ -70,6 +80,8 @@ The project must publish a versioned compatibility profile that enumerates the e
 - any additional release-specific coverage beyond the baseline milestone
 - any aliases or naming differences versus other astrology software
 - any known constraints, gaps, or latitude-specific failure modes relevant to interoperability
+
+A release must not claim full compatibility-catalog coverage unless the shipped built-ins match the published target catalog for that release line.
 
 ### FR-5 Backend Abstraction
 The system must expose a common backend trait that:

@@ -15,6 +15,8 @@ Pleiades must:
 
 ## Specification Index
 
+### Normative Documents
+
 - [spec/vision-and-scope.md](spec/vision-and-scope.md) — product scope, goals, non-goals, user targets
 - [spec/requirements.md](spec/requirements.md) — functional and non-functional requirements
 - [spec/architecture.md](spec/architecture.md) — workspace layout, crate decomposition, dependency rules
@@ -24,6 +26,9 @@ Pleiades must:
 - [spec/backends.md](spec/backends.md) — backend implementations, source families, crate inventory
 - [spec/api-and-ergonomics.md](spec/api-and-ergonomics.md) — Rust API shape, error handling, configuration model
 - [spec/validation-and-testing.md](spec/validation-and-testing.md) — correctness, benchmarks, compatibility, release criteria
+
+### Informative Document
+
 - [spec/roadmap.md](spec/roadmap.md) — phased implementation plan
 
 ## Core Product Statement
@@ -44,7 +49,7 @@ The following decisions are binding unless a sub-spec explicitly supersedes them
 3. **Crate naming**: every first-party crate, including tooling and data crates, must begin with `pleiades-`.
 4. **Backend modularity**: every ephemeris source/algorithm implementation lives in its own crate.
 5. **Separation of concerns**: astrology-domain calculations must not be hardwired to one backend.
-6. **Compatibility catalog**: the project must define and eventually ship the full built-in house-system and ayanamsa catalogs needed for Swiss-Ephemeris-class astrology compatibility, while each release publishes a versioned compatibility profile describing the exact built-ins, aliases, and remaining gaps.
+6. **Compatibility catalog**: the project must define and eventually ship the full built-in house-system and ayanamsa catalogs needed for Swiss-Ephemeris-class astrology compatibility. For this spec set, that means the complete built-in compatibility surface Pleiades intends to expose for interoperability with Swiss-Ephemeris-style workflows, including documented aliases and operational constraints. Each release must publish a versioned compatibility profile describing the exact built-ins, aliases, and remaining gaps.
 7. **Layering rule**: low-level backends provide raw astronomical results and capability metadata; domain-layer crates are responsible for astrology-specific transforms such as sidereal conversion, house placement, and chart assembly unless a backend explicitly documents equivalent native support.
 8. **Data range optimization**: compressed packaged data is optimized for 1500-2500, while some live/computational backends may support broader ranges.
 9. **Reproducibility**: packaged data artifacts must be versioned, documented, and regenerable from public inputs.
@@ -90,7 +95,7 @@ Interim releases may implement only the baseline milestone plus incremental addi
 
 ## Bootstrap Compliance Checklist
 
-This spec set satisfies the bootstrap prompt by making the following requirements normative:
+Verdict: the derived specification set adheres to the bootstrap prompt. The required constraints are stated normatively and decomposed across the linked sub-specs as follows:
 
 | Bootstrap requirement | Where it is specified |
 | --- | --- |
@@ -100,7 +105,7 @@ This spec set satisfies the bootstrap prompt by making the following requirement
 | Compressed representation optimized for common use in 1500-2500 | [spec/data-compression.md](spec/data-compression.md), [spec/backends.md](spec/backends.md) |
 | All first-party sub-crates named `pleiades-*` | [spec/architecture.md](spec/architecture.md) |
 
-The main gap in the earlier draft was wording around house systems and ayanamsas: some sections implied only an initial subset was required. The revised sub-specs now make the **end-state requirement** explicit while still allowing phased delivery: the target compatibility catalog remains the full house-system and ayanamsa set expected for Swiss-Ephemeris-class astrology workflows, and each interim release must publish a compatibility profile that makes current coverage and gaps explicit.
+The main design caution is that phased implementation must never be mistaken for a reduced end-state scope. The revised sub-specs therefore treat the **target compatibility catalog** as the full compatibility surface and require every release to publish a compatibility profile that makes current coverage and gaps explicit.
 
 ## Document Status
 

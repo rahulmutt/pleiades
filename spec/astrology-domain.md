@@ -1,5 +1,11 @@
 # Astrology Domain Specification
 
+## Compatibility Catalog Semantics
+
+For this specification set, the **target compatibility catalog** means the full built-in house-system and ayanamsa compatibility surface Pleiades intends to expose for Swiss-Ephemeris-class astrology interoperability, including documented aliases, naming differences, and operational constraints.
+
+The catalog definition is normative even when implementation is phased. Interim releases may expose only part of the catalog, but the API and type system must remain open to the full end-state catalog without redesign.
+
 ## Supported Body Model
 
 The domain layer must define a stable body taxonomy covering:
