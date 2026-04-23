@@ -202,6 +202,16 @@ impl ChartSnapshot {
         })
     }
 
+    /// Returns the placements that are currently classified as stationary.
+    pub fn stationary_placements(&self) -> impl Iterator<Item = &BodyPlacement> {
+        self.placements.iter().filter(|placement| {
+            matches!(
+                placement.motion_direction(),
+                Some(MotionDirection::Stationary)
+            )
+        })
+    }
+
     /// Returns the placements that are currently classified with a requested motion direction.
     pub fn placements_with_motion_direction(
         &self,
@@ -452,6 +462,14 @@ impl fmt::Display for ChartSnapshot {
                 motion_summary.retrograde,
                 motion_summary.unknown,
             )?;
+        }
+
+        let stationary_bodies: Vec<String> = self
+            .stationary_placements()
+            .map(|placement| placement.body.to_string())
+            .collect();
+        if !stationary_bodies.is_empty() {
+            writeln!(f, "Stationary bodies: {}", stationary_bodies.join(", "))?;
         }
 
         let retrograde_bodies: Vec<String> = self
@@ -912,6 +930,21 @@ mod tests {
         ));
         direct.motion = Some(pleiades_types::Motion::new(Some(0.01), None, None));
 
+        let mut stationary = EphemerisResult::new(
+            BackendId::new("toy-chart"),
+            CelestialBody::Mercury,
+            instant,
+            pleiades_types::CoordinateFrame::Ecliptic,
+            ZodiacMode::Tropical,
+            Apparentness::Apparent,
+        );
+        stationary.ecliptic = Some(EclipticCoordinates::new(
+            Longitude::from_degrees(45.0),
+            Latitude::from_degrees(0.0),
+            None,
+        ));
+        stationary.motion = Some(pleiades_types::Motion::new(Some(0.0), None, None));
+
         let chart = ChartSnapshot {
             backend_id: BackendId::new("toy-chart"),
             instant,
@@ -924,6 +957,12 @@ mod tests {
                     position: direct,
                     sign: Some(ZodiacSign::Aries),
                     house: Some(1),
+                },
+                BodyPlacement {
+                    body: CelestialBody::Mercury,
+                    position: stationary,
+                    sign: Some(ZodiacSign::Taurus),
+                    house: Some(2),
                 },
                 BodyPlacement {
                     body: CelestialBody::Mars,
@@ -945,7 +984,7 @@ mod tests {
         );
         assert_eq!(chart.house_for_body(&CelestialBody::Sun), Some(1));
         assert_eq!(chart.house_for_body(&CelestialBody::Mars), Some(8));
-        assert_eq!(chart.house_for_body(&CelestialBody::Mercury), None);
+        assert_eq!(chart.house_for_body(&CelestialBody::Mercury), Some(2));
         assert_eq!(
             chart.motion_direction_for(&CelestialBody::Mars),
             Some(MotionDirection::Retrograde)
@@ -963,18 +1002,26 @@ mod tests {
             .is_none());
         assert_eq!(
             chart
+                .placements_in_house(2)
+                .map(|placement| placement.body.clone())
+                .collect::<Vec<_>>(),
+            vec![CelestialBody::Mercury]
+        );
+        assert_eq!(
+            chart
                 .placements_in_house(8)
                 .map(|placement| placement.body.clone())
                 .collect::<Vec<_>>(),
             vec![CelestialBody::Mars]
         );
         assert!(chart.placements_in_house(12).next().is_none());
+        assert_eq!(chart.stationary_placements().count(), 1);
         assert_eq!(chart.retrograde_placements().count(), 1);
         assert_eq!(
             chart.motion_summary(),
             MotionSummary {
                 direct: 1,
-                stationary: 0,
+                stationary: 1,
                 retrograde: 1,
                 unknown: 0,
             }
@@ -988,6 +1035,13 @@ mod tests {
         );
         assert_eq!(
             chart
+                .placements_with_motion_direction(MotionDirection::Stationary)
+                .map(|placement| placement.body.clone())
+                .collect::<Vec<_>>(),
+            vec![CelestialBody::Mercury]
+        );
+        assert_eq!(
+            chart
                 .direct_placements()
                 .map(|placement| placement.body.clone())
                 .collect::<Vec<_>>(),
@@ -995,8 +1049,9 @@ mod tests {
         );
         let rendered = chart.to_string();
         assert!(
-            rendered.contains("Motion summary: 1 direct, 0 stationary, 1 retrograde, 0 unknown")
+            rendered.contains("Motion summary: 1 direct, 1 stationary, 1 retrograde, 0 unknown")
         );
+        assert!(rendered.contains("Stationary bodies: Mercury"));
         assert!(rendered.contains("Retrograde bodies: Mars"));
     }
 

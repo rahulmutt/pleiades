@@ -1,5 +1,16 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Stationary motion helper added to the chart façade
+
+Implemented a small Stage 6 chart-ergonomics slice:
+
+- `pleiades-core::ChartSnapshot` now exposes a `stationary_placements` helper alongside the existing direct and retrograde motion helpers, so consumers can inspect stationary bodies without rescanning placements manually
+- chart rendering now emits a `Stationary bodies:` line when stationary motion data is present, keeping the report output aligned with the motion summary counts
+- regression coverage now exercises the stationary-motion path end to end, including the rendered report text and the motion-direction partition helper
+- the README, API stability posture, and Stage 6 progress notes should mention the new stationary motion helper surface explicitly
+
+Remaining Stage 6 work: keep the release-facing chart helpers, catalog breadth, and compatibility profile synchronized as the release hardening work continues.
+
 ## 2026-04-23 — Release profile appendix docs synced
 
 Completed the small documentation-sync follow-up for the latest Stage 6 source-label appendix expansion:
