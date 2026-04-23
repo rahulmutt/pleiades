@@ -193,7 +193,7 @@ fn write_alias_section<T: AliasProfileEntry>(
 fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
     match canonical_name {
         "Placidus" => &["Placidus house system"],
-        "Koch" => &["Koch house system", "W. Koch"],
+        "Koch" => &["Koch house system", "W. Koch", "W Koch"],
         "Porphyry" => &["Equal Quadrant"],
         "Regiomontanus" => &["Regiomontanus houses"],
         "Campanus" => &["Campanus houses"],
@@ -1098,7 +1098,7 @@ mod tests {
         assert!(rendered.contains("Known gaps:"));
         assert!(rendered.contains("Placidus house system -> Placidus"));
         assert!(rendered.contains("Equal (cusp 1 = Asc) -> Equal"));
-        assert!(rendered.contains("Koch house system, W. Koch -> Koch"));
+        assert!(rendered.contains("Koch house system, W. Koch, W Koch -> Koch"));
         assert!(rendered.contains("Lahiri"));
         assert!(rendered.contains("Custom-definition labels:"));
         assert!(rendered.contains("- True Balarama"));
