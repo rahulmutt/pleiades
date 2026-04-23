@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Release profile source-label appendix expanded
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-core::CompatibilityProfile` now expands the source-label appendix to cover additional release-specific ayanamsa labels, including the PVR Pushya-paksha / True Pushya family, J. N. Bhasin, Lahiri (VP285), Krishnamurti (VP291), Sheoran, and the mean-sun / galactic-reference label variants already catalogued in `pleiades-ayanamsa`
+- regression coverage should assert the new source-label appendix entries so the release profile stays searchable by the labels users actually see in source docs
+- the Stage 6 progress notes and README should mention the broader source-label appendix as part of the ongoing release-hardening work
+
+Remaining Stage 6 work: keep the release-profile appendix, catalog breadth, and release notes synchronized as additional interoperability labels land.
+
 ## 2026-04-23 — ChartSnapshot motion summary helper added
 
 Implemented a small Stage 6 chart-ergonomics slice:
