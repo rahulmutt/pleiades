@@ -68,7 +68,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] The compatibility profile now also includes a compact coverage summary for house-system breadth, ayanamsa breadth, and sidereal-metadata coverage, and the CLI profile rendering follows the same wording.
 - [x] Validation reports now include the release compatibility profile so the stage-6 release artifact bundle carries the current coverage summary.
 - [x] `pleiades-validate bundle-release --out DIR` now writes the compatibility profile, release notes, release checklist, backend capability matrix, API stability posture, validation report, and a manifest for a reproducible release bundle.
-- [x] The benchmark corpus now uses seven epochs across the 1500-2500 target window instead of the earlier three-epoch slice, including additional mid-window coverage so the validation report carries a stronger representative workload for Stage 6 release hardening.
+- [x] The benchmark corpus now uses nine epochs across the 1500-2500 target window instead of the earlier three-epoch slice, adding century-guard epochs near the edges while keeping the representative workload broad enough for Stage 6 release hardening.
 - [x] The release bundle manifest now records deterministic FNV-1a checksums for the published text artifacts, and the CLI bundle summary surfaces those checksums for release verification.
 - [x] `mise run release-smoke` now exercises the release bundle command locally and in CI so release artifacts stay under automation.
 - [x] The compatibility profile's Valens Moon source-label appendix now also includes the plain `Moon` search term, keeping the release-facing interoperability labels aligned with the existing chart-layer alias resolution.

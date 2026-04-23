@@ -972,3 +972,13 @@ Implemented a small Stage 6 release-hardening slice:
 - the Stage 6 progress notes were updated to record the report-format refinement as release-hardening maintenance rather than a behavior change
 
 Remaining Stage 6 work: keep the release bundle, compatibility profile, validation report, and README wording synchronized as further hardening slices land.
+
+## 2026-04-23 — Benchmark corpus expanded with additional edge-window epochs
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-validate::ValidationCorpus::representative_window()` now includes two additional guard epochs near the century edges of the 1500-2500 target window, so the benchmark workload is less sparse at the range boundaries
+- the benchmark corpus summary now reports nine epochs / 90 requests instead of the earlier seven-epoch / 70-request layout, and the regression test now checks the expanded counts
+- the Stage 6 progress notes were updated to describe the benchmark-corpus expansion as part of the release-hardening backlog
+
+Remaining Stage 6 work: keep the benchmark corpus, validation report, and release notes aligned as further hardening slices land.
