@@ -313,7 +313,8 @@ pub struct ValidationReport {
 }
 
 /// A generated release bundle containing the compatibility profile, release notes,
-/// release checklist, backend matrix, API posture, API summary, validation report, and manifest.
+/// release checklist, backend matrix, API posture, API summary, validation report summary,
+/// validation report, and manifest.
 #[derive(Clone, Debug)]
 pub struct ReleaseBundle {
     /// Source revision recorded when the bundle was generated.
@@ -340,6 +341,8 @@ pub struct ReleaseBundle {
     pub api_stability_path: PathBuf,
     /// Path to the generated API stability summary file.
     pub api_stability_summary_path: PathBuf,
+    /// Path to the generated validation report summary file.
+    pub validation_report_summary_path: PathBuf,
     /// Path to the generated validation report file.
     pub validation_report_path: PathBuf,
     /// Path to the generated bundle manifest.
@@ -360,6 +363,8 @@ pub struct ReleaseBundle {
     pub api_stability_bytes: usize,
     /// Number of bytes written for the API stability summary.
     pub api_stability_summary_bytes: usize,
+    /// Number of bytes written for the validation report summary.
+    pub validation_report_summary_bytes: usize,
     /// Number of bytes written for the validation report.
     pub validation_report_bytes: usize,
     /// Deterministic checksum for the compatibility profile contents.
@@ -378,6 +383,8 @@ pub struct ReleaseBundle {
     pub api_stability_checksum: u64,
     /// Deterministic checksum for the API stability summary contents.
     pub api_stability_summary_checksum: u64,
+    /// Deterministic checksum for the validation report summary contents.
+    pub validation_report_summary_checksum: u64,
     /// Deterministic checksum for the validation report contents.
     pub validation_report_checksum: u64,
     /// Number of validation rounds recorded in the bundle manifest.
@@ -612,6 +619,11 @@ impl fmt::Display for ReleaseBundle {
         )?;
         writeln!(
             f,
+            "  validation report summary: {}",
+            self.validation_report_summary_path.display()
+        )?;
+        writeln!(
+            f,
             "  validation report: {}",
             self.validation_report_path.display()
         )?;
@@ -694,8 +706,18 @@ impl fmt::Display for ReleaseBundle {
         )?;
         writeln!(
             f,
+            "  validation report summary bytes: {}",
+            self.validation_report_summary_bytes
+        )?;
+        writeln!(
+            f,
             "  validation report bytes: {}",
             self.validation_report_bytes
+        )?;
+        writeln!(
+            f,
+            "  validation report summary checksum: 0x{:016x}",
+            self.validation_report_summary_checksum
         )?;
         writeln!(
             f,
@@ -1059,6 +1081,7 @@ fn render_release_checklist_text() -> String {
         "[x] backend-matrix-summary.txt",
         "[x] api-stability.txt",
         "[x] api-stability-summary.txt",
+        "[x] validation-report-summary.txt",
         "[x] validation-report.txt",
         "[x] bundle-manifest.txt",
         "[x] verify-release-bundle",
@@ -1131,7 +1154,8 @@ fn workspace_provenance() -> WorkspaceProvenance {
 }
 
 /// Writes a release bundle containing the compatibility profile, release notes,
-/// release checklist, backend matrix, API posture, API summary, validation report, and a manifest.
+/// release checklist, backend matrix, API posture, API summary, validation report summary,
+/// validation report, and a manifest.
 pub fn render_release_bundle(
     rounds: usize,
     output_dir: impl AsRef<Path>,
@@ -1147,7 +1171,9 @@ pub fn render_release_bundle(
     let backend_matrix_summary_text = render_backend_matrix_summary();
     let api_stability_text = current_api_stability_profile().to_string();
     let api_stability_summary_text = render_api_stability_summary();
-    let validation_report = render_validation_report(rounds)?;
+    let validation_report = build_validation_report(rounds)?;
+    let validation_report_text = validation_report.to_string();
+    let validation_report_summary_text = render_validation_report_summary_text(&validation_report);
     let provenance = workspace_provenance();
     let profile_path = output_dir.join("compatibility-profile.txt");
     let profile_summary_path = output_dir.join("compatibility-profile-summary.txt");
@@ -1157,6 +1183,7 @@ pub fn render_release_bundle(
     let backend_matrix_summary_path = output_dir.join("backend-matrix-summary.txt");
     let api_stability_path = output_dir.join("api-stability.txt");
     let api_stability_summary_path = output_dir.join("api-stability-summary.txt");
+    let validation_report_summary_path = output_dir.join("validation-report-summary.txt");
     let report_path = output_dir.join("validation-report.txt");
     let manifest_path = output_dir.join("bundle-manifest.txt");
     let compatibility_profile_checksum = checksum64(&profile_text);
@@ -1167,9 +1194,10 @@ pub fn render_release_bundle(
     let backend_matrix_summary_checksum = checksum64(&backend_matrix_summary_text);
     let api_stability_checksum = checksum64(&api_stability_text);
     let api_stability_summary_checksum = checksum64(&api_stability_summary_text);
-    let validation_report_checksum = checksum64(&validation_report);
+    let validation_report_summary_checksum = checksum64(&validation_report_summary_text);
+    let validation_report_checksum = checksum64(&validation_report_text);
     let manifest_text = format!(
-        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\nbackend matrix summary: backend-matrix-summary.txt\nbackend matrix summary checksum (fnv1a-64): 0x{backend_matrix_summary_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\napi stability summary: api-stability-summary.txt\napi stability summary checksum (fnv1a-64): 0x{api_stability_summary_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
+        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\nbackend matrix summary: backend-matrix-summary.txt\nbackend matrix summary checksum (fnv1a-64): 0x{backend_matrix_summary_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\napi stability summary: api-stability-summary.txt\napi stability summary checksum (fnv1a-64): 0x{api_stability_summary_checksum:016x}\nvalidation report summary: validation-report-summary.txt\nvalidation report summary checksum (fnv1a-64): 0x{validation_report_summary_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
         provenance.source_revision,
         provenance.workspace_status,
         provenance.rustc_version,
@@ -1192,7 +1220,11 @@ pub fn render_release_bundle(
         &api_stability_summary_path,
         api_stability_summary_text.as_bytes(),
     )?;
-    fs::write(&report_path, validation_report.as_bytes())?;
+    fs::write(
+        &validation_report_summary_path,
+        validation_report_summary_text.as_bytes(),
+    )?;
+    fs::write(&report_path, validation_report_text.as_bytes())?;
     fs::write(&manifest_path, manifest_text.as_bytes())?;
 
     verify_release_bundle(output_dir)
@@ -1216,6 +1248,8 @@ struct ParsedReleaseBundleManifest {
     api_stability_checksum: u64,
     api_stability_summary_path: String,
     api_stability_summary_checksum: u64,
+    validation_report_summary_path: String,
+    validation_report_summary_checksum: u64,
     validation_report_path: String,
     validation_report_checksum: u64,
     source_revision: String,
@@ -1266,6 +1300,14 @@ impl ParsedReleaseBundleManifest {
                 text,
                 "api stability summary checksum (fnv1a-64):",
             )?,
+            validation_report_summary_path: parse_manifest_string(
+                text,
+                "validation report summary:",
+            )?,
+            validation_report_summary_checksum: parse_manifest_checksum(
+                text,
+                "validation report summary checksum (fnv1a-64):",
+            )?,
             validation_report_path: parse_manifest_string(text, "validation report:")?,
             validation_report_checksum: parse_manifest_checksum(
                 text,
@@ -1291,6 +1333,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
         "backend-matrix-summary.txt",
         "api-stability.txt",
         "api-stability-summary.txt",
+        "validation-report-summary.txt",
         "validation-report.txt",
         "bundle-manifest.txt",
     ]
@@ -1334,6 +1377,7 @@ fn verify_release_bundle(
     let backend_matrix_summary_path = output_dir.join("backend-matrix-summary.txt");
     let api_stability_path = output_dir.join("api-stability.txt");
     let api_stability_summary_path = output_dir.join("api-stability-summary.txt");
+    let validation_report_summary_path = output_dir.join("validation-report-summary.txt");
     let validation_report_path = output_dir.join("validation-report.txt");
     let manifest_path = output_dir.join("bundle-manifest.txt");
 
@@ -1345,6 +1389,7 @@ fn verify_release_bundle(
     let backend_matrix_summary_text = fs::read_to_string(&backend_matrix_summary_path)?;
     let api_stability_text = fs::read_to_string(&api_stability_path)?;
     let api_stability_summary_text = fs::read_to_string(&api_stability_summary_path)?;
+    let validation_report_summary_text = fs::read_to_string(&validation_report_summary_path)?;
     let validation_report_text = fs::read_to_string(&validation_report_path)?;
     let manifest_text = fs::read_to_string(&manifest_path)?;
 
@@ -1406,6 +1451,12 @@ fn verify_release_bundle(
             manifest.api_stability_summary_path
         )));
     }
+    if manifest.validation_report_summary_path != "validation-report-summary.txt" {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected validation report summary file entry: {}",
+            manifest.validation_report_summary_path
+        )));
+    }
     if manifest.validation_report_path != "validation-report.txt" {
         return Err(ReleaseBundleError::Verification(format!(
             "unexpected validation report file entry: {}",
@@ -1420,6 +1471,7 @@ fn verify_release_bundle(
     let backend_matrix_summary_checksum = checksum64(&backend_matrix_summary_text);
     let api_stability_checksum = checksum64(&api_stability_text);
     let api_stability_summary_checksum = checksum64(&api_stability_summary_text);
+    let validation_report_summary_checksum = checksum64(&validation_report_summary_text);
     let validation_report_checksum = checksum64(&validation_report_text);
     let profile_id = extract_prefixed_value(&profile_text, "Compatibility profile: ")?;
     let api_stability_posture_id =
@@ -1486,6 +1538,12 @@ fn verify_release_bundle(
             manifest.api_stability_summary_checksum, api_stability_summary_checksum
         )));
     }
+    if manifest.validation_report_summary_checksum != validation_report_summary_checksum {
+        return Err(ReleaseBundleError::Verification(format!(
+            "validation report summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.validation_report_summary_checksum, validation_report_summary_checksum
+        )));
+    }
     if manifest.validation_report_checksum != validation_report_checksum {
         return Err(ReleaseBundleError::Verification(format!(
             "validation report checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
@@ -1506,6 +1564,7 @@ fn verify_release_bundle(
         backend_matrix_summary_path,
         api_stability_path,
         api_stability_summary_path,
+        validation_report_summary_path,
         validation_report_path,
         manifest_path,
         compatibility_profile_bytes: profile_text.len(),
@@ -1516,6 +1575,7 @@ fn verify_release_bundle(
         backend_matrix_summary_bytes: backend_matrix_summary_text.len(),
         api_stability_bytes: api_stability_text.len(),
         api_stability_summary_bytes: api_stability_summary_text.len(),
+        validation_report_summary_bytes: validation_report_summary_text.len(),
         validation_report_bytes: validation_report_text.len(),
         compatibility_profile_checksum,
         compatibility_profile_summary_checksum,
@@ -1525,6 +1585,7 @@ fn verify_release_bundle(
         backend_matrix_summary_checksum,
         api_stability_checksum,
         api_stability_summary_checksum,
+        validation_report_summary_checksum,
         validation_report_checksum,
         validation_rounds: manifest.validation_rounds,
     })
@@ -2665,7 +2726,7 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = default_corpus().requests.len();
     format!(
-        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix            Print the implemented backend capability matrices\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus with guard epochs\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  report-summary [--rounds N]  Render a compact validation report summary\n  validation-summary        Alias for report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  release-notes             Print the release compatibility notes\n  release-checklist         Print the release maintainer checklist\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release checklist, backend matrix, backend matrix summary, API posture, API summary, validation report, and manifest\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix            Print the implemented backend capability matrices\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus with guard epochs\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  report-summary [--rounds N]  Render a compact validation report summary\n  validation-summary        Alias for report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  release-notes             Print the release compatibility notes\n  release-checklist         Print the release maintainer checklist\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release checklist, backend matrix, backend matrix summary, API posture, API summary, validation report summary, validation report, and manifest\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
@@ -3282,6 +3343,7 @@ version = "0.9.0"
         assert!(rendered.contains("backend-matrix.txt"));
         assert!(rendered.contains("API stability posture:"));
         assert!(rendered.contains("api-stability.txt"));
+        assert!(rendered.contains("validation-report-summary.txt"));
         assert!(rendered.contains("validation-report.txt"));
         assert!(rendered.contains("source revision:"));
         assert!(rendered.contains("workspace status:"));
@@ -3307,6 +3369,9 @@ version = "0.9.0"
         let api_stability_summary =
             std::fs::read_to_string(bundle_dir.join("api-stability-summary.txt"))
                 .expect("API stability summary should be written");
+        let validation_report_summary =
+            std::fs::read_to_string(bundle_dir.join("validation-report-summary.txt"))
+                .expect("validation report summary should be written");
         let report = std::fs::read_to_string(bundle_dir.join("validation-report.txt"))
             .expect("validation report should be written");
         let manifest = std::fs::read_to_string(bundle_dir.join("bundle-manifest.txt"))
@@ -3360,6 +3425,8 @@ version = "0.9.0"
             "Compatibility profile: {}",
             release_profiles.compatibility_profile_id
         )));
+        assert!(validation_report_summary.contains("Validation report summary"));
+        assert!(validation_report_summary.contains("Comparison corpus"));
         assert!(report.contains("Validation report"));
         assert!(manifest.contains("Release bundle manifest"));
         assert!(manifest.contains("validation rounds: 1"));
@@ -3370,6 +3437,7 @@ version = "0.9.0"
         assert!(manifest.contains("backend-matrix-summary.txt"));
         assert!(manifest.contains("api-stability.txt"));
         assert!(manifest.contains("api-stability-summary.txt"));
+        assert!(manifest.contains("validation-report-summary.txt"));
         assert!(manifest.contains("validation-report.txt"));
         assert!(manifest.contains("source revision:"));
         assert!(manifest.contains("workspace status:"));
@@ -3381,6 +3449,7 @@ version = "0.9.0"
         assert!(manifest.contains("backend matrix checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("backend matrix summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("api stability checksum (fnv1a-64): 0x"));
+        assert!(manifest.contains("validation report summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("validation report checksum (fnv1a-64): 0x"));
 
         let verified = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
@@ -3388,6 +3457,7 @@ version = "0.9.0"
         assert!(verified.contains("Release bundle"));
         assert!(verified.contains("bundle-manifest.txt"));
         assert!(verified.contains("compatibility-profile-summary.txt"));
+        assert!(verified.contains("validation-report-summary.txt"));
         assert!(verified.contains("source revision:"));
         assert!(verified.contains("workspace status:"));
         assert!(verified.contains("rustc version:"));
@@ -3396,6 +3466,7 @@ version = "0.9.0"
         assert!(verified.contains("release checklist checksum: 0x"));
         assert!(verified.contains("backend matrix checksum: 0x"));
         assert!(verified.contains("backend matrix summary checksum: 0x"));
+        assert!(verified.contains("validation report summary checksum: 0x"));
         assert!(verified.contains("validation report checksum: 0x"));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
@@ -3765,6 +3836,15 @@ version = "0.9.0"
     }
 
     #[test]
+    fn verify_release_bundle_rejects_tampered_validation_report_summary_file() {
+        assert_release_bundle_rejects_tampered_text_file(
+            "pleiades-release-bundle-tampered-validation-report-summary",
+            "validation-report-summary.txt",
+            "validation report summary checksum mismatch",
+        );
+    }
+
+    #[test]
     fn verify_release_bundle_rejects_tampered_validation_report_file() {
         assert_release_bundle_rejects_tampered_text_file(
             "pleiades-release-bundle-tampered-validation-report",
@@ -3863,6 +3943,40 @@ version = "0.9.0"
         assert!(
             error.contains("release bundle verification failed")
                 || error.contains("invalid validation report checksum")
+                || error.contains("missing 0x prefix")
+        );
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_validation_report_summary_checksum_mismatches() {
+        let bundle_dir =
+            unique_temp_dir("pleiades-release-bundle-corrupt-validation-report-summary");
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let manifest_path = bundle_dir.join("bundle-manifest.txt");
+        let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
+        let corrupted = manifest.replace(
+            "validation report summary checksum (fnv1a-64):",
+            "validation report summary checksum (fnv1a-64): 0x0000000000000000 #",
+        );
+        std::fs::write(&manifest_path, corrupted).expect("manifest should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string]).expect_err(
+            "verification should fail for a corrupted validation report summary checksum",
+        );
+        assert!(
+            error.contains("release bundle verification failed")
+                || error.contains("invalid validation report summary checksum")
                 || error.contains("missing 0x prefix")
         );
 

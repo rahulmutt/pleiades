@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Release bundle now carries a compact validation-report summary artifact
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-validate` now stages a compact `validation-report-summary.txt` artifact alongside the full validation report, and the release bundle manifest/verification path now checks it just like the existing compatibility-profile, backend-matrix, and API-stability summaries
+- the README, release reproducibility guide, and Stage 6 progress notes were updated so the new summary artifact stays synchronized with the rest of the release-facing bundle description
+- no spec update was needed; this stays within the existing validation/reporting and release-hardening scope
+
+Remaining Stage 6 work: keep the compact validation summary, full validation report, and release-facing docs synchronized as further hardening slices land.
+
 ## 2026-04-23 — Validation report summary command now lands in the release-hardening surface
 
 Implemented a small Stage 6 release-hardening slice:
