@@ -1135,3 +1135,13 @@ Implemented the follow-up Stage 6 hardening slice:
 - the Stage 6 progress notes were updated to record the helper-based release-profile lookup as a small release-hardening maintenance slice
 
 Remaining Stage 6 work: keep the compatibility profile, API-stability posture, and release-facing helpers synchronized as the hardening work continues.
+
+## 2026-04-23 — Baseline ayanamsa source-label appendix widened for Fagan/Bradley and Usha Shashi
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-core::CompatibilityProfile` now surfaces the exact `Fagan/Bradley` and `Usha Shashi` spellings in the baseline ayanamsa source-label appendix, so the release profile is easier to search by the canonical baseline forms as well as the existing aliases
+- the compatibility profile identifier was bumped to `0.6.44`, and the Stage 6 progress notes were updated so the plan tracker stays synchronized with the widened appendix coverage
+- regression coverage now checks the revised release-profile text and appendix lines, keeping the new search forms visible in the rendered compatibility profile
+
+Remaining Stage 6 work: keep the release-facing compatibility profile, README, and validation output synchronized as additional interoperability labels land.
