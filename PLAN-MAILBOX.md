@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Motion-summary helper now appears in the API stability posture
+
+Implemented a small Stage 6 release-hardening sync slice:
+
+- `pleiades-core::ApiStabilityProfile` now explicitly lists `ChartSnapshot` motion summaries alongside the other stable chart-facade helpers, keeping the consumer-facing stability posture synchronized with the helper surface that was already added to the chart API
+- regression coverage now checks that the public stability profile still mentions motion summaries as part of the stable `ChartSnapshot` surface
+- the Stage 6 progress notes should call out the API-posture alignment so the release-hardening tracker stays in sync with the chart-helper surface
+
+Remaining Stage 6 work: keep the API posture, chart helpers, and release-facing docs synchronized as additional chart ergonomics land.
+
 ## 2026-04-23 — Release profile source-label appendix expanded
 
 Implemented a small Stage 6 release-hardening slice:
