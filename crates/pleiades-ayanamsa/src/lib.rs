@@ -16,6 +16,7 @@
 //! assert!(catalog.iter().any(|entry| entry.canonical_name == "Lahiri"));
 //!
 //! assert_eq!(resolve_ayanamsa("KP"), Some(pleiades_types::Ayanamsa::Krishnamurti));
+//! assert_eq!(resolve_ayanamsa("Krishnamurti Paddhati"), Some(pleiades_types::Ayanamsa::Krishnamurti));
 //! ```
 
 #![forbid(unsafe_code)]
@@ -101,7 +102,12 @@ const BASELINE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::Krishnamurti,
         "Krishnamurti",
-        &["KP", "Krishnamurti (Swiss)"],
+        &[
+            "KP",
+            "Krishnamurti (Swiss)",
+            "Krishnamurti Paddhati",
+            "KP ayanamsa",
+        ],
         "Krishnamurti Paddhati ayanamsa.",
         Some(JulianDay::from_days(2_415_020.0)),
         Some(Angle::from_degrees(22.363_889)),
@@ -590,7 +596,12 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
     AyanamsaDescriptor::new(
         Ayanamsa::Krishnamurti,
         "Krishnamurti",
-        &["KP", "Krishnamurti (Swiss)"],
+        &[
+            "KP",
+            "Krishnamurti (Swiss)",
+            "Krishnamurti Paddhati",
+            "KP ayanamsa",
+        ],
         "Krishnamurti Paddhati ayanamsa.",
         Some(JulianDay::from_days(2_415_020.0)),
         Some(Angle::from_degrees(22.363_889)),
@@ -1210,6 +1221,14 @@ mod tests {
         assert_eq!(resolve_ayanamsa("KP"), Some(Ayanamsa::Krishnamurti));
         assert_eq!(
             resolve_ayanamsa("Krishnamurti (Swiss)"),
+            Some(Ayanamsa::Krishnamurti)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Krishnamurti Paddhati"),
+            Some(Ayanamsa::Krishnamurti)
+        );
+        assert_eq!(
+            resolve_ayanamsa("KP ayanamsa"),
             Some(Ayanamsa::Krishnamurti)
         );
         assert_eq!(
