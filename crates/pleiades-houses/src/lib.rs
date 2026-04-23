@@ -271,7 +271,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
     HouseSystemDescriptor::new(
         HouseSystem::Sripati,
         "Sripati",
-        &["S sripati", "Śrīpati"],
+        &["S sripati", "Śrīpati", "Sripati house system", "Sripati table of houses"],
         "Midpoint variant of the Porphyry quadrants used in Jyotiṣa.",
         false,
     ),
@@ -659,7 +659,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
     HouseSystemDescriptor::new(
         HouseSystem::Sripati,
         "Sripati",
-        &["S sripati", "Śrīpati"],
+        &["S sripati", "Śrīpati", "Sripati house system", "Sripati table of houses"],
         "Midpoint variant of the Porphyry quadrants used in Jyotiṣa.",
         false,
     ),
@@ -1034,6 +1034,14 @@ mod tests {
         assert_eq!(resolve_house_system("Śrīpati"), Some(HouseSystem::Sripati));
         assert_eq!(
             resolve_house_system("S sripati"),
+            Some(HouseSystem::Sripati)
+        );
+        assert_eq!(
+            resolve_house_system("Sripati house system"),
+            Some(HouseSystem::Sripati)
+        );
+        assert_eq!(
+            resolve_house_system("Sripati table of houses"),
             Some(HouseSystem::Sripati)
         );
         assert_eq!(

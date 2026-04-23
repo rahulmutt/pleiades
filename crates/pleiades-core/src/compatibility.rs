@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.75";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.76";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -287,7 +287,13 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "Vehlow",
             "Vehlow equal",
         ],
-        "Sripati" => &["S", "S sripati", "Śrīpati"],
+        "Sripati" => &[
+            "S",
+            "S sripati",
+            "Śrīpati",
+            "Sripati house system",
+            "Sripati table of houses",
+        ],
         "Carter (poli-equatorial)" => &[
             "Carter",
             "Carter's poli-equatorial table of houses",
@@ -1177,7 +1183,9 @@ mod tests {
         assert!(
             rendered.contains("V equal Vehlow, Vehlow, Vehlow equal, Vehlow-equal, Vehlow-equal table of houses -> Vehlow Equal")
         );
-        assert!(rendered.contains("Sripati"));
+        assert!(rendered.contains(
+            "S, S sripati, Śrīpati, Sripati house system, Sripati table of houses -> Sripati"
+        ));
         assert!(rendered.contains("Carter (poli-equatorial)"));
         assert!(rendered.contains("Horizon/Azimuth"));
         assert!(rendered.contains("APC"));
@@ -1200,7 +1208,9 @@ mod tests {
             "I, I sunshine, Sunshine, Sunshine houses, Sunshine house system, Sunshine table of houses, by Bob Makransky, Makransky Sunshine, Bob Makransky, Treindl Sunshine -> Sunshine"
         ));
         assert!(rendered.contains("I sunshine"));
-        assert!(rendered.contains("S, S sripati, Śrīpati -> Sripati"));
+        assert!(rendered.contains(
+            "S, S sripati, Śrīpati, Sripati house system, Sripati table of houses -> Sripati"
+        ));
         assert!(rendered.contains("S sripati"));
         assert!(rendered.contains("P/K/R/C/O/E/W/N/V/A/H/B/M/S/I/G"));
         assert!(rendered.contains("plus the additional T/U/X/Y interoperability codes"));
