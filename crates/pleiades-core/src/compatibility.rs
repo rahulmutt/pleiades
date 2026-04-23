@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.28";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.29";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -220,14 +220,18 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "Azimuth",
             "Horizontal",
             "Azimuthal",
+            "Horizon house system",
+            "Azimuthal house system",
             "horizon/azimut",
             "horizon/azimuth",
         ],
         "APC" => &[
             "Ram school",
+            "Ram's school",
             "Ramschool",
             "WvA",
             "APC houses",
+            "APC house system",
             "Ascendant Parallel Circle",
         ],
         "Krusinski-Pisa-Goelzer" => &[
@@ -241,6 +245,7 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
         "Pullen SR" => &["Pullen sinusoidal ratio"],
         "Sunshine" => &[
             "Sunshine houses",
+            "Sunshine house system",
             "Makransky Sunshine",
             "Bob Makransky",
             "Treindl Sunshine",
@@ -892,14 +897,17 @@ mod tests {
         assert!(
             rendered.contains("Polich-Page, Polich Page, Topocentric house system -> Topocentric")
         );
-        assert!(rendered.contains("Horizontal, Azimuthal"));
+        assert!(rendered
+            .contains("Horizontal, Azimuthal, Horizon house system, Azimuthal house system"));
         assert!(rendered.contains("horizon/azimuth"));
         assert!(rendered
-            .contains("Ram school, Ramschool, WvA, APC houses, Ascendant Parallel Circle -> APC"));
+            .contains("Ram school, Ram's school, Ramschool, WvA, APC houses, APC house system, Ascendant Parallel Circle -> APC"));
         assert!(rendered.contains("Chitrapaksha -> Lahiri"));
         assert!(rendered.contains("B. V. Raman, B.V. Raman, B V Raman -> Raman"));
         assert!(rendered.contains("Whole Sign (house 1 = Aries), Equal/1=0 Aries, Equal (cusp 1 = 0° Aries) -> Equal (1=Aries)"));
-        assert!(rendered.contains("Equal houses, Wang, Equal (cusp 1 = Asc) -> Equal"));
+        assert!(rendered.contains(
+            "Equal houses, Equal house system, Equal House, Wang, Equal (cusp 1 = Asc) -> Equal"
+        ));
         assert!(rendered.contains("Equal from MC, Equal (from MC), Equal MC, Equal Midheaven, Equal (MC), Equal/MC = 10th -> Equal (MC)"));
         assert!(rendered.contains("J2000.0 -> J2000"));
         assert!(rendered.contains("J1900.0 -> J1900"));
@@ -920,7 +928,7 @@ mod tests {
         assert!(rendered.contains("Pullen SR"));
         assert!(rendered.contains("Pullen sinusoidal ratio -> Pullen SR"));
         assert!(rendered.contains(
-            "Sunshine houses, Makransky Sunshine, Bob Makransky, Treindl Sunshine -> Sunshine"
+            "Sunshine houses, Sunshine house system, Makransky Sunshine, Bob Makransky, Treindl Sunshine -> Sunshine"
         ));
         assert!(rendered.contains("Gauquelin sectors"));
         assert!(rendered

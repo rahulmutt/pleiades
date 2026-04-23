@@ -125,7 +125,13 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
     HouseSystemDescriptor::new(
         HouseSystem::Equal,
         "Equal",
-        &["Equal houses", "Wang", "Equal (cusp 1 = Asc)"],
+        &[
+            "Equal houses",
+            "Equal house system",
+            "Equal House",
+            "Wang",
+            "Equal (cusp 1 = Asc)",
+        ],
         "Equal-house system anchored on the ascendant; Wang and the Swiss Ephemeris \"Equal (cusp 1 = Asc)\" label are treated as interoperability aliases for the equal-house-from-Ascendant convention.",
         false,
     ),
@@ -231,6 +237,8 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
             "Azimuth",
             "Horizontal",
             "Azimuthal",
+            "Horizon house system",
+            "Azimuthal house system",
             "horizon/azimut",
             "horizon/azimuth",
         ],
@@ -242,9 +250,11 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         "APC",
         &[
             "Ram school",
+            "Ram's school",
             "Ramschool",
             "WvA",
             "APC houses",
+            "APC house system",
             "Ascendant Parallel Circle",
         ],
         "APC (Ram school) houses with non-opposite quadrant pairs and polar adjustments.",
@@ -288,6 +298,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         "Sunshine",
         &[
             "Sunshine houses",
+            "Sunshine house system",
             "Makransky Sunshine",
             "Bob Makransky",
             "Treindl Sunshine",
@@ -355,6 +366,8 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
             "Azimuth",
             "Horizontal",
             "Azimuthal",
+            "Horizon house system",
+            "Azimuthal house system",
             "horizon/azimut",
             "horizon/azimuth",
         ],
@@ -366,9 +379,11 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         "APC",
         &[
             "Ram school",
+            "Ram's school",
             "Ramschool",
             "WvA",
             "APC houses",
+            "APC house system",
             "Ascendant Parallel Circle",
         ],
         "APC (Ram school) houses with non-opposite quadrant pairs and polar adjustments.",
@@ -410,7 +425,13 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
     HouseSystemDescriptor::new(
         HouseSystem::Equal,
         "Equal",
-        &["Equal houses", "Wang", "Equal (cusp 1 = Asc)"],
+        &[
+            "Equal houses",
+            "Equal house system",
+            "Equal House",
+            "Wang",
+            "Equal (cusp 1 = Asc)",
+        ],
         "Equal-house system anchored on the ascendant; Wang and the Swiss Ephemeris \"Equal (cusp 1 = Asc)\" label are treated as interoperability aliases for the equal-house-from-Ascendant convention.",
         false,
     ),
@@ -461,6 +482,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         "Sunshine",
         &[
             "Sunshine houses",
+            "Sunshine house system",
             "Makransky Sunshine",
             "Bob Makransky",
             "Treindl Sunshine",
@@ -633,6 +655,14 @@ mod tests {
         );
         assert_eq!(resolve_house_system("Wang"), Some(HouseSystem::Equal));
         assert_eq!(
+            resolve_house_system("Equal house system"),
+            Some(HouseSystem::Equal)
+        );
+        assert_eq!(
+            resolve_house_system("Equal House"),
+            Some(HouseSystem::Equal)
+        );
+        assert_eq!(
             resolve_house_system("Whole Sign (house 1 = Aries)"),
             Some(HouseSystem::EqualAries)
         );
@@ -654,6 +684,11 @@ mod tests {
             Some(HouseSystem::Horizon)
         );
         assert_eq!(resolve_house_system("Ram school"), Some(HouseSystem::Apc));
+        assert_eq!(resolve_house_system("Ram's school"), Some(HouseSystem::Apc));
+        assert_eq!(
+            resolve_house_system("APC house system"),
+            Some(HouseSystem::Apc)
+        );
         assert_eq!(resolve_house_system("WvA"), Some(HouseSystem::Apc));
         assert_eq!(
             resolve_house_system("Ascendant Parallel Circle"),
@@ -662,6 +697,18 @@ mod tests {
         assert_eq!(
             resolve_house_system("Krusinski"),
             Some(HouseSystem::KrusinskiPisaGoelzer)
+        );
+        assert_eq!(
+            resolve_house_system("Horizon house system"),
+            Some(HouseSystem::Horizon)
+        );
+        assert_eq!(
+            resolve_house_system("Azimuthal house system"),
+            Some(HouseSystem::Horizon)
+        );
+        assert_eq!(
+            resolve_house_system("Sunshine house system"),
+            Some(HouseSystem::Sunshine)
         );
         assert_eq!(resolve_house_system("Śrīpati"), Some(HouseSystem::Sripati));
         assert_eq!(
