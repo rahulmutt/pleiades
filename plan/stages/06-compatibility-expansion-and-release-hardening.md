@@ -102,6 +102,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] Suryasiddhanta (Revati) and Suryasiddhanta (Citra) now carry explicit zero-point epoch metadata too, narrowing the remaining ayanamsa-metadata gap for the reference-frame compatibility batch.
 - [x] Galactic Equator (Fiorenza) now carries explicit J2000.0 epoch/offset metadata too, using the published 25° reference value so the galactic-reference batch stays synchronized with the compatibility profile.
 - [x] Release bundle generation now has a matching verification command that re-reads the staged artifacts, checks the manifest checksums, and is exercised by the release smoke task so the release artifact path is validated end to end.
+- [x] Release-bundle verification now also has a regression test that catches tampered `release-notes.txt` contents directly, so the manifest checksums are proven against file-level edits and not just manifest corruption.
 - [x] The release checklist artifact now embeds the canonical bundle-generation and verification commands, plus a pointer back to the reproducibility guide, so the release bundle is self-describing for maintainers.
 - [x] A release reproducibility guide now documents the canonical build, lint, test, smoke, bundle, and verification commands so maintainers can reproduce the release workflow from repository-managed tooling.
 - [x] Topocentric (Polich-Page) now uses a geodetic-to-geocentric latitude correction with elevation-aware ellipsoid handling, and the catalog note reflects the refined implementation.

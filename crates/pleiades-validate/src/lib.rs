@@ -2393,6 +2393,34 @@ version = "0.9.0"
     }
 
     #[test]
+    fn verify_release_bundle_rejects_tampered_release_notes_file() {
+        let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-notes");
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let notes_path = bundle_dir.join("release-notes.txt");
+        let mut notes = std::fs::read_to_string(&notes_path).expect("release notes should exist");
+        notes.push_str("\nTampered for regression coverage.\n");
+        std::fs::write(&notes_path, notes).expect("release notes should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect_err("verification should fail for a tampered release notes file");
+        assert!(
+            error.contains("release bundle verification failed")
+                || error.contains("release notes checksum mismatch")
+        );
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
     fn verify_release_bundle_rejects_release_checklist_checksum_mismatches() {
         let bundle_dir = unique_temp_dir("pleiades-release-bundle-corrupt-checklist");
         let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
