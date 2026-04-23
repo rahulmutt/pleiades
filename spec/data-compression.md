@@ -20,7 +20,7 @@ The preferred design is a **segmented polynomial/residual format**:
 2. For each body and coordinate channel, fit a low-order polynomial or Chebyshev approximation over the segment.
 3. Quantize coefficients into integer fields with per-segment scale metadata.
 4. Store optional residual correction tables for high-curvature bodies, especially the Moon.
-5. Use independent channels for longitude, latitude, and distance/speed as required.
+5. Store only the channels required to support the advertised result set for the artifact profile.
 
 ## Why This Design
 
@@ -42,6 +42,7 @@ A compressed artifact should contain:
 - coefficient blocks
 - optional residual blocks
 - checksums
+- an artifact capability/profile section describing which outputs are stored directly and which are reconstructed at query time
 
 ## Access Pattern
 
@@ -52,7 +53,8 @@ The runtime lookup algorithm should:
 3. decode quantized coefficients
 4. evaluate polynomial
 5. apply residual correction if present
-6. normalize angle output
+6. reconstruct any derived outputs promised by the artifact profile
+7. normalize angle output
 
 ## Compression Techniques
 
@@ -64,12 +66,34 @@ The implementation may combine:
 - entropy coding if justified by complexity/performance tradeoff
 - memory-mappable read layouts where practical
 
+## Stored vs Derived Outputs
+
+Packaged artifacts do not need to store every field of the backend result model verbatim.
+
+Instead, each artifact profile must declare:
+
+- which coordinate channels are stored directly
+- which channels are derived deterministically during decode
+- which optional outputs are unsupported by that artifact
+
+For example, an artifact may store ecliptic longitude, latitude, and distance directly while deriving equatorial coordinates from those values plus auxiliary parameters available to the runtime.
+
+If speed values are provided, the profile must state whether they are:
+
+- stored directly,
+- derived from fitted derivatives, or
+- approximated numerically from neighboring samples.
+
+This keeps the artifact format smaller while still making result semantics explicit.
+
 ## Channel Recommendations
 
 ### Slow-Moving Bodies
+
 For outer planets and many asteroids, longer segments are acceptable.
 
 ### Fast/Irregular Bodies
+
 For the Moon and some near-Earth-sensitive quantities, use shorter segments and/or higher-order fits with residual correction.
 
 ## Accuracy Targets

@@ -25,13 +25,16 @@ The façade should make a clear distinction between:
 
 This keeps backend contracts simpler, avoids duplicating astrology logic across backends, and still gives end users a convenient astrology-focused API.
 
-## Type Safety
+## Type Safety and Extensibility
 
 The API should prefer:
 
-- strongly typed enums for house systems, ayanamsas, bodies, and frames
+- strongly typed identifiers for house systems, ayanamsas, bodies, and frames
 - explicit newtypes or documented aliases for angles, degrees, Julian day values, and coordinates
 - structured errors over stringly typed failures
+- identifier models that can grow as the target compatibility catalog grows without forcing breaking enum churn
+
+If enums are used for built-in catalogs, they should be `#[non_exhaustive]` or wrapped by stable identifier types so future built-ins and aliases can be added without redesigning the public API.
 
 ## Configuration
 

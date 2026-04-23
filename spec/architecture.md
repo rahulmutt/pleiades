@@ -1,8 +1,10 @@
 # Architecture
 
+Unless stated otherwise, the conformance terms defined in [`SPEC.md`](../SPEC.md) apply here.
+
 ## Workspace Structure
 
-The project is a Rust workspace composed of small, focused crates with explicit layering.
+The project is a Rust workspace composed of small, focused crates with explicit layering and clean dependency direction.
 
 ## Mandatory Crates
 
@@ -17,7 +19,7 @@ The project is a Rust workspace composed of small, focused crates with explicit 
 - `pleiades-houses`: house-system implementations and related domain helpers
 - `pleiades-ayanamsa`: ayanamsa catalog and sidereal conversion logic
 
-### Artifact and Data Crates
+### Artifact and Data Support Crates
 
 - `pleiades-compression`: compression codecs and artifact packing/unpacking logic
 
@@ -43,21 +45,53 @@ Optional crates such as `pleiades-composite` may be added later if they respect 
 4. Source-specific backend crates may depend on `pleiades-types` and `pleiades-backend`.
 5. Domain crates such as `pleiades-houses` and `pleiades-ayanamsa` must remain backend-agnostic and may depend on `pleiades-types` only.
 6. `pleiades-compression` may depend on `pleiades-types` only.
-7. `pleiades-core` may depend on all domain crates and on `pleiades-backend`, but must not require one specific backend by default.
+7. `pleiades-core` may depend on domain crates, `pleiades-backend`, and backend-neutral support crates, but must not require one specific backend by default.
 8. `pleiades-data` may depend on `pleiades-types`, `pleiades-compression`, and `pleiades-backend`.
 9. Tooling crates may depend on all first-party crates.
 
-## Layering
+## Architectural Layers
 
-- **Layer 1**: primitive types, units, identifiers, and shared errors
-- **Layer 2**: backend contracts and capability metadata
-- **Layer 3**: algorithmic and reference-data backend implementations
-- **Layer 4**: astrology-domain computation crates
-- **Layer 5**: artifact codecs and packaged-data backends
-- **Layer 6**: high-level façade and composition APIs
-- **Layer 7**: CLI, validation, artifact generation, and reporting tools
+These layers define dependency direction, not a strict execution pipeline.
 
-No layer may depend on a higher layer.
+### Layer 1: Foundation
+
+- `pleiades-types`
+- primitive units, identifiers, shared errors, and compatibility-profile data
+
+### Layer 2: Contracts and Formats
+
+- `pleiades-backend`
+- `pleiades-compression`
+
+Both crates depend only on `pleiades-types`. They define contracts and file formats, not astrology-domain behavior.
+
+### Layer 3: Implementations
+
+This layer has two parallel families that must not depend on each other directly:
+
+- **Domain implementations**: `pleiades-houses`, `pleiades-ayanamsa`
+- **Backend implementations**: `pleiades-jpl`, `pleiades-vsop87`, `pleiades-elp`, `pleiades-data`, and future backend crates
+
+`pleiades-data` belongs in the backend family even though it uses compressed artifacts. It is still a backend implementation, not a higher-level domain layer.
+
+### Layer 4: Composition API
+
+- `pleiades-core`
+
+This façade composes backend results with domain logic and presents the main user-facing Rust API.
+
+### Layer 5: Tooling
+
+- `pleiades-cli`
+- `pleiades-validate`
+- future artifact-build or report-generation crates
+
+## Global Layering Rules
+
+- No crate may depend on a higher layer.
+- Domain crates must not import or special-case concrete backend crates.
+- Backend crates must not embed house, ayanamsa, or chart assembly logic as required behavior.
+- Shared behavior needed by multiple layers must move downward into an appropriate lower crate rather than sideways across peer crates.
 
 ## Backend Composition Strategy
 
@@ -72,7 +106,7 @@ A composite adapter may route body queries to different providers while presenti
 
 Astrology-specific transforms such as sidereal conversion, house placement, and chart assembly must remain above the source-specific backend layer unless a backend explicitly exposes an equivalent capability through the common contract.
 
-Domain crates must not import or special-case individual backend implementations. If a domain algorithm needs shared astronomical input, that input must be expressed through backend-neutral types defined in `pleiades-types` and supplied by `pleiades-core` or a caller.
+If a domain algorithm needs shared astronomical input, that input must be expressed through backend-neutral types defined in `pleiades-types` and supplied by `pleiades-core` or a caller.
 
 ## Feature Flags
 

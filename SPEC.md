@@ -120,8 +120,9 @@ The derived specification set satisfies the bootstrap prompt as follows:
 The current spec set adheres to the bootstrap requirements. The main refinements in this revision are:
 
 - making the end-state catalog policy explicit so baseline milestones are not mistaken for final scope
-- tightening crate-layer rules so domain crates remain backend-agnostic
+- tightening crate-layer rules so domain crates remain backend-agnostic and packaged-data backends are treated as backend implementations rather than domain layers
 - separating artifact/data responsibilities from astrology-domain responsibilities to reduce architectural ambiguity
+- clarifying stored-versus-derived artifact outputs so compressed-data capabilities stay explicit
 - clarifying alias and compatibility-profile expectations for house systems and ayanamsas
 
 ## Document Status

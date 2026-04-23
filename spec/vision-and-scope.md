@@ -1,5 +1,7 @@
 # Vision and Scope
 
+Unless stated otherwise, the conformance terms defined in [`SPEC.md`](../SPEC.md) apply here.
+
 ## Vision
 
 Pleiades is a pure-Rust ephemeris platform for astrology software developers who need reliable astronomical positions and astrology-specific derived calculations without depending on Swiss Ephemeris or any native C/C++ toolchain.
@@ -14,7 +16,7 @@ Pleiades is a pure-Rust ephemeris platform for astrology software developers who
 ## Product Objectives
 
 1. Deliver accurate positions for the major bodies used in astrology, with an extensible path for additional asteroids and points.
-2. Support standard Western and sidereal astrological workflows, including the full compatibility house-system and ayanamsa catalogs.
+2. Support standard Western and sidereal astrological workflows, with a baseline compatibility milestone for early releases and a clear path to the full target compatibility catalog.
 3. Allow interchangeable ephemeris backends with different tradeoffs.
 4. Provide a practical precompressed data format for fast offline use.
 5. Remain auditable, reproducible, and fully Rust-native.
@@ -27,6 +29,7 @@ Pleiades is a pure-Rust ephemeris platform for astrology software developers who
 - a complete, extensible catalog of ayanamsas plus tropical/sidereal conversions
 - backend abstraction for JPL-style data-backed and formula-based approaches
 - compressed ephemeris products for the 1500-2500 range
+- release compatibility profiles that document what a given version actually ships
 - validation against public references and accepted astronomical standards
 
 ## Out of Scope
