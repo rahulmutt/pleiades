@@ -117,7 +117,7 @@ const BASELINE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::TrueChitra,
         "True Chitra",
-        &["Chitra"],
+        &["Chitra", "True Chitra ayanamsa"],
         "True Chitra / Chitra-based sidereal variant.",
         Some(JulianDay::from_days(2_435_553.5)),
         Some(Angle::from_degrees(23.245_524_743)),
@@ -606,7 +606,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
     AyanamsaDescriptor::new(
         Ayanamsa::TrueChitra,
         "True Chitra",
-        &["Chitra"],
+        &["Chitra", "True Chitra ayanamsa"],
         "True Chitra / Chitra-based sidereal variant.",
         Some(JulianDay::from_days(2_435_553.5)),
         Some(Angle::from_degrees(23.245_524_743)),
@@ -1223,6 +1223,10 @@ mod tests {
         assert_eq!(resolve_ayanamsa("True Revati"), Some(Ayanamsa::TrueRevati));
         assert_eq!(resolve_ayanamsa("True Mula"), Some(Ayanamsa::TrueMula));
         assert_eq!(resolve_ayanamsa("True Citra"), Some(Ayanamsa::TrueCitra));
+        assert_eq!(
+            resolve_ayanamsa("True Chitra ayanamsa"),
+            Some(Ayanamsa::TrueChitra)
+        );
         assert_eq!(
             resolve_ayanamsa("True Citra ayanamsa"),
             Some(Ayanamsa::TrueCitra)

@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.48";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.49";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -286,7 +286,7 @@ fn ayanamsa_source_label_aliases(canonical_name: &str) -> &'static [&'static str
         "Fagan/Bradley" => &["Fagan/Bradley", "Fagan Bradley", "Fagan-Bradley"],
         "Lahiri" => &["Chitra Paksha", "Chitrapaksha", "Chitra-paksha"],
         "True Pushya" => &["True Pushya ayanamsa", "Pushya"],
-        "True Chitra" => &["Chitra"],
+        "True Chitra" => &["Chitra", "True Chitra ayanamsa"],
         "True Citra" => &[
             "True Citra ayanamsa",
             "True Citra Paksha",
@@ -946,6 +946,7 @@ mod tests {
         assert!(rendered.contains("True Pushya ayanamsa, Pushya -> True Pushya"));
         assert!(rendered
             .contains("True Citra ayanamsa, True Citra Paksha, True Chitra Paksha, True Chitrapaksha -> True Citra"));
+        assert!(rendered.contains("Chitra, True Chitra ayanamsa -> True Chitra"));
         assert!(rendered.contains("True Revati ayanamsa -> True Revati"));
         assert!(rendered
             .contains("True Mula (Chandra Hari), True Mula ayanamsa, Chandra Hari -> True Mula"));
