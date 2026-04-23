@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.25";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.26";
 
 /// A release-scoped compatibility profile.
 #[derive(Clone, Copy, Debug)]
@@ -80,8 +80,8 @@ pub const fn current_compatibility_profile() -> CompatibilityProfile {
         baseline_ayanamsas: baseline_ayanamsas(),
         release_ayanamsas: release_ayanamsas(),
         release_notes: &[
-            "Release-specific house-system additions now include Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter (poli-equatorial), Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen SD, Pullen SR, Sunshine, and Gauquelin sectors, with the Whole Sign (house 1 = Aries) label, Wang alias, Equal MC / Equal Midheaven aliases, Equal (cusp 1 = Asc) source spelling, Equal (MC) and Equal (1=Aries) source-label appendix entries, APC houses / Ascendant Parallel Circle / WvA aliases, Horizon / Horizontal / Azimuthal aliases, the Vehlow-equal source label, the Bob Makransky source label for Sunshine, and the Topocentric house system alias also resolving as interoperability aliases.",
-            "The compatibility profile now also renders a source-label appendix for the built-in house systems so common Placidus, Koch, Equal, Whole Sign, and Topocentric spellings — including the Swiss Ephemeris \"Equal (cusp 1 = Asc)\" form — are searchable alongside the ayanamsa appendix.",
+            "Release-specific house-system additions now include Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter (poli-equatorial), Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen SD, Pullen SR, Sunshine, and Gauquelin sectors, with the Whole Sign (house 1 = Aries) label, Wang alias, Equal MC / Equal Midheaven aliases, Equal (cusp 1 = Asc) source spelling, Equal (MC) and Equal (1=Aries) source-label appendix entries, APC houses / Ascendant Parallel Circle / WvA aliases, Horizon / Horizontal / Azimuthal aliases, the Vehlow-equal source label, the Bob Makransky source label for Sunshine, the Topocentric house system alias, and the remaining Albategnius / Pullen / Gauquelin source labels also resolving as interoperability aliases.",
+            "The compatibility profile now also renders a source-label appendix for the built-in house systems so common Placidus, Koch, Equal, Whole Sign, and Topocentric spellings — including the Swiss Ephemeris \"Equal (cusp 1 = Asc)\" form — are searchable alongside the ayanamsa appendix, and the latest release-specific house-system label batches now also surface the exact Albategnius, Pullen, and Gauquelin search forms.",
             "The compatibility profile now also renders a source-label appendix entry for Raman so the B. V. Raman, B.V. Raman, and B V Raman spellings are searchable alongside the other baseline ayanamsa labels.",
             "Release-specific ayanamsa additions now include J2000, J1900, B1950, True Citra, DeLuce, Yukteshwar, PVR Pushya-paksha, Sheoran, True Revati, True Mula, Suryasiddhanta (Revati), Suryasiddhanta (Citra), Lahiri (ICRC), Lahiri (1940), Usha Shashi, Suryasiddhanta (499 CE), Aryabhata (499 CE), Sassanian, Hipparchus, Babylonian (Kugler 1), Babylonian (Kugler 2), Babylonian (Kugler 3), Babylonian (Huber), Babylonian (Eta Piscium), Babylonian (Aldebaran), Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs), True Pushya, Udayagiri, Lahiri (VP285), Krishnamurti (VP291), Djwhal Khul, JN Bhasin, Suryasiddhanta (Mean Sun), Aryabhata (Mean Sun), Babylonian (Britton), Aryabhata (522 CE), True Sheoran, Galactic Center, Galactic Center (Rgilbrand), Galactic Center (Mardyks), Galactic Center (Mula/Wilhelm), Dhruva Galactic Center (Middle Mula), Galactic Center (Cochrane), Galactic Equator (IAU 1958), Galactic Equator (True), Galactic Equator (Mula), Galactic Equator (Fiorenza), and Valens Moon, with explicit zero-point metadata now published for Hipparchus, Babylonian (Kugler 1), Babylonian (Kugler 2), Babylonian (Kugler 3), Babylonian (Britton), Udayagiri, Lahiri (VP285), Krishnamurti (VP291), True Sheoran, Galactic Center, Galactic Center (Rgilbrand), Galactic Center (Mardyks), Galactic Center (Mula/Wilhelm), Galactic Center (Cochrane), JN Bhasin, Babylonian (Eta Piscium), Babylonian (Aldebaran), Galactic Equator (Mula), Suryasiddhanta (Mean Sun), Aryabhata (Mean Sun), Aryabhata (522 CE), and the true/modern Galactic Equator entries; the Babylonian house-family source labels now resolve as exact aliases too, Galactic Equator (Fiorenza) continues to carry a J2000.0 reference epoch and 25° zero-point offset for the release profile, the Babylonian house-family labels now render in a separate custom-definition section, and the plain Moon alias also resolves to Valens Moon for compatibility with existing label variants, while the Valens Moon source-label appendix now also includes the Moon sign ayanamsa source spelling and the release profile now surfaces the Aryabhata 499/522 and Suryasiddhanta 499 source spellings explicitly.",
             "Non-standard ayanamsa labels such as True Balarama, Aphoric, and Takra are intentionally treated as custom definitions until a documented source mapping is added.",
@@ -230,16 +230,16 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "Krusinski Pisa",
             "Pisa-Goelzer",
         ],
-        "Albategnius" => &["Albategnius"],
-        "Pullen SD" => &["Pullen Sinusoidal", "Pullen SD"],
-        "Pullen SR" => &["Pullen Sinusoidal Ratio", "Pullen SR"],
+        "Albategnius" => &["Savard-A", "Savard A", "Savard's Albategnius"],
+        "Pullen SD" => &["Neo-Porphyry", "Pullen sinusoidal delta"],
+        "Pullen SR" => &["Pullen sinusoidal ratio"],
         "Sunshine" => &[
             "Sunshine houses",
             "Makransky Sunshine",
             "Bob Makransky",
             "Treindl Sunshine",
         ],
-        "Gauquelin sectors" => &["Gauquelin", "Gauquelin sectors"],
+        "Gauquelin sectors" => &["G", "Gauquelin", "Gauquelin sector", "Gauquelin sectors"],
         _ => &[],
     }
 }
@@ -903,12 +903,17 @@ mod tests {
         assert!(rendered.contains("APC"));
         assert!(rendered.contains("Krusinski-Pisa-Goelzer"));
         assert!(rendered.contains("Albategnius"));
+        assert!(rendered.contains("Savard-A, Savard A, Savard's Albategnius -> Albategnius"));
         assert!(rendered.contains("Pullen SD"));
+        assert!(rendered.contains("Neo-Porphyry, Pullen sinusoidal delta -> Pullen SD"));
         assert!(rendered.contains("Pullen SR"));
+        assert!(rendered.contains("Pullen sinusoidal ratio -> Pullen SR"));
         assert!(rendered.contains(
             "Sunshine houses, Makransky Sunshine, Bob Makransky, Treindl Sunshine -> Sunshine"
         ));
         assert!(rendered.contains("Gauquelin sectors"));
+        assert!(rendered
+            .contains("G, Gauquelin, Gauquelin sector, Gauquelin sectors -> Gauquelin sectors"));
         assert!(rendered.contains("J2000"));
         assert!(rendered.contains("DeLuce"));
         assert!(rendered.contains("Yukteshwar"));

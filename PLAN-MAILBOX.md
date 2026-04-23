@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — House-system source-label appendix widened for Albategnius, Pullen, and Gauquelin
+
+Implemented another small Stage 6 release-hardening slice:
+
+- `pleiades-core::CompatibilityProfile` now surfaces the remaining release-specific house source forms for Albategnius, Pullen SD/SR, and Gauquelin sectors, including the `Savard-A`, `Savard A`, `Savard's Albategnius`, `Neo-Porphyry`, `Pullen sinusoidal delta`, `Pullen sinusoidal ratio`, and `G` labels
+- the compatibility profile identifier was bumped to `0.6.26`, and the README / Stage 6 progress notes were updated to keep the release-facing wording synchronized with the new house-label appendix batch
+- regression coverage now checks the new source-label appendix entries so the release artifact stays searchable by the remaining house-system interoperability labels
+
+Remaining Stage 6 work: keep the release-profile appendix, catalog breadth, and release notes synchronized as additional interoperability labels land.
+
 ## 2026-04-23 — Raman source-label resolution synced with the compatibility profile
 
 Implemented a small Stage 6 release-hardening slice:

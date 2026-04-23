@@ -45,6 +45,7 @@ This final stage should behave like a sequence of release-quality increments, no
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] The house-system source-label appendix now also exposes the remaining Albategnius / Pullen / Gauquelin search forms (`Savard-A`, `Savard A`, `Savard's Albategnius`, `Neo-Porphyry`, `Pullen sinusoidal delta`, `Pullen sinusoidal ratio`, and `G`), and the compatibility profile identifier has been bumped to `0.6.26` so the release artifact stays synchronized with the latest house-label interoperability batch.
 - [x] The compatibility profile's APC source-label appendix now includes `APC houses` alongside `Ram school`, `Ramschool`, and `Ascendant Parallel Circle`, and the compatibility profile identifier has been bumped to `0.6.23` so the release artifact stays synchronized with the house-system interoperability labels.
 - [x] The Raman ayanamsa resolver now accepts the `B. V. Raman`, `B.V. Raman`, and `B V Raman` spellings directly, and the compatibility profile identifier has been bumped to `0.6.24` so the release artifact stays synchronized with the ayanamsa source-label appendix.
 - [x] The compatibility profile now also renders a source-label appendix for the built-in house systems, including the Swiss Ephemeris `Equal (cusp 1 = Asc)` spelling, keeping the release-facing house interoperability map searchable alongside the ayanamsa appendix.
