@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.37";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.38";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -202,7 +202,12 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
         "Alcabitius" => &["Alcabitius houses"],
         "Meridian" => &["Meridian houses"],
         "Axial" => &["Axial variants"],
-        "Topocentric" => &["Polich-Page", "Polich Page", "Topocentric house system"],
+        "Topocentric" => &[
+            "Polich-Page",
+            "Polich/Page",
+            "Polich Page",
+            "Topocentric house system",
+        ],
         "Morinus" => &["Morinus houses"],
         "Equal (MC)" => &[
             "Equal from MC",
@@ -919,9 +924,9 @@ mod tests {
         assert!(rendered.contains("Lahiri original, Panchanga Darpan Lahiri -> Lahiri (1940)"));
         assert!(rendered.contains("De Luce, DeLuce ayanamsa -> DeLuce"));
         assert!(rendered.contains("Yukteswar, Sri Yukteswar, Sri Yukteshwar -> Yukteshwar"));
-        assert!(
-            rendered.contains("Polich-Page, Polich Page, Topocentric house system -> Topocentric")
-        );
+        assert!(rendered.contains(
+            "Polich-Page, Polich/Page, Polich Page, Topocentric house system -> Topocentric"
+        ));
         assert!(rendered
             .contains("Horizontal, Azimuthal, Horizon house system, Azimuthal house system"));
         assert!(rendered.contains("horizon/azimuth"));
