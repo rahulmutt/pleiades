@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Compatibility and API-stability profile identifiers re-exported from pleiades-core
+
+Implemented the planned Stage 6 release-hardening slice:
+
+- `pleiades-core` now publicly re-exports `CURRENT_COMPATIBILITY_PROFILE_ID` and `CURRENT_API_STABILITY_PROFILE_ID` from the façade root, so downstream tooling can import the canonical release identifiers without reaching into internal modules
+- the core test suite now asserts that the re-exported constants still match the live profile identifiers, keeping the release-facing identifiers synchronized with the profile builders
+- Stage 6 progress notes should be updated to mention the public re-export so the release-hardening tracker reflects the current façade surface
+
+Remaining Stage 6 work: keep the release-facing identifiers synchronized across the façade, CLI, validation bundle, and documentation as the hardening work continues.
+
 ## 2026-04-23 — House-system source-label appendix widened for Albategnius, Pullen, and Gauquelin
 
 Implemented another small Stage 6 release-hardening slice:

@@ -72,12 +72,16 @@ mod api_stability;
 mod chart;
 mod compatibility;
 
-pub use api_stability::{current_api_stability_profile, ApiStabilityProfile};
+pub use api_stability::{
+    current_api_stability_profile, ApiStabilityProfile, CURRENT_API_STABILITY_PROFILE_ID,
+};
 pub use chart::{
     default_chart_bodies, sidereal_longitude, AspectDefinition, AspectKind, AspectMatch,
     BodyPlacement, ChartRequest, ChartSnapshot, HouseSummary, MotionSummary, SignSummary,
 };
-pub use compatibility::{current_compatibility_profile, CompatibilityProfile};
+pub use compatibility::{
+    current_compatibility_profile, CompatibilityProfile, CURRENT_COMPATIBILITY_PROFILE_ID,
+};
 pub use pleiades_ayanamsa::{
     baseline_ayanamsas, built_in_ayanamsas, descriptor as ayanamsa_descriptor, release_ayanamsas,
     resolve_ayanamsa, AyanamsaDescriptor,
@@ -262,5 +266,17 @@ mod tests {
                 entry.canonical_name
             );
         }
+    }
+
+    #[test]
+    fn profile_identifiers_are_re_exported_from_the_facade() {
+        assert_eq!(
+            CURRENT_COMPATIBILITY_PROFILE_ID,
+            current_compatibility_profile().profile_id
+        );
+        assert_eq!(
+            CURRENT_API_STABILITY_PROFILE_ID,
+            current_api_stability_profile().profile_id
+        );
     }
 }
