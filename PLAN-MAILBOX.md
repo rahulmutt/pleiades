@@ -1125,3 +1125,13 @@ Implemented the Stage 6 identifier-centralization slice:
 - `pleiades-core` now exposes a shared `ReleaseProfileIdentifiers` helper so the compatibility-profile and API-stability posture IDs can be fetched together from one source of truth
 - `pleiades-validate` now uses that helper when rendering the validation report, compatibility-profile summary, release notes, and release checklist, keeping the release-facing ID lookups synchronized through one path
 - tests cover the helper's agreement with the individual accessors, so future identifier bumps stay coupled
+
+## 2026-04-23 — Release-profile helper now drives validation and CLI tests
+
+Implemented the follow-up Stage 6 hardening slice:
+
+- `pleiades-core` exposes a `current_release_profile_identifiers()` helper that groups the compatibility and API-stability profile IDs together
+- `pleiades-cli` and `pleiades-validate` tests now derive their release-facing assertions from that shared helper instead of repeating the individual profile-ID accessors
+- the Stage 6 progress notes were updated to record the helper-based release-profile lookup as a small release-hardening maintenance slice
+
+Remaining Stage 6 work: keep the compatibility profile, API-stability posture, and release-facing helpers synchronized as the hardening work continues.

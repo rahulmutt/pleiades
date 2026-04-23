@@ -2210,8 +2210,8 @@ fn render_release_bundle_error(error: ReleaseBundleError) -> String {
 #[cfg(test)]
 mod tests {
     use pleiades_core::{
-        current_api_stability_profile_id, current_compatibility_profile_id, sidereal_longitude,
-        Apparentness, Ayanamsa, CoordinateFrame, JulianDay, TimeScale, ZodiacMode,
+        current_release_profile_identifiers, sidereal_longitude, Apparentness, Ayanamsa,
+        CoordinateFrame, JulianDay, TimeScale, ZodiacMode,
     };
 
     use super::*;
@@ -2336,10 +2336,17 @@ mod tests {
     fn validation_report_includes_corpus_metadata() {
         let report = render_validation_report(10).expect("validation report should render");
         assert!(report.contains("Validation report"));
+        let release_profiles = current_release_profile_identifiers();
         assert!(report.contains("Compatibility profile"));
-        assert!(report.contains(&format!("  id: {}", current_compatibility_profile_id())));
+        assert!(report.contains(&format!(
+            "  id: {}",
+            release_profiles.compatibility_profile_id
+        )));
         assert!(report.contains("API stability posture"));
-        assert!(report.contains(&format!("  id: {}", current_api_stability_profile_id())));
+        assert!(report.contains(&format!(
+            "  id: {}",
+            release_profiles.api_stability_profile_id
+        )));
         assert!(report.contains("Implemented backend matrices"));
         assert!(report.contains("Selected asteroid coverage"));
         assert!(report.contains("Ceres"));
@@ -2434,9 +2441,10 @@ mod tests {
     #[test]
     fn api_stability_command_renders_the_posture() {
         let rendered = render_cli(&["api-stability"]).expect("api posture should render");
+        let release_profiles = current_release_profile_identifiers();
         assert!(rendered.contains(&format!(
             "API stability posture: {}",
-            current_api_stability_profile_id()
+            release_profiles.api_stability_profile_id
         )));
         assert!(rendered.contains("Stable consumer surfaces:"));
         assert!(rendered.contains("Experimental or operational surfaces:"));
@@ -2447,7 +2455,11 @@ mod tests {
     fn release_notes_command_renders_the_release_notes() {
         let rendered = render_cli(&["release-notes"]).expect("release notes should render");
         assert!(rendered.contains("Release notes"));
-        assert!(rendered.contains(&format!("Profile: {}", current_compatibility_profile_id())));
+        let release_profiles = current_release_profile_identifiers();
+        assert!(rendered.contains(&format!(
+            "Profile: {}",
+            release_profiles.compatibility_profile_id
+        )));
         assert!(rendered.contains("API stability posture:"));
         assert!(rendered.contains("Deprecation policy:"));
         assert!(rendered.contains("Release-specific coverage:"));
@@ -2458,10 +2470,14 @@ mod tests {
     fn release_checklist_command_renders_the_release_checklist() {
         let rendered = render_cli(&["release-checklist"]).expect("release checklist should render");
         assert!(rendered.contains("Release checklist"));
-        assert!(rendered.contains(&format!("Profile: {}", current_compatibility_profile_id())));
+        let release_profiles = current_release_profile_identifiers();
+        assert!(rendered.contains(&format!(
+            "Profile: {}",
+            release_profiles.compatibility_profile_id
+        )));
         assert!(rendered.contains(&format!(
             "API stability posture: {}",
-            current_api_stability_profile_id()
+            release_profiles.api_stability_profile_id
         )));
         assert!(rendered.contains("Repository-managed release gates:"));
         assert!(rendered.contains("Manual bundle workflow:"));
@@ -2584,13 +2600,14 @@ version = "0.9.0"
         let manifest = std::fs::read_to_string(bundle_dir.join("bundle-manifest.txt"))
             .expect("manifest should be written");
 
+        let release_profiles = current_release_profile_identifiers();
         assert!(profile.contains(&format!(
             "Compatibility profile: {}",
-            current_compatibility_profile_id()
+            release_profiles.compatibility_profile_id
         )));
         assert!(profile_summary.contains(&format!(
             "Compatibility profile summary\nProfile: {}",
-            current_compatibility_profile_id()
+            release_profiles.compatibility_profile_id
         )));
         assert!(release_notes.contains("Release notes"));
         assert!(release_notes.contains("API stability posture:"));
@@ -2612,7 +2629,7 @@ version = "0.9.0"
             .contains("selected asteroid coverage: 4 bodies (Ceres, Pallas, Juno, Vesta)"));
         assert!(api_stability.contains(&format!(
             "API stability posture: {}",
-            current_api_stability_profile_id()
+            release_profiles.api_stability_profile_id
         )));
         assert!(report.contains("Validation report"));
         assert!(manifest.contains("Release bundle manifest"));
