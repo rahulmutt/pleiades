@@ -88,9 +88,9 @@ pub const fn current_compatibility_profile() -> CompatibilityProfile {
         baseline_ayanamsas: baseline_ayanamsas(),
         release_ayanamsas: release_ayanamsas(),
         release_notes: &[
-            "Release-specific house-system additions now include Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter (poli-equatorial), Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Krusinski/Pisa/Goelzer, Albategnius, Pullen SD, Pullen SR, Sunshine, and Gauquelin sectors, with the Whole Sign (house 1 = Aries) label, the Whole sign houses, 1. house = Aries source spelling, Wang alias, Equal MC / Equal Midheaven aliases, Equal (cusp 1 = Asc) source spelling, Equal (MC) and Equal (1=Aries) source-label appendix entries, APC houses / Ascendant Parallel Circle / WvA aliases, Horizon / Horizontal / Azimuthal aliases, the Vehlow-equal source label, the Bob Makransky source label for Sunshine, the Topocentric house system alias, the remaining Albategnius / Pullen / Gauquelin source labels, the Swiss Ephemeris single-letter house-table codes P/K/R/C/O/E/W/V/A/H/B/M/S/G resolving to their corresponding built-ins, and the exact Swiss Ephemeris house-table code spellings A equal, D equal / MC, E equal = A, W equal, whole sign, V equal Vehlow, X axial rotation system/ Meridian houses, and Y APC houses.",
+            "Release-specific house-system additions now include Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter (poli-equatorial), Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Krusinski/Pisa/Goelzer, Albategnius, Pullen SD, Pullen SR, Sunshine, and Gauquelin sectors, with the Whole Sign (house 1 = Aries) label, the Whole sign houses, 1. house = Aries source spelling, Wang alias, Equal MC / Equal Midheaven aliases, Equal (cusp 1 = Asc) source spelling, Equal (MC) and Equal (1=Aries) source-label appendix entries, APC houses / Ascendant Parallel Circle / WvA aliases, Horizon / Horizontal / Azimuthal aliases, the Vehlow-equal source label, the Bob Makransky source label for Sunshine, the Topocentric house system alias, the remaining Albategnius / Pullen / Gauquelin source labels, the Swiss Ephemeris single-letter house-table codes P/K/R/C/O/E/W/V/A/H/B/M/S/G plus the additional T/U/X/Y interoperability codes resolving to their corresponding built-ins, and the exact Swiss Ephemeris house-table code spellings A equal, D equal / MC, E equal = A, W equal, whole sign, V equal Vehlow, T topocentric, U Krusinski-Pisa-Goelzer, X axial rotation system/ Meridian houses, and Y APC houses.",
             "The compatibility profile now also renders a source-label appendix for the built-in house systems so common Placidus, Koch, Equal, Whole Sign, Topocentric, Vehlow, Meridian, ARMC, Sunshine, APC, and Horizon/Azimuth spellings — including the Swiss Ephemeris \"Equal (cusp 1 = Asc)\" and \"Whole Sign (house 1 = Aries)\" forms — are searchable alongside the ayanamsa appendix, and the latest release-specific house-system label batches now also surface the exact Albategnius, Pullen, and Gauquelin search forms.",
-            "The compatibility profile now also surfaces the exact Swiss Ephemeris house-table code spellings A equal, D equal / MC, E equal = A, W equal, whole sign, V equal Vehlow, X axial rotation system/ Meridian houses, and Y APC houses so the code-style interoperability forms remain searchable alongside the canonical house names.",
+            "The compatibility profile now also surfaces the exact Swiss Ephemeris house-table code spellings A equal, D equal / MC, E equal = A, W equal, whole sign, V equal Vehlow, T topocentric, U Krusinski-Pisa-Goelzer, X axial rotation system/ Meridian houses, and Y APC houses so the code-style interoperability forms remain searchable alongside the canonical house names.",
             "The compatibility profile now also renders source-label appendix entries for Lahiri / Chitrapaksha / Chitra Paksha, True Chitra / Chitra, Fagan/Bradley, Fagan Bradley / Fagan-Bradley, Usha Shashi, and the Yukteshwar / Sri Yukteshwar / Shri Yukteshwar transliterations so the baseline sidereal spellings remain searchable alongside the existing Raman appendix entry and the rest of the ayanamsa catalog.",
             "The compatibility profile now also renders source-label appendix entries for P.V.R. Narasimha Rao, Aries houses, and True Mula (Chandra Hari) so the release-facing interoperability labels stay aligned with the documented source spellings for the Pushya-paksha, equal-house, and true-Mula variants.",
             "The compatibility profile now also renders a source-label appendix entry for Raman so the B. V. Raman, B.V. Raman, and B V Raman spellings are searchable alongside the other baseline ayanamsa labels.",
@@ -214,12 +214,14 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
         ],
         "Alcabitius" => &["Alcabitius houses"],
         "Meridian" => &[
+            "X",
             "Meridian houses",
             "ARMC",
             "X axial rotation system/ Meridian houses",
         ],
         "Axial" => &["Axial variants"],
         "Topocentric" => &[
+            "T",
             "Polich-Page",
             "Polich/Page",
             "Polich Page",
@@ -259,6 +261,7 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "horizon/azimuth",
         ],
         "APC" => &[
+            "Y",
             "APC",
             "Ram school",
             "Ram's school",
@@ -270,6 +273,7 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "Ascendant Parallel Circle",
         ],
         "Krusinski-Pisa-Goelzer" => &[
+            "U",
             "Krusinski",
             "Krusinski-Pisa",
             "Krusinski Pisa",
@@ -992,16 +996,16 @@ mod tests {
         assert!(rendered.contains("De Luce, DeLuce ayanamsa -> DeLuce"));
         assert!(rendered.contains("Yukteswar, Sri Yukteswar, Sri Yukteshwar, Shri Yukteswar, Shri Yukteshwar -> Yukteshwar"));
         assert!(rendered.contains(
-            "Polich-Page, Polich/Page, Polich Page, T Polich/Page (\"topocentric\"), Topocentric house system -> Topocentric"
+            "T, Polich-Page, Polich/Page, Polich Page, T Polich/Page (\"topocentric\"), Topocentric house system -> Topocentric"
         ));
         assert!(rendered
             .contains("Horizontal, Azimuthal, Horizon house system, Azimuthal house system"));
         assert!(rendered.contains(
-            "Meridian houses, ARMC, X axial rotation system/ Meridian houses -> Meridian"
+            "X, Meridian houses, ARMC, X axial rotation system/ Meridian houses -> Meridian"
         ));
         assert!(rendered.contains("horizon/azimuth"));
         assert!(rendered
-            .contains("Ram school, Ram's school, Ramschool, WvA, Y APC houses, APC houses, APC house system, Ascendant Parallel Circle -> APC"));
+            .contains("Y, APC, Ram school, Ram's school, Ramschool, WvA, Y APC houses, APC houses, APC house system, Ascendant Parallel Circle -> APC"));
         assert!(rendered.contains("Chitra Paksha, Chitrapaksha, Chitra-paksha -> Lahiri"));
         assert!(rendered.contains("source-label appendix entries for Lahiri / Chitrapaksha / Chitra Paksha, True Chitra / Chitra, Fagan/Bradley, Fagan Bradley / Fagan-Bradley, Usha Shashi, and the Yukteshwar / Sri Yukteshwar / Shri Yukteshwar transliterations"));
         assert!(rendered.contains("source-label appendix entries for P.V.R. Narasimha Rao, Aries houses, and True Mula (Chandra Hari)"));
@@ -1038,7 +1042,7 @@ mod tests {
         assert!(rendered.contains("Horizon/Azimuth"));
         assert!(rendered.contains("APC"));
         assert!(rendered.contains("Krusinski-Pisa-Goelzer"));
-        assert!(rendered.contains("Krusinski/Pisa/Goelzer house system"));
+        assert!(rendered.contains("U, Krusinski, Krusinski-Pisa, Krusinski Pisa, Krusinski/Pisa/Goelzer, Krusinski/Pisa/Goelzer house system, Pisa-Goelzer -> Krusinski-Pisa-Goelzer"));
         assert!(rendered.contains("Albategnius"));
         assert!(rendered.contains("Savard-A, Savard A, Savard's Albategnius -> Albategnius"));
         assert!(rendered.contains("Pullen SD"));
@@ -1056,6 +1060,7 @@ mod tests {
             "Sunshine houses, Sunshine house system, Makransky Sunshine, Bob Makransky, Treindl Sunshine -> Sunshine"
         ));
         assert!(rendered.contains("P/K/R/C/O/E/W/V/A/H/B/M/S/G"));
+        assert!(rendered.contains("plus the additional T/U/X/Y interoperability codes"));
         assert!(rendered.contains("A equal, E equal = A, Equal houses, Equal house system, Equal House, Wang, Equal (cusp 1 = Asc) -> Equal"));
         assert!(rendered.contains("D equal / MC, Equal from MC, Equal (from MC), Equal MC, Equal Midheaven, Equal (MC), Equal/MC = 10th -> Equal (MC)"));
         assert!(rendered.contains(
@@ -1065,10 +1070,10 @@ mod tests {
             rendered.contains("V equal Vehlow, Vehlow, Vehlow equal, Vehlow-equal -> Vehlow Equal")
         );
         assert!(rendered.contains(
-            "Meridian houses, ARMC, X axial rotation system/ Meridian houses -> Meridian"
+            "X, Meridian houses, ARMC, X axial rotation system/ Meridian houses -> Meridian"
         ));
-        assert!(rendered.contains("Ram school, Ram's school, Ramschool, WvA, Y APC houses, APC houses, APC house system, Ascendant Parallel Circle -> APC"));
-        assert!(rendered.contains("Polich-Page, Polich/Page, Polich Page, T Polich/Page (\"topocentric\"), Topocentric house system -> Topocentric"));
+        assert!(rendered.contains("Y, APC, Ram school, Ram's school, Ramschool, WvA, Y APC houses, APC houses, APC house system, Ascendant Parallel Circle -> APC"));
+        assert!(rendered.contains("T, Polich-Page, Polich/Page, Polich Page, T Polich/Page (\"topocentric\"), Topocentric house system -> Topocentric"));
         assert!(rendered.contains("Gauquelin sectors"));
         assert!(rendered
             .contains("G, Gauquelin, Gauquelin sector, Gauquelin sectors -> Gauquelin sectors"));
