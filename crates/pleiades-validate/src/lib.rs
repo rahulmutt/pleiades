@@ -45,6 +45,8 @@ pub struct ValidationCorpus {
     pub name: String,
     /// Short description of what the corpus covers.
     pub description: &'static str,
+    /// Apparentness mode used for the requests.
+    pub apparentness: Apparentness,
     /// Requests sent to both backends.
     pub requests: Vec<EphemerisRequest>,
 }
@@ -56,6 +58,8 @@ pub struct CorpusSummary {
     pub name: String,
     /// Short description of what the corpus covers.
     pub description: &'static str,
+    /// Apparentness mode used for the corpus requests.
+    pub apparentness: Apparentness,
     /// Total number of requests in the corpus.
     pub request_count: usize,
     /// Number of unique instants covered by the corpus.
@@ -86,6 +90,7 @@ impl ValidationCorpus {
         Self {
             name: "JPL Horizons comparison window".to_string(),
             description: "Source-backed comparison corpus built from the checked-in JPL Horizons snapshot across a small set of reference epochs, restricted to the bodies shared by the algorithmic comparison backend.",
+            apparentness: Apparentness::Mean,
             requests,
         }
     }
@@ -110,6 +115,7 @@ impl ValidationCorpus {
         Self::from_epochs(
             "Representative 1500-2500 window",
             "Eleven-epoch benchmark corpus that broadens the representative sweep with explicit guard epochs just outside the target span and mid-window coverage.",
+            Apparentness::Mean,
             &instants,
             bodies,
         )
@@ -135,6 +141,7 @@ impl ValidationCorpus {
         CorpusSummary {
             name: self.name.clone(),
             description: self.description,
+            apparentness: self.apparentness,
             request_count: self.requests.len(),
             epoch_count: epochs.len(),
             body_count: bodies.len(),
@@ -146,6 +153,7 @@ impl ValidationCorpus {
     fn from_epochs(
         name: impl Into<String>,
         description: &'static str,
+        apparentness: Apparentness,
         instants: &[Instant],
         bodies: &[CelestialBody],
     ) -> Self {
@@ -159,7 +167,7 @@ impl ValidationCorpus {
                     observer: None,
                     frame: CoordinateFrame::Ecliptic,
                     zodiac_mode: ZodiacMode::Tropical,
-                    apparent: Apparentness::Mean,
+                    apparent: apparentness,
                 })
             })
             .collect();
@@ -167,6 +175,7 @@ impl ValidationCorpus {
         Self {
             name: name.into(),
             description,
+            apparentness,
             requests,
         }
     }
@@ -213,6 +222,8 @@ pub struct ComparisonSummary {
 pub struct ComparisonReport {
     /// Corpus name.
     pub corpus_name: String,
+    /// Apparentness mode used by the corpus.
+    pub apparentness: Apparentness,
     /// Metadata for the reference backend.
     pub reference_backend: BackendMetadata,
     /// Metadata for the candidate backend.
@@ -245,6 +256,8 @@ pub struct BenchmarkReport {
     pub backend: BackendMetadata,
     /// Corpus name used for the benchmark.
     pub corpus_name: String,
+    /// Apparentness mode used by the benchmark corpus.
+    pub apparentness: Apparentness,
     /// Number of benchmark rounds.
     pub rounds: usize,
     /// Number of requests per round.
@@ -758,6 +771,7 @@ pub fn compare_backends(
 
     Ok(ComparisonReport {
         corpus_name: corpus.name.clone(),
+        apparentness: corpus.apparentness,
         reference_backend: reference.metadata(),
         candidate_backend: candidate.metadata(),
         samples,
@@ -781,6 +795,7 @@ pub fn benchmark_backend(
     Ok(BenchmarkReport {
         backend: backend.metadata(),
         corpus_name: corpus.name.clone(),
+        apparentness: corpus.apparentness,
         rounds,
         sample_count: corpus.requests.len(),
         elapsed: start.elapsed(),
@@ -1523,6 +1538,7 @@ impl fmt::Display for ComparisonReport {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Comparison report")?;
         writeln!(f, "Corpus: {}", self.corpus_name)?;
+        writeln!(f, "Apparentness: {}", self.apparentness)?;
         writeln!(f, "Reference backend: {}", self.reference_backend.id)?;
         writeln!(f, "Candidate backend: {}", self.candidate_backend.id)?;
         writeln!(f)?;
@@ -1553,6 +1569,7 @@ impl fmt::Display for BenchmarkReport {
         writeln!(f, "Benchmark report")?;
         writeln!(f, "Backend: {}", self.backend.id)?;
         writeln!(f, "Corpus: {}", self.corpus_name)?;
+        writeln!(f, "Apparentness: {}", self.apparentness)?;
         writeln!(f, "Rounds: {}", self.rounds)?;
         writeln!(f, "Samples per round: {}", self.sample_count)?;
         writeln!(f, "Elapsed: {:?}", self.elapsed)?;
@@ -1598,6 +1615,7 @@ fn angular_delta(reference: Longitude, candidate: Longitude) -> f64 {
 fn write_corpus_summary(f: &mut fmt::Formatter<'_>, corpus: &CorpusSummary) -> fmt::Result {
     writeln!(f, "  name: {}", corpus.name)?;
     writeln!(f, "  description: {}", corpus.description)?;
+    writeln!(f, "  Apparentness: {}", corpus.apparentness)?;
     writeln!(f, "  requests: {}", corpus.request_count)?;
     writeln!(f, "  epochs: {}", corpus.epoch_count)?;
     writeln!(f, "  bodies: {}", corpus.body_count)?;
@@ -2134,6 +2152,7 @@ mod tests {
             .iter()
             .any(|request| request.instant.julian_day.days() == 2_634_167.0));
         assert_eq!(corpus.requests[0].frame, CoordinateFrame::Ecliptic);
+        assert_eq!(corpus.apparentness, Apparentness::Mean);
         assert_eq!(corpus.requests[0].apparent, Apparentness::Mean);
     }
 
@@ -2141,6 +2160,7 @@ mod tests {
     fn comparison_report_uses_the_snapshot_backend() {
         let report = render_comparison_report().expect("comparison should render");
         assert!(report.contains("JPL Horizons comparison window"));
+        assert!(report.contains("Apparentness: Mean"));
         assert!(report.contains("Reference backend:"));
         assert!(report.contains("Candidate backend:"));
     }
@@ -2150,6 +2170,7 @@ mod tests {
         let report = render_benchmark_report(10).expect("benchmark should render");
         assert!(report.contains("Benchmark report"));
         assert!(report.contains("Representative 1500-2500 window"));
+        assert!(report.contains("Apparentness: Mean"));
         assert!(report.contains("Nanoseconds per request:"));
     }
 
@@ -2175,6 +2196,7 @@ mod tests {
         assert!(report.contains("Target compatibility catalog:"));
         assert!(report.contains("Comparison corpus"));
         assert!(report.contains("JPL Horizons comparison window"));
+        assert!(report.contains("Apparentness: Mean"));
         assert!(report.contains("Benchmark corpus"));
         assert!(report.contains("Representative 1500-2500 window"));
         assert!(report.contains("House validation corpus"));
@@ -2196,6 +2218,7 @@ mod tests {
         assert_eq!(summary.epoch_count, 11);
         assert_eq!(summary.body_count, default_chart_bodies().len());
         assert_eq!(summary.request_count, 110);
+        assert_eq!(summary.apparentness, Apparentness::Mean);
         assert!(summary.earliest_julian_day < summary.latest_julian_day);
     }
 

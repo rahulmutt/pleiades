@@ -214,6 +214,7 @@ fn artifact_comparison_corpus(artifact: &CompressedArtifact) -> ValidationCorpus
     ValidationCorpus {
         name: "Packaged artifact error envelope".to_string(),
         description: "Comparison corpus built from packaged artifact coverage at segment endpoints and midpoints so the bundled data can be measured against the algorithmic baseline.",
+        apparentness: Apparentness::Mean,
         requests,
     }
 }

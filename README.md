@@ -13,6 +13,7 @@ The repository is in the stage-6 release-hardening phase, with the chart MVP and
 - the baseline house and ayanamsa catalogs plus the compatibility profile scaffold are published,
 - the tropical chart workflow works end to end with approximate Sun/Moon/planet and lunar-point backends and a CLI chart report,
 - the chart façade keeps mean/apparent position selection explicit and the CLI chart command can now surface that choice alongside the rendered report,
+- the validation comparison and benchmark corpora now report their apparentness mode explicitly so release-facing validation output keeps the same assumption visible,
 - sidereal conversion is available in the chart layer,
 - `ChartSnapshot` now offers lookup helpers for body, sign, house, sign-scoped placement, and house-scoped placement questions plus direct/stationary/unknown-motion/retrograde motion helpers, a motion-direction filter helper (`placements_with_motion_direction`), sign summaries, house summaries, motion summaries, and aspect summaries so downstream chart reports can ask higher-level questions without re-scanning placements manually,
 - house placement works for the full baseline catalog (Equal, Whole Sign, Porphyry, Placidus, Koch, Regiomontanus, Campanus, Alcabitius, Topocentric, Morinus, Meridian, and Axial variants), and the release-specific catalog now also includes Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen SD/SR, Sunshine, and Gauquelin sectors,

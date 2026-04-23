@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Validation corpus summaries now surface apparentness mode explicitly
+
+Implemented a small Stage 6 validation/reporting slice:
+
+- `pleiades-validate` now records and renders the apparentness mode used by the comparison and benchmark corpora, so validation and benchmark reports explicitly state whether a corpus is using mean or apparent backend queries
+- the README and Stage 6 progress notes were updated so the release-facing status text stays synchronized with the new validation-report wording
+- no spec update was needed; this stays within the existing validation-report and explicit-assumption scope already described by the plan and API ergonomics docs
+
+Remaining Stage 6 work: keep the validation reports, chart façade, and release notes synchronized as further hardening slices land.
+
 ## 2026-04-23 — Chart reports now surface apparentness mode explicitly
 
 Implemented a small Stage 6 chart-ergonomics slice:
