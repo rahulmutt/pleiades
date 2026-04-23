@@ -228,6 +228,8 @@ mod tests {
         let rendered = render_cli(&["backend-matrix"]).expect("backend matrix should render");
         assert!(rendered.contains("Implemented backend matrices"));
         assert!(rendered.contains("JPL snapshot reference backend"));
+        assert!(rendered.contains("expected error classes:"));
+        assert!(rendered.contains("required external data files:"));
         assert!(rendered.contains("VSOP87 planetary backend"));
         assert!(rendered.contains("ELP lunar backend"));
         assert!(rendered.contains("Packaged data backend"));

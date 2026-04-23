@@ -1375,7 +1375,7 @@ pub fn render_backend_matrix_report() -> Result<String, EphemerisError> {
         })?;
         fmt::write(
             &mut rendered,
-            format_args!("{}\n\n", BackendMatrixDisplay(&entry.metadata)),
+            format_args!("{}\n\n", BackendMatrixDisplay(&entry)),
         )
         .map_err(|_| {
             EphemerisError::new(
@@ -1388,11 +1388,11 @@ pub fn render_backend_matrix_report() -> Result<String, EphemerisError> {
     Ok(rendered)
 }
 
-struct BackendMatrixDisplay<'a>(&'a BackendMetadata);
+struct BackendMatrixDisplay<'a>(&'a BackendMatrixEntry);
 
 impl fmt::Display for BackendMatrixDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write_backend_matrix(f, self.0)
+        write_backend_catalog_entry(f, self.0)
     }
 }
 
@@ -1515,6 +1515,28 @@ fn write_backend_matrix(f: &mut fmt::Formatter<'_>, backend: &BackendMetadata) -
             f,
             "  provenance sources: {}",
             backend.provenance.data_sources.join("; ")
+        )?;
+    }
+    Ok(())
+}
+
+fn write_backend_catalog_entry(
+    f: &mut fmt::Formatter<'_>,
+    entry: &BackendMatrixEntry,
+) -> fmt::Result {
+    write_backend_matrix(f, &entry.metadata)?;
+    writeln!(
+        f,
+        "  expected error classes: {}",
+        format_error_kinds(entry.expected_error_kinds)
+    )?;
+    if entry.required_data_files.is_empty() {
+        writeln!(f, "  required external data files: none")?;
+    } else {
+        writeln!(
+            f,
+            "  required external data files: {}",
+            format_data_files(entry.required_data_files)
         )?;
     }
     Ok(())
@@ -1662,27 +1684,81 @@ fn regression_finding(sample: &ComparisonSample) -> Option<RegressionFinding> {
     })
 }
 
+const JPL_EXPECTED_ERROR_KINDS: &[EphemerisErrorKind] = &[
+    EphemerisErrorKind::UnsupportedBody,
+    EphemerisErrorKind::UnsupportedCoordinateFrame,
+    EphemerisErrorKind::UnsupportedTimeScale,
+    EphemerisErrorKind::InvalidObserver,
+    EphemerisErrorKind::InvalidRequest,
+    EphemerisErrorKind::MissingDataset,
+    EphemerisErrorKind::OutOfRangeInstant,
+];
+const JPL_REQUIRED_DATA_FILES: &[&str] = &[
+    "crates/pleiades-jpl/data/reference_snapshot.csv",
+    "crates/pleiades-jpl/data/j2000_snapshot.csv",
+];
+const VSOP87_EXPECTED_ERROR_KINDS: &[EphemerisErrorKind] = &[
+    EphemerisErrorKind::UnsupportedBody,
+    EphemerisErrorKind::UnsupportedTimeScale,
+    EphemerisErrorKind::InvalidRequest,
+];
+const ELP_EXPECTED_ERROR_KINDS: &[EphemerisErrorKind] = &[
+    EphemerisErrorKind::UnsupportedBody,
+    EphemerisErrorKind::UnsupportedTimeScale,
+    EphemerisErrorKind::InvalidRequest,
+];
+const PACKAGED_EXPECTED_ERROR_KINDS: &[EphemerisErrorKind] = &[
+    EphemerisErrorKind::UnsupportedBody,
+    EphemerisErrorKind::UnsupportedCoordinateFrame,
+    EphemerisErrorKind::UnsupportedTimeScale,
+    EphemerisErrorKind::InvalidObserver,
+    EphemerisErrorKind::InvalidRequest,
+    EphemerisErrorKind::MissingDataset,
+    EphemerisErrorKind::OutOfRangeInstant,
+    EphemerisErrorKind::NumericalFailure,
+];
+const COMPOSITE_EXPECTED_ERROR_KINDS: &[EphemerisErrorKind] = &[
+    EphemerisErrorKind::UnsupportedBody,
+    EphemerisErrorKind::UnsupportedCoordinateFrame,
+    EphemerisErrorKind::UnsupportedTimeScale,
+    EphemerisErrorKind::InvalidObserver,
+    EphemerisErrorKind::InvalidRequest,
+    EphemerisErrorKind::MissingDataset,
+    EphemerisErrorKind::OutOfRangeInstant,
+    EphemerisErrorKind::NumericalFailure,
+];
+
 fn implemented_backend_catalog() -> Vec<BackendMatrixEntry> {
     vec![
         BackendMatrixEntry {
             label: "JPL snapshot reference backend",
             metadata: default_reference_backend().metadata(),
+            expected_error_kinds: JPL_EXPECTED_ERROR_KINDS,
+            required_data_files: JPL_REQUIRED_DATA_FILES,
         },
         BackendMatrixEntry {
             label: "VSOP87 planetary backend",
             metadata: Vsop87Backend::new().metadata(),
+            expected_error_kinds: VSOP87_EXPECTED_ERROR_KINDS,
+            required_data_files: &[],
         },
         BackendMatrixEntry {
             label: "ELP lunar backend",
             metadata: ElpBackend::new().metadata(),
+            expected_error_kinds: ELP_EXPECTED_ERROR_KINDS,
+            required_data_files: &[],
         },
         BackendMatrixEntry {
             label: "Packaged data backend",
             metadata: PackagedDataBackend::new().metadata(),
+            expected_error_kinds: PACKAGED_EXPECTED_ERROR_KINDS,
+            required_data_files: &[],
         },
         BackendMatrixEntry {
             label: "Composite routed backend",
             metadata: default_candidate_backend().metadata(),
+            expected_error_kinds: COMPOSITE_EXPECTED_ERROR_KINDS,
+            required_data_files: JPL_REQUIRED_DATA_FILES,
         },
     ]
 }
@@ -1690,6 +1766,8 @@ fn implemented_backend_catalog() -> Vec<BackendMatrixEntry> {
 struct BackendMatrixEntry {
     label: &'static str,
     metadata: BackendMetadata,
+    expected_error_kinds: &'static [EphemerisErrorKind],
+    required_data_files: &'static [&'static str],
 }
 
 fn write_backend_catalog(
@@ -1700,7 +1778,7 @@ fn write_backend_catalog(
     writeln!(f, "{}", title)?;
     for entry in catalog {
         writeln!(f, "{}", entry.label)?;
-        write_backend_matrix(f, &entry.metadata)?;
+        write_backend_catalog_entry(f, entry)?;
         writeln!(f)?;
     }
     Ok(())
@@ -1750,6 +1828,18 @@ fn format_capabilities(capabilities: &BackendCapabilities) -> String {
         capabilities.batch,
         capabilities.native_sidereal
     )
+}
+
+fn format_error_kinds(kinds: &[EphemerisErrorKind]) -> String {
+    kinds
+        .iter()
+        .map(|kind| format!("{:?}", kind))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn format_data_files(files: &[&str]) -> String {
+    files.join("; ")
 }
 
 fn format_time_range(range: &TimeRange) -> String {
@@ -2051,6 +2141,9 @@ mod tests {
         assert!(rendered.contains("JPL snapshot reference backend"));
         assert!(rendered.contains("nominal range:"));
         assert!(rendered.contains("provenance sources:"));
+        assert!(rendered.contains("expected error classes:"));
+        assert!(rendered.contains("required external data files:"));
+        assert!(rendered.contains("crates/pleiades-jpl/data/reference_snapshot.csv"));
         assert!(
             rendered.contains("Paul Schlyter-style mean orbital elements for the Sun and planets")
         );
