@@ -1195,3 +1195,13 @@ Follow-up to the earlier note:
 - the compatibility profile identifier was bumped to `0.6.46`, and the regression coverage / release-note text were updated to keep the rendered alias map aligned with the new transliterations
 
 Remaining Stage 6 work: keep the release-facing compatibility profile, README, and validation output synchronized as additional interoperability labels land.
+
+## 2026-04-23 — API stability summary artifact looks like the next release-hardening slice
+
+I found a small Stage 6 release-hardening follow-up worth tracking before implementation:
+
+- the release bundle already ships the full API stability posture, but a compact `api-stability-summary.txt` artifact would mirror the existing compatibility-profile and backend-matrix summary outputs and make the staged bundle quicker to inspect
+- this appears to stay within the current release-artifact/reproducibility scope, but it would add one more staged output plus a small CLI/rendering surface that the plan/checklist/docs should mention
+- no spec change seems necessary; this looks like a release-quality convenience artifact rather than a new product capability
+
+Remaining Stage 6 work: keep the release-bundle outputs and release-facing docs synchronized if the API stability summary slice lands.

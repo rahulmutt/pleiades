@@ -24,6 +24,7 @@ It complements the stage documents by making release expectations explicit.
 - benchmark summaries for representative workloads
 - comparison reports for implemented backends
 - archived regression cases for previously fixed numerical or interoperability issues
+- API stability summaries for quick inspection of the current façade posture
 - evidence for published accuracy claims
 
 ## Additional outputs once packaged data exists
@@ -54,6 +55,7 @@ A mature release should be accompanied by:
 - release notes derived from the published profile and release-specific coverage
 - release checklist or similar maintainer-facing release gate summary
 - capability matrix for each shipped backend
+- API stability summary alongside the full API stability posture
 - validation report bundle or links to archived reports
 - packaged artifact metadata and checksums when artifacts are shipped
 - changelog or release notes describing new coverage and known limitations

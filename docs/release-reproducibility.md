@@ -46,6 +46,7 @@ cargo run -q -p pleiades-validate -- compatibility-profile-summary
 cargo run -q -p pleiades-validate -- release-notes
 cargo run -q -p pleiades-validate -- release-checklist
 cargo run -q -p pleiades-validate -- backend-matrix-summary
+cargo run -q -p pleiades-validate -- api-stability-summary
 ```
 
 The bundle currently writes these text artifacts:
@@ -57,6 +58,7 @@ The bundle currently writes these text artifacts:
 - `backend-matrix.txt`
 - `backend-matrix-summary.txt`
 - `api-stability.txt`
+- `api-stability-summary.txt`
 - `validation-report.txt`
 - `bundle-manifest.txt` (includes the recorded source revision, workspace status, Rust compiler version, profile/API identifiers, and validation-round count)
 
@@ -78,7 +80,7 @@ The release bundle makes the current release posture easy to reproduce and audit
 - the release checklist captures the repository-managed release gates and the published bundle contents,
 - the backend matrix records the implemented backend catalog and its declared coverage, and the backend-matrix summary provides a compact count-based audit view for maintainers,
 - the bundle manifest records the source revision, workspace status, Rust compiler version, profile/API identifiers, and validation-round count alongside deterministic checksums,
-- the API stability posture records which surfaces are stable versus operational,
+- the API stability posture records which surfaces are stable versus operational, and the API stability summary provides a compact count-based audit view,
 - the validation report preserves comparison and benchmark summaries,
 - the manifest records deterministic checksums for the published text artifacts.
 
