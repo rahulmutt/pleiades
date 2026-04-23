@@ -85,7 +85,7 @@ pub const fn current_compatibility_profile() -> CompatibilityProfile {
         baseline_ayanamsas: baseline_ayanamsas(),
         release_ayanamsas: release_ayanamsas(),
         release_notes: &[
-            "Release-specific house-system additions now include Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter (poli-equatorial), Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen SD, Pullen SR, Sunshine, and Gauquelin sectors, with the Whole Sign (house 1 = Aries) label, the Whole sign houses, 1. house = Aries source spelling, Wang alias, Equal MC / Equal Midheaven aliases, Equal (cusp 1 = Asc) source spelling, Equal (MC) and Equal (1=Aries) source-label appendix entries, APC houses / Ascendant Parallel Circle / WvA aliases, Horizon / Horizontal / Azimuthal aliases, the Vehlow-equal source label, the Bob Makransky source label for Sunshine, the Topocentric house system alias, and the remaining Albategnius / Pullen / Gauquelin source labels also resolving as interoperability aliases.",
+            "Release-specific house-system additions now include Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter (poli-equatorial), Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Krusinski/Pisa/Goelzer, Albategnius, Pullen SD, Pullen SR, Sunshine, and Gauquelin sectors, with the Whole Sign (house 1 = Aries) label, the Whole sign houses, 1. house = Aries source spelling, Wang alias, Equal MC / Equal Midheaven aliases, Equal (cusp 1 = Asc) source spelling, Equal (MC) and Equal (1=Aries) source-label appendix entries, APC houses / Ascendant Parallel Circle / WvA aliases, Horizon / Horizontal / Azimuthal aliases, the Vehlow-equal source label, the Bob Makransky source label for Sunshine, the Topocentric house system alias, and the remaining Albategnius / Pullen / Gauquelin source labels also resolving as interoperability aliases.",
             "The compatibility profile now also renders a source-label appendix for the built-in house systems so common Placidus, Koch, Equal, Whole Sign, Topocentric, Vehlow, Sunshine, APC, and Horizon/Azimuth spellings — including the Swiss Ephemeris \"Equal (cusp 1 = Asc)\" and \"Whole Sign (house 1 = Aries)\" forms — are searchable alongside the ayanamsa appendix, and the latest release-specific house-system label batches now also surface the exact Albategnius, Pullen, and Gauquelin search forms.",
             "The compatibility profile now also renders source-label appendix entries for Lahiri / Chitrapaksha, True Chitra / Chitra, Fagan/Bradley, Fagan Bradley / Fagan-Bradley, Usha Shashi, and the Yukteshwar / Sri Yukteshwar / Shri Yukteshwar transliterations so the baseline sidereal spellings remain searchable alongside the existing Raman appendix entry and the rest of the ayanamsa catalog.",
             "The compatibility profile now also renders source-label appendix entries for P.V.R. Narasimha Rao, Aries houses, and True Mula (Chandra Hari) so the release-facing interoperability labels stay aligned with the documented source spellings for the Pushya-paksha, equal-house, and true-Mula variants.",
@@ -253,6 +253,8 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "Krusinski",
             "Krusinski-Pisa",
             "Krusinski Pisa",
+            "Krusinski/Pisa/Goelzer",
+            "Krusinski/Pisa/Goelzer house system",
             "Pisa-Goelzer",
         ],
         "Albategnius" => &["Savard-A", "Savard A", "Savard's Albategnius"],
@@ -994,6 +996,7 @@ mod tests {
         assert!(rendered.contains("Horizon/Azimuth"));
         assert!(rendered.contains("APC"));
         assert!(rendered.contains("Krusinski-Pisa-Goelzer"));
+        assert!(rendered.contains("Krusinski/Pisa/Goelzer house system"));
         assert!(rendered.contains("Albategnius"));
         assert!(rendered.contains("Savard-A, Savard A, Savard's Albategnius -> Albategnius"));
         assert!(rendered.contains("Pullen SD"));

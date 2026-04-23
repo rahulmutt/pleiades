@@ -268,6 +268,8 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
             "Krusinski",
             "Krusinski-Pisa",
             "Krusinski Pisa",
+            "Krusinski/Pisa/Goelzer",
+            "Krusinski/Pisa/Goelzer house system",
             "Pisa-Goelzer",
         ],
         "Great-circle house system centered on the ascendant and zenith; latitude-sensitive near the poles.",
@@ -397,6 +399,8 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
             "Krusinski",
             "Krusinski-Pisa",
             "Krusinski Pisa",
+            "Krusinski/Pisa/Goelzer",
+            "Krusinski/Pisa/Goelzer house system",
             "Pisa-Goelzer",
         ],
         "Great-circle house system centered on the ascendant and zenith; latitude-sensitive near the poles.",
@@ -710,6 +714,14 @@ mod tests {
         );
         assert_eq!(
             resolve_house_system("Krusinski"),
+            Some(HouseSystem::KrusinskiPisaGoelzer)
+        );
+        assert_eq!(
+            resolve_house_system("Krusinski/Pisa/Goelzer"),
+            Some(HouseSystem::KrusinskiPisaGoelzer)
+        );
+        assert_eq!(
+            resolve_house_system("Krusinski/Pisa/Goelzer house system"),
             Some(HouseSystem::KrusinskiPisaGoelzer)
         );
         assert_eq!(
