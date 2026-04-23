@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Compatibility profile known-gap wording refreshed
+
+Implemented a small Stage 6 release-hardening cleanup:
+
+- `pleiades-core::CompatibilityProfile` now describes the stage-4 validation corpus as the ongoing reference point for future house-formula tightening, instead of implying that external validation is still missing
+- the compatibility-profile identifier was bumped to `0.6.41`, and the Stage 6 progress notes were updated to match the refreshed release-profile wording
+- regression coverage now checks the revised known-gap wording in the rendered compatibility profile text
+
+Remaining Stage 6 work: keep the release-profile wording, validation corpus, and compatibility notes synchronized as further hardening slices land.
+
 ## 2026-04-23 — Validation corpus summaries now surface apparentness mode explicitly
 
 Implemented a small Stage 6 validation/reporting slice:

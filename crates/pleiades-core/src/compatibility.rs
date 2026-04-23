@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.40";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.41";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -107,7 +107,7 @@ pub const fn current_compatibility_profile() -> CompatibilityProfile {
             "Takra",
         ],
         known_gaps: &[
-            "Stage 4 validation against external reference data is still the next source of accuracy tightening for house formulas.",
+            "The stage-4 validation corpus remains the reference point for tightening house formulas whenever future revisions land.",
             "The newly added historical/reference-frame and formula-variant ayanamsa modes are catalogued and resolvable, and the release line now publishes explicit sidereal metadata for Babylonian (Huber), Babylonian (Britton), Babylonian (Kugler 1), Babylonian (Kugler 2), Babylonian (Kugler 3), Galactic Center (Cochrane), Galactic Center (Mardyks), Galactic Center (Rgilbrand), Galactic Center (Mula/Wilhelm), Galactic Equator (IAU 1958), Galactic Equator (Fiorenza), Suryasiddhanta (Revati), Suryasiddhanta (Citra), True Pushya, True Sheoran, Udayagiri, Lahiri (VP285), Krishnamurti (VP291), Djwhal Khul, Valens Moon, and the remaining historical/reference-frame catalog entries; additional metadata/source mapping work remains scheduled for any unreconciled future breadth batches or custom definitions.",
             "Labels outside the published compatibility profile, including ad hoc names such as True Balarama, Aphoric, and Takra, should be modeled as custom ayanamsa definitions rather than assumed to be built-ins.",
         ],
@@ -846,7 +846,11 @@ mod tests {
         assert!(profile
             .known_gaps
             .iter()
-            .any(|gap| gap.contains("validation")));
+            .any(|gap| gap.contains("validation corpus")));
+        assert!(profile
+            .known_gaps
+            .iter()
+            .any(|gap| gap.contains("house formulas")));
         assert!(profile
             .custom_definition_labels
             .contains(&"Babylonian (House)"));
