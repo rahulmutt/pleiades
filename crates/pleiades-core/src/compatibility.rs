@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.38";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.39";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -86,7 +86,7 @@ pub const fn current_compatibility_profile() -> CompatibilityProfile {
         release_ayanamsas: release_ayanamsas(),
         release_notes: &[
             "Release-specific house-system additions now include Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter (poli-equatorial), Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen SD, Pullen SR, Sunshine, and Gauquelin sectors, with the Whole Sign (house 1 = Aries) label, Wang alias, Equal MC / Equal Midheaven aliases, Equal (cusp 1 = Asc) source spelling, Equal (MC) and Equal (1=Aries) source-label appendix entries, APC houses / Ascendant Parallel Circle / WvA aliases, Horizon / Horizontal / Azimuthal aliases, the Vehlow-equal source label, the Bob Makransky source label for Sunshine, the Topocentric house system alias, and the remaining Albategnius / Pullen / Gauquelin source labels also resolving as interoperability aliases.",
-            "The compatibility profile now also renders a source-label appendix for the built-in house systems so common Placidus, Koch, Equal, Whole Sign, and Topocentric spellings — including the Swiss Ephemeris \"Equal (cusp 1 = Asc)\" form — are searchable alongside the ayanamsa appendix, and the latest release-specific house-system label batches now also surface the exact Albategnius, Pullen, and Gauquelin search forms.",
+            "The compatibility profile now also renders a source-label appendix for the built-in house systems so common Placidus, Koch, Equal, Whole Sign, Topocentric, Vehlow, Sunshine, APC, and Horizon/Azimuth spellings — including the Swiss Ephemeris \"Equal (cusp 1 = Asc)\" and \"Whole Sign (house 1 = Aries)\" forms — are searchable alongside the ayanamsa appendix, and the latest release-specific house-system label batches now also surface the exact Albategnius, Pullen, and Gauquelin search forms.",
             "The compatibility profile now also renders source-label appendix entries for Lahiri / Chitrapaksha, True Chitra / Chitra, Fagan Bradley / Fagan-Bradley, and Usha Shashi so the baseline sidereal spellings remain searchable alongside the existing Raman appendix entry and the rest of the ayanamsa catalog.",
             "The compatibility profile now also renders source-label appendix entries for P.V.R. Narasimha Rao, Aries houses, and True Mula (Chandra Hari) so the release-facing interoperability labels stay aligned with the documented source spellings for the Pushya-paksha, equal-house, and true-Mula variants.",
             "The compatibility profile now also renders a source-label appendix entry for Raman so the B. V. Raman, B.V. Raman, and B V Raman spellings are searchable alongside the other baseline ayanamsa labels.",
@@ -221,13 +221,15 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "Equal Aries",
             "Aries houses",
             "Whole Sign (house 1 = Aries)",
+            "Whole sign houses, 1. house = Aries",
             "Equal/1=0 Aries",
             "Equal (cusp 1 = 0° Aries)",
         ],
-        "Vehlow Equal" => &["Vehlow", "Vehlow equal", "Vehlow-equal"],
+        "Vehlow Equal" => &["Vehlow-equal", "Vehlow", "Vehlow equal"],
         "Sripati" => &["Śrīpati"],
         "Carter (poli-equatorial)" => &["Carter", "Poli-Equatorial", "Poli-equatorial"],
         "Horizon/Azimuth" => &[
+            "Horizon/Azimuth",
             "Horizon",
             "Azimuth",
             "Horizontal",
@@ -238,6 +240,7 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "horizon/azimuth",
         ],
         "APC" => &[
+            "APC",
             "Ram school",
             "Ram's school",
             "Ramschool",
@@ -256,6 +259,7 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
         "Pullen SD" => &["Neo-Porphyry", "Pullen sinusoidal delta"],
         "Pullen SR" => &["Pullen sinusoidal ratio"],
         "Sunshine" => &[
+            "Sunshine",
             "Sunshine houses",
             "Sunshine house system",
             "Makransky Sunshine",

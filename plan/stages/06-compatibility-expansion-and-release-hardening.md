@@ -45,6 +45,8 @@ This final stage should behave like a sequence of release-quality increments, no
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] The compatibility profile identifier has been bumped to `0.6.39`, and the release-facing source-label appendix now reflects the latest interoperability cleanup for the equal-house, APC, Sunshine, Vehlow, and Horizon/Azimuth labels while keeping the built-in house-system and ayanamsa source mappings explicit.
+
 - [x] The release notes artifact now carries the current API stability summary and deprecation policy snapshot alongside the compatibility-profile-derived release notes, keeping the bundle's maintainer-facing release guidance synchronized with the public API posture.
 - [x] The release bundle manifest now also records the Rust compiler version alongside the source revision and workspace status, and the bundle display / reproducibility docs now surface that extra provenance detail so staged bundles are easier to audit across toolchains.
 
