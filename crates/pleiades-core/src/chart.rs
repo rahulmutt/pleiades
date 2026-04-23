@@ -212,6 +212,13 @@ impl ChartSnapshot {
         })
     }
 
+    /// Returns the placements whose motion direction could not be determined.
+    pub fn unknown_motion_placements(&self) -> impl Iterator<Item = &BodyPlacement> {
+        self.placements
+            .iter()
+            .filter(|placement| placement.motion_direction().is_none())
+    }
+
     /// Returns the placements that are currently classified with a requested motion direction.
     pub fn placements_with_motion_direction(
         &self,
@@ -470,6 +477,18 @@ impl fmt::Display for ChartSnapshot {
             .collect();
         if !stationary_bodies.is_empty() {
             writeln!(f, "Stationary bodies: {}", stationary_bodies.join(", "))?;
+        }
+
+        let unknown_motion_bodies: Vec<String> = self
+            .unknown_motion_placements()
+            .map(|placement| placement.body.to_string())
+            .collect();
+        if !unknown_motion_bodies.is_empty() {
+            writeln!(
+                f,
+                "Unknown motion bodies: {}",
+                unknown_motion_bodies.join(", ")
+            )?;
         }
 
         let retrograde_bodies: Vec<String> = self
@@ -945,6 +964,20 @@ mod tests {
         ));
         stationary.motion = Some(pleiades_types::Motion::new(Some(0.0), None, None));
 
+        let mut unknown = EphemerisResult::new(
+            BackendId::new("toy-chart"),
+            CelestialBody::Jupiter,
+            instant,
+            pleiades_types::CoordinateFrame::Ecliptic,
+            ZodiacMode::Tropical,
+            Apparentness::Apparent,
+        );
+        unknown.ecliptic = Some(EclipticCoordinates::new(
+            Longitude::from_degrees(105.0),
+            Latitude::from_degrees(0.0),
+            None,
+        ));
+
         let chart = ChartSnapshot {
             backend_id: BackendId::new("toy-chart"),
             instant,
@@ -969,6 +1002,12 @@ mod tests {
                     position: retrograde,
                     sign: Some(ZodiacSign::Cancer),
                     house: Some(8),
+                },
+                BodyPlacement {
+                    body: CelestialBody::Jupiter,
+                    position: unknown,
+                    sign: Some(ZodiacSign::Leo),
+                    house: Some(9),
                 },
             ],
         };
@@ -1016,6 +1055,7 @@ mod tests {
         );
         assert!(chart.placements_in_house(12).next().is_none());
         assert_eq!(chart.stationary_placements().count(), 1);
+        assert_eq!(chart.unknown_motion_placements().count(), 1);
         assert_eq!(chart.retrograde_placements().count(), 1);
         assert_eq!(
             chart.motion_summary(),
@@ -1023,7 +1063,7 @@ mod tests {
                 direct: 1,
                 stationary: 1,
                 retrograde: 1,
-                unknown: 0,
+                unknown: 1,
             }
         );
         assert_eq!(
@@ -1049,9 +1089,10 @@ mod tests {
         );
         let rendered = chart.to_string();
         assert!(
-            rendered.contains("Motion summary: 1 direct, 1 stationary, 1 retrograde, 0 unknown")
+            rendered.contains("Motion summary: 1 direct, 1 stationary, 1 retrograde, 1 unknown")
         );
         assert!(rendered.contains("Stationary bodies: Mercury"));
+        assert!(rendered.contains("Unknown motion bodies: Jupiter"));
         assert!(rendered.contains("Retrograde bodies: Mars"));
     }
 

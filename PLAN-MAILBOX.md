@@ -700,3 +700,14 @@ Remaining Stage 6 work: continue filling out any remaining ayanamsa metadata and
 - Expanded the house-system interoperability aliases so APC now resolves `Ascendant Parallel Circle` and Horizon/Azimuth now resolves `Horizontal` and `Azimuthal`; the compatibility profile was bumped to `0.6.13` to keep the release artifact versioned with the alias batch.
 
 - Added a release-checklist artifact to `pleiades-validate bundle-release` / `verify-release-bundle`, and updated the release bundle manifest, docs, and Stage 6 notes so the maintained release bundle now carries the maintainer-facing release gate summary alongside the compatibility profile, release notes, capability matrix, API posture, and validation report.
+
+## 2026-04-23 — Unknown-motion chart helper added
+
+Implemented a small Stage 6 chart-ergonomics slice:
+
+- `pleiades-core::ChartSnapshot` now exposes an `unknown_motion_placements` helper so consumers can inspect placements whose longitudinal motion cannot be classified from backend data
+- chart rendering now emits an `Unknown motion bodies:` line when those placements are present, keeping the report output aligned with the motion summary counts
+- regression coverage now exercises the unknown-motion path end to end, including the rendered report text and the motion-summary counts
+- the README, API stability posture, and Stage 6 progress notes should mention the unknown-motion helper surface explicitly
+
+Remaining Stage 6 work: keep the release-facing chart helpers, catalog breadth, and compatibility profile synchronized as the release hardening work continues.
