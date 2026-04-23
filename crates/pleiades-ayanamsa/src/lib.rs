@@ -17,6 +17,7 @@
 //!
 //! assert_eq!(resolve_ayanamsa("KP"), Some(pleiades_types::Ayanamsa::Krishnamurti));
 //! assert_eq!(resolve_ayanamsa("Krishnamurti Paddhati"), Some(pleiades_types::Ayanamsa::Krishnamurti));
+//! assert_eq!(resolve_ayanamsa("Krishnamurti ayanamsa"), Some(pleiades_types::Ayanamsa::Krishnamurti));
 //! ```
 
 #![forbid(unsafe_code)]
@@ -105,6 +106,7 @@ const BASELINE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         &[
             "KP",
             "Krishnamurti Ayanamsha",
+            "Krishnamurti ayanamsa",
             "Krishnamurti (Swiss)",
             "Krishnamurti Paddhati",
             "KP ayanamsa",
@@ -600,6 +602,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         &[
             "KP",
             "Krishnamurti Ayanamsha",
+            "Krishnamurti ayanamsa",
             "Krishnamurti (Swiss)",
             "Krishnamurti Paddhati",
             "KP ayanamsa",
@@ -1227,6 +1230,10 @@ mod tests {
         );
         assert_eq!(
             resolve_ayanamsa("Krishnamurti Paddhati"),
+            Some(Ayanamsa::Krishnamurti)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Krishnamurti ayanamsa"),
             Some(Ayanamsa::Krishnamurti)
         );
         assert_eq!(
