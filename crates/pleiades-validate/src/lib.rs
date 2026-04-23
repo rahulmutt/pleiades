@@ -1216,6 +1216,23 @@ fn render_release_summary_text() -> String {
     text.push_str("Validation reference points: ");
     text.push_str(&profile.validation_reference_points.len().to_string());
     text.push('\n');
+    text.push_str("Custom-definition labels: ");
+    text.push_str(&profile.custom_definition_labels.len().to_string());
+    text.push('\n');
+    text.push_str("Custom-definition ayanamsas: ");
+    text.push_str(
+        &profile
+            .ayanamsas
+            .iter()
+            .filter(|entry| {
+                profile
+                    .custom_definition_labels
+                    .contains(&entry.canonical_name)
+            })
+            .count()
+            .to_string(),
+    );
+    text.push('\n');
     text.push_str("Known gaps: ");
     text.push_str(&profile.known_gaps.len().to_string());
     text.push('\n');
@@ -3457,6 +3474,8 @@ mod tests {
         assert!(rendered.contains("House systems:"));
         assert!(rendered.contains("Ayanamsas:"));
         assert!(rendered.contains("Validation reference points:"));
+        assert!(rendered.contains("Custom-definition labels:"));
+        assert!(rendered.contains("Custom-definition ayanamsas:"));
         assert!(rendered.contains("Known gaps:"));
         assert!(rendered.contains("Release gate reminders:"));
         assert!(rendered.contains("See release-notes and release-checklist"));
