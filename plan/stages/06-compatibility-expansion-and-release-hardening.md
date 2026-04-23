@@ -46,6 +46,7 @@ This final stage should behave like a sequence of release-quality increments, no
 Stage 6 release hardening has started as of 2026-04-22.
 
 - [x] `pleiades-validate` now names the ELP backend matrix entry as Moon-and-lunar-node coverage explicitly, so the release-facing capability docs stay synchronized with the broader lunar-point surface.
+- [x] `pleiades-cli` now rejects unknown top-level commands explicitly instead of falling through to the banner, so mistyped inspection commands fail clearly during release hardening.
 - [x] `pleiades-validate` now also ships a compact `api-stability-summary.txt` bundle artifact and matching `api-stability-summary` CLI command, so maintainers can inspect the API posture quickly alongside the existing compatibility-profile and backend-matrix summaries.
 - [x] The API stability summary now carries the current compatibility-profile identifier too, so the compact API-posture audit remains cross-referenced with the release profile when maintainers inspect staged bundles.
 - [x] `pleiades-houses` now keeps the Swiss Ephemeris house-system table-code aliases covered by tests for the published `P/K/R/C/O/E/W/V/A/H/B/M/S/G` mapping, so the compact interoperability path stays guarded when the resolver table changes.

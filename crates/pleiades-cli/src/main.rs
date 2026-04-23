@@ -35,12 +35,17 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             render_backend_matrix_report().map_err(render_error)
         }
         Some("chart") => render_chart(&args[1..]),
-        Some("help") | Some("--help") | Some("-h") => Ok(format!(
-            "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  backend-matrix         Print the implemented backend capability matrices\n  capability-matrix      Alias for backend-matrix\n  chart                  Render a basic chart report\n    --mean               Force mean positions for backend queries\n    --apparent           Force apparent positions for backend queries\n  help                   Show this help text",
-            banner()
-        )),
-        _ => Ok(banner().to_string()),
+        Some("help") | Some("--help") | Some("-h") => Ok(help_text()),
+        None => Ok(banner().to_string()),
+        Some(other) => Err(format!("unknown command: {other}\n\n{}", help_text())),
     }
+}
+
+fn help_text() -> String {
+    format!(
+        "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  backend-matrix         Print the implemented backend capability matrices\n  capability-matrix      Alias for backend-matrix\n  chart                  Render a basic chart report\n    --mean               Force mean positions for backend queries\n    --apparent           Force apparent positions for backend queries\n  help                   Show this help text",
+        banner()
+    )
 }
 
 fn render_chart(args: &[&str]) -> Result<String, String> {
@@ -256,6 +261,15 @@ mod tests {
         assert!(rendered.contains("ELP lunar backend"));
         assert!(rendered.contains("Packaged data backend"));
         assert!(rendered.contains("Composite routed backend"));
+    }
+
+    #[test]
+    fn unknown_command_is_rejected() {
+        let error = render_cli(&["compatibility-profile-summary"])
+            .expect_err("unknown commands should fail");
+        assert!(error.contains("unknown command: compatibility-profile-summary"));
+        assert!(error.contains("compatibility-profile  Print the release compatibility profile"));
+        assert!(error.contains("chart                  Render a basic chart report"));
     }
 
     #[test]
