@@ -133,6 +133,14 @@ pub fn render_artifact_report() -> Result<String, ArtifactInspectionError> {
     Ok(report.to_string())
 }
 
+/// Renders a compact summary of the bundled artifact validation report.
+pub fn render_artifact_summary() -> Result<String, ArtifactInspectionError> {
+    let artifact = packaged_artifact();
+    let encoded = artifact.encode()?;
+    let report = ArtifactInspectionReport::from_artifact(artifact, encoded.len())?;
+    Ok(render_artifact_summary_text(&report))
+}
+
 pub(crate) fn packaged_artifact_corpus() -> ValidationCorpus {
     artifact_comparison_corpus(packaged_artifact())
 }
@@ -221,6 +229,72 @@ fn artifact_comparison_corpus(artifact: &CompressedArtifact) -> ValidationCorpus
         apparentness: Apparentness::Mean,
         requests,
     }
+}
+
+fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
+    let mut text = String::new();
+
+    text.push_str("Artifact summary\n");
+    text.push_str("  label: ");
+    text.push_str(&report.generation_label);
+    text.push('\n');
+    text.push_str("  source: ");
+    text.push_str(&report.source);
+    text.push('\n');
+    text.push_str("  version: ");
+    text.push_str(&report.version.to_string());
+    text.push('\n');
+    text.push_str(&format!("  checksum: 0x{:016x}\n", report.checksum));
+    text.push_str("  encoded bytes: ");
+    text.push_str(&report.encoded_bytes.to_string());
+    text.push('\n');
+    text.push_str("  coverage: ");
+    text.push_str(&report.earliest.julian_day.to_string());
+    text.push_str(" → ");
+    text.push_str(&report.latest.julian_day.to_string());
+    text.push('\n');
+    text.push_str("  bodies: ");
+    text.push_str(&report.body_count.to_string());
+    text.push_str(" total\n");
+    text.push_str("  segments: ");
+    text.push_str(&report.segment_count.to_string());
+    text.push_str(" total\n");
+    text.push_str("  roundtrip decode: ");
+    text.push_str(yes_no(report.roundtrip_ok));
+    text.push('\n');
+    text.push_str("  checksum verified: ");
+    text.push_str(yes_no(report.checksum_ok));
+    text.push('\n');
+    text.push('\n');
+    text.push_str("Model error envelope\n");
+    text.push_str("  baseline backend: ");
+    text.push_str(&report.model_comparison.reference_backend.id.to_string());
+    text.push('\n');
+    text.push_str("  candidate backend: ");
+    text.push_str(&report.model_comparison.candidate_backend.id.to_string());
+    text.push('\n');
+    text.push_str("  corpus: ");
+    text.push_str(&report.model_comparison.corpus_name);
+    text.push('\n');
+    text.push_str("  samples: ");
+    text.push_str(&report.model_comparison.summary.sample_count.to_string());
+    text.push('\n');
+    text.push_str(&format!(
+        "  max longitude delta: {:.12}°\n",
+        report.model_comparison.summary.max_longitude_delta_deg
+    ));
+    text.push_str(&format!(
+        "  max latitude delta: {:.12}°\n",
+        report.model_comparison.summary.max_latitude_delta_deg
+    ));
+    if let Some(value) = report.model_comparison.summary.max_distance_delta_au {
+        text.push_str(&format!("  max distance delta: {:.12} AU\n", value));
+    }
+    text.push_str(
+        "\nSee validate-artifact for the full body-class envelopes and regression details.\n",
+    );
+
+    text
 }
 
 fn midpoint(start: Instant, end: Instant) -> Instant {
