@@ -23,10 +23,11 @@ pub use house_validation::{
 
 use pleiades_core::{
     current_api_stability_profile, current_compatibility_profile,
-    current_release_profile_identifiers, default_chart_bodies, Apparentness, BackendCapabilities,
-    BackendFamily, BackendMetadata, CelestialBody, CompositeBackend, CoordinateFrame,
-    EclipticCoordinates, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
-    EphemerisResult, Instant, JulianDay, Longitude, TimeRange, TimeScale, ZodiacMode,
+    current_release_profile_identifiers, default_chart_bodies, AccuracyClass, Apparentness,
+    BackendCapabilities, BackendFamily, BackendMetadata, CelestialBody, CompositeBackend,
+    CoordinateFrame, EclipticCoordinates, EphemerisBackend, EphemerisError, EphemerisErrorKind,
+    EphemerisRequest, EphemerisResult, Instant, JulianDay, Longitude, TimeRange, TimeScale,
+    ZodiacMode,
 };
 use pleiades_data::PackagedDataBackend;
 use pleiades_elp::ElpBackend;
@@ -1759,6 +1760,11 @@ fn render_backend_matrix_summary_text() -> String {
     let mut offline_count = 0usize;
     let mut batch_count = 0usize;
     let mut native_sidereal_count = 0usize;
+    let mut exact_accuracy_count = 0usize;
+    let mut high_accuracy_count = 0usize;
+    let mut moderate_accuracy_count = 0usize;
+    let mut approximate_accuracy_count = 0usize;
+    let mut unknown_accuracy_count = 0usize;
     let mut selected_asteroid_count = 0usize;
     let mut data_source_count = 0usize;
 
@@ -1770,6 +1776,14 @@ fn render_backend_matrix_summary_text() -> String {
         offline_count += usize::from(entry.metadata.offline);
         batch_count += usize::from(entry.metadata.capabilities.batch);
         native_sidereal_count += usize::from(entry.metadata.capabilities.native_sidereal);
+        match entry.metadata.accuracy {
+            AccuracyClass::Exact => exact_accuracy_count += 1,
+            AccuracyClass::High => high_accuracy_count += 1,
+            AccuracyClass::Moderate => moderate_accuracy_count += 1,
+            AccuracyClass::Approximate => approximate_accuracy_count += 1,
+            AccuracyClass::Unknown => unknown_accuracy_count += 1,
+            _ => unknown_accuracy_count += 1,
+        }
         if selected_asteroid_coverage(&entry.metadata.body_coverage).is_some() {
             selected_asteroid_count += 1;
         }
@@ -1812,6 +1826,17 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str("Native sidereal backends: ");
     text.push_str(&native_sidereal_count.to_string());
+    text.push('\n');
+    text.push_str("Accuracy classes: Exact: ");
+    text.push_str(&exact_accuracy_count.to_string());
+    text.push_str(", High: ");
+    text.push_str(&high_accuracy_count.to_string());
+    text.push_str(", Moderate: ");
+    text.push_str(&moderate_accuracy_count.to_string());
+    text.push_str(", Approximate: ");
+    text.push_str(&approximate_accuracy_count.to_string());
+    text.push_str(", Unknown: ");
+    text.push_str(&unknown_accuracy_count.to_string());
     text.push('\n');
     text.push_str("Backends with selected asteroid coverage: ");
     text.push_str(&selected_asteroid_count.to_string());
@@ -2898,6 +2923,9 @@ mod tests {
         assert!(rendered.contains("ReferenceData: 1"));
         assert!(rendered.contains("CompressedData: 1"));
         assert!(rendered.contains("Composite: 1"));
+        assert!(rendered.contains("Accuracy classes:"));
+        assert!(rendered.contains("Exact: 1"));
+        assert!(rendered.contains("Approximate: 4"));
         assert!(rendered.contains("Distinct bodies covered:"));
         assert!(rendered.contains("Distinct coordinate frames:"));
         assert!(rendered.contains("Distinct time scales:"));

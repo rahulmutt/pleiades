@@ -60,6 +60,7 @@ Stage 4 validation has started as of 2026-04-22.
 - [x] The JPL snapshot loader now reports malformed rows as structured load errors instead of panicking, so reference data issues fail explicitly and can be surfaced by validation tooling.
 - [x] The backend capability matrix now includes provenance data-source details alongside the existing summary metadata, so release-facing validation output exposes the reference material behind each implemented backend more explicitly.
 - [x] The validation crate's backend-family rendering is now aligned with the shared non-exhaustive backend contract, so the workspace validation target builds cleanly again under the stage-4 toolchain.
+- [x] The compact backend capability matrix summary now includes accuracy-class counts, giving release maintainers a quicker at-a-glance view of how many implemented backends are exact, approximate, or still unpublished.
 
 ## Risks to avoid
 
