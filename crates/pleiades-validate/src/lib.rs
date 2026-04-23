@@ -1727,6 +1727,14 @@ fn write_backend_matrix(f: &mut fmt::Formatter<'_>, backend: &BackendMetadata) -
         format_time_scales(&backend.supported_time_scales)
     )?;
     writeln!(f, "  bodies: {}", format_bodies(&backend.body_coverage))?;
+    if let Some(asteroids) = selected_asteroid_coverage(&backend.body_coverage) {
+        writeln!(
+            f,
+            "  selected asteroid coverage: {} bodies ({})",
+            asteroids.len(),
+            format_bodies(&asteroids)
+        )?;
+    }
     writeln!(f, "  frames: {}", format_frames(&backend.supported_frames))?;
     writeln!(
         f,
@@ -2014,6 +2022,31 @@ fn format_bodies(bodies: &[CelestialBody]) -> String {
         .map(|body| body.to_string())
         .collect::<Vec<_>>()
         .join(", ")
+}
+
+fn selected_asteroid_coverage(bodies: &[CelestialBody]) -> Option<Vec<CelestialBody>> {
+    let asteroids = bodies
+        .iter()
+        .filter(|body| is_selected_asteroid(body))
+        .cloned()
+        .collect::<Vec<_>>();
+
+    if asteroids.is_empty() {
+        None
+    } else {
+        Some(asteroids)
+    }
+}
+
+fn is_selected_asteroid(body: &CelestialBody) -> bool {
+    match body {
+        CelestialBody::Ceres
+        | CelestialBody::Pallas
+        | CelestialBody::Juno
+        | CelestialBody::Vesta => true,
+        CelestialBody::Custom(custom) => custom.catalog == "asteroid",
+        _ => false,
+    }
 }
 
 fn format_frames(frames: &[CoordinateFrame]) -> String {
@@ -2435,6 +2468,9 @@ mod tests {
         let rendered = render_cli(&["backend-matrix"]).expect("backend matrix should render");
         assert!(rendered.contains("Implemented backend matrices"));
         assert!(rendered.contains("JPL snapshot reference backend"));
+        assert!(
+            rendered.contains("selected asteroid coverage: 4 bodies (Ceres, Pallas, Juno, Vesta)")
+        );
         assert!(rendered.contains("nominal range:"));
         assert!(rendered.contains("provenance sources:"));
         assert!(rendered.contains("expected error classes:"));
@@ -2566,6 +2602,8 @@ version = "0.9.0"
         assert!(release_checklist.contains("Bundle contents:"));
         assert!(backend_matrix.contains("Implemented backend matrices"));
         assert!(backend_matrix.contains("JPL snapshot reference backend"));
+        assert!(backend_matrix
+            .contains("selected asteroid coverage: 4 bodies (Ceres, Pallas, Juno, Vesta)"));
         assert!(api_stability.contains(&format!(
             "API stability posture: {}",
             current_api_stability_profile_id()
