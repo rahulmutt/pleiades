@@ -45,6 +45,7 @@ This final stage should behave like a sequence of release-quality increments, no
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] The compatibility profile's source-label appendix now also surfaces the Babylonian 1/2/3 shorthand labels, Babylonian Huber, and Aryabhatan Kaliyuga spellings, and the compatibility profile identifier has been bumped to `0.6.30` so the release artifact stays synchronized with this historical-label batch.
 - [x] The house-system interoperability alias batch now resolves `Equal house system`, `Equal House`, `Horizon house system`, `Azimuthal house system`, `APC house system`, `Ram's school`, and `Sunshine house system`, and the compatibility profile identifier has been bumped to `0.6.29` so the release artifact stays synchronized with this label-focused batch.
 
 - [x] `pleiades-core` now exposes helper accessors for the current compatibility-profile and API-stability identifiers, and the CLI / validation tests consume those shared helpers instead of repeating release-string literals.

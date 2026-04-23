@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Historical shorthand source labels widened for Aryabhata and Babylonian entries
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-core::CompatibilityProfile` now surfaces the `Babylonian 1/2/3` shorthand forms, `Babylonian Huber`, and `Aryabhatan Kaliyuga` in the release-facing source-label appendix, matching the built-in ayanamsa aliases already accepted by `pleiades-ayanamsa`
+- the compatibility profile identifier was bumped to `0.6.30`, and the README / Stage 6 progress notes were updated so the release-facing status text stays synchronized with the new historical-label batch
+- the plan file was updated to record the current Stage 6 progress; no spec update was needed for this compatibility-profile refinement
+
+Remaining Stage 6 work: keep the release-facing compatibility profile, README, and validation output synchronized as additional interoperability labels land.
+
 ## 2026-04-23 — True Citra alias batch now reflected in the release profile summary
 
 Implemented a small Stage 6 release-hardening slice:
