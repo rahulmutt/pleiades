@@ -55,6 +55,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] The benchmark corpus now uses five epochs across the 1500-2500 target window instead of the earlier three-epoch slice, giving the validation report a stronger representative workload for Stage 6 release hardening.
 - [x] The release bundle manifest now records deterministic FNV-1a checksums for the published text artifacts, and the CLI bundle summary surfaces those checksums for release verification.
 - [x] `mise run release-smoke` now exercises the release bundle command locally and in CI so release artifacts stay under automation.
+- [x] The compatibility profile's Valens Moon source-label appendix now also includes the plain `Moon` search term, keeping the release-facing interoperability labels aligned with the existing chart-layer alias resolution.
 - [x] `mise run audit` now runs a workspace-native dependency audit, and `pleiades-validate workspace-audit` checks the workspace manifests and lockfile for mandatory native build hooks so the release gates surface pure-Rust regressions early.
 - [x] The first release-specific house-system additions are now implemented: Equal (MC), Equal (1=Aries), Vehlow Equal, and Sripati are catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
 - [x] Equal (MC) now also accepts the common `Equal MC` and `Equal Midheaven` label variants, tightening the release-line house-system interoperability mapping.

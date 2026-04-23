@@ -771,3 +771,12 @@ Implemented a small Stage 6 release-hardening slice:
 - the Stage 6 progress notes were updated to record the helper-surface wording refinement as part of the release-hardening backlog
 
 Remaining Stage 6 work: keep the release-facing chart-helper wording, catalog breadth, and compatibility profile synchronized as the release hardening work continues.
+
+## 2026-04-23 — Valens Moon source-label appendix broadened
+
+Implemented a small Stage 6 release-hardening refinement:
+
+- `pleiades-core::CompatibilityProfile` now includes the plain `Moon` search term in the Valens Moon source-label appendix, aligning the release-facing interoperability labels with the existing chart-layer alias resolution
+- the compatibility-profile regression test now checks the expanded source-label rendering, and the Stage 6 progress notes were updated to record the refinement
+
+No spec change was needed; this is a small release-profile alignment within the existing Stage 6 compatibility/search-label scope.

@@ -241,7 +241,7 @@ fn source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
         "Galactic Equator (Mula)" => &["Galactic Equator mid-Mula"],
         "Galactic Equator" => &["Gal. Eq."],
         "Galactic Equator (Fiorenza)" => &["Fiorenza"],
-        "Valens Moon" => &["Vettius Valens", "Moon sign ayanamsa"],
+        "Valens Moon" => &["Vettius Valens", "Moon", "Moon sign ayanamsa"],
         _ => &[],
     }
 }
@@ -747,7 +747,7 @@ mod tests {
         assert!(rendered.contains("Galact. Center = 0 Sag -> Galactic Center"));
         assert!(rendered.contains("Gal. Eq. -> Galactic Equator"));
         assert!(rendered.contains("Zij al-Shah -> Sassanian"));
-        assert!(rendered.contains("Vettius Valens, Moon sign ayanamsa -> Valens Moon"));
+        assert!(rendered.contains("Vettius Valens, Moon, Moon sign ayanamsa -> Valens Moon"));
         assert!(rendered.contains("Suryasiddhanta, mean Sun"));
         assert!(rendered.contains("Suryasiddhanta MSUN -> Suryasiddhanta (Mean Sun)"));
         assert!(rendered.contains("J. N. Bhasin, J.N. Bhasin, Bhasin -> JN Bhasin"));
