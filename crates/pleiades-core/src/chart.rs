@@ -229,6 +229,16 @@ impl ChartSnapshot {
             .filter(move |placement| placement.motion_direction() == Some(direction))
     }
 
+    /// Returns the occupied zodiac signs in canonical zodiac order.
+    pub fn occupied_signs(&self) -> Vec<ZodiacSign> {
+        self.sign_summary().occupied_signs()
+    }
+
+    /// Returns the occupied house numbers in ascending order.
+    pub fn occupied_houses(&self) -> Vec<usize> {
+        self.house_summary().occupied_houses()
+    }
+
     /// Returns the placements that are currently classified as direct.
     pub fn direct_placements(&self) -> impl Iterator<Item = &BodyPlacement> {
         self.placements_with_motion_direction(MotionDirection::Direct)
@@ -401,6 +411,30 @@ impl SignSummary {
             + self.pisces
             > 0
     }
+
+    /// Returns the occupied zodiac signs in canonical zodiac order.
+    pub fn occupied_signs(self) -> Vec<ZodiacSign> {
+        let mut signs = Vec::new();
+        for (count, sign) in [
+            (self.aries, ZodiacSign::Aries),
+            (self.taurus, ZodiacSign::Taurus),
+            (self.gemini, ZodiacSign::Gemini),
+            (self.cancer, ZodiacSign::Cancer),
+            (self.leo, ZodiacSign::Leo),
+            (self.virgo, ZodiacSign::Virgo),
+            (self.libra, ZodiacSign::Libra),
+            (self.scorpio, ZodiacSign::Scorpio),
+            (self.sagittarius, ZodiacSign::Sagittarius),
+            (self.capricorn, ZodiacSign::Capricorn),
+            (self.aquarius, ZodiacSign::Aquarius),
+            (self.pisces, ZodiacSign::Pisces),
+        ] {
+            if count > 0 {
+                signs.push(sign);
+            }
+        }
+        signs
+    }
 }
 
 impl fmt::Display for SignSummary {
@@ -503,6 +537,30 @@ impl HouseSummary {
             + self.eleventh
             + self.twelfth
             > 0
+    }
+
+    /// Returns the occupied house numbers in ascending order.
+    pub fn occupied_houses(self) -> Vec<usize> {
+        let mut houses = Vec::new();
+        for (count, house) in [
+            (self.first, 1usize),
+            (self.second, 2),
+            (self.third, 3),
+            (self.fourth, 4),
+            (self.fifth, 5),
+            (self.sixth, 6),
+            (self.seventh, 7),
+            (self.eighth, 8),
+            (self.ninth, 9),
+            (self.tenth, 10),
+            (self.eleventh, 11),
+            (self.twelfth, 12),
+        ] {
+            if count > 0 {
+                houses.push(house);
+            }
+        }
+        houses
     }
 }
 
@@ -1373,6 +1431,16 @@ mod tests {
         assert_eq!(chart.house_for_body(&CelestialBody::Sun), Some(1));
         assert_eq!(chart.house_for_body(&CelestialBody::Mars), Some(8));
         assert_eq!(chart.house_for_body(&CelestialBody::Mercury), Some(2));
+        assert_eq!(
+            chart.occupied_signs(),
+            vec![
+                ZodiacSign::Aries,
+                ZodiacSign::Taurus,
+                ZodiacSign::Cancer,
+                ZodiacSign::Leo,
+            ]
+        );
+        assert_eq!(chart.occupied_houses(), vec![1, 2, 8, 9]);
         assert_eq!(
             chart.motion_direction_for(&CelestialBody::Mars),
             Some(MotionDirection::Retrograde)
