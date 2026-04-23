@@ -57,7 +57,7 @@ Rough command overview:
 - `compatibility-profile` / `profile`: print the full release compatibility profile
 - `release-notes`, `release-checklist`, `release-checklist-summary`, `release-summary`, `verify-compatibility-profile`: maintainer-facing release metadata and catalog-alignment checks
 - `artifact-summary`: compact summary of the packaged compressed artifact
-- `validation-summary` / `report-summary`: compact validation report summary
+- `validation-report-summary` / `validation-summary` / `report-summary`: compact validation report summary
 - `chart`: render a basic chart report from a Julian day and optional observer settings
 
 Example usage:
@@ -105,7 +105,7 @@ Rough command overview:
 - `backend-matrix` / `backend-matrix-summary`: print detailed or compact backend capability matrices
 - `benchmark [--rounds N]`: benchmark the candidate backend on the representative corpus
 - `report` / `generate-report`: render the full validation report
-- `report-summary` / `validation-summary`: compact validation report summary
+- `validation-report-summary` / `validation-summary` / `report-summary`: compact validation report summary
 - `validate-artifact`: inspect and validate the packaged compressed artifact in detail
 - `artifact-summary`: compact packaged-artifact summary
 - `workspace-audit` / `audit`: check the workspace for mandatory native build hooks

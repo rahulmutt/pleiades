@@ -60,7 +60,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("artifact-summary") | Some("artifact-posture-summary") => {
             render_artifact_summary().map_err(|error| error.to_string())
         }
-        Some("validation-summary") | Some("report-summary") => {
+        Some("validation-report-summary") | Some("validation-summary") | Some("report-summary") => {
             render_validation_report_summary(10_000).map_err(render_error)
         }
         Some("chart") => render_chart(&args[1..]),
@@ -79,8 +79,9 @@ fn help_text() -> String {
   release-summary        Print the compact release summary
   artifact-summary       Print the compact packaged-artifact summary
   artifact-posture-summary  Alias for artifact-summary
-  validation-summary     Print the compact validation report summary
-  report-summary         Alias for validation-summary
+  validation-report-summary  Print the compact validation report summary
+  validation-summary     Alias for validation-report-summary
+  report-summary         Alias for validation-report-summary
   chart                  Render a basic chart report\n    --mean               Force mean positions for backend queries\n    --apparent           Force apparent positions for backend queries\n    --body <name>        Use a built-in body or a custom catalog:designation identifier\n  help                   Show this help text",
         banner()
     )
@@ -480,6 +481,12 @@ mod tests {
         assert!(validation_summary.contains("House validation corpus"));
         assert!(validation_summary.contains("Benchmark summaries"));
         assert!(validation_summary.contains("Packaged-data benchmark"));
+
+        let validation_report_summary = render_cli(&["validation-report-summary"])
+            .expect("validation-report-summary should render");
+        assert!(validation_report_summary.contains("Validation report summary"));
+        assert!(validation_report_summary.contains("Comparison corpus"));
+        assert!(validation_report_summary.contains("Benchmark summaries"));
     }
 
     #[test]
@@ -494,9 +501,10 @@ mod tests {
             error.contains("release-checklist-summary Print the compact release checklist summary")
         );
         assert!(error.contains("release-summary        Print the compact release summary"));
-        assert!(
-            error.contains("validation-summary     Print the compact validation report summary")
-        );
+        assert!(error
+            .contains("validation-report-summary  Print the compact validation report summary"));
+        assert!(error.contains("validation-summary     Alias for validation-report-summary"));
+        assert!(error.contains("report-summary         Alias for validation-report-summary"));
         assert!(error.contains("chart                  Render a basic chart report"));
     }
 

@@ -854,7 +854,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             let rounds = parse_rounds(&args[1..], DEFAULT_BENCHMARK_ROUNDS)?;
             render_validation_report(rounds).map_err(render_error)
         }
-        Some("report-summary") | Some("validation-summary") => {
+        Some("validation-report-summary") | Some("report-summary") | Some("validation-summary") => {
             let rounds = parse_rounds(&args[1..], DEFAULT_BENCHMARK_ROUNDS)?;
             render_validation_report_summary(rounds).map_err(render_error)
         }
@@ -3315,7 +3315,8 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = default_corpus().requests.len();
     format!(
-        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix            Print the implemented backend capability matrices\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  compatibility-profile     Print the release compatibility profile\n  profile                   Alias for compatibility-profile\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus with guard epochs\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  report-summary [--rounds N]  Render a compact validation report summary\n  validation-summary        Alias for report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes
+        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix            Print the implemented backend capability matrices\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  compatibility-profile     Print the release compatibility profile\n  profile                   Alias for compatibility-profile\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus with guard epochs\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validation-report-summary [--rounds N]  Render a compact validation report summary\n  report-summary [--rounds N]  Alias for validation-report-summary
+  validation-summary        Alias for validation-report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes
   release-checklist         Print the release maintainer checklist
   release-checklist-summary Print the compact release checklist summary
   checklist-summary        Alias for release-checklist-summary
@@ -3692,6 +3693,13 @@ mod tests {
         assert!(rendered.contains("Validation report summary"));
         assert!(rendered.contains("Comparison corpus"));
         assert!(rendered.contains("Benchmark summaries"));
+
+        let validation_report_summary =
+            render_cli(&["validation-report-summary", "--rounds", "10"])
+                .expect("validation-report-summary should render");
+        assert!(validation_report_summary.contains("Validation report summary"));
+        assert!(validation_report_summary.contains("Comparison corpus"));
+        assert!(validation_report_summary.contains("Benchmark summaries"));
     }
 
     #[test]
@@ -3772,6 +3780,7 @@ mod tests {
         assert!(rendered.contains("benchmark [--rounds N]"));
         assert!(rendered.contains("report [--rounds N]"));
         assert!(rendered.contains("generate-report"));
+        assert!(rendered.contains("validation-report-summary [--rounds N]"));
         assert!(rendered.contains("report-summary [--rounds N]"));
         assert!(rendered.contains("validation-summary"));
         assert!(rendered.contains("validate-artifact"));

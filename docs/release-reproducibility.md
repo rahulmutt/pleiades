@@ -39,7 +39,7 @@ To inspect the release artifacts directly, generate a bundle in a directory of y
 cargo run -q -p pleiades-validate -- bundle-release --out /tmp/pleiades-release
 ```
 
-The validation tool can also render the full compatibility profile, the compact profile summary, verify the release compatibility profile against the canonical catalogs, render the release notes, release checklist, release-checklist summary, release summary, API stability summary, artifact summary, and validation summary directly when you only need the individual maintainer-facing artifacts, and the user-facing CLI mirrors the release-notes, release-checklist, release-checklist-summary, release-summary, verify-compatibility-profile, api-stability-summary, artifact-summary, and validation-summary renderers too; the release notes now also point readers at the compact compatibility-profile-summary view for a quicker audit hop, the release-checklist summary now also points back to the compact release-summary view for a quicker one-screen audit hop, and the compact release summary now also includes the custom-definition label counts that keep the release posture self-describing, a packaged-artifact cross-reference, and the compact validation-summary alias in its summary-view list:
+The validation tool can also render the full compatibility profile, the compact profile summary, verify the release compatibility profile against the canonical catalogs, render the release notes, release checklist, release-checklist summary, release summary, API stability summary, artifact summary, and validation summary directly when you only need the individual maintainer-facing artifacts, and the user-facing CLI mirrors the release-notes, release-checklist, release-checklist-summary, release-summary, verify-compatibility-profile, api-stability-summary, artifact-summary, and validation-report-summary / validation-summary renderers too; the release notes now also point readers at the compact compatibility-profile-summary view for a quicker audit hop, the release-checklist summary now also points back to the compact release-summary view for a quicker one-screen audit hop, and the compact release summary now also includes the custom-definition label counts that keep the release posture self-describing, a packaged-artifact cross-reference, and the compact validation-report-summary / validation-summary alias in its summary-view list:
 
 ```bash
 cargo run -q -p pleiades-validate -- compatibility-profile
@@ -54,10 +54,12 @@ cargo run -q -p pleiades-cli -- release-checklist
 cargo run -q -p pleiades-cli -- release-checklist-summary
 cargo run -q -p pleiades-cli -- release-summary
 cargo run -q -p pleiades-cli -- verify-compatibility-profile
+cargo run -q -p pleiades-cli -- validation-report-summary
 cargo run -q -p pleiades-cli -- validation-summary
 cargo run -q -p pleiades-validate -- backend-matrix-summary
 cargo run -q -p pleiades-validate -- api-stability-summary
 cargo run -q -p pleiades-validate -- artifact-summary
+cargo run -q -p pleiades-validate -- validation-report-summary
 cargo run -q -p pleiades-validate -- validation-summary
 ```
 
