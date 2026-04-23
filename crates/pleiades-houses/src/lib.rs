@@ -232,6 +232,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
             "Horizontal",
             "Azimuthal",
             "horizon/azimut",
+            "horizon/azimuth",
         ],
         "Azimuthal house system that anchors house 1 due East and house 10 at the MC.",
         true,
@@ -349,6 +350,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
             "Horizontal",
             "Azimuthal",
             "horizon/azimut",
+            "horizon/azimuth",
         ],
         "Azimuthal house system that anchors house 1 due East and house 10 at the MC.",
         true,
@@ -629,6 +631,10 @@ mod tests {
         );
         assert_eq!(
             resolve_house_system("Azimuthal"),
+            Some(HouseSystem::Horizon)
+        );
+        assert_eq!(
+            resolve_house_system("horizon/azimuth"),
             Some(HouseSystem::Horizon)
         );
         assert_eq!(resolve_house_system("Ram school"), Some(HouseSystem::Apc));

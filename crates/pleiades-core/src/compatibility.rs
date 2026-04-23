@@ -59,7 +59,7 @@ impl CompatibilityProfile {
 /// Returns the current compatibility profile.
 pub const fn current_compatibility_profile() -> CompatibilityProfile {
     CompatibilityProfile {
-        profile_id: "pleiades-compatibility-profile/0.6.13",
+        profile_id: "pleiades-compatibility-profile/0.6.14",
         summary: "Stage 6 release profile: the baseline catalogs remain published as a routine release artifact while the target Swiss-Ephemeris-class compatibility catalog stays explicit, including the release-specific house-system additions across the Carter, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen, Sunshine, and Gauquelin families, plus the expanded ayanamsa coverage for J2000/J1900/B1950, True Citra, DeLuce, Yukteshwar, PVR Pushya-paksha, Sheoran, the true-nakshatra and Suryasiddhanta Revati/Citra reference modes, the Hipparchus/Babylonian/Galactic reference-frame modes, the latest True Pushya, Udayagiri, Lahiri (VP285), Krishnamurti (VP291), Djwhal Khul, JN Bhasin, mean-sun, Valens Moon, Dhruva Galactic Center (Middle Mula), Galactic Center (Cochrane/Mardyks), Galactic Equator (Mula), the Babylonian house/sissy/true-geoc/true-topc/true-obs/house-obs variants, the backfilled True Sheoran, Galactic Center (Rgilbrand), and Galactic Center (Mula/Wilhelm) zero-point metadata, the additional Galactic Equator/Center variants, the exact Swiss Ephemeris source-label aliases for the Babylonian/Kugler family, galactic-reference, mean-sun, and selected release-specific source-form entries, the expanded APC and Horizon/Azimuth interoperability aliases, and the Babylonian house-family labels now rendered as explicit custom-definition territory rather than unresolved release gaps.",
 
         target_house_scope: &[
@@ -761,6 +761,7 @@ mod tests {
             rendered.contains("Polich-Page, Polich Page, Topocentric house system -> Topocentric")
         );
         assert!(rendered.contains("Horizontal, Azimuthal"));
+        assert!(rendered.contains("horizon/azimuth"));
         assert!(rendered.contains("Ascendant Parallel Circle -> APC"));
         assert!(rendered.contains("Chitrapaksha -> Lahiri"));
         assert!(rendered.contains("Whole Sign (house 1 = Aries), Equal/1=0 Aries, Equal (cusp 1 = 0° Aries) -> Equal (1=Aries)"));
