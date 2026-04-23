@@ -45,8 +45,9 @@ This final stage should behave like a sequence of release-quality increments, no
 
 Stage 6 release hardening has started as of 2026-04-22.
 
-- [x] The compatibility profile identifier has been bumped to `0.6.39`, and the release-facing source-label appendix now reflects the latest interoperability cleanup for the equal-house, APC, Sunshine, Vehlow, and Horizon/Azimuth labels while keeping the built-in house-system and ayanamsa source mappings explicit.
+- [x] The compatibility profile identifier has been bumped to `0.6.40`, and the release-facing source-label appendix now reflects the latest interoperability cleanup for the equal-house, APC, Sunshine, Vehlow, Horizon/Azimuth, and Surya Siddhanta labels while keeping the built-in house-system and ayanamsa source mappings explicit.
 - [x] The validation comparison and benchmark corpora now render their apparentness mode explicitly in validation and benchmark reports, so the release-facing output keeps the mean/apparent assumption visible alongside the corpus metadata.
+- [x] The compatibility profile's source-label appendix now also surfaces the exact `Surya Siddhanta` spelling alongside `Suryasiddhanta`, `Suryasiddhanta 499`, and `Suryasiddhanta 499 CE`, keeping the release-facing historical/source-form appendix aligned with the resolver aliases already accepted by `pleiades-ayanamsa`.
 
 - [x] The release notes artifact now carries the current API stability summary and deprecation policy snapshot alongside the compatibility-profile-derived release notes, keeping the bundle's maintainer-facing release guidance synchronized with the public API posture.
 - [x] The release bundle manifest now also records the Rust compiler version alongside the source revision and workspace status, and the bundle display / reproducibility docs now surface that extra provenance detail so staged bundles are easier to audit across toolchains.
