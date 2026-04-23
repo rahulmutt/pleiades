@@ -731,3 +731,13 @@ Implemented a small Stage 6 chart-ergonomics slice:
 - the README, API stability posture, and Stage 6 progress notes should mention the unknown-motion helper surface explicitly
 
 Remaining Stage 6 work: keep the release-facing chart helpers, catalog breadth, and compatibility profile synchronized as the release hardening work continues.
+
+## 2026-04-23 — Sassanian source-label appendix entry added
+
+Implemented a small Stage 6 source-label refinement:
+
+- `pleiades-core::CompatibilityProfile` now includes the `Zij al-Shah -> Sassanian` source-label mapping in the ayanamsa source-label appendix, so the release profile stays searchable by the legacy Sassanian table-reform label as well as the canonical built-in name
+- the compatibility-profile tests and release-facing README summary were updated to reflect the new appendix entry, and the Stage 6 progress notes now call out the Sassanian / `Zij al-Shah` spelling explicitly
+- no spec change was needed; this is a release-hardening interoperability refinement within the existing compatibility-profile scope
+
+Remaining Stage 6 work: keep the source-label appendix, catalog breadth, and release notes synchronized as additional interoperability spellings land.
