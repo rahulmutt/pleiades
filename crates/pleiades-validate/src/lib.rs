@@ -1333,6 +1333,7 @@ fn render_release_checklist_summary_text() -> String {
     text.push_str("External publishing reminders: 3 items\n");
     text.push('\n');
     text.push_str("See release-checklist for the full maintainer-facing artifact.\n");
+    text.push_str("See release-summary for the compact one-screen release overview.\n");
 
     text
 }
@@ -3715,6 +3716,9 @@ mod tests {
         assert!(rendered.contains("Bundle contents: 15 items"));
         assert!(rendered.contains("External publishing reminders: 3 items"));
         assert!(rendered.contains("See release-checklist for the full maintainer-facing artifact."));
+        assert!(
+            rendered.contains("See release-summary for the compact one-screen release overview.")
+        );
     }
 
     #[test]

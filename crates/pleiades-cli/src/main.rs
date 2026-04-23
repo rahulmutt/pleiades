@@ -433,6 +433,8 @@ mod tests {
         assert!(release_checklist_summary.contains("Manual bundle workflow: 3 items"));
         assert!(release_checklist_summary.contains("Bundle contents: 15 items"));
         assert!(release_checklist_summary.contains("External publishing reminders: 3 items"));
+        assert!(release_checklist_summary
+            .contains("See release-summary for the compact one-screen release overview."));
 
         let release_summary =
             render_cli(&["release-summary"]).expect("release summary should render");
