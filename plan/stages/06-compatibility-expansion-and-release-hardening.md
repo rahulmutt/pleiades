@@ -58,6 +58,7 @@ These are durable planning decisions that should remain true even as individual 
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] `pleiades-validate` now also mirrors the full `compatibility-profile` / `profile` renderer alongside `compatibility-profile-summary`, so the primary release tooling can print the complete profile without switching over to the user-facing CLI.
 - [x] The Meridian house-system descriptors and release compatibility profile now also accept the `Zariel` spelling alongside `Meridian`, `ARMC`, `Axial Rotation`, and `Axial rotation system`, and the compatibility profile identifier has been bumped to `0.6.79` so the axial-rotation alias batch stays versioned with the current profile.
 - [x] The equal-house release labels now also accept the exact `Equal (MC) table of houses` and `Equal (1=Aries) table of houses` spellings alongside the existing `Equal (MC)` and `Equal (1=Aries)` entries, and the compatibility profile identifier has been bumped to `0.6.80` so the equal-house table-of-houses alias batch stays versioned with the current profile.
 - [x] The release-specific house and ayanamsa catalog entries now keep their alias lists free of duplicate canonical labels — including `Equal (MC)`, `Gauquelin sectors`, and `True Citra` — so the compact release-profile coverage lines read more cleanly without changing resolver behavior.
