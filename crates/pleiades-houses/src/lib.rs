@@ -128,6 +128,8 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         HouseSystem::Equal,
         "Equal",
         &[
+            "A equal",
+            "E equal = A",
             "Equal houses",
             "Equal house system",
             "Equal House",
@@ -140,7 +142,12 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
     HouseSystemDescriptor::new(
         HouseSystem::WholeSign,
         "Whole Sign",
-        &["Whole Sign houses", "Whole-sign", "Whole Sign system"],
+        &[
+            "W equal, whole sign",
+            "Whole Sign houses",
+            "Whole-sign",
+            "Whole Sign system",
+        ],
         "Whole-sign system anchored on the rising sign.",
         false,
     ),
@@ -154,7 +161,11 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
     HouseSystemDescriptor::new(
         HouseSystem::Meridian,
         "Meridian",
-        &["Meridian houses", "ARMC"],
+        &[
+            "Meridian houses",
+            "ARMC",
+            "X axial rotation system/ Meridian houses",
+        ],
         "Meridian-style systems and documented axial variants.",
         false,
     ),
@@ -168,7 +179,13 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
     HouseSystemDescriptor::new(
         HouseSystem::Topocentric,
         "Topocentric",
-        &["Polich-Page", "Polich/Page", "Polich Page", "Topocentric house system"],
+        &[
+            "Polich-Page",
+            "Polich/Page",
+            "Polich Page",
+            "T Polich/Page (\"topocentric\")",
+            "Topocentric house system",
+        ],
         "Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.",
         true,
     ),
@@ -186,6 +203,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         HouseSystem::EqualMidheaven,
         "Equal (MC)",
         &[
+            "D equal / MC",
             "Equal from MC",
             "Equal (from MC)",
             "Equal MC",
@@ -214,7 +232,12 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
     HouseSystemDescriptor::new(
         HouseSystem::Vehlow,
         "Vehlow Equal",
-        &["Vehlow", "Vehlow equal", "Vehlow-equal"],
+        &[
+            "V equal Vehlow",
+            "Vehlow",
+            "Vehlow equal",
+            "Vehlow-equal",
+        ],
         "Equal-house variant with the Ascendant centered in house 1.",
         false,
     ),
@@ -256,6 +279,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
             "Ram's school",
             "Ramschool",
             "WvA",
+            "Y APC houses",
             "APC houses",
             "APC house system",
             "Ascendant Parallel Circle",
@@ -387,6 +411,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
             "Ram's school",
             "Ramschool",
             "WvA",
+            "Y APC houses",
             "APC houses",
             "APC house system",
             "Ascendant Parallel Circle",
@@ -433,6 +458,8 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         HouseSystem::Equal,
         "Equal",
         &[
+            "A equal",
+            "E equal = A",
             "Equal houses",
             "Equal house system",
             "Equal House",
@@ -445,7 +472,12 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
     HouseSystemDescriptor::new(
         HouseSystem::WholeSign,
         "Whole Sign",
-        &["Whole Sign houses", "Whole-sign", "Whole Sign system"],
+        &[
+            "W equal, whole sign",
+            "Whole Sign houses",
+            "Whole-sign",
+            "Whole Sign system",
+        ],
         "Whole-sign system anchored on the rising sign.",
         false,
     ),
@@ -459,7 +491,11 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
     HouseSystemDescriptor::new(
         HouseSystem::Meridian,
         "Meridian",
-        &["Meridian houses", "ARMC"],
+        &[
+            "Meridian houses",
+            "ARMC",
+            "X axial rotation system/ Meridian houses",
+        ],
         "Meridian-style systems and documented axial variants.",
         false,
     ),
@@ -473,7 +509,13 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
     HouseSystemDescriptor::new(
         HouseSystem::Topocentric,
         "Topocentric",
-        &["Polich-Page", "Polich/Page", "Polich Page", "Topocentric house system"],
+        &[
+            "Polich-Page",
+            "Polich/Page",
+            "Polich Page",
+            "T Polich/Page (\"topocentric\")",
+            "Topocentric house system",
+        ],
         "Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.",
         true,
     ),
@@ -508,6 +550,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         HouseSystem::EqualMidheaven,
         "Equal (MC)",
         &[
+            "D equal / MC",
             "Equal from MC",
             "Equal (from MC)",
             "Equal MC",
@@ -536,7 +579,12 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
     HouseSystemDescriptor::new(
         HouseSystem::Vehlow,
         "Vehlow Equal",
-        &["Vehlow", "Vehlow equal", "Vehlow-equal"],
+        &[
+            "V equal Vehlow",
+            "Vehlow",
+            "Vehlow equal",
+            "Vehlow-equal",
+        ],
         "Equal-house variant with the Ascendant centered in house 1.",
         false,
     ),
@@ -654,6 +702,32 @@ mod tests {
         );
         assert_eq!(resolve_house_system("w. koch"), Some(HouseSystem::Koch));
         assert_eq!(resolve_house_system("ARMC"), Some(HouseSystem::Meridian));
+        assert_eq!(resolve_house_system("A equal"), Some(HouseSystem::Equal));
+        assert_eq!(
+            resolve_house_system("D equal / MC"),
+            Some(HouseSystem::EqualMidheaven)
+        );
+        assert_eq!(
+            resolve_house_system("E equal = A"),
+            Some(HouseSystem::Equal)
+        );
+        assert_eq!(
+            resolve_house_system("W equal, whole sign"),
+            Some(HouseSystem::WholeSign)
+        );
+        assert_eq!(
+            resolve_house_system("V equal Vehlow"),
+            Some(HouseSystem::Vehlow)
+        );
+        assert_eq!(
+            resolve_house_system("X axial rotation system/ Meridian houses"),
+            Some(HouseSystem::Meridian)
+        );
+        assert_eq!(resolve_house_system("Y APC houses"), Some(HouseSystem::Apc));
+        assert_eq!(
+            resolve_house_system("T Polich/Page (\"topocentric\")"),
+            Some(HouseSystem::Topocentric)
+        );
         assert_eq!(resolve_house_system("P"), Some(HouseSystem::Placidus));
         assert_eq!(resolve_house_system("K"), Some(HouseSystem::Koch));
         assert_eq!(resolve_house_system("R"), Some(HouseSystem::Regiomontanus));

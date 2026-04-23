@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Swiss Ephemeris house-table code spellings now surface in the compatibility profile
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-houses` and `pleiades-core` now surface the exact Swiss Ephemeris house-table code spellings `A equal`, `D equal / MC`, `E equal = A`, `W equal, whole sign`, `V equal Vehlow`, `X axial rotation system/ Meridian houses`, and `Y APC houses` in both the resolver aliases and the release compatibility profile, so the code-style interoperability forms stay searchable alongside the canonical house names
+- the compatibility-profile identifier was bumped to `0.6.52`, and the Stage 6 progress notes were updated so the new house-code section stays synchronized with the release-facing wording
+- clippy, formatting, and the workspace test suite all pass after the update
+
+Remaining Stage 6 work: keep the compatibility profile, release summary wording, and release notes synchronized as the remaining compatibility and release-hardening slices land.
+
 ## 2026-04-23 — Validation reference points now render separately in the compatibility profile
 
 Implemented a small Stage 6 release-hardening slice:
