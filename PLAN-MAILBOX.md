@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Release notes now call out the source-backed JPL asteroid coverage
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-core::CompatibilityProfile` and `pleiades-validate` now mention the selected asteroid coverage note explicitly in release-facing output, including the source-backed `asteroid:433-Eros` custom body preserved in the checked-in JPL snapshot
+- the compatibility-profile identifier was bumped to `0.6.57`, and the Stage 6 progress notes were updated so the release-facing asteroid note stays versioned with the current profile
+- clippy, formatting, and the workspace test suite all pass after the update
+
+Remaining Stage 6 work: keep the asteroid coverage, compatibility profile, and validation/reporting surfaces synchronized as the remaining release-hardening slices land.
+
 ## 2026-04-23 — JPL snapshot backend now carries a source-backed custom asteroid
 
 Implemented a small Stage 6 optional-expansion slice:

@@ -270,6 +270,15 @@ mod tests {
                 entry.canonical_name
             );
         }
+
+        assert!(
+            release_notes.contains("selected asteroid coverage"),
+            "release notes should mention selected asteroid coverage"
+        );
+        assert!(
+            release_notes.contains("asteroid:433-Eros"),
+            "release notes should mention the source-backed custom asteroid"
+        );
     }
 
     #[test]

@@ -3452,6 +3452,8 @@ mod tests {
         assert!(rendered.contains("API stability posture:"));
         assert!(rendered.contains("Deprecation policy:"));
         assert!(rendered.contains("Release-specific coverage:"));
+        assert!(rendered.contains("selected asteroid coverage"));
+        assert!(rendered.contains("asteroid:433-Eros"));
         assert!(rendered.contains("Validation reference points:"));
         assert!(rendered.contains("Compatibility caveats:"));
     }
@@ -3678,6 +3680,8 @@ version = "0.9.0"
         assert!(release_notes.contains("API stability posture:"));
         assert!(release_notes.contains("Deprecation policy:"));
         assert!(release_notes.contains("Release-specific coverage:"));
+        assert!(release_notes.contains("selected asteroid coverage"));
+        assert!(release_notes.contains("asteroid:433-Eros"));
         assert!(release_notes.contains("Validation reference points:"));
         assert!(release_notes.contains("Compatibility caveats:"));
         assert!(release_notes.contains("Bundle provenance:"));
