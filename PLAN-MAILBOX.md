@@ -1,5 +1,16 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Release bundle manifest now records source provenance
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-validate` now records the source revision and workspace status in the release bundle manifest, and the bundle/display path surfaces that provenance alongside the existing manifest checksums and validation-round count
+- the release notes artifact now includes a short bundle-provenance section, and the README / release reproducibility guide were updated to describe the new manifest contents
+- the Stage 6 progress notes were updated to record the provenance addition; no spec update was needed because this stays within the existing release-artifact and reproducibility scope
+
+Remaining Stage 6 work: keep the release bundle, compatibility profile, and reproducibility docs synchronized as further hardening slices land.
+
+
 ## 2026-04-23 — Whole Sign system alias now resolves in the house catalog
 
 Implemented a small Stage 6 compatibility-alignment slice:

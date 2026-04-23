@@ -9,6 +9,7 @@
 use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::time::Instant as StdInstant;
 
 mod artifact;
@@ -294,6 +295,10 @@ pub struct ValidationReport {
 /// release checklist, backend matrix, API posture, validation report, and manifest.
 #[derive(Clone, Debug)]
 pub struct ReleaseBundle {
+    /// Source revision recorded when the bundle was generated.
+    pub source_revision: String,
+    /// Workspace status recorded when the bundle was generated.
+    pub workspace_status: String,
     /// Output directory chosen by the caller.
     pub output_dir: PathBuf,
     /// Path to the generated compatibility profile file.
@@ -543,6 +548,8 @@ impl fmt::Display for ReleaseBundle {
             self.validation_report_path.display()
         )?;
         writeln!(f, "  manifest: {}", self.manifest_path.display())?;
+        writeln!(f, "  source revision: {}", self.source_revision)?;
+        writeln!(f, "  workspace status: {}", self.workspace_status)?;
         writeln!(f, "  validation rounds: {}", self.validation_rounds)?;
         writeln!(
             f,
@@ -841,7 +848,11 @@ fn render_release_notes_text() -> String {
             text.push_str(gap);
             text.push('\n');
         }
+        text.push('\n');
     }
+
+    text.push_str("Bundle provenance:\n");
+    text.push_str("- source revision and workspace status are recorded in the manifest\n");
 
     text
 }
@@ -913,6 +924,43 @@ fn render_release_checklist_text() -> String {
     text
 }
 
+#[derive(Clone, Debug)]
+struct WorkspaceProvenance {
+    source_revision: String,
+    workspace_status: String,
+}
+
+fn workspace_provenance() -> WorkspaceProvenance {
+    let source_revision = Command::new("git")
+        .args(["rev-parse", "--short=12", "HEAD"])
+        .output()
+        .ok()
+        .filter(|output| output.status.success())
+        .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_string())
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| "unknown".to_string());
+
+    let workspace_status = Command::new("git")
+        .args(["status", "--porcelain"])
+        .output()
+        .ok()
+        .filter(|output| output.status.success())
+        .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_string())
+        .map(|value| {
+            if value.is_empty() {
+                "clean".to_string()
+            } else {
+                "dirty".to_string()
+            }
+        })
+        .unwrap_or_else(|| "unknown".to_string());
+
+    WorkspaceProvenance {
+        source_revision,
+        workspace_status,
+    }
+}
+
 /// Writes a release bundle containing the compatibility profile, release notes,
 /// release checklist, backend matrix, API posture, validation report, and a manifest.
 pub fn render_release_bundle(
@@ -928,6 +976,7 @@ pub fn render_release_bundle(
     let backend_matrix_text = render_backend_matrix_report()?;
     let api_stability_text = current_api_stability_profile().to_string();
     let validation_report = render_validation_report(rounds)?;
+    let provenance = workspace_provenance();
     let profile_path = output_dir.join("compatibility-profile.txt");
     let release_notes_path = output_dir.join("release-notes.txt");
     let release_checklist_path = output_dir.join("release-checklist.txt");
@@ -942,7 +991,9 @@ pub fn render_release_bundle(
     let api_stability_checksum = checksum64(&api_stability_text);
     let validation_report_checksum = checksum64(&validation_report);
     let manifest_text = format!(
-        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
+        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
+        provenance.source_revision,
+        provenance.workspace_status,
         current_compatibility_profile().profile_id,
         current_api_stability_profile().profile_id,
         rounds,
@@ -973,6 +1024,8 @@ struct ParsedReleaseBundleManifest {
     api_stability_checksum: u64,
     validation_report_path: String,
     validation_report_checksum: u64,
+    source_revision: String,
+    workspace_status: String,
     profile_id: String,
     api_stability_posture_id: String,
     validation_rounds: usize,
@@ -1008,6 +1061,8 @@ impl ParsedReleaseBundleManifest {
                 text,
                 "validation report checksum (fnv1a-64):",
             )?,
+            source_revision: parse_manifest_string(text, "source revision:")?,
+            workspace_status: parse_manifest_string(text, "workspace status:")?,
             profile_id: parse_manifest_string(text, "profile id:")?,
             api_stability_posture_id: parse_manifest_string(text, "api stability posture id:")?,
             validation_rounds: parse_manifest_usize(text, "validation rounds:")?,
@@ -1036,6 +1091,16 @@ fn verify_release_bundle(
     let manifest_text = fs::read_to_string(&manifest_path)?;
 
     let manifest = ParsedReleaseBundleManifest::parse(&manifest_text)?;
+    if manifest.source_revision.is_empty() {
+        return Err(ReleaseBundleError::Verification(
+            "missing source revision entry".to_string(),
+        ));
+    }
+    if manifest.workspace_status.is_empty() {
+        return Err(ReleaseBundleError::Verification(
+            "missing workspace status entry".to_string(),
+        ));
+    }
     if manifest.profile_path != "compatibility-profile.txt" {
         return Err(ReleaseBundleError::Verification(format!(
             "unexpected profile file entry: {}",
@@ -1133,6 +1198,8 @@ fn verify_release_bundle(
     }
 
     Ok(ReleaseBundle {
+        source_revision: manifest.source_revision,
+        workspace_status: manifest.workspace_status,
         output_dir: output_dir.to_path_buf(),
         compatibility_profile_path: profile_path,
         release_notes_path,
@@ -2282,6 +2349,8 @@ version = "0.9.0"
         assert!(rendered.contains("API stability posture:"));
         assert!(rendered.contains("api-stability.txt"));
         assert!(rendered.contains("validation-report.txt"));
+        assert!(rendered.contains("source revision:"));
+        assert!(rendered.contains("workspace status:"));
         assert!(rendered.contains("checksum: 0x"));
 
         let profile = std::fs::read_to_string(bundle_dir.join("compatibility-profile.txt"))
@@ -2308,6 +2377,7 @@ version = "0.9.0"
         assert!(release_notes.contains("Deprecation policy:"));
         assert!(release_notes.contains("Release-specific coverage:"));
         assert!(release_notes.contains("Known gaps:"));
+        assert!(release_notes.contains("Bundle provenance:"));
         assert!(release_checklist.contains("Release checklist"));
         assert!(release_checklist.contains("Manual bundle workflow:"));
         assert!(release_checklist.contains("bundle-release --out /tmp/pleiades-release"));
@@ -2328,6 +2398,8 @@ version = "0.9.0"
         assert!(manifest.contains("backend-matrix.txt"));
         assert!(manifest.contains("api-stability.txt"));
         assert!(manifest.contains("validation-report.txt"));
+        assert!(manifest.contains("source revision:"));
+        assert!(manifest.contains("workspace status:"));
         assert!(manifest.contains("profile checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("release notes checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("release checklist checksum (fnv1a-64): 0x"));
@@ -2339,6 +2411,8 @@ version = "0.9.0"
             .expect("bundle verification should render");
         assert!(verified.contains("Release bundle"));
         assert!(verified.contains("bundle-manifest.txt"));
+        assert!(verified.contains("source revision:"));
+        assert!(verified.contains("workspace status:"));
         assert!(verified.contains("validation rounds: 1"));
         assert!(verified.contains("release notes checksum: 0x"));
         assert!(verified.contains("release checklist checksum: 0x"));
