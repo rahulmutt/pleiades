@@ -274,6 +274,16 @@ impl ChartSnapshot {
         summary
     }
 
+    /// Returns only the sign counts tied for the highest occupancy.
+    pub fn dominant_sign_summary(&self) -> SignSummary {
+        dominant_sign_summary(self.sign_summary())
+    }
+
+    /// Returns only the house counts tied for the highest occupancy.
+    pub fn dominant_house_summary(&self) -> HouseSummary {
+        dominant_house_summary(self.house_summary())
+    }
+
     /// Returns a summary of the chart's motion-direction classifications.
     pub fn motion_summary(&self) -> MotionSummary {
         let mut summary = MotionSummary::default();
@@ -440,6 +450,89 @@ impl SignSummary {
     }
 }
 
+fn dominant_sign_summary(summary: SignSummary) -> SignSummary {
+    let max = [
+        summary.aries,
+        summary.taurus,
+        summary.gemini,
+        summary.cancer,
+        summary.leo,
+        summary.virgo,
+        summary.libra,
+        summary.scorpio,
+        summary.sagittarius,
+        summary.capricorn,
+        summary.aquarius,
+        summary.pisces,
+    ]
+    .into_iter()
+    .max()
+    .unwrap_or(0);
+
+    if max == 0 {
+        return SignSummary::default();
+    }
+
+    SignSummary {
+        aries: if summary.aries == max {
+            summary.aries
+        } else {
+            0
+        },
+        taurus: if summary.taurus == max {
+            summary.taurus
+        } else {
+            0
+        },
+        gemini: if summary.gemini == max {
+            summary.gemini
+        } else {
+            0
+        },
+        cancer: if summary.cancer == max {
+            summary.cancer
+        } else {
+            0
+        },
+        leo: if summary.leo == max { summary.leo } else { 0 },
+        virgo: if summary.virgo == max {
+            summary.virgo
+        } else {
+            0
+        },
+        libra: if summary.libra == max {
+            summary.libra
+        } else {
+            0
+        },
+        scorpio: if summary.scorpio == max {
+            summary.scorpio
+        } else {
+            0
+        },
+        sagittarius: if summary.sagittarius == max {
+            summary.sagittarius
+        } else {
+            0
+        },
+        capricorn: if summary.capricorn == max {
+            summary.capricorn
+        } else {
+            0
+        },
+        aquarius: if summary.aquarius == max {
+            summary.aquarius
+        } else {
+            0
+        },
+        pisces: if summary.pisces == max {
+            summary.pisces
+        } else {
+            0
+        },
+    }
+}
+
 impl fmt::Display for SignSummary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut wrote_any = false;
@@ -564,6 +657,94 @@ impl HouseSummary {
             }
         }
         houses
+    }
+}
+
+fn dominant_house_summary(summary: HouseSummary) -> HouseSummary {
+    let max = [
+        summary.first,
+        summary.second,
+        summary.third,
+        summary.fourth,
+        summary.fifth,
+        summary.sixth,
+        summary.seventh,
+        summary.eighth,
+        summary.ninth,
+        summary.tenth,
+        summary.eleventh,
+        summary.twelfth,
+    ]
+    .into_iter()
+    .max()
+    .unwrap_or(0);
+
+    if max == 0 {
+        return HouseSummary::default();
+    }
+
+    HouseSummary {
+        first: if summary.first == max {
+            summary.first
+        } else {
+            0
+        },
+        second: if summary.second == max {
+            summary.second
+        } else {
+            0
+        },
+        third: if summary.third == max {
+            summary.third
+        } else {
+            0
+        },
+        fourth: if summary.fourth == max {
+            summary.fourth
+        } else {
+            0
+        },
+        fifth: if summary.fifth == max {
+            summary.fifth
+        } else {
+            0
+        },
+        sixth: if summary.sixth == max {
+            summary.sixth
+        } else {
+            0
+        },
+        seventh: if summary.seventh == max {
+            summary.seventh
+        } else {
+            0
+        },
+        eighth: if summary.eighth == max {
+            summary.eighth
+        } else {
+            0
+        },
+        ninth: if summary.ninth == max {
+            summary.ninth
+        } else {
+            0
+        },
+        tenth: if summary.tenth == max {
+            summary.tenth
+        } else {
+            0
+        },
+        eleventh: if summary.eleventh == max {
+            summary.eleventh
+        } else {
+            0
+        },
+        twelfth: if summary.twelfth == max {
+            summary.twelfth
+        } else {
+            0
+        },
+        unknown: 0,
     }
 }
 
@@ -840,9 +1021,19 @@ impl fmt::Display for ChartSnapshot {
             writeln!(f, "Sign summary: {}", sign_summary)?;
         }
 
+        let dominant_sign_summary = self.dominant_sign_summary();
+        if dominant_sign_summary.has_known_signs() && dominant_sign_summary != sign_summary {
+            writeln!(f, "Dominant sign summary: {}", dominant_sign_summary)?;
+        }
+
         let house_summary = self.house_summary();
         if house_summary.has_known_houses() {
             writeln!(f, "House summary: {}", house_summary)?;
+        }
+
+        let dominant_house_summary = self.dominant_house_summary();
+        if dominant_house_summary.has_known_houses() && dominant_house_summary != house_summary {
+            writeln!(f, "Dominant house summary: {}", dominant_house_summary)?;
         }
 
         let motion_summary = self.motion_summary();
@@ -1226,6 +1417,130 @@ mod tests {
         assert!(rendered.contains("Sun"));
         assert!(rendered.contains("Moon"));
         assert!(rendered.contains("Sign summary: 1 Aries, 1 Taurus"));
+    }
+
+    #[test]
+    fn chart_snapshot_exposes_dominant_sign_and_house_summaries() {
+        let instant = Instant::new(
+            pleiades_types::JulianDay::from_days(2451545.0),
+            TimeScale::Tt,
+        );
+
+        let chart = ChartSnapshot {
+            backend_id: BackendId::new("toy-chart"),
+            instant,
+            observer: None,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparentness: Apparentness::Apparent,
+            houses: None,
+            placements: vec![
+                BodyPlacement {
+                    body: CelestialBody::Sun,
+                    position: EphemerisResult::new(
+                        BackendId::new("toy-chart"),
+                        CelestialBody::Sun,
+                        instant,
+                        pleiades_types::CoordinateFrame::Ecliptic,
+                        ZodiacMode::Tropical,
+                        Apparentness::Apparent,
+                    ),
+                    sign: Some(ZodiacSign::Aries),
+                    house: Some(1),
+                },
+                BodyPlacement {
+                    body: CelestialBody::Moon,
+                    position: EphemerisResult::new(
+                        BackendId::new("toy-chart"),
+                        CelestialBody::Moon,
+                        instant,
+                        pleiades_types::CoordinateFrame::Ecliptic,
+                        ZodiacMode::Tropical,
+                        Apparentness::Apparent,
+                    ),
+                    sign: Some(ZodiacSign::Aries),
+                    house: Some(1),
+                },
+                BodyPlacement {
+                    body: CelestialBody::Mars,
+                    position: EphemerisResult::new(
+                        BackendId::new("toy-chart"),
+                        CelestialBody::Mars,
+                        instant,
+                        pleiades_types::CoordinateFrame::Ecliptic,
+                        ZodiacMode::Tropical,
+                        Apparentness::Apparent,
+                    ),
+                    sign: Some(ZodiacSign::Taurus),
+                    house: Some(2),
+                },
+                BodyPlacement {
+                    body: CelestialBody::Mercury,
+                    position: EphemerisResult::new(
+                        BackendId::new("toy-chart"),
+                        CelestialBody::Mercury,
+                        instant,
+                        pleiades_types::CoordinateFrame::Ecliptic,
+                        ZodiacMode::Tropical,
+                        Apparentness::Apparent,
+                    ),
+                    sign: Some(ZodiacSign::Taurus),
+                    house: Some(2),
+                },
+                BodyPlacement {
+                    body: CelestialBody::Jupiter,
+                    position: EphemerisResult::new(
+                        BackendId::new("toy-chart"),
+                        CelestialBody::Jupiter,
+                        instant,
+                        pleiades_types::CoordinateFrame::Ecliptic,
+                        ZodiacMode::Tropical,
+                        Apparentness::Apparent,
+                    ),
+                    sign: Some(ZodiacSign::Gemini),
+                    house: Some(8),
+                },
+            ],
+        };
+
+        assert_eq!(
+            chart.dominant_sign_summary(),
+            SignSummary {
+                aries: 2,
+                taurus: 2,
+                gemini: 0,
+                cancer: 0,
+                leo: 0,
+                virgo: 0,
+                libra: 0,
+                scorpio: 0,
+                sagittarius: 0,
+                capricorn: 0,
+                aquarius: 0,
+                pisces: 0,
+            }
+        );
+        assert_eq!(
+            chart.dominant_house_summary(),
+            HouseSummary {
+                first: 2,
+                second: 2,
+                third: 0,
+                fourth: 0,
+                fifth: 0,
+                sixth: 0,
+                seventh: 0,
+                eighth: 0,
+                ninth: 0,
+                tenth: 0,
+                eleventh: 0,
+                twelfth: 0,
+                unknown: 0,
+            }
+        );
+
+        let rendered = chart.to_string();
+        assert!(rendered.contains("Dominant sign summary: 2 Aries, 2 Taurus"));
+        assert!(rendered.contains("Dominant house summary: 2 in 1st house, 2 in 2nd house"));
     }
 
     #[test]
