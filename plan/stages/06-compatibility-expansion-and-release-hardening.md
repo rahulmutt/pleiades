@@ -58,6 +58,7 @@ These are durable planning decisions that should remain true even as individual 
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] The compact release summary now also names the `validation-summary` alias alongside `validation-report-summary` in the quick-audit cross-reference list, keeping the release-facing summary aligned with the user-facing validation renderer aliases and making the compact maintainer audit path easier to discover.
 - [x] The built-in Morinus house-system source-label appendix now also surfaces the exact `Morinus house system` wording alongside the single-letter `M` code spelling, keeping the house-system alias batch aligned with the resolver and release-summary wording; the compatibility profile identifier has been bumped to `0.6.65` so the release-facing alias batch stays versioned with the current profile.
 - [x] The compatibility profile summary now also calls out the exact `Equal table of houses`, `Whole Sign system`, and `Morinus house system` spellings in the quick-audit text, keeping the release-facing summary aligned with the built-in house-system appendix and bumping the compatibility profile identifier to `0.6.66`.
 - [x] The `Sheoran` ayanamsa source-label appendix now also surfaces the exact `Sunil Sheoran`, `Vedic Sheoran`, and `Sheoran ayanamsa` spellings already accepted by the shared resolver, and the compatibility profile identifier has been bumped to `0.6.63` so the release-facing alias batch stays versioned with the current profile.

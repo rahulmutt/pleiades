@@ -1254,7 +1254,7 @@ fn render_release_summary_text() -> String {
     text.push_str("Compatibility caveats: ");
     text.push_str(&profile.known_gaps.len().to_string());
     text.push('\n');
-    text.push_str("Compact summary views: compatibility-profile-summary, backend-matrix-summary, api-stability-summary, validation-report-summary, artifact-summary\n");
+    text.push_str("Compact summary views: compatibility-profile-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary, artifact-summary\n");
     text.push_str("Packaged-artifact summary: artifact-summary\n");
     text.push('\n');
     text.push_str("API stability summary line: ");
@@ -3601,7 +3601,7 @@ mod tests {
         assert!(rendered.contains("Custom-definition labels:"));
         assert!(rendered.contains("Custom-definition ayanamsas:"));
         assert!(rendered.contains("Compatibility caveats:"));
-        assert!(rendered.contains("Compact summary views: compatibility-profile-summary, backend-matrix-summary, api-stability-summary, validation-report-summary, artifact-summary"));
+        assert!(rendered.contains("Compact summary views: compatibility-profile-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary, artifact-summary"));
         assert!(rendered.contains("Packaged-artifact summary: artifact-summary"));
         assert!(rendered.contains("Release gate reminders:"));
         assert!(rendered.contains("See release-notes and release-checklist"));
@@ -3796,7 +3796,7 @@ version = "0.9.0"
         assert!(release_notes.contains("Bundle provenance:"));
         assert!(release_notes.contains("Rust compiler version"));
         assert!(release_summary.contains("Release summary"));
-        assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, backend-matrix-summary, api-stability-summary, validation-report-summary, artifact-summary"));
+        assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary, artifact-summary"));
         assert!(artifact_summary.contains("Artifact summary"));
         assert!(artifact_summary.contains("Model error envelope"));
         assert!(artifact_summary.contains(

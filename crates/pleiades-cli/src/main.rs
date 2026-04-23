@@ -425,6 +425,7 @@ mod tests {
         assert!(release_summary.contains("House systems:"));
         assert!(release_summary.contains("Packaged-artifact summary: artifact-summary"));
         assert!(release_summary.contains("Release gate reminders:"));
+        assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary, artifact-summary"));
         assert!(release_summary.contains("See release-notes and release-checklist"));
 
         let artifact_summary =
