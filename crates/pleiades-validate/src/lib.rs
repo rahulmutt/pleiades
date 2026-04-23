@@ -1460,6 +1460,8 @@ fn render_release_summary_text() -> String {
     text.push_str("Compatibility caveats: ");
     text.push_str(&profile.known_gaps.len().to_string());
     text.push('\n');
+    text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
+    text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
     text.push_str("Compact summary views: compatibility-profile-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary, artifact-summary, release-checklist-summary\n");
     text.push_str("Packaged-artifact summary: artifact-summary\n");
     text.push_str("Release checklist summary: release-checklist-summary\n");
@@ -4129,6 +4131,10 @@ version = "0.9.0"
         assert!(release_notes.contains("Bundle provenance:"));
         assert!(release_notes.contains("Rust compiler version"));
         assert!(release_summary.contains("Release summary"));
+        assert!(release_summary
+            .contains("Compatibility profile summary: compatibility-profile-summary"));
+        assert!(release_summary
+            .contains("Compatibility profile verification: verify-compatibility-profile"));
         assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary, artifact-summary"));
         assert!(artifact_summary.contains("Artifact summary"));
         assert!(artifact_summary.contains("Model error envelope"));
