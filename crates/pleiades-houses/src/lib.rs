@@ -694,6 +694,10 @@ mod tests {
             Some(HouseSystem::EqualAries)
         );
         assert_eq!(
+            resolve_house_system("Equal/1=Aries"),
+            Some(HouseSystem::EqualAries)
+        );
+        assert_eq!(
             resolve_house_system("Equal/1=0 Aries"),
             Some(HouseSystem::EqualAries)
         );
@@ -738,6 +742,10 @@ mod tests {
         );
         assert_eq!(
             resolve_house_system("horizon/azimuth"),
+            Some(HouseSystem::Horizon)
+        );
+        assert_eq!(
+            resolve_house_system("horizon/azimut"),
             Some(HouseSystem::Horizon)
         );
         assert_eq!(resolve_house_system("Ram school"), Some(HouseSystem::Apc));

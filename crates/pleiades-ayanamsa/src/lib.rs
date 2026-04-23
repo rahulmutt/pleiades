@@ -1386,8 +1386,20 @@ mod tests {
             Some(Ayanamsa::GalacticCenterRgilbrand)
         );
         assert_eq!(
+            resolve_ayanamsa("Galactic Center (Rgilbrand)"),
+            Some(Ayanamsa::GalacticCenterRgilbrand)
+        );
+        assert_eq!(
             resolve_ayanamsa("Skydram (Mardyks)"),
             Some(Ayanamsa::GalacticCenterMardyks)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Mula Wilhelm"),
+            Some(Ayanamsa::GalacticCenterMulaWilhelm)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Wilhelm"),
+            Some(Ayanamsa::GalacticCenterMulaWilhelm)
         );
         assert_eq!(
             resolve_ayanamsa("True Mula (Chandra Hari)"),
@@ -1438,6 +1450,11 @@ mod tests {
         );
         assert_eq!(
             resolve_ayanamsa("Vettius Valens"),
+            Some(Ayanamsa::ValensMoon)
+        );
+        assert_eq!(resolve_ayanamsa("Valens"), Some(Ayanamsa::ValensMoon));
+        assert_eq!(
+            resolve_ayanamsa("Moon sign ayanamsa"),
             Some(Ayanamsa::ValensMoon)
         );
         assert_eq!(

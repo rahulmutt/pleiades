@@ -205,6 +205,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] The shared release-profile helper now groups the compatibility and API-stability identifiers into a single `pleiades-core` lookup, and the validation/reporting tests use that helper so the release-facing outputs stay aligned with one source of truth.
 - [x] The release bundle display now surfaces the recorded source revision and workspace status alongside the manifest path and validation-round count, making the release artifact summary a little more self-describing when maintainers verify or inspect a staged bundle. The README and release reproducibility guide now mention the same provenance detail so the release-hardening docs stay aligned with the bundle output.
 - [x] The release bundle verification tests now cover the API stability posture and validation report checksum paths as well, closing the last manifest-checksum gaps in the Stage 6 release-hardening slice.
+- [x] Exact source-label regression coverage now also includes the `Equal/1=Aries`, `horizon/azimut`, `Galactic Center (Rgilbrand)`, `Mula Wilhelm`, `Wilhelm`, `Valens`, and `Moon sign ayanamsa` spellings, so the compatibility profile’s documented interoperability forms stay guarded as the release-line alias surface grows.
 
 ## Exit criteria
 
