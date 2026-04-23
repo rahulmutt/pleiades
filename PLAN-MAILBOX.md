@@ -1304,3 +1304,13 @@ Completed the small Stage 6 validation-corpus widening slice:
 - `pleiades-validate::HouseValidationReport` now includes an `Equatorial reference chart` scenario alongside the existing mid-latitude, polar, and southern hemisphere cases
 - regression coverage now checks the expanded scenario list, and the Stage 6 progress notes were updated so the plan tracker reflects the wider latitude sweep
 - no spec change was needed; this stays within the existing validation-report and regression-corpus scope
+
+## 2026-04-23 — Compact release summary looks like a useful next release-hardening convenience slice
+
+I found a small Stage 6 release-hardening follow-up worth tracking before implementation:
+
+- the workspace already publishes release notes and a release checklist separately, but a compact `release-summary` command would give maintainers a quicker one-screen view of the current compatibility profile, API stability posture, and release-gate reminders without replacing the fuller release notes/checklist artifacts
+- this appears to stay within the existing release-hardening and documentation-synchronization scope, but it introduces a new CLI/rendering entry point that the plan or stage notes should mention once implemented
+- no spec change seems necessary; this looks like a convenience summary rather than a new capability boundary
+
+Remaining Stage 6 work: keep the release-summary output, the release notes/checklist, and the release-facing docs synchronized if this slice lands.

@@ -19,7 +19,7 @@ use pleiades_jpl::JplSnapshotBackend;
 use pleiades_validate::{
     render_api_stability_summary, render_backend_matrix_report, render_backend_matrix_summary,
     render_compatibility_profile_summary, render_release_checklist, render_release_notes,
-    render_validation_report_summary,
+    render_release_summary, render_validation_report_summary,
 };
 use pleiades_vsop87::Vsop87Backend;
 
@@ -49,6 +49,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("release-notes") => Ok(render_release_notes()),
         Some("release-checklist") => Ok(render_release_checklist()),
+        Some("release-summary") => Ok(render_release_summary()),
         Some("validation-summary") | Some("report-summary") => {
             render_validation_report_summary(10_000).map_err(render_error)
         }
@@ -61,7 +62,12 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
 
 fn help_text() -> String {
     format!(
-        "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary        Alias for compatibility-profile-summary\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  api-stability-summary  Print the compact API stability summary\n  api-posture-summary    Alias for api-stability-summary\n  backend-matrix         Print the implemented backend capability matrices\n  capability-matrix      Alias for backend-matrix\n  backend-matrix-summary Print the compact backend capability matrix summary\n  matrix-summary         Alias for backend-matrix-summary\n  release-notes          Print the release compatibility notes\n  release-checklist      Print the release maintainer checklist\n  validation-summary     Print the compact validation report summary\n  report-summary         Alias for validation-summary\n  chart                  Render a basic chart report\n    --mean               Force mean positions for backend queries\n    --apparent           Force apparent positions for backend queries\n    --body <name>        Use a built-in body or a custom catalog:designation identifier\n  help                   Show this help text",
+        "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary        Alias for compatibility-profile-summary\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  api-stability-summary  Print the compact API stability summary\n  api-posture-summary    Alias for api-stability-summary\n  backend-matrix         Print the implemented backend capability matrices\n  capability-matrix      Alias for backend-matrix\n  backend-matrix-summary Print the compact backend capability matrix summary\n  matrix-summary         Alias for backend-matrix-summary\n  release-notes          Print the release compatibility notes
+  release-checklist      Print the release maintainer checklist
+  release-summary        Print the compact release summary
+  validation-summary     Print the compact validation report summary
+  report-summary         Alias for validation-summary
+  chart                  Render a basic chart report\n    --mean               Force mean positions for backend queries\n    --apparent           Force apparent positions for backend queries\n    --body <name>        Use a built-in body or a custom catalog:designation identifier\n  help                   Show this help text",
         banner()
     )
 }
@@ -344,6 +350,13 @@ mod tests {
         assert!(release_checklist.contains("Repository-managed release gates:"));
         assert!(release_checklist.contains("bundle-release --out /tmp/pleiades-release"));
 
+        let release_summary =
+            render_cli(&["release-summary"]).expect("release summary should render");
+        assert!(release_summary.contains("Release summary"));
+        assert!(release_summary.contains("House systems:"));
+        assert!(release_summary.contains("Release gate reminders:"));
+        assert!(release_summary.contains("See release-notes and release-checklist"));
+
         let validation_summary =
             render_cli(&["validation-summary"]).expect("validation summary should render");
         assert!(validation_summary.contains("Validation report summary"));
@@ -360,6 +373,7 @@ mod tests {
         assert!(error.contains("unknown command: compatibility-profile-snapshot"));
         assert!(error.contains("compatibility-profile  Print the release compatibility profile"));
         assert!(error.contains("release-notes          Print the release compatibility notes"));
+        assert!(error.contains("release-summary        Print the compact release summary"));
         assert!(
             error.contains("validation-summary     Print the compact validation report summary")
         );

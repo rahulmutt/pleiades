@@ -802,6 +802,10 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "release-checklist")?;
             Ok(render_release_checklist_text())
         }
+        Some("release-summary") => {
+            ensure_no_extra_args(&args[1..], "release-summary")?;
+            Ok(render_release_summary_text())
+        }
         Some("bundle-release") => {
             let (output_dir, rounds) =
                 parse_release_bundle_args(&args[1..], DEFAULT_BENCHMARK_ROUNDS)?;
@@ -947,6 +951,11 @@ pub fn render_release_notes() -> String {
 /// Renders the release checklist used by release tooling.
 pub fn render_release_checklist() -> String {
     render_release_checklist_text()
+}
+
+/// Renders the compact release summary used by release tooling.
+pub fn render_release_summary() -> String {
+    render_release_summary_text()
 }
 
 fn render_compatibility_profile_summary_text() -> String {
@@ -1124,6 +1133,68 @@ fn render_release_checklist_text() -> String {
         text.push_str(item);
         text.push('\n');
     }
+
+    text
+}
+
+fn render_release_summary_text() -> String {
+    let profile = current_compatibility_profile();
+    let release_profiles = current_release_profile_identifiers();
+    let api_stability = current_api_stability_profile();
+    let mut text = String::new();
+
+    text.push_str("Release summary\n");
+    text.push_str("Profile: ");
+    text.push_str(release_profiles.compatibility_profile_id);
+    text.push('\n');
+    text.push_str("API stability posture: ");
+    text.push_str(release_profiles.api_stability_profile_id);
+    text.push('\n');
+    text.push_str("Release summary line: ");
+    text.push_str(profile.summary);
+    text.push('\n');
+    text.push_str("House systems: ");
+    text.push_str(&profile.house_systems.len().to_string());
+    text.push_str(" total (");
+    text.push_str(&profile.baseline_house_systems.len().to_string());
+    text.push_str(" baseline, ");
+    text.push_str(&profile.release_house_systems.len().to_string());
+    text.push_str(" release-specific)\n");
+    text.push_str("Ayanamsas: ");
+    text.push_str(&profile.ayanamsas.len().to_string());
+    text.push_str(" total (");
+    text.push_str(&profile.baseline_ayanamsas.len().to_string());
+    text.push_str(" baseline, ");
+    text.push_str(&profile.release_ayanamsas.len().to_string());
+    text.push_str(" release-specific)\n");
+    text.push_str("Validation reference points: ");
+    text.push_str(&profile.validation_reference_points.len().to_string());
+    text.push('\n');
+    text.push_str("Known gaps: ");
+    text.push_str(&profile.known_gaps.len().to_string());
+    text.push('\n');
+    text.push('\n');
+    text.push_str("API stability summary line: ");
+    text.push_str(api_stability.summary);
+    text.push('\n');
+    text.push_str("Release gate reminders:\n");
+    for item in [
+        "[x] mise run fmt",
+        "[x] mise run lint",
+        "[x] mise run test",
+        "[x] mise run audit",
+        "[x] mise run release-smoke",
+        "[x] cargo run -q -p pleiades-validate -- bundle-release --out /tmp/pleiades-release",
+        "[x] cargo run -q -p pleiades-validate -- verify-release-bundle --out /tmp/pleiades-release",
+    ] {
+        text.push_str("- ");
+        text.push_str(item);
+        text.push('\n');
+    }
+    text.push('\n');
+    text.push_str(
+        "See release-notes and release-checklist for the full maintainer-facing artifacts.\n",
+    );
 
     text
 }
@@ -2749,7 +2820,10 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = default_corpus().requests.len();
     format!(
-        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix            Print the implemented backend capability matrices\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus with guard epochs\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  report-summary [--rounds N]  Render a compact validation report summary\n  validation-summary        Alias for report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  release-notes             Print the release compatibility notes\n  release-checklist         Print the release maintainer checklist\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release checklist, backend matrix, backend matrix summary, API posture, API summary, validation report summary, validation report, and manifest\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix            Print the implemented backend capability matrices\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus with guard epochs\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  report-summary [--rounds N]  Render a compact validation report summary\n  validation-summary        Alias for report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  release-notes             Print the release compatibility notes
+  release-checklist         Print the release maintainer checklist
+  release-summary           Print the compact release summary
+  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release checklist, backend matrix, backend matrix summary, API posture, API summary, validation report summary, validation report, and manifest\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
@@ -3165,6 +3239,7 @@ mod tests {
         assert!(rendered.contains("compatibility-profile-summary"));
         assert!(rendered.contains("release-notes"));
         assert!(rendered.contains("release-checklist"));
+        assert!(rendered.contains("release-summary"));
         assert!(rendered.contains("bundle-release --out DIR"));
         assert!(rendered.contains("profile-summary"));
         assert!(rendered.contains("backend matrix"));
@@ -3255,6 +3330,28 @@ mod tests {
         assert!(rendered.contains("Bundle contents:"));
         assert!(rendered.contains("backend-matrix-summary.txt"));
         assert!(rendered.contains("api-stability-summary.txt"));
+    }
+
+    #[test]
+    fn release_summary_command_renders_the_quick_overview() {
+        let rendered = render_cli(&["release-summary"]).expect("release summary should render");
+        let release_profiles = current_release_profile_identifiers();
+        assert!(rendered.contains("Release summary"));
+        assert!(rendered.contains(&format!(
+            "Profile: {}",
+            release_profiles.compatibility_profile_id
+        )));
+        assert!(rendered.contains(&format!(
+            "API stability posture: {}",
+            release_profiles.api_stability_profile_id
+        )));
+        assert!(rendered.contains("Release summary line:"));
+        assert!(rendered.contains("House systems:"));
+        assert!(rendered.contains("Ayanamsas:"));
+        assert!(rendered.contains("Validation reference points:"));
+        assert!(rendered.contains("Known gaps:"));
+        assert!(rendered.contains("Release gate reminders:"));
+        assert!(rendered.contains("See release-notes and release-checklist"));
     }
 
     #[test]
