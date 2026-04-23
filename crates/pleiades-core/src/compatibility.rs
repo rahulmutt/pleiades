@@ -168,6 +168,35 @@ fn write_alias_section<T: AliasProfileEntry>(
     Ok(())
 }
 
+fn write_custom_definition_section(
+    f: &mut fmt::Formatter<'_>,
+    labels: &[&'static str],
+    descriptors: &[AyanamsaDescriptor],
+) -> fmt::Result {
+    writeln!(f, "Custom-definition labels:")?;
+    for label in labels {
+        if let Some(entry) = descriptors
+            .iter()
+            .find(|entry| entry.canonical_name.eq_ignore_ascii_case(label))
+        {
+            write!(f, "- {}", entry.canonical_name)?;
+            if !entry.aliases.is_empty() {
+                write!(f, " (aliases: {})", entry.aliases.join(", "))?;
+            }
+            if let Some(epoch) = entry.epoch {
+                write!(f, " [epoch: {}]", epoch)?;
+            }
+            if let Some(offset) = entry.offset_degrees {
+                write!(f, " [offset: {}]", offset)?;
+            }
+            writeln!(f, " — {}", entry.notes)?;
+        } else {
+            writeln!(f, "- {}", label)?;
+        }
+    }
+    Ok(())
+}
+
 impl fmt::Display for CompatibilityProfile {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Compatibility profile: {}", self.profile_id)?;
@@ -262,11 +291,7 @@ impl fmt::Display for CompatibilityProfile {
         }
         if !self.custom_definition_labels.is_empty() {
             writeln!(f)?;
-            write_scope_section(
-                f,
-                "Custom-definition labels:",
-                self.custom_definition_labels,
-            )?;
+            write_custom_definition_section(f, self.custom_definition_labels, self.ayanamsas)?;
         }
         writeln!(f)?;
         write_alias_section(
@@ -562,8 +587,14 @@ mod tests {
         assert!(rendered.contains("entries with both a reference epoch and offset"));
         assert!(rendered.contains("missing metadata:"));
         assert!(rendered.contains("Custom-definition labels:"));
-        assert!(rendered.contains("Babylonian (House)"));
-        assert!(rendered.contains("Babylonian (House Obs)"));
+        assert!(rendered.contains("Babylonian (House) (aliases: Babylonian House, BABYL_HOUSE)"));
+        assert!(rendered
+            .contains("Babylonian (House Obs) (aliases: Babylonian House Obs, BABYL_HOUSE_OBS)"));
+        assert!(
+            rendered.contains("Babylonian sidereal mode labeled BABYL_HOUSE in Swiss Ephemeris.")
+        );
+        assert!(rendered
+            .contains("Babylonian sidereal mode labeled BABYL_HOUSE_OBS in Swiss Ephemeris."));
         assert!(rendered.contains("Polich-Page, Polich Page -> Topocentric"));
         assert!(rendered.contains("Chitrapaksha -> Lahiri"));
         assert!(rendered.contains("Whole Sign (house 1 = Aries) -> Equal (1=Aries)"));

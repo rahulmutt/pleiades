@@ -1,12 +1,13 @@
 # PLAN-MAILBOX
 
-## 2026-04-23 — Babylonian house-family labels now render as custom-definition territory
+## 2026-04-23 — Babylonian house-family labels now render with custom-definition detail
 
 Implemented a small Stage 6 release-hardening slice:
 
 - `pleiades-core::CompatibilityProfile` now renders the Babylonian house-family labels in a dedicated custom-definition section instead of mixing them into the unresolved-gap list, so the release artifact separates published gaps from interoperability-only labels more clearly
+- the custom-definition section now includes each label's documented aliases and source notes, making the interoperability story visible in the same place as the custom-definition grouping
 - the release compatibility profile summary and release notes were updated to describe that split, while the remaining true gap list now focuses on source-backed metadata work that still needs to be scheduled
-- regression coverage now asserts the custom-definition section renders and that the Babylonian house-family labels no longer appear in the explicit-gap list
+- regression coverage now asserts the custom-definition section renders with the Babylonian alias details and that the Babylonian house-family labels no longer appear in the explicit-gap list
 
 Remaining Stage 6 work: keep the compatibility profile synchronized as additional breadth batches or metadata backfills land.
 
