@@ -45,6 +45,7 @@ This final stage should behave like a sequence of release-quality increments, no
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] `pleiades-houses` now resolves `Whole Sign system` as an interoperability alias for `Whole Sign`, aligning the house-system resolution path with the compatibility profile's existing source-label appendix wording.
 - [x] `pleiades-elp` now serves the mean and true lunar nodes alongside the Moon, and the CLI accepts the common `mean node` / `true node` and `mean lunar node` / `true lunar node` spellings so lunar-point chart queries can exercise the backend directly.
 - [x] `pleiades-validate` now exposes standalone `release-notes` and `release-checklist` commands so maintainers can render the routine release artifacts independently from the full bundle workflow.
 

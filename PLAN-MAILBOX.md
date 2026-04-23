@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Whole Sign system alias now resolves in the house catalog
+
+Implemented a small Stage 6 compatibility-alignment slice:
+
+- `pleiades-houses` now accepts `Whole Sign system` as a direct alias for `Whole Sign`, bringing the resolver in line with the compatibility profile's existing source-label appendix wording
+- the Stage 6 progress notes were updated to record the alias-resolution alignment
+- no spec update was needed; this stays within the existing house-system interoperability surface already tracked by the current release profile
+
+Remaining Stage 6 work: keep the house-system resolver, compatibility profile, and release notes synchronized as additional interoperability labels land.
+
 ## 2026-04-23 — ELP backend now serves lunar nodes alongside the Moon
 
 Implemented a small Stage 6 backend-capability slice:
