@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Whole Sign (house 1 = Aries) now resolves through the Swiss Ephemeris N code
+
+Implemented a small Stage 6 release-hardening alias slice:
+
+- `pleiades-houses` now accepts the Swiss Ephemeris `N` code for the Whole Sign (house 1 = Aries) system, and the compatibility profile now surfaces that interoperability spelling alongside the existing house-code appendix
+- the compatibility-profile identifier was bumped to `0.6.58`, and the Stage 6 progress notes were updated so the new code-path stays versioned with the current profile
+- clippy, formatting, and the workspace test suite all pass after the update
+
+Remaining Stage 6 work: keep the compatibility profile, release summary wording, and release notes synchronized as the remaining compatibility and release-hardening slices land.
+
 ## 2026-04-23 — Release notes now call out the source-backed JPL asteroid coverage
 
 Implemented a small Stage 6 release-hardening slice:

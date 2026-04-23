@@ -224,6 +224,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         HouseSystem::EqualAries,
         "Equal (1=Aries)",
         &[
+            "N",
             "Equal/1=Aries",
             "Equal Aries",
             "Aries houses",
@@ -587,6 +588,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         HouseSystem::EqualAries,
         "Equal (1=Aries)",
         &[
+            "N",
             "Equal/1=Aries",
             "Equal Aries",
             "Aries houses",
@@ -809,6 +811,7 @@ mod tests {
         assert_eq!(resolve_house_system("O"), Some(HouseSystem::Porphyry));
         assert_eq!(resolve_house_system("E"), Some(HouseSystem::Equal));
         assert_eq!(resolve_house_system("W"), Some(HouseSystem::WholeSign));
+        assert_eq!(resolve_house_system("N"), Some(HouseSystem::EqualAries));
         assert_eq!(resolve_house_system("V"), Some(HouseSystem::Vehlow));
         assert_eq!(resolve_house_system("A"), Some(HouseSystem::Axial));
         assert_eq!(resolve_house_system("H"), Some(HouseSystem::Horizon));
