@@ -423,6 +423,7 @@ mod tests {
             render_cli(&["release-summary"]).expect("release summary should render");
         assert!(release_summary.contains("Release summary"));
         assert!(release_summary.contains("House systems:"));
+        assert!(release_summary.contains("Packaged-artifact summary: artifact-summary"));
         assert!(release_summary.contains("Release gate reminders:"));
         assert!(release_summary.contains("See release-notes and release-checklist"));
 

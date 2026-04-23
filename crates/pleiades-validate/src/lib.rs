@@ -1236,6 +1236,7 @@ fn render_release_summary_text() -> String {
     text.push_str("Compatibility caveats: ");
     text.push_str(&profile.known_gaps.len().to_string());
     text.push('\n');
+    text.push_str("Packaged-artifact summary: artifact-summary\n");
     text.push('\n');
     text.push_str("API stability summary line: ");
     text.push_str(api_stability.summary);
@@ -3552,6 +3553,7 @@ mod tests {
         assert!(rendered.contains("Custom-definition labels:"));
         assert!(rendered.contains("Custom-definition ayanamsas:"));
         assert!(rendered.contains("Compatibility caveats:"));
+        assert!(rendered.contains("Packaged-artifact summary: artifact-summary"));
         assert!(rendered.contains("Release gate reminders:"));
         assert!(rendered.contains("See release-notes and release-checklist"));
     }

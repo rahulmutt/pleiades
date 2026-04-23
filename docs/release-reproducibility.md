@@ -39,7 +39,7 @@ To inspect the release artifacts directly, generate a bundle in a directory of y
 cargo run -q -p pleiades-validate -- bundle-release --out /tmp/pleiades-release
 ```
 
-The validation tool can also render the compact profile summary, release notes, release checklist, release summary, API stability summary, and validation summary directly when you only need the individual maintainer-facing artifacts, and the user-facing CLI mirrors the release-notes, release-checklist, release-summary, api-stability-summary, and validation-summary renderers too; the compact release summary now also includes the custom-definition label counts that keep the release posture self-describing:
+The validation tool can also render the compact profile summary, release notes, release checklist, release summary, API stability summary, artifact summary, and validation summary directly when you only need the individual maintainer-facing artifacts, and the user-facing CLI mirrors the release-notes, release-checklist, release-summary, api-stability-summary, artifact-summary, and validation-summary renderers too; the compact release summary now also includes the custom-definition label counts that keep the release posture self-describing and a packaged-artifact cross-reference:
 
 ```bash
 cargo run -q -p pleiades-validate -- compatibility-profile-summary
@@ -52,6 +52,7 @@ cargo run -q -p pleiades-cli -- release-summary
 cargo run -q -p pleiades-cli -- validation-summary
 cargo run -q -p pleiades-validate -- backend-matrix-summary
 cargo run -q -p pleiades-validate -- api-stability-summary
+cargo run -q -p pleiades-validate -- artifact-summary
 cargo run -q -p pleiades-validate -- validation-summary
 ```
 
@@ -66,6 +67,7 @@ The bundle currently writes these text artifacts:
 - `backend-matrix-summary.txt`
 - `api-stability.txt`
 - `api-stability-summary.txt`
+- `artifact-summary.txt`
 - `validation-report-summary.txt`
 - `validation-report.txt`
 - `bundle-manifest.txt` (includes the recorded source revision, workspace status, Rust compiler version, profile/API identifiers, and validation-round count)

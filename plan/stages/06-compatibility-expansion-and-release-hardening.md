@@ -58,6 +58,7 @@ These are durable planning decisions that should remain true even as individual 
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] The compact release summary now also cross-references the packaged-artifact summary, and the release reproducibility guide now lists `artifact-summary` alongside the other maintainer-facing bundle views so the quick-audit path stays aligned with the shipped release surface.
 - [x] The compatibility profile's baseline house-system appendix now also surfaces the exact `Placidus table of houses` and `Koch table of houses` source spellings, the corresponding resolver aliases now round-trip in `pleiades-houses`, and the compatibility profile identifier has been bumped to `0.6.59` so the release-facing house label batch stays versioned with the current profile.
 - [x] The release notes and staged bundle now surface the selected asteroid coverage note from the JPL snapshot backend, including `asteroid:433-Eros`, and the compatibility profile identifier has been bumped to `0.6.58` so the source-backed custom asteroid coverage stays versioned with the current profile.
 - [x] The Swiss Ephemeris `N` house-table code now resolves to `Equal (1=Aries)`, and the compatibility profile now calls out that whole-sign interoperability spelling explicitly alongside the existing house-code appendix.
