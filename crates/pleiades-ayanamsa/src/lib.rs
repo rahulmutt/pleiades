@@ -1059,6 +1059,21 @@ pub const fn built_in_ayanamsas() -> &'static [AyanamsaDescriptor] {
     &BUILT_IN_AYANAMSAS
 }
 
+const CUSTOM_DEFINITION_ONLY_AYANAMSAS: &[&str] = &[
+    "Babylonian (House)",
+    "Babylonian (Sissy)",
+    "Babylonian (True Geoc)",
+    "Babylonian (True Topc)",
+    "Babylonian (True Obs)",
+    "Babylonian (House Obs)",
+];
+
+fn is_custom_definition_only_ayanamsa(canonical_name: &str) -> bool {
+    CUSTOM_DEFINITION_ONLY_AYANAMSAS
+        .iter()
+        .any(|name| name.eq_ignore_ascii_case(canonical_name))
+}
+
 /// A summary of which built-in ayanamsas have sidereal reference metadata.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AyanamsaMetadataCoverage {
@@ -1066,12 +1081,16 @@ pub struct AyanamsaMetadataCoverage {
     pub total: usize,
     /// Built-in entries that provide both a reference epoch and a reference offset.
     pub with_sidereal_metadata: usize,
+    /// Built-in entries that intentionally model custom-definition labels and
+    /// therefore omit sidereal metadata.
+    pub custom_definition_only: Vec<&'static str>,
     /// Canonical names for built-in entries that are still missing one or both fields.
     pub without_sidereal_metadata: Vec<&'static str>,
 }
 
 impl AyanamsaMetadataCoverage {
-    /// Returns `true` when every built-in ayanamsa carries sidereal metadata.
+    /// Returns `true` when every built-in ayanamsa that is meant to carry
+    /// sidereal metadata does so.
     pub fn is_complete(&self) -> bool {
         self.without_sidereal_metadata.is_empty()
     }
@@ -1079,12 +1098,15 @@ impl AyanamsaMetadataCoverage {
 
 /// Returns a coverage summary for the built-in ayanamsa catalog.
 pub fn metadata_coverage() -> AyanamsaMetadataCoverage {
+    let mut custom_definition_only = Vec::new();
     let mut without_sidereal_metadata = Vec::new();
     let mut with_sidereal_metadata = 0;
 
     for entry in built_in_ayanamsas() {
         if entry.has_sidereal_metadata() {
             with_sidereal_metadata += 1;
+        } else if is_custom_definition_only_ayanamsa(entry.canonical_name) {
+            custom_definition_only.push(entry.canonical_name);
         } else {
             without_sidereal_metadata.push(entry.canonical_name);
         }
@@ -1093,6 +1115,7 @@ pub fn metadata_coverage() -> AyanamsaMetadataCoverage {
     AyanamsaMetadataCoverage {
         total: built_in_ayanamsas().len(),
         with_sidereal_metadata,
+        custom_definition_only,
         without_sidereal_metadata,
     }
 }
@@ -1680,71 +1703,43 @@ mod tests {
     #[test]
     fn metadata_coverage_reports_remaining_gaps() {
         let coverage = metadata_coverage();
+        let expected_custom_definition_only: Vec<_> = [
+            "Babylonian (House)",
+            "Babylonian (Sissy)",
+            "Babylonian (True Geoc)",
+            "Babylonian (True Topc)",
+            "Babylonian (True Obs)",
+            "Babylonian (House Obs)",
+        ]
+        .into_iter()
+        .collect();
         let expected_without: Vec<_> = built_in_ayanamsas()
             .iter()
-            .filter(|entry| !entry.has_sidereal_metadata())
+            .filter(|entry| {
+                !entry.has_sidereal_metadata()
+                    && !super::is_custom_definition_only_ayanamsa(entry.canonical_name)
+            })
             .map(|entry| entry.canonical_name)
             .collect();
 
         assert_eq!(coverage.total, built_in_ayanamsas().len());
         assert_eq!(
-            coverage.with_sidereal_metadata + coverage.without_sidereal_metadata.len(),
+            coverage.with_sidereal_metadata
+                + coverage.custom_definition_only.len()
+                + coverage.without_sidereal_metadata.len(),
             coverage.total
         );
+        assert_eq!(
+            coverage.custom_definition_only,
+            expected_custom_definition_only
+        );
         assert_eq!(coverage.without_sidereal_metadata, expected_without);
-        assert_eq!(coverage.is_complete(), expected_without.is_empty());
+        assert!(coverage.is_complete());
         assert!(coverage
-            .without_sidereal_metadata
+            .custom_definition_only
             .iter()
-            .all(|name| *name != "Babylonian (Kugler 3)"));
-        assert!(coverage
-            .without_sidereal_metadata
-            .iter()
-            .all(|name| *name != "Babylonian (Britton)"));
-        assert!(coverage
-            .without_sidereal_metadata
-            .iter()
-            .all(|name| *name != "Galactic Center (Mardyks)"));
-        assert!(coverage
-            .without_sidereal_metadata
-            .iter()
-            .all(|name| *name != "Suryasiddhanta (Mean Sun)"));
-        assert!(coverage
-            .without_sidereal_metadata
-            .iter()
-            .all(|name| *name != "Aryabhata (Mean Sun)"));
-        assert!(coverage
-            .without_sidereal_metadata
-            .iter()
-            .all(|name| *name != "Aryabhata (522 CE)"));
-        assert!(coverage
-            .without_sidereal_metadata
-            .iter()
-            .all(|name| *name != "Galactic Center"));
-        assert!(coverage
-            .without_sidereal_metadata
-            .iter()
-            .all(|name| *name != "Dhruva Galactic Center (Middle Mula)"));
-        assert!(coverage
-            .without_sidereal_metadata
-            .iter()
-            .all(|name| *name != "Lahiri (VP285)"));
-        assert!(coverage
-            .without_sidereal_metadata
-            .iter()
-            .all(|name| *name != "Krishnamurti (VP291)"));
-        assert!(coverage
-            .without_sidereal_metadata
-            .iter()
-            .all(|name| *name != "True Sheoran"));
-        assert!(coverage
-            .without_sidereal_metadata
-            .iter()
-            .all(|name| *name != "Galactic Center (Rgilbrand)"));
-        assert!(coverage
-            .without_sidereal_metadata
-            .iter()
-            .all(|name| *name != "Galactic Center (Mula/Wilhelm)"));
+            .all(|name| name.starts_with("Babylonian (")));
+        assert!(coverage.without_sidereal_metadata.is_empty());
     }
 
     #[test]

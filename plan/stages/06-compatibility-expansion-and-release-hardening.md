@@ -110,6 +110,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] The compatibility profile now renders the Babylonian house-family labels in a dedicated custom-definition section instead of mixing them into the unresolved-gap list, so the release artifact separates published gaps from interoperability-only labels more clearly.
 - [x] The custom-definition section now renders each Babylonian house-family label with its documented aliases and source notes, making the interoperability story visible directly in the release artifact.
 - [x] APC now resolves the `Ascendant Parallel Circle` interoperability label, and Horizon/Azimuth now resolves the `Horizontal` and `Azimuthal` label variants, with the compatibility profile identifier bumped to `0.6.13` to keep the release artifact versioned with the alias batch.
+- [x] The ayanamsa metadata coverage summary now separates intentional Babylonian house-family custom definitions from unexpected sidereal-metadata gaps, so the release profile no longer reports those six labels as unresolved missing-metadata entries.
 
 ## Exit criteria
 

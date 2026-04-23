@@ -348,11 +348,15 @@ impl fmt::Display for CompatibilityProfile {
             "- ayanamsa sidereal metadata: {}/{} entries with both a reference epoch and offset",
             coverage.with_sidereal_metadata, coverage.total
         )?;
-        if coverage.is_complete() {
+        if !coverage.custom_definition_only.is_empty() {
             writeln!(
                 f,
-                "- all built-in ayanamsas can participate in chart-layer sidereal conversion."
+                "- custom-definition ayanamsas: {} labels are intentionally tracked without sidereal metadata",
+                coverage.custom_definition_only.len()
             )?;
+        }
+        if coverage.is_complete() {
+            writeln!(f, "- no unexpected sidereal-metadata gaps remain.")?;
         } else {
             writeln!(
                 f,
@@ -670,7 +674,8 @@ mod tests {
         assert!(rendered.contains("house systems:"));
         assert!(rendered.contains("ayanamsas:"));
         assert!(rendered.contains("ayanamsa sidereal metadata:"));
-        assert!(rendered.contains("missing metadata:"));
+        assert!(rendered.contains("custom-definition ayanamsas:"));
+        assert!(rendered.contains("no unexpected sidereal-metadata gaps remain."));
         assert!(rendered.contains("custom-definition labels:"));
         assert!(rendered.contains("Babylonian (House) (aliases: Babylonian House, BABYL_HOUSE)"));
         assert!(rendered
