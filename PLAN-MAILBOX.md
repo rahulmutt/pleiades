@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Valens Moon source-label appendix refined
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-core::CompatibilityProfile` now includes `Moon sign ayanamsa` in the `Valens Moon` source-label appendix entry, so the release profile is a little more searchable by the labels people see in upstream source tables
+- the compatibility profile identifier was bumped to `0.6.17`, and the CLI / validation bundle checks were updated to match the new release-profile version string
+- regression coverage now checks the updated source-label appendix line, and the Stage 6 progress notes were updated to record the appendix refinement
+
+Remaining Stage 6 work: keep the release-profile appendix, catalog breadth, and release notes synchronized as additional interoperability labels land.
+
 ## 2026-04-23 — Aspect-summary helper added to the chart façade
 
 Implemented a small Stage 6 chart-ergonomics slice:

@@ -59,7 +59,7 @@ impl CompatibilityProfile {
 /// Returns the current compatibility profile.
 pub const fn current_compatibility_profile() -> CompatibilityProfile {
     CompatibilityProfile {
-        profile_id: "pleiades-compatibility-profile/0.6.16",
+        profile_id: "pleiades-compatibility-profile/0.6.17",
         summary: "Stage 6 release profile: the baseline catalogs remain published as a routine release artifact while the target Swiss-Ephemeris-class compatibility catalog stays explicit, including the release-specific house-system additions across the Carter, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen, Sunshine, and Gauquelin families, plus the expanded ayanamsa coverage for J2000/J1900/B1950, True Citra, DeLuce, Yukteshwar, PVR Pushya-paksha, Sheoran, the true-nakshatra and Suryasiddhanta Revati/Citra reference modes, the Hipparchus/Babylonian/Galactic reference-frame modes, the latest True Pushya, Udayagiri, Lahiri (VP285), Krishnamurti (VP291), Djwhal Khul, JN Bhasin, mean-sun, Valens Moon, Dhruva Galactic Center (Middle Mula), Galactic Center (Cochrane/Mardyks), Galactic Equator (Mula), the Babylonian house/sissy/true-geoc/true-topc/true-obs/house-obs variants, the backfilled True Sheoran, Galactic Center (Rgilbrand), and Galactic Center (Mula/Wilhelm) zero-point metadata, the additional Galactic Equator/Center variants, the exact Swiss Ephemeris source-label aliases for the Babylonian/Kugler family, galactic-reference, mean-sun, Sassanian/Zij al-Shah, and selected release-specific source-form entries, the expanded APC and Horizon/Azimuth interoperability aliases, and the Babylonian house-family labels now rendered as explicit custom-definition territory rather than unresolved release gaps.",
 
         target_house_scope: &[
@@ -241,7 +241,7 @@ fn source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
         "Galactic Equator (Mula)" => &["Galactic Equator mid-Mula"],
         "Galactic Equator" => &["Gal. Eq."],
         "Galactic Equator (Fiorenza)" => &["Fiorenza"],
-        "Valens Moon" => &["Vettius Valens"],
+        "Valens Moon" => &["Vettius Valens", "Moon sign ayanamsa"],
         _ => &[],
     }
 }
@@ -747,7 +747,7 @@ mod tests {
         assert!(rendered.contains("Galact. Center = 0 Sag -> Galactic Center"));
         assert!(rendered.contains("Gal. Eq. -> Galactic Equator"));
         assert!(rendered.contains("Zij al-Shah -> Sassanian"));
-        assert!(rendered.contains("Vettius Valens -> Valens Moon"));
+        assert!(rendered.contains("Vettius Valens, Moon sign ayanamsa -> Valens Moon"));
         assert!(rendered.contains("Suryasiddhanta, mean Sun"));
         assert!(rendered.contains("Suryasiddhanta MSUN -> Suryasiddhanta (Mean Sun)"));
         assert!(rendered.contains("J. N. Bhasin, J.N. Bhasin, Bhasin -> JN Bhasin"));
