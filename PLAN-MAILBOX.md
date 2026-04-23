@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — House-system source-label appendix added
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-core::CompatibilityProfile` now renders a dedicated source-label appendix for the built-in house systems, so common Placidus/Koch/Equal/Whole Sign/Topocentric spellings are searchable in the release profile alongside the existing ayanamsa appendix
+- the compatibility profile identifier was bumped to `0.6.18`, and the CLI / validation bundle checks were updated to match the new release-profile version string
+- regression coverage now checks the new house-system appendix section, and the Stage 6 progress notes and README were updated to record the appendix refinement
+
+Remaining Stage 6 work: keep the release-profile appendix, catalog breadth, and release notes synchronized as additional interoperability labels land.
+
 ## 2026-04-23 — Valens Moon source-label appendix refined
 
 Implemented a small Stage 6 release-hardening slice:
