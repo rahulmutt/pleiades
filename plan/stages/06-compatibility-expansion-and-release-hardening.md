@@ -137,6 +137,8 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] The compatibility profile's source-label appendix now also includes the `Equal/1=Aries` and `Equal Aries` spellings for `Equal (1=Aries)` alongside the existing `Equal (MC)` equal-house source labels, and the compatibility profile identifier has been bumped to `0.6.22` to keep the release artifact versioned with the latest appendix refinement.
 - [x] `ChartSnapshot`'s unknown-motion helper surface is now called out explicitly in the API stability posture and README, so the release-facing chart-helper summary uses the same motion-class wording as the code.
 
+- [x] The house-system interoperability labels now also include `WvA`, `Bob Makransky`, and `Vehlow-equal`, and the compatibility profile/source-label appendix rendering now exposes those spellings alongside the existing APC, Sunshine, and Vehlow entries.
+
 ## Exit criteria
 
 - release compatibility profile is published and current

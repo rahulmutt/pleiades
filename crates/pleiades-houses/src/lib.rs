@@ -205,7 +205,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
     HouseSystemDescriptor::new(
         HouseSystem::Vehlow,
         "Vehlow Equal",
-        &["Vehlow", "Vehlow equal"],
+        &["Vehlow", "Vehlow equal", "Vehlow-equal"],
         "Equal-house variant with the Ascendant centered in house 1.",
         false,
     ),
@@ -243,6 +243,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         &[
             "Ram school",
             "Ramschool",
+            "WvA",
             "APC houses",
             "Ascendant Parallel Circle",
         ],
@@ -285,7 +286,12 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
     HouseSystemDescriptor::new(
         HouseSystem::Sunshine,
         "Sunshine",
-        &["Sunshine houses", "Makransky Sunshine", "Treindl Sunshine"],
+        &[
+            "Sunshine houses",
+            "Makransky Sunshine",
+            "Bob Makransky",
+            "Treindl Sunshine",
+        ],
         "Sunshine house system based on the Sun's diurnal and nocturnal arcs; the 1st house is the Ascendant and the 10th house is the MC.",
         true,
     ),
@@ -361,6 +367,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         &[
             "Ram school",
             "Ramschool",
+            "WvA",
             "APC houses",
             "Ascendant Parallel Circle",
         ],
@@ -452,7 +459,12 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
     HouseSystemDescriptor::new(
         HouseSystem::Sunshine,
         "Sunshine",
-        &["Sunshine houses", "Makransky Sunshine", "Treindl Sunshine"],
+        &[
+            "Sunshine houses",
+            "Makransky Sunshine",
+            "Bob Makransky",
+            "Treindl Sunshine",
+        ],
         "Sunshine house system based on the Sun's diurnal and nocturnal arcs; the 1st house is the Ascendant and the 10th house is the MC.",
         true,
     ),
@@ -494,7 +506,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
     HouseSystemDescriptor::new(
         HouseSystem::Vehlow,
         "Vehlow Equal",
-        &["Vehlow", "Vehlow equal"],
+        &["Vehlow", "Vehlow equal", "Vehlow-equal"],
         "Equal-house variant with the Ascendant centered in house 1.",
         false,
     ),
@@ -615,6 +627,10 @@ mod tests {
             Some(HouseSystem::EqualAries)
         );
         assert_eq!(resolve_house_system("vehlow"), Some(HouseSystem::Vehlow));
+        assert_eq!(
+            resolve_house_system("Vehlow-equal"),
+            Some(HouseSystem::Vehlow)
+        );
         assert_eq!(resolve_house_system("Wang"), Some(HouseSystem::Equal));
         assert_eq!(
             resolve_house_system("Whole Sign (house 1 = Aries)"),
@@ -638,6 +654,7 @@ mod tests {
             Some(HouseSystem::Horizon)
         );
         assert_eq!(resolve_house_system("Ram school"), Some(HouseSystem::Apc));
+        assert_eq!(resolve_house_system("WvA"), Some(HouseSystem::Apc));
         assert_eq!(
             resolve_house_system("Ascendant Parallel Circle"),
             Some(HouseSystem::Apc)
@@ -649,6 +666,10 @@ mod tests {
         assert_eq!(resolve_house_system("Śrīpati"), Some(HouseSystem::Sripati));
         assert_eq!(
             resolve_house_system("Sunshine"),
+            Some(HouseSystem::Sunshine)
+        );
+        assert_eq!(
+            resolve_house_system("Bob Makransky"),
             Some(HouseSystem::Sunshine)
         );
         assert_eq!(
