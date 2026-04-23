@@ -1104,3 +1104,6 @@ Implemented a follow-up Stage 6 release-hardening tweak:
 - the Stage 6 progress notes were updated again so the release-hardening tracker reflects the current benchmark-corpus state rather than the earlier nine-epoch snapshot
 
 Remaining Stage 6 work: keep the benchmark corpus, validation help text, and release notes synchronized as further hardening slices land.
+
+
+- 2026-04-23: Added the Swiss Ephemeris `Whole sign houses, 1. house = Aries` interoperability alias to `pleiades-houses` for `Equal (1=Aries)`, updated the compatibility profile release notes/version to `0.6.43`, and recorded the progress in Stage 6.

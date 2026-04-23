@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.42";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.43";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -85,7 +85,7 @@ pub const fn current_compatibility_profile() -> CompatibilityProfile {
         baseline_ayanamsas: baseline_ayanamsas(),
         release_ayanamsas: release_ayanamsas(),
         release_notes: &[
-            "Release-specific house-system additions now include Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter (poli-equatorial), Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen SD, Pullen SR, Sunshine, and Gauquelin sectors, with the Whole Sign (house 1 = Aries) label, Wang alias, Equal MC / Equal Midheaven aliases, Equal (cusp 1 = Asc) source spelling, Equal (MC) and Equal (1=Aries) source-label appendix entries, APC houses / Ascendant Parallel Circle / WvA aliases, Horizon / Horizontal / Azimuthal aliases, the Vehlow-equal source label, the Bob Makransky source label for Sunshine, the Topocentric house system alias, and the remaining Albategnius / Pullen / Gauquelin source labels also resolving as interoperability aliases.",
+            "Release-specific house-system additions now include Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter (poli-equatorial), Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen SD, Pullen SR, Sunshine, and Gauquelin sectors, with the Whole Sign (house 1 = Aries) label, the Whole sign houses, 1. house = Aries source spelling, Wang alias, Equal MC / Equal Midheaven aliases, Equal (cusp 1 = Asc) source spelling, Equal (MC) and Equal (1=Aries) source-label appendix entries, APC houses / Ascendant Parallel Circle / WvA aliases, Horizon / Horizontal / Azimuthal aliases, the Vehlow-equal source label, the Bob Makransky source label for Sunshine, the Topocentric house system alias, and the remaining Albategnius / Pullen / Gauquelin source labels also resolving as interoperability aliases.",
             "The compatibility profile now also renders a source-label appendix for the built-in house systems so common Placidus, Koch, Equal, Whole Sign, Topocentric, Vehlow, Sunshine, APC, and Horizon/Azimuth spellings — including the Swiss Ephemeris \"Equal (cusp 1 = Asc)\" and \"Whole Sign (house 1 = Aries)\" forms — are searchable alongside the ayanamsa appendix, and the latest release-specific house-system label batches now also surface the exact Albategnius, Pullen, and Gauquelin search forms.",
             "The compatibility profile now also renders source-label appendix entries for Lahiri / Chitrapaksha, True Chitra / Chitra, Fagan Bradley / Fagan-Bradley, and Usha Shashi so the baseline sidereal spellings remain searchable alongside the existing Raman appendix entry and the rest of the ayanamsa catalog.",
             "The compatibility profile now also renders source-label appendix entries for P.V.R. Narasimha Rao, Aries houses, and True Mula (Chandra Hari) so the release-facing interoperability labels stay aligned with the documented source spellings for the Pushya-paksha, equal-house, and true-Mula variants.",
@@ -846,6 +846,10 @@ mod tests {
             .iter()
             .any(|note| note.contains("B. V. Raman")));
         assert!(profile
+            .release_notes
+            .iter()
+            .any(|note| note.contains("Whole sign houses, 1. house = Aries")));
+        assert!(profile
             .known_gaps
             .iter()
             .any(|gap| gap.contains("validation corpus")));
@@ -898,7 +902,7 @@ mod tests {
         assert!(rendered.contains("Babylonian/Kugler 1, Babylonian 1 -> Babylonian (Kugler 1)"));
         assert!(rendered.contains("Equal from MC, Equal (from MC), Equal MC, Equal Midheaven, Equal (MC), Equal/MC = 10th -> Equal (MC)"));
         assert!(rendered.contains(
-            "Equal/1=Aries, Equal Aries, Aries houses, Whole Sign (house 1 = Aries), Equal/1=0 Aries, Equal (cusp 1 = 0° Aries) -> Equal (1=Aries)"
+            "Equal/1=Aries, Equal Aries, Aries houses, Whole Sign (house 1 = Aries), Whole sign houses, 1. house = Aries, Equal/1=0 Aries, Equal (cusp 1 = 0° Aries) -> Equal (1=Aries)"
         ));
         assert!(rendered.contains(
             "Galactic Center (Gil Brand), Gil Brand, Rgilbrand, Galactic center Rgilbrand -> Galactic Center (Rgilbrand)"
@@ -949,7 +953,7 @@ mod tests {
         assert!(rendered.contains("B. V. Raman, B.V. Raman, B V Raman -> Raman"));
         assert!(rendered.contains("Fagan Bradley, Fagan-Bradley -> Fagan/Bradley"));
         assert!(rendered.contains("Ushashashi, Usha-Shashi, Usha/Shashi, Revati -> Usha Shashi"));
-        assert!(rendered.contains("Whole Sign (house 1 = Aries), Equal/1=0 Aries, Equal (cusp 1 = 0° Aries) -> Equal (1=Aries)"));
+        assert!(rendered.contains("Whole Sign (house 1 = Aries), Whole sign houses, 1. house = Aries, Equal/1=0 Aries, Equal (cusp 1 = 0° Aries) -> Equal (1=Aries)"));
         assert!(rendered.contains(
             "Equal houses, Equal house system, Equal House, Wang, Equal (cusp 1 = Asc) -> Equal"
         ));
@@ -969,7 +973,7 @@ mod tests {
         );
         assert!(rendered.contains("Equal (MC)"));
         assert!(rendered.contains("Equal (1=Aries)"));
-        assert!(rendered.contains("Equal/1=Aries, Equal Aries, Aries houses, Whole Sign (house 1 = Aries), Equal/1=0 Aries, Equal (cusp 1 = 0° Aries) -> Equal (1=Aries)"));
+        assert!(rendered.contains("Equal/1=Aries, Equal Aries, Aries houses, Whole Sign (house 1 = Aries), Whole sign houses, 1. house = Aries, Equal/1=0 Aries, Equal (cusp 1 = 0° Aries) -> Equal (1=Aries)"));
         assert!(rendered.contains("Vehlow equal, Vehlow-equal -> Vehlow Equal"));
         assert!(rendered.contains("Sripati"));
         assert!(rendered.contains("Carter (poli-equatorial)"));
