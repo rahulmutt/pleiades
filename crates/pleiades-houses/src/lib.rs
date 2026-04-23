@@ -234,6 +234,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
             "Equal (from MC) table of houses",
             "Equal (MC) table of houses",
             "Equal MC",
+            "Equal/MC",
             "Equal Midheaven",
             "Equal/MC = 10th",
         ],
@@ -640,6 +641,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
             "Equal (from MC) table of houses",
             "Equal (MC) table of houses",
             "Equal MC",
+            "Equal/MC",
             "Equal Midheaven",
             "Equal/MC = 10th",
         ],
@@ -942,6 +944,10 @@ mod tests {
         );
         assert_eq!(
             resolve_house_system("Equal MC"),
+            Some(HouseSystem::EqualMidheaven)
+        );
+        assert_eq!(
+            resolve_house_system("Equal/MC"),
             Some(HouseSystem::EqualMidheaven)
         );
         assert_eq!(
