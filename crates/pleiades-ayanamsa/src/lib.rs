@@ -254,7 +254,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::Yukteshwar,
         "Yukteshwar",
-        &["Yukteswar", "Sri Yukteswar", "Sri Yukteshwar"],
+        &["Yukteswar", "Sri Yukteswar", "Sri Yukteshwar", "Shri Yukteswar", "Shri Yukteshwar"],
         "Swiss Ephemeris Yukteshwar sidereal mode, documented as a built-in ayanamsa option with a Sri Yukteswar-compatible naming family.",
         Some(JulianDay::from_days(2_451_545.0)),
         Some(Angle::from_degrees(22.628_888_9)),
@@ -746,7 +746,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
     AyanamsaDescriptor::new(
         Ayanamsa::Yukteshwar,
         "Yukteshwar",
-        &["Yukteswar", "Sri Yukteswar", "Sri Yukteshwar"],
+        &["Yukteswar", "Sri Yukteswar", "Sri Yukteshwar", "Shri Yukteswar", "Shri Yukteshwar"],
         "Swiss Ephemeris Yukteshwar sidereal mode, documented as a built-in ayanamsa option with a Sri Yukteswar-compatible naming family.",
         Some(JulianDay::from_days(2_451_545.0)),
         Some(Angle::from_degrees(22.628_888_9)),
@@ -1286,6 +1286,14 @@ mod tests {
         assert_eq!(resolve_ayanamsa("Yukteswar"), Some(Ayanamsa::Yukteshwar));
         assert_eq!(
             resolve_ayanamsa("Sri Yukteshwar"),
+            Some(Ayanamsa::Yukteshwar)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Shri Yukteswar"),
+            Some(Ayanamsa::Yukteshwar)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Shri Yukteshwar"),
             Some(Ayanamsa::Yukteshwar)
         );
         assert_eq!(

@@ -1145,3 +1145,22 @@ Implemented a small Stage 6 release-hardening slice:
 - regression coverage now checks the revised release-profile text and appendix lines, keeping the new search forms visible in the rendered compatibility profile
 
 Remaining Stage 6 work: keep the release-facing compatibility profile, README, and validation output synchronized as additional interoperability labels land.
+
+## 2026-04-23 — Yukteshwar alias batch now includes the Shri transliterations
+
+Implemented a small Stage 6 ayanamsa-interoperability slice:
+
+- `pleiades-ayanamsa` now accepts `Shri Yukteswar` and `Shri Yukteshwar` alongside the existing Sri/Yukteshwar forms, and the compatibility profile source-label appendix now renders those spellings in the release-facing alias map
+- the compatibility profile identifier will need to be bumped to keep the release artifact synchronized, and the README / Stage 6 progress notes should be updated so the release-facing wording stays aligned with the expanded Yukteshwar alias batch
+- regression coverage should check the new resolver spellings and the rendered source-label appendix line so the release artifact stays searchable by both Sri and Shri transliterations
+
+Remaining Stage 6 work: keep the release-facing compatibility profile, README, and validation output synchronized as additional interoperability labels land.
+
+## 2026-04-23 — Yukteshwar alias batch completed and versioned
+
+Follow-up to the earlier note:
+
+- `pleiades-ayanamsa` and the compatibility profile now both accept the `Shri Yukteswar` and `Shri Yukteshwar` transliterations, so the Yukteshwar alias batch is now fully wired through the resolver, release profile, README, and stage-6 tracker
+- the compatibility profile identifier was bumped to `0.6.46`, and the regression coverage / release-note text were updated to keep the rendered alias map aligned with the new transliterations
+
+Remaining Stage 6 work: keep the release-facing compatibility profile, README, and validation output synchronized as additional interoperability labels land.
