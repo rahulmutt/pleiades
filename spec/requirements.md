@@ -36,6 +36,8 @@ The public API must model at least:
 ### FR-4 House Systems
 The system must provide a house computation module that is open to the full target compatibility catalog.
 
+The baseline compatibility milestone is a minimum shipping floor, not an upper bound. The long-term built-in catalog must remain open to the complete Swiss-Ephemeris-class interoperability set targeted by the project, and adding remaining built-ins must not require public API redesign.
+
 The baseline compatibility milestone must include at minimum:
 
 - Placidus
@@ -54,6 +56,8 @@ If a house system has latitude or numerical failure constraints, those constrain
 
 ### FR-5 Ayanamsa Support
 The system must provide an extensible ayanamsa model that supports both built-in and user-defined variants.
+
+The baseline compatibility milestone is a minimum shipping floor, not an upper bound. The long-term built-in catalog must remain open to the complete project target catalog, and adding further built-ins or aliases must not require public API redesign.
 
 The baseline compatibility milestone must include at minimum:
 
@@ -86,7 +90,7 @@ The system must expose a common backend trait that:
 - centers on raw astronomical outputs, with sidereal conversion remaining a domain-layer operation unless a backend explicitly documents equivalent native support
 
 ### FR-8 Multiple Backend Implementations
-The workspace must include separate first-party crates for multiple backends, including examples of:
+The workspace must include separate first-party crates for multiple backends, and the architecture must allow consumers or `pleiades-core` to compose them without coupling the public API to a single source family. Required initial examples include:
 
 - a JPL-based data backend
 - a formula-based planetary backend

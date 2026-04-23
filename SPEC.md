@@ -112,13 +112,20 @@ The derived specification set satisfies the bootstrap prompt as follows:
 | Bootstrap requirement | Where it is specified |
 | --- | --- |
 | Modular astrology-oriented ephemeris platform comparable in scope to Swiss Ephemeris | [spec/vision-and-scope.md](spec/vision-and-scope.md), [spec/requirements.md](spec/requirements.md), [spec/astrology-domain.md](spec/astrology-domain.md) |
-| Pure Rust only, with no required C/C++ dependencies | [spec/requirements.md](spec/requirements.md), [spec/architecture.md](spec/architecture.md) |
+| Pure Rust only, with no required C/C++ dependencies | [spec/requirements.md](spec/requirements.md), [spec/architecture.md](spec/architecture.md), [spec/validation-and-testing.md](spec/validation-and-testing.md) |
 | Modular backend trait with separate backend crates | [spec/backend-trait.md](spec/backend-trait.md), [spec/backends.md](spec/backends.md), [spec/architecture.md](spec/architecture.md) |
-| Compressed representation optimized for common use in 1500-2500 CE | [spec/data-compression.md](spec/data-compression.md), [spec/backends.md](spec/backends.md) |
+| Compressed representation optimized for common use in 1500-2500 CE | [spec/data-compression.md](spec/data-compression.md), [spec/backends.md](spec/backends.md), [spec/architecture.md](spec/architecture.md) |
 | All first-party crates named `pleiades-*` | [spec/architecture.md](spec/architecture.md) |
+
+The current spec set adheres to the bootstrap requirements. The main refinements in this revision are:
+
+- making the end-state catalog policy explicit so baseline milestones are not mistaken for final scope
+- tightening crate-layer rules so domain crates remain backend-agnostic
+- separating artifact/data responsibilities from astrology-domain responsibilities to reduce architectural ambiguity
+- clarifying alias and compatibility-profile expectations for house systems and ayanamsas
 
 ## Document Status
 
-Status: Draft 5
+Status: Draft 6
 Owner: Project maintainers
 Last updated: 2026-04-23

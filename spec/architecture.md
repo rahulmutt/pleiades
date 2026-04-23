@@ -16,6 +16,9 @@ The project is a Rust workspace composed of small, focused crates with explicit 
 
 - `pleiades-houses`: house-system implementations and related domain helpers
 - `pleiades-ayanamsa`: ayanamsa catalog and sidereal conversion logic
+
+### Artifact and Data Crates
+
 - `pleiades-compression`: compression codecs and artifact packing/unpacking logic
 
 ### Backend Crates
@@ -38,19 +41,21 @@ Optional crates such as `pleiades-composite` may be added later if they respect 
 2. `pleiades-types` must not depend on backend crates.
 3. `pleiades-backend` may depend on `pleiades-types` only.
 4. Source-specific backend crates may depend on `pleiades-types` and `pleiades-backend`.
-5. Domain crates may depend on `pleiades-types` and, when necessary, `pleiades-backend`, but must not depend on source-specific backend crates.
-6. `pleiades-core` may depend on all domain crates and on `pleiades-backend`, but must not require one specific backend by default.
-7. `pleiades-data` may depend on `pleiades-compression` and `pleiades-backend`.
-8. Tooling crates may depend on all first-party crates.
+5. Domain crates such as `pleiades-houses` and `pleiades-ayanamsa` must remain backend-agnostic and may depend on `pleiades-types` only.
+6. `pleiades-compression` may depend on `pleiades-types` only.
+7. `pleiades-core` may depend on all domain crates and on `pleiades-backend`, but must not require one specific backend by default.
+8. `pleiades-data` may depend on `pleiades-types`, `pleiades-compression`, and `pleiades-backend`.
+9. Tooling crates may depend on all first-party crates.
 
 ## Layering
 
 - **Layer 1**: primitive types, units, identifiers, and shared errors
 - **Layer 2**: backend contracts and capability metadata
-- **Layer 3**: source-specific backend implementations
+- **Layer 3**: algorithmic and reference-data backend implementations
 - **Layer 4**: astrology-domain computation crates
-- **Layer 5**: high-level façade and composition APIs
-- **Layer 6**: CLI, validation, artifact generation, and reporting tools
+- **Layer 5**: artifact codecs and packaged-data backends
+- **Layer 6**: high-level façade and composition APIs
+- **Layer 7**: CLI, validation, artifact generation, and reporting tools
 
 No layer may depend on a higher layer.
 
@@ -66,6 +71,8 @@ The architecture must allow hybrid composition. For example:
 A composite adapter may route body queries to different providers while presenting one unified backend implementation.
 
 Astrology-specific transforms such as sidereal conversion, house placement, and chart assembly must remain above the source-specific backend layer unless a backend explicitly exposes an equivalent capability through the common contract.
+
+Domain crates must not import or special-case individual backend implementations. If a domain algorithm needs shared astronomical input, that input must be expressed through backend-neutral types defined in `pleiades-types` and supplied by `pleiades-core` or a caller.
 
 ## Feature Flags
 
