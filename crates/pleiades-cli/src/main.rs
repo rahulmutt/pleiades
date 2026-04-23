@@ -146,6 +146,8 @@ fn parse_body(value: Option<&str>) -> Result<CelestialBody, String> {
         "pallas" => Ok(CelestialBody::Pallas),
         "juno" => Ok(CelestialBody::Juno),
         "vesta" => Ok(CelestialBody::Vesta),
+        "mean node" | "mean lunar node" => Ok(CelestialBody::MeanNode),
+        "true node" | "true lunar node" => Ok(CelestialBody::TrueNode),
         "mean apogee" => Ok(CelestialBody::MeanApogee),
         "true apogee" => Ok(CelestialBody::TrueApogee),
         "mean perigee" => Ok(CelestialBody::MeanPerigee),
@@ -310,6 +312,26 @@ mod tests {
         assert_eq!(
             parse_body(Some("true perigee")).unwrap(),
             CelestialBody::TruePerigee
+        );
+    }
+
+    #[test]
+    fn parse_body_accepts_lunar_nodes() {
+        assert_eq!(
+            parse_body(Some("mean node")).unwrap(),
+            CelestialBody::MeanNode
+        );
+        assert_eq!(
+            parse_body(Some("mean lunar node")).unwrap(),
+            CelestialBody::MeanNode
+        );
+        assert_eq!(
+            parse_body(Some("true node")).unwrap(),
+            CelestialBody::TrueNode
+        );
+        assert_eq!(
+            parse_body(Some("true lunar node")).unwrap(),
+            CelestialBody::TrueNode
         );
     }
 }

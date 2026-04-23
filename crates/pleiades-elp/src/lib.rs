@@ -1,8 +1,8 @@
 //! Lunar backend boundary based on a compact pure-Rust analytical model.
 //!
 //! The full ELP series data is still planned, but this crate now provides a
-//! usable Moon backend for the chart MVP by combining a low-precision lunar
-//! orbit model with geocentric coordinate transforms.
+//! usable Moon-and-lunar-node backend for the chart MVP by combining a
+//! low-precision lunar orbit model with geocentric coordinate transforms.
 
 #![forbid(unsafe_code)]
 
@@ -103,6 +103,75 @@ impl ElpBackend {
             Some(coords.distance_re * EARTH_RADIUS_KM / AU_IN_KM),
         )
     }
+
+    fn mean_node_longitude(days: f64) -> f64 {
+        let t = days / 36_525.0;
+        normalize_degrees(
+            125.044_547_9
+                + (-1_934.136_289_1 + (0.002_075_4 + (1.0 / 476_441.0 - t / 60_616_000.0) * t) * t)
+                    * t,
+        )
+    }
+
+    fn true_node_longitude(days: f64) -> f64 {
+        let t = days / 36_525.0;
+        let mean_node = Self::mean_node_longitude(days).to_radians();
+        let mean_elongation = normalize_degrees(
+            297.850_192_1
+                + (445_267.111_403_4
+                    + (-0.001_881_9 + (1.0 / 545_868.0 - t / 113_065_000.0) * t) * t)
+                    * t,
+        )
+        .to_radians();
+        let solar_anomaly = normalize_degrees(
+            357.529_109_2 + (35_999.050_290_9 + (-0.000_153_6 + t / 24_490_000.0) * t) * t,
+        )
+        .to_radians();
+        let lunar_anomaly = normalize_degrees(
+            134.963_396_4
+                + (477_198.867_505_5 + (0.008_741_4 + (1.0 / 69_699.9 + t / 14_712_000.0) * t) * t)
+                    * t,
+        )
+        .to_radians();
+        let latitude_argument = normalize_degrees(
+            93.272_095_0
+                + (483_202.017_523_3
+                    + (-0.003_653_9 + (-1.0 / 3_526_000.0 + t / 863_310_000.0) * t) * t)
+                    * t,
+        )
+        .to_radians();
+
+        normalize_degrees(
+            mean_node.to_degrees()
+                + (-1.4979 * (2.0 * (mean_elongation - latitude_argument)).sin()
+                    - 0.15 * solar_anomaly.sin()
+                    - 0.1226 * (2.0 * mean_elongation).sin()
+                    + 0.1176 * (2.0 * latitude_argument).sin()
+                    - 0.0801 * (2.0 * (lunar_anomaly - latitude_argument)).sin()),
+        )
+    }
+
+    fn ecliptic_point_to_equatorial(
+        longitude: Longitude,
+        latitude: Latitude,
+        instant: Instant,
+        distance_au: Option<f64>,
+    ) -> EquatorialCoordinates {
+        let obliquity = Self::mean_obliquity_degrees(instant).to_radians();
+        let longitude = longitude.degrees().to_radians();
+        let latitude = latitude.degrees().to_radians();
+        let x = longitude.cos() * latitude.cos();
+        let y =
+            longitude.sin() * latitude.cos() * obliquity.cos() - latitude.sin() * obliquity.sin();
+        let z =
+            longitude.sin() * latitude.cos() * obliquity.sin() + latitude.sin() * obliquity.cos();
+
+        EquatorialCoordinates::new(
+            Angle::from_degrees(y.atan2(x).to_degrees()).normalized_0_360(),
+            Latitude::from_degrees(z.atan2((x * x + y * y).sqrt()).to_degrees()),
+            distance_au,
+        )
+    }
 }
 
 impl EphemerisBackend for ElpBackend {
@@ -120,7 +189,11 @@ impl EphemerisBackend for ElpBackend {
             },
             nominal_range: TimeRange::new(None, None),
             supported_time_scales: vec![TimeScale::Tt],
-            body_coverage: vec![CelestialBody::Moon],
+            body_coverage: vec![
+                CelestialBody::Moon,
+                CelestialBody::MeanNode,
+                CelestialBody::TrueNode,
+            ],
             supported_frames: vec![CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
             capabilities: BackendCapabilities {
                 geocentric: true,
@@ -137,43 +210,75 @@ impl EphemerisBackend for ElpBackend {
     }
 
     fn supports_body(&self, body: CelestialBody) -> bool {
-        body == CelestialBody::Moon
+        matches!(
+            body,
+            CelestialBody::Moon | CelestialBody::MeanNode | CelestialBody::TrueNode
+        )
     }
 
     fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
-        if req.body != CelestialBody::Moon {
+        if !self.supports_body(req.body.clone()) {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::UnsupportedBody,
-                "the ELP MVP backend only serves the Moon",
+                "the ELP backend currently serves the Moon and lunar nodes only",
             ));
         }
 
         if req.zodiac_mode != ZodiacMode::Tropical {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,
-                "the ELP MVP backend currently exposes tropical coordinates only",
+                "the ELP backend currently exposes tropical coordinates only",
             ));
         }
 
         if req.instant.scale != TimeScale::Tt {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::UnsupportedTimeScale,
-                "the ELP MVP backend expects terrestrial time (TT)",
+                "the ELP backend expects terrestrial time (TT)",
             ));
         }
 
-        let coords = Self::geocentric_coordinates(Self::days_since_j2000(req.instant));
+        let days = Self::days_since_j2000(req.instant);
+        let body = req.body.clone();
         let mut result = EphemerisResult::new(
             BackendId::new(PACKAGE_NAME),
-            req.body.clone(),
+            body.clone(),
             req.instant,
             req.frame,
             req.zodiac_mode.clone(),
             req.apparent,
         );
         result.quality = QualityAnnotation::Approximate;
-        result.ecliptic = Some(Self::to_ecliptic(coords));
-        result.equatorial = Some(Self::to_equatorial(coords, req.instant));
+        match body {
+            CelestialBody::Moon => {
+                let coords = Self::geocentric_coordinates(days);
+                result.ecliptic = Some(Self::to_ecliptic(coords));
+                result.equatorial = Some(Self::to_equatorial(coords, req.instant));
+            }
+            CelestialBody::MeanNode => {
+                let longitude = Longitude::from_degrees(Self::mean_node_longitude(days));
+                let latitude = Latitude::from_degrees(0.0);
+                result.ecliptic = Some(EclipticCoordinates::new(longitude, latitude, None));
+                result.equatorial = Some(Self::ecliptic_point_to_equatorial(
+                    longitude,
+                    latitude,
+                    req.instant,
+                    None,
+                ));
+            }
+            CelestialBody::TrueNode => {
+                let longitude = Longitude::from_degrees(Self::true_node_longitude(days));
+                let latitude = Latitude::from_degrees(0.0);
+                result.ecliptic = Some(EclipticCoordinates::new(longitude, latitude, None));
+                result.equatorial = Some(Self::ecliptic_point_to_equatorial(
+                    longitude,
+                    latitude,
+                    req.instant,
+                    None,
+                ));
+            }
+            _ => unreachable!("body support should be validated before position queries"),
+        }
         result.motion = Some(Motion::new(None, None, None));
         Ok(result)
     }
@@ -214,7 +319,7 @@ mod tests {
     }
 
     #[test]
-    fn backend_only_supports_the_moon() {
+    fn backend_supports_the_moon_and_lunar_nodes() {
         let backend = ElpBackend::new();
         assert!(backend.supports_body(CelestialBody::Moon));
         assert!(!backend.supports_body(CelestialBody::Sun));
@@ -232,5 +337,35 @@ mod tests {
         assert!(ecliptic.longitude.degrees().is_finite());
         assert!(ecliptic.latitude.degrees().is_finite());
         assert_eq!(result.quality, QualityAnnotation::Approximate);
+    }
+
+    #[test]
+    fn j2000_mean_and_true_nodes_are_available() {
+        let backend = ElpBackend::new();
+        let instant = Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt);
+
+        let mean = backend
+            .position(&EphemerisRequest::new(CelestialBody::MeanNode, instant))
+            .expect("mean node query should work");
+        let mean_ecliptic = mean.ecliptic.expect("mean node ecliptic should exist");
+        assert!((mean_ecliptic.longitude.degrees() - 125.044_547_9).abs() < 1e-9);
+        assert_eq!(mean_ecliptic.latitude.degrees(), 0.0);
+        assert!(mean.equatorial.is_some());
+
+        let true_node = backend
+            .position(&EphemerisRequest::new(CelestialBody::TrueNode, instant))
+            .expect("true node query should work");
+        let true_ecliptic = true_node.ecliptic.expect("true node ecliptic should exist");
+        assert!((true_ecliptic.longitude.degrees() - 123.926_171_368_400_46).abs() < 1e-9);
+        assert_eq!(true_ecliptic.latitude.degrees(), 0.0);
+        assert!(true_node.equatorial.is_some());
+    }
+
+    #[test]
+    fn backend_supports_lunar_nodes() {
+        let backend = ElpBackend::new();
+        assert!(backend.supports_body(CelestialBody::MeanNode));
+        assert!(backend.supports_body(CelestialBody::TrueNode));
+        assert!(!backend.supports_body(CelestialBody::Sun));
     }
 }
