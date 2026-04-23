@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.74";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.75";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -243,6 +243,8 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "Meridian houses",
             "Meridian table of houses",
             "ARMC",
+            "Axial Rotation",
+            "Axial rotation system",
             "X axial rotation system/ Meridian houses",
         ],
         "Axial" => &["Axial variants"],
@@ -1115,7 +1117,7 @@ mod tests {
             "Horizon, Azimuth, Horizontal, Azimuthal, Horizon house system, Horizon/Azimuth house system, Horizon/Azimuth table of houses, Azimuthal house system, horizon/azimut, horizon/azimuth -> Horizon/Azimuth"
         ));
         assert!(rendered.contains(
-            "X, Meridian houses, Meridian table of houses, ARMC, X axial rotation system/ Meridian houses -> Meridian"
+            "X, Meridian houses, Meridian table of houses, ARMC, Axial Rotation, Axial rotation system, X axial rotation system/ Meridian houses -> Meridian"
         ));
         assert!(rendered.contains("M, Morinus houses, Morinus house system -> Morinus"));
         assert!(rendered.contains("Whole Sign house system -> Whole Sign"));
@@ -1221,7 +1223,7 @@ mod tests {
             rendered.contains("V equal Vehlow, Vehlow, Vehlow equal, Vehlow-equal, Vehlow-equal table of houses -> Vehlow Equal")
         );
         assert!(rendered.contains(
-            "X, Meridian houses, Meridian table of houses, ARMC, X axial rotation system/ Meridian houses -> Meridian"
+            "X, Meridian houses, Meridian table of houses, ARMC, Axial Rotation, Axial rotation system, X axial rotation system/ Meridian houses -> Meridian"
         ));
         assert!(rendered.contains("Y, APC, Ram school, Ram's school, Ramschool, WvA, Y APC houses, APC houses, APC, also known as “Ram school”, table of houses, APC house system, Ascendant Parallel Circle -> APC"));
         assert!(rendered.contains("T, Polich-Page, Polich/Page, Polich Page, Polich-Page \"topocentric\" table of houses, T Polich/Page (\"topocentric\"), T topocentric, Topocentric house system -> Topocentric"));

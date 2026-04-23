@@ -58,6 +58,7 @@ These are durable planning decisions that should remain true even as individual 
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] The Meridian house-system source-label appendix and resolver now also accept the exact `Axial Rotation` and `Axial rotation system` spellings alongside `Meridian`, `ARMC`, and the existing Swiss Ephemeris `X` code path, and the compatibility profile identifier has been bumped to `0.6.75` so the axis-rotation alias batch stays versioned with the current profile.
 - [x] Release-bundle verification now also treats a missing `bundle-manifest.checksum.txt` sidecar as a release verification failure with an explicit `missing bundle manifest checksum sidecar file` message, closing the last quiet missing-file gap in the staged bundle verifier.
 - [x] The release-checklist summary now also cross-references the compact `release-summary` view, giving maintainers a quicker audit hop from the checklist overview to the one-screen release posture view without changing the release checklist itself.
 - [x] The release notes now also cross-reference the compact `compatibility-profile-summary` view, giving maintainers a quicker audit hop from the full release notes to the compact compatibility posture view without changing the compatibility profile itself.

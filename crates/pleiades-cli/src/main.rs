@@ -349,6 +349,7 @@ mod tests {
         assert!(rendered.contains("Baseline compatibility milestone:"));
         assert!(rendered.contains("Release-specific coverage beyond baseline:"));
         assert!(rendered.contains("Topocentric"));
+        assert!(rendered.contains("X, Meridian houses, Meridian table of houses, ARMC, Axial Rotation, Axial rotation system, X axial rotation system/ Meridian houses -> Meridian"));
         assert!(rendered.contains("Target ayanamsa catalog:"));
         assert!(rendered.contains("Alias mappings for built-in house systems:"));
         assert!(rendered.contains("Source-label aliases for built-in house systems:"));

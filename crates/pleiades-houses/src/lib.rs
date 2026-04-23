@@ -706,6 +706,9 @@ fn resolve_house_system_code(label: &str) -> Option<HouseSystem> {
         "G" | "g" => Some(HouseSystem::Gauquelin),
         "T" | "t" => Some(HouseSystem::Topocentric),
         "U" | "u" => Some(HouseSystem::KrusinskiPisaGoelzer),
+        "Axial Rotation" | "axial rotation" | "Axial rotation system" | "axial rotation system" => {
+            Some(HouseSystem::Meridian)
+        }
         "X" | "x" => Some(HouseSystem::Meridian),
         "Y" | "y" => Some(HouseSystem::Apc),
         _ => None,
@@ -836,6 +839,14 @@ mod tests {
         assert_eq!(resolve_house_system("w. koch"), Some(HouseSystem::Koch));
         assert_eq!(resolve_house_system("W Koch"), Some(HouseSystem::Koch));
         assert_eq!(resolve_house_system("ARMC"), Some(HouseSystem::Meridian));
+        assert_eq!(
+            resolve_house_system("Axial Rotation"),
+            Some(HouseSystem::Meridian)
+        );
+        assert_eq!(
+            resolve_house_system("Axial rotation system"),
+            Some(HouseSystem::Meridian)
+        );
         assert_eq!(resolve_house_system("A equal"), Some(HouseSystem::Equal));
         assert_eq!(
             resolve_house_system("D equal / MC"),
