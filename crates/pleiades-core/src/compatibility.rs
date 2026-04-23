@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.83";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.84";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -71,7 +71,7 @@ impl CompatibilityProfile {
 pub const fn current_compatibility_profile() -> CompatibilityProfile {
     CompatibilityProfile {
         profile_id: CURRENT_COMPATIBILITY_PROFILE_ID,
-        summary: "Stage 6 release profile: the baseline catalogs remain published as a routine release artifact while the target Swiss-Ephemeris-class compatibility catalog stays explicit, including the release-specific house-system additions across the Carter, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen, Sunshine, including the Bob Makransky and Treindl Sunshine source labels, and Gauquelin families, plus the expanded ayanamsa coverage for J2000/J1900/B1950, True Citra and the True Citra Paksha / True Chitra Paksha / True Chitrapaksha interoperability spellings, DeLuce, Yukteshwar including the Sri Yukteshwar / Shri Yukteswar / Shri Yukteshwar transliterations, PVR Pushya-paksha, Sheoran, and the Sunil Sheoran / Vedic Sheoran / Sheoran ayanamsa source spellings, the true-nakshatra and Suryasiddhanta Revati/Citra reference modes, the Hipparchus/Babylonian/Galactic reference-frame modes, the latest True Pushya, Udayagiri, Lahiri (VP285), Krishnamurti (VP291), Krishnamurti ayanamsa, Djwhal Khul, JN Bhasin, mean-sun, Valens Moon, and the Valens / Moon sign ayanamsa source spellings, Dhruva Galactic Center (Middle Mula), Galactic Center (Cochrane/Mardyks), Galactic Equator (Mula), the Babylonian house/sissy/true-geoc/true-topc/true-obs/house-obs variants, the backfilled True Sheoran, Galactic Center (Rgilbrand), and Galactic Center (Mula/Wilhelm) zero-point metadata, the additional Galactic Equator/Center variants including the `Gal. Center = 0 Sag` and `Gal. Center = 0 Cap` spellings, the exact Swiss Ephemeris source-label aliases for the Babylonian/Kugler family plus the Babylonian 1/2/3 shorthand forms and Babylonian Huber, the galactic-reference, mean-sun, Sassanian/Sasanian/Zij al-Shah, Aryabhata 499/522, and the Surya Siddhanta / Suryasiddhanta 499/499 CE source-form entries, the expanded APC and Horizon/Azimuth interoperability aliases, the baseline Fagan/Bradley and Usha Shashi source-label appendix entries, the Babylonian house-family labels now rendered as explicit custom-definition territory rather than unresolved release gaps, and the `Equal (MC)` / `Equal (1=Aries)` source-label appendix entries for the release-line equal-house variants, including the `Equal (MC) table of houses` and `Equal (1=Aries) table of houses` spellings, plus the Wang, Aries houses, P.V.R. Narasimha Rao, and True Mula (Chandra Hari) source-label appendix entries for the ascendant-anchored equal-house and true-Mula variants, along with the exact Swiss Ephemeris house-table code spellings surfaced in the source-label appendix and the Equal table of houses, Whole Sign system, and Morinus house system spellings now called out explicitly in the quick-audit text.",
+        summary: "Stage 6 release profile: the baseline catalogs remain published as a routine release artifact while the target Swiss-Ephemeris-class compatibility catalog stays explicit, including the release-specific house-system additions across the Carter, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen, Sunshine, including the Bob Makransky and Treindl Sunshine source labels, and Gauquelin families, plus the expanded ayanamsa coverage for J2000/J1900/B1950, True Citra and the True Citra Paksha / True Chitra Paksha / True Chitrapaksha interoperability spellings, DeLuce, Yukteshwar including the Sri Yukteshwar / Shri Yukteswar / Shri Yukteshwar transliterations, PVR Pushya-paksha, Sheoran, and the Sunil Sheoran / Vedic Sheoran / Sheoran ayanamsa source spellings, the true-nakshatra and Suryasiddhanta Revati/Citra reference modes, the Hipparchus/Babylonian/Galactic reference-frame modes, the latest True Pushya, Udayagiri, Lahiri (VP285), Krishnamurti (VP291), Krishnamurti ayanamsa, Djwhal Khul, JN Bhasin, mean-sun, Valens Moon, and the Valens / Moon sign ayanamsa source spellings, Dhruva Galactic Center (Middle Mula), Galactic Center (Cochrane/Mardyks), Galactic Equator (Mula), the Babylonian house/sissy/true-geoc/true-topc/true-obs/house-obs variants, the backfilled True Sheoran, Galactic Center (Rgilbrand), and Galactic Center (Mula/Wilhelm) zero-point metadata, the additional Galactic Equator/Center variants including the `Gal. Center = 0 Sag` and `Gal. Center = 0 Cap` spellings, the exact Swiss Ephemeris source-label aliases for the Babylonian/Kugler family plus the Babylonian Kugler 1/2/3 plain spellings, the Babylonian 1/2/3 shorthand forms, and Babylonian Huber, the galactic-reference, mean-sun, Sassanian/Sasanian/Zij al-Shah, Aryabhata 499/522, and the Surya Siddhanta / Suryasiddhanta 499/499 CE source-form entries, the expanded APC and Horizon/Azimuth interoperability aliases, the baseline Fagan/Bradley and Usha Shashi source-label appendix entries, the Babylonian house-family labels now rendered as explicit custom-definition territory rather than unresolved release gaps, and the `Equal (MC)` / `Equal (1=Aries)` source-label appendix entries for the release-line equal-house variants, including the `Equal (MC) table of houses` and `Equal (1=Aries) table of houses` spellings, plus the Wang, Aries houses, P.V.R. Narasimha Rao, and True Mula (Chandra Hari) source-label appendix entries for the ascendant-anchored equal-house and true-Mula variants, along with the exact Swiss Ephemeris house-table code spellings surfaced in the source-label appendix and the Equal table of houses, Whole Sign system, and Morinus house system spellings now called out explicitly in the quick-audit text.",
 
         target_house_scope: &[
             "Target house scope: the full Swiss-Ephemeris-class house-system catalog remains the long-term compatibility goal.",
@@ -484,9 +484,9 @@ fn ayanamsa_source_label_aliases(canonical_name: &str) -> &'static [&'static str
             "Aryabhata MSUN",
         ],
         "Aryabhata (522 CE)" => &["Aryabhata 522", "Aryabhata 522 CE"],
-        "Babylonian (Kugler 1)" => &["Babylonian/Kugler 1", "Babylonian 1"],
-        "Babylonian (Kugler 2)" => &["Babylonian/Kugler 2", "Babylonian 2"],
-        "Babylonian (Kugler 3)" => &["Babylonian/Kugler 3", "Babylonian 3"],
+        "Babylonian (Kugler 1)" => &["Babylonian/Kugler 1", "Babylonian Kugler 1", "Babylonian 1"],
+        "Babylonian (Kugler 2)" => &["Babylonian/Kugler 2", "Babylonian Kugler 2", "Babylonian 2"],
+        "Babylonian (Kugler 3)" => &["Babylonian/Kugler 3", "Babylonian Kugler 3", "Babylonian 3"],
         "Babylonian (Britton)" => &["Babylonian/Britton", "Babylonian Britton"],
         "Babylonian (Huber)" => &["Babylonian/Huber", "Babylonian Huber"],
         "Babylonian (Eta Piscium)" => &["Babylonian/Eta Piscium"],
@@ -1094,7 +1094,9 @@ mod tests {
         );
         assert!(rendered
             .contains("Babylonian sidereal mode labeled BABYL_HOUSE_OBS in Swiss Ephemeris."));
-        assert!(rendered.contains("Babylonian/Kugler 1, Babylonian 1 -> Babylonian (Kugler 1)"));
+        assert!(rendered.contains(
+            "Babylonian/Kugler 1, Babylonian Kugler 1, Babylonian 1 -> Babylonian (Kugler 1)"
+        ));
         assert!(rendered.contains("D equal / MC, Equal from MC, Equal (from MC), Equal (from MC) table of houses, Equal (MC) table of houses, Equal (MC) house system, Equal MC, Equal/MC, Equal Midheaven, Equal/MC = 10th -> Equal (MC)"));
         assert!(rendered.contains("Equal (MC) table of houses"));
         assert!(rendered.contains("Equal (MC) house system"));
@@ -1248,9 +1250,15 @@ mod tests {
         assert!(rendered.contains(
             "Pullen SR (Sinusoidal Ratio) table of houses, Pullen sinusoidal ratio -> Pullen SR"
         ));
-        assert!(rendered.contains("Babylonian/Kugler 1, Babylonian 1 -> Babylonian (Kugler 1)"));
-        assert!(rendered.contains("Babylonian/Kugler 2, Babylonian 2 -> Babylonian (Kugler 2)"));
-        assert!(rendered.contains("Babylonian/Kugler 3, Babylonian 3 -> Babylonian (Kugler 3)"));
+        assert!(rendered.contains(
+            "Babylonian/Kugler 1, Babylonian Kugler 1, Babylonian 1 -> Babylonian (Kugler 1)"
+        ));
+        assert!(rendered.contains(
+            "Babylonian/Kugler 2, Babylonian Kugler 2, Babylonian 2 -> Babylonian (Kugler 2)"
+        ));
+        assert!(rendered.contains(
+            "Babylonian/Kugler 3, Babylonian Kugler 3, Babylonian 3 -> Babylonian (Kugler 3)"
+        ));
         assert!(rendered.contains("Babylonian/Huber, Babylonian Huber -> Babylonian (Huber)"));
         assert!(rendered.contains(
             "Aryabhata, Aryabhata 499, Aryabhata 499 CE, Aryabhatan Kaliyuga, Aryabhata Kaliyuga -> Aryabhata (499 CE)"

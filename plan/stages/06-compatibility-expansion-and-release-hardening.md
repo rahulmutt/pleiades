@@ -58,6 +58,7 @@ These are durable planning decisions that should remain true even as individual 
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] The release compatibility profile now also surfaces the plain `Babylonian Kugler 1`, `Babylonian Kugler 2`, and `Babylonian Kugler 3` spellings alongside the existing slash-form Babylonian/Kugler labels, and the compatibility profile identifier has been bumped to `0.6.84` so the Babylonian/Kugler alias batch stays versioned with the current profile.
 - [x] The release compatibility profile now also renders the `Gal. Center = 0 Sag` and `Gal. Center = 0 Cap` spellings alongside the existing galactic-reference source labels, and the compatibility profile identifier has been bumped to `0.6.83` so the latest galactic-center abbreviation batch stays versioned with the current profile.
 - [x] The Equal/MC house-system interoperability batch now also resolves the plain `Equal/MC` spelling in `pleiades-houses`, and the release compatibility profile renders that alias alongside the existing Equal (MC) / Equal Midheaven forms so the release-facing house-label audit stays aligned with Swiss Ephemeris labels.
 - [x] `pleiades-validate` now also mirrors the full `compatibility-profile` / `profile` renderer alongside `compatibility-profile-summary`, so the primary release tooling can print the complete profile without switching over to the user-facing CLI.
