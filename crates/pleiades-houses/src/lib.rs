@@ -291,6 +291,8 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
             "Horizontal",
             "Azimuthal",
             "Horizon house system",
+            "Horizon/Azimuth house system",
+            "Horizon/Azimuth table of houses",
             "Azimuthal house system",
             "horizon/azimut",
             "horizon/azimuth",
@@ -440,6 +442,8 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
             "Horizontal",
             "Azimuthal",
             "Horizon house system",
+            "Horizon/Azimuth house system",
+            "Horizon/Azimuth table of houses",
             "Azimuthal house system",
             "horizon/azimut",
             "horizon/azimuth",
@@ -998,6 +1002,14 @@ mod tests {
         );
         assert_eq!(
             resolve_house_system("Horizon house system"),
+            Some(HouseSystem::Horizon)
+        );
+        assert_eq!(
+            resolve_house_system("Horizon/Azimuth house system"),
+            Some(HouseSystem::Horizon)
+        );
+        assert_eq!(
+            resolve_house_system("Horizon/Azimuth table of houses"),
             Some(HouseSystem::Horizon)
         );
         assert_eq!(
