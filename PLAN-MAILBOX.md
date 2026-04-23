@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Equal-house source-label appendix now includes Wang
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-core::CompatibilityProfile` now includes `Wang` in the built-in equal-house source-label appendix, so the ascendant-anchored equal-house variant is searchable from the release profile as well as from the house catalog aliases
+- the compatibility profile identifier was bumped to `0.6.32`, and the README / Stage 6 progress notes were updated so the release-facing status text stays synchronized with the new source-label batch
+- the plan file was updated to record the current Stage 6 progress; no spec update was needed for this compatibility-profile refinement
+
+Remaining Stage 6 work: keep the release-facing compatibility profile, README, and validation output synchronized as additional interoperability labels land.
+
 ## 2026-04-23 — Historical shorthand source labels widened for Aryabhata and Babylonian entries
 
 Implemented a small Stage 6 release-hardening slice:

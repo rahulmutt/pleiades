@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.31";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.32";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -68,7 +68,7 @@ impl CompatibilityProfile {
 pub const fn current_compatibility_profile() -> CompatibilityProfile {
     CompatibilityProfile {
         profile_id: CURRENT_COMPATIBILITY_PROFILE_ID,
-        summary: "Stage 6 release profile: the baseline catalogs remain published as a routine release artifact while the target Swiss-Ephemeris-class compatibility catalog stays explicit, including the release-specific house-system additions across the Carter, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen, Sunshine, and Gauquelin families, plus the expanded ayanamsa coverage for J2000/J1900/B1950, True Citra and the True Citra Paksha / True Chitrapaksha interoperability spellings, DeLuce, Yukteshwar, PVR Pushya-paksha, Sheoran, the true-nakshatra and Suryasiddhanta Revati/Citra reference modes, the Hipparchus/Babylonian/Galactic reference-frame modes, the latest True Pushya, Udayagiri, Lahiri (VP285), Krishnamurti (VP291), Djwhal Khul, JN Bhasin, mean-sun, Valens Moon, and the Moon sign ayanamsa source spelling, Dhruva Galactic Center (Middle Mula), Galactic Center (Cochrane/Mardyks), Galactic Equator (Mula), the Babylonian house/sissy/true-geoc/true-topc/true-obs/house-obs variants, the backfilled True Sheoran, Galactic Center (Rgilbrand), and Galactic Center (Mula/Wilhelm) zero-point metadata, the additional Galactic Equator/Center variants, the exact Swiss Ephemeris source-label aliases for the Babylonian/Kugler family plus the Babylonian 1/2/3 shorthand forms and Babylonian Huber, the galactic-reference, mean-sun, Sassanian/Zij al-Shah, Aryabhata 499/522, and Suryasiddhanta 499 source-form entries, the expanded APC and Horizon/Azimuth interoperability aliases, the Babylonian house-family labels now rendered as explicit custom-definition territory rather than unresolved release gaps, and the `Equal (MC)` / `Equal (1=Aries)` source-label appendix entries for the release-line equal-house variants.",
+        summary: "Stage 6 release profile: the baseline catalogs remain published as a routine release artifact while the target Swiss-Ephemeris-class compatibility catalog stays explicit, including the release-specific house-system additions across the Carter, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen, Sunshine, and Gauquelin families, plus the expanded ayanamsa coverage for J2000/J1900/B1950, True Citra and the True Citra Paksha / True Chitrapaksha interoperability spellings, DeLuce, Yukteshwar, PVR Pushya-paksha, Sheoran, the true-nakshatra and Suryasiddhanta Revati/Citra reference modes, the Hipparchus/Babylonian/Galactic reference-frame modes, the latest True Pushya, Udayagiri, Lahiri (VP285), Krishnamurti (VP291), Djwhal Khul, JN Bhasin, mean-sun, Valens Moon, and the Moon sign ayanamsa source spelling, Dhruva Galactic Center (Middle Mula), Galactic Center (Cochrane/Mardyks), Galactic Equator (Mula), the Babylonian house/sissy/true-geoc/true-topc/true-obs/house-obs variants, the backfilled True Sheoran, Galactic Center (Rgilbrand), and Galactic Center (Mula/Wilhelm) zero-point metadata, the additional Galactic Equator/Center variants, the exact Swiss Ephemeris source-label aliases for the Babylonian/Kugler family plus the Babylonian 1/2/3 shorthand forms and Babylonian Huber, the galactic-reference, mean-sun, Sassanian/Zij al-Shah, Aryabhata 499/522, and Suryasiddhanta 499 source-form entries, the expanded APC and Horizon/Azimuth interoperability aliases, the Babylonian house-family labels now rendered as explicit custom-definition territory rather than unresolved release gaps, and the `Equal (MC)` / `Equal (1=Aries)` source-label appendix entries for the release-line equal-house variants, plus the Wang source-label appendix entry for the ascendant-anchored equal-house variant.",
 
         target_house_scope: &[
             "Target house scope: the full Swiss-Ephemeris-class house-system catalog remains the long-term compatibility goal.",
@@ -191,6 +191,7 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "Equal houses",
             "Equal house system",
             "Equal House",
+            "Wang",
             "Equal (cusp 1 = Asc)",
         ],
         "Whole Sign" => &["Whole Sign houses", "Whole-sign", "Whole Sign system"],
@@ -914,6 +915,13 @@ mod tests {
         assert!(rendered.contains("B. V. Raman, B.V. Raman, B V Raman -> Raman"));
         assert!(rendered.contains("Whole Sign (house 1 = Aries), Equal/1=0 Aries, Equal (cusp 1 = 0° Aries) -> Equal (1=Aries)"));
         assert!(rendered.contains(
+            "Equal houses, Equal house system, Equal House, Wang, Equal (cusp 1 = Asc) -> Equal"
+        ));
+        let source_label_section = rendered
+            .split("Source-label aliases for built-in house systems:")
+            .nth(1)
+            .expect("source-label house appendix should be present");
+        assert!(source_label_section.contains(
             "Equal houses, Equal house system, Equal House, Wang, Equal (cusp 1 = Asc) -> Equal"
         ));
         assert!(rendered.contains("Equal from MC, Equal (from MC), Equal MC, Equal Midheaven, Equal (MC), Equal/MC = 10th -> Equal (MC)"));

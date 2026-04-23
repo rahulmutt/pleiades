@@ -45,7 +45,7 @@ This final stage should behave like a sequence of release-quality increments, no
 
 Stage 6 release hardening has started as of 2026-04-22.
 
-- [x] The compatibility profile's source-label appendix now also surfaces Lahiri / Chitrapaksha and True Chitra / Chitra alongside the existing baseline and release-line source labels, and the compatibility profile identifier has been bumped to `0.6.31` so the release artifact stays synchronized with this source-label appendix batch.
+- [x] The compatibility profile's source-label appendix now also surfaces Lahiri / Chitrapaksha, True Chitra / Chitra, and Wang alongside the existing baseline and release-line source labels, and the compatibility profile identifier has been bumped to `0.6.32` so the release artifact stays synchronized with this source-label appendix batch.
 - [x] The compatibility profile's source-label appendix now also surfaces the Babylonian 1/2/3 shorthand labels, Babylonian Huber, and Aryabhatan Kaliyuga spellings, and the compatibility profile identifier has been bumped to `0.6.30` so the release artifact stays synchronized with this historical-label batch.
 - [x] The house-system interoperability alias batch now resolves `Equal house system`, `Equal House`, `Horizon house system`, `Azimuthal house system`, `APC house system`, `Ram's school`, and `Sunshine house system`, and the compatibility profile identifier has been bumped to `0.6.29` so the release artifact stays synchronized with this label-focused batch.
 
