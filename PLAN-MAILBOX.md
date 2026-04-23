@@ -1,5 +1,16 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — House validation corpus added to the validation report
+
+Implemented a small Stage 4 validation slice:
+
+- `pleiades-validate` now renders a compact house-validation corpus inside the main validation report, covering the baseline house systems on both a mid-latitude reference chart and a polar stress chart
+- the report shows per-system success/failure status plus representative ascendant/MC and cusp summaries so house-formula regressions stay visible alongside backend comparison output
+- regression coverage now asserts the new house-validation section appears in the validation report output
+
+Remaining Stage 4 work: keep broadening source-backed coverage or house-validation fixtures when more public reference data becomes available.
+
+
 ## 2026-04-23 — Compatibility profile now includes a compact coverage summary
 
 Implemented a small Stage 6 release-hardening refinement:

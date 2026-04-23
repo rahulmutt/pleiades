@@ -12,8 +12,12 @@ use std::path::{Path, PathBuf};
 use std::time::Instant as StdInstant;
 
 mod artifact;
+mod house_validation;
 
 pub use artifact::{render_artifact_report, ArtifactBodyInspection, ArtifactInspectionReport};
+pub use house_validation::{
+    house_validation_report, HouseValidationReport, HouseValidationSample, HouseValidationScenario,
+};
 
 use pleiades_core::{
     current_api_stability_profile, current_compatibility_profile, default_chart_bodies,
@@ -261,13 +265,15 @@ pub struct RegressionArchive {
     pub cases: Vec<RegressionFinding>,
 }
 
-/// A full validation report containing comparison and benchmark data.
+/// A full validation report containing comparison, house, and benchmark data.
 #[derive(Clone, Debug)]
 pub struct ValidationReport {
     /// Comparison corpus summary.
     pub comparison_corpus: CorpusSummary,
     /// Benchmark corpus summary.
     pub benchmark_corpus: CorpusSummary,
+    /// House-validation corpus summary.
+    pub house_validation: HouseValidationReport,
     /// Comparison output.
     pub comparison: ComparisonReport,
     /// Archived regression cases preserved from the comparison corpus.
@@ -372,6 +378,8 @@ impl fmt::Display for ValidationReport {
         writeln!(f)?;
         writeln!(f, "Benchmark corpus")?;
         write_corpus_summary(f, &self.benchmark_corpus)?;
+        writeln!(f)?;
+        writeln!(f, "{}", self.house_validation)?;
         writeln!(f)?;
         writeln!(f, "Reference backend")?;
         write_backend_matrix(f, &self.comparison.reference_backend)?;
@@ -889,6 +897,7 @@ pub fn render_validation_report(rounds: usize) -> Result<String, EphemerisError>
     Ok(ValidationReport {
         comparison_corpus: comparison_corpus.summary(),
         benchmark_corpus: benchmark_corpus.summary(),
+        house_validation: house_validation_report(),
         comparison,
         archived_regressions,
         reference_benchmark,
@@ -1512,6 +1521,9 @@ mod tests {
         assert!(report.contains("JPL Horizons comparison window"));
         assert!(report.contains("Benchmark corpus"));
         assert!(report.contains("Representative 1500-2500 window"));
+        assert!(report.contains("House validation corpus"));
+        assert!(report.contains("Mid-latitude reference chart"));
+        assert!(report.contains("Polar stress chart"));
         assert!(report.contains("Reference backend"));
         assert!(report.contains("Candidate backend"));
         assert!(report.contains("Comparison summary"));

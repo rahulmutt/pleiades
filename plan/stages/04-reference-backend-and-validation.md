@@ -56,6 +56,7 @@ Stage 4 validation has started as of 2026-04-22.
 - [x] Validation reports now distinguish the multi-epoch JPL comparison corpus from a representative 1500-2500 benchmark corpus, so the time-window coverage for stage-4 comparison and benchmarking is explicit.
 - [x] Archived regression cases are now preserved in the validation report so previously observed deltas remain visible in the test corpus.
 - [x] Selected asteroid support is now present in the JPL snapshot backend, the validation corpus intentionally remains on the planetary comparison subset so existing report baselines stay stable, and validation reports now surface the supported asteroid set separately for release notes and backend-matrix inspection.
+- [x] The validation report now also renders a compact house-validation corpus for a mid-latitude reference chart and a polar stress chart, so baseline house formulas and their latitude-sensitive behavior stay visible in the stage-4 artifact.
 - [x] The JPL snapshot loader now reports malformed rows as structured load errors instead of panicking, so reference data issues fail explicitly and can be surfaced by validation tooling.
 
 ## Risks to avoid
