@@ -16,6 +16,7 @@ Remaining Stage 6 work: keep the release-profile appendix, catalog breadth, and 
 Implemented a small Stage 6 release-hardening sync slice:
 
 - `pleiades-core::ApiStabilityProfile` now names the generic `placements_with_motion_direction` helper explicitly, so the stable chart-surface wording matches the public `ChartSnapshot` API a little more closely
+- the API stability summary now also names the sign-summary, house-summary, and motion-summary helpers, keeping the release-facing chart-helper wording synchronized with the full stable `ChartSnapshot` surface
 - the README now mentions the same motion-direction filter helper alongside the existing direct/stationary/unknown-motion/retrograde helpers, and the Stage 6 progress notes were updated to keep the release-hardening tracker synchronized
 - regression coverage now checks that the API stability posture still mentions the motion-direction filter helper by name, keeping the release-facing stability text aligned with the code surface
 

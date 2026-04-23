@@ -40,7 +40,7 @@ impl ApiStabilityProfile {
 pub const fn current_api_stability_profile() -> ApiStabilityProfile {
     ApiStabilityProfile {
         profile_id: CURRENT_API_STABILITY_PROFILE_ID,
-        summary: "The stable consumer surface is the shared domain model, backend contract, and chart/compatibility façade; validation and release-tooling formats are documented but still allowed to evolve as hardening continues. ChartSnapshot's direct, stationary, unknown-motion, retrograde, and aspect summary helpers, plus the generic motion-direction placement filter, are part of that stable chart surface.",
+        summary: "The stable consumer surface is the shared domain model, backend contract, and chart/compatibility façade; validation and release-tooling formats are documented but still allowed to evolve as hardening continues. ChartSnapshot's direct, stationary, unknown-motion, retrograde, sign summary, house summary, motion summary, and aspect summary helpers, plus the generic motion-direction placement filter, are part of that stable chart surface.",
         stable_surfaces: &[
             "pleiades-types defines the stable units, identifiers, and request/response primitives.",
             "pleiades-backend's EphemerisBackend trait and metadata model are the primary backend-facing contract.",
@@ -126,6 +126,12 @@ mod tests {
             .stable_surfaces
             .iter()
             .any(|line| line.contains("motion summaries")));
+        assert!(profile.summary.contains("sign summary"));
+        assert!(profile.summary.contains("house summary"));
+        assert!(profile.summary.contains("motion summary"));
+        assert!(profile
+            .summary
+            .contains("motion-direction placement filter"));
         assert!(profile
             .stable_surfaces
             .iter()
