@@ -11,7 +11,7 @@ The repository is in the stage-6 release-hardening phase, with the chart MVP and
 - the CI workflow runs formatting, linting, and tests in pure Rust mode,
 - the shared type system, backend contract, and thin façade are implemented, including the built-in lunar node/apogee/perigee body identifiers,
 - the baseline house and ayanamsa catalogs plus the compatibility profile scaffold are published,
-- the tropical chart workflow works end to end with approximate Sun/Moon/planet backends and a CLI chart report,
+- the tropical chart workflow works end to end with approximate Sun/Moon/planet and lunar-point backends and a CLI chart report,
 - sidereal conversion is available in the chart layer,
 - `ChartSnapshot` now offers lookup helpers for body, sign, house, sign-scoped placement, and house-scoped placement questions plus direct/stationary/unknown-motion/retrograde motion helpers, a motion-direction filter helper (`placements_with_motion_direction`), sign summaries, house summaries, motion summaries, and aspect summaries so downstream chart reports can ask higher-level questions without re-scanning placements manually,
 - house placement works for the full baseline catalog (Equal, Whole Sign, Porphyry, Placidus, Koch, Regiomontanus, Campanus, Alcabitius, Topocentric, Morinus, Meridian, and Axial variants), and the release-specific catalog now also includes Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen SD/SR, Sunshine, and Gauquelin sectors,
@@ -51,7 +51,7 @@ For a release-style smoke check of the validation bundle, run:
 mise run release-smoke
 ```
 
-That smoke check runs the workspace audit, generates the bundle, and verifies its manifest checksums through `pleiades-validate`.
+That smoke check runs the workspace audit, validates the bundled compressed artifact, generates the bundle, and verifies its manifest checksums through `pleiades-validate`.
 
 For a step-by-step description of the release workflow, see [docs/release-reproducibility.md](docs/release-reproducibility.md).
 

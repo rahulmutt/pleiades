@@ -1,5 +1,25 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — ELP backend now serves lunar nodes alongside the Moon
+
+Implemented a small Stage 6 backend-capability slice:
+
+- `pleiades-elp` now returns mean and true lunar-node positions in addition to the Moon, and the CLI accepts the common `mean node` / `true node` and `mean lunar node` / `true lunar node` spellings so chart queries can exercise the backend directly
+- the README and Stage 6 progress notes were updated to reflect the broader lunar-point coverage, and the backend-specific test name was aligned with the new capability
+- no spec update was needed; this stays within the existing backend-contract and lunar-point coverage already called out by the spec
+
+Remaining Stage 6 work: keep the lunar-point backend surface, CLI aliases, and release-facing capability docs synchronized as further coverage lands.
+
+## 2026-04-23 — release smoke now validates the bundled compressed artifact
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `mise run release-smoke` now validates the bundled compressed artifact before generating and verifying a temporary release bundle, so the release smoke path exercises the packaged-data inspection command as part of the automation gate
+- the release smoke docs, README, and Stage 6 progress notes were updated so the bundle workflow description stays synchronized with the additional artifact-validation step
+- no spec update was needed; this is a release-hardening automation refinement within the existing validation and release-artifact scope
+
+Remaining Stage 6 work: keep the release-smoke task, release bundle, and validation-report surfaces synchronized as further hardening slices land.
+
 ## 2026-04-23 — Custom-definition ayanamsa labels surfaced in the release profile
 
 Implemented a small Stage 6 release-hardening slice:

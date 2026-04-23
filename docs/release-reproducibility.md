@@ -29,7 +29,7 @@ The repository also ships a release-style smoke check that exercises the validat
 mise run release-smoke
 ```
 
-That task first runs the workspace audit, then generates a temporary release bundle and verifies the staged manifest checksums using `pleiades-validate`.
+That task first runs the workspace audit, validates the bundled compressed artifact, then generates a temporary release bundle and verifies the staged manifest checksums using `pleiades-validate`.
 
 ## Manual bundle generation
 

@@ -45,6 +45,8 @@ This final stage should behave like a sequence of release-quality increments, no
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] `pleiades-elp` now serves the mean and true lunar nodes alongside the Moon, and the CLI accepts the common `mean node` / `true node` and `mean lunar node` / `true lunar node` spellings so lunar-point chart queries can exercise the backend directly.
+
 - [x] The compatibility profile now also surfaces the custom-definition ayanamsa labels `True Balarama`, `Aphoric`, and `Takra` in the structured release-profile appendix, and the compatibility profile identifier has been bumped to `0.6.36` so the release artifact stays synchronized with this custom-label batch.
 - [x] The compatibility profile's Valens Moon source-label appendix now also includes the exact `Valens` spelling alongside `Vettius Valens`, `Moon`, and `Moon sign ayanamsa`, and the compatibility profile identifier has been bumped to `0.6.37` so the release artifact stays synchronized with this source-label appendix batch.
 - [x] The compatibility profile's source-label appendix now also surfaces the exact `Aryabhata Kaliyuga` spelling alongside the existing `Aryabhatan Kaliyuga` form, and the compatibility profile identifier has been bumped to `0.6.35` so the release artifact stays synchronized with this source-label appendix batch.
@@ -70,7 +72,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] `pleiades-validate bundle-release --out DIR` now writes the compatibility profile, release notes, release checklist, backend capability matrix, API stability posture, validation report, and a manifest for a reproducible release bundle.
 - [x] The benchmark corpus now uses nine epochs across the 1500-2500 target window instead of the earlier three-epoch slice, adding century-guard epochs near the edges while keeping the representative workload broad enough for Stage 6 release hardening.
 - [x] The release bundle manifest now records deterministic FNV-1a checksums for the published text artifacts, and the CLI bundle summary surfaces those checksums for release verification.
-- [x] `mise run release-smoke` now exercises the release bundle command locally and in CI so release artifacts stay under automation.
+- [x] `mise run release-smoke` now exercises the workspace audit, bundled compressed artifact validation, and release bundle command locally and in CI so release artifacts stay under automation.
 - [x] The compatibility profile's Valens Moon source-label appendix now also includes the plain `Moon` search term, keeping the release-facing interoperability labels aligned with the existing chart-layer alias resolution.
 - [x] `mise run audit` now runs a workspace-native dependency audit, and `pleiades-validate workspace-audit` checks the workspace manifests and lockfile for mandatory native build hooks so the release gates surface pure-Rust regressions early.
 - [x] The first release-specific house-system additions are now implemented: Equal (MC), Equal (1=Aries), Vehlow Equal, and Sripati are catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
