@@ -12,6 +12,11 @@ use core::fmt;
 /// The current API-stability posture identifier.
 pub const CURRENT_API_STABILITY_PROFILE_ID: &str = "pleiades-api-stability/0.1.0";
 
+/// Returns the current API-stability posture identifier.
+pub const fn current_api_stability_profile_id() -> &'static str {
+    CURRENT_API_STABILITY_PROFILE_ID
+}
+
 /// A release-scoped API stability profile.
 #[derive(Clone, Copy, Debug)]
 pub struct ApiStabilityProfile {

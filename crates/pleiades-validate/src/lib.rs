@@ -1949,13 +1949,12 @@ fn render_release_bundle_error(error: ReleaseBundleError) -> String {
 
 #[cfg(test)]
 mod tests {
-    use pleiades_core::{current_api_stability_profile, current_compatibility_profile};
+    use pleiades_core::{
+        current_api_stability_profile_id, current_compatibility_profile_id, sidereal_longitude,
+        Apparentness, Ayanamsa, CoordinateFrame, JulianDay, TimeScale, ZodiacMode,
+    };
 
     use super::*;
-    use pleiades_core::{
-        sidereal_longitude, Apparentness, Ayanamsa, CoordinateFrame, JulianDay, TimeScale,
-        ZodiacMode,
-    };
     use pleiades_jpl::comparison_bodies;
     use std::path::Path;
 
@@ -2127,7 +2126,7 @@ mod tests {
         let rendered = render_cli(&["api-stability"]).expect("api posture should render");
         assert!(rendered.contains(&format!(
             "API stability posture: {}",
-            current_api_stability_profile().profile_id
+            current_api_stability_profile_id()
         )));
         assert!(rendered.contains("Stable consumer surfaces:"));
         assert!(rendered.contains("Experimental or operational surfaces:"));
@@ -2241,7 +2240,7 @@ version = "0.9.0"
 
         assert!(profile.contains(&format!(
             "Compatibility profile: {}",
-            current_compatibility_profile().profile_id
+            current_compatibility_profile_id()
         )));
         assert!(release_notes.contains("Release notes"));
         assert!(release_notes.contains("Release-specific coverage:"));
@@ -2256,7 +2255,7 @@ version = "0.9.0"
         assert!(backend_matrix.contains("JPL snapshot reference backend"));
         assert!(api_stability.contains(&format!(
             "API stability posture: {}",
-            current_api_stability_profile().profile_id
+            current_api_stability_profile_id()
         )));
         assert!(report.contains("Validation report"));
         assert!(manifest.contains("Release bundle manifest"));

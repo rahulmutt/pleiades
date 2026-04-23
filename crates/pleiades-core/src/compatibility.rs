@@ -20,6 +20,11 @@ use pleiades_houses::{
 /// The current compatibility-profile identifier.
 pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.26";
 
+/// Returns the current compatibility-profile identifier.
+pub const fn current_compatibility_profile_id() -> &'static str {
+    CURRENT_COMPATIBILITY_PROFILE_ID
+}
+
 /// A release-scoped compatibility profile.
 #[derive(Clone, Copy, Debug)]
 pub struct CompatibilityProfile {
