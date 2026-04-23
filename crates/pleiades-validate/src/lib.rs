@@ -1312,6 +1312,7 @@ fn render_release_notes_text() -> String {
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("Release notes summary: release-notes-summary\n");
     text.push_str("Release checklist summary: release-checklist-summary\n");
+    text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
     text.push_str("See release-summary for the compact one-screen release overview.\n");
     text.push('\n');
 
@@ -1404,6 +1405,7 @@ fn render_release_notes_summary_text() -> String {
     text.push_str("Release notes: release-notes\n");
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("Release checklist summary: release-checklist-summary\n");
+    text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
     text.push_str("Release summary: release-summary\n");
     text.push('\n');
     text.push_str("See release-notes for the full maintainer-facing artifact.\n");
@@ -4012,6 +4014,9 @@ mod tests {
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
         assert!(rendered.contains("Release checklist summary: release-checklist-summary"));
         assert!(
+            rendered.contains("Compatibility profile verification: verify-compatibility-profile")
+        );
+        assert!(
             rendered.contains("See release-summary for the compact one-screen release overview.")
         );
         assert!(rendered.contains("API stability posture:"));
@@ -4045,6 +4050,9 @@ mod tests {
         assert!(rendered.contains("Release notes: release-notes"));
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(rendered.contains("Release checklist summary: release-checklist-summary"));
+        assert!(
+            rendered.contains("Compatibility profile verification: verify-compatibility-profile")
+        );
         assert!(rendered.contains("Release summary: release-summary"));
         assert!(rendered.contains("See release-notes for the full maintainer-facing artifact."));
         assert!(
@@ -4324,6 +4332,8 @@ version = "0.9.0"
         assert!(release_notes.contains("Release notes"));
         assert!(release_notes.contains("Release notes summary: release-notes-summary"));
         assert!(release_notes
+            .contains("Compatibility profile verification: verify-compatibility-profile"));
+        assert!(release_notes
             .contains("See release-summary for the compact one-screen release overview."));
         assert!(release_notes.contains("API stability posture:"));
         assert!(release_notes.contains("Deprecation policy:"));
@@ -4338,6 +4348,8 @@ version = "0.9.0"
         assert!(release_notes_summary.contains("Release-specific coverage:"));
         assert!(release_notes_summary.contains("API stability summary line:"));
         assert!(release_notes_summary.contains("Release notes: release-notes"));
+        assert!(release_notes_summary
+            .contains("Compatibility profile verification: verify-compatibility-profile"));
         assert!(release_summary.contains("Release summary"));
         assert!(release_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));

@@ -439,6 +439,8 @@ mod tests {
         assert!(release_notes.contains("Release notes"));
         assert!(release_notes.contains("Release notes summary: release-notes-summary"));
         assert!(release_notes.contains("Release checklist summary: release-checklist-summary"));
+        assert!(release_notes
+            .contains("Compatibility profile verification: verify-compatibility-profile"));
         assert!(release_notes.contains("API stability posture:"));
         assert!(release_notes.contains("Bundle provenance:"));
 
@@ -450,6 +452,8 @@ mod tests {
         assert!(
             release_notes_summary.contains("Release checklist summary: release-checklist-summary")
         );
+        assert!(release_notes_summary
+            .contains("Compatibility profile verification: verify-compatibility-profile"));
         assert!(release_notes_summary
             .contains("See release-notes for the full maintainer-facing artifact."));
         assert!(release_notes_summary
