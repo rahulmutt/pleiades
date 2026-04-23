@@ -39,13 +39,19 @@ cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace
 ```
 
+For a workspace-native dependency audit, run:
+
+```bash
+mise run audit
+```
+
 For a release-style smoke check of the validation bundle, run:
 
 ```bash
 mise run release-smoke
 ```
 
-That smoke check generates the bundle and verifies its manifest checksums through `pleiades-validate`.
+That smoke check runs the workspace audit, generates the bundle, and verifies its manifest checksums through `pleiades-validate`.
 
 For a step-by-step description of the release workflow, see [docs/release-reproducibility.md](docs/release-reproducibility.md).
 

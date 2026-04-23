@@ -355,6 +355,63 @@ impl From<EphemerisError> for ReleaseBundleError {
     }
 }
 
+/// A deterministic workspace audit that checks for mandatory native build hooks
+/// in the first-party crates and lockfile.
+#[derive(Clone, Debug)]
+pub struct WorkspaceAuditReport {
+    /// Workspace root used for the scan.
+    pub workspace_root: PathBuf,
+    /// Workspace manifest files that were checked.
+    pub manifest_paths: Vec<PathBuf>,
+    /// Workspace lockfile path that was checked.
+    pub lockfile_path: PathBuf,
+    /// Detected policy violations.
+    pub violations: Vec<WorkspaceAuditViolation>,
+}
+
+/// A single workspace-audit finding.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct WorkspaceAuditViolation {
+    /// File that triggered the finding.
+    pub path: PathBuf,
+    /// Stable rule identifier for the finding.
+    pub rule: &'static str,
+    /// Human-readable explanation of the finding.
+    pub detail: String,
+}
+
+impl WorkspaceAuditReport {
+    /// Returns whether the workspace passed the audit cleanly.
+    pub fn is_clean(&self) -> bool {
+        self.violations.is_empty()
+    }
+}
+
+impl fmt::Display for WorkspaceAuditReport {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "Workspace audit")?;
+        writeln!(f, "Workspace root: {}", self.workspace_root.display())?;
+        writeln!(f, "Checked manifests: {}", self.manifest_paths.len())?;
+        writeln!(f, "Checked lockfile: {}", self.lockfile_path.display())?;
+        if self.violations.is_empty() {
+            writeln!(f, "Result: no mandatory native build hooks detected")?;
+            return Ok(());
+        }
+
+        writeln!(f, "Result: violations found")?;
+        for violation in &self.violations {
+            writeln!(
+                f,
+                "- {} [{}]: {}",
+                violation.path.display(),
+                violation.rule,
+                violation.detail
+            )?;
+        }
+        Ok(())
+    }
+}
+
 impl fmt::Display for ValidationReport {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Validation report")?;
@@ -534,6 +591,15 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("validate-artifact") => {
             ensure_no_extra_args(&args[1..], "validate-artifact")?;
             render_artifact_report().map_err(render_artifact_error)
+        }
+        Some("workspace-audit") | Some("audit") => {
+            ensure_no_extra_args(&args[1..], "workspace-audit")?;
+            let report = workspace_audit_report().map_err(|error| error.to_string())?;
+            if report.is_clean() {
+                Ok(report.to_string())
+            } else {
+                Err(format!("workspace audit failed:\n{report}"))
+            }
         }
         Some("api-stability") | Some("api-posture") => {
             ensure_no_extra_args(&args[1..], "api-stability")?;
@@ -881,6 +947,165 @@ fn extract_prefixed_value<'a>(text: &'a str, prefix: &str) -> Result<&'a str, Re
         .ok_or_else(|| {
             ReleaseBundleError::Verification(format!("missing manifest entry: {prefix}"))
         })
+}
+
+fn workspace_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+}
+
+fn workspace_manifest_paths(root: &Path) -> Result<Vec<PathBuf>, std::io::Error> {
+    let mut manifests = vec![root.join("Cargo.toml")];
+    let crates_dir = root.join("crates");
+    for entry in fs::read_dir(crates_dir)? {
+        let entry = entry?;
+        let manifest = entry.path().join("Cargo.toml");
+        if manifest.is_file() {
+            manifests.push(manifest);
+        }
+    }
+    manifests.sort();
+    Ok(manifests)
+}
+
+fn manifest_has_assignment(line: &str, key: &str) -> bool {
+    let Some(rest) = line.strip_prefix(key) else {
+        return false;
+    };
+    rest.trim_start().starts_with('=')
+}
+
+fn manifest_dependency_rule(line: &str, forbidden: &str) -> bool {
+    if manifest_has_assignment(line, forbidden) {
+        return true;
+    }
+
+    line.contains(&format!("package = \"{forbidden}\""))
+}
+
+fn audit_manifest_text(path: &Path, text: &str) -> Vec<WorkspaceAuditViolation> {
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Section {
+        Other,
+        Package,
+        Dependencies,
+    }
+
+    const FORBIDDEN_DEPENDENCIES: [&str; 4] = ["cc", "bindgen", "cmake", "pkg-config"];
+
+    let mut section = Section::Other;
+    let mut violations = Vec::new();
+
+    for raw_line in text.lines() {
+        let line = raw_line.trim();
+        if line.starts_with('[') && line.ends_with(']') {
+            section = if line == "[package]" {
+                Section::Package
+            } else if line == "[dependencies]"
+                || line == "[dev-dependencies]"
+                || line == "[build-dependencies]"
+                || line.contains(".dependencies]")
+            {
+                Section::Dependencies
+            } else {
+                Section::Other
+            };
+            continue;
+        }
+
+        match section {
+            Section::Package => {
+                if manifest_has_assignment(line, "build") {
+                    violations.push(WorkspaceAuditViolation {
+                        path: path.to_path_buf(),
+                        rule: "package.build",
+                        detail: "package declares a build script, which violates the pure-Rust workspace policy".to_string(),
+                    });
+                }
+                if manifest_has_assignment(line, "links") {
+                    violations.push(WorkspaceAuditViolation {
+                        path: path.to_path_buf(),
+                        rule: "package.links",
+                        detail: "package declares a native links value, which indicates an external build requirement".to_string(),
+                    });
+                }
+            }
+            Section::Dependencies => {
+                for forbidden in FORBIDDEN_DEPENDENCIES {
+                    if manifest_dependency_rule(line, forbidden) {
+                        violations.push(WorkspaceAuditViolation {
+                            path: path.to_path_buf(),
+                            rule: "dependency.native-tool",
+                            detail: format!(
+                                "dependency table references `{forbidden}`, which is reserved for native build tooling"
+                            ),
+                        });
+                    }
+                }
+            }
+            Section::Other => {}
+        }
+    }
+
+    violations
+}
+
+fn audit_lockfile_text(path: &Path, text: &str) -> Vec<WorkspaceAuditViolation> {
+    const FORBIDDEN_LOCKFILE_PACKAGES: [&str; 4] = ["cc", "bindgen", "cmake", "pkg-config"];
+    let mut violations = Vec::new();
+
+    for raw_line in text.lines() {
+        let line = raw_line.trim();
+        let Some(name) = line.strip_prefix("name = \"") else {
+            continue;
+        };
+        let Some((package_name, _)) = name.split_once('"') else {
+            continue;
+        };
+        if package_name.ends_with("-sys") || FORBIDDEN_LOCKFILE_PACKAGES.contains(&package_name) {
+            violations.push(WorkspaceAuditViolation {
+                path: path.to_path_buf(),
+                rule: "lockfile.native-package",
+                detail: format!(
+                    "lockfile package `{package_name}` suggests a native build dependency and should be reviewed"
+                ),
+            });
+        }
+    }
+
+    violations
+}
+
+/// Renders the workspace audit used by the CLI and release smoke checks.
+pub fn workspace_audit_report() -> Result<WorkspaceAuditReport, std::io::Error> {
+    let workspace_root = fs::canonicalize(workspace_root())?;
+    let manifest_paths = workspace_manifest_paths(&workspace_root)?;
+    let lockfile_path = workspace_root.join("Cargo.lock");
+    let mut violations = Vec::new();
+
+    for path in &manifest_paths {
+        let text = fs::read_to_string(path)?;
+        violations.extend(audit_manifest_text(path, &text));
+    }
+
+    if lockfile_path.is_file() {
+        let text = fs::read_to_string(&lockfile_path)?;
+        violations.extend(audit_lockfile_text(&lockfile_path, &text));
+    } else {
+        violations.push(WorkspaceAuditViolation {
+            path: lockfile_path.clone(),
+            rule: "lockfile.missing",
+            detail: "Cargo.lock is missing from the workspace root".to_string(),
+        });
+    }
+
+    Ok(WorkspaceAuditReport {
+        workspace_root,
+        manifest_paths,
+        lockfile_path,
+        violations,
+    })
 }
 
 /// Renders the validation report used by the CLI.
@@ -1367,7 +1592,7 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = default_corpus().requests.len();
     format!(
-        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix            Print the implemented backend capability matrices\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  bundle-release --out DIR  Write the release compatibility profile, API posture, validation report, and manifest\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix            Print the implemented backend capability matrices\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  bundle-release --out DIR  Write the release compatibility profile, API posture, validation report, and manifest\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
@@ -1426,6 +1651,7 @@ mod tests {
         ZodiacMode,
     };
     use pleiades_jpl::comparison_bodies;
+    use std::path::Path;
 
     fn unique_temp_dir(prefix: &str) -> std::path::PathBuf {
         let unique = format!(
@@ -1584,6 +1810,7 @@ mod tests {
         assert!(rendered.contains("report [--rounds N]"));
         assert!(rendered.contains("generate-report"));
         assert!(rendered.contains("validate-artifact"));
+        assert!(rendered.contains("workspace-audit"));
         assert!(rendered.contains("api-stability"));
         assert!(rendered.contains("bundle-release --out DIR"));
         assert!(rendered.contains("verify-release-bundle"));
@@ -1608,6 +1835,52 @@ mod tests {
         assert!(rendered.contains("ELP lunar backend"));
         assert!(rendered.contains("Packaged data backend"));
         assert!(rendered.contains("Composite routed backend"));
+    }
+
+    #[test]
+    fn workspace_audit_reports_a_clean_workspace() {
+        let report = workspace_audit_report().expect("workspace audit should render");
+        assert!(report.is_clean());
+        assert!(report
+            .to_string()
+            .contains("no mandatory native build hooks detected"));
+        assert!(report.to_string().contains("Checked manifests:"));
+    }
+
+    #[test]
+    fn workspace_audit_detects_native_hooks_in_manifests_and_lockfile() {
+        let manifest = r#"[package]
+name = "example"
+build = "build.rs"
+links = "example-native"
+
+[dependencies]
+cc = "1"
+[target.'cfg(unix)'.dependencies]
+bindgen = { version = "0.69" }
+"#;
+        let manifest_violations = audit_manifest_text(Path::new("/tmp/Cargo.toml"), manifest);
+        assert!(manifest_violations
+            .iter()
+            .any(|violation| violation.rule == "package.build"));
+        assert!(manifest_violations
+            .iter()
+            .any(|violation| violation.rule == "package.links"));
+        assert!(manifest_violations
+            .iter()
+            .any(|violation| violation.detail.contains("cc")));
+        assert!(manifest_violations
+            .iter()
+            .any(|violation| violation.detail.contains("bindgen")));
+
+        let lockfile = r#"[[package]]
+name = "openssl-sys"
+version = "0.9.0"
+"#;
+        let lockfile_violations = audit_lockfile_text(Path::new("/tmp/Cargo.lock"), lockfile);
+        assert!(lockfile_violations
+            .iter()
+            .any(|violation| violation.rule == "lockfile.native-package"));
     }
 
     #[test]

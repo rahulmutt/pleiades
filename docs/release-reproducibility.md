@@ -15,6 +15,12 @@ mise run test
 
 These are the same commands expected by the workspace CI and by the stage-gate checklists.
 
+The CI gate also runs a workspace-native dependency audit:
+
+```bash
+mise run audit
+```
+
 ## Release smoke workflow
 
 The repository also ships a release-style smoke check that exercises the validation bundle path end to end:
@@ -23,7 +29,7 @@ The repository also ships a release-style smoke check that exercises the validat
 mise run release-smoke
 ```
 
-That task generates a temporary release bundle, then verifies the staged manifest checksums using `pleiades-validate`.
+That task first runs the workspace audit, then generates a temporary release bundle and verifies the staged manifest checksums using `pleiades-validate`.
 
 ## Manual bundle generation
 
