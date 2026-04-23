@@ -138,6 +138,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] `ChartSnapshot`'s unknown-motion helper surface is now called out explicitly in the API stability posture and README, so the release-facing chart-helper summary uses the same motion-class wording as the code.
 
 - [x] The house-system interoperability labels now also include `WvA`, `Bob Makransky`, and `Vehlow-equal`, and the compatibility profile/source-label appendix rendering now exposes those spellings alongside the existing APC, Sunshine, and Vehlow entries.
+- [x] The compatibility and API-stability profile identifiers are now centralized as shared constants in `pleiades-core`, and the CLI / validation tests derive their expectations from those shared profile values instead of duplicating the release strings.
 
 ## Exit criteria
 

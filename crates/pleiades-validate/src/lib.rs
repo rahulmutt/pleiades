@@ -1859,6 +1859,8 @@ fn render_release_bundle_error(error: ReleaseBundleError) -> String {
 
 #[cfg(test)]
 mod tests {
+    use pleiades_core::{current_api_stability_profile, current_compatibility_profile};
+
     use super::*;
     use pleiades_core::{
         sidereal_longitude, Apparentness, Ayanamsa, CoordinateFrame, JulianDay, TimeScale,
@@ -2033,7 +2035,10 @@ mod tests {
     #[test]
     fn api_stability_command_renders_the_posture() {
         let rendered = render_cli(&["api-stability"]).expect("api posture should render");
-        assert!(rendered.contains("API stability posture: pleiades-api-stability/0.1.0"));
+        assert!(rendered.contains(&format!(
+            "API stability posture: {}",
+            current_api_stability_profile().profile_id
+        )));
         assert!(rendered.contains("Stable consumer surfaces:"));
         assert!(rendered.contains("Experimental or operational surfaces:"));
         assert!(rendered.contains("Deprecation policy:"));
@@ -2141,7 +2146,10 @@ version = "0.9.0"
         let manifest = std::fs::read_to_string(bundle_dir.join("bundle-manifest.txt"))
             .expect("manifest should be written");
 
-        assert!(profile.contains("Compatibility profile: pleiades-compatibility-profile/0.6.25"));
+        assert!(profile.contains(&format!(
+            "Compatibility profile: {}",
+            current_compatibility_profile().profile_id
+        )));
         assert!(release_notes.contains("Release notes"));
         assert!(release_notes.contains("Release-specific coverage:"));
         assert!(release_notes.contains("Known gaps:"));
@@ -2153,7 +2161,10 @@ version = "0.9.0"
         assert!(release_checklist.contains("Bundle contents:"));
         assert!(backend_matrix.contains("Implemented backend matrices"));
         assert!(backend_matrix.contains("JPL snapshot reference backend"));
-        assert!(api_stability.contains("API stability posture: pleiades-api-stability/0.1.0"));
+        assert!(api_stability.contains(&format!(
+            "API stability posture: {}",
+            current_api_stability_profile().profile_id
+        )));
         assert!(report.contains("Validation report"));
         assert!(manifest.contains("Release bundle manifest"));
         assert!(manifest.contains("validation rounds: 1"));

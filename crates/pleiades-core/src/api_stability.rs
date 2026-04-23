@@ -9,6 +9,9 @@
 
 use core::fmt;
 
+/// The current API-stability posture identifier.
+pub const CURRENT_API_STABILITY_PROFILE_ID: &str = "pleiades-api-stability/0.1.0";
+
 /// A release-scoped API stability profile.
 #[derive(Clone, Copy, Debug)]
 pub struct ApiStabilityProfile {
@@ -36,7 +39,7 @@ impl ApiStabilityProfile {
 /// Returns the current API stability posture.
 pub const fn current_api_stability_profile() -> ApiStabilityProfile {
     ApiStabilityProfile {
-        profile_id: "pleiades-api-stability/0.1.0",
+        profile_id: CURRENT_API_STABILITY_PROFILE_ID,
         summary: "The stable consumer surface is the shared domain model, backend contract, and chart/compatibility façade; validation and release-tooling formats are documented but still allowed to evolve as hardening continues. ChartSnapshot's direct, stationary, unknown-motion, retrograde, and aspect summary helpers, plus the generic motion-direction placement filter, are part of that stable chart surface.",
         stable_surfaces: &[
             "pleiades-types defines the stable units, identifiers, and request/response primitives.",

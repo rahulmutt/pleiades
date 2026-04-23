@@ -861,3 +861,13 @@ Implemented the planned Stage 6 release-hardening slice:
 - regression coverage now checks both the direct resolver behavior and the rendered compatibility-profile source-label lines, and the Stage 6 progress notes were updated to record the appendix refinement
 
 Remaining Stage 6 work: keep the source-label appendix, catalog breadth, and release notes synchronized as additional interoperability spellings land.
+
+## 2026-04-23 — Compatibility and API posture identifiers centralized
+
+Planned a small Stage 6 release-hardening slice:
+
+- `pleiades-core` can expose shared constants for the compatibility-profile and API-stability posture identifiers so the core façade, CLI, and validation tooling stop duplicating release strings
+- the CLI and `pleiades-validate` tests can then derive their expectations from the shared profiles instead of hardcoded version literals, reducing the chance of release-note drift when the identifiers bump again
+- the stage-6 notes should record the refactor as release-hardening maintenance rather than a behavior change
+
+Remaining Stage 6 work: keep the release-facing identifiers synchronized across the façade, CLI, validation bundle, and documentation as the hardening work continues.

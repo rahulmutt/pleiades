@@ -180,6 +180,8 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
+    use pleiades_core::{current_api_stability_profile, current_compatibility_profile};
+
     use super::{banner, parse_body, render_chart, render_cli, CelestialBody};
 
     #[test]
@@ -190,7 +192,10 @@ mod tests {
     #[test]
     fn profile_command_renders_catalogs() {
         let rendered = render_cli(&["compatibility-profile"]).expect("profile should render");
-        assert!(rendered.contains("Compatibility profile: pleiades-compatibility-profile/0.6.25"));
+        assert!(rendered.contains(&format!(
+            "Compatibility profile: {}",
+            current_compatibility_profile().profile_id
+        )));
         assert!(rendered.contains("Target compatibility catalog:"));
         assert!(rendered.contains("Baseline compatibility milestone:"));
         assert!(rendered.contains("Release-specific coverage beyond baseline:"));
@@ -210,7 +215,10 @@ mod tests {
     #[test]
     fn api_stability_command_renders_the_posture() {
         let rendered = render_cli(&["api-stability"]).expect("api posture should render");
-        assert!(rendered.contains("API stability posture: pleiades-api-stability/0.1.0"));
+        assert!(rendered.contains(&format!(
+            "API stability posture: {}",
+            current_api_stability_profile().profile_id
+        )));
         assert!(rendered.contains("Stable consumer surfaces:"));
         assert!(rendered.contains("Experimental or operational surfaces:"));
     }
