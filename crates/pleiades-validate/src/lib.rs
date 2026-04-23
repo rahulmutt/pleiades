@@ -94,15 +94,17 @@ impl ValidationCorpus {
         let bodies = default_chart_bodies();
         let instants = [
             Instant::new(JulianDay::from_days(2_268_924.0), TimeScale::Tt),
-            Instant::new(JulianDay::from_days(2_360_234.75), TimeScale::Tt),
+            Instant::new(JulianDay::from_days(2_329_555.0), TimeScale::Tt),
+            Instant::new(JulianDay::from_days(2_390_550.0), TimeScale::Tt),
             Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
-            Instant::new(JulianDay::from_days(2_542_856.25), TimeScale::Tt),
+            Instant::new(JulianDay::from_days(2_512_176.0), TimeScale::Tt),
+            Instant::new(JulianDay::from_days(2_573_171.0), TimeScale::Tt),
             Instant::new(JulianDay::from_days(2_634_167.0), TimeScale::Tt),
         ];
 
         Self::from_epochs(
             "Representative 1500-2500 window",
-            "Five-epoch benchmark corpus that exercises the algorithmic backend across the compression target range.",
+            "Seven-epoch benchmark corpus that exercises the algorithmic backend across the compression target range.",
             &instants,
             bodies,
         )
@@ -2072,9 +2074,9 @@ mod tests {
     fn benchmark_corpus_spans_the_target_window() {
         let corpus = benchmark_corpus();
         let summary = corpus.summary();
-        assert_eq!(summary.epoch_count, 5);
+        assert_eq!(summary.epoch_count, 7);
         assert_eq!(summary.body_count, default_chart_bodies().len());
-        assert_eq!(summary.request_count, 50);
+        assert_eq!(summary.request_count, 70);
         assert!(summary.earliest_julian_day < summary.latest_julian_day);
     }
 
