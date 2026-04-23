@@ -2116,7 +2116,7 @@ version = "0.9.0"
         let manifest = std::fs::read_to_string(bundle_dir.join("bundle-manifest.txt"))
             .expect("manifest should be written");
 
-        assert!(profile.contains("Compatibility profile: pleiades-compatibility-profile/0.6.14"));
+        assert!(profile.contains("Compatibility profile: pleiades-compatibility-profile/0.6.15"));
         assert!(release_notes.contains("Release notes"));
         assert!(release_notes.contains("Release-specific coverage:"));
         assert!(release_notes.contains("Known gaps:"));
