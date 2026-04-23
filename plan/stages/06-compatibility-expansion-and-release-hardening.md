@@ -125,6 +125,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] The ayanamsa metadata coverage summary now separates intentional Babylonian house-family custom definitions from unexpected sidereal-metadata gaps, so the release profile no longer reports those six labels as unresolved missing-metadata entries.
 - [x] The compatibility profile source-label appendix now also includes the Sassanian / `Zij al-Shah` source spelling, keeping the release artifact searchable by that legacy table-reform label alongside the other Swiss Ephemeris ayanamsa spellings.
 - [x] The compatibility profile identifier has now been bumped to `0.6.16` to reflect the Sassanian / `Zij al-Shah` appendix refinement and keep the release artifact versioned with the latest source-label batch.
+- [x] `ChartSnapshot`'s unknown-motion helper surface is now called out explicitly in the API stability posture and README, so the release-facing chart-helper summary uses the same motion-class wording as the code.
 
 ## Exit criteria
 

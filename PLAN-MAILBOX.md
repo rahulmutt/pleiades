@@ -741,3 +741,13 @@ Implemented a small Stage 6 source-label refinement:
 - no spec change was needed; this is a release-hardening interoperability refinement within the existing compatibility-profile scope
 
 Remaining Stage 6 work: keep the source-label appendix, catalog breadth, and release notes synchronized as additional interoperability spellings land.
+
+## 2026-04-23 — Unknown-motion chart-helper wording aligned
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-core::ApiStabilityProfile` now spells out the `ChartSnapshot` unknown-motion helper surface explicitly as part of the stable chart API, matching the release-facing README wording
+- the API-stability regression test now checks for the unknown-motion phrasing, and the README chart summary uses the same motion-class terminology for consistency
+- the Stage 6 progress notes were updated to record the helper-surface wording refinement as part of the release-hardening backlog
+
+Remaining Stage 6 work: keep the release-facing chart-helper wording, catalog breadth, and compatibility profile synchronized as the release hardening work continues.
