@@ -168,6 +168,63 @@ fn write_alias_section<T: AliasProfileEntry>(
     Ok(())
 }
 
+fn source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
+    match canonical_name {
+        "Suryasiddhanta (Mean Sun)" => &["Suryasiddhanta, mean Sun", "Suryasiddhanta MSUN"],
+        "Aryabhata (Mean Sun)" => &["Aryabhata, mean Sun", "Aryabhata MSUN"],
+        "Babylonian (Kugler 1)" => &["Babylonian/Kugler 1"],
+        "Babylonian (Kugler 2)" => &["Babylonian/Kugler 2"],
+        "Babylonian (Kugler 3)" => &["Babylonian/Kugler 3"],
+        "Babylonian (Britton)" => &["Babylonian/Britton"],
+        "Babylonian (Huber)" => &["Babylonian/Huber"],
+        "Babylonian (Eta Piscium)" => &["Babylonian/Eta Piscium"],
+        "Babylonian (Aldebaran)" => &["Babylonian/Aldebaran = 15 Tau"],
+        "Galactic Center (Rgilbrand)" => &["Galactic Center (Gil Brand)"],
+        "Galactic Center (Mardyks)" => &["Skydram (Mardyks)"],
+        "Galactic Center (Mula/Wilhelm)" => &["Dhruva/Gal.Center/Mula (Wilhelm)"],
+        "Galactic Center (Cochrane)" => &["Cochrane (Gal.Center = 0 Cap)"],
+        "Galactic Equator (IAU 1958)" => &["Galactic Equator (IAU1958)"],
+        "Galactic Equator (True)" => &["True galactic equator"],
+        "Galactic Equator (Mula)" => &["Galactic Equator mid-Mula"],
+        "Galactic Equator (Fiorenza)" => &["Fiorenza"],
+        _ => &[],
+    }
+}
+
+fn write_source_label_section(
+    f: &mut fmt::Formatter<'_>,
+    title: &str,
+    entries: &[AyanamsaDescriptor],
+) -> fmt::Result {
+    let mut has_source_labels = false;
+    for entry in entries {
+        if !source_label_aliases(entry.canonical_name).is_empty() {
+            has_source_labels = true;
+            break;
+        }
+    }
+
+    if !has_source_labels {
+        return Ok(());
+    }
+
+    writeln!(f, "{}", title)?;
+    for entry in entries {
+        let source_labels = source_label_aliases(entry.canonical_name);
+        if source_labels.is_empty() {
+            continue;
+        }
+
+        writeln!(
+            f,
+            "- {} -> {}",
+            source_labels.join(", "),
+            entry.canonical_name
+        )?;
+    }
+    Ok(())
+}
+
 fn write_custom_definition_section(
     f: &mut fmt::Formatter<'_>,
     labels: &[&'static str],
@@ -317,6 +374,12 @@ impl fmt::Display for CompatibilityProfile {
             f,
             "Alias mappings for built-in house systems:",
             self.house_systems,
+        )?;
+        writeln!(f)?;
+        write_source_label_section(
+            f,
+            "Source-label aliases for built-in ayanamsas:",
+            self.ayanamsas,
         )?;
         writeln!(f)?;
         write_alias_section(f, "Alias mappings for built-in ayanamsas:", self.ayanamsas)?;
@@ -601,6 +664,7 @@ mod tests {
         assert!(rendered.contains("Baseline compatibility milestone:"));
         assert!(rendered.contains("Release-specific coverage beyond baseline:"));
         assert!(rendered.contains("Alias mappings for built-in house systems:"));
+        assert!(rendered.contains("Source-label aliases for built-in ayanamsas:"));
         assert!(rendered.contains("Alias mappings for built-in ayanamsas:"));
         assert!(rendered.contains("Coverage summary:"));
         assert!(rendered.contains("house systems:"));
@@ -616,6 +680,10 @@ mod tests {
         );
         assert!(rendered
             .contains("Babylonian sidereal mode labeled BABYL_HOUSE_OBS in Swiss Ephemeris."));
+        assert!(rendered.contains("Babylonian/Kugler 1 -> Babylonian (Kugler 1)"));
+        assert!(rendered.contains("Galactic Center (Gil Brand) -> Galactic Center (Rgilbrand)"));
+        assert!(rendered.contains("Suryasiddhanta, mean Sun"));
+        assert!(rendered.contains("Suryasiddhanta MSUN -> Suryasiddhanta (Mean Sun)"));
         assert!(rendered.contains("Polich-Page, Polich Page -> Topocentric"));
         assert!(rendered.contains("Chitrapaksha -> Lahiri"));
         assert!(rendered.contains("Whole Sign (house 1 = Aries) -> Equal (1=Aries)"));

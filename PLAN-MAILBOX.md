@@ -590,4 +590,4 @@ Implemented a small Stage 6 metadata-backfill slice:
 
 Remaining Stage 6 work: continue filling out any remaining ayanamsa metadata and catalog breadth while keeping the release profile synchronized with the catalog.
 
-- 2026-04-23: Implemented a Stage 6 ayanamsa interoperability slice that aligns several built-in aliases with the exact Swiss Ephemeris source labels (including the Babylonian/Kugler family, the galactic-reference entries, and the mean-sun variants). The compatibility profile and CLI/validation resolution paths should reflect these labels once the crate is updated.
+- 2026-04-23: Implemented a Stage 6 ayanamsa interoperability slice that aligns several built-in aliases with the exact Swiss Ephemeris source labels (including the Babylonian/Kugler family, the galactic-reference entries, and the mean-sun variants). The compatibility profile and CLI/validation resolution paths now render a dedicated source-label appendix so the release-facing catalog makes those exact labels visible separately from the more general alias map.
