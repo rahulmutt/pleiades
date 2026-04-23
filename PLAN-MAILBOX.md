@@ -1043,3 +1043,13 @@ Implemented a small Stage 6 release-hardening slice:
 - no spec update was needed; this stays within the existing API-stability and release-artifact scope already tracked by Stage 6
 
 Remaining Stage 6 work: keep the release notes, API-stability posture, compatibility profile, and validation outputs synchronized as further hardening slices land.
+
+## 2026-04-23 — Benchmark corpus widened to eleven epochs and help text aligned
+
+Implemented a follow-up Stage 6 release-hardening tweak:
+
+- `pleiades-validate::ValidationCorpus::representative_window()` now carries eleven epochs, adding explicit guard epochs just outside the 1500-2500 span so the benchmark corpus better exercises the edges of the release target window
+- the validation CLI help text now describes the benchmark corpus as including guard epochs, matching the updated representative workload wording
+- the Stage 6 progress notes were updated again so the release-hardening tracker reflects the current benchmark-corpus state rather than the earlier nine-epoch snapshot
+
+Remaining Stage 6 work: keep the benchmark corpus, validation help text, and release notes synchronized as further hardening slices land.

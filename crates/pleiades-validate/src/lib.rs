@@ -94,6 +94,7 @@ impl ValidationCorpus {
     pub fn representative_window() -> Self {
         let bodies = default_chart_bodies();
         let instants = [
+            Instant::new(JulianDay::from_days(2_268_559.0), TimeScale::Tt),
             Instant::new(JulianDay::from_days(2_268_924.0), TimeScale::Tt),
             Instant::new(JulianDay::from_days(2_305_448.0), TimeScale::Tt),
             Instant::new(JulianDay::from_days(2_329_555.0), TimeScale::Tt),
@@ -103,11 +104,12 @@ impl ValidationCorpus {
             Instant::new(JulianDay::from_days(2_573_171.0), TimeScale::Tt),
             Instant::new(JulianDay::from_days(2_597_642.0), TimeScale::Tt),
             Instant::new(JulianDay::from_days(2_634_167.0), TimeScale::Tt),
+            Instant::new(JulianDay::from_days(2_634_532.0), TimeScale::Tt),
         ];
 
         Self::from_epochs(
             "Representative 1500-2500 window",
-            "Nine-epoch benchmark corpus that broadens the representative sweep with century-guard epochs near the edges and mid-window coverage.",
+            "Eleven-epoch benchmark corpus that broadens the representative sweep with explicit guard epochs just outside the target span and mid-window coverage.",
             &instants,
             bodies,
         )
@@ -2017,7 +2019,7 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = default_corpus().requests.len();
     format!(
-        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix            Print the implemented backend capability matrices\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  release-notes             Print the release compatibility notes\n  release-checklist         Print the release maintainer checklist\n  bundle-release --out DIR  Write the release compatibility profile, release notes, release checklist, API posture, validation report, and manifest\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix            Print the implemented backend capability matrices\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus with guard epochs\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  release-notes             Print the release compatibility notes\n  release-checklist         Print the release maintainer checklist\n  bundle-release --out DIR  Write the release compatibility profile, release notes, release checklist, API posture, validation report, and manifest\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
@@ -2191,9 +2193,9 @@ mod tests {
     fn benchmark_corpus_spans_the_target_window() {
         let corpus = benchmark_corpus();
         let summary = corpus.summary();
-        assert_eq!(summary.epoch_count, 9);
+        assert_eq!(summary.epoch_count, 11);
         assert_eq!(summary.body_count, default_chart_bodies().len());
-        assert_eq!(summary.request_count, 90);
+        assert_eq!(summary.request_count, 110);
         assert!(summary.earliest_julian_day < summary.latest_julian_day);
     }
 
