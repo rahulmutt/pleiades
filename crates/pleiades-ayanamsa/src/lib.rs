@@ -320,7 +320,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianHouse,
         "Babylonian (House)",
-        &["Babylonian House"],
+        &["Babylonian House", "BABYL_HOUSE"],
         "Babylonian sidereal mode labeled BABYL_HOUSE in Swiss Ephemeris.",
         None,
         None,
@@ -328,7 +328,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianSissy,
         "Babylonian (Sissy)",
-        &["Babylonian Sissy"],
+        &["Babylonian Sissy", "BABYL_SISSY"],
         "Babylonian sidereal mode labeled BABYL_SISSY in Swiss Ephemeris.",
         None,
         None,
@@ -336,7 +336,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianTrueGeoc,
         "Babylonian (True Geoc)",
-        &["Babylonian True Geoc"],
+        &["Babylonian True Geoc", "BABYL_TRUE_GEOC"],
         "Babylonian sidereal mode labeled BABYL_TRUE_GEOC in Swiss Ephemeris.",
         None,
         None,
@@ -344,7 +344,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianTrueTopc,
         "Babylonian (True Topc)",
-        &["Babylonian True Topc"],
+        &["Babylonian True Topc", "BABYL_TRUE_TOPC"],
         "Babylonian sidereal mode labeled BABYL_TRUE_TOPC in Swiss Ephemeris.",
         None,
         None,
@@ -352,7 +352,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianTrueObs,
         "Babylonian (True Obs)",
-        &["Babylonian True Obs"],
+        &["Babylonian True Obs", "BABYL_TRUE_OBS"],
         "Babylonian sidereal mode labeled BABYL_TRUE_OBS in Swiss Ephemeris.",
         None,
         None,
@@ -360,7 +360,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianHouseObs,
         "Babylonian (House Obs)",
-        &["Babylonian House Obs"],
+        &["Babylonian House Obs", "BABYL_HOUSE_OBS"],
         "Babylonian sidereal mode labeled BABYL_HOUSE_OBS in Swiss Ephemeris.",
         None,
         None,
@@ -792,7 +792,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianHouse,
         "Babylonian (House)",
-        &["Babylonian House"],
+        &["Babylonian House", "BABYL_HOUSE"],
         "Babylonian sidereal mode labeled BABYL_HOUSE in Swiss Ephemeris.",
         None,
         None,
@@ -800,7 +800,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianSissy,
         "Babylonian (Sissy)",
-        &["Babylonian Sissy"],
+        &["Babylonian Sissy", "BABYL_SISSY"],
         "Babylonian sidereal mode labeled BABYL_SISSY in Swiss Ephemeris.",
         None,
         None,
@@ -808,7 +808,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianTrueGeoc,
         "Babylonian (True Geoc)",
-        &["Babylonian True Geoc"],
+        &["Babylonian True Geoc", "BABYL_TRUE_GEOC"],
         "Babylonian sidereal mode labeled BABYL_TRUE_GEOC in Swiss Ephemeris.",
         None,
         None,
@@ -816,7 +816,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianTrueTopc,
         "Babylonian (True Topc)",
-        &["Babylonian True Topc"],
+        &["Babylonian True Topc", "BABYL_TRUE_TOPC"],
         "Babylonian sidereal mode labeled BABYL_TRUE_TOPC in Swiss Ephemeris.",
         None,
         None,
@@ -824,7 +824,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianTrueObs,
         "Babylonian (True Obs)",
-        &["Babylonian True Obs"],
+        &["Babylonian True Obs", "BABYL_TRUE_OBS"],
         "Babylonian sidereal mode labeled BABYL_TRUE_OBS in Swiss Ephemeris.",
         None,
         None,
@@ -832,7 +832,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianHouseObs,
         "Babylonian (House Obs)",
-        &["Babylonian House Obs"],
+        &["Babylonian House Obs", "BABYL_HOUSE_OBS"],
         "Babylonian sidereal mode labeled BABYL_HOUSE_OBS in Swiss Ephemeris.",
         None,
         None,
@@ -1230,6 +1230,30 @@ mod tests {
         assert_eq!(
             resolve_ayanamsa("Babylonian/Britton"),
             Some(Ayanamsa::BabylonianBritton)
+        );
+        assert_eq!(
+            resolve_ayanamsa("BABYL_HOUSE"),
+            Some(Ayanamsa::BabylonianHouse)
+        );
+        assert_eq!(
+            resolve_ayanamsa("BABYL_SISSY"),
+            Some(Ayanamsa::BabylonianSissy)
+        );
+        assert_eq!(
+            resolve_ayanamsa("BABYL_TRUE_GEOC"),
+            Some(Ayanamsa::BabylonianTrueGeoc)
+        );
+        assert_eq!(
+            resolve_ayanamsa("BABYL_TRUE_TOPC"),
+            Some(Ayanamsa::BabylonianTrueTopc)
+        );
+        assert_eq!(
+            resolve_ayanamsa("BABYL_TRUE_OBS"),
+            Some(Ayanamsa::BabylonianTrueObs)
+        );
+        assert_eq!(
+            resolve_ayanamsa("BABYL_HOUSE_OBS"),
+            Some(Ayanamsa::BabylonianHouseObs)
         );
         assert_eq!(
             resolve_ayanamsa("Galact. Center = 0 Sag"),
