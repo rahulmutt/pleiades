@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Sri Yukteshwar transliteration now appears in the release profile
+
+Implemented a small Stage 6 release-hardening compatibility slice:
+
+- the compatibility-profile summary and release notes now spell out the `Sri Yukteshwar` transliteration alongside the existing `Shri Yukteswar` / `Shri Yukteshwar` forms, and the README mirrors that release-facing wording
+- the compatibility profile identifier was bumped to `0.6.47`, and the Stage 6 progress notes were updated so the plan tracker reflects the new release-profile wording
+- no spec change was needed; this stays within the existing release-profile and interoperability-label scope
+
+Remaining Stage 6 work: keep the release-facing compatibility profile, README, and validation output synchronized as additional interoperability labels land.
+
 ## 2026-04-23 — Backend matrix summary slice landed
 
 Implemented the compact backend-matrix release-hardening slice that was previously queued in this mailbox:
