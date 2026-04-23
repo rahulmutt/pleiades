@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.68";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.69";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -200,9 +200,21 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "W. Koch",
             "W Koch",
         ],
-        "Porphyry" => &["Equal Quadrant"],
-        "Regiomontanus" => &["Regiomontanus houses"],
-        "Campanus" => &["Campanus houses"],
+        "Porphyry" => &[
+            "Equal Quadrant",
+            "Porphyry house system",
+            "Porphyry table of houses",
+        ],
+        "Regiomontanus" => &[
+            "Regiomontanus houses",
+            "Regiomontanus house system",
+            "Regiomontanus table of houses",
+        ],
+        "Campanus" => &[
+            "Campanus houses",
+            "Campanus house system",
+            "Campanus table of houses",
+        ],
         "Equal" => &[
             "A equal",
             "E equal = A",
@@ -220,7 +232,11 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "Whole-sign",
             "Whole Sign system",
         ],
-        "Alcabitius" => &["Alcabitius houses"],
+        "Alcabitius" => &[
+            "Alcabitius houses",
+            "Alcabitius house system",
+            "Alcabitius table of houses",
+        ],
         "Meridian" => &[
             "X",
             "Meridian houses",
@@ -1109,6 +1125,18 @@ mod tests {
         assert!(source_label_section.contains(
             "A equal, E equal = A, Equal houses, Equal house system, Equal House, Equal table of houses, Wang, Equal (cusp 1 = Asc) -> Equal"
         ));
+        assert!(source_label_section.contains(
+            "Equal Quadrant, Porphyry house system, Porphyry table of houses -> Porphyry"
+        ));
+        assert!(source_label_section.contains(
+            "Regiomontanus houses, Regiomontanus house system, Regiomontanus table of houses -> Regiomontanus"
+        ));
+        assert!(source_label_section.contains(
+            "Campanus houses, Campanus house system, Campanus table of houses -> Campanus"
+        ));
+        assert!(source_label_section.contains(
+            "Alcabitius houses, Alcabitius house system, Alcabitius table of houses -> Alcabitius"
+        ));
         assert!(rendered.contains("D equal / MC, Equal from MC, Equal (from MC), Equal (from MC) table of houses, Equal MC, Equal Midheaven, Equal (MC), Equal/MC = 10th -> Equal (MC)"));
         assert!(rendered.contains("J2000.0 -> J2000"));
         assert!(rendered.contains("J1900.0 -> J1900"));
@@ -1150,6 +1178,16 @@ mod tests {
         assert!(rendered.contains("P/K/R/C/O/E/W/N/V/A/H/B/M/S/I/G"));
         assert!(rendered.contains("plus the additional T/U/X/Y interoperability codes"));
         assert!(rendered.contains("A equal, E equal = A, Equal houses, Equal house system, Equal House, Equal table of houses, Wang, Equal (cusp 1 = Asc) -> Equal"));
+        assert!(rendered.contains(
+            "Equal Quadrant, Porphyry house system, Porphyry table of houses -> Porphyry"
+        ));
+        assert!(rendered.contains("Regiomontanus houses, Regiomontanus house system, Regiomontanus table of houses -> Regiomontanus"));
+        assert!(rendered.contains(
+            "Campanus houses, Campanus house system, Campanus table of houses -> Campanus"
+        ));
+        assert!(rendered.contains(
+            "Alcabitius houses, Alcabitius house system, Alcabitius table of houses -> Alcabitius"
+        ));
         assert!(rendered.contains("D equal / MC, Equal from MC, Equal (from MC), Equal (from MC) table of houses, Equal MC, Equal Midheaven, Equal (MC), Equal/MC = 10th -> Equal (MC)"));
         assert!(rendered.contains(
             "W equal, whole sign, Whole Sign houses, Whole Sign table of houses, Whole-sign, Whole Sign system -> Whole Sign"
@@ -1192,6 +1230,16 @@ mod tests {
         assert!(rendered.contains("Galactic Equator"));
         assert!(rendered.contains("Compatibility caveats:"));
         assert!(rendered.contains("Placidus house system, Placidus table of houses -> Placidus"));
+        assert!(rendered.contains("Porphyry house system, Porphyry table of houses -> Porphyry"));
+        assert!(rendered.contains(
+            "Regiomontanus houses, Regiomontanus house system, Regiomontanus table of houses -> Regiomontanus"
+        ));
+        assert!(rendered.contains(
+            "Campanus houses, Campanus house system, Campanus table of houses -> Campanus"
+        ));
+        assert!(rendered.contains(
+            "Alcabitius houses, Alcabitius house system, Alcabitius table of houses -> Alcabitius"
+        ));
         assert!(rendered.contains("Equal (cusp 1 = Asc) -> Equal"));
         assert!(
             rendered.contains("Koch house system, Koch table of houses, W. Koch, W Koch -> Koch")

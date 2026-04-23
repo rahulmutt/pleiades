@@ -106,21 +106,33 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
     HouseSystemDescriptor::new(
         HouseSystem::Porphyry,
         "Porphyry",
-        &["Equal Quadrant"],
+        &[
+            "Equal Quadrant",
+            "Porphyry house system",
+            "Porphyry table of houses",
+        ],
         "Simple quadrant division used as a robust fallback.",
         false,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Regiomontanus,
         "Regiomontanus",
-        &["Regiomontanus houses"],
+        &[
+            "Regiomontanus houses",
+            "Regiomontanus house system",
+            "Regiomontanus table of houses",
+        ],
         "Classical quadrant system with historical interoperability value.",
         false,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Campanus,
         "Campanus",
-        &["Campanus houses"],
+        &[
+            "Campanus houses",
+            "Campanus house system",
+            "Campanus table of houses",
+        ],
         "Great-circle division system.",
         false,
     ),
@@ -156,7 +168,11 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
     HouseSystemDescriptor::new(
         HouseSystem::Alcabitius,
         "Alcabitius",
-        &["Alcabitius houses"],
+        &[
+            "Alcabitius houses",
+            "Alcabitius house system",
+            "Alcabitius table of houses",
+        ],
         "Classical semi-arc family system.",
         false,
     ),
@@ -377,21 +393,33 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
     HouseSystemDescriptor::new(
         HouseSystem::Porphyry,
         "Porphyry",
-        &["Equal Quadrant"],
+        &[
+            "Equal Quadrant",
+            "Porphyry house system",
+            "Porphyry table of houses",
+        ],
         "Simple quadrant division used as a robust fallback.",
         false,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Regiomontanus,
         "Regiomontanus",
-        &["Regiomontanus houses"],
+        &[
+            "Regiomontanus houses",
+            "Regiomontanus house system",
+            "Regiomontanus table of houses",
+        ],
         "Classical quadrant system with historical interoperability value.",
         false,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Campanus,
         "Campanus",
-        &["Campanus houses"],
+        &[
+            "Campanus houses",
+            "Campanus house system",
+            "Campanus table of houses",
+        ],
         "Great-circle division system.",
         false,
     ),
@@ -504,7 +532,11 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
     HouseSystemDescriptor::new(
         HouseSystem::Alcabitius,
         "Alcabitius",
-        &["Alcabitius houses"],
+        &[
+            "Alcabitius houses",
+            "Alcabitius house system",
+            "Alcabitius table of houses",
+        ],
         "Classical semi-arc family system.",
         false,
     ),
