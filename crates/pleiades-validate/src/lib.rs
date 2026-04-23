@@ -1259,6 +1259,8 @@ fn render_compatibility_profile_summary_text() -> String {
     text.push_str("Compatibility caveats: ");
     text.push_str(&profile.known_gaps.len().to_string());
     text.push('\n');
+    text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
+    text.push_str("See release-summary for the compact one-screen release overview.\n");
 
     text
 }
@@ -3852,6 +3854,12 @@ mod tests {
         assert!(rendered.contains("Custom-definition labels:"));
         assert!(rendered.contains("Validation reference points:"));
         assert!(rendered.contains("Compatibility caveats:"));
+        assert!(
+            rendered.contains("Compatibility profile verification: verify-compatibility-profile")
+        );
+        assert!(
+            rendered.contains("See release-summary for the compact one-screen release overview.")
+        );
     }
 
     #[test]

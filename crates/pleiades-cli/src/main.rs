@@ -402,6 +402,10 @@ mod tests {
             release_profiles.compatibility_profile_id
         )));
         assert!(compatibility.contains("House systems: 25 total"));
+        assert!(compatibility
+            .contains("Compatibility profile verification: verify-compatibility-profile"));
+        assert!(compatibility
+            .contains("See release-summary for the compact one-screen release overview."));
 
         let verification = render_cli(&["verify-compatibility-profile"])
             .expect("compatibility profile verification should render");
