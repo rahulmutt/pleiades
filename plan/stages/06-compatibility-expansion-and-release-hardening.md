@@ -62,6 +62,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] The PVR Pushya-paksha and Sheoran ayanamsa modes are now catalogued too: both are resolved, rendered in the compatibility profile, and available through the shared catalog path as the next Stage 6 ayanamsa breadth increment.
 - [x] Swiss Ephemeris historical/reference-frame ayanamsa modes now include Hipparchus, Babylonian (Kugler 1/2/3), Babylonian (Huber), Babylonian (Eta Piscium), Babylonian (Aldebaran), Galactic Center, and Galactic Equator; they are catalogued, resolved, and surfaced through the compatibility profile as the next breadth batch.
 - [x] The remaining named legacy ayanamsa modes and formula variants from the Swiss Ephemeris header are now catalogued too: True Pushya, Djwhal Khul, JN Bhasin, Suryasiddhanta (Mean Sun), Aryabhata (Mean Sun), Babylonian (Britton), Aryabhata (522 CE), Lahiri (VP285), Krishnamurti (VP291), True Sheoran, and the remaining Galactic Center / Galactic Equator variants are resolved and visible in the compatibility profile.
+- [x] `pleiades-ayanamsa` now also carries explicit sidereal metadata for `Krishnamurti (VP291)` in the built-in catalog, so the compatibility profile and metadata coverage summary no longer treat it as a lingering release-line gap.
 - [x] Carter (poli-equatorial) is now catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
 - [x] Horizon/Azimuth and APC are now catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
 - [x] Krusinski-Pisa-Goelzer is now catalogued, resolved, rendered in the compatibility profile, and calculated in `pleiades-houses`.
@@ -95,6 +96,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] Additional historical sidereal metadata has been filled in for Hipparchus, JN Bhasin, Babylonian (Eta Piscium), Babylonian (Aldebaran), and the Galactic Equator entries, reducing the remaining release-line ayanamsa metadata gaps called out by the profile.
 - [x] Babylonian (Kugler 1) and Babylonian (Kugler 2) now carry explicit zero-point metadata too, extending the historical sidereal metadata batch and shrinking the compatibility-profile gap list a little further.
 - [x] Babylonian (Kugler 3), Babylonian (Britton), Galactic Center (Mardyks), and Galactic Center (Cochrane) now also carry explicit Swiss Ephemeris zero-point metadata, and the compatibility profile / release notes have been updated to call out the narrower remaining historical-metadata gap.
+- [x] Krishnamurti (VP291) now carries explicit zero-point metadata too, closing one of the remaining release-note ayanamsa gaps and keeping the compatibility profile aligned with the catalog.
 - [x] Galactic Equator (Mula) now carries its explicit Swiss Ephemeris mid-Mula zero-point metadata too, and the compatibility profile now reflects that release-note correction.
 
 ## Exit criteria

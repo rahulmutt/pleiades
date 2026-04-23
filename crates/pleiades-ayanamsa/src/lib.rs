@@ -457,9 +457,9 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Ayanamsa::KrishnamurtiVP291,
         "Krishnamurti (VP291)",
         &["KP VP291", "Krishnamurti VP291", "VP291"],
-        "Krishnamurti variant aligned with the VP291 reference family.",
-        None,
-        None,
+        "Krishnamurti variant aligned with the VP291 reference family and anchored to the published 291 CE zero point.",
+        Some(JulianDay::from_days(1_827_424.663_554)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::TrueSheoran,
@@ -929,9 +929,9 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
         Ayanamsa::KrishnamurtiVP291,
         "Krishnamurti (VP291)",
         &["KP VP291", "Krishnamurti VP291", "VP291"],
-        "Krishnamurti variant aligned with the VP291 reference family.",
-        None,
-        None,
+        "Krishnamurti variant aligned with the VP291 reference family and anchored to the published 291 CE zero point.",
+        Some(JulianDay::from_days(1_827_424.663_554)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::TrueSheoran,
@@ -1578,6 +1578,28 @@ mod tests {
             .without_sidereal_metadata
             .iter()
             .all(|name| *name != "Lahiri (VP285)"));
+        assert!(coverage
+            .without_sidereal_metadata
+            .iter()
+            .all(|name| *name != "Krishnamurti (VP291)"));
+    }
+
+    #[test]
+    fn krishnamurti_vp291_descriptor_uses_the_published_zero_point() {
+        let descriptor =
+            descriptor(&Ayanamsa::KrishnamurtiVP291).expect("Krishnamurti VP291 descriptor");
+        assert_eq!(
+            descriptor.epoch,
+            Some(JulianDay::from_days(1_827_424.663_554))
+        );
+        assert_eq!(descriptor.offset_degrees, Some(Angle::from_degrees(0.0)));
+        assert_eq!(
+            descriptor.offset_at(Instant::new(
+                JulianDay::from_days(1_827_424.663_554),
+                pleiades_types::TimeScale::Tt
+            )),
+            Some(Angle::from_degrees(0.0))
+        );
     }
 
     #[test]
