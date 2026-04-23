@@ -58,6 +58,7 @@ These are durable planning decisions that should remain true even as individual 
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] The release notes now also expose a compact `release-notes-summary` artifact in `pleiades-validate`, `pleiades-cli`, the release bundle, and the verification checks, so maintainers get a lighter-weight release-notes audit view alongside the existing compatibility-profile and release-summary summaries.
 - [x] The Equal (MC) house-system resolver and release compatibility profile now also accept the Swiss Ephemeris `D equal / MC` spelling alongside the existing Equal MC / Equal Midheaven aliases, and the compatibility profile identifier has been bumped to `0.6.87` so the Equal (MC) code-spelling batch stays versioned with the current profile.
 - [x] The Sunshine house-system source labels now also accept the plain `Sunshine table of houses` spelling alongside the existing Bob Makransky and Treindl forms in both `pleiades-houses` and the release compatibility profile, and the compatibility profile identifier has been bumped to `0.6.86` so the Sunshine alias batch stays versioned with the current profile.
 - [x] The Meridian and Horizon/Azimuth house-system source labels now also accept the explicit `Meridian house system`, `Horizontal house system`, and `Azimuth house system` spellings in both `pleiades-houses` and the release compatibility profile, and the compatibility profile identifier has been bumped to `0.6.85` so the azimuthal-family alias batch stays versioned with the current profile.

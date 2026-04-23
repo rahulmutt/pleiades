@@ -15,7 +15,7 @@ It complements the stage documents by making release expectations explicit.
 ### Public-facing compatibility and capability documentation
 
 - release compatibility profile listing built-in house systems, ayanamsas, aliases, validation reference points, intentional custom-definition labels, and compatibility caveats with those categories kept distinct
-- release notes summarizing the current coverage additions and remaining limitations
+- release notes summarizing the current coverage additions and remaining limitations, with a compact release-notes summary when that improves maintainer auditability
 - backend capability matrices listing body coverage, ranges, modes, and expected accuracy class
 - user-visible notes about unsupported features or documented failure modes
 
@@ -62,7 +62,7 @@ A mature release should be accompanied by:
 - packaged artifact metadata, checksums, and provenance when artifacts are shipped
 - release bundle manifest provenance plus the `bundle-manifest.checksum.txt` tamper-evident sidecar for staged release archives
 - changelog or release notes describing new coverage and known limitations
-- compact summary views for the compatibility profile, backend matrix, API stability posture, validation report, and packaged artifact status when those mature reports are part of the shipped release surface
+- compact summary views for the compatibility profile, release notes, backend matrix, API stability posture, validation report, and packaged artifact status when those mature reports are part of the shipped release surface
 
 ## Maintenance rule
 

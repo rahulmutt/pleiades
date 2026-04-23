@@ -19,8 +19,8 @@ use pleiades_jpl::JplSnapshotBackend;
 use pleiades_validate::{
     render_api_stability_summary, render_artifact_summary, render_backend_matrix_report,
     render_backend_matrix_summary, render_compatibility_profile_summary, render_release_checklist,
-    render_release_checklist_summary, render_release_notes, render_release_summary,
-    render_validation_report_summary, verify_compatibility_profile,
+    render_release_checklist_summary, render_release_notes, render_release_notes_summary,
+    render_release_summary, render_validation_report_summary, verify_compatibility_profile,
 };
 use pleiades_vsop87::Vsop87Backend;
 
@@ -52,6 +52,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             Ok(render_backend_matrix_summary())
         }
         Some("release-notes") => Ok(render_release_notes()),
+        Some("release-notes-summary") => Ok(render_release_notes_summary()),
         Some("release-checklist") => Ok(render_release_checklist()),
         Some("release-checklist-summary") | Some("checklist-summary") => {
             Ok(render_release_checklist_summary())
@@ -73,6 +74,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
 fn help_text() -> String {
     format!(
         "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary        Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  api-stability-summary  Print the compact API stability summary\n  api-posture-summary    Alias for api-stability-summary\n  backend-matrix         Print the implemented backend capability matrices\n  capability-matrix      Alias for backend-matrix\n  backend-matrix-summary Print the compact backend capability matrix summary\n  matrix-summary         Alias for backend-matrix-summary\n  release-notes          Print the release compatibility notes
+  release-notes-summary   Print the compact release notes summary
   release-checklist      Print the release maintainer checklist
   release-checklist-summary Print the compact release checklist summary
   checklist-summary      Alias for release-checklist-summary
@@ -435,8 +437,19 @@ mod tests {
 
         let release_notes = render_cli(&["release-notes"]).expect("release notes should render");
         assert!(release_notes.contains("Release notes"));
+        assert!(release_notes.contains("Release notes summary: release-notes-summary"));
         assert!(release_notes.contains("API stability posture:"));
         assert!(release_notes.contains("Bundle provenance:"));
+
+        let release_notes_summary =
+            render_cli(&["release-notes-summary"]).expect("release notes summary should render");
+        assert!(release_notes_summary.contains("Release notes summary"));
+        assert!(release_notes_summary.contains("API stability summary line:"));
+        assert!(release_notes_summary.contains("Release notes: release-notes"));
+        assert!(release_notes_summary
+            .contains("See release-notes for the full maintainer-facing artifact."));
+        assert!(release_notes_summary
+            .contains("See release-summary for the compact one-screen release overview."));
 
         let release_checklist =
             render_cli(&["release-checklist"]).expect("release checklist should render");
@@ -450,7 +463,7 @@ mod tests {
         assert!(release_checklist_summary.contains("Release checklist summary"));
         assert!(release_checklist_summary.contains("Repository-managed release gates: 5 items"));
         assert!(release_checklist_summary.contains("Manual bundle workflow: 3 items"));
-        assert!(release_checklist_summary.contains("Bundle contents: 15 items"));
+        assert!(release_checklist_summary.contains("Bundle contents: 16 items"));
         assert!(release_checklist_summary.contains("External publishing reminders: 3 items"));
         assert!(release_checklist_summary
             .contains("See release-summary for the compact one-screen release overview."));
@@ -463,9 +476,10 @@ mod tests {
         assert!(release_summary.contains("Release gate reminders:"));
         assert!(release_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
+        assert!(release_summary.contains("Release notes summary: release-notes-summary"));
         assert!(release_summary
             .contains("Compatibility profile verification: verify-compatibility-profile"));
-        assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary, artifact-summary, release-checklist-summary"));
+        assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary, artifact-summary, release-checklist-summary"));
         assert!(release_summary.contains("Release checklist summary: release-checklist-summary"));
         assert!(release_summary.contains("See release-notes and release-checklist"));
 
@@ -497,6 +511,7 @@ mod tests {
         assert!(error.contains("compatibility-profile  Print the release compatibility profile"));
         assert!(error.contains("verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs"));
         assert!(error.contains("release-notes          Print the release compatibility notes"));
+        assert!(error.contains("release-notes-summary   Print the compact release notes summary"));
         assert!(
             error.contains("release-checklist-summary Print the compact release checklist summary")
         );

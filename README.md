@@ -55,7 +55,7 @@ Rough command overview:
 - `backend-matrix` / `capability-matrix`: print implemented backend capability matrices
 - `backend-matrix-summary` / `matrix-summary`: compact backend matrix summary
 - `compatibility-profile` / `profile`: print the full release compatibility profile
-- `release-notes`, `release-checklist`, `release-checklist-summary`, `release-summary`, `verify-compatibility-profile`: maintainer-facing release metadata and catalog-alignment checks
+- `release-notes`, `release-notes-summary`, `release-checklist`, `release-checklist-summary`, `release-summary`, `verify-compatibility-profile`: maintainer-facing release metadata and catalog-alignment checks
 - `artifact-summary`: compact summary of the packaged compressed artifact
 - `validation-report-summary` / `validation-summary` / `report-summary`: compact validation report summary
 - `chart`: render a basic chart report from a Julian day and optional observer settings
@@ -113,7 +113,7 @@ Rough command overview:
 - `compatibility-profile`: print the full release compatibility profile
 - `compatibility-profile-summary`: compact compatibility profile summary
 - `verify-compatibility-profile`: verify the release compatibility profile against the canonical catalogs
-- `api-stability`, `api-stability-summary`, `release-notes`, `release-checklist`, `release-checklist-summary`, `release-summary`: release-facing report helpers
+- `api-stability`, `api-stability-summary`, `release-notes`, `release-notes-summary`, `release-checklist`, `release-checklist-summary`, `release-summary`: release-facing report helpers
 - `bundle-release --out DIR`: write a staged release bundle to a directory
 - `verify-release-bundle --out DIR`: verify a previously staged release bundle
 

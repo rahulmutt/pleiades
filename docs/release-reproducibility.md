@@ -39,17 +39,19 @@ To inspect the release artifacts directly, generate a bundle in a directory of y
 cargo run -q -p pleiades-validate -- bundle-release --out /tmp/pleiades-release
 ```
 
-The validation tool can also render the full compatibility profile, the compact profile summary, verify the release compatibility profile against the canonical catalogs, render the release notes, release checklist, release-checklist summary, release summary, API stability summary, backend matrix summary, artifact summary, and validation summary directly when you only need the individual maintainer-facing artifacts, and the user-facing CLI mirrors the release-notes, release-checklist, release-checklist-summary, release-summary, verify-compatibility-profile, api-stability-summary, backend-matrix-summary / matrix-summary, artifact-summary, and validation-report-summary / validation-summary renderers too; the release notes now also point readers at the compact compatibility-profile-summary view for a quicker audit hop, the release-checklist summary now also points back to the compact release-summary view for a quicker one-screen audit hop, and the compact release summary now also includes the custom-definition label counts that keep the release posture self-describing, a packaged-artifact cross-reference, and the compact validation-report-summary / validation-summary alias in its summary-view list:
+The validation tool can also render the full compatibility profile, the compact profile summary, verify the release compatibility profile against the canonical catalogs, render the release notes, release-notes summary, release checklist, release-checklist summary, release summary, API stability summary, backend matrix summary, artifact summary, and validation summary directly when you only need the individual maintainer-facing artifacts, and the user-facing CLI mirrors the release-notes, release-notes-summary, release-checklist, release-checklist-summary, release-summary, verify-compatibility-profile, api-stability-summary, backend-matrix-summary / matrix-summary, artifact-summary, and validation-report-summary / validation-summary renderers too; the release notes now also point readers at the compact compatibility-profile-summary view for a quicker audit hop, the compact release-notes summary gives maintainers a lighter-weight release-notes view, the release-checklist summary now also points back to the compact release-summary view for a quicker one-screen audit hop, and the compact release summary now also includes the custom-definition label counts that keep the release posture self-describing, a packaged-artifact cross-reference, and the compact validation-report-summary / validation-summary alias in its summary-view list:
 
 ```bash
 cargo run -q -p pleiades-validate -- compatibility-profile
 cargo run -q -p pleiades-validate -- compatibility-profile-summary
 cargo run -q -p pleiades-validate -- verify-compatibility-profile
 cargo run -q -p pleiades-validate -- release-notes
+cargo run -q -p pleiades-validate -- release-notes-summary
 cargo run -q -p pleiades-validate -- release-checklist
 cargo run -q -p pleiades-validate -- release-checklist-summary
 cargo run -q -p pleiades-validate -- release-summary
 cargo run -q -p pleiades-cli -- release-notes
+cargo run -q -p pleiades-cli -- release-notes-summary
 cargo run -q -p pleiades-cli -- release-checklist
 cargo run -q -p pleiades-cli -- release-checklist-summary
 cargo run -q -p pleiades-cli -- release-summary
@@ -69,6 +71,7 @@ The bundle currently writes these text artifacts:
 - `compatibility-profile.txt`
 - `compatibility-profile-summary.txt`
 - `release-notes.txt`
+- `release-notes-summary.txt`
 - `release-summary.txt`
 - `release-checklist.txt`
 - `release-checklist-summary.txt`
@@ -98,7 +101,7 @@ The release bundle makes the current release posture easy to reproduce and audit
 
 - the compatibility profile captures shipped house systems, ayanamsas, aliases, validation reference points, and compatibility caveats, and `verify-compatibility-profile` provides a quick catalog-alignment audit for the same release surface,
 - the compatibility profile summary gives a compact count-based view of the same release posture, including validation reference points,
-- the release notes file summarizes release-specific coverage, validation reference points, known limitations, and the current API stability / deprecation-policy snapshot, the release summary gives a compact one-screen overview of the same release posture, and the release checklist captures the repository-managed release gates and the published bundle contents,
+- the release notes file summarizes release-specific coverage, validation reference points, known limitations, and the current API stability / deprecation-policy snapshot, the release-notes summary gives a compact release-notes view, the release summary gives a compact one-screen overview of the same release posture, and the release checklist captures the repository-managed release gates and the published bundle contents,
 - the backend matrix records the implemented backend catalog and its declared coverage, and the backend-matrix summary provides a compact count-based audit view for maintainers,
 - the bundle manifest records the source revision, workspace status, Rust compiler version, profile/API identifiers, and validation-round count alongside deterministic checksums, and the manifest checksum sidecar keeps the manifest itself tamper-evident,
 - the API stability posture records which surfaces are stable versus operational, and the API stability summary provides a compact count-based audit view tagged with the current compatibility-profile identifier,
