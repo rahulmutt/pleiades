@@ -1,10 +1,11 @@
 //! Packaged compressed ephemeris backend for the common 1500-2500 range.
 //!
 //! This crate now ships a small stage-5 prototype artifact backed by the
-//! `pleiades-compression` codec. The bundled data currently covers the
-//! comparison-body planetary set via quantized linear segments fitted to
-//! checked-in reference epochs, and the backend falls back to other providers
-//! when callers request bodies outside that packaged slice.
+//! `pleiades-compression` codec. The bundled data covers the comparison-body
+//! planetary set plus the source-backed custom asteroid `asteroid:433-Eros`
+//! via quantized linear segments fitted to checked-in reference epochs, and the
+//! backend falls back to other providers when callers request bodies outside
+//! that packaged slice.
 
 #![forbid(unsafe_code)]
 
@@ -13,9 +14,9 @@ use std::sync::OnceLock;
 
 use pleiades_backend::{
     AccuracyClass, Apparentness, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
-    BackendProvenance, CelestialBody, CoordinateFrame, EclipticCoordinates, EphemerisBackend,
-    EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult, Instant,
-    QualityAnnotation, TimeRange, TimeScale, ZodiacMode,
+    BackendProvenance, CelestialBody, CoordinateFrame, CustomBodyId, EclipticCoordinates,
+    EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
+    Instant, QualityAnnotation, TimeRange, TimeScale, ZodiacMode,
 };
 use pleiades_compression::{
     ArtifactHeader, BodyArtifact, ChannelKind, CompressedArtifact, PolynomialChannel, Segment,
@@ -24,8 +25,8 @@ use pleiades_jpl::{reference_snapshot, SnapshotEntry};
 
 const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data prototype";
-const ARTIFACT_SOURCE: &str = "Quantized linear segments fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set, with J2000 point segments for the outer planets and Pluto.";
-const PACKAGED_BODIES: [CelestialBody; 10] = [
+const ARTIFACT_SOURCE: &str = "Quantized linear segments fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with J2000 point segments for the outer planets, Pluto, and the asteroid coverage.";
+const PACKAGED_BASE_BODIES: [CelestialBody; 10] = [
     CelestialBody::Sun,
     CelestialBody::Moon,
     CelestialBody::Mercury,
@@ -37,6 +38,17 @@ const PACKAGED_BODIES: [CelestialBody; 10] = [
     CelestialBody::Neptune,
     CelestialBody::Pluto,
 ];
+
+fn packaged_bodies() -> &'static [CelestialBody] {
+    static BODIES: OnceLock<Vec<CelestialBody>> = OnceLock::new();
+    BODIES.get_or_init(|| {
+        let mut bodies = PACKAGED_BASE_BODIES.to_vec();
+        bodies.push(CelestialBody::Custom(CustomBodyId::new(
+            "asteroid", "433-Eros",
+        )));
+        bodies
+    })
+}
 const AU_IN_KM: f64 = 149_597_870.7;
 
 /// Returns the canonical package name for this crate.
@@ -94,7 +106,8 @@ impl EphemerisBackend for PackagedDataBackend {
             provenance: BackendProvenance {
                 summary: artifact.header.source.clone(),
                 data_sources: vec![
-                    "Checked-in JPL Horizons reference epochs (Sun and Moon)".to_string(),
+                    "Checked-in JPL Horizons reference epochs (Sun, Moon, and asteroid:433-Eros)"
+                        .to_string(),
                     "Quantized linear segments stored in pleiades-compression artifact format"
                         .to_string(),
                 ],
@@ -193,7 +206,7 @@ fn packaged_body_artifacts() -> Vec<BodyArtifact> {
     let mut artifacts = Vec::new();
     let snapshot = reference_snapshot();
 
-    for body in PACKAGED_BODIES {
+    for body in packaged_bodies().iter().cloned() {
         let mut entries: Vec<&SnapshotEntry> =
             snapshot.iter().filter(|entry| entry.body == body).collect();
         if entries.is_empty() {
@@ -342,7 +355,7 @@ mod tests {
         let decoded =
             CompressedArtifact::decode(&encoded).expect("packaged artifact should decode");
         assert_eq!(decoded.header.generation_label, ARTIFACT_LABEL);
-        assert_eq!(decoded.bodies.len(), PACKAGED_BODIES.len());
+        assert_eq!(decoded.bodies.len(), packaged_bodies().len());
         assert_eq!(decoded.checksum, artifact.checksum);
     }
 
@@ -365,6 +378,25 @@ mod tests {
     }
 
     #[test]
+    fn lookup_uses_packaged_custom_asteroid_segments() {
+        let reference = reference_snapshot()
+            .iter()
+            .find(|entry| {
+                entry.body == CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros"))
+                    && (entry.epoch.julian_day.days() - 2_451_545.0).abs() < f64::EPSILON
+            })
+            .expect("reference snapshot should include asteroid:433-Eros at J2000");
+        let body = CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros"));
+        let ecliptic = packaged_lookup(&body, reference.epoch)
+            .expect("packaged lookup should succeed for the custom asteroid");
+        let expected = coordinates(reference);
+
+        assert!((ecliptic.longitude.degrees() - expected.longitude.degrees()).abs() < 1e-8);
+        assert!((ecliptic.latitude.degrees() - expected.latitude.degrees()).abs() < 1e-8);
+        assert!((ecliptic.distance_au.unwrap() - expected.distance_au.unwrap()).abs() < 1e-12);
+    }
+
+    #[test]
     fn backend_metadata_exposes_packaged_scope() {
         let metadata = packaged_backend().metadata();
         assert_eq!(metadata.id.as_str(), PACKAGE_NAME);
@@ -373,5 +405,10 @@ mod tests {
         assert!(metadata.body_coverage.contains(&CelestialBody::Moon));
         assert!(metadata.body_coverage.contains(&CelestialBody::Jupiter));
         assert!(metadata.body_coverage.contains(&CelestialBody::Pluto));
+        assert!(metadata
+            .body_coverage
+            .contains(&CelestialBody::Custom(CustomBodyId::new(
+                "asteroid", "433-Eros",
+            ))));
     }
 }

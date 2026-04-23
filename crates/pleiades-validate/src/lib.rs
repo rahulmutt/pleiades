@@ -3317,7 +3317,10 @@ mod tests {
         let summary = corpus.summary();
         assert!(summary.name.contains("Packaged artifact"));
         assert_eq!(summary.apparentness, Apparentness::Mean);
-        assert_eq!(summary.body_count, default_chart_bodies().len());
+        assert_eq!(
+            summary.body_count,
+            pleiades_data::packaged_artifact().bodies.len()
+        );
         assert!(summary.request_count > 0);
         assert!(summary.earliest_julian_day <= summary.latest_julian_day);
     }
@@ -3689,6 +3692,9 @@ version = "0.9.0"
         assert!(release_summary.contains("Release summary"));
         assert!(artifact_summary.contains("Artifact summary"));
         assert!(artifact_summary.contains("Model error envelope"));
+        assert!(artifact_summary.contains(
+            "custom bodies are included in decode and boundary checks, but omitted from the algorithmic comparison corpus"
+        ));
         assert!(release_checklist.contains("Release checklist"));
         assert!(release_checklist.contains("Manual bundle workflow:"));
         assert!(release_checklist.contains("bundle-release --out /tmp/pleiades-release"));

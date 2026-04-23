@@ -100,7 +100,7 @@ impl ArtifactInspectionReport {
             bodies.push(inspection);
         }
 
-        let comparison_corpus = artifact_comparison_corpus(&decoded);
+        let comparison_corpus = artifact_model_comparison_corpus(&decoded);
         let model_comparison = compare_backends(
             &default_candidate_backend(),
             &packaged_backend(),
@@ -143,6 +143,51 @@ pub fn render_artifact_summary() -> Result<String, ArtifactInspectionError> {
 
 pub(crate) fn packaged_artifact_corpus() -> ValidationCorpus {
     artifact_comparison_corpus(packaged_artifact())
+}
+
+fn artifact_model_comparison_corpus(artifact: &CompressedArtifact) -> ValidationCorpus {
+    artifact_comparison_corpus_filtered(artifact, |body| !matches!(body, CelestialBody::Custom(_)))
+}
+
+fn artifact_comparison_corpus(artifact: &CompressedArtifact) -> ValidationCorpus {
+    artifact_comparison_corpus_filtered(artifact, |_| true)
+}
+
+fn artifact_comparison_corpus_filtered<F>(
+    artifact: &CompressedArtifact,
+    include_body: F,
+) -> ValidationCorpus
+where
+    F: Fn(&CelestialBody) -> bool,
+{
+    let mut requests = Vec::new();
+
+    for body in &artifact.bodies {
+        if !include_body(&body.body) {
+            continue;
+        }
+
+        for segment in &body.segments {
+            let midpoint = midpoint(segment.start, segment.end);
+            for instant in [segment.start, midpoint, segment.end] {
+                requests.push(EphemerisRequest {
+                    body: body.body.clone(),
+                    instant,
+                    observer: None,
+                    frame: CoordinateFrame::Ecliptic,
+                    zodiac_mode: ZodiacMode::Tropical,
+                    apparent: Apparentness::Mean,
+                });
+            }
+        }
+    }
+
+    ValidationCorpus {
+        name: "Packaged artifact error envelope".to_string(),
+        description: "Comparison corpus built from packaged artifact coverage at segment endpoints and midpoints so the bundled data can be measured against the algorithmic baseline.",
+        apparentness: Apparentness::Mean,
+        requests,
+    }
 }
 
 fn inspect_body(
@@ -204,33 +249,6 @@ fn inspect_body(
     })
 }
 
-fn artifact_comparison_corpus(artifact: &CompressedArtifact) -> ValidationCorpus {
-    let mut requests = Vec::new();
-
-    for body in &artifact.bodies {
-        for segment in &body.segments {
-            let midpoint = midpoint(segment.start, segment.end);
-            for instant in [segment.start, midpoint, segment.end] {
-                requests.push(EphemerisRequest {
-                    body: body.body.clone(),
-                    instant,
-                    observer: None,
-                    frame: CoordinateFrame::Ecliptic,
-                    zodiac_mode: ZodiacMode::Tropical,
-                    apparent: Apparentness::Mean,
-                });
-            }
-        }
-    }
-
-    ValidationCorpus {
-        name: "Packaged artifact error envelope".to_string(),
-        description: "Comparison corpus built from packaged artifact coverage at segment endpoints and midpoints so the bundled data can be measured against the algorithmic baseline.",
-        apparentness: Apparentness::Mean,
-        requests,
-    }
-}
-
 fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
     let mut text = String::new();
 
@@ -265,6 +283,15 @@ fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
     text.push_str("  checksum verified: ");
     text.push_str(yes_no(report.checksum_ok));
     text.push('\n');
+    if report
+        .bodies
+        .iter()
+        .any(|body| matches!(body.body, CelestialBody::Custom(_)))
+    {
+        text.push_str(
+            "  note: custom bodies are included in decode and boundary checks, but omitted from the algorithmic comparison corpus.\n",
+        );
+    }
     text.push('\n');
     text.push_str("Model error envelope\n");
     text.push_str("  baseline backend: ");
@@ -587,6 +614,14 @@ impl fmt::Display for ArtifactInspectionReport {
         }
 
         writeln!(f)?;
+        if self
+            .bodies
+            .iter()
+            .any(|body| matches!(body.body, CelestialBody::Custom(_)))
+        {
+            writeln!(f, "Note: custom bodies are included in decode and boundary checks, but omitted from the algorithmic comparison corpus.")?;
+            writeln!(f)?;
+        }
         writeln!(f, "Model error envelope")?;
         writeln!(
             f,
