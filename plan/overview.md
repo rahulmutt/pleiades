@@ -13,6 +13,7 @@ Use it to answer four different questions:
 
 - [plan/overview.md](overview.md) — orientation and maintenance guidance
 - [plan/stages/](stages/) — sequential implementation stages from foundations through release hardening
+- [plan/status/](status/) — current execution-frontier guidance and next-slice selection help
 - [plan/tracks/](tracks/) — cross-cutting workstreams and subsystem-specific expectations
 - [plan/checklists/](checklists/) — reusable completion gates and release-output expectations
 - [plan/appendices/](appendices/) — traceability aids and supporting reference material
@@ -47,9 +48,11 @@ Inside each stage, prefer the smallest reviewable slice that still preserves one
 
 1. [PLAN.md](../PLAN.md)
 2. the active stage document
-3. the relevant track document
-4. [plan/checklists/01-stage-gates.md](checklists/01-stage-gates.md)
-5. [plan/checklists/02-release-artifacts.md](checklists/02-release-artifacts.md) when release-facing output is affected
+3. [plan/status/01-current-execution-frontier.md](status/01-current-execution-frontier.md)
+4. [plan/status/02-next-slice-candidates.md](status/02-next-slice-candidates.md)
+5. the relevant track document
+6. [plan/checklists/01-stage-gates.md](checklists/01-stage-gates.md)
+7. [plan/checklists/02-release-artifacts.md](checklists/02-release-artifacts.md) when release-facing output is affected
 
 ## Stage list
 
@@ -59,6 +62,11 @@ Inside each stage, prefer the smallest reviewable slice that still preserves one
 - [plan/stages/04-reference-backend-and-validation.md](stages/04-reference-backend-and-validation.md)
 - [plan/stages/05-compression-and-packaged-data.md](stages/05-compression-and-packaged-data.md)
 - [plan/stages/06-compatibility-expansion-and-release-hardening.md](stages/06-compatibility-expansion-and-release-hardening.md)
+
+## Status list
+
+- [plan/status/01-current-execution-frontier.md](status/01-current-execution-frontier.md)
+- [plan/status/02-next-slice-candidates.md](status/02-next-slice-candidates.md)
 
 ## Track list
 
@@ -83,6 +91,7 @@ When revising the plan:
 
 - keep `PLAN.md` as the top-level index and execution summary,
 - make sequencing changes in `plan/stages/`,
+- make current-frontier or next-slice guidance changes in `plan/status/`,
 - make cross-cutting policy or subsystem expectation changes in `plan/tracks/`,
 - make completion or release-output changes in `plan/checklists/`,
 - update appendices when traceability or stage-to-spec mapping changes,

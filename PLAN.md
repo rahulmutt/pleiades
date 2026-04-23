@@ -52,7 +52,8 @@ Each stage should unlock a concrete workflow rather than only adding scaffolding
 The current directory structure is intentionally shallow and role-based:
 
 - [plan/overview.md](plan/overview.md) — orientation, reading order, and maintenance guidance
-- [plan/stages/](plan/stages/) — the sequential delivery path; use these to answer **what should happen next**
+- [plan/stages/](plan/stages/) — the sequential delivery path; use these to answer **what should happen next in the overall program**
+- [plan/status/](plan/status/) — current execution-frontier notes; use these to answer **what is the most sensible next slice right now**
 - [plan/tracks/](plan/tracks/) — cross-cutting standards by area; use these to answer **what else does this work affect**
 - [plan/checklists/](plan/checklists/) — completion and release gates; use these to answer **what must be true before this is done**
 - [plan/appendices/](plan/appendices/) — traceability and supporting reference material
@@ -71,6 +72,11 @@ The current directory structure is intentionally shallow and role-based:
 - [plan/stages/04-reference-backend-and-validation.md](plan/stages/04-reference-backend-and-validation.md)
 - [plan/stages/05-compression-and-packaged-data.md](plan/stages/05-compression-and-packaged-data.md)
 - [plan/stages/06-compatibility-expansion-and-release-hardening.md](plan/stages/06-compatibility-expansion-and-release-hardening.md)
+
+### Current status and next-slice guidance
+
+- [plan/status/01-current-execution-frontier.md](plan/status/01-current-execution-frontier.md)
+- [plan/status/02-next-slice-candidates.md](plan/status/02-next-slice-candidates.md)
 
 ### Cross-cutting tracks
 
@@ -102,10 +108,12 @@ The current directory structure is intentionally shallow and role-based:
 ### If you are planning the next implementation slice
 
 1. reread the active stage document
-2. check the relevant track document for cross-cutting expectations
-3. choose the smallest slice that preserves a workable repository state
-4. implement code, tests, and docs together
-5. verify the stage and release checklists before calling the slice done
+2. read [plan/status/01-current-execution-frontier.md](plan/status/01-current-execution-frontier.md)
+3. use [plan/status/02-next-slice-candidates.md](plan/status/02-next-slice-candidates.md) to choose a slice shape
+4. check the relevant track document for cross-cutting expectations
+5. choose the smallest slice that preserves a workable repository state
+6. implement code, tests, and docs together
+7. verify the stage and release checklists before calling the slice done
 
 ### If you are validating a release-oriented change
 
@@ -134,6 +142,7 @@ For a stage-to-spec mapping, see [plan/appendices/01-stage-to-spec-map.md](plan/
 When changing scope, sequencing, or release expectations:
 
 - update the relevant stage doc for sequencing changes,
+- update `plan/status/` when the current execution frontier or default next slices change,
 - update the relevant track doc for cross-cutting standards,
 - update the relevant checklist for completion or release-output changes,
 - keep this file as the stable top-level index into `plan/**`,
