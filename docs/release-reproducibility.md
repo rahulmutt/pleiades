@@ -39,6 +39,13 @@ To inspect the release artifacts directly, generate a bundle in a directory of y
 cargo run -q -p pleiades-validate -- bundle-release --out /tmp/pleiades-release
 ```
 
+The validation tool can also render the release notes and release checklist directly when you only need the individual maintainer-facing artifacts:
+
+```bash
+cargo run -q -p pleiades-validate -- release-notes
+cargo run -q -p pleiades-validate -- release-checklist
+```
+
 The bundle currently writes these text artifacts:
 
 - `compatibility-profile.txt`

@@ -650,6 +650,14 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "api-stability")?;
             Ok(current_api_stability_profile().to_string())
         }
+        Some("release-notes") => {
+            ensure_no_extra_args(&args[1..], "release-notes")?;
+            Ok(render_release_notes_text())
+        }
+        Some("release-checklist") => {
+            ensure_no_extra_args(&args[1..], "release-checklist")?;
+            Ok(render_release_checklist_text())
+        }
         Some("bundle-release") => {
             let (output_dir, rounds) =
                 parse_release_bundle_args(&args[1..], DEFAULT_BENCHMARK_ROUNDS)?;
@@ -1906,7 +1914,7 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = default_corpus().requests.len();
     format!(
-        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix            Print the implemented backend capability matrices\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  bundle-release --out DIR  Write the release compatibility profile, release notes, release checklist, API posture, validation report, and manifest\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix            Print the implemented backend capability matrices\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  release-notes             Print the release compatibility notes\n  release-checklist         Print the release maintainer checklist\n  bundle-release --out DIR  Write the release compatibility profile, release notes, release checklist, API posture, validation report, and manifest\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
@@ -2129,6 +2137,8 @@ mod tests {
         assert!(rendered.contains("validate-artifact"));
         assert!(rendered.contains("workspace-audit"));
         assert!(rendered.contains("api-stability"));
+        assert!(rendered.contains("release-notes"));
+        assert!(rendered.contains("release-checklist"));
         assert!(rendered.contains("bundle-release --out DIR"));
         assert!(rendered.contains("verify-release-bundle"));
     }
@@ -2143,6 +2153,29 @@ mod tests {
         assert!(rendered.contains("Stable consumer surfaces:"));
         assert!(rendered.contains("Experimental or operational surfaces:"));
         assert!(rendered.contains("Deprecation policy:"));
+    }
+
+    #[test]
+    fn release_notes_command_renders_the_release_notes() {
+        let rendered = render_cli(&["release-notes"]).expect("release notes should render");
+        assert!(rendered.contains("Release notes"));
+        assert!(rendered.contains(&format!("Profile: {}", current_compatibility_profile_id())));
+        assert!(rendered.contains("Release-specific coverage:"));
+        assert!(rendered.contains("Known gaps:"));
+    }
+
+    #[test]
+    fn release_checklist_command_renders_the_release_checklist() {
+        let rendered = render_cli(&["release-checklist"]).expect("release checklist should render");
+        assert!(rendered.contains("Release checklist"));
+        assert!(rendered.contains(&format!("Profile: {}", current_compatibility_profile_id())));
+        assert!(rendered.contains(&format!(
+            "API stability posture: {}",
+            current_api_stability_profile_id()
+        )));
+        assert!(rendered.contains("Repository-managed release gates:"));
+        assert!(rendered.contains("Manual bundle workflow:"));
+        assert!(rendered.contains("Bundle contents:"));
     }
 
     #[test]
