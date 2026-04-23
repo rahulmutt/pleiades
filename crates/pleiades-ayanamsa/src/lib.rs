@@ -440,7 +440,14 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::Suryasiddhanta499MeanSun,
         "Suryasiddhanta (Mean Sun)",
-        &["Suryasiddhanta, mean Sun", "Suryasiddhanta mean sun", "Suryasiddhanta MSUN"],
+        &[
+            "Suryasiddhanta, mean Sun",
+            "Surya Siddhanta, mean Sun",
+            "Suryasiddhanta mean sun",
+            "Surya Siddhanta mean sun",
+            "Suryasiddhanta MSUN",
+            "Surya Siddhanta MSUN",
+        ],
         "Suryasiddhanta mean-sun variant anchored to the published 514 CE zero point used by Swiss Ephemeris.",
         Some(JulianDay::from_days(1_909_045.584_433)),
         Some(Angle::from_degrees(0.0)),
@@ -939,7 +946,14 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
     AyanamsaDescriptor::new(
         Ayanamsa::Suryasiddhanta499MeanSun,
         "Suryasiddhanta (Mean Sun)",
-        &["Suryasiddhanta, mean Sun", "Suryasiddhanta mean sun", "Suryasiddhanta MSUN"],
+        &[
+            "Suryasiddhanta, mean Sun",
+            "Surya Siddhanta, mean Sun",
+            "Suryasiddhanta mean sun",
+            "Surya Siddhanta mean sun",
+            "Suryasiddhanta MSUN",
+            "Surya Siddhanta MSUN",
+        ],
         "Suryasiddhanta mean-sun variant anchored to the published 514 CE zero point used by Swiss Ephemeris.",
         Some(JulianDay::from_days(1_909_045.584_433)),
         Some(Angle::from_degrees(0.0)),
@@ -1465,6 +1479,14 @@ mod tests {
         assert_eq!(resolve_ayanamsa("Bhasin"), Some(Ayanamsa::JnBhasin));
         assert_eq!(
             resolve_ayanamsa("Suryasiddhanta, mean Sun"),
+            Some(Ayanamsa::Suryasiddhanta499MeanSun)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Surya Siddhanta, mean Sun"),
+            Some(Ayanamsa::Suryasiddhanta499MeanSun)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Surya Siddhanta mean sun"),
             Some(Ayanamsa::Suryasiddhanta499MeanSun)
         );
         assert_eq!(
