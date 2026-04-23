@@ -70,6 +70,8 @@ Verify the staged bundle with:
 cargo run -q -p pleiades-validate -- verify-release-bundle --out /tmp/pleiades-release
 ```
 
+The verifier expects exactly the staged bundle files listed above, so stray files or missing entries will cause verification to fail.
+
 ## What the bundle is for
 
 The release bundle makes the current release posture easy to reproduce and audit:

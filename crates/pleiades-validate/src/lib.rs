@@ -6,7 +6,7 @@
 
 #![forbid(unsafe_code)]
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -1261,6 +1261,47 @@ impl ParsedReleaseBundleManifest {
     }
 }
 
+fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), ReleaseBundleError> {
+    let expected_entries: BTreeSet<String> = [
+        "compatibility-profile.txt",
+        "compatibility-profile-summary.txt",
+        "release-notes.txt",
+        "release-checklist.txt",
+        "backend-matrix.txt",
+        "backend-matrix-summary.txt",
+        "api-stability.txt",
+        "api-stability-summary.txt",
+        "validation-report.txt",
+        "bundle-manifest.txt",
+    ]
+    .into_iter()
+    .map(String::from)
+    .collect();
+
+    let mut actual_entries = BTreeSet::new();
+    for entry in fs::read_dir(output_dir)? {
+        actual_entries.insert(entry?.file_name().to_string_lossy().into_owned());
+    }
+
+    if actual_entries != expected_entries {
+        let unexpected = actual_entries
+            .difference(&expected_entries)
+            .cloned()
+            .collect::<Vec<_>>();
+        let missing = expected_entries
+            .difference(&actual_entries)
+            .cloned()
+            .collect::<Vec<_>>();
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected release bundle directory contents: unexpected [{}], missing [{}]",
+            unexpected.join(", "),
+            missing.join(", ")
+        )));
+    }
+
+    Ok(())
+}
+
 fn verify_release_bundle(
     output_dir: impl AsRef<Path>,
 ) -> Result<ReleaseBundle, ReleaseBundleError> {
@@ -1288,6 +1329,7 @@ fn verify_release_bundle(
     let manifest_text = fs::read_to_string(&manifest_path)?;
 
     let manifest = ParsedReleaseBundleManifest::parse(&manifest_text)?;
+    ensure_release_bundle_directory_contents(output_dir)?;
     ensure_non_empty_manifest_value(&manifest.source_revision, "source revision")?;
     ensure_non_empty_manifest_value(&manifest.workspace_status, "workspace status")?;
     ensure_non_empty_manifest_value(&manifest.rustc_version, "rustc version")?;
@@ -3070,6 +3112,33 @@ version = "0.9.0"
                 || error.contains("invalid profile checksum")
                 || error.contains("missing 0x prefix")
         );
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_unexpected_bundle_entries() {
+        let bundle_dir = unique_temp_dir("pleiades-release-bundle-extra-entry");
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        std::fs::write(bundle_dir.join("unexpected.txt"), "spurious bundle content")
+            .expect("unexpected file should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect_err("verification should fail for unexpected bundle contents");
+        assert!(
+            error.contains("release bundle verification failed")
+                || error.contains("unexpected release bundle directory contents")
+        );
+        assert!(error.contains("unexpected.txt"));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
     }
