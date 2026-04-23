@@ -330,6 +330,8 @@ pub struct ReleaseBundle {
     pub api_stability_checksum: u64,
     /// Deterministic checksum for the validation report contents.
     pub validation_report_checksum: u64,
+    /// Number of validation rounds recorded in the bundle manifest.
+    pub validation_rounds: usize,
 }
 
 /// Errors produced while assembling a release bundle.
@@ -535,6 +537,7 @@ impl fmt::Display for ReleaseBundle {
             self.validation_report_path.display()
         )?;
         writeln!(f, "  manifest: {}", self.manifest_path.display())?;
+        writeln!(f, "  validation rounds: {}", self.validation_rounds)?;
         writeln!(
             f,
             "  compatibility profile bytes: {}",
@@ -945,7 +948,7 @@ struct ParsedReleaseBundleManifest {
     validation_report_checksum: u64,
     profile_id: String,
     api_stability_posture_id: String,
-    _validation_rounds: usize,
+    validation_rounds: usize,
 }
 
 impl ParsedReleaseBundleManifest {
@@ -980,7 +983,7 @@ impl ParsedReleaseBundleManifest {
             )?,
             profile_id: parse_manifest_string(text, "profile id:")?,
             api_stability_posture_id: parse_manifest_string(text, "api stability posture id:")?,
-            _validation_rounds: parse_manifest_usize(text, "validation rounds:")?,
+            validation_rounds: parse_manifest_usize(text, "validation rounds:")?,
         })
     }
 }
@@ -1123,6 +1126,7 @@ fn verify_release_bundle(
         backend_matrix_checksum,
         api_stability_checksum,
         validation_report_checksum,
+        validation_rounds: manifest.validation_rounds,
     })
 }
 
@@ -2215,6 +2219,7 @@ version = "0.9.0"
 
         assert!(rendered.contains("Release bundle"));
         assert!(rendered.contains("compatibility-profile.txt"));
+        assert!(rendered.contains("validation rounds: 1"));
         assert!(rendered.contains("release-notes.txt"));
         assert!(rendered.contains("release-checklist.txt"));
         assert!(rendered.contains("backend-matrix.txt"));
@@ -2276,6 +2281,7 @@ version = "0.9.0"
             .expect("bundle verification should render");
         assert!(verified.contains("Release bundle"));
         assert!(verified.contains("bundle-manifest.txt"));
+        assert!(verified.contains("validation rounds: 1"));
         assert!(verified.contains("release notes checksum: 0x"));
         assert!(verified.contains("release checklist checksum: 0x"));
         assert!(verified.contains("backend matrix checksum: 0x"));

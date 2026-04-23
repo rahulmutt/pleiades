@@ -902,3 +902,13 @@ Planned a small Stage 6 release-hardening slice:
 - the stage-6 notes should record the refactor as release-hardening maintenance rather than a behavior change
 
 Remaining Stage 6 work: keep the release-facing identifiers synchronized across the façade, CLI, validation bundle, and documentation as the hardening work continues.
+
+## 2026-04-23 — Release bundle summary now surfaces validation rounds
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-validate::ReleaseBundle` now records the validation-round count parsed from the bundle manifest and includes it in the human-readable bundle summary, so staged bundles are a little more self-describing when maintainers inspect or verify release artifacts
+- the bundle-generation and bundle-verification tests now assert that the rendered release-bundle summary mentions the recorded validation-round count, keeping the release-facing summary aligned with the manifest metadata
+- the Stage 6 progress notes were updated to record the bundle-summary refinement as part of the release-hardening backlog
+
+Remaining Stage 6 work: keep the release bundle, compatibility profile, and validation-report surfaces synchronized as further release-hardening slices land.
