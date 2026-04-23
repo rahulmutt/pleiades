@@ -71,6 +71,7 @@
 mod api_stability;
 mod chart;
 mod compatibility;
+mod release_profiles;
 
 pub use api_stability::{
     current_api_stability_profile, current_api_stability_profile_id, ApiStabilityProfile,
@@ -104,6 +105,7 @@ pub use pleiades_types::{
     Latitude, Longitude, Motion, MotionDirection, ObserverLocation, TimeRange, TimeScale,
     ZodiacMode, ZodiacSign,
 };
+pub use release_profiles::{current_release_profile_identifiers, ReleaseProfileIdentifiers};
 
 /// A thin façade around a backend implementation.
 #[derive(Debug)]
@@ -272,12 +274,22 @@ mod tests {
 
     #[test]
     fn profile_identifiers_are_re_exported_from_the_facade() {
+        let release_profiles = current_release_profile_identifiers();
+
         assert_eq!(
             CURRENT_COMPATIBILITY_PROFILE_ID,
             current_compatibility_profile_id()
         );
         assert_eq!(
             CURRENT_API_STABILITY_PROFILE_ID,
+            current_api_stability_profile_id()
+        );
+        assert_eq!(
+            release_profiles.compatibility_profile_id,
+            current_compatibility_profile_id()
+        );
+        assert_eq!(
+            release_profiles.api_stability_profile_id,
             current_api_stability_profile_id()
         );
         assert_eq!(

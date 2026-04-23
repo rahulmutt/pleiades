@@ -21,8 +21,8 @@ pub use house_validation::{
 };
 
 use pleiades_core::{
-    current_api_stability_profile, current_api_stability_profile_id, current_compatibility_profile,
-    current_compatibility_profile_id, default_chart_bodies, Apparentness, BackendCapabilities,
+    current_api_stability_profile, current_compatibility_profile,
+    current_release_profile_identifiers, default_chart_bodies, Apparentness, BackendCapabilities,
     BackendMetadata, CelestialBody, CompositeBackend, CoordinateFrame, EclipticCoordinates,
     EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
     Instant, JulianDay, Longitude, TimeRange, TimeScale, ZodiacMode,
@@ -464,12 +464,13 @@ impl fmt::Display for ValidationReport {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Validation report")?;
         writeln!(f)?;
+        let release_profiles = current_release_profile_identifiers();
         writeln!(f, "Compatibility profile")?;
-        writeln!(f, "  id: {}", current_compatibility_profile_id())?;
+        writeln!(f, "  id: {}", release_profiles.compatibility_profile_id)?;
         writeln!(f, "{}", current_compatibility_profile())?;
         writeln!(f)?;
         writeln!(f, "API stability posture")?;
-        writeln!(f, "  id: {}", current_api_stability_profile_id())?;
+        writeln!(f, "  id: {}", release_profiles.api_stability_profile_id)?;
         writeln!(f, "{}", current_api_stability_profile())?;
         writeln!(f)?;
         write_backend_catalog(
@@ -838,11 +839,12 @@ fn checksum64(text: &str) -> u64 {
 
 fn render_compatibility_profile_summary_text() -> String {
     let profile = current_compatibility_profile();
+    let release_profiles = current_release_profile_identifiers();
     let mut text = String::new();
 
     text.push_str("Compatibility profile summary\n");
     text.push_str("Profile: ");
-    text.push_str(profile.profile_id);
+    text.push_str(release_profiles.compatibility_profile_id);
     text.push('\n');
     text.push_str("House systems: ");
     text.push_str(&profile.house_systems.len().to_string());
@@ -870,12 +872,13 @@ fn render_compatibility_profile_summary_text() -> String {
 
 fn render_release_notes_text() -> String {
     let profile = current_compatibility_profile();
+    let release_profiles = current_release_profile_identifiers();
     let api_stability = current_api_stability_profile();
     let mut text = String::new();
 
     text.push_str("Release notes\n");
     text.push_str("Profile: ");
-    text.push_str(profile.profile_id);
+    text.push_str(release_profiles.compatibility_profile_id);
     text.push('\n');
     text.push_str("Summary:\n");
     text.push_str(profile.summary);
@@ -931,16 +934,15 @@ fn render_release_notes_text() -> String {
 }
 
 fn render_release_checklist_text() -> String {
-    let profile = current_compatibility_profile();
-    let api_stability = current_api_stability_profile();
+    let release_profiles = current_release_profile_identifiers();
     let mut text = String::new();
 
     text.push_str("Release checklist\n");
     text.push_str("Profile: ");
-    text.push_str(profile.profile_id);
+    text.push_str(release_profiles.compatibility_profile_id);
     text.push('\n');
     text.push_str("API stability posture: ");
-    text.push_str(api_stability.profile_id);
+    text.push_str(release_profiles.api_stability_profile_id);
     text.push('\n');
     text.push('\n');
     text.push_str("Repository-managed release gates:\n");

@@ -1117,3 +1117,11 @@ Implemented a small Stage 6 release-hardening documentation sync slice:
 - the Stage 6 progress notes were updated to record the bundle-description sync; no spec update was needed because this stays within the existing release-artifact and reproducibility scope
 
 Remaining Stage 6 work: keep the bundle contents, docs, and release-facing checklist text synchronized as the hardening workflow evolves.
+
+## 2026-04-23 — Release profile identifiers now come from a shared helper
+
+Implemented the Stage 6 identifier-centralization slice:
+
+- `pleiades-core` now exposes a shared `ReleaseProfileIdentifiers` helper so the compatibility-profile and API-stability posture IDs can be fetched together from one source of truth
+- `pleiades-validate` now uses that helper when rendering the validation report, compatibility-profile summary, release notes, and release checklist, keeping the release-facing ID lookups synchronized through one path
+- tests cover the helper's agreement with the individual accessors, so future identifier bumps stay coupled
