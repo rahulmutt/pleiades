@@ -154,7 +154,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
     HouseSystemDescriptor::new(
         HouseSystem::Meridian,
         "Meridian",
-        &["Meridian houses"],
+        &["Meridian houses", "ARMC"],
         "Meridian-style systems and documented axial variants.",
         false,
     ),
@@ -459,7 +459,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
     HouseSystemDescriptor::new(
         HouseSystem::Meridian,
         "Meridian",
-        &["Meridian houses"],
+        &["Meridian houses", "ARMC"],
         "Meridian-style systems and documented axial variants.",
         false,
     ),
@@ -653,6 +653,7 @@ mod tests {
             Some(HouseSystem::WholeSign)
         );
         assert_eq!(resolve_house_system("w. koch"), Some(HouseSystem::Koch));
+        assert_eq!(resolve_house_system("ARMC"), Some(HouseSystem::Meridian));
         assert_eq!(resolve_house_system("P"), Some(HouseSystem::Placidus));
         assert_eq!(resolve_house_system("K"), Some(HouseSystem::Koch));
         assert_eq!(resolve_house_system("R"), Some(HouseSystem::Regiomontanus));
