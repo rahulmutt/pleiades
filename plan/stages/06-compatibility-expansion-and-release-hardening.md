@@ -20,6 +20,9 @@ Breadth and polish should build on a proven foundation: stable types, useful MVP
 - public capability and accuracy documentation for every backend
 - API stabilization review and deprecation policy as needed
 - release checklist spanning docs, artifacts, validation reports, and environment reproducibility
+- compact maintainer-facing summary artifacts for the published release surfaces, so compatibility, backend coverage, API posture, validation status, and packaged-artifact status can all be audited quickly without replacing the full reports
+- strict release-bundle verification covering checksums, expected file layout, and recorded provenance fields so staged release artifacts are reproducible and tamper-evident
+- CLI parity for release inspection commands where practical, so maintainers can render the same release-facing summaries from the primary CLI and the validation tooling without duplicated workflows
 
 ### Optional expansion
 - richer composite backend routing
@@ -40,6 +43,16 @@ The project is not just functional but dependable: consumers can tell exactly wh
 6. Expand optional higher-level helpers only after the compatibility and release story is already dependable.
 
 This final stage should behave like a sequence of release-quality increments, not a catch-all bucket for unfinished foundational work.
+
+## Standing Stage 6 decisions
+
+These are durable planning decisions that should remain true even as individual slices change:
+
+- The compatibility profile is a versioned release artifact, not an informal status note. When interoperability labels, caveat wording, or release-facing coverage change, the profile and its compact summaries must stay synchronized with the rest of the release surface.
+- Release-facing output should separate **compatibility caveats**, **validation reference points**, and **intentional custom-definition/interoperability labels** instead of collapsing them into one generic gap list.
+- Release bundles should carry both full reports and compact summaries where that materially improves maintainer review, but summary artifacts must remain derived views of the canonical full outputs rather than a second source of truth.
+- Release-bundle verification should reject tampered contents, unexpected extra files, and missing provenance metadata, not just mismatched checksums in a happy-path manifest.
+- Release-hardening changes should update the maintainer workflow docs and CLI surfaces in the same slice when they alter the practical release process.
 
 ## Progress update
 

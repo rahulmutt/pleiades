@@ -14,7 +14,7 @@ It complements the stage documents by making release expectations explicit.
 
 ### Public-facing compatibility and capability documentation
 
-- release compatibility profile listing built-in house systems, ayanamsas, aliases, and known constraints
+- release compatibility profile listing built-in house systems, ayanamsas, aliases, validation reference points, intentional custom-definition labels, and compatibility caveats with those categories kept distinct
 - release notes summarizing the current coverage additions and remaining limitations
 - backend capability matrices listing body coverage, ranges, modes, and expected accuracy class
 - user-visible notes about unsupported features or documented failure modes
@@ -25,6 +25,7 @@ It complements the stage documents by making release expectations explicit.
 - comparison reports for implemented backends
 - archived regression cases for previously fixed numerical or interoperability issues
 - API stability summaries for quick inspection of the current façade posture
+- compact summaries for other mature release artifacts when they materially improve maintainer auditability
 - evidence for published accuracy claims
 
 ## Additional outputs once packaged data exists
@@ -34,6 +35,7 @@ It complements the stage documents by making release expectations explicit.
 - source provenance and generation metadata
 - measured error summaries against generation sources
 - reproducible generation command or pipeline documentation
+- verification that staged bundles reject missing provenance fields, unexpected extra files, and tampered artifact contents
 
 ## Suggested ownership by stage
 
@@ -57,8 +59,9 @@ A mature release should be accompanied by:
 - capability matrix for each shipped backend
 - API stability summary alongside the full API stability posture
 - validation report bundle or links to archived reports
-- packaged artifact metadata and checksums when artifacts are shipped
+- packaged artifact metadata, checksums, and provenance when artifacts are shipped
 - changelog or release notes describing new coverage and known limitations
+- compact summary views for the compatibility profile, backend matrix, API stability posture, validation report, and packaged artifact status when those mature reports are part of the shipped release surface
 
 ## Maintenance rule
 

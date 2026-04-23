@@ -203,4 +203,4 @@ At minimum:
 - update the relevant track document when expectations or standards change,
 - update the relevant checklist when completion or release expectations change,
 - keep `PLAN.md` as the stable top-level index into `plan/**`,
-- avoid adding one-off planning files at the repository root when they belong under `plan/stages/`, `plan/tracks/`, or `plan/checklists/`.
+- avoid adding one-off planning files at the repository root when they belong under `plan/stages/`, `plan/tracks/`, or `plan/checklists/`,
