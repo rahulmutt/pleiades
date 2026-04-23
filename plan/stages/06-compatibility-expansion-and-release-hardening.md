@@ -58,6 +58,8 @@ These are durable planning decisions that should remain true even as individual 
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] The `Aryabhata (Mean Sun)` catalog entry now also resolves the exact `Aryabhata, mean Sun`, `Aryabhata mean sun`, and `Aryabhata MSUN` spellings in both `pleiades-ayanamsa` and the release compatibility profile, and the compatibility profile identifier has been bumped to `0.6.73` so the new alias batch stays versioned with the current profile.
+
 - [x] The `Suryasiddhanta (Mean Sun)` catalog entry now also resolves the exact `Surya Siddhanta, mean Sun`, `Surya Siddhanta mean sun`, and `Surya Siddhanta MSUN` spellings in both `pleiades-ayanamsa` and the release compatibility profile, and the compatibility profile identifier has been bumped to `0.6.72` so the new alias batch stays versioned with the current profile.
 - [x] The release-line topocentric and Horizon/Azimuth house labels now also surface the exact `Polich-Page "topocentric" table of houses`, `T Polich/Page ("topocentric")`, `Horizon/Azimuth house system`, and `Horizon/Azimuth table of houses` spellings in both `pleiades-houses` and the release compatibility profile, and the compatibility profile identifier has been bumped to `0.6.71` so the new alias batch stays versioned with the current profile.
 - [x] The built-in whole-sign house-system labels now also surface the exact `Whole Sign house system` wording alongside `Whole Sign system` in both the shared house resolver and the release compatibility profile, and the compatibility profile identifier has been bumped to `0.6.70` so the new alias batch stays versioned with the current profile.
