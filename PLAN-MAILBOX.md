@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Topocentric and Krusinski-Pisa-Goelzer exact code spellings now resolve
+
+Implemented a small Stage 6 release-hardening alias slice:
+
+- `pleiades-houses` now accepts the exact Swiss Ephemeris `T topocentric` and `U krusinski-pisa-goelzer` spellings in addition to the letter codes, so the resolver behavior matches the compatibility profile's house-code appendix a little more closely
+- the compatibility-profile identifier was bumped to `0.6.53`, and the Stage 6 progress notes were updated so the new alias behavior stays synchronized with the release-facing wording
+- clippy, formatting, and the workspace test suite all pass after the update
+
+Remaining Stage 6 work: keep the compatibility profile, release summary wording, and release notes synchronized as the remaining compatibility and release-hardening slices land.
+
 ## 2026-04-23 — Swiss Ephemeris house-table code spellings now surface in the compatibility profile
 
 Implemented a small Stage 6 release-hardening slice:

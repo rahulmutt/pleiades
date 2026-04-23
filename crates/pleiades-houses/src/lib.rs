@@ -184,6 +184,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
             "Polich/Page",
             "Polich Page",
             "T Polich/Page (\"topocentric\")",
+            "T topocentric",
             "Topocentric house system",
         ],
         "Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.",
@@ -295,6 +296,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
             "Krusinski-Pisa",
             "Krusinski Pisa",
             "Krusinski/Pisa/Goelzer",
+            "U krusinski-pisa-goelzer",
             "Krusinski/Pisa/Goelzer house system",
             "Pisa-Goelzer",
         ],
@@ -427,6 +429,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
             "Krusinski-Pisa",
             "Krusinski Pisa",
             "Krusinski/Pisa/Goelzer",
+            "U krusinski-pisa-goelzer",
             "Krusinski/Pisa/Goelzer house system",
             "Pisa-Goelzer",
         ],
@@ -514,6 +517,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
             "Polich/Page",
             "Polich Page",
             "T Polich/Page (\"topocentric\")",
+            "T topocentric",
             "Topocentric house system",
         ],
         "Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.",
@@ -755,8 +759,14 @@ mod tests {
         assert_eq!(resolve_house_system("X"), Some(HouseSystem::Meridian));
         assert_eq!(resolve_house_system("Y"), Some(HouseSystem::Apc));
         assert_eq!(resolve_house_system("Carter"), Some(HouseSystem::Carter));
-        assert_eq!(resolve_house_system("T topocentric"), None);
-        assert_eq!(resolve_house_system("U krusinski-pisa-goelzer"), None);
+        assert_eq!(
+            resolve_house_system("T topocentric"),
+            Some(HouseSystem::Topocentric)
+        );
+        assert_eq!(
+            resolve_house_system("U krusinski-pisa-goelzer"),
+            Some(HouseSystem::KrusinskiPisaGoelzer)
+        );
         assert_eq!(
             resolve_house_system("Equal (from MC)"),
             Some(HouseSystem::EqualMidheaven)

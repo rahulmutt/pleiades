@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.52";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.53";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -226,6 +226,7 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "Polich/Page",
             "Polich Page",
             "T Polich/Page (\"topocentric\")",
+            "T topocentric",
             "Topocentric house system",
         ],
         "Morinus" => &["Morinus houses"],
@@ -278,6 +279,7 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "Krusinski-Pisa",
             "Krusinski Pisa",
             "Krusinski/Pisa/Goelzer",
+            "U krusinski-pisa-goelzer",
             "Krusinski/Pisa/Goelzer house system",
             "Pisa-Goelzer",
         ],
@@ -997,7 +999,7 @@ mod tests {
         assert!(rendered.contains("De Luce, DeLuce ayanamsa -> DeLuce"));
         assert!(rendered.contains("Yukteswar, Sri Yukteswar, Sri Yukteshwar, Shri Yukteswar, Shri Yukteshwar -> Yukteshwar"));
         assert!(rendered.contains(
-            "T, Polich-Page, Polich/Page, Polich Page, T Polich/Page (\"topocentric\"), Topocentric house system -> Topocentric"
+            "T, Polich-Page, Polich/Page, Polich Page, T Polich/Page (\"topocentric\"), T topocentric, Topocentric house system -> Topocentric"
         ));
         assert!(rendered
             .contains("Horizontal, Azimuthal, Horizon house system, Azimuthal house system"));
@@ -1044,7 +1046,7 @@ mod tests {
         assert!(rendered.contains("Horizon/Azimuth"));
         assert!(rendered.contains("APC"));
         assert!(rendered.contains("Krusinski-Pisa-Goelzer"));
-        assert!(rendered.contains("U, Krusinski, Krusinski-Pisa, Krusinski Pisa, Krusinski/Pisa/Goelzer, Krusinski/Pisa/Goelzer house system, Pisa-Goelzer -> Krusinski-Pisa-Goelzer"));
+        assert!(rendered.contains("U, Krusinski, Krusinski-Pisa, Krusinski Pisa, Krusinski/Pisa/Goelzer, U krusinski-pisa-goelzer, Krusinski/Pisa/Goelzer house system, Pisa-Goelzer -> Krusinski-Pisa-Goelzer"));
         assert!(rendered.contains("Albategnius"));
         assert!(rendered.contains("Savard-A, Savard A, Savard's Albategnius -> Albategnius"));
         assert!(rendered.contains("Pullen SD"));
@@ -1075,7 +1077,7 @@ mod tests {
             "X, Meridian houses, ARMC, X axial rotation system/ Meridian houses -> Meridian"
         ));
         assert!(rendered.contains("Y, APC, Ram school, Ram's school, Ramschool, WvA, Y APC houses, APC houses, APC house system, Ascendant Parallel Circle -> APC"));
-        assert!(rendered.contains("T, Polich-Page, Polich/Page, Polich Page, T Polich/Page (\"topocentric\"), Topocentric house system -> Topocentric"));
+        assert!(rendered.contains("T, Polich-Page, Polich/Page, Polich Page, T Polich/Page (\"topocentric\"), T topocentric, Topocentric house system -> Topocentric"));
         assert!(rendered.contains("Gauquelin sectors"));
         assert!(rendered
             .contains("G, Gauquelin, Gauquelin sector, Gauquelin sectors -> Gauquelin sectors"));
