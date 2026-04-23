@@ -1364,3 +1364,13 @@ Implemented the small Stage 6 release-hardening follow-up that was already surfa
 - no spec update was needed; this remains within the existing release-hardening and documentation-synchronization scope
 
 Remaining Stage 6 work: keep the compact release-summary output, bundle contents, and release-facing docs synchronized as further hardening slices land.
+
+## 2026-04-23 — API-stability summary wording synced into the reproducibility guide
+
+Completed a small Stage 6 documentation-synchronization slice:
+
+- `docs/release-reproducibility.md` and the README now call out `api-stability-summary` alongside the other compact release renderers, so the maintainer-facing docs mention the same quick-audit artifact the bundle already ships
+- the Stage 6 progress notes were updated to record that the compact API-posture renderer is now named explicitly in the release-facing docs
+- no spec update was needed; this stays within the existing release-hardening and documentation-synchronization scope
+
+Remaining Stage 6 work: keep the release-facing docs, bundle artifacts, and compact summaries synchronized as the hardening sweep continues.
