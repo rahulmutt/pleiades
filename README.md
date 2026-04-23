@@ -167,7 +167,7 @@ For a release-style smoke check of the validation bundle, run:
 mise run release-smoke
 ```
 
-That smoke check runs the workspace audit, validates the bundled compressed artifact, generates the bundle, and verifies its manifest checksums through `pleiades-validate`.
+That smoke check runs the workspace audit, validates the bundled compressed artifact, generates the bundle, and verifies the manifest checksums plus the manifest checksum sidecar through `pleiades-validate`.
 
 For a step-by-step description of the release workflow, see [docs/release-reproducibility.md](docs/release-reproducibility.md).
 

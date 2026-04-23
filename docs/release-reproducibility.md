@@ -29,7 +29,7 @@ The repository also ships a release-style smoke check that exercises the validat
 mise run release-smoke
 ```
 
-That task first runs the workspace audit, validates the bundled compressed artifact, then generates a temporary release bundle and verifies the staged manifest checksums using `pleiades-validate`.
+That task first runs the workspace audit, validates the bundled compressed artifact, then generates a temporary release bundle and verifies the staged manifest checksums and manifest checksum sidecar using `pleiades-validate`.
 
 ## Manual bundle generation
 
@@ -71,6 +71,7 @@ The bundle currently writes these text artifacts:
 - `validation-report-summary.txt`
 - `validation-report.txt`
 - `bundle-manifest.txt` (includes the recorded source revision, workspace status, Rust compiler version, profile/API identifiers, and validation-round count)
+- `bundle-manifest.checksum.txt` (records the checksum used to verify the staged manifest itself)
 
 The generated `release-checklist.txt` now also embeds the canonical `bundle-release` and `verify-release-bundle` commands plus a pointer back to this guide, so the bundle stays self-describing for maintainers.
 
@@ -90,7 +91,7 @@ The release bundle makes the current release posture easy to reproduce and audit
 - the compatibility profile summary gives a compact count-based view of the same release posture, including validation reference points,
 - the release notes file summarizes release-specific coverage, validation reference points, known limitations, and the current API stability / deprecation-policy snapshot, the release summary gives a compact one-screen overview of the same release posture, and the release checklist captures the repository-managed release gates and the published bundle contents,
 - the backend matrix records the implemented backend catalog and its declared coverage, and the backend-matrix summary provides a compact count-based audit view for maintainers,
-- the bundle manifest records the source revision, workspace status, Rust compiler version, profile/API identifiers, and validation-round count alongside deterministic checksums,
+- the bundle manifest records the source revision, workspace status, Rust compiler version, profile/API identifiers, and validation-round count alongside deterministic checksums, and the manifest checksum sidecar keeps the manifest itself tamper-evident,
 - the API stability posture records which surfaces are stable versus operational, and the API stability summary provides a compact count-based audit view tagged with the current compatibility-profile identifier,
 - the validation report summary provides a compact cross-check of the comparison, house-validation, and benchmark corpus coverage before you open the full validation report,
 - the validation report preserves comparison, benchmark, and packaged-data benchmark summaries,

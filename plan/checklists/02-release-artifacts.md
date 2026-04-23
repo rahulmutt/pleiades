@@ -35,7 +35,7 @@ It complements the stage documents by making release expectations explicit.
 - source provenance and generation metadata
 - measured error summaries against generation sources
 - reproducible generation command or pipeline documentation
-- verification that staged bundles reject missing provenance fields, unexpected extra files, and tampered artifact contents
+- verification that staged bundles reject missing provenance fields, unexpected extra files, tampered artifact contents, and manifest tampering via the `bundle-manifest.checksum.txt` sidecar
 
 ## Suggested ownership by stage
 
@@ -60,6 +60,7 @@ A mature release should be accompanied by:
 - API stability summary alongside the full API stability posture
 - validation report bundle or links to archived reports
 - packaged artifact metadata, checksums, and provenance when artifacts are shipped
+- release bundle manifest provenance plus the `bundle-manifest.checksum.txt` tamper-evident sidecar for staged release archives
 - changelog or release notes describing new coverage and known limitations
 - compact summary views for the compatibility profile, backend matrix, API stability posture, validation report, and packaged artifact status when those mature reports are part of the shipped release surface
 

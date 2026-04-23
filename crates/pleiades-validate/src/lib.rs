@@ -354,6 +354,8 @@ pub struct ReleaseBundle {
     pub validation_report_path: PathBuf,
     /// Path to the generated bundle manifest.
     pub manifest_path: PathBuf,
+    /// Path to the generated manifest checksum sidecar.
+    pub manifest_checksum_path: PathBuf,
     /// Number of bytes written for the compatibility profile.
     pub compatibility_profile_bytes: usize,
     /// Number of bytes written for the compatibility-profile summary.
@@ -378,6 +380,8 @@ pub struct ReleaseBundle {
     pub artifact_summary_bytes: usize,
     /// Number of bytes written for the validation report.
     pub validation_report_bytes: usize,
+    /// Number of bytes written for the manifest checksum sidecar.
+    pub manifest_checksum_bytes: usize,
     /// Deterministic checksum for the compatibility profile contents.
     pub compatibility_profile_checksum: u64,
     /// Deterministic checksum for the compatibility-profile summary contents.
@@ -402,6 +406,8 @@ pub struct ReleaseBundle {
     pub artifact_summary_checksum: u64,
     /// Deterministic checksum for the validation report contents.
     pub validation_report_checksum: u64,
+    /// Deterministic checksum recorded in the manifest checksum sidecar.
+    pub manifest_checksum: u64,
     /// Number of validation rounds recorded in the bundle manifest.
     pub validation_rounds: usize,
 }
@@ -653,6 +659,11 @@ impl fmt::Display for ReleaseBundle {
             self.validation_report_path.display()
         )?;
         writeln!(f, "  manifest: {}", self.manifest_path.display())?;
+        writeln!(
+            f,
+            "  manifest checksum sidecar: {}",
+            self.manifest_checksum_path.display()
+        )?;
         writeln!(f, "  source revision: {}", self.source_revision)?;
         writeln!(f, "  workspace status: {}", self.workspace_status)?;
         writeln!(f, "  rustc version: {}", self.rustc_version)?;
@@ -752,6 +763,11 @@ impl fmt::Display for ReleaseBundle {
         )?;
         writeln!(
             f,
+            "  manifest checksum bytes: {}",
+            self.manifest_checksum_bytes
+        )?;
+        writeln!(
+            f,
             "  validation report summary checksum: 0x{:016x}",
             self.validation_report_summary_checksum
         )?;
@@ -764,7 +780,8 @@ impl fmt::Display for ReleaseBundle {
             f,
             "  validation report checksum: 0x{:016x}",
             self.validation_report_checksum
-        )
+        )?;
+        writeln!(f, "  manifest checksum: 0x{:016x}", self.manifest_checksum)
     }
 }
 
@@ -1162,6 +1179,7 @@ fn render_release_checklist_text() -> String {
         "[x] validation-report-summary.txt",
         "[x] validation-report.txt",
         "[x] bundle-manifest.txt",
+        "[x] bundle-manifest.checksum.txt",
         "[x] verify-release-bundle",
     ] {
         text.push_str("- ");
@@ -1350,6 +1368,7 @@ pub fn render_release_bundle(
     let artifact_summary_path = output_dir.join("artifact-summary.txt");
     let report_path = output_dir.join("validation-report.txt");
     let manifest_path = output_dir.join("bundle-manifest.txt");
+    let manifest_checksum_path = output_dir.join("bundle-manifest.checksum.txt");
     let compatibility_profile_checksum = checksum64(&profile_text);
     let compatibility_profile_summary_checksum = checksum64(&profile_summary_text);
     let release_notes_checksum = checksum64(&release_notes_text);
@@ -1391,9 +1410,12 @@ pub fn render_release_bundle(
         &validation_report_summary_path,
         validation_report_summary_text.as_bytes(),
     )?;
+    let manifest_checksum = checksum64(&manifest_text);
+    let manifest_checksum_text = format!("0x{manifest_checksum:016x}\n");
     fs::write(&artifact_summary_path, artifact_summary_text.as_bytes())?;
     fs::write(&report_path, validation_report_text.as_bytes())?;
     fs::write(&manifest_path, manifest_text.as_bytes())?;
+    fs::write(&manifest_checksum_path, manifest_checksum_text.as_bytes())?;
 
     verify_release_bundle(output_dir)
 }
@@ -1520,6 +1542,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
         "artifact-summary.txt",
         "validation-report.txt",
         "bundle-manifest.txt",
+        "bundle-manifest.checksum.txt",
     ]
     .into_iter()
     .map(String::from)
@@ -1566,6 +1589,7 @@ fn verify_release_bundle(
     let artifact_summary_path = output_dir.join("artifact-summary.txt");
     let validation_report_path = output_dir.join("validation-report.txt");
     let manifest_path = output_dir.join("bundle-manifest.txt");
+    let manifest_checksum_path = output_dir.join("bundle-manifest.checksum.txt");
 
     let profile_text = fs::read_to_string(&profile_path)?;
     let profile_summary_text = fs::read_to_string(&profile_summary_path)?;
@@ -1580,6 +1604,7 @@ fn verify_release_bundle(
     let artifact_summary_text = fs::read_to_string(&artifact_summary_path)?;
     let validation_report_text = fs::read_to_string(&validation_report_path)?;
     let manifest_text = fs::read_to_string(&manifest_path)?;
+    let manifest_checksum_text = fs::read_to_string(&manifest_checksum_path)?;
 
     let manifest = ParsedReleaseBundleManifest::parse(&manifest_text)?;
     ensure_release_bundle_directory_contents(output_dir)?;
@@ -1675,6 +1700,9 @@ fn verify_release_bundle(
     let validation_report_summary_checksum = checksum64(&validation_report_summary_text);
     let artifact_summary_checksum = checksum64(&artifact_summary_text);
     let validation_report_checksum = checksum64(&validation_report_text);
+    let manifest_checksum = checksum64(&manifest_text);
+    let manifest_checksum_value =
+        parse_checksum_value(&manifest_checksum_text, "bundle manifest checksum sidecar")?;
     let profile_id = extract_prefixed_value(&profile_text, "Compatibility profile: ")?;
     let api_stability_posture_id =
         extract_prefixed_value(&api_stability_text, "API stability posture: ")?;
@@ -1764,6 +1792,12 @@ fn verify_release_bundle(
             manifest.validation_report_checksum, validation_report_checksum
         )));
     }
+    if manifest_checksum_value != manifest_checksum {
+        return Err(ReleaseBundleError::Verification(format!(
+            "bundle manifest checksum mismatch: manifest has 0x{:016x}, checksum file has 0x{:016x}",
+            manifest_checksum, manifest_checksum_value
+        )));
+    }
 
     Ok(ReleaseBundle {
         source_revision: manifest.source_revision,
@@ -1783,6 +1817,7 @@ fn verify_release_bundle(
         artifact_summary_path,
         validation_report_path,
         manifest_path,
+        manifest_checksum_path,
         compatibility_profile_bytes: profile_text.len(),
         compatibility_profile_summary_bytes: profile_summary_text.len(),
         release_notes_bytes: release_notes_text.len(),
@@ -1795,6 +1830,7 @@ fn verify_release_bundle(
         validation_report_summary_bytes: validation_report_summary_text.len(),
         artifact_summary_bytes: artifact_summary_text.len(),
         validation_report_bytes: validation_report_text.len(),
+        manifest_checksum_bytes: manifest_checksum_text.len(),
         compatibility_profile_checksum,
         compatibility_profile_summary_checksum,
         release_notes_checksum,
@@ -1807,6 +1843,7 @@ fn verify_release_bundle(
         validation_report_summary_checksum,
         artifact_summary_checksum,
         validation_report_checksum,
+        manifest_checksum: manifest_checksum_value,
         validation_rounds: manifest.validation_rounds,
     })
 }
@@ -1842,6 +1879,16 @@ fn parse_manifest_checksum(text: &str, prefix: &str) -> Result<u64, ReleaseBundl
     })?;
     u64::from_str_radix(value, 16).map_err(|error| {
         ReleaseBundleError::Verification(format!("invalid {prefix} value: {error}"))
+    })
+}
+
+fn parse_checksum_value(text: &str, label: &str) -> Result<u64, ReleaseBundleError> {
+    let value = text.trim();
+    let value = value.strip_prefix("0x").ok_or_else(|| {
+        ReleaseBundleError::Verification(format!("missing 0x prefix for {label}"))
+    })?;
+    u64::from_str_radix(value, 16).map_err(|error| {
+        ReleaseBundleError::Verification(format!("invalid {label} value: {error}"))
     })
 }
 
@@ -2979,7 +3026,7 @@ fn help_text() -> String {
         "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix            Print the implemented backend capability matrices\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus with guard epochs\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  report-summary [--rounds N]  Render a compact validation report summary\n  validation-summary        Alias for report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  release-notes             Print the release compatibility notes
   release-checklist         Print the release maintainer checklist
   release-summary           Print the compact release summary
-  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release summary, release checklist, backend matrix, backend matrix summary, API posture, API summary, validation report summary, artifact summary, validation report, and manifest\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release summary, release checklist, backend matrix, backend matrix summary, API posture, API summary, validation report summary, artifact summary, validation report, manifest, and manifest checksum sidecar\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
@@ -3689,6 +3736,7 @@ version = "0.9.0"
         assert!(rendered.contains("validation-report-summary.txt"));
         assert!(rendered.contains("artifact-summary.txt"));
         assert!(rendered.contains("validation-report.txt"));
+        assert!(rendered.contains("bundle-manifest.checksum.txt"));
         assert!(rendered.contains("source revision:"));
         assert!(rendered.contains("workspace status:"));
         assert!(rendered.contains("rustc version:"));
@@ -3724,6 +3772,9 @@ version = "0.9.0"
             .expect("validation report should be written");
         let manifest = std::fs::read_to_string(bundle_dir.join("bundle-manifest.txt"))
             .expect("manifest should be written");
+        let manifest_checksum =
+            std::fs::read_to_string(bundle_dir.join("bundle-manifest.checksum.txt"))
+                .expect("manifest checksum sidecar should be written");
 
         let release_profiles = current_release_profile_identifiers();
         assert!(profile.contains(&format!(
@@ -3759,6 +3810,7 @@ version = "0.9.0"
         assert!(release_checklist.contains("Bundle contents:"));
         assert!(release_checklist.contains("compatibility-profile-summary.txt"));
         assert!(release_checklist.contains("release-summary.txt"));
+        assert!(release_checklist.contains("bundle-manifest.checksum.txt"));
         assert!(backend_matrix.contains("Implemented backend matrices"));
         assert!(backend_matrix.contains("JPL snapshot reference backend"));
         assert!(backend_matrix_summary.contains("Backend matrix summary"));
@@ -3800,6 +3852,7 @@ version = "0.9.0"
         assert!(manifest.contains("validation-report-summary.txt"));
         assert!(manifest.contains("artifact-summary.txt"));
         assert!(manifest.contains("validation-report.txt"));
+        assert!(!manifest.contains("bundle-manifest.checksum.txt"));
         assert!(manifest.contains("source revision:"));
         assert!(manifest.contains("workspace status:"));
         assert!(manifest.contains("rustc version:"));
@@ -3814,11 +3867,13 @@ version = "0.9.0"
         assert!(manifest.contains("validation report summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("artifact summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("validation report checksum (fnv1a-64): 0x"));
+        assert!(manifest_checksum.trim().starts_with("0x"));
 
         let verified = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
             .expect("bundle verification should render");
         assert!(verified.contains("Release bundle"));
         assert!(verified.contains("bundle-manifest.txt"));
+        assert!(verified.contains("bundle-manifest.checksum.txt"));
         assert!(verified.contains("compatibility-profile-summary.txt"));
         assert!(verified.contains("release-summary.txt"));
         assert!(verified.contains("validation-report-summary.txt"));
@@ -3834,6 +3889,8 @@ version = "0.9.0"
         assert!(verified.contains("validation report summary checksum: 0x"));
         assert!(verified.contains("artifact summary checksum: 0x"));
         assert!(verified.contains("validation report checksum: 0x"));
+        assert!(verified.contains("manifest checksum bytes:"));
+        assert!(verified.contains("manifest checksum: 0x"));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
     }
@@ -3931,6 +3988,62 @@ version = "0.9.0"
             error.contains("release bundle verification failed")
                 || error.contains("invalid profile checksum")
                 || error.contains("missing 0x prefix")
+        );
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_manifest_file() {
+        let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-manifest");
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let manifest_path = bundle_dir.join("bundle-manifest.txt");
+        let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
+        let tampered = manifest.replace("validation rounds: 1", "validation rounds: 2");
+        std::fs::write(&manifest_path, tampered).expect("manifest should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect_err("verification should fail for a tampered manifest file");
+        assert!(
+            error.contains("release bundle verification failed")
+                || error.contains("bundle manifest checksum mismatch")
+        );
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_manifest_checksum_sidecar() {
+        let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-manifest-checksum");
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let checksum_path = bundle_dir.join("bundle-manifest.checksum.txt");
+        let tampered = "0x0000000000000000\n";
+        std::fs::write(&checksum_path, tampered).expect("manifest checksum should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect_err("verification should fail for a tampered manifest checksum sidecar");
+        assert!(
+            error.contains("release bundle verification failed")
+                || error.contains("bundle manifest checksum mismatch")
+                || error.contains("invalid bundle manifest checksum sidecar value")
         );
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
