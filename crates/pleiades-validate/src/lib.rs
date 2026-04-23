@@ -1643,6 +1643,16 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
     Ok(())
 }
 
+fn read_required_bundle_text(path: &Path, label: &str) -> Result<String, ReleaseBundleError> {
+    fs::read_to_string(path).map_err(|error| {
+        if error.kind() == std::io::ErrorKind::NotFound {
+            ReleaseBundleError::Verification(format!("missing {label} file: {}", path.display()))
+        } else {
+            ReleaseBundleError::Io(error)
+        }
+    })
+}
+
 fn verify_release_bundle(
     output_dir: impl AsRef<Path>,
 ) -> Result<ReleaseBundle, ReleaseBundleError> {
@@ -1663,21 +1673,30 @@ fn verify_release_bundle(
     let manifest_path = output_dir.join("bundle-manifest.txt");
     let manifest_checksum_path = output_dir.join("bundle-manifest.checksum.txt");
 
-    let profile_text = fs::read_to_string(&profile_path)?;
-    let profile_summary_text = fs::read_to_string(&profile_summary_path)?;
-    let release_notes_text = fs::read_to_string(&release_notes_path)?;
-    let release_summary_text = fs::read_to_string(&release_summary_path)?;
-    let release_checklist_text = fs::read_to_string(&release_checklist_path)?;
-    let release_checklist_summary_text = fs::read_to_string(&release_checklist_summary_path)?;
-    let backend_matrix_text = fs::read_to_string(&backend_matrix_path)?;
-    let backend_matrix_summary_text = fs::read_to_string(&backend_matrix_summary_path)?;
-    let api_stability_text = fs::read_to_string(&api_stability_path)?;
-    let api_stability_summary_text = fs::read_to_string(&api_stability_summary_path)?;
-    let validation_report_summary_text = fs::read_to_string(&validation_report_summary_path)?;
-    let artifact_summary_text = fs::read_to_string(&artifact_summary_path)?;
-    let validation_report_text = fs::read_to_string(&validation_report_path)?;
-    let manifest_text = fs::read_to_string(&manifest_path)?;
-    let manifest_checksum_text = fs::read_to_string(&manifest_checksum_path)?;
+    let profile_text = read_required_bundle_text(&profile_path, "compatibility profile")?;
+    let profile_summary_text =
+        read_required_bundle_text(&profile_summary_path, "compatibility profile summary")?;
+    let release_notes_text = read_required_bundle_text(&release_notes_path, "release notes")?;
+    let release_summary_text = read_required_bundle_text(&release_summary_path, "release summary")?;
+    let release_checklist_text =
+        read_required_bundle_text(&release_checklist_path, "release checklist")?;
+    let release_checklist_summary_text =
+        read_required_bundle_text(&release_checklist_summary_path, "release checklist summary")?;
+    let backend_matrix_text = read_required_bundle_text(&backend_matrix_path, "backend matrix")?;
+    let backend_matrix_summary_text =
+        read_required_bundle_text(&backend_matrix_summary_path, "backend matrix summary")?;
+    let api_stability_text = read_required_bundle_text(&api_stability_path, "API stability")?;
+    let api_stability_summary_text =
+        read_required_bundle_text(&api_stability_summary_path, "API stability summary")?;
+    let validation_report_summary_text =
+        read_required_bundle_text(&validation_report_summary_path, "validation report summary")?;
+    let artifact_summary_text =
+        read_required_bundle_text(&artifact_summary_path, "artifact summary")?;
+    let validation_report_text =
+        read_required_bundle_text(&validation_report_path, "validation report")?;
+    let manifest_text = read_required_bundle_text(&manifest_path, "bundle manifest")?;
+    let manifest_checksum_text =
+        read_required_bundle_text(&manifest_checksum_path, "bundle manifest checksum sidecar")?;
 
     let manifest = ParsedReleaseBundleManifest::parse(&manifest_text)?;
     ensure_release_bundle_directory_contents(output_dir)?;
@@ -4172,6 +4191,31 @@ version = "0.9.0"
                 || error.contains("bundle manifest checksum mismatch")
                 || error.contains("invalid bundle manifest checksum sidecar value")
         );
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_missing_manifest_checksum_sidecar() {
+        let bundle_dir = unique_temp_dir("pleiades-release-bundle-missing-manifest-checksum");
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let checksum_path = bundle_dir.join("bundle-manifest.checksum.txt");
+        std::fs::remove_file(&checksum_path)
+            .expect("manifest checksum sidecar should be removable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect_err("verification should fail for a missing manifest checksum sidecar");
+        assert!(error.contains("release bundle verification failed"));
+        assert!(error.contains("missing bundle manifest checksum sidecar file"));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
     }
