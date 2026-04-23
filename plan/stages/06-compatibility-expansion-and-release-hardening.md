@@ -45,6 +45,7 @@ This final stage should behave like a sequence of release-quality increments, no
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] The compatibility profile now also surfaces the custom-definition ayanamsa labels `True Balarama`, `Aphoric`, and `Takra` in the structured release-profile appendix, and the compatibility profile identifier has been bumped to `0.6.36` so the release artifact stays synchronized with this custom-label batch.
 - [x] The compatibility profile's source-label appendix now also surfaces the exact `Aryabhata Kaliyuga` spelling alongside the existing `Aryabhatan Kaliyuga` form, and the compatibility profile identifier has been bumped to `0.6.35` so the release artifact stays synchronized with this source-label appendix batch.
 - [x] The compatibility profile's source-label appendix now also surfaces P.V.R. Narasimha Rao, Aries houses, and True Mula (Chandra Hari) alongside the existing baseline and release-line source labels, and the compatibility profile identifier has been bumped to `0.6.34` so the release artifact stays synchronized with this source-label appendix batch.
 - [x] The compatibility profile's source-label appendix now also surfaces Fagan Bradley / Fagan-Bradley and Usha Shashi alongside the existing baseline and release-line source labels, and the compatibility profile identifier has been bumped to `0.6.33` so the release artifact stays synchronized with this source-label appendix batch.

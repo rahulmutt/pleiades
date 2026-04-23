@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Custom-definition ayanamsa labels surfaced in the release profile
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-core::CompatibilityProfile` now surfaces the custom-definition ayanamsa labels `True Balarama`, `Aphoric`, and `Takra` in the structured release-profile appendix, so those ad hoc labels are visibly separated from unresolved compatibility gaps
+- the compatibility profile identifier was bumped to `0.6.36`, and the README / Stage 6 progress notes were updated so the release-facing status text stays synchronized with the new custom-label batch
+- regression coverage now checks the new custom-definition section entries in the rendered release-profile text
+
+Remaining Stage 6 work: keep the release-facing compatibility profile, README, and validation output synchronized as additional interoperability labels land.
+
 ## 2026-04-23 — Fagan/Bradley and Usha Shashi source-label appendix widened
 
 Implemented a small Stage 6 release-hardening slice:

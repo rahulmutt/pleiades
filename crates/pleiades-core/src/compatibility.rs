@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.35";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.36";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -102,6 +102,9 @@ pub const fn current_compatibility_profile() -> CompatibilityProfile {
             "Babylonian (True Topc)",
             "Babylonian (True Obs)",
             "Babylonian (House Obs)",
+            "True Balarama",
+            "Aphoric",
+            "Takra",
         ],
         known_gaps: &[
             "Stage 4 validation against external reference data is still the next source of accuracy tightening for house formulas.",
@@ -1000,7 +1003,10 @@ mod tests {
         assert!(rendered.contains("Equal (cusp 1 = Asc) -> Equal"));
         assert!(rendered.contains("Koch house system, W. Koch -> Koch"));
         assert!(rendered.contains("Lahiri"));
-        assert!(rendered.contains("True Balarama"));
+        assert!(rendered.contains("Custom-definition labels:"));
+        assert!(rendered.contains("- True Balarama"));
+        assert!(rendered.contains("- Aphoric"));
+        assert!(rendered.contains("- Takra"));
         assert!(rendered.contains("custom definitions"));
         assert!(rendered.contains("house systems: 25 total"));
         assert!(rendered.contains("ayanamsas: 59 total"));
