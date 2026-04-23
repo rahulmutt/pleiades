@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Topocentric interoperability alias broadened
+
+Implemented a small Stage 6 compatibility-alias slice:
+
+- `pleiades-houses` now recognizes `Topocentric house system` as an interoperability alias for `Topocentric`, matching the label variant surfaced by common astrology software and documentation
+- the compatibility profile now renders that alias alongside the existing `Polich-Page` / `Polich Page` spellings, and the release notes call out the broadened topocentric interoperability mapping explicitly
+- regression coverage now checks the new alias in both the house catalog and the release-profile rendering path so the release artifact stays synchronized with the catalog
+
+Remaining Stage 6 work: keep the house-system alias map, compatibility profile, and release notes synchronized as additional interoperability labels land.
+
 ## 2026-04-23 — Motion-summary helper now appears in the API stability posture
 
 Implemented a small Stage 6 release-hardening sync slice:
