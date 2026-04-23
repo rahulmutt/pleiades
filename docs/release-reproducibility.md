@@ -43,6 +43,7 @@ The bundle currently writes these text artifacts:
 
 - `compatibility-profile.txt`
 - `release-notes.txt`
+- `release-checklist.txt`
 - `backend-matrix.txt`
 - `api-stability.txt`
 - `validation-report.txt`
@@ -60,6 +61,7 @@ The release bundle makes the current release posture easy to reproduce and audit
 
 - the compatibility profile captures shipped house systems, ayanamsas, aliases, and known gaps,
 - the release notes file summarizes release-specific coverage and known limitations,
+- the release checklist captures the repository-managed release gates and the published bundle contents,
 - the backend matrix records the implemented backend catalog and its declared coverage,
 - the API stability posture records which surfaces are stable versus operational,
 - the validation report preserves comparison and benchmark summaries,

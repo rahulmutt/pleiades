@@ -52,6 +52,7 @@ A mature release should be accompanied by:
 - source tag or versioned release commit
 - compatibility profile for that release
 - release notes derived from the published profile and release-specific coverage
+- release checklist or similar maintainer-facing release gate summary
 - capability matrix for each shipped backend
 - validation report bundle or links to archived reports
 - packaged artifact metadata and checksums when artifacts are shipped
