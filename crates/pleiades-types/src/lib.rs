@@ -324,6 +324,16 @@ pub enum Apparentness {
     Mean,
 }
 
+impl fmt::Display for Apparentness {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let label = match self {
+            Self::Apparent => "Apparent",
+            Self::Mean => "Mean",
+        };
+        f.write_str(label)
+    }
+}
+
 /// The built-in and custom body identifiers recognized by the shared API.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[non_exhaustive]

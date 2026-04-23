@@ -2,9 +2,10 @@
 //!
 //! The first chart MVP keeps the workflow intentionally small: callers provide
 //! a set of bodies, the façade queries the backend, and the result captures the
-//! body placements plus their zodiac signs. House placement can be requested
-//! explicitly for chart-aware consumers, which keeps the workflow practical
-//! without hardwiring more chart logic than the façade needs.
+//! body placements plus their zodiac signs and the apparentness mode used for
+//! the backend queries. House placement can be requested explicitly for
+//! chart-aware consumers, which keeps the workflow practical without hardwiring
+//! more chart logic than the façade needs.
 
 use core::fmt;
 
@@ -122,6 +123,8 @@ pub struct ChartSnapshot {
     pub observer: Option<ObserverLocation>,
     /// Zodiac mode used for the chart.
     pub zodiac_mode: ZodiacMode,
+    /// Apparentness used for the backend position queries.
+    pub apparentness: Apparentness,
     /// Optional house snapshot.
     pub houses: Option<HouseSnapshot>,
     /// Ordered body placements.
@@ -794,6 +797,7 @@ impl fmt::Display for ChartSnapshot {
             )?;
         }
         writeln!(f, "Zodiac mode: {:?}", self.zodiac_mode)?;
+        writeln!(f, "Apparentness: {}", self.apparentness)?;
         if let Some(houses) = &self.houses {
             let house_name = crate::house_system_descriptor(&houses.system)
                 .map(|descriptor| descriptor.canonical_name)
@@ -1108,6 +1112,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
             instant: request.instant,
             observer: request.observer.clone(),
             zodiac_mode: request.zodiac_mode.clone(),
+            apparentness: request.apparentness,
             houses,
             placements,
         })
@@ -1263,6 +1268,8 @@ mod tests {
             chart.placements[0].position.apparent,
             Apparentness::Apparent
         );
+        assert_eq!(chart.apparentness, Apparentness::Apparent);
+        assert!(chart.to_string().contains("Apparentness: Apparent"));
     }
 
     #[test]
@@ -1390,6 +1397,7 @@ mod tests {
             instant,
             observer: None,
             zodiac_mode: ZodiacMode::Tropical,
+            apparentness: Apparentness::Apparent,
             houses: None,
             placements: vec![
                 BodyPlacement {
@@ -1573,6 +1581,7 @@ mod tests {
             instant,
             observer: None,
             zodiac_mode: ZodiacMode::Tropical,
+            apparentness: Apparentness::Apparent,
             houses: None,
             placements: vec![
                 BodyPlacement {
@@ -1642,6 +1651,7 @@ mod tests {
             instant,
             observer: None,
             zodiac_mode: ZodiacMode::Tropical,
+            apparentness: Apparentness::Apparent,
             houses: None,
             placements: vec![BodyPlacement {
                 body: custom_body,

@@ -2,15 +2,16 @@
 //!
 //! The CLI now exposes the compatibility profile and a small chart report
 //! command so contributors can exercise the first end-to-end workflow without
-//! leaving the repository.
+//! leaving the repository. The chart report keeps the mean/apparent position
+//! choice explicit so report consumers can see which backend mode was used.
 
 #![forbid(unsafe_code)]
 
 use pleiades_core::{
     current_api_stability_profile, default_chart_bodies, resolve_ayanamsa, resolve_house_system,
-    Ayanamsa, CelestialBody, ChartEngine, ChartRequest, CompositeBackend, EphemerisError,
-    HouseSystem, Instant, JulianDay, Latitude, Longitude, ObserverLocation, RoutingBackend,
-    TimeScale, ZodiacMode,
+    Apparentness, Ayanamsa, CelestialBody, ChartEngine, ChartRequest, CompositeBackend,
+    EphemerisError, HouseSystem, Instant, JulianDay, Latitude, Longitude, ObserverLocation,
+    RoutingBackend, TimeScale, ZodiacMode,
 };
 use pleiades_data::PackagedDataBackend;
 use pleiades_elp::ElpBackend;
@@ -35,7 +36,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("chart") => render_chart(&args[1..]),
         Some("help") | Some("--help") | Some("-h") => Ok(format!(
-            "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  backend-matrix         Print the implemented backend capability matrices\n  capability-matrix      Alias for backend-matrix\n  chart                  Render a basic chart report\n  help                   Show this help text",
+            "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  backend-matrix         Print the implemented backend capability matrices\n  capability-matrix      Alias for backend-matrix\n  chart                  Render a basic chart report\n    --mean               Force mean positions for backend queries\n    --apparent           Force apparent positions for backend queries\n  help                   Show this help text",
             banner()
         )),
         _ => Ok(banner().to_string()),
@@ -48,6 +49,8 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
     let mut lon: Option<f64> = None;
     let mut bodies: Vec<CelestialBody> = Vec::new();
     let mut zodiac_mode = ZodiacMode::Tropical;
+    let mut apparentness = Apparentness::Mean;
+    let mut apparentness_explicit = false;
     let mut house_system: Option<HouseSystem> = None;
 
     let mut iter = args.iter().copied();
@@ -57,6 +60,20 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
             "--lat" => lat = Some(parse_f64(iter.next(), "--lat")?),
             "--lon" => lon = Some(parse_f64(iter.next(), "--lon")?),
             "--body" => bodies.push(parse_body(iter.next())?),
+            "--mean" => {
+                if apparentness_explicit && apparentness != Apparentness::Mean {
+                    return Err("conflicting apparentness flags: --mean and --apparent".to_string());
+                }
+                apparentness = Apparentness::Mean;
+                apparentness_explicit = true;
+            }
+            "--apparent" => {
+                if apparentness_explicit && apparentness != Apparentness::Apparent {
+                    return Err("conflicting apparentness flags: --mean and --apparent".to_string());
+                }
+                apparentness = Apparentness::Apparent;
+                apparentness_explicit = true;
+            }
             "--ayanamsa" => {
                 let label = iter
                     .next()
@@ -73,7 +90,7 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
             }
             "--help" | "-h" => {
                 return Ok(format!(
-                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--ayanamsa <name>] [--house-system <name>] [--body <name> ...]",
+                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--mean|--apparent] [--ayanamsa <name>] [--house-system <name>] [--body <name> ...]",
                     banner()
                 ));
             }
@@ -108,7 +125,8 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
     let engine = ChartEngine::new(backend);
     let mut request = ChartRequest::new(instant)
         .with_bodies(bodies)
-        .with_zodiac_mode(zodiac_mode);
+        .with_zodiac_mode(zodiac_mode)
+        .with_apparentness(apparentness);
     if let Some(observer) = observer {
         request = request.with_observer(observer);
     }
@@ -245,7 +263,15 @@ mod tests {
         assert!(rendered.contains("Backend:"));
         assert!(rendered.contains("Sun"));
         assert!(rendered.contains("Moon"));
+        assert!(rendered.contains("Apparentness: Mean"));
         assert!(rendered.contains("Sign summary:"));
+    }
+
+    #[test]
+    fn chart_command_can_force_apparent_positions() {
+        let rendered = render_chart(&["--jd", "2451545.0", "--apparent", "--body", "Sun"])
+            .expect("chart should render");
+        assert!(rendered.contains("Apparentness: Apparent"));
     }
 
     #[test]

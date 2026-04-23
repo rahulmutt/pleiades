@@ -45,11 +45,12 @@ impl ApiStabilityProfile {
 pub const fn current_api_stability_profile() -> ApiStabilityProfile {
     ApiStabilityProfile {
         profile_id: CURRENT_API_STABILITY_PROFILE_ID,
-        summary: "The stable consumer surface is the shared domain model, backend contract, and chart/compatibility façade; validation and release-tooling formats are documented but still allowed to evolve as hardening continues. ChartSnapshot's direct, stationary, unknown-motion, retrograde, sign summary, house summary, motion summary, and aspect summary helpers, plus the generic motion-direction placement filter, are part of that stable chart surface.",
+        summary: "The stable consumer surface is the shared domain model, backend contract, and chart/compatibility façade; validation and release-tooling formats are documented but still allowed to evolve as hardening continues. ChartSnapshot's apparentness, direct, stationary, unknown-motion, retrograde, sign summary, house summary, motion summary, and aspect summary helpers, plus the generic motion-direction placement filter, are part of that stable chart surface.",
         stable_surfaces: &[
             "pleiades-types defines the stable units, identifiers, and request/response primitives.",
             "pleiades-backend's EphemerisBackend trait and metadata model are the primary backend-facing contract.",
             "pleiades-core's ChartEngine, ChartRequest, ChartSnapshot, and compatibility-profile helpers are the stable façade used by consumers.",
+            "ChartSnapshot exposes the apparentness used for backend position queries so mean/apparent chart mode stays explicit in reports and downstream consumers.",
             "ChartSnapshot body-placement helpers include direct lookup, sign lookup, house lookup, sign-scoped iteration, house-scoped iteration, motion-direction classification, direct, stationary, unknown-motion, and retrograde placement helpers, the placements_with_motion_direction filter, sign summaries, house summaries, motion summaries, aspect summaries, retrograde summaries, and aspect helpers for backend motion data when present.",
             "House-system and ayanamsa resolution helpers are stable lookup surfaces for built-ins and custom entries.",
         ],
@@ -134,6 +135,7 @@ mod tests {
         assert!(profile.summary.contains("sign summary"));
         assert!(profile.summary.contains("house summary"));
         assert!(profile.summary.contains("motion summary"));
+        assert!(profile.summary.contains("apparentness"));
         assert!(profile
             .summary
             .contains("motion-direction placement filter"));

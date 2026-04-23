@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Chart reports now surface apparentness mode explicitly
+
+Implemented a small Stage 6 chart-ergonomics slice:
+
+- `pleiades-core::ChartSnapshot` now stores the apparentness mode used for backend position queries, and the chart display/report text renders that mode explicitly so consumers can see whether mean or apparent positions were requested
+- `pleiades-cli chart` now accepts `--mean` / `--apparent` flags to choose the backend position mode, and the chart report output reflects the selected mode directly
+- the API stability posture, README status notes, and Stage 6 progress notes were updated so the release-facing documentation stays synchronized with the explicit apparentness selection surface
+
+Remaining Stage 6 work: keep the chart helper surface, CLI ergonomics, and compatibility profile synchronized as further release-hardening slices land.
+
 ## 2026-04-23 — Release bundle manifest now records the Rust compiler version
 
 Implemented a small Stage 6 release-hardening slice:

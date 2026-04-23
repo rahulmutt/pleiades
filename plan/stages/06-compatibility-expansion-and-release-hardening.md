@@ -108,6 +108,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] The CLI chart workflow now routes selected asteroid bodies through the JPL snapshot fallback at supported comparison epochs, so the release-line composite backend can exercise the stage-4 asteroid coverage without changing the primary packaged/chart path.
 - [x] The backend routing layer now supports an n-provider prioritized router, and the CLI chart path uses it to compose packaged, algorithmic, and reference-data backends without nesting binary composites.
 - [x] The chart request façade now makes apparent-versus-mean selection explicit so callers can opt into backend position queries without the chart layer hiding that assumption.
+- [x] Chart snapshots and CLI chart reports now surface the selected apparentness mode, and the CLI accepts `--mean` / `--apparent` so report consumers can see and request the backend position mode directly.
 - [x] The validation CLI help text now documents the `generate-report` alias alongside `report`, keeping the release tooling and command-line documentation aligned.
 - [x] Babylonian (Huber), Galactic Center (Cochrane), Galactic Equator (IAU 1958), True Pushya, Djwhal Khul, Sheoran, and Valens Moon now carry explicit sidereal-offset reference metadata, and the compatibility profile notes them as exceptions to the broader ayanamsa-metadata gap.
 - [x] Suryasiddhanta (Revati) and Suryasiddhanta (Citra) now carry explicit zero-point epoch metadata too, narrowing the remaining ayanamsa-metadata gap for the reference-frame compatibility batch.
