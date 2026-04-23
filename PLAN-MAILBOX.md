@@ -1,5 +1,16 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — ChartSnapshot motion summary helper added
+
+Implemented a small Stage 6 chart-ergonomics slice:
+
+- `pleiades-core::ChartSnapshot` now exposes a `motion_summary` helper that counts direct, stationary, retrograde, and unknown placements in one pass
+- chart rendering now emits a concise motion summary before the retrograde-body list when motion data is available, so user-facing chart output can report motion mix without rescanning placements manually
+- regression coverage now asserts the summary counts and the rendered motion-summary line alongside the existing retrograde/direct helper checks
+- the README and Stage 6 progress notes should be updated to mention the new motion-summary helper surface explicitly
+
+Remaining Stage 6 work: keep the release-facing chart helpers, catalog breadth, and compatibility profile synchronized as the release hardening work continues.
+
 ## 2026-04-23 — Release bundle now ships release notes
 
 Implemented a small Stage 6 release-hardening slice:

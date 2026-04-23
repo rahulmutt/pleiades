@@ -217,6 +217,22 @@ impl ChartSnapshot {
         self.placements_with_motion_direction(MotionDirection::Direct)
     }
 
+    /// Returns a summary of the chart's motion-direction classifications.
+    pub fn motion_summary(&self) -> MotionSummary {
+        let mut summary = MotionSummary::default();
+
+        for placement in &self.placements {
+            match placement.motion_direction() {
+                Some(MotionDirection::Direct) => summary.direct += 1,
+                Some(MotionDirection::Stationary) => summary.stationary += 1,
+                Some(MotionDirection::Retrograde) => summary.retrograde += 1,
+                None => summary.unknown += 1,
+            }
+        }
+
+        summary
+    }
+
     /// Returns the major aspects found in the chart using the built-in orb defaults.
     pub fn major_aspects(&self) -> Vec<AspectMatch> {
         self.aspects_with_definitions(default_aspect_definitions())
@@ -269,6 +285,26 @@ impl BodyPlacement {
     /// Returns the coarse direction of longitudinal motion when the backend supplied motion data.
     pub fn motion_direction(&self) -> Option<MotionDirection> {
         self.position.motion.as_ref()?.longitude_direction()
+    }
+}
+
+/// A summary of motion-direction classifications in a chart snapshot.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct MotionSummary {
+    /// Placements classified as direct.
+    pub direct: usize,
+    /// Placements classified as stationary.
+    pub stationary: usize,
+    /// Placements classified as retrograde.
+    pub retrograde: usize,
+    /// Placements without enough motion data to classify.
+    pub unknown: usize,
+}
+
+impl MotionSummary {
+    /// Returns `true` when the snapshot contains at least one known motion classification.
+    pub fn has_known_motion(self) -> bool {
+        self.direct + self.stationary + self.retrograde > 0
     }
 }
 
@@ -403,6 +439,18 @@ impl fmt::Display for ChartSnapshot {
                 f,
                 "  - {:<12} {:>9}  {:<10}  {:>3}  {:<10}  {:?}",
                 placement.body, longitude, sign, house, motion, placement.position.quality,
+            )?;
+        }
+
+        let motion_summary = self.motion_summary();
+        if motion_summary.has_known_motion() || motion_summary.unknown > 0 {
+            writeln!(
+                f,
+                "Motion summary: {} direct, {} stationary, {} retrograde, {} unknown",
+                motion_summary.direct,
+                motion_summary.stationary,
+                motion_summary.retrograde,
+                motion_summary.unknown,
             )?;
         }
 
@@ -923,6 +971,15 @@ mod tests {
         assert!(chart.placements_in_house(12).next().is_none());
         assert_eq!(chart.retrograde_placements().count(), 1);
         assert_eq!(
+            chart.motion_summary(),
+            MotionSummary {
+                direct: 1,
+                stationary: 0,
+                retrograde: 1,
+                unknown: 0,
+            }
+        );
+        assert_eq!(
             chart
                 .placements_with_motion_direction(MotionDirection::Direct)
                 .map(|placement| placement.body.clone())
@@ -936,7 +993,11 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec![CelestialBody::Sun]
         );
-        assert!(chart.to_string().contains("Retrograde bodies: Mars"));
+        let rendered = chart.to_string();
+        assert!(
+            rendered.contains("Motion summary: 1 direct, 0 stationary, 1 retrograde, 0 unknown")
+        );
+        assert!(rendered.contains("Retrograde bodies: Mars"));
     }
 
     #[test]

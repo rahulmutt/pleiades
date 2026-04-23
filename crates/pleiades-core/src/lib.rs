@@ -75,7 +75,7 @@ mod compatibility;
 pub use api_stability::{current_api_stability_profile, ApiStabilityProfile};
 pub use chart::{
     default_chart_bodies, sidereal_longitude, AspectDefinition, AspectKind, AspectMatch,
-    BodyPlacement, ChartRequest, ChartSnapshot,
+    BodyPlacement, ChartRequest, ChartSnapshot, MotionSummary,
 };
 pub use compatibility::{current_compatibility_profile, CompatibilityProfile};
 pub use pleiades_ayanamsa::{
