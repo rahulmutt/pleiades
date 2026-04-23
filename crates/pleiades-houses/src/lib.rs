@@ -92,14 +92,14 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
     HouseSystemDescriptor::new(
         HouseSystem::Placidus,
         "Placidus",
-        &["Placidus house system"],
+        &["Placidus house system", "Placidus table of houses"],
         "Quadrant system; can fail or become unstable at extreme latitudes.",
         true,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Koch,
         "Koch",
-        &["W. Koch", "W Koch"],
+        &["Koch house system", "Koch table of houses", "W. Koch", "W Koch"],
         "Quadrant system with documented high-latitude pathologies.",
         true,
     ),
@@ -361,14 +361,14 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
     HouseSystemDescriptor::new(
         HouseSystem::Placidus,
         "Placidus",
-        &["Placidus house system"],
+        &["Placidus house system", "Placidus table of houses"],
         "Quadrant system; can fail or become unstable at extreme latitudes.",
         true,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Koch,
         "Koch",
-        &["W. Koch", "W Koch"],
+        &["Koch house system", "Koch table of houses", "W. Koch", "W Koch"],
         "Quadrant system with documented high-latitude pathologies.",
         true,
     ),
@@ -774,6 +774,14 @@ mod tests {
         assert_eq!(
             resolve_house_system("Whole Sign system"),
             Some(HouseSystem::WholeSign)
+        );
+        assert_eq!(
+            resolve_house_system("Placidus table of houses"),
+            Some(HouseSystem::Placidus)
+        );
+        assert_eq!(
+            resolve_house_system("Koch table of houses"),
+            Some(HouseSystem::Koch)
         );
         assert_eq!(resolve_house_system("w. koch"), Some(HouseSystem::Koch));
         assert_eq!(resolve_house_system("W Koch"), Some(HouseSystem::Koch));
