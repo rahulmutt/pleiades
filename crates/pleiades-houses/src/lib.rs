@@ -730,6 +730,7 @@ fn resolve_house_system_code(label: &str) -> Option<HouseSystem> {
         "R" | "r" => Some(HouseSystem::Regiomontanus),
         "C" | "c" => Some(HouseSystem::Campanus),
         "O" | "o" => Some(HouseSystem::Porphyry),
+        "D" | "d" => Some(HouseSystem::EqualMidheaven),
         "E" | "e" => Some(HouseSystem::Equal),
         "W" | "w" => Some(HouseSystem::WholeSign),
         "V" | "v" => Some(HouseSystem::Vehlow),
@@ -908,6 +909,7 @@ mod tests {
             resolve_house_system("Meridian house system"),
             Some(HouseSystem::Meridian)
         );
+        assert_eq!(resolve_house_system("D"), Some(HouseSystem::EqualMidheaven));
         assert_eq!(resolve_house_system("A equal"), Some(HouseSystem::Equal));
         assert_eq!(
             resolve_house_system("D equal / MC"),
