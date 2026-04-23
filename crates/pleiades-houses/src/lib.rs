@@ -654,19 +654,19 @@ mod tests {
         );
         assert_eq!(resolve_house_system("w. koch"), Some(HouseSystem::Koch));
         assert_eq!(resolve_house_system("P"), Some(HouseSystem::Placidus));
-        assert_eq!(resolve_house_system("k"), Some(HouseSystem::Koch));
-        assert_eq!(resolve_house_system("r"), Some(HouseSystem::Regiomontanus));
-        assert_eq!(resolve_house_system("c"), Some(HouseSystem::Campanus));
-        assert_eq!(resolve_house_system("o"), Some(HouseSystem::Porphyry));
-        assert_eq!(resolve_house_system("e"), Some(HouseSystem::Equal));
-        assert_eq!(resolve_house_system("w"), Some(HouseSystem::WholeSign));
-        assert_eq!(resolve_house_system("v"), Some(HouseSystem::Vehlow));
-        assert_eq!(resolve_house_system("a"), Some(HouseSystem::Axial));
-        assert_eq!(resolve_house_system("h"), Some(HouseSystem::Horizon));
-        assert_eq!(resolve_house_system("b"), Some(HouseSystem::Alcabitius));
-        assert_eq!(resolve_house_system("m"), Some(HouseSystem::Morinus));
-        assert_eq!(resolve_house_system("s"), Some(HouseSystem::Sunshine));
-        assert_eq!(resolve_house_system("g"), Some(HouseSystem::Gauquelin));
+        assert_eq!(resolve_house_system("K"), Some(HouseSystem::Koch));
+        assert_eq!(resolve_house_system("R"), Some(HouseSystem::Regiomontanus));
+        assert_eq!(resolve_house_system("C"), Some(HouseSystem::Campanus));
+        assert_eq!(resolve_house_system("O"), Some(HouseSystem::Porphyry));
+        assert_eq!(resolve_house_system("E"), Some(HouseSystem::Equal));
+        assert_eq!(resolve_house_system("W"), Some(HouseSystem::WholeSign));
+        assert_eq!(resolve_house_system("V"), Some(HouseSystem::Vehlow));
+        assert_eq!(resolve_house_system("A"), Some(HouseSystem::Axial));
+        assert_eq!(resolve_house_system("H"), Some(HouseSystem::Horizon));
+        assert_eq!(resolve_house_system("B"), Some(HouseSystem::Alcabitius));
+        assert_eq!(resolve_house_system("M"), Some(HouseSystem::Morinus));
+        assert_eq!(resolve_house_system("S"), Some(HouseSystem::Sunshine));
+        assert_eq!(resolve_house_system("G"), Some(HouseSystem::Gauquelin));
         assert_eq!(resolve_house_system("Carter"), Some(HouseSystem::Carter));
         assert_eq!(
             resolve_house_system("Equal (from MC)"),

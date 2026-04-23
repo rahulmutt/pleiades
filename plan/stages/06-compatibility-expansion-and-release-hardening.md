@@ -46,6 +46,7 @@ This final stage should behave like a sequence of release-quality increments, no
 Stage 6 release hardening has started as of 2026-04-22.
 
 - [x] `pleiades-validate` now also ships a compact `api-stability-summary.txt` bundle artifact and matching `api-stability-summary` CLI command, so maintainers can inspect the API posture quickly alongside the existing compatibility-profile and backend-matrix summaries.
+- [x] `pleiades-houses` now keeps the Swiss Ephemeris house-system table-code aliases covered by tests for the published `P/K/R/C/O/E/W/V/A/H/B/M/S/G` mapping, so the compact interoperability path stays guarded when the resolver table changes.
 - [x] `pleiades-houses::resolve_house_system` now accepts the Swiss Ephemeris house-system code spellings `P`, `K`, `R`, `C`, `O`, `E`, `W`, `V`, `A`, `H`, `B`, `M`, `S`, and `G` alongside the existing textual aliases, so interoperability tables can use the compact source codes directly.
 - [x] Release-bundle verification now also rejects tampered primary release artifact files (`compatibility-profile.txt`, `release-checklist.txt`, `backend-matrix.txt`, `api-stability.txt`, and `validation-report.txt`), rounding out the file-level regression coverage for the staged release bundle.
 - [x] Release-bundle verification now also rejects unexpected extra files in the staged bundle directory, so the manifest verifier checks the release artifact layout as well as the recorded checksums.
