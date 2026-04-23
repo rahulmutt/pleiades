@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Aspect-summary helper added to the chart façade
+
+Implemented a small Stage 6 chart-ergonomics slice:
+
+- `pleiades-core::ChartSnapshot` now exposes a major-aspect summary helper that counts the built-in aspect families in one pass, so chart consumers can summarize major-aspect coverage without rescanning the aspect list manually
+- chart rendering now emits an `Aspect summary:` line ahead of the aspect list when major aspect matches are present, keeping the report output aligned with the new helper
+- regression coverage now exercises the summary counts and the rendered report text, and the API stability posture / Stage 6 progress notes should mention the new aspect-summary surface explicitly
+
+Remaining Stage 6 work: keep the release-facing chart helpers, catalog breadth, and compatibility profile synchronized as the release hardening work continues.
+
 ## 2026-04-23 — House-summary helper added to the chart façade
 
 Implemented a small Stage 6 chart-ergonomics slice:

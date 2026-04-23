@@ -235,6 +235,7 @@ mod tests {
     fn chart_command_renders_aspect_information() {
         let rendered = render_chart(&["--jd", "2451545.0", "--body", "Sun", "--body", "Moon"])
             .expect("chart should render");
+        assert!(rendered.contains("Aspect summary: 1 Sextile"));
         assert!(rendered.contains("Aspects:"));
         assert!(rendered.contains("Sun Sextile Moon"));
     }

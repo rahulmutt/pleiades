@@ -277,6 +277,11 @@ impl ChartSnapshot {
         summary
     }
 
+    /// Returns a summary of the major aspects found in the chart.
+    pub fn aspect_summary(&self) -> AspectSummary {
+        AspectSummary::from_matches(&self.major_aspects())
+    }
+
     /// Returns the major aspects found in the chart using the built-in orb defaults.
     pub fn major_aspects(&self) -> Vec<AspectMatch> {
         self.aspects_with_definitions(default_aspect_definitions())
@@ -564,6 +569,76 @@ impl MotionSummary {
     }
 }
 
+/// A summary of major aspect matches in a chart snapshot.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct AspectSummary {
+    /// Placements matched by conjunction.
+    pub conjunction: usize,
+    /// Placements matched by sextile.
+    pub sextile: usize,
+    /// Placements matched by square.
+    pub square: usize,
+    /// Placements matched by trine.
+    pub trine: usize,
+    /// Placements matched by opposition.
+    pub opposition: usize,
+}
+
+impl AspectSummary {
+    fn from_matches(matches: &[AspectMatch]) -> Self {
+        let mut summary = Self::default();
+
+        for aspect in matches {
+            summary.increment(aspect.kind);
+        }
+
+        summary
+    }
+
+    fn increment(&mut self, kind: AspectKind) {
+        match kind {
+            AspectKind::Conjunction => self.conjunction += 1,
+            AspectKind::Sextile => self.sextile += 1,
+            AspectKind::Square => self.square += 1,
+            AspectKind::Trine => self.trine += 1,
+            AspectKind::Opposition => self.opposition += 1,
+        }
+    }
+
+    /// Returns `true` when the snapshot contains at least one major aspect match.
+    pub fn has_known_aspects(self) -> bool {
+        self.conjunction + self.sextile + self.square + self.trine + self.opposition > 0
+    }
+}
+
+impl fmt::Display for AspectSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut wrote_any = false;
+        for (count, aspect) in [
+            (self.conjunction, AspectKind::Conjunction),
+            (self.sextile, AspectKind::Sextile),
+            (self.square, AspectKind::Square),
+            (self.trine, AspectKind::Trine),
+            (self.opposition, AspectKind::Opposition),
+        ] {
+            if count == 0 {
+                continue;
+            }
+            if wrote_any {
+                f.write_str(", ")?;
+            }
+            wrote_any = true;
+            write!(f, "{} {}", count, aspect)?;
+        }
+
+        if !wrote_any {
+            f.write_str("no major aspects")?;
+        }
+
+        Ok(())
+    }
+}
+
 /// A major aspect family in the chart façade.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum AspectKind {
@@ -749,6 +824,10 @@ impl fmt::Display for ChartSnapshot {
         }
 
         let aspects = self.major_aspects();
+        let aspect_summary = AspectSummary::from_matches(&aspects);
+        if aspect_summary.has_known_aspects() {
+            writeln!(f, "Aspect summary: {}", aspect_summary)?;
+        }
         if !aspects.is_empty() {
             writeln!(f, "Aspects:")?;
             for aspect in aspects {
@@ -1456,8 +1535,20 @@ mod tests {
         assert_eq!(aspect.kind, AspectKind::Sextile);
         assert_eq!(aspect.separation, Angle::from_degrees(60.0));
         assert_eq!(aspect.orb, Angle::from_degrees(0.0));
-        assert!(chart.to_string().contains("Aspects:"));
-        assert!(chart.to_string().contains("Sun Sextile Moon"));
+        assert_eq!(
+            chart.aspect_summary(),
+            AspectSummary {
+                conjunction: 0,
+                sextile: 1,
+                square: 0,
+                trine: 0,
+                opposition: 0,
+            }
+        );
+        let rendered = chart.to_string();
+        assert!(rendered.contains("Aspect summary: 1 Sextile"));
+        assert!(rendered.contains("Aspects:"));
+        assert!(rendered.contains("Sun Sextile Moon"));
     }
 
     #[test]
