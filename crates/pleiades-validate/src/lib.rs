@@ -4158,6 +4158,15 @@ version = "0.9.0"
     }
 
     #[test]
+    fn verify_release_bundle_rejects_tampered_artifact_summary_file() {
+        assert_release_bundle_rejects_tampered_text_file(
+            "pleiades-release-bundle-tampered-artifact-summary",
+            "artifact-summary.txt",
+            "artifact summary checksum mismatch",
+        );
+    }
+
+    #[test]
     fn verify_release_bundle_rejects_tampered_api_stability_summary_file() {
         let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-api-summary");
         let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
