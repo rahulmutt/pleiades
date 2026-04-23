@@ -49,6 +49,8 @@ The bundle currently writes these text artifacts:
 - `validation-report.txt`
 - `bundle-manifest.txt`
 
+The generated `release-checklist.txt` now also embeds the canonical `bundle-release` and `verify-release-bundle` commands plus a pointer back to this guide, so the bundle stays self-describing for maintainers.
+
 Verify the staged bundle with:
 
 ```bash

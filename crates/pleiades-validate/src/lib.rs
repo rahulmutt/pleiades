@@ -842,6 +842,17 @@ fn render_release_checklist_text() -> String {
         text.push('\n');
     }
     text.push('\n');
+    text.push_str("Manual bundle workflow:\n");
+    for item in [
+        "[x] cargo run -q -p pleiades-validate -- bundle-release --out /tmp/pleiades-release",
+        "[x] cargo run -q -p pleiades-validate -- verify-release-bundle --out /tmp/pleiades-release",
+        "[x] docs/release-reproducibility.md",
+    ] {
+        text.push_str("- ");
+        text.push_str(item);
+        text.push('\n');
+    }
+    text.push('\n');
     text.push_str("Bundle contents:\n");
     for item in [
         "[x] compatibility-profile.txt",
@@ -2121,6 +2132,10 @@ version = "0.9.0"
         assert!(release_notes.contains("Release-specific coverage:"));
         assert!(release_notes.contains("Known gaps:"));
         assert!(release_checklist.contains("Release checklist"));
+        assert!(release_checklist.contains("Manual bundle workflow:"));
+        assert!(release_checklist.contains("bundle-release --out /tmp/pleiades-release"));
+        assert!(release_checklist.contains("verify-release-bundle --out /tmp/pleiades-release"));
+        assert!(release_checklist.contains("docs/release-reproducibility.md"));
         assert!(release_checklist.contains("Bundle contents:"));
         assert!(backend_matrix.contains("Implemented backend matrices"));
         assert!(backend_matrix.contains("JPL snapshot reference backend"));
