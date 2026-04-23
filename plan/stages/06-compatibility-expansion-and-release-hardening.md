@@ -46,6 +46,7 @@ This final stage should behave like a sequence of release-quality increments, no
 Stage 6 release hardening has started as of 2026-04-22.
 
 - [x] `pleiades-validate` now also ships a compact `api-stability-summary.txt` bundle artifact and matching `api-stability-summary` CLI command, so maintainers can inspect the API posture quickly alongside the existing compatibility-profile and backend-matrix summaries.
+- [x] Release-bundle verification now also rejects tampered primary release artifact files (`compatibility-profile.txt`, `release-checklist.txt`, `backend-matrix.txt`, `api-stability.txt`, and `validation-report.txt`), rounding out the file-level regression coverage for the staged release bundle.
 - [x] Release-bundle verification now also rejects unexpected extra files in the staged bundle directory, so the manifest verifier checks the release artifact layout as well as the recorded checksums.
 - [x] The compatibility profile identifier has been bumped to `0.6.47`, and the release-facing source-label appendix now also accepts `Sri Yukteshwar` alongside the existing Shri Yukteswar / Shri Yukteshwar forms, keeping the broad transliteration batch synchronized across the profile, README, and resolver coverage.
 - [x] The Krusinski-Pisa-Goelzer house-system family now also accepts the `Krusinski/Pisa/Goelzer` and `Krusinski/Pisa/Goelzer house system` interoperability spellings, and the compatibility profile surfaces the same labels in its source-label appendix so the release-facing house alias batch stays searchable.

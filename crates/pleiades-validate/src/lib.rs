@@ -2542,6 +2542,40 @@ mod tests {
         path
     }
 
+    fn assert_release_bundle_rejects_tampered_text_file(
+        bundle_dir_prefix: &str,
+        file_name: &str,
+        expected_fragment: &str,
+    ) {
+        let bundle_dir = unique_temp_dir(bundle_dir_prefix);
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let file_path = bundle_dir.join(file_name);
+        let mut text = std::fs::read_to_string(&file_path)
+            .unwrap_or_else(|error| panic!("{file_name} should exist: {error}"));
+        text.push_str("\nTampered for regression coverage.\n");
+        std::fs::write(&file_path, text)
+            .unwrap_or_else(|error| panic!("{file_name} should be writable: {error}"));
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect_err("verification should fail for a tampered release bundle file");
+        assert!(
+            error.contains("release bundle verification failed")
+                || error.contains(expected_fragment),
+            "unexpected error: {error}"
+        );
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
     fn assert_release_bundle_rejects_missing_manifest_entry(
         bundle_dir_prefix: &str,
         manifest_line_prefix: &str,
@@ -3355,6 +3389,51 @@ version = "0.9.0"
         );
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_compatibility_profile_file() {
+        assert_release_bundle_rejects_tampered_text_file(
+            "pleiades-release-bundle-tampered-profile",
+            "compatibility-profile.txt",
+            "compatibility profile checksum mismatch",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_release_checklist_file() {
+        assert_release_bundle_rejects_tampered_text_file(
+            "pleiades-release-bundle-tampered-checklist",
+            "release-checklist.txt",
+            "release checklist checksum mismatch",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_backend_matrix_file() {
+        assert_release_bundle_rejects_tampered_text_file(
+            "pleiades-release-bundle-tampered-matrix",
+            "backend-matrix.txt",
+            "backend matrix checksum mismatch",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_api_stability_file() {
+        assert_release_bundle_rejects_tampered_text_file(
+            "pleiades-release-bundle-tampered-api-stability",
+            "api-stability.txt",
+            "API stability checksum mismatch",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_validation_report_file() {
+        assert_release_bundle_rejects_tampered_text_file(
+            "pleiades-release-bundle-tampered-validation-report",
+            "validation-report.txt",
+            "validation report checksum mismatch",
+        );
     }
 
     #[test]
