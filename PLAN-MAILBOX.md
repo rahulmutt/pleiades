@@ -1,5 +1,26 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Backend matrix summary slice landed
+
+Implemented the compact backend-matrix release-hardening slice that was previously queued in this mailbox:
+
+- `pleiades-validate` now has regression coverage for tampering with `backend-matrix-summary.txt`, so the new compact audit artifact is protected by the staged bundle verifier just like the other release files
+- the Stage 6 progress notes were updated to record the checksum-coverage regression, and the release-reproducibility docs / README remain synchronized with the backend-matrix summary artifact
+- no spec change was needed; this stays within the existing release-artifact and reproducibility scope
+
+Remaining Stage 6 work: keep the release bundle outputs and release-facing docs synchronized as any further release-hardening slices land.
+
+## 2026-04-23 — Backend capability matrices need a compact release-summary artifact
+
+I found a small Stage 6 release-hardening improvement worth tracking in the plan/docs while implementing the next slice:
+
+- the release bundle already carries the full backend capability matrix, but maintainers would benefit from a compact `backend-matrix-summary.txt` artifact and matching CLI command, similar to the existing compatibility-profile summary
+- the new summary would stay within the current release-artifact/reproducibility scope, but it introduces a new staged output that should be reflected in the plan progress notes and release-reproducibility docs
+- no spec change seems necessary; this looks like a release-hardening convenience artifact rather than a new capability boundary
+
+Remaining Stage 6 work: keep the release bundle outputs and release-facing docs synchronized if the backend-matrix summary slice lands.
+
+
 ## 2026-04-23 — Surya Siddhanta 499 spellings now resolve through the release profile
 
 Implemented a small Stage 6 release-hardening compatibility slice:

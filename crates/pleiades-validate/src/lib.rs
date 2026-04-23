@@ -2679,6 +2679,7 @@ mod tests {
         assert!(rendered.contains("Repository-managed release gates:"));
         assert!(rendered.contains("Manual bundle workflow:"));
         assert!(rendered.contains("Bundle contents:"));
+        assert!(rendered.contains("backend-matrix-summary.txt"));
     }
 
     #[test]
@@ -3078,6 +3079,35 @@ version = "0.9.0"
         assert!(
             error.contains("release bundle verification failed")
                 || error.contains("release notes checksum mismatch")
+        );
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_backend_matrix_summary_file() {
+        let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-matrix-summary");
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let summary_path = bundle_dir.join("backend-matrix-summary.txt");
+        let summary =
+            std::fs::read_to_string(&summary_path).expect("backend matrix summary should exist");
+        let tampered = summary.replace("Backend matrix summary", "Tampered backend matrix summary");
+        std::fs::write(&summary_path, tampered).expect("backend matrix summary should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect_err("verification should fail for a tampered backend matrix summary");
+        assert!(
+            error.contains("release bundle verification failed")
+                || error.contains("backend matrix summary checksum mismatch")
         );
 
         let _ = std::fs::remove_dir_all(&bundle_dir);

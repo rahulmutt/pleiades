@@ -45,6 +45,7 @@ The validation tool can also render the compact profile summary, release notes, 
 cargo run -q -p pleiades-validate -- compatibility-profile-summary
 cargo run -q -p pleiades-validate -- release-notes
 cargo run -q -p pleiades-validate -- release-checklist
+cargo run -q -p pleiades-validate -- backend-matrix-summary
 ```
 
 The bundle currently writes these text artifacts:
@@ -54,6 +55,7 @@ The bundle currently writes these text artifacts:
 - `release-notes.txt`
 - `release-checklist.txt`
 - `backend-matrix.txt`
+- `backend-matrix-summary.txt`
 - `api-stability.txt`
 - `validation-report.txt`
 - `bundle-manifest.txt` (includes the recorded source revision, workspace status, Rust compiler version, profile/API identifiers, and validation-round count)
@@ -74,7 +76,7 @@ The release bundle makes the current release posture easy to reproduce and audit
 - the compatibility profile summary gives a compact count-based view of the same release posture,
 - the release notes file summarizes release-specific coverage, known limitations, and the current API stability / deprecation-policy snapshot,
 - the release checklist captures the repository-managed release gates and the published bundle contents,
-- the backend matrix records the implemented backend catalog and its declared coverage,
+- the backend matrix records the implemented backend catalog and its declared coverage, and the backend-matrix summary provides a compact count-based audit view for maintainers,
 - the bundle manifest records the source revision, workspace status, Rust compiler version, profile/API identifiers, and validation-round count alongside deterministic checksums,
 - the API stability posture records which surfaces are stable versus operational,
 - the validation report preserves comparison and benchmark summaries,
