@@ -1844,11 +1844,23 @@ fn parse_manifest_checksum(text: &str, prefix: &str) -> Result<u64, ReleaseBundl
 }
 
 fn extract_prefixed_value<'a>(text: &'a str, prefix: &str) -> Result<&'a str, ReleaseBundleError> {
-    text.lines()
-        .find_map(|line| line.strip_prefix(prefix).map(str::trim))
-        .ok_or_else(|| {
-            ReleaseBundleError::Verification(format!("missing manifest entry: {prefix}"))
-        })
+    let mut matches = text
+        .lines()
+        .filter_map(|line| line.strip_prefix(prefix).map(str::trim));
+
+    let Some(value) = matches.next() else {
+        return Err(ReleaseBundleError::Verification(format!(
+            "missing manifest entry: {prefix}"
+        )));
+    };
+
+    if matches.next().is_some() {
+        return Err(ReleaseBundleError::Verification(format!(
+            "duplicate entry: {prefix}"
+        )));
+    }
+
+    Ok(value)
 }
 
 fn workspace_root() -> PathBuf {
@@ -3160,6 +3172,45 @@ mod tests {
         let _ = std::fs::remove_dir_all(&bundle_dir);
     }
 
+    fn assert_release_bundle_rejects_duplicate_manifest_entry(
+        bundle_dir_prefix: &str,
+        manifest_line_prefix: &str,
+        expected_fragments: &[&str],
+    ) {
+        let bundle_dir = unique_temp_dir(bundle_dir_prefix);
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let manifest_path = bundle_dir.join("bundle-manifest.txt");
+        let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
+        let duplicate_line = manifest
+            .lines()
+            .find(|line| line.starts_with(manifest_line_prefix))
+            .unwrap_or_else(|| panic!("{manifest_line_prefix} should exist"));
+        let mut lines = manifest.lines().map(str::to_owned).collect::<Vec<_>>();
+        lines.push(duplicate_line.to_string());
+        std::fs::write(&manifest_path, format!("{}\n", lines.join("\n")))
+            .expect("manifest should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect_err("verification should fail for a manifest with a duplicate requested entry");
+        assert!(
+            expected_fragments
+                .iter()
+                .any(|fragment| error.contains(fragment)),
+            "unexpected error: {error}"
+        );
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
     #[test]
     fn default_corpus_covers_the_comparison_snapshot() {
         let corpus = default_corpus();
@@ -3824,6 +3875,18 @@ version = "0.9.0"
             "pleiades-release-bundle-blank-profile-id",
             "profile id:",
             &["missing profile id entry"],
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_duplicate_profile_id_entry() {
+        assert_release_bundle_rejects_duplicate_manifest_entry(
+            "pleiades-release-bundle-duplicate-profile-id",
+            "profile id:",
+            &[
+                "duplicate entry: profile id:",
+                "release bundle verification failed",
+            ],
         );
     }
 

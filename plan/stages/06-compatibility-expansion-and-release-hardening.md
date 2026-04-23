@@ -93,6 +93,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] The release-bundle help text, release checklist, README, and reproducibility guide now explicitly list the compatibility-profile summary artifact alongside the other staged bundle files, keeping the bundle description synchronized with the files that `bundle-release` already writes.
 - [x] Release-bundle verification now rejects manifests that are missing source revision, workspace status, or rustc version provenance entries, closing the remaining provenance-field coverage gap in the staged bundle verifier.
 - [x] Release-bundle verification now also rejects blank profile id and API stability posture id entries, so the staged bundle manifest cannot silently carry empty release identifiers for the profile and API posture summaries.
+- [x] Release-bundle verification now also rejects duplicate manifest entries for prefixed fields such as `profile id:`, closing an ambiguity class that could otherwise let a staged bundle hide tampered metadata behind repeated keys.
 
 - [x] `pleiades-houses` now resolves `Whole Sign system` as an interoperability alias for `Whole Sign`, aligning the house-system resolution path with the compatibility profile's existing source-label appendix wording.
 - [x] `pleiades-elp` now serves the mean and true lunar nodes alongside the Moon, and the CLI accepts the common `mean node` / `true node` and `mean lunar node` / `true lunar node` spellings so lunar-point chart queries can exercise the backend directly.
