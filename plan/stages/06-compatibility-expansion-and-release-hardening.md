@@ -59,6 +59,7 @@ These are durable planning decisions that should remain true even as individual 
 Stage 6 release hardening has started as of 2026-04-22.
 
 - [x] Release-bundle verification now also treats a missing `bundle-manifest.checksum.txt` sidecar as a release verification failure with an explicit `missing bundle manifest checksum sidecar file` message, closing the last quiet missing-file gap in the staged bundle verifier.
+- [x] The release notes now also cross-reference the compact `compatibility-profile-summary` view, giving maintainers a quicker audit hop from the full release notes to the compact compatibility posture view without changing the compatibility profile itself.
 - [x] The `Aryabhata (Mean Sun)` catalog entry now also resolves the exact `Aryabhata, mean Sun`, `Aryabhata mean sun`, and `Aryabhata MSUN` spellings in both `pleiades-ayanamsa` and the release compatibility profile, and the compatibility profile identifier has been bumped to `0.6.73` so the new alias batch stays versioned with the current profile.
 
 - [x] The `Suryasiddhanta (Mean Sun)` catalog entry now also resolves the exact `Surya Siddhanta, mean Sun`, `Surya Siddhanta mean sun`, and `Surya Siddhanta MSUN` spellings in both `pleiades-ayanamsa` and the release compatibility profile, and the compatibility profile identifier has been bumped to `0.6.72` so the new alias batch stays versioned with the current profile.

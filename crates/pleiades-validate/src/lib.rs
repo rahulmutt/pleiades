@@ -1100,6 +1100,8 @@ fn render_release_notes_text() -> String {
     text.push_str(profile.summary);
     text.push('\n');
     text.push('\n');
+    text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
+    text.push('\n');
 
     text.push_str("API stability posture:\n");
     text.push_str("- ");
@@ -3663,6 +3665,7 @@ mod tests {
             "Profile: {}",
             release_profiles.compatibility_profile_id
         )));
+        assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(rendered.contains("API stability posture:"));
         assert!(rendered.contains("Deprecation policy:"));
         assert!(rendered.contains("Release-specific coverage:"));
