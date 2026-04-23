@@ -224,7 +224,13 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::Aryabhata499,
         "Aryabhata (499 CE)",
-        &["Aryabhata 499", "Aryabhata 499 CE", "Aryabhata", "Aryabhatan Kaliyuga"],
+        &[
+            "Aryabhata 499",
+            "Aryabhata 499 CE",
+            "Aryabhata",
+            "Aryabhatan Kaliyuga",
+            "Aryabhata Kaliyuga",
+        ],
         "Aryabhata zero-point variant anchored to the 499 CE dawn tradition.",
         Some(JulianDay::from_days(1_903_396.789_532_060_3)),
         Some(Angle::from_degrees(0.0)),
@@ -704,7 +710,13 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
     AyanamsaDescriptor::new(
         Ayanamsa::Aryabhata499,
         "Aryabhata (499 CE)",
-        &["Aryabhata 499", "Aryabhata 499 CE", "Aryabhata", "Aryabhatan Kaliyuga"],
+        &[
+            "Aryabhata 499",
+            "Aryabhata 499 CE",
+            "Aryabhata",
+            "Aryabhatan Kaliyuga",
+            "Aryabhata Kaliyuga",
+        ],
         "Aryabhata zero-point variant anchored to the 499 CE dawn tradition.",
         Some(JulianDay::from_days(1_903_396.789_532_060_3)),
         Some(Angle::from_degrees(0.0)),
@@ -1237,6 +1249,10 @@ mod tests {
         );
         assert_eq!(
             resolve_ayanamsa("Aryabhata 499 CE"),
+            Some(Ayanamsa::Aryabhata499)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Aryabhata Kaliyuga"),
             Some(Ayanamsa::Aryabhata499)
         );
         assert_eq!(
