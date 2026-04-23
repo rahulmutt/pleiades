@@ -58,6 +58,7 @@ These are durable planning decisions that should remain true even as individual 
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] The Koch house-system resolver and release compatibility profile now also accept the plain `Koch houses` spelling alongside the existing Koch house-system and table-of-houses forms in both `pleiades-houses` and the release compatibility profile, and the compatibility profile identifier has been bumped to `0.6.88` so the Koch alias batch stays versioned with the current profile.
 - [x] The release notes now also expose a compact `release-notes-summary` artifact in `pleiades-validate`, `pleiades-cli`, the release bundle, and the verification checks, so maintainers get a lighter-weight release-notes audit view alongside the existing compatibility-profile and release-summary summaries.
 - [x] The release notes and release-notes summary now also cross-reference `release-checklist-summary`, giving maintainers a direct hop from the release narrative to the compact release-readiness audit without changing the underlying release profile.
 - [x] The Equal (MC) house-system resolver and release compatibility profile now also accept the Swiss Ephemeris `D equal / MC` spelling alongside the existing Equal MC / Equal Midheaven aliases, and the compatibility profile identifier has been bumped to `0.6.87` so the Equal (MC) code-spelling batch stays versioned with the current profile.
