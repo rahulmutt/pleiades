@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.53";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.54";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -56,7 +56,7 @@ pub struct CompatibilityProfile {
     /// Labels that are intentionally surfaced as custom-definition territory
     /// instead of unresolved compatibility gaps.
     pub custom_definition_labels: &'static [&'static str],
-    /// Explicitly documented gaps that remain for later stages.
+    /// Explicitly documented compatibility caveats and follow-up notes.
     pub known_gaps: &'static [&'static str],
 }
 
@@ -637,7 +637,7 @@ impl fmt::Display for CompatibilityProfile {
             self.validation_reference_points,
         )?;
         writeln!(f)?;
-        write_scope_section(f, "Known gaps:", self.known_gaps)?;
+        write_scope_section(f, "Compatibility caveats:", self.known_gaps)?;
         Ok(())
     }
 }
@@ -1104,7 +1104,7 @@ mod tests {
         assert!(rendered.contains("Galactic Center"));
         assert!(rendered.contains("Dhruva Galactic Center (Middle Mula)"));
         assert!(rendered.contains("Galactic Equator"));
-        assert!(rendered.contains("Known gaps:"));
+        assert!(rendered.contains("Compatibility caveats:"));
         assert!(rendered.contains("Placidus house system -> Placidus"));
         assert!(rendered.contains("Equal (cusp 1 = Asc) -> Equal"));
         assert!(rendered.contains("Koch house system, W. Koch, W Koch -> Koch"));

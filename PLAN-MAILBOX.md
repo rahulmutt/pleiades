@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Compatibility caveats wording now matches the release-facing summaries
+
+Implemented a small Stage 6 release-hardening wording slice:
+
+- `pleiades-core::CompatibilityProfile` and `pleiades-validate` now render the follow-up section as `Compatibility caveats:` instead of `Known gaps:`, keeping the release-profile summary, release notes, and release-summary wording aligned with the profile's intent
+- the compatibility-profile identifier was bumped to `0.6.54`, and the Stage 6 progress notes plus release-reproducibility guide were updated so the new phrasing stays synchronized with the release-facing wording
+- clippy, formatting, and the workspace test suite all pass after the update
+
+Remaining Stage 6 work: keep the compatibility profile, release summary wording, and release notes synchronized as the remaining compatibility and release-hardening slices land.
+
 ## 2026-04-23 — Topocentric and Krusinski-Pisa-Goelzer exact code spellings now resolve
 
 Implemented a small Stage 6 release-hardening alias slice:

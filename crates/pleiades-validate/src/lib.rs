@@ -1032,7 +1032,7 @@ fn render_compatibility_profile_summary_text() -> String {
     text.push_str("Validation reference points: ");
     text.push_str(&profile.validation_reference_points.len().to_string());
     text.push('\n');
-    text.push_str("Known gaps: ");
+    text.push_str("Compatibility caveats: ");
     text.push_str(&profile.known_gaps.len().to_string());
     text.push('\n');
 
@@ -1097,7 +1097,7 @@ fn render_release_notes_text() -> String {
     }
 
     if !profile.known_gaps.is_empty() {
-        text.push_str("Known gaps:\n");
+        text.push_str("Compatibility caveats:\n");
         for gap in profile.known_gaps {
             text.push_str("- ");
             text.push_str(gap);
@@ -1233,7 +1233,7 @@ fn render_release_summary_text() -> String {
             .to_string(),
     );
     text.push('\n');
-    text.push_str("Known gaps: ");
+    text.push_str("Compatibility caveats: ");
     text.push_str(&profile.known_gaps.len().to_string());
     text.push('\n');
     text.push('\n');
@@ -3418,7 +3418,7 @@ mod tests {
         assert!(rendered.contains("Ayanamsas:"));
         assert!(rendered.contains("Custom-definition labels:"));
         assert!(rendered.contains("Validation reference points:"));
-        assert!(rendered.contains("Known gaps:"));
+        assert!(rendered.contains("Compatibility caveats:"));
     }
 
     #[test]
@@ -3434,7 +3434,7 @@ mod tests {
         assert!(rendered.contains("Deprecation policy:"));
         assert!(rendered.contains("Release-specific coverage:"));
         assert!(rendered.contains("Validation reference points:"));
-        assert!(rendered.contains("Known gaps:"));
+        assert!(rendered.contains("Compatibility caveats:"));
     }
 
     #[test]
@@ -3476,7 +3476,7 @@ mod tests {
         assert!(rendered.contains("Validation reference points:"));
         assert!(rendered.contains("Custom-definition labels:"));
         assert!(rendered.contains("Custom-definition ayanamsas:"));
-        assert!(rendered.contains("Known gaps:"));
+        assert!(rendered.contains("Compatibility caveats:"));
         assert!(rendered.contains("Release gate reminders:"));
         assert!(rendered.contains("See release-notes and release-checklist"));
     }
@@ -3645,7 +3645,7 @@ version = "0.9.0"
         assert!(release_notes.contains("Deprecation policy:"));
         assert!(release_notes.contains("Release-specific coverage:"));
         assert!(release_notes.contains("Validation reference points:"));
-        assert!(release_notes.contains("Known gaps:"));
+        assert!(release_notes.contains("Compatibility caveats:"));
         assert!(release_notes.contains("Bundle provenance:"));
         assert!(release_notes.contains("Rust compiler version"));
         assert!(release_summary.contains("Release summary"));

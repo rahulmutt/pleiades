@@ -84,7 +84,7 @@ The verifier expects exactly the staged bundle files listed above, so stray file
 
 The release bundle makes the current release posture easy to reproduce and audit:
 
-- the compatibility profile captures shipped house systems, ayanamsas, aliases, validation reference points, and known gaps,
+- the compatibility profile captures shipped house systems, ayanamsas, aliases, validation reference points, and compatibility caveats,
 - the compatibility profile summary gives a compact count-based view of the same release posture, including validation reference points,
 - the release notes file summarizes release-specific coverage, validation reference points, known limitations, and the current API stability / deprecation-policy snapshot, the release summary gives a compact one-screen overview of the same release posture, and the release checklist captures the repository-managed release gates and the published bundle contents,
 - the backend matrix records the implemented backend catalog and its declared coverage, and the backend-matrix summary provides a compact count-based audit view for maintainers,
