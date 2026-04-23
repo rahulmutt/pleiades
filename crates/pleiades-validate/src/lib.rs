@@ -2811,6 +2811,7 @@ mod tests {
         assert!(report.contains("House validation corpus"));
         assert!(report.contains("Mid-latitude reference chart"));
         assert!(report.contains("Polar stress chart"));
+        assert!(report.contains("Equatorial reference chart"));
         assert!(report.contains("Southern hemisphere reference chart"));
         assert!(report.contains("Reference backend"));
         assert!(report.contains("Candidate backend"));
@@ -2846,9 +2847,9 @@ mod tests {
     }
 
     #[test]
-    fn house_validation_report_includes_southern_hemisphere_scenario() {
+    fn house_validation_report_includes_representative_scenarios() {
         let report = house_validation_report();
-        assert_eq!(report.scenarios.len(), 3);
+        assert_eq!(report.scenarios.len(), 4);
         assert!(report
             .scenarios
             .iter()

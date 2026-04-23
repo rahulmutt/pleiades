@@ -56,6 +56,14 @@ impl HouseValidationReport {
                 ),
             ),
             (
+                "Equatorial reference chart",
+                ObserverLocation::new(
+                    Latitude::from_degrees(0.0),
+                    Longitude::from_degrees(0.0),
+                    None,
+                ),
+            ),
+            (
                 "Polar stress chart",
                 ObserverLocation::new(
                     Latitude::from_degrees(69.6492),

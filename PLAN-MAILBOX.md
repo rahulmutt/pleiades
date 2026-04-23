@@ -1246,3 +1246,21 @@ Implemented a small Stage 6 release-hardening alignment slice:
 - no spec update was needed; this stays within the existing backend-capability and release-doc synchronization scope
 
 Remaining Stage 6 work: keep the backend matrix wording, lunar-point coverage, and release-facing docs synchronized as further coverage lands.
+
+## 2026-04-23 — House-validation corpus now includes an equatorial reference chart
+
+I found a small Stage 6 validation-corpus widening slice worth tracking before implementation:
+
+- the house-validation report currently covers mid-latitude, polar, and southern hemisphere charts, but it would be useful to add an equatorial reference chart so the latitude-sensitive regression corpus spans the equator as well as the existing stress cases
+- this appears to stay within the current validation/reporting scope, and it should only require a small corpus/test update plus a Stage 6 progress-note refresh
+- no spec change seems necessary; this is a regression-corpus widening slice rather than a new capability boundary
+
+Remaining Stage 6 work: keep the validation corpus, report wording, and stage notes synchronized as the hardening sweep expands.
+
+## 2026-04-23 — House-validation corpus equatorial scenario completed
+
+Completed the small Stage 6 validation-corpus widening slice:
+
+- `pleiades-validate::HouseValidationReport` now includes an `Equatorial reference chart` scenario alongside the existing mid-latitude, polar, and southern hemisphere cases
+- regression coverage now checks the expanded scenario list, and the Stage 6 progress notes were updated so the plan tracker reflects the wider latitude sweep
+- no spec change was needed; this stays within the existing validation-report and regression-corpus scope
