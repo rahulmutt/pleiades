@@ -1,73 +1,76 @@
 # Pleiades Development Plan
 
-This plan translates `SPEC.md` and `spec/*.md` into an execution sequence that keeps the repository in a **workable state at every stage**.
+This document is the top-level execution guide for `pleiades`.
 
-The ordering follows a simple rule: **foundations first, useful product early, validation before optimization, breadth and hardening last**.
+It translates `SPEC.md` and the normative documents in `spec/*.md` into an implementation order that:
 
-That gives this development arc:
+- starts with the simplest foundational work,
+- adds real user and maintainer value early,
+- keeps the repository buildable and understandable at every stage,
+- defers heavier optimization and compatibility breadth until the core seams are proven.
 
-1. establish reproducible workspace foundations,
-2. lock down shared types and backend contracts,
-3. ship a minimal but usable chart-calculation path,
-4. add stronger reference backends and formal validation,
-5. add packaged data and performance-oriented distribution,
-6. complete compatibility breadth and release hardening.
+`spec/roadmap.md` is the concise roadmap. This `PLAN.md` is the practical index into the more detailed planning documents under `plan/**`.
 
-`spec/roadmap.md` remains the concise normative roadmap. This plan is the execution-oriented companion that explains sequencing, dependencies, stage outcomes, cross-cutting workstreams, and how contributors should move through the repository without introducing architecture drift.
+## Planning rules
 
-## Planning principles
+These rules apply to the whole plan set:
 
-These principles govern the entire `plan/**` tree:
+1. **Workable state after every stage.** Each stage must leave the repo buildable, testable, documented enough for the next contributor, and usable for at least one realistic workflow.
+2. **Simple before complex.** Tooling, types, contracts, and baseline domain logic come before reference data, compression, and release hardening.
+3. **Spec-first sequencing.** Planning documents must stay aligned with `SPEC.md` and the normative `spec/*.md` files.
+4. **Small shippable slices inside each stage.** A stage is not one giant merge; it is a sequence of reviewable increments that preserve repository health.
+5. **Clear separation of sequence, standards, and gates.** Stage ordering lives in `plan/stages/`, cross-cutting expectations live in `plan/tracks/`, completion checks live in `plan/checklists/`, and traceability material lives in `plan/appendices/`.
 
-- **Every stage ends in a usable repository state.** No stage is allowed to defer basic buildability, documentation, or testability to a later cleanup phase.
-- **Each stage should unlock a real maintainer or user workflow.** If a stage only adds scaffolding with no practical next action, it is too large or ordered incorrectly.
-- **Complexity should be introduced only after the simpler prerequisite is stable.** Types and contracts come before algorithms, algorithms before reference validation, and validation before compression/release hardening.
-- **Cross-cutting standards live outside the stage docs.** Sequencing belongs in `plan/stages/`, expectations in `plan/tracks/`, gates in `plan/checklists/`, and traceability material in `plan/appendices/`.
-- **The plan must track the spec.** If sequencing changes because the spec changes, update both together instead of letting planning documents drift.
+## Recommended implementation order
 
-## Current execution status
+The project should be advanced in this order:
 
-The staged plan is no longer hypothetical. Based on the current repository state reflected in the stage documents:
+| Stage | Focus | Why this comes now | Detailed doc |
+| --- | --- | --- | --- |
+| 1 | Workspace bootstrap | Establish reproducible tooling, crate boundaries, and contributor workflows first | [plan/stages/01-workspace-bootstrap.md](plan/stages/01-workspace-bootstrap.md) |
+| 2 | Domain types and backend contract | Stable shared semantics are needed before backend/domain breadth grows | [plan/stages/02-domain-types-and-backend-contract.md](plan/stages/02-domain-types-and-backend-contract.md) |
+| 3 | Chart MVP and algorithmic baseline | Deliver the first useful astrology workflow with pure-Rust baseline backends | [plan/stages/03-chart-mvp-algorithmic-baseline.md](plan/stages/03-chart-mvp-algorithmic-baseline.md) |
+| 4 | Reference backend and validation | Add higher-confidence comparison data only after an end-to-end workflow exists | [plan/stages/04-reference-backend-and-validation.md](plan/stages/04-reference-backend-and-validation.md) |
+| 5 | Compression and packaged data | Turn validated results into a practical 1500-2500 offline distribution path | [plan/stages/05-compression-and-packaged-data.md](plan/stages/05-compression-and-packaged-data.md) |
+| 6 | Compatibility expansion and release hardening | Complete breadth, document shipped coverage, and make releases dependable | [plan/stages/06-compatibility-expansion-and-release-hardening.md](plan/stages/06-compatibility-expansion-and-release-hardening.md) |
 
-| Stage | Status | Meaning for contributors |
+## Stage outcomes and workable-state expectations
+
+Each stage should unlock a concrete workflow rather than only adding scaffolding.
+
+| Stage | Minimum outcome | Workable-state expectation |
 | --- | --- | --- |
-| 1. Workspace bootstrap | Complete | The workspace/tooling foundation exists and should now be treated as the baseline to preserve. |
-| 2. Domain types and backend contract | Complete | Shared types and backend contracts are established; changes here should be deliberate and spec-driven. |
-| 3. Chart MVP and algorithmic baseline | Complete | A usable chart workflow exists and should remain working while later stages expand breadth and confidence. |
-| 4. Reference backend and validation | In progress / substantially landed | Validation and reference-backed comparison exist, but this area still evolves as coverage and reports improve. |
-| 5. Compression and packaged data | Complete | Packaged-data support exists and should now be refined through validation rather than redesigned casually. |
-| 6. Compatibility expansion and release hardening | Active | This is the main planning frontier: breadth completion, release discipline, and interoperability hardening. |
+| 1 | Workspace, toolchain, crate skeletons, contributor commands | A maintainer can clone the repo, enter the managed environment, and run the standard checks |
+| 2 | Stable shared types, backend trait, capability metadata, basic façade seams | A backend author can implement against the shared contract without redesigning fundamentals |
+| 3 | First practical chart path with baseline bodies, houses, and ayanamsas | A user or maintainer can compute a basic chart through `pleiades-core` and the CLI with documented limits |
+| 4 | Reference-backed validation and comparison tooling | A maintainer can measure baseline accuracy and detect regressions reproducibly |
+| 5 | Packaged compressed-data backend for 1500-2500 CE | An application can use a compact offline backend for the common date range |
+| 6 | Broader compatibility catalog, release profiles, hardened tooling | A release maintainer can publish a version with explicit coverage, evidence, and reproducible artifacts |
 
-If you are deciding what to do next, start with the Stage 6 document and then consult the relevant track and checklist docs before making changes.
+## How to use the `plan/**` tree
 
-## Plan Index
+The current directory structure is intentionally shallow and role-based:
 
-### Start here
+- [plan/overview.md](plan/overview.md) — orientation, reading order, and maintenance guidance
+- [plan/stages/](plan/stages/) — the sequential delivery path; use these to answer **what should happen next**
+- [plan/tracks/](plan/tracks/) — cross-cutting standards by area; use these to answer **what else does this work affect**
+- [plan/checklists/](plan/checklists/) — completion and release gates; use these to answer **what must be true before this is done**
+- [plan/appendices/](plan/appendices/) — traceability and supporting reference material
 
-- [plan/overview.md](plan/overview.md) — orientation, reading order, directory usage, and how to navigate this plan set day to day
+## Plan index
 
 ### Orientation
 
-- [plan/overview.md](plan/overview.md) — how to read and maintain this plan set
-
-### Checklists
-
-- [plan/checklists/01-stage-gates.md](plan/checklists/01-stage-gates.md) — completion gates for each stage
-- [plan/checklists/02-release-artifacts.md](plan/checklists/02-release-artifacts.md) — non-code outputs and release bundle expectations
-
-### Appendices
-
-- [plan/appendices/01-stage-to-spec-map.md](plan/appendices/01-stage-to-spec-map.md) — traceability from execution stages back to normative spec documents
-- [plan/appendices/02-stage-workable-state-matrix.md](plan/appendices/02-stage-workable-state-matrix.md) — stage-by-stage summary of the minimum usable repository state and the workflow each stage unlocks
+- [plan/overview.md](plan/overview.md)
 
 ### Sequential stages
 
-- [plan/stages/01-workspace-bootstrap.md](plan/stages/01-workspace-bootstrap.md) — create the reproducible workspace and enforce crate boundaries first
-- [plan/stages/02-domain-types-and-backend-contract.md](plan/stages/02-domain-types-and-backend-contract.md) — lock down shared semantics before implementation breadth grows
-- [plan/stages/03-chart-mvp-algorithmic-baseline.md](plan/stages/03-chart-mvp-algorithmic-baseline.md) — deliver the first useful chart workflow with pure-Rust algorithmic backends
-- [plan/stages/04-reference-backend-and-validation.md](plan/stages/04-reference-backend-and-validation.md) — add source-backed validation and evidence-driven comparison
-- [plan/stages/05-compression-and-packaged-data.md](plan/stages/05-compression-and-packaged-data.md) — ship the common-range packaged-data path for 1500-2500 CE
-- [plan/stages/06-compatibility-expansion-and-release-hardening.md](plan/stages/06-compatibility-expansion-and-release-hardening.md) — finish breadth and make releases dependable
+- [plan/stages/01-workspace-bootstrap.md](plan/stages/01-workspace-bootstrap.md)
+- [plan/stages/02-domain-types-and-backend-contract.md](plan/stages/02-domain-types-and-backend-contract.md)
+- [plan/stages/03-chart-mvp-algorithmic-baseline.md](plan/stages/03-chart-mvp-algorithmic-baseline.md)
+- [plan/stages/04-reference-backend-and-validation.md](plan/stages/04-reference-backend-and-validation.md)
+- [plan/stages/05-compression-and-packaged-data.md](plan/stages/05-compression-and-packaged-data.md)
+- [plan/stages/06-compatibility-expansion-and-release-hardening.md](plan/stages/06-compatibility-expansion-and-release-hardening.md)
 
 ### Cross-cutting tracks
 
@@ -76,155 +79,62 @@ If you are deciding what to do next, start with the Stage 6 document and then co
 - [plan/tracks/03-backends-and-distribution.md](plan/tracks/03-backends-and-distribution.md)
 - [plan/tracks/04-validation-and-release.md](plan/tracks/04-validation-and-release.md)
 
-## Directory structure
+### Checklists
 
-This plan uses a deliberately small top-level structure so contributors can find the right planning document quickly without scattering ad hoc notes across the repository.
+- [plan/checklists/01-stage-gates.md](plan/checklists/01-stage-gates.md)
+- [plan/checklists/02-release-artifacts.md](plan/checklists/02-release-artifacts.md)
 
-The current `plan/**` layout is intentionally simple and now separates **sequence**, **responsibility**, and **gates**:
+### Appendices
 
-- `plan/overview.md` — entry point and usage guidance
-- `plan/stages/*.md` — the ordered delivery path; read these top to bottom
-- `plan/tracks/*.md` — cross-cutting concerns that span multiple stages
-- `plan/checklists/*.md` — shared completion gates and release-output expectations
-- `plan/appendices/*.md` — traceability aids and other supporting reference material
+- [plan/appendices/01-stage-to-spec-map.md](plan/appendices/01-stage-to-spec-map.md)
+- [plan/appendices/02-stage-workable-state-matrix.md](plan/appendices/02-stage-workable-state-matrix.md)
 
-This structure keeps the plan readable while still separating **sequence** from **responsibility**, **quality control**, and **traceability**:
+## Reading paths
 
-- use a **stage document** to answer “what should happen next?”
-- use a **track document** to answer “what standards apply to this area?”
-- use a **checklist document** to answer “what must be true before we call this done?”
-
-## Recommended reading paths
-
-### For a new contributor
+### If you are new to the repository
 
 1. [SPEC.md](SPEC.md)
 2. [plan/overview.md](plan/overview.md)
-3. stage documents in order
+3. the stage documents in order
 4. [plan/checklists/01-stage-gates.md](plan/checklists/01-stage-gates.md)
-5. the relevant track document for the area being worked on
+5. the relevant track document for your subsystem
 
-### For maintainers planning the next milestone
+### If you are planning the next implementation slice
 
-1. review the current stage's exit criteria
-2. verify the workable-state rule is satisfied
-3. identify the next smallest reviewable increment inside the next stage
-4. check track documents for cross-cutting requirements before implementation begins
+1. reread the active stage document
+2. check the relevant track document for cross-cutting expectations
+3. choose the smallest slice that preserves a workable repository state
+4. implement code, tests, and docs together
+5. verify the stage and release checklists before calling the slice done
 
-### For contributors working on the current repository state
+### If you are validating a release-oriented change
 
-1. read [plan/stages/06-compatibility-expansion-and-release-hardening.md](plan/stages/06-compatibility-expansion-and-release-hardening.md) first
-2. read the matching track doc for the subsystem being changed
-3. use [plan/checklists/01-stage-gates.md](plan/checklists/01-stage-gates.md) for stage-level quality gates
-4. use [plan/checklists/02-release-artifacts.md](plan/checklists/02-release-artifacts.md) if the work changes release-facing outputs
-5. consult the appendices when a change might drift from the spec or from the workable-state rule
+1. [plan/stages/06-compatibility-expansion-and-release-hardening.md](plan/stages/06-compatibility-expansion-and-release-hardening.md)
+2. [plan/tracks/04-validation-and-release.md](plan/tracks/04-validation-and-release.md)
+3. [plan/checklists/01-stage-gates.md](plan/checklists/01-stage-gates.md)
+4. [plan/checklists/02-release-artifacts.md](plan/checklists/02-release-artifacts.md)
 
-## Stage sequencing rationale
+## Traceability back to the spec
 
-### Stage 1 → Workspace bootstrap
-Create the workspace, crate boundaries, and reproducible tooling first so later implementation work lands in the right structure.
+The plan is derived from these key normative sources:
 
-### Stage 2 → Domain types and backend contract
-Define stable semantics next so backend and domain work can proceed without redesigning shared types repeatedly.
+- [SPEC.md](SPEC.md)
+- [spec/requirements.md](spec/requirements.md)
+- [spec/architecture.md](spec/architecture.md)
+- [spec/backend-trait.md](spec/backend-trait.md)
+- [spec/astrology-domain.md](spec/astrology-domain.md)
+- [spec/data-compression.md](spec/data-compression.md)
+- [spec/api-and-ergonomics.md](spec/api-and-ergonomics.md)
+- [spec/validation-and-testing.md](spec/validation-and-testing.md)
 
-### Stage 3 → Chart MVP with algorithmic baseline
-Deliver the first practical user value early: chart generation from pure-Rust algorithmic components plus baseline houses and ayanamsas.
+For a stage-to-spec mapping, see [plan/appendices/01-stage-to-spec-map.md](plan/appendices/01-stage-to-spec-map.md).
 
-### Stage 4 → Reference backend and validation
-Only after an MVP exists should the project invest in heavier reference-data work to validate and calibrate the baseline.
+## Maintenance rules
 
-### Stage 5 → Compression and packaged data
-Compression comes after validation so packaged artifacts are shaped by measured behavior instead of guesswork.
+When changing scope, sequencing, or release expectations:
 
-### Stage 6 → Compatibility expansion and release hardening
-Broader catalog coverage and release polish come last, once the architectural seams and validation workflow have been proven.
-
-## Working-state rule
-
-Each stage should end with all of the following true:
-
-- the workspace builds and tests successfully,
-- the public API is internally coherent for what is implemented,
-- at least one realistic user or maintainer workflow is supported,
-- known gaps versus the full specification are documented explicitly,
-- contributors can tell which parts are production-ready, experimental, or not yet started.
-
-## Stage outcomes at a glance
-
-| Stage | Primary result | First unlocked workflow | Why it matters |
-| --- | --- | --- | --- |
-| 1 | Reproducible Rust workspace with correct crate boundaries | Contributor can clone, enter the managed tool environment, and run workspace checks | Prevents architecture drift from the start |
-| 2 | Stable core types and backend contracts | Backend author can implement a toy backend and compile against shared APIs | Lets multiple backends evolve without API churn |
-| 3 | First useful end-to-end chart workflow | User can generate a practical chart through `pleiades-core`/CLI with documented limits | Creates immediate product value |
-| 4 | Validation-grade reference backend and reports | Maintainer can compare algorithmic results against reference data reproducibly | Grounds correctness claims in evidence |
-| 5 | Fast packaged 1500-2500 backend | Application can ship a compact offline backend for the common date range | Serves the common deployment target |
-| 6 | Broad compatibility plus release discipline | Release maintainer can publish a version with explicit coverage, evidence, and artifacts | Makes the project dependable for consumers |
-
-## Stage dependency map
-
-| Stage | Depends on | Enables next |
-| --- | --- | --- |
-| 1. Workspace bootstrap | none | all later work lands in the right crates and toolchain |
-| 2. Domain types and backend contract | stage 1 | backend and domain implementations can proceed without repeated shared-type redesign |
-| 3. Chart MVP with algorithmic baseline | stages 1-2 | practical end-user workflows and early consumer feedback |
-| 4. Reference backend and validation | stages 1-3 | trustworthy comparisons, regression detection, and artifact-source generation |
-| 5. Compression and packaged data | stages 1-4 | fast offline deployment for the common 1500-2500 window |
-| 6. Compatibility expansion and release hardening | stages 1-5 | dependable releases with broad interoperability coverage |
-
-## Recommended execution loop inside each stage
-
-Use the same lightweight loop throughout the plan:
-
-1. reread the stage doc and the relevant spec drivers,
-2. pick the next smallest slice that preserves buildability,
-3. check the relevant track doc for cross-cutting expectations,
-4. implement code, tests, and docs together,
-5. validate against the stage gate before calling the slice or stage complete.
-
-This keeps the plan practical instead of treating stages as one large branch or milestone.
-
-## Readiness checklist for moving between stages
-
-Do not advance a stage just because code exists. Advance when the current stage also has:
-
-- tests for the newly introduced behavior,
-- updated docs or compatibility notes,
-- explicit limits and failure modes,
-- no layering violations against `spec/architecture.md`,
-- a clear statement of what the next stage is allowed to assume.
-
-Use [plan/checklists/01-stage-gates.md](plan/checklists/01-stage-gates.md) as the shared gate before moving forward.
-
-## Slice-sizing rule inside each stage
-
-Each stage should be implemented as a series of **small, independently shippable slices** rather than one large merge. A good slice:
-
-- changes one architectural concern at a time,
-- leaves the workspace buildable and testable,
-- adds docs/tests together with behavior,
-- makes the next slice simpler instead of compensating for hidden debt.
-
-The stage documents describe recommended slice order so maintainers can keep progress incremental without losing the larger roadmap.
-
-## Cross-cutting priorities
-
-These priorities apply in every stage:
-
-- preserve the crate layering from `spec/architecture.md`,
-- keep the project pure Rust with no mandatory C/C++ dependencies,
-- add tests and docs together with behavior,
-- publish capability and compatibility information as features expand,
-- prefer minimal, reviewable increments over speculative rewrites.
-
-## Plan maintenance rules
-
-When this repository evolves, update this plan set with the code/spec changes instead of letting it drift.
-
-At minimum:
-
-- update the relevant stage document when scope or sequencing changes,
-- update the relevant track document when expectations or standards change,
-- update the relevant checklist when completion or release expectations change,
-- keep `PLAN.md` as the stable top-level index into `plan/**`,
-- refresh the status snapshot near the top of `PLAN.md` when the active stage changes materially,
-- avoid adding one-off planning files at the repository root when they belong under `plan/stages/`, `plan/tracks/`, or `plan/checklists/`,
+- update the relevant stage doc for sequencing changes,
+- update the relevant track doc for cross-cutting standards,
+- update the relevant checklist for completion or release-output changes,
+- keep this file as the stable top-level index into `plan/**`,
+- avoid ad hoc root-level planning notes when the material belongs in the structured `plan/` tree.

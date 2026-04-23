@@ -1,94 +1,89 @@
 # Plan Overview
 
-This directory turns the product specification into an execution plan that is easier to follow during day-to-day development.
+This directory turns the specification into an execution plan that contributors can follow during day-to-day work.
 
-The plan is organized in four complementary views:
+Use it to answer four different questions:
 
-- **Stages**: the main delivery sequence from foundations to release hardening.
-- **Tracks**: cross-cutting workstreams that run through multiple stages.
-- **Checklists**: shared completion gates and release-output expectations.
-- **Appendices**: reference material that helps maintainers keep the plan aligned with the spec.
+- **Stages** — what should be built next?
+- **Tracks** — what cross-cutting standards apply to this area?
+- **Checklists** — what must be true before we call this done?
+- **Appendices** — how does the plan trace back to the spec?
 
-Use the stages when deciding **what to build next**. Use the tracks when deciding **where a task belongs** and what other work it depends on. Use the checklists when deciding **whether a stage or release is actually done**.
+## Directory layout
 
-## Current status snapshot
+- [plan/overview.md](overview.md) — orientation and maintenance guidance
+- [plan/stages/](stages/) — sequential implementation stages from foundations through release hardening
+- [plan/tracks/](tracks/) — cross-cutting workstreams and subsystem-specific expectations
+- [plan/checklists/](checklists/) — reusable completion gates and release-output expectations
+- [plan/appendices/](appendices/) — traceability aids and supporting reference material
 
-The repository has already progressed beyond pure bootstrap planning.
+The structure is intentionally shallow so planning notes do not sprawl into unrelated root-level documents.
 
-- Stages 1, 2, 3, and 5 are treated as completed foundations in the stage documents.
-- Stage 4 validation work is substantially in place and should be extended carefully, not restarted.
-- Stage 6 compatibility expansion and release hardening is the active planning frontier.
+## Stage-first rule
 
-That means most contributors should read the earlier stages as **constraints and preserved foundations**, then treat Stage 6 plus the track/checklist docs as the main guide for ongoing work.
+The project should remain in a workable state after every stage.
 
-## Reading Order
+That means each stage should end with:
 
-If you are starting from scratch, read in this order:
+- a buildable workspace,
+- tests for the newly introduced behavior,
+- enough documentation for the next contributor to continue safely,
+- explicit notes about what is still out of scope,
+- no ambiguity about whether the next stage extends a stable base or compensates for missing foundations.
+
+Inside each stage, prefer the smallest reviewable slice that still preserves one coherent user or maintainer workflow.
+
+## Recommended reading order
+
+### Starting from scratch
 
 1. [PLAN.md](../PLAN.md)
-2. [plan/overview.md](overview.md)
+2. [SPEC.md](../SPEC.md)
 3. [plan/stages/01-workspace-bootstrap.md](stages/01-workspace-bootstrap.md)
 4. the remaining stage documents in order
-5. the relevant track document for the area you are changing
+5. the relevant track and checklist documents for the area you are changing
 
-If you are working on the current active roadmap, read in this order:
+### Planning the next slice
 
 1. [PLAN.md](../PLAN.md)
-2. [plan/stages/06-compatibility-expansion-and-release-hardening.md](stages/06-compatibility-expansion-and-release-hardening.md)
+2. the active stage document
 3. the relevant track document
 4. [plan/checklists/01-stage-gates.md](checklists/01-stage-gates.md)
 5. [plan/checklists/02-release-artifacts.md](checklists/02-release-artifacts.md) when release-facing output is affected
 
-## Directory Layout
+## Stage list
 
-- [plan/overview.md](overview.md) — how to use the plan
-- [plan/stages/](stages/) — sequential implementation stages
-- [plan/tracks/](tracks/) — cross-cutting workstreams and quality boundaries
-- [plan/checklists/](checklists/) — reusable stage gates and release-output expectations
-- [plan/appendices/](appendices/) — supporting reference material and traceability aids
+- [plan/stages/01-workspace-bootstrap.md](stages/01-workspace-bootstrap.md)
+- [plan/stages/02-domain-types-and-backend-contract.md](stages/02-domain-types-and-backend-contract.md)
+- [plan/stages/03-chart-mvp-algorithmic-baseline.md](stages/03-chart-mvp-algorithmic-baseline.md)
+- [plan/stages/04-reference-backend-and-validation.md](stages/04-reference-backend-and-validation.md)
+- [plan/stages/05-compression-and-packaged-data.md](stages/05-compression-and-packaged-data.md)
+- [plan/stages/06-compatibility-expansion-and-release-hardening.md](stages/06-compatibility-expansion-and-release-hardening.md)
 
-The structure is intentionally shallow so contributors can find the current plan quickly:
-
-- if the question is about **ordering**, start in `plan/stages/`
-- if the question is about **standards or scope for a subsystem**, start in `plan/tracks/`
-- if the question is about **completion criteria or release outputs**, start in `plan/checklists/`
-- if the question is about **which spec documents govern a stage**, start in `plan/appendices/`
-
-## Stage-first Rule
-
-The repository should remain in a workable state after every stage. That means each stage should end with:
-
-- a buildable workspace,
-- tests that cover the new behavior,
-- enough documentation for contributors to continue,
-- explicit notes about what is not done yet,
-- no ambiguity about whether the next stage is extending a stable base or cleaning up missing foundations.
-
-Inside a stage, prefer the smallest slice that still leaves one coherent maintainer workflow intact. The stage documents therefore include suggested slice sequencing, not just destination-state goals.
-
-## Track List
+## Track list
 
 - [plan/tracks/01-workspace-and-tooling.md](tracks/01-workspace-and-tooling.md)
 - [plan/tracks/02-domain-and-public-api.md](tracks/02-domain-and-public-api.md)
 - [plan/tracks/03-backends-and-distribution.md](tracks/03-backends-and-distribution.md)
 - [plan/tracks/04-validation-and-release.md](tracks/04-validation-and-release.md)
 
-## Checklist List
+## Checklist list
 
 - [plan/checklists/01-stage-gates.md](checklists/01-stage-gates.md)
 - [plan/checklists/02-release-artifacts.md](checklists/02-release-artifacts.md)
 
-## Appendix List
+## Appendix list
 
 - [plan/appendices/01-stage-to-spec-map.md](appendices/01-stage-to-spec-map.md)
 - [plan/appendices/02-stage-workable-state-matrix.md](appendices/02-stage-workable-state-matrix.md)
 
 ## Maintenance guidance
 
-When adding or revising planning material:
+When revising the plan:
 
-- prefer editing the existing stage, track, or checklist document instead of creating overlapping notes,
-- keep `PLAN.md` as the authoritative top-level index,
-- make sequencing changes in stage documents, policy/quality changes in track documents, and completion-output changes in checklist documents,
-- update the status snapshot here and in `PLAN.md` when the active stage meaningfully changes,
-- ensure plan changes still reflect `SPEC.md` and the normative documents in `spec/*.md`.
+- keep `PLAN.md` as the top-level index and execution summary,
+- make sequencing changes in `plan/stages/`,
+- make cross-cutting policy or subsystem expectation changes in `plan/tracks/`,
+- make completion or release-output changes in `plan/checklists/`,
+- update appendices when traceability or stage-to-spec mapping changes,
+- keep the plan aligned with `SPEC.md` and the normative `spec/*.md` documents.
