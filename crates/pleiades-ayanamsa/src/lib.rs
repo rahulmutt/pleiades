@@ -87,7 +87,12 @@ const BASELINE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::Lahiri,
         "Lahiri",
-        &["Chitra Paksha", "Chitrapaksha", "Chitra-paksha"],
+        &[
+            "Chitra Paksha",
+            "Chitrapaksha",
+            "Chitra-paksha",
+            "Lahiri ayanamsa",
+        ],
         "Default Indian sidereal standard in many astrology workflows.",
         Some(JulianDay::from_days(2_435_553.5)),
         Some(Angle::from_degrees(23.245_524_743)),
@@ -95,7 +100,7 @@ const BASELINE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::Raman,
         "Raman",
-        &["B. V. Raman", "B.V. Raman", "B V Raman"],
+        &["B. V. Raman", "B.V. Raman", "B V Raman", "Raman ayanamsa"],
         "Popular named sidereal offset used in classical astrology software.",
         Some(JulianDay::from_days(2_415_020.0)),
         Some(Angle::from_degrees(21.014_44)),
@@ -218,7 +223,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::UshaShashi,
         "Usha Shashi",
-        &["Ushashashi", "Usha-Shashi", "Usha/Shashi", "Revati"],
+        &["Ushashashi", "Usha-Shashi", "Usha/Shashi", "Usha Shashi ayanamsa", "Revati"],
         "Revati-bound zero-point variant used in the Greek-Arabic-Hindu tradition.",
         Some(JulianDay::from_days(2_415_020.5)),
         Some(Angle::from_degrees(18.660_961_111_111_11)),
@@ -264,7 +269,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::Yukteshwar,
         "Yukteshwar",
-        &["Yukteswar", "Sri Yukteswar", "Sri Yukteshwar", "Shri Yukteswar", "Shri Yukteshwar"],
+        &["Yukteswar", "Sri Yukteswar", "Sri Yukteshwar", "Shri Yukteswar", "Shri Yukteshwar", "Yukteshwar ayanamsa"],
         "Swiss Ephemeris Yukteshwar sidereal mode, documented as a built-in ayanamsa option with a Sri Yukteswar-compatible naming family.",
         Some(JulianDay::from_days(2_451_545.0)),
         Some(Angle::from_degrees(22.628_888_9)),
@@ -591,7 +596,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
     AyanamsaDescriptor::new(
         Ayanamsa::Lahiri,
         "Lahiri",
-        &["Chitra Paksha", "Chitrapaksha", "Chitra-paksha"],
+        &["Chitra Paksha", "Chitrapaksha", "Chitra-paksha", "Lahiri ayanamsa"],
         "Default Indian sidereal standard in many astrology workflows.",
         Some(JulianDay::from_days(2_435_553.5)),
         Some(Angle::from_degrees(23.245_524_743)),
@@ -599,7 +604,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
     AyanamsaDescriptor::new(
         Ayanamsa::Raman,
         "Raman",
-        &["B. V. Raman", "B.V. Raman", "B V Raman"],
+        &["B. V. Raman", "B.V. Raman", "B V Raman", "Raman ayanamsa"],
         "Popular named sidereal offset used in classical astrology software.",
         Some(JulianDay::from_days(2_415_020.0)),
         Some(Angle::from_degrees(21.014_44)),
@@ -724,7 +729,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
     AyanamsaDescriptor::new(
         Ayanamsa::UshaShashi,
         "Usha Shashi",
-        &["Ushashashi", "Usha-Shashi", "Usha/Shashi", "Revati"],
+        &["Ushashashi", "Usha-Shashi", "Usha/Shashi", "Usha Shashi ayanamsa", "Revati"],
         "Revati-bound zero-point variant used in the Greek-Arabic-Hindu tradition.",
         Some(JulianDay::from_days(2_415_020.5)),
         Some(Angle::from_degrees(18.660_961_111_111_11)),
@@ -770,7 +775,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
     AyanamsaDescriptor::new(
         Ayanamsa::Yukteshwar,
         "Yukteshwar",
-        &["Yukteswar", "Sri Yukteswar", "Sri Yukteshwar", "Shri Yukteswar", "Shri Yukteshwar"],
+        &["Yukteswar", "Sri Yukteswar", "Sri Yukteshwar", "Shri Yukteswar", "Shri Yukteshwar", "Yukteshwar ayanamsa"],
         "Swiss Ephemeris Yukteshwar sidereal mode, documented as a built-in ayanamsa option with a Sri Yukteswar-compatible naming family.",
         Some(JulianDay::from_days(2_451_545.0)),
         Some(Angle::from_degrees(22.628_888_9)),
@@ -1266,8 +1271,10 @@ mod tests {
         assert_eq!(resolve_ayanamsa("Chitra Paksha"), Some(Ayanamsa::Lahiri));
         assert_eq!(resolve_ayanamsa("Chitra-paksha"), Some(Ayanamsa::Lahiri));
         assert_eq!(resolve_ayanamsa("chitrapaksha"), Some(Ayanamsa::Lahiri));
+        assert_eq!(resolve_ayanamsa("Lahiri ayanamsa"), Some(Ayanamsa::Lahiri));
         assert_eq!(resolve_ayanamsa("B.V. Raman"), Some(Ayanamsa::Raman));
         assert_eq!(resolve_ayanamsa("B V Raman"), Some(Ayanamsa::Raman));
+        assert_eq!(resolve_ayanamsa("Raman ayanamsa"), Some(Ayanamsa::Raman));
         assert_eq!(resolve_ayanamsa("J2000.0"), Some(Ayanamsa::J2000));
         assert_eq!(resolve_ayanamsa("J1900.0"), Some(Ayanamsa::J1900));
         assert_eq!(resolve_ayanamsa("B1950.0"), Some(Ayanamsa::B1950));
@@ -1308,6 +1315,10 @@ mod tests {
             Some(Ayanamsa::Lahiri1940)
         );
         assert_eq!(resolve_ayanamsa("Revati"), Some(Ayanamsa::UshaShashi));
+        assert_eq!(
+            resolve_ayanamsa("Usha Shashi ayanamsa"),
+            Some(Ayanamsa::UshaShashi)
+        );
         assert_eq!(resolve_ayanamsa("Moon"), Some(Ayanamsa::ValensMoon));
         assert_eq!(resolve_ayanamsa("Aryabhata"), Some(Ayanamsa::Aryabhata499));
         assert_eq!(
@@ -1341,6 +1352,10 @@ mod tests {
         assert_eq!(resolve_ayanamsa("Zij al-Shah"), Some(Ayanamsa::Sassanian));
         assert_eq!(resolve_ayanamsa("De Luce"), Some(Ayanamsa::DeLuce));
         assert_eq!(resolve_ayanamsa("Yukteswar"), Some(Ayanamsa::Yukteshwar));
+        assert_eq!(
+            resolve_ayanamsa("Yukteshwar ayanamsa"),
+            Some(Ayanamsa::Yukteshwar)
+        );
         assert_eq!(
             resolve_ayanamsa("Sri Yukteshwar"),
             Some(Ayanamsa::Yukteshwar)
