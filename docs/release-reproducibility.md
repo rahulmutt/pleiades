@@ -36,6 +36,7 @@ cargo run -q -p pleiades-validate -- bundle-release --out /tmp/pleiades-release
 The bundle currently writes these text artifacts:
 
 - `compatibility-profile.txt`
+- `backend-matrix.txt`
 - `api-stability.txt`
 - `validation-report.txt`
 - `bundle-manifest.txt`
@@ -51,6 +52,7 @@ cargo run -q -p pleiades-validate -- verify-release-bundle --out /tmp/pleiades-r
 The release bundle makes the current release posture easy to reproduce and audit:
 
 - the compatibility profile captures shipped house systems, ayanamsas, aliases, and known gaps,
+- the backend matrix records the implemented backend catalog and its declared coverage,
 - the API stability posture records which surfaces are stable versus operational,
 - the validation report preserves comparison and benchmark summaries,
 - the manifest records deterministic checksums for the published text artifacts.

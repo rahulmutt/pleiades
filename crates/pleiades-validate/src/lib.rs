@@ -278,13 +278,16 @@ pub struct ValidationReport {
     pub candidate_benchmark: BenchmarkReport,
 }
 
-/// A generated release bundle containing the compatibility profile, API posture, and validation report.
+/// A generated release bundle containing the compatibility profile, backend matrix,
+/// API posture, validation report, and manifest.
 #[derive(Clone, Debug)]
 pub struct ReleaseBundle {
     /// Output directory chosen by the caller.
     pub output_dir: PathBuf,
     /// Path to the generated compatibility profile file.
     pub compatibility_profile_path: PathBuf,
+    /// Path to the generated backend capability matrix file.
+    pub backend_matrix_path: PathBuf,
     /// Path to the generated API stability posture file.
     pub api_stability_path: PathBuf,
     /// Path to the generated validation report file.
@@ -293,12 +296,16 @@ pub struct ReleaseBundle {
     pub manifest_path: PathBuf,
     /// Number of bytes written for the compatibility profile.
     pub compatibility_profile_bytes: usize,
+    /// Number of bytes written for the backend capability matrix.
+    pub backend_matrix_bytes: usize,
     /// Number of bytes written for the API stability posture.
     pub api_stability_bytes: usize,
     /// Number of bytes written for the validation report.
     pub validation_report_bytes: usize,
     /// Deterministic checksum for the compatibility profile contents.
     pub compatibility_profile_checksum: u64,
+    /// Deterministic checksum for the backend capability matrix contents.
+    pub backend_matrix_checksum: u64,
     /// Deterministic checksum for the API stability posture contents.
     pub api_stability_checksum: u64,
     /// Deterministic checksum for the validation report contents.
@@ -429,6 +436,11 @@ impl fmt::Display for ReleaseBundle {
         )?;
         writeln!(
             f,
+            "  backend matrix: {}",
+            self.backend_matrix_path.display()
+        )?;
+        writeln!(
+            f,
             "  API stability posture: {}",
             self.api_stability_path.display()
         )?;
@@ -447,6 +459,12 @@ impl fmt::Display for ReleaseBundle {
             f,
             "  compatibility profile checksum: 0x{:016x}",
             self.compatibility_profile_checksum
+        )?;
+        writeln!(f, "  backend matrix bytes: {}", self.backend_matrix_bytes)?;
+        writeln!(
+            f,
+            "  backend matrix checksum: 0x{:016x}",
+            self.backend_matrix_checksum
         )?;
         writeln!(
             f,
@@ -643,7 +661,8 @@ fn checksum64(text: &str) -> u64 {
     hash
 }
 
-/// Writes a release bundle containing the compatibility profile, API posture, validation report, and a manifest.
+/// Writes a release bundle containing the compatibility profile, backend matrix,
+/// API posture, validation report, and a manifest.
 pub fn render_release_bundle(
     rounds: usize,
     output_dir: impl AsRef<Path>,
@@ -652,23 +671,27 @@ pub fn render_release_bundle(
     fs::create_dir_all(output_dir)?;
 
     let profile_text = current_compatibility_profile().to_string();
+    let backend_matrix_text = render_backend_matrix_report()?;
     let api_stability_text = current_api_stability_profile().to_string();
     let validation_report = render_validation_report(rounds)?;
     let profile_path = output_dir.join("compatibility-profile.txt");
+    let backend_matrix_path = output_dir.join("backend-matrix.txt");
     let api_stability_path = output_dir.join("api-stability.txt");
     let report_path = output_dir.join("validation-report.txt");
     let manifest_path = output_dir.join("bundle-manifest.txt");
     let compatibility_profile_checksum = checksum64(&profile_text);
+    let backend_matrix_checksum = checksum64(&backend_matrix_text);
     let api_stability_checksum = checksum64(&api_stability_text);
     let validation_report_checksum = checksum64(&validation_report);
     let manifest_text = format!(
-        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
+        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
         current_compatibility_profile().profile_id,
         current_api_stability_profile().profile_id,
         rounds,
     );
 
     fs::write(&profile_path, profile_text.as_bytes())?;
+    fs::write(&backend_matrix_path, backend_matrix_text.as_bytes())?;
     fs::write(&api_stability_path, api_stability_text.as_bytes())?;
     fs::write(&report_path, validation_report.as_bytes())?;
     fs::write(&manifest_path, manifest_text.as_bytes())?;
@@ -680,6 +703,8 @@ pub fn render_release_bundle(
 struct ParsedReleaseBundleManifest {
     profile_path: String,
     profile_checksum: u64,
+    backend_matrix_path: String,
+    backend_matrix_checksum: u64,
     api_stability_path: String,
     api_stability_checksum: u64,
     validation_report_path: String,
@@ -694,6 +719,11 @@ impl ParsedReleaseBundleManifest {
         Ok(Self {
             profile_path: parse_manifest_string(text, "profile:")?,
             profile_checksum: parse_manifest_checksum(text, "profile checksum (fnv1a-64):")?,
+            backend_matrix_path: parse_manifest_string(text, "backend matrix:")?,
+            backend_matrix_checksum: parse_manifest_checksum(
+                text,
+                "backend matrix checksum (fnv1a-64):",
+            )?,
             api_stability_path: parse_manifest_string(text, "api stability posture:")?,
             api_stability_checksum: parse_manifest_checksum(
                 text,
@@ -716,11 +746,13 @@ fn verify_release_bundle(
 ) -> Result<ReleaseBundle, ReleaseBundleError> {
     let output_dir = output_dir.as_ref();
     let profile_path = output_dir.join("compatibility-profile.txt");
+    let backend_matrix_path = output_dir.join("backend-matrix.txt");
     let api_stability_path = output_dir.join("api-stability.txt");
     let validation_report_path = output_dir.join("validation-report.txt");
     let manifest_path = output_dir.join("bundle-manifest.txt");
 
     let profile_text = fs::read_to_string(&profile_path)?;
+    let backend_matrix_text = fs::read_to_string(&backend_matrix_path)?;
     let api_stability_text = fs::read_to_string(&api_stability_path)?;
     let validation_report_text = fs::read_to_string(&validation_report_path)?;
     let manifest_text = fs::read_to_string(&manifest_path)?;
@@ -730,6 +762,12 @@ fn verify_release_bundle(
         return Err(ReleaseBundleError::Verification(format!(
             "unexpected profile file entry: {}",
             manifest.profile_path
+        )));
+    }
+    if manifest.backend_matrix_path != "backend-matrix.txt" {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected backend matrix file entry: {}",
+            manifest.backend_matrix_path
         )));
     }
     if manifest.api_stability_path != "api-stability.txt" {
@@ -746,6 +784,7 @@ fn verify_release_bundle(
     }
 
     let compatibility_profile_checksum = checksum64(&profile_text);
+    let backend_matrix_checksum = checksum64(&backend_matrix_text);
     let api_stability_checksum = checksum64(&api_stability_text);
     let validation_report_checksum = checksum64(&validation_report_text);
     let profile_id = extract_prefixed_value(&profile_text, "Compatibility profile: ")?;
@@ -758,16 +797,22 @@ fn verify_release_bundle(
             manifest.profile_id, profile_id
         )));
     }
-    if manifest.api_stability_posture_id != api_stability_posture_id {
-        return Err(ReleaseBundleError::Verification(format!(
-            "API stability posture id mismatch: manifest has {}, file has {}",
-            manifest.api_stability_posture_id, api_stability_posture_id
-        )));
-    }
     if manifest.profile_checksum != compatibility_profile_checksum {
         return Err(ReleaseBundleError::Verification(format!(
             "compatibility profile checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
             manifest.profile_checksum, compatibility_profile_checksum
+        )));
+    }
+    if manifest.backend_matrix_checksum != backend_matrix_checksum {
+        return Err(ReleaseBundleError::Verification(format!(
+            "backend matrix checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.backend_matrix_checksum, backend_matrix_checksum
+        )));
+    }
+    if manifest.api_stability_posture_id != api_stability_posture_id {
+        return Err(ReleaseBundleError::Verification(format!(
+            "API stability posture id mismatch: manifest has {}, file has {}",
+            manifest.api_stability_posture_id, api_stability_posture_id
         )));
     }
     if manifest.api_stability_checksum != api_stability_checksum {
@@ -786,13 +831,16 @@ fn verify_release_bundle(
     Ok(ReleaseBundle {
         output_dir: output_dir.to_path_buf(),
         compatibility_profile_path: profile_path,
+        backend_matrix_path,
         api_stability_path,
         validation_report_path,
         manifest_path,
         compatibility_profile_bytes: profile_text.len(),
+        backend_matrix_bytes: backend_matrix_text.len(),
         api_stability_bytes: api_stability_text.len(),
         validation_report_bytes: validation_report_text.len(),
         compatibility_profile_checksum,
+        backend_matrix_checksum,
         api_stability_checksum,
         validation_report_checksum,
     })
@@ -1565,6 +1613,7 @@ mod tests {
 
         assert!(rendered.contains("Release bundle"));
         assert!(rendered.contains("compatibility-profile.txt"));
+        assert!(rendered.contains("backend-matrix.txt"));
         assert!(rendered.contains("API stability posture:"));
         assert!(rendered.contains("api-stability.txt"));
         assert!(rendered.contains("validation-report.txt"));
@@ -1572,6 +1621,8 @@ mod tests {
 
         let profile = std::fs::read_to_string(bundle_dir.join("compatibility-profile.txt"))
             .expect("compatibility profile should be written");
+        let backend_matrix = std::fs::read_to_string(bundle_dir.join("backend-matrix.txt"))
+            .expect("backend matrix should be written");
         let api_stability = std::fs::read_to_string(bundle_dir.join("api-stability.txt"))
             .expect("API stability posture should be written");
         let report = std::fs::read_to_string(bundle_dir.join("validation-report.txt"))
@@ -1580,14 +1631,18 @@ mod tests {
             .expect("manifest should be written");
 
         assert!(profile.contains("Compatibility profile: pleiades-compatibility-profile/0.6.11"));
+        assert!(backend_matrix.contains("Implemented backend matrices"));
+        assert!(backend_matrix.contains("JPL snapshot reference backend"));
         assert!(api_stability.contains("API stability posture: pleiades-api-stability/0.1.0"));
         assert!(report.contains("Validation report"));
         assert!(manifest.contains("Release bundle manifest"));
         assert!(manifest.contains("validation rounds: 1"));
         assert!(manifest.contains("compatibility-profile.txt"));
+        assert!(manifest.contains("backend-matrix.txt"));
         assert!(manifest.contains("api-stability.txt"));
         assert!(manifest.contains("validation-report.txt"));
         assert!(manifest.contains("profile checksum (fnv1a-64): 0x"));
+        assert!(manifest.contains("backend matrix checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("api stability checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("validation report checksum (fnv1a-64): 0x"));
 
@@ -1595,6 +1650,7 @@ mod tests {
             .expect("bundle verification should render");
         assert!(verified.contains("Release bundle"));
         assert!(verified.contains("bundle-manifest.txt"));
+        assert!(verified.contains("backend matrix checksum: 0x"));
         assert!(verified.contains("validation report checksum: 0x"));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
@@ -1626,6 +1682,38 @@ mod tests {
         assert!(
             error.contains("release bundle verification failed")
                 || error.contains("invalid profile checksum")
+                || error.contains("missing 0x prefix")
+        );
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_backend_matrix_checksum_mismatches() {
+        let bundle_dir = unique_temp_dir("pleiades-release-bundle-corrupt-matrix");
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let manifest_path = bundle_dir.join("bundle-manifest.txt");
+        let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
+        let corrupted = manifest.replace(
+            "backend matrix checksum (fnv1a-64):",
+            "backend matrix checksum (fnv1a-64): 0x0000000000000000 #",
+        );
+        std::fs::write(&manifest_path, corrupted).expect("manifest should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect_err("verification should fail for a corrupted backend matrix checksum");
+        assert!(
+            error.contains("release bundle verification failed")
+                || error.contains("invalid backend matrix checksum")
                 || error.contains("missing 0x prefix")
         );
 
