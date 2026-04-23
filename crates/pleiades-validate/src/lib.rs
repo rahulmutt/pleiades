@@ -970,6 +970,7 @@ fn render_release_checklist_text() -> String {
     text.push_str("Bundle contents:\n");
     for item in [
         "[x] compatibility-profile.txt",
+        "[x] compatibility-profile-summary.txt",
         "[x] release-notes.txt",
         "[x] release-checklist.txt",
         "[x] backend-matrix.txt",
@@ -2153,7 +2154,7 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = default_corpus().requests.len();
     format!(
-        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix            Print the implemented backend capability matrices\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus with guard epochs\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  release-notes             Print the release compatibility notes\n  release-checklist         Print the release maintainer checklist\n  bundle-release --out DIR  Write the release compatibility profile, release notes, release checklist, API posture, validation report, and manifest\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix            Print the implemented backend capability matrices\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus with guard epochs\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  release-notes             Print the release compatibility notes\n  release-checklist         Print the release maintainer checklist\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release checklist, backend matrix, API posture, validation report, and manifest\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
@@ -2423,6 +2424,8 @@ mod tests {
         assert!(rendered.contains("release-notes"));
         assert!(rendered.contains("release-checklist"));
         assert!(rendered.contains("bundle-release --out DIR"));
+        assert!(rendered.contains("profile summary"));
+        assert!(rendered.contains("backend matrix"));
         assert!(rendered.contains("verify-release-bundle"));
     }
 
@@ -2600,6 +2603,7 @@ version = "0.9.0"
         assert!(release_checklist.contains("verify-release-bundle --out /tmp/pleiades-release"));
         assert!(release_checklist.contains("docs/release-reproducibility.md"));
         assert!(release_checklist.contains("Bundle contents:"));
+        assert!(release_checklist.contains("compatibility-profile-summary.txt"));
         assert!(backend_matrix.contains("Implemented backend matrices"));
         assert!(backend_matrix.contains("JPL snapshot reference backend"));
         assert!(backend_matrix

@@ -1107,3 +1107,13 @@ Remaining Stage 6 work: keep the benchmark corpus, validation help text, and rel
 
 
 - 2026-04-23: Added the Swiss Ephemeris `Whole sign houses, 1. house = Aries` interoperability alias to `pleiades-houses` for `Equal (1=Aries)`, updated the compatibility profile release notes/version to `0.6.43`, and recorded the progress in Stage 6.
+
+## 2026-04-23 — Release-bundle file list now mentions the profile summary artifact
+
+Implemented a small Stage 6 release-hardening documentation sync slice:
+
+- `pleiades-validate` help text and the release-checklist bundle section now explicitly mention `compatibility-profile-summary.txt` alongside the other staged bundle files, so the command summary matches the bundle contents that `bundle-release` already writes
+- `docs/release-reproducibility.md` and the README now list the profile-summary artifact too, keeping the maintainer-facing reproducibility docs aligned with the staged bundle layout
+- the Stage 6 progress notes were updated to record the bundle-description sync; no spec update was needed because this stays within the existing release-artifact and reproducibility scope
+
+Remaining Stage 6 work: keep the bundle contents, docs, and release-facing checklist text synchronized as the hardening workflow evolves.

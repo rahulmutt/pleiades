@@ -49,6 +49,7 @@ cargo run -q -p pleiades-validate -- release-checklist
 The bundle currently writes these text artifacts:
 
 - `compatibility-profile.txt`
+- `compatibility-profile-summary.txt`
 - `release-notes.txt`
 - `release-checklist.txt`
 - `backend-matrix.txt`
@@ -69,6 +70,7 @@ cargo run -q -p pleiades-validate -- verify-release-bundle --out /tmp/pleiades-r
 The release bundle makes the current release posture easy to reproduce and audit:
 
 - the compatibility profile captures shipped house systems, ayanamsas, aliases, and known gaps,
+- the compatibility profile summary gives a compact count-based view of the same release posture,
 - the release notes file summarizes release-specific coverage, known limitations, and the current API stability / deprecation-policy snapshot,
 - the release checklist captures the repository-managed release gates and the published bundle contents,
 - the backend matrix records the implemented backend catalog and its declared coverage,
