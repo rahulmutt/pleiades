@@ -5,7 +5,9 @@
 //! common aliases, latitude-sensitive notes, and the Stage 3 baseline house
 //! formulas that power the chart workflow. It also carries the first Stage 6
 //! compatibility-expansion additions so release profiles can distinguish the
-//! baseline milestone from newer catalog breadth.
+//! baseline milestone from newer catalog breadth. The resolver additionally
+//! accepts the common Swiss Ephemeris house-system letter codes used by
+//! interoperability tables.
 //!
 //! # Examples
 //!
@@ -569,12 +571,34 @@ pub fn descriptor(system: &HouseSystem) -> Option<&'static HouseSystemDescriptor
         .find(|entry| entry.system == *system)
 }
 
+fn resolve_house_system_code(label: &str) -> Option<HouseSystem> {
+    match label.trim() {
+        "P" | "p" => Some(HouseSystem::Placidus),
+        "K" | "k" => Some(HouseSystem::Koch),
+        "R" | "r" => Some(HouseSystem::Regiomontanus),
+        "C" | "c" => Some(HouseSystem::Campanus),
+        "O" | "o" => Some(HouseSystem::Porphyry),
+        "E" | "e" => Some(HouseSystem::Equal),
+        "W" | "w" => Some(HouseSystem::WholeSign),
+        "V" | "v" => Some(HouseSystem::Vehlow),
+        "A" | "a" => Some(HouseSystem::Axial),
+        "H" | "h" => Some(HouseSystem::Horizon),
+        "B" | "b" => Some(HouseSystem::Alcabitius),
+        "M" | "m" => Some(HouseSystem::Morinus),
+        "S" | "s" => Some(HouseSystem::Sunshine),
+        "G" | "g" => Some(HouseSystem::Gauquelin),
+        _ => None,
+    }
+}
+
 /// Resolves a house-system label to a built-in type.
 pub fn resolve_house_system(label: &str) -> Option<HouseSystem> {
-    built_in_house_systems()
-        .iter()
-        .find(|entry| entry.matches_label(label))
-        .map(|entry| entry.system.clone())
+    resolve_house_system_code(label).or_else(|| {
+        built_in_house_systems()
+            .iter()
+            .find(|entry| entry.matches_label(label))
+            .map(|entry| entry.system.clone())
+    })
 }
 
 #[cfg(test)]
@@ -629,6 +653,20 @@ mod tests {
             Some(HouseSystem::WholeSign)
         );
         assert_eq!(resolve_house_system("w. koch"), Some(HouseSystem::Koch));
+        assert_eq!(resolve_house_system("P"), Some(HouseSystem::Placidus));
+        assert_eq!(resolve_house_system("k"), Some(HouseSystem::Koch));
+        assert_eq!(resolve_house_system("r"), Some(HouseSystem::Regiomontanus));
+        assert_eq!(resolve_house_system("c"), Some(HouseSystem::Campanus));
+        assert_eq!(resolve_house_system("o"), Some(HouseSystem::Porphyry));
+        assert_eq!(resolve_house_system("e"), Some(HouseSystem::Equal));
+        assert_eq!(resolve_house_system("w"), Some(HouseSystem::WholeSign));
+        assert_eq!(resolve_house_system("v"), Some(HouseSystem::Vehlow));
+        assert_eq!(resolve_house_system("a"), Some(HouseSystem::Axial));
+        assert_eq!(resolve_house_system("h"), Some(HouseSystem::Horizon));
+        assert_eq!(resolve_house_system("b"), Some(HouseSystem::Alcabitius));
+        assert_eq!(resolve_house_system("m"), Some(HouseSystem::Morinus));
+        assert_eq!(resolve_house_system("s"), Some(HouseSystem::Sunshine));
+        assert_eq!(resolve_house_system("g"), Some(HouseSystem::Gauquelin));
         assert_eq!(resolve_house_system("Carter"), Some(HouseSystem::Carter));
         assert_eq!(
             resolve_house_system("Equal (from MC)"),
