@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.90";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.91";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -262,6 +262,7 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "T Polich/Page (\"topocentric\")",
             "T topocentric",
             "Topocentric house system",
+            "Topocentric table of houses",
         ],
         "Morinus" => &["M", "Morinus houses", "Morinus house system"],
         "Equal (MC)" => &[
@@ -1171,7 +1172,7 @@ mod tests {
         assert!(rendered.contains("Lahiri original, Panchanga Darpan Lahiri -> Lahiri (1940)"));
         assert!(rendered.contains("De Luce, DeLuce ayanamsa -> DeLuce"));
         assert!(rendered.contains(
-            "T, Polich-Page, Polich/Page, Polich Page, Polich-Page \"topocentric\" table of houses, T Polich/Page (\"topocentric\"), T topocentric, Topocentric house system -> Topocentric"
+            "T, Polich-Page, Polich/Page, Polich Page, Polich-Page \"topocentric\" table of houses, T Polich/Page (\"topocentric\"), T topocentric, Topocentric house system, Topocentric table of houses -> Topocentric"
         ));
         assert!(rendered.contains("Polich-Page \"topocentric\" table of houses"));
         assert!(rendered.contains("T Polich/Page (\"topocentric\")"));
@@ -1309,7 +1310,7 @@ mod tests {
             "X, Meridian houses, Meridian table of houses, Meridian house system, ARMC, Axial Rotation, Axial rotation system, Zariel, X axial rotation system/ Meridian houses -> Meridian"
         ));
         assert!(rendered.contains("Y, APC, Ram school, Ram's school, Ramschool, WvA, Y APC houses, APC houses, APC, also known as “Ram school”, table of houses, APC house system, Ascendant Parallel Circle -> APC"));
-        assert!(rendered.contains("T, Polich-Page, Polich/Page, Polich Page, Polich-Page \"topocentric\" table of houses, T Polich/Page (\"topocentric\"), T topocentric, Topocentric house system -> Topocentric"));
+        assert!(rendered.contains("T, Polich-Page, Polich/Page, Polich Page, Polich-Page \"topocentric\" table of houses, T Polich/Page (\"topocentric\"), T topocentric, Topocentric house system, Topocentric table of houses -> Topocentric"));
         assert!(rendered.contains("Gauquelin sectors"));
         assert!(rendered
             .contains("G, Gauquelin, Gauquelin sector, Gauquelin sectors, Gauquelin table of sectors -> Gauquelin sectors"));

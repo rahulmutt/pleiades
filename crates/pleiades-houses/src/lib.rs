@@ -211,6 +211,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
             "T Polich/Page (\"topocentric\")",
             "T topocentric",
             "Topocentric house system",
+            "Topocentric table of houses",
         ],
         "Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.",
         true,
@@ -608,6 +609,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
             "T Polich/Page (\"topocentric\")",
             "T topocentric",
             "Topocentric house system",
+            "Topocentric table of houses",
         ],
         "Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.",
         true,
@@ -805,6 +807,10 @@ mod tests {
         );
         assert_eq!(
             resolve_house_system("Topocentric house system"),
+            Some(HouseSystem::Topocentric)
+        );
+        assert_eq!(
+            resolve_house_system("Topocentric table of houses"),
             Some(HouseSystem::Topocentric)
         );
         assert_eq!(
