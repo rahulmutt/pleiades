@@ -16,7 +16,10 @@ use pleiades_core::{
 use pleiades_data::PackagedDataBackend;
 use pleiades_elp::ElpBackend;
 use pleiades_jpl::JplSnapshotBackend;
-use pleiades_validate::render_backend_matrix_report;
+use pleiades_validate::{
+    render_api_stability_summary, render_backend_matrix_report, render_backend_matrix_summary,
+    render_compatibility_profile_summary,
+};
 use pleiades_vsop87::Vsop87Backend;
 
 fn banner() -> &'static str {
@@ -28,11 +31,20 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("compatibility-profile") | Some("profile") => {
             Ok(pleiades_core::current_compatibility_profile().to_string())
         }
+        Some("compatibility-profile-summary") | Some("profile-summary") => {
+            Ok(render_compatibility_profile_summary())
+        }
         Some("api-stability") | Some("api-posture") => {
             Ok(current_api_stability_profile().to_string())
         }
+        Some("api-stability-summary") | Some("api-posture-summary") => {
+            Ok(render_api_stability_summary())
+        }
         Some("backend-matrix") | Some("capability-matrix") => {
             render_backend_matrix_report().map_err(render_error)
+        }
+        Some("backend-matrix-summary") | Some("matrix-summary") => {
+            Ok(render_backend_matrix_summary())
         }
         Some("chart") => render_chart(&args[1..]),
         Some("help") | Some("--help") | Some("-h") => Ok(help_text()),
@@ -43,7 +55,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
 
 fn help_text() -> String {
     format!(
-        "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  backend-matrix         Print the implemented backend capability matrices\n  capability-matrix      Alias for backend-matrix\n  chart                  Render a basic chart report\n    --mean               Force mean positions for backend queries\n    --apparent           Force apparent positions for backend queries\n  help                   Show this help text",
+        "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary        Alias for compatibility-profile-summary\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  api-stability-summary  Print the compact API stability summary\n  api-posture-summary    Alias for api-stability-summary\n  backend-matrix         Print the implemented backend capability matrices\n  capability-matrix      Alias for backend-matrix\n  backend-matrix-summary Print the compact backend capability matrix summary\n  matrix-summary         Alias for backend-matrix-summary\n  chart                  Render a basic chart report\n    --mean               Force mean positions for backend queries\n    --apparent           Force apparent positions for backend queries\n  help                   Show this help text",
         banner()
     )
 }
@@ -264,10 +276,39 @@ mod tests {
     }
 
     #[test]
+    fn summary_commands_render_compact_reports() {
+        let release_profiles = current_release_profile_identifiers();
+
+        let compatibility = render_cli(&["compatibility-profile-summary"])
+            .expect("compatibility summary should render");
+        assert!(compatibility.contains("Compatibility profile summary"));
+        assert!(compatibility.contains(&format!(
+            "Profile: {}",
+            release_profiles.compatibility_profile_id
+        )));
+        assert!(compatibility.contains("House systems: 25 total"));
+
+        let backend_matrix =
+            render_cli(&["backend-matrix-summary"]).expect("backend matrix summary should render");
+        assert!(backend_matrix.contains("Backend matrix summary"));
+        assert!(backend_matrix.contains("Backends: 5"));
+        assert!(backend_matrix.contains("Accuracy classes: Exact: 1"));
+
+        let api_stability =
+            render_cli(&["api-stability-summary"]).expect("api stability summary should render");
+        assert!(api_stability.contains("API stability summary"));
+        assert!(api_stability.contains("Stable surfaces: 6"));
+        assert!(api_stability.contains(&format!(
+            "Compatibility profile: {}",
+            release_profiles.compatibility_profile_id
+        )));
+    }
+
+    #[test]
     fn unknown_command_is_rejected() {
-        let error = render_cli(&["compatibility-profile-summary"])
+        let error = render_cli(&["compatibility-profile-snapshot"])
             .expect_err("unknown commands should fail");
-        assert!(error.contains("unknown command: compatibility-profile-summary"));
+        assert!(error.contains("unknown command: compatibility-profile-snapshot"));
         assert!(error.contains("compatibility-profile  Print the release compatibility profile"));
         assert!(error.contains("chart                  Render a basic chart report"));
     }
