@@ -4,6 +4,9 @@
 //! families. Concrete backends live in their own `pleiades-*` crates and
 //! implement [`EphemerisBackend`].
 //!
+//! Enable the optional `serde` feature to serialize the shared request,
+//! result, metadata, and error types used by backend implementations.
+//!
 //! # Examples
 //!
 //! ```
@@ -65,6 +68,7 @@ pub use pleiades_types::{
 };
 
 /// Stable identifier for a backend implementation.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 pub struct BackendId(String);
 
@@ -87,6 +91,7 @@ impl fmt::Display for BackendId {
 }
 
 /// The high-level backend family.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum BackendFamily {
@@ -103,6 +108,7 @@ pub enum BackendFamily {
 }
 
 /// A rough accuracy class for a backend.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum AccuracyClass {
@@ -119,6 +125,7 @@ pub enum AccuracyClass {
 }
 
 /// Provenance summary for a backend.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct BackendProvenance {
     /// Short human-readable summary of the backend's source material.
@@ -138,6 +145,7 @@ impl BackendProvenance {
 }
 
 /// Capability flags for a backend.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct BackendCapabilities {
     /// Whether geocentric calculations are supported.
@@ -168,6 +176,7 @@ impl Default for BackendCapabilities {
 }
 
 /// Nominal backend metadata.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct BackendMetadata {
     /// Stable backend identifier.
@@ -197,6 +206,7 @@ pub struct BackendMetadata {
 }
 
 /// A backend request.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct EphemerisRequest {
     /// Requested body.
@@ -228,6 +238,7 @@ impl EphemerisRequest {
 }
 
 /// Quality annotation for a backend result.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum QualityAnnotation {
@@ -242,6 +253,7 @@ pub enum QualityAnnotation {
 }
 
 /// A backend result containing the requested coordinates where available.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct EphemerisResult {
     /// Backend that produced the result.
@@ -292,6 +304,7 @@ impl EphemerisResult {
 }
 
 /// Error categories for backend queries.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 #[non_exhaustive]
 pub enum EphemerisErrorKind {
@@ -314,6 +327,7 @@ pub enum EphemerisErrorKind {
 }
 
 /// A structured backend error.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct EphemerisError {
     /// The error category.
@@ -762,6 +776,51 @@ mod tests {
         assert_eq!(request.frame, CoordinateFrame::Ecliptic);
         assert_eq!(request.apparent, Apparentness::Apparent);
         assert_eq!(request.zodiac_mode, ZodiacMode::Tropical);
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn serde_roundtrip_preserves_requests_and_results() {
+        let request = EphemerisRequest {
+            body: CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros")),
+            instant: Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt),
+            observer: Some(ObserverLocation::new(
+                Latitude::from_degrees(51.5),
+                Longitude::from_degrees(-0.1),
+                Some(45.0),
+            )),
+            frame: CoordinateFrame::Equatorial,
+            zodiac_mode: ZodiacMode::Sidereal {
+                ayanamsa: Ayanamsa::Lahiri,
+            },
+            apparent: Apparentness::Mean,
+        };
+        let request_roundtrip: EphemerisRequest = serde_json::from_value(
+            serde_json::to_value(&request).expect("request should serialize"),
+        )
+        .expect("request should deserialize");
+        assert_eq!(request_roundtrip, request);
+
+        let mut result = EphemerisResult::new(
+            BackendId::new("toy"),
+            CelestialBody::Moon,
+            Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt),
+            CoordinateFrame::Ecliptic,
+            ZodiacMode::Tropical,
+            Apparentness::Apparent,
+        );
+        result.quality = QualityAnnotation::Interpolated;
+        result.ecliptic = Some(EclipticCoordinates::new(
+            Longitude::from_degrees(123.0),
+            Latitude::from_degrees(2.5),
+            Some(1.0),
+        ));
+        result.motion = Some(Motion::new(Some(0.12), Some(-0.01), None));
+
+        let result_roundtrip: EphemerisResult =
+            serde_json::from_value(serde_json::to_value(&result).expect("result should serialize"))
+                .expect("result should deserialize");
+        assert_eq!(result_roundtrip, result);
     }
 
     #[test]

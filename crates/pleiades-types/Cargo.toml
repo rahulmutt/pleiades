@@ -6,4 +6,8 @@ license.workspace = true
 rust-version.workspace = true
 publish = false
 
+[features]
+serde = ["dep:serde"]
+
 [dependencies]
+serde = { workspace = true, optional = true }

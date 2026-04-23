@@ -9,7 +9,7 @@ The repository is in the stage-6 release-hardening phase, with the chart MVP and
 - the Rust workspace exists and is organized around `pleiades-*` crates,
 - the local developer toolchain is managed through `mise.toml`,
 - the CI workflow runs formatting, linting, and tests in pure Rust mode,
-- the shared type system, backend contract, and thin façade are implemented, including the built-in lunar node/apogee/perigee body identifiers,
+- the shared type system, backend contract, and thin façade are implemented, including the built-in lunar node/apogee/perigee body identifiers, and the shared types/backend/compression crates now also expose an optional `serde` feature for serializing requests, results, and compressed artifacts,
 - the baseline house and ayanamsa catalogs plus the compatibility profile scaffold are published,
 - the tropical chart workflow works end to end with approximate Sun/Moon/planet and lunar-point backends and a CLI chart report,
 - the chart façade keeps mean/apparent position selection explicit and the CLI chart command can now surface that choice alongside the rendered report,

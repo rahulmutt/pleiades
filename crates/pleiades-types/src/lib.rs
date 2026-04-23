@@ -5,6 +5,9 @@
 //! Higher-level crates build on these semantics without re-labelling the same
 //! concepts in backend-specific ways.
 //!
+//! Enable the optional `serde` feature to serialize and deserialize the public
+//! type vocabulary for interchange or caching workflows.
+//!
 //! # Examples
 //!
 //! ```
@@ -26,6 +29,7 @@ use core::fmt;
 /// `Angle` is intentionally neutral: it does not assume a normalization range.
 /// Use [`Angle::normalized_0_360`] or [`Angle::normalized_signed`] when a
 /// canonical wrap is required.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Angle(f64);
 
@@ -78,6 +82,7 @@ impl fmt::Display for Angle {
 }
 
 /// A canonical ecliptic or longitude-like angle normalized into `[0, 360)`.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Longitude(Angle);
 
@@ -114,6 +119,7 @@ impl fmt::Display for Longitude {
 ///
 /// Latitude values are not automatically clamped; the caller is expected to
 /// provide values consistent with the relevant coordinate system.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Latitude(Angle);
 
@@ -147,6 +153,7 @@ impl fmt::Display for Latitude {
 }
 
 /// A Julian day expressed as a floating-point day count.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
 pub struct JulianDay(f64);
 
@@ -169,6 +176,7 @@ impl fmt::Display for JulianDay {
 }
 
 /// A supported astronomical time scale.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 #[non_exhaustive]
 pub enum TimeScale {
@@ -183,6 +191,7 @@ pub enum TimeScale {
 }
 
 /// A Julian day tagged with a time scale.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Instant {
     /// The numeric Julian day value.
@@ -199,6 +208,7 @@ impl Instant {
 }
 
 /// A geographic observer location.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ObserverLocation {
     /// Geographic latitude.
@@ -221,6 +231,7 @@ impl ObserverLocation {
 }
 
 /// The coordinate frame requested from a backend.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 #[non_exhaustive]
 pub enum CoordinateFrame {
@@ -231,6 +242,7 @@ pub enum CoordinateFrame {
 }
 
 /// Whether coordinates should be interpreted in tropical or sidereal mode.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 #[non_exhaustive]
 pub enum ZodiacMode {
@@ -241,6 +253,7 @@ pub enum ZodiacMode {
 }
 
 /// One of the twelve zodiac signs.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 #[non_exhaustive]
 pub enum ZodiacSign {
@@ -315,6 +328,7 @@ impl fmt::Display for ZodiacSign {
 }
 
 /// Whether a backend should prefer apparent or mean values where both exist.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 #[non_exhaustive]
 pub enum Apparentness {
@@ -335,6 +349,7 @@ impl fmt::Display for Apparentness {
 }
 
 /// The built-in and custom body identifiers recognized by the shared API.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum CelestialBody {
@@ -412,6 +427,7 @@ impl CelestialBody {
 }
 
 /// A structured identifier for a custom body.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct CustomBodyId {
     /// A coarse namespace for the body source, such as `asteroid` or `hypothetical`.
@@ -465,6 +481,7 @@ impl fmt::Display for CelestialBody {
 }
 
 /// A built-in or custom house system selection.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum HouseSystem {
@@ -523,6 +540,7 @@ pub enum HouseSystem {
 }
 
 /// A structured custom house-system definition.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct CustomHouseSystem {
     /// Stable human-readable name.
@@ -545,6 +563,7 @@ impl CustomHouseSystem {
 }
 
 /// A built-in or custom ayanamsa selection.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 #[non_exhaustive]
 pub enum Ayanamsa {
@@ -671,6 +690,7 @@ pub enum Ayanamsa {
 }
 
 /// A structured custom ayanamsa definition.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct CustomAyanamsa {
     /// Stable human-readable name.
@@ -696,6 +716,7 @@ impl CustomAyanamsa {
 }
 
 /// Ecliptic position data.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct EclipticCoordinates {
     /// Ecliptic longitude.
@@ -718,6 +739,7 @@ impl EclipticCoordinates {
 }
 
 /// Equatorial position data.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct EquatorialCoordinates {
     /// Right ascension.
@@ -744,6 +766,7 @@ impl EquatorialCoordinates {
 }
 
 /// The coarse direction of longitudinal motion.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum MotionDirection {
     /// Motion is prograde or direct.
@@ -766,6 +789,7 @@ impl fmt::Display for MotionDirection {
 }
 
 /// Apparent motion data for a position sample.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Motion {
     /// Longitude speed in degrees per day.
@@ -808,6 +832,7 @@ impl Motion {
 }
 
 /// A Julian-day interval.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct TimeRange {
     /// Inclusive lower bound.

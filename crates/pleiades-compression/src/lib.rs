@@ -5,6 +5,9 @@
 //! It is intentionally simple enough to audit while still exercising the
 //! same segmented lookup flow that later, denser artifacts will use.
 //!
+//! Enable the optional `serde` feature to serialize compressed artifacts for
+//! inspection or interchange workflows.
+//!
 //! # Examples
 //!
 //! ```
@@ -41,6 +44,7 @@ pub const ARTIFACT_VERSION: u16 = 1;
 const ARTIFACT_MAGIC: [u8; 8] = *b"PLDEPHEM";
 
 /// Describes the non-body metadata stored in a compressed artifact.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ArtifactHeader {
     /// Format version.
@@ -63,6 +67,7 @@ impl ArtifactHeader {
 }
 
 /// The kind of ecliptic channel carried by a segment.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 #[repr(u8)]
 #[non_exhaustive]
@@ -76,6 +81,7 @@ pub enum ChannelKind {
 }
 
 /// Quantized polynomial coefficients for one channel of a time segment.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct PolynomialChannel {
     /// Channel kind.
@@ -113,6 +119,7 @@ impl PolynomialChannel {
 }
 
 /// A single time segment for a specific body.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct Segment {
     /// Inclusive segment start.
@@ -161,6 +168,7 @@ impl Segment {
 }
 
 /// All segments for a single body.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct BodyArtifact {
     /// Body identifier.
@@ -177,6 +185,7 @@ impl BodyArtifact {
 }
 
 /// A compressed ephemeris artifact.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct CompressedArtifact {
     /// File header metadata.
@@ -336,6 +345,7 @@ impl CompressedArtifact {
 }
 
 /// Error categories for compression and artifact parsing.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 #[non_exhaustive]
 pub enum CompressionErrorKind {
@@ -362,6 +372,7 @@ pub enum CompressionErrorKind {
 }
 
 /// A structured compression error.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CompressionError {
     /// Error category.
@@ -729,6 +740,33 @@ mod tests {
             decoded.checksum,
             artifact.checksum().expect("checksum should compute")
         );
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn serde_roundtrip_preserves_artifacts() {
+        let artifact = CompressedArtifact::new(
+            ArtifactHeader::new("serde demo", "json roundtrip fixture"),
+            vec![BodyArtifact::new(
+                CelestialBody::Moon,
+                vec![Segment::new(
+                    Instant::new(pleiades_types::JulianDay::from_days(1.0), TimeScale::Tt),
+                    Instant::new(pleiades_types::JulianDay::from_days(2.0), TimeScale::Tt),
+                    vec![PolynomialChannel::linear(
+                        ChannelKind::Longitude,
+                        9,
+                        15.0,
+                        30.0,
+                    )],
+                )],
+            )],
+        );
+
+        let decoded: CompressedArtifact = serde_json::from_value(
+            serde_json::to_value(&artifact).expect("artifact should serialize"),
+        )
+        .expect("artifact should deserialize");
+        assert_eq!(decoded, artifact);
     }
 
     #[test]

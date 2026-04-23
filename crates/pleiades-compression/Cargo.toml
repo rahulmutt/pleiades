@@ -6,5 +6,12 @@ license.workspace = true
 rust-version.workspace = true
 publish = false
 
+[features]
+serde = ["dep:serde", "pleiades-types/serde"]
+
 [dependencies]
 pleiades-types = { path = "../pleiades-types" }
+serde = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json = "1"

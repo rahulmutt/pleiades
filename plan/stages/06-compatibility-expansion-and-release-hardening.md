@@ -45,6 +45,7 @@ This final stage should behave like a sequence of release-quality increments, no
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] The shared `pleiades-types`, `pleiades-backend`, and `pleiades-compression` crates now expose an optional `serde` feature for serializing the shared request/result and compressed-artifact data structures, so downstream tooling can persist or exchange those core values without additional wrapper types.
 - [x] `pleiades-validate` now names the ELP backend matrix entry as Moon-and-lunar-node coverage explicitly, so the release-facing capability docs stay synchronized with the broader lunar-point surface.
 - [x] `pleiades-cli` now rejects unknown top-level commands explicitly instead of falling through to the banner, so mistyped inspection commands fail clearly during release hardening.
 - [x] `pleiades-validate` now also ships a compact `api-stability-summary.txt` bundle artifact and matching `api-stability-summary` CLI command, so maintainers can inspect the API posture quickly alongside the existing compatibility-profile and backend-matrix summaries.
