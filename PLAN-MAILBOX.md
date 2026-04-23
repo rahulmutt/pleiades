@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Release profile appendix docs synced
+
+Completed the small documentation-sync follow-up for the latest Stage 6 source-label appendix expansion:
+
+- `README.md` now calls out the broader source-label appendix explicitly, including the latest J2000/J1900/B1950, True Citra, True Revati, True Mula, Udayagiri, Lahiri (ICRC), Lahiri (1940), DeLuce, and Yukteshwar source spellings
+- the Stage 6 progress notes were updated with the same appendix wording so the plan tracker stays aligned with the release profile text
+- no spec change was needed; this is a documentation alignment slice for the already-implemented compatibility-profile breadth
+
+Remaining Stage 6 work: keep the release-profile appendix, catalog breadth, and release notes synchronized as additional interoperability labels land.
+
 ## 2026-04-23 — Release profile source-label appendix widened again
 
 Implemented another small Stage 6 release-hardening slice:
