@@ -8,7 +8,7 @@ The project is a Rust workspace composed of small focused crates.
 
 ### Core and Types
 
-- `pleiades-types`: shared enums, structs, identifiers, coordinate types, time types, errors
+- `pleiades-types`: shared enums, structs, identifiers, coordinate types, time types, errors, and compatibility-profile data types
 - `pleiades-backend`: backend trait definitions, capability metadata, adapter helpers
 - `pleiades-core`: high-level façade API combining backend queries with domain calculations
 
@@ -58,6 +58,8 @@ The architecture must allow hybrid composition. For example:
 - prepacked common range via `pleiades-data`
 
 A composite backend adapter may route body queries to different underlying providers while presenting one unified backend implementation.
+
+Astrology-specific transforms such as sidereal conversion and house placement should remain above this layer unless a backend explicitly exposes an equivalent capability through the common contract.
 
 ## Feature Flags
 

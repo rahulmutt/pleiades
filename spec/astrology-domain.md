@@ -21,7 +21,7 @@ Sidereal conversion must be a domain-layer transformation rather than a backend-
 
 ## House Systems
 
-The house module must model a complete and extensible catalog of astrological house systems. Development may be phased, but the target compatibility catalog remains the full compatibility set required for Swiss-Ephemeris-class interoperability.
+The house module must model the target compatibility catalog of astrological house systems in a complete and extensible way. Development may be phased, but the end-state requirement does not shrink.
 
 The house module must provide a common interface that accepts:
 
@@ -38,7 +38,7 @@ The module must return:
 
 ## Initial Implementation Milestone
 
-The target end state is support for the full house-system catalog targeted by astrology software. The first implementation milestone must include at minimum:
+The first implementation milestone must include at minimum:
 
 - Placidus
 - Koch
@@ -58,7 +58,7 @@ The project must also publish a versioned compatibility profile that enumerates 
 
 ## Ayanamsa Model
 
-Ayanamsa support must include a complete extensible catalog model. Development may be phased, but the target compatibility catalog remains the full compatibility ayanamsa set required for Swiss-Ephemeris-class interoperability.
+Ayanamsa support must include a complete extensible catalog model matching the target compatibility catalog over time. Development may be phased, but the end-state requirement does not shrink.
 
 Ayanamsa support must include:
 
@@ -79,7 +79,7 @@ The domain layer should support, either initially or in later phases:
 - planetary speed bands
 - aspects and orb-ready angular separations
 - house placement and sign placement
-- dignities and interpretive helpers as optional higher layers
+- optional higher-level chart helpers, such as dignities, built above the core domain layer
 
 ## Time Scales
 

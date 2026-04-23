@@ -57,6 +57,7 @@ A release should not ship unless:
 - all supported crates build in pure Rust mode on CI targets
 - dependency and build audits confirm there are no mandatory C/C++ toolchain, FFI, or native runtime requirements
 - backend capability docs are current
+- the release compatibility profile is updated and archived with the release artifacts
 - validation reports are generated and archived
 - compressed artifacts pass checksum and error-threshold checks
 
@@ -68,3 +69,4 @@ A release should not ship unless:
 - validate-artifact
 - benchmark
 - generate-report
+- verify-compatibility-profile

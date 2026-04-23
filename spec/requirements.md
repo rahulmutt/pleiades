@@ -24,9 +24,9 @@ The system must support:
 - topocentric adjustments where supported by the chosen backend/model
 
 ### FR-3 House Systems
-The system must provide a house computation module supporting a complete and extensible catalog of astrological house systems.
+The system must provide a house computation module supporting the target compatibility catalog of astrological house systems.
 
-The target compatibility catalog is the full set of house systems needed for Swiss-Ephemeris-class astrology compatibility, not merely an initial subset. Implementation may be phased during development, but the architecture and public API must not assume that only a small fixed subset will ever exist.
+Implementation may be phased during development, but the architecture and public API must not assume that only a small fixed subset will ever exist.
 
 The baseline built-in catalog for the first compatibility milestone must include at minimum:
 
@@ -47,9 +47,9 @@ Release coverage is not complete until any further distinct house systems needed
 Where a system has latitude/pathology constraints, those constraints must be explicit in the API and in the compatibility profile.
 
 ### FR-4 Ayanamsa
-The system must support a pluggable, extensible ayanamsa catalog.
+The system must support a pluggable, extensible ayanamsa catalog matching the target compatibility catalog over time.
 
-The target compatibility catalog is the full set of ayanamsas needed for Swiss-Ephemeris-class astrology compatibility, not merely an initial subset. Implementation may be phased during development, but the API must allow named built-ins and user-defined variants without redesign.
+Implementation may be phased during development, but the API must allow named built-ins and user-defined variants without redesign.
 
 The baseline built-in catalog for the first compatibility milestone must include at minimum:
 
@@ -79,7 +79,7 @@ The system must expose a common backend trait that:
 - exposes supported time range and capability metadata
 - distinguishes between data-backed and purely algorithmic implementations
 - reports uncertainty/accuracy class where known
-- does not require every backend to natively implement sidereal transforms when the domain layer can apply a deterministic ayanamsa conversion above tropical coordinates
+- centers on raw astronomical outputs and does not require every backend to natively implement sidereal transforms when the domain layer can apply a deterministic ayanamsa conversion above tropical coordinates
 
 ### FR-6 Multiple Backend Implementations
 The workspace must include separate first-party crates for multiple backends, with each implementation living in its own `pleiades-*` crate, including examples of:
@@ -107,6 +107,7 @@ The public Rust API must present stable domain types for:
 - house systems
 - ayanamsa definitions
 - backend selection/configuration
+- release compatibility profile metadata
 
 ## Non-Functional Requirements
 

@@ -42,11 +42,9 @@ The exact API may evolve, but the semantics above are normative: one-request/one
 - instant/time scale
 - observer location for topocentric calculations
 - desired coordinate frame
-- zodiac mode preference (tropical/sidereal)
-- ayanamsa selection when sidereal mode is chosen
 - flags for apparent vs mean values where meaningful
 
-Backends are not required to natively model sidereal coordinates if the domain layer can deterministically derive them from tropical coordinates plus the selected ayanamsa. Capability metadata must make that distinction explicit.
+The canonical backend contract is for raw astronomical outputs. High-level APIs may accept tropical/sidereal preferences and ayanamsa choices, but sidereal conversion should normally happen in the domain layer from tropical coordinates plus the selected ayanamsa. If a backend offers native sidereal output anyway, capability metadata must make that distinction explicit.
 
 ## Result Model
 
@@ -62,6 +60,7 @@ Backends are not required to natively model sidereal coordinates if the domain l
 - radial speed
 - source backend id
 - quality/uncertainty annotation
+- enough metadata to let higher layers apply deterministic zodiac and house logic without backend-specific special cases
 
 ## Metadata Model
 
@@ -93,6 +92,7 @@ The trait design must permit adapters that:
 - route different bodies to different backends
 - select a preferred backend based on date range
 - fall back from compressed data to algorithmic calculation
+- normalize backend-specific details into the common result model used by higher layers
 
 ## Threading and Caching
 

@@ -23,7 +23,7 @@ The façade should make a clear distinction between:
 - raw backend-oriented coordinate queries
 - domain-layer transforms such as sidereal conversion, house placement, and chart assembly
 
-This keeps backend contracts simpler while still giving end users a convenient astrology-focused API.
+This keeps backend contracts simpler, avoids duplicating astrology logic across backends, and still gives end users a convenient astrology-focused API.
 
 ## Type Safety
 
@@ -50,6 +50,8 @@ The API must make it easy to distinguish:
 ## Batch Queries
 
 The API should provide efficient batch methods for chart-style use cases, since astrology applications usually need many bodies and several derived values at once.
+
+Batch-oriented façade APIs should be able to return body positions, house cusps, and the release compatibility profile relevant to the selected backend/configuration without forcing callers to stitch together low-level pieces manually.
 
 ## Determinism
 

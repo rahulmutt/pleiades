@@ -3,7 +3,7 @@
 ## Phase 1: Foundations
 
 - create workspace and crate skeletons
-- define shared domain/time/body types
+- define shared domain/time/body types and compatibility-profile types
 - define backend trait and metadata model
 - implement basic façade in `pleiades-core`
 
@@ -13,6 +13,7 @@
 - implement `pleiades-elp` for lunar coordinates
 - implement the initial ayanamsa catalog and extensible registration model, with an explicit path to the target compatibility catalog
 - implement the initial house-system milestone on top of an API designed for the target compatibility catalog
+- keep sidereal conversion and house logic in domain crates rather than duplicating them in each backend
 
 ## Phase 3: Reference Data Backend
 

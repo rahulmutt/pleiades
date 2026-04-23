@@ -41,12 +41,13 @@ The following decisions are binding unless a sub-spec explicitly supersedes them
 
 1. **Language/runtime**: Rust only.
 2. **FFI policy**: no required C/C++ libraries, wrappers, or build-time native toolchains.
-3. **Crate naming**: every first-party crate must begin with `pleiades-`.
+3. **Crate naming**: every first-party crate, including tooling and data crates, must begin with `pleiades-`.
 4. **Backend modularity**: every ephemeris source/algorithm implementation lives in its own crate.
 5. **Separation of concerns**: astrology-domain calculations must not be hardwired to one backend.
-6. **Compatibility catalog**: the project must publish a versioned compatibility profile enumerating the built-in house systems, ayanamsas, aliases, and milestone coverage for each release.
-7. **Data range optimization**: compressed packaged data is optimized for 1500-2500, while some live/computational backends may support broader ranges.
-8. **Reproducibility**: packaged data artifacts must be versioned, documented, and regenerable from public inputs.
+6. **Compatibility catalog**: the project must define and eventually ship the full built-in house-system and ayanamsa catalogs needed for Swiss-Ephemeris-class astrology compatibility, while each release publishes a versioned compatibility profile describing the exact built-ins, aliases, and remaining gaps.
+7. **Layering rule**: low-level backends provide raw astronomical results and capability metadata; domain-layer crates are responsible for astrology-specific transforms such as sidereal conversion, house placement, and chart assembly unless a backend explicitly documents equivalent native support.
+8. **Data range optimization**: compressed packaged data is optimized for 1500-2500, while some live/computational backends may support broader ranges.
+9. **Reproducibility**: packaged data artifacts must be versioned, documented, and regenerable from public inputs.
 
 ## Initial Crate Family
 
@@ -81,9 +82,9 @@ The project is considered aligned with this specification when it can:
 
 To keep phased delivery compatible with the long-term scope, the spec uses the following terms consistently:
 
-- **Target compatibility catalog**: the full end-state built-in catalog of house systems and ayanamsas needed for Swiss-Ephemeris-class astrology compatibility.
-- **Baseline compatibility milestone**: the minimum built-in subset that must exist before broader catalog completion; this is a delivery milestone, not the final scope boundary.
-- **Release compatibility profile**: a versioned manifest published for each release that enumerates the exact built-ins, aliases, constraints, and gaps shipped in that release.
+- **Target compatibility catalog**: the full end-state built-in catalog of house systems and ayanamsas required for Swiss-Ephemeris-class astrology interoperability.
+- **Baseline compatibility milestone**: the minimum built-in subset required before broader catalog completion; this is a delivery milestone, not the final scope boundary.
+- **Release compatibility profile**: a versioned manifest published for each release that enumerates the exact built-ins, aliases, constraints, and known gaps shipped in that release.
 
 Interim releases may implement only the baseline milestone plus incremental additions, but the architecture and public APIs must remain open to the full target compatibility catalog without redesign.
 
@@ -103,6 +104,6 @@ The main gap in the earlier draft was wording around house systems and ayanamsas
 
 ## Document Status
 
-Status: Draft 3
+Status: Draft 4
 Owner: Project maintainers
-Last updated: 2026-04-22
+Last updated: 2026-04-23
