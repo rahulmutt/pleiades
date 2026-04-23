@@ -46,6 +46,7 @@ This final stage should behave like a sequence of release-quality increments, no
 Stage 6 release hardening has started as of 2026-04-22.
 
 - [x] The baseline Krishnamurti ayanamsa entry now also accepts the `Krishnamurti Paddhati` and `KP ayanamsa` interoperability spellings, and the compatibility profile identifier has been bumped to `0.6.55` so the release-facing alias batch stays versioned with the current profile.
+- [x] `pleiades-core` now carries a cross-crate catalog-alignment invariant test that keeps the compatibility profile's house-system and ayanamsa slices synchronized with the canonical built-in catalog helpers, so release-profile drift is caught in the workspace test suite instead of only in manual review.
 - [x] The shared `pleiades-types`, `pleiades-backend`, and `pleiades-compression` crates now expose an optional `serde` feature for serializing the shared request/result and compressed-artifact data structures, so downstream tooling can persist or exchange those core values without additional wrapper types.
 - [x] `pleiades-validate` now names the ELP backend matrix entry as Moon-and-lunar-node coverage explicitly, so the release-facing capability docs stay synchronized with the broader lunar-point surface.
 - [x] `pleiades-cli` now rejects unknown top-level commands explicitly instead of falling through to the banner, so mistyped inspection commands fail clearly during release hardening.

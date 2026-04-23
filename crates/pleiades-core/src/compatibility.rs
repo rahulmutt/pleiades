@@ -878,6 +878,12 @@ mod tests {
             .release_ayanamsas
             .iter()
             .any(|entry| entry.canonical_name == "Valens Moon"));
+        assert_eq!(profile.house_systems, built_in_house_systems());
+        assert_eq!(profile.baseline_house_systems, baseline_house_systems());
+        assert_eq!(profile.release_house_systems, release_house_systems());
+        assert_eq!(profile.ayanamsas, built_in_ayanamsas());
+        assert_eq!(profile.baseline_ayanamsas, baseline_ayanamsas());
+        assert_eq!(profile.release_ayanamsas, release_ayanamsas());
         assert!(profile
             .target_house_scope
             .iter()
