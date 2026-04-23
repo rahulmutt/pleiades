@@ -212,6 +212,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] The release bundle verification tests now cover the API stability posture and validation report checksum paths as well, closing the last manifest-checksum gaps in the Stage 6 release-hardening slice.
 - [x] Exact source-label regression coverage now also includes the `Equal/1=Aries`, `horizon/azimut`, `Galactic Center (Rgilbrand)`, `Mula Wilhelm`, `Wilhelm`, `Valens`, and `Moon sign ayanamsa` spellings, so the compatibility profile’s documented interoperability forms stay guarded as the release-line alias surface grows.
 - [x] `pleiades-cli` now accepts custom ayanamsa definitions in `custom:<name>|<epoch-jd>|<offset-degrees>` / `custom-definition:<name>|<epoch-jd>|<offset-degrees>` form, so release-line custom labels can be exercised through the chart workflow without promoting them to built-in catalog entries.
+- [x] The baseline Krishnamurti ayanamsa entry now also accepts the exact Swiss Ephemeris `Krishnamurti (Swiss)` spelling, and the compatibility profile source-label appendix surfaces that interoperability label explicitly alongside the existing KP alias.
 
 ## Exit criteria
 

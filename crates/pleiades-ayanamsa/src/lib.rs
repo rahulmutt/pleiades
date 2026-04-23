@@ -101,7 +101,7 @@ const BASELINE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::Krishnamurti,
         "Krishnamurti",
-        &["KP"],
+        &["KP", "Krishnamurti (Swiss)"],
         "Krishnamurti Paddhati ayanamsa.",
         Some(JulianDay::from_days(2_415_020.0)),
         Some(Angle::from_degrees(22.363_889)),
@@ -590,7 +590,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
     AyanamsaDescriptor::new(
         Ayanamsa::Krishnamurti,
         "Krishnamurti",
-        &["KP"],
+        &["KP", "Krishnamurti (Swiss)"],
         "Krishnamurti Paddhati ayanamsa.",
         Some(JulianDay::from_days(2_415_020.0)),
         Some(Angle::from_degrees(22.363_889)),
@@ -1208,6 +1208,10 @@ mod tests {
     #[test]
     fn aliases_resolve_to_builtin_ayanamsas() {
         assert_eq!(resolve_ayanamsa("KP"), Some(Ayanamsa::Krishnamurti));
+        assert_eq!(
+            resolve_ayanamsa("Krishnamurti (Swiss)"),
+            Some(Ayanamsa::Krishnamurti)
+        );
         assert_eq!(
             resolve_ayanamsa("fagan-bradley"),
             Some(Ayanamsa::FaganBradley)

@@ -91,7 +91,7 @@ pub const fn current_compatibility_profile() -> CompatibilityProfile {
             "Release-specific house-system additions now include Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter (poli-equatorial), Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Krusinski/Pisa/Goelzer, Albategnius, Pullen SD, Pullen SR, Sunshine, and Gauquelin sectors, with the Whole Sign (house 1 = Aries) label, the Whole sign houses, 1. house = Aries source spelling, Wang alias, Equal MC / Equal Midheaven aliases, Equal (cusp 1 = Asc) source spelling, Equal (MC) and Equal (1=Aries) source-label appendix entries, APC houses / Ascendant Parallel Circle / WvA aliases, Horizon / Horizontal / Azimuthal aliases, the Vehlow-equal source label, the Bob Makransky source label for Sunshine, the Topocentric house system alias, the remaining Albategnius / Pullen / Gauquelin source labels, the Swiss Ephemeris single-letter house-table codes P/K/R/C/O/E/W/V/A/H/B/M/S/G plus the additional T/U/X/Y interoperability codes resolving to their corresponding built-ins, and the exact Swiss Ephemeris house-table code spellings A equal, D equal / MC, E equal = A, W equal, whole sign, V equal Vehlow, T topocentric, U Krusinski-Pisa-Goelzer, X axial rotation system/ Meridian houses, and Y APC houses.",
             "The compatibility profile now also renders a source-label appendix for the built-in house systems so common Placidus, Koch, Equal, Whole Sign, Topocentric, Vehlow, Meridian, ARMC, Sunshine, APC, and Horizon/Azimuth spellings — including the Swiss Ephemeris \"Equal (cusp 1 = Asc)\" and \"Whole Sign (house 1 = Aries)\" forms — are searchable alongside the ayanamsa appendix, and the latest release-specific house-system label batches now also surface the exact Albategnius, Pullen, and Gauquelin search forms.",
             "The compatibility profile now also surfaces the exact Swiss Ephemeris house-table code spellings A equal, D equal / MC, E equal = A, W equal, whole sign, V equal Vehlow, T topocentric, U Krusinski-Pisa-Goelzer, X axial rotation system/ Meridian houses, and Y APC houses so the code-style interoperability forms remain searchable alongside the canonical house names.",
-            "The compatibility profile now also renders source-label appendix entries for Lahiri / Chitrapaksha / Chitra Paksha, True Chitra / Chitra, Fagan/Bradley, Fagan Bradley / Fagan-Bradley, Usha Shashi, and the Yukteshwar / Sri Yukteshwar / Shri Yukteshwar transliterations so the baseline sidereal spellings remain searchable alongside the existing Raman appendix entry and the rest of the ayanamsa catalog.",
+            "The compatibility profile now also renders source-label appendix entries for Lahiri / Chitrapaksha / Chitra Paksha, True Chitra / Chitra, Krishnamurti (Swiss), Fagan/Bradley, Fagan Bradley / Fagan-Bradley, Usha Shashi, and the Yukteshwar / Sri Yukteshwar / Shri Yukteshwar transliterations so the baseline sidereal spellings remain searchable alongside the existing Raman appendix entry and the rest of the ayanamsa catalog.",
             "The compatibility profile now also renders source-label appendix entries for P.V.R. Narasimha Rao, Aries houses, and True Mula (Chandra Hari) so the release-facing interoperability labels stay aligned with the documented source spellings for the Pushya-paksha, equal-house, and true-Mula variants.",
             "The compatibility profile now also renders a source-label appendix entry for Raman so the B. V. Raman, B.V. Raman, and B V Raman spellings are searchable alongside the other baseline ayanamsa labels.",
             "The True Citra entry now also accepts the True Citra Paksha and True Chitrapaksha spellings, and the release profile summary highlights that alias batch explicitly so the release-facing source-label appendix stays aligned with common interoperability wording.",
@@ -307,6 +307,7 @@ fn ayanamsa_source_label_aliases(canonical_name: &str) -> &'static [&'static str
             "P.V.R. Narasimha Rao",
         ],
         "Raman" => &["B. V. Raman", "B.V. Raman", "B V Raman"],
+        "Krishnamurti" => &["Krishnamurti (Swiss)"],
         "Fagan/Bradley" => &["Fagan/Bradley", "Fagan Bradley", "Fagan-Bradley"],
         "Lahiri" => &["Chitra Paksha", "Chitrapaksha", "Chitra-paksha"],
         "True Pushya" => &["True Pushya ayanamsa", "Pushya"],
@@ -1007,9 +1008,10 @@ mod tests {
         assert!(rendered
             .contains("Y, APC, Ram school, Ram's school, Ramschool, WvA, Y APC houses, APC houses, APC house system, Ascendant Parallel Circle -> APC"));
         assert!(rendered.contains("Chitra Paksha, Chitrapaksha, Chitra-paksha -> Lahiri"));
-        assert!(rendered.contains("source-label appendix entries for Lahiri / Chitrapaksha / Chitra Paksha, True Chitra / Chitra, Fagan/Bradley, Fagan Bradley / Fagan-Bradley, Usha Shashi, and the Yukteshwar / Sri Yukteshwar / Shri Yukteshwar transliterations"));
+        assert!(rendered.contains("source-label appendix entries for Lahiri / Chitrapaksha / Chitra Paksha, True Chitra / Chitra, Krishnamurti (Swiss), Fagan/Bradley, Fagan Bradley / Fagan-Bradley, Usha Shashi, and the Yukteshwar / Sri Yukteshwar / Shri Yukteshwar transliterations"));
         assert!(rendered.contains("source-label appendix entries for P.V.R. Narasimha Rao, Aries houses, and True Mula (Chandra Hari)"));
         assert!(rendered.contains("B. V. Raman, B.V. Raman, B V Raman -> Raman"));
+        assert!(rendered.contains("Krishnamurti (Swiss) -> Krishnamurti"));
         assert!(rendered.contains("Fagan/Bradley, Fagan Bradley, Fagan-Bradley -> Fagan/Bradley"));
         assert!(rendered
             .contains("Usha Shashi, Ushashashi, Usha-Shashi, Usha/Shashi, Revati -> Usha Shashi"));
