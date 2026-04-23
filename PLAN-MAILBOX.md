@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Release notes and release checklist now surface through pleiades-cli
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-cli` now mirrors the release-notes and release-checklist renderers already available in `pleiades-validate`, so the main inspection CLI can print the same maintainer-facing release text without switching crates
+- the CLI help text, README, release reproducibility guide, and Stage 6 progress notes were updated so the new entry points stay synchronized with the rest of the release-facing inspection surface
+- no spec update was needed; this stays within the existing release-hardening and documentation-synchronization scope
+
+Remaining Stage 6 work: keep the release notes, release checklist, compatibility profile, and validation docs synchronized as further release-hardening slices land.
+
 ## 2026-04-23 — Release bundle now carries a compact validation-report summary artifact
 
 Implemented a small Stage 6 release-hardening slice:

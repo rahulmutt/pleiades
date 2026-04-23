@@ -18,7 +18,7 @@ use pleiades_elp::ElpBackend;
 use pleiades_jpl::JplSnapshotBackend;
 use pleiades_validate::{
     render_api_stability_summary, render_backend_matrix_report, render_backend_matrix_summary,
-    render_compatibility_profile_summary,
+    render_compatibility_profile_summary, render_release_checklist, render_release_notes,
 };
 use pleiades_vsop87::Vsop87Backend;
 
@@ -46,6 +46,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("backend-matrix-summary") | Some("matrix-summary") => {
             Ok(render_backend_matrix_summary())
         }
+        Some("release-notes") => Ok(render_release_notes()),
+        Some("release-checklist") => Ok(render_release_checklist()),
         Some("chart") => render_chart(&args[1..]),
         Some("help") | Some("--help") | Some("-h") => Ok(help_text()),
         None => Ok(banner().to_string()),
@@ -55,7 +57,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
 
 fn help_text() -> String {
     format!(
-        "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary        Alias for compatibility-profile-summary\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  api-stability-summary  Print the compact API stability summary\n  api-posture-summary    Alias for api-stability-summary\n  backend-matrix         Print the implemented backend capability matrices\n  capability-matrix      Alias for backend-matrix\n  backend-matrix-summary Print the compact backend capability matrix summary\n  matrix-summary         Alias for backend-matrix-summary\n  chart                  Render a basic chart report\n    --mean               Force mean positions for backend queries\n    --apparent           Force apparent positions for backend queries\n  help                   Show this help text",
+        "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary        Alias for compatibility-profile-summary\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  api-stability-summary  Print the compact API stability summary\n  api-posture-summary    Alias for api-stability-summary\n  backend-matrix         Print the implemented backend capability matrices\n  capability-matrix      Alias for backend-matrix\n  backend-matrix-summary Print the compact backend capability matrix summary\n  matrix-summary         Alias for backend-matrix-summary\n  release-notes          Print the release compatibility notes\n  release-checklist      Print the release maintainer checklist\n  chart                  Render a basic chart report\n    --mean               Force mean positions for backend queries\n    --apparent           Force apparent positions for backend queries\n  help                   Show this help text",
         banner()
     )
 }
@@ -302,6 +304,17 @@ mod tests {
             "Compatibility profile: {}",
             release_profiles.compatibility_profile_id
         )));
+
+        let release_notes = render_cli(&["release-notes"]).expect("release notes should render");
+        assert!(release_notes.contains("Release notes"));
+        assert!(release_notes.contains("API stability posture:"));
+        assert!(release_notes.contains("Bundle provenance:"));
+
+        let release_checklist =
+            render_cli(&["release-checklist"]).expect("release checklist should render");
+        assert!(release_checklist.contains("Release checklist"));
+        assert!(release_checklist.contains("Repository-managed release gates:"));
+        assert!(release_checklist.contains("bundle-release --out /tmp/pleiades-release"));
     }
 
     #[test]
@@ -310,6 +323,7 @@ mod tests {
             .expect_err("unknown commands should fail");
         assert!(error.contains("unknown command: compatibility-profile-snapshot"));
         assert!(error.contains("compatibility-profile  Print the release compatibility profile"));
+        assert!(error.contains("release-notes          Print the release compatibility notes"));
         assert!(error.contains("chart                  Render a basic chart report"));
     }
 

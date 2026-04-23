@@ -939,6 +939,16 @@ pub fn render_compatibility_profile_summary() -> String {
     render_compatibility_profile_summary_text()
 }
 
+/// Renders the release notes used by release tooling.
+pub fn render_release_notes() -> String {
+    render_release_notes_text()
+}
+
+/// Renders the release checklist used by release tooling.
+pub fn render_release_checklist() -> String {
+    render_release_checklist_text()
+}
+
 fn render_compatibility_profile_summary_text() -> String {
     let profile = current_compatibility_profile();
     let release_profiles = current_release_profile_identifiers();
