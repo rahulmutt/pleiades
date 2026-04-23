@@ -1,5 +1,16 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Raman source-label resolution synced with the compatibility profile
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-ayanamsa` now resolves the `B. V. Raman`, `B.V. Raman`, and `B V Raman` spellings directly, matching the compatibility profile's ayanamsa source-label appendix and keeping the chart/validation CLI behavior aligned with the release notes wording
+- the compatibility profile identifier was bumped to `0.6.24`, and the CLI / validation bundle checks were updated to match the new release-profile version string
+- regression coverage now checks the new Raman source-label resolution path, and the Stage 6 progress notes were updated to record the interoperability fix
+
+Remaining Stage 6 work: keep the release-profile appendix, catalog breadth, and release notes synchronized as additional interoperability labels land.
+
+
 ## 2026-04-23 — Motion-direction filter helper now appears in the API stability posture
 
 Implemented a small Stage 6 release-hardening sync slice:

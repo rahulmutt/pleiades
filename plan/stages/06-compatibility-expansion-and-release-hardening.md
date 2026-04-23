@@ -46,6 +46,7 @@ This final stage should behave like a sequence of release-quality increments, no
 Stage 6 release hardening has started as of 2026-04-22.
 
 - [x] The compatibility profile's APC source-label appendix now includes `APC houses` alongside `Ram school`, `Ramschool`, and `Ascendant Parallel Circle`, and the compatibility profile identifier has been bumped to `0.6.23` so the release artifact stays synchronized with the house-system interoperability labels.
+- [x] The Raman ayanamsa resolver now accepts the `B. V. Raman`, `B.V. Raman`, and `B V Raman` spellings directly, and the compatibility profile identifier has been bumped to `0.6.24` so the release artifact stays synchronized with the ayanamsa source-label appendix.
 - [x] The compatibility profile now also renders a source-label appendix for the built-in house systems, including the Swiss Ephemeris `Equal (cusp 1 = Asc)` spelling, keeping the release-facing house interoperability map searchable alongside the ayanamsa appendix.
 - [x] The compatibility profile's source-label appendix now also surfaces the Aryabhata 499/522 and Suryasiddhanta 499 source spellings explicitly, keeping the release-facing ayanamsa interoperability map aligned with the latest historical/reference-frame breadth additions.
 - [x] `pleiades-houses` now recognizes `Topocentric house system` as an interoperability alias for `Topocentric`, and the compatibility profile now renders that variant explicitly alongside the existing Polich-Page spellings.

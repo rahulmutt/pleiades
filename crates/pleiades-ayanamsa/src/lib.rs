@@ -93,7 +93,7 @@ const BASELINE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::Raman,
         "Raman",
-        &["B. V. Raman"],
+        &["B. V. Raman", "B.V. Raman", "B V Raman"],
         "Popular named sidereal offset used in classical astrology software.",
         Some(JulianDay::from_days(2_415_020.0)),
         Some(Angle::from_degrees(21.014_44)),
@@ -576,7 +576,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
     AyanamsaDescriptor::new(
         Ayanamsa::Raman,
         "Raman",
-        &["B. V. Raman"],
+        &["B. V. Raman", "B.V. Raman", "B V Raman"],
         "Popular named sidereal offset used in classical astrology software.",
         Some(JulianDay::from_days(2_415_020.0)),
         Some(Angle::from_degrees(21.014_44)),
@@ -1195,6 +1195,8 @@ mod tests {
             Some(Ayanamsa::FaganBradley)
         );
         assert_eq!(resolve_ayanamsa("chitrapaksha"), Some(Ayanamsa::Lahiri));
+        assert_eq!(resolve_ayanamsa("B.V. Raman"), Some(Ayanamsa::Raman));
+        assert_eq!(resolve_ayanamsa("B V Raman"), Some(Ayanamsa::Raman));
         assert_eq!(resolve_ayanamsa("J2000.0"), Some(Ayanamsa::J2000));
         assert_eq!(resolve_ayanamsa("J1900.0"), Some(Ayanamsa::J1900));
         assert_eq!(resolve_ayanamsa("B1950.0"), Some(Ayanamsa::B1950));
