@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Equal-house source-label appendix refined
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-core::CompatibilityProfile` now includes the Swiss Ephemeris `Equal (cusp 1 = Asc)` house-system spelling in the built-in house source-label appendix, so equal-house interoperability searches can hit the exact upstream label as well as the canonical name
+- the compatibility profile identifier was bumped to `0.6.19`, and the CLI / validation bundle checks were updated to match the new release-profile version string
+- regression coverage now checks the updated house source-label rendering, and the Stage 6 progress notes / README were updated to record the appendix refinement
+
+Remaining Stage 6 work: keep the release-facing chart helpers, catalog breadth, and compatibility profile synchronized as additional interoperability labels land.
+
 ## 2026-04-23 — House-system source-label appendix added
 
 Implemented a small Stage 6 release-hardening slice:
