@@ -59,6 +59,7 @@ Stage 4 validation has started as of 2026-04-22.
 - [x] The validation report now also renders a compact house-validation corpus for a mid-latitude reference chart and a polar stress chart, so baseline house formulas and their latitude-sensitive behavior stay visible in the stage-4 artifact.
 - [x] The JPL snapshot loader now reports malformed rows as structured load errors instead of panicking, so reference data issues fail explicitly and can be surfaced by validation tooling.
 - [x] The backend capability matrix now includes provenance data-source details alongside the existing summary metadata, so release-facing validation output exposes the reference material behind each implemented backend more explicitly.
+- [x] The validation crate's backend-family rendering is now aligned with the shared non-exhaustive backend contract, so the workspace validation target builds cleanly again under the stage-4 toolchain.
 
 ## Risks to avoid
 

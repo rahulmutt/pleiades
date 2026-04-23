@@ -6,6 +6,7 @@
 
 #![forbid(unsafe_code)]
 
+use std::collections::BTreeMap;
 use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -23,9 +24,9 @@ pub use house_validation::{
 use pleiades_core::{
     current_api_stability_profile, current_compatibility_profile,
     current_release_profile_identifiers, default_chart_bodies, Apparentness, BackendCapabilities,
-    BackendMetadata, CelestialBody, CompositeBackend, CoordinateFrame, EclipticCoordinates,
-    EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
-    Instant, JulianDay, Longitude, TimeRange, TimeScale, ZodiacMode,
+    BackendFamily, BackendMetadata, CelestialBody, CompositeBackend, CoordinateFrame,
+    EclipticCoordinates, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
+    EphemerisResult, Instant, JulianDay, Longitude, TimeRange, TimeScale, ZodiacMode,
 };
 use pleiades_data::PackagedDataBackend;
 use pleiades_elp::ElpBackend;
@@ -328,6 +329,8 @@ pub struct ReleaseBundle {
     pub release_checklist_path: PathBuf,
     /// Path to the generated backend capability matrix file.
     pub backend_matrix_path: PathBuf,
+    /// Path to the generated backend capability matrix summary file.
+    pub backend_matrix_summary_path: PathBuf,
     /// Path to the generated API stability posture file.
     pub api_stability_path: PathBuf,
     /// Path to the generated validation report file.
@@ -344,6 +347,8 @@ pub struct ReleaseBundle {
     pub release_checklist_bytes: usize,
     /// Number of bytes written for the backend capability matrix.
     pub backend_matrix_bytes: usize,
+    /// Number of bytes written for the backend capability matrix summary.
+    pub backend_matrix_summary_bytes: usize,
     /// Number of bytes written for the API stability posture.
     pub api_stability_bytes: usize,
     /// Number of bytes written for the validation report.
@@ -358,6 +363,8 @@ pub struct ReleaseBundle {
     pub release_checklist_checksum: u64,
     /// Deterministic checksum for the backend capability matrix contents.
     pub backend_matrix_checksum: u64,
+    /// Deterministic checksum for the backend capability matrix summary contents.
+    pub backend_matrix_summary_checksum: u64,
     /// Deterministic checksum for the API stability posture contents.
     pub api_stability_checksum: u64,
     /// Deterministic checksum for the validation report contents.
@@ -568,6 +575,11 @@ impl fmt::Display for ReleaseBundle {
         )?;
         writeln!(
             f,
+            "  backend matrix summary: {}",
+            self.backend_matrix_summary_path.display()
+        )?;
+        writeln!(
+            f,
             "  API stability posture: {}",
             self.api_stability_path.display()
         )?;
@@ -620,8 +632,18 @@ impl fmt::Display for ReleaseBundle {
         writeln!(f, "  backend matrix bytes: {}", self.backend_matrix_bytes)?;
         writeln!(
             f,
+            "  backend matrix summary bytes: {}",
+            self.backend_matrix_summary_bytes
+        )?;
+        writeln!(
+            f,
             "  backend matrix checksum: 0x{:016x}",
             self.backend_matrix_checksum
+        )?;
+        writeln!(
+            f,
+            "  backend matrix summary checksum: 0x{:016x}",
+            self.backend_matrix_summary_checksum
         )?;
         writeln!(
             f,
@@ -671,6 +693,10 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("backend-matrix") => {
             ensure_no_extra_args(&args[1..], "backend-matrix")?;
             render_backend_matrix_report().map_err(render_error)
+        }
+        Some("backend-matrix-summary") => {
+            ensure_no_extra_args(&args[1..], "backend-matrix-summary")?;
+            Ok(render_backend_matrix_summary())
         }
         Some("benchmark") => {
             let rounds = parse_rounds(&args[1..], DEFAULT_BENCHMARK_ROUNDS)?;
@@ -985,6 +1011,7 @@ fn render_release_checklist_text() -> String {
         "[x] release-notes.txt",
         "[x] release-checklist.txt",
         "[x] backend-matrix.txt",
+        "[x] backend-matrix-summary.txt",
         "[x] api-stability.txt",
         "[x] validation-report.txt",
         "[x] bundle-manifest.txt",
@@ -1071,6 +1098,7 @@ pub fn render_release_bundle(
     let release_notes_text = render_release_notes_text();
     let release_checklist_text = render_release_checklist_text();
     let backend_matrix_text = render_backend_matrix_report()?;
+    let backend_matrix_summary_text = render_backend_matrix_summary();
     let api_stability_text = current_api_stability_profile().to_string();
     let validation_report = render_validation_report(rounds)?;
     let provenance = workspace_provenance();
@@ -1079,6 +1107,7 @@ pub fn render_release_bundle(
     let release_notes_path = output_dir.join("release-notes.txt");
     let release_checklist_path = output_dir.join("release-checklist.txt");
     let backend_matrix_path = output_dir.join("backend-matrix.txt");
+    let backend_matrix_summary_path = output_dir.join("backend-matrix-summary.txt");
     let api_stability_path = output_dir.join("api-stability.txt");
     let report_path = output_dir.join("validation-report.txt");
     let manifest_path = output_dir.join("bundle-manifest.txt");
@@ -1087,10 +1116,11 @@ pub fn render_release_bundle(
     let release_notes_checksum = checksum64(&release_notes_text);
     let release_checklist_checksum = checksum64(&release_checklist_text);
     let backend_matrix_checksum = checksum64(&backend_matrix_text);
+    let backend_matrix_summary_checksum = checksum64(&backend_matrix_summary_text);
     let api_stability_checksum = checksum64(&api_stability_text);
     let validation_report_checksum = checksum64(&validation_report);
     let manifest_text = format!(
-        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
+        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\nbackend matrix summary: backend-matrix-summary.txt\nbackend matrix summary checksum (fnv1a-64): 0x{backend_matrix_summary_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
         provenance.source_revision,
         provenance.workspace_status,
         provenance.rustc_version,
@@ -1102,6 +1132,10 @@ pub fn render_release_bundle(
     fs::write(&profile_path, profile_text.as_bytes())?;
     fs::write(&profile_summary_path, profile_summary_text.as_bytes())?;
     fs::write(&release_notes_path, release_notes_text.as_bytes())?;
+    fs::write(
+        &backend_matrix_summary_path,
+        backend_matrix_summary_text.as_bytes(),
+    )?;
     fs::write(&release_checklist_path, release_checklist_text.as_bytes())?;
     fs::write(&backend_matrix_path, backend_matrix_text.as_bytes())?;
     fs::write(&api_stability_path, api_stability_text.as_bytes())?;
@@ -1123,6 +1157,8 @@ struct ParsedReleaseBundleManifest {
     release_checklist_checksum: u64,
     backend_matrix_path: String,
     backend_matrix_checksum: u64,
+    backend_matrix_summary_path: String,
+    backend_matrix_summary_checksum: u64,
     api_stability_path: String,
     api_stability_checksum: u64,
     validation_report_path: String,
@@ -1160,6 +1196,11 @@ impl ParsedReleaseBundleManifest {
                 text,
                 "backend matrix checksum (fnv1a-64):",
             )?,
+            backend_matrix_summary_path: parse_manifest_string(text, "backend matrix summary:")?,
+            backend_matrix_summary_checksum: parse_manifest_checksum(
+                text,
+                "backend matrix summary checksum (fnv1a-64):",
+            )?,
             api_stability_path: parse_manifest_string(text, "api stability posture:")?,
             api_stability_checksum: parse_manifest_checksum(
                 text,
@@ -1189,6 +1230,7 @@ fn verify_release_bundle(
     let release_notes_path = output_dir.join("release-notes.txt");
     let release_checklist_path = output_dir.join("release-checklist.txt");
     let backend_matrix_path = output_dir.join("backend-matrix.txt");
+    let backend_matrix_summary_path = output_dir.join("backend-matrix-summary.txt");
     let api_stability_path = output_dir.join("api-stability.txt");
     let validation_report_path = output_dir.join("validation-report.txt");
     let manifest_path = output_dir.join("bundle-manifest.txt");
@@ -1198,6 +1240,7 @@ fn verify_release_bundle(
     let release_notes_text = fs::read_to_string(&release_notes_path)?;
     let release_checklist_text = fs::read_to_string(&release_checklist_path)?;
     let backend_matrix_text = fs::read_to_string(&backend_matrix_path)?;
+    let backend_matrix_summary_text = fs::read_to_string(&backend_matrix_summary_path)?;
     let api_stability_text = fs::read_to_string(&api_stability_path)?;
     let validation_report_text = fs::read_to_string(&validation_report_path)?;
     let manifest_text = fs::read_to_string(&manifest_path)?;
@@ -1236,6 +1279,12 @@ fn verify_release_bundle(
             manifest.backend_matrix_path
         )));
     }
+    if manifest.backend_matrix_summary_path != "backend-matrix-summary.txt" {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected backend matrix summary file entry: {}",
+            manifest.backend_matrix_summary_path
+        )));
+    }
     if manifest.api_stability_path != "api-stability.txt" {
         return Err(ReleaseBundleError::Verification(format!(
             "unexpected API stability file entry: {}",
@@ -1253,6 +1302,7 @@ fn verify_release_bundle(
     let compatibility_profile_summary_checksum = checksum64(&profile_summary_text);
     let release_checklist_checksum = checksum64(&release_checklist_text);
     let backend_matrix_checksum = checksum64(&backend_matrix_text);
+    let backend_matrix_summary_checksum = checksum64(&backend_matrix_summary_text);
     let api_stability_checksum = checksum64(&api_stability_text);
     let validation_report_checksum = checksum64(&validation_report_text);
     let profile_id = extract_prefixed_value(&profile_text, "Compatibility profile: ")?;
@@ -1296,6 +1346,12 @@ fn verify_release_bundle(
             manifest.backend_matrix_checksum, backend_matrix_checksum
         )));
     }
+    if manifest.backend_matrix_summary_checksum != backend_matrix_summary_checksum {
+        return Err(ReleaseBundleError::Verification(format!(
+            "backend matrix summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.backend_matrix_summary_checksum, backend_matrix_summary_checksum
+        )));
+    }
     if manifest.api_stability_posture_id != api_stability_posture_id {
         return Err(ReleaseBundleError::Verification(format!(
             "API stability posture id mismatch: manifest has {}, file has {}",
@@ -1325,6 +1381,7 @@ fn verify_release_bundle(
         release_notes_path,
         release_checklist_path,
         backend_matrix_path,
+        backend_matrix_summary_path,
         api_stability_path,
         validation_report_path,
         manifest_path,
@@ -1333,6 +1390,7 @@ fn verify_release_bundle(
         release_notes_bytes: release_notes_text.len(),
         release_checklist_bytes: release_checklist_text.len(),
         backend_matrix_bytes: backend_matrix_text.len(),
+        backend_matrix_summary_bytes: backend_matrix_summary_text.len(),
         api_stability_bytes: api_stability_text.len(),
         validation_report_bytes: validation_report_text.len(),
         compatibility_profile_checksum,
@@ -1340,6 +1398,7 @@ fn verify_release_bundle(
         release_notes_checksum,
         release_checklist_checksum,
         backend_matrix_checksum,
+        backend_matrix_summary_checksum,
         api_stability_checksum,
         validation_report_checksum,
         validation_rounds: manifest.validation_rounds,
@@ -1583,6 +1642,117 @@ pub fn render_benchmark_report(rounds: usize) -> Result<String, EphemerisError> 
     let corpus = benchmark_corpus();
     let candidate = default_candidate_backend();
     Ok(benchmark_backend(&candidate, &corpus, rounds)?.to_string())
+}
+
+/// Renders a compact summary of the implemented backend capability matrix catalog.
+pub fn render_backend_matrix_summary() -> String {
+    render_backend_matrix_summary_text()
+}
+
+fn render_backend_matrix_summary_text() -> String {
+    let catalog = implemented_backend_catalog();
+    let mut family_counts: BTreeMap<String, usize> = BTreeMap::new();
+    let mut bodies: Vec<String> = Vec::new();
+    let mut frames: Vec<String> = Vec::new();
+    let mut time_scales: Vec<String> = Vec::new();
+    let mut deterministic_count = 0usize;
+    let mut offline_count = 0usize;
+    let mut batch_count = 0usize;
+    let mut native_sidereal_count = 0usize;
+    let mut selected_asteroid_count = 0usize;
+    let mut data_source_count = 0usize;
+
+    for entry in &catalog {
+        *family_counts
+            .entry(backend_family_label(&entry.metadata.family))
+            .or_insert(0) += 1;
+        deterministic_count += usize::from(entry.metadata.deterministic);
+        offline_count += usize::from(entry.metadata.offline);
+        batch_count += usize::from(entry.metadata.capabilities.batch);
+        native_sidereal_count += usize::from(entry.metadata.capabilities.native_sidereal);
+        if selected_asteroid_coverage(&entry.metadata.body_coverage).is_some() {
+            selected_asteroid_count += 1;
+        }
+        if !entry.metadata.provenance.data_sources.is_empty() {
+            data_source_count += 1;
+        }
+        for body in &entry.metadata.body_coverage {
+            push_unique(&mut bodies, body.to_string());
+        }
+        for frame in &entry.metadata.supported_frames {
+            push_unique(&mut frames, format!("{:?}", frame));
+        }
+        for scale in &entry.metadata.supported_time_scales {
+            push_unique(&mut time_scales, format!("{:?}", scale));
+        }
+    }
+
+    let mut family_entries = family_counts
+        .into_iter()
+        .map(|(label, count)| format!("{label}: {count}"))
+        .collect::<Vec<_>>();
+    family_entries.sort();
+
+    let mut text = String::new();
+    text.push_str("Backend matrix summary\n");
+    text.push_str("Backends: ");
+    text.push_str(&catalog.len().to_string());
+    text.push('\n');
+    text.push_str("Families: ");
+    text.push_str(&family_entries.join(", "));
+    text.push('\n');
+    text.push_str("Deterministic backends: ");
+    text.push_str(&deterministic_count.to_string());
+    text.push('\n');
+    text.push_str("Offline backends: ");
+    text.push_str(&offline_count.to_string());
+    text.push('\n');
+    text.push_str("Batch-capable backends: ");
+    text.push_str(&batch_count.to_string());
+    text.push('\n');
+    text.push_str("Native sidereal backends: ");
+    text.push_str(&native_sidereal_count.to_string());
+    text.push('\n');
+    text.push_str("Backends with selected asteroid coverage: ");
+    text.push_str(&selected_asteroid_count.to_string());
+    text.push('\n');
+    text.push_str("Backends with external data sources: ");
+    text.push_str(&data_source_count.to_string());
+    text.push('\n');
+    text.push_str("Distinct bodies covered: ");
+    text.push_str(&bodies.len().to_string());
+    text.push_str(" (");
+    text.push_str(&bodies.join(", "));
+    text.push_str(")\n");
+    text.push_str("Distinct coordinate frames: ");
+    text.push_str(&frames.len().to_string());
+    text.push_str(" (");
+    text.push_str(&frames.join(", "));
+    text.push_str(")\n");
+    text.push_str("Distinct time scales: ");
+    text.push_str(&time_scales.len().to_string());
+    text.push_str(" (");
+    text.push_str(&time_scales.join(", "));
+    text.push_str(")\n");
+
+    text
+}
+
+fn push_unique(values: &mut Vec<String>, value: String) {
+    if !values.iter().any(|existing| existing == &value) {
+        values.push(value);
+    }
+}
+
+fn backend_family_label(family: &BackendFamily) -> String {
+    match family {
+        BackendFamily::Algorithmic => "Algorithmic".to_string(),
+        BackendFamily::ReferenceData => "ReferenceData".to_string(),
+        BackendFamily::CompressedData => "CompressedData".to_string(),
+        BackendFamily::Composite => "Composite".to_string(),
+        BackendFamily::Other(value) => format!("Other({value})"),
+        _ => "Other(unknown)".to_string(),
+    }
 }
 
 /// Renders a backend capability matrix for the implemented backend catalog.
@@ -2165,7 +2335,7 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = default_corpus().requests.len();
     format!(
-        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix            Print the implemented backend capability matrices\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus with guard epochs\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  release-notes             Print the release compatibility notes\n  release-checklist         Print the release maintainer checklist\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release checklist, backend matrix, API posture, validation report, and manifest\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix            Print the implemented backend capability matrices\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus with guard epochs\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  release-notes             Print the release compatibility notes\n  release-checklist         Print the release maintainer checklist\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release checklist, backend matrix, backend matrix summary, API posture, validation report, and manifest\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
@@ -2433,6 +2603,7 @@ mod tests {
         let rendered = render_cli(&["help"]).expect("help should render");
         assert!(rendered.contains("compare-backends"));
         assert!(rendered.contains("backend-matrix"));
+        assert!(rendered.contains("backend-matrix-summary"));
         assert!(rendered.contains("benchmark [--rounds N]"));
         assert!(rendered.contains("report [--rounds N]"));
         assert!(rendered.contains("generate-report"));
@@ -2535,6 +2706,22 @@ mod tests {
     }
 
     #[test]
+    fn backend_matrix_summary_command_renders_the_summary() {
+        let rendered =
+            render_cli(&["backend-matrix-summary"]).expect("backend matrix summary should render");
+        assert!(rendered.contains("Backend matrix summary"));
+        assert!(rendered.contains("Backends: 5"));
+        assert!(rendered.contains("Families:"));
+        assert!(rendered.contains("Algorithmic: 2"));
+        assert!(rendered.contains("ReferenceData: 1"));
+        assert!(rendered.contains("CompressedData: 1"));
+        assert!(rendered.contains("Composite: 1"));
+        assert!(rendered.contains("Distinct bodies covered:"));
+        assert!(rendered.contains("Distinct coordinate frames:"));
+        assert!(rendered.contains("Distinct time scales:"));
+    }
+
+    #[test]
     fn workspace_audit_reports_a_clean_workspace() {
         let report = workspace_audit_report().expect("workspace audit should render");
         assert!(report.is_clean());
@@ -2619,6 +2806,9 @@ version = "0.9.0"
             .expect("release checklist should be written");
         let backend_matrix = std::fs::read_to_string(bundle_dir.join("backend-matrix.txt"))
             .expect("backend matrix should be written");
+        let backend_matrix_summary =
+            std::fs::read_to_string(bundle_dir.join("backend-matrix-summary.txt"))
+                .expect("backend matrix summary should be written");
         let api_stability = std::fs::read_to_string(bundle_dir.join("api-stability.txt"))
             .expect("API stability posture should be written");
         let report = std::fs::read_to_string(bundle_dir.join("validation-report.txt"))
@@ -2651,6 +2841,10 @@ version = "0.9.0"
         assert!(release_checklist.contains("compatibility-profile-summary.txt"));
         assert!(backend_matrix.contains("Implemented backend matrices"));
         assert!(backend_matrix.contains("JPL snapshot reference backend"));
+        assert!(backend_matrix_summary.contains("Backend matrix summary"));
+        assert!(backend_matrix_summary.contains("Backends: 5"));
+        assert!(backend_matrix_summary.contains("Algorithmic: 2"));
+        assert!(backend_matrix_summary.contains("Composite: 1"));
         assert!(backend_matrix
             .contains("selected asteroid coverage: 4 bodies (Ceres, Pallas, Juno, Vesta)"));
         assert!(api_stability.contains(&format!(
@@ -2664,6 +2858,7 @@ version = "0.9.0"
         assert!(manifest.contains("compatibility-profile-summary.txt"));
         assert!(manifest.contains("release-notes.txt"));
         assert!(manifest.contains("backend-matrix.txt"));
+        assert!(manifest.contains("backend-matrix-summary.txt"));
         assert!(manifest.contains("api-stability.txt"));
         assert!(manifest.contains("validation-report.txt"));
         assert!(manifest.contains("source revision:"));
@@ -2674,6 +2869,7 @@ version = "0.9.0"
         assert!(manifest.contains("release notes checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("release checklist checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("backend matrix checksum (fnv1a-64): 0x"));
+        assert!(manifest.contains("backend matrix summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("api stability checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("validation report checksum (fnv1a-64): 0x"));
 
@@ -2689,6 +2885,7 @@ version = "0.9.0"
         assert!(verified.contains("release notes checksum: 0x"));
         assert!(verified.contains("release checklist checksum: 0x"));
         assert!(verified.contains("backend matrix checksum: 0x"));
+        assert!(verified.contains("backend matrix summary checksum: 0x"));
         assert!(verified.contains("validation report checksum: 0x"));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
