@@ -9,9 +9,9 @@
 
 use pleiades_core::{
     current_api_stability_profile, default_chart_bodies, resolve_ayanamsa, resolve_house_system,
-    Apparentness, Ayanamsa, CelestialBody, ChartEngine, ChartRequest, CompositeBackend,
-    CustomBodyId, EphemerisError, HouseSystem, Instant, JulianDay, Latitude, Longitude,
-    ObserverLocation, RoutingBackend, TimeScale, ZodiacMode,
+    Angle, Apparentness, Ayanamsa, CelestialBody, ChartEngine, ChartRequest, CompositeBackend,
+    CustomAyanamsa, CustomBodyId, EphemerisError, HouseSystem, Instant, JulianDay, Latitude,
+    Longitude, ObserverLocation, RoutingBackend, TimeScale, ZodiacMode,
 };
 use pleiades_data::PackagedDataBackend;
 use pleiades_elp::ElpBackend;
@@ -124,7 +124,7 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
             }
             "--help" | "-h" => {
                 return Ok(format!(
-                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--mean|--apparent] [--ayanamsa <name>] [--house-system <name>] [--body <name> ...]\n\nBody names may be built-in bodies such as Sun or Moon, or custom identifiers in the form catalog:designation.",
+                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--mean|--apparent] [--ayanamsa <name>] [--house-system <name>] [--body <name> ...]\n\nAyanamsa names may be built-in entries or custom definitions in the form custom:<name>|<epoch-jd>|<offset-degrees> (or custom-definition:<name>|<epoch-jd>|<offset-degrees>). Body names may be built-in bodies such as Sun or Moon, or custom identifiers in the form catalog:designation.",
                     banner()
                 ));
             }
@@ -233,7 +233,68 @@ fn parse_custom_body(value: &str) -> Result<CelestialBody, String> {
 }
 
 fn parse_ayanamsa(value: &str) -> Result<Ayanamsa, String> {
-    resolve_ayanamsa(value).ok_or_else(|| format!("unsupported ayanamsa name: {value}"))
+    if let Some(builtin) = resolve_ayanamsa(value) {
+        return Ok(builtin);
+    }
+
+    if let Some(custom) = parse_custom_ayanamsa(value)? {
+        return Ok(custom);
+    }
+
+    Err(format!("unsupported ayanamsa name: {value}"))
+}
+
+fn parse_custom_ayanamsa(value: &str) -> Result<Option<Ayanamsa>, String> {
+    let value = match strip_custom_ayanamsa_prefix(value) {
+        Some(value) => value,
+        None => return Ok(None),
+    };
+
+    let mut parts = value.split('|').map(str::trim);
+    let name = parts.next().unwrap_or("");
+    let epoch_text = parts.next().ok_or_else(|| {
+        format!(
+            "custom ayanamsa definitions must use custom:<name>|<epoch-jd>|<offset-degrees>: {value}"
+        )
+    })?;
+    let offset_text = parts.next().ok_or_else(|| {
+        format!(
+            "custom ayanamsa definitions must use custom:<name>|<epoch-jd>|<offset-degrees>: {value}"
+        )
+    })?;
+    if parts.next().is_some() {
+        return Err(format!(
+            "custom ayanamsa definitions must use custom:<name>|<epoch-jd>|<offset-degrees>: {value}"
+        ));
+    }
+    if name.is_empty() {
+        return Err("custom ayanamsa names must not be empty".to_string());
+    }
+
+    let epoch = epoch_text
+        .parse::<f64>()
+        .map_err(|error| format!("invalid custom ayanamsa epoch in {value}: {error}"))?;
+    let offset = offset_text
+        .parse::<f64>()
+        .map_err(|error| format!("invalid custom ayanamsa offset in {value}: {error}"))?;
+
+    Ok(Some(Ayanamsa::Custom(CustomAyanamsa {
+        name: name.to_owned(),
+        description: Some("Custom ayanamsa definition supplied via the CLI".to_owned()),
+        epoch: Some(JulianDay::from_days(epoch)),
+        offset_degrees: Some(Angle::from_degrees(offset)),
+    })))
+}
+
+fn strip_custom_ayanamsa_prefix(value: &str) -> Option<&str> {
+    strip_case_insensitive_prefix(value, "custom:")
+        .or_else(|| strip_case_insensitive_prefix(value, "custom-definition:"))
+}
+
+fn strip_case_insensitive_prefix<'a>(value: &'a str, prefix: &str) -> Option<&'a str> {
+    let head = value.get(..prefix.len())?;
+    head.eq_ignore_ascii_case(prefix)
+        .then_some(&value[prefix.len()..])
 }
 
 fn parse_house_system(value: &str) -> Result<HouseSystem, String> {
@@ -260,7 +321,10 @@ fn main() {
 mod tests {
     use pleiades_core::current_release_profile_identifiers;
 
-    use super::{banner, parse_body, render_chart, render_cli, CelestialBody, CustomBodyId};
+    use super::{
+        banner, parse_ayanamsa, parse_body, render_chart, render_cli, Angle, Ayanamsa,
+        CelestialBody, CustomAyanamsa, CustomBodyId, JulianDay,
+    };
 
     #[test]
     fn banner_mentions_package() {
@@ -445,6 +509,40 @@ mod tests {
                 .expect("sidereal chart should render");
         assert!(rendered.contains("Sidereal"));
         assert!(rendered.contains("Lahiri"));
+    }
+
+    #[test]
+    fn chart_command_accepts_custom_ayanamsa_definitions() {
+        let rendered = render_chart(&[
+            "--jd",
+            "2451545.0",
+            "--ayanamsa",
+            "custom:True Balarama|2451545.0|12.5",
+            "--body",
+            "Sun",
+        ])
+        .expect("custom ayanamsa chart should render");
+
+        assert!(rendered.contains("Sidereal"));
+        assert!(rendered.contains("True Balarama"));
+        assert!(rendered.contains("12.5"));
+        assert!(rendered.contains("Custom ayanamsa definition supplied via the CLI"));
+    }
+
+    #[test]
+    fn parse_ayanamsa_accepts_custom_definition_labels() {
+        let custom = parse_ayanamsa("custom-definition:True Balarama|2451545.0|12.5")
+            .expect("custom ayanamsa should parse");
+
+        assert_eq!(
+            custom,
+            Ayanamsa::Custom(CustomAyanamsa {
+                name: "True Balarama".to_owned(),
+                description: Some("Custom ayanamsa definition supplied via the CLI".to_owned()),
+                epoch: Some(JulianDay::from_days(2_451_545.0)),
+                offset_degrees: Some(Angle::from_degrees(12.5)),
+            })
+        );
     }
 
     #[test]

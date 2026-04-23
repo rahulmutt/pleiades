@@ -210,6 +210,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] The release bundle display now surfaces the recorded source revision and workspace status alongside the manifest path and validation-round count, making the release artifact summary a little more self-describing when maintainers verify or inspect a staged bundle. The README and release reproducibility guide now mention the same provenance detail so the release-hardening docs stay aligned with the bundle output.
 - [x] The release bundle verification tests now cover the API stability posture and validation report checksum paths as well, closing the last manifest-checksum gaps in the Stage 6 release-hardening slice.
 - [x] Exact source-label regression coverage now also includes the `Equal/1=Aries`, `horizon/azimut`, `Galactic Center (Rgilbrand)`, `Mula Wilhelm`, `Wilhelm`, `Valens`, and `Moon sign ayanamsa` spellings, so the compatibility profile’s documented interoperability forms stay guarded as the release-line alias surface grows.
+- [x] `pleiades-cli` now accepts custom ayanamsa definitions in `custom:<name>|<epoch-jd>|<offset-degrees>` / `custom-definition:<name>|<epoch-jd>|<offset-degrees>` form, so release-line custom labels can be exercised through the chart workflow without promoting them to built-in catalog entries.
 
 ## Exit criteria
 
