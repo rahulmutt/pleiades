@@ -1,16 +1,8 @@
 # Requirements
 
+Unless stated otherwise, the conformance terms defined in [`SPEC.md`](../SPEC.md) apply here, especially **target compatibility catalog**, **baseline compatibility milestone**, and **release compatibility profile**.
+
 ## Functional Requirements
-
-### Compatibility Catalog Policy
-For this specification set, the **target compatibility catalog** means the full built-in house-system and ayanamsa compatibility surface Pleiades intends to provide for Swiss-Ephemeris-class astrology interoperability, including documented aliases, naming differences, and operational constraints.
-
-Phased delivery is allowed, but release notes and compatibility profiles must always distinguish between:
-
-- the full target compatibility catalog
-- the baseline compatibility milestone currently guaranteed
-- additional release-specific coverage beyond the baseline milestone
-- known gaps or constraints that still affect interoperability
 
 ### FR-1 Body Support
 The system must support computation of at least:
@@ -19,26 +11,32 @@ The system must support computation of at least:
 - Moon
 - Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto
 - true and mean lunar node
-- true and mean apogee/perigee where supported and documented
+- mean and true apogee/perigee where supported and documented
 - Ceres, Pallas, Juno, and Vesta in the baseline catalog
-- an extensible identifier model for additional numbered/named asteroids and other supported points
+- an extensible identifier model for additional numbered or named asteroids and other supported points
 
-### FR-2 Coordinate and Reference Support
+### FR-2 Coordinate and Observer Support
 The system must support:
 
 - ecliptic longitude/latitude
 - equatorial right ascension/declination
 - distance and apparent angular speed where available
 - tropical and sidereal modes
-- geocentric calculations as baseline
-- topocentric adjustments where supported by the chosen backend/model
+- geocentric calculations as the baseline
+- topocentric adjustments where supported by the selected backend or domain model
 
-### FR-3 House Systems
-The system must provide a house computation module supporting the target compatibility catalog of astrological house systems.
+### FR-3 Time and Reference Handling
+The public API must model at least:
 
-Implementation may be phased during development, but the architecture and public API must not assume that only a small fixed subset will ever exist.
+- UTC input convenience
+- Julian day style internal time representation
+- the distinction between UT-based and dynamical-time-sensitive calculations where needed
+- a documented Delta T policy
 
-The baseline built-in catalog for the first compatibility milestone must include at minimum:
+### FR-4 House Systems
+The system must provide a house computation module that is open to the full target compatibility catalog.
+
+The baseline compatibility milestone must include at minimum:
 
 - Placidus
 - Koch
@@ -52,64 +50,58 @@ The baseline built-in catalog for the first compatibility milestone must include
 - Topocentric (Polich-Page)
 - Morinus
 
-Release coverage is not complete until any further distinct house systems needed to meet the published target compatibility catalog are implemented.
+If a house system has latitude or numerical failure constraints, those constraints must be explicit in both the API and the release compatibility profile.
 
-Where a system has latitude/pathology constraints, those constraints must be explicit in the API and in the compatibility profile.
+### FR-5 Ayanamsa Support
+The system must provide an extensible ayanamsa model that supports both built-in and user-defined variants.
 
-### FR-4 Ayanamsa
-The system must support a pluggable, extensible ayanamsa catalog matching the target compatibility catalog over time.
-
-Implementation may be phased during development, but the API must allow named built-ins and user-defined variants without redesign.
-
-The baseline built-in catalog for the first compatibility milestone must include at minimum:
+The baseline compatibility milestone must include at minimum:
 
 - Lahiri
 - Raman
 - Krishnamurti
 - Fagan/Bradley
-- True Chitra and any documented near-equivalent variants exposed as distinct built-ins or aliases
+- True Chitra and documented near-equivalent variants exposed as distinct built-ins or explicit aliases
 - custom user-defined ayanamsa formulas or offset tables
 
-Release coverage is not complete until any further named built-ins needed to meet the published target compatibility catalog are implemented.
+### FR-6 Release Compatibility Profiles
+Each release must publish a versioned compatibility profile that states:
 
-### FR-4a Compatibility Profile Publication
-The project must publish a versioned compatibility profile that enumerates the exact built-in house systems and ayanamsas provided by each release. That profile must clearly distinguish:
-
-- the target compatibility catalog
-- the baseline compatibility milestone implemented so far
-- any additional release-specific coverage beyond the baseline milestone
-- any aliases or naming differences versus other astrology software
-- any known constraints, gaps, or latitude-specific failure modes relevant to interoperability
+- the current target compatibility catalog for that release line
+- the baseline compatibility milestone guaranteed by the project
+- the exact house systems and ayanamsas shipped in the release
+- aliases or naming differences versus other astrology software
+- known gaps, constraints, and latitude-specific failure modes relevant to interoperability
 
 A release must not claim full compatibility-catalog coverage unless the shipped built-ins match the published target catalog for that release line.
 
-### FR-5 Backend Abstraction
+### FR-7 Backend Abstraction
 The system must expose a common backend trait that:
 
 - can compute one body at one instant
 - can compute multiple bodies efficiently in batch
 - exposes supported time range and capability metadata
 - distinguishes between data-backed and purely algorithmic implementations
-- reports uncertainty/accuracy class where known
-- centers on raw astronomical outputs and does not require every backend to natively implement sidereal transforms when the domain layer can apply a deterministic ayanamsa conversion above tropical coordinates
+- reports uncertainty or accuracy class where known
+- centers on raw astronomical outputs, with sidereal conversion remaining a domain-layer operation unless a backend explicitly documents equivalent native support
 
-### FR-6 Multiple Backend Implementations
-The workspace must include separate first-party crates for multiple backends, with each implementation living in its own `pleiades-*` crate, including examples of:
+### FR-8 Multiple Backend Implementations
+The workspace must include separate first-party crates for multiple backends, including examples of:
 
 - a JPL-based data backend
 - a formula-based planetary backend
 - a lunar algorithm backend
-- a compressed packaged-data backend optimized for 1500-2500
+- a compressed packaged-data backend optimized for 1500-2500 CE
 
-### FR-7 Compression and Distribution
+### FR-9 Compression and Distribution
 The system must define a compressed ephemeris representation that:
 
-- is optimized for repeated astrology application lookups
+- is optimized for repeated astrology lookups
 - covers 1500-2500 CE
-- is versioned and regenerable from public source data
+- is versioned and reproducible from public source data
 - supports efficient random access by body and date/time
 
-### FR-8 API Stability
+### FR-10 Stable Domain API Surface
 The public Rust API must present stable domain types for:
 
 - time scales and Julian day values
@@ -118,7 +110,7 @@ The public Rust API must present stable domain types for:
 - coordinate frames
 - house systems
 - ayanamsa definitions
-- backend selection/configuration
+- backend selection and configuration
 - release compatibility profile metadata
 
 ## Non-Functional Requirements
@@ -136,7 +128,7 @@ Each backend must publish documented expected error bounds or empirical validati
 Generated data products must be reproducible from documented inputs and deterministic build steps.
 
 ### NFR-5 Extensibility
-New backend crates and new house/ayanamsa implementations must be addable without breaking the core traits.
+New backend crates and new house or ayanamsa implementations must be addable without breaking the core traits or public API model.
 
 ### NFR-6 Portability
 The workspace should target common Rust platforms including Linux, macOS, and Windows.

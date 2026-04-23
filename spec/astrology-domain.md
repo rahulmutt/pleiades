@@ -1,10 +1,6 @@
 # Astrology Domain Specification
 
-## Compatibility Catalog Semantics
-
-For this specification set, the **target compatibility catalog** means the full built-in house-system and ayanamsa compatibility surface Pleiades intends to expose for Swiss-Ephemeris-class astrology interoperability, including documented aliases, naming differences, and operational constraints.
-
-The catalog definition is normative even when implementation is phased. Interim releases may expose only part of the catalog, but the API and type system must remain open to the full end-state catalog without redesign.
+Unless stated otherwise, the conformance terms defined in [`SPEC.md`](../SPEC.md) apply here.
 
 ## Supported Body Model
 
@@ -12,9 +8,9 @@ The domain layer must define a stable body taxonomy covering:
 
 - luminaries: Sun, Moon
 - planets: Mercury through Pluto
-- lunar points: mean node, true node, mean apogee, osculating/true apogee where modeled
+- lunar points: mean node, true node, and mean or true apogee/perigee where modeled
 - baseline asteroids: Ceres, Pallas, Juno, Vesta
-- extensible identifiers for additional numbered/named bodies
+- extensible identifiers for additional numbered or named bodies
 
 ## Zodiac Modes
 
@@ -23,28 +19,28 @@ The system must support:
 - tropical zodiac
 - sidereal zodiac via ayanamsa selection
 
-Sidereal conversion must be a domain-layer transformation rather than a backend-specific special case whenever practical.
+Sidereal conversion should normally be implemented in the domain layer rather than duplicated across backends.
 
 ## House Systems
 
-The house module must model the target compatibility catalog of astrological house systems in a complete and extensible way. Development may be phased, but the end-state requirement does not shrink.
+The house module must model the target compatibility catalog in a way that is complete in scope and extensible in implementation.
 
-The house module must provide a common interface that accepts:
+The common interface must accept:
 
 - instant
-- geographic latitude/longitude
+- geographic latitude and longitude
 - obliquity and related astronomical quantities as needed
 - selected house system
 
-The module must return:
+The common interface must return:
 
 - 12 house cusp positions where the system defines cusps
-- derived angles including ASC, MC, IC, DSC where meaningful
-- explicit error/status for systems that fail at extreme latitudes or special cases
+- derived angles including ASC, MC, IC, and DSC where meaningful
+- explicit error or status values for latitude-driven or numerical failure cases
 
-## Initial Implementation Milestone
+## Baseline Compatibility Milestone
 
-The first implementation milestone must include at minimum:
+The initial milestone must include at minimum:
 
 - Placidus
 - Koch
@@ -58,30 +54,26 @@ The first implementation milestone must include at minimum:
 - Topocentric (Polich-Page)
 - Morinus
 
-Each implemented system must be documented for formula, assumptions, aliases, and failure modes. The API must remain open to the rest of the targeted house-system ecosystem without redesign or breakage.
-
-The project must also publish a versioned compatibility profile that enumerates the exact built-in house systems, aliases, naming conventions, and operational constraints exposed by each release so consumers can reason about interoperability with existing astrology software.
+Each implemented system must document its formula, assumptions, aliases, and failure modes.
 
 ## Ayanamsa Model
 
-Ayanamsa support must include a complete extensible catalog model matching the target compatibility catalog over time. Development may be phased, but the end-state requirement does not shrink.
-
 Ayanamsa support must include:
 
-- a complete extensible catalog model for built-in definitions
+- a built-in catalog model that can grow to the full target compatibility catalog
 - named built-in definitions
-- epoch/offset or formula metadata
+- epoch, offset, or formula metadata
 - custom ayanamsa registration
-- deterministic conversion from tropical longitude to sidereal longitude
-- a versioned compatibility profile that enumerates built-ins, aliases, and naming differences versus other astrology software
+- deterministic tropical-to-sidereal conversion
+- compatibility-profile metadata for aliases and naming differences versus other astrology software
 
-The first compatibility milestone must include Lahiri, Raman, Krishnamurti, Fagan/Bradley, True Chitra, and any documented near-equivalent variants exposed either as distinct built-ins or explicit aliases.
+The baseline compatibility milestone must include Lahiri, Raman, Krishnamurti, Fagan/Bradley, True Chitra, and any documented near-equivalent variants exposed either as distinct built-ins or explicit aliases.
 
 ## Derived Quantities
 
 The domain layer should support, either initially or in later phases:
 
-- retrograde/stationary classification
+- retrograde and stationary classification
 - planetary speed bands
 - aspects and orb-ready angular separations
 - house placement and sign placement
@@ -89,13 +81,13 @@ The domain layer should support, either initially or in later phases:
 
 ## Time Scales
 
-The system must clearly model relevant time concepts, including:
+The system must clearly model at least:
 
 - UTC input convenience
-- Julian day / Julian ephemeris day style internal representation
+- Julian day or Julian ephemeris day style internal representations
 - Delta T handling policy
-- distinction between UT-based and dynamical-time-sensitive calculations where needed
+- the distinction between UT-based and dynamical-time-sensitive calculations where needed
 
 ## Numerical Rules
 
-All angle values must define normalization rules, recommended precision, and wrap semantics. API output must document whether longitudes are returned in `[0, 360)` or another canonical range.
+All angle values must define normalization rules, recommended precision, and wrap semantics. Public APIs must document whether longitudes are returned in `[0, 360)` or another canonical range.

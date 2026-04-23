@@ -51,7 +51,7 @@ The API must make it easy to distinguish:
 
 The API should provide efficient batch methods for chart-style use cases, since astrology applications usually need many bodies and several derived values at once.
 
-Batch-oriented façade APIs should be able to return body positions, house cusps, and the release compatibility profile relevant to the selected backend/configuration without forcing callers to stitch together low-level pieces manually.
+Batch-oriented façade APIs should let callers obtain body positions, house cusps, and the release compatibility profile relevant to the selected backend and configuration without forcing low-level crate orchestration.
 
 ## Determinism
 

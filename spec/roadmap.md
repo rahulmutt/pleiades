@@ -2,44 +2,45 @@
 
 ## Phase 1: Foundations
 
-- create workspace and crate skeletons
-- define shared domain/time/body types and compatibility-profile types
-- define backend trait and metadata model
-- implement basic façade in `pleiades-core`
+- create the workspace and crate skeletons
+- define shared domain, time, body, and compatibility-profile types
+- define the backend trait and metadata model
+- implement a basic façade in `pleiades-core`
 
-## Phase 2: Algorithmic Baseline
+## Phase 2: Domain Baseline
 
 - implement `pleiades-vsop87` for major planets and solar coordinates
 - implement `pleiades-elp` for lunar coordinates
-- implement the initial ayanamsa catalog and extensible registration model, with an explicit path to the target compatibility catalog
-- implement the initial house-system milestone on top of an API designed for the target compatibility catalog
+- implement the baseline ayanamsa milestone on top of an extensible catalog model
+- implement the baseline house-system milestone on top of an extensible house API
 - keep sidereal conversion and house logic in domain crates rather than duplicating them in each backend
 
-## Phase 3: Reference Data Backend
+## Phase 3: Reference Backend
 
-- implement `pleiades-jpl` parser/reader in pure Rust
+- implement a pure-Rust `pleiades-jpl` reader or parser
 - validate core bodies against source material
 - add selected asteroid support through public data sources
 
-## Phase 4: Compression and Packaged Distribution
+## Phase 4: Compression and Distribution
 
-- build fitting pipeline for 1500-2500
-- implement artifact format in `pleiades-compression`
-- ship `pleiades-data` packaged backend
+- build the fitting pipeline for 1500-2500 CE
+- implement the artifact format in `pleiades-compression`
+- ship `pleiades-data` as the packaged backend
 - benchmark artifact size and lookup speed
 
 ## Phase 5: Validation and Hardening
 
-- add broad regression corpus
+- add a broad regression corpus
 - document backend capability matrices
 - publish error statistics
-- stabilize public API
+- publish the first release compatibility profile
+- stabilize the public API
 
-## Phase 6: Expansion and Compatibility Completion
+## Phase 6: Compatibility Completion and Expansion
 
-- composite backend routing
-- more asteroid coverage
-- complete the remaining house-system and ayanamsa entries needed to satisfy the target compatibility catalog
-- publish and maintain the versioned compatibility profile for built-in systems, aliases, constraints, and milestone coverage
-- topocentric refinements
-- optional higher-level chart utilities
+- add composite backend routing where useful
+- expand asteroid coverage
+- complete the remaining house-system and ayanamsa entries needed for the target compatibility catalog
+- maintain release compatibility profiles with aliases, constraints, and known gaps
+- refine topocentric support
+- add optional higher-level chart utilities

@@ -2,51 +2,57 @@
 
 ## Workspace Structure
 
-The project is a Rust workspace composed of small focused crates.
+The project is a Rust workspace composed of small, focused crates with explicit layering.
 
 ## Mandatory Crates
 
 ### Core and Types
 
-- `pleiades-types`: shared enums, structs, identifiers, coordinate types, time types, errors, and compatibility-profile data types
-- `pleiades-backend`: backend trait definitions, capability metadata, adapter helpers
-- `pleiades-core`: high-level façade API combining backend queries with domain calculations
+- `pleiades-types`: shared enums, structs, identifiers, coordinate types, time types, errors, and compatibility-profile types
+- `pleiades-backend`: backend trait definitions, capability metadata, and adapter helpers
+- `pleiades-core`: high-level façade API that composes backends with domain crates
 
 ### Domain Calculation Crates
 
-- `pleiades-houses`: house system implementations
-- `pleiades-ayanamsa`: ayanamsa catalog and conversion logic
-- `pleiades-compression`: compression codecs and data packing/unpacking logic
+- `pleiades-houses`: house-system implementations and related domain helpers
+- `pleiades-ayanamsa`: ayanamsa catalog and sidereal conversion logic
+- `pleiades-compression`: compression codecs and artifact packing/unpacking logic
 
 ### Backend Crates
 
 - `pleiades-jpl`: backend reading public JPL ephemeris sources or derivative public data products
-- `pleiades-vsop87`: planetary algorithm backend based on pure-Rust VSOP87 implementation/data
-- `pleiades-elp`: Moon backend based on a documented pure-Rust lunar theory implementation
-- `pleiades-data`: packaged compressed ephemeris backend for 1500-2500
+- `pleiades-vsop87`: planetary algorithm backend based on a pure-Rust VSOP87 implementation or data source
+- `pleiades-elp`: lunar backend based on a documented pure-Rust lunar theory implementation
+- `pleiades-data`: packaged compressed ephemeris backend for 1500-2500 CE
 
 ### Tooling Crates
 
-- `pleiades-cli`: inspection, chart query, conversion, and data build commands
-- `pleiades-validate`: cross-backend comparison, benchmark, and regression tools
+- `pleiades-cli`: inspection, chart query, conversion, and data-build commands
+- `pleiades-validate`: cross-backend comparison, benchmarking, and regression tooling
+
+Optional crates such as `pleiades-composite` may be added later if they respect the same dependency rules.
 
 ## Dependency Rules
 
-1. Every first-party workspace crate must be named with the `pleiades-*` prefix; there are no naming exceptions for shipped sub-crates.
+1. Every first-party workspace crate must be named with the `pleiades-*` prefix.
 2. `pleiades-types` must not depend on backend crates.
 3. `pleiades-backend` may depend on `pleiades-types` only.
-4. Backend crates may depend on `pleiades-types` and `pleiades-backend`.
-5. `pleiades-core` may depend on all domain crates and on backend traits, but should not require a specific backend by default.
-6. `pleiades-data` may depend on `pleiades-compression` and the backend trait crate.
-7. Tooling crates may depend on all first-party crates.
+4. Source-specific backend crates may depend on `pleiades-types` and `pleiades-backend`.
+5. Domain crates may depend on `pleiades-types` and, when necessary, `pleiades-backend`, but must not depend on source-specific backend crates.
+6. `pleiades-core` may depend on all domain crates and on `pleiades-backend`, but must not require one specific backend by default.
+7. `pleiades-data` may depend on `pleiades-compression` and `pleiades-backend`.
+8. Tooling crates may depend on all first-party crates.
 
 ## Layering
 
-- **Layer 1**: primitive types and errors
-- **Layer 2**: backend contracts
-- **Layer 3**: source-specific backend crates
-- **Layer 4**: astrology-domain computations and façade API
-- **Layer 5**: CLI, validators, and data builders
+- **Layer 1**: primitive types, units, identifiers, and shared errors
+- **Layer 2**: backend contracts and capability metadata
+- **Layer 3**: source-specific backend implementations
+- **Layer 4**: astrology-domain computation crates
+- **Layer 5**: high-level façade and composition APIs
+- **Layer 6**: CLI, validation, artifact generation, and reporting tools
+
+No layer may depend on a higher layer.
 
 ## Backend Composition Strategy
 
@@ -55,28 +61,28 @@ The architecture must allow hybrid composition. For example:
 - planets via `pleiades-vsop87`
 - Moon via `pleiades-elp`
 - asteroids via `pleiades-jpl`
-- prepacked common range via `pleiades-data`
+- common-range lookups via `pleiades-data`
 
-A composite backend adapter may route body queries to different underlying providers while presenting one unified backend implementation.
+A composite adapter may route body queries to different providers while presenting one unified backend implementation.
 
-Astrology-specific transforms such as sidereal conversion and house placement should remain above this layer unless a backend explicitly exposes an equivalent capability through the common contract.
+Astrology-specific transforms such as sidereal conversion, house placement, and chart assembly must remain above the source-specific backend layer unless a backend explicitly exposes an equivalent capability through the common contract.
 
 ## Feature Flags
 
 Crates should use Cargo features for optional heavy capabilities, such as:
 
 - large public datasets
-- serde support
+- optional serde support
+- benchmark or validation instrumentation
 - no_std-compatible subsets where feasible
-- benchmark/validation instrumentation
 
 ## Data Separation
 
-The system must separate:
+The system must keep the following concerns separate:
 
 - algorithm source code
 - raw imported source data
 - normalized intermediate products
 - compressed distributable artifacts
 
-This separation ensures regeneration and licensing clarity.
+This separation preserves reproducibility, licensing clarity, and clean runtime boundaries.
