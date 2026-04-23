@@ -1349,6 +1349,11 @@ fn verify_release_bundle(
     ensure_non_empty_manifest_value(&manifest.source_revision, "source revision")?;
     ensure_non_empty_manifest_value(&manifest.workspace_status, "workspace status")?;
     ensure_non_empty_manifest_value(&manifest.rustc_version, "rustc version")?;
+    ensure_non_empty_manifest_value(&manifest.profile_id, "profile id")?;
+    ensure_non_empty_manifest_value(
+        &manifest.api_stability_posture_id,
+        "API stability posture id",
+    )?;
     if manifest.profile_path != "compatibility-profile.txt" {
         return Err(ReleaseBundleError::Verification(format!(
             "unexpected profile file entry: {}",
@@ -2664,6 +2669,50 @@ mod tests {
         let _ = std::fs::remove_dir_all(&bundle_dir);
     }
 
+    fn assert_release_bundle_rejects_blank_manifest_value(
+        bundle_dir_prefix: &str,
+        manifest_line_prefix: &str,
+        expected_fragments: &[&str],
+    ) {
+        let bundle_dir = unique_temp_dir(bundle_dir_prefix);
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let manifest_path = bundle_dir.join("bundle-manifest.txt");
+        let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
+        let rewritten = manifest
+            .lines()
+            .map(|line| {
+                if line.starts_with(manifest_line_prefix) {
+                    manifest_line_prefix.to_string()
+                } else {
+                    line.to_string()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        std::fs::write(&manifest_path, format!("{rewritten}\n"))
+            .expect("manifest should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect_err("verification should fail for a manifest with a blank requested entry");
+        assert!(
+            expected_fragments
+                .iter()
+                .any(|fragment| error.contains(fragment)),
+            "unexpected error: {error}"
+        );
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
     #[test]
     fn default_corpus_covers_the_comparison_snapshot() {
         let corpus = default_corpus();
@@ -3195,6 +3244,24 @@ version = "0.9.0"
                 "missing manifest entry: rustc version:",
                 "missing rustc version entry",
             ],
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_blank_profile_id_entry() {
+        assert_release_bundle_rejects_blank_manifest_value(
+            "pleiades-release-bundle-blank-profile-id",
+            "profile id:",
+            &["missing profile id entry"],
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_blank_api_stability_posture_id_entry() {
+        assert_release_bundle_rejects_blank_manifest_value(
+            "pleiades-release-bundle-blank-api-stability-posture-id",
+            "api stability posture id:",
+            &["missing API stability posture id entry"],
         );
     }
 
