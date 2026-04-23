@@ -247,6 +247,20 @@ impl ChartSnapshot {
         summary
     }
 
+    /// Returns a summary of the chart's occupied houses.
+    pub fn house_summary(&self) -> HouseSummary {
+        let mut summary = HouseSummary::default();
+
+        for placement in &self.placements {
+            match placement.house {
+                Some(house) => summary.increment(house),
+                None => summary.unknown += 1,
+            }
+        }
+
+        summary
+    }
+
     /// Returns a summary of the chart's motion-direction classifications.
     pub fn motion_summary(&self) -> MotionSummary {
         let mut summary = MotionSummary::default();
@@ -419,6 +433,117 @@ impl fmt::Display for SignSummary {
     }
 }
 
+/// A summary of occupied houses in a chart snapshot.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct HouseSummary {
+    /// Placements in the first house.
+    pub first: usize,
+    /// Placements in the second house.
+    pub second: usize,
+    /// Placements in the third house.
+    pub third: usize,
+    /// Placements in the fourth house.
+    pub fourth: usize,
+    /// Placements in the fifth house.
+    pub fifth: usize,
+    /// Placements in the sixth house.
+    pub sixth: usize,
+    /// Placements in the seventh house.
+    pub seventh: usize,
+    /// Placements in the eighth house.
+    pub eighth: usize,
+    /// Placements in the ninth house.
+    pub ninth: usize,
+    /// Placements in the tenth house.
+    pub tenth: usize,
+    /// Placements in the eleventh house.
+    pub eleventh: usize,
+    /// Placements in the twelfth house.
+    pub twelfth: usize,
+    /// Placements without an assigned house.
+    pub unknown: usize,
+}
+
+impl HouseSummary {
+    fn increment(&mut self, house: usize) {
+        match house {
+            1 => self.first += 1,
+            2 => self.second += 1,
+            3 => self.third += 1,
+            4 => self.fourth += 1,
+            5 => self.fifth += 1,
+            6 => self.sixth += 1,
+            7 => self.seventh += 1,
+            8 => self.eighth += 1,
+            9 => self.ninth += 1,
+            10 => self.tenth += 1,
+            11 => self.eleventh += 1,
+            12 => self.twelfth += 1,
+            _ => self.unknown += 1,
+        }
+    }
+
+    /// Returns `true` when the snapshot contains at least one assigned house placement.
+    pub fn has_known_houses(self) -> bool {
+        self.first
+            + self.second
+            + self.third
+            + self.fourth
+            + self.fifth
+            + self.sixth
+            + self.seventh
+            + self.eighth
+            + self.ninth
+            + self.tenth
+            + self.eleventh
+            + self.twelfth
+            > 0
+    }
+}
+
+impl fmt::Display for HouseSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut wrote_any = false;
+        for (count, house) in [
+            (self.first, 1usize),
+            (self.second, 2),
+            (self.third, 3),
+            (self.fourth, 4),
+            (self.fifth, 5),
+            (self.sixth, 6),
+            (self.seventh, 7),
+            (self.eighth, 8),
+            (self.ninth, 9),
+            (self.tenth, 10),
+            (self.eleventh, 11),
+            (self.twelfth, 12),
+        ] {
+            if count == 0 {
+                continue;
+            }
+            if wrote_any {
+                f.write_str(", ")?;
+            }
+            wrote_any = true;
+            write!(f, "{} in {} house", count, house_ordinal(house))?;
+        }
+
+        if self.unknown > 0 {
+            if wrote_any {
+                f.write_str(", ")?;
+            }
+            wrote_any = true;
+            write!(f, "{} unassigned", self.unknown)?;
+        }
+
+        if !wrote_any {
+            f.write_str("no house placements")?;
+        }
+
+        Ok(())
+    }
+}
+
 /// A summary of motion-direction classifications in a chart snapshot.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct MotionSummary {
@@ -578,6 +703,11 @@ impl fmt::Display for ChartSnapshot {
             writeln!(f, "Sign summary: {}", sign_summary)?;
         }
 
+        let house_summary = self.house_summary();
+        if house_summary.has_known_houses() {
+            writeln!(f, "House summary: {}", house_summary)?;
+        }
+
         let motion_summary = self.motion_summary();
         if motion_summary.has_known_motion() || motion_summary.unknown > 0 {
             writeln!(
@@ -650,6 +780,24 @@ fn angle_separation(left: Longitude, right: Longitude) -> Angle {
         difference
     };
     Angle::from_degrees(separation)
+}
+
+fn house_ordinal(house: usize) -> &'static str {
+    match house {
+        1 => "1st",
+        2 => "2nd",
+        3 => "3rd",
+        4 => "4th",
+        5 => "5th",
+        6 => "6th",
+        7 => "7th",
+        8 => "8th",
+        9 => "9th",
+        10 => "10th",
+        11 => "11th",
+        12 => "12th",
+        _ => "unknown",
+    }
 }
 
 fn best_aspect_definition(
@@ -1180,6 +1328,24 @@ mod tests {
         assert_eq!(chart.unknown_motion_placements().count(), 1);
         assert_eq!(chart.retrograde_placements().count(), 1);
         assert_eq!(
+            chart.house_summary(),
+            HouseSummary {
+                first: 1,
+                second: 1,
+                third: 0,
+                fourth: 0,
+                fifth: 0,
+                sixth: 0,
+                seventh: 0,
+                eighth: 1,
+                ninth: 1,
+                tenth: 0,
+                eleventh: 0,
+                twelfth: 0,
+                unknown: 0,
+            }
+        );
+        assert_eq!(
             chart.motion_summary(),
             MotionSummary {
                 direct: 1,
@@ -1210,6 +1376,9 @@ mod tests {
             vec![CelestialBody::Sun]
         );
         let rendered = chart.to_string();
+        assert!(rendered.contains(
+            "House summary: 1 in 1st house, 1 in 2nd house, 1 in 8th house, 1 in 9th house"
+        ));
         assert!(
             rendered.contains("Motion summary: 1 direct, 1 stationary, 1 retrograde, 1 unknown")
         );
