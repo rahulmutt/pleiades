@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Release-bundle summary wording synced with validation-round count
+
+Implemented a small Stage 6 release-hardening documentation slice:
+
+- the README now mentions the recorded validation-round count in the release-bundle summary, matching the `pleiades-validate` bundle display that already surfaces the manifest path and round count together
+- the Stage 6 progress notes were updated with the same wording so the plan tracker stays aligned with the bundle output
+- no spec update was needed; this is a documentation-alignment slice within the existing release-hardening scope
+
+Remaining Stage 6 work: keep the release-bundle summary, compatibility profile, and validation-report surfaces synchronized as further release-hardening slices land.
+
 ## 2026-04-23 — Equal-house source-label appendix now includes Wang
 
 Implemented a small Stage 6 release-hardening slice:
