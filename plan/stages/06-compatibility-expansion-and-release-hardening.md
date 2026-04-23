@@ -58,6 +58,7 @@ These are durable planning decisions that should remain true even as individual 
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] `pleiades-cli` now mirrors `verify-compatibility-profile` alongside the existing release summary and compatibility-profile renderers, so the primary inspection CLI can perform the same catalog-alignment audit as the validation tool without forcing maintainers to switch commands mid-workflow.
 - [x] The Galactic Equator source-label appendix now also surfaces the exact `Galactic equator`, `IAU 1958`, `Galactic equator IAU 1958`, `Galactic equator true`, `Mula galactic equator`, `Galactic equator Mula`, and `Galactic equator Fiorenza` spellings in the release compatibility profile, and the compatibility profile identifier has been bumped to `0.6.77` so the new galactic-reference alias batch stays versioned with the current profile.
 - [x] `pleiades-validate` now also exposes a `verify-compatibility-profile` command that checks the current release profile against the canonical house-system and ayanamsa catalogs, and the release-smoke task now exercises that audit before bundle generation so catalog drift is easier to catch early in the release workflow.
 - [x] The Sripati house-system source-label appendix and resolver now also accept the exact `Sripati house system` and `Sripati table of houses` spellings alongside `Sripati`, `S sripati`, and `Śrīpati`, and the compatibility profile identifier has been bumped to `0.6.76` so the new alias batch stays versioned with the current profile.

@@ -20,7 +20,7 @@ use pleiades_validate::{
     render_api_stability_summary, render_artifact_summary, render_backend_matrix_report,
     render_backend_matrix_summary, render_compatibility_profile_summary, render_release_checklist,
     render_release_checklist_summary, render_release_notes, render_release_summary,
-    render_validation_report_summary,
+    render_validation_report_summary, verify_compatibility_profile,
 };
 use pleiades_vsop87::Vsop87Backend;
 
@@ -35,6 +35,9 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("compatibility-profile-summary") | Some("profile-summary") => {
             Ok(render_compatibility_profile_summary())
+        }
+        Some("verify-compatibility-profile") => {
+            verify_compatibility_profile().map_err(render_error)
         }
         Some("api-stability") | Some("api-posture") => {
             Ok(current_api_stability_profile().to_string())
@@ -69,7 +72,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
 
 fn help_text() -> String {
     format!(
-        "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary        Alias for compatibility-profile-summary\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  api-stability-summary  Print the compact API stability summary\n  api-posture-summary    Alias for api-stability-summary\n  backend-matrix         Print the implemented backend capability matrices\n  capability-matrix      Alias for backend-matrix\n  backend-matrix-summary Print the compact backend capability matrix summary\n  matrix-summary         Alias for backend-matrix-summary\n  release-notes          Print the release compatibility notes
+        "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary        Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  api-stability-summary  Print the compact API stability summary\n  api-posture-summary    Alias for api-stability-summary\n  backend-matrix         Print the implemented backend capability matrices\n  capability-matrix      Alias for backend-matrix\n  backend-matrix-summary Print the compact backend capability matrix summary\n  matrix-summary         Alias for backend-matrix-summary\n  release-notes          Print the release compatibility notes
   release-checklist      Print the release maintainer checklist
   release-checklist-summary Print the compact release checklist summary
   checklist-summary      Alias for release-checklist-summary
@@ -400,6 +403,16 @@ mod tests {
         )));
         assert!(compatibility.contains("House systems: 25 total"));
 
+        let verification = render_cli(&["verify-compatibility-profile"])
+            .expect("compatibility profile verification should render");
+        assert!(verification.contains("Compatibility profile verification"));
+        assert!(verification.contains(&format!(
+            "Profile: {}",
+            release_profiles.compatibility_profile_id
+        )));
+        assert!(verification.contains("House systems verified:"));
+        assert!(verification.contains("Ayanamsas verified:"));
+
         let backend_matrix =
             render_cli(&["backend-matrix-summary"]).expect("backend matrix summary should render");
         assert!(backend_matrix.contains("Backend matrix summary"));
@@ -467,6 +480,7 @@ mod tests {
             .expect_err("unknown commands should fail");
         assert!(error.contains("unknown command: compatibility-profile-snapshot"));
         assert!(error.contains("compatibility-profile  Print the release compatibility profile"));
+        assert!(error.contains("verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs"));
         assert!(error.contains("release-notes          Print the release compatibility notes"));
         assert!(
             error.contains("release-checklist-summary Print the compact release checklist summary")
