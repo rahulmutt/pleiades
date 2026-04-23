@@ -59,7 +59,7 @@ impl CompatibilityProfile {
 /// Returns the current compatibility profile.
 pub const fn current_compatibility_profile() -> CompatibilityProfile {
     CompatibilityProfile {
-        profile_id: "pleiades-compatibility-profile/0.6.24",
+        profile_id: "pleiades-compatibility-profile/0.6.25",
         summary: "Stage 6 release profile: the baseline catalogs remain published as a routine release artifact while the target Swiss-Ephemeris-class compatibility catalog stays explicit, including the release-specific house-system additions across the Carter, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen, Sunshine, and Gauquelin families, plus the expanded ayanamsa coverage for J2000/J1900/B1950, True Citra, DeLuce, Yukteshwar, PVR Pushya-paksha, Sheoran, the true-nakshatra and Suryasiddhanta Revati/Citra reference modes, the Hipparchus/Babylonian/Galactic reference-frame modes, the latest True Pushya, Udayagiri, Lahiri (VP285), Krishnamurti (VP291), Djwhal Khul, JN Bhasin, mean-sun, Valens Moon, and the Moon sign ayanamsa source spelling, Dhruva Galactic Center (Middle Mula), Galactic Center (Cochrane/Mardyks), Galactic Equator (Mula), the Babylonian house/sissy/true-geoc/true-topc/true-obs/house-obs variants, the backfilled True Sheoran, Galactic Center (Rgilbrand), and Galactic Center (Mula/Wilhelm) zero-point metadata, the additional Galactic Equator/Center variants, the exact Swiss Ephemeris source-label aliases for the Babylonian/Kugler family, galactic-reference, mean-sun, Sassanian/Zij al-Shah, Aryabhata 499/522, and Suryasiddhanta 499 source-form entries, the expanded APC and Horizon/Azimuth interoperability aliases, the Babylonian house-family labels now rendered as explicit custom-definition territory rather than unresolved release gaps, and the `Equal (MC)` / `Equal (1=Aries)` source-label appendix entries for the release-line equal-house variants.",
 
         target_house_scope: &[
@@ -270,14 +270,18 @@ fn ayanamsa_source_label_aliases(canonical_name: &str) -> &'static [&'static str
             "Suryasiddhanta mean sun",
             "Suryasiddhanta MSUN",
         ],
-        "Suryasiddhanta (499 CE)" => &["Suryasiddhanta"],
-        "Aryabhata (499 CE)" => &["Aryabhata"],
+        "Suryasiddhanta (499 CE)" => &[
+            "Suryasiddhanta",
+            "Suryasiddhanta 499",
+            "Suryasiddhanta 499 CE",
+        ],
+        "Aryabhata (499 CE)" => &["Aryabhata", "Aryabhata 499", "Aryabhata 499 CE"],
         "Aryabhata (Mean Sun)" => &[
             "Aryabhata, mean Sun",
             "Aryabhata mean sun",
             "Aryabhata MSUN",
         ],
-        "Aryabhata (522 CE)" => &["Aryabhata 522"],
+        "Aryabhata (522 CE)" => &["Aryabhata 522", "Aryabhata 522 CE"],
         "Babylonian (Kugler 1)" => &["Babylonian/Kugler 1"],
         "Babylonian (Kugler 2)" => &["Babylonian/Kugler 2"],
         "Babylonian (Kugler 3)" => &["Babylonian/Kugler 3"],
@@ -848,9 +852,13 @@ mod tests {
         assert!(rendered.contains("Zij al-Shah -> Sassanian"));
         assert!(rendered.contains("Vettius Valens, Moon, Moon sign ayanamsa -> Valens Moon"));
         assert!(rendered.contains("Suryasiddhanta, mean Sun"));
-        assert!(rendered.contains("Suryasiddhanta -> Suryasiddhanta (499 CE)"));
-        assert!(rendered.contains("Aryabhata -> Aryabhata (499 CE)"));
-        assert!(rendered.contains("Aryabhata 522 -> Aryabhata (522 CE)"));
+        assert!(rendered.contains(
+            "Suryasiddhanta, Suryasiddhanta 499, Suryasiddhanta 499 CE -> Suryasiddhanta (499 CE)"
+        ));
+        assert!(
+            rendered.contains("Aryabhata, Aryabhata 499, Aryabhata 499 CE -> Aryabhata (499 CE)")
+        );
+        assert!(rendered.contains("Aryabhata 522, Aryabhata 522 CE -> Aryabhata (522 CE)"));
         assert!(rendered.contains("Suryasiddhanta MSUN -> Suryasiddhanta (Mean Sun)"));
         assert!(rendered.contains("J. N. Bhasin, J.N. Bhasin, Bhasin -> JN Bhasin"));
         assert!(rendered.contains("Lahiri VP285, VP285 -> Lahiri (VP285)"));

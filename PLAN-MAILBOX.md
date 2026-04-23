@@ -841,3 +841,23 @@ Implemented a small Stage 6 release-hardening refinement:
 - the compatibility-profile regression test now checks the expanded source-label rendering, and the Stage 6 progress notes were updated to record the refinement
 
 No spec change was needed; this is a small release-profile alignment within the existing Stage 6 compatibility/search-label scope.
+
+## 2026-04-23 — Aryabhata / Suryasiddhanta source-label appendix tightened
+
+Planned a small Stage 6 release-hardening slice:
+
+- the built-in ayanamsa source-label appendix can be tightened further by adding the exact `Suryasiddhanta 499`, `Suryasiddhanta 499 CE`, `Aryabhata 499`, `Aryabhata 499 CE`, and `Aryabhata 522 CE` spellings alongside the existing canonical labels
+- the corresponding built-in ayanamsa aliases should resolve those exact source spellings too, so the release profile and label-resolution path stay aligned with the compatibility wording
+- regression coverage will need to check both the direct resolver behavior and the rendered compatibility profile line items once the slice lands
+
+Remaining Stage 6 work: keep the source-label appendix, catalog breadth, and release notes synchronized as additional interoperability spellings land.
+
+## 2026-04-23 — Aryabhata / Suryasiddhanta source-label appendix landed
+
+Implemented the planned Stage 6 release-hardening slice:
+
+- `pleiades-ayanamsa` and the compatibility profile now accept and render the exact `Suryasiddhanta 499`, `Suryasiddhanta 499 CE`, `Aryabhata 499`, `Aryabhata 499 CE`, and `Aryabhata 522 CE` source spellings alongside the existing canonical labels
+- the compatibility profile identifier was bumped to `0.6.25`, and the CLI / validation bundle checks were updated to match the new release-profile version string
+- regression coverage now checks both the direct resolver behavior and the rendered compatibility-profile source-label lines, and the Stage 6 progress notes were updated to record the appendix refinement
+
+Remaining Stage 6 work: keep the source-label appendix, catalog breadth, and release notes synchronized as additional interoperability spellings land.
