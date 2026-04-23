@@ -637,7 +637,8 @@ fn resolve_house_system_code(label: &str) -> Option<HouseSystem> {
         "H" | "h" => Some(HouseSystem::Horizon),
         "B" | "b" => Some(HouseSystem::Alcabitius),
         "M" | "m" => Some(HouseSystem::Morinus),
-        "S" | "s" => Some(HouseSystem::Sunshine),
+        "S" | "s" => Some(HouseSystem::Sripati),
+        "I" | "i" => Some(HouseSystem::Sunshine),
         "G" | "g" => Some(HouseSystem::Gauquelin),
         "T" | "t" => Some(HouseSystem::Topocentric),
         "U" | "u" => Some(HouseSystem::KrusinskiPisaGoelzer),
@@ -749,7 +750,8 @@ mod tests {
         assert_eq!(resolve_house_system("H"), Some(HouseSystem::Horizon));
         assert_eq!(resolve_house_system("B"), Some(HouseSystem::Alcabitius));
         assert_eq!(resolve_house_system("M"), Some(HouseSystem::Morinus));
-        assert_eq!(resolve_house_system("S"), Some(HouseSystem::Sunshine));
+        assert_eq!(resolve_house_system("S"), Some(HouseSystem::Sripati));
+        assert_eq!(resolve_house_system("I"), Some(HouseSystem::Sunshine));
         assert_eq!(resolve_house_system("G"), Some(HouseSystem::Gauquelin));
         assert_eq!(resolve_house_system("T"), Some(HouseSystem::Topocentric));
         assert_eq!(
