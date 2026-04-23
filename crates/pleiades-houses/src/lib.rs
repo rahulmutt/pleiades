@@ -186,6 +186,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
             "ARMC",
             "Axial Rotation",
             "Axial rotation system",
+            "Zariel",
             "X axial rotation system/ Meridian houses",
         ],
         "Meridian-style systems and documented axial variants.",
@@ -571,6 +572,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
             "ARMC",
             "Axial Rotation",
             "Axial rotation system",
+            "Zariel",
             "X axial rotation system/ Meridian houses",
         ],
         "Meridian-style systems and documented axial variants.",
@@ -865,6 +867,7 @@ mod tests {
             resolve_house_system("Axial rotation system"),
             Some(HouseSystem::Meridian)
         );
+        assert_eq!(resolve_house_system("Zariel"), Some(HouseSystem::Meridian));
         assert_eq!(resolve_house_system("A equal"), Some(HouseSystem::Equal));
         assert_eq!(
             resolve_house_system("D equal / MC"),
