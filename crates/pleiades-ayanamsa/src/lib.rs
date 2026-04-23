@@ -106,6 +106,7 @@ const BASELINE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         &[
             "KP",
             "Krishnamurti Ayanamsha",
+            "Krishnamurti Ayanamsa",
             "Krishnamurti ayanamsa",
             "Krishnamurti (Swiss)",
             "Krishnamurti Paddhati",
@@ -1230,6 +1231,10 @@ mod tests {
         );
         assert_eq!(
             resolve_ayanamsa("Krishnamurti Paddhati"),
+            Some(Ayanamsa::Krishnamurti)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Krishnamurti Ayanamsa"),
             Some(Ayanamsa::Krishnamurti)
         );
         assert_eq!(

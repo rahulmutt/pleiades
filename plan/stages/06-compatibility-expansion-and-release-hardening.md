@@ -247,7 +247,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] Exact source-label regression coverage now also includes the `Equal/1=Aries`, `horizon/azimut`, `Galactic Center (Rgilbrand)`, `Mula Wilhelm`, `Wilhelm`, `Valens`, and `Moon sign ayanamsa` spellings, so the compatibility profile’s documented interoperability forms stay guarded as the release-line alias surface grows.
 - [x] `pleiades-cli` now accepts custom ayanamsa definitions in `custom:<name>|<epoch-jd>|<offset-degrees>` / `custom-definition:<name>|<epoch-jd>|<offset-degrees>` form, so release-line custom labels can be exercised through the chart workflow without promoting them to built-in catalog entries.
 - [x] The baseline Krishnamurti ayanamsa entry now also accepts the exact Swiss Ephemeris `Krishnamurti (Swiss)` spelling, and the compatibility profile source-label appendix surfaces that interoperability label explicitly alongside the existing KP alias.
-- [x] The baseline Krishnamurti ayanamsa entry now also accepts the lower-case `Krishnamurti ayanamsa` spelling, and the compatibility profile identifier has been bumped to `0.6.67` so the release-facing alias batch stays versioned with the current profile.
+- [x] The baseline Krishnamurti ayanamsa entry now also accepts the exact `Krishnamurti Ayanamsa` spelling in addition to the lowercase `Krishnamurti ayanamsa` variant, and the compatibility profile identifier has been bumped to `0.6.68` so the release-facing alias batch stays versioned with the current profile.
 
 ## Exit criteria
 
