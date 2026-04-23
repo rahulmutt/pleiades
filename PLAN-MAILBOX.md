@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — True Sheoran and Galactic Center historical metadata backfill added
+
+Implemented another small Stage 6 metadata-backfill slice:
+
+- `pleiades-ayanamsa` now carries explicit zero-point metadata for `Ayanamsa::TrueSheoran`, `Ayanamsa::GalacticCenterRgilbrand`, and `Ayanamsa::GalacticCenterMulaWilhelm`, using the published Swiss Ephemeris root dates so the compatibility profile no longer treats those historical/reference-frame entries as gaps
+- `pleiades-core` and the release compatibility profile now reflect the narrower ayanamsa-metadata gap in the release notes and known-gap text, and the remaining historical/reference-frame metadata notes now point at future breadth work rather than those three entries
+- regression coverage now asserts the new metadata-backed entries remain on the chart-layer sidereal path
+
+Remaining Stage 6 work: keep backfilling any remaining ayanamsa metadata gaps and catalog breadth while the release profile stays synchronized with the catalog.
+
 ## 2026-04-22 — Udayagiri and Lahiri VP285 ayanamsa metadata backfill added
 
 Implemented another small Stage 6 metadata-backfill slice:

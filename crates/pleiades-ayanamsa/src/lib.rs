@@ -465,17 +465,17 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Ayanamsa::TrueSheoran,
         "True Sheoran",
         &["Sheoran true", "True Sheoran ayanamsa"],
-        "True-nakshatra Sheoran reference mode.",
-        None,
-        None,
+        "True-nakshatra Sheoran reference mode with the Swiss Ephemeris zero point at JD 1789947.090881 (+0188/08/09 14:10:52.11 UT).",
+        Some(JulianDay::from_days(1_789_947.090_881)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticCenterRgilbrand,
         "Galactic Center (Rgilbrand)",
         &["Rgilbrand", "Galactic center Rgilbrand"],
-        "Galactic-center reference mode attributed to Rgilbrand.",
-        None,
-        None,
+        "Galactic-center reference mode attributed to Rgilbrand, with the Swiss Ephemeris zero point at JD 1861740.329525 (+0385/03/03 19:54:30.99 UT).",
+        Some(JulianDay::from_days(1_861_740.329_525)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticCenterMardyks,
@@ -489,9 +489,9 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Ayanamsa::GalacticCenterMulaWilhelm,
         "Galactic Center (Mula/Wilhelm)",
         &["Mula Wilhelm", "Wilhelm", "Galactic center Mula/Wilhelm"],
-        "Galactic-center reference mode aligned to the Mula/Wilhelm tradition.",
-        None,
-        None,
+        "Galactic-center reference mode aligned to the Mula/Wilhelm tradition, with the Swiss Ephemeris zero point at JD 1946834.818321 (+0618/02/25 07:38:22.96 UT).",
+        Some(JulianDay::from_days(1_946_834.818_321)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::DhruvaGalacticCenterMula,
@@ -937,17 +937,17 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
         Ayanamsa::TrueSheoran,
         "True Sheoran",
         &["Sheoran true", "True Sheoran ayanamsa"],
-        "True-nakshatra Sheoran reference mode.",
-        None,
-        None,
+        "True-nakshatra Sheoran reference mode with the Swiss Ephemeris zero point at JD 1789947.090881 (+0188/08/09 14:10:52.11 UT).",
+        Some(JulianDay::from_days(1_789_947.090_881)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticCenterRgilbrand,
         "Galactic Center (Rgilbrand)",
         &["Rgilbrand", "Galactic center Rgilbrand"],
-        "Galactic-center reference mode attributed to Rgilbrand.",
-        None,
-        None,
+        "Galactic-center reference mode attributed to Rgilbrand, with the Swiss Ephemeris zero point at JD 1861740.329525 (+0385/03/03 19:54:30.99 UT).",
+        Some(JulianDay::from_days(1_861_740.329_525)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticCenterMardyks,
@@ -961,9 +961,9 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
         Ayanamsa::GalacticCenterMulaWilhelm,
         "Galactic Center (Mula/Wilhelm)",
         &["Mula Wilhelm", "Wilhelm", "Galactic center Mula/Wilhelm"],
-        "Galactic-center reference mode aligned to the Mula/Wilhelm tradition.",
-        None,
-        None,
+        "Galactic-center reference mode aligned to the Mula/Wilhelm tradition, with the Swiss Ephemeris zero point at JD 1946834.818321 (+0618/02/25 07:38:22.96 UT).",
+        Some(JulianDay::from_days(1_946_834.818_321)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::DhruvaGalacticCenterMula,
@@ -1598,6 +1598,18 @@ mod tests {
             .without_sidereal_metadata
             .iter()
             .all(|name| *name != "Krishnamurti (VP291)"));
+        assert!(coverage
+            .without_sidereal_metadata
+            .iter()
+            .all(|name| *name != "True Sheoran"));
+        assert!(coverage
+            .without_sidereal_metadata
+            .iter()
+            .all(|name| *name != "Galactic Center (Rgilbrand)"));
+        assert!(coverage
+            .without_sidereal_metadata
+            .iter()
+            .all(|name| *name != "Galactic Center (Mula/Wilhelm)"));
     }
 
     #[test]
@@ -1612,6 +1624,53 @@ mod tests {
         assert_eq!(
             descriptor.offset_at(Instant::new(
                 JulianDay::from_days(1_827_424.663_554),
+                pleiades_types::TimeScale::Tt
+            )),
+            Some(Angle::from_degrees(0.0))
+        );
+    }
+
+    #[test]
+    fn scheduled_historical_reference_modes_use_the_published_zero_points() {
+        let true_sheoran = descriptor(&Ayanamsa::TrueSheoran).expect("True Sheoran descriptor");
+        assert_eq!(
+            true_sheoran.epoch,
+            Some(JulianDay::from_days(1_789_947.090_881))
+        );
+        assert_eq!(true_sheoran.offset_degrees, Some(Angle::from_degrees(0.0)));
+        assert_eq!(
+            true_sheoran.offset_at(Instant::new(
+                JulianDay::from_days(1_789_947.090_881),
+                pleiades_types::TimeScale::Tt
+            )),
+            Some(Angle::from_degrees(0.0))
+        );
+
+        let rgilbrand = descriptor(&Ayanamsa::GalacticCenterRgilbrand)
+            .expect("Galactic Center (Rgilbrand) descriptor");
+        assert_eq!(
+            rgilbrand.epoch,
+            Some(JulianDay::from_days(1_861_740.329_525))
+        );
+        assert_eq!(rgilbrand.offset_degrees, Some(Angle::from_degrees(0.0)));
+        assert_eq!(
+            rgilbrand.offset_at(Instant::new(
+                JulianDay::from_days(1_861_740.329_525),
+                pleiades_types::TimeScale::Tt
+            )),
+            Some(Angle::from_degrees(0.0))
+        );
+
+        let mula_wilhelm = descriptor(&Ayanamsa::GalacticCenterMulaWilhelm)
+            .expect("Galactic Center (Mula/Wilhelm) descriptor");
+        assert_eq!(
+            mula_wilhelm.epoch,
+            Some(JulianDay::from_days(1_946_834.818_321))
+        );
+        assert_eq!(mula_wilhelm.offset_degrees, Some(Angle::from_degrees(0.0)));
+        assert_eq!(
+            mula_wilhelm.offset_at(Instant::new(
+                JulianDay::from_days(1_946_834.818_321),
                 pleiades_types::TimeScale::Tt
             )),
             Some(Angle::from_degrees(0.0))
