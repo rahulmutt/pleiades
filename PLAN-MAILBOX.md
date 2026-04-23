@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Validation reference points now render separately in the compatibility profile
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-core::CompatibilityProfile` and `pleiades-validate` now surface the stage-4 validation corpus as a dedicated validation-reference-point section, so the release profile, compact summary, and release notes can call out the reference corpus without counting it as an unresolved compatibility gap
+- the compatibility-profile identifier was bumped to `0.6.51`, and the Stage 6 progress notes plus release-reproducibility guide were updated so the new section stays synchronized with the release-facing wording
+- no spec update was needed; this remains within the existing release-hardening and validation-reference scope
+
+Remaining Stage 6 work: keep the validation reference points, known gaps, and release-facing summary wording synchronized as additional release-hardening slices land.
+
 ## 2026-04-23 — Release notes and release checklist now surface through pleiades-cli
 
 Implemented a small Stage 6 release-hardening slice:

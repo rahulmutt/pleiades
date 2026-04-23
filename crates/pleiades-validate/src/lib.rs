@@ -975,6 +975,9 @@ fn render_compatibility_profile_summary_text() -> String {
     text.push_str("Custom-definition labels: ");
     text.push_str(&profile.custom_definition_labels.len().to_string());
     text.push('\n');
+    text.push_str("Validation reference points: ");
+    text.push_str(&profile.validation_reference_points.len().to_string());
+    text.push('\n');
     text.push_str("Known gaps: ");
     text.push_str(&profile.known_gaps.len().to_string());
     text.push('\n');
@@ -1024,6 +1027,16 @@ fn render_release_notes_text() -> String {
         for label in profile.custom_definition_labels {
             text.push_str("- ");
             text.push_str(label);
+            text.push('\n');
+        }
+        text.push('\n');
+    }
+
+    if !profile.validation_reference_points.is_empty() {
+        text.push_str("Validation reference points:\n");
+        for point in profile.validation_reference_points {
+            text.push_str("- ");
+            text.push_str(point);
             text.push('\n');
         }
         text.push('\n');
@@ -3204,6 +3217,7 @@ mod tests {
         assert!(rendered.contains("House systems:"));
         assert!(rendered.contains("Ayanamsas:"));
         assert!(rendered.contains("Custom-definition labels:"));
+        assert!(rendered.contains("Validation reference points:"));
         assert!(rendered.contains("Known gaps:"));
     }
 
@@ -3219,6 +3233,7 @@ mod tests {
         assert!(rendered.contains("API stability posture:"));
         assert!(rendered.contains("Deprecation policy:"));
         assert!(rendered.contains("Release-specific coverage:"));
+        assert!(rendered.contains("Validation reference points:"));
         assert!(rendered.contains("Known gaps:"));
     }
 
@@ -3400,6 +3415,7 @@ version = "0.9.0"
         assert!(release_notes.contains("API stability posture:"));
         assert!(release_notes.contains("Deprecation policy:"));
         assert!(release_notes.contains("Release-specific coverage:"));
+        assert!(release_notes.contains("Validation reference points:"));
         assert!(release_notes.contains("Known gaps:"));
         assert!(release_notes.contains("Bundle provenance:"));
         assert!(release_notes.contains("Rust compiler version"));

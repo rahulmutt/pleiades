@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.50";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.51";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -50,6 +50,9 @@ pub struct CompatibilityProfile {
     pub release_ayanamsas: &'static [AyanamsaDescriptor],
     /// Explicitly documented release-specific notes beyond the baseline milestone.
     pub release_notes: &'static [&'static str],
+    /// Validation reference points that are intentionally surfaced separately
+    /// from unresolved compatibility gaps.
+    pub validation_reference_points: &'static [&'static str],
     /// Labels that are intentionally surfaced as custom-definition territory
     /// instead of unresolved compatibility gaps.
     pub custom_definition_labels: &'static [&'static str],
@@ -95,6 +98,9 @@ pub const fn current_compatibility_profile() -> CompatibilityProfile {
             "Non-standard ayanamsa labels such as True Balarama, Aphoric, and Takra are intentionally treated as custom definitions until a documented source mapping is added.",
             "The compatibility profile is intended to be archived with release validation outputs and release notes.",
         ],
+        validation_reference_points: &[
+            "The stage-4 validation corpus remains the reference point for tightening house formulas whenever future revisions land.",
+        ],
         custom_definition_labels: &[
             "Babylonian (House)",
             "Babylonian (Sissy)",
@@ -107,7 +113,6 @@ pub const fn current_compatibility_profile() -> CompatibilityProfile {
             "Takra",
         ],
         known_gaps: &[
-            "The stage-4 validation corpus remains the reference point for tightening house formulas whenever future revisions land.",
             "The newly added historical/reference-frame and formula-variant ayanamsa modes are catalogued and resolvable, and the release line now publishes explicit sidereal metadata for Babylonian (Huber), Babylonian (Britton), Babylonian (Kugler 1), Babylonian (Kugler 2), Babylonian (Kugler 3), Galactic Center (Cochrane), Galactic Center (Mardyks), Galactic Center (Rgilbrand), Galactic Center (Mula/Wilhelm), Galactic Equator (IAU 1958), Galactic Equator (Fiorenza), Suryasiddhanta (Revati), Suryasiddhanta (Citra), True Pushya, True Sheoran, Udayagiri, Lahiri (VP285), Krishnamurti (VP291), Djwhal Khul, Valens Moon, and the remaining historical/reference-frame catalog entries; additional metadata/source mapping work remains scheduled for any unreconciled future breadth batches or custom definitions.",
             "Labels outside the published compatibility profile, including ad hoc names such as True Balarama, Aphoric, and Takra, should be modeled as custom ayanamsa definitions rather than assumed to be built-ins.",
         ],
@@ -604,6 +609,12 @@ impl fmt::Display for CompatibilityProfile {
         writeln!(f)?;
         write_alias_section(f, "Alias mappings for built-in ayanamsas:", self.ayanamsas)?;
         writeln!(f)?;
+        write_scope_section(
+            f,
+            "Validation reference points:",
+            self.validation_reference_points,
+        )?;
+        writeln!(f)?;
         write_scope_section(f, "Known gaps:", self.known_gaps)?;
         Ok(())
     }
@@ -865,13 +876,21 @@ mod tests {
             .iter()
             .any(|note| note.contains("Whole sign houses, 1. house = Aries")));
         assert!(profile
-            .known_gaps
+            .validation_reference_points
             .iter()
-            .any(|gap| gap.contains("validation corpus")));
+            .any(|point| point.contains("validation corpus")));
+        assert!(profile
+            .validation_reference_points
+            .iter()
+            .any(|point| point.contains("house formulas")));
         assert!(profile
             .known_gaps
             .iter()
-            .any(|gap| gap.contains("house formulas")));
+            .all(|gap| !gap.contains("validation corpus")));
+        assert!(profile
+            .known_gaps
+            .iter()
+            .all(|gap| !gap.contains("house formulas")));
         assert!(profile
             .custom_definition_labels
             .contains(&"Babylonian (House)"));
@@ -906,6 +925,8 @@ mod tests {
         assert!(rendered.contains("custom-definition ayanamsas:"));
         assert!(rendered.contains("no unexpected sidereal-metadata gaps remain."));
         assert!(rendered.contains("custom-definition labels:"));
+        assert!(rendered.contains("Validation reference points:"));
+        assert!(rendered.contains("The stage-4 validation corpus remains the reference point for tightening house formulas whenever future revisions land."));
         assert!(rendered.contains("Babylonian (House) (aliases: Babylonian House, BABYL_HOUSE)"));
         assert!(rendered
             .contains("Babylonian (House Obs) (aliases: Babylonian House Obs, BABYL_HOUSE_OBS)"));
