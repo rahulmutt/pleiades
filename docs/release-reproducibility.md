@@ -69,7 +69,7 @@ cargo run -q -p pleiades-validate -- verify-release-bundle --out /tmp/pleiades-r
 The release bundle makes the current release posture easy to reproduce and audit:
 
 - the compatibility profile captures shipped house systems, ayanamsas, aliases, and known gaps,
-- the release notes file summarizes release-specific coverage and known limitations,
+- the release notes file summarizes release-specific coverage, known limitations, and the current API stability / deprecation-policy snapshot,
 - the release checklist captures the repository-managed release gates and the published bundle contents,
 - the backend matrix records the implemented backend catalog and its declared coverage,
 - the API stability posture records which surfaces are stable versus operational,

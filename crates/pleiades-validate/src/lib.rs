@@ -790,6 +790,7 @@ fn checksum64(text: &str) -> u64 {
 
 fn render_release_notes_text() -> String {
     let profile = current_compatibility_profile();
+    let api_stability = current_api_stability_profile();
     let mut text = String::new();
 
     text.push_str("Release notes\n");
@@ -799,6 +800,18 @@ fn render_release_notes_text() -> String {
     text.push_str("Summary:\n");
     text.push_str(profile.summary);
     text.push('\n');
+    text.push('\n');
+
+    text.push_str("API stability posture:\n");
+    text.push_str("- ");
+    text.push_str(api_stability.summary);
+    text.push('\n');
+    text.push_str("Deprecation policy:\n");
+    for item in api_stability.deprecation_policy {
+        text.push_str("- ");
+        text.push_str(item);
+        text.push('\n');
+    }
     text.push('\n');
 
     if !profile.release_notes.is_empty() {
@@ -2160,6 +2173,8 @@ mod tests {
         let rendered = render_cli(&["release-notes"]).expect("release notes should render");
         assert!(rendered.contains("Release notes"));
         assert!(rendered.contains(&format!("Profile: {}", current_compatibility_profile_id())));
+        assert!(rendered.contains("API stability posture:"));
+        assert!(rendered.contains("Deprecation policy:"));
         assert!(rendered.contains("Release-specific coverage:"));
         assert!(rendered.contains("Known gaps:"));
     }
@@ -2289,6 +2304,8 @@ version = "0.9.0"
             current_compatibility_profile_id()
         )));
         assert!(release_notes.contains("Release notes"));
+        assert!(release_notes.contains("API stability posture:"));
+        assert!(release_notes.contains("Deprecation policy:"));
         assert!(release_notes.contains("Release-specific coverage:"));
         assert!(release_notes.contains("Known gaps:"));
         assert!(release_checklist.contains("Release checklist"));

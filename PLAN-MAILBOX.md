@@ -1012,3 +1012,13 @@ Implemented a small Stage 6 release-hardening slice:
 - the Stage 6 progress notes were updated to describe the benchmark-corpus expansion as part of the release-hardening backlog
 
 Remaining Stage 6 work: keep the benchmark corpus, validation report, and release notes aligned as further hardening slices land.
+
+## 2026-04-23 — Release notes now include the API stability and deprecation-policy snapshot
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-validate` release notes now include the current API stability summary and deprecation policy snapshot, so the maintainer-facing bundle text carries the public API posture alongside the compatibility-profile-derived release notes
+- the release-notes and release-bundle tests were updated to assert the new posture section, and the README / Stage 6 progress notes were updated so the release-hardening tracker and top-level status text stay synchronized
+- no spec update was needed; this stays within the existing API-stability and release-artifact scope already tracked by Stage 6
+
+Remaining Stage 6 work: keep the release notes, API-stability posture, compatibility profile, and validation outputs synchronized as further hardening slices land.
