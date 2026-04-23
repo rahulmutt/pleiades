@@ -1314,3 +1314,13 @@ I found a small Stage 6 release-hardening follow-up worth tracking before implem
 - no spec change seems necessary; this looks like a convenience summary rather than a new capability boundary
 
 Remaining Stage 6 work: keep the release-summary output, the release notes/checklist, and the release-facing docs synchronized if this slice lands.
+
+## 2026-04-23 — Compact release-summary artifact now ships in the release bundle
+
+Implemented the small Stage 6 release-hardening follow-up that was already surfacing in the maintainer docs:
+
+- `pleiades-validate bundle-release --out DIR` now stages `release-summary.txt` alongside the other release artifacts and verifies it with the manifest checksums
+- the release reproducibility guide, README, and Stage 6 progress notes were updated so the bundle contents and maintainer-facing docs stay synchronized
+- no spec update was needed; this remains within the existing release-hardening and documentation-synchronization scope
+
+Remaining Stage 6 work: keep the compact release-summary output, bundle contents, and release-facing docs synchronized as further hardening slices land.
