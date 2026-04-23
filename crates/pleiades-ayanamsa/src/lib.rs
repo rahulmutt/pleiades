@@ -369,9 +369,9 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Ayanamsa::GalacticCenter,
         "Galactic Center",
         &["Gal. Center = 0 Sag", "0 Sag", "Galactic center"],
-        "Galactic-center sidereal reference mode.",
-        None,
-        None,
+        "Galactic-center sidereal reference mode fixed at 0 Sagittarius.",
+        Some(JulianDay::from_days(1_746_340.540_490)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticEquator,
@@ -417,17 +417,17 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Ayanamsa::Suryasiddhanta499MeanSun,
         "Suryasiddhanta (Mean Sun)",
         &["Suryasiddhanta mean sun", "Suryasiddhanta MSUN"],
-        "Suryasiddhanta variant tied to the mean-sun formulation.",
-        None,
-        None,
+        "Suryasiddhanta mean-sun variant anchored to the published 514 CE zero point used by Swiss Ephemeris.",
+        Some(JulianDay::from_days(1_909_045.584_433)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::Aryabhata499MeanSun,
         "Aryabhata (Mean Sun)",
         &["Aryabhata mean sun", "Aryabhata MSUN"],
-        "Aryabhata variant tied to the mean-sun formulation.",
-        None,
-        None,
+        "Aryabhata mean-sun variant anchored to the published 516 CE zero point used by Swiss Ephemeris.",
+        Some(JulianDay::from_days(1_909_650.815_331)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianBritton,
@@ -441,9 +441,9 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Ayanamsa::Aryabhata522,
         "Aryabhata (522 CE)",
         &["Aryabhata 522", "Aryabhata 522 CE"],
-        "Aryabhata zero-point variant anchored to the 522 CE tradition.",
-        None,
-        None,
+        "Aryabhata zero-point variant anchored to the published 522 CE reference date.",
+        Some(JulianDay::from_days(1_911_797.740_782)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::LahiriVP285,
@@ -503,8 +503,8 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
             "Middle of Mula",
         ],
         "Dhruva projection of the Galactic Center to the middle of Mula for interoperability with Wilhelm-style sidereal selections.",
-        None,
-        None,
+        Some(JulianDay::from_days(1_946_834.818_321)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticCenterCochrane,
@@ -841,9 +841,9 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
         Ayanamsa::GalacticCenter,
         "Galactic Center",
         &["Gal. Center = 0 Sag", "0 Sag", "Galactic center"],
-        "Galactic-center sidereal reference mode.",
-        None,
-        None,
+        "Galactic-center sidereal reference mode fixed at 0 Sagittarius.",
+        Some(JulianDay::from_days(1_746_340.540_490)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticEquator,
@@ -889,17 +889,17 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
         Ayanamsa::Suryasiddhanta499MeanSun,
         "Suryasiddhanta (Mean Sun)",
         &["Suryasiddhanta mean sun", "Suryasiddhanta MSUN"],
-        "Suryasiddhanta variant tied to the mean-sun formulation.",
-        None,
-        None,
+        "Suryasiddhanta mean-sun variant anchored to the published 514 CE zero point used by Swiss Ephemeris.",
+        Some(JulianDay::from_days(1_909_045.584_433)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::Aryabhata499MeanSun,
         "Aryabhata (Mean Sun)",
         &["Aryabhata mean sun", "Aryabhata MSUN"],
-        "Aryabhata variant tied to the mean-sun formulation.",
-        None,
-        None,
+        "Aryabhata mean-sun variant anchored to the published 516 CE zero point used by Swiss Ephemeris.",
+        Some(JulianDay::from_days(1_909_650.815_331)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianBritton,
@@ -913,9 +913,9 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
         Ayanamsa::Aryabhata522,
         "Aryabhata (522 CE)",
         &["Aryabhata 522", "Aryabhata 522 CE"],
-        "Aryabhata zero-point variant anchored to the 522 CE tradition.",
-        None,
-        None,
+        "Aryabhata zero-point variant anchored to the published 522 CE reference date.",
+        Some(JulianDay::from_days(1_911_797.740_782)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::LahiriVP285,
@@ -975,8 +975,8 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
             "Middle of Mula",
         ],
         "Dhruva projection of the Galactic Center to the middle of Mula for interoperability with Wilhelm-style sidereal selections.",
-        None,
-        None,
+        Some(JulianDay::from_days(1_946_834.818_321)),
+        Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticCenterCochrane,
@@ -1573,7 +1573,23 @@ mod tests {
         assert!(coverage
             .without_sidereal_metadata
             .iter()
-            .all(|name| *name != "Udayagiri"));
+            .all(|name| *name != "Suryasiddhanta (Mean Sun)"));
+        assert!(coverage
+            .without_sidereal_metadata
+            .iter()
+            .all(|name| *name != "Aryabhata (Mean Sun)"));
+        assert!(coverage
+            .without_sidereal_metadata
+            .iter()
+            .all(|name| *name != "Aryabhata (522 CE)"));
+        assert!(coverage
+            .without_sidereal_metadata
+            .iter()
+            .all(|name| *name != "Galactic Center"));
+        assert!(coverage
+            .without_sidereal_metadata
+            .iter()
+            .all(|name| *name != "Dhruva Galactic Center (Middle Mula)"));
         assert!(coverage
             .without_sidereal_metadata
             .iter()

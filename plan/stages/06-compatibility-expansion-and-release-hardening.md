@@ -98,6 +98,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] Babylonian (Kugler 3), Babylonian (Britton), Galactic Center (Mardyks), and Galactic Center (Cochrane) now also carry explicit Swiss Ephemeris zero-point metadata, and the compatibility profile / release notes have been updated to call out the narrower remaining historical-metadata gap.
 - [x] Krishnamurti (VP291) now carries explicit zero-point metadata too, closing one of the remaining release-note ayanamsa gaps and keeping the compatibility profile aligned with the catalog.
 - [x] Galactic Equator (Mula) now carries its explicit Swiss Ephemeris mid-Mula zero-point metadata too, and the compatibility profile now reflects that release-note correction.
+- [x] The next historical/reference-frame metadata batch is now filled in as well: Galactic Center, Suryasiddhanta (Mean Sun), Aryabhata (Mean Sun), Aryabhata (522 CE), and Dhruva Galactic Center (Middle Mula) now carry explicit zero-point metadata, so the compatibility profile no longer treats those entries as sidereal-metadata gaps.
 
 ## Exit criteria
 
