@@ -320,6 +320,8 @@ pub struct ReleaseBundle {
     pub output_dir: PathBuf,
     /// Path to the generated compatibility profile file.
     pub compatibility_profile_path: PathBuf,
+    /// Path to the generated compatibility-profile summary file.
+    pub compatibility_profile_summary_path: PathBuf,
     /// Path to the generated release notes file.
     pub release_notes_path: PathBuf,
     /// Path to the generated release checklist file.
@@ -334,6 +336,8 @@ pub struct ReleaseBundle {
     pub manifest_path: PathBuf,
     /// Number of bytes written for the compatibility profile.
     pub compatibility_profile_bytes: usize,
+    /// Number of bytes written for the compatibility-profile summary.
+    pub compatibility_profile_summary_bytes: usize,
     /// Number of bytes written for the release notes.
     pub release_notes_bytes: usize,
     /// Number of bytes written for the release checklist.
@@ -346,6 +350,8 @@ pub struct ReleaseBundle {
     pub validation_report_bytes: usize,
     /// Deterministic checksum for the compatibility profile contents.
     pub compatibility_profile_checksum: u64,
+    /// Deterministic checksum for the compatibility-profile summary contents.
+    pub compatibility_profile_summary_checksum: u64,
     /// Deterministic checksum for the release notes contents.
     pub release_notes_checksum: u64,
     /// Deterministic checksum for the release checklist contents.
@@ -543,6 +549,11 @@ impl fmt::Display for ReleaseBundle {
             "  compatibility profile: {}",
             self.compatibility_profile_path.display()
         )?;
+        writeln!(
+            f,
+            "  compatibility profile summary: {}",
+            self.compatibility_profile_summary_path.display()
+        )?;
         writeln!(f, "  release notes: {}", self.release_notes_path.display())?;
         writeln!(
             f,
@@ -574,6 +585,11 @@ impl fmt::Display for ReleaseBundle {
             "  compatibility profile bytes: {}",
             self.compatibility_profile_bytes
         )?;
+        writeln!(
+            f,
+            "  compatibility profile summary bytes: {}",
+            self.compatibility_profile_summary_bytes
+        )?;
         writeln!(f, "  release notes bytes: {}", self.release_notes_bytes)?;
         writeln!(
             f,
@@ -584,6 +600,11 @@ impl fmt::Display for ReleaseBundle {
             f,
             "  compatibility profile checksum: 0x{:016x}",
             self.compatibility_profile_checksum
+        )?;
+        writeln!(
+            f,
+            "  compatibility profile summary checksum: 0x{:016x}",
+            self.compatibility_profile_summary_checksum
         )?;
         writeln!(
             f,
@@ -815,6 +836,38 @@ fn checksum64(text: &str) -> u64 {
     hash
 }
 
+fn render_compatibility_profile_summary_text() -> String {
+    let profile = current_compatibility_profile();
+    let mut text = String::new();
+
+    text.push_str("Compatibility profile summary\n");
+    text.push_str("Profile: ");
+    text.push_str(profile.profile_id);
+    text.push('\n');
+    text.push_str("House systems: ");
+    text.push_str(&profile.house_systems.len().to_string());
+    text.push_str(" total (");
+    text.push_str(&profile.baseline_house_systems.len().to_string());
+    text.push_str(" baseline, ");
+    text.push_str(&profile.release_house_systems.len().to_string());
+    text.push_str(" release-specific)\n");
+    text.push_str("Ayanamsas: ");
+    text.push_str(&profile.ayanamsas.len().to_string());
+    text.push_str(" total (");
+    text.push_str(&profile.baseline_ayanamsas.len().to_string());
+    text.push_str(" baseline, ");
+    text.push_str(&profile.release_ayanamsas.len().to_string());
+    text.push_str(" release-specific)\n");
+    text.push_str("Custom-definition labels: ");
+    text.push_str(&profile.custom_definition_labels.len().to_string());
+    text.push('\n');
+    text.push_str("Known gaps: ");
+    text.push_str(&profile.known_gaps.len().to_string());
+    text.push('\n');
+
+    text
+}
+
 fn render_release_notes_text() -> String {
     let profile = current_compatibility_profile();
     let api_stability = current_api_stability_profile();
@@ -1002,6 +1055,7 @@ pub fn render_release_bundle(
     fs::create_dir_all(output_dir)?;
 
     let profile_text = current_compatibility_profile().to_string();
+    let profile_summary_text = render_compatibility_profile_summary_text();
     let release_notes_text = render_release_notes_text();
     let release_checklist_text = render_release_checklist_text();
     let backend_matrix_text = render_backend_matrix_report()?;
@@ -1009,6 +1063,7 @@ pub fn render_release_bundle(
     let validation_report = render_validation_report(rounds)?;
     let provenance = workspace_provenance();
     let profile_path = output_dir.join("compatibility-profile.txt");
+    let profile_summary_path = output_dir.join("compatibility-profile-summary.txt");
     let release_notes_path = output_dir.join("release-notes.txt");
     let release_checklist_path = output_dir.join("release-checklist.txt");
     let backend_matrix_path = output_dir.join("backend-matrix.txt");
@@ -1016,13 +1071,14 @@ pub fn render_release_bundle(
     let report_path = output_dir.join("validation-report.txt");
     let manifest_path = output_dir.join("bundle-manifest.txt");
     let compatibility_profile_checksum = checksum64(&profile_text);
+    let compatibility_profile_summary_checksum = checksum64(&profile_summary_text);
     let release_notes_checksum = checksum64(&release_notes_text);
     let release_checklist_checksum = checksum64(&release_checklist_text);
     let backend_matrix_checksum = checksum64(&backend_matrix_text);
     let api_stability_checksum = checksum64(&api_stability_text);
     let validation_report_checksum = checksum64(&validation_report);
     let manifest_text = format!(
-        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
+        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
         provenance.source_revision,
         provenance.workspace_status,
         provenance.rustc_version,
@@ -1032,6 +1088,7 @@ pub fn render_release_bundle(
     );
 
     fs::write(&profile_path, profile_text.as_bytes())?;
+    fs::write(&profile_summary_path, profile_summary_text.as_bytes())?;
     fs::write(&release_notes_path, release_notes_text.as_bytes())?;
     fs::write(&release_checklist_path, release_checklist_text.as_bytes())?;
     fs::write(&backend_matrix_path, backend_matrix_text.as_bytes())?;
@@ -1046,6 +1103,8 @@ pub fn render_release_bundle(
 struct ParsedReleaseBundleManifest {
     profile_path: String,
     profile_checksum: u64,
+    profile_summary_path: String,
+    profile_summary_checksum: u64,
     release_notes_path: String,
     release_notes_checksum: u64,
     release_checklist_path: String,
@@ -1069,6 +1128,11 @@ impl ParsedReleaseBundleManifest {
         Ok(Self {
             profile_path: parse_manifest_string(text, "profile:")?,
             profile_checksum: parse_manifest_checksum(text, "profile checksum (fnv1a-64):")?,
+            profile_summary_path: parse_manifest_string(text, "profile summary:")?,
+            profile_summary_checksum: parse_manifest_checksum(
+                text,
+                "profile summary checksum (fnv1a-64):",
+            )?,
             release_notes_path: parse_manifest_string(text, "release notes:")?,
             release_notes_checksum: parse_manifest_checksum(
                 text,
@@ -1109,6 +1173,7 @@ fn verify_release_bundle(
 ) -> Result<ReleaseBundle, ReleaseBundleError> {
     let output_dir = output_dir.as_ref();
     let profile_path = output_dir.join("compatibility-profile.txt");
+    let profile_summary_path = output_dir.join("compatibility-profile-summary.txt");
     let release_notes_path = output_dir.join("release-notes.txt");
     let release_checklist_path = output_dir.join("release-checklist.txt");
     let backend_matrix_path = output_dir.join("backend-matrix.txt");
@@ -1117,6 +1182,7 @@ fn verify_release_bundle(
     let manifest_path = output_dir.join("bundle-manifest.txt");
 
     let profile_text = fs::read_to_string(&profile_path)?;
+    let profile_summary_text = fs::read_to_string(&profile_summary_path)?;
     let release_notes_text = fs::read_to_string(&release_notes_path)?;
     let release_checklist_text = fs::read_to_string(&release_checklist_path)?;
     let backend_matrix_text = fs::read_to_string(&backend_matrix_path)?;
@@ -1132,6 +1198,12 @@ fn verify_release_bundle(
         return Err(ReleaseBundleError::Verification(format!(
             "unexpected profile file entry: {}",
             manifest.profile_path
+        )));
+    }
+    if manifest.profile_summary_path != "compatibility-profile-summary.txt" {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected compatibility profile summary file entry: {}",
+            manifest.profile_summary_path
         )));
     }
     if manifest.release_notes_path != "release-notes.txt" {
@@ -1166,6 +1238,7 @@ fn verify_release_bundle(
     }
 
     let compatibility_profile_checksum = checksum64(&profile_text);
+    let compatibility_profile_summary_checksum = checksum64(&profile_summary_text);
     let release_checklist_checksum = checksum64(&release_checklist_text);
     let backend_matrix_checksum = checksum64(&backend_matrix_text);
     let api_stability_checksum = checksum64(&api_stability_text);
@@ -1190,6 +1263,12 @@ fn verify_release_bundle(
         return Err(ReleaseBundleError::Verification(format!(
             "compatibility profile checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
             manifest.profile_checksum, compatibility_profile_checksum
+        )));
+    }
+    if manifest.profile_summary_checksum != compatibility_profile_summary_checksum {
+        return Err(ReleaseBundleError::Verification(format!(
+            "compatibility profile summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.profile_summary_checksum, compatibility_profile_summary_checksum
         )));
     }
     let release_notes_checksum = checksum64(&release_notes_text);
@@ -1230,6 +1309,7 @@ fn verify_release_bundle(
         rustc_version: manifest.rustc_version,
         output_dir: output_dir.to_path_buf(),
         compatibility_profile_path: profile_path,
+        compatibility_profile_summary_path: profile_summary_path,
         release_notes_path,
         release_checklist_path,
         backend_matrix_path,
@@ -1237,12 +1317,14 @@ fn verify_release_bundle(
         validation_report_path,
         manifest_path,
         compatibility_profile_bytes: profile_text.len(),
+        compatibility_profile_summary_bytes: profile_summary_text.len(),
         release_notes_bytes: release_notes_text.len(),
         release_checklist_bytes: release_checklist_text.len(),
         backend_matrix_bytes: backend_matrix_text.len(),
         api_stability_bytes: api_stability_text.len(),
         validation_report_bytes: validation_report_text.len(),
         compatibility_profile_checksum,
+        compatibility_profile_summary_checksum,
         release_notes_checksum,
         release_checklist_checksum,
         backend_matrix_checksum,
@@ -2430,6 +2512,7 @@ version = "0.9.0"
 
         assert!(rendered.contains("Release bundle"));
         assert!(rendered.contains("compatibility-profile.txt"));
+        assert!(rendered.contains("compatibility-profile-summary.txt"));
         assert!(rendered.contains("validation rounds: 1"));
         assert!(rendered.contains("release-notes.txt"));
         assert!(rendered.contains("release-checklist.txt"));
@@ -2444,6 +2527,9 @@ version = "0.9.0"
 
         let profile = std::fs::read_to_string(bundle_dir.join("compatibility-profile.txt"))
             .expect("compatibility profile should be written");
+        let profile_summary =
+            std::fs::read_to_string(bundle_dir.join("compatibility-profile-summary.txt"))
+                .expect("compatibility profile summary should be written");
         let release_notes = std::fs::read_to_string(bundle_dir.join("release-notes.txt"))
             .expect("release notes should be written");
         let release_checklist = std::fs::read_to_string(bundle_dir.join("release-checklist.txt"))
@@ -2459,6 +2545,10 @@ version = "0.9.0"
 
         assert!(profile.contains(&format!(
             "Compatibility profile: {}",
+            current_compatibility_profile_id()
+        )));
+        assert!(profile_summary.contains(&format!(
+            "Compatibility profile summary\nProfile: {}",
             current_compatibility_profile_id()
         )));
         assert!(release_notes.contains("Release notes"));
@@ -2484,6 +2574,7 @@ version = "0.9.0"
         assert!(manifest.contains("Release bundle manifest"));
         assert!(manifest.contains("validation rounds: 1"));
         assert!(manifest.contains("compatibility-profile.txt"));
+        assert!(manifest.contains("compatibility-profile-summary.txt"));
         assert!(manifest.contains("release-notes.txt"));
         assert!(manifest.contains("backend-matrix.txt"));
         assert!(manifest.contains("api-stability.txt"));
@@ -2492,6 +2583,7 @@ version = "0.9.0"
         assert!(manifest.contains("workspace status:"));
         assert!(manifest.contains("rustc version:"));
         assert!(manifest.contains("profile checksum (fnv1a-64): 0x"));
+        assert!(manifest.contains("profile summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("release notes checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("release checklist checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("backend matrix checksum (fnv1a-64): 0x"));
@@ -2502,6 +2594,7 @@ version = "0.9.0"
             .expect("bundle verification should render");
         assert!(verified.contains("Release bundle"));
         assert!(verified.contains("bundle-manifest.txt"));
+        assert!(verified.contains("compatibility-profile-summary.txt"));
         assert!(verified.contains("source revision:"));
         assert!(verified.contains("workspace status:"));
         assert!(verified.contains("rustc version:"));
@@ -2641,6 +2734,38 @@ version = "0.9.0"
             error.contains("release bundle verification failed")
                 || error.contains("invalid release notes checksum")
                 || error.contains("missing 0x prefix")
+        );
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_compatibility_profile_summary_file() {
+        let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-summary");
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let summary_path = bundle_dir.join("compatibility-profile-summary.txt");
+        let summary = std::fs::read_to_string(&summary_path)
+            .expect("compatibility profile summary should exist");
+        let tampered = summary.replace(
+            "Compatibility profile summary",
+            "Tampered compatibility profile summary",
+        );
+        std::fs::write(&summary_path, tampered).expect("summary should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect_err("verification should fail for a tampered compatibility profile summary");
+        assert!(
+            error.contains("release bundle verification failed")
+                || error.contains("compatibility profile summary checksum mismatch")
         );
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
