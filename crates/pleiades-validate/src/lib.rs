@@ -2335,7 +2335,7 @@ fn implemented_backend_catalog() -> Vec<BackendMatrixEntry> {
             required_data_files: &[],
         },
         BackendMatrixEntry {
-            label: "ELP lunar backend",
+            label: "ELP lunar backend (Moon and lunar nodes)",
             metadata: ElpBackend::new().metadata(),
             expected_error_kinds: ELP_EXPECTED_ERROR_KINDS,
             required_data_files: &[],
@@ -2746,7 +2746,7 @@ mod tests {
         assert!(report.contains("Vesta"));
         assert!(report.contains("JPL snapshot reference backend"));
         assert!(report.contains("VSOP87 planetary backend"));
-        assert!(report.contains("ELP lunar backend"));
+        assert!(report.contains("ELP lunar backend (Moon and lunar nodes)"));
         assert!(report.contains("Packaged data backend"));
         assert!(report.contains("Composite routed backend"));
         assert!(report.contains("Target compatibility catalog:"));
@@ -2944,7 +2944,7 @@ mod tests {
         assert!(rendered.contains("Meeus-style truncated lunar orbit formulas"));
         assert!(rendered.contains("NASA/JPL Horizons API vector tables (DE441)"));
         assert!(rendered.contains("VSOP87 planetary backend"));
-        assert!(rendered.contains("ELP lunar backend"));
+        assert!(rendered.contains("ELP lunar backend (Moon and lunar nodes)"));
         assert!(rendered.contains("Packaged data backend"));
         assert!(rendered.contains("Composite routed backend"));
     }

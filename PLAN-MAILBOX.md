@@ -1225,3 +1225,13 @@ I found a small Stage 6 release-hardening follow-up worth tracking before implem
 - no spec change seems necessary; this looks like a release-quality convenience artifact rather than a new product capability
 
 Remaining Stage 6 work: keep the release-bundle outputs and release-facing docs synchronized if the API stability summary slice lands.
+
+## 2026-04-23 — ELP backend matrix now names lunar-node coverage explicitly
+
+Implemented a small Stage 6 release-hardening alignment slice:
+
+- `pleiades-validate` now labels the ELP backend matrix entry as `ELP lunar backend (Moon and lunar nodes)`, making the release-facing capability docs explicit about the Moon / mean-node / true-node surface already provided by `pleiades-elp`
+- the Stage 6 progress notes were updated to record the wording sync, and the validation tests now check the more explicit backend-matrix label
+- no spec update was needed; this stays within the existing backend-capability and release-doc synchronization scope
+
+Remaining Stage 6 work: keep the backend matrix wording, lunar-point coverage, and release-facing docs synchronized as further coverage lands.
