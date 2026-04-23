@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — JPL snapshot backend now carries a source-backed custom asteroid
+
+Implemented a small Stage 6 optional-expansion slice:
+
+- `pleiades-jpl` now accepts `catalog:designation` body identifiers in its checked-in snapshot corpus, and the reference snapshot now includes `asteroid:433-Eros` so the source-backed asteroid coverage can exercise the same custom-body path that the CLI already accepts
+- the backend matrix and validation report tests were updated to expect the broader selected-asteroid coverage, keeping the release-facing audit output synchronized with the expanded JPL snapshot
+- clippy, formatting, and the workspace test suite all pass after the update
+
+Remaining Stage 6 work: keep the asteroid coverage, compatibility profile, and validation/reporting surfaces synchronized as the remaining release-hardening slices land.
+
 ## 2026-04-23 — Compatibility caveats wording now matches the release-facing summaries
 
 Implemented a small Stage 6 release-hardening wording slice:

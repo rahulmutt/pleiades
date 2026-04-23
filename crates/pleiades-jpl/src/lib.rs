@@ -7,9 +7,10 @@
 //! compare the algorithmic backends against a reproducible reference corpus
 //! with a broader time span than the original single-epoch snapshot.
 //!
-//! The checked-in snapshot now also includes a small set of named asteroids so
-//! the shared body taxonomy can exercise source-backed asteroid support without
-//! changing the comparison corpus used by validation reports.
+//! The checked-in snapshot now also includes a small set of named asteroids and
+//! a custom `catalog:designation` example so the shared body taxonomy can
+//! exercise source-backed asteroid support without changing the comparison
+//! corpus used by validation reports.
 
 #![forbid(unsafe_code)]
 
@@ -22,8 +23,8 @@ use pleiades_backend::{
     EphemerisResult, QualityAnnotation,
 };
 use pleiades_types::{
-    CoordinateFrame, EclipticCoordinates, Instant, JulianDay, Latitude, Longitude, Motion,
-    TimeRange, TimeScale, ZodiacMode,
+    CoordinateFrame, CustomBodyId, EclipticCoordinates, Instant, JulianDay, Latitude, Longitude,
+    Motion, TimeRange, TimeScale, ZodiacMode,
 };
 
 const REFERENCE_EPOCH_JD: f64 = 2_451_545.0;
@@ -457,12 +458,27 @@ fn parse_body(
         "Juno" => pleiades_backend::CelestialBody::Juno,
         "Vesta" => pleiades_backend::CelestialBody::Vesta,
         other => {
-            return Err(SnapshotLoadError::new(
-                line_number,
-                SnapshotLoadErrorKind::UnsupportedBody {
-                    body: other.to_string(),
-                },
-            ))
+            let Some((catalog, designation)) = other.split_once(':') else {
+                return Err(SnapshotLoadError::new(
+                    line_number,
+                    SnapshotLoadErrorKind::UnsupportedBody {
+                        body: other.to_string(),
+                    },
+                ));
+            };
+
+            let catalog = catalog.trim();
+            let designation = designation.trim();
+            if catalog.is_empty() || designation.is_empty() {
+                return Err(SnapshotLoadError::new(
+                    line_number,
+                    SnapshotLoadErrorKind::UnsupportedBody {
+                        body: other.to_string(),
+                    },
+                ));
+            }
+
+            pleiades_backend::CelestialBody::Custom(CustomBodyId::new(catalog, designation))
         }
     };
 
@@ -486,13 +502,14 @@ fn is_comparison_body(body: &pleiades_backend::CelestialBody) -> bool {
 }
 
 fn is_reference_asteroid(body: &pleiades_backend::CelestialBody) -> bool {
-    matches!(
-        body,
+    match body {
         pleiades_backend::CelestialBody::Ceres
-            | pleiades_backend::CelestialBody::Pallas
-            | pleiades_backend::CelestialBody::Juno
-            | pleiades_backend::CelestialBody::Vesta
-    )
+        | pleiades_backend::CelestialBody::Pallas
+        | pleiades_backend::CelestialBody::Juno
+        | pleiades_backend::CelestialBody::Vesta => true,
+        pleiades_backend::CelestialBody::Custom(custom) if custom.catalog == "asteroid" => true,
+        _ => false,
+    }
 }
 
 fn parse_f64(
@@ -540,6 +557,11 @@ mod tests {
         assert!(metadata
             .body_coverage
             .contains(&pleiades_backend::CelestialBody::Vesta));
+        assert!(metadata
+            .body_coverage
+            .contains(&pleiades_backend::CelestialBody::Custom(CustomBodyId::new(
+                "asteroid", "433-Eros"
+            ))));
         assert_eq!(
             reference_asteroids(),
             [
@@ -547,6 +569,7 @@ mod tests {
                 pleiades_backend::CelestialBody::Pallas,
                 pleiades_backend::CelestialBody::Juno,
                 pleiades_backend::CelestialBody::Vesta,
+                pleiades_backend::CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros")),
             ]
         );
         assert!(metadata.nominal_range.start.is_some());
@@ -569,6 +592,17 @@ mod tests {
         let error = load_snapshot_from_str("2451545.0,Comet,1.0,2.0,3.0\n")
             .expect_err("unsupported bodies should be reported");
         assert!(format!("{error}").contains("unsupported body 'Comet'"));
+    }
+
+    #[test]
+    fn parser_accepts_custom_catalog_bodies() {
+        let snapshot = load_snapshot_from_str("2451545.0,asteroid:433-Eros,-1.0,-2.0,-3.0\n")
+            .expect("custom catalog bodies should parse");
+        assert_eq!(snapshot.len(), 1);
+        assert_eq!(
+            snapshot[0].body,
+            pleiades_backend::CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros"))
+        );
     }
 
     #[test]
@@ -657,5 +691,33 @@ mod tests {
             (ecliptic.distance_au.expect("distance should exist") - 2.2568850705531642).abs()
                 < 1e-12
         );
+    }
+
+    #[test]
+    fn snapshot_backend_resolves_custom_asteroid_at_j2000() {
+        let backend = JplSnapshotBackend;
+        let request = EphemerisRequest {
+            body: pleiades_backend::CelestialBody::Custom(CustomBodyId::new(
+                "asteroid", "433-Eros",
+            )),
+            instant: reference_instant(),
+            observer: None,
+            frame: CoordinateFrame::Ecliptic,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparent: Apparentness::Mean,
+        };
+
+        let result = backend
+            .position(&request)
+            .expect("reference snapshot should resolve the custom asteroid entry");
+        let ecliptic = result
+            .ecliptic
+            .expect("reference snapshot should include ecliptic coordinates");
+        assert!(ecliptic.longitude.degrees().is_finite());
+        assert!(ecliptic.latitude.degrees().is_finite());
+        assert!(ecliptic
+            .distance_au
+            .expect("distance should exist")
+            .is_finite());
     }
 }

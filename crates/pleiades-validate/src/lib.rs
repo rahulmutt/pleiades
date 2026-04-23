@@ -3240,6 +3240,7 @@ mod tests {
         assert!(report.contains("Pallas"));
         assert!(report.contains("Juno"));
         assert!(report.contains("Vesta"));
+        assert!(report.contains("asteroid:433-Eros"));
         assert!(report.contains("JPL snapshot reference backend"));
         assert!(report.contains("VSOP87 planetary backend"));
         assert!(report.contains("ELP lunar backend (Moon and lunar nodes)"));
@@ -3504,9 +3505,9 @@ mod tests {
         let rendered = render_cli(&["backend-matrix"]).expect("backend matrix should render");
         assert!(rendered.contains("Implemented backend matrices"));
         assert!(rendered.contains("JPL snapshot reference backend"));
-        assert!(
-            rendered.contains("selected asteroid coverage: 4 bodies (Ceres, Pallas, Juno, Vesta)")
-        );
+        assert!(rendered.contains(
+            "selected asteroid coverage: 5 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"
+        ));
         assert!(rendered.contains("nominal range:"));
         assert!(rendered.contains("provenance sources:"));
         assert!(rendered.contains("expected error classes:"));
@@ -3702,8 +3703,9 @@ version = "0.9.0"
         assert!(backend_matrix_summary.contains("Backends: 5"));
         assert!(backend_matrix_summary.contains("Algorithmic: 2"));
         assert!(backend_matrix_summary.contains("Composite: 1"));
-        assert!(backend_matrix
-            .contains("selected asteroid coverage: 4 bodies (Ceres, Pallas, Juno, Vesta)"));
+        assert!(backend_matrix.contains(
+            "selected asteroid coverage: 5 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"
+        ));
         assert!(api_stability.contains(&format!(
             "API stability posture: {}",
             release_profiles.api_stability_profile_id
