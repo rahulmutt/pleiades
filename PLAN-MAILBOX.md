@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Release bundle manifest now records the Rust compiler version
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-validate` now records the Rust compiler version in the release bundle manifest and surfaces it in the bundle summary, so staged artifacts carry one more reproducibility hint alongside the existing source revision and workspace status
+- the release notes artifact, reproducibility guide, README, and Stage 6 progress notes were updated so the release-facing provenance wording stays synchronized with the new manifest field
+- no spec update was needed; this stays within the existing release-artifact and reproducibility scope
+
+Remaining Stage 6 work: keep the release bundle manifest, bundle summary, and reproducibility docs synchronized as further hardening slices land.
+
 ## 2026-04-23 — Release bundle manifest now records source provenance
 
 Implemented a small Stage 6 release-hardening slice:

@@ -54,7 +54,7 @@ The bundle currently writes these text artifacts:
 - `backend-matrix.txt`
 - `api-stability.txt`
 - `validation-report.txt`
-- `bundle-manifest.txt` (includes the recorded source revision, workspace status, profile/API identifiers, and validation-round count)
+- `bundle-manifest.txt` (includes the recorded source revision, workspace status, Rust compiler version, profile/API identifiers, and validation-round count)
 
 The generated `release-checklist.txt` now also embeds the canonical `bundle-release` and `verify-release-bundle` commands plus a pointer back to this guide, so the bundle stays self-describing for maintainers.
 
@@ -72,7 +72,7 @@ The release bundle makes the current release posture easy to reproduce and audit
 - the release notes file summarizes release-specific coverage, known limitations, and the current API stability / deprecation-policy snapshot,
 - the release checklist captures the repository-managed release gates and the published bundle contents,
 - the backend matrix records the implemented backend catalog and its declared coverage,
-- the bundle manifest records the source revision, workspace status, profile/API identifiers, and validation-round count alongside deterministic checksums,
+- the bundle manifest records the source revision, workspace status, Rust compiler version, profile/API identifiers, and validation-round count alongside deterministic checksums,
 - the API stability posture records which surfaces are stable versus operational,
 - the validation report preserves comparison and benchmark summaries,
 - the manifest records deterministic checksums for the published text artifacts.

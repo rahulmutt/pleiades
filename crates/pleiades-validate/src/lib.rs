@@ -299,6 +299,8 @@ pub struct ReleaseBundle {
     pub source_revision: String,
     /// Workspace status recorded when the bundle was generated.
     pub workspace_status: String,
+    /// Rust compiler version recorded when the bundle was generated.
+    pub rustc_version: String,
     /// Output directory chosen by the caller.
     pub output_dir: PathBuf,
     /// Path to the generated compatibility profile file.
@@ -550,6 +552,7 @@ impl fmt::Display for ReleaseBundle {
         writeln!(f, "  manifest: {}", self.manifest_path.display())?;
         writeln!(f, "  source revision: {}", self.source_revision)?;
         writeln!(f, "  workspace status: {}", self.workspace_status)?;
+        writeln!(f, "  rustc version: {}", self.rustc_version)?;
         writeln!(f, "  validation rounds: {}", self.validation_rounds)?;
         writeln!(
             f,
@@ -852,7 +855,7 @@ fn render_release_notes_text() -> String {
     }
 
     text.push_str("Bundle provenance:\n");
-    text.push_str("- source revision and workspace status are recorded in the manifest\n");
+    text.push_str("- source revision, workspace status, and Rust compiler version are recorded in the manifest\n");
 
     text
 }
@@ -928,6 +931,7 @@ fn render_release_checklist_text() -> String {
 struct WorkspaceProvenance {
     source_revision: String,
     workspace_status: String,
+    rustc_version: String,
 }
 
 fn workspace_provenance() -> WorkspaceProvenance {
@@ -955,9 +959,19 @@ fn workspace_provenance() -> WorkspaceProvenance {
         })
         .unwrap_or_else(|| "unknown".to_string());
 
+    let rustc_version = Command::new("rustc")
+        .arg("--version")
+        .output()
+        .ok()
+        .filter(|output| output.status.success())
+        .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_string())
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| "unknown".to_string());
+
     WorkspaceProvenance {
         source_revision,
         workspace_status,
+        rustc_version,
     }
 }
 
@@ -991,9 +1005,10 @@ pub fn render_release_bundle(
     let api_stability_checksum = checksum64(&api_stability_text);
     let validation_report_checksum = checksum64(&validation_report);
     let manifest_text = format!(
-        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
+        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
         provenance.source_revision,
         provenance.workspace_status,
+        provenance.rustc_version,
         current_compatibility_profile().profile_id,
         current_api_stability_profile().profile_id,
         rounds,
@@ -1026,6 +1041,7 @@ struct ParsedReleaseBundleManifest {
     validation_report_checksum: u64,
     source_revision: String,
     workspace_status: String,
+    rustc_version: String,
     profile_id: String,
     api_stability_posture_id: String,
     validation_rounds: usize,
@@ -1063,6 +1079,7 @@ impl ParsedReleaseBundleManifest {
             )?,
             source_revision: parse_manifest_string(text, "source revision:")?,
             workspace_status: parse_manifest_string(text, "workspace status:")?,
+            rustc_version: parse_manifest_string(text, "rustc version:")?,
             profile_id: parse_manifest_string(text, "profile id:")?,
             api_stability_posture_id: parse_manifest_string(text, "api stability posture id:")?,
             validation_rounds: parse_manifest_usize(text, "validation rounds:")?,
@@ -1099,6 +1116,11 @@ fn verify_release_bundle(
     if manifest.workspace_status.is_empty() {
         return Err(ReleaseBundleError::Verification(
             "missing workspace status entry".to_string(),
+        ));
+    }
+    if manifest.rustc_version.is_empty() {
+        return Err(ReleaseBundleError::Verification(
+            "missing rustc version entry".to_string(),
         ));
     }
     if manifest.profile_path != "compatibility-profile.txt" {
@@ -1200,6 +1222,7 @@ fn verify_release_bundle(
     Ok(ReleaseBundle {
         source_revision: manifest.source_revision,
         workspace_status: manifest.workspace_status,
+        rustc_version: manifest.rustc_version,
         output_dir: output_dir.to_path_buf(),
         compatibility_profile_path: profile_path,
         release_notes_path,
@@ -2351,6 +2374,7 @@ version = "0.9.0"
         assert!(rendered.contains("validation-report.txt"));
         assert!(rendered.contains("source revision:"));
         assert!(rendered.contains("workspace status:"));
+        assert!(rendered.contains("rustc version:"));
         assert!(rendered.contains("checksum: 0x"));
 
         let profile = std::fs::read_to_string(bundle_dir.join("compatibility-profile.txt"))
@@ -2378,6 +2402,7 @@ version = "0.9.0"
         assert!(release_notes.contains("Release-specific coverage:"));
         assert!(release_notes.contains("Known gaps:"));
         assert!(release_notes.contains("Bundle provenance:"));
+        assert!(release_notes.contains("Rust compiler version"));
         assert!(release_checklist.contains("Release checklist"));
         assert!(release_checklist.contains("Manual bundle workflow:"));
         assert!(release_checklist.contains("bundle-release --out /tmp/pleiades-release"));
@@ -2400,6 +2425,7 @@ version = "0.9.0"
         assert!(manifest.contains("validation-report.txt"));
         assert!(manifest.contains("source revision:"));
         assert!(manifest.contains("workspace status:"));
+        assert!(manifest.contains("rustc version:"));
         assert!(manifest.contains("profile checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("release notes checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("release checklist checksum (fnv1a-64): 0x"));
@@ -2413,11 +2439,46 @@ version = "0.9.0"
         assert!(verified.contains("bundle-manifest.txt"));
         assert!(verified.contains("source revision:"));
         assert!(verified.contains("workspace status:"));
+        assert!(verified.contains("rustc version:"));
         assert!(verified.contains("validation rounds: 1"));
         assert!(verified.contains("release notes checksum: 0x"));
         assert!(verified.contains("release checklist checksum: 0x"));
         assert!(verified.contains("backend matrix checksum: 0x"));
         assert!(verified.contains("validation report checksum: 0x"));
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_missing_rustc_version_entry() {
+        let bundle_dir = unique_temp_dir("pleiades-release-bundle-missing-rustc");
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let manifest_path = bundle_dir.join("bundle-manifest.txt");
+        let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
+        let filtered = manifest
+            .lines()
+            .filter(|line| !line.starts_with("rustc version:"))
+            .map(str::to_owned)
+            .collect::<Vec<_>>()
+            .join("\n");
+        std::fs::write(&manifest_path, format!("{filtered}\n"))
+            .expect("manifest should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect_err("verification should fail for a manifest missing the rustc version entry");
+        assert!(
+            error.contains("missing manifest entry: rustc version:")
+                || error.contains("missing rustc version entry")
+        );
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
     }
