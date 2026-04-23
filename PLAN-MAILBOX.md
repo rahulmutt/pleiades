@@ -1325,6 +1325,16 @@ I found a small Stage 6 release-hardening follow-up worth tracking before implem
 
 Remaining Stage 6 work: keep the release-summary output, the release notes/checklist, and the release-facing docs synchronized if this slice lands.
 
+## 2026-04-23 — Release-summary bundle verification now has direct tamper coverage
+
+Implemented a small follow-up to the Stage 6 release-summary slice:
+
+- `pleiades-validate` now has a direct regression test that rejects tampered `release-summary.txt` contents in staged release bundles, matching the existing tamper coverage already present for the other release artifacts
+- the Stage 6 progress notes were updated so the release-hardening tracker records the new bundle-integrity coverage
+- no spec update was needed; this stays within the existing release-hardening and release-artifact verification scope
+
+Remaining Stage 6 work: keep the compact release-summary output, bundle contents, and release-facing docs synchronized as further hardening slices land.
+
 ## 2026-04-23 — Compact release-summary artifact now ships in the release bundle
 
 Implemented the small Stage 6 release-hardening follow-up that was already surfacing in the maintainer docs:
