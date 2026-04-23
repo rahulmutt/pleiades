@@ -743,6 +743,10 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             let rounds = parse_rounds(&args[1..], DEFAULT_BENCHMARK_ROUNDS)?;
             render_validation_report(rounds).map_err(render_error)
         }
+        Some("report-summary") | Some("validation-summary") => {
+            let rounds = parse_rounds(&args[1..], DEFAULT_BENCHMARK_ROUNDS)?;
+            render_validation_report_summary(rounds).map_err(render_error)
+        }
         Some("validate-artifact") => {
             ensure_no_extra_args(&args[1..], "validate-artifact")?;
             render_artifact_report().map_err(render_artifact_error)
@@ -1727,8 +1731,7 @@ pub fn workspace_audit_report() -> Result<WorkspaceAuditReport, std::io::Error> 
     })
 }
 
-/// Renders the validation report used by the CLI.
-pub fn render_validation_report(rounds: usize) -> Result<String, EphemerisError> {
+fn build_validation_report(rounds: usize) -> Result<ValidationReport, EphemerisError> {
     let comparison_corpus = default_corpus();
     let benchmark_corpus = benchmark_corpus();
     let packaged_benchmark_corpus = artifact::packaged_artifact_corpus();
@@ -1751,8 +1754,18 @@ pub fn render_validation_report(rounds: usize) -> Result<String, EphemerisError>
         reference_benchmark,
         candidate_benchmark,
         packaged_benchmark,
-    }
-    .to_string())
+    })
+}
+
+/// Renders the validation report used by the CLI.
+pub fn render_validation_report(rounds: usize) -> Result<String, EphemerisError> {
+    Ok(build_validation_report(rounds)?.to_string())
+}
+
+/// Renders a compact validation-report summary used by the CLI.
+pub fn render_validation_report_summary(rounds: usize) -> Result<String, EphemerisError> {
+    let report = build_validation_report(rounds)?;
+    Ok(render_validation_report_summary_text(&report))
 }
 
 /// Renders the comparison report used by the CLI.
@@ -1768,6 +1781,136 @@ pub fn render_benchmark_report(rounds: usize) -> Result<String, EphemerisError> 
     let corpus = benchmark_corpus();
     let candidate = default_candidate_backend();
     Ok(benchmark_backend(&candidate, &corpus, rounds)?.to_string())
+}
+
+fn render_validation_report_summary_text(report: &ValidationReport) -> String {
+    use std::fmt::Write as _;
+
+    let release_profiles = current_release_profile_identifiers();
+    let comparison_regressions = report.comparison.notable_regressions().len();
+    let mut text = String::new();
+
+    let _ = writeln!(text, "Validation report summary");
+    let _ = writeln!(
+        text,
+        "Profile: {}",
+        release_profiles.compatibility_profile_id
+    );
+    let _ = writeln!(
+        text,
+        "API stability posture: {}",
+        release_profiles.api_stability_profile_id
+    );
+    let _ = writeln!(text);
+    let _ = writeln!(text, "Comparison corpus");
+    let _ = writeln!(text, "  name: {}", report.comparison_corpus.name);
+    let _ = writeln!(
+        text,
+        "  requests: {}",
+        report.comparison_corpus.request_count
+    );
+    let _ = writeln!(text, "  epochs: {}", report.comparison_corpus.epoch_count);
+    let _ = writeln!(text, "  bodies: {}", report.comparison_corpus.body_count);
+    let _ = writeln!(
+        text,
+        "  apparentness: {}",
+        report.comparison_corpus.apparentness
+    );
+    let _ = writeln!(text);
+    let _ = writeln!(text, "Comparison summary");
+    let _ = writeln!(
+        text,
+        "  samples: {}",
+        report.comparison.summary.sample_count
+    );
+    let _ = writeln!(
+        text,
+        "  max longitude delta: {:.12}°",
+        report.comparison.summary.max_longitude_delta_deg
+    );
+    let _ = writeln!(
+        text,
+        "  max latitude delta: {:.12}°",
+        report.comparison.summary.max_latitude_delta_deg
+    );
+    let _ = writeln!(
+        text,
+        "  max distance delta: {}",
+        report
+            .comparison
+            .summary
+            .max_distance_delta_au
+            .map(|value| format!("{value:.12} AU"))
+            .unwrap_or_else(|| "n/a".to_string())
+    );
+    let _ = writeln!(text, "  notable regressions: {}", comparison_regressions);
+    let _ = writeln!(text);
+    let _ = writeln!(text, "House validation corpus");
+    let _ = writeln!(
+        text,
+        "  scenarios: {}",
+        report.house_validation.scenarios.len()
+    );
+    let _ = writeln!(text);
+    let _ = writeln!(text, "Benchmark summaries");
+    let _ = writeln!(text, "Reference benchmark");
+    let _ = writeln!(text, "  corpus: {}", report.reference_benchmark.corpus_name);
+    let _ = writeln!(
+        text,
+        "  apparentness: {}",
+        report.reference_benchmark.apparentness
+    );
+    let _ = writeln!(text, "  rounds: {}", report.reference_benchmark.rounds);
+    let _ = writeln!(
+        text,
+        "  samples per round: {}",
+        report.reference_benchmark.sample_count
+    );
+    let _ = writeln!(
+        text,
+        "  ns/request: {}",
+        format_ns(report.reference_benchmark.nanoseconds_per_request())
+    );
+    let _ = writeln!(text);
+    let _ = writeln!(text, "Candidate benchmark");
+    let _ = writeln!(text, "  corpus: {}", report.candidate_benchmark.corpus_name);
+    let _ = writeln!(
+        text,
+        "  apparentness: {}",
+        report.candidate_benchmark.apparentness
+    );
+    let _ = writeln!(text, "  rounds: {}", report.candidate_benchmark.rounds);
+    let _ = writeln!(
+        text,
+        "  samples per round: {}",
+        report.candidate_benchmark.sample_count
+    );
+    let _ = writeln!(
+        text,
+        "  ns/request: {}",
+        format_ns(report.candidate_benchmark.nanoseconds_per_request())
+    );
+    let _ = writeln!(text);
+    let _ = writeln!(text, "Packaged-data benchmark");
+    let _ = writeln!(text, "  corpus: {}", report.packaged_benchmark.corpus_name);
+    let _ = writeln!(
+        text,
+        "  apparentness: {}",
+        report.packaged_benchmark.apparentness
+    );
+    let _ = writeln!(text, "  rounds: {}", report.packaged_benchmark.rounds);
+    let _ = writeln!(
+        text,
+        "  samples per round: {}",
+        report.packaged_benchmark.sample_count
+    );
+    let _ = writeln!(
+        text,
+        "  ns/request: {}",
+        format_ns(report.packaged_benchmark.nanoseconds_per_request())
+    );
+
+    text
 }
 
 /// Renders a compact summary of the implemented backend capability matrix catalog.
@@ -2522,7 +2665,7 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = default_corpus().requests.len();
     format!(
-        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix            Print the implemented backend capability matrices\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus with guard epochs\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  release-notes             Print the release compatibility notes\n  release-checklist         Print the release maintainer checklist\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release checklist, backend matrix, backend matrix summary, API posture, API summary, validation report, and manifest\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix            Print the implemented backend capability matrices\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus with guard epochs\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  report-summary [--rounds N]  Render a compact validation report summary\n  validation-summary        Alias for report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  release-notes             Print the release compatibility notes\n  release-checklist         Print the release maintainer checklist\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release checklist, backend matrix, backend matrix summary, API posture, API summary, validation report, and manifest\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
@@ -2825,6 +2968,38 @@ mod tests {
     }
 
     #[test]
+    fn validation_report_summary_renders_a_compact_overview() {
+        let report =
+            render_validation_report_summary(10).expect("validation summary should render");
+        let release_profiles = current_release_profile_identifiers();
+        assert!(report.contains("Validation report summary"));
+        assert!(report.contains(&format!(
+            "Profile: {}",
+            release_profiles.compatibility_profile_id
+        )));
+        assert!(report.contains(&format!(
+            "API stability posture: {}",
+            release_profiles.api_stability_profile_id
+        )));
+        assert!(report.contains("Comparison corpus"));
+        assert!(report.contains("Comparison summary"));
+        assert!(report.contains("House validation corpus"));
+        assert!(report.contains("Benchmark summaries"));
+        assert!(report.contains("Reference benchmark"));
+        assert!(report.contains("Candidate benchmark"));
+        assert!(report.contains("Packaged-data benchmark"));
+    }
+
+    #[test]
+    fn cli_report_summary_lists_the_summary_command() {
+        let rendered = render_cli(&["report-summary", "--rounds", "10"])
+            .expect("report summary should render");
+        assert!(rendered.contains("Validation report summary"));
+        assert!(rendered.contains("Comparison corpus"));
+        assert!(rendered.contains("Benchmark summaries"));
+    }
+
+    #[test]
     fn benchmark_corpus_spans_the_target_window() {
         let corpus = benchmark_corpus();
         let summary = corpus.summary();
@@ -2897,6 +3072,8 @@ mod tests {
         assert!(rendered.contains("benchmark [--rounds N]"));
         assert!(rendered.contains("report [--rounds N]"));
         assert!(rendered.contains("generate-report"));
+        assert!(rendered.contains("report-summary [--rounds N]"));
+        assert!(rendered.contains("validation-summary"));
         assert!(rendered.contains("validate-artifact"));
         assert!(rendered.contains("workspace-audit"));
         assert!(rendered.contains("api-stability"));

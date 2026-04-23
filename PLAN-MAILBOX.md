@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Validation report summary command now lands in the release-hardening surface
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-validate` now exposes a compact `report-summary` / `validation-summary` command that renders the validation corpus, comparison summary, house-validation corpus, and benchmark timings without scrolling through the full report
+- the CLI help text, README, and Stage 6 progress notes were updated so the new summary entry point stays synchronized with the rest of the release-facing inspection commands
+- no spec update was needed; this stays within the existing validation/reporting and release-hardening scope
+
+Remaining Stage 6 work: keep the compact validation summary, full validation report, and release-facing docs synchronized as further hardening slices land.
+
 ## 2026-04-23 — API stability summary now carries the compatibility-profile identifier
 
 Implemented a small Stage 6 release-hardening slice:
