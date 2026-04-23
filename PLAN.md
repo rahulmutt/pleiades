@@ -20,6 +20,28 @@ These rules apply to the whole plan set:
 3. **Spec-first sequencing.** Planning documents must stay aligned with `SPEC.md` and the normative `spec/*.md` files.
 4. **Small shippable slices inside each stage.** A stage is not one giant merge; it is a sequence of reviewable increments that preserve repository health.
 5. **Clear separation of sequence, standards, and gates.** Stage ordering lives in `plan/stages/`, cross-cutting expectations live in `plan/tracks/`, completion checks live in `plan/checklists/`, and traceability material lives in `plan/appendices/`.
+6. **One place per planning concern.** Do not add ad hoc root-level planning notes when the same material belongs in an existing `plan/` subdirectory.
+
+## Plan structure at a glance
+
+The planning tree is intentionally organized by purpose instead of by date:
+
+```text
+PLAN.md                     # top-level index and execution summary
+plan/
+  overview.md               # orientation and reading order
+  stages/                   # sequential delivery path
+  status/                   # current frontier and next-slice guidance
+  tracks/                   # cross-cutting expectations by subsystem
+  checklists/               # reusable done/release gates
+  appendices/               # traceability and supporting reference material
+```
+
+This structure is a good fit for the current repository because it keeps three different planning needs separate:
+
+- **sequence**: what comes next overall,
+- **execution**: what the best next slice is right now,
+- **governance**: what must stay true across all slices.
 
 ## Recommended implementation order
 
@@ -33,6 +55,21 @@ The project should be advanced in this order:
 | 4 | Reference backend and validation | Add higher-confidence comparison data only after an end-to-end workflow exists | [plan/stages/04-reference-backend-and-validation.md](plan/stages/04-reference-backend-and-validation.md) |
 | 5 | Compression and packaged data | Turn validated results into a practical 1500-2500 offline distribution path | [plan/stages/05-compression-and-packaged-data.md](plan/stages/05-compression-and-packaged-data.md) |
 | 6 | Compatibility expansion and release hardening | Complete breadth, document shipped coverage, and make releases dependable | [plan/stages/06-compatibility-expansion-and-release-hardening.md](plan/stages/06-compatibility-expansion-and-release-hardening.md) |
+
+## Current stage snapshot
+
+The detailed status lives under `plan/status/`, but the top-level plan should also make the current posture obvious.
+
+| Stage | Status | Primary outcome today |
+| --- | --- | --- |
+| 1. Workspace bootstrap | Complete | Reproducible workspace, tooling, CI, and crate skeletons are in place |
+| 2. Domain types and backend contract | Complete | Shared semantic foundation and backend contract are established |
+| 3. Chart MVP and algorithmic baseline | Complete | End-to-end chart workflow exists with baseline houses and ayanamsas |
+| 4. Reference backend and validation | In use | Reference snapshots and validation tooling exist and support regression checking |
+| 5. Compression and packaged data | Complete | Packaged artifact format and bundled backend exist for the common range |
+| 6. Compatibility expansion and release hardening | Active | Current work should focus on compatibility clarity, release integrity, and remaining breadth |
+
+For the live execution frontier, see [plan/status/01-current-execution-frontier.md](plan/status/01-current-execution-frontier.md).
 
 ## Stage outcomes and workable-state expectations
 
@@ -57,6 +94,14 @@ The current directory structure is intentionally shallow and role-based:
 - [plan/tracks/](plan/tracks/) — cross-cutting standards by area; use these to answer **what else does this work affect**
 - [plan/checklists/](plan/checklists/) — completion and release gates; use these to answer **what must be true before this is done**
 - [plan/appendices/](plan/appendices/) — traceability and supporting reference material
+
+A good default workflow is:
+
+1. read the relevant spec documents,
+2. read the active stage document,
+3. read the current status note,
+4. read the relevant track doc,
+5. confirm the applicable checklist before calling work done.
 
 ## Plan index
 
@@ -145,5 +190,8 @@ When changing scope, sequencing, or release expectations:
 - update `plan/status/` when the current execution frontier or default next slices change,
 - update the relevant track doc for cross-cutting standards,
 - update the relevant checklist for completion or release-output changes,
+- update `plan/appendices/` when traceability or workable-state expectations change,
 - keep this file as the stable top-level index into `plan/**`,
 - avoid ad hoc root-level planning notes when the material belongs in the structured `plan/` tree.
+
+Status: Updated 2026-04-23 after review against `SPEC.md` and the current `spec/*.md` set.

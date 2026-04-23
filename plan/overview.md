@@ -18,7 +18,7 @@ Use it to answer four different questions:
 - [plan/checklists/](checklists/) — reusable completion gates and release-output expectations
 - [plan/appendices/](appendices/) — traceability aids and supporting reference material
 
-The structure is intentionally shallow so planning notes do not sprawl into unrelated root-level documents.
+The structure is intentionally shallow so planning notes do not sprawl into unrelated root-level documents, and so sequence, execution guidance, and governance material stay easy to find.
 
 ## Stage-first rule
 
@@ -95,4 +95,5 @@ When revising the plan:
 - make cross-cutting policy or subsystem expectation changes in `plan/tracks/`,
 - make completion or release-output changes in `plan/checklists/`,
 - update appendices when traceability or stage-to-spec mapping changes,
-- keep the plan aligned with `SPEC.md` and the normative `spec/*.md` documents.
+- keep the plan aligned with `SPEC.md` and the normative `spec/*.md` documents,
+- avoid adding new planning files outside the structured `plan/` tree unless the planning model itself changes.
