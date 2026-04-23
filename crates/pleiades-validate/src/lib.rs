@@ -20,11 +20,11 @@ pub use house_validation::{
 };
 
 use pleiades_core::{
-    current_api_stability_profile, current_compatibility_profile, default_chart_bodies,
-    Apparentness, BackendCapabilities, BackendMetadata, CelestialBody, CompositeBackend,
-    CoordinateFrame, EclipticCoordinates, EphemerisBackend, EphemerisError, EphemerisErrorKind,
-    EphemerisRequest, EphemerisResult, Instant, JulianDay, Longitude, TimeRange, TimeScale,
-    ZodiacMode,
+    current_api_stability_profile, current_api_stability_profile_id, current_compatibility_profile,
+    current_compatibility_profile_id, default_chart_bodies, Apparentness, BackendCapabilities,
+    BackendMetadata, CelestialBody, CompositeBackend, CoordinateFrame, EclipticCoordinates,
+    EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
+    Instant, JulianDay, Longitude, TimeRange, TimeScale, ZodiacMode,
 };
 use pleiades_data::PackagedDataBackend;
 use pleiades_elp::ElpBackend;
@@ -435,9 +435,11 @@ impl fmt::Display for ValidationReport {
         writeln!(f, "Validation report")?;
         writeln!(f)?;
         writeln!(f, "Compatibility profile")?;
+        writeln!(f, "  id: {}", current_compatibility_profile_id())?;
         writeln!(f, "{}", current_compatibility_profile())?;
         writeln!(f)?;
         writeln!(f, "API stability posture")?;
+        writeln!(f, "  id: {}", current_api_stability_profile_id())?;
         writeln!(f, "{}", current_api_stability_profile())?;
         writeln!(f)?;
         write_backend_catalog(
@@ -2041,7 +2043,9 @@ mod tests {
         let report = render_validation_report(10).expect("validation report should render");
         assert!(report.contains("Validation report"));
         assert!(report.contains("Compatibility profile"));
+        assert!(report.contains(&format!("  id: {}", current_compatibility_profile_id())));
         assert!(report.contains("API stability posture"));
+        assert!(report.contains(&format!("  id: {}", current_api_stability_profile_id())));
         assert!(report.contains("Implemented backend matrices"));
         assert!(report.contains("Selected asteroid coverage"));
         assert!(report.contains("Ceres"));

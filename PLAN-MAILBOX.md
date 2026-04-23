@@ -952,3 +952,13 @@ Implemented a small Stage 6 release-hardening slice:
 - the Stage 6 progress notes were updated to record the bundle-summary refinement as part of the release-hardening backlog
 
 Remaining Stage 6 work: keep the release bundle, compatibility profile, and validation-report surfaces synchronized as further release-hardening slices land.
+
+## 2026-04-23 — Validation report now includes profile identifiers
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-validate::ValidationReport` now prints the current compatibility-profile and API-stability identifiers next to the rendered profile sections, making the validation output itself a little more self-describing for release archiving
+- the validation-report regression test now checks for both identifier lines, so the report text stays synchronized with the shared profile constants as they continue to evolve
+- the Stage 6 progress notes were updated to record the report-format refinement as release-hardening maintenance rather than a behavior change
+
+Remaining Stage 6 work: keep the release bundle, compatibility profile, validation report, and README wording synchronized as further hardening slices land.
