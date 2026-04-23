@@ -1915,7 +1915,7 @@ version = "0.9.0"
         let manifest = std::fs::read_to_string(bundle_dir.join("bundle-manifest.txt"))
             .expect("manifest should be written");
 
-        assert!(profile.contains("Compatibility profile: pleiades-compatibility-profile/0.6.11"));
+        assert!(profile.contains("Compatibility profile: pleiades-compatibility-profile/0.6.12"));
         assert!(backend_matrix.contains("Implemented backend matrices"));
         assert!(backend_matrix.contains("JPL snapshot reference backend"));
         assert!(api_stability.contains("API stability posture: pleiades-api-stability/0.1.0"));

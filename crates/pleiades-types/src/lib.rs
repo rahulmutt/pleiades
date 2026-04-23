@@ -540,6 +540,8 @@ pub enum Ayanamsa {
     FaganBradley,
     /// True Chitra.
     TrueChitra,
+    /// True Citra.
+    TrueCitra,
     /// Suryasiddhanta (Revati) / SS Revati.
     SuryasiddhantaRevati,
     /// Suryasiddhanta (Citra) / SS Citra.

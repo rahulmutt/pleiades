@@ -1,5 +1,16 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — True Citra ayanamsa breadth added
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-types` now includes a dedicated `TrueCitra` ayanamsa variant so the shared API can distinguish the published True Citra / Chitra-based interoperability label from the existing True Chitra baseline entry
+- `pleiades-ayanamsa` now catalogs `True Citra` with the published zero point from the Swiss-Ephemeris compatibility tables, and the shared resolution path accepts the `True Citra` label explicitly
+- `pleiades-core`, the compatibility profile, the CLI profile rendering, and the validation profile checks were updated to surface the new release-specific breadth entry, and the profile identifier was bumped to `0.6.12`
+- regression coverage now exercises both the descriptor metadata and the label-resolution path for the new ayanamsa entry
+
+Remaining Stage 6 work: keep the compatibility profile synchronized as any further catalog breadth or metadata backfills land.
+
 ## 2026-04-23 — House validation corpus added to the validation report
 
 Implemented a small Stage 4 validation slice:

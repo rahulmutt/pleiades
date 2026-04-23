@@ -126,6 +126,14 @@ const BASELINE_AYANAMSAS: &[AyanamsaDescriptor] = &[
 
 const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
+        Ayanamsa::TrueCitra,
+        "True Citra",
+        &["True Citra", "True Citra ayanamsa"],
+        "True Citra sidereal mode with the published zero point used by Swiss Ephemeris-style interoperability tables.",
+        Some(JulianDay::from_days(1_825_182.872_330)),
+        Some(Angle::from_degrees(50.256_748_3)),
+    ),
+    AyanamsaDescriptor::new(
         Ayanamsa::J2000,
         "J2000",
         &["J2000.0"],
@@ -556,7 +564,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     ),
 ];
 
-static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
+static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
     AyanamsaDescriptor::new(
         Ayanamsa::Lahiri,
         "Lahiri",
@@ -596,6 +604,14 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 58] = [
         "True Chitra / Chitra-based sidereal variant.",
         Some(JulianDay::from_days(2_435_553.5)),
         Some(Angle::from_degrees(23.245_524_743)),
+    ),
+    AyanamsaDescriptor::new(
+        Ayanamsa::TrueCitra,
+        "True Citra",
+        &["True Citra", "True Citra ayanamsa"],
+        "True Citra sidereal mode with the published zero point used by Swiss Ephemeris-style interoperability tables.",
+        Some(JulianDay::from_days(1_825_182.872_330)),
+        Some(Angle::from_degrees(50.256_748_3)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::J2000,
@@ -1161,6 +1177,11 @@ mod tests {
         assert_eq!(resolve_ayanamsa("B1950.0"), Some(Ayanamsa::B1950));
         assert_eq!(resolve_ayanamsa("True Revati"), Some(Ayanamsa::TrueRevati));
         assert_eq!(resolve_ayanamsa("True Mula"), Some(Ayanamsa::TrueMula));
+        assert_eq!(resolve_ayanamsa("True Citra"), Some(Ayanamsa::TrueCitra));
+        assert_eq!(
+            resolve_ayanamsa("True Citra ayanamsa"),
+            Some(Ayanamsa::TrueCitra)
+        );
         assert_eq!(
             resolve_ayanamsa("SS Revati"),
             Some(Ayanamsa::SuryasiddhantaRevati)
@@ -1332,6 +1353,7 @@ mod tests {
             .collect();
 
         for expected in [
+            "True Citra",
             "J2000",
             "J1900",
             "B1950",
@@ -1456,6 +1478,26 @@ mod tests {
         assert_eq!(
             jn_bhasin.offset_degrees,
             Some(Angle::from_degrees(0.013_968_911_416_666_667))
+        );
+
+        let true_citra = descriptor(&Ayanamsa::TrueCitra).expect("True Citra descriptor");
+        assert_eq!(
+            true_citra.epoch,
+            Some(JulianDay::from_days(1_825_182.872_330))
+        );
+        assert_eq!(
+            true_citra.offset_degrees,
+            Some(Angle::from_degrees(50.256_748_3))
+        );
+        assert_eq!(
+            sidereal_offset(
+                &Ayanamsa::TrueCitra,
+                Instant::new(
+                    JulianDay::from_days(1_825_182.872_330),
+                    pleiades_types::TimeScale::Tt
+                ),
+            ),
+            Some(Angle::from_degrees(50.256_748_3))
         );
 
         let kugler1 =
