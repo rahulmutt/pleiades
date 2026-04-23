@@ -177,6 +177,17 @@ fn source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "PVR",
         ],
         "True Pushya" => &["True Pushya ayanamsa", "Pushya"],
+        "True Citra" => &["True Citra ayanamsa"],
+        "True Revati" => &["True Revati ayanamsa"],
+        "True Mula" => &["True Mula ayanamsa", "Chandra Hari"],
+        "Udayagiri" => &["Udayagiri ayanamsa"],
+        "Lahiri (ICRC)" => &["ICRC Lahiri", "Lahiri ICRC"],
+        "Lahiri (1940)" => &["Lahiri original", "Panchanga Darpan Lahiri"],
+        "DeLuce" => &["De Luce", "DeLuce ayanamsa"],
+        "Yukteshwar" => &["Yukteswar", "Sri Yukteswar", "Sri Yukteshwar"],
+        "J2000" => &["J2000.0"],
+        "J1900" => &["J1900.0"],
+        "B1950" => &["B1950.0"],
         "Sheoran" => &["Sheoran true", "True Sheoran ayanamsa", "\"Vedic\"/Sheoran"],
         "Djwhal Khul" => &["Djwhal", "Djwhal Khul ayanamsa"],
         "JN Bhasin" => &["J. N. Bhasin", "J.N. Bhasin", "Bhasin"],
@@ -738,6 +749,14 @@ mod tests {
             "True Pushya (PVRN Rao), Pushya-paksha, Pushya Paksha, PVR -> PVR Pushya-paksha"
         ));
         assert!(rendered.contains("True Pushya ayanamsa, Pushya -> True Pushya"));
+        assert!(rendered.contains("True Citra ayanamsa -> True Citra"));
+        assert!(rendered.contains("True Revati ayanamsa -> True Revati"));
+        assert!(rendered.contains("True Mula ayanamsa, Chandra Hari -> True Mula"));
+        assert!(rendered.contains("Udayagiri ayanamsa -> Udayagiri"));
+        assert!(rendered.contains("ICRC Lahiri, Lahiri ICRC -> Lahiri (ICRC)"));
+        assert!(rendered.contains("Lahiri original, Panchanga Darpan Lahiri -> Lahiri (1940)"));
+        assert!(rendered.contains("De Luce, DeLuce ayanamsa -> DeLuce"));
+        assert!(rendered.contains("Yukteswar, Sri Yukteswar, Sri Yukteshwar -> Yukteshwar"));
         assert!(
             rendered.contains("Polich-Page, Polich Page, Topocentric house system -> Topocentric")
         );
@@ -746,6 +765,9 @@ mod tests {
         assert!(rendered.contains("Chitrapaksha -> Lahiri"));
         assert!(rendered.contains("Whole Sign (house 1 = Aries) -> Equal (1=Aries)"));
         assert!(rendered.contains("Wang -> Equal"));
+        assert!(rendered.contains("J2000.0 -> J2000"));
+        assert!(rendered.contains("J1900.0 -> J1900"));
+        assert!(rendered.contains("B1950.0 -> B1950"));
         assert!(rendered.contains("Valens, Moon, Moon sign ayanamsa -> Valens Moon"));
         assert!(rendered.contains("Equal (MC)"));
         assert!(rendered.contains("Equal (1=Aries)"));

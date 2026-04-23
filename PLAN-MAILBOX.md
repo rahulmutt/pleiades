@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Release profile source-label appendix widened again
+
+Implemented another small Stage 6 release-hardening slice:
+
+- `pleiades-core::CompatibilityProfile` now expands the source-label appendix further to cover the latest release-specific ayanamsa forms, including J2000/J1900/B1950, True Citra, True Revati, True Mula, Udayagiri, Lahiri (ICRC), Lahiri (1940), DeLuce, and Yukteshwar source spellings
+- regression coverage now checks those additional source-label appendix entries so the compatibility profile stays searchable by the labels that appear in upstream docs and interoperability tables
+- the Stage 6 progress notes and README should mention the broader source-label appendix alongside the existing release-hardening notes
+
+Remaining Stage 6 work: keep the release-profile appendix, catalog breadth, and release notes synchronized as additional interoperability labels land.
+
 ## 2026-04-23 — Topocentric interoperability alias broadened
 
 Implemented a small Stage 6 compatibility-alias slice:
