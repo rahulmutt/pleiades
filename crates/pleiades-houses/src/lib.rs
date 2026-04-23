@@ -217,14 +217,25 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
     HouseSystemDescriptor::new(
         HouseSystem::Horizon,
         "Horizon/Azimuth",
-        &["Horizon", "Azimuth", "horizon/azimut"],
+        &[
+            "Horizon",
+            "Azimuth",
+            "Horizontal",
+            "Azimuthal",
+            "horizon/azimut",
+        ],
         "Azimuthal house system that anchors house 1 due East and house 10 at the MC.",
         true,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Apc,
         "APC",
-        &["Ram school", "Ramschool", "APC houses"],
+        &[
+            "Ram school",
+            "Ramschool",
+            "APC houses",
+            "Ascendant Parallel Circle",
+        ],
         "APC (Ram school) houses with non-opposite quadrant pairs and polar adjustments.",
         true,
     ),
@@ -323,14 +334,25 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
     HouseSystemDescriptor::new(
         HouseSystem::Horizon,
         "Horizon/Azimuth",
-        &["Horizon", "Azimuth", "horizon/azimut"],
+        &[
+            "Horizon",
+            "Azimuth",
+            "Horizontal",
+            "Azimuthal",
+            "horizon/azimut",
+        ],
         "Azimuthal house system that anchors house 1 due East and house 10 at the MC.",
         true,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Apc,
         "APC",
-        &["Ram school", "Ramschool", "APC houses"],
+        &[
+            "Ram school",
+            "Ramschool",
+            "APC houses",
+            "Ascendant Parallel Circle",
+        ],
         "APC (Ram school) houses with non-opposite quadrant pairs and polar adjustments.",
         true,
     ),
@@ -559,7 +581,19 @@ mod tests {
             Some(HouseSystem::EqualAries)
         );
         assert_eq!(resolve_house_system("Azimuth"), Some(HouseSystem::Horizon));
+        assert_eq!(
+            resolve_house_system("Horizontal"),
+            Some(HouseSystem::Horizon)
+        );
+        assert_eq!(
+            resolve_house_system("Azimuthal"),
+            Some(HouseSystem::Horizon)
+        );
         assert_eq!(resolve_house_system("Ram school"), Some(HouseSystem::Apc));
+        assert_eq!(
+            resolve_house_system("Ascendant Parallel Circle"),
+            Some(HouseSystem::Apc)
+        );
         assert_eq!(
             resolve_house_system("Krusinski"),
             Some(HouseSystem::KrusinskiPisaGoelzer)
