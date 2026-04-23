@@ -58,6 +58,7 @@ These are durable planning decisions that should remain true even as individual 
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] The `Sheoran` ayanamsa source-label appendix now also surfaces the exact `Sunil Sheoran`, `Vedic Sheoran`, and `Sheoran ayanamsa` spellings already accepted by the shared resolver, and the compatibility profile identifier has been bumped to `0.6.63` so the release-facing alias batch stays versioned with the current profile.
 - [x] The Swiss Ephemeris `S sripati` and `I sunshine` code spellings now round-trip through `pleiades-houses` and the compatibility-profile source-label appendix, keeping the code-style house-table alias batch aligned with the release-facing profile; the compatibility profile identifier has been bumped to `0.6.62`.
 - [x] The Swiss Ephemeris `N whole sign houses, 1. house = Aries` wording now round-trips through `pleiades-houses` and the compatibility-profile source-label appendix, keeping the whole-sign house-table code spelling aligned with the release-facing alias batch; the compatibility profile identifier has been bumped to `0.6.61`.
 - [x] The compact release summary now also cross-references the compatibility-profile, backend-matrix, API-stability, validation-report, and packaged-artifact summaries, so the quick-audit path stays aligned with the shipped release surface.
