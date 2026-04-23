@@ -614,7 +614,13 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
     AyanamsaDescriptor::new(
         Ayanamsa::TrueCitra,
         "True Citra",
-        &["True Citra", "True Citra ayanamsa", "True Citra Paksha", "True Chitrapaksha"],
+        &[
+            "True Citra",
+            "True Citra ayanamsa",
+            "True Citra Paksha",
+            "True Chitra Paksha",
+            "True Chitrapaksha",
+        ],
         "True Citra sidereal mode with the published zero point used by Swiss Ephemeris-style interoperability tables.",
         Some(JulianDay::from_days(1_825_182.872_330)),
         Some(Angle::from_degrees(50.256_748_3)),
@@ -1221,6 +1227,10 @@ mod tests {
         );
         assert_eq!(
             resolve_ayanamsa("True Citra Paksha"),
+            Some(Ayanamsa::TrueCitra)
+        );
+        assert_eq!(
+            resolve_ayanamsa("True Chitra Paksha"),
             Some(Ayanamsa::TrueCitra)
         );
         assert_eq!(
