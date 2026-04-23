@@ -763,8 +763,9 @@ mod tests {
         assert!(rendered.contains("Horizontal, Azimuthal"));
         assert!(rendered.contains("Ascendant Parallel Circle -> APC"));
         assert!(rendered.contains("Chitrapaksha -> Lahiri"));
-        assert!(rendered.contains("Whole Sign (house 1 = Aries) -> Equal (1=Aries)"));
-        assert!(rendered.contains("Wang -> Equal"));
+        assert!(rendered.contains("Whole Sign (house 1 = Aries), Equal/1=0 Aries, Equal (cusp 1 = 0° Aries) -> Equal (1=Aries)"));
+        assert!(rendered.contains("Equal houses, Wang, Equal (cusp 1 = Asc) -> Equal"));
+        assert!(rendered.contains("Equal from MC, Equal (from MC), Equal MC, Equal Midheaven, Equal (MC), Equal/MC = 10th -> Equal (MC)"));
         assert!(rendered.contains("J2000.0 -> J2000"));
         assert!(rendered.contains("J1900.0 -> J1900"));
         assert!(rendered.contains("B1950.0 -> B1950"));

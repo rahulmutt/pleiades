@@ -125,8 +125,8 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
     HouseSystemDescriptor::new(
         HouseSystem::Equal,
         "Equal",
-        &["Equal houses", "Wang"],
-        "Equal-house system anchored on the ascendant; Wang is treated as an interoperability alias for the equal-house-from-Ascendant convention.",
+        &["Equal houses", "Wang", "Equal (cusp 1 = Asc)"],
+        "Equal-house system anchored on the ascendant; Wang and the Swiss Ephemeris \"Equal (cusp 1 = Asc)\" label are treated as interoperability aliases for the equal-house-from-Ascendant convention.",
         false,
     ),
     HouseSystemDescriptor::new(
@@ -177,7 +177,14 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
     HouseSystemDescriptor::new(
         HouseSystem::EqualMidheaven,
         "Equal (MC)",
-        &["Equal from MC", "Equal (from MC)", "Equal MC", "Equal Midheaven"],
+        &[
+            "Equal from MC",
+            "Equal (from MC)",
+            "Equal MC",
+            "Equal Midheaven",
+            "Equal (MC)",
+            "Equal/MC = 10th",
+        ],
         "Equal houses anchored at the Midheaven instead of the Ascendant.",
         false,
     ),
@@ -189,6 +196,8 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
             "Equal Aries",
             "Aries houses",
             "Whole Sign (house 1 = Aries)",
+            "Equal/1=0 Aries",
+            "Equal (cusp 1 = 0° Aries)",
         ],
         "Fixed zodiac-sign houses anchored at 0° Aries.",
         false,
@@ -392,8 +401,8 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
     HouseSystemDescriptor::new(
         HouseSystem::Equal,
         "Equal",
-        &["Equal houses", "Wang"],
-        "Equal-house system anchored on the ascendant; Wang is treated as an interoperability alias for the equal-house-from-Ascendant convention.",
+        &["Equal houses", "Wang", "Equal (cusp 1 = Asc)"],
+        "Equal-house system anchored on the ascendant; Wang and the Swiss Ephemeris \"Equal (cusp 1 = Asc)\" label are treated as interoperability aliases for the equal-house-from-Ascendant convention.",
         false,
     ),
     HouseSystemDescriptor::new(
@@ -455,7 +464,14 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
     HouseSystemDescriptor::new(
         HouseSystem::EqualMidheaven,
         "Equal (MC)",
-        &["Equal from MC", "Equal (from MC)", "Equal MC", "Equal Midheaven"],
+        &[
+            "Equal from MC",
+            "Equal (from MC)",
+            "Equal MC",
+            "Equal Midheaven",
+            "Equal (MC)",
+            "Equal/MC = 10th",
+        ],
         "Equal houses anchored at the Midheaven instead of the Ascendant.",
         false,
     ),
@@ -467,6 +483,8 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
             "Equal Aries",
             "Aries houses",
             "Whole Sign (house 1 = Aries)",
+            "Equal/1=0 Aries",
+            "Equal (cusp 1 = 0° Aries)",
         ],
         "Fixed zodiac-sign houses anchored at 0° Aries.",
         false,
@@ -575,7 +593,23 @@ mod tests {
             Some(HouseSystem::EqualMidheaven)
         );
         assert_eq!(
+            resolve_house_system("Equal (MC)"),
+            Some(HouseSystem::EqualMidheaven)
+        );
+        assert_eq!(
+            resolve_house_system("Equal/MC = 10th"),
+            Some(HouseSystem::EqualMidheaven)
+        );
+        assert_eq!(
             resolve_house_system("Equal Aries"),
+            Some(HouseSystem::EqualAries)
+        );
+        assert_eq!(
+            resolve_house_system("Equal/1=0 Aries"),
+            Some(HouseSystem::EqualAries)
+        );
+        assert_eq!(
+            resolve_house_system("Equal (cusp 1 = 0° Aries)"),
             Some(HouseSystem::EqualAries)
         );
         assert_eq!(resolve_house_system("vehlow"), Some(HouseSystem::Vehlow));
@@ -583,6 +617,10 @@ mod tests {
         assert_eq!(
             resolve_house_system("Whole Sign (house 1 = Aries)"),
             Some(HouseSystem::EqualAries)
+        );
+        assert_eq!(
+            resolve_house_system("Equal (cusp 1 = Asc)"),
+            Some(HouseSystem::Equal)
         );
         assert_eq!(resolve_house_system("Azimuth"), Some(HouseSystem::Horizon));
         assert_eq!(
