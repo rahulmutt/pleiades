@@ -11,6 +11,16 @@ The plan is organized in four complementary views:
 
 Use the stages when deciding **what to build next**. Use the tracks when deciding **where a task belongs** and what other work it depends on. Use the checklists when deciding **whether a stage or release is actually done**.
 
+## Current status snapshot
+
+The repository has already progressed beyond pure bootstrap planning.
+
+- Stages 1, 2, 3, and 5 are treated as completed foundations in the stage documents.
+- Stage 4 validation work is substantially in place and should be extended carefully, not restarted.
+- Stage 6 compatibility expansion and release hardening is the active planning frontier.
+
+That means most contributors should read the earlier stages as **constraints and preserved foundations**, then treat Stage 6 plus the track/checklist docs as the main guide for ongoing work.
+
 ## Reading Order
 
 If you are starting from scratch, read in this order:
@@ -20,6 +30,14 @@ If you are starting from scratch, read in this order:
 3. [plan/stages/01-workspace-bootstrap.md](stages/01-workspace-bootstrap.md)
 4. the remaining stage documents in order
 5. the relevant track document for the area you are changing
+
+If you are working on the current active roadmap, read in this order:
+
+1. [PLAN.md](../PLAN.md)
+2. [plan/stages/06-compatibility-expansion-and-release-hardening.md](stages/06-compatibility-expansion-and-release-hardening.md)
+3. the relevant track document
+4. [plan/checklists/01-stage-gates.md](checklists/01-stage-gates.md)
+5. [plan/checklists/02-release-artifacts.md](checklists/02-release-artifacts.md) when release-facing output is affected
 
 ## Directory Layout
 
@@ -72,4 +90,5 @@ When adding or revising planning material:
 - prefer editing the existing stage, track, or checklist document instead of creating overlapping notes,
 - keep `PLAN.md` as the authoritative top-level index,
 - make sequencing changes in stage documents, policy/quality changes in track documents, and completion-output changes in checklist documents,
+- update the status snapshot here and in `PLAN.md` when the active stage meaningfully changes,
 - ensure plan changes still reflect `SPEC.md` and the normative documents in `spec/*.md`.
