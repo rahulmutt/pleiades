@@ -133,6 +133,10 @@ pub fn render_artifact_report() -> Result<String, ArtifactInspectionError> {
     Ok(report.to_string())
 }
 
+pub(crate) fn packaged_artifact_corpus() -> ValidationCorpus {
+    artifact_comparison_corpus(packaged_artifact())
+}
+
 fn inspect_body(
     artifact: &CompressedArtifact,
     body: &pleiades_compression::BodyArtifact,

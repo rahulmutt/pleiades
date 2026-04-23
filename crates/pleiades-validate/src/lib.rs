@@ -296,6 +296,8 @@ pub struct ValidationReport {
     pub comparison_corpus: CorpusSummary,
     /// Benchmark corpus summary.
     pub benchmark_corpus: CorpusSummary,
+    /// Packaged-data benchmark corpus summary.
+    pub packaged_benchmark_corpus: CorpusSummary,
     /// House-validation corpus summary.
     pub house_validation: HouseValidationReport,
     /// Comparison output.
@@ -306,6 +308,8 @@ pub struct ValidationReport {
     pub reference_benchmark: BenchmarkReport,
     /// Benchmark output for the candidate backend.
     pub candidate_benchmark: BenchmarkReport,
+    /// Benchmark output for the packaged-data backend.
+    pub packaged_benchmark: BenchmarkReport,
 }
 
 /// A generated release bundle containing the compatibility profile, release notes,
@@ -501,6 +505,9 @@ impl fmt::Display for ValidationReport {
         writeln!(f, "Benchmark corpus")?;
         write_corpus_summary(f, &self.benchmark_corpus)?;
         writeln!(f)?;
+        writeln!(f, "Packaged-data benchmark corpus")?;
+        write_corpus_summary(f, &self.packaged_benchmark_corpus)?;
+        writeln!(f)?;
         writeln!(f, "{}", self.house_validation)?;
         writeln!(f)?;
         writeln!(f, "Reference backend")?;
@@ -535,6 +542,14 @@ impl fmt::Display for ValidationReport {
             f,
             "  ns/request: {}",
             format_ns(self.candidate_benchmark.nanoseconds_per_request())
+        )?;
+        writeln!(f)?;
+        writeln!(f, "Packaged-data benchmark")?;
+        writeln!(f, "  corpus: {}", self.packaged_benchmark.corpus_name)?;
+        writeln!(
+            f,
+            "  ns/request: {}",
+            format_ns(self.packaged_benchmark.nanoseconds_per_request())
         )?;
         writeln!(f)?;
         writeln!(f, "Samples")?;
@@ -1711,21 +1726,26 @@ pub fn workspace_audit_report() -> Result<WorkspaceAuditReport, std::io::Error> 
 pub fn render_validation_report(rounds: usize) -> Result<String, EphemerisError> {
     let comparison_corpus = default_corpus();
     let benchmark_corpus = benchmark_corpus();
+    let packaged_benchmark_corpus = artifact::packaged_artifact_corpus();
     let reference = default_reference_backend();
     let candidate = default_candidate_backend();
+    let packaged = PackagedDataBackend::new();
     let comparison = compare_backends(&reference, &candidate, &comparison_corpus)?;
     let reference_benchmark = benchmark_backend(&reference, &comparison_corpus, rounds)?;
     let candidate_benchmark = benchmark_backend(&candidate, &benchmark_corpus, rounds)?;
+    let packaged_benchmark = benchmark_backend(&packaged, &packaged_benchmark_corpus, rounds)?;
     let archived_regressions = comparison.regression_archive();
 
     Ok(ValidationReport {
         comparison_corpus: comparison_corpus.summary(),
         benchmark_corpus: benchmark_corpus.summary(),
+        packaged_benchmark_corpus: packaged_benchmark_corpus.summary(),
         house_validation: house_validation_report(),
         comparison,
         archived_regressions,
         reference_benchmark,
         candidate_benchmark,
+        packaged_benchmark,
     }
     .to_string())
 }
@@ -2741,6 +2761,8 @@ mod tests {
         assert!(report.contains("Archived regression cases"));
         assert!(report.contains("Reference benchmark"));
         assert!(report.contains("Candidate benchmark"));
+        assert!(report.contains("Packaged-data benchmark corpus"));
+        assert!(report.contains("Packaged-data benchmark"));
     }
 
     #[test]
@@ -2752,6 +2774,17 @@ mod tests {
         assert_eq!(summary.request_count, 110);
         assert_eq!(summary.apparentness, Apparentness::Mean);
         assert!(summary.earliest_julian_day < summary.latest_julian_day);
+    }
+
+    #[test]
+    fn packaged_benchmark_corpus_uses_packaged_artifact_coverage() {
+        let corpus = artifact::packaged_artifact_corpus();
+        let summary = corpus.summary();
+        assert!(summary.name.contains("Packaged artifact"));
+        assert_eq!(summary.apparentness, Apparentness::Mean);
+        assert_eq!(summary.body_count, default_chart_bodies().len());
+        assert!(summary.request_count > 0);
+        assert!(summary.earliest_julian_day <= summary.latest_julian_day);
     }
 
     #[test]

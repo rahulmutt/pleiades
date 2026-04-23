@@ -83,7 +83,7 @@ The release bundle makes the current release posture easy to reproduce and audit
 - the backend matrix records the implemented backend catalog and its declared coverage, and the backend-matrix summary provides a compact count-based audit view for maintainers,
 - the bundle manifest records the source revision, workspace status, Rust compiler version, profile/API identifiers, and validation-round count alongside deterministic checksums,
 - the API stability posture records which surfaces are stable versus operational, and the API stability summary provides a compact count-based audit view,
-- the validation report preserves comparison and benchmark summaries,
+- the validation report preserves comparison, benchmark, and packaged-data benchmark summaries,
 - the manifest records deterministic checksums for the published text artifacts.
 
 If any of those files change, regenerate the bundle from the repository and re-run the verification command.
