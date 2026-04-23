@@ -1,5 +1,15 @@
 # PLAN-MAILBOX
 
+## 2026-04-23 — Raman source-label appendix refined
+
+Implemented a small Stage 6 release-hardening slice:
+
+- `pleiades-core::CompatibilityProfile` now includes the `B. V. Raman` source spelling in the built-in ayanamsa source-label appendix, so the baseline Raman ayanamsa is searchable by the common author-name form
+- the compatibility profile identifier was bumped to `0.6.20`, and the CLI / validation bundle checks were updated to match the new release-profile version string
+- regression coverage now checks the updated source-label rendering, and the README / Stage 6 progress notes were updated to record the appendix refinement
+
+Remaining Stage 6 work: keep the release-profile appendix, catalog breadth, and release notes synchronized as additional interoperability labels land.
+
 ## 2026-04-23 — Equal-house source-label appendix refined
 
 Implemented a small Stage 6 release-hardening slice:
