@@ -1,26 +1,138 @@
 # pleiades
 
-Fast, pure Rust ephemeride utilities for astrological software.
+`pleiades` is a pure Rust workspace for ephemeris and chart-building utilities aimed at astrological software.
 
-## Current status
+The project is being built with a strong focus on correctness, reproducibility, and long-term extensibility. If you are evaluating it today, think of it as an actively maturing foundation rather than a finished end-user product.
 
-The repository is in the stage-6 release-hardening phase, with the chart MVP and packaged-data backend already in place:
+## What it is
 
-- the Rust workspace exists and is organized around `pleiades-*` crates,
-- the local developer toolchain is managed through `mise.toml`,
-- the CI workflow runs formatting, linting, and tests in pure Rust mode,
-- the shared type system, backend contract, and thin façade are implemented, including the built-in lunar node/apogee/perigee body identifiers, and the shared types/backend/compression crates now also expose an optional `serde` feature for serializing requests, results, and compressed artifacts,
-- the baseline house and ayanamsa catalogs plus the compatibility profile scaffold are published,
-- the tropical chart workflow works end to end with approximate Sun/Moon/planet and lunar-point backends and a CLI chart report,
-- the chart façade keeps mean/apparent position selection explicit and the CLI chart command can now surface that choice alongside the rendered report,
-- the validation comparison and benchmark corpora now report their apparentness mode explicitly so release-facing validation output keeps the same assumption visible,
-- sidereal conversion is available in the chart layer,
-- `ChartSnapshot` now offers lookup helpers for body, sign, house, sign-scoped placement, and house-scoped placement questions plus direct/stationary/unknown-motion/retrograde motion helpers, a motion-direction filter helper (`placements_with_motion_direction`), sign summaries, dominant sign summaries, house summaries, dominant house summaries, motion summaries, and aspect summaries so downstream chart reports can ask higher-level questions without re-scanning placements manually,
-- house placement works for the full baseline catalog (Equal, Whole Sign, Porphyry, Placidus, Koch, Regiomontanus, Campanus, Alcabitius, Topocentric, Morinus, Meridian, ARMC, and Axial variants), and the release-specific catalog now also includes Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen SD/SR, Sunshine, and Gauquelin sectors,
-- the release compatibility profile and API stability posture are both published through `pleiades-core`, surfaced in the CLI and validation reports, and kept in sync with the current release notes bundle and expanded source-label appendix; the validation report now also prints the current profile identifiers alongside the rendered compatibility and API posture sections, including the latest house-system labels plus the Swiss Ephemeris `Equal (cusp 1 = Asc)`, `Equal (MC)`, and `Equal (1=Aries)` spellings, Wang, Aries houses, J2000/J1900/B1950, B. V. Raman, B.V. Raman, B V Raman, True Citra and its True Citra Paksha / True Chitrapaksha aliases, True Chitra ayanamsa, True Revati, True Mula and True Mula (Chandra Hari), Udayagiri, Lahiri / Chitrapaksha / Chitra Paksha, Lahiri (ICRC), Lahiri (1940), DeLuce, Yukteshwar, Sri Yukteshwar, Shri Yukteswar, Shri Yukteshwar, Fagan/Bradley, Usha Shashi, Aryabhata 499/522, Aryabhata Kaliyuga, Surya Siddhanta, Surya Siddhanta 499 / Surya Siddhanta 499 CE, Suryasiddhanta 499, Sassanian/Zij al-Shah, Valens and Moon sign ayanamsa source spellings, Babylonian 1/2/3, Babylonian Huber, P.V.R. Narasimha Rao, the remaining Albategnius / Pullen / Gauquelin house-source search forms, and the custom-definition ayanamsa labels True Balarama, Aphoric, and Takra,
-- the CLI now also exposes the implemented backend capability matrices plus compact compatibility-profile, backend-matrix, and API-stability summaries so maintainers can inspect body coverage, selected asteroid coverage for the JPL snapshot, time-range notes, accuracy classes, expected error classes, and required external data files without leaving the repository, and unknown top-level CLI commands now fail explicitly instead of falling through to the banner,
-- the compatibility catalog now includes the release-specific ayanamsa breadth for J2000, J1900, B1950, DeLuce, Yukteshwar, PVR Pushya-paksha, Sheoran, True Revati, True Mula, Udayagiri, Lahiri (ICRC), Lahiri (1940), Usha Shashi, Suryasiddhanta (499 CE), Aryabhata (499 CE), Sassanian, Hipparchus, Babylonian (Kugler 1/2/3), Babylonian (Huber), Babylonian (Britton), Babylonian (Eta Piscium), Babylonian (Aldebaran), Dhruva Galactic Center (Middle Mula), Galactic Center, and Galactic Equator, with the latest Mardyks/Cochrane zero-point backfills keeping the release profile synchronized,
-- a checked-in JPL Horizons snapshot corpus now spans multiple comparison epochs for validation, includes selected asteroid entries, and `pleiades-validate` can compare, benchmark, report on the planetary comparison subset, render a compact validation report summary, benchmark the packaged-data backend on its bundled artifact corpus, render a compact house-validation corpus for baseline systems, inspect the bundled compressed artifact, render the compact artifact summary, render the release notes, release summary, release checklist, and compact release summary independently, with the compact release summary now also surfacing the current custom-definition label counts alongside the compatibility and API stability identifiers, and write and verify a reproducible release bundle with the compatibility profile, compatibility-profile summary, release notes, release-summary, release checklist, backend capability matrix, backend matrix summary, API stability posture, API stability summary (tagged with the current compatibility-profile identifier), validation-report summary, artifact summary, validation report, and manifest checksums; the release notes now also carry the current API stability summary and deprecation policy snapshot, the user-facing `pleiades-cli` inspection command now mirrors the release-notes, release-checklist, release-summary, api-stability-summary, artifact-summary, and validation-summary renderers too, and the release-bundle display surfaces the recorded source revision, workspace status, Rust compiler version, and validation-round count so staged bundles are easier to inspect at a glance, and the CLI chart workflow also routes selected asteroid queries through the JPL snapshot fallback at supported epochs; the chart parser also accepts custom `catalog:designation` body identifiers so future asteroid expansions can be exercised without changing the shared body taxonomy, and the chart CLI now accepts custom ayanamsa definitions in `custom:<name>|<epoch-jd>|<offset-degrees>` form for explicit non-built-in sidereal labels.
+Today the workspace provides:
+
+- a modular set of `pleiades-*` crates,
+- a high-level chart façade,
+- support for tropical and sidereal chart workflows,
+- a growing catalog of house systems and ayanamsas,
+- CLI tooling for validation, inspection, and reporting,
+- reproducible pure-Rust development and release workflows.
+
+## Project status
+
+`pleiades` is currently in a release-hardening phase.
+
+That means the core workspace structure, chart MVP, packaged-data backend, validation pipeline, and release tooling are already in place, while coverage, polish, and compatibility breadth continue to improve.
+
+If you want the detailed implementation and planning view, see:
+
+- roadmap: [spec/roadmap.md](spec/roadmap.md)
+- architecture: [spec/architecture.md](spec/architecture.md)
+- requirements: [spec/requirements.md](spec/requirements.md)
+
+The roadmap is the best place to look for what is done, what is being stabilized, and what is still ahead.
+
+## CLI tools
+
+The workspace currently ships two repo-focused CLI binaries:
+
+- `pleiades-cli`: quick inspection and chart-oriented commands for contributors
+- `pleiades-validate`: validation, benchmarking, audit, and release-bundle tooling
+
+You can run them with `cargo run -p ... -- <command>` during development.
+
+### `pleiades-cli`
+
+Use `pleiades-cli` for lightweight inspection and chart reporting:
+
+```bash
+cargo run -q -p pleiades-cli -- help
+```
+
+Rough command overview:
+
+- `compatibility-profile` / `profile`: print the full release compatibility profile
+- `compatibility-profile-summary` / `profile-summary`: compact compatibility summary
+- `api-stability` / `api-posture`: print the API stability posture
+- `api-stability-summary` / `api-posture-summary`: compact API stability summary
+- `backend-matrix` / `capability-matrix`: print implemented backend capability matrices
+- `backend-matrix-summary` / `matrix-summary`: compact backend matrix summary
+- `release-notes`, `release-checklist`, `release-summary`: maintainer-facing release metadata
+- `artifact-summary`: compact summary of the packaged compressed artifact
+- `validation-summary` / `report-summary`: compact validation report summary
+- `chart`: render a basic chart report from a Julian day and optional observer settings
+
+Example usage:
+
+```bash
+# Print the compact compatibility profile
+cargo run -q -p pleiades-cli -- profile-summary
+
+# Render a simple tropical chart for J2000 with selected bodies
+cargo run -q -p pleiades-cli -- chart \
+  --jd 2451545.0 \
+  --body Sun \
+  --body Moon
+
+# Render a sidereal chart with houses for a location
+cargo run -q -p pleiades-cli -- chart \
+  --jd 2451545.0 \
+  --lat 51.5074 \
+  --lon 0.0 \
+  --ayanamsa Lahiri \
+  --house-system "Whole Sign" \
+  --body Sun \
+  --body Moon \
+  --apparent
+```
+
+Notes:
+
+- `chart` defaults to `JD 2451545.0` if `--jd` is omitted.
+- If no `--body` flags are given, the CLI uses the default chart body set from `pleiades-core`.
+- `--ayanamsa` accepts built-in names like `Lahiri` and custom definitions such as `custom:True Balarama|2451545.0|12.5`.
+- `--body` accepts built-in labels like `Sun`, `Moon`, `Ceres`, and custom identifiers like `asteroid:433-Eros`.
+
+### `pleiades-validate`
+
+Use `pleiades-validate` for comparison reports, benchmarks, artifact inspection, workspace audits, and release-bundle generation:
+
+```bash
+cargo run -q -p pleiades-validate -- help
+```
+
+Rough command overview:
+
+- `compare-backends`: compare the checked-in JPL snapshot against the algorithmic composite backend
+- `backend-matrix` / `backend-matrix-summary`: print detailed or compact backend capability matrices
+- `benchmark [--rounds N]`: benchmark the candidate backend on the representative corpus
+- `report` / `generate-report`: render the full validation report
+- `report-summary` / `validation-summary`: compact validation report summary
+- `validate-artifact`: inspect and validate the packaged compressed artifact in detail
+- `artifact-summary`: compact packaged-artifact summary
+- `workspace-audit` / `audit`: check the workspace for mandatory native build hooks
+- `api-stability`, `api-stability-summary`, `compatibility-profile-summary`, `release-notes`, `release-checklist`, `release-summary`: release-facing report helpers
+- `bundle-release --out DIR`: write a staged release bundle to a directory
+- `verify-release-bundle --out DIR`: verify a previously staged release bundle
+
+Example usage:
+
+```bash
+# Compare the reference snapshot with the current algorithmic backend
+cargo run -q -p pleiades-validate -- compare-backends
+
+# Generate a compact validation summary with fewer benchmark rounds
+cargo run -q -p pleiades-validate -- report-summary --rounds 100
+
+# Inspect the packaged artifact
+cargo run -q -p pleiades-validate -- validate-artifact
+
+# Run the workspace native-build audit
+cargo run -q -p pleiades-validate -- audit
+
+# Generate and then verify a release bundle
+cargo run -q -p pleiades-validate -- bundle-release --out /tmp/pleiades-release
+cargo run -q -p pleiades-validate -- verify-release-bundle --out /tmp/pleiades-release
+```
+
+These tools are primarily contributor-facing today: they help exercise the chart stack, inspect release metadata, validate the packaged data backend, and rehearse the release workflow described in [docs/release-reproducibility.md](docs/release-reproducibility.md).
 
 ## Local development
 
