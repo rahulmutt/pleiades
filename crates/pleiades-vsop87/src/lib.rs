@@ -33,6 +33,7 @@ use pleiades_types::{
     Angle, CelestialBody, CoordinateFrame, EclipticCoordinates, EquatorialCoordinates, Instant,
     Latitude, Longitude, Motion, TimeRange, TimeScale, ZodiacMode,
 };
+use std::sync::OnceLock;
 
 const PACKAGE_NAME: &str = "pleiades-vsop87";
 const J2000: f64 = 2_451_545.0;
@@ -64,16 +65,13 @@ pub struct Vsop87BodySource {
 
 /// Returns the per-body source profiles used by [`Vsop87Backend`].
 ///
-/// This supplements the backend-trait metadata, whose body coverage is a flat
-/// list, by making the transitional mixed implementation explicit: the Sun,
-/// Mercury through Neptune have source-backed truncated VSOP87B slices, while
-/// Pluto still uses a fallback element path until a generated table or
-/// Pluto-specific theory is added.
+/// The returned list is derived from the unified VSOP87 body catalog so the
+/// source profile, source documentation, and canonical J2000 evidence stay in
+/// sync as the backend moves from checked-in slices toward generated tables.
 pub fn body_source_profiles() -> Vec<Vsop87BodySource> {
-    Vsop87Backend::supported_bodies()
+    body_catalog_entries()
         .iter()
-        .cloned()
-        .map(Vsop87BodySource::for_body)
+        .map(|entry| entry.source_profile.clone())
         .collect()
 }
 
@@ -107,103 +105,6 @@ pub struct Vsop87SourceSpecification {
     pub date_range: &'static str,
 }
 
-/// Returns the structured source documentation for the current VSOP87-backed bodies.
-pub fn source_specifications() -> Vec<Vsop87SourceSpecification> {
-    let date_range =
-        "J2000 canonical reference slice; full generated 1500-2500 CE tables remain pending";
-
-    vec![
-        Vsop87SourceSpecification {
-            body: CelestialBody::Sun,
-            source_file: "VSOP87B.ear",
-            variant: "VSOP87B",
-            coordinate_family: "heliocentric spherical variables",
-            frame: "J2000 ecliptic/equinox",
-            units: "degrees and astronomical units",
-            reduction: "geocentric solar reduction from Earth coefficients",
-            truncation_policy: "truncated leading-term slice",
-            date_range,
-        },
-        Vsop87SourceSpecification {
-            body: CelestialBody::Mercury,
-            source_file: "VSOP87B.mer",
-            variant: "VSOP87B",
-            coordinate_family: "heliocentric spherical variables",
-            frame: "J2000 ecliptic/equinox",
-            units: "degrees and astronomical units",
-            reduction: "geocentric planetary reduction against Earth coefficients",
-            truncation_policy: "truncated leading-term slice",
-            date_range,
-        },
-        Vsop87SourceSpecification {
-            body: CelestialBody::Venus,
-            source_file: "VSOP87B.ven",
-            variant: "VSOP87B",
-            coordinate_family: "heliocentric spherical variables",
-            frame: "J2000 ecliptic/equinox",
-            units: "degrees and astronomical units",
-            reduction: "geocentric planetary reduction against Earth coefficients",
-            truncation_policy: "truncated leading-term slice",
-            date_range,
-        },
-        Vsop87SourceSpecification {
-            body: CelestialBody::Mars,
-            source_file: "VSOP87B.mar",
-            variant: "VSOP87B",
-            coordinate_family: "heliocentric spherical variables",
-            frame: "J2000 ecliptic/equinox",
-            units: "degrees and astronomical units",
-            reduction: "geocentric planetary reduction against Earth coefficients",
-            truncation_policy: "truncated leading-term slice",
-            date_range,
-        },
-        Vsop87SourceSpecification {
-            body: CelestialBody::Jupiter,
-            source_file: "VSOP87B.jup",
-            variant: "VSOP87B",
-            coordinate_family: "heliocentric spherical variables",
-            frame: "J2000 ecliptic/equinox",
-            units: "degrees and astronomical units",
-            reduction: "geocentric planetary reduction against Earth coefficients",
-            truncation_policy: "truncated leading-term slice",
-            date_range,
-        },
-        Vsop87SourceSpecification {
-            body: CelestialBody::Saturn,
-            source_file: "VSOP87B.sat",
-            variant: "VSOP87B",
-            coordinate_family: "heliocentric spherical variables",
-            frame: "J2000 ecliptic/equinox",
-            units: "degrees and astronomical units",
-            reduction: "geocentric planetary reduction against Earth coefficients",
-            truncation_policy: "truncated leading-term slice",
-            date_range,
-        },
-        Vsop87SourceSpecification {
-            body: CelestialBody::Uranus,
-            source_file: "VSOP87B.ura",
-            variant: "VSOP87B",
-            coordinate_family: "heliocentric spherical variables",
-            frame: "J2000 ecliptic/equinox",
-            units: "degrees and astronomical units",
-            reduction: "geocentric planetary reduction against Earth coefficients",
-            truncation_policy: "truncated leading-term slice",
-            date_range,
-        },
-        Vsop87SourceSpecification {
-            body: CelestialBody::Neptune,
-            source_file: "VSOP87B.nep",
-            variant: "VSOP87B",
-            coordinate_family: "heliocentric spherical variables",
-            frame: "J2000 ecliptic/equinox",
-            units: "degrees and astronomical units",
-            reduction: "geocentric planetary reduction against Earth coefficients",
-            truncation_policy: "truncated leading-term slice",
-            date_range,
-        },
-    ]
-}
-
 /// Canonical J2000 reference samples for the source-backed VSOP87B paths.
 ///
 /// These values are the same full-file public IMCCE VSOP87B reference points
@@ -228,150 +129,281 @@ pub struct Vsop87CanonicalEpochSample {
     pub max_distance_delta_au: f64,
 }
 
+#[derive(Clone, Debug)]
+struct Vsop87BodyCatalogEntry {
+    source_profile: Vsop87BodySource,
+    source_specification: Option<Vsop87SourceSpecification>,
+    canonical_sample: Option<Vsop87CanonicalEpochSample>,
+}
+
+static BODY_CATALOG: OnceLock<Vec<Vsop87BodyCatalogEntry>> = OnceLock::new();
+
+fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
+    BODY_CATALOG.get_or_init(|| {
+        let date_range =
+            "J2000 canonical reference slice; full generated 1500-2500 CE tables remain pending";
+        let variant = "VSOP87B";
+        let coordinate_family = "heliocentric spherical variables";
+        let frame = "J2000 ecliptic/equinox";
+        let units = "degrees and astronomical units";
+        let truncation_policy = "truncated leading-term slice";
+        let solar_reduction = "geocentric solar reduction from Earth coefficients";
+        let planetary_reduction = "geocentric planetary reduction against Earth coefficients";
+
+        let source_profile = |body: CelestialBody,
+                              kind: Vsop87BodySourceKind,
+                              provenance: &'static str,
+                              accuracy: AccuracyClass| Vsop87BodySource {
+            body,
+            kind,
+            provenance,
+            accuracy,
+        };
+
+        let source_specification = |
+            body: CelestialBody,
+            source_file: &'static str,
+            reduction: &'static str,
+        | {
+            Some(Vsop87SourceSpecification {
+                body,
+                source_file,
+                variant,
+                coordinate_family,
+                frame,
+                units,
+                reduction,
+                truncation_policy,
+                date_range,
+            })
+        };
+
+        let canonical_sample = |
+            body: CelestialBody,
+            expected_longitude_deg: f64,
+            expected_latitude_deg: f64,
+            expected_distance_au: f64,
+            max_longitude_delta_deg: f64,
+            max_latitude_delta_deg: f64,
+            max_distance_delta_au: f64,
+        | {
+            Some(Vsop87CanonicalEpochSample {
+                body,
+                expected_longitude_deg,
+                expected_latitude_deg,
+                expected_distance_au,
+                max_longitude_delta_deg,
+                max_latitude_delta_deg,
+                max_distance_delta_au,
+            })
+        };
+
+        vec![
+            Vsop87BodyCatalogEntry {
+                source_profile: source_profile(
+                    CelestialBody::Sun,
+                    Vsop87BodySourceKind::TruncatedVsop87b,
+                    "geocentric Sun reduced from truncated IMCCE/CELMECH VSOP87B Earth coefficients",
+                    AccuracyClass::Approximate,
+                ),
+                source_specification: source_specification(
+                    CelestialBody::Sun,
+                    "VSOP87B.ear",
+                    solar_reduction,
+                ),
+                canonical_sample: canonical_sample(
+                    CelestialBody::Sun,
+                    280.377_843_416_648_5,
+                    0.000_227_210_514_369_001,
+                    0.983_327_682_322_294_2,
+                    0.001,
+                    0.000_01,
+                    0.000_01,
+                ),
+            },
+            Vsop87BodyCatalogEntry {
+                source_profile: source_profile(
+                    CelestialBody::Mercury,
+                    Vsop87BodySourceKind::TruncatedVsop87b,
+                    "Mercury heliocentric channel from truncated IMCCE/CELMECH VSOP87B Mercury coefficients, reduced against Earth",
+                    AccuracyClass::Approximate,
+                ),
+                source_specification: source_specification(
+                    CelestialBody::Mercury,
+                    "VSOP87B.mer",
+                    planetary_reduction,
+                ),
+                canonical_sample: canonical_sample(
+                    CelestialBody::Mercury,
+                    271.904_744_694_147_67,
+                    -0.995_553_498_474_437_4,
+                    1.415_524_982_482_968,
+                    0.001,
+                    0.000_1,
+                    0.000_01,
+                ),
+            },
+            Vsop87BodyCatalogEntry {
+                source_profile: source_profile(
+                    CelestialBody::Venus,
+                    Vsop87BodySourceKind::TruncatedVsop87b,
+                    "Venus heliocentric channel from truncated IMCCE/CELMECH VSOP87B Venus coefficients, reduced against Earth",
+                    AccuracyClass::Approximate,
+                ),
+                source_specification: source_specification(
+                    CelestialBody::Venus,
+                    "VSOP87B.ven",
+                    planetary_reduction,
+                ),
+                canonical_sample: canonical_sample(
+                    CelestialBody::Venus,
+                    241.576_729_276_029_5,
+                    2.066_187_460_260_189,
+                    1.137_689_108_663_588,
+                    0.001,
+                    0.000_1,
+                    0.000_01,
+                ),
+            },
+            Vsop87BodyCatalogEntry {
+                source_profile: source_profile(
+                    CelestialBody::Mars,
+                    Vsop87BodySourceKind::TruncatedVsop87b,
+                    "Mars heliocentric channel from truncated IMCCE/CELMECH VSOP87B Mars coefficients, reduced against Earth",
+                    AccuracyClass::Approximate,
+                ),
+                source_specification: source_specification(
+                    CelestialBody::Mars,
+                    "VSOP87B.mar",
+                    planetary_reduction,
+                ),
+                canonical_sample: canonical_sample(
+                    CelestialBody::Mars,
+                    327.973_990_111_690_9,
+                    -1.067_696_942_937_559_8,
+                    1.849_625_885_985_351_8,
+                    0.003,
+                    0.000_1,
+                    0.000_1,
+                ),
+            },
+            Vsop87BodyCatalogEntry {
+                source_profile: source_profile(
+                    CelestialBody::Jupiter,
+                    Vsop87BodySourceKind::TruncatedVsop87b,
+                    "Jupiter heliocentric channel from truncated IMCCE/CELMECH VSOP87B Jupiter coefficients, reduced against Earth",
+                    AccuracyClass::Approximate,
+                ),
+                source_specification: source_specification(
+                    CelestialBody::Jupiter,
+                    "VSOP87B.jup",
+                    planetary_reduction,
+                ),
+                canonical_sample: canonical_sample(
+                    CelestialBody::Jupiter,
+                    25.258_084_319_944_018,
+                    -1.262_035_369_214_697_3,
+                    4.621_126_218_764_805,
+                    0.004,
+                    0.000_2,
+                    0.000_1,
+                ),
+            },
+            Vsop87BodyCatalogEntry {
+                source_profile: source_profile(
+                    CelestialBody::Saturn,
+                    Vsop87BodySourceKind::TruncatedVsop87b,
+                    "Saturn heliocentric channel from truncated IMCCE/CELMECH VSOP87B Saturn coefficients, reduced against Earth",
+                    AccuracyClass::Approximate,
+                ),
+                source_specification: source_specification(
+                    CelestialBody::Saturn,
+                    "VSOP87B.sat",
+                    planetary_reduction,
+                ),
+                canonical_sample: canonical_sample(
+                    CelestialBody::Saturn,
+                    40.398_572_276_886_384,
+                    -2.444_625_745_599_142_3,
+                    8.652_748_862_003_302,
+                    0.004,
+                    0.000_2,
+                    0.000_5,
+                ),
+            },
+            Vsop87BodyCatalogEntry {
+                source_profile: source_profile(
+                    CelestialBody::Uranus,
+                    Vsop87BodySourceKind::TruncatedVsop87b,
+                    "Uranus heliocentric channel from truncated IMCCE/CELMECH VSOP87B Uranus coefficients, reduced against Earth",
+                    AccuracyClass::Approximate,
+                ),
+                source_specification: source_specification(
+                    CelestialBody::Uranus,
+                    "VSOP87B.ura",
+                    planetary_reduction,
+                ),
+                canonical_sample: canonical_sample(
+                    CelestialBody::Uranus,
+                    314.819_126_206_595_1,
+                    -0.658_295_956_624_516_5,
+                    20.727_185_531_715_136,
+                    0.006,
+                    0.000_1,
+                    0.000_1,
+                ),
+            },
+            Vsop87BodyCatalogEntry {
+                source_profile: source_profile(
+                    CelestialBody::Neptune,
+                    Vsop87BodySourceKind::TruncatedVsop87b,
+                    "Neptune heliocentric channel from truncated IMCCE/CELMECH VSOP87B Neptune coefficients, reduced against Earth",
+                    AccuracyClass::Approximate,
+                ),
+                source_specification: source_specification(
+                    CelestialBody::Neptune,
+                    "VSOP87B.nep",
+                    planetary_reduction,
+                ),
+                canonical_sample: canonical_sample(
+                    CelestialBody::Neptune,
+                    303.203_423_517_050_34,
+                    0.234_955_476_702_893_77,
+                    31.024_432_860_406_91,
+                    0.001,
+                    0.000_1,
+                    0.000_1,
+                ),
+            },
+            Vsop87BodyCatalogEntry {
+                source_profile: source_profile(
+                    CelestialBody::Pluto,
+                    Vsop87BodySourceKind::MeanOrbitalElements,
+                    "compact mean orbital elements fallback pending source-backed VSOP87 coefficient tables",
+                    AccuracyClass::Approximate,
+                ),
+                source_specification: None,
+                canonical_sample: None,
+            },
+        ]
+    })
+}
+
+/// Returns the structured source documentation for the current VSOP87-backed bodies.
+pub fn source_specifications() -> Vec<Vsop87SourceSpecification> {
+    body_catalog_entries()
+        .iter()
+        .filter_map(|entry| entry.source_specification.clone())
+        .collect()
+}
+
 /// Returns the canonical J2000 source-backed VSOP87B samples used by
 /// validation reporting.
 pub fn canonical_epoch_samples() -> Vec<Vsop87CanonicalEpochSample> {
-    vec![
-        Vsop87CanonicalEpochSample {
-            body: CelestialBody::Sun,
-            expected_longitude_deg: 280.377_843_416_648_5,
-            expected_latitude_deg: 0.000_227_210_514_369_001,
-            expected_distance_au: 0.983_327_682_322_294_2,
-            max_longitude_delta_deg: 0.001,
-            max_latitude_delta_deg: 0.000_01,
-            max_distance_delta_au: 0.000_01,
-        },
-        Vsop87CanonicalEpochSample {
-            body: CelestialBody::Mercury,
-            expected_longitude_deg: 271.904_744_694_147_67,
-            expected_latitude_deg: -0.995_553_498_474_437_4,
-            expected_distance_au: 1.415_524_982_482_968,
-            max_longitude_delta_deg: 0.001,
-            max_latitude_delta_deg: 0.000_1,
-            max_distance_delta_au: 0.000_01,
-        },
-        Vsop87CanonicalEpochSample {
-            body: CelestialBody::Venus,
-            expected_longitude_deg: 241.576_729_276_029_5,
-            expected_latitude_deg: 2.066_187_460_260_189,
-            expected_distance_au: 1.137_689_108_663_588,
-            max_longitude_delta_deg: 0.001,
-            max_latitude_delta_deg: 0.000_1,
-            max_distance_delta_au: 0.000_01,
-        },
-        Vsop87CanonicalEpochSample {
-            body: CelestialBody::Mars,
-            expected_longitude_deg: 327.973_990_111_690_9,
-            expected_latitude_deg: -1.067_696_942_937_559_8,
-            expected_distance_au: 1.849_625_885_985_351_8,
-            max_longitude_delta_deg: 0.003,
-            max_latitude_delta_deg: 0.000_1,
-            max_distance_delta_au: 0.000_1,
-        },
-        Vsop87CanonicalEpochSample {
-            body: CelestialBody::Jupiter,
-            expected_longitude_deg: 25.258_084_319_944_018,
-            expected_latitude_deg: -1.262_035_369_214_697_3,
-            expected_distance_au: 4.621_126_218_764_805,
-            max_longitude_delta_deg: 0.004,
-            max_latitude_delta_deg: 0.000_2,
-            max_distance_delta_au: 0.000_1,
-        },
-        Vsop87CanonicalEpochSample {
-            body: CelestialBody::Saturn,
-            expected_longitude_deg: 40.398_572_276_886_384,
-            expected_latitude_deg: -2.444_625_745_599_142_3,
-            expected_distance_au: 8.652_748_862_003_302,
-            max_longitude_delta_deg: 0.004,
-            max_latitude_delta_deg: 0.000_2,
-            max_distance_delta_au: 0.000_5,
-        },
-        Vsop87CanonicalEpochSample {
-            body: CelestialBody::Uranus,
-            expected_longitude_deg: 314.819_126_206_595_1,
-            expected_latitude_deg: -0.658_295_956_624_516_5,
-            expected_distance_au: 20.727_185_531_715_136,
-            max_longitude_delta_deg: 0.006,
-            max_latitude_delta_deg: 0.000_1,
-            max_distance_delta_au: 0.000_1,
-        },
-        Vsop87CanonicalEpochSample {
-            body: CelestialBody::Neptune,
-            expected_longitude_deg: 303.203_423_517_050_34,
-            expected_latitude_deg: 0.234_955_476_702_893_77,
-            expected_distance_au: 31.024_432_860_406_91,
-            max_longitude_delta_deg: 0.001,
-            max_latitude_delta_deg: 0.000_1,
-            max_distance_delta_au: 0.000_1,
-        },
-    ]
-}
-
-impl Vsop87BodySource {
-    fn for_body(body: CelestialBody) -> Self {
-        match body {
-            CelestialBody::Sun => Self {
-                body,
-                kind: Vsop87BodySourceKind::TruncatedVsop87b,
-                provenance: "geocentric Sun reduced from truncated IMCCE/CELMECH VSOP87B Earth coefficients",
-                accuracy: AccuracyClass::Approximate,
-            },
-            CelestialBody::Mercury => Self {
-                body,
-                kind: Vsop87BodySourceKind::TruncatedVsop87b,
-                provenance: "Mercury heliocentric channel from truncated IMCCE/CELMECH VSOP87B Mercury coefficients, reduced against Earth",
-                accuracy: AccuracyClass::Approximate,
-            },
-            CelestialBody::Venus => Self {
-                body,
-                kind: Vsop87BodySourceKind::TruncatedVsop87b,
-                provenance: "Venus heliocentric channel from truncated IMCCE/CELMECH VSOP87B Venus coefficients, reduced against Earth",
-                accuracy: AccuracyClass::Approximate,
-            },
-            CelestialBody::Mars => Self {
-                body,
-                kind: Vsop87BodySourceKind::TruncatedVsop87b,
-                provenance: "Mars heliocentric channel from truncated IMCCE/CELMECH VSOP87B Mars coefficients, reduced against Earth",
-                accuracy: AccuracyClass::Approximate,
-            },
-            CelestialBody::Jupiter => Self {
-                body,
-                kind: Vsop87BodySourceKind::TruncatedVsop87b,
-                provenance: "Jupiter heliocentric channel from truncated IMCCE/CELMECH VSOP87B Jupiter coefficients, reduced against Earth",
-                accuracy: AccuracyClass::Approximate,
-            },
-            CelestialBody::Saturn => Self {
-                body,
-                kind: Vsop87BodySourceKind::TruncatedVsop87b,
-                provenance: "Saturn heliocentric channel from truncated IMCCE/CELMECH VSOP87B Saturn coefficients, reduced against Earth",
-                accuracy: AccuracyClass::Approximate,
-            },
-            CelestialBody::Uranus => Self {
-                body,
-                kind: Vsop87BodySourceKind::TruncatedVsop87b,
-                provenance: "Uranus heliocentric channel from truncated IMCCE/CELMECH VSOP87B Uranus coefficients, reduced against Earth",
-                accuracy: AccuracyClass::Approximate,
-            },
-            CelestialBody::Neptune => Self {
-                body,
-                kind: Vsop87BodySourceKind::TruncatedVsop87b,
-                provenance: "Neptune heliocentric channel from truncated IMCCE/CELMECH VSOP87B Neptune coefficients, reduced against Earth",
-                accuracy: AccuracyClass::Approximate,
-            },
-            CelestialBody::Pluto => Self {
-                body,
-                kind: Vsop87BodySourceKind::MeanOrbitalElements,
-                provenance: "compact mean orbital elements fallback pending source-backed VSOP87 coefficient tables",
-                accuracy: AccuracyClass::Approximate,
-            },
-            _ => Self {
-                body,
-                kind: Vsop87BodySourceKind::MeanOrbitalElements,
-                provenance: "unsupported by the VSOP87 planetary backend",
-                accuracy: AccuracyClass::Unknown,
-            },
-        }
-    }
+    body_catalog_entries()
+        .iter()
+        .filter_map(|entry| entry.canonical_sample.clone())
+        .collect()
 }
 
 /// A pure-Rust planetary backend.
@@ -1342,6 +1374,37 @@ mod tests {
             .contains("1500-2500 CE tables remain pending")));
         assert!(specs.iter().any(|spec| spec.source_file == "VSOP87B.ear"));
         assert!(specs.iter().any(|spec| spec.source_file == "VSOP87B.nep"));
+    }
+
+    #[test]
+    fn unified_body_catalog_keeps_profiles_specs_and_samples_aligned() {
+        let catalog = body_catalog_entries();
+        assert_eq!(catalog.len(), Vsop87Backend::supported_bodies().len());
+
+        let source_backed = catalog
+            .iter()
+            .filter(|entry| entry.source_profile.kind == Vsop87BodySourceKind::TruncatedVsop87b)
+            .count();
+        let fallback = catalog
+            .iter()
+            .filter(|entry| entry.source_profile.kind == Vsop87BodySourceKind::MeanOrbitalElements)
+            .count();
+        assert_eq!(source_backed, 8);
+        assert_eq!(fallback, 1);
+
+        let pluto = catalog
+            .iter()
+            .find(|entry| entry.source_profile.body == CelestialBody::Pluto)
+            .expect("Pluto entry should exist");
+        assert!(pluto.source_specification.is_none());
+        assert!(pluto.canonical_sample.is_none());
+
+        let sun = catalog
+            .iter()
+            .find(|entry| entry.source_profile.body == CelestialBody::Sun)
+            .expect("Sun entry should exist");
+        assert!(sun.source_specification.is_some());
+        assert!(sun.canonical_sample.is_some());
     }
 
     #[test]
