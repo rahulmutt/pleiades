@@ -58,6 +58,7 @@ These are durable planning decisions that should remain true even as individual 
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] The release checklist summary now also cross-references the compact `release-summary` view, so maintainers can hop from the checklist audit to the one-screen release overview without leaving the release-surface review.
 - [x] The release compatibility profile now also surfaces the exact `David Cochrane` and `Nick Anthony Fiorenza` source names for the Galactic Center (Cochrane) and Galactic Equator (Fiorenza) entries, and the compatibility profile identifier has been bumped to `0.6.97` so the new alias batch stays versioned with the current profile.
 
 - [x] The release checklist and release-checklist summary now also cross-reference the compact backend-matrix and validation-report views, so maintainers can hop from the release gate checklist to the supporting audits without leaving the release-surface review.
