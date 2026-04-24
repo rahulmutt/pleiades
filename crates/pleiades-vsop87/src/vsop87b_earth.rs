@@ -77,10 +77,7 @@ pub(crate) fn parse_generated_vsop87b_tables(bytes: &[u8]) -> Vsop87SeriesTables
         let end = cursor
             .checked_add(len)
             .expect("VSOP87B generated table length overflow");
-        assert!(
-            end <= bytes.len(),
-            "truncated generated VSOP87B Earth table"
-        );
+        assert!(end <= bytes.len(), "truncated generated VSOP87B table");
         let slice = &bytes[*cursor..end];
         *cursor = end;
         slice
@@ -104,22 +101,22 @@ pub(crate) fn parse_generated_vsop87b_tables(bytes: &[u8]) -> Vsop87SeriesTables
 
     assert!(
         bytes.len() >= GENERATED_EARTH_TABLE_MAGIC.len() + 8,
-        "generated VSOP87B Earth table is too small"
+        "generated VSOP87B table is too small"
     );
     assert_eq!(
         take(bytes, &mut cursor, GENERATED_EARTH_TABLE_MAGIC.len()),
         GENERATED_EARTH_TABLE_MAGIC,
-        "generated VSOP87B Earth table has an invalid magic header"
+        "generated VSOP87B table has an invalid magic header"
     );
     assert_eq!(
         take_u32(bytes, &mut cursor),
         GENERATED_EARTH_TABLE_VERSION,
-        "generated VSOP87B Earth table has an unsupported version"
+        "generated VSOP87B table has an unsupported version"
     );
     let section_count = take_u32(bytes, &mut cursor) as usize;
     assert_eq!(
         section_count, 18,
-        "generated VSOP87B Earth table should contain 18 coefficient sections"
+        "generated VSOP87B table should contain 18 coefficient sections"
     );
 
     let mut longitude = vec![Vec::new(); 6];
@@ -132,11 +129,11 @@ pub(crate) fn parse_generated_vsop87b_tables(bytes: &[u8]) -> Vsop87SeriesTables
         let term_count = take_u32(bytes, &mut cursor) as usize;
         assert!(
             matches!(series, 1..=3),
-            "generated VSOP87B Earth table has an invalid series index {series}"
+            "generated VSOP87B table has an invalid series index {series}"
         );
         assert!(
             power < 6,
-            "generated VSOP87B Earth table has an invalid power index {power}"
+            "generated VSOP87B table has an invalid power index {power}"
         );
 
         let target = match series {
@@ -159,7 +156,7 @@ pub(crate) fn parse_generated_vsop87b_tables(bytes: &[u8]) -> Vsop87SeriesTables
     assert_eq!(
         cursor,
         bytes.len(),
-        "generated VSOP87B Earth table contained trailing bytes"
+        "generated VSOP87B table contained trailing bytes"
     );
 
     Vsop87SeriesTables {

@@ -6,13 +6,14 @@
 //! and major planets. The Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus,
 //! and Neptune paths evaluate public IMCCE VSOP87B sources (heliocentric
 //! spherical variables, J2000 ecliptic/equinox) transformed to geocentric
-//! chart-facing coordinates. The Sun path now uses a generated binary table
-//! derived from the vendored Earth source file, and Mercury now does the same
-//! for the vendored Mercury source file. Pluto still uses compact Keplerian
-//! orbital elements, a geocentric reduction step, and central-difference motion
-//! estimates so the workspace has an end-to-end tropical chart path while the
-//! remaining generated VSOP87 tables and Pluto-specific source selection are
-//! added incrementally.
+//! chart-facing coordinates. The Sun, Mercury, and Venus paths now use
+//! generated binary tables derived from their vendored source files, while
+//! Mars, Jupiter, Saturn, Uranus, and Neptune continue to use the full
+//! vendored source text. Pluto still uses compact Keplerian orbital elements,
+//! a geocentric reduction step, and central-difference motion estimates so the
+//! workspace has an end-to-end tropical chart path while the remaining
+//! generated VSOP87 tables and Pluto-specific source selection are added
+//! incrementally.
 
 #![forbid(unsafe_code)]
 
@@ -91,9 +92,11 @@ pub fn body_source_profiles() -> Vec<Vsop87BodySource> {
 /// and future generated-table work: the source-backed paths all use public
 /// IMCCE/CELMECH VSOP87B spherical coefficients in the J2000 ecliptic/equinox
 /// frame, with longitude/latitude in degrees and radius in astronomical units.
-/// The Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, and Neptune paths
-/// now use the vendored full public source files, while Pluto remains a mean
-/// orbital-elements fallback until a Pluto-specific source path is selected.
+/// The Sun, Mercury, and Venus paths now use generated binary tables derived
+/// from their vendored public source files, while Mars, Jupiter, Saturn,
+/// Uranus, and Neptune still use the vendored full public source files. Pluto
+/// remains a mean orbital-elements fallback until a Pluto-specific source path
+/// is selected.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Vsop87SourceSpecification {
     /// Body covered by the source-backed slice.
@@ -329,8 +332,8 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
             Vsop87BodyCatalogEntry {
                 source_profile: source_profile(
                     CelestialBody::Venus,
-                    Vsop87BodySourceKind::VendoredVsop87b,
-                    "geocentric Venus reduced from vendored full IMCCE/CELMECH VSOP87B Venus source file",
+                    Vsop87BodySourceKind::GeneratedBinaryVsop87b,
+                    "Venus geocentric channel from a generated binary coefficient table derived from the vendored full IMCCE/CELMECH VSOP87B Venus source file",
                     AccuracyClass::Exact,
                 ),
                 source_specification: vendored_source_specification(
@@ -1403,7 +1406,7 @@ mod tests {
     fn metadata_identifies_source_backed_planet_vsop87b_paths() {
         let metadata = Vsop87Backend::new().metadata();
         assert!(metadata.provenance.summary.contains(
-            "6 vendored full-file VSOP87B body paths, 2 generated binary VSOP87B body paths"
+            "5 vendored full-file VSOP87B body paths, 3 generated binary VSOP87B body paths"
         ));
         assert!(metadata
             .provenance
@@ -1470,7 +1473,10 @@ mod tests {
                 .iter()
                 .find(|profile| profile.body == body)
                 .expect("source profile should exist");
-            if body == CelestialBody::Sun || body == CelestialBody::Mercury {
+            if body == CelestialBody::Sun
+                || body == CelestialBody::Mercury
+                || body == CelestialBody::Venus
+            {
                 assert_eq!(profile.kind, Vsop87BodySourceKind::GeneratedBinaryVsop87b);
             } else {
                 assert_eq!(profile.kind, Vsop87BodySourceKind::VendoredVsop87b);
