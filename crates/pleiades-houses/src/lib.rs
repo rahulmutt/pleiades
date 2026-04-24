@@ -272,6 +272,8 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
             "V equal Vehlow",
             "Vehlow",
             "Vehlow equal",
+            "Vehlow house system",
+            "Vehlow Equal house system",
             "Vehlow-equal",
             "Vehlow-equal table of houses",
         ],
@@ -694,6 +696,8 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
             "V equal Vehlow",
             "Vehlow",
             "Vehlow equal",
+            "Vehlow house system",
+            "Vehlow Equal house system",
             "Vehlow-equal",
             "Vehlow-equal table of houses",
         ],
@@ -1026,6 +1030,14 @@ mod tests {
             Some(HouseSystem::EqualAries)
         );
         assert_eq!(resolve_house_system("vehlow"), Some(HouseSystem::Vehlow));
+        assert_eq!(
+            resolve_house_system("Vehlow house system"),
+            Some(HouseSystem::Vehlow)
+        );
+        assert_eq!(
+            resolve_house_system("Vehlow Equal house system"),
+            Some(HouseSystem::Vehlow)
+        );
         assert_eq!(
             resolve_house_system("Vehlow-equal"),
             Some(HouseSystem::Vehlow)
