@@ -1592,6 +1592,7 @@ fn render_release_checklist_summary_text() -> String {
     text.push_str(release_profiles.api_stability_profile_id);
     text.push('\n');
     text.push_str("Release notes summary: release-notes-summary\n");
+    text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
     text.push_str("Release bundle verification: verify-release-bundle\n");
     text.push_str("Release summary: release-summary\n");
     text.push_str("Compact summary views: backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary\n");
@@ -4222,6 +4223,9 @@ mod tests {
             release_profiles.api_stability_profile_id
         )));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
+        assert!(
+            rendered.contains("Compatibility profile verification: verify-compatibility-profile")
+        );
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
         assert!(rendered.contains("Release summary: release-summary"));
         assert!(rendered.contains("Compact summary views: backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
