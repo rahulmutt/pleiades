@@ -40,6 +40,13 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("verify-compatibility-profile") => {
             verify_compatibility_profile().map_err(render_error)
         }
+        Some("bundle-release") => {
+            if args[1..].iter().any(|arg| *arg == "--help" || *arg == "-h") {
+                return Ok(help_text());
+            }
+            let output_dir = parse_release_bundle_output_dir(&args[1..])?;
+            validate_render_cli(&["bundle-release", "--out", output_dir])
+        }
         Some("verify-release-bundle") => {
             if args[1..].iter().any(|arg| *arg == "--help" || *arg == "-h") {
                 return Ok(help_text());
@@ -82,7 +89,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
 
 fn help_text() -> String {
     format!(
-        "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary        Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  verify-release-bundle  Read a staged release bundle back and verify its manifest checksums\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  api-stability-summary  Print the compact API stability summary\n  api-posture-summary    Alias for api-stability-summary\n  backend-matrix         Print the implemented backend capability matrices\n  capability-matrix      Alias for backend-matrix\n  backend-matrix-summary Print the compact backend capability matrix summary\n  matrix-summary         Alias for backend-matrix-summary\n  release-notes          Print the release compatibility notes\n  release-notes-summary   Print the compact release notes summary\n  release-checklist      Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary      Alias for release-checklist-summary\n  release-summary        Print the compact release summary\n  artifact-summary       Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  report                 Print the full validation report\n  generate-report        Alias for report\n  validation-report-summary  Print the compact validation report summary\n  validation-summary     Alias for validation-report-summary\n  report-summary         Alias for validation-report-summary\n  chart                  Render a basic chart report\n    --mean               Force mean positions for backend queries\n    --apparent           Force apparent positions for backend queries\n    --body <name>        Use a built-in body or a custom catalog:designation identifier\n  help                   Show this help text",
+        "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary        Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  bundle-release         Write the staged release bundle and manifest files\n  verify-release-bundle  Read a staged release bundle back and verify its manifest checksums\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  api-stability-summary  Print the compact API stability summary\n  api-posture-summary    Alias for api-stability-summary\n  backend-matrix         Print the implemented backend capability matrices\n  capability-matrix      Alias for backend-matrix\n  backend-matrix-summary Print the compact backend capability matrix summary\n  matrix-summary         Alias for backend-matrix-summary\n  release-notes          Print the release compatibility notes\n  release-notes-summary   Print the compact release notes summary\n  release-checklist      Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary      Alias for release-checklist-summary\n  release-summary        Print the compact release summary\n  artifact-summary       Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  report                 Print the full validation report\n  generate-report        Alias for report\n  validation-report-summary  Print the compact validation report summary\n  validation-summary     Alias for validation-report-summary\n  report-summary         Alias for validation-report-summary\n  chart                  Render a basic chart report\n    --mean               Force mean positions for backend queries\n    --apparent           Force apparent positions for backend queries\n    --body <name>        Use a built-in body or a custom catalog:designation identifier\n  help                   Show this help text",
         banner()
     )
 }
@@ -592,6 +599,20 @@ mod tests {
     }
 
     #[test]
+    fn bundle_release_command_writes_a_staged_bundle() {
+        let bundle_dir = unique_temp_dir("pleiades-cli-release-bundle");
+        let bundle_dir_string = bundle_dir.display().to_string();
+
+        let rendered = render_cli(&["bundle-release", "--out", &bundle_dir_string])
+            .expect("bundle generation should render");
+
+        assert!(rendered.contains("Release bundle"));
+        assert!(rendered.contains("compatibility-profile.txt"));
+        assert!(rendered.contains("bundle-manifest.checksum.txt"));
+        assert!(bundle_dir.join("bundle-manifest.txt").exists());
+    }
+
+    #[test]
     fn verify_release_bundle_command_verifies_a_staged_bundle() {
         let bundle_dir = unique_temp_dir("pleiades-cli-release-bundle");
         let bundle_dir_string = bundle_dir.display().to_string();
@@ -613,6 +634,8 @@ mod tests {
         assert!(error.contains("unknown command: compatibility-profile-snapshot"));
         assert!(error.contains("compatibility-profile  Print the release compatibility profile"));
         assert!(error.contains("verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs"));
+        assert!(error
+            .contains("bundle-release         Write the staged release bundle and manifest files"));
         assert!(error.contains("verify-release-bundle  Read a staged release bundle back and verify its manifest checksums"));
         assert!(error.contains("release-notes          Print the release compatibility notes"));
         assert!(error.contains("release-notes-summary   Print the compact release notes summary"));
