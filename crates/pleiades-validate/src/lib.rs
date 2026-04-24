@@ -1607,6 +1607,7 @@ fn render_release_summary_text() -> String {
     text.push_str("Backend matrix summary: backend-matrix-summary\n");
     text.push_str("Validation report summary: validation-report-summary / validation-summary / report-summary\n");
     text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
+    text.push_str("Workspace audit: workspace-audit / audit\n");
     text.push_str("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary\n");
     text.push_str("Release notes summary: release-notes-summary\n");
     text.push_str("Artifact validation: validate-artifact\n");
@@ -1658,6 +1659,7 @@ fn render_release_checklist_summary_text() -> String {
     text.push_str("API stability summary: api-stability-summary\n");
     text.push_str("Validation report summary: validation-report-summary / validation-summary / report-summary\n");
     text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
+    text.push_str("Workspace audit: workspace-audit / audit\n");
     text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
     text.push_str("Artifact validation: validate-artifact\n");
     text.push_str("Release bundle verification: verify-release-bundle\n");
@@ -2874,6 +2876,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         format_ns(report.packaged_benchmark.nanoseconds_per_request())
     );
     let _ = writeln!(text, "Release bundle verification: verify-release-bundle");
+    let _ = writeln!(text, "Workspace audit: workspace-audit / audit");
     let _ = writeln!(text, "Release notes summary: release-notes-summary");
     let _ = writeln!(text, "Release checklist summary: release-checklist-summary");
     let _ = writeln!(text, "Release summary: release-summary");
@@ -4079,6 +4082,7 @@ mod tests {
         assert!(report.contains("House validation corpus"));
         assert!(report.contains("Benchmark summaries"));
         assert!(report.contains("Release bundle verification: verify-release-bundle"));
+        assert!(report.contains("Workspace audit: workspace-audit / audit"));
         assert!(report.contains("Release notes summary: release-notes-summary"));
         assert!(report.contains("Release checklist summary: release-checklist-summary"));
         assert!(report.contains("Release summary: release-summary"));
@@ -4480,6 +4484,7 @@ mod tests {
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
         assert!(rendered.contains("Backend matrix summary: backend-matrix-summary"));
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
+        assert!(rendered.contains("Workspace audit: workspace-audit / audit"));
         assert!(rendered.contains("House systems:"));
         assert!(rendered.contains("Ayanamsas:"));
         assert!(rendered.contains("Validation reference points: 1 (stage-4 validation corpus)"));
@@ -4779,6 +4784,7 @@ version = "0.9.0"
         assert!(release_checklist_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(release_checklist_summary.contains("Artifact validation: validate-artifact"));
+        assert!(release_checklist_summary.contains("Workspace audit: workspace-audit / audit"));
         assert!(release_checklist_summary.contains("Repository-managed release gates: 7 items"));
         assert!(release_checklist_summary.contains("Manual bundle workflow: 3 items"));
         assert!(release_checklist_summary.contains("Bundle contents: 16 items"));

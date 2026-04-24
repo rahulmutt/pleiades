@@ -564,6 +564,7 @@ mod tests {
         assert!(release_checklist_summary.contains("Artifact validation: validate-artifact"));
         assert!(release_checklist_summary
             .contains("Release bundle verification: verify-release-bundle"));
+        assert!(release_checklist_summary.contains("Workspace audit: workspace-audit / audit"));
         assert!(release_checklist_summary.contains("Release summary: release-summary"));
         assert!(release_checklist_summary.contains("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
         assert!(release_checklist_summary.contains("Repository-managed release gates: 7 items"));
@@ -588,6 +589,7 @@ mod tests {
         ));
         assert!(release_summary.contains("Artifact validation: validate-artifact"));
         assert!(release_summary.contains("Release bundle verification: verify-release-bundle"));
+        assert!(release_summary.contains("Workspace audit: workspace-audit / audit"));
         assert!(release_summary
             .contains("[x] cargo run -q -p pleiades-validate -- verify-compatibility-profile"));
         assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
