@@ -57,6 +57,7 @@ Rough command overview:
 - `release-notes`, `release-notes-summary`, `release-checklist`, `release-checklist-summary` / `checklist-summary`, `release-summary`, `verify-compatibility-profile`, `verify-release-bundle`: maintainer-facing release metadata and catalog-alignment checks
 - `artifact-summary` / `artifact-posture-summary`: compact summary of the packaged compressed artifact
 - `validate-artifact`: full packaged-artifact inspection mirrored from `pleiades-validate`
+- `workspace-audit` / `audit`: workspace-native dependency audit mirrored from `pleiades-validate`
 - `report` / `generate-report`: full validation report mirrored from `pleiades-validate`
 - `validation-report-summary` / `validation-summary` / `report-summary`: compact validation report summary
 - `chart`: render a basic chart report from a Julian day and optional observer settings
