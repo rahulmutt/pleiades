@@ -14,6 +14,8 @@ Suggested scope:
 - add reference/golden tests and metadata updates;
 - extend validation summaries with measured error for the implemented body. Aggregate and per-body comparison summaries are now present, so the remaining work is to attach the new source-backed VSOP87 evidence to those reports.
 
+Progress note (2026-04-24): the placeholder `pleiades-vsop87` path now reports deterministic central-difference longitude/latitude/distance speeds for supported planets. This improves chart-facing motion semantics but does not replace the planned source-backed VSOP87 coefficient work above.
+
 ## 2. Lunar theory source selection
 
 **Goal:** turn `pleiades-elp` into a planned production implementation instead of an approximate placeholder.

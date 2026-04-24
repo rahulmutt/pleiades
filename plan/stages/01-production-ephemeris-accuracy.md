@@ -14,7 +14,7 @@ Replace preliminary, sample-driven, or simplified backend behavior with source-b
 
 ## Current baseline
 
-Implemented foundations include backend traits, metadata, composite routing, major body identifiers, lunar points, baseline asteroids, a chart façade, CLI commands, a snapshot-style `pleiades-jpl`, preliminary `pleiades-vsop87` and `pleiades-elp` crates, and validation reports that expose aggregate plus per-body comparison error summaries.
+Implemented foundations include backend traits, metadata, composite routing, major body identifiers, lunar points, baseline asteroids, a chart façade, CLI commands, a snapshot-style `pleiades-jpl`, preliminary `pleiades-vsop87` and `pleiades-elp` crates, deterministic central-difference motion estimates for the current VSOP87 placeholder path, and validation reports that expose aggregate plus per-body comparison error summaries.
 
 ## Remaining implementation goals
 

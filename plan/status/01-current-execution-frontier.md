@@ -25,7 +25,7 @@ Completed foundations:
 - backend contract, metadata, errors, batch fallback, and composite routing in `pleiades-backend`;
 - house and ayanamsa catalogs with descriptors and aliases;
 - chart façade, sign/house/aspect summaries, sidereal conversion, and profile exports in `pleiades-core`;
-- preliminary `pleiades-vsop87`, `pleiades-elp`, and `pleiades-data` crates, plus a small JPL Horizons derivative-fixture backend with exact lookup and linear interpolation proof of concept;
+- preliminary `pleiades-vsop87`, `pleiades-elp`, and `pleiades-data` crates, including finite-difference mean-motion estimates in the VSOP87 placeholder path, plus a small JPL Horizons derivative-fixture backend with exact lookup and linear interpolation proof of concept;
 - compression model and sample artifact lookup;
 - CLI, validation reports, backend matrix, release notes/checklists, bundle generation, and bundle verification;
 - tests and doctests for current behavior.
@@ -38,16 +38,16 @@ Active gaps:
 - explicit Delta T, time-scale, apparent/mean, and frame conversion policies;
 - reference-backed tolerance tables and validation reports.
 
-## Recommended first slice
+## Recommended next slice
 
-Start with a narrow `pleiades-vsop87` increment:
+Continue with a narrow `pleiades-vsop87` source-data increment:
 
 1. document the selected VSOP87 source and coefficient ingestion strategy;
 2. implement one body/channel path with tests against a canonical reference epoch;
 3. expose accurate metadata and unsupported-mode errors;
 4. extend validation output to report that body's measured error.
 
-This proves the source-data pattern before repeating it across all major planets.
+A small preparatory VSOP87 increment has landed: supported planetary results now include deterministic central-difference mean-motion estimates, so chart/report helpers can classify direct/retrograde motion while full VSOP87 coefficient ingestion remains outstanding.
 
 ## Constraints
 

@@ -2,9 +2,10 @@
 //! elements and geocentric coordinate transforms.
 //!
 //! This crate now provides a working pure-Rust algorithmic backend for the Sun
-//! and major planets. The implementation uses compact Keplerian orbital elements
-//! and a geocentric reduction step so the workspace has an end-to-end tropical
-//! chart path before the full VSOP87 series data arrives.
+//! and major planets. The implementation uses compact Keplerian orbital elements,
+//! a geocentric reduction step, and central-difference motion estimates so the
+//! workspace has an end-to-end tropical chart path before the full VSOP87 series
+//! data arrives.
 
 #![forbid(unsafe_code)]
 
@@ -207,6 +208,37 @@ impl Vsop87Backend {
             Some(Self::distance_au(coords)),
         )
     }
+
+    fn motion(body: CelestialBody, days: f64) -> Option<Motion> {
+        // A symmetric one-day span gives stable chart-facing daily rates while
+        // keeping the preliminary element model simple and deterministic. These
+        // are finite-difference estimates of the same mean geocentric model, not
+        // apparent velocities from a full VSOP87/light-time reduction.
+        const HALF_SPAN_DAYS: f64 = 0.5;
+        const FULL_SPAN_DAYS: f64 = HALF_SPAN_DAYS * 2.0;
+
+        let before = Self::to_ecliptic(Self::geocentric_coordinates(
+            body.clone(),
+            days - HALF_SPAN_DAYS,
+        )?);
+        let after = Self::to_ecliptic(Self::geocentric_coordinates(body, days + HALF_SPAN_DAYS)?);
+
+        let longitude_speed =
+            signed_longitude_delta_degrees(before.longitude.degrees(), after.longitude.degrees())
+                / FULL_SPAN_DAYS;
+        let latitude_speed =
+            (after.latitude.degrees() - before.latitude.degrees()) / FULL_SPAN_DAYS;
+        let distance_speed = match (before.distance_au, after.distance_au) {
+            (Some(before), Some(after)) => Some((after - before) / FULL_SPAN_DAYS),
+            _ => None,
+        };
+
+        Some(Motion::new(
+            Some(longitude_speed),
+            Some(latitude_speed),
+            distance_speed,
+        ))
+    }
 }
 
 impl EphemerisBackend for Vsop87Backend {
@@ -278,7 +310,7 @@ impl EphemerisBackend for Vsop87Backend {
         result.quality = QualityAnnotation::Approximate;
         result.ecliptic = Some(Self::to_ecliptic(geocentric));
         result.equatorial = Some(Self::to_equatorial(geocentric, req.instant));
-        result.motion = Some(Motion::new(None, None, None));
+        result.motion = Self::motion(req.body.clone(), days);
         Ok(result)
     }
 }
@@ -322,6 +354,10 @@ struct HeliocentricCoordinates {
 
 fn normalize_degrees(angle: f64) -> f64 {
     angle.rem_euclid(360.0)
+}
+
+fn signed_longitude_delta_degrees(start: f64, end: f64) -> f64 {
+    (end - start + 180.0).rem_euclid(360.0) - 180.0
 }
 
 fn solve_kepler(mean_anomaly_degrees: f64, eccentricity: f64) -> f64 {
@@ -375,5 +411,35 @@ mod tests {
         assert!(ecliptic.longitude.degrees().is_finite());
         assert!(ecliptic.latitude.degrees().is_finite());
         assert_eq!(result.quality, QualityAnnotation::Approximate);
+    }
+
+    #[test]
+    fn finite_difference_motion_is_reported_for_supported_bodies() {
+        let backend = Vsop87Backend::new();
+        let request = EphemerisRequest::new(
+            CelestialBody::Mars,
+            Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt),
+        );
+        let result = backend.position(&request).expect("Mars query should work");
+        let motion = result.motion.expect("motion should be populated");
+
+        assert!(motion
+            .longitude_deg_per_day
+            .expect("longitude speed should exist")
+            .is_finite());
+        assert!(motion
+            .latitude_deg_per_day
+            .expect("latitude speed should exist")
+            .is_finite());
+        assert!(motion
+            .distance_au_per_day
+            .expect("distance speed should exist")
+            .is_finite());
+    }
+
+    #[test]
+    fn signed_longitude_delta_wraps_across_zero_aries() {
+        assert_eq!(signed_longitude_delta_degrees(359.5, 0.5), 1.0);
+        assert_eq!(signed_longitude_delta_degrees(0.5, 359.5), -1.0);
     }
 }
