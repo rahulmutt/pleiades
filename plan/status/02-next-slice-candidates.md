@@ -36,6 +36,8 @@ Progress note (2026-04-24): validation comparison reports now render per-body ex
 
 Progress note (2026-04-24): the validation backend matrix now prints canonical J2000 source-backed VSOP87B evidence for the Sun and major planets, including measured deltas against the same public IMCCE reference values used by the regression tests. The compact validation and backend-matrix summaries now also surface the same source-backed evidence snapshot, and now include a concise source-documentation count for the structured VSOP87 body profiles, giving the current truncated coefficient path a visible, reproducible error summary while the generated complete-table ingestion work remains queued. The VSOP87 source documentation is now also structured per body, with machine-readable variant, frame, units, reduction, truncation, and date-range fields so future generated-table ingestion can consume the current provenance model directly.
 
+Progress note (2026-04-24): the VSOP87 validation output now also pairs each source-backed body profile with its source file, provenance, and measured canonical deltas, and the compact summary now reports a body-profile evidence count. This keeps the source/profile linkage visible while the generated complete-table path remains pending.
+
 ## 2. Lunar theory source selection
 
 **Goal:** turn `pleiades-elp` into a planned production implementation instead of an approximate placeholder.

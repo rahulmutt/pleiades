@@ -2913,15 +2913,29 @@ struct Vsop87EvidenceSummary {
     within_interim_limits: bool,
 }
 
-fn vsop87_canonical_evidence_summary() -> Option<Vsop87EvidenceSummary> {
+#[derive(Clone, Debug)]
+struct Vsop87BodyEvidenceSummary {
+    body: CelestialBody,
+    source_kind: pleiades_vsop87::Vsop87BodySourceKind,
+    source_file: &'static str,
+    provenance: &'static str,
+    longitude_delta_deg: f64,
+    latitude_delta_deg: f64,
+    distance_delta_au: f64,
+    within_interim_limits: bool,
+}
+
+fn vsop87_canonical_body_evidence() -> Option<Vec<Vsop87BodyEvidenceSummary>> {
     let backend = Vsop87Backend::new();
-    let mut sample_count = 0usize;
-    let mut max_longitude_delta_deg: f64 = 0.0;
-    let mut max_latitude_delta_deg: f64 = 0.0;
-    let mut max_distance_delta_au: f64 = 0.0;
-    let mut within_interim_limits = true;
+    let profiles = body_source_profiles();
+    let specs = source_specifications();
+    let mut evidence = Vec::new();
 
     for sample in canonical_epoch_samples() {
+        let profile = profiles
+            .iter()
+            .find(|profile| profile.body == sample.body)?;
+        let spec = specs.iter().find(|spec| spec.body == sample.body)?;
         let mut request = EphemerisRequest::new(
             sample.body.clone(),
             Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
@@ -2938,14 +2952,39 @@ fn vsop87_canonical_evidence_summary() -> Option<Vsop87EvidenceSummary> {
         .abs();
         let latitude_delta = (ecliptic.latitude.degrees() - sample.expected_latitude_deg).abs();
         let distance_delta = (distance - sample.expected_distance_au).abs();
-
-        sample_count += 1;
-        max_longitude_delta_deg = max_longitude_delta_deg.max(longitude_delta);
-        max_latitude_delta_deg = max_latitude_delta_deg.max(latitude_delta);
-        max_distance_delta_au = max_distance_delta_au.max(distance_delta);
-        within_interim_limits &= longitude_delta <= sample.max_longitude_delta_deg
+        let within_interim_limits = longitude_delta <= sample.max_longitude_delta_deg
             && latitude_delta <= sample.max_latitude_delta_deg
             && distance_delta <= sample.max_distance_delta_au;
+
+        evidence.push(Vsop87BodyEvidenceSummary {
+            body: sample.body,
+            source_kind: profile.kind,
+            source_file: spec.source_file,
+            provenance: profile.provenance,
+            longitude_delta_deg: longitude_delta,
+            latitude_delta_deg: latitude_delta,
+            distance_delta_au: distance_delta,
+            within_interim_limits,
+        });
+    }
+
+    Some(evidence)
+}
+
+fn vsop87_canonical_evidence_summary() -> Option<Vsop87EvidenceSummary> {
+    let body_evidence = vsop87_canonical_body_evidence()?;
+    let mut sample_count = 0usize;
+    let mut max_longitude_delta_deg: f64 = 0.0;
+    let mut max_latitude_delta_deg: f64 = 0.0;
+    let mut max_distance_delta_au: f64 = 0.0;
+    let mut within_interim_limits = true;
+
+    for evidence in &body_evidence {
+        sample_count += 1;
+        max_longitude_delta_deg = max_longitude_delta_deg.max(evidence.longitude_delta_deg);
+        max_latitude_delta_deg = max_latitude_delta_deg.max(evidence.latitude_delta_deg);
+        max_distance_delta_au = max_distance_delta_au.max(evidence.distance_delta_au);
+        within_interim_limits &= evidence.within_interim_limits;
     }
 
     Some(Vsop87EvidenceSummary {
@@ -2972,6 +3011,23 @@ fn format_vsop87_canonical_evidence_summary() -> String {
             summary.max_distance_delta_au,
         ),
         None => "VSOP87 canonical J2000 source-backed evidence: unavailable".to_string(),
+    }
+}
+
+fn format_vsop87_body_evidence_summary() -> String {
+    match vsop87_canonical_body_evidence() {
+        Some(evidence) => {
+            let within_interim_limits = evidence
+                .iter()
+                .filter(|row| row.within_interim_limits)
+                .count();
+            format!(
+                "VSOP87 source-backed body evidence: {} body profiles, {} within interim limits",
+                evidence.len(),
+                within_interim_limits,
+            )
+        }
+        None => "VSOP87 source-backed body evidence: unavailable".to_string(),
     }
 }
 
@@ -3111,6 +3167,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text, "VSOP87 source-backed evidence");
     let _ = writeln!(text, "  {}", format_vsop87_source_documentation_summary());
     let _ = writeln!(text, "  {}", format_vsop87_canonical_evidence_summary());
+    let _ = writeln!(text, "  {}", format_vsop87_body_evidence_summary());
     let _ = writeln!(text);
     let _ = writeln!(text, "Benchmark summaries");
     let _ = writeln!(text, "Reference benchmark");
@@ -3302,6 +3359,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&format_vsop87_source_documentation_summary());
     text.push('\n');
     text.push_str(&format_vsop87_canonical_evidence_summary());
+    text.push('\n');
+    text.push_str(&format_vsop87_body_evidence_summary());
     text.push('\n');
     text.push_str("Distinct bodies covered: ");
     text.push_str(&bodies.len().to_string());
@@ -3775,49 +3834,35 @@ fn write_backend_catalog_entry(
         }
 
         writeln!(f, "  canonical J2000 VSOP87B evidence:")?;
-        let backend = Vsop87Backend::new();
-        for sample in canonical_epoch_samples() {
-            let mut request = EphemerisRequest::new(
-                sample.body.clone(),
-                Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
-            );
-            request.apparent = Apparentness::Mean;
-            match backend.position(&request) {
-                Ok(result) => {
-                    let ecliptic = result
-                        .ecliptic
-                        .expect("VSOP87 backend should provide ecliptic coordinates");
-                    let longitude_delta = signed_longitude_delta_degrees(
-                        sample.expected_longitude_deg,
-                        ecliptic.longitude.degrees(),
-                    )
-                    .abs();
-                    let latitude_delta =
-                        (ecliptic.latitude.degrees() - sample.expected_latitude_deg).abs();
-                    let distance_delta = (ecliptic.distance_au.expect("distance should exist")
-                        - sample.expected_distance_au)
-                        .abs();
+        match vsop87_canonical_body_evidence() {
+            Some(body_evidence) => {
+                for evidence in body_evidence {
                     writeln!(
                         f,
-                        "    {}: Δlon={:.12}° (limit {:.6}°), Δlat={:.12}° (limit {:.6}°), Δdist={:.12} AU (limit {:.6} AU)",
-                        sample.body,
-                        longitude_delta,
-                        sample.max_longitude_delta_deg,
-                        latitude_delta,
-                        sample.max_latitude_delta_deg,
-                        distance_delta,
-                        sample.max_distance_delta_au
-                    )?;
-                }
-                Err(error) => {
-                    writeln!(
-                        f,
-                        "    {}: error {:?} ({})",
-                        sample.body, error.kind, error.message
+                        "    {}: {:?} from {} — {} — Δlon={:.12}°, Δlat={:.12}°, Δdist={:.12} AU",
+                        evidence.body,
+                        evidence.source_kind,
+                        evidence.source_file,
+                        if evidence.within_interim_limits {
+                            evidence.provenance
+                        } else {
+                            "outside interim limits"
+                        },
+                        evidence.longitude_delta_deg,
+                        evidence.latitude_delta_deg,
+                        evidence.distance_delta_au
                     )?;
                 }
             }
+            None => {
+                writeln!(f, "    unavailable")?;
+            }
         }
+        writeln!(
+            f,
+            "  body profile evidence summary: {}",
+            format_vsop87_body_evidence_summary()
+        )?;
     }
     if entry.metadata.id.as_str() == "jpl-snapshot" {
         write_jpl_interpolation_quality(f)?;
@@ -4819,6 +4864,9 @@ mod tests {
         assert!(report.contains("Body comparison summaries"));
         assert!(report.contains("VSOP87 source-backed evidence"));
         assert!(report.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
+        assert!(report.contains(
+            "VSOP87 source-backed body evidence: 8 body profiles, 8 within interim limits"
+        ));
         assert!(report.contains("House validation corpus"));
         assert!(report.contains("Benchmark summaries"));
         assert!(report.contains("Release bundle verification: verify-release-bundle"));
@@ -5348,8 +5396,8 @@ mod tests {
         assert!(rendered.contains("geocentric planetary reduction against Earth coefficients"));
         assert!(rendered.contains("solar reduction from Earth coefficients"));
         assert!(rendered.contains("canonical J2000 VSOP87B evidence:"));
-        assert!(rendered.contains("Sun: Δlon="));
-        assert!(rendered.contains("Mercury: Δlon="));
+        assert!(rendered.contains("Sun: TruncatedVsop87b from VSOP87B.ear"));
+        assert!(rendered.contains("Mercury: TruncatedVsop87b from VSOP87B.mer"));
         assert!(rendered.contains("Mars: TruncatedVsop87b"));
         assert!(rendered.contains("Jupiter: TruncatedVsop87b"));
         assert!(rendered.contains("Saturn: TruncatedVsop87b"));
@@ -5389,6 +5437,9 @@ mod tests {
         assert!(rendered.contains("Approximate: 4"));
         assert!(rendered.contains("VSOP87 source documentation: 8 source specs, 8 source-backed body profiles, 1 fallback mean-element body profile"));
         assert!(rendered.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
+        assert!(rendered.contains(
+            "VSOP87 source-backed body evidence: 8 body profiles, 8 within interim limits"
+        ));
         assert!(rendered.contains("Distinct bodies covered:"));
         assert!(rendered.contains("Distinct coordinate frames:"));
         assert!(rendered.contains("Distinct time scales:"));
