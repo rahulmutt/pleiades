@@ -3121,6 +3121,13 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     );
     let _ = writeln!(text, "  notable regressions: {}", comparison_regressions);
     let _ = writeln!(text);
+    let _ = writeln!(text, "JPL interpolation quality");
+    let _ = writeln!(
+        text,
+        "  {}",
+        format_jpl_interpolation_quality_summary_for_report()
+    );
+    let _ = writeln!(text);
     let _ = writeln!(text, "Body comparison summaries");
     for summary in report.comparison.body_summaries() {
         let _ = writeln!(
@@ -3896,17 +3903,21 @@ fn signed_longitude_delta_degrees(start: f64, end: f64) -> f64 {
 
 fn write_jpl_interpolation_quality(f: &mut fmt::Formatter<'_>) -> fmt::Result {
     writeln!(f, "  interpolation quality checks:")?;
-    let samples = interpolation_quality_samples();
-    if samples.is_empty() {
+    let Some(summary) = jpl_interpolation_quality_summary() else {
         writeln!(f, "    none")?;
         return Ok(());
-    }
+    };
 
+    writeln!(
+        f,
+        "    {}",
+        format_jpl_interpolation_quality_summary(&summary)
+    )?;
     writeln!(
         f,
         "    note: expanded public-input leave-one-out checks report current linear interpolation error; they are not production tolerances"
     )?;
-    for sample in samples {
+    for sample in interpolation_quality_samples() {
         writeln!(
             f,
             "    {} at JD {:.1}: bracket span {:.1} d, |Δlon|={:.12}°, |Δlat|={:.12}°, |Δdist|={:.12} AU",
@@ -3919,6 +3930,65 @@ fn write_jpl_interpolation_quality(f: &mut fmt::Formatter<'_>) -> fmt::Result {
         )?;
     }
     Ok(())
+}
+
+#[derive(Clone, Copy, Debug)]
+struct JplInterpolationQualitySummary {
+    sample_count: usize,
+    body_count: usize,
+    max_bracket_span_days: f64,
+    max_longitude_error_deg: f64,
+    max_latitude_error_deg: f64,
+    max_distance_error_au: f64,
+}
+
+fn jpl_interpolation_quality_summary() -> Option<JplInterpolationQualitySummary> {
+    let samples = interpolation_quality_samples();
+    if samples.is_empty() {
+        return None;
+    }
+
+    let mut bodies = BTreeSet::new();
+    let mut max_bracket_span_days: f64 = 0.0;
+    let mut max_longitude_error_deg: f64 = 0.0;
+    let mut max_latitude_error_deg: f64 = 0.0;
+    let mut max_distance_error_au: f64 = 0.0;
+
+    for sample in samples {
+        bodies.insert(sample.body.to_string());
+        max_bracket_span_days = max_bracket_span_days.max(sample.bracket_span_days);
+        max_longitude_error_deg = max_longitude_error_deg.max(sample.longitude_error_deg);
+        max_latitude_error_deg = max_latitude_error_deg.max(sample.latitude_error_deg);
+        max_distance_error_au = max_distance_error_au.max(sample.distance_error_au);
+    }
+
+    Some(JplInterpolationQualitySummary {
+        sample_count: samples.len(),
+        body_count: bodies.len(),
+        max_bracket_span_days,
+        max_longitude_error_deg,
+        max_latitude_error_deg,
+        max_distance_error_au,
+    })
+}
+
+fn format_jpl_interpolation_quality_summary(summary: &JplInterpolationQualitySummary) -> String {
+    format!(
+        "JPL interpolation quality: {} samples across {} bodies, status transparency evidence, max bracket span={:.1} d, max Δlon={:.12}°, max Δlat={:.12}°, max Δdist={:.12} AU",
+        summary.sample_count,
+        summary.body_count,
+        summary.max_bracket_span_days,
+        summary.max_longitude_error_deg,
+        summary.max_latitude_error_deg,
+        summary.max_distance_error_au,
+    )
+}
+
+fn format_jpl_interpolation_quality_summary_for_report() -> String {
+    match jpl_interpolation_quality_summary() {
+        Some(summary) => format_jpl_interpolation_quality_summary(&summary),
+        None => "JPL interpolation quality: unavailable".to_string(),
+    }
 }
 
 fn write_comparison_summary(
@@ -4190,7 +4260,7 @@ fn implemented_backend_catalog() -> Vec<BackendMatrixEntry> {
             label: "VSOP87 planetary backend",
             metadata: Vsop87Backend::new().metadata(),
             implementation_status: BackendImplementationStatus::PartialSourceBacked,
-            status_note: "major-planet channels use truncated VSOP87B coefficient slices, while Pluto remains a mean-element fallback pending a selected source path",
+            status_note: "Sun, Mercury, Venus, and Mars now use vendored full-file VSOP87B source files, Jupiter/Saturn/Uranus/Neptune still use truncated slices, and Pluto remains a mean-element fallback pending a selected source path",
             expected_error_kinds: VSOP87_EXPECTED_ERROR_KINDS,
             required_data_files: &[],
         },
@@ -4841,6 +4911,8 @@ mod tests {
         assert!(report.contains("Reference backend"));
         assert!(report.contains("Candidate backend"));
         assert!(report.contains("Comparison summary"));
+        assert!(report.contains("interpolation quality checks:"));
+        assert!(report.contains("JPL interpolation quality: 10 samples across 5 bodies"));
         assert!(report.contains("Body comparison summaries"));
         assert!(report.contains("Sun: samples="));
         assert!(report.contains("Notable regressions"));
@@ -4867,6 +4939,8 @@ mod tests {
         )));
         assert!(report.contains("Comparison corpus"));
         assert!(report.contains("Comparison summary"));
+        assert!(report.contains("JPL interpolation quality"));
+        assert!(report.contains("JPL interpolation quality: 10 samples across 5 bodies"));
         assert!(report.contains("Body comparison summaries"));
         assert!(report.contains("VSOP87 source-backed evidence"));
         assert!(report.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
@@ -5403,8 +5477,8 @@ mod tests {
         assert!(rendered.contains("solar reduction from Earth coefficients"));
         assert!(rendered.contains("canonical J2000 VSOP87B evidence:"));
         assert!(rendered.contains("Sun: VendoredVsop87b from VSOP87B.ear"));
-        assert!(rendered.contains("Mercury: TruncatedVsop87b from VSOP87B.mer"));
-        assert!(rendered.contains("Mars: TruncatedVsop87b"));
+        assert!(rendered.contains("Mercury: VendoredVsop87b from VSOP87B.mer"));
+        assert!(rendered.contains("Mars: VendoredVsop87b from VSOP87B.mar"));
         assert!(rendered.contains("Jupiter: TruncatedVsop87b"));
         assert!(rendered.contains("Saturn: TruncatedVsop87b"));
         assert!(rendered.contains("Uranus: TruncatedVsop87b"));
