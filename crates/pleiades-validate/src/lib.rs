@@ -1470,6 +1470,7 @@ fn render_release_checklist_text() -> String {
     text.push_str("API stability summary: api-stability-summary\n");
     text.push_str("Validation report summary: validation-report-summary / validation-summary / report-summary\n");
     text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
+    text.push_str("Artifact validation: validate-artifact\n");
     text.push_str("Release summary: release-summary\n");
     text.push_str("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary\n");
     text.push('\n');
@@ -1481,6 +1482,7 @@ fn render_release_checklist_text() -> String {
         "[x] mise run audit",
         "[x] mise run release-smoke",
         "[x] cargo run -q -p pleiades-validate -- verify-compatibility-profile",
+        "[x] cargo run -q -p pleiades-validate -- validate-artifact",
     ] {
         text.push_str("- ");
         text.push_str(item);
@@ -1597,6 +1599,7 @@ fn render_release_summary_text() -> String {
     text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
     text.push_str("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary\n");
     text.push_str("Release notes summary: release-notes-summary\n");
+    text.push_str("Artifact validation: validate-artifact\n");
     text.push_str("Release bundle verification: verify-release-bundle\n");
     text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
     text.push_str("Release checklist summary: release-checklist-summary\n");
@@ -1612,6 +1615,7 @@ fn render_release_summary_text() -> String {
         "[x] mise run audit",
         "[x] mise run release-smoke",
         "[x] cargo run -q -p pleiades-validate -- verify-compatibility-profile",
+        "[x] cargo run -q -p pleiades-validate -- validate-artifact",
         "[x] cargo run -q -p pleiades-validate -- bundle-release --out /tmp/pleiades-release",
         "[x] cargo run -q -p pleiades-validate -- verify-release-bundle --out /tmp/pleiades-release",
     ] {
@@ -1645,10 +1649,11 @@ fn render_release_checklist_summary_text() -> String {
     text.push_str("Validation report summary: validation-report-summary / validation-summary / report-summary\n");
     text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
     text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
+    text.push_str("Artifact validation: validate-artifact\n");
     text.push_str("Release bundle verification: verify-release-bundle\n");
     text.push_str("Release summary: release-summary\n");
     text.push_str("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary\n");
-    text.push_str("Repository-managed release gates: 6 items\n");
+    text.push_str("Repository-managed release gates: 7 items\n");
     text.push_str("Manual bundle workflow: 3 items\n");
     text.push_str("Bundle contents: 16 items\n");
     text.push_str("External publishing reminders: 3 items\n");
@@ -4426,7 +4431,7 @@ mod tests {
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
         assert!(rendered.contains("Release summary: release-summary"));
         assert!(rendered.contains("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
-        assert!(rendered.contains("Repository-managed release gates: 6 items"));
+        assert!(rendered.contains("Repository-managed release gates: 7 items"));
         assert!(rendered.contains("Manual bundle workflow: 3 items"));
         assert!(rendered.contains("Bundle contents: 16 items"));
         assert!(rendered.contains("External publishing reminders: 3 items"));
@@ -4711,6 +4716,7 @@ version = "0.9.0"
         ));
         assert!(release_summary
             .contains("Compatibility profile verification: verify-compatibility-profile"));
+        assert!(release_summary.contains("Artifact validation: validate-artifact"));
         assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_summary.contains("Release notes summary: release-notes-summary"));
         assert!(artifact_summary.contains("Artifact summary"));
@@ -4728,6 +4734,8 @@ version = "0.9.0"
         assert!(release_checklist.contains("Repository-managed release gates:"));
         assert!(release_checklist
             .contains("[x] cargo run -q -p pleiades-validate -- verify-compatibility-profile"));
+        assert!(release_checklist
+            .contains("[x] cargo run -q -p pleiades-validate -- validate-artifact"));
         assert!(release_checklist.contains("Manual bundle workflow:"));
         assert!(release_checklist.contains("bundle-release --out /tmp/pleiades-release"));
         assert!(release_checklist.contains("verify-release-bundle --out /tmp/pleiades-release"));
@@ -4743,7 +4751,8 @@ version = "0.9.0"
         assert!(release_checklist_summary.contains("Release checklist summary"));
         assert!(release_checklist_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
-        assert!(release_checklist_summary.contains("Repository-managed release gates: 6 items"));
+        assert!(release_checklist_summary.contains("Artifact validation: validate-artifact"));
+        assert!(release_checklist_summary.contains("Repository-managed release gates: 7 items"));
         assert!(release_checklist_summary.contains("Manual bundle workflow: 3 items"));
         assert!(release_checklist_summary.contains("Bundle contents: 16 items"));
         assert!(release_checklist_summary.contains("External publishing reminders: 3 items"));
