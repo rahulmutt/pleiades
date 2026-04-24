@@ -1467,6 +1467,7 @@ fn render_release_checklist_text() -> String {
     text.push_str("API stability summary: api-stability-summary\n");
     text.push_str("Validation report summary: validation-report-summary / validation-summary / report-summary\n");
     text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
+    text.push_str("Release summary: release-summary\n");
     text.push_str("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary\n");
     text.push('\n');
     text.push_str("Repository-managed release gates:\n");
@@ -4377,6 +4378,7 @@ mod tests {
         assert!(rendered.contains("Validation report summary: validation-report-summary / validation-summary / report-summary"));
         assert!(rendered
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
+        assert!(rendered.contains("Release summary: release-summary"));
         assert!(rendered.contains("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Repository-managed release gates:"));
         assert!(rendered.contains("Manual bundle workflow:"));
