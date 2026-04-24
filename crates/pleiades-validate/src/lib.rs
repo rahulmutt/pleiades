@@ -2902,6 +2902,77 @@ pub fn render_benchmark_report(rounds: usize) -> Result<String, EphemerisError> 
     Ok(benchmark_backend(&candidate, &corpus, rounds)?.to_string())
 }
 
+#[derive(Clone, Copy, Debug)]
+struct Vsop87EvidenceSummary {
+    sample_count: usize,
+    max_longitude_delta_deg: f64,
+    max_latitude_delta_deg: f64,
+    max_distance_delta_au: f64,
+    within_interim_limits: bool,
+}
+
+fn vsop87_canonical_evidence_summary() -> Option<Vsop87EvidenceSummary> {
+    let backend = Vsop87Backend::new();
+    let mut sample_count = 0usize;
+    let mut max_longitude_delta_deg: f64 = 0.0;
+    let mut max_latitude_delta_deg: f64 = 0.0;
+    let mut max_distance_delta_au: f64 = 0.0;
+    let mut within_interim_limits = true;
+
+    for sample in canonical_epoch_samples() {
+        let mut request = EphemerisRequest::new(
+            sample.body.clone(),
+            Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+        );
+        request.apparent = Apparentness::Mean;
+        let result = backend.position(&request).ok()?;
+        let ecliptic = result.ecliptic?;
+        let distance = ecliptic.distance_au?;
+
+        let longitude_delta = signed_longitude_delta_degrees(
+            sample.expected_longitude_deg,
+            ecliptic.longitude.degrees(),
+        )
+        .abs();
+        let latitude_delta = (ecliptic.latitude.degrees() - sample.expected_latitude_deg).abs();
+        let distance_delta = (distance - sample.expected_distance_au).abs();
+
+        sample_count += 1;
+        max_longitude_delta_deg = max_longitude_delta_deg.max(longitude_delta);
+        max_latitude_delta_deg = max_latitude_delta_deg.max(latitude_delta);
+        max_distance_delta_au = max_distance_delta_au.max(distance_delta);
+        within_interim_limits &= longitude_delta <= sample.max_longitude_delta_deg
+            && latitude_delta <= sample.max_latitude_delta_deg
+            && distance_delta <= sample.max_distance_delta_au;
+    }
+
+    Some(Vsop87EvidenceSummary {
+        sample_count,
+        max_longitude_delta_deg,
+        max_latitude_delta_deg,
+        max_distance_delta_au,
+        within_interim_limits,
+    })
+}
+
+fn format_vsop87_canonical_evidence_summary() -> String {
+    match vsop87_canonical_evidence_summary() {
+        Some(summary) => format!(
+            "VSOP87 canonical J2000 source-backed evidence: {} samples, status {}, max Δlon={:.12}°, max Δlat={:.12}°, max Δdist={:.12} AU",
+            summary.sample_count,
+            if summary.within_interim_limits {
+                "within interim limits"
+            } else {
+                "outside interim limits"
+            },
+            summary.max_longitude_delta_deg,
+            summary.max_latitude_delta_deg,
+            summary.max_distance_delta_au,
+        ),
+        None => "VSOP87 canonical J2000 source-backed evidence: unavailable".to_string(),
+    }
+}
+
 fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     use std::fmt::Write as _;
 
@@ -3012,6 +3083,9 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         "  scenarios: {}",
         report.house_validation.scenarios.len()
     );
+    let _ = writeln!(text);
+    let _ = writeln!(text, "VSOP87 source-backed evidence");
+    let _ = writeln!(text, "  {}", format_vsop87_canonical_evidence_summary());
     let _ = writeln!(text);
     let _ = writeln!(text, "Benchmark summaries");
     let _ = writeln!(text, "Reference benchmark");
@@ -3199,6 +3273,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str("Backends with external data sources: ");
     text.push_str(&data_source_count.to_string());
+    text.push('\n');
+    text.push_str(&format_vsop87_canonical_evidence_summary());
     text.push('\n');
     text.push_str("Distinct bodies covered: ");
     text.push_str(&bodies.len().to_string());
@@ -4697,6 +4773,8 @@ mod tests {
         assert!(report.contains("Comparison corpus"));
         assert!(report.contains("Comparison summary"));
         assert!(report.contains("Body comparison summaries"));
+        assert!(report.contains("VSOP87 source-backed evidence"));
+        assert!(report.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(report.contains("House validation corpus"));
         assert!(report.contains("Benchmark summaries"));
         assert!(report.contains("Release bundle verification: verify-release-bundle"));
@@ -5263,6 +5341,7 @@ mod tests {
         assert!(rendered.contains("Accuracy classes:"));
         assert!(rendered.contains("Exact: 1"));
         assert!(rendered.contains("Approximate: 4"));
+        assert!(rendered.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(rendered.contains("Distinct bodies covered:"));
         assert!(rendered.contains("Distinct coordinate frames:"));
         assert!(rendered.contains("Distinct time scales:"));
@@ -5525,6 +5604,8 @@ version = "0.9.0"
         assert!(backend_matrix_summary.contains("Algorithmic: 2"));
         assert!(backend_matrix_summary.contains("Composite: 1"));
         assert!(backend_matrix_summary
+            .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
+        assert!(backend_matrix_summary
             .contains("Compatibility profile verification: verify-compatibility-profile"));
         assert!(backend_matrix.contains(
             "selected asteroid coverage: 5 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"
@@ -5545,6 +5626,12 @@ version = "0.9.0"
         assert!(validation_report_summary.contains("Validation report summary"));
         assert!(validation_report_summary.contains("Comparison corpus"));
         assert!(validation_report_summary.contains("Expected tolerance status"));
+        assert!(validation_report_summary.contains("VSOP87 source-backed evidence"));
+        assert!(validation_report_summary
+            .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
+        assert!(validation_report_summary.contains("VSOP87 source-backed evidence"));
+        assert!(validation_report_summary
+            .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(report.contains("Validation report"));
         assert!(report.contains("Expected tolerance status"));
         assert!(manifest.contains("Release bundle manifest"));

@@ -34,7 +34,7 @@ Progress note (2026-04-24): the checked-in truncated VSOP87B source-backed path 
 
 Progress note (2026-04-24): validation comparison reports now render per-body expected tolerance status in addition to aggregate and per-body measured deltas. The current tolerance table is explicitly labeled as Phase 1 interim evidence for truncated VSOP87B planetary paths, compact ELP lunar paths, and the Pluto mean-elements fallback, making measured exceedances visible while complete source-backed tables remain pending.
 
-Progress note (2026-04-24): the validation backend matrix now prints canonical J2000 source-backed VSOP87B evidence for the Sun and major planets, including measured deltas against the same public IMCCE reference values used by the regression tests. This gives the current truncated coefficient path a visible, reproducible error snapshot while the generated complete-table ingestion work remains queued.
+Progress note (2026-04-24): the validation backend matrix now prints canonical J2000 source-backed VSOP87B evidence for the Sun and major planets, including measured deltas against the same public IMCCE reference values used by the regression tests. The compact validation and backend-matrix summaries now also surface the same source-backed evidence snapshot, giving the current truncated coefficient path a visible, reproducible error summary while the generated complete-table ingestion work remains queued.
 
 ## 2. Lunar theory source selection
 
