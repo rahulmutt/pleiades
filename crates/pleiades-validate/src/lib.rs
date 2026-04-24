@@ -4824,6 +4824,18 @@ version = "0.9.0"
     }
 
     #[test]
+    fn verify_release_bundle_rejects_duplicate_api_stability_posture_id_entry() {
+        assert_release_bundle_rejects_duplicate_manifest_entry(
+            "pleiades-release-bundle-duplicate-api-stability-posture-id",
+            "api stability posture id:",
+            &[
+                "duplicate entry: api stability posture id:",
+                "release bundle verification failed",
+            ],
+        );
+    }
+
+    #[test]
     fn verify_release_bundle_rejects_whitespace_source_revision_entry() {
         assert_release_bundle_rejects_whitespace_manifest_entry(
             "pleiades-release-bundle-whitespace-source-revision",
