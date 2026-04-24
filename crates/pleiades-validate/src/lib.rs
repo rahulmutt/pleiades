@@ -3021,9 +3021,23 @@ fn format_vsop87_body_evidence_summary() -> String {
                 .iter()
                 .filter(|row| row.within_interim_limits)
                 .count();
+            let vendored_count = evidence
+                .iter()
+                .filter(|row| {
+                    row.source_kind == pleiades_vsop87::Vsop87BodySourceKind::VendoredVsop87b
+                })
+                .count();
+            let truncated_count = evidence
+                .iter()
+                .filter(|row| {
+                    row.source_kind == pleiades_vsop87::Vsop87BodySourceKind::TruncatedVsop87b
+                })
+                .count();
             format!(
-                "VSOP87 source-backed body evidence: {} body profiles, {} within interim limits",
+                "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} truncated slice), {} within interim limits",
                 evidence.len(),
+                vendored_count,
+                truncated_count,
                 within_interim_limits,
             )
         }
@@ -4945,7 +4959,7 @@ mod tests {
         assert!(report.contains("VSOP87 source-backed evidence"));
         assert!(report.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(report.contains(
-            "VSOP87 source-backed body evidence: 8 body profiles, 8 within interim limits"
+            "VSOP87 source-backed body evidence: 8 body profiles (4 vendored full-file, 4 truncated slice), 8 within interim limits"
         ));
         assert!(report.contains("House validation corpus"));
         assert!(report.contains("Benchmark summaries"));
@@ -5518,7 +5532,7 @@ mod tests {
         assert!(rendered.contains("VSOP87 source documentation: 8 source specs, 8 source-backed body profiles, 1 fallback mean-element body profile"));
         assert!(rendered.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(rendered.contains(
-            "VSOP87 source-backed body evidence: 8 body profiles, 8 within interim limits"
+            "VSOP87 source-backed body evidence: 8 body profiles (4 vendored full-file, 4 truncated slice), 8 within interim limits"
         ));
         assert!(rendered.contains("Distinct bodies covered:"));
         assert!(rendered.contains("Distinct coordinate frames:"));
@@ -5809,6 +5823,9 @@ version = "0.9.0"
         assert!(validation_report_summary
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(validation_report_summary.contains("VSOP87 source-backed evidence"));
+        assert!(validation_report_summary.contains(
+            "VSOP87 source-backed body evidence: 8 body profiles (4 vendored full-file, 4 truncated slice), 8 within interim limits"
+        ));
         assert!(validation_report_summary
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(report.contains("Validation report"));
