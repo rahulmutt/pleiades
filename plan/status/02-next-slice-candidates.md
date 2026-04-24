@@ -45,6 +45,8 @@ Suggested scope:
 
 Progress note (2026-04-24): the current compact `pleiades-elp` path now reports deterministic central-difference mean-motion estimates for the Moon, mean node, and true node. This improves chart-facing lunar motion semantics, but does not replace the planned source-backed lunar theory selection, coefficient implementation, or reference validation.
 
+Progress note (2026-04-24): `pleiades-elp` now exposes mean lunar apogee and mean lunar perigee as explicitly supported mean-only lunar points using Meeus-style mean perigee/apogee formulae, including equatorial transforms and finite-difference longitude speeds. True apogee and true perigee remain unsupported until a source-backed true-point model is selected and validated.
+
 ## 3. JPL reader/interpolator expansion
 
 **Goal:** build on the completed small fixture interpolator and turn `pleiades-jpl` into a stronger reference backend.

@@ -1,9 +1,10 @@
 //! Lunar backend boundary based on a compact pure-Rust analytical model.
 //!
 //! The full ELP series data is still planned, but this crate now provides a
-//! usable Moon-and-lunar-node backend for the chart MVP by combining a
-//! low-precision lunar orbit model with geocentric coordinate transforms and
-//! finite-difference mean-motion estimates.
+//! usable Moon-and-lunar-point backend for the chart MVP by combining a
+//! low-precision lunar orbit model with geocentric coordinate transforms,
+//! Meeus-style mean node/perigee/apogee formulae, and finite-difference
+//! mean-motion estimates.
 
 #![forbid(unsafe_code)]
 
@@ -114,6 +115,19 @@ impl ElpBackend {
         )
     }
 
+    fn mean_perigee_longitude(days: f64) -> f64 {
+        let t = days / 36_525.0;
+        normalize_degrees(
+            83.353_246_5
+                + (4_069.013_728_7 + (-0.010_32 + (-1.0 / 80_053.0 + t / 18_999_000.0) * t) * t)
+                    * t,
+        )
+    }
+
+    fn mean_apogee_longitude(days: f64) -> f64 {
+        normalize_degrees(Self::mean_perigee_longitude(days) + 180.0)
+    }
+
     fn true_node_longitude(days: f64) -> f64 {
         let t = days / 36_525.0;
         let mean_node = Self::mean_node_longitude(days).to_radians();
@@ -162,6 +176,16 @@ impl ElpBackend {
             )),
             CelestialBody::TrueNode => Some(EclipticCoordinates::new(
                 Longitude::from_degrees(Self::true_node_longitude(days)),
+                Latitude::from_degrees(0.0),
+                None,
+            )),
+            CelestialBody::MeanApogee => Some(EclipticCoordinates::new(
+                Longitude::from_degrees(Self::mean_apogee_longitude(days)),
+                Latitude::from_degrees(0.0),
+                None,
+            )),
+            CelestialBody::MeanPerigee => Some(EclipticCoordinates::new(
+                Longitude::from_degrees(Self::mean_perigee_longitude(days)),
                 Latitude::from_degrees(0.0),
                 None,
             )),
@@ -226,9 +250,10 @@ impl EphemerisBackend for ElpBackend {
             version: env!("CARGO_PKG_VERSION").to_string(),
             family: BackendFamily::Algorithmic,
             provenance: BackendProvenance {
-                summary: "Low-precision pure-Rust lunar backend using a compact analytical orbit model, geocentric reduction, and finite-difference mean-motion estimates.".to_string(),
+                summary: "Low-precision pure-Rust lunar backend using a compact analytical orbit model, geocentric reduction, Meeus-style mean lunar point formulae, and finite-difference mean-motion estimates.".to_string(),
                 data_sources: vec![
                     "Meeus-style truncated lunar orbit formulas".to_string(),
+                    "Meeus-style mean node and mean lunar perigee/apogee formulae".to_string(),
                     "Public ELP 2000/82 documentation for future expansion".to_string(),
                 ],
             },
@@ -238,6 +263,8 @@ impl EphemerisBackend for ElpBackend {
                 CelestialBody::Moon,
                 CelestialBody::MeanNode,
                 CelestialBody::TrueNode,
+                CelestialBody::MeanApogee,
+                CelestialBody::MeanPerigee,
             ],
             supported_frames: vec![CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
             capabilities: BackendCapabilities {
@@ -257,7 +284,11 @@ impl EphemerisBackend for ElpBackend {
     fn supports_body(&self, body: CelestialBody) -> bool {
         matches!(
             body,
-            CelestialBody::Moon | CelestialBody::MeanNode | CelestialBody::TrueNode
+            CelestialBody::Moon
+                | CelestialBody::MeanNode
+                | CelestialBody::TrueNode
+                | CelestialBody::MeanApogee
+                | CelestialBody::MeanPerigee
         )
     }
 
@@ -265,7 +296,7 @@ impl EphemerisBackend for ElpBackend {
         if !self.supports_body(req.body.clone()) {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::UnsupportedBody,
-                "the ELP backend currently serves the Moon and lunar nodes only",
+                "the ELP backend currently serves the Moon, lunar nodes, and mean lunar apogee/perigee only",
             ));
         }
 
@@ -327,6 +358,28 @@ impl EphemerisBackend for ElpBackend {
             }
             CelestialBody::TrueNode => {
                 let longitude = Longitude::from_degrees(Self::true_node_longitude(days));
+                let latitude = Latitude::from_degrees(0.0);
+                result.ecliptic = Some(EclipticCoordinates::new(longitude, latitude, None));
+                result.equatorial = Some(Self::ecliptic_point_to_equatorial(
+                    longitude,
+                    latitude,
+                    req.instant,
+                    None,
+                ));
+            }
+            CelestialBody::MeanApogee => {
+                let longitude = Longitude::from_degrees(Self::mean_apogee_longitude(days));
+                let latitude = Latitude::from_degrees(0.0);
+                result.ecliptic = Some(EclipticCoordinates::new(longitude, latitude, None));
+                result.equatorial = Some(Self::ecliptic_point_to_equatorial(
+                    longitude,
+                    latitude,
+                    req.instant,
+                    None,
+                ));
+            }
+            CelestialBody::MeanPerigee => {
+                let longitude = Longitude::from_degrees(Self::mean_perigee_longitude(days));
                 let latitude = Latitude::from_degrees(0.0);
                 result.ecliptic = Some(EclipticCoordinates::new(longitude, latitude, None));
                 result.equatorial = Some(Self::ecliptic_point_to_equatorial(
@@ -451,10 +504,58 @@ mod tests {
     }
 
     #[test]
-    fn backend_supports_lunar_nodes() {
+    fn j2000_mean_apogee_and_perigee_are_available() {
+        let backend = ElpBackend::new();
+        let instant = Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt);
+
+        let perigee = backend
+            .position(&mean_request_at(CelestialBody::MeanPerigee, instant))
+            .expect("mean perigee query should work");
+        let perigee_ecliptic = perigee
+            .ecliptic
+            .expect("mean perigee ecliptic should exist");
+        assert!((perigee_ecliptic.longitude.degrees() - 83.353_246_5).abs() < 1e-9);
+        assert_eq!(perigee_ecliptic.latitude.degrees(), 0.0);
+        assert_eq!(perigee_ecliptic.distance_au, None);
+        assert!(perigee.equatorial.is_some());
+        let perigee_motion = perigee
+            .motion
+            .expect("mean perigee motion should be populated");
+        assert!(perigee_motion
+            .longitude_deg_per_day
+            .expect("mean perigee longitude speed should exist")
+            .is_finite());
+        assert_eq!(perigee_motion.latitude_deg_per_day, Some(0.0));
+        assert_eq!(perigee_motion.distance_au_per_day, None);
+
+        let apogee = backend
+            .position(&mean_request_at(CelestialBody::MeanApogee, instant))
+            .expect("mean apogee query should work");
+        let apogee_ecliptic = apogee.ecliptic.expect("mean apogee ecliptic should exist");
+        assert!((apogee_ecliptic.longitude.degrees() - 263.353_246_5).abs() < 1e-9);
+        assert_eq!(apogee_ecliptic.latitude.degrees(), 0.0);
+        assert_eq!(apogee_ecliptic.distance_au, None);
+        assert!(apogee.equatorial.is_some());
+        let apogee_motion = apogee
+            .motion
+            .expect("mean apogee motion should be populated");
+        assert!(apogee_motion
+            .longitude_deg_per_day
+            .expect("mean apogee longitude speed should exist")
+            .is_finite());
+        assert_eq!(apogee_motion.latitude_deg_per_day, Some(0.0));
+        assert_eq!(apogee_motion.distance_au_per_day, None);
+    }
+
+    #[test]
+    fn backend_supports_lunar_points() {
         let backend = ElpBackend::new();
         assert!(backend.supports_body(CelestialBody::MeanNode));
         assert!(backend.supports_body(CelestialBody::TrueNode));
+        assert!(backend.supports_body(CelestialBody::MeanApogee));
+        assert!(backend.supports_body(CelestialBody::MeanPerigee));
+        assert!(!backend.supports_body(CelestialBody::TrueApogee));
+        assert!(!backend.supports_body(CelestialBody::TruePerigee));
         assert!(!backend.supports_body(CelestialBody::Sun));
     }
 
