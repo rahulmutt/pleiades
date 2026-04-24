@@ -284,6 +284,15 @@ mod tests {
     }
 
     #[test]
+    fn profile_summary_spells_out_the_true_galactic_equator_batch() {
+        let profile = current_compatibility_profile();
+
+        assert!(profile.summary.contains("Galactic Equator (True)"));
+        assert!(profile.summary.contains("True galactic equator"));
+        assert!(profile.summary.contains("Galactic equator true"));
+    }
+
+    #[test]
     fn profile_identifiers_are_re_exported_from_the_facade() {
         let release_profiles = current_release_profile_identifiers();
 
