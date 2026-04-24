@@ -1440,6 +1440,7 @@ fn render_release_notes_summary_text() -> String {
     text.push_str("Release notes: release-notes\n");
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
+    text.push_str("Artifact summary: artifact-summary / artifact-posture-summary\n");
     text.push_str("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary\n");
     text.push_str("Release checklist summary: release-checklist-summary\n");
     text.push_str("Release bundle verification: verify-release-bundle\n");
@@ -4695,6 +4696,10 @@ version = "0.9.0"
         assert!(release_notes_summary.contains("API stability summary line:"));
         assert!(release_notes_summary.contains("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_notes_summary.contains("Release notes: release-notes"));
+        assert!(release_notes_summary
+            .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
+        assert!(release_notes_summary
+            .contains("Artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(release_notes_summary
             .contains("Compatibility profile verification: verify-compatibility-profile"));
         assert!(release_summary.contains("Release summary"));

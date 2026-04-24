@@ -504,6 +504,10 @@ mod tests {
         assert!(release_notes_summary.contains("API stability summary line:"));
         assert!(release_notes_summary.contains("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_notes_summary.contains("Release notes: release-notes"));
+        assert!(release_notes_summary
+            .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
+        assert!(release_notes_summary
+            .contains("Artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(
             release_notes_summary.contains("Release checklist summary: release-checklist-summary")
         );
