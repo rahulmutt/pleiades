@@ -60,6 +60,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 
 - [x] The compact release summary now also names the `report-summary` alias alongside `validation-report-summary` and `validation-summary`, so the one-screen maintainer audit stays aligned with the primary CLI and validation-tool command aliases without changing the underlying release posture.
 - [x] The compact compatibility profile summary now also cross-references `release-notes-summary` and `release-checklist-summary`, so maintainers can jump from the profile audit to the full release narrative and checklist without leaving the compact release surface.
+- [x] `pleiades-validate` now rejects malformed `bundle-manifest.checksum.txt` sidecars with extra lines or stray whitespace, so the staged manifest checksum file is validated against the canonical one-line format instead of only checking that it parses.
 
 - [x] The Galactic Center (Mardyks) ayanamsa entry now also accepts the upstream `Skydram` and `Skydram/Galactic Alignment` spellings alongside the existing `Skydram (Mardyks)` label, and the compatibility profile identifier has been bumped to `0.6.94` so the Skydram alias batch stays versioned with the current profile.
 - [x] The release compatibility profile now names the `Galactic Equator (True)` / `True galactic equator` / `Galactic equator true` batch explicitly instead of collapsing it into a generic true/modern note, and the compatibility profile identifier has been bumped to `0.6.93` so the wording refinement stays versioned with the current profile.

@@ -31,7 +31,7 @@ Work inside Stage 6 should generally be sequenced in this order:
 1. **Release-surface integrity first**
    - compatibility profile stays current
    - validation summaries stay reproducible
-   - release bundle verification stays strict
+   - release bundle verification stays strict, including the canonical manifest checksum sidecar format
    - maintainer docs stay aligned with actual commands
 2. **Compatibility breadth second**
    - add remaining house-system and ayanamsa breadth in small, reviewable batches

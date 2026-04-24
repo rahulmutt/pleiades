@@ -50,7 +50,8 @@ Good slices:
 
 - improve generation metadata recorded in artifacts or staged bundles,
 - add one missing validation check around segment edges, unsupported channels, or fallback behavior,
-- extend packaged coverage only where the validation story is already strong.
+- extend packaged coverage only where the validation story is already strong,
+- harden the bundle-manifest sidecar or other release-surface checks when a canonical format or tamper-evidence rule is still implicit.
 
 Guardrails:
 
