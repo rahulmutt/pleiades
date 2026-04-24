@@ -14,7 +14,7 @@ Replace preliminary, sample-driven, or simplified backend behavior with source-b
 
 ## Current baseline
 
-Implemented foundations include backend traits, metadata, composite routing, major body identifiers, lunar points, baseline asteroids, a chart façade, CLI commands, a snapshot-style `pleiades-jpl`, and preliminary `pleiades-vsop87` and `pleiades-elp` crates.
+Implemented foundations include backend traits, metadata, composite routing, major body identifiers, lunar points, baseline asteroids, a chart façade, CLI commands, a snapshot-style `pleiades-jpl`, preliminary `pleiades-vsop87` and `pleiades-elp` crates, and validation reports that expose aggregate plus per-body comparison error summaries.
 
 ## Remaining implementation goals
 
@@ -44,7 +44,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
 
 5. Expand validation evidence.
    - Add golden positions for major bodies, lunar points, and baseline asteroids.
-   - Generate cross-backend comparison reports with body/date/error summaries.
+   - Generate cross-backend comparison reports with body/date/error summaries. Aggregate and per-body summary sections are now implemented; future source-backed backend increments should populate them with tighter measured errors.
    - Store expected tolerances by backend and body class.
    - Keep validation reproducible and pure Rust.
 

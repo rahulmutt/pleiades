@@ -19,6 +19,7 @@ Several downstream requirements depend on trusted ephemeris outputs:
 
 Completed foundations:
 
+- per-body comparison summaries in validation reports, so measured backend deltas are visible by body as well as in aggregate;
 - managed Rust workspace and mandatory crate layout;
 - typed domain vocabulary in `pleiades-types`;
 - backend contract, metadata, errors, batch fallback, and composite routing in `pleiades-backend`;

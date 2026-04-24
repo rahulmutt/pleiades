@@ -12,7 +12,7 @@ Suggested scope:
 - add pure-Rust coefficient representation or generation step for one body;
 - compute a canonical ecliptic position at J2000;
 - add reference/golden tests and metadata updates;
-- extend validation summaries with measured error for the implemented body.
+- extend validation summaries with measured error for the implemented body. Aggregate and per-body comparison summaries are now present, so the remaining work is to attach the new source-backed VSOP87 evidence to those reports.
 
 ## 2. Lunar theory source selection
 
@@ -41,7 +41,7 @@ Remaining suggested scope:
 
 - add a larger documented public-input-derived fixture with more bodies and denser samples;
 - validate interpolation error against held-out JPL Horizons epochs;
-- report interpolation quality and tolerances in validation summaries;
+- report interpolation quality and tolerances in validation summaries using the existing aggregate and per-body comparison sections;
 - consider higher-order interpolation once measured linear error is insufficient.
 
 ## 4. Delta T and time-scale policy
