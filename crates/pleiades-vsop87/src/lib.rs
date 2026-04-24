@@ -183,6 +183,43 @@ pub struct Vsop87CanonicalEpochSample {
     pub max_distance_delta_au: f64,
 }
 
+/// Public release-facing error envelope for one body at the canonical J2000
+/// comparison epoch.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Vsop87CanonicalBodyEvidence {
+    /// Body measured at the canonical epoch.
+    pub body: CelestialBody,
+    /// Calculation family used for the body.
+    pub source_kind: Vsop87BodySourceKind,
+    /// Public coefficient file backing the body.
+    pub source_file: &'static str,
+    /// Human-readable provenance detail for the body.
+    pub provenance: &'static str,
+    /// Absolute geocentric longitude delta in degrees.
+    pub longitude_delta_deg: f64,
+    /// Absolute geocentric latitude delta in degrees.
+    pub latitude_delta_deg: f64,
+    /// Absolute geocentric distance delta in astronomical units.
+    pub distance_delta_au: f64,
+    /// Whether the body is within the current interim limits.
+    pub within_interim_limits: bool,
+}
+
+/// Public summary of the canonical J2000 error envelope.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Vsop87CanonicalEvidenceSummary {
+    /// Number of canonical samples measured.
+    pub sample_count: usize,
+    /// Maximum absolute geocentric longitude delta in degrees.
+    pub max_longitude_delta_deg: f64,
+    /// Maximum absolute geocentric latitude delta in degrees.
+    pub max_latitude_delta_deg: f64,
+    /// Maximum absolute geocentric distance delta in astronomical units.
+    pub max_distance_delta_au: f64,
+    /// Whether every measured body remained within the interim limits.
+    pub within_interim_limits: bool,
+}
+
 #[derive(Clone, Debug)]
 struct Vsop87BodyCatalogEntry {
     source_profile: Vsop87BodySource,
@@ -571,6 +608,81 @@ pub fn canonical_epoch_samples() -> Vec<Vsop87CanonicalEpochSample> {
         .iter()
         .filter_map(|entry| entry.canonical_sample.clone())
         .collect()
+}
+
+/// Returns the canonical per-body error envelope used by release-facing
+/// validation reports.
+pub fn canonical_epoch_body_evidence() -> Option<Vec<Vsop87CanonicalBodyEvidence>> {
+    let backend = Vsop87Backend::new();
+    let profiles = body_source_profiles();
+    let specs = source_specifications();
+    let mut evidence = Vec::new();
+
+    for sample in canonical_epoch_samples() {
+        let profile = profiles
+            .iter()
+            .find(|profile| profile.body == sample.body)?;
+        let spec = specs.iter().find(|spec| spec.body == sample.body)?;
+        let mut request = EphemerisRequest::new(
+            sample.body.clone(),
+            Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt),
+        );
+        request.apparent = Apparentness::Mean;
+        let result = backend.position(&request).ok()?;
+        let ecliptic = result.ecliptic?;
+        let distance = ecliptic.distance_au?;
+
+        let longitude_delta = signed_longitude_delta_degrees(
+            sample.expected_longitude_deg,
+            ecliptic.longitude.degrees(),
+        )
+        .abs();
+        let latitude_delta = (ecliptic.latitude.degrees() - sample.expected_latitude_deg).abs();
+        let distance_delta = (distance - sample.expected_distance_au).abs();
+        let within_interim_limits = longitude_delta <= sample.max_longitude_delta_deg
+            && latitude_delta <= sample.max_latitude_delta_deg
+            && distance_delta <= sample.max_distance_delta_au;
+
+        evidence.push(Vsop87CanonicalBodyEvidence {
+            body: sample.body,
+            source_kind: profile.kind,
+            source_file: spec.source_file,
+            provenance: profile.provenance,
+            longitude_delta_deg: longitude_delta,
+            latitude_delta_deg: latitude_delta,
+            distance_delta_au: distance_delta,
+            within_interim_limits,
+        });
+    }
+
+    Some(evidence)
+}
+
+/// Returns the canonical J2000 error envelope summary used by release-facing
+/// validation reports.
+pub fn canonical_epoch_evidence_summary() -> Option<Vsop87CanonicalEvidenceSummary> {
+    let body_evidence = canonical_epoch_body_evidence()?;
+    let mut sample_count = 0usize;
+    let mut max_longitude_delta_deg: f64 = 0.0;
+    let mut max_latitude_delta_deg: f64 = 0.0;
+    let mut max_distance_delta_au: f64 = 0.0;
+    let mut within_interim_limits = true;
+
+    for evidence in &body_evidence {
+        sample_count += 1;
+        max_longitude_delta_deg = max_longitude_delta_deg.max(evidence.longitude_delta_deg);
+        max_latitude_delta_deg = max_latitude_delta_deg.max(evidence.latitude_delta_deg);
+        max_distance_delta_au = max_distance_delta_au.max(evidence.distance_delta_au);
+        within_interim_limits &= evidence.within_interim_limits;
+    }
+
+    Some(Vsop87CanonicalEvidenceSummary {
+        sample_count,
+        max_longitude_delta_deg,
+        max_latitude_delta_deg,
+        max_distance_delta_au,
+        within_interim_limits,
+    })
 }
 
 fn source_kind_for_body(body: CelestialBody) -> Option<Vsop87BodySourceKind> {
@@ -1559,6 +1671,26 @@ mod tests {
         assert!(samples
             .iter()
             .all(|sample| sample.max_distance_delta_au > 0.0));
+    }
+
+    #[test]
+    fn canonical_epoch_error_envelope_matches_the_public_sample_catalog() {
+        let samples = canonical_epoch_samples();
+        let body_evidence = canonical_epoch_body_evidence().expect("evidence should exist");
+        let summary = canonical_epoch_evidence_summary().expect("summary should exist");
+
+        assert_eq!(body_evidence.len(), samples.len());
+        assert_eq!(summary.sample_count, samples.len());
+        assert!(summary.within_interim_limits);
+        assert!(body_evidence
+            .iter()
+            .all(|evidence| evidence.within_interim_limits));
+        assert!(body_evidence
+            .iter()
+            .any(|evidence| evidence.source_kind == Vsop87BodySourceKind::GeneratedBinaryVsop87b));
+        assert!(summary.max_longitude_delta_deg > 0.0);
+        assert!(summary.max_latitude_delta_deg > 0.0);
+        assert!(summary.max_distance_delta_au > 0.0);
     }
 
     #[test]

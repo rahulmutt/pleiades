@@ -44,8 +44,8 @@ use pleiades_jpl::{
     comparison_snapshot, interpolation_quality_samples, reference_asteroids, JplSnapshotBackend,
 };
 use pleiades_vsop87::{
-    body_source_profiles, canonical_epoch_samples, frame_treatment_summary, source_audit_summary,
-    source_audits, source_specifications, Vsop87Backend,
+    body_source_profiles, frame_treatment_summary, source_audit_summary, source_audits,
+    source_specifications, Vsop87Backend,
 };
 
 const DEFAULT_BENCHMARK_ROUNDS: usize = 10_000;
@@ -3127,96 +3127,12 @@ pub fn render_benchmark_report(rounds: usize) -> Result<String, EphemerisError> 
     Ok(benchmark_backend(&candidate, &corpus, rounds)?.to_string())
 }
 
-#[derive(Clone, Copy, Debug)]
-struct Vsop87EvidenceSummary {
-    sample_count: usize,
-    max_longitude_delta_deg: f64,
-    max_latitude_delta_deg: f64,
-    max_distance_delta_au: f64,
-    within_interim_limits: bool,
+fn vsop87_canonical_body_evidence() -> Option<Vec<pleiades_vsop87::Vsop87CanonicalBodyEvidence>> {
+    pleiades_vsop87::canonical_epoch_body_evidence()
 }
 
-#[derive(Clone, Debug)]
-struct Vsop87BodyEvidenceSummary {
-    body: CelestialBody,
-    source_kind: pleiades_vsop87::Vsop87BodySourceKind,
-    source_file: &'static str,
-    provenance: &'static str,
-    longitude_delta_deg: f64,
-    latitude_delta_deg: f64,
-    distance_delta_au: f64,
-    within_interim_limits: bool,
-}
-
-fn vsop87_canonical_body_evidence() -> Option<Vec<Vsop87BodyEvidenceSummary>> {
-    let backend = Vsop87Backend::new();
-    let profiles = body_source_profiles();
-    let specs = source_specifications();
-    let mut evidence = Vec::new();
-
-    for sample in canonical_epoch_samples() {
-        let profile = profiles
-            .iter()
-            .find(|profile| profile.body == sample.body)?;
-        let spec = specs.iter().find(|spec| spec.body == sample.body)?;
-        let mut request = EphemerisRequest::new(
-            sample.body.clone(),
-            Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
-        );
-        request.apparent = Apparentness::Mean;
-        let result = backend.position(&request).ok()?;
-        let ecliptic = result.ecliptic?;
-        let distance = ecliptic.distance_au?;
-
-        let longitude_delta = signed_longitude_delta_degrees(
-            sample.expected_longitude_deg,
-            ecliptic.longitude.degrees(),
-        )
-        .abs();
-        let latitude_delta = (ecliptic.latitude.degrees() - sample.expected_latitude_deg).abs();
-        let distance_delta = (distance - sample.expected_distance_au).abs();
-        let within_interim_limits = longitude_delta <= sample.max_longitude_delta_deg
-            && latitude_delta <= sample.max_latitude_delta_deg
-            && distance_delta <= sample.max_distance_delta_au;
-
-        evidence.push(Vsop87BodyEvidenceSummary {
-            body: sample.body,
-            source_kind: profile.kind,
-            source_file: spec.source_file,
-            provenance: profile.provenance,
-            longitude_delta_deg: longitude_delta,
-            latitude_delta_deg: latitude_delta,
-            distance_delta_au: distance_delta,
-            within_interim_limits,
-        });
-    }
-
-    Some(evidence)
-}
-
-fn vsop87_canonical_evidence_summary() -> Option<Vsop87EvidenceSummary> {
-    let body_evidence = vsop87_canonical_body_evidence()?;
-    let mut sample_count = 0usize;
-    let mut max_longitude_delta_deg: f64 = 0.0;
-    let mut max_latitude_delta_deg: f64 = 0.0;
-    let mut max_distance_delta_au: f64 = 0.0;
-    let mut within_interim_limits = true;
-
-    for evidence in &body_evidence {
-        sample_count += 1;
-        max_longitude_delta_deg = max_longitude_delta_deg.max(evidence.longitude_delta_deg);
-        max_latitude_delta_deg = max_latitude_delta_deg.max(evidence.latitude_delta_deg);
-        max_distance_delta_au = max_distance_delta_au.max(evidence.distance_delta_au);
-        within_interim_limits &= evidence.within_interim_limits;
-    }
-
-    Some(Vsop87EvidenceSummary {
-        sample_count,
-        max_longitude_delta_deg,
-        max_latitude_delta_deg,
-        max_distance_delta_au,
-        within_interim_limits,
-    })
+fn vsop87_canonical_evidence_summary() -> Option<pleiades_vsop87::Vsop87CanonicalEvidenceSummary> {
+    pleiades_vsop87::canonical_epoch_evidence_summary()
 }
 
 fn format_vsop87_canonical_evidence_summary() -> String {
@@ -4457,10 +4373,6 @@ fn write_backend_catalog_entry(
         )?;
     }
     Ok(())
-}
-
-fn signed_longitude_delta_degrees(start: f64, end: f64) -> f64 {
-    (end - start + 180.0).rem_euclid(360.0) - 180.0
 }
 
 fn write_jpl_interpolation_quality(f: &mut fmt::Formatter<'_>) -> fmt::Result {
