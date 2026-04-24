@@ -113,9 +113,10 @@ Completed first slice (2026-04-24):
 - regression tests cover duplicate house labels and missing ayanamsa descriptor notes;
 - redundant resolver-equivalent house aliases were pruned where canonical or retained alias matching already covers the label.
 
+Progress note (2026-04-24): backend matrix reports now include explicit implementation-status labels and notes for each backend, and the compact matrix summary counts statuses separately from body/catalog coverage. This keeps fixture, partial source-backed, preliminary algorithm, prototype artifact, and routing façade states visible in release artifacts without implying production accuracy from catalog presence alone.
+
 Remaining suggested scope:
 
-- report implementation status separately from catalog presence;
 - add tests around additional known release-profile entries and release-profile status lines.
 
 ## Selection guidance

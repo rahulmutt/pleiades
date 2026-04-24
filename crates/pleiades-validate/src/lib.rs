@@ -3104,8 +3104,13 @@ fn render_backend_matrix_summary_text() -> String {
     let mut unknown_accuracy_count = 0usize;
     let mut selected_asteroid_count = 0usize;
     let mut data_source_count = 0usize;
+    let mut status_counts: BTreeMap<String, usize> = BTreeMap::new();
 
     for entry in &catalog {
+        *status_counts
+            .entry(entry.implementation_status.label().to_string())
+            .or_insert(0) += 1;
+
         *family_counts
             .entry(backend_family_label(&entry.metadata.family))
             .or_insert(0) += 1;
@@ -3144,6 +3149,12 @@ fn render_backend_matrix_summary_text() -> String {
         .collect::<Vec<_>>();
     family_entries.sort();
 
+    let mut status_entries = status_counts
+        .into_iter()
+        .map(|(label, count)| format!("{label}: {count}"))
+        .collect::<Vec<_>>();
+    status_entries.sort();
+
     let mut text = String::new();
     text.push_str("Backend matrix summary\n");
     text.push_str("Profile: ");
@@ -3154,6 +3165,9 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str("Families: ");
     text.push_str(&family_entries.join(", "));
+    text.push('\n');
+    text.push_str("Implementation statuses: ");
+    text.push_str(&status_entries.join(", "));
     text.push('\n');
     text.push_str("Deterministic backends: ");
     text.push_str(&deterministic_count.to_string());
@@ -3622,6 +3636,12 @@ fn write_backend_catalog_entry(
     entry: &BackendMatrixEntry,
 ) -> fmt::Result {
     write_backend_matrix(f, &entry.metadata)?;
+    writeln!(
+        f,
+        "  implementation status: {}",
+        entry.implementation_status.label()
+    )?;
+    writeln!(f, "  implementation note: {}", entry.status_note)?;
     if entry.metadata.id.as_str() == "pleiades-vsop87" {
         writeln!(f, "  body source profiles:")?;
         for profile in body_source_profiles() {
@@ -3909,30 +3929,40 @@ fn implemented_backend_catalog() -> Vec<BackendMatrixEntry> {
         BackendMatrixEntry {
             label: "JPL snapshot reference backend",
             metadata: default_reference_backend().metadata(),
+            implementation_status: BackendImplementationStatus::FixtureReference,
+            status_note: "checked-in public-input derivative fixture with exact lookup and linear interpolation; larger reference corpus remains planned",
             expected_error_kinds: JPL_EXPECTED_ERROR_KINDS,
             required_data_files: JPL_REQUIRED_DATA_FILES,
         },
         BackendMatrixEntry {
             label: "VSOP87 planetary backend",
             metadata: Vsop87Backend::new().metadata(),
+            implementation_status: BackendImplementationStatus::PartialSourceBacked,
+            status_note: "major-planet channels use truncated VSOP87B coefficient slices, while Pluto remains a mean-element fallback pending a selected source path",
             expected_error_kinds: VSOP87_EXPECTED_ERROR_KINDS,
             required_data_files: &[],
         },
         BackendMatrixEntry {
             label: "ELP lunar backend (Moon and lunar nodes)",
             metadata: ElpBackend::new().metadata(),
+            implementation_status: BackendImplementationStatus::PreliminaryAlgorithm,
+            status_note: "compact lunar and lunar-point formulas provide deterministic interim behavior pending documented production lunar-theory ingestion",
             expected_error_kinds: ELP_EXPECTED_ERROR_KINDS,
             required_data_files: &[],
         },
         BackendMatrixEntry {
             label: "Packaged data backend",
             metadata: PackagedDataBackend::new().metadata(),
+            implementation_status: BackendImplementationStatus::PrototypeArtifact,
+            status_note: "sample packaged artifact exercises lookup and profile plumbing; generated 1500-2500 production artifacts are Phase 2 work",
             expected_error_kinds: PACKAGED_EXPECTED_ERROR_KINDS,
             required_data_files: &[],
         },
         BackendMatrixEntry {
             label: "Composite routed backend",
             metadata: default_candidate_backend().metadata(),
+            implementation_status: BackendImplementationStatus::RoutingFacade,
+            status_note: "routes current planetary and lunar implementations for chart-facing validation without increasing underlying backend accuracy claims",
             expected_error_kinds: COMPOSITE_EXPECTED_ERROR_KINDS,
             required_data_files: JPL_REQUIRED_DATA_FILES,
         },
@@ -3942,8 +3972,31 @@ fn implemented_backend_catalog() -> Vec<BackendMatrixEntry> {
 struct BackendMatrixEntry {
     label: &'static str,
     metadata: BackendMetadata,
+    implementation_status: BackendImplementationStatus,
+    status_note: &'static str,
     expected_error_kinds: &'static [EphemerisErrorKind],
     required_data_files: &'static [&'static str],
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+enum BackendImplementationStatus {
+    FixtureReference,
+    PartialSourceBacked,
+    PreliminaryAlgorithm,
+    PrototypeArtifact,
+    RoutingFacade,
+}
+
+impl BackendImplementationStatus {
+    const fn label(self) -> &'static str {
+        match self {
+            Self::FixtureReference => "fixture-reference",
+            Self::PartialSourceBacked => "partial-source-backed",
+            Self::PreliminaryAlgorithm => "preliminary-algorithm",
+            Self::PrototypeArtifact => "prototype-artifact",
+            Self::RoutingFacade => "routing-facade",
+        }
+    }
 }
 
 fn write_backend_catalog(
@@ -5056,6 +5109,12 @@ mod tests {
         ));
         assert!(rendered.contains("nominal range:"));
         assert!(rendered.contains("provenance sources:"));
+        assert!(rendered.contains("implementation status: fixture-reference"));
+        assert!(rendered.contains("implementation status: partial-source-backed"));
+        assert!(rendered.contains("implementation status: preliminary-algorithm"));
+        assert!(rendered.contains("implementation status: prototype-artifact"));
+        assert!(rendered.contains("implementation status: routing-facade"));
+        assert!(rendered.contains("implementation note:"));
         assert!(rendered.contains("expected error classes:"));
         assert!(rendered.contains("required external data files:"));
         assert!(rendered.contains("crates/pleiades-jpl/data/reference_snapshot.csv"));
@@ -5089,6 +5148,12 @@ mod tests {
         assert!(rendered.contains("ReferenceData: 1"));
         assert!(rendered.contains("CompressedData: 1"));
         assert!(rendered.contains("Composite: 1"));
+        assert!(rendered.contains("Implementation statuses:"));
+        assert!(rendered.contains("fixture-reference: 1"));
+        assert!(rendered.contains("partial-source-backed: 1"));
+        assert!(rendered.contains("preliminary-algorithm: 1"));
+        assert!(rendered.contains("prototype-artifact: 1"));
+        assert!(rendered.contains("routing-facade: 1"));
         assert!(rendered.contains("Accuracy classes:"));
         assert!(rendered.contains("Exact: 1"));
         assert!(rendered.contains("Approximate: 4"));
