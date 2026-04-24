@@ -48,6 +48,7 @@ cargo run -q -p pleiades-cli -- help
 
 Rough command overview:
 
+- `compare-backends`: compare the checked-in JPL snapshot against the algorithmic composite backend
 - `compatibility-profile` / `profile`: print the full release compatibility profile
 - `compatibility-profile-summary` / `profile-summary`: compact compatibility summary
 - `api-stability` / `api-posture`: print the API stability posture

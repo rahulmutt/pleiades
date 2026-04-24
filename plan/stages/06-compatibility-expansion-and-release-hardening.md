@@ -58,6 +58,8 @@ These are durable planning decisions that should remain true even as individual 
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] The primary CLI now also mirrors `compare-backends`, so the JPL-vs-composite comparison report can be reached from both the validation tooling and the main inspection CLI without changing the underlying report command.
+
 - [x] The release notes artifact now also links `backend-matrix-summary` directly, so the maintainer-facing narrative can hop to backend coverage without relying only on the compact summary list.
 - [x] The release-bundle verification regression suite now also covers a duplicate `release notes summary:` manifest entry, so the staged manifest parser stays covered for another release-artifact path in addition to the existing release summary and provenance-only fields.
 - [x] The release compatibility profile now also surfaces the exact `Polich/Page`, `Polich Page`, `Equal/1=0 Aries`, `Equal (cusp 1 = 0° Aries)`, and `Neo-Porphyry` spellings in the compact release summary and release notes, and the compatibility profile identifier has been bumped to `0.6.121` so the new alias batch stays versioned with the current profile.
