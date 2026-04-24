@@ -4935,6 +4935,19 @@ mod tests {
     }
 
     #[test]
+    fn compatibility_profile_command_surfaces_recent_release_profile_entries() {
+        let rendered =
+            render_cli(&["compatibility-profile"]).expect("compatibility profile should render");
+        assert!(rendered.contains("Equal (MC) table of houses"));
+        assert!(rendered.contains("Equal (1=Aries) table of houses"));
+        assert!(rendered.contains("Pullen SR (Sinusoidal Ratio) table of houses"));
+        assert!(rendered.contains("True Citra Paksha"));
+        assert!(rendered.contains("Sunil Sheoran / Vedic Sheoran / Sheoran ayanamsa spellings"));
+        assert!(rendered.contains("P.V.R. Narasimha Rao"));
+        assert!(rendered.contains("B. V. Raman"));
+    }
+
+    #[test]
     fn compatibility_profile_summary_command_renders_the_summary() {
         let rendered = render_cli(&["compatibility-profile-summary"])
             .expect("compatibility profile summary should render");

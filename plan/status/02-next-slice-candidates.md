@@ -121,6 +121,8 @@ Completed first slice (2026-04-24):
 
 Progress note (2026-04-24): backend matrix reports now include explicit implementation-status labels and notes for each backend, and the compact matrix summary counts statuses separately from body/catalog coverage. This keeps fixture, partial source-backed, preliminary algorithm, prototype artifact, and routing façade states visible in release artifacts without implying production accuracy from catalog presence alone.
 
+Progress note (2026-04-24): validation-side compatibility-profile coverage now also asserts several recently added release-profile entries — including the Equal (MC) and Equal (1=Aries) house-table forms, Pullen SR, True Citra Paksha, P.V.R. Narasimha Rao, and B. V. Raman — so the rendered release profile stays anchored to the current catalog breadth while the broader release-profile status audit continues.
+
 Remaining suggested scope:
 
 - add tests around additional known release-profile entries and release-profile status lines.
