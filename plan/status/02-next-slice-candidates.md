@@ -24,7 +24,7 @@ Progress note (2026-04-24): the truncated VSOP87B source-backed path has been ex
 
 Progress note (2026-04-24): the same truncated VSOP87B source-backed path has been extended to Mars. `pleiades-vsop87` now evaluates a checked-in leading-term IMCCE VSOP87B Mars slice, reduces it against the Earth slice, reports Mars provenance in metadata, and tests the J2000 geocentric Mars result against full-file IMCCE VSOP87B Mars/Earth golden values.
 
-Progress note (2026-04-24): the mixed VSOP87 implementation now exposes per-body source profiles from `pleiades-vsop87` and renders them in the validation backend matrix. The profiles distinguish source-backed truncated VSOP87B paths from fallback mean-element paths, reducing ambiguity until complete generated tables land.
+Progress note (2026-04-24): the mixed VSOP87 implementation now exposes per-body source profiles from `pleiades-vsop87` and renders them in the validation backend matrix. The profiles distinguish vendored full-file VSOP87B, source-backed truncated VSOP87B, and fallback mean-element paths, reducing ambiguity until complete generated tables land.
 
 Progress note (2026-04-24): the truncated VSOP87B source-backed path has been extended to Jupiter. `pleiades-vsop87` now evaluates a checked-in leading-term IMCCE VSOP87B Jupiter slice, reduces it against the Earth slice, reports Jupiter provenance in metadata/source profiles, and tests the J2000 geocentric Jupiter result against full-file IMCCE VSOP87B Jupiter/Earth golden values.
 
