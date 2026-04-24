@@ -43,7 +43,11 @@ pub const fn default_chart_bodies() -> &'static [CelestialBody] {
 pub struct ChartRequest {
     /// The instant to chart.
     pub instant: Instant,
-    /// Optional observer location.
+    /// Optional observer location used for house calculations.
+    ///
+    /// Body positions are still queried geocentrically. A future topocentric
+    /// chart mode should add an explicit position-mode field instead of
+    /// reusing this house-observer value implicitly.
     pub observer: Option<ObserverLocation>,
     /// Bodies to include in the chart report.
     pub bodies: Vec<CelestialBody>,
@@ -1255,7 +1259,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                 let body_request = EphemerisRequest {
                     body: body.clone(),
                     instant: request.instant,
-                    observer: request.observer.clone(),
+                    observer: None,
                     frame: pleiades_types::CoordinateFrame::Ecliptic,
                     zodiac_mode: backend_zodiac_mode.clone(),
                     apparent: request.apparentness,
@@ -1344,6 +1348,13 @@ mod tests {
         }
 
         fn position(&self, request: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+            if request.observer.is_some() {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidObserver,
+                    "toy chart backend is geocentric only",
+                ));
+            }
+
             let longitude = match request.body {
                 CelestialBody::Sun => Longitude::from_degrees(15.0),
                 CelestialBody::Moon => Longitude::from_degrees(45.0),

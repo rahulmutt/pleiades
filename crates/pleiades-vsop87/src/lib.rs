@@ -291,6 +291,13 @@ impl EphemerisBackend for Vsop87Backend {
             ));
         }
 
+        if req.observer.is_some() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidObserver,
+                "the VSOP87 MVP backend is geocentric only; topocentric positions are not implemented",
+            ));
+        }
+
         let days = Self::days_since_j2000(req.instant);
         let geocentric = Self::geocentric_coordinates(req.body.clone(), days).ok_or_else(|| {
             EphemerisError::new(
@@ -435,6 +442,25 @@ mod tests {
             .distance_au_per_day
             .expect("distance speed should exist")
             .is_finite());
+    }
+
+    #[test]
+    fn topocentric_requests_are_rejected_explicitly() {
+        let backend = Vsop87Backend::new();
+        let mut request = EphemerisRequest::new(
+            CelestialBody::Mars,
+            Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt),
+        );
+        request.observer = Some(pleiades_types::ObserverLocation::new(
+            Latitude::from_degrees(51.5),
+            Longitude::from_degrees(0.0),
+            None,
+        ));
+
+        let error = backend
+            .position(&request)
+            .expect_err("topocentric requests should be unsupported");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
     }
 
     #[test]

@@ -46,16 +46,19 @@ Remaining suggested scope:
 - report interpolation quality and tolerances in validation summaries using the existing aggregate and per-body comparison sections;
 - consider higher-order interpolation once measured linear error is insufficient.
 
-## 4. Delta T and time-scale policy
+## 4. Delta T, time-scale, and observer policy
 
-**Goal:** make time semantics explicit before more accuracy claims are added.
+**Goal:** make time and observer semantics explicit before more accuracy claims are added.
 
 Suggested scope:
 
 - add a project-level policy document or rustdoc section;
 - identify which APIs accept UTC/UT/TT/TDB and where conversion is caller-provided versus library-provided;
-- add tests for unsupported or ambiguous time-scale requests;
+- keep chart-level house observers separate from topocentric backend position requests unless a chart API explicitly adds a topocentric position mode;
+- add tests for unsupported or ambiguous time-scale and observer-bearing topocentric requests;
 - update backend metadata and validation reports.
+
+Progress note (2026-04-24): chart assembly now uses the observer location for house calculations without passing it into geocentric body-position backend requests, and the VSOP87/ELP placeholder backends now reject direct observer-bearing requests with `InvalidObserver`.
 
 ## 5. Artifact profile schema draft
 

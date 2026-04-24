@@ -36,11 +36,12 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Include selected asteroid coverage for Ceres, Pallas, Juno, and Vesta when source data is available.
    - Preserve snapshot fixtures as small regression/golden tests.
 
-4. Strengthen time, apparentness, and coordinate semantics.
+4. Strengthen time, apparentness, observer, and coordinate semantics.
    - Publish the initial Delta T policy used by high-level and backend APIs.
    - Clarify TT/UT/TDB handling in requests and validation data.
+   - Keep chart house observers separate from backend topocentric position requests unless an explicit topocentric chart mode is added.
    - Implement equatorial/ecliptic transforms where the release profile claims them.
-   - Ensure apparent/mean flags either produce distinct documented behavior or return structured unsupported-feature errors.
+   - Ensure topocentric observer requests and apparent/mean flags either produce distinct documented behavior or return structured unsupported-feature errors.
 
 5. Expand validation evidence.
    - Add golden positions for major bodies, lunar points, and baseline asteroids.

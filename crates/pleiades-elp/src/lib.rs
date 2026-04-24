@@ -238,6 +238,13 @@ impl EphemerisBackend for ElpBackend {
             ));
         }
 
+        if req.observer.is_some() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidObserver,
+                "the ELP backend is geocentric only; topocentric lunar positions are not implemented",
+            ));
+        }
+
         let days = Self::days_since_j2000(req.instant);
         let body = req.body.clone();
         let mut result = EphemerisResult::new(
@@ -367,5 +374,24 @@ mod tests {
         assert!(backend.supports_body(CelestialBody::MeanNode));
         assert!(backend.supports_body(CelestialBody::TrueNode));
         assert!(!backend.supports_body(CelestialBody::Sun));
+    }
+
+    #[test]
+    fn topocentric_requests_are_rejected_explicitly() {
+        let backend = ElpBackend::new();
+        let mut request = EphemerisRequest::new(
+            CelestialBody::Moon,
+            Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt),
+        );
+        request.observer = Some(pleiades_types::ObserverLocation::new(
+            Latitude::from_degrees(51.5),
+            Longitude::from_degrees(0.0),
+            None,
+        ));
+
+        let error = backend
+            .position(&request)
+            .expect_err("topocentric requests should be unsupported");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
     }
 }
