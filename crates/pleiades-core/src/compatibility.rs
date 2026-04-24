@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.117";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.118";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -314,6 +314,7 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
         ],
         "Carter (poli-equatorial)" => &[
             "Carter",
+            "Carter's poli-equatorial",
             "Carter's poli-equatorial table of houses",
             "Poli-Equatorial",
             "Poli-equatorial",
@@ -1339,6 +1340,7 @@ mod tests {
         ));
         assert!(rendered.contains("Carter (poli-equatorial)"));
         assert!(rendered.contains("Carter's poli-equatorial"));
+        assert!(rendered.contains("Carter, Carter's poli-equatorial, Carter's poli-equatorial table of houses, Poli-Equatorial, Poli-equatorial -> Carter (poli-equatorial)"));
         assert!(rendered.contains("Horizon/Azimuth"));
         assert!(rendered.contains("APC"));
         assert!(rendered.contains("Krusinski-Pisa-Goelzer"));
