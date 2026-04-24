@@ -3,8 +3,8 @@
 //!
 //! The Earth file is vendored verbatim from the public `VSOP87B.ear` source and
 //! parsed in pure Rust at startup. That gives the Sun path a complete source-file
-//! evaluation path while the remaining planets still use the smaller truncated
-//! slices that were added first.
+//! evaluation path while the remaining planets now use the same vendored
+//! full-file parsing path.
 
 use std::sync::OnceLock;
 

@@ -3033,13 +3033,22 @@ fn format_vsop87_body_evidence_summary() -> String {
                     row.source_kind == pleiades_vsop87::Vsop87BodySourceKind::TruncatedVsop87b
                 })
                 .count();
-            format!(
-                "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} truncated slice), {} within interim limits",
-                evidence.len(),
-                vendored_count,
-                truncated_count,
-                within_interim_limits,
-            )
+            if truncated_count == 0 {
+                format!(
+                    "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file), {} within interim limits",
+                    evidence.len(),
+                    vendored_count,
+                    within_interim_limits,
+                )
+            } else {
+                format!(
+                    "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} truncated slice), {} within interim limits",
+                    evidence.len(),
+                    vendored_count,
+                    truncated_count,
+                    within_interim_limits,
+                )
+            }
         }
         None => "VSOP87 source-backed body evidence: unavailable".to_string(),
     }
@@ -3715,7 +3724,7 @@ fn comparison_tolerance_for_body(body: &CelestialBody) -> ComparisonTolerance {
         | CelestialBody::Saturn
         | CelestialBody::Uranus
         | CelestialBody::Neptune => ComparisonTolerance {
-            profile: "phase-1 truncated-VSOP87B planetary evidence",
+            profile: "phase-1 full-file VSOP87B planetary evidence",
             max_longitude_delta_deg: REGRESSION_LONGITUDE_THRESHOLD_DEG,
             max_latitude_delta_deg: REGRESSION_LATITUDE_THRESHOLD_DEG,
             max_distance_delta_au: Some(REGRESSION_DISTANCE_THRESHOLD_AU),
@@ -4274,7 +4283,7 @@ fn implemented_backend_catalog() -> Vec<BackendMatrixEntry> {
             label: "VSOP87 planetary backend",
             metadata: Vsop87Backend::new().metadata(),
             implementation_status: BackendImplementationStatus::PartialSourceBacked,
-            status_note: "Sun, Mercury, Venus, and Mars now use vendored full-file VSOP87B source files, Jupiter/Saturn/Uranus/Neptune still use truncated slices, and Pluto remains a mean-element fallback pending a selected source path",
+            status_note: "Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, and Neptune now use vendored full-file VSOP87B source files, and Pluto remains a mean-element fallback pending a selected source path",
             expected_error_kinds: VSOP87_EXPECTED_ERROR_KINDS,
             required_data_files: &[],
         },
@@ -4959,7 +4968,7 @@ mod tests {
         assert!(report.contains("VSOP87 source-backed evidence"));
         assert!(report.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(report.contains(
-            "VSOP87 source-backed body evidence: 8 body profiles (4 vendored full-file, 4 truncated slice), 8 within interim limits"
+            "VSOP87 source-backed body evidence: 8 body profiles (8 vendored full-file), 8 within interim limits"
         ));
         assert!(report.contains("House validation corpus"));
         assert!(report.contains("Benchmark summaries"));
@@ -5094,7 +5103,7 @@ mod tests {
         assert_eq!(tolerance_summaries.len(), body_summaries.len());
         assert!(tolerance_summaries.iter().any(|summary| {
             summary.body == CelestialBody::Jupiter
-                && summary.tolerance.profile.contains("truncated-VSOP87B")
+                && summary.tolerance.profile.contains("full-file VSOP87B")
         }));
         assert!(tolerance_summaries
             .iter()
@@ -5103,7 +5112,7 @@ mod tests {
         let rendered = report.to_string();
         assert!(rendered.contains("Body comparison summaries"));
         assert!(rendered.contains("Expected tolerance status"));
-        assert!(rendered.contains("phase-1 truncated-VSOP87B planetary evidence"));
+        assert!(rendered.contains("phase-1 full-file VSOP87B planetary evidence"));
         assert!(rendered.contains("Notable regressions"));
     }
 
@@ -5493,10 +5502,10 @@ mod tests {
         assert!(rendered.contains("Sun: VendoredVsop87b from VSOP87B.ear"));
         assert!(rendered.contains("Mercury: VendoredVsop87b from VSOP87B.mer"));
         assert!(rendered.contains("Mars: VendoredVsop87b from VSOP87B.mar"));
-        assert!(rendered.contains("Jupiter: TruncatedVsop87b"));
-        assert!(rendered.contains("Saturn: TruncatedVsop87b"));
-        assert!(rendered.contains("Uranus: TruncatedVsop87b"));
-        assert!(rendered.contains("Neptune: TruncatedVsop87b"));
+        assert!(rendered.contains("Jupiter: VendoredVsop87b"));
+        assert!(rendered.contains("Saturn: VendoredVsop87b"));
+        assert!(rendered.contains("Uranus: VendoredVsop87b"));
+        assert!(rendered.contains("Neptune: VendoredVsop87b"));
         assert!(rendered.contains("Pluto: MeanOrbitalElements"));
         assert!(rendered.contains("Meeus-style truncated lunar orbit formulas"));
         assert!(rendered.contains("NASA/JPL Horizons API vector tables (DE441)"));
@@ -5532,7 +5541,7 @@ mod tests {
         assert!(rendered.contains("VSOP87 source documentation: 8 source specs, 8 source-backed body profiles, 1 fallback mean-element body profile"));
         assert!(rendered.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(rendered.contains(
-            "VSOP87 source-backed body evidence: 8 body profiles (4 vendored full-file, 4 truncated slice), 8 within interim limits"
+            "VSOP87 source-backed body evidence: 8 body profiles (8 vendored full-file), 8 within interim limits"
         ));
         assert!(rendered.contains("Distinct bodies covered:"));
         assert!(rendered.contains("Distinct coordinate frames:"));
@@ -5824,7 +5833,7 @@ version = "0.9.0"
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(validation_report_summary.contains("VSOP87 source-backed evidence"));
         assert!(validation_report_summary.contains(
-            "VSOP87 source-backed body evidence: 8 body profiles (4 vendored full-file, 4 truncated slice), 8 within interim limits"
+            "VSOP87 source-backed body evidence: 8 body profiles (8 vendored full-file), 8 within interim limits"
         ));
         assert!(validation_report_summary
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));

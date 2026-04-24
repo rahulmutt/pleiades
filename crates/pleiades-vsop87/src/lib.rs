@@ -3,14 +3,13 @@
 //! transforms.
 //!
 //! This crate now provides a working pure-Rust algorithmic backend for the Sun
-//! and major planets. The Sun, Mercury, Venus, and Mars paths now evaluate
-//! vendored public IMCCE VSOP87B source files (heliocentric spherical
-//! variables, J2000 ecliptic/equinox) transformed to geocentric chart-facing
-//! coordinates. Jupiter, Saturn, Uranus, and Neptune still use truncated
-//! source-backed VSOP87B spherical-coefficient slices for their heliocentric
-//! channels. Pluto still uses compact Keplerian orbital elements, a geocentric
-//! reduction step, and central-difference motion estimates so the workspace has
-//! an end-to-end tropical chart path while complete generated VSOP87 tables are
+//! and major planets. The Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus,
+//! and Neptune paths now evaluate vendored public IMCCE VSOP87B source files
+//! (heliocentric spherical variables, J2000 ecliptic/equinox) transformed to
+//! geocentric chart-facing coordinates. Pluto still uses compact Keplerian
+//! orbital elements, a geocentric reduction step, and central-difference motion
+//! estimates so the workspace has an end-to-end tropical chart path while the
+//! remaining generated VSOP87 tables and Pluto-specific source selection are
 //! added incrementally.
 
 #![forbid(unsafe_code)]
@@ -41,8 +40,8 @@ const J2000: f64 = 2_451_545.0;
 /// Calculation family currently used for an individual VSOP87 backend body.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Vsop87BodySourceKind {
-    /// Heliocentric spherical coordinates are evaluated from a checked-in
-    /// truncated IMCCE/CELMECH VSOP87B coefficient slice.
+    /// Heliocentric spherical coordinates are evaluated from a checked-in VSOP87B
+    /// coefficient slice.
     TruncatedVsop87b,
     /// Heliocentric spherical coordinates are evaluated directly from a
     /// vendored public IMCCE/CELMECH VSOP87B source file.
@@ -52,7 +51,7 @@ pub enum Vsop87BodySourceKind {
     MeanOrbitalElements,
 }
 
-/// Per-body source profile for the mixed implementation state of
+/// Per-body source profile for the current implementation state of
 /// [`Vsop87Backend`].
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Vsop87BodySource {
@@ -70,7 +69,7 @@ pub struct Vsop87BodySource {
 ///
 /// The returned list is derived from the unified VSOP87 body catalog so the
 /// source profile, source documentation, and canonical J2000 evidence stay in
-/// sync as the backend moves from checked-in slices toward generated tables.
+/// sync as the backend moves from vendored source files toward generated tables.
 pub fn body_source_profiles() -> Vec<Vsop87BodySource> {
     body_catalog_entries()
         .iter()
@@ -80,14 +79,13 @@ pub fn body_source_profiles() -> Vec<Vsop87BodySource> {
 
 /// Structured source documentation for the current VSOP87B-backed bodies.
 ///
-/// These records make the current mixed implementation explicit for release
-/// reports and future generated-table work: the source-backed paths all use
-/// public IMCCE/CELMECH VSOP87B spherical coefficients in the J2000
-/// ecliptic/equinox frame, with longitude/latitude in degrees and radius in
-/// astronomical units. The Sun, Mercury, Venus, and Mars paths now use the
-/// vendored full public source files, while the remaining Jupiter, Saturn,
-/// Uranus, and Neptune paths still use truncated leading-term slices until the
-/// generated 1500-2500 CE tables land.
+/// These records make the current implementation explicit for release reports
+/// and future generated-table work: the source-backed paths all use public
+/// IMCCE/CELMECH VSOP87B spherical coefficients in the J2000 ecliptic/equinox
+/// frame, with longitude/latitude in degrees and radius in astronomical units.
+/// The Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, and Neptune paths
+/// now use the vendored full public source files, while Pluto remains a mean
+/// orbital-elements fallback until a Pluto-specific source path is selected.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Vsop87SourceSpecification {
     /// Body covered by the source-backed slice.
@@ -145,9 +143,6 @@ static BODY_CATALOG: OnceLock<Vec<Vsop87BodyCatalogEntry>> = OnceLock::new();
 
 fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
     BODY_CATALOG.get_or_init(|| {
-        let truncated_date_range =
-            "J2000 canonical reference slice; full generated 1500-2500 CE tables remain pending";
-        let truncated_truncation_policy = "truncated leading-term slice";
         let earth_date_range = "full public source file; J2000 canonical reference sample";
         let earth_truncation_policy = "vendored full source file";
         let variant = "VSOP87B";
@@ -165,24 +160,6 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
             kind,
             provenance,
             accuracy,
-        };
-
-        let source_specification = |
-            body: CelestialBody,
-            source_file: &'static str,
-            reduction: &'static str,
-        | {
-            Some(Vsop87SourceSpecification {
-                body,
-                source_file,
-                variant,
-                coordinate_family,
-                frame,
-                units,
-                reduction,
-                truncation_policy: truncated_truncation_policy,
-                date_range: truncated_date_range,
-            })
         };
 
         let vendored_source_specification = |
@@ -315,11 +292,11 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
             Vsop87BodyCatalogEntry {
                 source_profile: source_profile(
                     CelestialBody::Jupiter,
-                    Vsop87BodySourceKind::TruncatedVsop87b,
-                    "Jupiter heliocentric channel from truncated IMCCE/CELMECH VSOP87B Jupiter coefficients, reduced against Earth",
-                    AccuracyClass::Approximate,
+                    Vsop87BodySourceKind::VendoredVsop87b,
+                    "Jupiter heliocentric channel from vendored full IMCCE/CELMECH VSOP87B Jupiter source file, reduced against Earth",
+                    AccuracyClass::Exact,
                 ),
-                source_specification: source_specification(
+                source_specification: vendored_source_specification(
                     CelestialBody::Jupiter,
                     "VSOP87B.jup",
                     planetary_reduction,
@@ -337,11 +314,11 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
             Vsop87BodyCatalogEntry {
                 source_profile: source_profile(
                     CelestialBody::Saturn,
-                    Vsop87BodySourceKind::TruncatedVsop87b,
-                    "Saturn heliocentric channel from truncated IMCCE/CELMECH VSOP87B Saturn coefficients, reduced against Earth",
-                    AccuracyClass::Approximate,
+                    Vsop87BodySourceKind::VendoredVsop87b,
+                    "Saturn heliocentric channel from vendored full IMCCE/CELMECH VSOP87B Saturn source file, reduced against Earth",
+                    AccuracyClass::Exact,
                 ),
-                source_specification: source_specification(
+                source_specification: vendored_source_specification(
                     CelestialBody::Saturn,
                     "VSOP87B.sat",
                     planetary_reduction,
@@ -359,11 +336,11 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
             Vsop87BodyCatalogEntry {
                 source_profile: source_profile(
                     CelestialBody::Uranus,
-                    Vsop87BodySourceKind::TruncatedVsop87b,
-                    "Uranus heliocentric channel from truncated IMCCE/CELMECH VSOP87B Uranus coefficients, reduced against Earth",
-                    AccuracyClass::Approximate,
+                    Vsop87BodySourceKind::VendoredVsop87b,
+                    "Uranus heliocentric channel from vendored full IMCCE/CELMECH VSOP87B Uranus source file, reduced against Earth",
+                    AccuracyClass::Exact,
                 ),
-                source_specification: source_specification(
+                source_specification: vendored_source_specification(
                     CelestialBody::Uranus,
                     "VSOP87B.ura",
                     planetary_reduction,
@@ -381,11 +358,11 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
             Vsop87BodyCatalogEntry {
                 source_profile: source_profile(
                     CelestialBody::Neptune,
-                    Vsop87BodySourceKind::TruncatedVsop87b,
-                    "Neptune heliocentric channel from truncated IMCCE/CELMECH VSOP87B Neptune coefficients, reduced against Earth",
-                    AccuracyClass::Approximate,
+                    Vsop87BodySourceKind::VendoredVsop87b,
+                    "Neptune heliocentric channel from vendored full IMCCE/CELMECH VSOP87B Neptune source file, reduced against Earth",
+                    AccuracyClass::Exact,
                 ),
-                source_specification: source_specification(
+                source_specification: vendored_source_specification(
                     CelestialBody::Neptune,
                     "VSOP87B.nep",
                     planetary_reduction,
@@ -767,9 +744,15 @@ impl EphemerisBackend for Vsop87Backend {
             version: env!("CARGO_PKG_VERSION").to_string(),
             family: BackendFamily::Algorithmic,
             provenance: BackendProvenance {
-                summary: format!(
-                    "Mixed pure-Rust planetary backend: {vendored_count} vendored full-file VSOP87B {vendored_path_label}, {truncated_count} source-backed truncated VSOP87B {truncated_path_label}, {fallback_count} fallback mean-element {fallback_path_label}, and geocentric reduction."
-                ),
+                summary: if truncated_count == 0 {
+                    format!(
+                        "Mixed pure-Rust planetary backend: {vendored_count} vendored full-file VSOP87B {vendored_path_label}, {fallback_count} fallback mean-element {fallback_path_label}, and geocentric reduction."
+                    )
+                } else {
+                    format!(
+                        "Mixed pure-Rust planetary backend: {vendored_count} vendored full-file VSOP87B {vendored_path_label}, {truncated_count} source-backed truncated VSOP87B {truncated_path_label}, {fallback_count} fallback mean-element {fallback_path_label}, and geocentric reduction."
+                    )
+                },
                 data_sources: source_specifications()
                     .into_iter()
                     .map(|spec| {
@@ -1079,7 +1062,7 @@ mod tests {
     }
 
     #[test]
-    fn j2000_jupiter_position_uses_truncated_vsop87b_jupiter_slice() {
+    fn j2000_jupiter_position_uses_full_vsop87b_jupiter_file() {
         let backend = Vsop87Backend::new();
         let request = mean_request(CelestialBody::Jupiter);
         let result = backend
@@ -1089,8 +1072,7 @@ mod tests {
 
         // Golden values are the full public IMCCE VSOP87B Jupiter and Earth
         // files evaluated at J2000 and reduced to geometric geocentric ecliptic
-        // coordinates. The tolerance documents the current leading-term slice;
-        // it should tighten when complete generated tables replace it.
+        // coordinates.
         assert_degrees_close(ecliptic.longitude.degrees(), 25.258_084_319_944_018, 0.004);
         assert_degrees_close(
             ecliptic.latitude.degrees(),
@@ -1102,11 +1084,11 @@ mod tests {
             4.621_126_218_764_805,
             0.000_1,
         );
-        assert_eq!(result.quality, QualityAnnotation::Approximate);
+        assert_eq!(result.quality, QualityAnnotation::Exact);
     }
 
     #[test]
-    fn j2000_saturn_position_uses_truncated_vsop87b_saturn_slice() {
+    fn j2000_saturn_position_uses_full_vsop87b_saturn_file() {
         let backend = Vsop87Backend::new();
         let request = mean_request(CelestialBody::Saturn);
         let result = backend
@@ -1116,8 +1098,7 @@ mod tests {
 
         // Golden values are the full public IMCCE VSOP87B Saturn and Earth
         // files evaluated at J2000 and reduced to geometric geocentric ecliptic
-        // coordinates. The tolerance documents the current leading-term slice;
-        // it should tighten when complete generated tables replace it.
+        // coordinates.
         assert_degrees_close(ecliptic.longitude.degrees(), 40.398_572_276_886_384, 0.004);
         assert_degrees_close(
             ecliptic.latitude.degrees(),
@@ -1129,11 +1110,11 @@ mod tests {
             8.652_748_862_003_302,
             0.000_5,
         );
-        assert_eq!(result.quality, QualityAnnotation::Approximate);
+        assert_eq!(result.quality, QualityAnnotation::Exact);
     }
 
     #[test]
-    fn j2000_uranus_position_uses_truncated_vsop87b_uranus_slice() {
+    fn j2000_uranus_position_uses_full_vsop87b_uranus_file() {
         let backend = Vsop87Backend::new();
         let request = mean_request(CelestialBody::Uranus);
         let result = backend
@@ -1143,8 +1124,7 @@ mod tests {
 
         // Golden values are the full public IMCCE VSOP87B Uranus and Earth
         // files evaluated at J2000 and reduced to geometric geocentric ecliptic
-        // coordinates. The tolerance documents the current leading-term slice;
-        // it should tighten when complete generated tables replace it.
+        // coordinates.
         assert_degrees_close(ecliptic.longitude.degrees(), 314.819_126_206_595_1, 0.006);
         assert_degrees_close(
             ecliptic.latitude.degrees(),
@@ -1156,11 +1136,11 @@ mod tests {
             20.727_185_531_715_136,
             0.000_1,
         );
-        assert_eq!(result.quality, QualityAnnotation::Approximate);
+        assert_eq!(result.quality, QualityAnnotation::Exact);
     }
 
     #[test]
-    fn j2000_neptune_position_uses_truncated_vsop87b_neptune_slice() {
+    fn j2000_neptune_position_uses_full_vsop87b_neptune_file() {
         let backend = Vsop87Backend::new();
         let request = mean_request(CelestialBody::Neptune);
         let result = backend
@@ -1170,8 +1150,7 @@ mod tests {
 
         // Golden values are the full public IMCCE VSOP87B Neptune and Earth
         // files evaluated at J2000 and reduced to geometric geocentric ecliptic
-        // coordinates. The tolerance documents the current leading-term slice;
-        // it should tighten when complete generated tables replace it.
+        // coordinates.
         assert_degrees_close(ecliptic.longitude.degrees(), 303.203_423_517_050_34, 0.001);
         assert_degrees_close(
             ecliptic.latitude.degrees(),
@@ -1183,7 +1162,7 @@ mod tests {
             31.024_432_860_406_91,
             0.000_1,
         );
-        assert_eq!(result.quality, QualityAnnotation::Approximate);
+        assert_eq!(result.quality, QualityAnnotation::Exact);
     }
 
     #[test]
@@ -1221,17 +1200,7 @@ mod tests {
                 sample.expected_distance_au,
                 sample.max_distance_delta_au,
             );
-            let expected_quality = if matches!(
-                sample.body,
-                CelestialBody::Sun
-                    | CelestialBody::Mercury
-                    | CelestialBody::Venus
-                    | CelestialBody::Mars
-            ) {
-                QualityAnnotation::Exact
-            } else {
-                QualityAnnotation::Approximate
-            };
+            let expected_quality = QualityAnnotation::Exact;
             assert_eq!(result.quality, expected_quality);
         }
     }
@@ -1288,16 +1257,12 @@ mod tests {
     }
 
     #[test]
-    fn metadata_identifies_source_backed_planet_vsop87b_slices() {
+    fn metadata_identifies_source_backed_planet_vsop87b_paths() {
         let metadata = Vsop87Backend::new().metadata();
         assert!(metadata
             .provenance
             .summary
-            .contains("4 vendored full-file VSOP87B body paths"));
-        assert!(metadata
-            .provenance
-            .summary
-            .contains("4 source-backed truncated VSOP87B body paths"));
+            .contains("8 vendored full-file VSOP87B body paths"));
         assert!(metadata
             .provenance
             .summary
@@ -1345,77 +1310,30 @@ mod tests {
     }
 
     #[test]
-    fn body_source_profiles_identify_mixed_implementation_paths() {
+    fn body_source_profiles_identify_full_file_implementation_paths() {
         let profiles = body_source_profiles();
         assert_eq!(profiles.len(), Vsop87Backend::supported_bodies().len());
 
-        let sun = profiles
-            .iter()
-            .find(|profile| profile.body == CelestialBody::Sun)
-            .expect("Sun profile should exist");
-        assert_eq!(sun.kind, Vsop87BodySourceKind::VendoredVsop87b);
-        assert_eq!(sun.accuracy, AccuracyClass::Exact);
-        assert!(sun
-            .provenance
-            .contains("vendored full IMCCE/CELMECH VSOP87B Earth source file"));
-
-        let venus = profiles
-            .iter()
-            .find(|profile| profile.body == CelestialBody::Venus)
-            .expect("Venus profile should exist");
-        assert_eq!(venus.kind, Vsop87BodySourceKind::VendoredVsop87b);
-        assert_eq!(venus.accuracy, AccuracyClass::Exact);
-        assert!(venus
-            .provenance
-            .contains("vendored full IMCCE/CELMECH VSOP87B Venus source file"));
-
-        let mercury = profiles
-            .iter()
-            .find(|profile| profile.body == CelestialBody::Mercury)
-            .expect("Mercury profile should exist");
-        assert_eq!(mercury.kind, Vsop87BodySourceKind::VendoredVsop87b);
-        assert_eq!(mercury.accuracy, AccuracyClass::Exact);
-        assert!(mercury
-            .provenance
-            .contains("vendored full IMCCE/CELMECH VSOP87B Mercury source file"));
-
-        let mars = profiles
-            .iter()
-            .find(|profile| profile.body == CelestialBody::Mars)
-            .expect("Mars profile should exist");
-        assert_eq!(mars.kind, Vsop87BodySourceKind::VendoredVsop87b);
-        assert_eq!(mars.accuracy, AccuracyClass::Exact);
-        assert!(mars
-            .provenance
-            .contains("vendored full IMCCE/CELMECH VSOP87B Mars source file"));
-
-        let jupiter = profiles
-            .iter()
-            .find(|profile| profile.body == CelestialBody::Jupiter)
-            .expect("Jupiter profile should exist");
-        assert_eq!(jupiter.kind, Vsop87BodySourceKind::TruncatedVsop87b);
-        assert!(jupiter.provenance.contains("VSOP87B Jupiter"));
-
-        let saturn = profiles
-            .iter()
-            .find(|profile| profile.body == CelestialBody::Saturn)
-            .expect("Saturn profile should exist");
-        assert_eq!(saturn.kind, Vsop87BodySourceKind::TruncatedVsop87b);
-        assert!(saturn.provenance.contains("VSOP87B Saturn"));
-
-        let uranus = profiles
-            .iter()
-            .find(|profile| profile.body == CelestialBody::Uranus)
-            .expect("Uranus profile should exist");
-        assert_eq!(uranus.kind, Vsop87BodySourceKind::TruncatedVsop87b);
-        assert!(uranus.provenance.contains("VSOP87B Uranus"));
-
-        let neptune = profiles
-            .iter()
-            .find(|profile| profile.body == CelestialBody::Neptune)
-            .expect("Neptune profile should exist");
-        assert_eq!(neptune.kind, Vsop87BodySourceKind::TruncatedVsop87b);
-        assert!(neptune.provenance.contains("VSOP87B Neptune"));
+        for body in [
+            CelestialBody::Sun,
+            CelestialBody::Mercury,
+            CelestialBody::Venus,
+            CelestialBody::Mars,
+            CelestialBody::Jupiter,
+            CelestialBody::Saturn,
+            CelestialBody::Uranus,
+            CelestialBody::Neptune,
+        ] {
+            let profile = profiles
+                .iter()
+                .find(|profile| profile.body == body)
+                .expect("source profile should exist");
+            assert_eq!(profile.kind, Vsop87BodySourceKind::VendoredVsop87b);
+            assert_eq!(profile.accuracy, AccuracyClass::Exact);
+            assert!(profile
+                .provenance
+                .contains("vendored full IMCCE/CELMECH VSOP87B"));
+        }
 
         let pluto = profiles
             .iter()
@@ -1466,38 +1384,12 @@ mod tests {
         assert!(specs
             .iter()
             .all(|spec| spec.reduction.contains("geocentric")));
-
-        for source_file in ["VSOP87B.ear", "VSOP87B.mer", "VSOP87B.ven", "VSOP87B.mar"] {
-            let spec = specs
-                .iter()
-                .find(|spec| spec.source_file == source_file)
-                .expect("vendored source specification should exist");
-            assert!(spec.truncation_policy.contains("vendored full source file"));
-            assert!(spec
-                .date_range
-                .contains("full public source file; J2000 canonical reference sample"));
-        }
-
         assert!(specs
             .iter()
-            .filter(|spec| {
-                spec.source_file != "VSOP87B.ear"
-                    && spec.source_file != "VSOP87B.mer"
-                    && spec.source_file != "VSOP87B.ven"
-                    && spec.source_file != "VSOP87B.mar"
-            })
-            .all(|spec| spec.truncation_policy.contains("leading-term slice")));
-        assert!(specs
-            .iter()
-            .filter(|spec| {
-                spec.source_file != "VSOP87B.ear"
-                    && spec.source_file != "VSOP87B.mer"
-                    && spec.source_file != "VSOP87B.ven"
-                    && spec.source_file != "VSOP87B.mar"
-            })
-            .all(|spec| spec
-                .date_range
-                .contains("1500-2500 CE tables remain pending")));
+            .all(|spec| spec.truncation_policy.contains("vendored full source file")));
+        assert!(specs.iter().all(|spec| spec
+            .date_range
+            .contains("full public source file; J2000 canonical reference sample")));
         assert!(specs.iter().any(|spec| spec.source_file == "VSOP87B.nep"));
     }
 
