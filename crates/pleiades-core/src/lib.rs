@@ -103,7 +103,7 @@ pub use pleiades_types::{
     Angle, Ayanamsa, CelestialBody, CoordinateFrame, CustomAyanamsa, CustomBodyId,
     CustomHouseSystem, EclipticCoordinates, EquatorialCoordinates, HouseSystem, Instant, JulianDay,
     Latitude, Longitude, Motion, MotionDirection, ObserverLocation, TimeRange, TimeScale,
-    ZodiacMode, ZodiacSign,
+    TimeScaleConversionError, ZodiacMode, ZodiacSign, SECONDS_PER_DAY,
 };
 pub use release_profiles::{current_release_profile_identifiers, ReleaseProfileIdentifiers};
 

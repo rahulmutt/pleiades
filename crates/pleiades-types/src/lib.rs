@@ -23,6 +23,7 @@
 #![forbid(unsafe_code)]
 
 use core::fmt;
+use core::time::Duration;
 
 /// An angular quantity measured in degrees.
 ///
@@ -167,6 +168,15 @@ impl JulianDay {
     pub const fn days(self) -> f64 {
         self.0
     }
+
+    /// Returns a Julian day shifted by the supplied number of SI seconds.
+    ///
+    /// This is a mechanical day-count operation. It does not choose or model a
+    /// time-scale conversion policy by itself; callers must provide the offset
+    /// appropriate for the source and target scales.
+    pub fn add_seconds(self, seconds: f64) -> Self {
+        Self(self.0 + seconds / SECONDS_PER_DAY)
+    }
 }
 
 impl fmt::Display for JulianDay {
@@ -190,6 +200,37 @@ pub enum TimeScale {
     Tdb,
 }
 
+/// Number of SI seconds in one Julian day.
+pub const SECONDS_PER_DAY: f64 = 86_400.0;
+
+/// Error returned when a caller-provided time-scale conversion is requested
+/// from an instant tagged with the wrong source scale.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct TimeScaleConversionError {
+    /// Time scale required by the conversion helper.
+    pub expected: TimeScale,
+    /// Time scale carried by the supplied instant.
+    pub actual: TimeScale,
+}
+
+impl TimeScaleConversionError {
+    const fn expected(expected: TimeScale, actual: TimeScale) -> Self {
+        Self { expected, actual }
+    }
+}
+
+impl fmt::Display for TimeScaleConversionError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "time-scale conversion expected {:?}, got {:?}",
+            self.expected, self.actual
+        )
+    }
+}
+
+impl std::error::Error for TimeScaleConversionError {}
+
 /// A Julian day tagged with a time scale.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -204,6 +245,39 @@ impl Instant {
     /// Creates a new instant from a Julian day and time scale.
     pub const fn new(julian_day: JulianDay, scale: TimeScale) -> Self {
         Self { julian_day, scale }
+    }
+
+    /// Returns this instant with a caller-supplied offset applied and a new time
+    /// scale tag.
+    ///
+    /// The offset is expressed as `target - source` in SI seconds. For example,
+    /// callers converting UT1 to TT can pass Delta T (`TT - UT1`) and set
+    /// `target_scale` to [`TimeScale::Tt`]. This helper intentionally performs
+    /// no leap-second, DUT1, Delta T, or relativistic modeling; it only makes the
+    /// caller-provided policy explicit and reproducible.
+    pub fn with_time_scale_offset(self, target_scale: TimeScale, offset_seconds: f64) -> Self {
+        Self {
+            julian_day: self.julian_day.add_seconds(offset_seconds),
+            scale: target_scale,
+        }
+    }
+
+    /// Converts a UT1-tagged instant to TT using caller-supplied Delta T.
+    ///
+    /// `delta_t` must be the value `TT - UT1`. Use this when validation data or
+    /// an application already has an explicit Delta T policy and wants to pass a
+    /// TT instant to backends that require TT. UTC-to-TT conversion is not
+    /// represented by this helper, because UTC also requires leap-second and
+    /// DUT1 handling outside the current type layer.
+    pub fn tt_from_ut1(self, delta_t: Duration) -> Result<Self, TimeScaleConversionError> {
+        if self.scale != TimeScale::Ut1 {
+            return Err(TimeScaleConversionError::expected(
+                TimeScale::Ut1,
+                self.scale,
+            ));
+        }
+
+        Ok(self.with_time_scale_offset(TimeScale::Tt, delta_t.as_secs_f64()))
     }
 }
 
@@ -936,6 +1010,28 @@ mod tests {
             JulianDay::from_days(2451545.5),
             TimeScale::Utc
         )));
+    }
+
+    #[test]
+    fn caller_supplied_time_scale_offsets_shift_julian_days() {
+        let ut1 = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Ut1);
+        let tt = ut1
+            .tt_from_ut1(Duration::from_secs_f64(64.184))
+            .expect("UT1 to TT conversion should accept UT1 input");
+
+        assert_eq!(tt.scale, TimeScale::Tt);
+        assert!((tt.julian_day.days() - 2_451_545.000_742_870_4).abs() < 1e-12);
+    }
+
+    #[test]
+    fn time_scale_helpers_reject_the_wrong_source_scale() {
+        let utc = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Utc);
+        let error = utc
+            .tt_from_ut1(Duration::from_secs(64))
+            .expect_err("UTC is not UT1");
+
+        assert_eq!(error.expected, TimeScale::Ut1);
+        assert_eq!(error.actual, TimeScale::Utc);
     }
 
     #[test]
