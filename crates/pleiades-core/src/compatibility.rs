@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.96";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.97";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -535,6 +535,7 @@ fn ayanamsa_source_label_aliases(canonical_name: &str) -> &'static [&'static str
             "Gal. Center = 0 Cap",
             "Cochrane",
             "Galactic center Cochrane",
+            "David Cochrane",
         ],
         "Galactic Center" => &["Galact. Center = 0 Sag", "Gal. Center = 0 Sag"],
         "Sassanian" => &["Zij al-Shah", "Sasanian"],
@@ -550,7 +551,11 @@ fn ayanamsa_source_label_aliases(canonical_name: &str) -> &'static [&'static str
             "Galactic equator Mula",
         ],
         "Galactic Equator" => &["Galactic equator", "Gal. Eq."],
-        "Galactic Equator (Fiorenza)" => &["Fiorenza", "Galactic equator Fiorenza"],
+        "Galactic Equator (Fiorenza)" => &[
+            "Fiorenza",
+            "Galactic equator Fiorenza",
+            "Nick Anthony Fiorenza",
+        ],
         "Valens Moon" => &["Vettius Valens", "Valens", "Moon", "Moon sign ayanamsa"],
         _ => &[],
     }
@@ -1133,7 +1138,7 @@ mod tests {
         ));
         assert!(rendered.contains("Galact. Center = 0 Sag, Gal. Center = 0 Sag -> Galactic Center"));
         assert!(rendered.contains(
-            "Cochrane (Gal.Center = 0 Cap), Gal. Center = 0 Cap, Cochrane, Galactic center Cochrane -> Galactic Center (Cochrane)"
+            "Cochrane (Gal.Center = 0 Cap), Gal. Center = 0 Cap, Cochrane, Galactic center Cochrane, David Cochrane -> Galactic Center (Cochrane)"
         ));
         assert!(rendered.contains("Galactic equator, Gal. Eq. -> Galactic Equator"));
         assert!(
@@ -1145,7 +1150,7 @@ mod tests {
             "Galactic Equator mid-Mula, Mula galactic equator, Galactic equator Mula -> Galactic Equator (Mula)"
         ));
         assert!(
-            rendered.contains("Fiorenza, Galactic equator Fiorenza -> Galactic Equator (Fiorenza)")
+            rendered.contains("Fiorenza, Galactic equator Fiorenza, Nick Anthony Fiorenza -> Galactic Equator (Fiorenza)")
         );
         assert!(rendered.contains("Zij al-Shah, Sasanian -> Sassanian"));
         assert!(

@@ -58,6 +58,8 @@ These are durable planning decisions that should remain true even as individual 
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] The release compatibility profile now also surfaces the exact `David Cochrane` and `Nick Anthony Fiorenza` source names for the Galactic Center (Cochrane) and Galactic Equator (Fiorenza) entries, and the compatibility profile identifier has been bumped to `0.6.97` so the new alias batch stays versioned with the current profile.
+
 - [x] The release checklist and release-checklist summary now also cross-reference the compact backend-matrix and validation-report views, so maintainers can hop from the release gate checklist to the supporting audits without leaving the release-surface review.
 - [x] `pleiades-validate` now rejects manifest provenance entries with leading or trailing whitespace after the current release-bundle checksum sidecar is revalidated, so staged bundles stay on a canonical manifest format even when the recorded provenance bytes are otherwise checksum-correct.
 - [x] The packaged-artifact quick-audit view now also mirrors the `artifact-summary` / `artifact-posture-summary` alias pairing in the release summary text, README, and release reproducibility guide, so the maintainer-facing artifact audit stays aligned with the shipped CLI surface.

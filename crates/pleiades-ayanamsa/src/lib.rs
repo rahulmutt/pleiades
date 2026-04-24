@@ -545,7 +545,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticCenterCochrane,
         "Galactic Center (Cochrane)",
-        &["Cochrane (Gal.Center = 0 Cap)", "Gal. Center = 0 Cap", "Cochrane", "Galactic center Cochrane"],
+        &["Cochrane (Gal.Center = 0 Cap)", "Gal. Center = 0 Cap", "Cochrane", "Galactic center Cochrane", "David Cochrane"],
         "Galactic-center reference mode attributed to Cochrane and catalogued with the Swiss Ephemeris zero-point epoch.",
         Some(JulianDay::from_days(1_662_951.794_251)),
         Some(Angle::from_degrees(0.0)),
@@ -577,7 +577,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticEquatorFiorenza,
         "Galactic Equator (Fiorenza)",
-        &["Fiorenza", "Galactic equator Fiorenza"],
+        &["Fiorenza", "Galactic equator Fiorenza", "Nick Anthony Fiorenza"],
         "Galactic-equator reference mode attributed to Fiorenza and catalogued with the Swiss Ephemeris J2000.0 reference epoch and 25° zero-point offset.",
         Some(JulianDay::from_days(2_451_544.5)),
         Some(Angle::from_degrees(25.0)),
@@ -1050,7 +1050,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticCenterCochrane,
         "Galactic Center (Cochrane)",
-        &["Cochrane (Gal.Center = 0 Cap)", "Gal. Center = 0 Cap", "Cochrane", "Galactic center Cochrane"],
+        &["Cochrane (Gal.Center = 0 Cap)", "Gal. Center = 0 Cap", "Cochrane", "Galactic center Cochrane", "David Cochrane"],
         "Galactic-center reference mode attributed to Cochrane and catalogued with the Swiss Ephemeris zero-point epoch.",
         Some(JulianDay::from_days(1_662_951.794_251)),
         Some(Angle::from_degrees(0.0)),
@@ -1082,7 +1082,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticEquatorFiorenza,
         "Galactic Equator (Fiorenza)",
-        &["Fiorenza", "Galactic equator Fiorenza"],
+        &["Fiorenza", "Galactic equator Fiorenza", "Nick Anthony Fiorenza"],
         "Galactic-equator reference mode attributed to Fiorenza and catalogued with the Swiss Ephemeris J2000.0 reference epoch and 25° zero-point offset.",
         Some(JulianDay::from_days(2_451_544.5)),
         Some(Angle::from_degrees(25.0)),
@@ -1448,6 +1448,10 @@ mod tests {
             Some(Ayanamsa::GalacticCenterCochrane)
         );
         assert_eq!(
+            resolve_ayanamsa("David Cochrane"),
+            Some(Ayanamsa::GalacticCenterCochrane)
+        );
+        assert_eq!(
             resolve_ayanamsa("Galactic Center (Gil Brand)"),
             Some(Ayanamsa::GalacticCenterRgilbrand)
         );
@@ -1494,6 +1498,10 @@ mod tests {
         assert_eq!(
             resolve_ayanamsa("Galactic Equator mid-Mula"),
             Some(Ayanamsa::GalacticEquatorMula)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Nick Anthony Fiorenza"),
+            Some(Ayanamsa::GalacticEquatorFiorenza)
         );
         assert_eq!(resolve_ayanamsa("True Pushya"), Some(Ayanamsa::TruePushya));
         assert_eq!(resolve_ayanamsa("Udayagiri"), Some(Ayanamsa::Udayagiri));
