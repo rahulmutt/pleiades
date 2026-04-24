@@ -6,10 +6,10 @@
 //! and major planets. The Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus,
 //! and Neptune paths evaluate public IMCCE VSOP87B sources (heliocentric
 //! spherical variables, J2000 ecliptic/equinox) transformed to geocentric
-//! chart-facing coordinates. The Sun, Mercury, and Venus paths now use
+//! chart-facing coordinates. The Sun, Mercury, Venus, and Mars paths now use
 //! generated binary tables derived from their vendored source files, while
-//! Mars, Jupiter, Saturn, Uranus, and Neptune continue to use the full
-//! vendored source text. Pluto still uses compact Keplerian orbital elements,
+//! Jupiter, Saturn, Uranus, and Neptune continue to use the full vendored
+//! source text. Pluto still uses compact Keplerian orbital elements,
 //! a geocentric reduction step, and central-difference motion estimates so the
 //! workspace has an end-to-end tropical chart path while the remaining
 //! generated VSOP87 tables and Pluto-specific source selection are added
@@ -92,8 +92,8 @@ pub fn body_source_profiles() -> Vec<Vsop87BodySource> {
 /// and future generated-table work: the source-backed paths all use public
 /// IMCCE/CELMECH VSOP87B spherical coefficients in the J2000 ecliptic/equinox
 /// frame, with longitude/latitude in degrees and radius in astronomical units.
-/// The Sun, Mercury, and Venus paths now use generated binary tables derived
-/// from their vendored public source files, while Mars, Jupiter, Saturn,
+/// The Sun, Mercury, Venus, and Mars paths now use generated binary tables
+/// derived from their vendored public source files, while Jupiter, Saturn,
 /// Uranus, and Neptune still use the vendored full public source files. Pluto
 /// remains a mean orbital-elements fallback until a Pluto-specific source path
 /// is selected.
@@ -228,7 +228,9 @@ fn fnv1a_64(bytes: &[u8]) -> u64 {
 fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
     BODY_CATALOG.get_or_init(|| {
         let earth_date_range = "full public source file; J2000 canonical reference sample";
-        let earth_truncation_policy = "vendored full source file";
+        let vendored_truncation_policy = "vendored full source file";
+        let generated_binary_truncation_policy =
+            "generated binary coefficient table derived from vendored full source file";
         let variant = "VSOP87B";
         let coordinate_family = "heliocentric spherical variables";
         let frame = "J2000 ecliptic/equinox";
@@ -246,11 +248,18 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
             accuracy,
         };
 
-        let vendored_source_specification = |
+        let source_specification = |
             body: CelestialBody,
             source_file: &'static str,
             reduction: &'static str,
         | {
+            let truncation_policy = match body {
+                CelestialBody::Sun
+                | CelestialBody::Mercury
+                | CelestialBody::Venus
+                | CelestialBody::Mars => generated_binary_truncation_policy,
+                _ => vendored_truncation_policy,
+            };
             Some(Vsop87SourceSpecification {
                 body,
                 source_file,
@@ -259,7 +268,7 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
                 frame,
                 units,
                 reduction,
-                truncation_policy: earth_truncation_policy,
+                truncation_policy,
                 date_range: earth_date_range,
             })
         };
@@ -292,7 +301,7 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
                     "geocentric Sun reduced from a generated binary coefficient table derived from the vendored full IMCCE/CELMECH VSOP87B Earth source file",
                     AccuracyClass::Exact,
                 ),
-                source_specification: vendored_source_specification(
+                source_specification: source_specification(
                     CelestialBody::Sun,
                     "VSOP87B.ear",
                     solar_reduction,
@@ -314,7 +323,7 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
                     "Mercury heliocentric channel from a generated binary coefficient table derived from the vendored full IMCCE/CELMECH VSOP87B Mercury source file",
                     AccuracyClass::Exact,
                 ),
-                source_specification: vendored_source_specification(
+                source_specification: source_specification(
                     CelestialBody::Mercury,
                     "VSOP87B.mer",
                     planetary_reduction,
@@ -336,7 +345,7 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
                     "Venus geocentric channel from a generated binary coefficient table derived from the vendored full IMCCE/CELMECH VSOP87B Venus source file",
                     AccuracyClass::Exact,
                 ),
-                source_specification: vendored_source_specification(
+                source_specification: source_specification(
                     CelestialBody::Venus,
                     "VSOP87B.ven",
                     planetary_reduction,
@@ -354,11 +363,11 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
             Vsop87BodyCatalogEntry {
                 source_profile: source_profile(
                     CelestialBody::Mars,
-                    Vsop87BodySourceKind::VendoredVsop87b,
-                    "Mars heliocentric channel from vendored full IMCCE/CELMECH VSOP87B Mars source file, reduced against Earth",
+                    Vsop87BodySourceKind::GeneratedBinaryVsop87b,
+                    "Mars heliocentric channel from a generated binary coefficient table derived from the vendored full IMCCE/CELMECH VSOP87B Mars source file",
                     AccuracyClass::Exact,
                 ),
-                source_specification: vendored_source_specification(
+                source_specification: source_specification(
                     CelestialBody::Mars,
                     "VSOP87B.mar",
                     planetary_reduction,
@@ -380,7 +389,7 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
                     "Jupiter heliocentric channel from vendored full IMCCE/CELMECH VSOP87B Jupiter source file, reduced against Earth",
                     AccuracyClass::Exact,
                 ),
-                source_specification: vendored_source_specification(
+                source_specification: source_specification(
                     CelestialBody::Jupiter,
                     "VSOP87B.jup",
                     planetary_reduction,
@@ -402,7 +411,7 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
                     "Saturn heliocentric channel from vendored full IMCCE/CELMECH VSOP87B Saturn source file, reduced against Earth",
                     AccuracyClass::Exact,
                 ),
-                source_specification: vendored_source_specification(
+                source_specification: source_specification(
                     CelestialBody::Saturn,
                     "VSOP87B.sat",
                     planetary_reduction,
@@ -424,7 +433,7 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
                     "Uranus heliocentric channel from vendored full IMCCE/CELMECH VSOP87B Uranus source file, reduced against Earth",
                     AccuracyClass::Exact,
                 ),
-                source_specification: vendored_source_specification(
+                source_specification: source_specification(
                     CelestialBody::Uranus,
                     "VSOP87B.ura",
                     planetary_reduction,
@@ -446,7 +455,7 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
                     "Neptune heliocentric channel from vendored full IMCCE/CELMECH VSOP87B Neptune source file, reduced against Earth",
                     AccuracyClass::Exact,
                 ),
-                source_specification: vendored_source_specification(
+                source_specification: source_specification(
                     CelestialBody::Neptune,
                     "VSOP87B.nep",
                     planetary_reduction,
@@ -1180,7 +1189,7 @@ mod tests {
     }
 
     #[test]
-    fn j2000_mars_position_uses_vendored_vsop87b_mars_file() {
+    fn j2000_mars_position_uses_generated_vsop87b_mars_table() {
         let backend = Vsop87Backend::new();
         let request = mean_request(CelestialBody::Mars);
         let result = backend.position(&request).expect("Mars query should work");
@@ -1188,7 +1197,8 @@ mod tests {
 
         // Golden values are the full public IMCCE VSOP87B Mars and Earth
         // files evaluated at J2000 and reduced to geometric geocentric ecliptic
-        // coordinates.
+        // coordinates. The runtime path now reaches them through the generated
+        // binary Mars table derived from the vendored Mars source file.
         assert_degrees_close(
             ecliptic.longitude.degrees(),
             327.974_906_233_385_87,
@@ -1406,7 +1416,7 @@ mod tests {
     fn metadata_identifies_source_backed_planet_vsop87b_paths() {
         let metadata = Vsop87Backend::new().metadata();
         assert!(metadata.provenance.summary.contains(
-            "5 vendored full-file VSOP87B body paths, 3 generated binary VSOP87B body paths"
+            "4 vendored full-file VSOP87B body paths, 4 generated binary VSOP87B body paths"
         ));
         assert!(metadata
             .provenance
@@ -1476,6 +1486,7 @@ mod tests {
             if body == CelestialBody::Sun
                 || body == CelestialBody::Mercury
                 || body == CelestialBody::Venus
+                || body == CelestialBody::Mars
             {
                 assert_eq!(profile.kind, Vsop87BodySourceKind::GeneratedBinaryVsop87b);
             } else {
@@ -1536,9 +1547,18 @@ mod tests {
         assert!(specs
             .iter()
             .all(|spec| spec.reduction.contains("geocentric")));
+        assert!(specs.iter().any(|spec| {
+            spec.truncation_policy
+                == "generated binary coefficient table derived from vendored full source file"
+        }));
         assert!(specs
             .iter()
-            .all(|spec| spec.truncation_policy.contains("vendored full source file")));
+            .any(|spec| spec.truncation_policy == "vendored full source file"));
+        assert!(specs.iter().all(|spec| {
+            spec.truncation_policy
+                == "generated binary coefficient table derived from vendored full source file"
+                || spec.truncation_policy == "vendored full source file"
+        }));
         assert!(specs.iter().all(|spec| spec
             .date_range
             .contains("full public source file; J2000 canonical reference sample")));

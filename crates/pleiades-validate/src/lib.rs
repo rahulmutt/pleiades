@@ -4337,7 +4337,7 @@ fn implemented_backend_catalog() -> Vec<BackendMatrixEntry> {
             label: "VSOP87 planetary backend",
             metadata: Vsop87Backend::new().metadata(),
             implementation_status: BackendImplementationStatus::PartialSourceBacked,
-            status_note: "Sun, Mercury, and Venus now use generated binary VSOP87B source tables, Mars, Jupiter, Saturn, Uranus, and Neptune still use vendored full-file source files, and Pluto remains a mean-element fallback pending a selected source path",
+            status_note: "Sun, Mercury, Venus, and Mars now use generated binary VSOP87B source tables, Jupiter, Saturn, Uranus, and Neptune still use vendored full-file source files, and Pluto remains a mean-element fallback pending a selected source path",
             expected_error_kinds: VSOP87_EXPECTED_ERROR_KINDS,
             required_data_files: &[],
         },
@@ -5024,7 +5024,7 @@ mod tests {
             .contains("VSOP87 source audit: 8 source-backed bodies, 8 vendored full-file inputs"));
         assert!(report.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(report.contains(
-            "VSOP87 source-backed body evidence: 8 body profiles (5 vendored full-file, 3 generated binary), 8 within interim limits"
+            "VSOP87 source-backed body evidence: 8 body profiles (4 vendored full-file, 4 generated binary), 8 within interim limits"
         ));
         assert!(report.contains("House validation corpus"));
         assert!(report.contains("Benchmark summaries"));
@@ -5559,7 +5559,7 @@ mod tests {
         assert!(rendered.contains("Sun: GeneratedBinaryVsop87b from VSOP87B.ear"));
         assert!(rendered.contains("Mercury: GeneratedBinaryVsop87b from VSOP87B.mer"));
         assert!(rendered.contains("Venus: GeneratedBinaryVsop87b from VSOP87B.ven"));
-        assert!(rendered.contains("Mars: VendoredVsop87b from VSOP87B.mar"));
+        assert!(rendered.contains("Mars: GeneratedBinaryVsop87b from VSOP87B.mar"));
         assert!(rendered.contains("Jupiter: VendoredVsop87b"));
         assert!(rendered.contains("Saturn: VendoredVsop87b"));
         assert!(rendered.contains("Uranus: VendoredVsop87b"));
@@ -5601,7 +5601,7 @@ mod tests {
             .contains("VSOP87 source audit: 8 source-backed bodies, 8 vendored full-file inputs"));
         assert!(rendered.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(rendered.contains(
-            "VSOP87 source-backed body evidence: 8 body profiles (5 vendored full-file, 3 generated binary), 8 within interim limits"
+            "VSOP87 source-backed body evidence: 8 body profiles (4 vendored full-file, 4 generated binary), 8 within interim limits"
         ));
         assert!(rendered.contains("Distinct bodies covered:"));
         assert!(rendered.contains("Distinct coordinate frames:"));
@@ -5895,7 +5895,7 @@ version = "0.9.0"
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(validation_report_summary.contains("VSOP87 source-backed evidence"));
         assert!(validation_report_summary.contains(
-            "VSOP87 source-backed body evidence: 8 body profiles (5 vendored full-file, 3 generated binary), 8 within interim limits"
+            "VSOP87 source-backed body evidence: 8 body profiles (4 vendored full-file, 4 generated binary), 8 within interim limits"
         ));
         assert!(validation_report_summary
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
