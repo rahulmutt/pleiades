@@ -1,69 +1,49 @@
-# Checklist 2 — Release Artifacts and Maintainer Outputs
+# Checklist 2 — Release Artifacts
 
-This checklist captures the non-code outputs that should exist as the project matures.
+Use this checklist when preparing a release-facing bundle.
 
-It complements the stage documents by making release expectations explicit.
+## Required bundle contents
 
-## Always expected once the relevant subsystem exists
+- [ ] Source revision identifier.
+- [ ] Rust/toolchain version information.
+- [ ] Workspace status summary from a clean checkout.
+- [ ] Release compatibility profile.
+- [ ] Compatibility-profile summary.
+- [ ] Backend capability matrix.
+- [ ] Backend capability matrix summary.
+- [ ] API stability posture.
+- [ ] API stability summary.
+- [ ] Validation report and compact summary.
+- [ ] Artifact validation/inspection report and summary for packaged data, if packaged data is claimed.
+- [ ] Release notes and summary.
+- [ ] Release checklist and summary.
+- [ ] Manifest with canonical checksums.
+- [ ] Manifest checksum sidecar.
 
-### Developer environment and workflow
+## Required validation before publication
 
-- repository-managed tool definitions (`mise.toml`, and `devenv.nix` only when justified)
-- documented build, lint, test, and validation commands
-- CI configuration aligned with documented local workflows
+- [ ] `cargo fmt --all --check`.
+- [ ] `cargo clippy --workspace --all-targets --all-features -- -D warnings`.
+- [ ] `cargo test --workspace`.
+- [ ] Compatibility-profile verification.
+- [ ] Release-bundle verification.
+- [ ] Pure-Rust/native-dependency audit.
+- [ ] Artifact checksum and error-threshold validation for every shipped artifact.
+- [ ] Benchmark/report generation using the release source revision.
 
-### Public-facing compatibility and capability documentation
+## Claim audit
 
-- release compatibility profile listing built-in house systems, ayanamsas, aliases, validation reference points, intentional custom-definition labels, and compatibility caveats with those categories kept distinct
-- release notes summarizing the current coverage additions and remaining limitations, with a compact release-notes summary when that improves maintainer auditability
-- backend capability matrices listing body coverage, ranges, modes, and expected accuracy class
-- user-visible notes about unsupported features or documented failure modes
+- [ ] Body coverage claims match backend metadata and validation reports.
+- [ ] House-system claims match descriptor metadata, implementation status, and reference tests.
+- [ ] Ayanamsa claims match descriptor metadata, implementation status, and reference tests.
+- [ ] Compressed-data coverage claims match artifact metadata and validation summaries.
+- [ ] Accuracy claims include measured tolerances and source/reference descriptions.
+- [ ] Known gaps, aliases, and latitude/numerical constraints are listed.
+- [ ] No profile claims full target-catalog coverage unless all target entries are implemented and validated.
 
-### Validation outputs
+## Reproducibility
 
-- benchmark summaries for representative workloads
-- comparison reports for implemented backends
-- archived regression cases for previously fixed numerical or interoperability issues
-- API stability summaries for quick inspection of the current façade posture
-- compact summaries for other mature release artifacts when they materially improve maintainer auditability
-- evidence for published accuracy claims
-
-## Additional outputs once packaged data exists
-
-- artifact format version identifier
-- artifact checksums
-- source provenance and generation metadata
-- measured error summaries against generation sources
-- reproducible generation command or pipeline documentation
-- verification that staged bundles reject missing provenance fields, unexpected extra files, tampered artifact contents, and manifest tampering via the `bundle-manifest.checksum.txt` sidecar
-
-## Suggested ownership by stage
-
-| Stage | New artifacts that should begin to exist |
-| --- | --- |
-| 1 | toolchain docs, CI workflows, crate responsibility docs |
-| 2 | rustdoc examples, public type semantics, mock-backend examples |
-| 3 | compatibility profile v0, chart examples, CLI snapshots or sample reports |
-| 4 | backend capability matrices, comparison reports, benchmark baselines |
-| 5 | artifact metadata, checksums, error envelopes, regeneration docs |
-| 6 | release-grade compatibility profile, archived validation bundles, stable release checklist |
-
-## Minimum release bundle for a mature release
-
-A mature release should be accompanied by:
-
-- source tag or versioned release commit
-- compatibility profile for that release
-- release notes derived from the published profile and release-specific coverage
-- release checklist or similar maintainer-facing release gate summary
-- capability matrix for each shipped backend
-- API stability summary alongside the full API stability posture
-- validation report bundle or links to archived reports
-- packaged artifact metadata, checksums, and provenance when artifacts are shipped
-- release bundle manifest provenance plus the `bundle-manifest.checksum.txt` tamper-evident sidecar for staged release archives
-- changelog or release notes describing new coverage and known limitations
-- compact summary views for the compatibility profile, release notes, backend matrix, API stability posture, validation report, and packaged artifact status when those mature reports are part of the shipped release surface
-
-## Maintenance rule
-
-If the code adds a new backend, catalog entry family, validation command, or distributable artifact, update the corresponding release-artifact expectations in this checklist or the relevant stage/track doc during the same change.
+- [ ] The bundle can be regenerated from documented commands.
+- [ ] Generated compressed artifacts can be reproduced from documented public inputs and parameters.
+- [ ] Reports include enough environment metadata for maintainers to compare reruns.
+- [ ] Checksums verify after unpacking or copying the bundle.

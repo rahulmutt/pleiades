@@ -1,37 +1,27 @@
 # Track 1 — Workspace and Tooling
 
-## Purpose
-Keep the repository reproducible, pure Rust, and easy to work on locally and in CI.
+## Role
 
-## Scope
+Maintain a reproducible pure-Rust development environment while the remaining phases add source data, generators, validation, benchmarks, and release tooling.
 
-- workspace layout and crate manifests
-- `mise.toml` and tool pinning
-- `devenv.nix` only for tools that mise cannot manage cleanly
-- formatting, linting, tests, and CI workflows
-- contributor-facing setup docs
+## Standards
 
-## Primary stages
+- Keep all standard tools declared in `mise.toml` when available through mise.
+- Use `devenv.nix` only for tools or system libraries that cannot reasonably be managed by mise, and document why.
+- Do not add curl-based bootstrap scripts or undocumented global tool assumptions.
+- Preserve the mandatory `pleiades-*` crate prefix for first-party crates.
+- Keep the workspace buildable on stable Rust unless a spec-approved change says otherwise.
 
-- Stage 1 is the main delivery point
-- Stages 2-6 extend this track as new crates, commands, and release checks appear
+## Checks to preserve
 
-## Key milestones
+- `cargo fmt --all --check`
+- `cargo clippy --workspace --all-targets --all-features -- -D warnings`
+- `cargo test --workspace`
+- doc tests for public examples
+- pure-Rust/native-dependency audits in validation or release tooling
 
-1. Workspace skeleton builds with all required `pleiades-*` crates.
-2. Shared lint/test commands are documented and reproducible.
-3. CI proves pure-Rust build and test workflows.
-4. Release automation validates artifacts, reports, and compatibility profiles.
+## Phase-specific notes
 
-## Done criteria for work in this track
-
-- tooling is declared in repository-managed config
-- local and CI commands match
-- no undocumented machine-specific setup is required
-- new developer workflows are documented when introduced
-
-## Common failure modes
-
-- adding a tool outside `mise.toml` without justification
-- hiding required setup in ad hoc scripts
-- letting CI drift away from the local developer experience
+- Phase 1 source readers and coefficient data should not require C/C++ code generation or native libraries.
+- Phase 2 artifact generation must be reproducible from documented commands.
+- Phase 4 release bundles should capture tool versions and source revisions.

@@ -1,92 +1,56 @@
 # Status 1 — Current Execution Frontier
 
-This document answers a practical question that the stage documents alone do not answer cleanly:
+## Frontier
 
-**given the current repository state, what should maintainers focus on next?**
+The active frontier is **Phase 1 — Production Ephemeris Accuracy**.
 
-The sequential plan in `plan/stages/` remains the source of truth for overall ordering. This status note sits on top of that sequence and identifies the current frontier.
+The repository has a complete architectural foundation and broad planning/reporting scaffolding. The next material risk is correctness: the backends that drive chart outputs, validation comparisons, and future compressed artifacts must move from preliminary/sample behavior to source-backed astronomical implementations with measured accuracy.
 
-## Current stage posture
+## Why this is first
 
-As of 2026-04-23, the project has materially completed the foundational work described in Stages 1 through 5 and is operating inside **Stage 6 — Compatibility expansion and release hardening**.
+Several downstream requirements depend on trusted ephemeris outputs:
 
-That means the repository already has:
+- compressed artifacts must be generated from validated source data;
+- release compatibility profiles must not imply unsupported accuracy;
+- chart APIs need deterministic body positions across supported bodies and time ranges;
+- validation reports need real error envelopes rather than placeholder comparisons.
 
-- a managed Rust workspace and crate layout,
-- shared domain and backend contracts,
-- an end-to-end chart MVP,
-- a narrow source-backed validation path,
-- a packaged-data backend and artifact validation flow,
-- a release-bundle verifier with duplicate-manifest-entry regression coverage for representative release-artifact fields.
+## Current repo state summary
 
-The primary planning problem is no longer "how do we get a first useful product?" It is now:
+Completed foundations:
 
-1. how to close the remaining compatibility gaps without destabilizing the API,
-2. how to keep release-facing compatibility claims precise,
-3. how to make validation, packaged artifacts, and release bundles routine and auditable.
+- managed Rust workspace and mandatory crate layout;
+- typed domain vocabulary in `pleiades-types`;
+- backend contract, metadata, errors, batch fallback, and composite routing in `pleiades-backend`;
+- house and ayanamsa catalogs with descriptors and aliases;
+- chart façade, sign/house/aspect summaries, sidereal conversion, and profile exports in `pleiades-core`;
+- preliminary `pleiades-vsop87`, `pleiades-elp`, `pleiades-jpl`, and `pleiades-data` crates;
+- compression model and sample artifact lookup;
+- CLI, validation reports, backend matrix, release notes/checklists, bundle generation, and bundle verification;
+- tests and doctests for current behavior.
 
-## Recommended priority order inside Stage 6
+Active gaps:
 
-Work inside Stage 6 should generally be sequenced in this order:
+- production VSOP87 coefficient handling and transformations;
+- production lunar theory implementation and lunar point semantics;
+- real JPL-style reader/interpolator instead of snapshot-only reference lookup;
+- explicit Delta T, time-scale, apparent/mean, and frame conversion policies;
+- reference-backed tolerance tables and validation reports.
 
-1. **Release-surface integrity first**
-   - compatibility profile stays current
-   - validation summaries stay reproducible
-   - release bundle verification stays strict, including the canonical manifest checksum sidecar format and regular-file enforcement
-   - maintainer docs stay aligned with actual commands
-2. **Compatibility breadth second**
-   - add remaining house-system and ayanamsa breadth in small, reviewable batches
-   - publish aliases, constraints, and caveats in the same change
-   - avoid breadth additions that outpace tests or release-profile updates
-3. **Backend and distribution refinement third**
-   - improve packaged-data coverage and artifact provenance
-   - refine fallback/composite routing behavior
-   - expand reference-backed slices only where they improve validation or artifact generation
-4. **Higher-level chart conveniences last**
-   - add optional helpers only after they clearly sit on stable lower-level contracts
-   - keep them out of the way of backend/domain layering rules
+## Recommended first slice
 
-## What should count as the next meaningful milestone
+Start with a narrow `pleiades-vsop87` increment:
 
-The next milestone should not be a large "finish Stage 6" umbrella. It should be a small release-hardening increment that leaves the project easier to audit.
+1. document the selected VSOP87 source and coefficient ingestion strategy;
+2. implement one body/channel path with tests against a canonical reference epoch;
+3. expose accurate metadata and unsupported-mode errors;
+4. extend validation output to report that body's measured error.
 
-Good examples include:
+This proves the source-data pattern before repeating it across all major planets.
 
-- tightening one release-bundle verification gap,
-- completing one coherent compatibility batch with aliases and tests,
-- improving one packaged-artifact reproducibility path,
-- adding one missing compact release cross-reference that makes the audit path easier to navigate,
-- publishing one missing capability or accuracy summary that release consumers need.
+## Constraints
 
-## Anti-patterns to avoid at the current frontier
-
-At this point in the project, the highest-risk mistakes are:
-
-- adding compatibility breadth without updating the release compatibility profile,
-- adding new release artifacts without documenting how they are generated and verified,
-- letting compact summaries drift away from the full reports they summarize,
-- adding convenience APIs that hide time scale, apparentness, or reference-frame assumptions,
-- expanding packaged-data coverage faster than validation evidence can support.
-
-## Required reading before Stage 6 changes
-
-For any Stage 6 slice, reread:
-
-1. [SPEC.md](../../SPEC.md)
-2. [spec/requirements.md](../../spec/requirements.md)
-3. [spec/astrology-domain.md](../../spec/astrology-domain.md)
-4. [spec/api-and-ergonomics.md](../../spec/api-and-ergonomics.md)
-5. [spec/validation-and-testing.md](../../spec/validation-and-testing.md)
-6. [plan/stages/06-compatibility-expansion-and-release-hardening.md](../stages/06-compatibility-expansion-and-release-hardening.md)
-7. [plan/checklists/01-stage-gates.md](../checklists/01-stage-gates.md)
-8. [plan/checklists/02-release-artifacts.md](../checklists/02-release-artifacts.md)
-
-## Definition of progress at the current frontier
-
-A Stage 6 change is real progress when it improves at least one of these without weakening the others:
-
-- shipped compatibility breadth,
-- clarity of release-facing coverage/caveats,
-- reproducibility of validation and artifacts,
-- confidence in public API stability,
-- maintainer ability to assemble and verify a release from repository-managed tooling.
+- Keep all implementation pure Rust.
+- Do not move astrology-domain logic into source-specific backends.
+- Do not expand release claims until validation evidence exists.
+- Keep changes small enough to review and test independently.

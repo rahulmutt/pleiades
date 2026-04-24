@@ -1,39 +1,21 @@
 # Track 2 — Domain and Public API
 
-## Purpose
-Build stable shared semantics before the project accumulates backend-specific behavior.
+## Role
 
-## Scope
+Protect the typed, backend-agnostic public API while remaining implementation phases add accuracy, catalog breadth, and release guarantees.
 
-- time, angle, coordinate, and observer types
-- body identifiers and extensible catalog models
-- backend request/result types
-- house-system and ayanamsa domain APIs
-- `pleiades-core` facade design
-- rustdoc examples and public error taxonomy
+## Standards
 
-## Primary stages
+- Keep shared domain vocabulary in `pleiades-types`.
+- Keep backend contracts in `pleiades-backend` and source-specific calculations in backend crates.
+- Keep house, ayanamsa, sidereal conversion, sign placement, house placement, aspects, and other astrology-domain behavior out of source-specific backends.
+- Prefer extensible identifiers, descriptors, and compatibility-profile metadata over breaking enum churn.
+- Document units, frames, normalization, time scales, and failure modes for public APIs.
 
-- Stage 2 establishes the base types and contracts
-- Stage 3 adds chart-facing domain behavior
-- Stage 6 stabilizes and documents long-term API posture
+## Remaining domain concerns
 
-## Key milestones
-
-1. Shared types define units, normalization rules, and failure modes clearly.
-2. Backend contracts support single and batch queries without assuming one backend family.
-3. Domain-layer sidereal and house calculations sit above backend tropical coordinates when practical.
-4. Public APIs are documented with examples and compatibility notes.
-
-## Done criteria for work in this track
-
-- no source-specific logic leaks into shared crates
-- units and reference assumptions are explicit
-- unsupported features and range limits are modeled as structured errors
-- compatibility expansion does not require redesign of core public types
-
-## Common failure modes
-
-- stringly typed identifiers for stable catalog concepts
-- convenience APIs that hide key astronomical assumptions
-- public types that are too narrow for the target compatibility catalog
+- Clarify Delta T and time-scale policies.
+- Ensure topocentric support is either implemented consistently or rejected explicitly.
+- Validate every shipped house and ayanamsa formula/alias against references.
+- Keep custom body, house, and ayanamsa identifiers distinguishable from built-ins in profiles and serialization.
+- Ensure release profiles truthfully separate baseline guarantees, release additions, known gaps, and unsupported modes.

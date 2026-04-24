@@ -1,39 +1,27 @@
 # Track 3 — Backends and Distribution
 
-## Purpose
-Deliver multiple interchangeable ephemeris sources and a practical packaged-data path.
+## Role
 
-## Scope
+Guide the remaining backend, compression, and packaged-data work so Pleiades can provide interchangeable pure-Rust ephemeris sources and offline artifacts.
 
-- algorithmic backends such as `pleiades-vsop87` and `pleiades-elp`
-- source-backed backends such as `pleiades-jpl`
-- composite routing strategies
-- compressed artifact generation and decode
-- packaged offline distribution in `pleiades-data`
+## Standards
 
-## Primary stages
+- Each backend family stays in its own crate.
+- Backend metadata must state source material, time range, body coverage, frames, topocentric/apparent/mean support, determinism, offline status, and accuracy class.
+- Unsupported bodies, frames, time scales, missing data, and out-of-range requests must produce structured errors.
+- Composite routing must remain transparent through metadata and result backend identifiers.
+- Packaged artifacts must state stored, derived, and unsupported outputs.
 
-- Stage 3 delivers the first useful algorithmic chart path
-- Stage 4 adds a stronger source-backed backend
-- Stage 5 adds compressed artifacts and packaged distribution
-- Stage 6 broadens catalog and backend coverage
+## Remaining backend goals
 
-## Key milestones
+- Implement production `pleiades-vsop87` planetary calculations.
+- Implement production `pleiades-elp` lunar calculations.
+- Upgrade `pleiades-jpl` to a source-backed reference reader/interpolator.
+- Build deterministic compressed artifacts for 1500-2500 CE.
+- Benchmark lookup latency, batch throughput, artifact size, and memory footprint.
 
-1. A pure-Rust algorithmic path can generate practical charts.
-2. A source-backed backend provides validation-grade reference output.
-3. A packaged backend serves the common 1500-2500 range efficiently.
-4. Composite routing works without changing consumer-facing APIs.
+## Distribution constraints
 
-## Done criteria for work in this track
-
-- every backend declares capabilities and coverage explicitly
-- provenance and expected accuracy are documented
-- packaged artifacts are reproducible from public inputs
-- fallback behavior is explicit when a backend lacks coverage
-
-## Common failure modes
-
-- coupling domain code to one backend implementation
-- expanding body support faster than validation supports
-- shipping packaged data without reproducible generation metadata
+- No mandatory C/C++ dependencies or native runtime libraries.
+- Large data should be feature-gated or packaged deliberately.
+- Generated artifacts must be reproducible from documented public inputs.

@@ -1,120 +1,75 @@
 # Status 2 — Next Slice Candidates
 
-This document translates the stage plan into a shortlist of **good next changes**.
+Use these as candidate implementation slices. Each slice should be independently reviewable and leave the workspace buildable and tested.
 
-It is intentionally conservative: each slice is small enough to review, test, and release without turning Stage 6 into an unfocused backlog.
+## 1. VSOP87 source-data path
 
-## Selection rules
+**Goal:** establish the production pattern for formula-based planetary calculations.
 
-Choose slices that satisfy all of the following:
+Suggested scope:
 
-- preserve a workable repository state on their own,
-- improve either compatibility clarity, release confidence, or reproducibility,
-- fit within existing crate boundaries,
-- can be validated with focused tests and updated release-facing docs,
-- do not require redesign of Stage 2 shared contracts.
+- choose and document the VSOP87 variant/source;
+- add pure-Rust coefficient representation or generation step for one body;
+- compute a canonical ecliptic position at J2000;
+- add reference/golden tests and metadata updates;
+- extend validation summaries with measured error for the implemented body.
 
-## Best next-slice themes
+## 2. Lunar theory source selection
 
-### 1. Compatibility-profile tightening
+**Goal:** turn `pleiades-elp` into a planned production implementation instead of an approximate placeholder.
 
-Good slices:
+Suggested scope:
 
-- add one missing interoperability alias batch and cover it with resolver tests,
-- improve wording that currently blurs aliases, caveats, validation reference points, or custom definitions,
-- add one missing compact summary or profile cross-reference that helps release review.
+- document the chosen ELP/lunar-theory source and license/provenance;
+- define supported channels and date range;
+- implement Moon longitude/latitude/distance for a small validated epoch set;
+- explicitly mark node/apogee/perigee support as implemented or unsupported with structured errors.
 
-Why this is high priority:
+## 3. JPL reader/interpolator proof of concept
 
-- `spec/requirements.md` makes the release compatibility profile a required public artifact,
-- Stage 6 depends on keeping claims explicit as breadth grows,
-- these changes are usually low-risk and immediately improve maintainability.
+**Goal:** move `pleiades-jpl` beyond exact snapshot fixture lookup.
 
-### 2. Remaining compatibility-catalog batches
+Suggested scope:
 
-Good slices:
+- define a small documented derivative fixture format;
+- parse multiple epochs in pure Rust;
+- interpolate one body between samples;
+- preserve existing snapshots as golden tests;
+- surface missing-data and out-of-range errors distinctly.
 
-- add one coherent family of house systems that share formulas or interoperability context,
-- add one coherent ayanamsa batch with metadata, aliases, and profile coverage,
-- close one documented gap where the release profile already announces future support.
+## 4. Delta T and time-scale policy
 
-Guardrails:
+**Goal:** make time semantics explicit before more accuracy claims are added.
 
-- catalog additions must include tests,
-- update compatibility-profile output in the same slice,
-- do not mix unrelated chart-helper work into the same change.
+Suggested scope:
 
-### 3. Packaged-data and artifact reproducibility refinement
+- add a project-level policy document or rustdoc section;
+- identify which APIs accept UTC/UT/TT/TDB and where conversion is caller-provided versus library-provided;
+- add tests for unsupported or ambiguous time-scale requests;
+- update backend metadata and validation reports.
 
-Good slices:
+## 5. Artifact profile schema draft
 
-- improve generation metadata recorded in artifacts or staged bundles,
-- add one missing validation check around segment edges, unsupported channels, or fallback behavior,
-- extend packaged coverage only where the validation story is already strong,
-- harden the bundle-manifest sidecar or other release-surface checks when a canonical format or tamper-evidence rule is still implicit.
+**Goal:** prepare Phase 2 without blocking Phase 1 accuracy work.
 
-Guardrails:
+Suggested scope:
 
-- avoid changing the artifact format casually,
-- prefer validation/reporting improvements before broad coverage expansion,
-- keep public provenance explicit.
+- define the serialized artifact header/profile fields in `pleiades-compression` docs;
+- record stored/derived/unsupported channel semantics;
+- add round-trip tests for profile metadata only;
+- avoid claiming generated production artifacts until source-backed generation exists.
 
-### 4. Validation and benchmarking hardening
+## 6. Compatibility-profile verification tightening
 
-Good slices:
+**Goal:** prevent catalog metadata drift while backend work proceeds.
 
-- add one representative benchmark workload that is currently under-covered,
-- preserve one newly discovered regression as a durable test/report fixture,
-- improve one capability matrix field so backend limits are easier to audit.
+Suggested scope:
 
-Guardrails:
+- make verification fail when a release-profile catalog entry lacks descriptor metadata;
+- check alias uniqueness within each catalog;
+- report implementation status separately from catalog presence;
+- add tests around known release-profile entries.
 
-- benchmark additions should represent real chart or packaged-data workloads,
-- validation output should remain reproducible from checked-in or documented inputs.
+## Selection guidance
 
-### 5. API stabilization and documentation polish
-
-Good slices:
-
-- clarify rustdoc around units, ranges, apparentness, or failure modes,
-- narrow one unstable or ambiguous helper surface with explicit stability notes,
-- add one example that demonstrates the intended facade/backend/domain split,
-- mirror one more practical release/validation command through `pleiades-cli` when it clearly reduces workflow switching.
-
-Guardrails:
-
-- prefer documentation and stability posture improvements over convenience expansion,
-- avoid breaking API changes unless they are clearly justified and documented.
-
-## Slice sizing guidance
-
-A strong slice usually changes one of these combinations:
-
-- one resolver + one compatibility-profile update + one test batch,
-- one validation command/report improvement + one documentation update,
-- one packaged-artifact verification improvement + one release-bundle update,
-- one coherent catalog batch + its release-facing metadata.
-
-A weak slice usually tries to do too many of these at once.
-
-## Suggested default order when multiple slices compete
-
-If several candidate slices are available, prefer them in this order:
-
-1. fixes to release-profile accuracy,
-2. fixes to verification or reproducibility gaps,
-3. compatibility breadth that is already well specified,
-4. validation corpus improvements,
-5. optional helper expansion.
-
-## When to create a new stage instead of extending Stage 6
-
-Do **not** create a Stage 7 just to hold miscellaneous backlog.
-
-A new stage should exist only if the project develops a new class of work with a distinct workable-state promise, for example:
-
-- a major new backend family that changes distribution strategy,
-- a new data-product tier beyond the current packaged 1500-2500 artifact line,
-- a substantially new consumer-facing API layer with its own stability posture.
-
-Until then, Stage 6 should remain the umbrella for compatibility completion and release hardening, with this file used to keep the work sliced sensibly.
+Prioritize slices 1-4 for Phase 1. Slices 5 and 6 are safe parallel preparatory work if they do not distract from production ephemeris accuracy.
