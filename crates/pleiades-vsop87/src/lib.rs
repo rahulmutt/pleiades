@@ -6,7 +6,7 @@
 //! and major planets. The Sun path uses a first truncated slice of public IMCCE
 //! VSOP87B Earth coefficients (heliocentric spherical variables, J2000
 //! ecliptic/equinox) transformed to geocentric solar coordinates. Mercury,
-//! Venus, Mars, and Jupiter now use the same VSOP87B spherical-coefficient
+//! Venus, Mars, Jupiter, and Saturn now use the same VSOP87B spherical-coefficient
 //! evaluation path for their heliocentric channels, while the remaining outer
 //! planets still use compact Keplerian orbital elements, a geocentric reduction step,
 //! and central-difference motion estimates so the workspace has an end-to-end
@@ -19,6 +19,7 @@ mod vsop87b_earth;
 mod vsop87b_jupiter;
 mod vsop87b_mars;
 mod vsop87b_mercury;
+mod vsop87b_saturn;
 mod vsop87b_venus;
 
 use pleiades_backend::{
@@ -63,7 +64,7 @@ pub struct Vsop87BodySource {
 ///
 /// This supplements the backend-trait metadata, whose body coverage is a flat
 /// list, by making the transitional mixed implementation explicit: the Sun,
-/// inner planets, and Jupiter have source-backed truncated VSOP87B slices,
+/// inner planets, Jupiter, and Saturn have source-backed truncated VSOP87B slices,
 /// while the remaining outer planets still use fallback element paths until
 /// generated complete tables are added.
 pub fn body_source_profiles() -> Vec<Vsop87BodySource> {
@@ -107,8 +108,13 @@ impl Vsop87BodySource {
                 provenance: "Jupiter heliocentric channel from truncated IMCCE/CELMECH VSOP87B Jupiter coefficients, reduced against Earth",
                 accuracy: AccuracyClass::Approximate,
             },
-            CelestialBody::Saturn
-            | CelestialBody::Uranus
+            CelestialBody::Saturn => Self {
+                body,
+                kind: Vsop87BodySourceKind::TruncatedVsop87b,
+                provenance: "Saturn heliocentric channel from truncated IMCCE/CELMECH VSOP87B Saturn coefficients, reduced against Earth",
+                accuracy: AccuracyClass::Approximate,
+            },
+            CelestialBody::Uranus
             | CelestialBody::Neptune
             | CelestialBody::Pluto => Self {
                 body,
@@ -278,6 +284,7 @@ impl Vsop87Backend {
                 | CelestialBody::Venus
                 | CelestialBody::Mars
                 | CelestialBody::Jupiter
+                | CelestialBody::Saturn
         ) {
             let earth = Self::heliocentric_earth_from_vsop87b(days);
             let target = match body {
@@ -285,6 +292,7 @@ impl Vsop87Backend {
                 CelestialBody::Venus => Self::heliocentric_venus_from_vsop87b(days),
                 CelestialBody::Mars => Self::heliocentric_mars_from_vsop87b(days),
                 CelestialBody::Jupiter => Self::heliocentric_jupiter_from_vsop87b(days),
+                CelestialBody::Saturn => Self::heliocentric_saturn_from_vsop87b(days),
                 _ => unreachable!("body was checked above"),
             };
             return Some(HeliocentricCoordinates {
@@ -343,6 +351,11 @@ impl Vsop87Backend {
             jupiter.latitude_rad,
             jupiter.radius_au,
         )
+    }
+
+    fn heliocentric_saturn_from_vsop87b(days: f64) -> HeliocentricCoordinates {
+        let saturn = vsop87b_saturn::saturn_lbr(J2000 + days);
+        spherical_lbr_to_cartesian(saturn.longitude_rad, saturn.latitude_rad, saturn.radius_au)
     }
 
     fn distance_au(coords: HeliocentricCoordinates) -> f64 {
@@ -432,6 +445,7 @@ impl EphemerisBackend for Vsop87Backend {
                     "IMCCE/CELMECH VSOP87B Venus heliocentric spherical coefficients, truncated leading-term slice for Venus geocentric reduction".to_string(),
                     "IMCCE/CELMECH VSOP87B Mars heliocentric spherical coefficients, truncated leading-term slice for Mars geocentric reduction".to_string(),
                     "IMCCE/CELMECH VSOP87B Jupiter heliocentric spherical coefficients, truncated leading-term slice for Jupiter geocentric reduction".to_string(),
+                    "IMCCE/CELMECH VSOP87B Saturn heliocentric spherical coefficients, truncated leading-term slice for Saturn geocentric reduction".to_string(),
                     "Paul Schlyter-style mean orbital elements for planets not yet backed by VSOP87 coefficient tables".to_string(),
                     "Meeus-style coordinate transforms for geocentric reduction".to_string(),
                 ],
@@ -732,6 +746,33 @@ mod tests {
     }
 
     #[test]
+    fn j2000_saturn_position_uses_truncated_vsop87b_saturn_slice() {
+        let backend = Vsop87Backend::new();
+        let request = mean_request(CelestialBody::Saturn);
+        let result = backend
+            .position(&request)
+            .expect("Saturn query should work");
+        let ecliptic = result.ecliptic.expect("ecliptic result should exist");
+
+        // Golden values are the full public IMCCE VSOP87B Saturn and Earth
+        // files evaluated at J2000 and reduced to geometric geocentric ecliptic
+        // coordinates. The tolerance documents the current leading-term slice;
+        // it should tighten when complete generated tables replace it.
+        assert_degrees_close(ecliptic.longitude.degrees(), 40.398_572_276_886_384, 0.004);
+        assert_degrees_close(
+            ecliptic.latitude.degrees(),
+            -2.444_625_745_599_142_3,
+            0.000_2,
+        );
+        assert_close(
+            ecliptic.distance_au.expect("distance should exist"),
+            8.652_748_862_003_302,
+            0.000_5,
+        );
+        assert_eq!(result.quality, QualityAnnotation::Approximate);
+    }
+
+    #[test]
     fn finite_difference_motion_is_reported_for_supported_bodies() {
         let backend = Vsop87Backend::new();
         let request = mean_request(CelestialBody::Mars);
@@ -788,11 +829,11 @@ mod tests {
         assert!(metadata
             .provenance
             .summary
-            .contains("5 source-backed truncated VSOP87B body paths"));
+            .contains("6 source-backed truncated VSOP87B body paths"));
         assert!(metadata
             .provenance
             .summary
-            .contains("4 fallback mean-element body paths"));
+            .contains("3 fallback mean-element body paths"));
         assert!(metadata
             .provenance
             .data_sources
@@ -813,6 +854,11 @@ mod tests {
             .data_sources
             .iter()
             .any(|source| source.contains("VSOP87B Jupiter heliocentric spherical coefficients")));
+        assert!(metadata
+            .provenance
+            .data_sources
+            .iter()
+            .any(|source| source.contains("VSOP87B Saturn heliocentric spherical coefficients")));
     }
 
     #[test]
@@ -838,8 +884,15 @@ mod tests {
             .iter()
             .find(|profile| profile.body == CelestialBody::Saturn)
             .expect("Saturn profile should exist");
-        assert_eq!(saturn.kind, Vsop87BodySourceKind::MeanOrbitalElements);
-        assert!(saturn.provenance.contains("fallback"));
+        assert_eq!(saturn.kind, Vsop87BodySourceKind::TruncatedVsop87b);
+        assert!(saturn.provenance.contains("VSOP87B Saturn"));
+
+        let uranus = profiles
+            .iter()
+            .find(|profile| profile.body == CelestialBody::Uranus)
+            .expect("Uranus profile should exist");
+        assert_eq!(uranus.kind, Vsop87BodySourceKind::MeanOrbitalElements);
+        assert!(uranus.provenance.contains("fallback"));
     }
 
     #[test]
