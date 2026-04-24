@@ -54,8 +54,7 @@ Rough command overview:
 - `api-stability-summary` / `api-posture-summary`: compact API stability summary
 - `backend-matrix` / `capability-matrix`: print implemented backend capability matrices
 - `backend-matrix-summary` / `matrix-summary`: compact backend matrix summary
-- `compatibility-profile` / `profile`: print the full release compatibility profile
-- `release-notes`, `release-notes-summary`, `release-checklist`, `release-checklist-summary`, `release-summary`, `verify-compatibility-profile`: maintainer-facing release metadata and catalog-alignment checks
+- `release-notes`, `release-notes-summary`, `release-checklist`, `release-checklist-summary` / `checklist-summary`, `release-summary`, `verify-compatibility-profile`: maintainer-facing release metadata and catalog-alignment checks
 - `artifact-summary`: compact summary of the packaged compressed artifact
 - `validation-report-summary` / `validation-summary` / `report-summary`: compact validation report summary
 - `chart`: render a basic chart report from a Julian day and optional observer settings
