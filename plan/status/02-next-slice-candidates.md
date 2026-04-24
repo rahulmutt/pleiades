@@ -105,6 +105,8 @@ Progress note (2026-04-24): `pleiades-types` now provides caller-supplied time-s
 
 Progress note (2026-04-24): `pleiades-core::ChartRequest` now includes explicit time-scale conversion conveniences, including a generic caller-supplied offset builder and a UT1-to-TT helper. UTC-tagged chart requests now have the same explicit TT conversion convenience, which keeps chart assembly aligned with the typed offset policy while still requiring the caller to choose the conversion model.
 
+Progress note (2026-04-24): validation report corpus summaries now print explicit epoch labels with time-scale tags, so the report layer now exposes the reference time-scale choice alongside the corpus windows while the project still relies on caller-provided conversion policy.
+
 ## 5. Artifact profile schema draft
 
 **Goal:** prepare Phase 2 without blocking Phase 1 accuracy work.

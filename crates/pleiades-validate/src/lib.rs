@@ -80,6 +80,8 @@ pub struct CorpusSummary {
     pub request_count: usize,
     /// Number of unique instants covered by the corpus.
     pub epoch_count: usize,
+    /// Unique instants covered by the corpus, preserved in chronological order.
+    pub epochs: Vec<Instant>,
     /// Number of unique bodies covered by the corpus.
     pub body_count: usize,
     /// Earliest Julian day in the corpus.
@@ -142,10 +144,15 @@ impl ValidationCorpus {
         let mut epochs = self
             .requests
             .iter()
-            .map(|request| request.instant.julian_day.days())
+            .map(|request| request.instant)
             .collect::<Vec<_>>();
-        epochs.sort_by(|left, right| left.partial_cmp(right).unwrap_or(std::cmp::Ordering::Equal));
-        epochs.dedup_by(|left, right| (*left - *right).abs() <= f64::EPSILON);
+        epochs.sort_by(|left, right| {
+            left.julian_day
+                .days()
+                .partial_cmp(&right.julian_day.days())
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+        epochs.dedup();
 
         let mut bodies = Vec::new();
         for request in &self.requests {
@@ -154,15 +161,25 @@ impl ValidationCorpus {
             }
         }
 
+        let earliest_julian_day = epochs
+            .first()
+            .map(|instant| instant.julian_day.days())
+            .unwrap_or_default();
+        let latest_julian_day = epochs
+            .last()
+            .map(|instant| instant.julian_day.days())
+            .unwrap_or_default();
+
         CorpusSummary {
             name: self.name.clone(),
             description: self.description,
             apparentness: self.apparentness,
             request_count: self.requests.len(),
             epoch_count: epochs.len(),
+            epochs,
             body_count: bodies.len(),
-            earliest_julian_day: epochs.first().copied().unwrap_or_default(),
-            latest_julian_day: epochs.last().copied().unwrap_or_default(),
+            earliest_julian_day,
+            latest_julian_day,
         }
     }
 
@@ -3313,6 +3330,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         report.comparison_corpus.request_count
     );
     let _ = writeln!(text, "  epochs: {}", report.comparison_corpus.epoch_count);
+    let _ = writeln!(
+        text,
+        "  epoch labels: {}",
+        format_instant_list(&report.comparison_corpus.epochs)
+    );
     let _ = writeln!(text, "  bodies: {}", report.comparison_corpus.body_count);
     let _ = writeln!(
         text,
@@ -4097,6 +4119,7 @@ fn write_corpus_summary(f: &mut fmt::Formatter<'_>, corpus: &CorpusSummary) -> f
     writeln!(f, "  Apparentness: {}", corpus.apparentness)?;
     writeln!(f, "  requests: {}", corpus.request_count)?;
     writeln!(f, "  epochs: {}", corpus.epoch_count)?;
+    writeln!(f, "  epoch labels: {}", format_instant_list(&corpus.epochs))?;
     writeln!(f, "  bodies: {}", corpus.body_count)?;
     writeln!(
         f,
@@ -4821,6 +4844,19 @@ fn format_instant(instant: Instant) -> String {
     format!("JD {:.1} ({scale})", instant.julian_day.days())
 }
 
+fn format_instant_list(instants: &[Instant]) -> String {
+    if instants.is_empty() {
+        return "none".to_string();
+    }
+
+    instants
+        .iter()
+        .copied()
+        .map(format_instant)
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
 fn format_ns(value: f64) -> String {
     format!("{value:.2}")
 }
@@ -5200,6 +5236,12 @@ mod tests {
         let summary = corpus.summary();
         assert_eq!(corpus.requests.len(), 30);
         assert_eq!(summary.epoch_count, 4);
+        assert_eq!(summary.epochs.len(), 4);
+        assert!(summary
+            .epochs
+            .iter()
+            .all(|epoch| epoch.scale == TimeScale::Tt));
+        assert_eq!(summary.epochs[0].julian_day.days(), 2_378_499.0);
         assert_eq!(summary.body_count, comparison_bodies().len());
         assert!(corpus
             .requests
@@ -5324,6 +5366,7 @@ mod tests {
             release_profiles.api_stability_profile_id
         )));
         assert!(report.contains("Comparison corpus"));
+        assert!(report.contains("epoch labels: JD 2378499.0 (TT)"));
         assert!(report.contains("Comparison summary"));
         assert!(report.contains("JPL interpolation quality"));
         assert!(report.contains("JPL interpolation quality: 10 samples across 5 bodies"));
