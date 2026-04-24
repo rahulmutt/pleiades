@@ -4433,7 +4433,7 @@ mod tests {
         assert!(!regressions.is_empty());
         assert!(regressions
             .iter()
-            .any(|finding| finding.body == CelestialBody::Mars));
+            .any(|finding| finding.body == CelestialBody::Jupiter));
         assert!(regressions
             .iter()
             .any(|finding| finding.body == CelestialBody::Neptune));
@@ -4449,7 +4449,8 @@ mod tests {
         assert!(body_summaries
             .iter()
             .any(|summary| summary.body == CelestialBody::Mars
-                && summary.max_longitude_delta_deg > 0.0));
+                && summary.max_longitude_delta_deg > 0.0
+                && summary.max_longitude_delta_deg < 0.01));
 
         let archive = report.regression_archive();
         assert_eq!(archive.corpus_name, corpus.name);
@@ -4457,7 +4458,7 @@ mod tests {
         assert!(archive
             .cases
             .iter()
-            .any(|finding| finding.body == CelestialBody::Mars));
+            .any(|finding| finding.body == CelestialBody::Jupiter));
         assert!(report.to_string().contains("Body comparison summaries"));
         assert!(report.to_string().contains("Notable regressions"));
     }

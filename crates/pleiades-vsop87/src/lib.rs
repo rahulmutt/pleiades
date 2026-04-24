@@ -5,17 +5,18 @@
 //! This crate now provides a working pure-Rust algorithmic backend for the Sun
 //! and major planets. The Sun path uses a first truncated slice of public IMCCE
 //! VSOP87B Earth coefficients (heliocentric spherical variables, J2000
-//! ecliptic/equinox) transformed to geocentric solar coordinates. Mercury and
-//! Venus now use the same VSOP87B spherical-coefficient evaluation path for
-//! their heliocentric channels, while the remaining major planets still use
-//! compact Keplerian orbital elements, a geocentric reduction step, and
-//! central-difference motion estimates so the workspace has an end-to-end
+//! ecliptic/equinox) transformed to geocentric solar coordinates. Mercury,
+//! Venus, and Mars now use the same VSOP87B spherical-coefficient evaluation
+//! path for their heliocentric channels, while the remaining major planets
+//! still use compact Keplerian orbital elements, a geocentric reduction step,
+//! and central-difference motion estimates so the workspace has an end-to-end
 //! tropical chart path while complete generated VSOP87 tables are added
 //! incrementally.
 
 #![forbid(unsafe_code)]
 
 mod vsop87b_earth;
+mod vsop87b_mars;
 mod vsop87b_mercury;
 mod vsop87b_venus;
 
@@ -178,11 +179,15 @@ impl Vsop87Backend {
             return Some(Self::geocentric_sun_from_vsop87b(days));
         }
 
-        if body == CelestialBody::Mercury || body == CelestialBody::Venus {
+        if matches!(
+            body,
+            CelestialBody::Mercury | CelestialBody::Venus | CelestialBody::Mars
+        ) {
             let earth = Self::heliocentric_earth_from_vsop87b(days);
             let target = match body {
                 CelestialBody::Mercury => Self::heliocentric_mercury_from_vsop87b(days),
                 CelestialBody::Venus => Self::heliocentric_venus_from_vsop87b(days),
+                CelestialBody::Mars => Self::heliocentric_mars_from_vsop87b(days),
                 _ => unreachable!("body was checked above"),
             };
             return Some(HeliocentricCoordinates {
@@ -227,6 +232,11 @@ impl Vsop87Backend {
     fn heliocentric_venus_from_vsop87b(days: f64) -> HeliocentricCoordinates {
         let venus = vsop87b_venus::venus_lbr(J2000 + days);
         spherical_lbr_to_cartesian(venus.longitude_rad, venus.latitude_rad, venus.radius_au)
+    }
+
+    fn heliocentric_mars_from_vsop87b(days: f64) -> HeliocentricCoordinates {
+        let mars = vsop87b_mars::mars_lbr(J2000 + days);
+        spherical_lbr_to_cartesian(mars.longitude_rad, mars.latitude_rad, mars.radius_au)
     }
 
     fn distance_au(coords: HeliocentricCoordinates) -> f64 {
@@ -296,11 +306,12 @@ impl EphemerisBackend for Vsop87Backend {
             version: env!("CARGO_PKG_VERSION").to_string(),
             family: BackendFamily::Algorithmic,
             provenance: BackendProvenance {
-                summary: "Mixed pure-Rust planetary backend: truncated VSOP87B Earth coefficients for the geocentric Sun path, truncated VSOP87B Mercury coefficients for Mercury, truncated VSOP87B Venus coefficients for Venus, compact Keplerian elements for remaining planets, and geocentric reduction.".to_string(),
+                summary: "Mixed pure-Rust planetary backend: truncated VSOP87B Earth coefficients for the geocentric Sun path, truncated VSOP87B Mercury coefficients for Mercury, truncated VSOP87B Venus coefficients for Venus, truncated VSOP87B Mars coefficients for Mars, compact Keplerian elements for remaining planets, and geocentric reduction.".to_string(),
                 data_sources: vec![
                     "IMCCE/CELMECH VSOP87B Earth heliocentric spherical coefficients, truncated leading-term slice for Sun geocentric reduction and planetary geocentric reductions".to_string(),
                     "IMCCE/CELMECH VSOP87B Mercury heliocentric spherical coefficients, truncated leading-term slice for Mercury geocentric reduction".to_string(),
                     "IMCCE/CELMECH VSOP87B Venus heliocentric spherical coefficients, truncated leading-term slice for Venus geocentric reduction".to_string(),
+                    "IMCCE/CELMECH VSOP87B Mars heliocentric spherical coefficients, truncated leading-term slice for Mars geocentric reduction".to_string(),
                     "Paul Schlyter-style mean orbital elements for planets not yet backed by VSOP87 coefficient tables".to_string(),
                     "Meeus-style coordinate transforms for geocentric reduction".to_string(),
                 ],
@@ -549,6 +560,31 @@ mod tests {
     }
 
     #[test]
+    fn j2000_mars_position_uses_truncated_vsop87b_mars_slice() {
+        let backend = Vsop87Backend::new();
+        let request = mean_request(CelestialBody::Mars);
+        let result = backend.position(&request).expect("Mars query should work");
+        let ecliptic = result.ecliptic.expect("ecliptic result should exist");
+
+        // Golden values are the full public IMCCE VSOP87B Mars and Earth
+        // files evaluated at J2000 and reduced to geometric geocentric ecliptic
+        // coordinates. The tolerance documents the current leading-term slice;
+        // it should tighten when complete generated tables replace it.
+        assert_degrees_close(ecliptic.longitude.degrees(), 327.973_990_111_690_9, 0.003);
+        assert_degrees_close(
+            ecliptic.latitude.degrees(),
+            -1.067_696_942_937_559_8,
+            0.000_1,
+        );
+        assert_close(
+            ecliptic.distance_au.expect("distance should exist"),
+            1.849_625_885_985_351_8,
+            0.000_1,
+        );
+        assert_eq!(result.quality, QualityAnnotation::Approximate);
+    }
+
+    #[test]
     fn finite_difference_motion_is_reported_for_supported_bodies() {
         let backend = Vsop87Backend::new();
         let request = mean_request(CelestialBody::Mars);
@@ -600,10 +636,11 @@ mod tests {
     }
 
     #[test]
-    fn metadata_identifies_inner_planet_vsop87b_source_slices() {
+    fn metadata_identifies_source_backed_planet_vsop87b_slices() {
         let metadata = Vsop87Backend::new().metadata();
         assert!(metadata.provenance.summary.contains("VSOP87B Mercury"));
         assert!(metadata.provenance.summary.contains("VSOP87B Venus"));
+        assert!(metadata.provenance.summary.contains("VSOP87B Mars"));
         assert!(metadata
             .provenance
             .data_sources
@@ -614,6 +651,11 @@ mod tests {
             .data_sources
             .iter()
             .any(|source| source.contains("VSOP87B Venus heliocentric spherical coefficients")));
+        assert!(metadata
+            .provenance
+            .data_sources
+            .iter()
+            .any(|source| source.contains("VSOP87B Mars heliocentric spherical coefficients")));
     }
 
     #[test]
