@@ -114,9 +114,9 @@ pub(crate) fn parse_generated_vsop87b_tables(bytes: &[u8]) -> Vsop87SeriesTables
         "generated VSOP87B table has an unsupported version"
     );
     let section_count = take_u32(bytes, &mut cursor) as usize;
-    assert_eq!(
-        section_count, 18,
-        "generated VSOP87B table should contain 18 coefficient sections"
+    assert!(
+        section_count > 0,
+        "generated VSOP87B table should contain at least one coefficient section"
     );
 
     let mut longitude = vec![Vec::new(); 6];

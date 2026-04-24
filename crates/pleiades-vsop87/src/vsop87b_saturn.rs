@@ -1,12 +1,15 @@
 //! VSOP87B Saturn coefficient tables backed by the full public IMCCE/CELMECH
 //! source file.
 //!
-//! Saturn now follows the same full-file parsing path as the Earth/Sun,
-//! Mercury, Venus, Mars, and Jupiter backends, so the backend keeps a
-//! source-backed path for every supported VSOP87 major planet while the Pluto
-//! special case remains outside the VSOP87 major-planet files.
+//! Saturn now uses a generated binary table derived from the vendored public
+//! IMCCE/CELMECH VSOP87B source file, mirroring the Earth/Sun, Mercury, Venus,
+//! Mars, and Jupiter paths so the backend keeps a source-backed path for every
+//! supported VSOP87 major planet while Pluto remains outside the VSOP87
+//! major-planet files.
 
-use crate::vsop87b_earth::{evaluate, parse_vsop87b_tables, SphericalLbr, Vsop87SeriesTables};
+use crate::vsop87b_earth::{
+    evaluate, parse_generated_vsop87b_tables, SphericalLbr, Vsop87SeriesTables,
+};
 use std::sync::OnceLock;
 
 static SATURN_TABLES: OnceLock<Vsop87SeriesTables> = OnceLock::new();
@@ -23,7 +26,8 @@ pub(crate) fn saturn_lbr(julian_day_tt: f64) -> SphericalLbr {
 }
 
 fn saturn_tables() -> &'static Vsop87SeriesTables {
-    SATURN_TABLES.get_or_init(|| parse_vsop87b_tables(include_str!("../data/VSOP87B.sat")))
+    SATURN_TABLES
+        .get_or_init(|| parse_generated_vsop87b_tables(include_bytes!("../data/VSOP87B.sat.bin")))
 }
 
 #[cfg(test)]
@@ -31,8 +35,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parses_full_saturn_tables_with_expected_series_counts() {
-        let tables = parse_vsop87b_tables(include_str!("../data/VSOP87B.sat"));
+    fn parses_generated_saturn_table_blob_with_expected_series_counts() {
+        let tables = parse_generated_vsop87b_tables(include_bytes!("../data/VSOP87B.sat.bin"));
         assert_eq!(tables.longitude.len(), 6);
         assert_eq!(tables.latitude.len(), 6);
         assert_eq!(tables.radius.len(), 6);

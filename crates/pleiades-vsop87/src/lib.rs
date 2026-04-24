@@ -6,10 +6,9 @@
 //! and major planets. The Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus,
 //! and Neptune paths evaluate public IMCCE VSOP87B sources (heliocentric
 //! spherical variables, J2000 ecliptic/equinox) transformed to geocentric
-//! chart-facing coordinates. The Sun, Mercury, Venus, and Mars paths now use
-//! generated binary tables derived from their vendored source files, while
-//! Jupiter, Saturn, Uranus, and Neptune continue to use the full vendored
-//! source text. Pluto still uses compact Keplerian orbital elements,
+//! chart-facing coordinates. The Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, and Neptune paths
+//! now use generated binary tables derived from their vendored source files.
+//! Pluto still uses compact Keplerian orbital elements,
 //! a geocentric reduction step, and central-difference motion estimates so the
 //! workspace has an end-to-end tropical chart path while the remaining
 //! generated VSOP87 tables and Pluto-specific source selection are added
@@ -92,11 +91,10 @@ pub fn body_source_profiles() -> Vec<Vsop87BodySource> {
 /// and future generated-table work: the source-backed paths all use public
 /// IMCCE/CELMECH VSOP87B spherical coefficients in the J2000 ecliptic/equinox
 /// frame, with longitude/latitude in degrees and radius in astronomical units.
-/// The Sun, Mercury, Venus, and Mars paths now use generated binary tables
-/// derived from their vendored public source files, while Jupiter, Saturn,
-/// Uranus, and Neptune still use the vendored full public source files. Pluto
-/// remains a mean orbital-elements fallback until a Pluto-specific source path
-/// is selected.
+/// The Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, and Neptune paths
+/// now use generated binary tables derived from their vendored public source
+/// files. Pluto remains a mean orbital-elements fallback until a Pluto-specific
+/// source path is selected.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Vsop87SourceSpecification {
     /// Body covered by the source-backed slice.
@@ -257,7 +255,11 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
                 CelestialBody::Sun
                 | CelestialBody::Mercury
                 | CelestialBody::Venus
-                | CelestialBody::Mars => generated_binary_truncation_policy,
+                | CelestialBody::Mars
+                | CelestialBody::Jupiter
+                | CelestialBody::Saturn
+                | CelestialBody::Uranus
+                | CelestialBody::Neptune => generated_binary_truncation_policy,
                 _ => vendored_truncation_policy,
             };
             Some(Vsop87SourceSpecification {
@@ -385,8 +387,8 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
             Vsop87BodyCatalogEntry {
                 source_profile: source_profile(
                     CelestialBody::Jupiter,
-                    Vsop87BodySourceKind::VendoredVsop87b,
-                    "Jupiter heliocentric channel from vendored full IMCCE/CELMECH VSOP87B Jupiter source file, reduced against Earth",
+                    Vsop87BodySourceKind::GeneratedBinaryVsop87b,
+                    "Jupiter heliocentric channel from a generated binary coefficient table derived from the vendored full IMCCE/CELMECH VSOP87B Jupiter source file",
                     AccuracyClass::Exact,
                 ),
                 source_specification: source_specification(
@@ -407,8 +409,8 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
             Vsop87BodyCatalogEntry {
                 source_profile: source_profile(
                     CelestialBody::Saturn,
-                    Vsop87BodySourceKind::VendoredVsop87b,
-                    "Saturn heliocentric channel from vendored full IMCCE/CELMECH VSOP87B Saturn source file, reduced against Earth",
+                    Vsop87BodySourceKind::GeneratedBinaryVsop87b,
+                    "Saturn heliocentric channel from a generated binary coefficient table derived from the vendored full IMCCE/CELMECH VSOP87B Saturn source file",
                     AccuracyClass::Exact,
                 ),
                 source_specification: source_specification(
@@ -429,8 +431,8 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
             Vsop87BodyCatalogEntry {
                 source_profile: source_profile(
                     CelestialBody::Uranus,
-                    Vsop87BodySourceKind::VendoredVsop87b,
-                    "Uranus heliocentric channel from vendored full IMCCE/CELMECH VSOP87B Uranus source file, reduced against Earth",
+                    Vsop87BodySourceKind::GeneratedBinaryVsop87b,
+                    "Uranus heliocentric channel from a generated binary coefficient table derived from the vendored full IMCCE/CELMECH VSOP87B Uranus source file",
                     AccuracyClass::Exact,
                 ),
                 source_specification: source_specification(
@@ -451,8 +453,8 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
             Vsop87BodyCatalogEntry {
                 source_profile: source_profile(
                     CelestialBody::Neptune,
-                    Vsop87BodySourceKind::VendoredVsop87b,
-                    "Neptune heliocentric channel from vendored full IMCCE/CELMECH VSOP87B Neptune source file, reduced against Earth",
+                    Vsop87BodySourceKind::GeneratedBinaryVsop87b,
+                    "Neptune heliocentric channel from a generated binary coefficient table derived from the vendored full IMCCE/CELMECH VSOP87B Neptune source file",
                     AccuracyClass::Exact,
                 ),
                 source_specification: source_specification(
@@ -893,6 +895,10 @@ impl EphemerisBackend for Vsop87Backend {
                 summary: if generated_count == 0 && truncated_count == 0 {
                     format!(
                         "Mixed pure-Rust planetary backend: {vendored_count} vendored full-file VSOP87B {vendored_path_label}, {fallback_count} fallback mean-element {fallback_path_label}, and geocentric reduction."
+                    )
+                } else if vendored_count == 0 && truncated_count == 0 {
+                    format!(
+                        "Mixed pure-Rust planetary backend: {generated_count} generated binary VSOP87B {generated_path_label}, {fallback_count} fallback mean-element {fallback_path_label}, and geocentric reduction."
                     )
                 } else if generated_count > 0 && truncated_count == 0 {
                     format!(
@@ -1415,9 +1421,14 @@ mod tests {
     #[test]
     fn metadata_identifies_source_backed_planet_vsop87b_paths() {
         let metadata = Vsop87Backend::new().metadata();
-        assert!(metadata.provenance.summary.contains(
-            "4 vendored full-file VSOP87B body paths, 4 generated binary VSOP87B body paths"
-        ));
+        assert!(metadata
+            .provenance
+            .summary
+            .contains("8 generated binary VSOP87B body paths"));
+        assert!(!metadata
+            .provenance
+            .summary
+            .contains("vendored full-file VSOP87B body paths"));
         assert!(metadata
             .provenance
             .summary
@@ -1483,15 +1494,7 @@ mod tests {
                 .iter()
                 .find(|profile| profile.body == body)
                 .expect("source profile should exist");
-            if body == CelestialBody::Sun
-                || body == CelestialBody::Mercury
-                || body == CelestialBody::Venus
-                || body == CelestialBody::Mars
-            {
-                assert_eq!(profile.kind, Vsop87BodySourceKind::GeneratedBinaryVsop87b);
-            } else {
-                assert_eq!(profile.kind, Vsop87BodySourceKind::VendoredVsop87b);
-            }
+            assert_eq!(profile.kind, Vsop87BodySourceKind::GeneratedBinaryVsop87b);
             assert_eq!(profile.accuracy, AccuracyClass::Exact);
             assert!(profile
                 .provenance
@@ -1547,18 +1550,13 @@ mod tests {
         assert!(specs
             .iter()
             .all(|spec| spec.reduction.contains("geocentric")));
-        assert!(specs.iter().any(|spec| {
-            spec.truncation_policy
-                == "generated binary coefficient table derived from vendored full source file"
-        }));
-        assert!(specs
-            .iter()
-            .any(|spec| spec.truncation_policy == "vendored full source file"));
         assert!(specs.iter().all(|spec| {
             spec.truncation_policy
                 == "generated binary coefficient table derived from vendored full source file"
-                || spec.truncation_policy == "vendored full source file"
         }));
+        assert!(!specs
+            .iter()
+            .any(|spec| spec.truncation_policy == "vendored full source file"));
         assert!(specs.iter().all(|spec| spec
             .date_range
             .contains("full public source file; J2000 canonical reference sample")));

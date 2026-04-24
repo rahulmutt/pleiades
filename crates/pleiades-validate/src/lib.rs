@@ -5024,7 +5024,7 @@ mod tests {
             .contains("VSOP87 source audit: 8 source-backed bodies, 8 vendored full-file inputs"));
         assert!(report.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(report.contains(
-            "VSOP87 source-backed body evidence: 8 body profiles (4 vendored full-file, 4 generated binary), 8 within interim limits"
+            "VSOP87 source-backed body evidence: 8 body profiles (0 vendored full-file, 8 generated binary), 8 within interim limits"
         ));
         assert!(report.contains("House validation corpus"));
         assert!(report.contains("Benchmark summaries"));
@@ -5560,10 +5560,10 @@ mod tests {
         assert!(rendered.contains("Mercury: GeneratedBinaryVsop87b from VSOP87B.mer"));
         assert!(rendered.contains("Venus: GeneratedBinaryVsop87b from VSOP87B.ven"));
         assert!(rendered.contains("Mars: GeneratedBinaryVsop87b from VSOP87B.mar"));
-        assert!(rendered.contains("Jupiter: VendoredVsop87b"));
-        assert!(rendered.contains("Saturn: VendoredVsop87b"));
-        assert!(rendered.contains("Uranus: VendoredVsop87b"));
-        assert!(rendered.contains("Neptune: VendoredVsop87b"));
+        assert!(rendered.contains("Jupiter: GeneratedBinaryVsop87b"));
+        assert!(rendered.contains("Saturn: GeneratedBinaryVsop87b"));
+        assert!(rendered.contains("Uranus: GeneratedBinaryVsop87b"));
+        assert!(rendered.contains("Neptune: GeneratedBinaryVsop87b"));
         assert!(rendered.contains("Pluto: MeanOrbitalElements"));
         assert!(rendered.contains("Meeus-style truncated lunar orbit formulas"));
         assert!(rendered.contains("NASA/JPL Horizons API vector tables (DE441)"));
@@ -5601,7 +5601,7 @@ mod tests {
             .contains("VSOP87 source audit: 8 source-backed bodies, 8 vendored full-file inputs"));
         assert!(rendered.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(rendered.contains(
-            "VSOP87 source-backed body evidence: 8 body profiles (4 vendored full-file, 4 generated binary), 8 within interim limits"
+            "VSOP87 source-backed body evidence: 8 body profiles (0 vendored full-file, 8 generated binary), 8 within interim limits"
         ));
         assert!(rendered.contains("Distinct bodies covered:"));
         assert!(rendered.contains("Distinct coordinate frames:"));
@@ -5895,7 +5895,7 @@ version = "0.9.0"
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(validation_report_summary.contains("VSOP87 source-backed evidence"));
         assert!(validation_report_summary.contains(
-            "VSOP87 source-backed body evidence: 8 body profiles (4 vendored full-file, 4 generated binary), 8 within interim limits"
+            "VSOP87 source-backed body evidence: 8 body profiles (0 vendored full-file, 8 generated binary), 8 within interim limits"
         ));
         assert!(validation_report_summary
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
