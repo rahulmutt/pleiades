@@ -4504,7 +4504,7 @@ mod tests {
         assert!(!regressions.is_empty());
         assert!(regressions
             .iter()
-            .any(|finding| finding.body == CelestialBody::Jupiter));
+            .any(|finding| finding.body == CelestialBody::Saturn));
         assert!(regressions
             .iter()
             .any(|finding| finding.body == CelestialBody::Neptune));
@@ -4519,7 +4519,7 @@ mod tests {
             .all(|summary| summary.sample_count > 0));
         assert!(body_summaries
             .iter()
-            .any(|summary| summary.body == CelestialBody::Mars
+            .any(|summary| summary.body == CelestialBody::Jupiter
                 && summary.max_longitude_delta_deg > 0.0
                 && summary.max_longitude_delta_deg < 0.01));
 
@@ -4529,7 +4529,7 @@ mod tests {
         assert!(archive
             .cases
             .iter()
-            .any(|finding| finding.body == CelestialBody::Jupiter));
+            .any(|finding| finding.body == CelestialBody::Saturn));
         assert!(report.to_string().contains("Body comparison summaries"));
         assert!(report.to_string().contains("Notable regressions"));
     }
@@ -4890,7 +4890,8 @@ mod tests {
         assert!(rendered.contains("Paul Schlyter-style mean orbital elements for planets"));
         assert!(rendered.contains("body source profiles:"));
         assert!(rendered.contains("Mars: TruncatedVsop87b"));
-        assert!(rendered.contains("Jupiter: MeanOrbitalElements"));
+        assert!(rendered.contains("Jupiter: TruncatedVsop87b"));
+        assert!(rendered.contains("Saturn: MeanOrbitalElements"));
         assert!(rendered.contains("Meeus-style truncated lunar orbit formulas"));
         assert!(rendered.contains("NASA/JPL Horizons API vector tables (DE441)"));
         assert!(rendered.contains("VSOP87 planetary backend"));

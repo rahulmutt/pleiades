@@ -26,6 +26,8 @@ Progress note (2026-04-24): the same truncated VSOP87B source-backed path has be
 
 Progress note (2026-04-24): the mixed VSOP87 implementation now exposes per-body source profiles from `pleiades-vsop87` and renders them in the validation backend matrix. The profiles distinguish source-backed truncated VSOP87B paths for the Sun/Mercury/Venus/Mars from fallback mean-element paths for Jupiter/Saturn/Uranus/Neptune/Pluto, reducing ambiguity until complete generated tables land. Remaining work is to replace the truncated slices with generated complete tables and extend the pattern to the outer planetary channels.
 
+Progress note (2026-04-24): the truncated VSOP87B source-backed path has been extended to Jupiter. `pleiades-vsop87` now evaluates a checked-in leading-term IMCCE VSOP87B Jupiter slice, reduces it against the Earth slice, reports Jupiter provenance in metadata/source profiles, and tests the J2000 geocentric Jupiter result against full-file IMCCE VSOP87B Jupiter/Earth golden values. Remaining outer fallback channels are Saturn, Uranus, Neptune, and Pluto.
+
 ## 2. Lunar theory source selection
 
 **Goal:** turn `pleiades-elp` into a planned production implementation instead of an approximate placeholder.
