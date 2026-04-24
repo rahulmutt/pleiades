@@ -5028,6 +5028,18 @@ version = "0.9.0"
     }
 
     #[test]
+    fn verify_release_bundle_rejects_duplicate_release_notes_summary_entry() {
+        assert_release_bundle_rejects_duplicate_manifest_entry(
+            "pleiades-release-bundle-duplicate-release-notes-summary",
+            "release notes summary:",
+            &[
+                "duplicate entry: release notes summary:",
+                "release bundle verification failed",
+            ],
+        );
+    }
+
+    #[test]
     fn verify_release_bundle_rejects_whitespace_source_revision_entry() {
         assert_release_bundle_rejects_whitespace_manifest_entry(
             "pleiades-release-bundle-whitespace-source-revision",

@@ -58,6 +58,7 @@ These are durable planning decisions that should remain true even as individual 
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] The release-bundle verification regression suite now also covers a duplicate `release notes summary:` manifest entry, so the staged manifest parser stays covered for another release-artifact path in addition to the existing release summary and provenance-only fields.
 - [x] The release compatibility profile now also surfaces the exact `Polich/Page`, `Polich Page`, `Equal/1=0 Aries`, and `Equal (cusp 1 = 0° Aries)` spellings in the compact release summary and release notes, and the compatibility profile identifier has been bumped to `0.6.120` so the new alias batch stays versioned with the current profile.
 - [x] The compact compatibility-profile summary now also ends with an explicit `See release-summary` hop, so the one-screen catalog audit can jump straight to the broader release overview without relying only on the shared compact-view list.
 - [x] The release-bundle verification regression suite now also covers a duplicate `release summary:` manifest entry, so the staged manifest parser stays covered for a representative release-artifact path as well as the provenance-only fields.
