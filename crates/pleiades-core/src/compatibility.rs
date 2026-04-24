@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.107";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.108";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -277,6 +277,7 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "Equal MC",
             "Equal Midheaven",
             "Equal Midheaven house system",
+            "Equal Midheaven table of houses",
             "Equal/MC = 10th",
         ],
         "Equal (1=Aries)" => &[
@@ -1138,7 +1139,7 @@ mod tests {
         assert!(rendered.contains("Equal Midheaven table of houses"));
         assert!(rendered.contains("Equal (MC) house system"));
         assert!(rendered.contains(
-            "Equal (MC) table of houses, Equal/MC table of houses, Equal (MC) house system, Equal MC, Equal Midheaven, Equal Midheaven house system, Equal/MC = 10th -> Equal (MC)"
+            "Equal (MC) table of houses, Equal/MC table of houses, Equal (MC) house system, Equal MC, Equal Midheaven, Equal Midheaven house system, Equal Midheaven table of houses, Equal/MC = 10th -> Equal (MC)"
         ));
         assert!(rendered.contains(
             "N, Equal/1=Aries, Equal Aries, Aries houses, Whole Sign (house 1 = Aries), Whole Sign (house 1 = Aries) table of houses, Equal (1=Aries) table of houses, Equal/1=Aries table of houses, Equal (1=Aries) house system, N whole sign houses, 1. house = Aries, Whole sign houses, 1. house = Aries, Equal/1=0 Aries, Equal (cusp 1 = 0° Aries) -> Equal (1=Aries)"
@@ -1252,6 +1253,9 @@ mod tests {
             .expect("source-label house appendix should be present");
         assert!(source_label_section.contains(
             "A equal, E equal = A, Equal houses, Equal house system, Equal House, Equal table of houses, Wang, Equal (cusp 1 = Asc) -> Equal"
+        ));
+        assert!(source_label_section.contains(
+            "D equal / MC, Equal from MC, Equal (from MC), Equal (from MC) table of houses, Equal (MC) table of houses, Equal/MC table of houses, Equal (MC) house system, Equal MC, Equal Midheaven, Equal Midheaven house system, Equal Midheaven table of houses, Equal/MC = 10th -> Equal (MC)"
         ));
         assert!(source_label_section.contains(
             "Equal (1=Aries) table of houses, Equal/1=Aries table of houses, Equal (1=Aries) house system, Whole sign houses, 1. house = Aries, Equal/1=0 Aries, Equal (cusp 1 = 0° Aries) -> Equal (1=Aries)"
