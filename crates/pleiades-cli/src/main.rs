@@ -610,6 +610,8 @@ mod tests {
         assert!(validation_summary.contains("Validation report summary"));
         assert!(validation_summary.contains("Comparison corpus"));
         assert!(validation_summary.contains("Release bundle verification: verify-release-bundle"));
+        assert!(validation_summary.contains("Release checklist summary: release-checklist-summary"));
+        assert!(validation_summary.contains("Release summary: release-summary"));
         assert!(validation_summary.contains("House validation corpus"));
         assert!(validation_summary.contains("Benchmark summaries"));
         assert!(validation_summary.contains("Packaged-data benchmark"));
@@ -620,6 +622,9 @@ mod tests {
         assert!(validation_report_summary.contains("Comparison corpus"));
         assert!(validation_report_summary
             .contains("Release bundle verification: verify-release-bundle"));
+        assert!(validation_report_summary
+            .contains("Release checklist summary: release-checklist-summary"));
+        assert!(validation_report_summary.contains("Release summary: release-summary"));
         assert!(validation_report_summary.contains("Benchmark summaries"));
     }
 
