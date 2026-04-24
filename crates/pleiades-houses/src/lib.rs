@@ -196,7 +196,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
     HouseSystemDescriptor::new(
         HouseSystem::Axial,
         "Axial",
-        &["Axial variants"],
+        &["Axial variants", "A"],
         "Documented axial variants used by some astrology packages.",
         false,
     ),
@@ -616,7 +616,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
     HouseSystemDescriptor::new(
         HouseSystem::Axial,
         "Axial",
-        &["Axial variants"],
+        &["Axial variants", "A"],
         "Documented axial variants used by some astrology packages.",
         false,
     ),

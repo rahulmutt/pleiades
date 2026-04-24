@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.105";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.106";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -252,7 +252,7 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "Zariel",
             "X axial rotation system/ Meridian houses",
         ],
-        "Axial" => &["Axial variants"],
+        "Axial" => &["Axial variants", "A"],
         "Topocentric" => &[
             "T",
             "Polich-Page",
@@ -1213,6 +1213,7 @@ mod tests {
         assert!(rendered.contains(
             "X, Meridian houses, Meridian table of houses, Meridian house system, ARMC, Axial Rotation, Axial rotation system, Zariel, X axial rotation system/ Meridian houses -> Meridian"
         ));
+        assert!(rendered.contains("Axial variants, A -> Axial"));
         assert!(rendered.contains("M, Morinus houses, Morinus house system -> Morinus"));
         assert!(rendered.contains("Whole Sign house system -> Whole Sign"));
         assert!(rendered.contains("Equal table of houses, Whole Sign system, and Morinus house system spellings now called out explicitly in the quick-audit text"));
@@ -1257,6 +1258,7 @@ mod tests {
         assert!(source_label_section.contains(
             "Equal Quadrant, Porphyry house system, Porphyry table of houses -> Porphyry"
         ));
+        assert!(source_label_section.contains("Axial variants, A -> Axial"));
         assert!(source_label_section.contains(
             "Regiomontanus houses, Regiomontanus house system, Regiomontanus table of houses -> Regiomontanus"
         ));
@@ -1345,6 +1347,7 @@ mod tests {
         assert!(rendered.contains(
             "X, Meridian houses, Meridian table of houses, Meridian house system, ARMC, Axial Rotation, Axial rotation system, Zariel, X axial rotation system/ Meridian houses -> Meridian"
         ));
+        assert!(rendered.contains("Axial variants, A -> Axial"));
         assert!(rendered.contains("Y, APC, Ram school, Ram's school, Ramschool, WvA, Y APC houses, APC houses, APC, also known as “Ram school”, table of houses, APC house system, Ascendant Parallel Circle -> APC"));
         assert!(rendered.contains("T, Polich-Page, Polich/Page, Polich Page, Polich-Page \"topocentric\" table of houses, T Polich/Page (\"topocentric\"), T topocentric, Topocentric house system, Topocentric table of houses -> Topocentric"));
         assert!(rendered.contains("Gauquelin sectors"));
