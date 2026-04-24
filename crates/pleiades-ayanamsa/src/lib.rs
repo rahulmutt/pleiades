@@ -284,7 +284,14 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::PvrPushyaPaksha,
         "PVR Pushya-paksha",
-        &["Pushya-paksha", "Pushya Paksha", "P.V.R. Narasimha Rao", "PVR", "True Pushya (PVRN Rao)"],
+        &[
+            "Pushya-paksha",
+            "Pushya Paksha",
+            "PVR Pushya Paksha",
+            "P.V.R. Narasimha Rao",
+            "PVR",
+            "True Pushya (PVRN Rao)",
+        ],
         "P.V.R. Narasimha Rao's Pushya-paksha ayanamsa, exposed in Swiss Ephemeris as a built-in sidereal mode.",
         Some(JulianDay::from_days(2_451_545.0)),
         Some(Angle::from_degrees(23.0)),
@@ -801,7 +808,14 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
     AyanamsaDescriptor::new(
         Ayanamsa::PvrPushyaPaksha,
         "PVR Pushya-paksha",
-        &["Pushya-paksha", "Pushya Paksha", "P.V.R. Narasimha Rao", "PVR", "True Pushya (PVRN Rao)"],
+        &[
+            "Pushya-paksha",
+            "Pushya Paksha",
+            "PVR Pushya Paksha",
+            "P.V.R. Narasimha Rao",
+            "PVR",
+            "True Pushya (PVRN Rao)",
+        ],
         "P.V.R. Narasimha Rao's Pushya-paksha ayanamsa, exposed in Swiss Ephemeris as a built-in sidereal mode.",
         Some(JulianDay::from_days(2_451_545.0)),
         Some(Angle::from_degrees(23.0)),
@@ -1395,6 +1409,10 @@ mod tests {
         );
         assert_eq!(
             resolve_ayanamsa("True Pushya (PVRN Rao)"),
+            Some(Ayanamsa::PvrPushyaPaksha)
+        );
+        assert_eq!(
+            resolve_ayanamsa("PVR Pushya Paksha"),
             Some(Ayanamsa::PvrPushyaPaksha)
         );
         assert_eq!(
