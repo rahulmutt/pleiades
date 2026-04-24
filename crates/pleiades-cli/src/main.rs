@@ -473,6 +473,7 @@ mod tests {
         assert!(release_notes.contains("Release notes"));
         assert!(release_notes.contains("Release notes summary: release-notes-summary"));
         assert!(release_notes.contains("Release checklist summary: release-checklist-summary"));
+        assert!(release_notes.contains("Release bundle verification: verify-release-bundle"));
         assert!(release_notes
             .contains("Compatibility profile verification: verify-compatibility-profile"));
         assert!(release_notes.contains("API stability posture:"));
@@ -485,6 +486,9 @@ mod tests {
         assert!(release_notes_summary.contains("Release notes: release-notes"));
         assert!(
             release_notes_summary.contains("Release checklist summary: release-checklist-summary")
+        );
+        assert!(
+            release_notes_summary.contains("Release bundle verification: verify-release-bundle")
         );
         assert!(release_notes_summary
             .contains("Compatibility profile verification: verify-compatibility-profile"));
