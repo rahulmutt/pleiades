@@ -3,10 +3,11 @@
 //!
 //! This crate provides a narrow, source-backed backend based on a checked-in
 //! JPL Horizons vector fixture. The backend serves exact states at fixture
-//! epochs and linearly interpolates Cartesian vectors between adjacent samples
-//! for bodies with multi-epoch coverage. This intentionally small derivative
-//! format proves the pure-Rust reader/interpolator path before larger public
-//! JPL-derived corpora are added.
+//! epochs and uses quadratic interpolation on three-sample windows when it can,
+//! falling back to linear interpolation between adjacent samples when only two
+//! bracketing epochs exist. This intentionally small derivative format proves
+//! the pure-Rust reader/interpolator path before larger public JPL-derived
+//! corpora are added.
 //!
 //! The checked-in fixture also includes a small set of named asteroids and a
 //! custom `catalog:designation` example so the shared body taxonomy can exercise
@@ -74,11 +75,14 @@ pub fn comparison_bodies() -> &'static [pleiades_backend::CelestialBody] {
 /// entries. The current fixture is intentionally sparse, so these values are
 /// evidence for report transparency rather than production interpolation
 /// tolerances.
+///
+/// Note that these samples intentionally remain linear counterfactuals even if
+/// the runtime backend later uses a higher-order interpolation fallback.
 pub fn interpolation_quality_samples() -> &'static [InterpolationQualitySample] {
     interpolation_quality_sample_list()
 }
 
-/// A coarse hold-out check for the snapshot backend's linear interpolation path.
+/// A coarse hold-out check for the snapshot backend's linear counterfactual path.
 #[derive(Clone, Debug, PartialEq)]
 pub struct InterpolationQualitySample {
     /// Body evaluated by this check.
@@ -116,12 +120,12 @@ impl EphemerisBackend for JplSnapshotBackend {
             version: "0.1.0".to_string(),
             family: BackendFamily::ReferenceData,
             provenance: BackendProvenance {
-                summary: "NASA/JPL Horizons DE441 geocentric ecliptic fixture with exact epoch lookup and linear Cartesian interpolation"
+                summary: "NASA/JPL Horizons DE441 geocentric ecliptic fixture with exact epoch lookup and quadratic interpolation on three-sample windows"
                     .to_string(),
                 data_sources: vec![
                     "NASA/JPL Horizons API vector tables (DE441)".to_string(),
                     "Checked-in derivative CSV fixture: epoch_jd,body,x_km,y_km,z_km".to_string(),
-                    "Linear interpolation between adjacent same-body fixture samples".to_string(),
+                    "Quadratic interpolation on three-sample windows with linear fallback between adjacent same-body fixture samples".to_string(),
                 ],
             },
             nominal_range: if dataset_missing {
@@ -237,7 +241,7 @@ impl SnapshotEntry {
         EclipticCoordinates::new(longitude, latitude, Some(radius_km / AU_IN_KM))
     }
 
-    fn interpolate(before: &Self, after: &Self, epoch_jd: f64) -> Self {
+    fn interpolate_linear(before: &Self, after: &Self, epoch_jd: f64) -> Self {
         let span_days = after.epoch.julian_day.days() - before.epoch.julian_day.days();
         let fraction = (epoch_jd - before.epoch.julian_day.days()) / span_days;
         Self {
@@ -246,6 +250,21 @@ impl SnapshotEntry {
             x_km: lerp(before.x_km, after.x_km, fraction),
             y_km: lerp(before.y_km, after.y_km, fraction),
             z_km: lerp(before.z_km, after.z_km, fraction),
+        }
+    }
+
+    fn interpolate_quadratic(a: &Self, b: &Self, c: &Self, epoch_jd: f64) -> Self {
+        let xs = [
+            a.epoch.julian_day.days(),
+            b.epoch.julian_day.days(),
+            c.epoch.julian_day.days(),
+        ];
+        Self {
+            body: a.body.clone(),
+            epoch: Instant::new(JulianDay::from_days(epoch_jd), TimeScale::Tdb),
+            x_km: lagrange_interpolate_3(epoch_jd, xs, [a.x_km, b.x_km, c.x_km]),
+            y_km: lagrange_interpolate_3(epoch_jd, xs, [a.y_km, b.y_km, c.y_km]),
+            z_km: lagrange_interpolate_3(epoch_jd, xs, [a.z_km, b.z_km, c.z_km]),
         }
     }
 }
@@ -318,6 +337,82 @@ impl fmt::Display for SnapshotLoadErrorKind {
 
 fn lerp(start: f64, end: f64, fraction: f64) -> f64 {
     start + (end - start) * fraction
+}
+
+fn lagrange_interpolate_3(x: f64, xs: [f64; 3], ys: [f64; 3]) -> f64 {
+    let [x0, x1, x2] = xs;
+    let [y0, y1, y2] = ys;
+
+    let l0 = (x - x1) * (x - x2) / ((x0 - x1) * (x0 - x2));
+    let l1 = (x - x0) * (x - x2) / ((x1 - x0) * (x1 - x2));
+    let l2 = (x - x0) * (x - x1) / ((x2 - x0) * (x2 - x1));
+
+    y0 * l0 + y1 * l1 + y2 * l2
+}
+
+fn interpolate_fixture_state(
+    entries: &[SnapshotEntry],
+    body: pleiades_backend::CelestialBody,
+    epoch_jd: f64,
+) -> Option<SnapshotEntry> {
+    let mut body_entries = entries
+        .iter()
+        .filter(|entry| entry.body == body)
+        .collect::<Vec<_>>();
+
+    if body_entries.len() < 3 {
+        return None;
+    }
+
+    body_entries.sort_by(|left, right| {
+        left.epoch
+            .julian_day
+            .days()
+            .partial_cmp(&right.epoch.julian_day.days())
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+
+    let mut ranked = body_entries
+        .into_iter()
+        .map(|entry| ((entry.epoch.julian_day.days() - epoch_jd).abs(), entry))
+        .collect::<Vec<_>>();
+    ranked.sort_by(|left, right| {
+        left.0
+            .partial_cmp(&right.0)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| {
+                left.1
+                    .epoch
+                    .julian_day
+                    .days()
+                    .partial_cmp(&right.1.epoch.julian_day.days())
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            })
+    });
+
+    let mut selected = ranked
+        .into_iter()
+        .take(3)
+        .map(|(_, entry)| entry)
+        .collect::<Vec<_>>();
+
+    if selected.len() == 3 {
+        selected.sort_by(|left, right| {
+            left.epoch
+                .julian_day
+                .days()
+                .partial_cmp(&right.epoch.julian_day.days())
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+        return Some(SnapshotEntry::interpolate_quadratic(
+            selected[0],
+            selected[1],
+            selected[2],
+            epoch_jd,
+        ));
+    }
+
+    None
 }
 
 fn angular_degrees_delta(left: f64, right: f64) -> f64 {
@@ -429,7 +524,7 @@ fn interpolation_quality_sample_list() -> &'static [InterpolationQualitySample] 
                     let exact = window[1];
                     let after = window[2];
                     let epoch_jd = exact.epoch.julian_day.days();
-                    let interpolated = SnapshotEntry::interpolate(before, after, epoch_jd);
+                    let interpolated = SnapshotEntry::interpolate_linear(before, after, epoch_jd);
                     let exact_ecliptic = exact.ecliptic();
                     let interpolated_ecliptic = interpolated.ecliptic();
                     let exact_distance = exact_ecliptic.distance_au.unwrap_or_default();
@@ -528,9 +623,18 @@ fn resolve_fixture_state(
         ));
     }
 
+    if before.is_some() && after.is_some() {
+        if let Some(entry) = interpolate_fixture_state(entries, body.clone(), epoch_jd) {
+            return Ok(ResolvedFixtureState {
+                entry,
+                quality: QualityAnnotation::Interpolated,
+            });
+        }
+    }
+
     match (before, after) {
         (Some(before), Some(after)) => Ok(ResolvedFixtureState {
-            entry: SnapshotEntry::interpolate(before, after, epoch_jd),
+            entry: SnapshotEntry::interpolate_linear(before, after, epoch_jd),
             quality: QualityAnnotation::Interpolated,
         }),
         _ => Err(EphemerisError::new(
@@ -777,6 +881,36 @@ mod tests {
             snapshot[0].body,
             pleiades_backend::CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros"))
         );
+    }
+
+    #[test]
+    fn quadratic_interpolation_matches_a_known_parabola() {
+        let a = SnapshotEntry {
+            body: pleiades_backend::CelestialBody::Moon,
+            epoch: Instant::new(JulianDay::from_days(0.0), TimeScale::Tdb),
+            x_km: 0.0,
+            y_km: 1.0,
+            z_km: 2.0,
+        };
+        let b = SnapshotEntry {
+            body: pleiades_backend::CelestialBody::Moon,
+            epoch: Instant::new(JulianDay::from_days(1.0), TimeScale::Tdb),
+            x_km: 1.0,
+            y_km: 6.0,
+            z_km: 5.0,
+        };
+        let c = SnapshotEntry {
+            body: pleiades_backend::CelestialBody::Moon,
+            epoch: Instant::new(JulianDay::from_days(2.0), TimeScale::Tdb),
+            x_km: 4.0,
+            y_km: 15.0,
+            z_km: 10.0,
+        };
+
+        let interpolated = SnapshotEntry::interpolate_quadratic(&a, &b, &c, 1.5);
+        assert!((interpolated.x_km - 2.25).abs() < 1e-12);
+        assert!((interpolated.y_km - 10.0).abs() < 1e-12);
+        assert!((interpolated.z_km - 7.25).abs() < 1e-12);
     }
 
     #[test]

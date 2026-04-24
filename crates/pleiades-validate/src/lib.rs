@@ -4281,7 +4281,7 @@ fn write_jpl_interpolation_quality(f: &mut fmt::Formatter<'_>) -> fmt::Result {
     )?;
     writeln!(
         f,
-        "    note: expanded public-input leave-one-out checks report current linear interpolation error; they are not production tolerances"
+        "    note: expanded public-input leave-one-out checks report current linear counterfactual interpolation error; they are not production tolerances"
     )?;
     for sample in interpolation_quality_samples() {
         writeln!(
@@ -4635,7 +4635,7 @@ fn implemented_backend_catalog() -> Vec<BackendMatrixEntry> {
             label: "JPL snapshot reference backend",
             metadata: default_reference_backend().metadata(),
             implementation_status: BackendImplementationStatus::FixtureReference,
-            status_note: "checked-in public-input derivative fixture with exact lookup and linear interpolation; expanded hold-out coverage now spans an additional epoch, while a larger reference corpus remains planned",
+            status_note: "checked-in public-input derivative fixture with exact lookup and quadratic interpolation on three-sample windows; expanded hold-out coverage now spans an additional epoch, while a larger reference corpus remains planned",
             expected_error_kinds: JPL_EXPECTED_ERROR_KINDS,
             required_data_files: JPL_REQUIRED_DATA_FILES,
         },

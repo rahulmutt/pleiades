@@ -77,6 +77,8 @@ Progress note (2026-04-24): `pleiades-jpl` now derives coarse leave-one-out inte
 
 Progress note (2026-04-24): the compact validation report summary now also carries a JPL interpolation-quality envelope, so the current leave-one-out evidence is visible alongside the comparison summaries without changing the backend contract.
 
+Progress note (2026-04-24): the JPL snapshot backend now uses quadratic interpolation on three-sample windows when possible, with a linear fallback for sparse bodies. This keeps the checked-in public-input fixture pure Rust and geocentric while making the reference backend slightly stronger before any larger corpus work lands.
+
 Remaining suggested scope:
 
 - add additional public-input epochs or bodies if broader interpolation coverage is needed beyond the current expanded fixture;
