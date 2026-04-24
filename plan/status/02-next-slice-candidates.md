@@ -90,6 +90,8 @@ Progress note (2026-04-24): the initial time-scale, Delta T, apparentness, and o
 
 Progress note (2026-04-24): `pleiades-types` now provides caller-supplied time-scale offset helpers (`JulianDay::add_seconds`, `Instant::with_time_scale_offset`, and `Instant::tt_from_ut1`) plus a structured `TimeScaleConversionError`. This does not add a built-in Delta T model, but it gives applications and validation fixtures a typed way to apply an explicit external `TT - UT1` policy before querying TT-only backends.
 
+Progress note (2026-04-24): `pleiades-core::ChartRequest` now includes explicit time-scale conversion conveniences, including a generic caller-supplied offset builder and a UT1-to-TT helper. That keeps chart assembly aligned with the typed offset policy while still requiring the caller to choose the conversion model.
+
 ## 5. Artifact profile schema draft
 
 **Goal:** prepare Phase 2 without blocking Phase 1 accuracy work.

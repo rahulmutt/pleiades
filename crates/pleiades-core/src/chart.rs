@@ -7,7 +7,7 @@
 //! chart-aware consumers, which keeps the workflow practical without hardwiring
 //! more chart logic than the façade needs.
 
-use core::fmt;
+use core::{fmt, time::Duration};
 
 use pleiades_ayanamsa::sidereal_offset;
 use pleiades_backend::{
@@ -17,7 +17,7 @@ use pleiades_backend::{
 use pleiades_houses::{calculate_houses, house_for_longitude, HouseRequest, HouseSnapshot};
 use pleiades_types::{
     Angle, CelestialBody, HouseSystem, Instant, Longitude, MotionDirection, ObserverLocation,
-    ZodiacMode, ZodiacSign,
+    TimeScale, TimeScaleConversionError, ZodiacMode, ZodiacSign,
 };
 
 use crate::ChartEngine;
@@ -76,6 +76,33 @@ impl ChartRequest {
     pub fn with_observer(mut self, observer: ObserverLocation) -> Self {
         self.observer = Some(observer);
         self
+    }
+
+    /// Replaces the chart instant with a caller-supplied time-scale offset.
+    ///
+    /// This is a mechanical convenience wrapper over
+    /// [`Instant::with_time_scale_offset`]. It keeps the chosen conversion
+    /// policy explicit without introducing any built-in Delta T or leap-second
+    /// logic.
+    pub fn with_instant_time_scale_offset(
+        mut self,
+        target_scale: TimeScale,
+        offset_seconds: f64,
+    ) -> Self {
+        self.instant = self
+            .instant
+            .with_time_scale_offset(target_scale, offset_seconds);
+        self
+    }
+
+    /// Converts the chart instant from UT1 to TT using caller-supplied Delta T.
+    ///
+    /// This convenience method mirrors [`Instant::tt_from_ut1`] so chart callers
+    /// can prepare a TT request surface before assembling houses or body
+    /// positions.
+    pub fn with_tt_from_ut1(mut self, delta_t: Duration) -> Result<Self, TimeScaleConversionError> {
+        self.instant = self.instant.tt_from_ut1(delta_t)?;
+        Ok(self)
     }
 
     /// Sets the included bodies.
@@ -1623,6 +1650,33 @@ mod tests {
             .iter()
             .all(|placement| placement.house.is_some()));
         assert!(chart.to_string().contains("House system: Whole Sign"));
+    }
+
+    #[test]
+    fn chart_request_can_apply_a_caller_supplied_time_scale_offset() {
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Ut1,
+        ))
+        .with_instant_time_scale_offset(TimeScale::Tt, 64.184);
+
+        assert_eq!(request.instant.scale, TimeScale::Tt);
+        let expected = 2_451_545.0 + 64.184 / 86_400.0;
+        assert!((request.instant.julian_day.days() - expected).abs() < 1e-9);
+    }
+
+    #[test]
+    fn chart_request_can_convert_ut1_to_tt() {
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Ut1,
+        ))
+        .with_tt_from_ut1(Duration::from_secs_f64(64.184))
+        .expect("UT1 chart request should convert to TT");
+
+        assert_eq!(request.instant.scale, TimeScale::Tt);
+        let expected = 2_451_545.0 + 64.184 / 86_400.0;
+        assert!((request.instant.julian_day.days() - expected).abs() < 1e-9);
     }
 
     #[test]
