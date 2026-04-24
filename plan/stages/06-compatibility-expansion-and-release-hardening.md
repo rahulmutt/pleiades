@@ -58,6 +58,7 @@ These are durable planning decisions that should remain true even as individual 
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] The compact compatibility-profile summary now also ends with an explicit `See release-summary` hop, so the one-screen catalog audit can jump straight to the broader release overview without relying only on the shared compact-view list.
 - [x] The release-bundle verification regression suite now also covers a duplicate `release summary:` manifest entry, so the staged manifest parser stays covered for a representative release-artifact path as well as the provenance-only fields.
 - [x] The release-checklist and release-summary artifacts now also surface `validate-artifact` directly, and the release-checklist gate list includes the validation command explicitly so maintainers can hop from the quick release overview or checklist into packaged-artifact validation without leaving the repository-managed release surface.
 - [x] The release compatibility profile's Carter house-system source-label appendix now also surfaces the exact `Carter's poli-equatorial` spelling alongside the existing `Carter` and `Carter's poli-equatorial table of houses` forms in `pleiades-houses` and the release-facing profile renderers, and the compatibility profile identifier has been bumped to `0.6.118` so the alias batch stays versioned with the current profile.

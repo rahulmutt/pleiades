@@ -1321,6 +1321,7 @@ fn render_compatibility_profile_summary_text() -> String {
     text.push_str("Release summary: release-summary\n");
     text.push_str("Release checklist summary: release-checklist-summary\n");
     text.push_str("Release bundle verification: verify-release-bundle\n");
+    text.push_str("See release-summary for the compact one-screen release overview.\n");
 
     text
 }
@@ -4296,6 +4297,9 @@ mod tests {
         assert!(rendered.contains("Release summary: release-summary"));
         assert!(rendered.contains("Release checklist summary: release-checklist-summary"));
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
+        assert!(
+            rendered.contains("See release-summary for the compact one-screen release overview.")
+        );
     }
 
     #[test]
