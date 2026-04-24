@@ -294,7 +294,13 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
     HouseSystemDescriptor::new(
         HouseSystem::Carter,
         "Carter (poli-equatorial)",
-        &["Carter", "Carter's poli-equatorial table of houses", "Poli-Equatorial", "Poli-equatorial"],
+        &[
+            "Carter",
+            "Carter's poli-equatorial",
+            "Carter's poli-equatorial table of houses",
+            "Poli-Equatorial",
+            "Poli-equatorial",
+        ],
         "Equal right-ascension segments anchored on the Ascendant's meridian.",
         false,
     ),
@@ -457,7 +463,13 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
     HouseSystemDescriptor::new(
         HouseSystem::Carter,
         "Carter (poli-equatorial)",
-        &["Carter", "Carter's poli-equatorial table of houses", "Poli-Equatorial", "Poli-equatorial"],
+        &[
+            "Carter",
+            "Carter's poli-equatorial",
+            "Carter's poli-equatorial table of houses",
+            "Poli-Equatorial",
+            "Poli-equatorial",
+        ],
         "Equal right-ascension segments anchored on the Ascendant's meridian.",
         false,
     ),
@@ -886,6 +898,10 @@ mod tests {
             Some(HouseSystem::Carter)
         );
         assert_eq!(
+            resolve_house_system("Carter's poli-equatorial"),
+            Some(HouseSystem::Carter)
+        );
+        assert_eq!(
             resolve_house_system("APC, also known as “Ram school”, table of houses"),
             Some(HouseSystem::Apc)
         );
@@ -997,6 +1013,10 @@ mod tests {
         assert_eq!(resolve_house_system("X"), Some(HouseSystem::Meridian));
         assert_eq!(resolve_house_system("Y"), Some(HouseSystem::Apc));
         assert_eq!(resolve_house_system("Carter"), Some(HouseSystem::Carter));
+        assert_eq!(
+            resolve_house_system("Carter's poli-equatorial"),
+            Some(HouseSystem::Carter)
+        );
         assert_eq!(
             resolve_house_system("T topocentric"),
             Some(HouseSystem::Topocentric)
