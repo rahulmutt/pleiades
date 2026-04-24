@@ -592,7 +592,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::ValensMoon,
         "Valens Moon",
-        &["Vettius Valens", "Valens", "Moon", "Moon sign ayanamsa"],
+        &["Vettius Valens", "Valens", "Moon", "Moon sign", "Moon sign ayanamsa", "Valens Moon ayanamsa"],
         "Valens Moon sidereal mode, catalogued with the Swiss Ephemeris reference epoch and offset from the header metadata.",
         Some(JulianDay::from_days(1_775_845.5)),
         Some(Angle::from_degrees(-2.942_2)),
@@ -1109,7 +1109,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
     AyanamsaDescriptor::new(
         Ayanamsa::ValensMoon,
         "Valens Moon",
-        &["Vettius Valens", "Valens", "Moon", "Moon sign ayanamsa"],
+        &["Vettius Valens", "Valens", "Moon", "Moon sign", "Moon sign ayanamsa", "Valens Moon ayanamsa"],
         "Valens Moon sidereal mode, catalogued with the Swiss Ephemeris reference epoch and offset from the header metadata.",
         Some(JulianDay::from_days(1_775_845.5)),
         Some(Angle::from_degrees(-2.942_2)),
@@ -1566,6 +1566,11 @@ mod tests {
         assert_eq!(resolve_ayanamsa("Valens"), Some(Ayanamsa::ValensMoon));
         assert_eq!(
             resolve_ayanamsa("Moon sign ayanamsa"),
+            Some(Ayanamsa::ValensMoon)
+        );
+        assert_eq!(resolve_ayanamsa("Moon sign"), Some(Ayanamsa::ValensMoon));
+        assert_eq!(
+            resolve_ayanamsa("Valens Moon ayanamsa"),
             Some(Ayanamsa::ValensMoon)
         );
         assert_eq!(
