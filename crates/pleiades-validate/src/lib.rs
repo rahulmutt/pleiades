@@ -1446,6 +1446,7 @@ fn render_release_checklist_text() -> String {
         "[x] mise run test",
         "[x] mise run audit",
         "[x] mise run release-smoke",
+        "[x] cargo run -q -p pleiades-validate -- verify-compatibility-profile",
     ] {
         text.push_str("- ");
         text.push_str(item);
@@ -1573,6 +1574,7 @@ fn render_release_summary_text() -> String {
         "[x] mise run test",
         "[x] mise run audit",
         "[x] mise run release-smoke",
+        "[x] cargo run -q -p pleiades-validate -- verify-compatibility-profile",
         "[x] cargo run -q -p pleiades-validate -- bundle-release --out /tmp/pleiades-release",
         "[x] cargo run -q -p pleiades-validate -- verify-release-bundle --out /tmp/pleiades-release",
     ] {
@@ -1607,7 +1609,7 @@ fn render_release_checklist_summary_text() -> String {
     text.push_str("Release bundle verification: verify-release-bundle\n");
     text.push_str("Release summary: release-summary\n");
     text.push_str("Compact summary views: release-notes-summary, backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary\n");
-    text.push_str("Repository-managed release gates: 5 items\n");
+    text.push_str("Repository-managed release gates: 6 items\n");
     text.push_str("Manual bundle workflow: 3 items\n");
     text.push_str("Bundle contents: 16 items\n");
     text.push_str("External publishing reminders: 3 items\n");
@@ -4370,7 +4372,7 @@ mod tests {
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
         assert!(rendered.contains("Release summary: release-summary"));
         assert!(rendered.contains("Compact summary views: release-notes-summary, backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
-        assert!(rendered.contains("Repository-managed release gates: 5 items"));
+        assert!(rendered.contains("Repository-managed release gates: 6 items"));
         assert!(rendered.contains("Manual bundle workflow: 3 items"));
         assert!(rendered.contains("Bundle contents: 16 items"));
         assert!(rendered.contains("External publishing reminders: 3 items"));
@@ -4409,6 +4411,7 @@ mod tests {
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Release checklist summary: release-checklist-summary"));
         assert!(rendered.contains("Release gate reminders:"));
+        assert!(rendered.contains("verify-compatibility-profile"));
         assert!(rendered.contains("See release-notes and release-checklist"));
     }
 
@@ -4659,6 +4662,9 @@ version = "0.9.0"
             "custom bodies are included in decode and boundary checks, but omitted from the algorithmic comparison corpus"
         ));
         assert!(release_checklist.contains("Release checklist"));
+        assert!(release_checklist.contains("Repository-managed release gates:"));
+        assert!(release_checklist
+            .contains("[x] cargo run -q -p pleiades-validate -- verify-compatibility-profile"));
         assert!(release_checklist.contains("Manual bundle workflow:"));
         assert!(release_checklist.contains("bundle-release --out /tmp/pleiades-release"));
         assert!(release_checklist.contains("verify-release-bundle --out /tmp/pleiades-release"));
@@ -4674,7 +4680,7 @@ version = "0.9.0"
         assert!(release_checklist_summary.contains("Release checklist summary"));
         assert!(release_checklist_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
-        assert!(release_checklist_summary.contains("Repository-managed release gates: 5 items"));
+        assert!(release_checklist_summary.contains("Repository-managed release gates: 6 items"));
         assert!(release_checklist_summary.contains("Manual bundle workflow: 3 items"));
         assert!(release_checklist_summary.contains("Bundle contents: 16 items"));
         assert!(release_checklist_summary.contains("External publishing reminders: 3 items"));

@@ -58,6 +58,7 @@ These are durable planning decisions that should remain true even as individual 
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] The release checklist and compact release summary now also surface `verify-compatibility-profile` alongside the existing release-bundle checks, so the maintainer-facing gate path keeps the catalog verification step visible in both the checklist artifact and the one-screen release overview.
 - [x] The release-bundle verification regression suite now also covers duplicate `api stability posture id:` manifest entries, so the staged provenance parser stays covered for the release-posture identifier as well as the existing profile-id duplicate-key guard.
 - [x] The validation and bundle-release round controls now reject zero-round requests, and staged bundles now reject a `validation rounds` provenance value of `0` even when the manifest checksum sidecar is otherwise consistent, so the release provenance field stays a real measurement count instead of a placeholder.
 - [x] The packaged-artifact quick-audit view now also links the `compatibility-profile-summary` artifact directly, so maintainers can hop from the packaged-data audit back to the release compatibility profile without leaving the compact release-surface path.

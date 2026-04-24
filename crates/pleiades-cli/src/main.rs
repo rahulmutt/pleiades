@@ -523,6 +523,8 @@ mod tests {
         assert!(release_checklist.contains("API stability summary: api-stability-summary"));
         assert!(release_checklist.contains("Compact summary views: release-notes-summary, backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
         assert!(release_checklist.contains("Repository-managed release gates:"));
+        assert!(release_checklist
+            .contains("[x] cargo run -q -p pleiades-validate -- verify-compatibility-profile"));
         assert!(release_checklist.contains("bundle-release --out /tmp/pleiades-release"));
         assert!(release_checklist.contains("release-checklist-summary.txt"));
 
@@ -540,7 +542,7 @@ mod tests {
             .contains("Release bundle verification: verify-release-bundle"));
         assert!(release_checklist_summary.contains("Release summary: release-summary"));
         assert!(release_checklist_summary.contains("Compact summary views: release-notes-summary, backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
-        assert!(release_checklist_summary.contains("Repository-managed release gates: 5 items"));
+        assert!(release_checklist_summary.contains("Repository-managed release gates: 6 items"));
         assert!(release_checklist_summary.contains("Manual bundle workflow: 3 items"));
         assert!(release_checklist_summary.contains("Bundle contents: 16 items"));
         assert!(release_checklist_summary.contains("External publishing reminders: 3 items"));
@@ -559,7 +561,7 @@ mod tests {
         assert!(release_summary.contains("Release notes summary: release-notes-summary"));
         assert!(release_summary.contains("Release bundle verification: verify-release-bundle"));
         assert!(release_summary
-            .contains("Compatibility profile verification: verify-compatibility-profile"));
+            .contains("[x] cargo run -q -p pleiades-validate -- verify-compatibility-profile"));
         assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_summary.contains("Release checklist summary: release-checklist-summary"));
         assert!(release_summary.contains("See release-notes and release-checklist"));
