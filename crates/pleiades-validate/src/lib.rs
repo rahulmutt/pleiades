@@ -1341,6 +1341,7 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
+    text.push_str("Artifact validation: validate-artifact\n");
     text.push_str("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary\n");
     text.push_str("Release notes summary: release-notes-summary\n");
     text.push_str("Release summary: release-summary\n");
@@ -1441,6 +1442,7 @@ fn render_release_notes_summary_text() -> String {
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
     text.push_str("Artifact summary: artifact-summary / artifact-posture-summary\n");
+    text.push_str("Artifact validation: validate-artifact\n");
     text.push_str("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary\n");
     text.push_str("Release checklist summary: release-checklist-summary\n");
     text.push_str("Release bundle verification: verify-release-bundle\n");
@@ -4684,6 +4686,7 @@ version = "0.9.0"
         )));
         assert!(release_notes.contains("Release notes"));
         assert!(release_notes.contains("Release notes summary: release-notes-summary"));
+        assert!(release_notes.contains("Artifact validation: validate-artifact"));
         assert!(release_notes
             .contains("Compatibility profile verification: verify-compatibility-profile"));
         assert!(release_notes.contains("Release summary: release-summary"));
@@ -4699,6 +4702,7 @@ version = "0.9.0"
         assert!(release_notes_summary.contains("Release notes summary"));
         assert!(release_notes_summary.contains("Release-specific coverage:"));
         assert!(release_notes_summary.contains("API stability summary line:"));
+        assert!(release_notes_summary.contains("Artifact validation: validate-artifact"));
         assert!(release_notes_summary.contains("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_notes_summary.contains("Release notes: release-notes"));
         assert!(release_notes_summary
