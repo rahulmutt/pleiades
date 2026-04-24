@@ -322,7 +322,7 @@ pub struct ValidationReport {
 }
 
 /// A generated release bundle containing the compatibility profile, release notes,
-/// release checklist, backend matrix, API posture, API summary, validation report summary,
+/// release checklist, backend matrix, API posture, API stability summary, validation report summary,
 /// validation report, and manifest.
 #[derive(Clone, Debug)]
 pub struct ReleaseBundle {
@@ -1663,7 +1663,7 @@ fn workspace_provenance() -> WorkspaceProvenance {
 
 /// Writes a release bundle containing the compatibility profile, release notes,
 /// release notes summary, release summary, release checklist, release checklist summary,
-/// backend matrix, API posture, API summary, validation report summary, artifact summary,
+/// backend matrix, API posture, API stability summary, validation report summary, artifact summary,
 /// validation report, and a manifest.
 pub fn render_release_bundle(
     rounds: usize,
@@ -3504,7 +3504,7 @@ fn help_text() -> String {
   release-checklist-summary Print the compact release checklist summary
   checklist-summary        Alias for release-checklist-summary
   release-summary           Print the compact release summary
-  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API summary, validation report summary, artifact summary, validation report, manifest, and manifest checksum sidecar\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API stability summary, validation report summary, artifact summary, validation report, manifest, and manifest checksum sidecar\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
@@ -4036,6 +4036,7 @@ mod tests {
         assert!(rendered.contains("release-checklist-summary"));
         assert!(rendered.contains("release-summary"));
         assert!(rendered.contains("bundle-release --out DIR"));
+        assert!(rendered.contains("API stability summary"));
         assert!(rendered.contains("profile-summary"));
         assert!(rendered.contains("backend matrix"));
         assert!(rendered.contains("verify-release-bundle"));
