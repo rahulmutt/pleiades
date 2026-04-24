@@ -59,6 +59,7 @@ These are durable planning decisions that should remain true even as individual 
 Stage 6 release hardening has started as of 2026-04-22.
 
 - [x] The packaged-artifact quick-audit view now also links the `compatibility-profile-summary` artifact directly, so maintainers can hop from the packaged-data audit back to the release compatibility profile without leaving the compact release-surface path.
+- [x] `pleiades-validate` now rejects unexpected manifest-only lines in staged release bundles, so the bundle-manifest file stays on the same canonical line set as the rest of the tamper-evident release surface.
 - [x] `pleiades-cli` now mirrors `bundle-release --out DIR` in addition to `verify-release-bundle`, so the primary CLI can assemble and inspect staged release bundles without switching crates.
 - [x] The artifact-summary compact release view now also points directly to `verify-release-bundle`, so the packaged-artifact audit can hop into the staged-bundle integrity check without leaving the compact maintainer-facing release path.
 - [x] The release-checklist and release-checklist-summary compact release views now also surface `backend-matrix-summary` and `api-stability-summary` directly, so the release gate audit can hop into the supporting backend coverage and API posture summaries without relying only on the compact summary-view list.

@@ -1941,6 +1941,70 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
     Ok(())
 }
 
+fn ensure_release_bundle_manifest_is_canonical(
+    manifest_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    const EXPECTED_MANIFEST_LINES: [&str; 35] = [
+        "Release bundle manifest",
+        "profile:",
+        "profile checksum (fnv1a-64):",
+        "profile summary:",
+        "profile summary checksum (fnv1a-64):",
+        "release notes:",
+        "release notes checksum (fnv1a-64):",
+        "release notes summary:",
+        "release notes summary checksum (fnv1a-64):",
+        "release summary:",
+        "release summary checksum (fnv1a-64):",
+        "release checklist:",
+        "release checklist checksum (fnv1a-64):",
+        "release checklist summary:",
+        "release checklist summary checksum (fnv1a-64):",
+        "backend matrix:",
+        "backend matrix checksum (fnv1a-64):",
+        "backend matrix summary:",
+        "backend matrix summary checksum (fnv1a-64):",
+        "api stability posture:",
+        "api stability checksum (fnv1a-64):",
+        "api stability summary:",
+        "api stability summary checksum (fnv1a-64):",
+        "validation report summary:",
+        "validation report summary checksum (fnv1a-64):",
+        "artifact summary:",
+        "artifact summary checksum (fnv1a-64):",
+        "validation report:",
+        "validation report checksum (fnv1a-64):",
+        "source revision:",
+        "workspace status:",
+        "rustc version:",
+        "profile id:",
+        "api stability posture id:",
+        "validation rounds:",
+    ];
+
+    let lines = manifest_text.lines().collect::<Vec<_>>();
+    if lines.len() != EXPECTED_MANIFEST_LINES.len() {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected release bundle manifest line count: expected {}, found {}",
+            EXPECTED_MANIFEST_LINES.len(),
+            lines.len()
+        )));
+    }
+
+    for (index, (line, expected_prefix)) in lines.iter().zip(EXPECTED_MANIFEST_LINES).enumerate() {
+        if !line.starts_with(expected_prefix) {
+            return Err(ReleaseBundleError::Verification(format!(
+                "unexpected release bundle manifest line {}: expected prefix `{}`, found `{}`",
+                index + 1,
+                expected_prefix,
+                line
+            )));
+        }
+    }
+
+    Ok(())
+}
+
 fn read_required_bundle_text(path: &Path, label: &str) -> Result<String, ReleaseBundleError> {
     fs::read_to_string(path).map_err(|error| {
         if error.kind() == std::io::ErrorKind::NotFound {
@@ -2000,6 +2064,7 @@ fn verify_release_bundle(
         read_required_bundle_text(&manifest_checksum_path, "bundle manifest checksum sidecar")?;
 
     let manifest = ParsedReleaseBundleManifest::parse(&manifest_text)?;
+    ensure_release_bundle_manifest_is_canonical(&manifest_text)?;
     ensure_release_bundle_directory_contents(output_dir)?;
     ensure_non_empty_manifest_value(&manifest.source_revision, "source revision")?;
     ensure_non_empty_manifest_value(&manifest.workspace_status, "workspace status")?;
@@ -4973,6 +5038,35 @@ version = "0.9.0"
                 || error.contains("unexpected release bundle directory contents")
         );
         assert!(error.contains("unexpected.txt"));
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_unexpected_manifest_lines() {
+        let bundle_dir = unique_temp_dir("pleiades-release-bundle-unexpected-manifest-line");
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let manifest_path = bundle_dir.join("bundle-manifest.txt");
+        let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
+        let tampered = format!("{manifest}unexpected manifest note: review required\n");
+        std::fs::write(&manifest_path, tampered).expect("manifest should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect_err("verification should fail for an unexpected manifest line");
+        assert!(
+            error.contains("release bundle verification failed")
+                || error.contains("unexpected release bundle manifest line count")
+        );
+        assert!(error.contains("unexpected release bundle manifest line count"));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
     }
