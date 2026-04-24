@@ -38,6 +38,8 @@ Progress note (2026-04-24): the validation backend matrix now prints canonical J
 
 Progress note (2026-04-24): the VSOP87 validation output now also pairs each source-backed body profile with its source file, provenance, and measured canonical deltas, and the compact summary now reports a body-profile evidence count. This keeps the source/profile linkage visible while the generated complete-table path remains pending.
 
+Progress note (2026-04-24): the batch API for the source-backed Sun-through-Neptune sample set is now covered by a canonical J2000 regression test, so the current VSOP87 evidence is verified both through single-position queries and through the default `positions` batch path.
+
 ## 2. Lunar theory source selection
 
 **Goal:** turn `pleiades-elp` into a planned production implementation instead of an approximate placeholder.

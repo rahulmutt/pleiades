@@ -34,6 +34,8 @@ Latest progress (2026-04-24): the JPL snapshot backend now exposes coarse leave-
 
 Previous progress (2026-04-24): backend matrix release artifacts now report implementation status separately from body/catalog presence. Each implemented backend has an explicit status label and note (fixture reference, partial source-backed, preliminary algorithm, prototype artifact, or routing façade), and the compact matrix summary counts those statuses so release artifacts do not imply production accuracy merely because a backend advertises body coverage.
 
+Recent test progress (2026-04-24): the VSOP87 backend now also exercises its batch API over the full source-backed Sun-through-Neptune sample set, so the canonical J2000 evidence is verified both body-by-body and in batch form.
+
 Active gaps:
 
 - production VSOP87 coefficient handling and transformations;

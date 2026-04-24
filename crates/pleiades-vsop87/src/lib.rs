@@ -1108,6 +1108,45 @@ mod tests {
     }
 
     #[test]
+    fn batch_query_covers_all_source_backed_vsop87_paths() {
+        let backend = Vsop87Backend::new();
+        let samples = canonical_epoch_samples();
+        let requests = samples
+            .iter()
+            .map(|sample| mean_request(sample.body.clone()))
+            .collect::<Vec<_>>();
+
+        let results = backend
+            .positions(&requests)
+            .expect("batch query should work for every source-backed body");
+
+        assert_eq!(results.len(), samples.len());
+        for (sample, result) in samples.iter().zip(results.iter()) {
+            assert_eq!(result.body, sample.body);
+            let ecliptic = result
+                .ecliptic
+                .as_ref()
+                .expect("ecliptic result should exist");
+            assert_degrees_close(
+                ecliptic.longitude.degrees(),
+                sample.expected_longitude_deg,
+                sample.max_longitude_delta_deg,
+            );
+            assert_degrees_close(
+                ecliptic.latitude.degrees(),
+                sample.expected_latitude_deg,
+                sample.max_latitude_delta_deg,
+            );
+            assert_close(
+                ecliptic.distance_au.expect("distance should exist"),
+                sample.expected_distance_au,
+                sample.max_distance_delta_au,
+            );
+            assert_eq!(result.quality, QualityAnnotation::Approximate);
+        }
+    }
+
+    #[test]
     fn finite_difference_motion_is_reported_for_supported_bodies() {
         let backend = Vsop87Backend::new();
         let request = mean_request(CelestialBody::Mars);
