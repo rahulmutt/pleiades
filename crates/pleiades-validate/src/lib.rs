@@ -1216,9 +1216,13 @@ fn verify_house_system_aliases(
     entries: &[pleiades_houses::HouseSystemDescriptor],
 ) -> Result<usize, EphemerisError> {
     let mut labels_checked = 0usize;
+    let mut seen_labels = BTreeSet::new();
 
     for entry in entries {
+        ensure_profile_descriptor_metadata("house-system", entry.canonical_name, entry.notes)?;
+
         labels_checked += 1;
+        ensure_unique_profile_label("house-system", entry.canonical_name, &mut seen_labels)?;
         if resolve_house_system(entry.canonical_name) != Some(entry.system.clone()) {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,
@@ -1231,6 +1235,7 @@ fn verify_house_system_aliases(
 
         for alias in entry.aliases {
             labels_checked += 1;
+            ensure_unique_profile_label("house-system", alias, &mut seen_labels)?;
             if resolve_house_system(alias) != Some(entry.system.clone()) {
                 return Err(EphemerisError::new(
                     EphemerisErrorKind::InvalidRequest,
@@ -1250,9 +1255,13 @@ fn verify_ayanamsa_aliases(
     entries: &[pleiades_ayanamsa::AyanamsaDescriptor],
 ) -> Result<usize, EphemerisError> {
     let mut labels_checked = 0usize;
+    let mut seen_labels = BTreeSet::new();
 
     for entry in entries {
+        ensure_profile_descriptor_metadata("ayanamsa", entry.canonical_name, entry.notes)?;
+
         labels_checked += 1;
+        ensure_unique_profile_label("ayanamsa", entry.canonical_name, &mut seen_labels)?;
         if resolve_ayanamsa(entry.canonical_name) != Some(entry.ayanamsa.clone()) {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,
@@ -1265,6 +1274,7 @@ fn verify_ayanamsa_aliases(
 
         for alias in entry.aliases {
             labels_checked += 1;
+            ensure_unique_profile_label("ayanamsa", alias, &mut seen_labels)?;
             if resolve_ayanamsa(alias) != Some(entry.ayanamsa.clone()) {
                 return Err(EphemerisError::new(
                     EphemerisErrorKind::InvalidRequest,
@@ -1278,6 +1288,57 @@ fn verify_ayanamsa_aliases(
     }
 
     Ok(labels_checked)
+}
+
+fn ensure_profile_descriptor_metadata(
+    catalog_label: &str,
+    canonical_name: &str,
+    notes: &str,
+) -> Result<(), EphemerisError> {
+    if canonical_name.trim().is_empty() {
+        return Err(EphemerisError::new(
+            EphemerisErrorKind::InvalidRequest,
+            format!("compatibility profile {catalog_label} descriptor is missing a canonical name"),
+        ));
+    }
+
+    if notes.trim().is_empty() {
+        return Err(EphemerisError::new(
+            EphemerisErrorKind::InvalidRequest,
+            format!(
+                "compatibility profile {catalog_label} descriptor '{}' is missing notes metadata",
+                canonical_name
+            ),
+        ));
+    }
+
+    Ok(())
+}
+
+fn ensure_unique_profile_label(
+    catalog_label: &str,
+    label: &str,
+    seen_labels: &mut BTreeSet<String>,
+) -> Result<(), EphemerisError> {
+    if label.trim().is_empty() {
+        return Err(EphemerisError::new(
+            EphemerisErrorKind::InvalidRequest,
+            format!("compatibility profile {catalog_label} descriptor contains a blank label"),
+        ));
+    }
+
+    let normalized = label.trim().to_string();
+    if !seen_labels.insert(normalized) {
+        return Err(EphemerisError::new(
+            EphemerisErrorKind::InvalidRequest,
+            format!(
+                "compatibility profile {catalog_label} labels are not unique: duplicate label '{}'",
+                label
+            ),
+        ));
+    }
+
+    Ok(())
 }
 
 fn validation_reference_point_summary(point: &str) -> String {
@@ -3934,7 +3995,7 @@ fn render_release_bundle_error(error: ReleaseBundleError) -> String {
 mod tests {
     use pleiades_core::{
         current_release_profile_identifiers, sidereal_longitude, Apparentness, Ayanamsa,
-        CoordinateFrame, JulianDay, TimeScale, ZodiacMode,
+        CoordinateFrame, HouseSystem, JulianDay, TimeScale, ZodiacMode,
     };
 
     use super::*;
@@ -4600,6 +4661,39 @@ mod tests {
         assert!(rendered.contains("House systems verified:"));
         assert!(rendered.contains("Ayanamsas verified:"));
         assert!(rendered.contains("Baseline/release slices:"));
+    }
+
+    #[test]
+    fn compatibility_profile_verification_rejects_duplicate_house_labels() {
+        let descriptors = [pleiades_houses::HouseSystemDescriptor::new(
+            HouseSystem::Placidus,
+            "Placidus",
+            &["Placidus"],
+            "Quadrant system used for duplicate-label verification coverage.",
+            true,
+        )];
+
+        let error = verify_house_system_aliases(&descriptors)
+            .expect_err("duplicate labels should fail profile verification");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error.message.contains("house-system labels are not unique"));
+    }
+
+    #[test]
+    fn compatibility_profile_verification_rejects_missing_descriptor_notes() {
+        let descriptors = [pleiades_ayanamsa::AyanamsaDescriptor::new(
+            Ayanamsa::Lahiri,
+            "Lahiri",
+            &[],
+            " ",
+            Some(JulianDay::from_days(2_435_553.5)),
+            Some(pleiades_core::Angle::from_degrees(23.245_524_743)),
+        )];
+
+        let error = verify_ayanamsa_aliases(&descriptors)
+            .expect_err("missing descriptor notes should fail profile verification");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error.message.contains("missing notes metadata"));
     }
 
     #[test]

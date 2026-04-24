@@ -91,12 +91,16 @@ Remaining suggested scope:
 
 **Goal:** prevent catalog metadata drift while backend work proceeds.
 
-Suggested scope:
+Completed first slice (2026-04-24):
 
-- make verification fail when a release-profile catalog entry lacks descriptor metadata;
-- check alias uniqueness within each catalog;
+- `verify-compatibility-profile` now rejects catalog descriptors with blank canonical names, blank notes metadata, blank labels, or repeated exact labels within each house-system/ayanamsa catalog;
+- regression tests cover duplicate house labels and missing ayanamsa descriptor notes;
+- redundant resolver-equivalent house aliases were pruned where canonical or retained alias matching already covers the label.
+
+Remaining suggested scope:
+
 - report implementation status separately from catalog presence;
-- add tests around known release-profile entries.
+- add tests around additional known release-profile entries and release-profile status lines.
 
 ## Selection guidance
 
