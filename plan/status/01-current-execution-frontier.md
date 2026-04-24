@@ -19,7 +19,7 @@ Several downstream requirements depend on trusted ephemeris outputs:
 
 Completed foundations:
 
-- per-body comparison summaries in validation reports, so measured backend deltas are visible by body as well as in aggregate;
+- per-body comparison summaries and expected tolerance status sections in validation reports, so measured backend deltas are visible by body and checked against explicit interim evidence thresholds;
 - managed Rust workspace and mandatory crate layout;
 - typed domain vocabulary in `pleiades-types`;
 - backend contract, metadata, errors, batch fallback, and composite routing in `pleiades-backend`;
@@ -29,6 +29,8 @@ Completed foundations:
 - compression model and sample artifact lookup;
 - CLI, validation reports, backend matrix, release notes/checklists, bundle generation, and bundle verification;
 - tests and doctests for current behavior.
+
+Latest progress (2026-04-24): validation reports now include an explicit expected tolerance status table for each comparison body. The table records the current Phase 1 interim tolerance profile (truncated VSOP87B planetary paths, compact ELP lunar path, and Pluto mean-elements fallback), the numeric longitude/latitude/distance limits, measured maxima, and whether each body is within or exceeds that profile. This makes validation evidence more release-auditable without upgrading release accuracy claims.
 
 Active gaps:
 

@@ -32,6 +32,8 @@ Progress note (2026-04-24): the same truncated VSOP87B source-backed path has be
 
 Progress note (2026-04-24): the checked-in truncated VSOP87B source-backed path now covers the remaining VSOP87 major planets, Uranus and Neptune. Both bodies evaluate leading-term IMCCE VSOP87B slices, reduce against the Earth slice, report source-backed provenance in metadata/source profiles, and have J2000 geocentric golden tests against full-file IMCCE VSOP87B Uranus/Neptune/Earth values. Pluto remains a separate non-VSOP87 special case, and complete generated coefficient-table ingestion remains outstanding.
 
+Progress note (2026-04-24): validation comparison reports now render per-body expected tolerance status in addition to aggregate and per-body measured deltas. The current tolerance table is explicitly labeled as Phase 1 interim evidence for truncated VSOP87B planetary paths, compact ELP lunar paths, and the Pluto mean-elements fallback, making measured exceedances visible while complete source-backed tables remain pending.
+
 ## 2. Lunar theory source selection
 
 **Goal:** turn `pleiades-elp` into a planned production implementation instead of an approximate placeholder.
