@@ -77,6 +77,109 @@ pub fn body_source_profiles() -> Vec<Vsop87BodySource> {
         .collect()
 }
 
+/// Canonical J2000 reference samples for the source-backed VSOP87B paths.
+///
+/// These values are the same full-file public IMCCE VSOP87B reference points
+/// exercised by the backend regression tests. The validation tooling uses them
+/// to render measured deltas against the checked-in truncated coefficient
+/// slices while the complete generated-table pipeline is still pending.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Vsop87CanonicalEpochSample {
+    /// Body measured at the canonical epoch.
+    pub body: CelestialBody,
+    /// Reference geocentric ecliptic longitude in degrees.
+    pub expected_longitude_deg: f64,
+    /// Reference geocentric ecliptic latitude in degrees.
+    pub expected_latitude_deg: f64,
+    /// Reference geocentric distance in astronomical units.
+    pub expected_distance_au: f64,
+    /// Maximum acceptable geocentric longitude delta in degrees.
+    pub max_longitude_delta_deg: f64,
+    /// Maximum acceptable geocentric latitude delta in degrees.
+    pub max_latitude_delta_deg: f64,
+    /// Maximum acceptable geocentric distance delta in astronomical units.
+    pub max_distance_delta_au: f64,
+}
+
+/// Returns the canonical J2000 source-backed VSOP87B samples used by
+/// validation reporting.
+pub fn canonical_epoch_samples() -> Vec<Vsop87CanonicalEpochSample> {
+    vec![
+        Vsop87CanonicalEpochSample {
+            body: CelestialBody::Sun,
+            expected_longitude_deg: 280.377_843_416_648_5,
+            expected_latitude_deg: 0.000_227_210_514_369_001,
+            expected_distance_au: 0.983_327_682_322_294_2,
+            max_longitude_delta_deg: 0.001,
+            max_latitude_delta_deg: 0.000_01,
+            max_distance_delta_au: 0.000_01,
+        },
+        Vsop87CanonicalEpochSample {
+            body: CelestialBody::Mercury,
+            expected_longitude_deg: 271.904_744_694_147_67,
+            expected_latitude_deg: -0.995_553_498_474_437_4,
+            expected_distance_au: 1.415_524_982_482_968,
+            max_longitude_delta_deg: 0.001,
+            max_latitude_delta_deg: 0.000_1,
+            max_distance_delta_au: 0.000_01,
+        },
+        Vsop87CanonicalEpochSample {
+            body: CelestialBody::Venus,
+            expected_longitude_deg: 241.576_729_276_029_5,
+            expected_latitude_deg: 2.066_187_460_260_189,
+            expected_distance_au: 1.137_689_108_663_588,
+            max_longitude_delta_deg: 0.001,
+            max_latitude_delta_deg: 0.000_1,
+            max_distance_delta_au: 0.000_01,
+        },
+        Vsop87CanonicalEpochSample {
+            body: CelestialBody::Mars,
+            expected_longitude_deg: 327.973_990_111_690_9,
+            expected_latitude_deg: -1.067_696_942_937_559_8,
+            expected_distance_au: 1.849_625_885_985_351_8,
+            max_longitude_delta_deg: 0.003,
+            max_latitude_delta_deg: 0.000_1,
+            max_distance_delta_au: 0.000_1,
+        },
+        Vsop87CanonicalEpochSample {
+            body: CelestialBody::Jupiter,
+            expected_longitude_deg: 25.258_084_319_944_018,
+            expected_latitude_deg: -1.262_035_369_214_697_3,
+            expected_distance_au: 4.621_126_218_764_805,
+            max_longitude_delta_deg: 0.004,
+            max_latitude_delta_deg: 0.000_2,
+            max_distance_delta_au: 0.000_1,
+        },
+        Vsop87CanonicalEpochSample {
+            body: CelestialBody::Saturn,
+            expected_longitude_deg: 40.398_572_276_886_384,
+            expected_latitude_deg: -2.444_625_745_599_142_3,
+            expected_distance_au: 8.652_748_862_003_302,
+            max_longitude_delta_deg: 0.004,
+            max_latitude_delta_deg: 0.000_2,
+            max_distance_delta_au: 0.000_5,
+        },
+        Vsop87CanonicalEpochSample {
+            body: CelestialBody::Uranus,
+            expected_longitude_deg: 314.819_126_206_595_1,
+            expected_latitude_deg: -0.658_295_956_624_516_5,
+            expected_distance_au: 20.727_185_531_715_136,
+            max_longitude_delta_deg: 0.006,
+            max_latitude_delta_deg: 0.000_1,
+            max_distance_delta_au: 0.000_1,
+        },
+        Vsop87CanonicalEpochSample {
+            body: CelestialBody::Neptune,
+            expected_longitude_deg: 303.203_423_517_050_34,
+            expected_latitude_deg: 0.234_955_476_702_893_77,
+            expected_distance_au: 31.024_432_860_406_91,
+            max_longitude_delta_deg: 0.001,
+            max_latitude_delta_deg: 0.000_1,
+            max_distance_delta_au: 0.000_1,
+        },
+    ]
+}
+
 impl Vsop87BodySource {
     fn for_body(body: CelestialBody) -> Self {
         match body {
@@ -1013,6 +1116,30 @@ mod tests {
             .expect("Pluto profile should exist");
         assert_eq!(pluto.kind, Vsop87BodySourceKind::MeanOrbitalElements);
         assert!(pluto.provenance.contains("fallback"));
+    }
+
+    #[test]
+    fn canonical_epoch_samples_cover_source_backed_paths() {
+        let samples = canonical_epoch_samples();
+        assert_eq!(samples.len(), 8);
+        assert!(samples
+            .iter()
+            .any(|sample| sample.body == CelestialBody::Sun));
+        assert!(samples
+            .iter()
+            .any(|sample| sample.body == CelestialBody::Mercury));
+        assert!(samples
+            .iter()
+            .any(|sample| sample.body == CelestialBody::Neptune));
+        assert!(samples
+            .iter()
+            .all(|sample| sample.max_longitude_delta_deg > 0.0));
+        assert!(samples
+            .iter()
+            .all(|sample| sample.max_latitude_delta_deg > 0.0));
+        assert!(samples
+            .iter()
+            .all(|sample| sample.max_distance_delta_au > 0.0));
     }
 
     #[test]

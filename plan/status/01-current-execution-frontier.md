@@ -30,7 +30,7 @@ Completed foundations:
 - CLI, validation reports, backend matrix, release notes/checklists, bundle generation, and bundle verification;
 - tests and doctests for current behavior.
 
-Latest progress (2026-04-24): the JPL snapshot backend now exposes coarse leave-one-out interpolation quality samples derived from the checked-in fixture, and backend matrix release artifacts render those sparse-fixture error checks. This keeps the current linear-interpolation proof-of-concept auditable without treating the sparse fixture as a production tolerance claim.
+Latest progress (2026-04-24): the JPL snapshot backend now exposes coarse leave-one-out interpolation quality samples derived from the checked-in fixture, and backend matrix release artifacts render those sparse-fixture error checks. The VSOP87 backend matrix entry now also prints canonical J2000 source-backed evidence for Sun-through-Neptune at the same public IMCCE reference points used by the regression tests, so the truncated coefficient paths carry visible measured deltas while complete generated tables remain pending.
 
 Previous progress (2026-04-24): backend matrix release artifacts now report implementation status separately from body/catalog presence. Each implemented backend has an explicit status label and note (fixture reference, partial source-backed, preliminary algorithm, prototype artifact, or routing façade), and the compact matrix summary counts those statuses so release artifacts do not imply production accuracy merely because a backend advertises body coverage.
 
@@ -40,7 +40,7 @@ Active gaps:
 - production lunar theory implementation and lunar point semantics;
 - larger JPL-style reference corpus, interpolation validation, and documented tolerance envelopes beyond the current small fixture proof of concept;
 - production Delta T conversion, TDB handling, apparent-place corrections, and validated frame-conversion error envelopes beyond the initial documented policy;
-- reference-backed tolerance tables and validation reports.
+- source-backed evidence tables, reference-backed tolerance tables, and broader validation reports.
 
 ## Recommended next slice
 

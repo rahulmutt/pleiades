@@ -43,7 +43,7 @@ use pleiades_houses::{
 use pleiades_jpl::{
     comparison_snapshot, interpolation_quality_samples, reference_asteroids, JplSnapshotBackend,
 };
-use pleiades_vsop87::{body_source_profiles, Vsop87Backend};
+use pleiades_vsop87::{body_source_profiles, canonical_epoch_samples, Vsop87Backend};
 
 const DEFAULT_BENCHMARK_ROUNDS: usize = 10_000;
 const BANNER: &str = "pleiades-validate stage 4 tool";
@@ -3653,6 +3653,51 @@ fn write_backend_catalog_entry(
                 profile.body, profile.kind, profile.accuracy, profile.provenance
             )?;
         }
+
+        writeln!(f, "  canonical J2000 VSOP87B evidence:")?;
+        let backend = Vsop87Backend::new();
+        for sample in canonical_epoch_samples() {
+            let mut request = EphemerisRequest::new(
+                sample.body.clone(),
+                Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+            );
+            request.apparent = Apparentness::Mean;
+            match backend.position(&request) {
+                Ok(result) => {
+                    let ecliptic = result
+                        .ecliptic
+                        .expect("VSOP87 backend should provide ecliptic coordinates");
+                    let longitude_delta = signed_longitude_delta_degrees(
+                        sample.expected_longitude_deg,
+                        ecliptic.longitude.degrees(),
+                    )
+                    .abs();
+                    let latitude_delta =
+                        (ecliptic.latitude.degrees() - sample.expected_latitude_deg).abs();
+                    let distance_delta = (ecliptic.distance_au.expect("distance should exist")
+                        - sample.expected_distance_au)
+                        .abs();
+                    writeln!(
+                        f,
+                        "    {}: Δlon={:.12}° (limit {:.6}°), Δlat={:.12}° (limit {:.6}°), Δdist={:.12} AU (limit {:.6} AU)",
+                        sample.body,
+                        longitude_delta,
+                        sample.max_longitude_delta_deg,
+                        latitude_delta,
+                        sample.max_latitude_delta_deg,
+                        distance_delta,
+                        sample.max_distance_delta_au
+                    )?;
+                }
+                Err(error) => {
+                    writeln!(
+                        f,
+                        "    {}: error {:?} ({})",
+                        sample.body, error.kind, error.message
+                    )?;
+                }
+            }
+        }
     }
     if entry.metadata.id.as_str() == "jpl-snapshot" {
         write_jpl_interpolation_quality(f)?;
@@ -3672,6 +3717,10 @@ fn write_backend_catalog_entry(
         )?;
     }
     Ok(())
+}
+
+fn signed_longitude_delta_degrees(start: f64, end: f64) -> f64 {
+    (end - start + 180.0).rem_euclid(360.0) - 180.0
 }
 
 fn write_jpl_interpolation_quality(f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -5155,6 +5204,9 @@ mod tests {
         );
         assert!(rendered.contains("Paul Schlyter-style mean orbital elements for planets"));
         assert!(rendered.contains("body source profiles:"));
+        assert!(rendered.contains("canonical J2000 VSOP87B evidence:"));
+        assert!(rendered.contains("Sun: Δlon="));
+        assert!(rendered.contains("Mercury: Δlon="));
         assert!(rendered.contains("Mars: TruncatedVsop87b"));
         assert!(rendered.contains("Jupiter: TruncatedVsop87b"));
         assert!(rendered.contains("Saturn: TruncatedVsop87b"));
