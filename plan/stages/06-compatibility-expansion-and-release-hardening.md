@@ -59,6 +59,7 @@ These are durable planning decisions that should remain true even as individual 
 Stage 6 release hardening has started as of 2026-04-22.
 
 - [x] The packaged-artifact quick-audit view now also links the `compatibility-profile-summary` artifact directly, so maintainers can hop from the packaged-data audit back to the release compatibility profile without leaving the compact release-surface path.
+- [x] The release compatibility profile now also accepts the slash-form `Equal/MC house system` and `Equal/1=Aries house system` spellings alongside the existing Equal Midheaven / Equal (1=Aries) wording in both `pleiades-houses` and the release-facing profile renderers, and the compatibility profile identifier has been bumped to `0.6.110` so the new alias batch stays versioned with the current profile.
 - [x] `pleiades-validate` now rejects unexpected manifest-only lines in staged release bundles, so the bundle-manifest file stays on the same canonical line set as the rest of the tamper-evident release surface.
 - [x] `pleiades-cli` now mirrors `bundle-release --out DIR` in addition to `verify-release-bundle`, so the primary CLI can assemble and inspect staged release bundles without switching crates.
 - [x] The artifact-summary compact release view now also points directly to `verify-release-bundle`, so the packaged-artifact audit can hop into the staged-bundle integrity check without leaving the compact maintainer-facing release path.
