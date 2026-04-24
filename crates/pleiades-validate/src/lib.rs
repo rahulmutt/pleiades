@@ -43,7 +43,9 @@ use pleiades_houses::{
 use pleiades_jpl::{
     comparison_snapshot, interpolation_quality_samples, reference_asteroids, JplSnapshotBackend,
 };
-use pleiades_vsop87::{body_source_profiles, canonical_epoch_samples, Vsop87Backend};
+use pleiades_vsop87::{
+    body_source_profiles, canonical_epoch_samples, source_specifications, Vsop87Backend,
+};
 
 const DEFAULT_BENCHMARK_ROUNDS: usize = 10_000;
 const BANNER: &str = "pleiades-validate stage 4 tool";
@@ -3730,6 +3732,23 @@ fn write_backend_catalog_entry(
             )?;
         }
 
+        writeln!(f, "  source documentation:")?;
+        for spec in source_specifications() {
+            writeln!(
+                f,
+                "    {}: {} {} | {} | {} | {} | {} | {} | {}",
+                spec.body,
+                spec.variant,
+                spec.source_file,
+                spec.coordinate_family,
+                spec.frame,
+                spec.units,
+                spec.reduction,
+                spec.truncation_policy,
+                spec.date_range
+            )?;
+        }
+
         writeln!(f, "  canonical J2000 VSOP87B evidence:")?;
         let backend = Vsop87Backend::new();
         for sample in canonical_epoch_samples() {
@@ -5296,11 +5315,13 @@ mod tests {
         assert!(rendered.contains("expected error classes:"));
         assert!(rendered.contains("required external data files:"));
         assert!(rendered.contains("crates/pleiades-jpl/data/reference_snapshot.csv"));
-        assert!(
-            rendered.contains("IMCCE/CELMECH VSOP87B Earth heliocentric spherical coefficients")
-        );
+        assert!(rendered.contains("source documentation:"));
+        assert!(rendered.contains("Sun: IMCCE/CELMECH VSOP87B VSOP87B.ear"));
         assert!(rendered.contains("Paul Schlyter-style mean orbital elements for planets"));
         assert!(rendered.contains("body source profiles:"));
+        assert!(rendered.contains("VSOP87B.ear"));
+        assert!(rendered.contains("geocentric planetary reduction against Earth coefficients"));
+        assert!(rendered.contains("solar reduction from Earth coefficients"));
         assert!(rendered.contains("canonical J2000 VSOP87B evidence:"));
         assert!(rendered.contains("Sun: Δlon="));
         assert!(rendered.contains("Mercury: Δlon="));

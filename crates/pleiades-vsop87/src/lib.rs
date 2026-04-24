@@ -77,6 +77,133 @@ pub fn body_source_profiles() -> Vec<Vsop87BodySource> {
         .collect()
 }
 
+/// Structured source documentation for the current VSOP87B-backed bodies.
+///
+/// These records make the current mixed implementation explicit for release
+/// reports and future generated-table work: the source-backed paths all use
+/// public IMCCE/CELMECH VSOP87B spherical coefficients in the J2000
+/// ecliptic/equinox frame, with longitude/latitude in degrees and radius in
+/// astronomical units, and they remain truncated leading-term slices while the
+/// full generated 1500-2500 CE path is pending.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Vsop87SourceSpecification {
+    /// Body covered by the source-backed slice.
+    pub body: CelestialBody,
+    /// Public coefficient file backing the body.
+    pub source_file: &'static str,
+    /// Source series variant.
+    pub variant: &'static str,
+    /// Coordinate family represented by the coefficients.
+    pub coordinate_family: &'static str,
+    /// Reference frame for the coefficients.
+    pub frame: &'static str,
+    /// Measurement units used by the coefficients.
+    pub units: &'static str,
+    /// How the coefficients are reduced to a geocentric chart-facing result.
+    pub reduction: &'static str,
+    /// How much of the public source file is currently retained.
+    pub truncation_policy: &'static str,
+    /// Current date-range note for the retained slice.
+    pub date_range: &'static str,
+}
+
+/// Returns the structured source documentation for the current VSOP87-backed bodies.
+pub fn source_specifications() -> Vec<Vsop87SourceSpecification> {
+    let date_range =
+        "J2000 canonical reference slice; full generated 1500-2500 CE tables remain pending";
+
+    vec![
+        Vsop87SourceSpecification {
+            body: CelestialBody::Sun,
+            source_file: "VSOP87B.ear",
+            variant: "VSOP87B",
+            coordinate_family: "heliocentric spherical variables",
+            frame: "J2000 ecliptic/equinox",
+            units: "degrees and astronomical units",
+            reduction: "geocentric solar reduction from Earth coefficients",
+            truncation_policy: "truncated leading-term slice",
+            date_range,
+        },
+        Vsop87SourceSpecification {
+            body: CelestialBody::Mercury,
+            source_file: "VSOP87B.mer",
+            variant: "VSOP87B",
+            coordinate_family: "heliocentric spherical variables",
+            frame: "J2000 ecliptic/equinox",
+            units: "degrees and astronomical units",
+            reduction: "geocentric planetary reduction against Earth coefficients",
+            truncation_policy: "truncated leading-term slice",
+            date_range,
+        },
+        Vsop87SourceSpecification {
+            body: CelestialBody::Venus,
+            source_file: "VSOP87B.ven",
+            variant: "VSOP87B",
+            coordinate_family: "heliocentric spherical variables",
+            frame: "J2000 ecliptic/equinox",
+            units: "degrees and astronomical units",
+            reduction: "geocentric planetary reduction against Earth coefficients",
+            truncation_policy: "truncated leading-term slice",
+            date_range,
+        },
+        Vsop87SourceSpecification {
+            body: CelestialBody::Mars,
+            source_file: "VSOP87B.mar",
+            variant: "VSOP87B",
+            coordinate_family: "heliocentric spherical variables",
+            frame: "J2000 ecliptic/equinox",
+            units: "degrees and astronomical units",
+            reduction: "geocentric planetary reduction against Earth coefficients",
+            truncation_policy: "truncated leading-term slice",
+            date_range,
+        },
+        Vsop87SourceSpecification {
+            body: CelestialBody::Jupiter,
+            source_file: "VSOP87B.jup",
+            variant: "VSOP87B",
+            coordinate_family: "heliocentric spherical variables",
+            frame: "J2000 ecliptic/equinox",
+            units: "degrees and astronomical units",
+            reduction: "geocentric planetary reduction against Earth coefficients",
+            truncation_policy: "truncated leading-term slice",
+            date_range,
+        },
+        Vsop87SourceSpecification {
+            body: CelestialBody::Saturn,
+            source_file: "VSOP87B.sat",
+            variant: "VSOP87B",
+            coordinate_family: "heliocentric spherical variables",
+            frame: "J2000 ecliptic/equinox",
+            units: "degrees and astronomical units",
+            reduction: "geocentric planetary reduction against Earth coefficients",
+            truncation_policy: "truncated leading-term slice",
+            date_range,
+        },
+        Vsop87SourceSpecification {
+            body: CelestialBody::Uranus,
+            source_file: "VSOP87B.ura",
+            variant: "VSOP87B",
+            coordinate_family: "heliocentric spherical variables",
+            frame: "J2000 ecliptic/equinox",
+            units: "degrees and astronomical units",
+            reduction: "geocentric planetary reduction against Earth coefficients",
+            truncation_policy: "truncated leading-term slice",
+            date_range,
+        },
+        Vsop87SourceSpecification {
+            body: CelestialBody::Neptune,
+            source_file: "VSOP87B.nep",
+            variant: "VSOP87B",
+            coordinate_family: "heliocentric spherical variables",
+            frame: "J2000 ecliptic/equinox",
+            units: "degrees and astronomical units",
+            reduction: "geocentric planetary reduction against Earth coefficients",
+            truncation_policy: "truncated leading-term slice",
+            date_range,
+        },
+    ]
+}
+
 /// Canonical J2000 reference samples for the source-backed VSOP87B paths.
 ///
 /// These values are the same full-file public IMCCE VSOP87B reference points
@@ -574,18 +701,27 @@ impl EphemerisBackend for Vsop87Backend {
                 summary: format!(
                     "Mixed pure-Rust planetary backend: {source_backed_count} source-backed truncated VSOP87B {source_backed_path_label}, {fallback_count} fallback mean-element {fallback_path_label}, and geocentric reduction."
                 ),
-                data_sources: vec![
-                    "IMCCE/CELMECH VSOP87B Earth heliocentric spherical coefficients, truncated leading-term slice for Sun geocentric reduction and planetary geocentric reductions".to_string(),
-                    "IMCCE/CELMECH VSOP87B Mercury heliocentric spherical coefficients, truncated leading-term slice for Mercury geocentric reduction".to_string(),
-                    "IMCCE/CELMECH VSOP87B Venus heliocentric spherical coefficients, truncated leading-term slice for Venus geocentric reduction".to_string(),
-                    "IMCCE/CELMECH VSOP87B Mars heliocentric spherical coefficients, truncated leading-term slice for Mars geocentric reduction".to_string(),
-                    "IMCCE/CELMECH VSOP87B Jupiter heliocentric spherical coefficients, truncated leading-term slice for Jupiter geocentric reduction".to_string(),
-                    "IMCCE/CELMECH VSOP87B Saturn heliocentric spherical coefficients, truncated leading-term slice for Saturn geocentric reduction".to_string(),
-                    "IMCCE/CELMECH VSOP87B Uranus heliocentric spherical coefficients, truncated leading-term slice for Uranus geocentric reduction".to_string(),
-                    "IMCCE/CELMECH VSOP87B Neptune heliocentric spherical coefficients, truncated leading-term slice for Neptune geocentric reduction".to_string(),
-                    "Paul Schlyter-style mean orbital elements for planets not yet backed by VSOP87 coefficient tables".to_string(),
-                    "Meeus-style coordinate transforms for geocentric reduction".to_string(),
-                ],
+                data_sources: source_specifications()
+                    .into_iter()
+                    .map(|spec| {
+                        format!(
+                            "{}: IMCCE/CELMECH {} {} ({}, {}, {}, {}, {}, {})",
+                            spec.body,
+                            spec.variant,
+                            spec.source_file,
+                            spec.coordinate_family,
+                            spec.frame,
+                            spec.units,
+                            spec.reduction,
+                            spec.truncation_policy,
+                            spec.date_range,
+                        )
+                    })
+                    .chain([
+                        "Paul Schlyter-style mean orbital elements for planets not yet backed by VSOP87 coefficient tables".to_string(),
+                        "Meeus-style coordinate transforms for geocentric reduction".to_string(),
+                    ])
+                    .collect(),
             },
             nominal_range: TimeRange::new(None, None),
             supported_time_scales: vec![TimeScale::Tt],
@@ -1037,37 +1173,37 @@ mod tests {
             .provenance
             .data_sources
             .iter()
-            .any(|source| source.contains("VSOP87B Mercury heliocentric spherical coefficients")));
+            .any(|source| source.contains("Mercury: IMCCE/CELMECH VSOP87B VSOP87B.mer")));
         assert!(metadata
             .provenance
             .data_sources
             .iter()
-            .any(|source| source.contains("VSOP87B Venus heliocentric spherical coefficients")));
+            .any(|source| source.contains("Venus: IMCCE/CELMECH VSOP87B VSOP87B.ven")));
         assert!(metadata
             .provenance
             .data_sources
             .iter()
-            .any(|source| source.contains("VSOP87B Mars heliocentric spherical coefficients")));
+            .any(|source| source.contains("Mars: IMCCE/CELMECH VSOP87B VSOP87B.mar")));
         assert!(metadata
             .provenance
             .data_sources
             .iter()
-            .any(|source| source.contains("VSOP87B Jupiter heliocentric spherical coefficients")));
+            .any(|source| source.contains("Jupiter: IMCCE/CELMECH VSOP87B VSOP87B.jup")));
         assert!(metadata
             .provenance
             .data_sources
             .iter()
-            .any(|source| source.contains("VSOP87B Saturn heliocentric spherical coefficients")));
+            .any(|source| source.contains("Saturn: IMCCE/CELMECH VSOP87B VSOP87B.sat")));
         assert!(metadata
             .provenance
             .data_sources
             .iter()
-            .any(|source| source.contains("VSOP87B Uranus heliocentric spherical coefficients")));
+            .any(|source| source.contains("Uranus: IMCCE/CELMECH VSOP87B VSOP87B.ura")));
         assert!(metadata
             .provenance
             .data_sources
             .iter()
-            .any(|source| source.contains("VSOP87B Neptune heliocentric spherical coefficients")));
+            .any(|source| source.contains("Neptune: IMCCE/CELMECH VSOP87B VSOP87B.nep")));
     }
 
     #[test]
@@ -1140,6 +1276,33 @@ mod tests {
         assert!(samples
             .iter()
             .all(|sample| sample.max_distance_delta_au > 0.0));
+    }
+
+    #[test]
+    fn source_specifications_document_variant_frames_units_and_range() {
+        let specs = source_specifications();
+        assert_eq!(specs.len(), 8);
+        assert!(specs.iter().all(|spec| spec.variant == "VSOP87B"));
+        assert!(specs
+            .iter()
+            .all(|spec| spec.frame == "J2000 ecliptic/equinox"));
+        assert!(specs
+            .iter()
+            .all(|spec| spec.units == "degrees and astronomical units"));
+        assert!(specs
+            .iter()
+            .any(|spec| spec.reduction.contains("solar reduction")));
+        assert!(specs
+            .iter()
+            .all(|spec| spec.reduction.contains("geocentric")));
+        assert!(specs
+            .iter()
+            .all(|spec| spec.truncation_policy.contains("leading-term slice")));
+        assert!(specs.iter().all(|spec| spec
+            .date_range
+            .contains("1500-2500 CE tables remain pending")));
+        assert!(specs.iter().any(|spec| spec.source_file == "VSOP87B.ear"));
+        assert!(specs.iter().any(|spec| spec.source_file == "VSOP87B.nep"));
     }
 
     #[test]
