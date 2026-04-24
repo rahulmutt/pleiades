@@ -78,7 +78,8 @@ Good slices:
 
 - clarify rustdoc around units, ranges, apparentness, or failure modes,
 - narrow one unstable or ambiguous helper surface with explicit stability notes,
-- add one example that demonstrates the intended facade/backend/domain split.
+- add one example that demonstrates the intended facade/backend/domain split,
+- mirror one more practical release/validation command through `pleiades-cli` when it clearly reduces workflow switching.
 
 Guardrails:
 
