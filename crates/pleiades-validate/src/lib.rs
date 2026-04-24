@@ -4672,6 +4672,7 @@ version = "0.9.0"
         assert!(artifact_summary.contains("Release notes summary: release-notes-summary"));
         assert!(artifact_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
+        assert!(artifact_summary.contains("Release checklist summary: release-checklist-summary"));
         assert!(artifact_summary.contains("Release bundle verification: verify-release-bundle"));
         assert!(artifact_summary.contains(
             "custom bodies are included in decode and boundary checks, but omitted from the algorithmic comparison corpus"
