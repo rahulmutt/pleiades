@@ -2733,6 +2733,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         "  ns/request: {}",
         format_ns(report.packaged_benchmark.nanoseconds_per_request())
     );
+    let _ = writeln!(text, "Release bundle verification: verify-release-bundle");
 
     text
 }
@@ -3916,6 +3917,7 @@ mod tests {
         assert!(report.contains("Comparison summary"));
         assert!(report.contains("House validation corpus"));
         assert!(report.contains("Benchmark summaries"));
+        assert!(report.contains("Release bundle verification: verify-release-bundle"));
         assert!(report.contains("Reference benchmark"));
         assert!(report.contains("Candidate benchmark"));
         assert!(report.contains("Packaged-data benchmark"));
@@ -3927,6 +3929,7 @@ mod tests {
             .expect("report summary should render");
         assert!(rendered.contains("Validation report summary"));
         assert!(rendered.contains("Comparison corpus"));
+        assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
         assert!(rendered.contains("Benchmark summaries"));
 
         let validation_report_summary =

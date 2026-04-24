@@ -564,6 +564,7 @@ mod tests {
             render_cli(&["validation-summary"]).expect("validation summary should render");
         assert!(validation_summary.contains("Validation report summary"));
         assert!(validation_summary.contains("Comparison corpus"));
+        assert!(validation_summary.contains("Release bundle verification: verify-release-bundle"));
         assert!(validation_summary.contains("House validation corpus"));
         assert!(validation_summary.contains("Benchmark summaries"));
         assert!(validation_summary.contains("Packaged-data benchmark"));
@@ -572,6 +573,8 @@ mod tests {
             .expect("validation-report-summary should render");
         assert!(validation_report_summary.contains("Validation report summary"));
         assert!(validation_report_summary.contains("Comparison corpus"));
+        assert!(validation_report_summary
+            .contains("Release bundle verification: verify-release-bundle"));
         assert!(validation_report_summary.contains("Benchmark summaries"));
     }
 

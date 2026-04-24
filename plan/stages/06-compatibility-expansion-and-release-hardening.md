@@ -58,6 +58,7 @@ These are durable planning decisions that should remain true even as individual 
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] The validation-report summary now also points directly to `verify-release-bundle`, so the validation audit and staged-bundle integrity checks stay linked in the compact maintainer-facing release path without changing the underlying validation corpus.
 - [x] The full release-notes artifact and the compact compatibility-profile summary now also surface `release-summary` explicitly, so the release overview hop is visible in the maintainer audit path without changing the underlying release profile.
 - [x] The backend-matrix summary now also points to `validation-report-summary`, closing the compact audit loop between backend coverage and validation evidence without changing the underlying backend matrix.
 - [x] The compact compatibility-profile summary now also links the staged-bundle verifier directly, so catalog review and release verification can stay on the same quick-audit path; the compatibility profile identifier has been bumped to `0.6.109` so the summary wording stays versioned with the current profile.
