@@ -28,7 +28,9 @@ Progress note (2026-04-24): the mixed VSOP87 implementation now exposes per-body
 
 Progress note (2026-04-24): the truncated VSOP87B source-backed path has been extended to Jupiter. `pleiades-vsop87` now evaluates a checked-in leading-term IMCCE VSOP87B Jupiter slice, reduces it against the Earth slice, reports Jupiter provenance in metadata/source profiles, and tests the J2000 geocentric Jupiter result against full-file IMCCE VSOP87B Jupiter/Earth golden values.
 
-Progress note (2026-04-24): the same truncated VSOP87B source-backed path has been extended to Saturn. `pleiades-vsop87` now evaluates a checked-in leading-term IMCCE VSOP87B Saturn slice, reduces it against the Earth slice, reports Saturn provenance in metadata/source profiles, and tests the J2000 geocentric Saturn result against full-file IMCCE VSOP87B Saturn/Earth golden values. Remaining VSOP87B major-planet fallback channels are Uranus and Neptune; Pluto remains a separate non-VSOP87 special case.
+Progress note (2026-04-24): the same truncated VSOP87B source-backed path has been extended to Saturn. `pleiades-vsop87` now evaluates a checked-in leading-term IMCCE VSOP87B Saturn slice, reduces it against the Earth slice, reports Saturn provenance in metadata/source profiles, and tests the J2000 geocentric Saturn result against full-file IMCCE VSOP87B Saturn/Earth golden values.
+
+Progress note (2026-04-24): the checked-in truncated VSOP87B source-backed path now covers the remaining VSOP87 major planets, Uranus and Neptune. Both bodies evaluate leading-term IMCCE VSOP87B slices, reduce against the Earth slice, report source-backed provenance in metadata/source profiles, and have J2000 geocentric golden tests against full-file IMCCE VSOP87B Uranus/Neptune/Earth values. Pluto remains a separate non-VSOP87 special case, and complete generated coefficient-table ingestion remains outstanding.
 
 ## 2. Lunar theory source selection
 
