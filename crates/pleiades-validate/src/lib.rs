@@ -1290,6 +1290,7 @@ fn render_compatibility_profile_summary_text() -> String {
     text.push_str(&profile.known_gaps.len().to_string());
     text.push('\n');
     text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
+    text.push_str("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary\n");
     text.push_str("Release notes summary: release-notes-summary\n");
     text.push_str("Release checklist summary: release-checklist-summary\n");
     text.push_str("See release-summary for the compact one-screen release overview.\n");
@@ -1312,6 +1313,7 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push('\n');
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
+    text.push_str("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary\n");
     text.push_str("Release notes summary: release-notes-summary\n");
     text.push_str("Release checklist summary: release-checklist-summary\n");
     text.push_str("Release bundle verification: verify-release-bundle\n");
@@ -1407,6 +1409,7 @@ fn render_release_notes_summary_text() -> String {
     text.push('\n');
     text.push_str("Release notes: release-notes\n");
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
+    text.push_str("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary\n");
     text.push_str("Release checklist summary: release-checklist-summary\n");
     text.push_str("Release bundle verification: verify-release-bundle\n");
     text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
@@ -4100,6 +4103,7 @@ mod tests {
         assert!(rendered.contains("Ayanamsas:"));
         assert!(rendered.contains("Custom-definition labels:"));
         assert!(rendered.contains("Validation reference points:"));
+        assert!(rendered.contains("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(rendered.contains("Compatibility caveats:"));
         assert!(
             rendered.contains("Compatibility profile verification: verify-compatibility-profile")
@@ -4136,6 +4140,7 @@ mod tests {
             release_profiles.compatibility_profile_id
         )));
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
+        assert!(rendered.contains("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
         assert!(rendered.contains("Release checklist summary: release-checklist-summary"));
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
@@ -4492,6 +4497,7 @@ version = "0.9.0"
         assert!(release_notes_summary.contains("Release notes summary"));
         assert!(release_notes_summary.contains("Release-specific coverage:"));
         assert!(release_notes_summary.contains("API stability summary line:"));
+        assert!(release_notes_summary.contains("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_notes_summary.contains("Release notes: release-notes"));
         assert!(release_notes_summary
             .contains("Compatibility profile verification: verify-compatibility-profile"));

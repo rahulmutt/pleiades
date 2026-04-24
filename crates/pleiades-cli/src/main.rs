@@ -439,6 +439,7 @@ mod tests {
         assert!(compatibility.contains("House systems: 25 total"));
         assert!(compatibility
             .contains("Compatibility profile verification: verify-compatibility-profile"));
+        assert!(compatibility.contains("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(compatibility.contains("Release notes summary: release-notes-summary"));
         assert!(compatibility.contains("Release checklist summary: release-checklist-summary"));
         assert!(compatibility
@@ -472,6 +473,7 @@ mod tests {
         let release_notes = render_cli(&["release-notes"]).expect("release notes should render");
         assert!(release_notes.contains("Release notes"));
         assert!(release_notes.contains("Release notes summary: release-notes-summary"));
+        assert!(release_notes.contains("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_notes.contains("Release checklist summary: release-checklist-summary"));
         assert!(release_notes.contains("Release bundle verification: verify-release-bundle"));
         assert!(release_notes
@@ -483,6 +485,7 @@ mod tests {
             render_cli(&["release-notes-summary"]).expect("release notes summary should render");
         assert!(release_notes_summary.contains("Release notes summary"));
         assert!(release_notes_summary.contains("API stability summary line:"));
+        assert!(release_notes_summary.contains("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_notes_summary.contains("Release notes: release-notes"));
         assert!(
             release_notes_summary.contains("Release checklist summary: release-checklist-summary")

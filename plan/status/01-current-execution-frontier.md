@@ -54,6 +54,7 @@ Good examples include:
 - tightening one release-bundle verification gap,
 - completing one coherent compatibility batch with aliases and tests,
 - improving one packaged-artifact reproducibility path,
+- adding one missing compact release cross-reference that makes the audit path easier to navigate,
 - publishing one missing capability or accuracy summary that release consumers need.
 
 ## Anti-patterns to avoid at the current frontier
