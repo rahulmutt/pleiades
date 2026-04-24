@@ -1292,9 +1292,9 @@ fn render_compatibility_profile_summary_text() -> String {
     text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
     text.push_str("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary\n");
     text.push_str("Release notes summary: release-notes-summary\n");
+    text.push_str("Release summary: release-summary\n");
     text.push_str("Release checklist summary: release-checklist-summary\n");
     text.push_str("Release bundle verification: verify-release-bundle\n");
-    text.push_str("See release-summary for the compact one-screen release overview.\n");
 
     text
 }
@@ -1316,10 +1316,10 @@ fn render_release_notes_text() -> String {
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary\n");
     text.push_str("Release notes summary: release-notes-summary\n");
+    text.push_str("Release summary: release-summary\n");
     text.push_str("Release checklist summary: release-checklist-summary\n");
     text.push_str("Release bundle verification: verify-release-bundle\n");
     text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
-    text.push_str("See release-summary for the compact one-screen release overview.\n");
     text.push('\n');
 
     text.push_str("API stability posture:\n");
@@ -4110,11 +4110,9 @@ mod tests {
             rendered.contains("Compatibility profile verification: verify-compatibility-profile")
         );
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
+        assert!(rendered.contains("Release summary: release-summary"));
         assert!(rendered.contains("Release checklist summary: release-checklist-summary"));
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
-        assert!(
-            rendered.contains("See release-summary for the compact one-screen release overview.")
-        );
     }
 
     #[test]
@@ -4144,13 +4142,11 @@ mod tests {
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(rendered.contains("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
+        assert!(rendered.contains("Release summary: release-summary"));
         assert!(rendered.contains("Release checklist summary: release-checklist-summary"));
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
         assert!(
             rendered.contains("Compatibility profile verification: verify-compatibility-profile")
-        );
-        assert!(
-            rendered.contains("See release-summary for the compact one-screen release overview.")
         );
         assert!(rendered.contains("API stability posture:"));
         assert!(rendered.contains("Deprecation policy:"));
@@ -4485,8 +4481,7 @@ version = "0.9.0"
         assert!(release_notes.contains("Release notes summary: release-notes-summary"));
         assert!(release_notes
             .contains("Compatibility profile verification: verify-compatibility-profile"));
-        assert!(release_notes
-            .contains("See release-summary for the compact one-screen release overview."));
+        assert!(release_notes.contains("Release summary: release-summary"));
         assert!(release_notes.contains("API stability posture:"));
         assert!(release_notes.contains("Deprecation policy:"));
         assert!(release_notes.contains("Release-specific coverage:"));

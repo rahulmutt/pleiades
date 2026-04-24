@@ -441,10 +441,9 @@ mod tests {
             .contains("Compatibility profile verification: verify-compatibility-profile"));
         assert!(compatibility.contains("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(compatibility.contains("Release notes summary: release-notes-summary"));
+        assert!(compatibility.contains("Release summary: release-summary"));
         assert!(compatibility.contains("Release checklist summary: release-checklist-summary"));
         assert!(compatibility.contains("Release bundle verification: verify-release-bundle"));
-        assert!(compatibility
-            .contains("See release-summary for the compact one-screen release overview."));
 
         let verification = render_cli(&["verify-compatibility-profile"])
             .expect("compatibility profile verification should render");
