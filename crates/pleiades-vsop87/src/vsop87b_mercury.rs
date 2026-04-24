@@ -9,7 +9,7 @@ pub(crate) fn mercury_lbr(julian_day_tt: f64) -> SphericalLbr {
     let t = (julian_day_tt - 2_451_545.0) / 365_250.0;
     SphericalLbr {
         longitude_rad: evaluate(
-            &[
+            [
                 MERCURY_L_0,
                 MERCURY_L_1,
                 MERCURY_L_2,
@@ -21,7 +21,7 @@ pub(crate) fn mercury_lbr(julian_day_tt: f64) -> SphericalLbr {
         )
         .rem_euclid(core::f64::consts::TAU),
         latitude_rad: evaluate(
-            &[
+            [
                 MERCURY_B_0,
                 MERCURY_B_1,
                 MERCURY_B_2,
@@ -32,7 +32,7 @@ pub(crate) fn mercury_lbr(julian_day_tt: f64) -> SphericalLbr {
             t,
         ),
         radius_au: evaluate(
-            &[
+            [
                 MERCURY_R_0,
                 MERCURY_R_1,
                 MERCURY_R_2,

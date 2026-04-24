@@ -3035,7 +3035,13 @@ fn format_vsop87_source_documentation_summary() -> String {
     let profiles = body_source_profiles();
     let source_backed_profiles = profiles
         .iter()
-        .filter(|profile| profile.kind == pleiades_vsop87::Vsop87BodySourceKind::TruncatedVsop87b)
+        .filter(|profile| {
+            matches!(
+                profile.kind,
+                pleiades_vsop87::Vsop87BodySourceKind::TruncatedVsop87b
+                    | pleiades_vsop87::Vsop87BodySourceKind::VendoredVsop87b
+            )
+        })
         .count();
     let fallback_profiles = profiles
         .iter()
@@ -3898,7 +3904,7 @@ fn write_jpl_interpolation_quality(f: &mut fmt::Formatter<'_>) -> fmt::Result {
 
     writeln!(
         f,
-        "    note: sparse-fixture leave-one-out checks report current linear interpolation error; they are not production tolerances"
+        "    note: expanded public-input leave-one-out checks report current linear interpolation error; they are not production tolerances"
     )?;
     for sample in samples {
         writeln!(
@@ -4176,7 +4182,7 @@ fn implemented_backend_catalog() -> Vec<BackendMatrixEntry> {
             label: "JPL snapshot reference backend",
             metadata: default_reference_backend().metadata(),
             implementation_status: BackendImplementationStatus::FixtureReference,
-            status_note: "checked-in public-input derivative fixture with exact lookup and linear interpolation; larger reference corpus remains planned",
+            status_note: "checked-in public-input derivative fixture with exact lookup and linear interpolation; expanded hold-out coverage now spans an additional epoch, while a larger reference corpus remains planned",
             expected_error_kinds: JPL_EXPECTED_ERROR_KINDS,
             required_data_files: JPL_REQUIRED_DATA_FILES,
         },
@@ -4739,8 +4745,8 @@ mod tests {
     fn default_corpus_covers_the_comparison_snapshot() {
         let corpus = default_corpus();
         let summary = corpus.summary();
-        assert_eq!(corpus.requests.len(), 20);
-        assert_eq!(summary.epoch_count, 3);
+        assert_eq!(corpus.requests.len(), 30);
+        assert_eq!(summary.epoch_count, 4);
         assert_eq!(summary.body_count, comparison_bodies().len());
         assert!(corpus
             .requests
@@ -5396,7 +5402,7 @@ mod tests {
         assert!(rendered.contains("geocentric planetary reduction against Earth coefficients"));
         assert!(rendered.contains("solar reduction from Earth coefficients"));
         assert!(rendered.contains("canonical J2000 VSOP87B evidence:"));
-        assert!(rendered.contains("Sun: TruncatedVsop87b from VSOP87B.ear"));
+        assert!(rendered.contains("Sun: VendoredVsop87b from VSOP87B.ear"));
         assert!(rendered.contains("Mercury: TruncatedVsop87b from VSOP87B.mer"));
         assert!(rendered.contains("Mars: TruncatedVsop87b"));
         assert!(rendered.contains("Jupiter: TruncatedVsop87b"));
@@ -5407,7 +5413,7 @@ mod tests {
         assert!(rendered.contains("Meeus-style truncated lunar orbit formulas"));
         assert!(rendered.contains("NASA/JPL Horizons API vector tables (DE441)"));
         assert!(rendered.contains("interpolation quality checks:"));
-        assert!(rendered.contains("sparse-fixture leave-one-out checks"));
+        assert!(rendered.contains("expanded public-input leave-one-out checks"));
         assert!(rendered.contains("Mars at JD 2451545.0"));
         assert!(rendered.contains("VSOP87 planetary backend"));
         assert!(rendered.contains("ELP lunar backend (Moon and lunar nodes)"));

@@ -11,20 +11,20 @@ pub(crate) fn saturn_lbr(julian_day_tt: f64) -> SphericalLbr {
     let t = (julian_day_tt - 2_451_545.0) / 365_250.0;
     SphericalLbr {
         longitude_rad: evaluate(
-            &[
+            [
                 SATURN_L_0, SATURN_L_1, SATURN_L_2, SATURN_L_3, SATURN_L_4, SATURN_L_5,
             ],
             t,
         )
         .rem_euclid(core::f64::consts::TAU),
         latitude_rad: evaluate(
-            &[
+            [
                 SATURN_B_0, SATURN_B_1, SATURN_B_2, SATURN_B_3, SATURN_B_4, SATURN_B_5,
             ],
             t,
         ),
         radius_au: evaluate(
-            &[
+            [
                 SATURN_R_0, SATURN_R_1, SATURN_R_2, SATURN_R_3, SATURN_R_4, SATURN_R_5,
             ],
             t,

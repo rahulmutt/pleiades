@@ -11,7 +11,7 @@ pub(crate) fn jupiter_lbr(julian_day_tt: f64) -> SphericalLbr {
     let t = (julian_day_tt - 2_451_545.0) / 365_250.0;
     SphericalLbr {
         longitude_rad: evaluate(
-            &[
+            [
                 JUPITER_L_0,
                 JUPITER_L_1,
                 JUPITER_L_2,
@@ -23,7 +23,7 @@ pub(crate) fn jupiter_lbr(julian_day_tt: f64) -> SphericalLbr {
         )
         .rem_euclid(core::f64::consts::TAU),
         latitude_rad: evaluate(
-            &[
+            [
                 JUPITER_B_0,
                 JUPITER_B_1,
                 JUPITER_B_2,
@@ -34,7 +34,7 @@ pub(crate) fn jupiter_lbr(julian_day_tt: f64) -> SphericalLbr {
             t,
         ),
         radius_au: evaluate(
-            &[
+            [
                 JUPITER_R_0,
                 JUPITER_R_1,
                 JUPITER_R_2,

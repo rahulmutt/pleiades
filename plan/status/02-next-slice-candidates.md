@@ -16,7 +16,7 @@ Suggested scope:
 
 Progress note (2026-04-24): the placeholder `pleiades-vsop87` path now reports deterministic central-difference longitude/latitude/distance speeds for supported planets. This improves chart-facing motion semantics but does not replace the planned source-backed VSOP87 coefficient work above.
 
-Progress note (2026-04-24): the first source-data increment has landed for the Sun path. `pleiades-vsop87` now evaluates a checked-in truncated leading-term slice of public IMCCE VSOP87B Earth coefficients, transforms it into geometric geocentric solar coordinates, and tests the J2000 result against a full-file VSOP87B golden value.
+Progress note (2026-04-24): the first source-data increment has landed for the Sun path. `pleiades-vsop87` now evaluates the vendored public IMCCE VSOP87B Earth source file, transforms it into geometric geocentric solar coordinates, and tests the J2000 result against a full-file VSOP87B golden value.
 
 Progress note (2026-04-24): the same truncated VSOP87B spherical-coefficient representation now covers Mercury's heliocentric channel. Mercury geocentric output is reduced against the VSOP87B Earth slice and has a J2000 regression test against full-file IMCCE VSOP87B Mercury/Earth golden values, with backend provenance updated to distinguish the Mercury source-backed path from the remaining orbital-element fallback planets.
 
@@ -69,12 +69,12 @@ Completed first slice:
 - preserve exact fixture epochs as golden tests;
 - distinguish unsupported bodies from out-of-range fixture requests.
 
-Progress note (2026-04-24): `pleiades-jpl` now derives coarse leave-one-out interpolation quality samples from the checked-in sparse fixture and the validation backend matrix renders those measured linear-interpolation errors. These checks are intentionally labeled as transparency evidence rather than production tolerances.
+Progress note (2026-04-24): `pleiades-jpl` now derives coarse leave-one-out interpolation quality samples from the checked-in public-input fixture, which now includes an additional 2500000.0 TDB epoch across the comparison-body set, and the validation backend matrix renders those measured linear-interpolation errors. These checks are intentionally labeled as transparency evidence rather than production tolerances.
 
 Remaining suggested scope:
 
-- add a larger documented public-input-derived fixture with more bodies and denser samples;
-- validate interpolation error against independent held-out JPL Horizons epochs beyond the sparse checked-in fixture;
+- add additional public-input epochs or bodies if broader interpolation coverage is needed beyond the current expanded fixture;
+- validate interpolation error against independent held-out JPL Horizons epochs beyond the checked-in fixture;
 - report interpolation quality and tolerances in validation summaries using the existing aggregate and per-body comparison sections;
 - consider higher-order interpolation once measured linear error is insufficient.
 

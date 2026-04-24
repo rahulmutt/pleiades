@@ -11,20 +11,20 @@ pub(crate) fn uranus_lbr(julian_day_tt: f64) -> SphericalLbr {
     let t = (julian_day_tt - 2_451_545.0) / 365_250.0;
     SphericalLbr {
         longitude_rad: evaluate(
-            &[
+            [
                 URANUS_L_0, URANUS_L_1, URANUS_L_2, URANUS_L_3, URANUS_L_4, URANUS_L_5,
             ],
             t,
         )
         .rem_euclid(core::f64::consts::TAU),
         latitude_rad: evaluate(
-            &[
+            [
                 URANUS_B_0, URANUS_B_1, URANUS_B_2, URANUS_B_3, URANUS_B_4, URANUS_B_5,
             ],
             t,
         ),
         radius_au: evaluate(
-            &[
+            [
                 URANUS_R_0, URANUS_R_1, URANUS_R_2, URANUS_R_3, URANUS_R_4, URANUS_R_5,
             ],
             t,

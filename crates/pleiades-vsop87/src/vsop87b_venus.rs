@@ -11,20 +11,20 @@ pub(crate) fn venus_lbr(julian_day_tt: f64) -> SphericalLbr {
     let t = (julian_day_tt - 2_451_545.0) / 365_250.0;
     SphericalLbr {
         longitude_rad: evaluate(
-            &[
+            [
                 VENUS_L_0, VENUS_L_1, VENUS_L_2, VENUS_L_3, VENUS_L_4, VENUS_L_5,
             ],
             t,
         )
         .rem_euclid(core::f64::consts::TAU),
         latitude_rad: evaluate(
-            &[
+            [
                 VENUS_B_0, VENUS_B_1, VENUS_B_2, VENUS_B_3, VENUS_B_4, VENUS_B_5,
             ],
             t,
         ),
         radius_au: evaluate(
-            &[
+            [
                 VENUS_R_0, VENUS_R_1, VENUS_R_2, VENUS_R_3, VENUS_R_4, VENUS_R_5,
             ],
             t,

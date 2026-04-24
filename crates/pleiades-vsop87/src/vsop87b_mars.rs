@@ -11,16 +11,16 @@ pub(crate) fn mars_lbr(julian_day_tt: f64) -> SphericalLbr {
     let t = (julian_day_tt - 2_451_545.0) / 365_250.0;
     SphericalLbr {
         longitude_rad: evaluate(
-            &[MARS_L_0, MARS_L_1, MARS_L_2, MARS_L_3, MARS_L_4, MARS_L_5],
+            [MARS_L_0, MARS_L_1, MARS_L_2, MARS_L_3, MARS_L_4, MARS_L_5],
             t,
         )
         .rem_euclid(core::f64::consts::TAU),
         latitude_rad: evaluate(
-            &[MARS_B_0, MARS_B_1, MARS_B_2, MARS_B_3, MARS_B_4, MARS_B_5],
+            [MARS_B_0, MARS_B_1, MARS_B_2, MARS_B_3, MARS_B_4, MARS_B_5],
             t,
         ),
         radius_au: evaluate(
-            &[MARS_R_0, MARS_R_1, MARS_R_2, MARS_R_3, MARS_R_4, MARS_R_5],
+            [MARS_R_0, MARS_R_1, MARS_R_2, MARS_R_3, MARS_R_4, MARS_R_5],
             t,
         ),
     }

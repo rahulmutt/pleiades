@@ -747,7 +747,14 @@ mod tests {
             .expect("start epoch should exist");
         let end = metadata.nominal_range.end.expect("end epoch should exist");
         assert!(start.julian_day.days() < end.julian_day.days());
-        assert_eq!(reference_epochs().len(), 3);
+        assert_eq!(reference_epochs().len(), 4);
+        assert_eq!(
+            reference_snapshot()
+                .iter()
+                .filter(|entry| entry.epoch.julian_day.days() == 2_500_000.0)
+                .count(),
+            10
+        );
     }
 
     #[test]
@@ -865,14 +872,18 @@ mod tests {
     #[test]
     fn interpolation_quality_samples_are_reportable() {
         let samples = interpolation_quality_samples();
-        assert_eq!(samples.len(), 5);
+        assert_eq!(samples.len(), 10);
         assert!(samples.iter().all(|sample| {
-            sample.epoch.julian_day.days() == REFERENCE_EPOCH_JD
+            let epoch = sample.epoch.julian_day.days();
+            (epoch == REFERENCE_EPOCH_JD || epoch == 2_500_000.0)
                 && sample.bracket_span_days > 0.0
                 && sample.longitude_error_deg.is_finite()
                 && sample.latitude_error_deg.is_finite()
                 && sample.distance_error_au.is_finite()
         }));
+        assert!(samples
+            .iter()
+            .any(|sample| sample.epoch.julian_day.days() == 2_500_000.0));
         assert!(samples
             .iter()
             .any(|sample| sample.body == pleiades_backend::CelestialBody::Mars));

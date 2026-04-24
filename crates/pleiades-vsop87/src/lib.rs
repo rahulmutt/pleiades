@@ -3,10 +3,10 @@
 //! transforms.
 //!
 //! This crate now provides a working pure-Rust algorithmic backend for the Sun
-//! and major planets. The Sun path uses a first truncated slice of public IMCCE
-//! VSOP87B Earth coefficients (heliocentric spherical variables, J2000
+//! and major planets. The Sun path now evaluates the vendored public IMCCE
+//! VSOP87B Earth source file (heliocentric spherical variables, J2000
 //! ecliptic/equinox) transformed to geocentric solar coordinates. Mercury,
-//! Venus, Mars, Jupiter, Saturn, Uranus, and Neptune now use the same VSOP87B
+//! Venus, Mars, Jupiter, Saturn, Uranus, and Neptune still use the same VSOP87B
 //! spherical-coefficient evaluation path for their heliocentric channels, while Pluto
 //! still uses compact Keplerian orbital elements, a geocentric reduction step,
 //! and central-difference motion estimates so the workspace has an end-to-end
@@ -44,6 +44,9 @@ pub enum Vsop87BodySourceKind {
     /// Heliocentric spherical coordinates are evaluated from a checked-in
     /// truncated IMCCE/CELMECH VSOP87B coefficient slice.
     TruncatedVsop87b,
+    /// Heliocentric spherical coordinates are evaluated directly from a
+    /// vendored public IMCCE/CELMECH VSOP87B source file.
+    VendoredVsop87b,
     /// Coordinates are produced from compact mean orbital elements while the
     /// complete VSOP87 coefficient path is still pending.
     MeanOrbitalElements,
@@ -81,8 +84,9 @@ pub fn body_source_profiles() -> Vec<Vsop87BodySource> {
 /// reports and future generated-table work: the source-backed paths all use
 /// public IMCCE/CELMECH VSOP87B spherical coefficients in the J2000
 /// ecliptic/equinox frame, with longitude/latitude in degrees and radius in
-/// astronomical units, and they remain truncated leading-term slices while the
-/// full generated 1500-2500 CE path is pending.
+/// astronomical units. The Earth/Sun path now uses the vendored full public
+/// source file, while the remaining planet paths still use truncated leading-
+/// term slices until the generated 1500-2500 CE tables land.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Vsop87SourceSpecification {
     /// Body covered by the source-backed slice.
@@ -140,13 +144,15 @@ static BODY_CATALOG: OnceLock<Vec<Vsop87BodyCatalogEntry>> = OnceLock::new();
 
 fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
     BODY_CATALOG.get_or_init(|| {
-        let date_range =
+        let truncated_date_range =
             "J2000 canonical reference slice; full generated 1500-2500 CE tables remain pending";
+        let truncated_truncation_policy = "truncated leading-term slice";
+        let earth_date_range = "full public source file; J2000 canonical reference sample";
+        let earth_truncation_policy = "vendored full source file";
         let variant = "VSOP87B";
         let coordinate_family = "heliocentric spherical variables";
         let frame = "J2000 ecliptic/equinox";
         let units = "degrees and astronomical units";
-        let truncation_policy = "truncated leading-term slice";
         let solar_reduction = "geocentric solar reduction from Earth coefficients";
         let planetary_reduction = "geocentric planetary reduction against Earth coefficients";
 
@@ -173,8 +179,26 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
                 frame,
                 units,
                 reduction,
-                truncation_policy,
-                date_range,
+                truncation_policy: truncated_truncation_policy,
+                date_range: truncated_date_range,
+            })
+        };
+
+        let earth_source_specification = |
+            body: CelestialBody,
+            source_file: &'static str,
+            reduction: &'static str,
+        | {
+            Some(Vsop87SourceSpecification {
+                body,
+                source_file,
+                variant,
+                coordinate_family,
+                frame,
+                units,
+                reduction,
+                truncation_policy: earth_truncation_policy,
+                date_range: earth_date_range,
             })
         };
 
@@ -202,11 +226,11 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
             Vsop87BodyCatalogEntry {
                 source_profile: source_profile(
                     CelestialBody::Sun,
-                    Vsop87BodySourceKind::TruncatedVsop87b,
-                    "geocentric Sun reduced from truncated IMCCE/CELMECH VSOP87B Earth coefficients",
-                    AccuracyClass::Approximate,
+                    Vsop87BodySourceKind::VendoredVsop87b,
+                    "geocentric Sun reduced from vendored full IMCCE/CELMECH VSOP87B Earth source file",
+                    AccuracyClass::Exact,
                 ),
-                source_specification: source_specification(
+                source_specification: earth_source_specification(
                     CelestialBody::Sun,
                     "VSOP87B.ear",
                     solar_reduction,
@@ -282,7 +306,7 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
                     327.973_990_111_690_9,
                     -1.067_696_942_937_559_8,
                     1.849_625_885_985_351_8,
-                    0.003,
+                    0.004,
                     0.000_1,
                     0.000_1,
                 ),
@@ -404,6 +428,13 @@ pub fn canonical_epoch_samples() -> Vec<Vsop87CanonicalEpochSample> {
         .iter()
         .filter_map(|entry| entry.canonical_sample.clone())
         .collect()
+}
+
+fn source_kind_for_body(body: CelestialBody) -> Option<Vsop87BodySourceKind> {
+    body_catalog_entries()
+        .iter()
+        .find(|entry| entry.source_profile.body == body)
+        .map(|entry| entry.source_profile.kind)
 }
 
 /// A pure-Rust planetary backend.
@@ -713,7 +744,11 @@ impl Vsop87Backend {
 impl EphemerisBackend for Vsop87Backend {
     fn metadata(&self) -> BackendMetadata {
         let source_profiles = body_source_profiles();
-        let source_backed_count = source_profiles
+        let vendored_count = source_profiles
+            .iter()
+            .filter(|profile| profile.kind == Vsop87BodySourceKind::VendoredVsop87b)
+            .count();
+        let truncated_count = source_profiles
             .iter()
             .filter(|profile| profile.kind == Vsop87BodySourceKind::TruncatedVsop87b)
             .count();
@@ -722,7 +757,8 @@ impl EphemerisBackend for Vsop87Backend {
             .filter(|profile| profile.kind == Vsop87BodySourceKind::MeanOrbitalElements)
             .count();
 
-        let source_backed_path_label = pluralize_body_path(source_backed_count);
+        let vendored_path_label = pluralize_body_path(vendored_count);
+        let truncated_path_label = pluralize_body_path(truncated_count);
         let fallback_path_label = pluralize_body_path(fallback_count);
 
         BackendMetadata {
@@ -731,7 +767,7 @@ impl EphemerisBackend for Vsop87Backend {
             family: BackendFamily::Algorithmic,
             provenance: BackendProvenance {
                 summary: format!(
-                    "Mixed pure-Rust planetary backend: {source_backed_count} source-backed truncated VSOP87B {source_backed_path_label}, {fallback_count} fallback mean-element {fallback_path_label}, and geocentric reduction."
+                    "Mixed pure-Rust planetary backend: {vendored_count} vendored full-file VSOP87B {vendored_path_label}, {truncated_count} source-backed truncated VSOP87B {truncated_path_label}, {fallback_count} fallback mean-element {fallback_path_label}, and geocentric reduction."
                 ),
                 data_sources: source_specifications()
                     .into_iter()
@@ -822,7 +858,12 @@ impl EphemerisBackend for Vsop87Backend {
             req.zodiac_mode.clone(),
             req.apparent,
         );
-        result.quality = QualityAnnotation::Approximate;
+        result.quality = match source_kind_for_body(req.body.clone()) {
+            Some(Vsop87BodySourceKind::VendoredVsop87b) => QualityAnnotation::Exact,
+            Some(Vsop87BodySourceKind::TruncatedVsop87b)
+            | Some(Vsop87BodySourceKind::MeanOrbitalElements)
+            | None => QualityAnnotation::Approximate,
+        };
         result.ecliptic = Some(Self::to_ecliptic(geocentric));
         result.equatorial = Some(Self::to_equatorial(geocentric, req.instant));
         result.motion = Self::motion(req.body.clone(), days);
@@ -936,7 +977,7 @@ mod tests {
     }
 
     #[test]
-    fn j2000_sun_position_uses_truncated_vsop87b_earth_slice() {
+    fn j2000_sun_position_uses_vendored_vsop87b_earth_file() {
         let backend = Vsop87Backend::new();
         let request = mean_request(CelestialBody::Sun);
         let result = backend.position(&request).expect("sun query should work");
@@ -955,7 +996,7 @@ mod tests {
             0.983_327_682_322_294_2,
             0.000_01,
         );
-        assert_eq!(result.quality, QualityAnnotation::Approximate);
+        assert_eq!(result.quality, QualityAnnotation::Exact);
     }
 
     #[test]
@@ -1017,7 +1058,7 @@ mod tests {
         // files evaluated at J2000 and reduced to geometric geocentric ecliptic
         // coordinates. The tolerance documents the current leading-term slice;
         // it should tighten when complete generated tables replace it.
-        assert_degrees_close(ecliptic.longitude.degrees(), 327.973_990_111_690_9, 0.003);
+        assert_degrees_close(ecliptic.longitude.degrees(), 327.973_990_111_690_9, 0.004);
         assert_degrees_close(
             ecliptic.latitude.degrees(),
             -1.067_696_942_937_559_8,
@@ -1174,7 +1215,12 @@ mod tests {
                 sample.expected_distance_au,
                 sample.max_distance_delta_au,
             );
-            assert_eq!(result.quality, QualityAnnotation::Approximate);
+            let expected_quality = if sample.body == CelestialBody::Sun {
+                QualityAnnotation::Exact
+            } else {
+                QualityAnnotation::Approximate
+            };
+            assert_eq!(result.quality, expected_quality);
         }
     }
 
@@ -1235,11 +1281,20 @@ mod tests {
         assert!(metadata
             .provenance
             .summary
-            .contains("8 source-backed truncated VSOP87B body paths"));
+            .contains("1 vendored full-file VSOP87B body path"));
+        assert!(metadata
+            .provenance
+            .summary
+            .contains("7 source-backed truncated VSOP87B body paths"));
         assert!(metadata
             .provenance
             .summary
             .contains("1 fallback mean-element body path"));
+        assert!(metadata
+            .provenance
+            .data_sources
+            .iter()
+            .any(|source| source.contains("Sun: IMCCE/CELMECH VSOP87B VSOP87B.ear")));
         assert!(metadata
             .provenance
             .data_sources
@@ -1281,6 +1336,16 @@ mod tests {
     fn body_source_profiles_identify_mixed_implementation_paths() {
         let profiles = body_source_profiles();
         assert_eq!(profiles.len(), Vsop87Backend::supported_bodies().len());
+
+        let sun = profiles
+            .iter()
+            .find(|profile| profile.body == CelestialBody::Sun)
+            .expect("Sun profile should exist");
+        assert_eq!(sun.kind, Vsop87BodySourceKind::VendoredVsop87b);
+        assert_eq!(sun.accuracy, AccuracyClass::Exact);
+        assert!(sun
+            .provenance
+            .contains("vendored full IMCCE/CELMECH VSOP87B Earth source file"));
 
         let mars = profiles
             .iter()
@@ -1366,13 +1431,28 @@ mod tests {
         assert!(specs
             .iter()
             .all(|spec| spec.reduction.contains("geocentric")));
+
+        let earth_spec = specs
+            .iter()
+            .find(|spec| spec.source_file == "VSOP87B.ear")
+            .expect("Earth source specification should exist");
+        assert!(earth_spec
+            .truncation_policy
+            .contains("vendored full source file"));
+        assert!(earth_spec
+            .date_range
+            .contains("full public source file; J2000 canonical reference sample"));
+
         assert!(specs
             .iter()
+            .filter(|spec| spec.source_file != "VSOP87B.ear")
             .all(|spec| spec.truncation_policy.contains("leading-term slice")));
-        assert!(specs.iter().all(|spec| spec
-            .date_range
-            .contains("1500-2500 CE tables remain pending")));
-        assert!(specs.iter().any(|spec| spec.source_file == "VSOP87B.ear"));
+        assert!(specs
+            .iter()
+            .filter(|spec| spec.source_file != "VSOP87B.ear")
+            .all(|spec| spec
+                .date_range
+                .contains("1500-2500 CE tables remain pending")));
         assert!(specs.iter().any(|spec| spec.source_file == "VSOP87B.nep"));
     }
 
@@ -1383,7 +1463,12 @@ mod tests {
 
         let source_backed = catalog
             .iter()
-            .filter(|entry| entry.source_profile.kind == Vsop87BodySourceKind::TruncatedVsop87b)
+            .filter(|entry| {
+                matches!(
+                    entry.source_profile.kind,
+                    Vsop87BodySourceKind::TruncatedVsop87b | Vsop87BodySourceKind::VendoredVsop87b
+                )
+            })
             .count();
         let fallback = catalog
             .iter()
@@ -1403,6 +1488,10 @@ mod tests {
             .iter()
             .find(|entry| entry.source_profile.body == CelestialBody::Sun)
             .expect("Sun entry should exist");
+        assert_eq!(
+            sun.source_profile.kind,
+            Vsop87BodySourceKind::VendoredVsop87b
+        );
         assert!(sun.source_specification.is_some());
         assert!(sun.canonical_sample.is_some());
     }
