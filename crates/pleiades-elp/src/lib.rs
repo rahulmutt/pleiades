@@ -7,7 +7,7 @@
 #![forbid(unsafe_code)]
 
 use pleiades_backend::{
-    AccuracyClass, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
+    AccuracyClass, Apparentness, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
     BackendProvenance, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
     EphemerisResult, QualityAnnotation,
 };
@@ -238,6 +238,13 @@ impl EphemerisBackend for ElpBackend {
             ));
         }
 
+        if req.apparent != Apparentness::Mean {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "the ELP backend currently returns mean geometric coordinates only; apparent corrections are not implemented",
+            ));
+        }
+
         if req.observer.is_some() {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::InvalidObserver,
@@ -335,10 +342,7 @@ mod tests {
     #[test]
     fn j2000_moon_position_is_finite() {
         let backend = ElpBackend::new();
-        let request = EphemerisRequest::new(
-            CelestialBody::Moon,
-            Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt),
-        );
+        let request = mean_request(CelestialBody::Moon);
         let result = backend.position(&request).expect("moon query should work");
         let ecliptic = result.ecliptic.expect("ecliptic result should exist");
         assert!(ecliptic.longitude.degrees().is_finite());
@@ -352,7 +356,7 @@ mod tests {
         let instant = Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt);
 
         let mean = backend
-            .position(&EphemerisRequest::new(CelestialBody::MeanNode, instant))
+            .position(&mean_request_at(CelestialBody::MeanNode, instant))
             .expect("mean node query should work");
         let mean_ecliptic = mean.ecliptic.expect("mean node ecliptic should exist");
         assert!((mean_ecliptic.longitude.degrees() - 125.044_547_9).abs() < 1e-9);
@@ -360,7 +364,7 @@ mod tests {
         assert!(mean.equatorial.is_some());
 
         let true_node = backend
-            .position(&EphemerisRequest::new(CelestialBody::TrueNode, instant))
+            .position(&mean_request_at(CelestialBody::TrueNode, instant))
             .expect("true node query should work");
         let true_ecliptic = true_node.ecliptic.expect("true node ecliptic should exist");
         assert!((true_ecliptic.longitude.degrees() - 123.926_171_368_400_46).abs() < 1e-9);
@@ -377,12 +381,23 @@ mod tests {
     }
 
     #[test]
-    fn topocentric_requests_are_rejected_explicitly() {
+    fn apparent_requests_are_rejected_explicitly() {
         let backend = ElpBackend::new();
-        let mut request = EphemerisRequest::new(
+        let request = EphemerisRequest::new(
             CelestialBody::Moon,
             Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt),
         );
+
+        let error = backend
+            .position(&request)
+            .expect_err("apparent requests should be unsupported");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+    }
+
+    #[test]
+    fn topocentric_requests_are_rejected_explicitly() {
+        let backend = ElpBackend::new();
+        let mut request = mean_request(CelestialBody::Moon);
         request.observer = Some(pleiades_types::ObserverLocation::new(
             Latitude::from_degrees(51.5),
             Longitude::from_degrees(0.0),
@@ -393,5 +408,18 @@ mod tests {
             .position(&request)
             .expect_err("topocentric requests should be unsupported");
         assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
+    }
+
+    fn mean_request(body: CelestialBody) -> EphemerisRequest {
+        mean_request_at(
+            body,
+            Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt),
+        )
+    }
+
+    fn mean_request_at(body: CelestialBody, instant: Instant) -> EphemerisRequest {
+        let mut request = EphemerisRequest::new(body, instant);
+        request.apparent = Apparentness::Mean;
+        request
     }
 }

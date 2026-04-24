@@ -16,7 +16,7 @@
 mod vsop87b_earth;
 
 use pleiades_backend::{
-    AccuracyClass, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
+    AccuracyClass, Apparentness, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
     BackendProvenance, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
     EphemerisResult, QualityAnnotation,
 };
@@ -308,6 +308,13 @@ impl EphemerisBackend for Vsop87Backend {
             ));
         }
 
+        if req.apparent != Apparentness::Mean {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "the VSOP87 MVP backend currently returns mean geometric coordinates only; apparent corrections are not implemented",
+            ));
+        }
+
         if req.observer.is_some() {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::InvalidObserver,
@@ -426,10 +433,7 @@ mod tests {
     #[test]
     fn j2000_sun_position_uses_truncated_vsop87b_earth_slice() {
         let backend = Vsop87Backend::new();
-        let request = EphemerisRequest::new(
-            CelestialBody::Sun,
-            Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt),
-        );
+        let request = mean_request(CelestialBody::Sun);
         let result = backend.position(&request).expect("sun query should work");
         let ecliptic = result.ecliptic.expect("ecliptic result should exist");
 
@@ -452,10 +456,7 @@ mod tests {
     #[test]
     fn finite_difference_motion_is_reported_for_supported_bodies() {
         let backend = Vsop87Backend::new();
-        let request = EphemerisRequest::new(
-            CelestialBody::Mars,
-            Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt),
-        );
+        let request = mean_request(CelestialBody::Mars);
         let result = backend.position(&request).expect("Mars query should work");
         let motion = result.motion.expect("motion should be populated");
 
@@ -476,10 +477,7 @@ mod tests {
     #[test]
     fn topocentric_requests_are_rejected_explicitly() {
         let backend = Vsop87Backend::new();
-        let mut request = EphemerisRequest::new(
-            CelestialBody::Mars,
-            Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt),
-        );
+        let mut request = mean_request(CelestialBody::Mars);
         request.observer = Some(pleiades_types::ObserverLocation::new(
             Latitude::from_degrees(51.5),
             Longitude::from_degrees(0.0),
@@ -493,9 +491,32 @@ mod tests {
     }
 
     #[test]
+    fn apparent_requests_are_rejected_explicitly() {
+        let backend = Vsop87Backend::new();
+        let request = EphemerisRequest::new(
+            CelestialBody::Sun,
+            Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt),
+        );
+
+        let error = backend
+            .position(&request)
+            .expect_err("apparent requests should be unsupported");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+    }
+
+    #[test]
     fn signed_longitude_delta_wraps_across_zero_aries() {
         assert_eq!(signed_longitude_delta_degrees(359.5, 0.5), 1.0);
         assert_eq!(signed_longitude_delta_degrees(0.5, 359.5), -1.0);
+    }
+
+    fn mean_request(body: CelestialBody) -> EphemerisRequest {
+        let mut request = EphemerisRequest::new(
+            body,
+            Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt),
+        );
+        request.apparent = Apparentness::Mean;
+        request
     }
 
     fn assert_degrees_close(actual: f64, expected: f64, tolerance: f64) {

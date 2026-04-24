@@ -84,7 +84,7 @@ cargo run -q -p pleiades-cli -- chart \
   --house-system "Whole Sign" \
   --body Sun \
   --body Moon \
-  --apparent
+  --mean
 ```
 
 Notes:
@@ -93,6 +93,7 @@ Notes:
 - If no `--body` flags are given, the CLI uses the default chart body set from `pleiades-core`.
 - `--ayanamsa` accepts built-in names like `Lahiri` and custom definitions such as `custom:True Balarama|2451545.0|12.5`.
 - `--body` accepts built-in labels like `Sun`, `Moon`, `Ceres`, and custom identifiers like `asteroid:433-Eros`.
+- Current first-party backends expose mean geometric coordinates only; `--apparent` is parsed for API compatibility but returns an unsupported-request error until apparent-place corrections are implemented. See [docs/time-observer-policy.md](docs/time-observer-policy.md).
 
 ### `pleiades-validate`
 

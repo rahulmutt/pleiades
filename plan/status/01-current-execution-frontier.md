@@ -35,7 +35,7 @@ Active gaps:
 - production VSOP87 coefficient handling and transformations;
 - production lunar theory implementation and lunar point semantics;
 - larger JPL-style reference corpus, interpolation validation, and documented tolerance envelopes beyond the current small fixture proof of concept;
-- explicit Delta T, time-scale, apparent/mean, and frame conversion policies;
+- production Delta T conversion, TDB handling, apparent-place corrections, and validated frame-conversion error envelopes beyond the initial documented policy;
 - reference-backed tolerance tables and validation reports.
 
 ## Recommended next slice
@@ -47,7 +47,7 @@ Continue expanding the narrow `pleiades-vsop87` source-data increment:
 3. expose more granular metadata for mixed source-backed versus fallback element paths;
 4. extend validation output to report measured error for the source-backed body paths.
 
-Small preparatory backend-semantics increments have landed: supported planetary results now include deterministic central-difference mean-motion estimates, direct observer-bearing requests to the geocentric VSOP87/ELP placeholders now fail explicitly instead of implying topocentric support, and the Sun path now uses a truncated IMCCE VSOP87B Earth coefficient slice tested against a full-file J2000 golden value. Complete VSOP87 coefficient ingestion remains outstanding.
+Small preparatory backend-semantics increments have landed: supported planetary results now include deterministic central-difference mean-motion estimates, direct observer-bearing requests to the geocentric VSOP87/ELP placeholders now fail explicitly instead of implying topocentric support, unsupported apparent requests are rejected rather than silently returning mean values, the initial time/observer policy is documented, and the Sun path now uses a truncated IMCCE VSOP87B Earth coefficient slice tested against a full-file J2000 golden value. Complete VSOP87 coefficient ingestion remains outstanding.
 
 ## Constraints
 

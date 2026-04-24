@@ -735,10 +735,11 @@ mod tests {
     }
 
     #[test]
-    fn chart_command_can_force_apparent_positions() {
-        let rendered = render_chart(&["--jd", "2451545.0", "--apparent", "--body", "Sun"])
-            .expect("chart should render");
-        assert!(rendered.contains("Apparentness: Apparent"));
+    fn chart_command_rejects_apparent_positions_until_supported() {
+        let error = render_chart(&["--jd", "2451545.0", "--apparent", "--body", "Sun"])
+            .expect_err("current first-party backends should reject apparent requests");
+        assert!(error.contains("InvalidRequest"));
+        assert!(error.contains("mean-state") || error.contains("mean geometric"));
     }
 
     #[test]

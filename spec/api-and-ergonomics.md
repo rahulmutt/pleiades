@@ -27,6 +27,8 @@ This keeps backend contracts simpler, avoids duplicating astrology logic across 
 
 Chart-level observer locations are used for house calculations unless a chart API explicitly offers a topocentric body-position mode. Passing a house observer to geocentric-only backends must not silently imply topocentric positions; direct backend requests that include an observer against a geocentric-only backend should fail with a structured unsupported-observer error.
 
+Likewise, apparent-place requests must not be silently satisfied with mean geometric coordinates. A backend that does not implement light-time, aberration, nutation, or other apparent-place corrections must either expose only mean requests through a higher-level configuration or reject direct apparent requests with a structured unsupported/invalid-request error while its capability metadata reports `apparent = false`.
+
 ## Type Safety and Extensibility
 
 The API should prefer:

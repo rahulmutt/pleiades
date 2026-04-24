@@ -14,7 +14,7 @@ Replace preliminary, sample-driven, or simplified backend behavior with source-b
 
 ## Current baseline
 
-Implemented foundations include backend traits, metadata, composite routing, major body identifiers, lunar points, baseline asteroids, a chart façade, CLI commands, a snapshot-style `pleiades-jpl`, preliminary `pleiades-vsop87` and `pleiades-elp` crates, deterministic central-difference motion estimates for the current VSOP87 path, a first truncated IMCCE VSOP87B Earth coefficient slice for geocentric Sun output with a J2000 golden test, and validation reports that expose aggregate plus per-body comparison error summaries.
+Implemented foundations include backend traits, metadata, composite routing, major body identifiers, lunar points, baseline asteroids, a chart façade, CLI commands, a snapshot-style `pleiades-jpl`, preliminary `pleiades-vsop87` and `pleiades-elp` crates, deterministic central-difference motion estimates for the current VSOP87 path, explicit rejection of unsupported topocentric and apparent requests in geocentric/mean-only backends, an initial time-scale/Delta T/observer policy document, a first truncated IMCCE VSOP87B Earth coefficient slice for geocentric Sun output with a J2000 golden test, and validation reports that expose aggregate plus per-body comparison error summaries.
 
 ## Remaining implementation goals
 
@@ -37,7 +37,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Preserve snapshot fixtures as small regression/golden tests.
 
 4. Strengthen time, apparentness, observer, and coordinate semantics.
-   - Publish the initial Delta T policy used by high-level and backend APIs.
+   - Expand the initial Delta T policy into implemented conversion support or a release-grade caller-provided conversion contract.
    - Clarify TT/UT/TDB handling in requests and validation data.
    - Keep chart house observers separate from backend topocentric position requests unless an explicit topocentric chart mode is added.
    - Implement equatorial/ecliptic transforms where the release profile claims them.
