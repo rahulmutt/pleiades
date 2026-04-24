@@ -1340,6 +1340,7 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push('\n');
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
+    text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
     text.push_str("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary\n");
     text.push_str("Release notes summary: release-notes-summary\n");
     text.push_str("Release summary: release-summary\n");
@@ -1438,6 +1439,7 @@ fn render_release_notes_summary_text() -> String {
     text.push('\n');
     text.push_str("Release notes: release-notes\n");
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
+    text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
     text.push_str("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary\n");
     text.push_str("Release checklist summary: release-checklist-summary\n");
     text.push_str("Release bundle verification: verify-release-bundle\n");
@@ -4308,6 +4310,8 @@ mod tests {
             release_profiles.compatibility_profile_id
         )));
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
+        assert!(rendered
+            .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
         assert!(rendered.contains("Release summary: release-summary"));
@@ -4346,6 +4350,8 @@ mod tests {
         assert!(rendered.contains("API stability summary line:"));
         assert!(rendered.contains("Release notes: release-notes"));
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
+        assert!(rendered
+            .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Release checklist summary: release-checklist-summary"));
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
         assert!(
