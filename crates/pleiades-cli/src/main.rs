@@ -468,6 +468,7 @@ mod tests {
         assert!(backend_matrix.contains("Backends: 5"));
         assert!(backend_matrix.contains("Accuracy classes: Exact: 1"));
         assert!(backend_matrix.contains("Release notes summary: release-notes-summary"));
+        assert!(backend_matrix.contains("Release bundle verification: verify-release-bundle"));
         assert!(backend_matrix
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(backend_matrix.contains("Release checklist summary: release-checklist-summary"));
@@ -482,6 +483,7 @@ mod tests {
         )));
         assert!(api_stability.contains("Release notes summary: release-notes-summary"));
         assert!(api_stability.contains("Release checklist summary: release-checklist-summary"));
+        assert!(api_stability.contains("Release bundle verification: verify-release-bundle"));
 
         let release_notes = render_cli(&["release-notes"]).expect("release notes should render");
         assert!(release_notes.contains("Release notes"));
