@@ -8,9 +8,9 @@
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Vsop87Term {
-    amplitude: f64,
-    phase: f64,
-    frequency: f64,
+    pub(crate) amplitude: f64,
+    pub(crate) phase: f64,
+    pub(crate) frequency: f64,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -46,7 +46,7 @@ pub(crate) fn earth_lbr(julian_day_tt: f64) -> SphericalLbr {
     }
 }
 
-fn evaluate(series_by_power: &[&[Vsop87Term]], t: f64) -> f64 {
+pub(crate) fn evaluate(series_by_power: &[&[Vsop87Term]], t: f64) -> f64 {
     let mut t_power = 1.0;
     let mut value = 0.0;
     for terms in series_by_power {

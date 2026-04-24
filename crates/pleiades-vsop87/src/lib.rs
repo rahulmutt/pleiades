@@ -5,15 +5,18 @@
 //! This crate now provides a working pure-Rust algorithmic backend for the Sun
 //! and major planets. The Sun path uses a first truncated slice of public IMCCE
 //! VSOP87B Earth coefficients (heliocentric spherical variables, J2000
-//! ecliptic/equinox) transformed to geocentric solar coordinates. The remaining
-//! major planets still use compact Keplerian orbital elements, a geocentric
-//! reduction step, and central-difference motion estimates so the workspace has
-//! an end-to-end tropical chart path while complete generated VSOP87 tables are
-//! added incrementally.
+//! ecliptic/equinox) transformed to geocentric solar coordinates. Mercury now
+//! uses the same VSOP87B spherical-coefficient evaluation path for its
+//! heliocentric channel, while the remaining major planets still use compact
+//! Keplerian orbital elements, a geocentric reduction step, and
+//! central-difference motion estimates so the workspace has an end-to-end
+//! tropical chart path while complete generated VSOP87 tables are added
+//! incrementally.
 
 #![forbid(unsafe_code)]
 
 mod vsop87b_earth;
+mod vsop87b_mercury;
 
 use pleiades_backend::{
     AccuracyClass, Apparentness, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
@@ -170,11 +173,21 @@ impl Vsop87Backend {
     }
 
     fn geocentric_coordinates(body: CelestialBody, days: f64) -> Option<HeliocentricCoordinates> {
-        let earth = Self::heliocentric_coordinates(Self::earth_elements(days));
         if body == CelestialBody::Sun {
             return Some(Self::geocentric_sun_from_vsop87b(days));
         }
 
+        if body == CelestialBody::Mercury {
+            let earth = Self::heliocentric_earth_from_vsop87b(days);
+            let target = Self::heliocentric_mercury_from_vsop87b(days);
+            return Some(HeliocentricCoordinates {
+                xh: target.xh - earth.xh,
+                yh: target.yh - earth.yh,
+                zh: target.zh - earth.zh,
+            });
+        }
+
+        let earth = Self::heliocentric_coordinates(Self::earth_elements(days));
         let target = Self::heliocentric_coordinates(Self::orbital_elements(body, days)?);
         Some(HeliocentricCoordinates {
             xh: target.xh - earth.xh,
@@ -184,17 +197,26 @@ impl Vsop87Backend {
     }
 
     fn geocentric_sun_from_vsop87b(days: f64) -> HeliocentricCoordinates {
-        let earth = vsop87b_earth::earth_lbr(J2000 + days);
-        let longitude = earth.longitude_rad + core::f64::consts::PI;
-        let latitude = -earth.latitude_rad;
-        let radius = earth.radius_au;
-        let cos_latitude = latitude.cos();
-
+        let earth = Self::heliocentric_earth_from_vsop87b(days);
         HeliocentricCoordinates {
-            xh: radius * cos_latitude * longitude.cos(),
-            yh: radius * cos_latitude * longitude.sin(),
-            zh: radius * latitude.sin(),
+            xh: -earth.xh,
+            yh: -earth.yh,
+            zh: -earth.zh,
         }
+    }
+
+    fn heliocentric_earth_from_vsop87b(days: f64) -> HeliocentricCoordinates {
+        let earth = vsop87b_earth::earth_lbr(J2000 + days);
+        spherical_lbr_to_cartesian(earth.longitude_rad, earth.latitude_rad, earth.radius_au)
+    }
+
+    fn heliocentric_mercury_from_vsop87b(days: f64) -> HeliocentricCoordinates {
+        let mercury = vsop87b_mercury::mercury_lbr(J2000 + days);
+        spherical_lbr_to_cartesian(
+            mercury.longitude_rad,
+            mercury.latitude_rad,
+            mercury.radius_au,
+        )
     }
 
     fn distance_au(coords: HeliocentricCoordinates) -> f64 {
@@ -264,9 +286,10 @@ impl EphemerisBackend for Vsop87Backend {
             version: env!("CARGO_PKG_VERSION").to_string(),
             family: BackendFamily::Algorithmic,
             provenance: BackendProvenance {
-                summary: "Mixed pure-Rust planetary backend: truncated VSOP87B Earth coefficients for the geocentric Sun path, compact Keplerian elements for remaining planets, and geocentric reduction.".to_string(),
+                summary: "Mixed pure-Rust planetary backend: truncated VSOP87B Earth coefficients for the geocentric Sun path, truncated VSOP87B Mercury coefficients for Mercury, compact Keplerian elements for remaining planets, and geocentric reduction.".to_string(),
                 data_sources: vec![
-                    "IMCCE/CELMECH VSOP87B Earth heliocentric spherical coefficients, truncated leading-term slice for Sun geocentric reduction".to_string(),
+                    "IMCCE/CELMECH VSOP87B Earth heliocentric spherical coefficients, truncated leading-term slice for Sun geocentric reduction and planetary geocentric reductions".to_string(),
+                    "IMCCE/CELMECH VSOP87B Mercury heliocentric spherical coefficients, truncated leading-term slice for Mercury geocentric reduction".to_string(),
                     "Paul Schlyter-style mean orbital elements for planets not yet backed by VSOP87 coefficient tables".to_string(),
                     "Meeus-style coordinate transforms for geocentric reduction".to_string(),
                 ],
@@ -383,6 +406,19 @@ struct HeliocentricCoordinates {
     zh: f64,
 }
 
+fn spherical_lbr_to_cartesian(
+    longitude_rad: f64,
+    latitude_rad: f64,
+    radius_au: f64,
+) -> HeliocentricCoordinates {
+    let cos_latitude = latitude_rad.cos();
+    HeliocentricCoordinates {
+        xh: radius_au * cos_latitude * longitude_rad.cos(),
+        yh: radius_au * cos_latitude * longitude_rad.sin(),
+        zh: radius_au * latitude_rad.sin(),
+    }
+}
+
 fn normalize_degrees(angle: f64) -> f64 {
     angle.rem_euclid(360.0)
 }
@@ -454,6 +490,33 @@ mod tests {
     }
 
     #[test]
+    fn j2000_mercury_position_uses_truncated_vsop87b_mercury_slice() {
+        let backend = Vsop87Backend::new();
+        let request = mean_request(CelestialBody::Mercury);
+        let result = backend
+            .position(&request)
+            .expect("Mercury query should work");
+        let ecliptic = result.ecliptic.expect("ecliptic result should exist");
+
+        // Golden values are the full public IMCCE VSOP87B Mercury and Earth
+        // files evaluated at J2000 and reduced to geometric geocentric ecliptic
+        // coordinates. The tolerance documents the current leading-term slice;
+        // it should tighten when complete generated tables replace it.
+        assert_degrees_close(ecliptic.longitude.degrees(), 271.904_744_694_147_67, 0.001);
+        assert_degrees_close(
+            ecliptic.latitude.degrees(),
+            -0.995_553_498_474_437_4,
+            0.000_1,
+        );
+        assert_close(
+            ecliptic.distance_au.expect("distance should exist"),
+            1.415_524_982_482_968,
+            0.000_01,
+        );
+        assert_eq!(result.quality, QualityAnnotation::Approximate);
+    }
+
+    #[test]
     fn finite_difference_motion_is_reported_for_supported_bodies() {
         let backend = Vsop87Backend::new();
         let request = mean_request(CelestialBody::Mars);
@@ -502,6 +565,17 @@ mod tests {
             .position(&request)
             .expect_err("apparent requests should be unsupported");
         assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+    }
+
+    #[test]
+    fn metadata_identifies_mercury_vsop87b_source_slice() {
+        let metadata = Vsop87Backend::new().metadata();
+        assert!(metadata.provenance.summary.contains("VSOP87B Mercury"));
+        assert!(metadata
+            .provenance
+            .data_sources
+            .iter()
+            .any(|source| source.contains("VSOP87B Mercury heliocentric spherical coefficients")));
     }
 
     #[test]
