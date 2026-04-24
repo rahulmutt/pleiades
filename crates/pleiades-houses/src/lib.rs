@@ -277,6 +277,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
             "Vehlow Equal house system",
             "Vehlow-equal",
             "Vehlow-equal table of houses",
+            "Vehlow Equal table of houses",
         ],
         "Equal-house variant with the Ascendant centered in house 1.",
         false,
@@ -702,6 +703,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
             "Vehlow Equal house system",
             "Vehlow-equal",
             "Vehlow-equal table of houses",
+            "Vehlow Equal table of houses",
         ],
         "Equal-house variant with the Ascendant centered in house 1.",
         false,
@@ -861,6 +863,10 @@ mod tests {
         );
         assert_eq!(
             resolve_house_system("Vehlow-equal table of houses"),
+            Some(HouseSystem::Vehlow)
+        );
+        assert_eq!(
+            resolve_house_system("Vehlow Equal table of houses"),
             Some(HouseSystem::Vehlow)
         );
         assert_eq!(
