@@ -16,7 +16,7 @@ Suggested scope:
 
 Progress note (2026-04-24): the placeholder `pleiades-vsop87` path now reports deterministic central-difference longitude/latitude/distance speeds for supported planets. This improves chart-facing motion semantics but does not replace the planned source-backed VSOP87 coefficient work above.
 
-Progress note (2026-04-24): the VSOP87 source-data path now covers the Sun through Neptune with public IMCCE/CELMECH VSOP87B inputs, exact J2000 tests, and validation evidence for all source-backed major planets. The Earth path now uses the first generated binary coefficient-table slice derived from the vendored source file, and the remaining Phase 1 work for this track is reproducible generated-table ingestion and release-grade error envelopes.
+Progress note (2026-04-24): the VSOP87 source-data path now covers the Sun through Neptune with public IMCCE/CELMECH VSOP87B inputs, exact J2000 tests, and validation evidence for all source-backed major planets. The Earth path now uses the first generated binary coefficient-table slice derived from the vendored source file, the Mercury path now uses a second generated binary coefficient-table slice derived from the vendored source file, and the remaining Phase 1 work for this track is reproducible generated-table ingestion and release-grade error envelopes.
 
 Progress note (2026-04-24): the first source-data increment has landed for the Sun path. `pleiades-vsop87` now evaluates a generated binary coefficient table derived from the vendored public IMCCE VSOP87B Earth source file, transforms it into geometric geocentric solar coordinates, and tests the J2000 result against a full-file VSOP87B golden value.
 

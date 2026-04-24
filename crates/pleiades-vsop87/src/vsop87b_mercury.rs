@@ -1,13 +1,16 @@
 //! VSOP87B Mercury coefficient tables backed by the full public IMCCE/CELMECH
 //! source file.
 //!
-//! Mercury now follows the same full-file parsing path as the Sun and Venus
-//! backends, so the backend keeps a source-backed path for the innermost
-//! planet without relying on a hand-trimmed coefficient slice.
+//! Mercury now uses a generated binary table derived from the vendored public
+//! IMCCE/CELMECH VSOP87B source file, so the backend keeps a reproducible
+//! coefficient artifact for the innermost planet without relying on a
+//! hand-trimmed coefficient slice.
 
 use std::sync::OnceLock;
 
-use crate::vsop87b_earth::{evaluate, parse_vsop87b_tables, SphericalLbr, Vsop87SeriesTables};
+use crate::vsop87b_earth::{
+    evaluate, parse_generated_vsop87b_tables, SphericalLbr, Vsop87SeriesTables,
+};
 
 static MERCURY_TABLES: OnceLock<Vsop87SeriesTables> = OnceLock::new();
 
@@ -23,16 +26,34 @@ pub(crate) fn mercury_lbr(julian_day_tt: f64) -> SphericalLbr {
 }
 
 fn mercury_tables() -> &'static Vsop87SeriesTables {
-    MERCURY_TABLES.get_or_init(|| parse_vsop87b_tables(include_str!("../data/VSOP87B.mer")))
+    MERCURY_TABLES
+        .get_or_init(|| parse_generated_vsop87b_tables(include_bytes!("../data/VSOP87B.mer.bin")))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vsop87b_earth::parse_vsop87b_tables;
 
     #[test]
     fn parses_full_mercury_tables_with_expected_series_counts() {
         let tables = parse_vsop87b_tables(include_str!("../data/VSOP87B.mer"));
+        assert_eq!(tables.longitude.len(), 6);
+        assert_eq!(tables.latitude.len(), 6);
+        assert_eq!(tables.radius.len(), 6);
+
+        let longitude_terms: Vec<usize> = tables.longitude.iter().map(Vec::len).collect();
+        let latitude_terms: Vec<usize> = tables.latitude.iter().map(Vec::len).collect();
+        let radius_terms: Vec<usize> = tables.radius.iter().map(Vec::len).collect();
+
+        assert_eq!(longitude_terms, vec![1583, 931, 438, 162, 23, 12]);
+        assert_eq!(latitude_terms, vec![818, 492, 231, 39, 13, 10]);
+        assert_eq!(radius_terms, vec![1209, 706, 318, 111, 17, 10]);
+    }
+
+    #[test]
+    fn parses_generated_mercury_table_blob_with_expected_series_counts() {
+        let tables = parse_generated_vsop87b_tables(include_bytes!("../data/VSOP87B.mer.bin"));
         assert_eq!(tables.longitude.len(), 6);
         assert_eq!(tables.latitude.len(), 6);
         assert_eq!(tables.radius.len(), 6);

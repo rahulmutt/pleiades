@@ -70,7 +70,7 @@ fn earth_tables() -> &'static Vsop87SeriesTables {
         .get_or_init(|| parse_generated_vsop87b_tables(include_bytes!("../data/VSOP87B.ear.bin")))
 }
 
-fn parse_generated_vsop87b_tables(bytes: &[u8]) -> Vsop87SeriesTables {
+pub(crate) fn parse_generated_vsop87b_tables(bytes: &[u8]) -> Vsop87SeriesTables {
     let mut cursor = 0usize;
 
     fn take<'a>(bytes: &'a [u8], cursor: &mut usize, len: usize) -> &'a [u8] {

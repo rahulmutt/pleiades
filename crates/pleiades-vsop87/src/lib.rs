@@ -7,11 +7,12 @@
 //! and Neptune paths evaluate public IMCCE VSOP87B sources (heliocentric
 //! spherical variables, J2000 ecliptic/equinox) transformed to geocentric
 //! chart-facing coordinates. The Sun path now uses a generated binary table
-//! derived from the vendored Earth source file. Pluto still uses compact
-//! Keplerian orbital elements, a geocentric reduction step, and
-//! central-difference motion estimates so the workspace has an end-to-end
-//! tropical chart path while the remaining generated VSOP87 tables and
-//! Pluto-specific source selection are added incrementally.
+//! derived from the vendored Earth source file, and Mercury now does the same
+//! for the vendored Mercury source file. Pluto still uses compact Keplerian
+//! orbital elements, a geocentric reduction step, and central-difference motion
+//! estimates so the workspace has an end-to-end tropical chart path while the
+//! remaining generated VSOP87 tables and Pluto-specific source selection are
+//! added incrementally.
 
 #![forbid(unsafe_code)]
 
@@ -306,8 +307,8 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
             Vsop87BodyCatalogEntry {
                 source_profile: source_profile(
                     CelestialBody::Mercury,
-                    Vsop87BodySourceKind::VendoredVsop87b,
-                    "Mercury heliocentric channel from vendored full IMCCE/CELMECH VSOP87B Mercury source file, reduced against Earth",
+                    Vsop87BodySourceKind::GeneratedBinaryVsop87b,
+                    "Mercury heliocentric channel from a generated binary coefficient table derived from the vendored full IMCCE/CELMECH VSOP87B Mercury source file",
                     AccuracyClass::Exact,
                 ),
                 source_specification: vendored_source_specification(
@@ -1402,7 +1403,7 @@ mod tests {
     fn metadata_identifies_source_backed_planet_vsop87b_paths() {
         let metadata = Vsop87Backend::new().metadata();
         assert!(metadata.provenance.summary.contains(
-            "7 vendored full-file VSOP87B body paths, 1 generated binary VSOP87B body path"
+            "6 vendored full-file VSOP87B body paths, 2 generated binary VSOP87B body paths"
         ));
         assert!(metadata
             .provenance
@@ -1451,7 +1452,7 @@ mod tests {
     }
 
     #[test]
-    fn body_source_profiles_identify_full_file_implementation_paths() {
+    fn body_source_profiles_identify_generated_binary_and_full_file_paths() {
         let profiles = body_source_profiles();
         assert_eq!(profiles.len(), Vsop87Backend::supported_bodies().len());
 
@@ -1469,7 +1470,7 @@ mod tests {
                 .iter()
                 .find(|profile| profile.body == body)
                 .expect("source profile should exist");
-            if body == CelestialBody::Sun {
+            if body == CelestialBody::Sun || body == CelestialBody::Mercury {
                 assert_eq!(profile.kind, Vsop87BodySourceKind::GeneratedBinaryVsop87b);
             } else {
                 assert_eq!(profile.kind, Vsop87BodySourceKind::VendoredVsop87b);
