@@ -2327,9 +2327,7 @@ fn parse_checksum_value(text: &str, label: &str) -> Result<u64, ReleaseBundleErr
 }
 
 fn extract_prefixed_value<'a>(text: &'a str, prefix: &str) -> Result<&'a str, ReleaseBundleError> {
-    let mut matches = text
-        .lines()
-        .filter_map(|line| line.strip_prefix(prefix).map(str::trim));
+    let mut matches = text.lines().filter_map(|line| line.strip_prefix(prefix));
 
     let Some(value) = matches.next() else {
         return Err(ReleaseBundleError::Verification(format!(
@@ -2340,6 +2338,27 @@ fn extract_prefixed_value<'a>(text: &'a str, prefix: &str) -> Result<&'a str, Re
     if matches.next().is_some() {
         return Err(ReleaseBundleError::Verification(format!(
             "duplicate entry: {prefix}"
+        )));
+    }
+
+    if value.is_empty() {
+        return Ok(value);
+    }
+
+    let value = if prefix.ends_with(' ') {
+        value
+    } else {
+        let Some(value) = value.strip_prefix(' ') else {
+            return Err(ReleaseBundleError::Verification(format!(
+                "unexpected whitespace in manifest entry: {prefix}"
+            )));
+        };
+        value
+    };
+
+    if value != value.trim() {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected leading or trailing whitespace in manifest entry: {prefix}"
         )));
     }
 
@@ -3703,6 +3722,59 @@ mod tests {
         let _ = std::fs::remove_dir_all(&bundle_dir);
     }
 
+    fn assert_release_bundle_rejects_whitespace_manifest_entry(
+        bundle_dir_prefix: &str,
+        manifest_line_prefix: &str,
+        expected_fragments: &[&str],
+    ) {
+        let bundle_dir = unique_temp_dir(bundle_dir_prefix);
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let manifest_path = bundle_dir.join("bundle-manifest.txt");
+        let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
+        let rewritten = manifest
+            .lines()
+            .map(|line| {
+                if line.starts_with(manifest_line_prefix) {
+                    format!("{line} ")
+                } else {
+                    line.to_string()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        std::fs::write(&manifest_path, format!("{rewritten}\n"))
+            .expect("manifest should be writable");
+
+        let checksum = checksum64(
+            &std::fs::read_to_string(&manifest_path).expect("manifest should exist after rewrite"),
+        );
+        std::fs::write(
+            bundle_dir.join("bundle-manifest.checksum.txt"),
+            format!("0x{checksum:016x}\n"),
+        )
+        .expect("manifest checksum sidecar should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect_err("verification should fail for a manifest with noncanonical whitespace");
+        assert!(
+            expected_fragments
+                .iter()
+                .any(|fragment| error.contains(fragment)),
+            "unexpected error: {error}"
+        );
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
     #[test]
     fn default_corpus_covers_the_comparison_snapshot() {
         let corpus = default_corpus();
@@ -4577,6 +4649,18 @@ version = "0.9.0"
             "profile id:",
             &[
                 "duplicate entry: profile id:",
+                "release bundle verification failed",
+            ],
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_whitespace_source_revision_entry() {
+        assert_release_bundle_rejects_whitespace_manifest_entry(
+            "pleiades-release-bundle-whitespace-source-revision",
+            "source revision:",
+            &[
+                "unexpected leading or trailing whitespace in manifest entry: source revision:",
                 "release bundle verification failed",
             ],
         );
