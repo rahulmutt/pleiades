@@ -59,6 +59,8 @@ Progress note (2026-04-24): the current compact `pleiades-elp` path now reports 
 
 Progress note (2026-04-24): `pleiades-elp` now exposes mean lunar apogee and mean lunar perigee as explicitly supported mean-only lunar points using Meeus-style mean perigee/apogee formulae, including equatorial transforms and finite-difference longitude speeds. True apogee and true perigee remain unsupported until a source-backed true-point model is selected and validated.
 
+Progress note (2026-04-24): the compact ELP backend now also publishes a structured lunar-theory specification naming the current Meeus-style analytical baseline, the supported lunar channels, the provenance note, and the current J2000-centered validation window. This does not replace a full ELP coefficient implementation, but it makes the remaining source-selection work explicit in the backend metadata and keeps the next lunar slice reviewable.
+
 ## 3. JPL reader/interpolator expansion
 
 **Goal:** build on the completed small fixture interpolator and turn `pleiades-jpl` into a stronger reference backend.

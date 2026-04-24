@@ -2,9 +2,15 @@
 //!
 //! The full ELP series data is still planned, but this crate now provides a
 //! usable Moon-and-lunar-point backend for the chart MVP by combining a
-//! low-precision lunar orbit model with geocentric coordinate transforms,
-//! Meeus-style mean node/perigee/apogee formulae, and finite-difference
-//! mean-motion estimates.
+//! compact Meeus-style analytical lunar baseline with geocentric coordinate
+//! transforms, Meeus-style mean node/perigee/apogee formulae, and
+//! finite-difference mean-motion estimates.
+//!
+//! The current lunar-theory selection is intentionally explicit: the backend
+//! exposes the Moon plus the mean/true node and mean apogee/perigee channels
+//! through a small structured specification so future source-backed ELP work
+//! can attach provenance, supported channels, and date-range notes without
+//! changing the public API shape.
 
 #![forbid(unsafe_code)]
 
@@ -22,6 +28,43 @@ const PACKAGE_NAME: &str = "pleiades-elp";
 const J2000: f64 = 2_451_545.0;
 const EARTH_RADIUS_KM: f64 = 6_378.14;
 const AU_IN_KM: f64 = 149_597_870.700;
+
+/// Structured description of the current lunar-theory selection.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LunarTheorySpecification {
+    /// Human-readable model name.
+    pub model_name: &'static str,
+    /// Human-readable source/provenance note for the selected lunar baseline.
+    pub source_material: &'static str,
+    /// Bodies/channels the current lunar baseline explicitly covers.
+    pub supported_bodies: &'static [CelestialBody],
+    /// Notes the effective validation window or date-range posture.
+    pub date_range_note: &'static str,
+    /// Notes on the coordinate-frame treatment used by the baseline.
+    pub frame_note: &'static str,
+}
+
+/// Returns the currently selected compact lunar-theory specification.
+pub fn lunar_theory_specification() -> LunarTheorySpecification {
+    const SUPPORTED_BODIES: &[CelestialBody] = &[
+        CelestialBody::Moon,
+        CelestialBody::MeanNode,
+        CelestialBody::TrueNode,
+        CelestialBody::MeanApogee,
+        CelestialBody::MeanPerigee,
+    ];
+
+    LunarTheorySpecification {
+        model_name: "Compact Meeus-style analytical lunar baseline",
+        source_material:
+            "Published lunar element and mean-point formulas used as the current pure-Rust baseline while full ELP coefficient selection remains pending",
+        supported_bodies: SUPPORTED_BODIES,
+        date_range_note:
+            "Validated at J2000 and used across the current phase-1 comparison window; no full ELP coefficient range has been published yet",
+        frame_note:
+            "Geocentric ecliptic coordinates are produced directly; equatorial coordinates are derived with a mean-obliquity transform",
+    }
+}
 
 /// A pure-Rust lunar backend.
 #[derive(Debug, Default, Clone, Copy)]
@@ -250,11 +293,15 @@ impl EphemerisBackend for ElpBackend {
             version: env!("CARGO_PKG_VERSION").to_string(),
             family: BackendFamily::Algorithmic,
             provenance: BackendProvenance {
-                summary: "Low-precision pure-Rust lunar backend using a compact analytical orbit model, geocentric reduction, Meeus-style mean lunar point formulae, and finite-difference mean-motion estimates.".to_string(),
+                summary: format!(
+                    "{} The backend exposes the Moon plus mean/true node and mean apogee/perigee channels as an explicit lunar-theory selection.",
+                    lunar_theory_specification().model_name,
+                ),
                 data_sources: vec![
                     "Meeus-style truncated lunar orbit formulas".to_string(),
-                    "Meeus-style mean node and mean lunar perigee/apogee formulae".to_string(),
-                    "Public ELP 2000/82 documentation for future expansion".to_string(),
+                    lunar_theory_specification().source_material.to_string(),
+                    lunar_theory_specification().date_range_note.to_string(),
+                    lunar_theory_specification().frame_note.to_string(),
                 ],
             },
             nominal_range: TimeRange::new(None, None),
@@ -435,6 +482,24 @@ mod tests {
     }
 
     #[test]
+    fn metadata_mentions_the_selected_lunar_theory() {
+        let metadata = ElpBackend::new().metadata();
+        let theory = lunar_theory_specification();
+
+        assert!(metadata.provenance.summary.contains(theory.model_name));
+        assert!(metadata
+            .provenance
+            .data_sources
+            .iter()
+            .any(|source| source.contains("Published lunar element and mean-point formulas")));
+        assert!(metadata
+            .provenance
+            .data_sources
+            .iter()
+            .any(|source| source.contains("J2000")));
+    }
+
+    #[test]
     fn backend_supports_the_moon_and_lunar_nodes() {
         let backend = ElpBackend::new();
         assert!(backend.supports_body(CelestialBody::Moon));
@@ -550,6 +615,29 @@ mod tests {
     #[test]
     fn backend_supports_lunar_points() {
         let backend = ElpBackend::new();
+        let theory = lunar_theory_specification();
+
+        assert_eq!(
+            theory.model_name,
+            "Compact Meeus-style analytical lunar baseline"
+        );
+        assert!(theory
+            .source_material
+            .contains("Published lunar element and mean-point formulas"));
+        assert!(theory.date_range_note.contains("J2000"));
+        assert!(theory.frame_note.contains("mean-obliquity"));
+        assert_eq!(
+            theory.supported_bodies,
+            &[
+                CelestialBody::Moon,
+                CelestialBody::MeanNode,
+                CelestialBody::TrueNode,
+                CelestialBody::MeanApogee,
+                CelestialBody::MeanPerigee,
+            ]
+        );
+
+        assert!(backend.supports_body(CelestialBody::Moon));
         assert!(backend.supports_body(CelestialBody::MeanNode));
         assert!(backend.supports_body(CelestialBody::TrueNode));
         assert!(backend.supports_body(CelestialBody::MeanApogee));
