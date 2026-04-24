@@ -4539,6 +4539,8 @@ version = "0.9.0"
         assert!(artifact_summary.contains("Artifact summary"));
         assert!(artifact_summary.contains("Model error envelope"));
         assert!(artifact_summary.contains("Release summary: release-summary"));
+        assert!(artifact_summary
+            .contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(artifact_summary.contains("Release bundle verification: verify-release-bundle"));
         assert!(artifact_summary.contains(
             "custom bodies are included in decode and boundary checks, but omitted from the algorithmic comparison corpus"
