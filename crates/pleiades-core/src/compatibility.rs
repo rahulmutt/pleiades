@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.98";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.99";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -1124,7 +1124,7 @@ mod tests {
         assert!(rendered.contains(
             "Babylonian/Kugler 1, Babylonian Kugler 1, Babylonian 1 -> Babylonian (Kugler 1)"
         ));
-        assert!(rendered.contains("D equal / MC, Equal from MC, Equal (from MC), Equal (from MC) table of houses, Equal (MC) table of houses, Equal (MC) house system, Equal MC, Equal/MC, Equal Midheaven, Equal Midheaven house system, Equal/MC = 10th -> Equal (MC)"));
+        assert!(rendered.contains("D equal / MC, Equal from MC, Equal (from MC), Equal (from MC) table of houses, Equal (MC) table of houses, Equal (MC) house system, Equal MC, Equal/MC, Equal Midheaven, Equal Midheaven house system, Equal Midheaven table of houses, Equal/MC = 10th -> Equal (MC)"));
         assert!(rendered.contains("Equal (MC) table of houses"));
         assert!(rendered.contains("Equal (MC) house system"));
         assert!(rendered.contains(
@@ -1256,7 +1256,7 @@ mod tests {
         assert!(source_label_section.contains(
             "Alcabitius houses, Alcabitius house system, Alcabitius table of houses -> Alcabitius"
         ));
-        assert!(rendered.contains("D equal / MC, Equal from MC, Equal (from MC), Equal (from MC) table of houses, Equal (MC) table of houses, Equal (MC) house system, Equal MC, Equal/MC, Equal Midheaven, Equal Midheaven house system, Equal/MC = 10th -> Equal (MC)"));
+        assert!(rendered.contains("D equal / MC, Equal from MC, Equal (from MC), Equal (from MC) table of houses, Equal (MC) table of houses, Equal (MC) house system, Equal MC, Equal/MC, Equal Midheaven, Equal Midheaven house system, Equal Midheaven table of houses, Equal/MC = 10th -> Equal (MC)"));
         assert!(rendered.contains("Equal (MC) table of houses"));
         assert!(rendered.contains("J2000.0 -> J2000"));
         assert!(rendered.contains("J1900.0 -> J1900"));
@@ -1323,7 +1323,7 @@ mod tests {
         assert!(rendered.contains(
             "Alcabitius houses, Alcabitius house system, Alcabitius table of houses -> Alcabitius"
         ));
-        assert!(rendered.contains("D equal / MC, Equal from MC, Equal (from MC), Equal (from MC) table of houses, Equal (MC) table of houses, Equal (MC) house system, Equal MC, Equal/MC, Equal Midheaven, Equal Midheaven house system, Equal/MC = 10th -> Equal (MC)"));
+        assert!(rendered.contains("D equal / MC, Equal from MC, Equal (from MC), Equal (from MC) table of houses, Equal (MC) table of houses, Equal (MC) house system, Equal MC, Equal/MC, Equal Midheaven, Equal Midheaven house system, Equal Midheaven table of houses, Equal/MC = 10th -> Equal (MC)"));
         assert!(rendered.contains("Equal (MC) table of houses"));
         assert!(rendered.contains(
             "W equal, whole sign, Whole Sign houses, Whole Sign table of houses, Whole-sign, Whole Sign system, Whole Sign house system -> Whole Sign"
