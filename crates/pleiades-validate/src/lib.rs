@@ -1435,6 +1435,8 @@ fn render_release_checklist_text() -> String {
     text.push('\n');
     text.push_str("Release notes summary: release-notes-summary\n");
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
+    text.push_str("Backend matrix summary: backend-matrix-summary\n");
+    text.push_str("API stability summary: api-stability-summary\n");
     text.push_str("Compact summary views: release-notes-summary, backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary\n");
     text.push('\n');
     text.push_str("Repository-managed release gates:\n");
@@ -1598,6 +1600,8 @@ fn render_release_checklist_summary_text() -> String {
     text.push('\n');
     text.push_str("Release notes summary: release-notes-summary\n");
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
+    text.push_str("Backend matrix summary: backend-matrix-summary\n");
+    text.push_str("API stability summary: api-stability-summary\n");
     text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
     text.push_str("Release bundle verification: verify-release-bundle\n");
     text.push_str("Release summary: release-summary\n");
@@ -4217,6 +4221,8 @@ mod tests {
         )));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
+        assert!(rendered.contains("Backend matrix summary: backend-matrix-summary"));
+        assert!(rendered.contains("API stability summary: api-stability-summary"));
         assert!(rendered.contains("Compact summary views: release-notes-summary, backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Repository-managed release gates:"));
         assert!(rendered.contains("Manual bundle workflow:"));
@@ -4242,6 +4248,8 @@ mod tests {
         )));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
+        assert!(rendered.contains("Backend matrix summary: backend-matrix-summary"));
+        assert!(rendered.contains("API stability summary: api-stability-summary"));
         assert!(
             rendered.contains("Compatibility profile verification: verify-compatibility-profile")
         );
@@ -4538,6 +4546,8 @@ version = "0.9.0"
         assert!(release_checklist.contains("Bundle contents:"));
         assert!(release_checklist.contains("compatibility-profile-summary.txt"));
         assert!(release_checklist.contains("release-notes-summary.txt"));
+        assert!(release_checklist.contains("Backend matrix summary: backend-matrix-summary"));
+        assert!(release_checklist.contains("API stability summary: api-stability-summary"));
         assert!(release_checklist.contains("release-summary.txt"));
         assert!(release_checklist.contains("release-checklist-summary.txt"));
         assert!(release_checklist.contains("bundle-manifest.checksum.txt"));

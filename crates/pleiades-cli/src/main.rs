@@ -510,6 +510,8 @@ mod tests {
             render_cli(&["release-checklist"]).expect("release checklist should render");
         assert!(release_checklist.contains("Release checklist"));
         assert!(release_checklist.contains("Release notes summary: release-notes-summary"));
+        assert!(release_checklist.contains("Backend matrix summary: backend-matrix-summary"));
+        assert!(release_checklist.contains("API stability summary: api-stability-summary"));
         assert!(release_checklist.contains("Compact summary views: release-notes-summary, backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
         assert!(release_checklist.contains("Repository-managed release gates:"));
         assert!(release_checklist.contains("bundle-release --out /tmp/pleiades-release"));
@@ -519,6 +521,10 @@ mod tests {
             .expect("release checklist summary should render");
         assert!(release_checklist_summary.contains("Release checklist summary"));
         assert!(release_checklist_summary.contains("Release notes summary: release-notes-summary"));
+        assert!(
+            release_checklist_summary.contains("Backend matrix summary: backend-matrix-summary")
+        );
+        assert!(release_checklist_summary.contains("API stability summary: api-stability-summary"));
         assert!(release_checklist_summary
             .contains("Compatibility profile verification: verify-compatibility-profile"));
         assert!(release_checklist_summary
