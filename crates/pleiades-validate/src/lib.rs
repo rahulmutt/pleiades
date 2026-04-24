@@ -4858,6 +4858,42 @@ version = "0.9.0"
     }
 
     #[test]
+    fn verify_release_bundle_rejects_duplicate_source_revision_entry() {
+        assert_release_bundle_rejects_duplicate_manifest_entry(
+            "pleiades-release-bundle-duplicate-source-revision",
+            "source revision:",
+            &[
+                "duplicate entry: source revision:",
+                "release bundle verification failed",
+            ],
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_duplicate_workspace_status_entry() {
+        assert_release_bundle_rejects_duplicate_manifest_entry(
+            "pleiades-release-bundle-duplicate-workspace-status",
+            "workspace status:",
+            &[
+                "duplicate entry: workspace status:",
+                "release bundle verification failed",
+            ],
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_duplicate_rustc_version_entry() {
+        assert_release_bundle_rejects_duplicate_manifest_entry(
+            "pleiades-release-bundle-duplicate-rustc",
+            "rustc version:",
+            &[
+                "duplicate entry: rustc version:",
+                "release bundle verification failed",
+            ],
+        );
+    }
+
+    #[test]
     fn verify_release_bundle_rejects_blank_profile_id_entry() {
         assert_release_bundle_rejects_blank_manifest_value(
             "pleiades-release-bundle-blank-profile-id",
