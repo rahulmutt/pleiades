@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.113";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.114";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -409,7 +409,13 @@ fn ayanamsa_source_label_aliases(canonical_name: &str) -> &'static [&'static str
             "PVR",
             "P.V.R. Narasimha Rao",
         ],
-        "Raman" => &["B. V. Raman", "B.V. Raman", "B V Raman", "Raman ayanamsa"],
+        "Raman" => &[
+            "B. V. Raman",
+            "B.V. Raman",
+            "B V Raman",
+            "Raman Ayanamsha",
+            "Raman ayanamsa",
+        ],
         "Krishnamurti" => &[
             "Krishnamurti Ayanamsha",
             "Krishnamurti Ayanamsa",
@@ -428,6 +434,7 @@ fn ayanamsa_source_label_aliases(canonical_name: &str) -> &'static [&'static str
             "Chitra Paksha",
             "Chitrapaksha",
             "Chitra-paksha",
+            "Lahiri Ayanamsha",
             "Lahiri ayanamsa",
         ],
         "True Pushya" => &["True Pushya ayanamsa", "Pushya"],
@@ -1250,12 +1257,14 @@ mod tests {
         assert!(rendered
             .contains("Y, APC, Ram school, Ram's school, Ramschool, WvA, Y APC houses, APC houses, APC, also known as “Ram school”, table of houses, APC house system, Ascendant Parallel Circle -> APC"));
         assert!(rendered
-            .contains("Chitra Paksha, Chitrapaksha, Chitra-paksha, Lahiri ayanamsa -> Lahiri"));
+            .contains("Chitra Paksha, Chitrapaksha, Chitra-paksha, Lahiri Ayanamsha, Lahiri ayanamsa -> Lahiri"));
         assert!(rendered.contains("Usha Shashi, Ushashashi, Usha-Shashi, Usha/Shashi, Usha Shashi ayanamsa, Revati -> Usha Shashi"));
         assert!(rendered.contains("Yukteswar, Sri Yukteswar, Sri Yukteshwar, Shri Yukteswar, Shri Yukteshwar, Yukteshwar ayanamsa -> Yukteshwar"));
         assert!(rendered.contains("source-label appendix entries for Lahiri / Chitrapaksha / Chitra Paksha, True Chitra / Chitra, Krishnamurti Ayanamsha / Krishnamurti Ayanamsa / Krishnamurti ayanamsa / Krishnamurti (Swiss) / Krishnamurti Paddhati / KP ayanamsa, Fagan/Bradley Ayanamsha / Fagan/Bradley / Fagan Bradley / Fagan-Bradley, Usha Shashi, and the Yukteshwar / Sri Yukteshwar / Shri Yukteshwar transliterations"));
         assert!(rendered.contains("source-label appendix entries for P.V.R. Narasimha Rao, Aries houses, and True Mula (Chandra Hari)"));
-        assert!(rendered.contains("B. V. Raman, B.V. Raman, B V Raman, Raman ayanamsa -> Raman"));
+        assert!(rendered.contains(
+            "B. V. Raman, B.V. Raman, B V Raman, Raman Ayanamsha, Raman ayanamsa -> Raman"
+        ));
         assert!(rendered.contains(
             "Krishnamurti Ayanamsha, Krishnamurti Ayanamsa, Krishnamurti ayanamsa, Krishnamurti (Swiss), Krishnamurti Paddhati, KP ayanamsa -> Krishnamurti"
         ));

@@ -91,6 +91,7 @@ const BASELINE_AYANAMSAS: &[AyanamsaDescriptor] = &[
             "Chitra Paksha",
             "Chitrapaksha",
             "Chitra-paksha",
+            "Lahiri Ayanamsha",
             "Lahiri ayanamsa",
         ],
         "Default Indian sidereal standard in many astrology workflows.",
@@ -100,7 +101,13 @@ const BASELINE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::Raman,
         "Raman",
-        &["B. V. Raman", "B.V. Raman", "B V Raman", "Raman ayanamsa"],
+        &[
+            "B. V. Raman",
+            "B.V. Raman",
+            "B V Raman",
+            "Raman Ayanamsha",
+            "Raman ayanamsa",
+        ],
         "Popular named sidereal offset used in classical astrology software.",
         Some(JulianDay::from_days(2_415_020.0)),
         Some(Angle::from_degrees(21.014_44)),
@@ -596,7 +603,13 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
     AyanamsaDescriptor::new(
         Ayanamsa::Lahiri,
         "Lahiri",
-        &["Chitra Paksha", "Chitrapaksha", "Chitra-paksha", "Lahiri ayanamsa"],
+        &[
+            "Chitra Paksha",
+            "Chitrapaksha",
+            "Chitra-paksha",
+            "Lahiri Ayanamsha",
+            "Lahiri ayanamsa",
+        ],
         "Default Indian sidereal standard in many astrology workflows.",
         Some(JulianDay::from_days(2_435_553.5)),
         Some(Angle::from_degrees(23.245_524_743)),
@@ -604,7 +617,13 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
     AyanamsaDescriptor::new(
         Ayanamsa::Raman,
         "Raman",
-        &["B. V. Raman", "B.V. Raman", "B V Raman", "Raman ayanamsa"],
+        &[
+            "B. V. Raman",
+            "B.V. Raman",
+            "B V Raman",
+            "Raman Ayanamsha",
+            "Raman ayanamsa",
+        ],
         "Popular named sidereal offset used in classical astrology software.",
         Some(JulianDay::from_days(2_415_020.0)),
         Some(Angle::from_degrees(21.014_44)),
@@ -1270,9 +1289,11 @@ mod tests {
         assert_eq!(resolve_ayanamsa("Chitra Paksha"), Some(Ayanamsa::Lahiri));
         assert_eq!(resolve_ayanamsa("Chitra-paksha"), Some(Ayanamsa::Lahiri));
         assert_eq!(resolve_ayanamsa("chitrapaksha"), Some(Ayanamsa::Lahiri));
+        assert_eq!(resolve_ayanamsa("Lahiri Ayanamsha"), Some(Ayanamsa::Lahiri));
         assert_eq!(resolve_ayanamsa("Lahiri ayanamsa"), Some(Ayanamsa::Lahiri));
         assert_eq!(resolve_ayanamsa("B.V. Raman"), Some(Ayanamsa::Raman));
         assert_eq!(resolve_ayanamsa("B V Raman"), Some(Ayanamsa::Raman));
+        assert_eq!(resolve_ayanamsa("Raman Ayanamsha"), Some(Ayanamsa::Raman));
         assert_eq!(resolve_ayanamsa("Raman ayanamsa"), Some(Ayanamsa::Raman));
         assert_eq!(resolve_ayanamsa("J2000.0"), Some(Ayanamsa::J2000));
         assert_eq!(resolve_ayanamsa("J1900.0"), Some(Ayanamsa::J1900));
