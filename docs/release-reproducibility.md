@@ -100,7 +100,7 @@ Verify the staged bundle with:
 cargo run -q -p pleiades-validate -- verify-release-bundle --out /tmp/pleiades-release
 ```
 
-The verifier expects exactly the staged bundle files listed above, so stray files or missing entries will cause verification to fail.
+The verifier expects exactly the staged bundle files listed above, so stray files or missing entries will cause verification to fail. Each expected path must also be a regular file; symlinks and other non-regular entries are rejected so staged bundles cannot smuggle in external contents.
 
 ## What the bundle is for
 

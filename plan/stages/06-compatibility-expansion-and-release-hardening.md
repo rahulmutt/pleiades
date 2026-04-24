@@ -58,6 +58,7 @@ These are durable planning decisions that should remain true even as individual 
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] The staged release-bundle verifier now also rejects symlinked or otherwise non-regular bundle files, so staged archives cannot smuggle external contents into the manifest-backed audit path.
 - [x] The primary CLI now also mirrors `compare-backends`, so the JPL-vs-composite comparison report can be reached from both the validation tooling and the main inspection CLI without changing the underlying report command.
 - [x] The compact release summary and release-checklist summary now also surface the workspace audit command, so the maintainer-facing release overview keeps the pure-Rust gate visible alongside the existing verification hops.
 - [x] The compact validation-report summary now also links `release-notes-summary`, and the validation docs and CLI regression coverage were updated to keep the release-audit path aligned with the new cross-reference.

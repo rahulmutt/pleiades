@@ -2068,6 +2068,18 @@ fn ensure_release_bundle_manifest_is_canonical(
     Ok(())
 }
 
+fn ensure_release_bundle_regular_file(path: &Path, label: &str) -> Result<(), ReleaseBundleError> {
+    match fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.file_type().is_file() => Ok(()),
+        Ok(_) => Err(ReleaseBundleError::Verification(format!(
+            "unexpected non-regular {label} file: {}",
+            path.display()
+        ))),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(ReleaseBundleError::Io(error)),
+    }
+}
+
 fn read_required_bundle_text(path: &Path, label: &str) -> Result<String, ReleaseBundleError> {
     fs::read_to_string(path).map_err(|error| {
         if error.kind() == std::io::ErrorKind::NotFound {
@@ -2098,6 +2110,27 @@ fn verify_release_bundle(
     let validation_report_path = output_dir.join("validation-report.txt");
     let manifest_path = output_dir.join("bundle-manifest.txt");
     let manifest_checksum_path = output_dir.join("bundle-manifest.checksum.txt");
+
+    for (path, label) in [
+        (&profile_path, "compatibility profile"),
+        (&profile_summary_path, "compatibility profile summary"),
+        (&release_notes_path, "release notes"),
+        (&release_notes_summary_path, "release notes summary"),
+        (&release_summary_path, "release summary"),
+        (&release_checklist_path, "release checklist"),
+        (&release_checklist_summary_path, "release checklist summary"),
+        (&backend_matrix_path, "backend matrix"),
+        (&backend_matrix_summary_path, "backend matrix summary"),
+        (&api_stability_path, "API stability"),
+        (&api_stability_summary_path, "API stability summary"),
+        (&validation_report_summary_path, "validation report summary"),
+        (&artifact_summary_path, "artifact summary"),
+        (&validation_report_path, "validation report"),
+        (&manifest_path, "bundle manifest"),
+        (&manifest_checksum_path, "bundle manifest checksum sidecar"),
+    ] {
+        ensure_release_bundle_regular_file(path, label)?;
+    }
 
     let profile_text = read_required_bundle_text(&profile_path, "compatibility profile")?;
     let profile_summary_text =
@@ -3784,6 +3817,41 @@ mod tests {
         let _ = std::fs::remove_dir_all(&bundle_dir);
     }
 
+    #[cfg(unix)]
+    fn assert_release_bundle_rejects_symlinked_text_file(
+        bundle_dir_prefix: &str,
+        file_name: &str,
+        link_target: &str,
+        expected_fragment: &str,
+    ) {
+        use std::os::unix::fs::symlink;
+
+        let bundle_dir = unique_temp_dir(bundle_dir_prefix);
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let file_path = bundle_dir.join(file_name);
+        std::fs::remove_file(&file_path).expect("bundled text file should be removable");
+        symlink(link_target, &file_path).expect("symlink should be creatable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect_err("verification should fail for a symlinked release bundle file");
+        assert!(
+            error.contains("release bundle verification failed")
+                || error.contains(expected_fragment),
+            "unexpected error: {error}"
+        );
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
     fn assert_release_bundle_rejects_missing_manifest_entry(
         bundle_dir_prefix: &str,
         manifest_line_prefix: &str,
@@ -5353,6 +5421,17 @@ version = "0.9.0"
         assert!(error.contains("unexpected.txt"));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn verify_release_bundle_rejects_symlinked_release_summary_file() {
+        assert_release_bundle_rejects_symlinked_text_file(
+            "pleiades-release-bundle-symlinked-release-summary",
+            "release-summary.txt",
+            "release-notes.txt",
+            "unexpected non-regular release bundle file",
+        );
     }
 
     #[test]
