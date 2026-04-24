@@ -559,6 +559,9 @@ mod tests {
         assert!(release_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(release_summary.contains("Release notes summary: release-notes-summary"));
+        assert!(release_summary.contains(
+            "Validation report summary: validation-report-summary / validation-summary / report-summary"
+        ));
         assert!(release_summary.contains("Release bundle verification: verify-release-bundle"));
         assert!(release_summary
             .contains("[x] cargo run -q -p pleiades-validate -- verify-compatibility-profile"));

@@ -1557,6 +1557,7 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("Backend matrix summary: backend-matrix-summary\n");
+    text.push_str("Validation report summary: validation-report-summary / validation-summary / report-summary\n");
     text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
     text.push_str("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary\n");
     text.push_str("Release notes summary: release-notes-summary\n");
@@ -4648,6 +4649,9 @@ version = "0.9.0"
         assert!(release_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(release_summary.contains("Backend matrix summary: backend-matrix-summary"));
+        assert!(release_summary.contains(
+            "Validation report summary: validation-report-summary / validation-summary / report-summary"
+        ));
         assert!(release_summary
             .contains("Compatibility profile verification: verify-compatibility-profile"));
         assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
