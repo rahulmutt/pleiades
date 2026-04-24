@@ -1,13 +1,19 @@
-//! Formula-based planetary backend boundary built around low-precision orbital
-//! elements and geocentric coordinate transforms.
+//! Formula-based planetary backend boundary built around VSOP87-style series
+//! evaluation, low-precision orbital elements, and geocentric coordinate
+//! transforms.
 //!
 //! This crate now provides a working pure-Rust algorithmic backend for the Sun
-//! and major planets. The implementation uses compact Keplerian orbital elements,
-//! a geocentric reduction step, and central-difference motion estimates so the
-//! workspace has an end-to-end tropical chart path before the full VSOP87 series
-//! data arrives.
+//! and major planets. The Sun path uses a first truncated slice of public IMCCE
+//! VSOP87B Earth coefficients (heliocentric spherical variables, J2000
+//! ecliptic/equinox) transformed to geocentric solar coordinates. The remaining
+//! major planets still use compact Keplerian orbital elements, a geocentric
+//! reduction step, and central-difference motion estimates so the workspace has
+//! an end-to-end tropical chart path while complete generated VSOP87 tables are
+//! added incrementally.
 
 #![forbid(unsafe_code)]
+
+mod vsop87b_earth;
 
 use pleiades_backend::{
     AccuracyClass, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
@@ -166,11 +172,7 @@ impl Vsop87Backend {
     fn geocentric_coordinates(body: CelestialBody, days: f64) -> Option<HeliocentricCoordinates> {
         let earth = Self::heliocentric_coordinates(Self::earth_elements(days));
         if body == CelestialBody::Sun {
-            return Some(HeliocentricCoordinates {
-                xh: -earth.xh,
-                yh: -earth.yh,
-                zh: -earth.zh,
-            });
+            return Some(Self::geocentric_sun_from_vsop87b(days));
         }
 
         let target = Self::heliocentric_coordinates(Self::orbital_elements(body, days)?);
@@ -179,6 +181,20 @@ impl Vsop87Backend {
             yh: target.yh - earth.yh,
             zh: target.zh - earth.zh,
         })
+    }
+
+    fn geocentric_sun_from_vsop87b(days: f64) -> HeliocentricCoordinates {
+        let earth = vsop87b_earth::earth_lbr(J2000 + days);
+        let longitude = earth.longitude_rad + core::f64::consts::PI;
+        let latitude = -earth.latitude_rad;
+        let radius = earth.radius_au;
+        let cos_latitude = latitude.cos();
+
+        HeliocentricCoordinates {
+            xh: radius * cos_latitude * longitude.cos(),
+            yh: radius * cos_latitude * longitude.sin(),
+            zh: radius * latitude.sin(),
+        }
     }
 
     fn distance_au(coords: HeliocentricCoordinates) -> f64 {
@@ -248,9 +264,10 @@ impl EphemerisBackend for Vsop87Backend {
             version: env!("CARGO_PKG_VERSION").to_string(),
             family: BackendFamily::Algorithmic,
             provenance: BackendProvenance {
-                summary: "Low-precision pure-Rust planetary backend based on compact Keplerian orbital elements and geocentric reduction.".to_string(),
+                summary: "Mixed pure-Rust planetary backend: truncated VSOP87B Earth coefficients for the geocentric Sun path, compact Keplerian elements for remaining planets, and geocentric reduction.".to_string(),
                 data_sources: vec![
-                    "Paul Schlyter-style mean orbital elements for the Sun and planets".to_string(),
+                    "IMCCE/CELMECH VSOP87B Earth heliocentric spherical coefficients, truncated leading-term slice for Sun geocentric reduction".to_string(),
+                    "Paul Schlyter-style mean orbital elements for planets not yet backed by VSOP87 coefficient tables".to_string(),
                     "Meeus-style coordinate transforms for geocentric reduction".to_string(),
                 ],
             },
@@ -407,7 +424,7 @@ mod tests {
     }
 
     #[test]
-    fn j2000_sun_position_is_finite() {
+    fn j2000_sun_position_uses_truncated_vsop87b_earth_slice() {
         let backend = Vsop87Backend::new();
         let request = EphemerisRequest::new(
             CelestialBody::Sun,
@@ -415,8 +432,20 @@ mod tests {
         );
         let result = backend.position(&request).expect("sun query should work");
         let ecliptic = result.ecliptic.expect("ecliptic result should exist");
-        assert!(ecliptic.longitude.degrees().is_finite());
-        assert!(ecliptic.latitude.degrees().is_finite());
+
+        // Golden values are the full public IMCCE VSOP87B Earth file evaluated
+        // at J2000 and converted to geometric geocentric solar coordinates.
+        assert_degrees_close(ecliptic.longitude.degrees(), 280.377_843_416_648_5, 0.001);
+        assert_degrees_close(
+            ecliptic.latitude.degrees(),
+            0.000_227_210_514_369_001,
+            0.000_01,
+        );
+        assert_close(
+            ecliptic.distance_au.expect("distance should exist"),
+            0.983_327_682_322_294_2,
+            0.000_01,
+        );
         assert_eq!(result.quality, QualityAnnotation::Approximate);
     }
 
@@ -467,5 +496,21 @@ mod tests {
     fn signed_longitude_delta_wraps_across_zero_aries() {
         assert_eq!(signed_longitude_delta_degrees(359.5, 0.5), 1.0);
         assert_eq!(signed_longitude_delta_degrees(0.5, 359.5), -1.0);
+    }
+
+    fn assert_degrees_close(actual: f64, expected: f64, tolerance: f64) {
+        let delta = signed_longitude_delta_degrees(expected, actual).abs();
+        assert!(
+            delta <= tolerance,
+            "expected {actual}° to be within {tolerance}° of {expected}°; delta was {delta}°"
+        );
+    }
+
+    fn assert_close(actual: f64, expected: f64, tolerance: f64) {
+        let delta = (actual - expected).abs();
+        assert!(
+            delta <= tolerance,
+            "expected {actual} to be within {tolerance} of {expected}; delta was {delta}"
+        );
     }
 }

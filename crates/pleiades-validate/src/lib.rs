@@ -4780,8 +4780,9 @@ mod tests {
         assert!(rendered.contains("required external data files:"));
         assert!(rendered.contains("crates/pleiades-jpl/data/reference_snapshot.csv"));
         assert!(
-            rendered.contains("Paul Schlyter-style mean orbital elements for the Sun and planets")
+            rendered.contains("IMCCE/CELMECH VSOP87B Earth heliocentric spherical coefficients")
         );
+        assert!(rendered.contains("Paul Schlyter-style mean orbital elements for planets"));
         assert!(rendered.contains("Meeus-style truncated lunar orbit formulas"));
         assert!(rendered.contains("NASA/JPL Horizons API vector tables (DE441)"));
         assert!(rendered.contains("VSOP87 planetary backend"));
