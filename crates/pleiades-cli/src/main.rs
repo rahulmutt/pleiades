@@ -484,14 +484,15 @@ mod tests {
             render_cli(&["release-summary"]).expect("release summary should render");
         assert!(release_summary.contains("Release summary"));
         assert!(release_summary.contains("House systems:"));
-        assert!(release_summary.contains("Packaged-artifact summary: artifact-summary"));
+        assert!(release_summary
+            .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(release_summary.contains("Release gate reminders:"));
         assert!(release_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(release_summary.contains("Release notes summary: release-notes-summary"));
         assert!(release_summary
             .contains("Compatibility profile verification: verify-compatibility-profile"));
-        assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary, release-checklist-summary"));
+        assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_summary.contains("Release checklist summary: release-checklist-summary"));
         assert!(release_summary.contains("See release-notes and release-checklist"));
 

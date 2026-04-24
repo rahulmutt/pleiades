@@ -58,6 +58,7 @@ These are durable planning decisions that should remain true even as individual 
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] The packaged-artifact quick-audit view now also mirrors the `artifact-summary` / `artifact-posture-summary` alias pairing in the release summary text, README, and release reproducibility guide, so the maintainer-facing artifact audit stays aligned with the shipped CLI surface.
 - [x] The README and release reproducibility guide now mirror the `release-checklist-summary` / `checklist-summary` alias pairing alongside the other maintainer-facing release renderers, keeping the quick-audit documentation aligned with the CLI surfaces that are already shipped.
 - [x] The release checklist and release-checklist summary now also cross-reference `release-notes-summary`, so maintainers can hop from the release gate checklist to the compact release-notes view without leaving the release-surface audit path.
 - [x] The compact release summary now also names the `report-summary` alias alongside `validation-report-summary` and `validation-summary`, so the one-screen maintainer audit stays aligned with the primary CLI and validation-tool command aliases without changing the underlying release posture.
