@@ -235,6 +235,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
             "Equal (from MC)",
             "Equal (from MC) table of houses",
             "Equal (MC) table of houses",
+            "Equal/MC table of houses",
             "Equal (MC) house system",
             "Equal MC",
             "Equal/MC",
@@ -257,6 +258,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
             "Whole Sign (house 1 = Aries)",
             "Whole Sign (house 1 = Aries) table of houses",
             "Equal (1=Aries) table of houses",
+            "Equal/1=Aries table of houses",
             "Equal (1=Aries) house system",
             "N whole sign houses, 1. house = Aries",
             "Whole sign houses, 1. house = Aries",
@@ -661,6 +663,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
             "Equal (from MC)",
             "Equal (from MC) table of houses",
             "Equal (MC) table of houses",
+            "Equal/MC table of houses",
             "Equal (MC) house system",
             "Equal MC",
             "Equal/MC",
@@ -683,6 +686,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
             "Whole Sign (house 1 = Aries)",
             "Whole Sign (house 1 = Aries) table of houses",
             "Equal (1=Aries) table of houses",
+            "Equal/1=Aries table of houses",
             "Equal (1=Aries) house system",
             "N whole sign houses, 1. house = Aries",
             "Whole sign houses, 1. house = Aries",
@@ -842,6 +846,10 @@ mod tests {
             Some(HouseSystem::EqualMidheaven)
         );
         assert_eq!(
+            resolve_house_system("Equal/MC table of houses"),
+            Some(HouseSystem::EqualMidheaven)
+        );
+        assert_eq!(
             resolve_house_system("Equal (MC) house system"),
             Some(HouseSystem::EqualMidheaven)
         );
@@ -855,6 +863,10 @@ mod tests {
         );
         assert_eq!(
             resolve_house_system("Equal (1=Aries) table of houses"),
+            Some(HouseSystem::EqualAries)
+        );
+        assert_eq!(
+            resolve_house_system("Equal/1=Aries table of houses"),
             Some(HouseSystem::EqualAries)
         );
         assert_eq!(

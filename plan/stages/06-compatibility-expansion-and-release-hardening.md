@@ -58,6 +58,7 @@ These are durable planning decisions that should remain true even as individual 
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] The release compatibility profile's Equal (MC) and Equal (1=Aries) house-system batches now also accept the slash-form `Equal/MC table of houses` and `Equal/1=Aries table of houses` spellings in both the house resolver and the release-facing profile renderers, and the compatibility profile identifier has been bumped to `0.6.101` so the new interoperability labels stay versioned with the current profile.
 - [x] The release checklist surface now also cross-references `compatibility-profile-summary`, keeping the checklist audit aligned with the compact profile view and the broader release overview so maintainers can hop back to the catalog summary without leaving the release-surface review.
 - [x] The Vehlow alias batch now also accepts the exact `Vehlow Equal table of houses` spelling in `pleiades-houses` and the release compatibility profile, and the compatibility profile identifier has been bumped to `0.6.100` so the Vehlow-label batch stays versioned with the current profile.
 - [x] The compact compatibility profile summary now also calls out the exact `David Cochrane` and `Nick Anthony Fiorenza` source names for the galactic-reference batch, and the compatibility profile identifier has been bumped to `0.6.98` so the new release-facing wording stays versioned with the current profile.
