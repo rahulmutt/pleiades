@@ -370,6 +370,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         HouseSystem::PullenSd,
         "Pullen SD",
         &[
+            "Pullen SD table of houses",
             "Pullen SD (Neo-Porphyry) table of houses",
             "Pullen SD (Neo-Porphyry)",
             "Neo-Porphyry",
@@ -384,6 +385,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         HouseSystem::PullenSr,
         "Pullen SR",
         &[
+            "Pullen SR table of houses",
             "Pullen SR (Sinusoidal Ratio) table of houses",
             "Pullen SR (Sinusoidal Ratio)",
             "Pullen (Sinusoidal Ratio)",
@@ -542,6 +544,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         HouseSystem::PullenSd,
         "Pullen SD",
         &[
+            "Pullen SD table of houses",
             "Pullen SD (Neo-Porphyry) table of houses",
             "Pullen SD (Neo-Porphyry)",
             "Neo-Porphyry",
@@ -556,6 +559,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         HouseSystem::PullenSr,
         "Pullen SR",
         &[
+            "Pullen SR table of houses",
             "Pullen SR (Sinusoidal Ratio) table of houses",
             "Pullen SR (Sinusoidal Ratio)",
             "Pullen (Sinusoidal Ratio)",
@@ -1256,6 +1260,10 @@ mod tests {
             Some(HouseSystem::PullenSd)
         );
         assert_eq!(
+            resolve_house_system("Pullen SD table of houses"),
+            Some(HouseSystem::PullenSd)
+        );
+        assert_eq!(
             resolve_house_system("Pullen SD (Neo-Porphyry) table of houses"),
             Some(HouseSystem::PullenSd)
         );
@@ -1269,6 +1277,10 @@ mod tests {
         );
         assert_eq!(
             resolve_house_system("Pullen sinusoidal ratio"),
+            Some(HouseSystem::PullenSr)
+        );
+        assert_eq!(
+            resolve_house_system("Pullen SR table of houses"),
             Some(HouseSystem::PullenSr)
         );
         assert_eq!(
