@@ -2877,6 +2877,10 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     );
     let _ = writeln!(text, "Release bundle verification: verify-release-bundle");
     let _ = writeln!(text, "Workspace audit: workspace-audit / audit");
+    let _ = writeln!(
+        text,
+        "Compatibility profile summary: compatibility-profile-summary"
+    );
     let _ = writeln!(text, "Release notes summary: release-notes-summary");
     let _ = writeln!(text, "Release checklist summary: release-checklist-summary");
     let _ = writeln!(text, "Release summary: release-summary");
@@ -4083,6 +4087,7 @@ mod tests {
         assert!(report.contains("Benchmark summaries"));
         assert!(report.contains("Release bundle verification: verify-release-bundle"));
         assert!(report.contains("Workspace audit: workspace-audit / audit"));
+        assert!(report.contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(report.contains("Release notes summary: release-notes-summary"));
         assert!(report.contains("Release checklist summary: release-checklist-summary"));
         assert!(report.contains("Release summary: release-summary"));
@@ -4105,6 +4110,8 @@ mod tests {
                 .expect("validation-report-summary should render");
         assert!(validation_report_summary.contains("Validation report summary"));
         assert!(validation_report_summary.contains("Comparison corpus"));
+        assert!(validation_report_summary
+            .contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(validation_report_summary.contains("Release notes summary: release-notes-summary"));
         assert!(validation_report_summary.contains("Benchmark summaries"));
     }
