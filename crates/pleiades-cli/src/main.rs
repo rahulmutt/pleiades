@@ -464,6 +464,7 @@ mod tests {
         let release_checklist =
             render_cli(&["release-checklist"]).expect("release checklist should render");
         assert!(release_checklist.contains("Release checklist"));
+        assert!(release_checklist.contains("Release notes summary: release-notes-summary"));
         assert!(release_checklist.contains("Repository-managed release gates:"));
         assert!(release_checklist.contains("bundle-release --out /tmp/pleiades-release"));
         assert!(release_checklist.contains("release-checklist-summary.txt"));
@@ -471,6 +472,7 @@ mod tests {
         let release_checklist_summary = render_cli(&["release-checklist-summary"])
             .expect("release checklist summary should render");
         assert!(release_checklist_summary.contains("Release checklist summary"));
+        assert!(release_checklist_summary.contains("Release notes summary: release-notes-summary"));
         assert!(release_checklist_summary.contains("Repository-managed release gates: 5 items"));
         assert!(release_checklist_summary.contains("Manual bundle workflow: 3 items"));
         assert!(release_checklist_summary.contains("Bundle contents: 16 items"));

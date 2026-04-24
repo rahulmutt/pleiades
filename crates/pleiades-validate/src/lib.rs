@@ -1427,6 +1427,7 @@ fn render_release_checklist_text() -> String {
     text.push_str("API stability posture: ");
     text.push_str(release_profiles.api_stability_profile_id);
     text.push('\n');
+    text.push_str("Release notes summary: release-notes-summary\n");
     text.push('\n');
     text.push_str("Repository-managed release gates:\n");
     for item in [
@@ -1586,6 +1587,7 @@ fn render_release_checklist_summary_text() -> String {
     text.push_str("API stability posture: ");
     text.push_str(release_profiles.api_stability_profile_id);
     text.push('\n');
+    text.push_str("Release notes summary: release-notes-summary\n");
     text.push_str("Repository-managed release gates: 5 items\n");
     text.push_str("Manual bundle workflow: 3 items\n");
     text.push_str("Bundle contents: 16 items\n");
@@ -4093,6 +4095,7 @@ mod tests {
             "API stability posture: {}",
             release_profiles.api_stability_profile_id
         )));
+        assert!(rendered.contains("Release notes summary: release-notes-summary"));
         assert!(rendered.contains("Repository-managed release gates:"));
         assert!(rendered.contains("Manual bundle workflow:"));
         assert!(rendered.contains("Bundle contents:"));
@@ -4115,6 +4118,7 @@ mod tests {
             "API stability posture: {}",
             release_profiles.api_stability_profile_id
         )));
+        assert!(rendered.contains("Release notes summary: release-notes-summary"));
         assert!(rendered.contains("Repository-managed release gates: 5 items"));
         assert!(rendered.contains("Manual bundle workflow: 3 items"));
         assert!(rendered.contains("Bundle contents: 16 items"));
