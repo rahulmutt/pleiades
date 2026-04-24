@@ -16,7 +16,8 @@ That means the repository already has:
 - shared domain and backend contracts,
 - an end-to-end chart MVP,
 - a narrow source-backed validation path,
-- a packaged-data backend and artifact validation flow.
+- a packaged-data backend and artifact validation flow,
+- a release-bundle verifier with duplicate-manifest-entry regression coverage for representative release-artifact fields.
 
 The primary planning problem is no longer "how do we get a first useful product?" It is now:
 
