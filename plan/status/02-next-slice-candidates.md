@@ -136,9 +136,11 @@ Progress note (2026-04-24): validation-side compatibility-profile coverage now a
 
 Progress note (2026-04-24): the compatibility-profile command now also pins additional release-profile spellings such as Equal table of houses, Whole Sign system, Morinus house system, Galactic Equator (Fiorenza), Valens Moon, and Babylonian (House Obs), extending the release-facing breadth checks without changing the verification model.
 
+Progress note (2026-04-24): `verify-compatibility-profile` now prints an explicit release-posture line plus custom-definition and known-gap counts, so the release-facing verification output calls out baseline preservation, explicit release additions, and documented caveats in addition to the descriptor/alias counts.
+
 Remaining suggested scope:
 
-- add tests around additional known release-profile entries and release-profile status lines.
+- add broader coverage for any still-unpinned release-profile spellings or status lines that future catalog batches introduce.
 
 ## Selection guidance
 

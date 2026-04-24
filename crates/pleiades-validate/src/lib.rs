@@ -1226,6 +1226,13 @@ pub fn verify_compatibility_profile() -> Result<String, EphemerisError> {
     text.push_str(" ayanamsa baseline + ");
     text.push_str(&profile.release_ayanamsas.len().to_string());
     text.push_str(" ayanamsa release\n");
+    text.push_str("Release posture: baseline milestone preserved, release additions explicit, custom definitions tracked, caveats documented\n");
+    text.push_str("Custom-definition labels verified: ");
+    text.push_str(&profile.custom_definition_labels.len().to_string());
+    text.push('\n');
+    text.push_str("Compatibility caveats documented: ");
+    text.push_str(&profile.known_gaps.len().to_string());
+    text.push('\n');
     Ok(text)
 }
 
@@ -5357,6 +5364,7 @@ mod tests {
         let rendered = render_cli(&["verify-compatibility-profile"])
             .expect("compatibility profile verification should render");
         let release_profiles = current_release_profile_identifiers();
+        let profile = current_compatibility_profile();
         assert!(rendered.contains("Compatibility profile verification"));
         assert!(rendered.contains(&format!(
             "Profile: {}",
@@ -5365,6 +5373,15 @@ mod tests {
         assert!(rendered.contains("House systems verified:"));
         assert!(rendered.contains("Ayanamsas verified:"));
         assert!(rendered.contains("Baseline/release slices:"));
+        assert!(rendered.contains("Release posture: baseline milestone preserved, release additions explicit, custom definitions tracked, caveats documented"));
+        assert!(rendered.contains(&format!(
+            "Custom-definition labels verified: {}",
+            profile.custom_definition_labels.len()
+        )));
+        assert!(rendered.contains(&format!(
+            "Compatibility caveats documented: {}",
+            profile.known_gaps.len()
+        )));
     }
 
     #[test]
