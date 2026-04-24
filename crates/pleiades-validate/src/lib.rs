@@ -2816,6 +2816,9 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(" (");
     text.push_str(&time_scales.join(", "));
     text.push_str(")\n");
+    text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
+    text.push_str("API stability summary: api-stability-summary\n");
+    text.push_str("See release-summary for the compact one-screen release overview.\n");
 
     text
 }
@@ -2849,6 +2852,8 @@ fn render_api_stability_summary_text() -> String {
     text.push_str("Intentional limits: ");
     text.push_str(&profile.intentional_limits.len().to_string());
     text.push('\n');
+    text.push_str("Backend matrix summary: backend-matrix-summary\n");
+    text.push_str("See release-summary for the compact one-screen release overview.\n");
 
     text
 }
@@ -3970,6 +3975,10 @@ mod tests {
         assert!(rendered.contains("Experimental surfaces:"));
         assert!(rendered.contains("Deprecation policy items:"));
         assert!(rendered.contains("Intentional limits:"));
+        assert!(rendered.contains("Backend matrix summary: backend-matrix-summary"));
+        assert!(
+            rendered.contains("See release-summary for the compact one-screen release overview.")
+        );
     }
 
     #[test]
@@ -4208,6 +4217,11 @@ mod tests {
         assert!(rendered.contains("Distinct bodies covered:"));
         assert!(rendered.contains("Distinct coordinate frames:"));
         assert!(rendered.contains("Distinct time scales:"));
+        assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
+        assert!(rendered.contains("API stability summary: api-stability-summary"));
+        assert!(
+            rendered.contains("See release-summary for the compact one-screen release overview.")
+        );
 
         let capability_matrix =
             render_cli(&["capability-matrix"]).expect("capability matrix should render");
