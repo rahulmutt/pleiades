@@ -44,7 +44,8 @@ use pleiades_jpl::{
     comparison_snapshot, interpolation_quality_samples, reference_asteroids, JplSnapshotBackend,
 };
 use pleiades_vsop87::{
-    body_source_profiles, canonical_epoch_samples, source_specifications, Vsop87Backend,
+    body_source_profiles, canonical_epoch_samples, source_audit_summary, source_audits,
+    source_specifications, Vsop87Backend,
 };
 
 const DEFAULT_BENCHMARK_ROUNDS: usize = 10_000;
@@ -3082,6 +3083,19 @@ fn format_vsop87_source_documentation_summary() -> String {
     )
 }
 
+fn format_vsop87_source_audit_summary() -> String {
+    let audit = source_audit_summary();
+    format!(
+        "VSOP87 source audit: {} source-backed bodies, {} vendored full-file inputs, {} total terms, max source size {} bytes / {} lines, {} deterministic fingerprints",
+        audit.source_count,
+        audit.vendored_full_file_count,
+        audit.total_term_count,
+        audit.max_byte_length,
+        audit.max_line_count,
+        audit.source_count
+    )
+}
+
 fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     use std::fmt::Write as _;
 
@@ -3202,6 +3216,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text);
     let _ = writeln!(text, "VSOP87 source-backed evidence");
     let _ = writeln!(text, "  {}", format_vsop87_source_documentation_summary());
+    let _ = writeln!(text, "  {}", format_vsop87_source_audit_summary());
     let _ = writeln!(text, "  {}", format_vsop87_canonical_evidence_summary());
     let _ = writeln!(text, "  {}", format_vsop87_body_evidence_summary());
     let _ = writeln!(text);
@@ -3393,6 +3408,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&data_source_count.to_string());
     text.push('\n');
     text.push_str(&format_vsop87_source_documentation_summary());
+    text.push('\n');
+    text.push_str(&format_vsop87_source_audit_summary());
     text.push('\n');
     text.push_str(&format_vsop87_canonical_evidence_summary());
     text.push('\n');
@@ -3866,6 +3883,19 @@ fn write_backend_catalog_entry(
                 spec.reduction,
                 spec.truncation_policy,
                 spec.date_range
+            )?;
+        }
+
+        writeln!(f, "  source audit:")?;
+        for audit in source_audits() {
+            writeln!(
+                f,
+                "    {}: {} bytes, {} lines, {} terms, 0x{:016x}",
+                audit.body,
+                audit.byte_length,
+                audit.line_count,
+                audit.term_count,
+                audit.fingerprint
             )?;
         }
 
@@ -4966,6 +4996,8 @@ mod tests {
         assert!(report.contains("JPL interpolation quality: 10 samples across 5 bodies"));
         assert!(report.contains("Body comparison summaries"));
         assert!(report.contains("VSOP87 source-backed evidence"));
+        assert!(report
+            .contains("VSOP87 source audit: 8 source-backed bodies, 8 vendored full-file inputs"));
         assert!(report.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(report.contains(
             "VSOP87 source-backed body evidence: 8 body profiles (8 vendored full-file), 8 within interim limits"
@@ -5492,6 +5524,7 @@ mod tests {
         assert!(rendered.contains("required external data files:"));
         assert!(rendered.contains("crates/pleiades-jpl/data/reference_snapshot.csv"));
         assert!(rendered.contains("source documentation:"));
+        assert!(rendered.contains("source audit:"));
         assert!(rendered.contains("Sun: IMCCE/CELMECH VSOP87B VSOP87B.ear"));
         assert!(rendered.contains("Paul Schlyter-style mean orbital elements for planets"));
         assert!(rendered.contains("body source profiles:"));
@@ -5539,6 +5572,8 @@ mod tests {
         assert!(rendered.contains("Exact: 1"));
         assert!(rendered.contains("Approximate: 4"));
         assert!(rendered.contains("VSOP87 source documentation: 8 source specs, 8 source-backed body profiles, 1 fallback mean-element body profile"));
+        assert!(rendered
+            .contains("VSOP87 source audit: 8 source-backed bodies, 8 vendored full-file inputs"));
         assert!(rendered.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(rendered.contains(
             "VSOP87 source-backed body evidence: 8 body profiles (8 vendored full-file), 8 within interim limits"
@@ -5829,6 +5864,8 @@ version = "0.9.0"
         assert!(validation_report_summary.contains("Expected tolerance status"));
         assert!(validation_report_summary.contains("VSOP87 source-backed evidence"));
         assert!(validation_report_summary.contains("VSOP87 source documentation: 8 source specs, 8 source-backed body profiles, 1 fallback mean-element body profile"));
+        assert!(validation_report_summary
+            .contains("VSOP87 source audit: 8 source-backed bodies, 8 vendored full-file inputs"));
         assert!(validation_report_summary
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(validation_report_summary.contains("VSOP87 source-backed evidence"));

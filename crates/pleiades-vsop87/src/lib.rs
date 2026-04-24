@@ -34,6 +34,8 @@ use pleiades_types::{
 };
 use std::sync::OnceLock;
 
+use crate::vsop87b_earth::parse_vsop87b_tables;
+
 const PACKAGE_NAME: &str = "pleiades-vsop87";
 const J2000: f64 = 2_451_545.0;
 
@@ -108,6 +110,44 @@ pub struct Vsop87SourceSpecification {
     pub date_range: &'static str,
 }
 
+/// Reproducibility audit details for a vendored VSOP87B source file.
+///
+/// These records give the generated-table work a stable, deterministic
+/// fingerprint of the public inputs that back each source-backed body. They do
+/// not replace the coefficient tables themselves; instead they document the
+/// exact source material, size, and parse shape that a future generated-table
+/// pipeline must reproduce.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Vsop87SourceAudit {
+    /// Body covered by this source audit.
+    pub body: CelestialBody,
+    /// Public coefficient file backing the body.
+    pub source_file: &'static str,
+    /// Raw source byte length.
+    pub byte_length: usize,
+    /// Raw source line count.
+    pub line_count: usize,
+    /// Total parsed coefficient term count across all series.
+    pub term_count: usize,
+    /// Deterministic 64-bit fingerprint of the vendored source text.
+    pub fingerprint: u64,
+}
+
+/// Summary metrics for the current VSOP87 source audit manifest.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Vsop87SourceAuditSummary {
+    /// Number of source-backed bodies represented in the audit manifest.
+    pub source_count: usize,
+    /// Number of vendored full-file source entries.
+    pub vendored_full_file_count: usize,
+    /// Total parsed coefficient term count across all audited sources.
+    pub total_term_count: usize,
+    /// Maximum raw source line count across the audited files.
+    pub max_line_count: usize,
+    /// Maximum raw source byte length across the audited files.
+    pub max_byte_length: usize,
+}
+
 /// Canonical J2000 reference samples for the source-backed VSOP87B paths.
 ///
 /// These values are the same full-file public IMCCE VSOP87B reference points
@@ -140,6 +180,41 @@ struct Vsop87BodyCatalogEntry {
 }
 
 static BODY_CATALOG: OnceLock<Vec<Vsop87BodyCatalogEntry>> = OnceLock::new();
+static SOURCE_AUDITS: OnceLock<Vec<Vsop87SourceAudit>> = OnceLock::new();
+
+fn source_text_for_file(source_file: &str) -> Option<&'static str> {
+    match source_file {
+        "VSOP87B.ear" => Some(include_str!("../data/VSOP87B.ear")),
+        "VSOP87B.mer" => Some(include_str!("../data/VSOP87B.mer")),
+        "VSOP87B.ven" => Some(include_str!("../data/VSOP87B.ven")),
+        "VSOP87B.mar" => Some(include_str!("../data/VSOP87B.mar")),
+        "VSOP87B.jup" => Some(include_str!("../data/VSOP87B.jup")),
+        "VSOP87B.sat" => Some(include_str!("../data/VSOP87B.sat")),
+        "VSOP87B.ura" => Some(include_str!("../data/VSOP87B.ura")),
+        "VSOP87B.nep" => Some(include_str!("../data/VSOP87B.nep")),
+        _ => None,
+    }
+}
+
+fn count_vsop87_terms(source: &str) -> usize {
+    let tables = parse_vsop87b_tables(source);
+    tables
+        .longitude
+        .iter()
+        .chain(tables.latitude.iter())
+        .chain(tables.radius.iter())
+        .map(Vec::len)
+        .sum()
+}
+
+fn fnv1a_64(bytes: &[u8]) -> u64 {
+    let mut hash = 0xcbf2_9ce4_8422_2325u64;
+    for byte in bytes {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+    }
+    hash
+}
 
 fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
     BODY_CATALOG.get_or_init(|| {
@@ -397,6 +472,54 @@ pub fn source_specifications() -> Vec<Vsop87SourceSpecification> {
         .iter()
         .filter_map(|entry| entry.source_specification.clone())
         .collect()
+}
+
+/// Returns the reproducibility audit records for the current VSOP87-backed bodies.
+pub fn source_audits() -> Vec<Vsop87SourceAudit> {
+    SOURCE_AUDITS
+        .get_or_init(|| {
+            body_catalog_entries()
+                .iter()
+                .filter_map(|entry| {
+                    entry.source_specification.as_ref().map(|spec| {
+                        let source = source_text_for_file(spec.source_file)
+                            .expect("known VSOP87 source file");
+                        Vsop87SourceAudit {
+                            body: spec.body.clone(),
+                            source_file: spec.source_file,
+                            byte_length: source.len(),
+                            line_count: source.lines().count(),
+                            term_count: count_vsop87_terms(source),
+                            fingerprint: fnv1a_64(source.as_bytes()),
+                        }
+                    })
+                })
+                .collect()
+        })
+        .clone()
+}
+
+/// Returns a small reproducibility summary for the current VSOP87-backed bodies.
+pub fn source_audit_summary() -> Vsop87SourceAuditSummary {
+    let audits = source_audits();
+    Vsop87SourceAuditSummary {
+        source_count: audits.len(),
+        vendored_full_file_count: audits
+            .iter()
+            .filter(|audit| audit.source_file.starts_with("VSOP87B."))
+            .count(),
+        total_term_count: audits.iter().map(|audit| audit.term_count).sum(),
+        max_line_count: audits
+            .iter()
+            .map(|audit| audit.line_count)
+            .max()
+            .unwrap_or(0),
+        max_byte_length: audits
+            .iter()
+            .map(|audit| audit.byte_length)
+            .max()
+            .unwrap_or(0),
+    }
 }
 
 /// Returns the canonical J2000 source-backed VSOP87B samples used by
@@ -1391,6 +1514,34 @@ mod tests {
             .date_range
             .contains("full public source file; J2000 canonical reference sample")));
         assert!(specs.iter().any(|spec| spec.source_file == "VSOP87B.nep"));
+    }
+
+    #[test]
+    fn source_audit_manifest_tracks_all_vendored_inputs() {
+        let audits = source_audits();
+        let summary = source_audit_summary();
+
+        assert_eq!(audits.len(), 8);
+        assert_eq!(summary.source_count, 8);
+        assert_eq!(summary.vendored_full_file_count, 8);
+        assert!(summary.total_term_count > 0);
+        assert!(summary.max_byte_length > 0);
+        assert!(summary.max_line_count > 0);
+
+        let mut fingerprints = audits
+            .iter()
+            .map(|audit| audit.fingerprint)
+            .collect::<Vec<_>>();
+        fingerprints.sort_unstable();
+        fingerprints.dedup();
+        assert_eq!(fingerprints.len(), audits.len());
+
+        let earth = audits
+            .iter()
+            .find(|audit| audit.body == CelestialBody::Sun)
+            .expect("Sun audit should exist");
+        assert_eq!(earth.source_file, "VSOP87B.ear");
+        assert_eq!(earth.term_count, 2_564);
     }
 
     #[test]
