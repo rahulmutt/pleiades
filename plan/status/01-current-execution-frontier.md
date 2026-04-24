@@ -24,7 +24,7 @@ Completed foundations:
 - backend contract, metadata, errors, batch fallback, and composite routing in `pleiades-backend`;
 - house and ayanamsa catalogs with descriptors and aliases;
 - chart façade, sign/house/aspect summaries, sidereal conversion, and profile exports in `pleiades-core`;
-- preliminary `pleiades-vsop87`, `pleiades-elp`, `pleiades-jpl`, and `pleiades-data` crates;
+- preliminary `pleiades-vsop87`, `pleiades-elp`, and `pleiades-data` crates, plus a small JPL Horizons derivative-fixture backend with exact lookup and linear interpolation proof of concept;
 - compression model and sample artifact lookup;
 - CLI, validation reports, backend matrix, release notes/checklists, bundle generation, and bundle verification;
 - tests and doctests for current behavior.
@@ -33,7 +33,7 @@ Active gaps:
 
 - production VSOP87 coefficient handling and transformations;
 - production lunar theory implementation and lunar point semantics;
-- real JPL-style reader/interpolator instead of snapshot-only reference lookup;
+- larger JPL-style reference corpus, interpolation validation, and documented tolerance envelopes beyond the current small fixture proof of concept;
 - explicit Delta T, time-scale, apparent/mean, and frame conversion policies;
 - reference-backed tolerance tables and validation reports.
 

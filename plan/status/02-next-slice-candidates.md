@@ -25,17 +25,24 @@ Suggested scope:
 - implement Moon longitude/latitude/distance for a small validated epoch set;
 - explicitly mark node/apogee/perigee support as implemented or unsupported with structured errors.
 
-## 3. JPL reader/interpolator proof of concept
+## 3. JPL reader/interpolator expansion
 
-**Goal:** move `pleiades-jpl` beyond exact snapshot fixture lookup.
+**Goal:** build on the completed small fixture interpolator and turn `pleiades-jpl` into a stronger reference backend.
 
-Suggested scope:
+Completed first slice:
 
-- define a small documented derivative fixture format;
+- defined the checked-in derivative CSV fixture format in crate metadata and docs;
 - parse multiple epochs in pure Rust;
-- interpolate one body between samples;
-- preserve existing snapshots as golden tests;
-- surface missing-data and out-of-range errors distinctly.
+- linearly interpolate Cartesian vectors between adjacent same-body samples;
+- preserve exact fixture epochs as golden tests;
+- distinguish unsupported bodies from out-of-range fixture requests.
+
+Remaining suggested scope:
+
+- add a larger documented public-input-derived fixture with more bodies and denser samples;
+- validate interpolation error against held-out JPL Horizons epochs;
+- report interpolation quality and tolerances in validation summaries;
+- consider higher-order interpolation once measured linear error is insufficient.
 
 ## 4. Delta T and time-scale policy
 

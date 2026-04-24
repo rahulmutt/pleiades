@@ -1,16 +1,17 @@
-//! JPL Horizons reference snapshot backend for validation, comparison, and
+//! JPL Horizons reference fixture backend for validation, comparison, and
 //! selected asteroid support.
 //!
 //! This crate provides a narrow, source-backed backend based on a checked-in
-//! JPL Horizons vector snapshot. The backend is intentionally limited to a
-//! small set of canonical epochs so the stage-4 validation workflow can
-//! compare the algorithmic backends against a reproducible reference corpus
-//! with a broader time span than the original single-epoch snapshot.
+//! JPL Horizons vector fixture. The backend serves exact states at fixture
+//! epochs and linearly interpolates Cartesian vectors between adjacent samples
+//! for bodies with multi-epoch coverage. This intentionally small derivative
+//! format proves the pure-Rust reader/interpolator path before larger public
+//! JPL-derived corpora are added.
 //!
-//! The checked-in snapshot now also includes a small set of named asteroids and
-//! a custom `catalog:designation` example so the shared body taxonomy can
-//! exercise source-backed asteroid support without changing the comparison
-//! corpus used by validation reports.
+//! The checked-in fixture also includes a small set of named asteroids and a
+//! custom `catalog:designation` example so the shared body taxonomy can exercise
+//! source-backed asteroid support without changing the comparison corpus used by
+//! validation reports.
 
 #![forbid(unsafe_code)]
 
@@ -45,7 +46,7 @@ pub fn reference_epochs() -> &'static [Instant] {
     snapshot_instants()
 }
 
-/// Returns the parsed reference snapshot entries.
+/// Returns the parsed reference fixture entries.
 pub fn reference_snapshot() -> &'static [SnapshotEntry] {
     snapshot_entries().unwrap_or(&[])
 }
@@ -65,7 +66,7 @@ pub fn comparison_bodies() -> &'static [pleiades_backend::CelestialBody] {
     comparison_body_list()
 }
 
-/// A reference-backend implementation backed by JPL Horizons snapshot data.
+/// A reference-backend implementation backed by JPL Horizons fixture data.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct JplSnapshotBackend;
 
@@ -86,11 +87,12 @@ impl EphemerisBackend for JplSnapshotBackend {
             version: "0.1.0".to_string(),
             family: BackendFamily::ReferenceData,
             provenance: BackendProvenance {
-                summary: "NASA/JPL Horizons DE441 geocentric ecliptic snapshot across a small set of reference epochs"
+                summary: "NASA/JPL Horizons DE441 geocentric ecliptic fixture with exact epoch lookup and linear Cartesian interpolation"
                     .to_string(),
                 data_sources: vec![
                     "NASA/JPL Horizons API vector tables (DE441)".to_string(),
-                    "Checked-in reference snapshot at canonical comparison epochs".to_string(),
+                    "Checked-in derivative CSV fixture: epoch_jd,body,x_km,y_km,z_km".to_string(),
+                    "Linear interpolation between adjacent same-body fixture samples".to_string(),
                 ],
             },
             nominal_range: if dataset_missing {
@@ -164,19 +166,7 @@ impl EphemerisBackend for JplSnapshotBackend {
             ));
         }
 
-        let entry = snapshot_entries()
-            .and_then(|entries| {
-                entries.iter().find(|entry| {
-                    entry.body == req.body
-                        && entry.epoch.julian_day.days() == req.instant.julian_day.days()
-                })
-            })
-            .ok_or_else(|| {
-                EphemerisError::new(
-                    EphemerisErrorKind::OutOfRangeInstant,
-                    "the requested body is not present in the JPL snapshot corpus at that instant",
-                )
-            })?;
+        let resolved = resolve_fixture_state(req.body.clone(), req.instant.julian_day.days())?;
 
         let mut result = EphemerisResult::new(
             BackendId::new("jpl-snapshot"),
@@ -186,14 +176,14 @@ impl EphemerisBackend for JplSnapshotBackend {
             req.zodiac_mode.clone(),
             req.apparent,
         );
-        result.ecliptic = Some(entry.ecliptic());
+        result.ecliptic = Some(resolved.entry.ecliptic());
         result.motion = None::<Motion>;
-        result.quality = QualityAnnotation::Exact;
+        result.quality = resolved.quality;
         Ok(result)
     }
 }
 
-/// One parsed record from the reference snapshot.
+/// One parsed record from the reference fixture.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SnapshotEntry {
     /// The body covered by the entry.
@@ -217,6 +207,24 @@ impl SnapshotEntry {
             Latitude::from_degrees((self.z_km / radius_km).clamp(-1.0, 1.0).asin().to_degrees());
         EclipticCoordinates::new(longitude, latitude, Some(radius_km / AU_IN_KM))
     }
+
+    fn interpolate(before: &Self, after: &Self, epoch_jd: f64) -> Self {
+        let span_days = after.epoch.julian_day.days() - before.epoch.julian_day.days();
+        let fraction = (epoch_jd - before.epoch.julian_day.days()) / span_days;
+        Self {
+            body: before.body.clone(),
+            epoch: Instant::new(JulianDay::from_days(epoch_jd), TimeScale::Tdb),
+            x_km: lerp(before.x_km, after.x_km, fraction),
+            y_km: lerp(before.y_km, after.y_km, fraction),
+            z_km: lerp(before.z_km, after.z_km, fraction),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct ResolvedFixtureState {
+    entry: SnapshotEntry,
+    quality: QualityAnnotation,
 }
 
 enum SnapshotState {
@@ -277,6 +285,10 @@ impl fmt::Display for SnapshotLoadErrorKind {
             }
         }
     }
+}
+
+fn lerp(start: f64, end: f64, fraction: f64) -> f64 {
+    start + (end - start) * fraction
 }
 
 fn snapshot_state() -> &'static SnapshotState {
@@ -371,6 +383,71 @@ fn snapshot_instants() -> &'static [Instant] {
             instants
         })
         .as_slice()
+}
+
+fn resolve_fixture_state(
+    body: pleiades_backend::CelestialBody,
+    epoch_jd: f64,
+) -> Result<ResolvedFixtureState, EphemerisError> {
+    let Some(entries) = snapshot_entries() else {
+        return Err(EphemerisError::new(
+            EphemerisErrorKind::MissingDataset,
+            "the JPL fixture corpus is unavailable",
+        ));
+    };
+
+    let mut exact = None;
+    let mut before = None;
+    let mut after = None;
+    let mut body_seen = false;
+
+    for entry in entries.iter().filter(|entry| entry.body == body) {
+        body_seen = true;
+        let entry_jd = entry.epoch.julian_day.days();
+        if entry_jd == epoch_jd {
+            exact = Some(entry);
+            break;
+        }
+        if entry_jd < epoch_jd
+            && before.is_none_or(|candidate: &SnapshotEntry| {
+                entry_jd > candidate.epoch.julian_day.days()
+            })
+        {
+            before = Some(entry);
+        }
+        if entry_jd > epoch_jd
+            && after.is_none_or(|candidate: &SnapshotEntry| {
+                entry_jd < candidate.epoch.julian_day.days()
+            })
+        {
+            after = Some(entry);
+        }
+    }
+
+    if let Some(entry) = exact {
+        return Ok(ResolvedFixtureState {
+            entry: entry.clone(),
+            quality: QualityAnnotation::Exact,
+        });
+    }
+
+    if !body_seen {
+        return Err(EphemerisError::new(
+            EphemerisErrorKind::UnsupportedBody,
+            format!("the JPL fixture corpus does not include {body}"),
+        ));
+    }
+
+    match (before, after) {
+        (Some(before), Some(after)) => Ok(ResolvedFixtureState {
+            entry: SnapshotEntry::interpolate(before, after, epoch_jd),
+            quality: QualityAnnotation::Interpolated,
+        }),
+        _ => Err(EphemerisError::new(
+            EphemerisErrorKind::OutOfRangeInstant,
+            "the requested instant is outside adjacent JPL fixture samples for that body",
+        )),
+    }
 }
 
 fn load_snapshot() -> Result<Vec<SnapshotEntry>, SnapshotLoadError> {
@@ -531,7 +608,7 @@ fn parse_f64(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pleiades_backend::{Apparentness, EphemerisRequest};
+    use pleiades_backend::{Apparentness, EphemerisErrorKind, EphemerisRequest};
 
     #[test]
     fn reference_snapshot_covers_the_expected_bodies_and_epochs() {
@@ -659,12 +736,70 @@ mod tests {
 
         let result = backend
             .position(&request)
-            .expect("reference snapshot should resolve at the later epoch");
+            .expect("reference fixture should resolve at the later epoch");
+        assert_eq!(result.quality, QualityAnnotation::Exact);
         let ecliptic = result
             .ecliptic
-            .expect("reference snapshot should include ecliptic coordinates");
+            .expect("reference fixture should include ecliptic coordinates");
         assert!(ecliptic.longitude.degrees().is_finite());
         assert!(ecliptic.latitude.degrees().is_finite());
+    }
+
+    #[test]
+    fn snapshot_backend_interpolates_between_fixture_epochs() {
+        let backend = JplSnapshotBackend;
+        let request = EphemerisRequest {
+            body: pleiades_backend::CelestialBody::Mars,
+            instant: Instant::new(JulianDay::from_days(2_415_022.0), TimeScale::Tdb),
+            observer: None,
+            frame: CoordinateFrame::Ecliptic,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparent: Apparentness::Mean,
+        };
+
+        let result = backend
+            .position(&request)
+            .expect("reference fixture should interpolate between Mars samples");
+        assert_eq!(result.quality, QualityAnnotation::Interpolated);
+        let ecliptic = result
+            .ecliptic
+            .expect("interpolated fixture should include ecliptic coordinates");
+        assert!(ecliptic.longitude.degrees().is_finite());
+        assert!(ecliptic.latitude.degrees().is_finite());
+        assert!(ecliptic
+            .distance_au
+            .expect("distance should exist")
+            .is_finite());
+    }
+
+    #[test]
+    fn snapshot_backend_distinguishes_unsupported_body_from_out_of_range() {
+        let backend = JplSnapshotBackend;
+        let unsupported = EphemerisRequest {
+            body: pleiades_backend::CelestialBody::MeanNode,
+            instant: reference_instant(),
+            observer: None,
+            frame: CoordinateFrame::Ecliptic,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparent: Apparentness::Mean,
+        };
+        let error = backend
+            .position(&unsupported)
+            .expect_err("missing bodies should not be reported as date-range errors");
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedBody);
+
+        let out_of_range = EphemerisRequest {
+            body: pleiades_backend::CelestialBody::Ceres,
+            instant: Instant::new(JulianDay::from_days(2_451_546.0), TimeScale::Tdb),
+            observer: None,
+            frame: CoordinateFrame::Ecliptic,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparent: Apparentness::Mean,
+        };
+        let error = backend
+            .position(&out_of_range)
+            .expect_err("single-epoch bodies should report out-of-range requests");
+        assert_eq!(error.kind, EphemerisErrorKind::OutOfRangeInstant);
     }
 
     #[test]
