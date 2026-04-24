@@ -1549,6 +1549,7 @@ fn render_release_summary_text() -> String {
     text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
     text.push_str("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary\n");
     text.push_str("Release notes summary: release-notes-summary\n");
+    text.push_str("Release bundle verification: verify-release-bundle\n");
     text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
     text.push_str("Release checklist summary: release-checklist-summary\n");
     text.push('\n');
@@ -1589,6 +1590,7 @@ fn render_release_checklist_summary_text() -> String {
     text.push_str(release_profiles.api_stability_profile_id);
     text.push('\n');
     text.push_str("Release notes summary: release-notes-summary\n");
+    text.push_str("Release bundle verification: verify-release-bundle\n");
     text.push_str("Compact summary views: backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary\n");
     text.push_str("Repository-managed release gates: 5 items\n");
     text.push_str("Manual bundle workflow: 3 items\n");
@@ -4122,6 +4124,7 @@ mod tests {
             release_profiles.api_stability_profile_id
         )));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
+        assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
         assert!(rendered.contains("Compact summary views: backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Repository-managed release gates: 5 items"));
         assert!(rendered.contains("Manual bundle workflow: 3 items"));
@@ -4148,6 +4151,7 @@ mod tests {
         )));
         assert!(rendered.contains("Release summary line:"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
+        assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
         assert!(rendered.contains("House systems:"));
         assert!(rendered.contains("Ayanamsas:"));
         assert!(rendered.contains("Validation reference points:"));

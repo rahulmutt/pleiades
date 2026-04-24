@@ -474,6 +474,8 @@ mod tests {
             .expect("release checklist summary should render");
         assert!(release_checklist_summary.contains("Release checklist summary"));
         assert!(release_checklist_summary.contains("Release notes summary: release-notes-summary"));
+        assert!(release_checklist_summary
+            .contains("Release bundle verification: verify-release-bundle"));
         assert!(release_checklist_summary.contains("Compact summary views: backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
         assert!(release_checklist_summary.contains("Repository-managed release gates: 5 items"));
         assert!(release_checklist_summary.contains("Manual bundle workflow: 3 items"));
@@ -492,6 +494,7 @@ mod tests {
         assert!(release_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(release_summary.contains("Release notes summary: release-notes-summary"));
+        assert!(release_summary.contains("Release bundle verification: verify-release-bundle"));
         assert!(release_summary
             .contains("Compatibility profile verification: verify-compatibility-profile"));
         assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
