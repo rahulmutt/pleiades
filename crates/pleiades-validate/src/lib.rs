@@ -36,7 +36,7 @@ use pleiades_core::{
     ZodiacMode,
 };
 use pleiades_data::PackagedDataBackend;
-use pleiades_elp::ElpBackend;
+use pleiades_elp::{lunar_theory_specification, ElpBackend};
 use pleiades_houses::{
     baseline_house_systems, built_in_house_systems, release_house_systems, resolve_house_system,
 };
@@ -3120,6 +3120,18 @@ fn format_vsop87_source_audit_summary() -> String {
     )
 }
 
+fn format_elp_lunar_theory_summary() -> String {
+    let theory = lunar_theory_specification();
+    format!(
+        "ELP lunar theory specification: {} ({} supported bodies: {}); validation window: {}; frame treatment: {}",
+        theory.model_name,
+        theory.supported_bodies.len(),
+        format_bodies(theory.supported_bodies),
+        theory.date_range_note,
+        theory.frame_note,
+    )
+}
+
 fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     use std::fmt::Write as _;
 
@@ -3243,6 +3255,9 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text, "  {}", format_vsop87_source_audit_summary());
     let _ = writeln!(text, "  {}", format_vsop87_canonical_evidence_summary());
     let _ = writeln!(text, "  {}", format_vsop87_body_evidence_summary());
+    let _ = writeln!(text);
+    let _ = writeln!(text, "ELP lunar theory specification");
+    let _ = writeln!(text, "  {}", format_elp_lunar_theory_summary());
     let _ = writeln!(text);
     let _ = writeln!(text, "Benchmark summaries");
     let _ = writeln!(text, "Reference benchmark");
@@ -3438,6 +3453,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&format_vsop87_canonical_evidence_summary());
     text.push('\n');
     text.push_str(&format_vsop87_body_evidence_summary());
+    text.push('\n');
+    text.push_str(&format_elp_lunar_theory_summary());
     text.push('\n');
     text.push_str("Distinct bodies covered: ");
     text.push_str(&bodies.len().to_string());
@@ -3953,6 +3970,18 @@ fn write_backend_catalog_entry(
             "  body profile evidence summary: {}",
             format_vsop87_body_evidence_summary()
         )?;
+    } else if entry.metadata.id.as_str() == "pleiades-elp" {
+        let theory = lunar_theory_specification();
+        writeln!(f, "  lunar theory specification:")?;
+        writeln!(f, "    model: {}", theory.model_name)?;
+        writeln!(f, "    source material: {}", theory.source_material)?;
+        writeln!(
+            f,
+            "    supported bodies: {}",
+            format_bodies(theory.supported_bodies)
+        )?;
+        writeln!(f, "    date range note: {}", theory.date_range_note)?;
+        writeln!(f, "    frame note: {}", theory.frame_note)?;
     }
     if entry.metadata.id.as_str() == "jpl-snapshot" {
         write_jpl_interpolation_quality(f)?;
@@ -5603,6 +5632,9 @@ mod tests {
         assert!(rendered.contains(
             "VSOP87 source-backed body evidence: 8 body profiles (0 vendored full-file, 8 generated binary), 8 within interim limits"
         ));
+        assert!(rendered.contains(
+            "ELP lunar theory specification: Compact Meeus-style analytical lunar baseline"
+        ));
         assert!(rendered.contains("Distinct bodies covered:"));
         assert!(rendered.contains("Distinct coordinate frames:"));
         assert!(rendered.contains("Distinct time scales:"));
@@ -5899,6 +5931,9 @@ version = "0.9.0"
         ));
         assert!(validation_report_summary
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
+        assert!(validation_report_summary.contains(
+            "ELP lunar theory specification: Compact Meeus-style analytical lunar baseline"
+        ));
         assert!(report.contains("Validation report"));
         assert!(report.contains("Expected tolerance status"));
         assert!(manifest.contains("Release bundle manifest"));
