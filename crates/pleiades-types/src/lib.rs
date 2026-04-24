@@ -279,6 +279,23 @@ impl Instant {
 
         Ok(self.with_time_scale_offset(TimeScale::Tt, delta_t.as_secs_f64()))
     }
+
+    /// Converts a UTC-tagged instant to TT using caller-supplied offset.
+    ///
+    /// `delta_t` must be the already-chosen `TT - UTC` offset in SI seconds.
+    /// The helper intentionally does not model leap seconds or DUT1 by itself;
+    /// it only makes a caller-supplied UTC-to-TT policy explicit and
+    /// reproducible for applications that start from civil time.
+    pub fn tt_from_utc(self, delta_t: Duration) -> Result<Self, TimeScaleConversionError> {
+        if self.scale != TimeScale::Utc {
+            return Err(TimeScaleConversionError::expected(
+                TimeScale::Utc,
+                self.scale,
+            ));
+        }
+
+        Ok(self.with_time_scale_offset(TimeScale::Tt, delta_t.as_secs_f64()))
+    }
 }
 
 /// A geographic observer location.
@@ -1024,14 +1041,33 @@ mod tests {
     }
 
     #[test]
+    fn caller_supplied_time_scale_offsets_can_convert_utc_to_tt() {
+        let utc = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Utc);
+        let tt = utc
+            .tt_from_utc(Duration::from_secs_f64(64.184))
+            .expect("UTC to TT conversion should accept UTC input");
+
+        assert_eq!(tt.scale, TimeScale::Tt);
+        assert!((tt.julian_day.days() - 2_451_545.000_742_870_4).abs() < 1e-12);
+    }
+
+    #[test]
     fn time_scale_helpers_reject_the_wrong_source_scale() {
         let utc = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Utc);
-        let error = utc
+        let ut1_error = utc
             .tt_from_ut1(Duration::from_secs(64))
             .expect_err("UTC is not UT1");
 
-        assert_eq!(error.expected, TimeScale::Ut1);
-        assert_eq!(error.actual, TimeScale::Utc);
+        assert_eq!(ut1_error.expected, TimeScale::Ut1);
+        assert_eq!(ut1_error.actual, TimeScale::Utc);
+
+        let tt = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+        let utc_error = tt
+            .tt_from_utc(Duration::from_secs(64))
+            .expect_err("TT is not UTC");
+
+        assert_eq!(utc_error.expected, TimeScale::Utc);
+        assert_eq!(utc_error.actual, TimeScale::Tt);
     }
 
     #[test]

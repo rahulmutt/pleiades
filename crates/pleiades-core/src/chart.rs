@@ -105,6 +105,16 @@ impl ChartRequest {
         Ok(self)
     }
 
+    /// Converts the chart instant from UTC to TT using caller-supplied offset.
+    ///
+    /// This convenience method mirrors [`Instant::tt_from_utc`] so chart callers
+    /// can keep civil-time inputs explicit without introducing built-in leap-
+    /// second or Delta T modeling in the façade.
+    pub fn with_tt_from_utc(mut self, delta_t: Duration) -> Result<Self, TimeScaleConversionError> {
+        self.instant = self.instant.tt_from_utc(delta_t)?;
+        Ok(self)
+    }
+
     /// Sets the included bodies.
     pub fn with_bodies(mut self, bodies: Vec<CelestialBody>) -> Self {
         self.bodies = bodies;
@@ -1673,6 +1683,20 @@ mod tests {
         ))
         .with_tt_from_ut1(Duration::from_secs_f64(64.184))
         .expect("UT1 chart request should convert to TT");
+
+        assert_eq!(request.instant.scale, TimeScale::Tt);
+        let expected = 2_451_545.0 + 64.184 / 86_400.0;
+        assert!((request.instant.julian_day.days() - expected).abs() < 1e-9);
+    }
+
+    #[test]
+    fn chart_request_can_convert_utc_to_tt() {
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Utc,
+        ))
+        .with_tt_from_utc(Duration::from_secs_f64(64.184))
+        .expect("UTC chart request should convert to TT");
 
         assert_eq!(request.instant.scale, TimeScale::Tt);
         let expected = 2_451_545.0 + 64.184 / 86_400.0;
