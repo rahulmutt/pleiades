@@ -1290,6 +1290,8 @@ fn render_compatibility_profile_summary_text() -> String {
     text.push_str(&profile.known_gaps.len().to_string());
     text.push('\n');
     text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
+    text.push_str("Release notes summary: release-notes-summary\n");
+    text.push_str("Release checklist summary: release-checklist-summary\n");
     text.push_str("See release-summary for the compact one-screen release overview.\n");
 
     text
@@ -3981,6 +3983,8 @@ mod tests {
         assert!(
             rendered.contains("Compatibility profile verification: verify-compatibility-profile")
         );
+        assert!(rendered.contains("Release notes summary: release-notes-summary"));
+        assert!(rendered.contains("Release checklist summary: release-checklist-summary"));
         assert!(
             rendered.contains("See release-summary for the compact one-screen release overview.")
         );

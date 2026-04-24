@@ -407,6 +407,8 @@ mod tests {
         assert!(compatibility.contains("House systems: 25 total"));
         assert!(compatibility
             .contains("Compatibility profile verification: verify-compatibility-profile"));
+        assert!(compatibility.contains("Release notes summary: release-notes-summary"));
+        assert!(compatibility.contains("Release checklist summary: release-checklist-summary"));
         assert!(compatibility
             .contains("See release-summary for the compact one-screen release overview."));
 
