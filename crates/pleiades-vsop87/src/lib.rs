@@ -113,6 +113,8 @@ pub struct Vsop87SourceSpecification {
     pub units: &'static str,
     /// How the coefficients are reduced to a geocentric chart-facing result.
     pub reduction: &'static str,
+    /// Frame-transform note describing how equatorial coordinates are derived.
+    pub transform_note: &'static str,
     /// How much of the public source file is currently retained.
     pub truncation_policy: &'static str,
     /// Current date-range note for the retained slice.
@@ -237,6 +239,8 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
         let units = "degrees and astronomical units";
         let solar_reduction = "geocentric solar reduction from Earth coefficients";
         let planetary_reduction = "geocentric planetary reduction against Earth coefficients";
+        let transform_note =
+            "J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a mean-obliquity transform";
 
         let source_profile = |body: CelestialBody,
                               kind: Vsop87BodySourceKind,
@@ -272,6 +276,7 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
                 frame,
                 units,
                 reduction,
+                transform_note,
                 truncation_policy,
                 date_range: earth_date_range,
             })
@@ -494,6 +499,11 @@ pub fn source_specifications() -> Vec<Vsop87SourceSpecification> {
         .iter()
         .filter_map(|entry| entry.source_specification.clone())
         .collect()
+}
+
+/// Returns the current frame-treatment summary for VSOP87-backed results.
+pub fn frame_treatment_summary() -> &'static str {
+    "VSOP87 frame treatment: J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a mean-obliquity transform"
 }
 
 /// Returns the reproducibility audit records for the current VSOP87-backed bodies.
@@ -929,7 +939,7 @@ impl EphemerisBackend for Vsop87Backend {
                     .into_iter()
                     .map(|spec| {
                         format!(
-                            "{}: IMCCE/CELMECH {} {} ({}, {}, {}, {}, {}, {})",
+                            "{}: IMCCE/CELMECH {} {} ({}, {}, {}, {}, {}, {}, {})",
                             spec.body,
                             spec.variant,
                             spec.source_file,
@@ -937,6 +947,7 @@ impl EphemerisBackend for Vsop87Backend {
                             spec.frame,
                             spec.units,
                             spec.reduction,
+                            spec.transform_note,
                             spec.truncation_policy,
                             spec.date_range,
                         )
@@ -1454,6 +1465,11 @@ mod tests {
             .provenance
             .data_sources
             .iter()
+            .any(|source| source.contains("mean-obliquity transform")));
+        assert!(metadata
+            .provenance
+            .data_sources
+            .iter()
             .any(|source| source.contains("Mercury: IMCCE/CELMECH VSOP87B VSOP87B.mer")));
         assert!(metadata
             .provenance
@@ -1572,6 +1588,9 @@ mod tests {
         assert!(specs.iter().all(|spec| spec
             .date_range
             .contains("full public source file; J2000 canonical reference sample")));
+        assert!(specs
+            .iter()
+            .all(|spec| spec.transform_note.contains("mean-obliquity transform")));
         assert!(specs.iter().any(|spec| spec.source_file == "VSOP87B.nep"));
     }
 

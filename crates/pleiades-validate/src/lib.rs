@@ -44,8 +44,8 @@ use pleiades_jpl::{
     comparison_snapshot, interpolation_quality_samples, reference_asteroids, JplSnapshotBackend,
 };
 use pleiades_vsop87::{
-    body_source_profiles, canonical_epoch_samples, source_audit_summary, source_audits,
-    source_specifications, Vsop87Backend,
+    body_source_profiles, canonical_epoch_samples, frame_treatment_summary, source_audit_summary,
+    source_audits, source_specifications, Vsop87Backend,
 };
 
 const DEFAULT_BENCHMARK_ROUNDS: usize = 10_000;
@@ -3107,6 +3107,10 @@ fn format_vsop87_source_documentation_summary() -> String {
     )
 }
 
+fn format_vsop87_frame_treatment_summary() -> String {
+    frame_treatment_summary().to_string()
+}
+
 fn format_vsop87_source_audit_summary() -> String {
     let audit = source_audit_summary();
     format!(
@@ -3252,6 +3256,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text);
     let _ = writeln!(text, "VSOP87 source-backed evidence");
     let _ = writeln!(text, "  {}", format_vsop87_source_documentation_summary());
+    let _ = writeln!(text, "  {}", format_vsop87_frame_treatment_summary());
     let _ = writeln!(text, "  {}", format_vsop87_source_audit_summary());
     let _ = writeln!(text, "  {}", format_vsop87_canonical_evidence_summary());
     let _ = writeln!(text, "  {}", format_vsop87_body_evidence_summary());
@@ -3447,6 +3452,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&data_source_count.to_string());
     text.push('\n');
     text.push_str(&format_vsop87_source_documentation_summary());
+    text.push('\n');
+    text.push_str(&format_vsop87_frame_treatment_summary());
     text.push('\n');
     text.push_str(&format_vsop87_source_audit_summary());
     text.push('\n');
@@ -3914,7 +3921,7 @@ fn write_backend_catalog_entry(
         for spec in source_specifications() {
             writeln!(
                 f,
-                "    {}: {} {} | {} | {} | {} | {} | {} | {}",
+                "    {}: {} {} | {} | {} | {} | {} | {} | {} | {}",
                 spec.body,
                 spec.variant,
                 spec.source_file,
@@ -3922,6 +3929,7 @@ fn write_backend_catalog_entry(
                 spec.frame,
                 spec.units,
                 spec.reduction,
+                spec.transform_note,
                 spec.truncation_policy,
                 spec.date_range
             )?;
@@ -5626,6 +5634,9 @@ mod tests {
         assert!(rendered.contains("Exact: 1"));
         assert!(rendered.contains("Approximate: 4"));
         assert!(rendered.contains("VSOP87 source documentation: 8 source specs, 8 source-backed body profiles, 1 fallback mean-element body profile"));
+        assert!(rendered.contains(
+            "VSOP87 frame treatment: J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a mean-obliquity transform"
+        ));
         assert!(rendered
             .contains("VSOP87 source audit: 8 source-backed bodies, 8 vendored full-file inputs"));
         assert!(rendered.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
@@ -5921,6 +5932,9 @@ version = "0.9.0"
         assert!(validation_report_summary.contains("Expected tolerance status"));
         assert!(validation_report_summary.contains("VSOP87 source-backed evidence"));
         assert!(validation_report_summary.contains("VSOP87 source documentation: 8 source specs, 8 source-backed body profiles, 1 fallback mean-element body profile"));
+        assert!(validation_report_summary.contains(
+            "VSOP87 frame treatment: J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a mean-obliquity transform"
+        ));
         assert!(validation_report_summary
             .contains("VSOP87 source audit: 8 source-backed bodies, 8 vendored full-file inputs"));
         assert!(validation_report_summary
