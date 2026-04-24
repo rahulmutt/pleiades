@@ -18,7 +18,9 @@ Progress note (2026-04-24): the placeholder `pleiades-vsop87` path now reports d
 
 Progress note (2026-04-24): the first source-data increment has landed for the Sun path. `pleiades-vsop87` now evaluates a checked-in truncated leading-term slice of public IMCCE VSOP87B Earth coefficients, transforms it into geometric geocentric solar coordinates, and tests the J2000 result against a full-file VSOP87B golden value.
 
-Progress note (2026-04-24): the same truncated VSOP87B spherical-coefficient representation now covers Mercury's heliocentric channel. Mercury geocentric output is reduced against the VSOP87B Earth slice and has a J2000 regression test against full-file IMCCE VSOP87B Mercury/Earth golden values, with backend provenance updated to distinguish the Mercury source-backed path from the remaining orbital-element fallback planets. Remaining work is to replace the truncated slices with generated complete tables and extend the pattern to all planetary bodies/channels.
+Progress note (2026-04-24): the same truncated VSOP87B spherical-coefficient representation now covers Mercury's heliocentric channel. Mercury geocentric output is reduced against the VSOP87B Earth slice and has a J2000 regression test against full-file IMCCE VSOP87B Mercury/Earth golden values, with backend provenance updated to distinguish the Mercury source-backed path from the remaining orbital-element fallback planets.
+
+Progress note (2026-04-24): the truncated VSOP87B source-backed path has been extended to Venus. `pleiades-vsop87` now evaluates a checked-in leading-term IMCCE VSOP87B Venus slice, reduces it against the Earth slice, and tests the J2000 geocentric Venus result against full-file IMCCE VSOP87B Venus/Earth golden values. Remaining work is to replace the truncated slices with generated complete tables and extend the pattern to Mars and the outer planetary channels.
 
 ## 2. Lunar theory source selection
 
