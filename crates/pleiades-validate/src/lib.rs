@@ -2874,6 +2874,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         format_ns(report.packaged_benchmark.nanoseconds_per_request())
     );
     let _ = writeln!(text, "Release bundle verification: verify-release-bundle");
+    let _ = writeln!(text, "Release notes summary: release-notes-summary");
     let _ = writeln!(text, "Release checklist summary: release-checklist-summary");
     let _ = writeln!(text, "Release summary: release-summary");
 
@@ -4078,6 +4079,7 @@ mod tests {
         assert!(report.contains("House validation corpus"));
         assert!(report.contains("Benchmark summaries"));
         assert!(report.contains("Release bundle verification: verify-release-bundle"));
+        assert!(report.contains("Release notes summary: release-notes-summary"));
         assert!(report.contains("Release checklist summary: release-checklist-summary"));
         assert!(report.contains("Release summary: release-summary"));
         assert!(report.contains("Reference benchmark"));
@@ -4099,6 +4101,7 @@ mod tests {
                 .expect("validation-report-summary should render");
         assert!(validation_report_summary.contains("Validation report summary"));
         assert!(validation_report_summary.contains("Comparison corpus"));
+        assert!(validation_report_summary.contains("Release notes summary: release-notes-summary"));
         assert!(validation_report_summary.contains("Benchmark summaries"));
     }
 

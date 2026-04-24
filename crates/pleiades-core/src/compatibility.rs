@@ -18,7 +18,7 @@ use pleiades_houses::{
 };
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.121";
+pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.122";
 
 /// Returns the current compatibility-profile identifier.
 pub const fn current_compatibility_profile_id() -> &'static str {
@@ -325,6 +325,9 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "Azimuth",
             "Horizontal",
             "Azimuthal",
+            "Horizon table of houses",
+            "Horizontal table of houses",
+            "Azimuthal table of houses",
             "Horizon/Azimuth table of houses",
             "Horizon house system",
             "Horizon/Azimuth house system",
@@ -1258,7 +1261,7 @@ mod tests {
         assert!(rendered.contains("Polich-Page \"topocentric\" table of houses"));
         assert!(rendered.contains("T Polich/Page (\"topocentric\")"));
         assert!(rendered.contains(
-            "Horizon, Azimuth, Horizontal, Azimuthal, Horizon/Azimuth table of houses, Horizon house system, Horizon/Azimuth house system, Horizontal house system, Azimuth house system, Azimuthal house system, horizon/azimut, horizon/azimuth -> Horizon/Azimuth"
+            "Horizon, Azimuth, Horizontal, Azimuthal, Horizon table of houses, Horizontal table of houses, Azimuthal table of houses, Horizon/Azimuth table of houses, Horizon house system, Horizon/Azimuth house system, Horizontal house system, Azimuth house system, Azimuthal house system, horizon/azimut, horizon/azimuth -> Horizon/Azimuth"
         ));
         assert!(rendered.contains(
             "X, Meridian houses, Meridian table of houses, Meridian house system, ARMC, Axial Rotation, Axial rotation system, Zariel, X axial rotation system/ Meridian houses -> Meridian"
@@ -1270,7 +1273,9 @@ mod tests {
         assert!(rendered.contains("horizon/azimuth"));
         assert!(rendered.contains("Horizon/Azimuth house system"));
         assert!(rendered.contains("Horizontal house system"));
+        assert!(rendered.contains("Horizontal table of houses"));
         assert!(rendered.contains("Azimuth house system"));
+        assert!(rendered.contains("Azimuthal table of houses"));
         assert!(rendered.contains("Meridian house system"));
         assert!(rendered.contains("Horizon/Azimuth table of houses"));
         assert!(rendered
