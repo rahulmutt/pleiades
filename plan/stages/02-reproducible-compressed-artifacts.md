@@ -13,13 +13,14 @@ Turn the current compressed-artifact scaffolding into a reproducible packaged-da
 
 ## Current baseline
 
-`pleiades-compression` defines an in-memory artifact model and lookup path, `pleiades-data` exposes a packaged backend backed by static sample segments, and validation tooling can inspect and summarize artifacts.
+`pleiades-compression` defines an in-memory artifact model, deterministic binary codec, artifact capability profile metadata, and lookup path. `pleiades-data` exposes a packaged backend backed by static sample segments with an ecliptic-only/no-motion profile, and validation tooling can inspect and summarize artifacts.
 
 ## Remaining implementation goals
 
 1. Define the artifact profile format.
-   - Finalize header fields, versioning, endian policy, checksums, provenance, and capability/profile sections.
-   - Explicitly record stored channels, derived channels, unsupported outputs, speed derivation policy, and body coverage.
+   - Initial header fields, versioning, endian policy, checksums, provenance, and capability/profile sections are implemented in the codec.
+   - Initial profile metadata records stored channels, derived outputs, unsupported outputs, and speed derivation policy.
+   - Remaining work: refine body-specific profile semantics as generated artifacts become available and surface profile summaries in validation/release reports.
    - Keep decode deterministic and independent of platform-specific binary layout.
 
 2. Build a deterministic generation pipeline.

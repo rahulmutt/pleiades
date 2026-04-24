@@ -68,11 +68,17 @@ Progress note (2026-04-24): the initial time-scale, Delta T, apparentness, and o
 
 **Goal:** prepare Phase 2 without blocking Phase 1 accuracy work.
 
-Suggested scope:
+Completed first slice (2026-04-24):
 
-- define the serialized artifact header/profile fields in `pleiades-compression` docs;
-- record stored/derived/unsupported channel semantics;
-- add round-trip tests for profile metadata only;
+- added a versioned `ArtifactProfile` to `pleiades-compression` headers;
+- serialized stored channel, derived output, unsupported output, and speed-policy metadata in the deterministic binary payload;
+- added round-trip tests for default and explicit profile metadata;
+- updated the packaged-data prototype to expose the conservative ecliptic-only/no-motion profile without expanding production artifact claims.
+
+Remaining suggested scope:
+
+- refine profile fields when generated artifacts introduce body-specific stored/derived semantics;
+- connect profile summaries to validation and release reports;
 - avoid claiming generated production artifacts until source-backed generation exists.
 
 ## 6. Compatibility-profile verification tightening

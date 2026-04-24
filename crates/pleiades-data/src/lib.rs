@@ -401,6 +401,23 @@ mod tests {
         let metadata = packaged_backend().metadata();
         assert_eq!(metadata.id.as_str(), PACKAGE_NAME);
         assert_eq!(metadata.family, BackendFamily::CompressedData);
+        assert_eq!(
+            packaged_artifact().header.profile.stored_channels,
+            vec![
+                ChannelKind::Longitude,
+                ChannelKind::Latitude,
+                ChannelKind::DistanceAu
+            ]
+        );
+        assert_eq!(
+            packaged_artifact().header.profile.speed_policy,
+            pleiades_compression::SpeedPolicy::Unsupported
+        );
+        assert!(packaged_artifact()
+            .header
+            .profile
+            .unsupported_outputs
+            .contains(&pleiades_compression::ArtifactOutput::Motion));
         assert!(metadata.body_coverage.contains(&CelestialBody::Sun));
         assert!(metadata.body_coverage.contains(&CelestialBody::Moon));
         assert!(metadata.body_coverage.contains(&CelestialBody::Jupiter));

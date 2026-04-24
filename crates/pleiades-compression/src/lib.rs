@@ -1,9 +1,10 @@
 //! Compression codecs and artifact packing helpers for ephemeris data.
 //!
 //! The current implementation defines a small, deterministic artifact format
-//! with explicit versioning, checksums, and quantized polynomial segments.
-//! It is intentionally simple enough to audit while still exercising the
-//! same segmented lookup flow that later, denser artifacts will use.
+//! with explicit versioning, checksums, artifact capability profiles, and
+//! quantized polynomial segments. It is intentionally simple enough to audit
+//! while still exercising the same segmented lookup flow that later, denser
+//! artifacts will use.
 //!
 //! Enable the optional `serde` feature to serialize compressed artifacts for
 //! inspection or interchange workflows.
@@ -39,7 +40,7 @@ use pleiades_types::{
 };
 
 /// Current artifact format version.
-pub const ARTIFACT_VERSION: u16 = 1;
+pub const ARTIFACT_VERSION: u16 = 2;
 
 const ARTIFACT_MAGIC: [u8; 8] = *b"PLDEPHEM";
 
@@ -53,16 +54,119 @@ pub struct ArtifactHeader {
     pub generation_label: String,
     /// Human-readable provenance/source summary.
     pub source: String,
+    /// Artifact capability profile describing stored, derived, and unsupported outputs.
+    pub profile: ArtifactProfile,
 }
 
 impl ArtifactHeader {
-    /// Creates a new header using the current artifact version.
+    /// Creates a new header using the current artifact version and a conservative
+    /// ecliptic-only profile.
     pub fn new(generation_label: impl Into<String>, source: impl Into<String>) -> Self {
+        Self::with_profile(
+            generation_label,
+            source,
+            ArtifactProfile::ecliptic_longitude_latitude_distance(),
+        )
+    }
+
+    /// Creates a new header using the current artifact version and an explicit profile.
+    pub fn with_profile(
+        generation_label: impl Into<String>,
+        source: impl Into<String>,
+        profile: ArtifactProfile,
+    ) -> Self {
         Self {
             version: ARTIFACT_VERSION,
             generation_label: generation_label.into(),
             source: source.into(),
+            profile,
         }
+    }
+}
+
+/// Artifact-level output semantics for fields that are not raw segment channels.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+#[non_exhaustive]
+pub enum ArtifactOutput {
+    /// Ecliptic coordinates assembled from longitude, latitude, and distance channels.
+    EclipticCoordinates,
+    /// Equatorial coordinates reconstructed from ecliptic coordinates and obliquity policy.
+    EquatorialCoordinates,
+    /// Apparent longitude/latitude corrections such as light-time, aberration, or nutation.
+    ApparentCorrections,
+    /// Topocentric coordinates reconstructed for a terrestrial observer.
+    TopocentricCoordinates,
+    /// Sidereal coordinates derived from tropical coordinates and ayanamsa policy.
+    SiderealCoordinates,
+    /// Longitude/latitude/radial speed values.
+    Motion,
+}
+
+/// Declares how motion/speed values are represented by an artifact.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+#[non_exhaustive]
+pub enum SpeedPolicy {
+    /// The artifact does not provide speed values.
+    Unsupported,
+    /// Speeds are stored as direct channels.
+    Stored,
+    /// Speeds are derived analytically from fitted segment derivatives.
+    FittedDerivative,
+    /// Speeds are approximated numerically from neighboring decoded samples.
+    NumericalDifference,
+}
+
+/// Capability/profile metadata for a compressed artifact.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ArtifactProfile {
+    /// Coordinate channels stored directly in each applicable segment.
+    pub stored_channels: Vec<ChannelKind>,
+    /// Higher-level outputs that decoders may derive deterministically from stored data.
+    pub derived_outputs: Vec<ArtifactOutput>,
+    /// Outputs explicitly unsupported by this artifact profile.
+    pub unsupported_outputs: Vec<ArtifactOutput>,
+    /// Motion/speed representation policy.
+    pub speed_policy: SpeedPolicy,
+}
+
+impl ArtifactProfile {
+    /// Creates a profile from explicit fields.
+    pub fn new(
+        stored_channels: Vec<ChannelKind>,
+        derived_outputs: Vec<ArtifactOutput>,
+        unsupported_outputs: Vec<ArtifactOutput>,
+        speed_policy: SpeedPolicy,
+    ) -> Self {
+        Self {
+            stored_channels,
+            derived_outputs,
+            unsupported_outputs,
+            speed_policy,
+        }
+    }
+
+    /// Returns the current conservative profile: ecliptic longitude, latitude,
+    /// and distance are stored directly; motion and richer coordinate modes are unsupported.
+    pub fn ecliptic_longitude_latitude_distance() -> Self {
+        Self::new(
+            vec![
+                ChannelKind::Longitude,
+                ChannelKind::Latitude,
+                ChannelKind::DistanceAu,
+            ],
+            vec![ArtifactOutput::EclipticCoordinates],
+            vec![
+                ArtifactOutput::EquatorialCoordinates,
+                ArtifactOutput::ApparentCorrections,
+                ArtifactOutput::TopocentricCoordinates,
+                ArtifactOutput::SiderealCoordinates,
+                ArtifactOutput::Motion,
+            ],
+            SpeedPolicy::Unsupported,
+        )
     }
 }
 
@@ -257,6 +361,7 @@ impl CompressedArtifact {
             version,
             generation_label: payload_cursor.read_string()?,
             source: payload_cursor.read_string()?,
+            profile: decode_artifact_profile(&mut payload_cursor)?,
         };
         let body_count = payload_cursor.read_u16()? as usize;
         let mut bodies = Vec::with_capacity(body_count);
@@ -336,6 +441,7 @@ impl CompressedArtifact {
         let mut bytes = Vec::new();
         write_string(&mut bytes, &self.header.generation_label);
         write_string(&mut bytes, &self.header.source);
+        encode_artifact_profile(&mut bytes, &self.header.profile);
         write_u16(&mut bytes, self.bodies.len() as u16);
         for body in &self.bodies {
             encode_body(&mut bytes, body)?;
@@ -398,6 +504,53 @@ impl fmt::Display for CompressionError {
 }
 
 impl std::error::Error for CompressionError {}
+
+fn encode_artifact_profile(bytes: &mut Vec<u8>, profile: &ArtifactProfile) {
+    write_u8(bytes, profile.stored_channels.len() as u8);
+    for channel in &profile.stored_channels {
+        write_u8(bytes, encode_channel_kind(*channel));
+    }
+
+    write_u8(bytes, profile.derived_outputs.len() as u8);
+    for output in &profile.derived_outputs {
+        write_u8(bytes, encode_artifact_output(*output));
+    }
+
+    write_u8(bytes, profile.unsupported_outputs.len() as u8);
+    for output in &profile.unsupported_outputs {
+        write_u8(bytes, encode_artifact_output(*output));
+    }
+
+    write_u8(bytes, encode_speed_policy(profile.speed_policy));
+}
+
+fn decode_artifact_profile(cursor: &mut Cursor<'_>) -> Result<ArtifactProfile, CompressionError> {
+    let stored_channel_count = cursor.read_u8()? as usize;
+    let mut stored_channels = Vec::with_capacity(stored_channel_count);
+    for _ in 0..stored_channel_count {
+        stored_channels.push(decode_channel_kind(cursor.read_u8()?)?);
+    }
+
+    let derived_output_count = cursor.read_u8()? as usize;
+    let mut derived_outputs = Vec::with_capacity(derived_output_count);
+    for _ in 0..derived_output_count {
+        derived_outputs.push(decode_artifact_output(cursor.read_u8()?)?);
+    }
+
+    let unsupported_output_count = cursor.read_u8()? as usize;
+    let mut unsupported_outputs = Vec::with_capacity(unsupported_output_count);
+    for _ in 0..unsupported_output_count {
+        unsupported_outputs.push(decode_artifact_output(cursor.read_u8()?)?);
+    }
+
+    let speed_policy = decode_speed_policy(cursor.read_u8()?)?;
+    Ok(ArtifactProfile::new(
+        stored_channels,
+        derived_outputs,
+        unsupported_outputs,
+        speed_policy,
+    ))
+}
 
 fn encode_body(bytes: &mut Vec<u8>, body: &BodyArtifact) -> Result<(), CompressionError> {
     encode_celestial_body(bytes, &body.body)?;
@@ -563,6 +716,54 @@ fn decode_channel_kind(tag: u8) -> Result<ChannelKind, CompressionError> {
         other => Err(CompressionError::new(
             CompressionErrorKind::InvalidFormat,
             format!("unknown channel kind tag {other}"),
+        )),
+    }
+}
+
+fn encode_artifact_output(output: ArtifactOutput) -> u8 {
+    match output {
+        ArtifactOutput::EclipticCoordinates => 0,
+        ArtifactOutput::EquatorialCoordinates => 1,
+        ArtifactOutput::ApparentCorrections => 2,
+        ArtifactOutput::TopocentricCoordinates => 3,
+        ArtifactOutput::SiderealCoordinates => 4,
+        ArtifactOutput::Motion => 5,
+    }
+}
+
+fn decode_artifact_output(tag: u8) -> Result<ArtifactOutput, CompressionError> {
+    match tag {
+        0 => Ok(ArtifactOutput::EclipticCoordinates),
+        1 => Ok(ArtifactOutput::EquatorialCoordinates),
+        2 => Ok(ArtifactOutput::ApparentCorrections),
+        3 => Ok(ArtifactOutput::TopocentricCoordinates),
+        4 => Ok(ArtifactOutput::SiderealCoordinates),
+        5 => Ok(ArtifactOutput::Motion),
+        other => Err(CompressionError::new(
+            CompressionErrorKind::InvalidFormat,
+            format!("unknown artifact output tag {other}"),
+        )),
+    }
+}
+
+fn encode_speed_policy(policy: SpeedPolicy) -> u8 {
+    match policy {
+        SpeedPolicy::Unsupported => 0,
+        SpeedPolicy::Stored => 1,
+        SpeedPolicy::FittedDerivative => 2,
+        SpeedPolicy::NumericalDifference => 3,
+    }
+}
+
+fn decode_speed_policy(tag: u8) -> Result<SpeedPolicy, CompressionError> {
+    match tag {
+        0 => Ok(SpeedPolicy::Unsupported),
+        1 => Ok(SpeedPolicy::Stored),
+        2 => Ok(SpeedPolicy::FittedDerivative),
+        3 => Ok(SpeedPolicy::NumericalDifference),
+        other => Err(CompressionError::new(
+            CompressionErrorKind::InvalidFormat,
+            format!("unknown speed policy tag {other}"),
         )),
     }
 }
@@ -734,12 +935,60 @@ mod tests {
         assert_eq!(decoded.header.version, ARTIFACT_VERSION);
         assert_eq!(decoded.header.generation_label, "demo");
         assert_eq!(decoded.header.source, "unit test fixture");
+        assert_eq!(
+            decoded.header.profile.stored_channels,
+            vec![
+                ChannelKind::Longitude,
+                ChannelKind::Latitude,
+                ChannelKind::DistanceAu
+            ]
+        );
+        assert_eq!(
+            decoded.header.profile.speed_policy,
+            SpeedPolicy::Unsupported
+        );
+        assert!(decoded
+            .header
+            .profile
+            .derived_outputs
+            .contains(&ArtifactOutput::EclipticCoordinates));
+        assert!(decoded
+            .header
+            .profile
+            .unsupported_outputs
+            .contains(&ArtifactOutput::Motion));
         assert_eq!(decoded.bodies.len(), 1);
         assert_eq!(decoded.bodies[0].body, CelestialBody::Sun);
         assert_eq!(
             decoded.checksum,
             artifact.checksum().expect("checksum should compute")
         );
+    }
+
+    #[test]
+    fn explicit_profile_roundtrip_preserves_stored_derived_and_unsupported_outputs() {
+        let profile = ArtifactProfile::new(
+            vec![ChannelKind::Longitude, ChannelKind::Latitude],
+            vec![ArtifactOutput::EclipticCoordinates, ArtifactOutput::Motion],
+            vec![
+                ArtifactOutput::EquatorialCoordinates,
+                ArtifactOutput::TopocentricCoordinates,
+            ],
+            SpeedPolicy::FittedDerivative,
+        );
+        let artifact = CompressedArtifact::new(
+            ArtifactHeader::with_profile("profile demo", "unit test profile", profile.clone()),
+            Vec::new(),
+        );
+
+        let decoded = CompressedArtifact::decode(
+            &artifact
+                .encode()
+                .expect("artifact should encode with profile"),
+        )
+        .expect("artifact should decode with profile");
+
+        assert_eq!(decoded.header.profile, profile);
     }
 
     #[cfg(feature = "serde")]
