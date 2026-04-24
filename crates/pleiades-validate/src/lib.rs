@@ -2975,6 +2975,28 @@ fn format_vsop87_canonical_evidence_summary() -> String {
     }
 }
 
+fn format_vsop87_source_documentation_summary() -> String {
+    let profiles = body_source_profiles();
+    let source_backed_profiles = profiles
+        .iter()
+        .filter(|profile| profile.kind == pleiades_vsop87::Vsop87BodySourceKind::TruncatedVsop87b)
+        .count();
+    let fallback_profiles = profiles
+        .iter()
+        .filter(|profile| {
+            profile.kind == pleiades_vsop87::Vsop87BodySourceKind::MeanOrbitalElements
+        })
+        .count();
+
+    format!(
+        "VSOP87 source documentation: {} source specs, {} source-backed body profiles, {} fallback mean-element body profile{}",
+        source_specifications().len(),
+        source_backed_profiles,
+        fallback_profiles,
+        if fallback_profiles == 1 { "" } else { "s" }
+    )
+}
+
 fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     use std::fmt::Write as _;
 
@@ -3087,6 +3109,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     );
     let _ = writeln!(text);
     let _ = writeln!(text, "VSOP87 source-backed evidence");
+    let _ = writeln!(text, "  {}", format_vsop87_source_documentation_summary());
     let _ = writeln!(text, "  {}", format_vsop87_canonical_evidence_summary());
     let _ = writeln!(text);
     let _ = writeln!(text, "Benchmark summaries");
@@ -3275,6 +3298,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str("Backends with external data sources: ");
     text.push_str(&data_source_count.to_string());
+    text.push('\n');
+    text.push_str(&format_vsop87_source_documentation_summary());
     text.push('\n');
     text.push_str(&format_vsop87_canonical_evidence_summary());
     text.push('\n');
@@ -5362,6 +5387,7 @@ mod tests {
         assert!(rendered.contains("Accuracy classes:"));
         assert!(rendered.contains("Exact: 1"));
         assert!(rendered.contains("Approximate: 4"));
+        assert!(rendered.contains("VSOP87 source documentation: 8 source specs, 8 source-backed body profiles, 1 fallback mean-element body profile"));
         assert!(rendered.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(rendered.contains("Distinct bodies covered:"));
         assert!(rendered.contains("Distinct coordinate frames:"));
@@ -5648,6 +5674,7 @@ version = "0.9.0"
         assert!(validation_report_summary.contains("Comparison corpus"));
         assert!(validation_report_summary.contains("Expected tolerance status"));
         assert!(validation_report_summary.contains("VSOP87 source-backed evidence"));
+        assert!(validation_report_summary.contains("VSOP87 source documentation: 8 source specs, 8 source-backed body profiles, 1 fallback mean-element body profile"));
         assert!(validation_report_summary
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(validation_report_summary.contains("VSOP87 source-backed evidence"));
