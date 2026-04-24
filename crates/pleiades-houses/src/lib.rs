@@ -374,6 +374,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
             "Pullen SD (Neo-Porphyry)",
             "Neo-Porphyry",
             "Pullen (Sinusoidal Delta)",
+            "Pullen SD (Sinusoidal Delta)",
             "Pullen sinusoidal delta",
         ],
         "Sinusoidal-delta variant that smooths quadrant spacing toward the angles.",
@@ -545,6 +546,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
             "Pullen SD (Neo-Porphyry)",
             "Neo-Porphyry",
             "Pullen (Sinusoidal Delta)",
+            "Pullen SD (Sinusoidal Delta)",
             "Pullen sinusoidal delta",
         ],
         "Sinusoidal-delta variant that smooths quadrant spacing toward the angles.",
@@ -1247,6 +1249,10 @@ mod tests {
         );
         assert_eq!(
             resolve_house_system("Pullen (Sinusoidal Delta)"),
+            Some(HouseSystem::PullenSd)
+        );
+        assert_eq!(
+            resolve_house_system("Pullen SD (Sinusoidal Delta)"),
             Some(HouseSystem::PullenSd)
         );
         assert_eq!(

@@ -58,6 +58,7 @@ These are durable planning decisions that should remain true even as individual 
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] The release compatibility profile's Pullen SD batch now also surfaces the exact `Pullen SD (Sinusoidal Delta)` spelling alongside the existing `Pullen SD (Neo-Porphyry)` source labels in `pleiades-houses` and the release-facing profile renderers, and the compatibility profile identifier has been bumped to `0.6.113` so the sinusoidal-delta alias batch stays versioned with the current profile.
 - [x] The release checklist and compact release summary now also surface `verify-compatibility-profile` alongside the existing release-bundle checks, so the maintainer-facing gate path keeps the catalog verification step visible in both the checklist artifact and the one-screen release overview.
 - [x] The packaged-artifact summary now also links `release-notes-summary` directly, so the compact artifact audit can hop back to the release narrative without leaving the maintainer-facing release surface.
 - [x] The release-bundle verification regression suite now also covers duplicate `api stability posture id:` manifest entries, so the staged provenance parser stays covered for the release-posture identifier as well as the existing profile-id duplicate-key guard.
