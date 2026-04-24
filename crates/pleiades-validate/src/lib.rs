@@ -2858,6 +2858,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(")\n");
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("API stability summary: api-stability-summary\n");
+    text.push_str("Release notes summary: release-notes-summary\n");
+    text.push_str("Release checklist summary: release-checklist-summary\n");
     text.push_str("Validation report summary: validation-report-summary / validation-summary / report-summary\n");
     text.push_str("See release-summary for the compact one-screen release overview.\n");
 
@@ -2895,6 +2897,8 @@ fn render_api_stability_summary_text() -> String {
     text.push('\n');
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("Backend matrix summary: backend-matrix-summary\n");
+    text.push_str("Release notes summary: release-notes-summary\n");
+    text.push_str("Release checklist summary: release-checklist-summary\n");
     text.push_str("See release-summary for the compact one-screen release overview.\n");
 
     text
@@ -4075,6 +4079,8 @@ mod tests {
         assert!(rendered.contains("Deprecation policy items:"));
         assert!(rendered.contains("Intentional limits:"));
         assert!(rendered.contains("Backend matrix summary: backend-matrix-summary"));
+        assert!(rendered.contains("Release notes summary: release-notes-summary"));
+        assert!(rendered.contains("Release checklist summary: release-checklist-summary"));
         assert!(
             rendered.contains("See release-summary for the compact one-screen release overview.")
         );
@@ -4325,9 +4331,11 @@ mod tests {
         assert!(rendered.contains("Distinct time scales:"));
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(rendered.contains("API stability summary: api-stability-summary"));
-        assert!(rendered.contains(
-            "Validation report summary: validation-report-summary / validation-summary / report-summary"
-        ));
+        assert!(rendered.contains("Release notes summary: release-notes-summary"));
+        assert!(rendered.contains("Release checklist summary: release-checklist-summary"));
+        assert!(
+            rendered.contains("Validation report summary: validation-report-summary / validation-summary / report-summary")
+        );
         assert!(
             rendered.contains("See release-summary for the compact one-screen release overview.")
         );

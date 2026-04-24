@@ -460,6 +460,8 @@ mod tests {
         assert!(backend_matrix.contains("Backend matrix summary"));
         assert!(backend_matrix.contains("Backends: 5"));
         assert!(backend_matrix.contains("Accuracy classes: Exact: 1"));
+        assert!(backend_matrix.contains("Release notes summary: release-notes-summary"));
+        assert!(backend_matrix.contains("Release checklist summary: release-checklist-summary"));
 
         let api_stability =
             render_cli(&["api-stability-summary"]).expect("api stability summary should render");
@@ -469,6 +471,8 @@ mod tests {
             "Compatibility profile: {}",
             release_profiles.compatibility_profile_id
         )));
+        assert!(api_stability.contains("Release notes summary: release-notes-summary"));
+        assert!(api_stability.contains("Release checklist summary: release-checklist-summary"));
 
         let release_notes = render_cli(&["release-notes"]).expect("release notes should render");
         assert!(release_notes.contains("Release notes"));
