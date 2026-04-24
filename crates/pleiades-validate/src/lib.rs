@@ -303,6 +303,147 @@ pub struct ComparisonReport {
     pub summary: ComparisonSummary,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum BodyClass {
+    Luminary,
+    MajorPlanet,
+    LunarPoint,
+    Asteroid,
+    Custom,
+}
+
+impl BodyClass {
+    const ALL: [Self; 5] = [
+        Self::Luminary,
+        Self::MajorPlanet,
+        Self::LunarPoint,
+        Self::Asteroid,
+        Self::Custom,
+    ];
+
+    const fn label(self) -> &'static str {
+        match self {
+            Self::Luminary => "Luminaries",
+            Self::MajorPlanet => "Major planets",
+            Self::LunarPoint => "Lunar points",
+            Self::Asteroid => "Asteroids",
+            Self::Custom => "Custom bodies",
+        }
+    }
+
+    const fn index(self) -> usize {
+        match self {
+            Self::Luminary => 0,
+            Self::MajorPlanet => 1,
+            Self::LunarPoint => 2,
+            Self::Asteroid => 3,
+            Self::Custom => 4,
+        }
+    }
+}
+
+fn body_class(body: &CelestialBody) -> BodyClass {
+    match body {
+        CelestialBody::Sun | CelestialBody::Moon => BodyClass::Luminary,
+        CelestialBody::Mercury
+        | CelestialBody::Venus
+        | CelestialBody::Mars
+        | CelestialBody::Jupiter
+        | CelestialBody::Saturn
+        | CelestialBody::Uranus
+        | CelestialBody::Neptune
+        | CelestialBody::Pluto => BodyClass::MajorPlanet,
+        CelestialBody::MeanNode
+        | CelestialBody::TrueNode
+        | CelestialBody::MeanApogee
+        | CelestialBody::TrueApogee
+        | CelestialBody::MeanPerigee
+        | CelestialBody::TruePerigee => BodyClass::LunarPoint,
+        CelestialBody::Ceres
+        | CelestialBody::Pallas
+        | CelestialBody::Juno
+        | CelestialBody::Vesta => BodyClass::Asteroid,
+        CelestialBody::Custom(_) => BodyClass::Custom,
+        _ => BodyClass::Custom,
+    }
+}
+
+#[derive(Clone, Debug)]
+struct BodyClassSummary {
+    class: BodyClass,
+    sample_count: usize,
+    max_longitude_delta_deg: f64,
+    sum_longitude_delta_deg: f64,
+    max_latitude_delta_deg: f64,
+    sum_latitude_delta_deg: f64,
+    max_distance_delta_au: Option<f64>,
+    sum_distance_delta_au: f64,
+    distance_count: usize,
+}
+
+impl BodyClassSummary {
+    fn mean_longitude_delta_deg(&self) -> f64 {
+        if self.sample_count == 0 {
+            0.0
+        } else {
+            self.sum_longitude_delta_deg / self.sample_count as f64
+        }
+    }
+
+    fn mean_latitude_delta_deg(&self) -> f64 {
+        if self.sample_count == 0 {
+            0.0
+        } else {
+            self.sum_latitude_delta_deg / self.sample_count as f64
+        }
+    }
+
+    fn mean_distance_delta_au(&self) -> Option<f64> {
+        if self.distance_count == 0 {
+            None
+        } else {
+            Some(self.sum_distance_delta_au / self.distance_count as f64)
+        }
+    }
+
+    fn render(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.sample_count == 0 {
+            return Ok(());
+        }
+
+        writeln!(f, "  {}", self.class.label())?;
+        writeln!(f, "    samples: {}", self.sample_count)?;
+        writeln!(
+            f,
+            "    max longitude delta: {:.12}°",
+            self.max_longitude_delta_deg
+        )?;
+        writeln!(
+            f,
+            "    mean longitude delta: {:.12}°",
+            self.mean_longitude_delta_deg()
+        )?;
+        writeln!(
+            f,
+            "    max latitude delta: {:.12}°",
+            self.max_latitude_delta_deg
+        )?;
+        writeln!(
+            f,
+            "    mean latitude delta: {:.12}°",
+            self.mean_latitude_delta_deg()
+        )?;
+        if let Some(value) = self.max_distance_delta_au {
+            writeln!(f, "    max distance delta: {:.12} AU", value)?;
+        }
+        if let Some(value) = self.mean_distance_delta_au() {
+            writeln!(f, "    mean distance delta: {:.12} AU", value)?;
+        }
+
+        Ok(())
+    }
+}
+
 /// A notable regression observed in a comparison report.
 #[derive(Clone, Debug, PartialEq)]
 pub struct RegressionFinding {
@@ -624,6 +765,8 @@ impl fmt::Display for ValidationReport {
         write_comparison_summary(f, &self.comparison.summary)?;
         writeln!(f)?;
         write_body_comparison_summaries(f, &self.comparison.body_summaries())?;
+        writeln!(f)?;
+        write_body_class_envelopes(f, &self.comparison.samples)?;
         writeln!(f)?;
         write_tolerance_summaries(f, &self.comparison.tolerance_summaries())?;
         writeln!(f)?;
@@ -3230,6 +3373,28 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         );
     }
     let _ = writeln!(text);
+    let _ = writeln!(text, "Body-class error envelopes");
+    for summary in report.comparison.body_class_summaries() {
+        let _ = writeln!(
+            text,
+            "  {}: samples={}, max Δlon={:.12}°, mean Δlon={:.12}°, max Δlat={:.12}°, mean Δlat={:.12}°, max Δdist={}, mean Δdist={}",
+            summary.class.label(),
+            summary.sample_count,
+            summary.max_longitude_delta_deg,
+            summary.mean_longitude_delta_deg(),
+            summary.max_latitude_delta_deg,
+            summary.mean_latitude_delta_deg(),
+            summary
+                .max_distance_delta_au
+                .map(|value| format!("{value:.12} AU"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            summary
+                .mean_distance_delta_au()
+                .map(|value| format!("{value:.12} AU"))
+                .unwrap_or_else(|| "n/a".to_string())
+        );
+    }
+    let _ = writeln!(text);
     let _ = writeln!(text, "Expected tolerance status");
     for summary in report.comparison.tolerance_summaries() {
         let _ = writeln!(
@@ -3610,6 +3775,8 @@ impl fmt::Display for ComparisonReport {
         writeln!(f)?;
         write_body_comparison_summaries(f, &self.body_summaries())?;
         writeln!(f)?;
+        write_body_class_envelopes(f, &self.samples)?;
+        writeln!(f)?;
         write_tolerance_summaries(f, &self.tolerance_summaries())?;
         writeln!(f)?;
         write_regression_section(f, "Notable regressions", &self.notable_regressions())?;
@@ -3653,6 +3820,11 @@ impl ComparisonReport {
     /// Returns per-body comparison statistics preserving first-seen body order.
     pub fn body_summaries(&self) -> Vec<BodyComparisonSummary> {
         body_comparison_summaries(&self.samples)
+    }
+
+    /// Returns per-body-class comparison envelopes preserving first-seen class order.
+    pub(crate) fn body_class_summaries(&self) -> Vec<BodyClassSummary> {
+        body_class_summaries(&self.samples)
     }
 
     /// Returns per-body tolerance status preserving first-seen body order.
@@ -3783,6 +3955,79 @@ fn body_comparison_summaries(samples: &[ComparisonSample]) -> Vec<BodyComparison
     accumulators
         .into_iter()
         .map(BodyComparisonAccumulator::finish)
+        .collect()
+}
+
+#[derive(Clone, Debug)]
+struct BodyClassAccumulator {
+    class: BodyClass,
+    sample_count: usize,
+    longitude_sum_deg: f64,
+    latitude_sum_deg: f64,
+    distance_sum_au: f64,
+    distance_count: usize,
+    max_longitude_delta_deg: f64,
+    max_latitude_delta_deg: f64,
+    max_distance_delta_au: Option<f64>,
+}
+
+impl BodyClassAccumulator {
+    const fn new(class: BodyClass) -> Self {
+        Self {
+            class,
+            sample_count: 0,
+            longitude_sum_deg: 0.0,
+            latitude_sum_deg: 0.0,
+            distance_sum_au: 0.0,
+            distance_count: 0,
+            max_longitude_delta_deg: 0.0,
+            max_latitude_delta_deg: 0.0,
+            max_distance_delta_au: None,
+        }
+    }
+
+    fn push(&mut self, sample: &ComparisonSample) {
+        self.sample_count += 1;
+        self.longitude_sum_deg += sample.longitude_delta_deg;
+        self.latitude_sum_deg += sample.latitude_delta_deg;
+        self.max_longitude_delta_deg = self.max_longitude_delta_deg.max(sample.longitude_delta_deg);
+        self.max_latitude_delta_deg = self.max_latitude_delta_deg.max(sample.latitude_delta_deg);
+        if let Some(delta) = sample.distance_delta_au {
+            self.distance_sum_au += delta;
+            self.distance_count += 1;
+            self.max_distance_delta_au = Some(
+                self.max_distance_delta_au
+                    .map_or(delta, |current| current.max(delta)),
+            );
+        }
+    }
+
+    fn finish(self) -> BodyClassSummary {
+        BodyClassSummary {
+            class: self.class,
+            sample_count: self.sample_count,
+            max_longitude_delta_deg: self.max_longitude_delta_deg,
+            sum_longitude_delta_deg: self.longitude_sum_deg,
+            max_latitude_delta_deg: self.max_latitude_delta_deg,
+            sum_latitude_delta_deg: self.latitude_sum_deg,
+            max_distance_delta_au: self.max_distance_delta_au,
+            sum_distance_delta_au: self.distance_sum_au,
+            distance_count: self.distance_count,
+        }
+    }
+}
+
+fn body_class_summaries(samples: &[ComparisonSample]) -> Vec<BodyClassSummary> {
+    let mut accumulators = BodyClass::ALL.map(BodyClassAccumulator::new);
+
+    for sample in samples {
+        accumulators[body_class(&sample.body).index()].push(sample);
+    }
+
+    accumulators
+        .into_iter()
+        .filter(|summary| summary.sample_count > 0)
+        .map(BodyClassAccumulator::finish)
         .collect()
 }
 
@@ -4175,6 +4420,23 @@ fn write_body_comparison_summaries(
                 .map(|value| format!("{value:.12} AU"))
                 .unwrap_or_else(|| "n/a".to_string())
         )?;
+    }
+    Ok(())
+}
+
+fn write_body_class_envelopes(
+    f: &mut fmt::Formatter<'_>,
+    samples: &[ComparisonSample],
+) -> fmt::Result {
+    writeln!(f, "Body-class error envelopes")?;
+    let summaries = body_class_summaries(samples);
+    if summaries.is_empty() {
+        writeln!(f, "  none")?;
+        return Ok(());
+    }
+
+    for summary in summaries {
+        summary.render(f)?;
     }
     Ok(())
 }
@@ -5032,6 +5294,9 @@ mod tests {
         assert!(report.contains("Reference backend"));
         assert!(report.contains("Candidate backend"));
         assert!(report.contains("Comparison summary"));
+        assert!(report.contains("Body-class error envelopes"));
+        assert!(report.contains("Luminaries"));
+        assert!(report.contains("Major planets"));
         assert!(report.contains("interpolation quality checks:"));
         assert!(report.contains("JPL interpolation quality: 10 samples across 5 bodies"));
         assert!(report.contains("Body comparison summaries"));
@@ -5063,6 +5328,7 @@ mod tests {
         assert!(report.contains("JPL interpolation quality"));
         assert!(report.contains("JPL interpolation quality: 10 samples across 5 bodies"));
         assert!(report.contains("Body comparison summaries"));
+        assert!(report.contains("Body-class error envelopes"));
         assert!(report.contains("VSOP87 source-backed evidence"));
         assert!(report
             .contains("VSOP87 source audit: 8 source-backed bodies, 8 vendored full-file inputs"));
@@ -5099,6 +5365,7 @@ mod tests {
         assert!(validation_report_summary.contains("Validation report summary"));
         assert!(validation_report_summary.contains("Comparison corpus"));
         assert!(validation_report_summary.contains("Body comparison summaries"));
+        assert!(validation_report_summary.contains("Body-class error envelopes"));
         assert!(validation_report_summary.contains("Expected tolerance status"));
         assert!(validation_report_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
