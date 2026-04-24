@@ -1889,7 +1889,11 @@ impl ParsedReleaseBundleManifest {
             rustc_version: parse_manifest_string(text, "rustc version:")?,
             profile_id: parse_manifest_string(text, "profile id:")?,
             api_stability_posture_id: parse_manifest_string(text, "api stability posture id:")?,
-            validation_rounds: parse_manifest_usize(text, "validation rounds:")?,
+            validation_rounds: parse_manifest_usize(
+                text,
+                "validation rounds:",
+                "validation rounds",
+            )?,
         })
     }
 }
@@ -2355,11 +2359,21 @@ fn ensure_non_empty_manifest_value(
     }
 }
 
-fn parse_manifest_usize(text: &str, prefix: &str) -> Result<usize, ReleaseBundleError> {
+fn parse_manifest_usize(
+    text: &str,
+    prefix: &str,
+    field_name: &str,
+) -> Result<usize, ReleaseBundleError> {
     let value = extract_prefixed_value(text, prefix)?;
-    value.parse::<usize>().map_err(|error| {
-        ReleaseBundleError::Verification(format!("invalid {prefix} value: {error}"))
-    })
+    let parsed = value.parse::<usize>().map_err(|error| {
+        ReleaseBundleError::Verification(format!("invalid {field_name} entry: {error}"))
+    })?;
+    if parsed == 0 {
+        return Err(ReleaseBundleError::Verification(format!(
+            "invalid {field_name} entry: expected a positive integer"
+        )));
+    }
+    Ok(parsed)
 }
 
 fn parse_manifest_checksum(text: &str, prefix: &str) -> Result<u64, ReleaseBundleError> {
@@ -3563,6 +3577,11 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
                 rounds = value
                     .parse::<usize>()
                     .map_err(|error| format!("invalid value for --rounds: {error}"))?;
+                if rounds == 0 {
+                    return Err(
+                        "invalid value for --rounds: expected a positive integer".to_string()
+                    );
+                }
             }
             other => return Err(format!("unknown argument: {other}")),
         }
@@ -3609,6 +3628,11 @@ fn parse_release_bundle_args(
                 rounds = value
                     .parse::<usize>()
                     .map_err(|error| format!("invalid value for --rounds: {error}"))?;
+                if rounds == 0 {
+                    return Err(
+                        "invalid value for --rounds: expected a positive integer".to_string()
+                    );
+                }
             }
             other => return Err(format!("unknown argument: {other}")),
         }
@@ -4014,6 +4038,27 @@ mod tests {
         assert!(validation_report_summary.contains("Validation report summary"));
         assert!(validation_report_summary.contains("Comparison corpus"));
         assert!(validation_report_summary.contains("Benchmark summaries"));
+    }
+
+    #[test]
+    fn cli_rejects_zero_rounds_for_benchmark_and_bundle_release() {
+        let benchmark_error = render_cli(&["benchmark", "--rounds", "0"])
+            .expect_err("benchmark should reject zero rounds");
+        assert!(benchmark_error.contains("invalid value for --rounds: expected a positive integer"));
+
+        let bundle_dir = unique_temp_dir("pleiades-release-bundle-zero-rounds-command");
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        let bundle_error = render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "0",
+        ])
+        .expect_err("bundle-release should reject zero rounds");
+        assert!(bundle_error.contains("invalid value for --rounds: expected a positive integer"));
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
     }
 
     #[test]
@@ -4855,6 +4900,39 @@ version = "0.9.0"
             error.contains("release bundle verification failed")
                 || error.contains("bundle manifest checksum mismatch")
         );
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_zero_validation_rounds() {
+        let bundle_dir = unique_temp_dir("pleiades-release-bundle-zero-validation-rounds");
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let manifest_path = bundle_dir.join("bundle-manifest.txt");
+        let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
+        let tampered_manifest = manifest.replace("validation rounds: 1", "validation rounds: 0");
+        std::fs::write(&manifest_path, &tampered_manifest).expect("manifest should be writable");
+
+        let checksum_path = bundle_dir.join("bundle-manifest.checksum.txt");
+        std::fs::write(
+            &checksum_path,
+            format!("0x{:016x}\n", checksum64(&tampered_manifest)),
+        )
+        .expect("manifest checksum sidecar should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect_err("verification should fail for zero validation rounds");
+        assert!(error.contains("release bundle verification failed"));
+        assert!(error.contains("invalid validation rounds entry: expected a positive integer"));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
     }
