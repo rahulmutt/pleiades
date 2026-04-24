@@ -59,6 +59,7 @@ These are durable planning decisions that should remain true even as individual 
 Stage 6 release hardening has started as of 2026-04-22.
 
 - [x] The backend-matrix-summary and API-stability-summary quick-audit views now also cross-reference the release-notes-summary and release-checklist-summary artifacts, so the compact release-surface audit has direct hops to the narrative and gate summaries without changing the underlying matrices or API posture.
+- [x] The packaged-artifact summary now also points back to `release-summary`, so the compact artifact audit can hop to the one-screen release overview without changing the underlying artifact report.
 - [x] The validation-report summary now also points directly to `verify-release-bundle`, so the validation audit and staged-bundle integrity checks stay linked in the compact maintainer-facing release path without changing the underlying validation corpus.
 - [x] The release-bundle help text and `ReleaseBundle` rustdoc now call the shipped API artifact the `API stability summary` consistently instead of the shorter `API summary` wording, keeping the bundle description aligned with the actual file name and the release-facing docs.
 - [x] The full release-notes artifact and the compact compatibility-profile summary now also surface `release-summary` explicitly, so the release overview hop is visible in the maintainer audit path without changing the underlying release profile.

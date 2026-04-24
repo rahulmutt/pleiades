@@ -553,6 +553,7 @@ mod tests {
             render_cli(&["artifact-summary"]).expect("artifact summary should render");
         assert!(artifact_summary.contains("Artifact summary"));
         assert!(artifact_summary.contains("Model error envelope"));
+        assert!(artifact_summary.contains("Release summary: release-summary"));
 
         let report = render_cli(&["report", "--rounds", "10"])
             .expect("report should render through the primary CLI");

@@ -317,8 +317,9 @@ fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
     if let Some(value) = report.model_comparison.summary.max_distance_delta_au {
         text.push_str(&format!("  max distance delta: {:.12} AU\n", value));
     }
+    text.push_str("\nRelease summary: release-summary\n");
     text.push_str(
-        "\nSee validate-artifact for the full body-class envelopes and regression details.\n",
+        "See validate-artifact for the full body-class envelopes and regression details.\nSee release-summary for the compact one-screen release overview.\n",
     );
 
     text
