@@ -2878,6 +2878,7 @@ fn render_api_stability_summary_text() -> String {
     text.push_str("Intentional limits: ");
     text.push_str(&profile.intentional_limits.len().to_string());
     text.push('\n');
+    text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("Backend matrix summary: backend-matrix-summary\n");
     text.push_str("See release-summary for the compact one-screen release overview.\n");
 
@@ -4050,6 +4051,7 @@ mod tests {
             "Compatibility profile: {}",
             release_profiles.compatibility_profile_id
         )));
+        assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(rendered.contains("Stable surfaces:"));
         assert!(rendered.contains("Experimental surfaces:"));
         assert!(rendered.contains("Deprecation policy items:"));
