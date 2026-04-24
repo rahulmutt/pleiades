@@ -18,7 +18,8 @@ use pleiades_elp::ElpBackend;
 use pleiades_jpl::JplSnapshotBackend;
 use pleiades_validate::{
     render_api_stability_summary, render_artifact_summary, render_backend_matrix_report,
-    render_backend_matrix_summary, render_compatibility_profile_summary, render_release_checklist,
+    render_backend_matrix_summary, render_cli as validate_render_cli,
+    render_compatibility_profile_summary, render_release_checklist,
     render_release_checklist_summary, render_release_notes, render_release_notes_summary,
     render_release_summary, render_validation_report_summary, verify_compatibility_profile,
 };
@@ -38,6 +39,13 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("verify-compatibility-profile") => {
             verify_compatibility_profile().map_err(render_error)
+        }
+        Some("verify-release-bundle") => {
+            if args[1..].iter().any(|arg| *arg == "--help" || *arg == "-h") {
+                return Ok(help_text());
+            }
+            let output_dir = parse_release_bundle_output_dir(&args[1..])?;
+            validate_render_cli(&["verify-release-bundle", "--out", output_dir])
         }
         Some("api-stability") | Some("api-posture") => {
             Ok(current_api_stability_profile().to_string())
@@ -73,18 +81,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
 
 fn help_text() -> String {
     format!(
-        "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary        Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  api-stability-summary  Print the compact API stability summary\n  api-posture-summary    Alias for api-stability-summary\n  backend-matrix         Print the implemented backend capability matrices\n  capability-matrix      Alias for backend-matrix\n  backend-matrix-summary Print the compact backend capability matrix summary\n  matrix-summary         Alias for backend-matrix-summary\n  release-notes          Print the release compatibility notes
-  release-notes-summary   Print the compact release notes summary
-  release-checklist      Print the release maintainer checklist
-  release-checklist-summary Print the compact release checklist summary
-  checklist-summary      Alias for release-checklist-summary
-  release-summary        Print the compact release summary
-  artifact-summary       Print the compact packaged-artifact summary
-  artifact-posture-summary  Alias for artifact-summary
-  validation-report-summary  Print the compact validation report summary
-  validation-summary     Alias for validation-report-summary
-  report-summary         Alias for validation-report-summary
-  chart                  Render a basic chart report\n    --mean               Force mean positions for backend queries\n    --apparent           Force apparent positions for backend queries\n    --body <name>        Use a built-in body or a custom catalog:designation identifier\n  help                   Show this help text",
+        "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary        Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  verify-release-bundle  Read a staged release bundle back and verify its manifest checksums\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  api-stability-summary  Print the compact API stability summary\n  api-posture-summary    Alias for api-stability-summary\n  backend-matrix         Print the implemented backend capability matrices\n  capability-matrix      Alias for backend-matrix\n  backend-matrix-summary Print the compact backend capability matrix summary\n  matrix-summary         Alias for backend-matrix-summary\n  release-notes          Print the release compatibility notes\n  release-notes-summary   Print the compact release notes summary\n  release-checklist      Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary      Alias for release-checklist-summary\n  release-summary        Print the compact release summary\n  artifact-summary       Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  validation-report-summary  Print the compact validation report summary\n  validation-summary     Alias for validation-report-summary\n  report-summary         Alias for validation-report-summary\n  chart                  Render a basic chart report\n    --mean               Force mean positions for backend queries\n    --apparent           Force apparent positions for backend queries\n    --body <name>        Use a built-in body or a custom catalog:designation identifier\n  help                   Show this help text",
         banner()
     )
 }
@@ -184,6 +181,25 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
         .chart(&request)
         .map(|chart| chart.to_string())
         .map_err(render_error)
+}
+
+fn parse_release_bundle_output_dir<'a>(args: &'a [&'a str]) -> Result<&'a str, String> {
+    let mut output_dir: Option<&str> = None;
+    let mut iter = args.iter().copied();
+
+    while let Some(arg) = iter.next() {
+        match arg {
+            "--out" => {
+                output_dir = Some(
+                    iter.next()
+                        .ok_or_else(|| "missing value for --out".to_string())?,
+                );
+            }
+            other => return Err(format!("unknown argument: {other}")),
+        }
+    }
+
+    output_dir.ok_or_else(|| "missing required --out <dir> argument".to_string())
 }
 
 fn parse_f64(value: Option<&str>, flag: &str) -> Result<f64, String> {
@@ -337,6 +353,21 @@ mod tests {
         banner, parse_ayanamsa, parse_body, render_chart, render_cli, Angle, Ayanamsa,
         CelestialBody, CustomAyanamsa, CustomBodyId, JulianDay,
     };
+
+    fn unique_temp_dir(prefix: &str) -> std::path::PathBuf {
+        let unique = format!(
+            "{}-{}-{}",
+            prefix,
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("system clock should be after UNIX_EPOCH")
+                .as_nanos()
+        );
+        let path = std::env::temp_dir().join(unique);
+        std::fs::create_dir_all(&path).expect("temp dir should be creatable");
+        path
+    }
 
     #[test]
     fn banner_mentions_package() {
@@ -522,12 +553,28 @@ mod tests {
     }
 
     #[test]
+    fn verify_release_bundle_command_verifies_a_staged_bundle() {
+        let bundle_dir = unique_temp_dir("pleiades-cli-release-bundle");
+        let bundle_dir_string = bundle_dir.display().to_string();
+
+        pleiades_validate::render_cli(&["bundle-release", "--out", &bundle_dir_string])
+            .expect("bundle generation should succeed");
+        let verified = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect("bundle verification should render");
+
+        assert!(verified.contains("Release bundle"));
+        assert!(verified.contains("compatibility-profile.txt"));
+        assert!(verified.contains("bundle-manifest.checksum.txt"));
+    }
+
+    #[test]
     fn unknown_command_is_rejected() {
         let error = render_cli(&["compatibility-profile-snapshot"])
             .expect_err("unknown commands should fail");
         assert!(error.contains("unknown command: compatibility-profile-snapshot"));
         assert!(error.contains("compatibility-profile  Print the release compatibility profile"));
         assert!(error.contains("verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs"));
+        assert!(error.contains("verify-release-bundle  Read a staged release bundle back and verify its manifest checksums"));
         assert!(error.contains("release-notes          Print the release compatibility notes"));
         assert!(error.contains("release-notes-summary   Print the compact release notes summary"));
         assert!(
