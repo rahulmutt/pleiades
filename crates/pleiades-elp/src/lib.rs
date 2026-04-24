@@ -2,7 +2,8 @@
 //!
 //! The full ELP series data is still planned, but this crate now provides a
 //! usable Moon-and-lunar-node backend for the chart MVP by combining a
-//! low-precision lunar orbit model with geocentric coordinate transforms.
+//! low-precision lunar orbit model with geocentric coordinate transforms and
+//! finite-difference mean-motion estimates.
 
 #![forbid(unsafe_code)]
 
@@ -151,6 +152,50 @@ impl ElpBackend {
         )
     }
 
+    fn ecliptic_for_body(body: CelestialBody, days: f64) -> Option<EclipticCoordinates> {
+        match body {
+            CelestialBody::Moon => Some(Self::to_ecliptic(Self::geocentric_coordinates(days))),
+            CelestialBody::MeanNode => Some(EclipticCoordinates::new(
+                Longitude::from_degrees(Self::mean_node_longitude(days)),
+                Latitude::from_degrees(0.0),
+                None,
+            )),
+            CelestialBody::TrueNode => Some(EclipticCoordinates::new(
+                Longitude::from_degrees(Self::true_node_longitude(days)),
+                Latitude::from_degrees(0.0),
+                None,
+            )),
+            _ => None,
+        }
+    }
+
+    fn motion(body: CelestialBody, days: f64) -> Option<Motion> {
+        // Match the planetary backend's chart-facing convention: these are
+        // symmetric finite-difference rates for the same mean geometric model,
+        // not apparent velocities from a full lunar theory.
+        const HALF_SPAN_DAYS: f64 = 0.5;
+        const FULL_SPAN_DAYS: f64 = HALF_SPAN_DAYS * 2.0;
+
+        let before = Self::ecliptic_for_body(body.clone(), days - HALF_SPAN_DAYS)?;
+        let after = Self::ecliptic_for_body(body, days + HALF_SPAN_DAYS)?;
+
+        let longitude_speed =
+            signed_longitude_delta_degrees(before.longitude.degrees(), after.longitude.degrees())
+                / FULL_SPAN_DAYS;
+        let latitude_speed =
+            (after.latitude.degrees() - before.latitude.degrees()) / FULL_SPAN_DAYS;
+        let distance_speed = match (before.distance_au, after.distance_au) {
+            (Some(before), Some(after)) => Some((after - before) / FULL_SPAN_DAYS),
+            _ => None,
+        };
+
+        Some(Motion::new(
+            Some(longitude_speed),
+            Some(latitude_speed),
+            distance_speed,
+        ))
+    }
+
     fn ecliptic_point_to_equatorial(
         longitude: Longitude,
         latitude: Latitude,
@@ -181,7 +226,7 @@ impl EphemerisBackend for ElpBackend {
             version: env!("CARGO_PKG_VERSION").to_string(),
             family: BackendFamily::Algorithmic,
             provenance: BackendProvenance {
-                summary: "Low-precision pure-Rust lunar backend using a compact analytical orbit model and geocentric reduction.".to_string(),
+                summary: "Low-precision pure-Rust lunar backend using a compact analytical orbit model, geocentric reduction, and finite-difference mean-motion estimates.".to_string(),
                 data_sources: vec![
                     "Meeus-style truncated lunar orbit formulas".to_string(),
                     "Public ELP 2000/82 documentation for future expansion".to_string(),
@@ -293,7 +338,7 @@ impl EphemerisBackend for ElpBackend {
             }
             _ => unreachable!("body support should be validated before position queries"),
         }
-        result.motion = Some(Motion::new(None, None, None));
+        result.motion = Self::motion(body, days);
         Ok(result)
     }
 }
@@ -308,6 +353,10 @@ struct HeliocentricLikeCoordinates {
 
 fn normalize_degrees(angle: f64) -> f64 {
     angle.rem_euclid(360.0)
+}
+
+fn signed_longitude_delta_degrees(start: f64, end: f64) -> f64 {
+    (end - start + 180.0).rem_euclid(360.0) - 180.0
 }
 
 fn solve_kepler(mean_anomaly: f64, eccentricity: f64) -> f64 {
@@ -345,8 +394,21 @@ mod tests {
         let request = mean_request(CelestialBody::Moon);
         let result = backend.position(&request).expect("moon query should work");
         let ecliptic = result.ecliptic.expect("ecliptic result should exist");
+        let motion = result.motion.expect("motion should be populated");
         assert!(ecliptic.longitude.degrees().is_finite());
         assert!(ecliptic.latitude.degrees().is_finite());
+        assert!(motion
+            .longitude_deg_per_day
+            .expect("longitude speed should exist")
+            .is_finite());
+        assert!(motion
+            .latitude_deg_per_day
+            .expect("latitude speed should exist")
+            .is_finite());
+        assert!(motion
+            .distance_au_per_day
+            .expect("distance speed should exist")
+            .is_finite());
         assert_eq!(result.quality, QualityAnnotation::Approximate);
     }
 
@@ -362,6 +424,13 @@ mod tests {
         assert!((mean_ecliptic.longitude.degrees() - 125.044_547_9).abs() < 1e-9);
         assert_eq!(mean_ecliptic.latitude.degrees(), 0.0);
         assert!(mean.equatorial.is_some());
+        let mean_motion = mean.motion.expect("mean node motion should be populated");
+        assert!(mean_motion
+            .longitude_deg_per_day
+            .expect("mean node longitude speed should exist")
+            .is_finite());
+        assert_eq!(mean_motion.latitude_deg_per_day, Some(0.0));
+        assert_eq!(mean_motion.distance_au_per_day, None);
 
         let true_node = backend
             .position(&mean_request_at(CelestialBody::TrueNode, instant))
@@ -370,6 +439,15 @@ mod tests {
         assert!((true_ecliptic.longitude.degrees() - 123.926_171_368_400_46).abs() < 1e-9);
         assert_eq!(true_ecliptic.latitude.degrees(), 0.0);
         assert!(true_node.equatorial.is_some());
+        let true_motion = true_node
+            .motion
+            .expect("true node motion should be populated");
+        assert!(true_motion
+            .longitude_deg_per_day
+            .expect("true node longitude speed should exist")
+            .is_finite());
+        assert_eq!(true_motion.latitude_deg_per_day, Some(0.0));
+        assert_eq!(true_motion.distance_au_per_day, None);
     }
 
     #[test]
