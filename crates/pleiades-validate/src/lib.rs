@@ -4861,6 +4861,18 @@ version = "0.9.0"
     }
 
     #[test]
+    fn verify_release_bundle_rejects_duplicate_validation_rounds_entry() {
+        assert_release_bundle_rejects_duplicate_manifest_entry(
+            "pleiades-release-bundle-duplicate-validation-rounds",
+            "validation rounds:",
+            &[
+                "duplicate entry: validation rounds:",
+                "release bundle verification failed",
+            ],
+        );
+    }
+
+    #[test]
     fn verify_release_bundle_rejects_whitespace_source_revision_entry() {
         assert_release_bundle_rejects_whitespace_manifest_entry(
             "pleiades-release-bundle-whitespace-source-revision",
