@@ -2291,6 +2291,11 @@ fn parse_manifest_checksum(text: &str, prefix: &str) -> Result<u64, ReleaseBundl
     let value = value.strip_prefix("0x").ok_or_else(|| {
         ReleaseBundleError::Verification(format!("missing 0x prefix for {prefix}"))
     })?;
+    if value.len() != 16 || !value.chars().all(|ch| matches!(ch, '0'..='9' | 'a'..='f')) {
+        return Err(ReleaseBundleError::Verification(format!(
+            "invalid {prefix} value: expected exactly 16 lowercase hex digits"
+        )));
+    }
     u64::from_str_radix(value, 16).map_err(|error| {
         ReleaseBundleError::Verification(format!("invalid {prefix} value: {error}"))
     })
@@ -4839,6 +4844,57 @@ version = "0.9.0"
             .expect_err("verification should fail for a noncanonical manifest checksum sidecar");
         assert!(error.contains("release bundle verification failed"));
         assert!(error.contains("invalid bundle manifest checksum sidecar value"));
+        assert!(error.contains("expected exactly 16 lowercase hex digits"));
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_noncanonical_manifest_checksum_entry() {
+        let bundle_dir = unique_temp_dir("pleiades-release-bundle-noncanonical-manifest-entry");
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let manifest_path = bundle_dir.join("bundle-manifest.txt");
+        let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
+        let rewritten = manifest
+            .lines()
+            .map(|line| {
+                line.strip_prefix("profile checksum (fnv1a-64): ")
+                    .map(|value| {
+                        let digits = value.strip_prefix("0x").unwrap_or(value);
+                        format!(
+                            "profile checksum (fnv1a-64): 0x{}",
+                            digits.to_ascii_uppercase()
+                        )
+                    })
+                    .unwrap_or_else(|| line.to_string())
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        std::fs::write(&manifest_path, format!("{rewritten}\n"))
+            .expect("manifest should be writable");
+
+        let checksum = checksum64(
+            &std::fs::read_to_string(&manifest_path).expect("manifest should exist after rewrite"),
+        );
+        std::fs::write(
+            bundle_dir.join("bundle-manifest.checksum.txt"),
+            format!("0x{checksum:016x}\n"),
+        )
+        .expect("manifest checksum sidecar should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect_err("verification should fail for a noncanonical manifest checksum entry");
+        assert!(error.contains("release bundle verification failed"));
+        assert!(error.contains("invalid profile checksum (fnv1a-64): value"));
         assert!(error.contains("expected exactly 16 lowercase hex digits"));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);

@@ -58,6 +58,7 @@ These are durable planning decisions that should remain true even as individual 
 
 Stage 6 release hardening has started as of 2026-04-22.
 
+- [x] `pleiades-validate` now rejects noncanonical checksum encodings in `bundle-manifest.txt` release entries as well as in the `bundle-manifest.checksum.txt` sidecar, so the staged bundle manifest stays on the same lowercase fixed-width checksum format as the checksum sidecar.
 - [x] The release checklist summary now also cross-references the compact `release-summary` view, so maintainers can hop from the checklist audit to the one-screen release overview without leaving the release-surface review.
 - [x] The release compatibility profile now also surfaces the exact `David Cochrane` and `Nick Anthony Fiorenza` source names for the Galactic Center (Cochrane) and Galactic Equator (Fiorenza) entries, and the compatibility profile identifier has been bumped to `0.6.97` so the new alias batch stays versioned with the current profile.
 
