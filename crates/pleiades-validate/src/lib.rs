@@ -2993,6 +2993,7 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("API stability summary: api-stability-summary\n");
     text.push_str("Release notes summary: release-notes-summary\n");
+    text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
     text.push_str("Release bundle verification: verify-release-bundle\n");
     text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
     text.push_str("Release checklist summary: release-checklist-summary\n");
@@ -4729,6 +4730,8 @@ version = "0.9.0"
         assert!(artifact_summary.contains("Release notes summary: release-notes-summary"));
         assert!(artifact_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
+        assert!(artifact_summary
+            .contains("Compatibility profile verification: verify-compatibility-profile"));
         assert!(artifact_summary.contains("Release checklist summary: release-checklist-summary"));
         assert!(artifact_summary.contains("Release bundle verification: verify-release-bundle"));
         assert!(artifact_summary.contains(
@@ -4770,6 +4773,8 @@ version = "0.9.0"
         assert!(backend_matrix_summary.contains("Backends: 5"));
         assert!(backend_matrix_summary.contains("Algorithmic: 2"));
         assert!(backend_matrix_summary.contains("Composite: 1"));
+        assert!(backend_matrix_summary
+            .contains("Compatibility profile verification: verify-compatibility-profile"));
         assert!(backend_matrix.contains(
             "selected asteroid coverage: 5 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"
         ));

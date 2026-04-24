@@ -470,6 +470,8 @@ mod tests {
         assert!(backend_matrix.contains("Backends: 5"));
         assert!(backend_matrix.contains("Accuracy classes: Exact: 1"));
         assert!(backend_matrix.contains("Release notes summary: release-notes-summary"));
+        assert!(backend_matrix
+            .contains("Compatibility profile verification: verify-compatibility-profile"));
         assert!(backend_matrix.contains("Release bundle verification: verify-release-bundle"));
         assert!(backend_matrix
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
@@ -586,6 +588,8 @@ mod tests {
         assert!(artifact_summary.contains("Model error envelope"));
         assert!(artifact_summary.contains("Release summary: release-summary"));
         assert!(artifact_summary.contains("Release notes summary: release-notes-summary"));
+        assert!(artifact_summary
+            .contains("Compatibility profile verification: verify-compatibility-profile"));
 
         let artifact_report =
             render_cli(&["validate-artifact"]).expect("validate-artifact should render");

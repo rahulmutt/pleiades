@@ -114,7 +114,7 @@ The release bundle makes the current release posture easy to reproduce and audit
 - the API stability posture records which surfaces are stable versus operational, and the API stability summary provides a compact count-based audit view tagged with the current compatibility-profile identifier,
 - the validation report summary provides a compact cross-check of the comparison, house-validation, and benchmark corpus coverage before you open the full validation report,
 - the validation report preserves comparison, benchmark, and packaged-data benchmark summaries,
-- the artifact summary gives a compact packaged-artifact audit view and now points straight to `verify-release-bundle` for the staged-bundle integrity check,
+- the backend matrix summary and artifact summary give compact audit views and now point straight to `verify-compatibility-profile` and `verify-release-bundle`, so the coverage and artifact audits can hop back to the catalog check as well as the staged-bundle integrity check,
 - the manifest records deterministic checksums for the published text artifacts.
 
 If any of those files change, regenerate the bundle from the repository and re-run the verification command.

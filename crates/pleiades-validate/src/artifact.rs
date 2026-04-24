@@ -320,6 +320,7 @@ fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
     text.push_str("\nRelease summary: release-summary\n");
     text.push_str("Release notes summary: release-notes-summary\n");
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
+    text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
     text.push_str("Release checklist summary: release-checklist-summary\n");
     text.push_str("Release bundle verification: verify-release-bundle\n");
     text.push_str(
