@@ -4669,6 +4669,7 @@ version = "0.9.0"
         assert!(artifact_summary.contains("Artifact summary"));
         assert!(artifact_summary.contains("Model error envelope"));
         assert!(artifact_summary.contains("Release summary: release-summary"));
+        assert!(artifact_summary.contains("Release notes summary: release-notes-summary"));
         assert!(artifact_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(artifact_summary.contains("Release bundle verification: verify-release-bundle"));
