@@ -492,6 +492,7 @@ mod tests {
         let release_notes = render_cli(&["release-notes"]).expect("release notes should render");
         assert!(release_notes.contains("Release notes"));
         assert!(release_notes.contains("Release notes summary: release-notes-summary"));
+        assert!(release_notes.contains("Backend matrix summary: backend-matrix-summary"));
         assert!(release_notes.contains("Artifact validation: validate-artifact"));
         assert!(release_notes.contains("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_notes.contains("Release checklist summary: release-checklist-summary"));

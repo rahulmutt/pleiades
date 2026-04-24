@@ -1347,6 +1347,7 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push('\n');
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
+    text.push_str("Backend matrix summary: backend-matrix-summary\n");
     text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
     text.push_str("Artifact validation: validate-artifact\n");
     text.push_str("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary\n");
@@ -4702,6 +4703,7 @@ version = "0.9.0"
         )));
         assert!(release_notes.contains("Release notes"));
         assert!(release_notes.contains("Release notes summary: release-notes-summary"));
+        assert!(release_notes.contains("Backend matrix summary: backend-matrix-summary"));
         assert!(release_notes.contains("Artifact validation: validate-artifact"));
         assert!(release_notes
             .contains("Compatibility profile verification: verify-compatibility-profile"));
