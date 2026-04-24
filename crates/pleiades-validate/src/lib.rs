@@ -4940,8 +4940,14 @@ mod tests {
             render_cli(&["compatibility-profile"]).expect("compatibility profile should render");
         assert!(rendered.contains("Equal (MC) table of houses"));
         assert!(rendered.contains("Equal (1=Aries) table of houses"));
+        assert!(rendered.contains("Equal table of houses"));
+        assert!(rendered.contains("Whole Sign system"));
+        assert!(rendered.contains("Morinus house system"));
         assert!(rendered.contains("Pullen SR (Sinusoidal Ratio) table of houses"));
         assert!(rendered.contains("True Citra Paksha"));
+        assert!(rendered.contains("Galactic Equator (Fiorenza)"));
+        assert!(rendered.contains("Valens Moon"));
+        assert!(rendered.contains("Babylonian (House Obs)"));
         assert!(rendered.contains("Sunil Sheoran / Vedic Sheoran / Sheoran ayanamsa spellings"));
         assert!(rendered.contains("P.V.R. Narasimha Rao"));
         assert!(rendered.contains("B. V. Raman"));
