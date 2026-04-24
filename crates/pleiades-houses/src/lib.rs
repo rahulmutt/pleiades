@@ -99,7 +99,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
     HouseSystemDescriptor::new(
         HouseSystem::Koch,
         "Koch",
-        &["Koch houses", "Koch house system", "Koch table of houses", "W. Koch", "W Koch"],
+        &["Koch houses", "Koch house system", "house system of the birth place", "Koch table of houses", "W. Koch", "W Koch"],
         "Quadrant system with documented high-latitude pathologies.",
         true,
     ),
@@ -423,7 +423,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
     HouseSystemDescriptor::new(
         HouseSystem::Koch,
         "Koch",
-        &["Koch houses", "Koch house system", "Koch table of houses", "W. Koch", "W Koch"],
+        &["Koch houses", "Koch house system", "house system of the birth place", "Koch table of houses", "W. Koch", "W Koch"],
         "Quadrant system with documented high-latitude pathologies.",
         true,
     ),
@@ -947,6 +947,10 @@ mod tests {
         );
         assert_eq!(resolve_house_system("w. koch"), Some(HouseSystem::Koch));
         assert_eq!(resolve_house_system("Koch houses"), Some(HouseSystem::Koch));
+        assert_eq!(
+            resolve_house_system("house system of the birth place"),
+            Some(HouseSystem::Koch)
+        );
         assert_eq!(resolve_house_system("W Koch"), Some(HouseSystem::Koch));
         assert_eq!(resolve_house_system("ARMC"), Some(HouseSystem::Meridian));
         assert_eq!(
