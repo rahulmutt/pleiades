@@ -63,6 +63,8 @@ Progress note (2026-04-24): `pleiades-elp` now exposes mean lunar apogee and mea
 
 Progress note (2026-04-24): the compact ELP backend now also publishes a structured lunar-theory specification naming the current Meeus-style analytical baseline, the supported lunar channels, the explicitly unsupported true apogee/perigee bodies, the provenance note, and the current J2000-centered validation window. The validation backend matrix and compact summaries now render that specification explicitly, so the current Moon/node/apogee/perigee baseline is visible in release-facing metadata while a full ELP coefficient implementation remains pending.
 
+Progress note (2026-04-24): the ELP baseline now also carries an explicit lunar-theory policy doc plus a regression test over a short high-curvature Moon window, so the current source/provenance posture and nearby motion continuity are both exercised before the eventual source-backed ELP selection lands.
+
 ## 3. JPL reader/interpolator expansion
 
 **Goal:** build on the completed small fixture interpolator and turn `pleiades-jpl` into a stronger reference backend.

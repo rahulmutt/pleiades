@@ -12,6 +12,9 @@
 //! true perigee as unsupported bodies, so future source-backed ELP work can
 //! attach provenance, supported channels, unsupported channels, and date-range
 //! notes without changing the public API shape.
+//!
+//! See `docs/lunar-theory-policy.md` for the current baseline, validation
+//! scope, and source/provenance posture.
 
 #![forbid(unsafe_code)]
 
@@ -62,11 +65,11 @@ pub fn lunar_theory_specification() -> LunarTheorySpecification {
     LunarTheorySpecification {
         model_name: "Compact Meeus-style analytical lunar baseline",
         source_material:
-            "Published lunar element and mean-point formulas used as the current pure-Rust baseline while full ELP coefficient selection remains pending",
+            "Published lunar element and mean-point formulas implemented as the current pure-Rust baseline; no vendored ELP coefficient files are used yet while full ELP coefficient selection remains pending",
         supported_bodies: SUPPORTED_BODIES,
         unsupported_bodies: UNSUPPORTED_BODIES,
         date_range_note:
-            "Validated at J2000 and used across the current phase-1 comparison window; no full ELP coefficient range has been published yet",
+            "Validated at J2000 and across nearby high-curvature regression windows; no full ELP coefficient range has been published yet",
         frame_note:
             "Geocentric ecliptic coordinates are produced directly; equatorial coordinates are derived with a mean-obliquity transform",
     }
@@ -304,7 +307,7 @@ impl EphemerisBackend for ElpBackend {
                     lunar_theory_specification().model_name,
                 ),
                 data_sources: vec![
-                    "Meeus-style truncated lunar orbit formulas".to_string(),
+                    "Meeus-style truncated lunar orbit formulas implemented in pure Rust; see docs/lunar-theory-policy.md for the current baseline scope".to_string(),
                     lunar_theory_specification().source_material.to_string(),
                     lunar_theory_specification().date_range_note.to_string(),
                     lunar_theory_specification().frame_note.to_string(),
@@ -534,6 +537,68 @@ mod tests {
             .expect("distance speed should exist")
             .is_finite());
         assert_eq!(result.quality, QualityAnnotation::Approximate);
+    }
+
+    #[test]
+    fn moon_samples_remain_finite_across_high_curvature_window() {
+        let backend = ElpBackend::new();
+        let instants = [J2000 - 1.0, J2000, J2000 + 1.0, J2000 + 2.0]
+            .map(|days| Instant::new(pleiades_types::JulianDay::from_days(days), TimeScale::Tt));
+
+        let mut previous_longitude: Option<f64> = None;
+        let mut previous_distance: Option<f64> = None;
+
+        for instant in instants {
+            let result = backend
+                .position(&mean_request_at(CelestialBody::Moon, instant))
+                .expect("moon query should work");
+            let ecliptic = result.ecliptic.expect("ecliptic result should exist");
+            let motion = result.motion.expect("motion should be populated");
+
+            assert!(ecliptic.longitude.degrees().is_finite());
+            assert!(ecliptic.latitude.degrees().is_finite());
+            assert!(ecliptic
+                .distance_au
+                .expect("moon distance should exist")
+                .is_finite());
+            assert!(motion
+                .longitude_deg_per_day
+                .expect("longitude speed should exist")
+                .is_finite());
+            assert!(motion
+                .latitude_deg_per_day
+                .expect("latitude speed should exist")
+                .is_finite());
+            assert!(motion
+                .distance_au_per_day
+                .expect("distance speed should exist")
+                .is_finite());
+            assert!(motion.longitude_deg_per_day.unwrap().abs() < 20.0);
+            assert!(motion.latitude_deg_per_day.unwrap().abs() < 10.0);
+
+            if let Some(previous_longitude) = previous_longitude {
+                let delta = signed_longitude_delta_degrees(
+                    previous_longitude,
+                    ecliptic.longitude.degrees(),
+                );
+                assert!(delta.abs() > 1.0);
+                assert!(delta.abs() < 20.0);
+            }
+
+            if let Some(previous_distance) = previous_distance {
+                assert!(
+                    (ecliptic.distance_au.expect("moon distance should exist") - previous_distance)
+                        .abs()
+                        < 0.02
+                );
+            }
+
+            previous_longitude = Some(ecliptic.longitude.degrees());
+            previous_distance = ecliptic.distance_au;
+        }
+
+        assert!(previous_longitude.is_some());
+        assert!(previous_distance.is_some());
     }
 
     #[test]
