@@ -1257,6 +1257,30 @@ fn verify_ayanamsa_aliases(
     Ok(labels_checked)
 }
 
+fn validation_reference_point_summary(point: &str) -> String {
+    if point.contains("stage-4 validation corpus") {
+        "stage-4 validation corpus".to_string()
+    } else {
+        point.to_string()
+    }
+}
+
+fn summarize_validation_reference_points(points: &[&str]) -> String {
+    match points {
+        [] => "0".to_string(),
+        [point] => format!("1 ({})", validation_reference_point_summary(point)),
+        _ => format!(
+            "{} ({})",
+            points.len(),
+            points
+                .iter()
+                .map(|point| validation_reference_point_summary(point))
+                .collect::<Vec<_>>()
+                .join("; ")
+        ),
+    }
+}
+
 fn render_compatibility_profile_summary_text() -> String {
     let profile = current_compatibility_profile();
     let release_profiles = current_release_profile_identifiers();
@@ -1284,7 +1308,9 @@ fn render_compatibility_profile_summary_text() -> String {
     text.push_str(&profile.custom_definition_labels.len().to_string());
     text.push('\n');
     text.push_str("Validation reference points: ");
-    text.push_str(&profile.validation_reference_points.len().to_string());
+    text.push_str(&summarize_validation_reference_points(
+        profile.validation_reference_points,
+    ));
     text.push('\n');
     text.push_str("Compatibility caveats: ");
     text.push_str(&profile.known_gaps.len().to_string());
@@ -1400,7 +1426,9 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&profile.custom_definition_labels.len().to_string());
     text.push('\n');
     text.push_str("Validation reference points: ");
-    text.push_str(&profile.validation_reference_points.len().to_string());
+    text.push_str(&summarize_validation_reference_points(
+        profile.validation_reference_points,
+    ));
     text.push('\n');
     text.push_str("Compatibility caveats: ");
     text.push_str(&profile.known_gaps.len().to_string());
@@ -1535,7 +1563,9 @@ fn render_release_summary_text() -> String {
     text.push_str(&profile.release_ayanamsas.len().to_string());
     text.push_str(" release-specific)\n");
     text.push_str("Validation reference points: ");
-    text.push_str(&profile.validation_reference_points.len().to_string());
+    text.push_str(&summarize_validation_reference_points(
+        profile.validation_reference_points,
+    ));
     text.push('\n');
     text.push_str("Custom-definition labels: ");
     text.push_str(&profile.custom_definition_labels.len().to_string());
@@ -4240,7 +4270,7 @@ mod tests {
         assert!(rendered.contains("House systems:"));
         assert!(rendered.contains("Ayanamsas:"));
         assert!(rendered.contains("Custom-definition labels:"));
-        assert!(rendered.contains("Validation reference points:"));
+        assert!(rendered.contains("Validation reference points: 1 (stage-4 validation corpus)"));
         assert!(rendered.contains("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(rendered.contains("Compatibility caveats:"));
         assert!(
@@ -4310,7 +4340,7 @@ mod tests {
         )));
         assert!(rendered.contains("Release-specific coverage:"));
         assert!(rendered.contains("Custom-definition labels:"));
-        assert!(rendered.contains("Validation reference points:"));
+        assert!(rendered.contains("Validation reference points: 1 (stage-4 validation corpus)"));
         assert!(rendered.contains("Compatibility caveats:"));
         assert!(rendered.contains("API stability summary line:"));
         assert!(rendered.contains("Release notes: release-notes"));
@@ -4412,7 +4442,7 @@ mod tests {
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
         assert!(rendered.contains("House systems:"));
         assert!(rendered.contains("Ayanamsas:"));
-        assert!(rendered.contains("Validation reference points:"));
+        assert!(rendered.contains("Validation reference points: 1 (stage-4 validation corpus)"));
         assert!(rendered.contains("Custom-definition labels:"));
         assert!(rendered.contains("Custom-definition ayanamsas:"));
         assert!(rendered.contains("Compatibility caveats:"));
