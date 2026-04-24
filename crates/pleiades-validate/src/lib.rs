@@ -25,7 +25,7 @@ pub use house_validation::{
 };
 
 use pleiades_ayanamsa::{
-    baseline_ayanamsas, built_in_ayanamsas, release_ayanamsas, resolve_ayanamsa,
+    baseline_ayanamsas, built_in_ayanamsas, metadata_coverage, release_ayanamsas, resolve_ayanamsa,
 };
 use pleiades_core::{
     current_api_stability_profile, current_compatibility_profile,
@@ -1284,6 +1284,7 @@ fn summarize_validation_reference_points(points: &[&str]) -> String {
 fn render_compatibility_profile_summary_text() -> String {
     let profile = current_compatibility_profile();
     let release_profiles = current_release_profile_identifiers();
+    let coverage = metadata_coverage();
     let mut text = String::new();
 
     text.push_str("Compatibility profile summary\n");
@@ -1304,6 +1305,11 @@ fn render_compatibility_profile_summary_text() -> String {
     text.push_str(" baseline, ");
     text.push_str(&profile.release_ayanamsas.len().to_string());
     text.push_str(" release-specific)\n");
+    text.push_str("Ayanamsa sidereal metadata: ");
+    text.push_str(&coverage.with_sidereal_metadata.to_string());
+    text.push('/');
+    text.push_str(&coverage.total.to_string());
+    text.push_str(" entries with both a reference epoch and offset\n");
     text.push_str("Custom-definition labels: ");
     text.push_str(&profile.custom_definition_labels.len().to_string());
     text.push('\n');
@@ -4284,8 +4290,13 @@ mod tests {
             "Profile: {}",
             release_profiles.compatibility_profile_id
         )));
+        let coverage = metadata_coverage();
         assert!(rendered.contains("House systems:"));
         assert!(rendered.contains("Ayanamsas:"));
+        assert!(rendered.contains(&format!(
+            "Ayanamsa sidereal metadata: {}/{} entries with both a reference epoch and offset",
+            coverage.with_sidereal_metadata, coverage.total
+        )));
         assert!(rendered.contains("Custom-definition labels:"));
         assert!(rendered.contains("Validation reference points: 1 (stage-4 validation corpus)"));
         assert!(rendered.contains("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
