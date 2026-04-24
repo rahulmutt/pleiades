@@ -1430,6 +1430,7 @@ fn render_release_checklist_text() -> String {
     text.push_str(release_profiles.api_stability_profile_id);
     text.push('\n');
     text.push_str("Release notes summary: release-notes-summary\n");
+    text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("Compact summary views: backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary\n");
     text.push('\n');
     text.push_str("Repository-managed release gates:\n");
@@ -1592,6 +1593,7 @@ fn render_release_checklist_summary_text() -> String {
     text.push_str(release_profiles.api_stability_profile_id);
     text.push('\n');
     text.push_str("Release notes summary: release-notes-summary\n");
+    text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
     text.push_str("Release bundle verification: verify-release-bundle\n");
     text.push_str("Release summary: release-summary\n");
@@ -4199,6 +4201,7 @@ mod tests {
             release_profiles.api_stability_profile_id
         )));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
+        assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(rendered.contains("Compact summary views: backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Repository-managed release gates:"));
         assert!(rendered.contains("Manual bundle workflow:"));
@@ -4223,6 +4226,7 @@ mod tests {
             release_profiles.api_stability_profile_id
         )));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
+        assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(
             rendered.contains("Compatibility profile verification: verify-compatibility-profile")
         );
@@ -4515,6 +4519,8 @@ version = "0.9.0"
         assert!(release_checklist.contains("release-checklist-summary.txt"));
         assert!(release_checklist.contains("bundle-manifest.checksum.txt"));
         assert!(release_checklist_summary.contains("Release checklist summary"));
+        assert!(release_checklist_summary
+            .contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(release_checklist_summary.contains("Repository-managed release gates: 5 items"));
         assert!(release_checklist_summary.contains("Manual bundle workflow: 3 items"));
         assert!(release_checklist_summary.contains("Bundle contents: 16 items"));
