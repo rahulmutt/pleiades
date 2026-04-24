@@ -24,6 +24,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Preserve geocentric astrology-facing ecliptic positions for Sun and planets.
    - Keep the source-backed major-planet coefficient path reproducible from public inputs and validate error envelopes.
    - Add batch-path tests covering all supported planets at canonical epochs.
+   - Progress note: the crate now ships a maintainer-facing regeneration helper plus binary that rewrites the checked-in generated blobs from the vendored source text.
 
 2. Implement production `pleiades-elp` lunar calculations.
    - Select and document a pure-Rust lunar theory source.

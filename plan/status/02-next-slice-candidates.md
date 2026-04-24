@@ -16,7 +16,7 @@ Suggested scope:
 
 Progress note (2026-04-24): the placeholder `pleiades-vsop87` path now reports deterministic central-difference longitude/latitude/distance speeds for supported planets. This improves chart-facing motion semantics but does not replace the planned source-backed VSOP87 coefficient work above.
 
-Progress note (2026-04-24): the VSOP87 source-data path now covers the Sun through Neptune with public IMCCE/CELMECH VSOP87B inputs, exact J2000 tests, and validation evidence for all source-backed major planets. The Earth, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, and Neptune paths now use generated binary coefficient-table slices derived from the vendored source files, and the remaining Phase 1 work for this track is documented VSOP87 regeneration tooling plus release-grade error envelopes.
+Progress note (2026-04-24): the VSOP87 source-data path now covers the Sun through Neptune with public IMCCE/CELMECH VSOP87B inputs, exact J2000 tests, and validation evidence for all source-backed major planets. The Earth, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, and Neptune paths now use generated binary coefficient-table slices derived from the vendored source files, and the remaining Phase 1 work for this track is release-grade error envelopes.
 
 Progress note (2026-04-24): the first source-data increment has landed for the Sun path. `pleiades-vsop87` now evaluates a generated binary coefficient table derived from the vendored public IMCCE VSOP87B Earth source file, transforms it into geometric geocentric solar coordinates, and tests the J2000 result against a full-file VSOP87B golden value.
 
@@ -42,7 +42,7 @@ Progress note (2026-04-24): the VSOP87 validation output now also pairs each sou
 
 Progress note (2026-04-24): the batch API for the source-backed Sun-through-Neptune sample set is now covered by a canonical J2000 regression test, so the current VSOP87 evidence is verified both through single-position queries and through the default `positions` batch path.
 
-Progress note (2026-04-24): the VSOP87 body-specific source metadata, canonical samples, and per-body profiles now all derive from a single internal catalog table, which reduces drift in the release-facing documentation and gives the eventual generated-table path one structured place to attach new source-backed bodies. The VSOP87 crate now also exposes a deterministic source-audit manifest for the vendored source files, which gives the generated-table work a reproducibility hook before the runtime path is rewritten.
+Progress note (2026-04-24): the VSOP87 body-specific source metadata, canonical samples, and per-body profiles now all derive from a single internal catalog table, which reduces drift in the release-facing documentation and gives the eventual generated-table path one structured place to attach new source-backed bodies. The VSOP87 crate now also exposes a deterministic source-audit manifest for the vendored source files, and a maintainer-facing regeneration helper plus binary now rewrite the checked-in generated coefficient blobs from the vendored source text before the runtime path is rewritten.
 
 ## 2. Lunar theory source selection
 

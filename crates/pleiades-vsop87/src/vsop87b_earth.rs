@@ -166,6 +166,43 @@ pub(crate) fn parse_generated_vsop87b_tables(bytes: &[u8]) -> Vsop87SeriesTables
     }
 }
 
+pub(crate) fn generated_vsop87b_table_bytes(source: &str) -> Vec<u8> {
+    let tables = parse_vsop87b_tables(source);
+    let mut bytes = Vec::new();
+    let mut section_count = 0u32;
+
+    for series in [&tables.longitude, &tables.latitude, &tables.radius] {
+        section_count += series.iter().filter(|terms| !terms.is_empty()).count() as u32;
+    }
+
+    bytes.extend_from_slice(GENERATED_EARTH_TABLE_MAGIC);
+    bytes.extend_from_slice(&GENERATED_EARTH_TABLE_VERSION.to_le_bytes());
+    bytes.extend_from_slice(&section_count.to_le_bytes());
+
+    for (series, series_index) in [
+        (&tables.longitude, 1u8),
+        (&tables.latitude, 2u8),
+        (&tables.radius, 3u8),
+    ] {
+        for (power, terms) in series.iter().enumerate() {
+            if terms.is_empty() {
+                continue;
+            }
+
+            bytes.push(series_index);
+            bytes.push(power as u8);
+            bytes.extend_from_slice(&(terms.len() as u32).to_le_bytes());
+            for term in terms {
+                bytes.extend_from_slice(&term.amplitude.to_le_bytes());
+                bytes.extend_from_slice(&term.phase.to_le_bytes());
+                bytes.extend_from_slice(&term.frequency.to_le_bytes());
+            }
+        }
+    }
+
+    bytes
+}
+
 pub(crate) fn parse_vsop87b_tables(source: &str) -> Vsop87SeriesTables {
     let mut longitude = vec![Vec::new(); 6];
     let mut latitude = vec![Vec::new(); 6];

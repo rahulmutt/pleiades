@@ -8,6 +8,8 @@
 //! spherical variables, J2000 ecliptic/equinox) transformed to geocentric
 //! chart-facing coordinates. The Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, and Neptune paths
 //! now use generated binary tables derived from their vendored source files.
+//! A maintainer-facing regeneration helper and `regenerate-vsop87b-tables`
+//! binary keep those checked-in blobs reproducible from the public source text.
 //! Pluto still uses compact Keplerian orbital elements,
 //! a geocentric reduction step, and central-difference motion estimates so the
 //! workspace has an end-to-end tropical chart path while the remaining
@@ -36,7 +38,7 @@ use pleiades_types::{
 };
 use std::sync::OnceLock;
 
-use crate::vsop87b_earth::parse_vsop87b_tables;
+use crate::vsop87b_earth::{generated_vsop87b_table_bytes, parse_vsop87b_tables};
 
 const PACKAGE_NAME: &str = "pleiades-vsop87";
 const J2000: f64 = 2_451_545.0;
@@ -540,6 +542,16 @@ pub fn source_audit_summary() -> Vsop87SourceAuditSummary {
             .max()
             .unwrap_or(0),
     }
+}
+
+/// Regenerates the checked-in binary VSOP87B coefficient blob for a vendored
+/// public source file.
+///
+/// This helper is used by the maintainer-facing regeneration tool and the
+/// reproducibility tests to keep the checked-in `.bin` files aligned with the
+/// vendored public IMCCE/CELMECH source inputs.
+pub fn generated_vsop87b_table_bytes_for_source_file(source_file: &str) -> Option<Vec<u8>> {
+    source_text_for_file(source_file).map(generated_vsop87b_table_bytes)
 }
 
 /// Returns the canonical J2000 source-backed VSOP87B samples used by
@@ -1589,6 +1601,31 @@ mod tests {
             .expect("Sun audit should exist");
         assert_eq!(earth.source_file, "VSOP87B.ear");
         assert_eq!(earth.term_count, 2_564);
+    }
+
+    #[test]
+    fn regenerated_binary_tables_match_the_checked_in_artifacts() {
+        for spec in source_specifications() {
+            let regenerated = generated_vsop87b_table_bytes_for_source_file(spec.source_file)
+                .expect("source-backed tables should regenerate");
+            let expected = match spec.source_file {
+                "VSOP87B.ear" => include_bytes!("../data/VSOP87B.ear.bin").as_slice(),
+                "VSOP87B.mer" => include_bytes!("../data/VSOP87B.mer.bin").as_slice(),
+                "VSOP87B.ven" => include_bytes!("../data/VSOP87B.ven.bin").as_slice(),
+                "VSOP87B.mar" => include_bytes!("../data/VSOP87B.mar.bin").as_slice(),
+                "VSOP87B.jup" => include_bytes!("../data/VSOP87B.jup.bin").as_slice(),
+                "VSOP87B.sat" => include_bytes!("../data/VSOP87B.sat.bin").as_slice(),
+                "VSOP87B.ura" => include_bytes!("../data/VSOP87B.ura.bin").as_slice(),
+                "VSOP87B.nep" => include_bytes!("../data/VSOP87B.nep.bin").as_slice(),
+                other => panic!("unexpected VSOP87B source file {other}"),
+            };
+            assert_eq!(
+                regenerated.as_slice(),
+                expected,
+                "regenerated blob should match {}",
+                spec.source_file
+            );
+        }
     }
 
     #[test]
