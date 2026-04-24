@@ -23,10 +23,10 @@ pub(crate) struct SphericalLbr {
 }
 
 #[derive(Debug)]
-struct Vsop87SeriesTables {
-    longitude: Vec<Vec<Vsop87Term>>,
-    latitude: Vec<Vec<Vsop87Term>>,
-    radius: Vec<Vec<Vsop87Term>>,
+pub(crate) struct Vsop87SeriesTables {
+    pub(crate) longitude: Vec<Vec<Vsop87Term>>,
+    pub(crate) latitude: Vec<Vec<Vsop87Term>>,
+    pub(crate) radius: Vec<Vec<Vsop87Term>>,
 }
 
 static EARTH_TABLES: OnceLock<Vsop87SeriesTables> = OnceLock::new();
@@ -63,10 +63,10 @@ where
 }
 
 fn earth_tables() -> &'static Vsop87SeriesTables {
-    EARTH_TABLES.get_or_init(|| parse_earth_tables(include_str!("../data/VSOP87B.ear")))
+    EARTH_TABLES.get_or_init(|| parse_vsop87b_tables(include_str!("../data/VSOP87B.ear")))
 }
 
-fn parse_earth_tables(source: &str) -> Vsop87SeriesTables {
+pub(crate) fn parse_vsop87b_tables(source: &str) -> Vsop87SeriesTables {
     let mut longitude = vec![Vec::new(); 6];
     let mut latitude = vec![Vec::new(); 6];
     let mut radius = vec![Vec::new(); 6];
@@ -101,7 +101,7 @@ fn parse_earth_tables(source: &str) -> Vsop87SeriesTables {
 
         let (series, power) = match (current_series, current_power) {
             (Some(series), Some(power)) => (series, power),
-            _ => panic!("encountered VSOP87B Earth coefficient line before a header: {line}"),
+            _ => panic!("encountered VSOP87B coefficient line before a header: {line}"),
         };
 
         let term = parse_term_line(line);
@@ -109,7 +109,7 @@ fn parse_earth_tables(source: &str) -> Vsop87SeriesTables {
             1 => longitude[power].push(term),
             2 => latitude[power].push(term),
             3 => radius[power].push(term),
-            _ => panic!("unexpected VSOP87B Earth series index {series}"),
+            _ => panic!("unexpected VSOP87B series index {series}"),
         }
         parsed_terms += 1;
     }
@@ -178,7 +178,7 @@ mod tests {
 
     #[test]
     fn parses_full_earth_tables_with_expected_series_counts() {
-        let tables = parse_earth_tables(include_str!("../data/VSOP87B.ear"));
+        let tables = parse_vsop87b_tables(include_str!("../data/VSOP87B.ear"));
         assert_eq!(tables.longitude.len(), 6);
         assert_eq!(tables.latitude.len(), 6);
         assert_eq!(tables.radius.len(), 6);

@@ -20,7 +20,7 @@ Progress note (2026-04-24): the first source-data increment has landed for the S
 
 Progress note (2026-04-24): the same truncated VSOP87B spherical-coefficient representation now covers Mercury's heliocentric channel. Mercury geocentric output is reduced against the VSOP87B Earth slice and has a J2000 regression test against full-file IMCCE VSOP87B Mercury/Earth golden values, with backend provenance updated to distinguish the Mercury source-backed path from the remaining orbital-element fallback planets.
 
-Progress note (2026-04-24): the truncated VSOP87B source-backed path has been extended to Venus. `pleiades-vsop87` now evaluates a checked-in leading-term IMCCE VSOP87B Venus slice, reduces it against the Earth slice, and tests the J2000 geocentric Venus result against full-file IMCCE VSOP87B Venus/Earth golden values.
+Progress note (2026-04-24): the source-data increment now also includes Venus via the full public IMCCE VSOP87B file. `pleiades-vsop87` now parses the vendored `VSOP87B.ven` source directly, reduces it against the Earth slice for geocentric Venus output, and tests the J2000 geocentric Venus result against full-file IMCCE VSOP87B Venus/Earth golden values.
 
 Progress note (2026-04-24): the same truncated VSOP87B source-backed path has been extended to Mars. `pleiades-vsop87` now evaluates a checked-in leading-term IMCCE VSOP87B Mars slice, reduces it against the Earth slice, reports Mars provenance in metadata, and tests the J2000 geocentric Mars result against full-file IMCCE VSOP87B Mars/Earth golden values.
 

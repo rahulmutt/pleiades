@@ -5,9 +5,10 @@
 //! This crate now provides a working pure-Rust algorithmic backend for the Sun
 //! and major planets. The Sun path now evaluates the vendored public IMCCE
 //! VSOP87B Earth source file (heliocentric spherical variables, J2000
-//! ecliptic/equinox) transformed to geocentric solar coordinates. Mercury,
-//! Venus, Mars, Jupiter, Saturn, Uranus, and Neptune still use the same VSOP87B
-//! spherical-coefficient evaluation path for their heliocentric channels, while Pluto
+//! ecliptic/equinox) transformed to geocentric solar coordinates. Venus now
+//! follows the same full-file VSOP87B parsing path, while Mercury, Mars,
+//! Jupiter, Saturn, Uranus, and Neptune still use truncated source-backed
+//! VSOP87B spherical-coefficient slices for their heliocentric channels. Pluto
 //! still uses compact Keplerian orbital elements, a geocentric reduction step,
 //! and central-difference motion estimates so the workspace has an end-to-end
 //! tropical chart path while complete generated VSOP87 tables are added
@@ -270,11 +271,11 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
             Vsop87BodyCatalogEntry {
                 source_profile: source_profile(
                     CelestialBody::Venus,
-                    Vsop87BodySourceKind::TruncatedVsop87b,
-                    "Venus heliocentric channel from truncated IMCCE/CELMECH VSOP87B Venus coefficients, reduced against Earth",
-                    AccuracyClass::Approximate,
+                    Vsop87BodySourceKind::VendoredVsop87b,
+                    "geocentric Venus reduced from vendored full IMCCE/CELMECH VSOP87B Venus source file",
+                    AccuracyClass::Exact,
                 ),
-                source_specification: source_specification(
+                source_specification: earth_source_specification(
                     CelestialBody::Venus,
                     "VSOP87B.ven",
                     planetary_reduction,
@@ -1027,7 +1028,7 @@ mod tests {
     }
 
     #[test]
-    fn j2000_venus_position_uses_truncated_vsop87b_venus_slice() {
+    fn j2000_venus_position_uses_vendored_vsop87b_venus_file() {
         let backend = Vsop87Backend::new();
         let request = mean_request(CelestialBody::Venus);
         let result = backend.position(&request).expect("Venus query should work");
@@ -1035,8 +1036,7 @@ mod tests {
 
         // Golden values are the full public IMCCE VSOP87B Venus and Earth
         // files evaluated at J2000 and reduced to geometric geocentric ecliptic
-        // coordinates. The tolerance documents the current leading-term slice;
-        // it should tighten when complete generated tables replace it.
+        // coordinates.
         assert_degrees_close(ecliptic.longitude.degrees(), 241.576_729_276_029_5, 0.001);
         assert_degrees_close(ecliptic.latitude.degrees(), 2.066_187_460_260_189, 0.000_1);
         assert_close(
@@ -1044,7 +1044,7 @@ mod tests {
             1.137_689_108_663_588,
             0.000_01,
         );
-        assert_eq!(result.quality, QualityAnnotation::Approximate);
+        assert_eq!(result.quality, QualityAnnotation::Exact);
     }
 
     #[test]
@@ -1215,11 +1215,12 @@ mod tests {
                 sample.expected_distance_au,
                 sample.max_distance_delta_au,
             );
-            let expected_quality = if sample.body == CelestialBody::Sun {
-                QualityAnnotation::Exact
-            } else {
-                QualityAnnotation::Approximate
-            };
+            let expected_quality =
+                if matches!(sample.body, CelestialBody::Sun | CelestialBody::Venus) {
+                    QualityAnnotation::Exact
+                } else {
+                    QualityAnnotation::Approximate
+                };
             assert_eq!(result.quality, expected_quality);
         }
     }
@@ -1281,11 +1282,11 @@ mod tests {
         assert!(metadata
             .provenance
             .summary
-            .contains("1 vendored full-file VSOP87B body path"));
+            .contains("2 vendored full-file VSOP87B body paths"));
         assert!(metadata
             .provenance
             .summary
-            .contains("7 source-backed truncated VSOP87B body paths"));
+            .contains("6 source-backed truncated VSOP87B body paths"));
         assert!(metadata
             .provenance
             .summary
@@ -1346,6 +1347,16 @@ mod tests {
         assert!(sun
             .provenance
             .contains("vendored full IMCCE/CELMECH VSOP87B Earth source file"));
+
+        let venus = profiles
+            .iter()
+            .find(|profile| profile.body == CelestialBody::Venus)
+            .expect("Venus profile should exist");
+        assert_eq!(venus.kind, Vsop87BodySourceKind::VendoredVsop87b);
+        assert_eq!(venus.accuracy, AccuracyClass::Exact);
+        assert!(venus
+            .provenance
+            .contains("vendored full IMCCE/CELMECH VSOP87B Venus source file"));
 
         let mars = profiles
             .iter()
@@ -1443,13 +1454,24 @@ mod tests {
             .date_range
             .contains("full public source file; J2000 canonical reference sample"));
 
+        let venus_spec = specs
+            .iter()
+            .find(|spec| spec.source_file == "VSOP87B.ven")
+            .expect("Venus source specification should exist");
+        assert!(venus_spec
+            .truncation_policy
+            .contains("vendored full source file"));
+        assert!(venus_spec
+            .date_range
+            .contains("full public source file; J2000 canonical reference sample"));
+
         assert!(specs
             .iter()
-            .filter(|spec| spec.source_file != "VSOP87B.ear")
+            .filter(|spec| spec.source_file != "VSOP87B.ear" && spec.source_file != "VSOP87B.ven")
             .all(|spec| spec.truncation_policy.contains("leading-term slice")));
         assert!(specs
             .iter()
-            .filter(|spec| spec.source_file != "VSOP87B.ear")
+            .filter(|spec| spec.source_file != "VSOP87B.ear" && spec.source_file != "VSOP87B.ven")
             .all(|spec| spec
                 .date_range
                 .contains("1500-2500 CE tables remain pending")));
