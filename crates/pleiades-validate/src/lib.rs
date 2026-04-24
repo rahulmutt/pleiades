@@ -398,6 +398,59 @@ struct BodyClassSummary {
     distance_count: usize,
 }
 
+#[derive(Clone, Debug)]
+struct BodyClassToleranceSummary {
+    class: BodyClass,
+    body_count: usize,
+    sample_count: usize,
+    within_tolerance_body_count: usize,
+    outside_tolerance_body_count: usize,
+    max_longitude_delta_deg: f64,
+    max_latitude_delta_deg: f64,
+    max_distance_delta_au: Option<f64>,
+    outside_bodies: Vec<CelestialBody>,
+}
+
+impl BodyClassToleranceSummary {
+    fn render(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "  {}", self.class.label())?;
+        writeln!(f, "    bodies: {}", self.body_count)?;
+        writeln!(f, "    samples: {}", self.sample_count)?;
+        writeln!(
+            f,
+            "    within tolerance bodies: {}",
+            self.within_tolerance_body_count
+        )?;
+        writeln!(
+            f,
+            "    outside tolerance bodies: {}",
+            self.outside_tolerance_body_count
+        )?;
+        if !self.outside_bodies.is_empty() {
+            writeln!(
+                f,
+                "    outside bodies: {}",
+                format_bodies(&self.outside_bodies)
+            )?;
+        }
+        writeln!(
+            f,
+            "    max longitude delta: {:.12}°",
+            self.max_longitude_delta_deg
+        )?;
+        writeln!(
+            f,
+            "    max latitude delta: {:.12}°",
+            self.max_latitude_delta_deg
+        )?;
+        if let Some(value) = self.max_distance_delta_au {
+            writeln!(f, "    max distance delta: {:.12} AU", value)?;
+        }
+
+        Ok(())
+    }
+}
+
 impl BodyClassSummary {
     fn mean_longitude_delta_deg(&self) -> f64 {
         if self.sample_count == 0 {
@@ -784,6 +837,8 @@ impl fmt::Display for ValidationReport {
         write_body_comparison_summaries(f, &self.comparison.body_summaries())?;
         writeln!(f)?;
         write_body_class_envelopes(f, &self.comparison.samples)?;
+        writeln!(f)?;
+        write_body_class_tolerance_posture(f, &self.comparison.samples)?;
         writeln!(f)?;
         write_tolerance_summaries(f, &self.comparison.tolerance_summaries())?;
         writeln!(f)?;
@@ -3417,6 +3472,32 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         );
     }
     let _ = writeln!(text);
+    let _ = writeln!(text, "Body-class tolerance posture");
+    for summary in report.comparison.body_class_tolerance_summaries() {
+        let _ = writeln!(
+            text,
+            "  {}: bodies={}, samples={}, within tolerance bodies={}, outside tolerance bodies={}, max Δlon={:.12}°, max Δlat={:.12}°, max Δdist={}",
+            summary.class.label(),
+            summary.body_count,
+            summary.sample_count,
+            summary.within_tolerance_body_count,
+            summary.outside_tolerance_body_count,
+            summary.max_longitude_delta_deg,
+            summary.max_latitude_delta_deg,
+            summary
+                .max_distance_delta_au
+                .map(|value| format!("{value:.12} AU"))
+                .unwrap_or_else(|| "n/a".to_string())
+        );
+        if !summary.outside_bodies.is_empty() {
+            let _ = writeln!(
+                text,
+                "    outside bodies: {}",
+                format_bodies(&summary.outside_bodies)
+            );
+        }
+    }
+    let _ = writeln!(text);
     let _ = writeln!(text, "Expected tolerance status");
     for summary in report.comparison.tolerance_summaries() {
         let _ = writeln!(
@@ -3799,6 +3880,8 @@ impl fmt::Display for ComparisonReport {
         writeln!(f)?;
         write_body_class_envelopes(f, &self.samples)?;
         writeln!(f)?;
+        write_body_class_tolerance_posture(f, &self.samples)?;
+        writeln!(f)?;
         write_tolerance_summaries(f, &self.tolerance_summaries())?;
         writeln!(f)?;
         write_regression_section(f, "Notable regressions", &self.notable_regressions())?;
@@ -3855,6 +3938,11 @@ impl ComparisonReport {
             .into_iter()
             .map(body_tolerance_summary)
             .collect()
+    }
+
+    /// Returns per-body-class tolerance posture preserving first-seen class order.
+    pub(crate) fn body_class_tolerance_summaries(&self) -> Vec<BodyClassToleranceSummary> {
+        body_class_tolerance_summaries(&self.samples)
     }
 
     /// Returns the samples that exceed the built-in regression thresholds.
@@ -4050,6 +4138,89 @@ fn body_class_summaries(samples: &[ComparisonSample]) -> Vec<BodyClassSummary> {
         .into_iter()
         .filter(|summary| summary.sample_count > 0)
         .map(BodyClassAccumulator::finish)
+        .collect()
+}
+
+#[derive(Clone, Debug)]
+struct BodyClassToleranceAccumulator {
+    class: BodyClass,
+    body_count: usize,
+    sample_count: usize,
+    within_tolerance_body_count: usize,
+    outside_tolerance_body_count: usize,
+    max_longitude_delta_deg: f64,
+    max_latitude_delta_deg: f64,
+    max_distance_delta_au: Option<f64>,
+    outside_bodies: Vec<CelestialBody>,
+}
+
+impl BodyClassToleranceAccumulator {
+    const fn new(class: BodyClass) -> Self {
+        Self {
+            class,
+            body_count: 0,
+            sample_count: 0,
+            within_tolerance_body_count: 0,
+            outside_tolerance_body_count: 0,
+            max_longitude_delta_deg: 0.0,
+            max_latitude_delta_deg: 0.0,
+            max_distance_delta_au: None,
+            outside_bodies: Vec::new(),
+        }
+    }
+
+    fn push(&mut self, summary: &BodyToleranceSummary) {
+        self.body_count += 1;
+        self.sample_count += summary.sample_count;
+        self.max_longitude_delta_deg = self
+            .max_longitude_delta_deg
+            .max(summary.max_longitude_delta_deg);
+        self.max_latitude_delta_deg = self
+            .max_latitude_delta_deg
+            .max(summary.max_latitude_delta_deg);
+        if let Some(delta) = summary.max_distance_delta_au {
+            self.max_distance_delta_au = Some(
+                self.max_distance_delta_au
+                    .map_or(delta, |current| current.max(delta)),
+            );
+        }
+        if summary.within_tolerance {
+            self.within_tolerance_body_count += 1;
+        } else {
+            self.outside_tolerance_body_count += 1;
+            self.outside_bodies.push(summary.body.clone());
+        }
+    }
+
+    fn finish(self) -> BodyClassToleranceSummary {
+        BodyClassToleranceSummary {
+            class: self.class,
+            body_count: self.body_count,
+            sample_count: self.sample_count,
+            within_tolerance_body_count: self.within_tolerance_body_count,
+            outside_tolerance_body_count: self.outside_tolerance_body_count,
+            max_longitude_delta_deg: self.max_longitude_delta_deg,
+            max_latitude_delta_deg: self.max_latitude_delta_deg,
+            max_distance_delta_au: self.max_distance_delta_au,
+            outside_bodies: self.outside_bodies,
+        }
+    }
+}
+
+fn body_class_tolerance_summaries(samples: &[ComparisonSample]) -> Vec<BodyClassToleranceSummary> {
+    let body_summaries = body_comparison_summaries(samples)
+        .into_iter()
+        .map(body_tolerance_summary);
+    let mut accumulators = BodyClass::ALL.map(BodyClassToleranceAccumulator::new);
+
+    for summary in body_summaries {
+        accumulators[body_class(&summary.body).index()].push(&summary);
+    }
+
+    accumulators
+        .into_iter()
+        .filter(|summary| summary.body_count > 0)
+        .map(BodyClassToleranceAccumulator::finish)
         .collect()
 }
 
@@ -4453,6 +4624,23 @@ fn write_body_class_envelopes(
 ) -> fmt::Result {
     writeln!(f, "Body-class error envelopes")?;
     let summaries = body_class_summaries(samples);
+    if summaries.is_empty() {
+        writeln!(f, "  none")?;
+        return Ok(());
+    }
+
+    for summary in summaries {
+        summary.render(f)?;
+    }
+    Ok(())
+}
+
+fn write_body_class_tolerance_posture(
+    f: &mut fmt::Formatter<'_>,
+    samples: &[ComparisonSample],
+) -> fmt::Result {
+    writeln!(f, "Body-class tolerance posture")?;
+    let summaries = body_class_tolerance_summaries(samples);
     if summaries.is_empty() {
         writeln!(f, "  none")?;
         return Ok(());
@@ -5337,6 +5525,7 @@ mod tests {
         assert!(report.contains("Candidate backend"));
         assert!(report.contains("Comparison summary"));
         assert!(report.contains("Body-class error envelopes"));
+        assert!(report.contains("Body-class tolerance posture"));
         assert!(report.contains("Luminaries"));
         assert!(report.contains("Major planets"));
         assert!(report.contains("interpolation quality checks:"));
@@ -5409,6 +5598,7 @@ mod tests {
         assert!(validation_report_summary.contains("Comparison corpus"));
         assert!(validation_report_summary.contains("Body comparison summaries"));
         assert!(validation_report_summary.contains("Body-class error envelopes"));
+        assert!(validation_report_summary.contains("Body-class tolerance posture"));
         assert!(validation_report_summary.contains("Expected tolerance status"));
         assert!(validation_report_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
@@ -5518,9 +5708,18 @@ mod tests {
         assert!(tolerance_summaries
             .iter()
             .any(|summary| summary.body == CelestialBody::Pluto && !summary.within_tolerance));
+        let body_class_tolerance_summaries = report.body_class_tolerance_summaries();
+        assert!(body_class_tolerance_summaries.iter().any(|summary| {
+            summary.class == BodyClass::MajorPlanet
+                && summary.body_count >= 1
+                && summary.sample_count >= summary.body_count
+                && summary.outside_tolerance_body_count >= 1
+                && summary.outside_bodies.contains(&CelestialBody::Pluto)
+        }));
 
         let rendered = report.to_string();
         assert!(rendered.contains("Body comparison summaries"));
+        assert!(rendered.contains("Body-class tolerance posture"));
         assert!(rendered.contains("Expected tolerance status"));
         assert!(rendered.contains("phase-1 full-file VSOP87B planetary evidence"));
         assert!(rendered.contains("Notable regressions"));
@@ -6256,6 +6455,7 @@ version = "0.9.0"
         )));
         assert!(validation_report_summary.contains("Validation report summary"));
         assert!(validation_report_summary.contains("Comparison corpus"));
+        assert!(validation_report_summary.contains("Body-class tolerance posture"));
         assert!(validation_report_summary.contains("Expected tolerance status"));
         assert!(validation_report_summary.contains("VSOP87 source-backed evidence"));
         assert!(validation_report_summary.contains("VSOP87 source documentation: 8 source specs, 8 source-backed body profiles, 1 fallback mean-element body profile"));
