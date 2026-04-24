@@ -30,9 +30,9 @@ Completed foundations:
 - CLI, validation reports, backend matrix, release notes/checklists, bundle generation, and bundle verification;
 - tests and doctests for current behavior.
 
-Latest progress (2026-04-24): backend matrix release artifacts now report implementation status separately from body/catalog presence. Each implemented backend has an explicit status label and note (fixture reference, partial source-backed, preliminary algorithm, prototype artifact, or routing façade), and the compact matrix summary counts those statuses so release artifacts do not imply production accuracy merely because a backend advertises body coverage.
+Latest progress (2026-04-24): the JPL snapshot backend now exposes coarse leave-one-out interpolation quality samples derived from the checked-in fixture, and backend matrix release artifacts render those sparse-fixture error checks. This keeps the current linear-interpolation proof-of-concept auditable without treating the sparse fixture as a production tolerance claim.
 
-Previous progress (2026-04-24): validation reports now include an explicit expected tolerance status table for each comparison body. The table records the current Phase 1 interim tolerance profile (truncated VSOP87B planetary paths, compact ELP lunar path, and Pluto mean-elements fallback), the numeric longitude/latitude/distance limits, measured maxima, and whether each body is within or exceeds that profile. This makes validation evidence more release-auditable without upgrading release accuracy claims.
+Previous progress (2026-04-24): backend matrix release artifacts now report implementation status separately from body/catalog presence. Each implemented backend has an explicit status label and note (fixture reference, partial source-backed, preliminary algorithm, prototype artifact, or routing façade), and the compact matrix summary counts those statuses so release artifacts do not imply production accuracy merely because a backend advertises body coverage.
 
 Active gaps:
 

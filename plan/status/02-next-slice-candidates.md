@@ -61,10 +61,12 @@ Completed first slice:
 - preserve exact fixture epochs as golden tests;
 - distinguish unsupported bodies from out-of-range fixture requests.
 
+Progress note (2026-04-24): `pleiades-jpl` now derives coarse leave-one-out interpolation quality samples from the checked-in sparse fixture and the validation backend matrix renders those measured linear-interpolation errors. These checks are intentionally labeled as transparency evidence rather than production tolerances.
+
 Remaining suggested scope:
 
 - add a larger documented public-input-derived fixture with more bodies and denser samples;
-- validate interpolation error against held-out JPL Horizons epochs;
+- validate interpolation error against independent held-out JPL Horizons epochs beyond the sparse checked-in fixture;
 - report interpolation quality and tolerances in validation summaries using the existing aggregate and per-body comparison sections;
 - consider higher-order interpolation once measured linear error is insufficient.
 

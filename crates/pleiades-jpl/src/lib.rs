@@ -66,6 +66,35 @@ pub fn comparison_bodies() -> &'static [pleiades_backend::CelestialBody] {
     comparison_body_list()
 }
 
+/// Returns coarse leave-one-out interpolation checks derived from the checked-in
+/// fixture.
+///
+/// Each sample treats a middle exact fixture epoch as a held-out point and
+/// linearly interpolates from the nearest earlier and later same-body fixture
+/// entries. The current fixture is intentionally sparse, so these values are
+/// evidence for report transparency rather than production interpolation
+/// tolerances.
+pub fn interpolation_quality_samples() -> &'static [InterpolationQualitySample] {
+    interpolation_quality_sample_list()
+}
+
+/// A coarse hold-out check for the snapshot backend's linear interpolation path.
+#[derive(Clone, Debug, PartialEq)]
+pub struct InterpolationQualitySample {
+    /// Body evaluated by this check.
+    pub body: pleiades_backend::CelestialBody,
+    /// Held-out exact epoch used for comparison.
+    pub epoch: Instant,
+    /// Span between the bracketing fixture entries in days.
+    pub bracket_span_days: f64,
+    /// Absolute wrapped longitude error in degrees.
+    pub longitude_error_deg: f64,
+    /// Absolute latitude error in degrees.
+    pub latitude_error_deg: f64,
+    /// Absolute distance error in astronomical units.
+    pub distance_error_au: f64,
+}
+
 /// A reference-backend implementation backed by JPL Horizons fixture data.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct JplSnapshotBackend;
@@ -291,6 +320,11 @@ fn lerp(start: f64, end: f64, fraction: f64) -> f64 {
     start + (end - start) * fraction
 }
 
+fn angular_degrees_delta(left: f64, right: f64) -> f64 {
+    let delta = (left - right + 180.0).rem_euclid(360.0) - 180.0;
+    delta.abs()
+}
+
 fn snapshot_state() -> &'static SnapshotState {
     static STATE: OnceLock<SnapshotState> = OnceLock::new();
     STATE.get_or_init(|| match load_snapshot() {
@@ -364,6 +398,62 @@ fn reference_asteroid_list() -> &'static [pleiades_backend::CelestialBody] {
                 }
             }
             bodies
+        })
+        .as_slice()
+}
+
+fn interpolation_quality_sample_list() -> &'static [InterpolationQualitySample] {
+    static SAMPLES: OnceLock<Vec<InterpolationQualitySample>> = OnceLock::new();
+    SAMPLES
+        .get_or_init(|| {
+            let mut samples = Vec::new();
+            let Some(entries) = snapshot_entries() else {
+                return samples;
+            };
+
+            for body in comparison_body_list() {
+                let mut body_entries = entries
+                    .iter()
+                    .filter(|entry| &entry.body == body)
+                    .collect::<Vec<_>>();
+                body_entries.sort_by(|left, right| {
+                    left.epoch
+                        .julian_day
+                        .days()
+                        .partial_cmp(&right.epoch.julian_day.days())
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                });
+
+                for window in body_entries.windows(3) {
+                    let before = window[0];
+                    let exact = window[1];
+                    let after = window[2];
+                    let epoch_jd = exact.epoch.julian_day.days();
+                    let interpolated = SnapshotEntry::interpolate(before, after, epoch_jd);
+                    let exact_ecliptic = exact.ecliptic();
+                    let interpolated_ecliptic = interpolated.ecliptic();
+                    let exact_distance = exact_ecliptic.distance_au.unwrap_or_default();
+                    let interpolated_distance =
+                        interpolated_ecliptic.distance_au.unwrap_or_default();
+
+                    samples.push(InterpolationQualitySample {
+                        body: exact.body.clone(),
+                        epoch: exact.epoch,
+                        bracket_span_days: after.epoch.julian_day.days()
+                            - before.epoch.julian_day.days(),
+                        longitude_error_deg: angular_degrees_delta(
+                            exact_ecliptic.longitude.degrees(),
+                            interpolated_ecliptic.longitude.degrees(),
+                        ),
+                        latitude_error_deg: (exact_ecliptic.latitude.degrees()
+                            - interpolated_ecliptic.latitude.degrees())
+                        .abs(),
+                        distance_error_au: (exact_distance - interpolated_distance).abs(),
+                    });
+                }
+            }
+
+            samples
         })
         .as_slice()
 }
@@ -770,6 +860,22 @@ mod tests {
             .distance_au
             .expect("distance should exist")
             .is_finite());
+    }
+
+    #[test]
+    fn interpolation_quality_samples_are_reportable() {
+        let samples = interpolation_quality_samples();
+        assert_eq!(samples.len(), 5);
+        assert!(samples.iter().all(|sample| {
+            sample.epoch.julian_day.days() == REFERENCE_EPOCH_JD
+                && sample.bracket_span_days > 0.0
+                && sample.longitude_error_deg.is_finite()
+                && sample.latitude_error_deg.is_finite()
+                && sample.distance_error_au.is_finite()
+        }));
+        assert!(samples
+            .iter()
+            .any(|sample| sample.body == pleiades_backend::CelestialBody::Mars));
     }
 
     #[test]

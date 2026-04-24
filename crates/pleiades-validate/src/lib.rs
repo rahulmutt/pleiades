@@ -40,7 +40,9 @@ use pleiades_elp::ElpBackend;
 use pleiades_houses::{
     baseline_house_systems, built_in_house_systems, release_house_systems, resolve_house_system,
 };
-use pleiades_jpl::{comparison_snapshot, reference_asteroids, JplSnapshotBackend};
+use pleiades_jpl::{
+    comparison_snapshot, interpolation_quality_samples, reference_asteroids, JplSnapshotBackend,
+};
 use pleiades_vsop87::{body_source_profiles, Vsop87Backend};
 
 const DEFAULT_BENCHMARK_ROUNDS: usize = 10_000;
@@ -3652,6 +3654,9 @@ fn write_backend_catalog_entry(
             )?;
         }
     }
+    if entry.metadata.id.as_str() == "jpl-snapshot" {
+        write_jpl_interpolation_quality(f)?;
+    }
     writeln!(
         f,
         "  expected error classes: {}",
@@ -3664,6 +3669,33 @@ fn write_backend_catalog_entry(
             f,
             "  required external data files: {}",
             format_data_files(entry.required_data_files)
+        )?;
+    }
+    Ok(())
+}
+
+fn write_jpl_interpolation_quality(f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    writeln!(f, "  interpolation quality checks:")?;
+    let samples = interpolation_quality_samples();
+    if samples.is_empty() {
+        writeln!(f, "    none")?;
+        return Ok(());
+    }
+
+    writeln!(
+        f,
+        "    note: sparse-fixture leave-one-out checks report current linear interpolation error; they are not production tolerances"
+    )?;
+    for sample in samples {
+        writeln!(
+            f,
+            "    {} at JD {:.1}: bracket span {:.1} d, |Δlon|={:.12}°, |Δlat|={:.12}°, |Δdist|={:.12} AU",
+            sample.body,
+            sample.epoch.julian_day.days(),
+            sample.bracket_span_days,
+            sample.longitude_error_deg,
+            sample.latitude_error_deg,
+            sample.distance_error_au
         )?;
     }
     Ok(())
@@ -5131,6 +5163,9 @@ mod tests {
         assert!(rendered.contains("Pluto: MeanOrbitalElements"));
         assert!(rendered.contains("Meeus-style truncated lunar orbit formulas"));
         assert!(rendered.contains("NASA/JPL Horizons API vector tables (DE441)"));
+        assert!(rendered.contains("interpolation quality checks:"));
+        assert!(rendered.contains("sparse-fixture leave-one-out checks"));
+        assert!(rendered.contains("Mars at JD 2451545.0"));
         assert!(rendered.contains("VSOP87 planetary backend"));
         assert!(rendered.contains("ELP lunar backend (Moon and lunar nodes)"));
         assert!(rendered.contains("Packaged data backend"));
