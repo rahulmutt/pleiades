@@ -41,7 +41,7 @@ use pleiades_houses::{
     baseline_house_systems, built_in_house_systems, release_house_systems, resolve_house_system,
 };
 use pleiades_jpl::{comparison_snapshot, reference_asteroids, JplSnapshotBackend};
-use pleiades_vsop87::Vsop87Backend;
+use pleiades_vsop87::{body_source_profiles, Vsop87Backend};
 
 const DEFAULT_BENCHMARK_ROUNDS: usize = 10_000;
 const BANNER: &str = "pleiades-validate stage 4 tool";
@@ -3494,6 +3494,16 @@ fn write_backend_catalog_entry(
     entry: &BackendMatrixEntry,
 ) -> fmt::Result {
     write_backend_matrix(f, &entry.metadata)?;
+    if entry.metadata.id.as_str() == "pleiades-vsop87" {
+        writeln!(f, "  body source profiles:")?;
+        for profile in body_source_profiles() {
+            writeln!(
+                f,
+                "    {}: {:?}, {:?}, {}",
+                profile.body, profile.kind, profile.accuracy, profile.provenance
+            )?;
+        }
+    }
     writeln!(
         f,
         "  expected error classes: {}",
@@ -4878,6 +4888,9 @@ mod tests {
             rendered.contains("IMCCE/CELMECH VSOP87B Earth heliocentric spherical coefficients")
         );
         assert!(rendered.contains("Paul Schlyter-style mean orbital elements for planets"));
+        assert!(rendered.contains("body source profiles:"));
+        assert!(rendered.contains("Mars: TruncatedVsop87b"));
+        assert!(rendered.contains("Jupiter: MeanOrbitalElements"));
         assert!(rendered.contains("Meeus-style truncated lunar orbit formulas"));
         assert!(rendered.contains("NASA/JPL Horizons API vector tables (DE441)"));
         assert!(rendered.contains("VSOP87 planetary backend"));

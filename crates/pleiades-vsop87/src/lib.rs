@@ -33,6 +33,93 @@ use pleiades_types::{
 const PACKAGE_NAME: &str = "pleiades-vsop87";
 const J2000: f64 = 2_451_545.0;
 
+/// Calculation family currently used for an individual VSOP87 backend body.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Vsop87BodySourceKind {
+    /// Heliocentric spherical coordinates are evaluated from a checked-in
+    /// truncated IMCCE/CELMECH VSOP87B coefficient slice.
+    TruncatedVsop87b,
+    /// Coordinates are produced from compact mean orbital elements while the
+    /// complete VSOP87 coefficient path is still pending.
+    MeanOrbitalElements,
+}
+
+/// Per-body source profile for the mixed implementation state of
+/// [`Vsop87Backend`].
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Vsop87BodySource {
+    /// Body covered by this source profile.
+    pub body: CelestialBody,
+    /// Calculation family used for the heliocentric or geocentric channel.
+    pub kind: Vsop87BodySourceKind,
+    /// Human-readable provenance detail for this body's calculation path.
+    pub provenance: &'static str,
+    /// Current published accuracy class for this body path.
+    pub accuracy: AccuracyClass,
+}
+
+/// Returns the per-body source profiles used by [`Vsop87Backend`].
+///
+/// This supplements the backend-trait metadata, whose body coverage is a flat
+/// list, by making the transitional mixed implementation explicit: the Sun and
+/// inner planets have source-backed truncated VSOP87B slices, while the outer
+/// planets still use fallback element paths until generated complete tables are
+/// added.
+pub fn body_source_profiles() -> Vec<Vsop87BodySource> {
+    Vsop87Backend::supported_bodies()
+        .iter()
+        .cloned()
+        .map(Vsop87BodySource::for_body)
+        .collect()
+}
+
+impl Vsop87BodySource {
+    fn for_body(body: CelestialBody) -> Self {
+        match body {
+            CelestialBody::Sun => Self {
+                body,
+                kind: Vsop87BodySourceKind::TruncatedVsop87b,
+                provenance: "geocentric Sun reduced from truncated IMCCE/CELMECH VSOP87B Earth coefficients",
+                accuracy: AccuracyClass::Approximate,
+            },
+            CelestialBody::Mercury => Self {
+                body,
+                kind: Vsop87BodySourceKind::TruncatedVsop87b,
+                provenance: "Mercury heliocentric channel from truncated IMCCE/CELMECH VSOP87B Mercury coefficients, reduced against Earth",
+                accuracy: AccuracyClass::Approximate,
+            },
+            CelestialBody::Venus => Self {
+                body,
+                kind: Vsop87BodySourceKind::TruncatedVsop87b,
+                provenance: "Venus heliocentric channel from truncated IMCCE/CELMECH VSOP87B Venus coefficients, reduced against Earth",
+                accuracy: AccuracyClass::Approximate,
+            },
+            CelestialBody::Mars => Self {
+                body,
+                kind: Vsop87BodySourceKind::TruncatedVsop87b,
+                provenance: "Mars heliocentric channel from truncated IMCCE/CELMECH VSOP87B Mars coefficients, reduced against Earth",
+                accuracy: AccuracyClass::Approximate,
+            },
+            CelestialBody::Jupiter
+            | CelestialBody::Saturn
+            | CelestialBody::Uranus
+            | CelestialBody::Neptune
+            | CelestialBody::Pluto => Self {
+                body,
+                kind: Vsop87BodySourceKind::MeanOrbitalElements,
+                provenance: "compact mean orbital elements fallback pending source-backed VSOP87 coefficient tables",
+                accuracy: AccuracyClass::Approximate,
+            },
+            _ => Self {
+                body,
+                kind: Vsop87BodySourceKind::MeanOrbitalElements,
+                provenance: "unsupported by the VSOP87 planetary backend",
+                accuracy: AccuracyClass::Unknown,
+            },
+        }
+    }
+}
+
 /// A pure-Rust planetary backend.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Vsop87Backend;
@@ -301,12 +388,25 @@ impl Vsop87Backend {
 
 impl EphemerisBackend for Vsop87Backend {
     fn metadata(&self) -> BackendMetadata {
+        let source_profiles = body_source_profiles();
+        let source_backed_count = source_profiles
+            .iter()
+            .filter(|profile| profile.kind == Vsop87BodySourceKind::TruncatedVsop87b)
+            .count();
+        let fallback_count = source_profiles
+            .iter()
+            .filter(|profile| profile.kind == Vsop87BodySourceKind::MeanOrbitalElements)
+            .count();
+
         BackendMetadata {
             id: BackendId::new(PACKAGE_NAME),
             version: env!("CARGO_PKG_VERSION").to_string(),
             family: BackendFamily::Algorithmic,
             provenance: BackendProvenance {
-                summary: "Mixed pure-Rust planetary backend: truncated VSOP87B Earth coefficients for the geocentric Sun path, truncated VSOP87B Mercury coefficients for Mercury, truncated VSOP87B Venus coefficients for Venus, truncated VSOP87B Mars coefficients for Mars, compact Keplerian elements for remaining planets, and geocentric reduction.".to_string(),
+                summary: format!(
+                    "Mixed pure-Rust planetary backend: {} source-backed truncated VSOP87B body paths, {} fallback mean-element body paths, and geocentric reduction.",
+                    source_backed_count, fallback_count
+                ),
                 data_sources: vec![
                     "IMCCE/CELMECH VSOP87B Earth heliocentric spherical coefficients, truncated leading-term slice for Sun geocentric reduction and planetary geocentric reductions".to_string(),
                     "IMCCE/CELMECH VSOP87B Mercury heliocentric spherical coefficients, truncated leading-term slice for Mercury geocentric reduction".to_string(),
@@ -638,9 +738,14 @@ mod tests {
     #[test]
     fn metadata_identifies_source_backed_planet_vsop87b_slices() {
         let metadata = Vsop87Backend::new().metadata();
-        assert!(metadata.provenance.summary.contains("VSOP87B Mercury"));
-        assert!(metadata.provenance.summary.contains("VSOP87B Venus"));
-        assert!(metadata.provenance.summary.contains("VSOP87B Mars"));
+        assert!(metadata
+            .provenance
+            .summary
+            .contains("4 source-backed truncated VSOP87B body paths"));
+        assert!(metadata
+            .provenance
+            .summary
+            .contains("5 fallback mean-element body paths"));
         assert!(metadata
             .provenance
             .data_sources
@@ -656,6 +761,26 @@ mod tests {
             .data_sources
             .iter()
             .any(|source| source.contains("VSOP87B Mars heliocentric spherical coefficients")));
+    }
+
+    #[test]
+    fn body_source_profiles_identify_mixed_implementation_paths() {
+        let profiles = body_source_profiles();
+        assert_eq!(profiles.len(), Vsop87Backend::supported_bodies().len());
+
+        let mars = profiles
+            .iter()
+            .find(|profile| profile.body == CelestialBody::Mars)
+            .expect("Mars profile should exist");
+        assert_eq!(mars.kind, Vsop87BodySourceKind::TruncatedVsop87b);
+        assert!(mars.provenance.contains("VSOP87B Mars"));
+
+        let jupiter = profiles
+            .iter()
+            .find(|profile| profile.body == CelestialBody::Jupiter)
+            .expect("Jupiter profile should exist");
+        assert_eq!(jupiter.kind, Vsop87BodySourceKind::MeanOrbitalElements);
+        assert!(jupiter.provenance.contains("fallback"));
     }
 
     #[test]
