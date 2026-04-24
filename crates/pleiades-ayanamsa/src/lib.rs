@@ -516,7 +516,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticCenterMardyks,
         "Galactic Center (Mardyks)",
-        &["Skydram (Mardyks)", "Mardyks", "Galactic center Mardyks"],
+        &["Skydram", "Skydram/Galactic Alignment", "Skydram (Mardyks)", "Mardyks", "Galactic center Mardyks"],
         "Galactic-center reference mode attributed to Mardyks, with the Swiss Ephemeris zero point at JD 1662951.794251 (-0160/11/27 07:03:43.27 UT).",
         Some(JulianDay::from_days(1_662_951.794_251)),
         Some(Angle::from_degrees(0.0)),
@@ -1021,7 +1021,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
     AyanamsaDescriptor::new(
         Ayanamsa::GalacticCenterMardyks,
         "Galactic Center (Mardyks)",
-        &["Skydram (Mardyks)", "Mardyks", "Galactic center Mardyks"],
+        &["Skydram", "Skydram/Galactic Alignment", "Skydram (Mardyks)", "Mardyks", "Galactic center Mardyks"],
         "Galactic-center reference mode attributed to Mardyks, with the Swiss Ephemeris zero point at JD 1662951.794251 (-0160/11/27 07:03:43.27 UT).",
         Some(JulianDay::from_days(1_662_951.794_251)),
         Some(Angle::from_degrees(0.0)),
@@ -1454,6 +1454,14 @@ mod tests {
         assert_eq!(
             resolve_ayanamsa("Galactic Center (Rgilbrand)"),
             Some(Ayanamsa::GalacticCenterRgilbrand)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Skydram"),
+            Some(Ayanamsa::GalacticCenterMardyks)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Skydram/Galactic Alignment"),
+            Some(Ayanamsa::GalacticCenterMardyks)
         );
         assert_eq!(
             resolve_ayanamsa("Skydram (Mardyks)"),
