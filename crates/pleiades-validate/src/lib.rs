@@ -1467,7 +1467,7 @@ fn render_release_checklist_text() -> String {
     text.push_str("API stability summary: api-stability-summary\n");
     text.push_str("Validation report summary: validation-report-summary / validation-summary / report-summary\n");
     text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
-    text.push_str("Compact summary views: release-notes-summary, backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary\n");
+    text.push_str("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary\n");
     text.push('\n');
     text.push_str("Repository-managed release gates:\n");
     for item in [
@@ -1643,7 +1643,7 @@ fn render_release_checklist_summary_text() -> String {
     text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
     text.push_str("Release bundle verification: verify-release-bundle\n");
     text.push_str("Release summary: release-summary\n");
-    text.push_str("Compact summary views: release-notes-summary, backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary\n");
+    text.push_str("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary\n");
     text.push_str("Repository-managed release gates: 6 items\n");
     text.push_str("Manual bundle workflow: 3 items\n");
     text.push_str("Bundle contents: 16 items\n");
@@ -4377,7 +4377,7 @@ mod tests {
         assert!(rendered.contains("Validation report summary: validation-report-summary / validation-summary / report-summary"));
         assert!(rendered
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
-        assert!(rendered.contains("Compact summary views: release-notes-summary, backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
+        assert!(rendered.contains("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Repository-managed release gates:"));
         assert!(rendered.contains("Manual bundle workflow:"));
         assert!(rendered.contains("Bundle contents:"));
@@ -4412,7 +4412,7 @@ mod tests {
         );
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
         assert!(rendered.contains("Release summary: release-summary"));
-        assert!(rendered.contains("Compact summary views: release-notes-summary, backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
+        assert!(rendered.contains("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Repository-managed release gates: 6 items"));
         assert!(rendered.contains("Manual bundle workflow: 3 items"));
         assert!(rendered.contains("Bundle contents: 16 items"));
