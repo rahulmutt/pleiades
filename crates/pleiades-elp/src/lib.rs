@@ -8,9 +8,10 @@
 //!
 //! The current lunar-theory selection is intentionally explicit: the backend
 //! exposes the Moon plus the mean/true node and mean apogee/perigee channels
-//! through a small structured specification so future source-backed ELP work
-//! can attach provenance, supported channels, and date-range notes without
-//! changing the public API shape.
+//! through a small structured specification, and it also lists true apogee /
+//! true perigee as unsupported bodies, so future source-backed ELP work can
+//! attach provenance, supported channels, unsupported channels, and date-range
+//! notes without changing the public API shape.
 
 #![forbid(unsafe_code)]
 
@@ -38,6 +39,8 @@ pub struct LunarTheorySpecification {
     pub source_material: &'static str,
     /// Bodies/channels the current lunar baseline explicitly covers.
     pub supported_bodies: &'static [CelestialBody],
+    /// Bodies/channels that are explicitly unsupported by this baseline.
+    pub unsupported_bodies: &'static [CelestialBody],
     /// Notes the effective validation window or date-range posture.
     pub date_range_note: &'static str,
     /// Notes on the coordinate-frame treatment used by the baseline.
@@ -53,12 +56,15 @@ pub fn lunar_theory_specification() -> LunarTheorySpecification {
         CelestialBody::MeanApogee,
         CelestialBody::MeanPerigee,
     ];
+    const UNSUPPORTED_BODIES: &[CelestialBody] =
+        &[CelestialBody::TrueApogee, CelestialBody::TruePerigee];
 
     LunarTheorySpecification {
         model_name: "Compact Meeus-style analytical lunar baseline",
         source_material:
             "Published lunar element and mean-point formulas used as the current pure-Rust baseline while full ELP coefficient selection remains pending",
         supported_bodies: SUPPORTED_BODIES,
+        unsupported_bodies: UNSUPPORTED_BODIES,
         date_range_note:
             "Validated at J2000 and used across the current phase-1 comparison window; no full ELP coefficient range has been published yet",
         frame_note:
@@ -636,6 +642,10 @@ mod tests {
                 CelestialBody::MeanPerigee,
             ]
         );
+        assert_eq!(
+            theory.unsupported_bodies,
+            &[CelestialBody::TrueApogee, CelestialBody::TruePerigee]
+        );
 
         assert!(backend.supports_body(CelestialBody::Moon));
         assert!(backend.supports_body(CelestialBody::MeanNode));
@@ -645,6 +655,18 @@ mod tests {
         assert!(!backend.supports_body(CelestialBody::TrueApogee));
         assert!(!backend.supports_body(CelestialBody::TruePerigee));
         assert!(!backend.supports_body(CelestialBody::Sun));
+
+        let instant = Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt);
+        for body in [
+            CelestialBody::TrueApogee,
+            CelestialBody::TruePerigee,
+            CelestialBody::Sun,
+        ] {
+            let error = backend
+                .position(&mean_request_at(body, instant))
+                .expect_err("unsupported lunar bodies should fail explicitly");
+            assert_eq!(error.kind, EphemerisErrorKind::UnsupportedBody);
+        }
     }
 
     #[test]

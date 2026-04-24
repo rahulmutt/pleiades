@@ -3349,10 +3349,12 @@ fn format_vsop87_source_audit_summary() -> String {
 fn format_elp_lunar_theory_summary() -> String {
     let theory = lunar_theory_specification();
     format!(
-        "ELP lunar theory specification: {} ({} supported bodies: {}); validation window: {}; frame treatment: {}",
+        "ELP lunar theory specification: {} ({} supported bodies: {}; {} unsupported bodies: {}); validation window: {}; frame treatment: {}",
         theory.model_name,
         theory.supported_bodies.len(),
         format_bodies(theory.supported_bodies),
+        theory.unsupported_bodies.len(),
+        format_bodies(theory.unsupported_bodies),
         theory.date_range_note,
         theory.frame_note,
     )
@@ -6172,6 +6174,7 @@ mod tests {
         assert!(rendered.contains(
             "ELP lunar theory specification: Compact Meeus-style analytical lunar baseline"
         ));
+        assert!(rendered.contains("2 unsupported bodies: True Apogee, True Perigee"));
         assert!(rendered.contains("Distinct bodies covered:"));
         assert!(rendered.contains("Distinct coordinate frames:"));
         assert!(rendered.contains("Distinct time scales:"));
@@ -6475,6 +6478,9 @@ version = "0.9.0"
         assert!(validation_report_summary.contains(
             "ELP lunar theory specification: Compact Meeus-style analytical lunar baseline"
         ));
+        assert!(
+            validation_report_summary.contains("2 unsupported bodies: True Apogee, True Perigee")
+        );
         assert!(report.contains("Validation report"));
         assert!(report.contains("Expected tolerance status"));
         assert!(manifest.contains("Release bundle manifest"));
