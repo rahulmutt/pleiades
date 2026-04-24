@@ -3028,24 +3028,47 @@ fn format_vsop87_body_evidence_summary() -> String {
                     row.source_kind == pleiades_vsop87::Vsop87BodySourceKind::VendoredVsop87b
                 })
                 .count();
+            let generated_count = evidence
+                .iter()
+                .filter(|row| {
+                    row.source_kind == pleiades_vsop87::Vsop87BodySourceKind::GeneratedBinaryVsop87b
+                })
+                .count();
             let truncated_count = evidence
                 .iter()
                 .filter(|row| {
                     row.source_kind == pleiades_vsop87::Vsop87BodySourceKind::TruncatedVsop87b
                 })
                 .count();
-            if truncated_count == 0 {
+            if generated_count == 0 && truncated_count == 0 {
                 format!(
                     "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file), {} within interim limits",
                     evidence.len(),
                     vendored_count,
                     within_interim_limits,
                 )
-            } else {
+            } else if generated_count > 0 && truncated_count == 0 {
+                format!(
+                    "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} generated binary), {} within interim limits",
+                    evidence.len(),
+                    vendored_count,
+                    generated_count,
+                    within_interim_limits,
+                )
+            } else if generated_count == 0 {
                 format!(
                     "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} truncated slice), {} within interim limits",
                     evidence.len(),
                     vendored_count,
+                    truncated_count,
+                    within_interim_limits,
+                )
+            } else {
+                format!(
+                    "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} generated binary, {} truncated slice), {} within interim limits",
+                    evidence.len(),
+                    vendored_count,
+                    generated_count,
                     truncated_count,
                     within_interim_limits,
                 )
@@ -3064,6 +3087,7 @@ fn format_vsop87_source_documentation_summary() -> String {
                 profile.kind,
                 pleiades_vsop87::Vsop87BodySourceKind::TruncatedVsop87b
                     | pleiades_vsop87::Vsop87BodySourceKind::VendoredVsop87b
+                    | pleiades_vsop87::Vsop87BodySourceKind::GeneratedBinaryVsop87b
             )
         })
         .count();
@@ -5000,7 +5024,7 @@ mod tests {
             .contains("VSOP87 source audit: 8 source-backed bodies, 8 vendored full-file inputs"));
         assert!(report.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(report.contains(
-            "VSOP87 source-backed body evidence: 8 body profiles (8 vendored full-file), 8 within interim limits"
+            "VSOP87 source-backed body evidence: 8 body profiles (7 vendored full-file, 1 generated binary), 8 within interim limits"
         ));
         assert!(report.contains("House validation corpus"));
         assert!(report.contains("Benchmark summaries"));
@@ -5532,7 +5556,7 @@ mod tests {
         assert!(rendered.contains("geocentric planetary reduction against Earth coefficients"));
         assert!(rendered.contains("solar reduction from Earth coefficients"));
         assert!(rendered.contains("canonical J2000 VSOP87B evidence:"));
-        assert!(rendered.contains("Sun: VendoredVsop87b from VSOP87B.ear"));
+        assert!(rendered.contains("Sun: GeneratedBinaryVsop87b from VSOP87B.ear"));
         assert!(rendered.contains("Mercury: VendoredVsop87b from VSOP87B.mer"));
         assert!(rendered.contains("Mars: VendoredVsop87b from VSOP87B.mar"));
         assert!(rendered.contains("Jupiter: VendoredVsop87b"));
@@ -5576,7 +5600,7 @@ mod tests {
             .contains("VSOP87 source audit: 8 source-backed bodies, 8 vendored full-file inputs"));
         assert!(rendered.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(rendered.contains(
-            "VSOP87 source-backed body evidence: 8 body profiles (8 vendored full-file), 8 within interim limits"
+            "VSOP87 source-backed body evidence: 8 body profiles (7 vendored full-file, 1 generated binary), 8 within interim limits"
         ));
         assert!(rendered.contains("Distinct bodies covered:"));
         assert!(rendered.contains("Distinct coordinate frames:"));
@@ -5870,7 +5894,7 @@ version = "0.9.0"
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(validation_report_summary.contains("VSOP87 source-backed evidence"));
         assert!(validation_report_summary.contains(
-            "VSOP87 source-backed body evidence: 8 body profiles (8 vendored full-file), 8 within interim limits"
+            "VSOP87 source-backed body evidence: 8 body profiles (7 vendored full-file, 1 generated binary), 8 within interim limits"
         ));
         assert!(validation_report_summary
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));

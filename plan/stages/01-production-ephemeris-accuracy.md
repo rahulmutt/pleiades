@@ -14,7 +14,7 @@ Replace preliminary, sample-driven, or simplified backend behavior with source-b
 
 ## Current baseline
 
-Implemented foundations include backend traits, metadata, composite routing, major body identifiers, lunar points, baseline asteroids, a chart façade, CLI commands, a snapshot-style `pleiades-jpl` with exact lookup, linear interpolation, selected asteroid coverage, and expanded public-input leave-one-out interpolation quality reporting, preliminary `pleiades-vsop87` and `pleiades-elp` crates, deterministic central-difference motion estimates for the current VSOP87 path and compact ELP Moon/lunar-point path, explicit mean-only support for mean lunar apogee and mean lunar perigee, explicit rejection of unsupported topocentric and apparent requests in geocentric/mean-only backends, an initial time-scale/Delta T/observer policy document, caller-supplied time-scale offset helpers for explicit external UT1-to-TT/related policies, vendored IMCCE VSOP87B Earth, Mercury, Venus, and Mars source files for geocentric Sun, Mercury, Venus, and Mars output plus truncated IMCCE VSOP87B Jupiter, Saturn, Uranus, and Neptune coefficient slices for geocentric planet output with J2000 golden tests, VSOP87 per-body source profiles rendered in validation backend matrices, and validation reports that expose aggregate plus per-body comparison error summaries, explicit interim tolerance status by body, and compact source-backed VSOP87 evidence snapshots.
+Implemented foundations include backend traits, metadata, composite routing, major body identifiers, lunar points, baseline asteroids, a chart façade, CLI commands, a snapshot-style `pleiades-jpl` with exact lookup, linear interpolation, selected asteroid coverage, and expanded public-input leave-one-out interpolation quality reporting, preliminary `pleiades-vsop87` and `pleiades-elp` crates, deterministic central-difference motion estimates for the current VSOP87 path and compact ELP Moon/lunar-point path, explicit mean-only support for mean lunar apogee and mean lunar perigee, explicit rejection of unsupported topocentric and apparent requests in geocentric/mean-only backends, an initial time-scale/Delta T/observer policy document, caller-supplied time-scale offset helpers for explicit external UT1-to-TT/related policies, vendored IMCCE VSOP87B Earth, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, and Neptune source files for geocentric Sun-through-Neptune output, plus the first generated binary coefficient-table slice for the Earth path, VSOP87 per-body source profiles rendered in validation backend matrices, and validation reports that expose aggregate plus per-body comparison error summaries, explicit interim tolerance status by body, and compact source-backed VSOP87 evidence snapshots.
 
 ## Remaining implementation goals
 
@@ -22,6 +22,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Load or encode VSOP87 coefficient data in pure Rust.
    - Document variant, truncation policy, frames, units, and date range.
    - Produce geocentric astrology-facing ecliptic positions for Sun and planets.
+   - Extend the generated Earth coefficient-table path to the remaining source-backed planets.
    - Add batch-path tests covering all supported planets at canonical epochs.
 
 2. Implement production `pleiades-elp` lunar calculations.

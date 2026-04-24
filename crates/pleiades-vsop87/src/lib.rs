@@ -4,13 +4,14 @@
 //!
 //! This crate now provides a working pure-Rust algorithmic backend for the Sun
 //! and major planets. The Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus,
-//! and Neptune paths now evaluate vendored public IMCCE VSOP87B source files
-//! (heliocentric spherical variables, J2000 ecliptic/equinox) transformed to
-//! geocentric chart-facing coordinates. Pluto still uses compact Keplerian
-//! orbital elements, a geocentric reduction step, and central-difference motion
-//! estimates so the workspace has an end-to-end tropical chart path while the
-//! remaining generated VSOP87 tables and Pluto-specific source selection are
-//! added incrementally.
+//! and Neptune paths evaluate public IMCCE VSOP87B sources (heliocentric
+//! spherical variables, J2000 ecliptic/equinox) transformed to geocentric
+//! chart-facing coordinates. The Sun path now uses a generated binary table
+//! derived from the vendored Earth source file. Pluto still uses compact
+//! Keplerian orbital elements, a geocentric reduction step, and
+//! central-difference motion estimates so the workspace has an end-to-end
+//! tropical chart path while the remaining generated VSOP87 tables and
+//! Pluto-specific source selection are added incrementally.
 
 #![forbid(unsafe_code)]
 
@@ -48,6 +49,10 @@ pub enum Vsop87BodySourceKind {
     /// Heliocentric spherical coordinates are evaluated directly from a
     /// vendored public IMCCE/CELMECH VSOP87B source file.
     VendoredVsop87b,
+    /// Heliocentric spherical coordinates are evaluated from a generated
+    /// binary table derived from a vendored public IMCCE/CELMECH VSOP87B
+    /// source file.
+    GeneratedBinaryVsop87b,
     /// Coordinates are produced from compact mean orbital elements while the
     /// complete VSOP87 coefficient path is still pending.
     MeanOrbitalElements,
@@ -279,8 +284,8 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
             Vsop87BodyCatalogEntry {
                 source_profile: source_profile(
                     CelestialBody::Sun,
-                    Vsop87BodySourceKind::VendoredVsop87b,
-                    "geocentric Sun reduced from vendored full IMCCE/CELMECH VSOP87B Earth source file",
+                    Vsop87BodySourceKind::GeneratedBinaryVsop87b,
+                    "geocentric Sun reduced from a generated binary coefficient table derived from the vendored full IMCCE/CELMECH VSOP87B Earth source file",
                     AccuracyClass::Exact,
                 ),
                 source_specification: vendored_source_specification(
@@ -849,6 +854,10 @@ impl EphemerisBackend for Vsop87Backend {
             .iter()
             .filter(|profile| profile.kind == Vsop87BodySourceKind::VendoredVsop87b)
             .count();
+        let generated_count = source_profiles
+            .iter()
+            .filter(|profile| profile.kind == Vsop87BodySourceKind::GeneratedBinaryVsop87b)
+            .count();
         let truncated_count = source_profiles
             .iter()
             .filter(|profile| profile.kind == Vsop87BodySourceKind::TruncatedVsop87b)
@@ -859,6 +868,7 @@ impl EphemerisBackend for Vsop87Backend {
             .count();
 
         let vendored_path_label = pluralize_body_path(vendored_count);
+        let generated_path_label = pluralize_body_path(generated_count);
         let truncated_path_label = pluralize_body_path(truncated_count);
         let fallback_path_label = pluralize_body_path(fallback_count);
 
@@ -867,13 +877,21 @@ impl EphemerisBackend for Vsop87Backend {
             version: env!("CARGO_PKG_VERSION").to_string(),
             family: BackendFamily::Algorithmic,
             provenance: BackendProvenance {
-                summary: if truncated_count == 0 {
+                summary: if generated_count == 0 && truncated_count == 0 {
                     format!(
                         "Mixed pure-Rust planetary backend: {vendored_count} vendored full-file VSOP87B {vendored_path_label}, {fallback_count} fallback mean-element {fallback_path_label}, and geocentric reduction."
                     )
-                } else {
+                } else if generated_count > 0 && truncated_count == 0 {
+                    format!(
+                        "Mixed pure-Rust planetary backend: {vendored_count} vendored full-file VSOP87B {vendored_path_label}, {generated_count} generated binary VSOP87B {generated_path_label}, {fallback_count} fallback mean-element {fallback_path_label}, and geocentric reduction."
+                    )
+                } else if generated_count == 0 {
                     format!(
                         "Mixed pure-Rust planetary backend: {vendored_count} vendored full-file VSOP87B {vendored_path_label}, {truncated_count} source-backed truncated VSOP87B {truncated_path_label}, {fallback_count} fallback mean-element {fallback_path_label}, and geocentric reduction."
+                    )
+                } else {
+                    format!(
+                        "Mixed pure-Rust planetary backend: {vendored_count} vendored full-file VSOP87B {vendored_path_label}, {generated_count} generated binary VSOP87B {generated_path_label}, {truncated_count} source-backed truncated VSOP87B {truncated_path_label}, {fallback_count} fallback mean-element {fallback_path_label}, and geocentric reduction."
                     )
                 },
                 data_sources: source_specifications()
@@ -966,7 +984,8 @@ impl EphemerisBackend for Vsop87Backend {
             req.apparent,
         );
         result.quality = match source_kind_for_body(req.body.clone()) {
-            Some(Vsop87BodySourceKind::VendoredVsop87b) => QualityAnnotation::Exact,
+            Some(Vsop87BodySourceKind::VendoredVsop87b)
+            | Some(Vsop87BodySourceKind::GeneratedBinaryVsop87b) => QualityAnnotation::Exact,
             Some(Vsop87BodySourceKind::TruncatedVsop87b)
             | Some(Vsop87BodySourceKind::MeanOrbitalElements)
             | None => QualityAnnotation::Approximate,
@@ -1382,10 +1401,9 @@ mod tests {
     #[test]
     fn metadata_identifies_source_backed_planet_vsop87b_paths() {
         let metadata = Vsop87Backend::new().metadata();
-        assert!(metadata
-            .provenance
-            .summary
-            .contains("8 vendored full-file VSOP87B body paths"));
+        assert!(metadata.provenance.summary.contains(
+            "7 vendored full-file VSOP87B body paths, 1 generated binary VSOP87B body path"
+        ));
         assert!(metadata
             .provenance
             .summary
@@ -1451,7 +1469,11 @@ mod tests {
                 .iter()
                 .find(|profile| profile.body == body)
                 .expect("source profile should exist");
-            assert_eq!(profile.kind, Vsop87BodySourceKind::VendoredVsop87b);
+            if body == CelestialBody::Sun {
+                assert_eq!(profile.kind, Vsop87BodySourceKind::GeneratedBinaryVsop87b);
+            } else {
+                assert_eq!(profile.kind, Vsop87BodySourceKind::VendoredVsop87b);
+            }
             assert_eq!(profile.accuracy, AccuracyClass::Exact);
             assert!(profile
                 .provenance
@@ -1554,7 +1576,9 @@ mod tests {
             .filter(|entry| {
                 matches!(
                     entry.source_profile.kind,
-                    Vsop87BodySourceKind::TruncatedVsop87b | Vsop87BodySourceKind::VendoredVsop87b
+                    Vsop87BodySourceKind::TruncatedVsop87b
+                        | Vsop87BodySourceKind::VendoredVsop87b
+                        | Vsop87BodySourceKind::GeneratedBinaryVsop87b
                 )
             })
             .count();
@@ -1578,7 +1602,7 @@ mod tests {
             .expect("Sun entry should exist");
         assert_eq!(
             sun.source_profile.kind,
-            Vsop87BodySourceKind::VendoredVsop87b
+            Vsop87BodySourceKind::GeneratedBinaryVsop87b
         );
         assert!(sun.source_specification.is_some());
         assert!(sun.canonical_sample.is_some());

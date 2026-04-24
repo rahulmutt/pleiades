@@ -1,10 +1,10 @@
 //! VSOP87B Earth coefficient tables backed by the full public IMCCE/CELMECH
 //! source file.
 //!
-//! The Earth file is vendored verbatim from the public `VSOP87B.ear` source and
-//! parsed in pure Rust at startup. That gives the Sun path a complete source-file
-//! evaluation path while the remaining planets now use the same vendored
-//! full-file parsing path.
+//! The Earth file is vendored verbatim from the public `VSOP87B.ear` source.
+//! The runtime path now prefers a generated binary table derived from that
+//! vendored input so the Sun path has a reproducible coefficient artifact while
+//! the text parser remains available for validation and future generator work.
 
 use std::sync::OnceLock;
 
@@ -62,8 +62,111 @@ where
     value
 }
 
+const GENERATED_EARTH_TABLE_MAGIC: &[u8; 8] = b"PVSBTAB1";
+const GENERATED_EARTH_TABLE_VERSION: u32 = 1;
+
 fn earth_tables() -> &'static Vsop87SeriesTables {
-    EARTH_TABLES.get_or_init(|| parse_vsop87b_tables(include_str!("../data/VSOP87B.ear")))
+    EARTH_TABLES
+        .get_or_init(|| parse_generated_vsop87b_tables(include_bytes!("../data/VSOP87B.ear.bin")))
+}
+
+fn parse_generated_vsop87b_tables(bytes: &[u8]) -> Vsop87SeriesTables {
+    let mut cursor = 0usize;
+
+    fn take<'a>(bytes: &'a [u8], cursor: &mut usize, len: usize) -> &'a [u8] {
+        let end = cursor
+            .checked_add(len)
+            .expect("VSOP87B generated table length overflow");
+        assert!(
+            end <= bytes.len(),
+            "truncated generated VSOP87B Earth table"
+        );
+        let slice = &bytes[*cursor..end];
+        *cursor = end;
+        slice
+    }
+
+    fn take_u32(bytes: &[u8], cursor: &mut usize) -> u32 {
+        let mut raw = [0u8; 4];
+        raw.copy_from_slice(take(bytes, cursor, 4));
+        u32::from_le_bytes(raw)
+    }
+
+    fn take_u8(bytes: &[u8], cursor: &mut usize) -> u8 {
+        take(bytes, cursor, 1)[0]
+    }
+
+    fn take_f64(bytes: &[u8], cursor: &mut usize) -> f64 {
+        let mut raw = [0u8; 8];
+        raw.copy_from_slice(take(bytes, cursor, 8));
+        f64::from_le_bytes(raw)
+    }
+
+    assert!(
+        bytes.len() >= GENERATED_EARTH_TABLE_MAGIC.len() + 8,
+        "generated VSOP87B Earth table is too small"
+    );
+    assert_eq!(
+        take(bytes, &mut cursor, GENERATED_EARTH_TABLE_MAGIC.len()),
+        GENERATED_EARTH_TABLE_MAGIC,
+        "generated VSOP87B Earth table has an invalid magic header"
+    );
+    assert_eq!(
+        take_u32(bytes, &mut cursor),
+        GENERATED_EARTH_TABLE_VERSION,
+        "generated VSOP87B Earth table has an unsupported version"
+    );
+    let section_count = take_u32(bytes, &mut cursor) as usize;
+    assert_eq!(
+        section_count, 18,
+        "generated VSOP87B Earth table should contain 18 coefficient sections"
+    );
+
+    let mut longitude = vec![Vec::new(); 6];
+    let mut latitude = vec![Vec::new(); 6];
+    let mut radius = vec![Vec::new(); 6];
+
+    for _ in 0..section_count {
+        let series = take_u8(bytes, &mut cursor) as usize;
+        let power = take_u8(bytes, &mut cursor) as usize;
+        let term_count = take_u32(bytes, &mut cursor) as usize;
+        assert!(
+            matches!(series, 1..=3),
+            "generated VSOP87B Earth table has an invalid series index {series}"
+        );
+        assert!(
+            power < 6,
+            "generated VSOP87B Earth table has an invalid power index {power}"
+        );
+
+        let target = match series {
+            1 => &mut longitude,
+            2 => &mut latitude,
+            3 => &mut radius,
+            _ => unreachable!("series index was validated above"),
+        };
+        let terms = &mut target[power];
+        terms.reserve(term_count);
+        for _ in 0..term_count {
+            terms.push(Vsop87Term {
+                amplitude: take_f64(bytes, &mut cursor),
+                phase: take_f64(bytes, &mut cursor),
+                frequency: take_f64(bytes, &mut cursor),
+            });
+        }
+    }
+
+    assert_eq!(
+        cursor,
+        bytes.len(),
+        "generated VSOP87B Earth table contained trailing bytes"
+    );
+
+    Vsop87SeriesTables {
+        longitude,
+        latitude,
+        radius,
+    }
 }
 
 pub(crate) fn parse_vsop87b_tables(source: &str) -> Vsop87SeriesTables {
@@ -193,7 +296,23 @@ mod tests {
     }
 
     #[test]
-    fn evaluates_j2000_earth_coordinates_from_the_full_source_file() {
+    fn parses_generated_earth_table_blob_with_expected_series_counts() {
+        let tables = parse_generated_vsop87b_tables(include_bytes!("../data/VSOP87B.ear.bin"));
+        assert_eq!(tables.longitude.len(), 6);
+        assert_eq!(tables.latitude.len(), 6);
+        assert_eq!(tables.radius.len(), 6);
+
+        let longitude_terms: Vec<usize> = tables.longitude.iter().map(Vec::len).collect();
+        let latitude_terms: Vec<usize> = tables.latitude.iter().map(Vec::len).collect();
+        let radius_terms: Vec<usize> = tables.radius.iter().map(Vec::len).collect();
+
+        assert_eq!(longitude_terms, vec![623, 379, 144, 23, 11, 4]);
+        assert_eq!(latitude_terms, vec![184, 134, 62, 14, 6, 2]);
+        assert_eq!(radius_terms, vec![523, 290, 134, 20, 9, 2]);
+    }
+
+    #[test]
+    fn evaluates_j2000_earth_coordinates_from_the_generated_table_file() {
         let earth = earth_lbr(2_451_545.0);
         assert!((earth.longitude_rad.to_degrees() - 100.377_843_416_648_52).abs() < 1e-12);
         assert!((earth.latitude_rad.to_degrees() + 0.000_227_210_514_441_982_95).abs() < 1e-12);
