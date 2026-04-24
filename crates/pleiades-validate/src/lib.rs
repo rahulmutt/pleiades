@@ -1555,6 +1555,7 @@ fn render_release_summary_text() -> String {
     text.push_str(&profile.known_gaps.len().to_string());
     text.push('\n');
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
+    text.push_str("Backend matrix summary: backend-matrix-summary\n");
     text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
     text.push_str("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary\n");
     text.push_str("Release notes summary: release-notes-summary\n");
@@ -4394,6 +4395,7 @@ mod tests {
         )));
         assert!(rendered.contains("Release summary line:"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
+        assert!(rendered.contains("Backend matrix summary: backend-matrix-summary"));
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
         assert!(rendered.contains("House systems:"));
         assert!(rendered.contains("Ayanamsas:"));
@@ -4642,6 +4644,7 @@ version = "0.9.0"
         assert!(release_summary.contains("Release summary"));
         assert!(release_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
+        assert!(release_summary.contains("Backend matrix summary: backend-matrix-summary"));
         assert!(release_summary
             .contains("Compatibility profile verification: verify-compatibility-profile"));
         assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
