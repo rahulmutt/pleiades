@@ -2314,6 +2314,11 @@ fn parse_checksum_value(text: &str, label: &str) -> Result<u64, ReleaseBundleErr
     let value = line.strip_prefix("0x").ok_or_else(|| {
         ReleaseBundleError::Verification(format!("missing 0x prefix for {label}"))
     })?;
+    if value.len() != 16 || !value.chars().all(|ch| matches!(ch, '0'..='9' | 'a'..='f')) {
+        return Err(ReleaseBundleError::Verification(format!(
+            "invalid {label} value: expected exactly 16 lowercase hex digits"
+        )));
+    }
     u64::from_str_radix(value, 16).map_err(|error| {
         ReleaseBundleError::Verification(format!("invalid {label} value: {error}"))
     })
@@ -4717,6 +4722,32 @@ version = "0.9.0"
         assert!(error.contains("release bundle verification failed"));
         assert!(error.contains("invalid bundle manifest checksum sidecar value"));
         assert!(error.contains("unexpected leading or trailing whitespace"));
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_noncanonical_manifest_checksum_sidecar() {
+        let bundle_dir = unique_temp_dir("pleiades-release-bundle-noncanonical-manifest-checksum");
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let checksum_path = bundle_dir.join("bundle-manifest.checksum.txt");
+        std::fs::write(&checksum_path, "0x1\n")
+            .expect("manifest checksum sidecar should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect_err("verification should fail for a noncanonical manifest checksum sidecar");
+        assert!(error.contains("release bundle verification failed"));
+        assert!(error.contains("invalid bundle manifest checksum sidecar value"));
+        assert!(error.contains("expected exactly 16 lowercase hex digits"));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
     }
