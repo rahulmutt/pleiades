@@ -323,6 +323,7 @@ fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
     text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
     text.push_str("Release checklist summary: release-checklist-summary\n");
     text.push_str("Release bundle verification: verify-release-bundle\n");
+    text.push_str("Workspace audit: workspace-audit / audit\n");
     text.push_str(
         "See validate-artifact for the full body-class envelopes and regression details.\nSee release-summary for the compact one-screen release overview.\n",
     );

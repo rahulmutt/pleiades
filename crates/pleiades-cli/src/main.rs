@@ -604,6 +604,7 @@ mod tests {
         assert!(artifact_summary.contains("Release notes summary: release-notes-summary"));
         assert!(artifact_summary
             .contains("Compatibility profile verification: verify-compatibility-profile"));
+        assert!(artifact_summary.contains("Workspace audit: workspace-audit / audit"));
 
         let artifact_report =
             render_cli(&["validate-artifact"]).expect("validate-artifact should render");

@@ -61,6 +61,7 @@ Stage 6 release hardening has started as of 2026-04-22.
 - [x] The primary CLI now also mirrors `compare-backends`, so the JPL-vs-composite comparison report can be reached from both the validation tooling and the main inspection CLI without changing the underlying report command.
 - [x] The compact release summary and release-checklist summary now also surface the workspace audit command, so the maintainer-facing release overview keeps the pure-Rust gate visible alongside the existing verification hops.
 - [x] The compact validation-report summary now also links `release-notes-summary`, and the validation docs and CLI regression coverage were updated to keep the release-audit path aligned with the new cross-reference.
+- [x] The packaged-artifact summary now also surfaces `workspace-audit`, so the compact artifact audit can hop directly to the workspace-native dependency check alongside the existing release-summary and bundle-verification links.
 
 - [x] The release notes artifact now also links `backend-matrix-summary` directly, so the maintainer-facing narrative can hop to backend coverage without relying only on the compact summary list.
 - [x] The release-bundle verification regression suite now also covers a duplicate `release notes summary:` manifest entry, so the staged manifest parser stays covered for another release-artifact path in addition to the existing release summary and provenance-only fields.
