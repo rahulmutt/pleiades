@@ -2859,6 +2859,7 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("API stability summary: api-stability-summary\n");
     text.push_str("Release notes summary: release-notes-summary\n");
+    text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
     text.push_str("Release checklist summary: release-checklist-summary\n");
     text.push_str("Validation report summary: validation-report-summary / validation-summary / report-summary\n");
     text.push_str("See release-summary for the compact one-screen release overview.\n");
@@ -4332,6 +4333,8 @@ mod tests {
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(rendered.contains("API stability summary: api-stability-summary"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
+        assert!(rendered
+            .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Release checklist summary: release-checklist-summary"));
         assert!(
             rendered.contains("Validation report summary: validation-report-summary / validation-summary / report-summary")

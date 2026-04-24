@@ -461,6 +461,8 @@ mod tests {
         assert!(backend_matrix.contains("Backends: 5"));
         assert!(backend_matrix.contains("Accuracy classes: Exact: 1"));
         assert!(backend_matrix.contains("Release notes summary: release-notes-summary"));
+        assert!(backend_matrix
+            .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(backend_matrix.contains("Release checklist summary: release-checklist-summary"));
 
         let api_stability =
