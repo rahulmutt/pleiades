@@ -1171,6 +1171,10 @@ mod tests {
         assert!(rendered.contains("Babylonian (House) (aliases: Babylonian House, BABYL_HOUSE)"));
         assert!(rendered.contains("Treindl Sunshine"));
         assert!(rendered.contains("Makransky Sunshine"));
+        assert!(rendered.contains("Sunshine table of houses, by Bob Makransky, Makransky Sunshine, Bob Makransky, Treindl Sunshine -> Sunshine"));
+        assert!(rendered.contains("Placidus house system, Placidus table of houses -> Placidus"));
+        assert!(rendered.contains("Koch houses, Koch house system, house system of the birth place, Koch table of houses, W. Koch, W Koch -> Koch"));
+        assert!(rendered.contains("Whole Sign houses, Whole Sign table of houses, Whole-sign, Whole Sign system, Whole Sign house system -> Whole Sign"));
         assert!(rendered.contains("Pullen SD (Neo-Porphyry) table of houses"));
         assert!(rendered.contains("Pullen SD (Sinusoidal Delta)"));
         assert!(rendered.contains("Pullen SR (Sinusoidal Ratio) table of houses"));

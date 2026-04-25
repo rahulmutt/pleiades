@@ -196,6 +196,8 @@ Progress note (2026-04-24): `verify-compatibility-profile` now prints an explici
 
 Progress note (2026-04-25): the compatibility-profile verification slice now also pins the exact Swiss Ephemeris house-table code spellings and the J2000/J1900/B1950 and Suryasiddhanta source-label forms, keeping the release-facing appendix text anchored to the same interoperability spellings that the generated profile renders. The custom-definition verifier now also rejects accidental built-in ayanamsa collisions while explicitly allowing the current intentional Babylonian house-family homographs, so the release-profile custom-definition bucket stays disjoint from both built-in catalogs without breaking the currently published profile.
 
+Progress note (2026-04-25): the same verification slice now also pins the Placidus, Koch, Whole Sign, and Sunshine table-of-houses spellings, so the exact release-profile source-label wording for a few more canonical house-system aliases stays covered as the catalog expands.
+
 Remaining suggested scope:
 
 - add broader coverage for any still-unpinned release-profile spellings or status lines that future catalog batches introduce.
