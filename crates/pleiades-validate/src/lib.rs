@@ -4357,6 +4357,11 @@ fn write_backend_catalog_entry(
             "    supported bodies: {}",
             format_bodies(theory.supported_bodies)
         )?;
+        writeln!(
+            f,
+            "    unsupported bodies: {}",
+            format_bodies(theory.unsupported_bodies)
+        )?;
         writeln!(f, "    date range note: {}", theory.date_range_note)?;
         writeln!(f, "    frame note: {}", theory.frame_note)?;
     }
@@ -6054,6 +6059,7 @@ mod tests {
         assert!(rendered.contains("Mars at JD 2451545.0"));
         assert!(rendered.contains("VSOP87 planetary backend"));
         assert!(rendered.contains("ELP lunar backend (Moon and lunar nodes)"));
+        assert!(rendered.contains("unsupported bodies: True Apogee, True Perigee"));
         assert!(rendered.contains("Packaged data backend"));
         assert!(rendered.contains("Composite routed backend"));
     }

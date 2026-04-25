@@ -33,6 +33,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Add regression tests around high-curvature lunar intervals.
    - Progress note: the backend now has an explicit lunar-theory policy document plus a short high-curvature Moon-window regression test, so the current baseline provenance and nearby motion continuity are exercised while source-backed ELP selection remains queued.
    - Progress note: the current lunar-theory selection now exposes a stable source identifier and explicit redistribution posture alongside the supported and unsupported lunar bodies, and the validation/reporting layer renders those provenance details in release-facing summaries.
+   - Progress note: validation backend-matrix output now also renders the ELP unsupported lunar bodies explicitly, so the release-facing lunar-theory section shows both the supported channels and the deferred true apogee/perigee slots.
 
 3. Upgrade `pleiades-jpl` from snapshot fixture to reference backend.
    - Parse documented public JPL-style files or a reproducible derivative format in pure Rust.

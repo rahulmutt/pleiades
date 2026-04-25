@@ -310,7 +310,7 @@ impl EphemerisBackend for ElpBackend {
             family: BackendFamily::Algorithmic,
             provenance: BackendProvenance {
                 summary: format!(
-                    "{} [{}] The backend exposes the Moon plus mean/true node and mean apogee/perigee channels as an explicit lunar-theory selection.",
+                    "{} [{}] The backend exposes the Moon plus mean/true node and mean apogee/perigee channels as an explicit lunar-theory selection, while explicitly leaving true apogee/perigee unsupported for now.",
                     lunar_theory_specification().model_name,
                     lunar_theory_specification().source_identifier,
                 ),
@@ -510,6 +510,10 @@ mod tests {
             .provenance
             .summary
             .contains(theory.source_identifier));
+        assert!(metadata
+            .provenance
+            .summary
+            .contains("true apogee/perigee unsupported"));
         assert!(metadata
             .provenance
             .data_sources

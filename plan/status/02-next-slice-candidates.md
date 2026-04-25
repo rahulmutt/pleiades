@@ -66,6 +66,7 @@ Progress note (2026-04-24): the compact ELP backend now also publishes a structu
 Progress note (2026-04-24): the ELP baseline now also carries an explicit lunar-theory policy doc plus a regression test over a short high-curvature Moon window, so the current source/provenance posture and nearby motion continuity are both exercised before the eventual source-backed ELP selection lands.
 
 Progress note (2026-04-24): `pleiades-elp` now exposes a stable lunar-theory source identifier plus an explicit redistribution posture for the current Meeus-style analytical baseline, and the validation/reporting layer renders those provenance details alongside the supported/unsupported lunar bodies.
+Progress note (2026-04-25): the backend-matrix ELP section now also prints the unsupported lunar bodies explicitly, so the release-facing summary now shows the deferred true apogee/perigee channels alongside the supported lunar baseline.
 
 ## 3. JPL reader/interpolator expansion
 
