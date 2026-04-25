@@ -2110,6 +2110,9 @@ fn render_release_summary_text() -> String {
         text.push_str(comparison_audit_result_label(audit_regression_count));
         text.push('\n');
     }
+    text.push_str("JPL interpolation evidence: ");
+    text.push_str(&format_jpl_interpolation_quality_summary_for_report());
+    text.push('\n');
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("Backend matrix summary: backend-matrix-summary\n");
     text.push_str("Validation report summary: validation-report-summary / validation-summary / report-summary\n");
@@ -7159,6 +7162,8 @@ mod tests {
         assert!(rendered.contains("notable regressions"));
         assert!(rendered.contains("outside-tolerance bodies"));
         assert!(rendered.contains("comparison audit regressions found"));
+        assert!(rendered.contains("JPL interpolation evidence:"));
+        assert!(rendered.contains("JPL interpolation quality:"));
         assert!(rendered.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
         assert!(rendered
