@@ -3485,6 +3485,11 @@ fn format_vsop87_body_evidence_summary() -> String {
                 .iter()
                 .filter(|row| row.within_interim_limits)
                 .count();
+            let outside_interim_limit_bodies = evidence
+                .iter()
+                .filter(|row| !row.within_interim_limits)
+                .map(|row| row.body.clone())
+                .collect::<Vec<_>>();
             let vendored_count = evidence
                 .iter()
                 .filter(|row| {
@@ -3503,37 +3508,46 @@ fn format_vsop87_body_evidence_summary() -> String {
                     row.source_kind == pleiades_vsop87::Vsop87BodySourceKind::TruncatedVsop87b
                 })
                 .count();
+            let outside_note = if outside_interim_limit_bodies.is_empty() {
+                "none".to_string()
+            } else {
+                format_bodies(&outside_interim_limit_bodies)
+            };
             if generated_count == 0 && truncated_count == 0 {
                 format!(
-                    "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file), {} within interim limits",
+                    "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file), {} within interim limits; outside interim limits: {}",
                     evidence.len(),
                     vendored_count,
                     within_interim_limits,
+                    outside_note,
                 )
             } else if generated_count > 0 && truncated_count == 0 {
                 format!(
-                    "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} generated binary), {} within interim limits",
+                    "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} generated binary), {} within interim limits; outside interim limits: {}",
                     evidence.len(),
                     vendored_count,
                     generated_count,
                     within_interim_limits,
+                    outside_note,
                 )
             } else if generated_count == 0 {
                 format!(
-                    "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} truncated slice), {} within interim limits",
+                    "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} truncated slice), {} within interim limits; outside interim limits: {}",
                     evidence.len(),
                     vendored_count,
                     truncated_count,
                     within_interim_limits,
+                    outside_note,
                 )
             } else {
                 format!(
-                    "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} generated binary, {} truncated slice), {} within interim limits",
+                    "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} generated binary, {} truncated slice), {} within interim limits; outside interim limits: {}",
                     evidence.len(),
                     vendored_count,
                     generated_count,
                     truncated_count,
                     within_interim_limits,
+                    outside_note,
                 )
             }
         }
@@ -6244,7 +6258,7 @@ mod tests {
         assert!(report.contains("max Δlat="));
         assert!(report.contains("max Δdist="));
         assert!(report.contains(
-            "VSOP87 source-backed body evidence: 8 body profiles (0 vendored full-file, 8 generated binary), 8 within interim limits"
+            "VSOP87 source-backed body evidence: 8 body profiles (0 vendored full-file, 8 generated binary), 8 within interim limits; outside interim limits: none"
         ));
         assert!(report.contains("House validation corpus"));
         assert!(report.contains("Benchmark summaries"));
@@ -6985,7 +6999,7 @@ mod tests {
         assert!(rendered.contains("max Δlat="));
         assert!(rendered.contains("max Δdist="));
         assert!(rendered.contains(
-            "VSOP87 source-backed body evidence: 8 body profiles (0 vendored full-file, 8 generated binary), 8 within interim limits"
+            "VSOP87 source-backed body evidence: 8 body profiles (0 vendored full-file, 8 generated binary), 8 within interim limits; outside interim limits: none"
         ));
         assert!(rendered.contains(
             "ELP lunar theory specification: Compact Meeus-style truncated lunar baseline [meeus-style-truncated-lunar-baseline; family: Meeus-style truncated analytical baseline]"
@@ -7314,7 +7328,7 @@ version = "0.9.0"
         assert!(validation_report_summary.contains("generated binary VSOP87B"));
         assert!(validation_report_summary.contains("VSOP87 source-backed evidence"));
         assert!(validation_report_summary.contains(
-            "VSOP87 source-backed body evidence: 8 body profiles (0 vendored full-file, 8 generated binary), 8 within interim limits"
+            "VSOP87 source-backed body evidence: 8 body profiles (0 vendored full-file, 8 generated binary), 8 within interim limits; outside interim limits: none"
         ));
         assert!(validation_report_summary
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));

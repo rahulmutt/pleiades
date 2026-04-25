@@ -51,7 +51,7 @@ Progress note (2026-04-25): the VSOP87 batch-path regression now also covers the
 
 Progress note (2026-04-24): the VSOP87 body-specific source metadata, canonical samples, and per-body profiles now all derive from a single internal catalog table, which reduces drift in the release-facing documentation and gives the eventual generated-table path one structured place to attach new source-backed bodies. The VSOP87 crate now also exposes a deterministic source-audit manifest for the vendored source files, and a maintainer-facing regeneration helper plus binary now rewrite the checked-in generated coefficient blobs from the vendored source text before the runtime path is rewritten.
 
-Progress note (2026-04-25): the VSOP87 source documentation summary now also reports an explicit source-path breakdown for generated-binary, vendored full-file, truncated, and fallback body profiles, so the release-facing validation output can distinguish the current source mix without changing the canonical body-evidence line.
+Progress note (2026-04-25): the VSOP87 source documentation summary now also reports an explicit source-path breakdown for generated-binary, vendored full-file, truncated, and fallback body profiles, so the release-facing validation output can distinguish the current source mix without changing the canonical body-evidence line. The compact VSOP87 body-evidence summary now also names any bodies outside interim limits explicitly (or `none` when the current sample set stays within the interim envelope), which makes the source-backed audit easier to scan without opening the full backend matrix.
 
 ## 2. Lunar theory source selection
 
