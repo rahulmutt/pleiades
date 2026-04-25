@@ -5021,6 +5021,8 @@ fn format_jpl_interpolation_quality_summary_for_report() -> String {
 struct LunarReferenceEvidenceSummary {
     sample_count: usize,
     body_count: usize,
+    earliest_epoch: Instant,
+    latest_epoch: Instant,
 }
 
 fn lunar_reference_evidence_summary() -> Option<LunarReferenceEvidenceSummary> {
@@ -5030,21 +5032,34 @@ fn lunar_reference_evidence_summary() -> Option<LunarReferenceEvidenceSummary> {
     }
 
     let mut bodies = BTreeSet::new();
+    let mut earliest_epoch = samples[0].epoch;
+    let mut latest_epoch = samples[0].epoch;
+
     for sample in samples {
         bodies.insert(sample.body.to_string());
+        if sample.epoch.julian_day.days() < earliest_epoch.julian_day.days() {
+            earliest_epoch = sample.epoch;
+        }
+        if sample.epoch.julian_day.days() > latest_epoch.julian_day.days() {
+            latest_epoch = sample.epoch;
+        }
     }
 
     Some(LunarReferenceEvidenceSummary {
         sample_count: samples.len(),
         body_count: bodies.len(),
+        earliest_epoch,
+        latest_epoch,
     })
 }
 
 fn format_lunar_reference_evidence_summary(summary: &LunarReferenceEvidenceSummary) -> String {
     format!(
-        "lunar reference evidence: {} samples across {} bodies, validated against the published 1992-04-12 Moon example plus J2000 lunar-point references",
+        "lunar reference evidence: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, validated against the published 1992-04-12 Moon example plus J2000 lunar-point references",
         summary.sample_count,
         summary.body_count,
+        summary.earliest_epoch.julian_day.days(),
+        summary.latest_epoch.julian_day.days(),
     )
 }
 
@@ -6217,7 +6232,9 @@ mod tests {
         assert!(report.contains("interpolation quality checks:"));
         assert!(report.contains("JPL interpolation quality: 10 samples across 5 bodies"));
         assert!(report.contains("Lunar reference evidence"));
-        assert!(report.contains("lunar reference evidence: 5 samples across 5 bodies"));
+        assert!(report.contains(
+            "lunar reference evidence: 5 samples across 5 bodies, epoch range JD 2448724.5..2451545.0"
+        ));
         assert!(report.contains("exact J2000 evidence: 5 bodies at JD 2451545.0"));
         assert!(report.contains("Body comparison summaries"));
         assert!(report.contains("Sun: samples="));
@@ -6261,7 +6278,9 @@ mod tests {
         assert!(report.contains("leave-one-out runtime interpolation evidence"));
         assert!(report.contains("@ JD"));
         assert!(report.contains("Lunar reference evidence"));
-        assert!(report.contains("lunar reference evidence: 5 samples across 5 bodies"));
+        assert!(report.contains(
+            "lunar reference evidence: 5 samples across 5 bodies, epoch range JD 2448724.5..2451545.0"
+        ));
         assert!(report.contains("Body comparison summaries"));
         assert!(report.contains("Body-class error envelopes"));
         let body_class_envelopes = report
