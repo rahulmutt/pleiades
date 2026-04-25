@@ -25,7 +25,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Keep the source-backed major-planet coefficient path reproducible from public inputs and validate error envelopes.
    - Add batch-path tests covering all supported planets at canonical epochs.
    - Progress note: the crate now ships a maintainer-facing regeneration helper plus binary that rewrites the checked-in generated blobs from the vendored source text.
-   - Progress note: the canonical J2000 VSOP87 evidence summary now names the body that drives each maximum delta axis, which makes the release-facing envelope easier to audit without widening the public request model.
+   - Progress note: the canonical J2000 VSOP87 evidence summary now names the body that drives each maximum delta axis, and now also records the source kind and source file behind each axis peak, which makes the release-facing envelope easier to audit without widening the public request model.
    - Progress note: the VSOP87 source-audit summary now also prints the deterministic fingerprint count directly in release-facing output, so the reproducibility line stays explicit alongside the raw source-size and term-count evidence.
    - Progress note: the VSOP87 regression suite now also covers the full supported planetary batch at J2000, including the Pluto fallback path, so batch-path verification now spans the complete supported set rather than only the source-backed subset.
 
@@ -60,6 +60,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Progress note: the JPL reference backend now also has a batch-path regression over the exact asteroid evidence slice, so the same source-backed rows are verified through `positions()` as well as one-body-at-a-time queries.
    - Progress note: the JPL interpolation-quality summary now also carries the worst-case epoch for each measured envelope, so the report can name both the body and the held-out instant that produced the current interpolation peak.
    - Progress note: the checked-in JPL comparison snapshot now includes an added 2600000.0 Mars hold-out epoch in addition to the 2400000.0 epoch across the Sun-through-Pluto bodies, expanding the fixture to 46 rows across 15 bodies and 6 epochs and broadening the leave-one-out evidence to 21 samples across 10 bodies.
+   - Progress note: the JPL interpolation-quality summary now lives in `pleiades-jpl`, and validation reuses the backend-owned summary/formatter instead of recomputing the same envelope privately, so the interpolation evidence now follows the same backend-owned reporting pattern as the lunar reference summary.
 
 4. Strengthen time, apparentness, observer, and coordinate semantics.
    - Expand the initial Delta T policy into implemented conversion support or a release-grade caller-provided conversion contract.

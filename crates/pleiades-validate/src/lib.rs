@@ -3410,7 +3410,7 @@ fn vsop87_canonical_evidence_summary() -> Option<pleiades_vsop87::Vsop87Canonica
 fn format_vsop87_canonical_evidence_summary() -> String {
     match vsop87_canonical_evidence_summary() {
         Some(summary) => format!(
-            "VSOP87 canonical J2000 source-backed evidence: {} samples, status {}, max Δlon={:.12}° ({}), max Δlat={:.12}° ({}), max Δdist={:.12} AU ({})",
+            "VSOP87 canonical J2000 source-backed evidence: {} samples, status {}, max Δlon={:.12}° ({}; {}; {}), max Δlat={:.12}° ({}; {}; {}), max Δdist={:.12} AU ({}; {}; {})",
             summary.sample_count,
             if summary.within_interim_limits {
                 "within interim limits"
@@ -3419,10 +3419,16 @@ fn format_vsop87_canonical_evidence_summary() -> String {
             },
             summary.max_longitude_delta_deg,
             summary.max_longitude_delta_body,
+            summary.max_longitude_delta_source_kind.label(),
+            summary.max_longitude_delta_source_file,
             summary.max_latitude_delta_deg,
             summary.max_latitude_delta_body,
+            summary.max_latitude_delta_source_kind.label(),
+            summary.max_latitude_delta_source_file,
             summary.max_distance_delta_au,
             summary.max_distance_delta_body,
+            summary.max_distance_delta_source_kind.label(),
+            summary.max_distance_delta_source_file,
         ),
         None => "VSOP87 canonical J2000 source-backed evidence: unavailable".to_string(),
     }
@@ -4896,108 +4902,14 @@ fn write_jpl_interpolation_quality(f: &mut fmt::Formatter<'_>) -> fmt::Result {
     Ok(())
 }
 
-#[derive(Clone, Debug)]
-struct JplInterpolationQualitySummary {
-    sample_count: usize,
-    body_count: usize,
-    max_bracket_span_days: f64,
-    max_bracket_span_body: String,
-    max_bracket_span_epoch: Instant,
-    max_longitude_error_deg: f64,
-    max_longitude_error_body: String,
-    max_longitude_error_epoch: Instant,
-    max_latitude_error_deg: f64,
-    max_latitude_error_body: String,
-    max_latitude_error_epoch: Instant,
-    max_distance_error_au: f64,
-    max_distance_error_body: String,
-    max_distance_error_epoch: Instant,
+fn jpl_interpolation_quality_summary() -> Option<pleiades_jpl::JplInterpolationQualitySummary> {
+    pleiades_jpl::jpl_interpolation_quality_summary()
 }
 
-fn jpl_interpolation_quality_summary() -> Option<JplInterpolationQualitySummary> {
-    let samples = interpolation_quality_samples();
-    if samples.is_empty() {
-        return None;
-    }
-
-    let mut bodies = BTreeSet::new();
-    let mut max_bracket_span_days: f64 = 0.0;
-    let mut max_bracket_span_body = String::new();
-    let mut max_bracket_span_epoch = samples[0].epoch;
-    let mut max_longitude_error_deg: f64 = 0.0;
-    let mut max_longitude_error_body = String::new();
-    let mut max_longitude_error_epoch = samples[0].epoch;
-    let mut max_latitude_error_deg: f64 = 0.0;
-    let mut max_latitude_error_body = String::new();
-    let mut max_latitude_error_epoch = samples[0].epoch;
-    let mut max_distance_error_au: f64 = 0.0;
-    let mut max_distance_error_body = String::new();
-    let mut max_distance_error_epoch = samples[0].epoch;
-
-    for sample in samples {
-        bodies.insert(sample.body.to_string());
-        if sample.bracket_span_days > max_bracket_span_days {
-            max_bracket_span_days = sample.bracket_span_days;
-            max_bracket_span_body = sample.body.to_string();
-            max_bracket_span_epoch = sample.epoch;
-        }
-        if sample.longitude_error_deg > max_longitude_error_deg {
-            max_longitude_error_deg = sample.longitude_error_deg;
-            max_longitude_error_body = sample.body.to_string();
-            max_longitude_error_epoch = sample.epoch;
-        }
-        if sample.latitude_error_deg > max_latitude_error_deg {
-            max_latitude_error_deg = sample.latitude_error_deg;
-            max_latitude_error_body = sample.body.to_string();
-            max_latitude_error_epoch = sample.epoch;
-        }
-        if sample.distance_error_au > max_distance_error_au {
-            max_distance_error_au = sample.distance_error_au;
-            max_distance_error_body = sample.body.to_string();
-            max_distance_error_epoch = sample.epoch;
-        }
-    }
-
-    Some(JplInterpolationQualitySummary {
-        sample_count: samples.len(),
-        body_count: bodies.len(),
-        max_bracket_span_days,
-        max_bracket_span_body,
-        max_bracket_span_epoch,
-        max_longitude_error_deg,
-        max_longitude_error_body,
-        max_longitude_error_epoch,
-        max_latitude_error_deg,
-        max_latitude_error_body,
-        max_latitude_error_epoch,
-        max_distance_error_au,
-        max_distance_error_body,
-        max_distance_error_epoch,
-    })
-}
-
-fn format_jpl_interpolation_quality_summary(summary: &JplInterpolationQualitySummary) -> String {
-    fn format_body_epoch_suffix(body: &str, epoch: Instant) -> String {
-        if body.is_empty() {
-            String::new()
-        } else {
-            format!(" ({body} @ {})", format_instant(epoch))
-        }
-    }
-
-    format!(
-        "JPL interpolation quality: {} samples across {} bodies, leave-one-out runtime interpolation evidence with worst-case bodies named, max bracket span={:.1} d{}, max Δlon={:.12}°{}, max Δlat={:.12}°{}, max Δdist={:.12} AU{}",
-        summary.sample_count,
-        summary.body_count,
-        summary.max_bracket_span_days,
-        format_body_epoch_suffix(&summary.max_bracket_span_body, summary.max_bracket_span_epoch),
-        summary.max_longitude_error_deg,
-        format_body_epoch_suffix(&summary.max_longitude_error_body, summary.max_longitude_error_epoch),
-        summary.max_latitude_error_deg,
-        format_body_epoch_suffix(&summary.max_latitude_error_body, summary.max_latitude_error_epoch),
-        summary.max_distance_error_au,
-        format_body_epoch_suffix(&summary.max_distance_error_body, summary.max_distance_error_epoch),
-    )
+fn format_jpl_interpolation_quality_summary(
+    summary: &pleiades_jpl::JplInterpolationQualitySummary,
+) -> String {
+    pleiades_jpl::format_jpl_interpolation_quality_summary(summary)
 }
 
 fn format_jpl_interpolation_quality_summary_for_report() -> String {
@@ -6230,6 +6142,8 @@ mod tests {
         assert!(report
             .contains("VSOP87 source audit: 8 source-backed bodies, 8 vendored full-file inputs, 35080 total terms, max source size 949753 bytes / 7141 lines, 8 deterministic fingerprints"));
         assert!(report.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
+        assert!(report.contains("generated binary VSOP87B"));
+        assert!(report.contains("generated binary VSOP87B; VSOP87B."));
         assert!(report.contains("max Δlon="));
         assert!(report.contains("max Δlat="));
         assert!(report.contains("max Δdist="));
@@ -6916,6 +6830,8 @@ mod tests {
         assert!(rendered
             .contains("VSOP87 source audit: 8 source-backed bodies, 8 vendored full-file inputs, 35080 total terms, max source size 949753 bytes / 7141 lines, 8 deterministic fingerprints"));
         assert!(rendered.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
+        assert!(rendered.contains("generated binary VSOP87B"));
+        assert!(rendered.contains("generated binary VSOP87B; VSOP87B."));
         assert!(rendered.contains("max Δlon="));
         assert!(rendered.contains("max Δlat="));
         assert!(rendered.contains("max Δdist="));
@@ -7246,6 +7162,7 @@ version = "0.9.0"
             .contains("VSOP87 source audit: 8 source-backed bodies, 8 vendored full-file inputs, 35080 total terms, max source size 949753 bytes / 7141 lines, 8 deterministic fingerprints"));
         assert!(validation_report_summary
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
+        assert!(validation_report_summary.contains("generated binary VSOP87B"));
         assert!(validation_report_summary.contains("VSOP87 source-backed evidence"));
         assert!(validation_report_summary.contains(
             "VSOP87 source-backed body evidence: 8 body profiles (0 vendored full-file, 8 generated binary), 8 within interim limits"

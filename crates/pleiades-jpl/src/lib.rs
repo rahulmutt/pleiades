@@ -155,6 +155,141 @@ pub fn interpolation_quality_samples() -> &'static [InterpolationQualitySample] 
     interpolation_quality_sample_list()
 }
 
+/// A compact interpolation-quality summary for the checked-in JPL snapshot.
+#[derive(Clone, Debug, PartialEq)]
+pub struct JplInterpolationQualitySummary {
+    /// Total number of interpolation-quality samples.
+    pub sample_count: usize,
+    /// Number of distinct bodies represented by the samples.
+    pub body_count: usize,
+    /// Largest bracketing span among the samples.
+    pub max_bracket_span_days: f64,
+    /// Body associated with the largest bracketing span.
+    pub max_bracket_span_body: String,
+    /// Held-out epoch associated with the largest bracketing span.
+    pub max_bracket_span_epoch: Instant,
+    /// Largest longitude error among the samples.
+    pub max_longitude_error_deg: f64,
+    /// Body associated with the largest longitude error.
+    pub max_longitude_error_body: String,
+    /// Held-out epoch associated with the largest longitude error.
+    pub max_longitude_error_epoch: Instant,
+    /// Largest latitude error among the samples.
+    pub max_latitude_error_deg: f64,
+    /// Body associated with the largest latitude error.
+    pub max_latitude_error_body: String,
+    /// Held-out epoch associated with the largest latitude error.
+    pub max_latitude_error_epoch: Instant,
+    /// Largest distance error among the samples.
+    pub max_distance_error_au: f64,
+    /// Body associated with the largest distance error.
+    pub max_distance_error_body: String,
+    /// Held-out epoch associated with the largest distance error.
+    pub max_distance_error_epoch: Instant,
+}
+
+/// Returns the release-facing interpolation-quality summary for the checked-in
+/// JPL snapshot.
+pub fn jpl_interpolation_quality_summary() -> Option<JplInterpolationQualitySummary> {
+    let samples = interpolation_quality_samples();
+    if samples.is_empty() {
+        return None;
+    }
+
+    let mut bodies = BTreeSet::new();
+    let mut max_bracket_span_days: f64 = 0.0;
+    let mut max_bracket_span_body = String::new();
+    let mut max_bracket_span_epoch = samples[0].epoch;
+    let mut max_longitude_error_deg: f64 = 0.0;
+    let mut max_longitude_error_body = String::new();
+    let mut max_longitude_error_epoch = samples[0].epoch;
+    let mut max_latitude_error_deg: f64 = 0.0;
+    let mut max_latitude_error_body = String::new();
+    let mut max_latitude_error_epoch = samples[0].epoch;
+    let mut max_distance_error_au: f64 = 0.0;
+    let mut max_distance_error_body = String::new();
+    let mut max_distance_error_epoch = samples[0].epoch;
+
+    for sample in samples {
+        bodies.insert(sample.body.to_string());
+        if sample.bracket_span_days > max_bracket_span_days {
+            max_bracket_span_days = sample.bracket_span_days;
+            max_bracket_span_body = sample.body.to_string();
+            max_bracket_span_epoch = sample.epoch;
+        }
+        if sample.longitude_error_deg > max_longitude_error_deg {
+            max_longitude_error_deg = sample.longitude_error_deg;
+            max_longitude_error_body = sample.body.to_string();
+            max_longitude_error_epoch = sample.epoch;
+        }
+        if sample.latitude_error_deg > max_latitude_error_deg {
+            max_latitude_error_deg = sample.latitude_error_deg;
+            max_latitude_error_body = sample.body.to_string();
+            max_latitude_error_epoch = sample.epoch;
+        }
+        if sample.distance_error_au > max_distance_error_au {
+            max_distance_error_au = sample.distance_error_au;
+            max_distance_error_body = sample.body.to_string();
+            max_distance_error_epoch = sample.epoch;
+        }
+    }
+
+    Some(JplInterpolationQualitySummary {
+        sample_count: samples.len(),
+        body_count: bodies.len(),
+        max_bracket_span_days,
+        max_bracket_span_body,
+        max_bracket_span_epoch,
+        max_longitude_error_deg,
+        max_longitude_error_body,
+        max_longitude_error_epoch,
+        max_latitude_error_deg,
+        max_latitude_error_body,
+        max_latitude_error_epoch,
+        max_distance_error_au,
+        max_distance_error_body,
+        max_distance_error_epoch,
+    })
+}
+
+/// Formats the interpolation-quality summary for release-facing reports.
+pub fn format_jpl_interpolation_quality_summary(
+    summary: &JplInterpolationQualitySummary,
+) -> String {
+    fn format_body_epoch_suffix(body: &str, epoch: Instant) -> String {
+        if body.is_empty() {
+            String::new()
+        } else {
+            format!(" ({body} @ {})", format_instant(epoch))
+        }
+    }
+
+    format!(
+        "JPL interpolation quality: {} samples across {} bodies, leave-one-out runtime interpolation evidence with worst-case bodies named, max bracket span={:.1} d{}, max Δlon={:.12}°{}, max Δlat={:.12}°{}, max Δdist={:.12} AU{}",
+        summary.sample_count,
+        summary.body_count,
+        summary.max_bracket_span_days,
+        format_body_epoch_suffix(&summary.max_bracket_span_body, summary.max_bracket_span_epoch),
+        summary.max_longitude_error_deg,
+        format_body_epoch_suffix(&summary.max_longitude_error_body, summary.max_longitude_error_epoch),
+        summary.max_latitude_error_deg,
+        format_body_epoch_suffix(&summary.max_latitude_error_body, summary.max_latitude_error_epoch),
+        summary.max_distance_error_au,
+        format_body_epoch_suffix(&summary.max_distance_error_body, summary.max_distance_error_epoch),
+    )
+}
+
+fn format_instant(instant: Instant) -> String {
+    let scale = match instant.scale {
+        TimeScale::Utc => "UTC",
+        TimeScale::Ut1 => "UT1",
+        TimeScale::Tt => "TT",
+        TimeScale::Tdb => "TDB",
+        _ => "Other",
+    };
+    format!("JD {:.1} ({scale})", instant.julian_day.days())
+}
+
 /// A coarse hold-out check for the snapshot backend's current interpolation path.
 #[derive(Clone, Debug, PartialEq)]
 pub struct InterpolationQualitySample {
@@ -1286,6 +1421,39 @@ mod tests {
         assert!(samples
             .iter()
             .any(|sample| sample.body == pleiades_backend::CelestialBody::Mars));
+    }
+
+    #[test]
+    fn interpolation_quality_summary_reports_the_worst_case_labels() {
+        let summary = jpl_interpolation_quality_summary().expect("summary should exist");
+        assert_eq!(summary.sample_count, 21);
+        assert_eq!(summary.body_count, 10);
+        assert!(!summary.max_bracket_span_body.is_empty());
+        assert!(!summary.max_longitude_error_body.is_empty());
+        assert!(!summary.max_latitude_error_body.is_empty());
+        assert!(!summary.max_distance_error_body.is_empty());
+
+        let rendered = format_jpl_interpolation_quality_summary(&summary);
+        assert!(rendered.contains(&format!(
+            "({} @ {}",
+            summary.max_bracket_span_body,
+            format_instant(summary.max_bracket_span_epoch)
+        )));
+        assert!(rendered.contains(&format!(
+            "({} @ {}",
+            summary.max_longitude_error_body,
+            format_instant(summary.max_longitude_error_epoch)
+        )));
+        assert!(rendered.contains(&format!(
+            "({} @ {}",
+            summary.max_latitude_error_body,
+            format_instant(summary.max_latitude_error_epoch)
+        )));
+        assert!(rendered.contains(&format!(
+            "({} @ {}",
+            summary.max_distance_error_body,
+            format_instant(summary.max_distance_error_epoch)
+        )));
     }
 
     #[test]
