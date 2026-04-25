@@ -54,6 +54,8 @@ Latest progress (2026-04-25): the VSOP87 and compact lunar backend paths now acc
 
 Latest progress (2026-04-25): validation reporting now includes a release-grade comparison tolerance audit section, and `compare-backends-audit` now fails when the built-in tolerance audit finds regressions, so release tooling has an explicit pass/fail gate in addition to the existing per-body tolerance tables.
 
+Latest progress (2026-04-25): the body-class tolerance posture now names the bodies that drive each class-level max longitude, latitude, and distance delta, so the coarse tolerance audit can point at the exact worst-case body instead of only aggregating counts and magnitudes.
+
 Latest progress (2026-04-25): the VSOP87 canonical J2000 source-backed evidence summary now names the body that drives each maximum delta axis, which makes the release-facing source-backed envelope easier to audit without changing the public comparison corpus. The same canonical VSOP87 evidence path now also derives from one batch query over the full source-backed sample set, and the VSOP87 regression suite now checks that batch requests preserve the canonical sample order, so the validation-facing evidence and the backend batch contract stay aligned.
 
 Latest progress (2026-04-25): the compact ELP lunar-theory specification now renders its request policy explicitly — TT/TDB only, tropical only, mean only, ecliptic/equatorial frames, and no topocentric observer mode — which makes the current lunar baseline easier to audit while the eventual source-backed ELP selection remains queued.

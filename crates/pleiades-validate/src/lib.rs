@@ -406,8 +406,11 @@ struct BodyClassToleranceSummary {
     sample_count: usize,
     within_tolerance_body_count: usize,
     outside_tolerance_body_count: usize,
-    max_longitude_delta_deg: f64,
-    max_latitude_delta_deg: f64,
+    max_longitude_delta_body: Option<CelestialBody>,
+    max_longitude_delta_deg: Option<f64>,
+    max_latitude_delta_body: Option<CelestialBody>,
+    max_latitude_delta_deg: Option<f64>,
+    max_distance_delta_body: Option<CelestialBody>,
     max_distance_delta_au: Option<f64>,
     outside_bodies: Vec<CelestialBody>,
 }
@@ -434,18 +437,23 @@ impl BodyClassToleranceSummary {
                 format_bodies(&self.outside_bodies)
             )?;
         }
-        writeln!(
-            f,
-            "    max longitude delta: {:.12}°",
-            self.max_longitude_delta_deg
-        )?;
-        writeln!(
-            f,
-            "    max latitude delta: {:.12}°",
-            self.max_latitude_delta_deg
-        )?;
-        if let Some(value) = self.max_distance_delta_au {
-            writeln!(f, "    max distance delta: {:.12} AU", value)?;
+        if let (Some(body), Some(value)) = (
+            self.max_longitude_delta_body.as_ref(),
+            self.max_longitude_delta_deg,
+        ) {
+            writeln!(f, "    max longitude delta: {:.12}° ({})", value, body)?;
+        }
+        if let (Some(body), Some(value)) = (
+            self.max_latitude_delta_body.as_ref(),
+            self.max_latitude_delta_deg,
+        ) {
+            writeln!(f, "    max latitude delta: {:.12}° ({})", value, body)?;
+        }
+        if let (Some(body), Some(value)) = (
+            self.max_distance_delta_body.as_ref(),
+            self.max_distance_delta_au,
+        ) {
+            writeln!(f, "    max distance delta: {:.12} AU ({})", value, body)?;
         }
 
         Ok(())
@@ -3581,18 +3589,39 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     for summary in report.comparison.body_class_tolerance_summaries() {
         let _ = writeln!(
             text,
-            "  {}: bodies={}, samples={}, within tolerance bodies={}, outside tolerance bodies={}, max Δlon={:.12}°, max Δlat={:.12}°, max Δdist={}",
+            "  {}: bodies={}, samples={}, within tolerance bodies={}, outside tolerance bodies={}, max Δlon={}{}, max Δlat={}{}, max Δdist={}{}",
             summary.class.label(),
             summary.body_count,
             summary.sample_count,
             summary.within_tolerance_body_count,
             summary.outside_tolerance_body_count,
-            summary.max_longitude_delta_deg,
-            summary.max_latitude_delta_deg,
+            summary
+                .max_longitude_delta_deg
+                .map(|value| format!("{value:.12}°"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            summary
+                .max_longitude_delta_body
+                .as_ref()
+                .map(|body| format!(" ({body})"))
+                .unwrap_or_default(),
+            summary
+                .max_latitude_delta_deg
+                .map(|value| format!("{value:.12}°"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            summary
+                .max_latitude_delta_body
+                .as_ref()
+                .map(|body| format!(" ({body})"))
+                .unwrap_or_default(),
             summary
                 .max_distance_delta_au
                 .map(|value| format!("{value:.12} AU"))
-                .unwrap_or_else(|| "n/a".to_string())
+                .unwrap_or_else(|| "n/a".to_string()),
+            summary
+                .max_distance_delta_body
+                .as_ref()
+                .map(|body| format!(" ({body})"))
+                .unwrap_or_default()
         );
         if !summary.outside_bodies.is_empty() {
             let _ = writeln!(
@@ -4281,8 +4310,11 @@ struct BodyClassToleranceAccumulator {
     sample_count: usize,
     within_tolerance_body_count: usize,
     outside_tolerance_body_count: usize,
-    max_longitude_delta_deg: f64,
-    max_latitude_delta_deg: f64,
+    max_longitude_delta_body: Option<CelestialBody>,
+    max_longitude_delta_deg: Option<f64>,
+    max_latitude_delta_body: Option<CelestialBody>,
+    max_latitude_delta_deg: Option<f64>,
+    max_distance_delta_body: Option<CelestialBody>,
     max_distance_delta_au: Option<f64>,
     outside_bodies: Vec<CelestialBody>,
 }
@@ -4295,8 +4327,11 @@ impl BodyClassToleranceAccumulator {
             sample_count: 0,
             within_tolerance_body_count: 0,
             outside_tolerance_body_count: 0,
-            max_longitude_delta_deg: 0.0,
-            max_latitude_delta_deg: 0.0,
+            max_longitude_delta_body: None,
+            max_longitude_delta_deg: None,
+            max_latitude_delta_body: None,
+            max_latitude_delta_deg: None,
+            max_distance_delta_body: None,
             max_distance_delta_au: None,
             outside_bodies: Vec::new(),
         }
@@ -4305,17 +4340,28 @@ impl BodyClassToleranceAccumulator {
     fn push(&mut self, summary: &BodyToleranceSummary) {
         self.body_count += 1;
         self.sample_count += summary.sample_count;
-        self.max_longitude_delta_deg = self
-            .max_longitude_delta_deg
-            .max(summary.max_longitude_delta_deg);
-        self.max_latitude_delta_deg = self
-            .max_latitude_delta_deg
-            .max(summary.max_latitude_delta_deg);
+        match self.max_longitude_delta_deg {
+            Some(current) if summary.max_longitude_delta_deg < current => {}
+            _ => {
+                self.max_longitude_delta_deg = Some(summary.max_longitude_delta_deg);
+                self.max_longitude_delta_body = Some(summary.body.clone());
+            }
+        }
+        match self.max_latitude_delta_deg {
+            Some(current) if summary.max_latitude_delta_deg < current => {}
+            _ => {
+                self.max_latitude_delta_deg = Some(summary.max_latitude_delta_deg);
+                self.max_latitude_delta_body = Some(summary.body.clone());
+            }
+        }
         if let Some(delta) = summary.max_distance_delta_au {
-            self.max_distance_delta_au = Some(
-                self.max_distance_delta_au
-                    .map_or(delta, |current| current.max(delta)),
-            );
+            match self.max_distance_delta_au {
+                Some(current) if delta < current => {}
+                _ => {
+                    self.max_distance_delta_au = Some(delta);
+                    self.max_distance_delta_body = Some(summary.body.clone());
+                }
+            }
         }
         if summary.within_tolerance {
             self.within_tolerance_body_count += 1;
@@ -4332,8 +4378,11 @@ impl BodyClassToleranceAccumulator {
             sample_count: self.sample_count,
             within_tolerance_body_count: self.within_tolerance_body_count,
             outside_tolerance_body_count: self.outside_tolerance_body_count,
+            max_longitude_delta_body: self.max_longitude_delta_body,
             max_longitude_delta_deg: self.max_longitude_delta_deg,
+            max_latitude_delta_body: self.max_latitude_delta_body,
             max_latitude_delta_deg: self.max_latitude_delta_deg,
+            max_distance_delta_body: self.max_distance_delta_body,
             max_distance_delta_au: self.max_distance_delta_au,
             outside_bodies: self.outside_bodies,
         }
@@ -6156,6 +6205,9 @@ mod tests {
                 && summary.sample_count >= summary.body_count
                 && summary.outside_tolerance_body_count >= 1
                 && summary.outside_bodies.contains(&CelestialBody::Pluto)
+                && summary.max_longitude_delta_body.is_some()
+                && summary.max_latitude_delta_body.is_some()
+                && summary.max_distance_delta_body.is_some()
         }));
 
         let rendered = report.to_string();
