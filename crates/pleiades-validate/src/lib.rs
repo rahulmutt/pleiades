@@ -5097,9 +5097,10 @@ fn write_jpl_interpolation_quality(f: &mut fmt::Formatter<'_>) -> fmt::Result {
     for sample in interpolation_quality_samples() {
         writeln!(
             f,
-            "    {} at JD {:.1}: bracket span {:.1} d, |Δlon|={:.12}°, |Δlat|={:.12}°, |Δdist|={:.12} AU",
+            "    {} at JD {:.1}: {} interpolation, bracket span {:.1} d, |Δlon|={:.12}°, |Δlat|={:.12}°, |Δdist|={:.12} AU",
             sample.body,
             sample.epoch.julian_day.days(),
+            sample.interpolation_kind.label(),
             sample.bracket_span_days,
             sample.longitude_error_deg,
             sample.latitude_error_deg,

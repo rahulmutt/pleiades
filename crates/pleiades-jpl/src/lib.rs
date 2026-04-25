@@ -214,6 +214,12 @@ pub struct JplInterpolationQualitySummary {
     pub sample_count: usize,
     /// Number of distinct bodies represented by the samples.
     pub body_count: usize,
+    /// Number of samples that used cubic interpolation.
+    pub cubic_sample_count: usize,
+    /// Number of samples that used quadratic interpolation.
+    pub quadratic_sample_count: usize,
+    /// Number of samples that used linear fallback interpolation.
+    pub linear_sample_count: usize,
     /// Largest bracketing span among the samples.
     pub max_bracket_span_days: f64,
     /// Body associated with the largest bracketing span.
@@ -257,6 +263,9 @@ pub fn jpl_interpolation_quality_summary() -> Option<JplInterpolationQualitySumm
     }
 
     let mut bodies = BTreeSet::new();
+    let mut cubic_sample_count = 0usize;
+    let mut quadratic_sample_count = 0usize;
+    let mut linear_sample_count = 0usize;
     let mut max_bracket_span_days: f64 = 0.0;
     let mut max_bracket_span_body = String::new();
     let mut max_bracket_span_epoch = samples[0].epoch;
@@ -276,6 +285,11 @@ pub fn jpl_interpolation_quality_summary() -> Option<JplInterpolationQualitySumm
 
     for sample in samples {
         bodies.insert(sample.body.to_string());
+        match sample.interpolation_kind {
+            InterpolationQualityKind::Cubic => cubic_sample_count += 1,
+            InterpolationQualityKind::Quadratic => quadratic_sample_count += 1,
+            InterpolationQualityKind::Linear => linear_sample_count += 1,
+        }
         total_bracket_span_days += sample.bracket_span_days;
         total_longitude_error_deg += sample.longitude_error_deg;
         total_latitude_error_deg += sample.latitude_error_deg;
@@ -307,6 +321,9 @@ pub fn jpl_interpolation_quality_summary() -> Option<JplInterpolationQualitySumm
     Some(JplInterpolationQualitySummary {
         sample_count: samples.len(),
         body_count: bodies.len(),
+        cubic_sample_count,
+        quadratic_sample_count,
+        linear_sample_count,
         max_bracket_span_days,
         max_bracket_span_body,
         max_bracket_span_epoch,
@@ -339,9 +356,12 @@ pub fn format_jpl_interpolation_quality_summary(
     }
 
     format!(
-        "JPL interpolation quality: {} samples across {} bodies, leave-one-out runtime interpolation evidence with worst-case bodies named, max bracket span={:.1} d{}; mean bracket span={:.1} d; max Δlon={:.12}°{}; mean Δlon={:.12}°; max Δlat={:.12}°{}; mean Δlat={:.12}°; max Δdist={:.12} AU{}; mean Δdist={:.12} AU",
+        "JPL interpolation quality: {} samples across {} bodies ({} cubic, {} quadratic, {} linear), leave-one-out runtime interpolation evidence with worst-case bodies named, max bracket span={:.1} d{}; mean bracket span={:.1} d; max Δlon={:.12}°{}; mean Δlon={:.12}°; max Δlat={:.12}°{}; mean Δlat={:.12}°; max Δdist={:.12} AU{}; mean Δdist={:.12} AU",
         summary.sample_count,
         summary.body_count,
+        summary.cubic_sample_count,
+        summary.quadratic_sample_count,
+        summary.linear_sample_count,
         summary.max_bracket_span_days,
         format_body_epoch_suffix(&summary.max_bracket_span_body, summary.max_bracket_span_epoch),
         summary.mean_bracket_span_days,
@@ -368,6 +388,28 @@ fn format_instant(instant: Instant) -> String {
     format!("JD {:.1} ({scale})", instant.julian_day.days())
 }
 
+/// Interpolation path used for a hold-out quality sample.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum InterpolationQualityKind {
+    /// Four-point interpolation on a four-sample window.
+    Cubic,
+    /// Three-point interpolation on a three-sample window.
+    Quadratic,
+    /// Two-point linear fallback between adjacent samples.
+    Linear,
+}
+
+impl InterpolationQualityKind {
+    /// Human-readable label for release-facing reporting.
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Cubic => "cubic",
+            Self::Quadratic => "quadratic",
+            Self::Linear => "linear",
+        }
+    }
+}
+
 /// A coarse hold-out check for the snapshot backend's current interpolation path.
 #[derive(Clone, Debug, PartialEq)]
 pub struct InterpolationQualitySample {
@@ -375,6 +417,8 @@ pub struct InterpolationQualitySample {
     pub body: pleiades_backend::CelestialBody,
     /// Held-out exact epoch used for comparison.
     pub epoch: Instant,
+    /// Interpolation path selected for the held-out sample.
+    pub interpolation_kind: InterpolationQualityKind,
     /// Span between the bracketing fixture entries in days.
     pub bracket_span_days: f64,
     /// Absolute wrapped longitude error in degrees.
@@ -884,6 +928,11 @@ fn interpolation_quality_sample_list() -> &'static [InterpolationQualitySample] 
                         })
                         .cloned()
                         .collect::<Vec<_>>();
+                    let interpolation_kind = match body_entries.len().saturating_sub(1) {
+                        0..=2 => InterpolationQualityKind::Linear,
+                        3 => InterpolationQualityKind::Quadratic,
+                        _ => InterpolationQualityKind::Cubic,
+                    };
                     let interpolated = resolve_fixture_state_from_entries(
                         &leave_one_out_entries,
                         exact.body.clone(),
@@ -900,6 +949,7 @@ fn interpolation_quality_sample_list() -> &'static [InterpolationQualitySample] 
                     samples.push(InterpolationQualitySample {
                         body: exact.body.clone(),
                         epoch: exact.epoch,
+                        interpolation_kind,
                         bracket_span_days: after.epoch.julian_day.days()
                             - before.epoch.julian_day.days(),
                         longitude_error_deg: angular_degrees_delta(
@@ -1582,7 +1632,22 @@ mod tests {
                 && sample.longitude_error_deg.is_finite()
                 && sample.latitude_error_deg.is_finite()
                 && sample.distance_error_au.is_finite()
+                && matches!(
+                    sample.interpolation_kind,
+                    InterpolationQualityKind::Cubic
+                        | InterpolationQualityKind::Quadratic
+                        | InterpolationQualityKind::Linear
+                )
         }));
+        assert!(samples
+            .iter()
+            .any(|sample| sample.interpolation_kind == InterpolationQualityKind::Cubic));
+        assert!(samples
+            .iter()
+            .all(|sample| { sample.interpolation_kind != InterpolationQualityKind::Quadratic }));
+        assert!(samples
+            .iter()
+            .any(|sample| sample.interpolation_kind == InterpolationQualityKind::Linear));
         assert!(samples
             .iter()
             .any(|sample| sample.epoch.julian_day.days() == 2_400_000.0));
@@ -1602,6 +1667,15 @@ mod tests {
         let summary = jpl_interpolation_quality_summary().expect("summary should exist");
         assert_eq!(summary.sample_count, 21);
         assert_eq!(summary.body_count, 10);
+        assert_eq!(
+            summary.cubic_sample_count
+                + summary.quadratic_sample_count
+                + summary.linear_sample_count,
+            summary.sample_count
+        );
+        assert!(summary.cubic_sample_count > 0);
+        assert_eq!(summary.quadratic_sample_count, 0);
+        assert!(summary.linear_sample_count > 0);
         assert!(summary.mean_bracket_span_days.is_finite());
         assert!(summary.mean_longitude_error_deg.is_finite());
         assert!(summary.mean_latitude_error_deg.is_finite());
@@ -1612,6 +1686,9 @@ mod tests {
         assert!(!summary.max_distance_error_body.is_empty());
 
         let rendered = format_jpl_interpolation_quality_summary(&summary);
+        assert!(rendered.contains("cubic"));
+        assert!(rendered.contains("quadratic"));
+        assert!(rendered.contains("linear"));
         assert!(rendered.contains("mean bracket span="));
         assert!(rendered.contains("mean Δlon="));
         assert!(rendered.contains("mean Δlat="));
