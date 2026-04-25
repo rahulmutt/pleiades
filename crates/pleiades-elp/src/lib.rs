@@ -53,6 +53,20 @@ pub struct LunarTheoryRequestPolicy {
     pub supports_topocentric_observer: bool,
 }
 
+impl LunarTheoryRequestPolicy {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "frames={}; time scales={}; zodiac modes={}; apparentness={}; topocentric observer={}",
+            format_frames(self.supported_frames),
+            format_time_scales(self.supported_time_scales),
+            format_zodiac_modes(self.supported_zodiac_modes),
+            format_apparentness_modes(self.supported_apparentness),
+            self.supports_topocentric_observer,
+        )
+    }
+}
+
 /// Structured source family for the current lunar-theory selection.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LunarTheorySourceFamily {
@@ -80,6 +94,11 @@ impl fmt::Display for LunarTheorySourceFamily {
 /// Returns the current lunar-theory source family.
 pub const fn lunar_theory_source_family() -> LunarTheorySourceFamily {
     LunarTheorySourceFamily::MeeusStyleTruncatedAnalyticalBaseline
+}
+
+/// Returns the current lunar-theory request policy.
+pub const fn lunar_theory_request_policy() -> LunarTheoryRequestPolicy {
+    LUNAR_THEORY_REQUEST_POLICY
 }
 
 /// Structured description of the current lunar-theory selection.
@@ -292,7 +311,7 @@ pub fn format_lunar_theory_capability_summary(summary: &LunarTheoryCapabilitySum
 /// owned by the backend crate rather than duplicated in reporting layers.
 pub fn format_lunar_theory_specification(theory: &LunarTheorySpecification) -> String {
     format!(
-        "ELP lunar theory specification: {} [{}; family: {}] ({} supported bodies: {}; {} unsupported bodies: {}); request policy: frames={}; time scales={}; zodiac modes={}; apparentness={}; topocentric observer={}; citation: {}; provenance: {}; redistribution: {}; truncation: {}; units: {}; validation window: {}; date-range note: {}; frame treatment: {}; license: {}",
+        "ELP lunar theory specification: {} [{}; family: {}] ({} supported bodies: {}; {} unsupported bodies: {}); request policy: {}; citation: {}; provenance: {}; redistribution: {}; truncation: {}; units: {}; validation window: {}; date-range note: {}; frame treatment: {}; license: {}",
         theory.model_name,
         theory.source_identifier,
         theory.source_family,
@@ -300,11 +319,7 @@ pub fn format_lunar_theory_specification(theory: &LunarTheorySpecification) -> S
         format_bodies(theory.supported_bodies),
         theory.unsupported_bodies.len(),
         format_bodies(theory.unsupported_bodies),
-        format_frames(theory.request_policy.supported_frames),
-        format_time_scales(theory.request_policy.supported_time_scales),
-        format_zodiac_modes(theory.request_policy.supported_zodiac_modes),
-        format_apparentness_modes(theory.request_policy.supported_apparentness),
-        theory.request_policy.supports_topocentric_observer,
+        theory.request_policy.summary_line(),
         theory.source_citation,
         theory.source_material,
         theory.redistribution_note,
@@ -324,6 +339,11 @@ pub fn format_lunar_theory_specification(theory: &LunarTheorySpecification) -> S
 /// layers.
 pub fn lunar_theory_summary() -> String {
     format_lunar_theory_specification(&lunar_theory_specification())
+}
+
+/// Returns the current lunar-theory request policy summary.
+pub fn lunar_theory_request_policy_summary() -> String {
+    lunar_theory_request_policy().summary_line()
 }
 
 fn format_bodies(bodies: &[CelestialBody]) -> String {
@@ -1613,6 +1633,10 @@ mod tests {
         assert!(summary.contains(
             "geocentric Moon RA/Dec example used for the mean-obliquity equatorial transform"
         ));
+        assert_eq!(
+            lunar_theory_request_policy_summary(),
+            theory.request_policy.summary_line()
+        );
         assert!(summary.contains("frames=Ecliptic, Equatorial"));
         assert!(summary.contains("time scales=TT, TDB"));
         assert!(summary.contains("zodiac modes=Tropical"));

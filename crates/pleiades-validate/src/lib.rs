@@ -46,7 +46,8 @@ use pleiades_elp::{
     lunar_high_curvature_continuity_evidence_for_report, lunar_reference_evidence,
     lunar_reference_evidence_envelope_for_report, lunar_reference_evidence_summary,
     lunar_reference_evidence_summary_for_report, lunar_theory_capability_summary,
-    lunar_theory_specification, lunar_theory_summary, ElpBackend,
+    lunar_theory_request_policy_summary, lunar_theory_specification, lunar_theory_summary,
+    ElpBackend,
 };
 use pleiades_houses::{
     baseline_house_systems, built_in_house_systems, release_house_systems, resolve_house_system,
@@ -5295,12 +5296,8 @@ fn write_backend_catalog_entry(
         )?;
         writeln!(
             f,
-            "    request policy: frames={}, time scales={}, zodiac modes={}, apparentness={}, topocentric observer={}",
-            format_frames(theory.request_policy.supported_frames),
-            format_time_scales(theory.request_policy.supported_time_scales),
-            format_zodiac_modes(theory.request_policy.supported_zodiac_modes),
-            format_apparentness_modes(theory.request_policy.supported_apparentness),
-            theory.request_policy.supports_topocentric_observer,
+            "    request policy: {}",
+            lunar_theory_request_policy_summary()
         )?;
         writeln!(
             f,
@@ -6036,26 +6033,6 @@ fn format_time_scales(scales: &[TimeScale]) -> String {
             TimeScale::Tdb => "TDB",
             _ => "Other",
         })
-        .collect::<Vec<_>>()
-        .join(", ")
-}
-
-fn format_zodiac_modes(modes: &[ZodiacMode]) -> String {
-    modes
-        .iter()
-        .map(|mode| match mode {
-            ZodiacMode::Tropical => "Tropical".to_string(),
-            ZodiacMode::Sidereal { ayanamsa } => format!("Sidereal ({ayanamsa:?})"),
-            _ => "Other".to_string(),
-        })
-        .collect::<Vec<_>>()
-        .join(", ")
-}
-
-fn format_apparentness_modes(modes: &[Apparentness]) -> String {
-    modes
-        .iter()
-        .map(|mode| mode.to_string())
         .collect::<Vec<_>>()
         .join(", ")
 }
