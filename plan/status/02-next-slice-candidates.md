@@ -189,7 +189,7 @@ Progress note (2026-04-25): the compatibility-profile regressions now also pin t
 
 Progress note (2026-04-24): `verify-compatibility-profile` now prints an explicit release-posture line plus custom-definition and known-gap counts, so the release-facing verification output calls out baseline preservation, explicit release additions, and documented caveats in addition to the descriptor/alias counts.
 
-Progress note (2026-04-25): the compatibility-profile verification slice now also pins the exact Swiss Ephemeris house-table code spellings and the J2000/J1900/B1950 and Suryasiddhanta source-label forms, keeping the release-facing appendix text anchored to the same interoperability spellings that the generated profile renders.
+Progress note (2026-04-25): the compatibility-profile verification slice now also pins the exact Swiss Ephemeris house-table code spellings and the J2000/J1900/B1950 and Suryasiddhanta source-label forms, keeping the release-facing appendix text anchored to the same interoperability spellings that the generated profile renders. The custom-definition verifier now also rejects accidental built-in ayanamsa collisions while explicitly allowing the current intentional Babylonian house-family homographs, so the release-profile custom-definition bucket stays disjoint from both built-in catalogs without breaking the currently published profile.
 
 Remaining suggested scope:
 

@@ -1666,6 +1666,19 @@ fn verify_ayanamsa_aliases(
     Ok(labels_checked)
 }
 
+const INTENTIONAL_CUSTOM_DEFINITION_AYANAMSA_HOMOGRAPHS: &[&str] = &[
+    "Babylonian (House)",
+    "Babylonian (Sissy)",
+    "Babylonian (True Geoc)",
+    "Babylonian (True Topc)",
+    "Babylonian (True Obs)",
+    "Babylonian (House Obs)",
+];
+
+fn is_intentional_custom_definition_ayanamsa_homograph(label: &str) -> bool {
+    INTENTIONAL_CUSTOM_DEFINITION_AYANAMSA_HOMOGRAPHS.contains(&label)
+}
+
 fn verify_custom_definition_labels(labels: &[&'static str]) -> Result<usize, EphemerisError> {
     let mut labels_checked = 0usize;
     let mut seen_labels = BTreeSet::new();
@@ -1673,11 +1686,14 @@ fn verify_custom_definition_labels(labels: &[&'static str]) -> Result<usize, Eph
     for label in labels {
         labels_checked += 1;
         ensure_unique_profile_label("custom-definition", label, &mut seen_labels)?;
-        if resolve_house_system(label).is_some() {
+        if resolve_house_system(label).is_some()
+            || (resolve_ayanamsa(label).is_some()
+                && !is_intentional_custom_definition_ayanamsa_homograph(label))
+        {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,
                 format!(
-                    "compatibility profile custom-definition label '{}' should remain unresolved as a built-in house system",
+                    "compatibility profile custom-definition label '{}' should remain unresolved as a built-in house system or ayanamsa",
                     label
                 ),
             ));
@@ -7045,7 +7061,29 @@ mod tests {
         assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
         assert!(error
             .message
-            .contains("should remain unresolved as a built-in house system"));
+            .contains("should remain unresolved as a built-in house system or ayanamsa"));
+    }
+
+    #[test]
+    fn compatibility_profile_verification_rejects_custom_definition_labels_that_resolve_to_ayanamsas(
+    ) {
+        let labels = ["Lahiri"];
+
+        let error = verify_custom_definition_labels(&labels)
+            .expect_err("custom-definition labels should stay outside built-in ayanamsas");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("should remain unresolved as a built-in house system or ayanamsa"));
+    }
+
+    #[test]
+    fn compatibility_profile_verification_allows_intentional_ayanamsa_homographs() {
+        let labels = ["Babylonian (House)"];
+
+        let checked = verify_custom_definition_labels(&labels)
+            .expect("intentional custom-definition homographs should remain allowed");
+        assert_eq!(checked, 1);
     }
 
     #[test]

@@ -85,7 +85,7 @@ Latest test progress (2026-04-25): the VSOP87 regression suite now also covers t
 
 Latest progress (2026-04-25): validation comparison outputs now also carry the candidate backend family on the tolerance-policy and expected-tolerance sections, so the release-facing tolerance tables are scoped to the backend family as well as the body class and Pluto override.
 
-Latest progress (2026-04-25): compatibility-profile verification now also pins the exact Swiss Ephemeris house-table code spellings and the J2000/J1900/B1950 and Suryasiddhanta source-label forms in release-facing tests, so the source-label appendix stays anchored to the current interoperability spellings.
+Latest progress (2026-04-25): compatibility-profile verification now also pins the exact Swiss Ephemeris house-table code spellings and the J2000/J1900/B1950 and Suryasiddhanta source-label forms in release-facing tests, so the source-label appendix stays anchored to the current interoperability spellings. Custom-definition verification now also rejects accidental built-in ayanamsa collisions while explicitly allowing the current intentional Babylonian house-family homographs, so custom-definition labels cannot drift into either catalog by accident without breaking the current release profile.
 
 Latest progress (2026-04-25): the JPL, ELP, and VSOP87 batch-path regressions now also exercise explicit equatorial-frame requests, so the shared mean-obliquity transform and frame-preserving batch contract are now covered in both the single-request and batch-request paths.
 
