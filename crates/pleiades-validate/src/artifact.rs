@@ -457,10 +457,13 @@ fn body_class(body: &CelestialBody) -> BodyClass {
 struct BodyClassSummary {
     class: BodyClass,
     sample_count: usize,
+    max_longitude_delta_body: Option<CelestialBody>,
     max_longitude_delta_deg: f64,
     sum_longitude_delta_deg: f64,
+    max_latitude_delta_body: Option<CelestialBody>,
     max_latitude_delta_deg: f64,
     sum_latitude_delta_deg: f64,
+    max_distance_delta_body: Option<CelestialBody>,
     max_distance_delta_au: Option<f64>,
     sum_distance_delta_au: f64,
     distance_count: usize,
@@ -471,10 +474,13 @@ impl BodyClassSummary {
         Self {
             class,
             sample_count: 0,
+            max_longitude_delta_body: None,
             max_longitude_delta_deg: 0.0,
             sum_longitude_delta_deg: 0.0,
+            max_latitude_delta_body: None,
             max_latitude_delta_deg: 0.0,
             sum_latitude_delta_deg: 0.0,
+            max_distance_delta_body: None,
             max_distance_delta_au: None,
             sum_distance_delta_au: 0.0,
             distance_count: 0,
@@ -483,16 +489,25 @@ impl BodyClassSummary {
 
     fn update(&mut self, sample: &ComparisonSample) {
         self.sample_count += 1;
-        self.max_longitude_delta_deg = self.max_longitude_delta_deg.max(sample.longitude_delta_deg);
         self.sum_longitude_delta_deg += sample.longitude_delta_deg;
-        self.max_latitude_delta_deg = self.max_latitude_delta_deg.max(sample.latitude_delta_deg);
+        if sample.longitude_delta_deg >= self.max_longitude_delta_deg {
+            self.max_longitude_delta_deg = sample.longitude_delta_deg;
+            self.max_longitude_delta_body = Some(sample.body.clone());
+        }
         self.sum_latitude_delta_deg += sample.latitude_delta_deg;
+        if sample.latitude_delta_deg >= self.max_latitude_delta_deg {
+            self.max_latitude_delta_deg = sample.latitude_delta_deg;
+            self.max_latitude_delta_body = Some(sample.body.clone());
+        }
 
         if let Some(distance_delta_au) = sample.distance_delta_au {
-            self.max_distance_delta_au = Some(
-                self.max_distance_delta_au
-                    .map_or(distance_delta_au, |current| current.max(distance_delta_au)),
-            );
+            match self.max_distance_delta_au {
+                Some(current) if distance_delta_au < current => {}
+                _ => {
+                    self.max_distance_delta_au = Some(distance_delta_au);
+                    self.max_distance_delta_body = Some(sample.body.clone());
+                }
+            }
             self.sum_distance_delta_au += distance_delta_au;
             self.distance_count += 1;
         }
@@ -529,28 +544,33 @@ impl BodyClassSummary {
 
         writeln!(f, "  {}", self.class.label())?;
         writeln!(f, "    samples: {}", self.sample_count)?;
-        writeln!(
-            f,
-            "    max longitude delta: {:.12}°",
-            self.max_longitude_delta_deg
-        )?;
+        if let (Some(body), value) = (
+            self.max_longitude_delta_body.as_ref(),
+            self.max_longitude_delta_deg,
+        ) {
+            writeln!(f, "    max longitude delta: {:.12}° ({})", value, body)?;
+        }
         writeln!(
             f,
             "    mean longitude delta: {:.12}°",
             self.mean_longitude_delta_deg()
         )?;
-        writeln!(
-            f,
-            "    max latitude delta: {:.12}°",
-            self.max_latitude_delta_deg
-        )?;
+        if let (Some(body), value) = (
+            self.max_latitude_delta_body.as_ref(),
+            self.max_latitude_delta_deg,
+        ) {
+            writeln!(f, "    max latitude delta: {:.12}° ({})", value, body)?;
+        }
         writeln!(
             f,
             "    mean latitude delta: {:.12}°",
             self.mean_latitude_delta_deg()
         )?;
-        if let Some(value) = self.max_distance_delta_au {
-            writeln!(f, "    max distance delta: {:.12} AU", value)?;
+        if let (Some(body), Some(value)) = (
+            self.max_distance_delta_body.as_ref(),
+            self.max_distance_delta_au,
+        ) {
+            writeln!(f, "    max distance delta: {:.12} AU ({})", value, body)?;
         }
         if let Some(value) = self.mean_distance_delta_au() {
             writeln!(f, "    mean distance delta: {:.12} AU", value)?;

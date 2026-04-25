@@ -258,14 +258,20 @@ pub struct BodyComparisonSummary {
     pub body: CelestialBody,
     /// Number of samples compared for this body.
     pub sample_count: usize,
+    /// Body with the maximum absolute longitude delta.
+    pub max_longitude_delta_body: Option<CelestialBody>,
     /// Maximum absolute longitude delta.
     pub max_longitude_delta_deg: f64,
     /// Mean absolute longitude delta.
     pub mean_longitude_delta_deg: f64,
+    /// Body with the maximum absolute latitude delta.
+    pub max_latitude_delta_body: Option<CelestialBody>,
     /// Maximum absolute latitude delta.
     pub max_latitude_delta_deg: f64,
     /// Mean absolute latitude delta.
     pub mean_latitude_delta_deg: f64,
+    /// Body with the maximum absolute distance delta.
+    pub max_distance_delta_body: Option<CelestialBody>,
     /// Maximum absolute distance delta.
     pub max_distance_delta_au: Option<f64>,
     /// Mean absolute distance delta.
@@ -390,10 +396,13 @@ fn body_class(body: &CelestialBody) -> BodyClass {
 struct BodyClassSummary {
     class: BodyClass,
     sample_count: usize,
+    max_longitude_delta_body: Option<CelestialBody>,
     max_longitude_delta_deg: f64,
     sum_longitude_delta_deg: f64,
+    max_latitude_delta_body: Option<CelestialBody>,
     max_latitude_delta_deg: f64,
     sum_latitude_delta_deg: f64,
+    max_distance_delta_body: Option<CelestialBody>,
     max_distance_delta_au: Option<f64>,
     sum_distance_delta_au: f64,
     distance_count: usize,
@@ -3572,15 +3581,34 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     for summary in report.comparison.body_summaries() {
         let _ = writeln!(
             text,
-            "  {}: samples={}, max Δlon={:.12}°, mean Δlon={:.12}°, max Δlat={:.12}°, mean Δlat={:.12}°, max Δdist={}",
+            "  {}: samples={}, max Δlon={:.12}°{}, mean Δlon={:.12}°, max Δlat={:.12}°{}, mean Δlat={:.12}°, max Δdist={}{}, mean Δdist={}",
             summary.body,
             summary.sample_count,
             summary.max_longitude_delta_deg,
+            summary
+                .max_longitude_delta_body
+                .as_ref()
+                .map(|body| format!(" ({body})"))
+                .unwrap_or_default(),
             summary.mean_longitude_delta_deg,
             summary.max_latitude_delta_deg,
+            summary
+                .max_latitude_delta_body
+                .as_ref()
+                .map(|body| format!(" ({body})"))
+                .unwrap_or_default(),
             summary.mean_latitude_delta_deg,
             summary
                 .max_distance_delta_au
+                .map(|value| format!("{value:.12} AU"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            summary
+                .max_distance_delta_body
+                .as_ref()
+                .map(|body| format!(" ({body})"))
+                .unwrap_or_default(),
+            summary
+                .mean_distance_delta_au
                 .map(|value| format!("{value:.12} AU"))
                 .unwrap_or_else(|| "n/a".to_string())
         );
@@ -3588,19 +3616,37 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text);
     let _ = writeln!(text, "Body-class error envelopes");
     for summary in report.comparison.body_class_summaries() {
+        let max_longitude_body = summary
+            .max_longitude_delta_body
+            .as_ref()
+            .map(|body| format!(" ({body})"))
+            .unwrap_or_default();
+        let max_latitude_body = summary
+            .max_latitude_delta_body
+            .as_ref()
+            .map(|body| format!(" ({body})"))
+            .unwrap_or_default();
+        let max_distance_body = summary
+            .max_distance_delta_body
+            .as_ref()
+            .map(|body| format!(" ({body})"))
+            .unwrap_or_default();
         let _ = writeln!(
             text,
-            "  {}: samples={}, max Δlon={:.12}°, mean Δlon={:.12}°, max Δlat={:.12}°, mean Δlat={:.12}°, max Δdist={}, mean Δdist={}",
+            "  {}: samples={}, max Δlon={:.12}°{}, mean Δlon={:.12}°, max Δlat={:.12}°{}, mean Δlat={:.12}°, max Δdist={}{}, mean Δdist={}",
             summary.class.label(),
             summary.sample_count,
             summary.max_longitude_delta_deg,
+            max_longitude_body,
             summary.mean_longitude_delta_deg(),
             summary.max_latitude_delta_deg,
+            max_latitude_body,
             summary.mean_latitude_delta_deg(),
             summary
                 .max_distance_delta_au
                 .map(|value| format!("{value:.12} AU"))
                 .unwrap_or_else(|| "n/a".to_string()),
+            max_distance_body,
             summary
                 .mean_distance_delta_au()
                 .map(|value| format!("{value:.12} AU"))
@@ -4169,8 +4215,11 @@ struct BodyComparisonAccumulator {
     distance_sum_au: f64,
     distance_count: usize,
     max_longitude_delta_deg: f64,
+    max_longitude_delta_body: Option<CelestialBody>,
     max_latitude_delta_deg: f64,
+    max_latitude_delta_body: Option<CelestialBody>,
     max_distance_delta_au: Option<f64>,
+    max_distance_delta_body: Option<CelestialBody>,
 }
 
 impl BodyComparisonAccumulator {
@@ -4183,24 +4232,36 @@ impl BodyComparisonAccumulator {
             distance_sum_au: 0.0,
             distance_count: 0,
             max_longitude_delta_deg: 0.0,
+            max_longitude_delta_body: None,
             max_latitude_delta_deg: 0.0,
+            max_latitude_delta_body: None,
             max_distance_delta_au: None,
+            max_distance_delta_body: None,
         }
     }
 
     fn push(&mut self, sample: &ComparisonSample) {
         self.sample_count += 1;
         self.longitude_sum_deg += sample.longitude_delta_deg;
+        if sample.longitude_delta_deg >= self.max_longitude_delta_deg {
+            self.max_longitude_delta_deg = sample.longitude_delta_deg;
+            self.max_longitude_delta_body = Some(sample.body.clone());
+        }
         self.latitude_sum_deg += sample.latitude_delta_deg;
-        self.max_longitude_delta_deg = self.max_longitude_delta_deg.max(sample.longitude_delta_deg);
-        self.max_latitude_delta_deg = self.max_latitude_delta_deg.max(sample.latitude_delta_deg);
+        if sample.latitude_delta_deg >= self.max_latitude_delta_deg {
+            self.max_latitude_delta_deg = sample.latitude_delta_deg;
+            self.max_latitude_delta_body = Some(sample.body.clone());
+        }
         if let Some(delta) = sample.distance_delta_au {
             self.distance_sum_au += delta;
             self.distance_count += 1;
-            self.max_distance_delta_au = Some(
-                self.max_distance_delta_au
-                    .map_or(delta, |current| current.max(delta)),
-            );
+            match self.max_distance_delta_au {
+                Some(current) if delta < current => {}
+                _ => {
+                    self.max_distance_delta_au = Some(delta);
+                    self.max_distance_delta_body = Some(sample.body.clone());
+                }
+            }
         }
     }
 
@@ -4209,18 +4270,21 @@ impl BodyComparisonAccumulator {
         BodyComparisonSummary {
             body: self.body,
             sample_count: self.sample_count,
+            max_longitude_delta_body: self.max_longitude_delta_body,
             max_longitude_delta_deg: self.max_longitude_delta_deg,
             mean_longitude_delta_deg: if self.sample_count > 0 {
                 self.longitude_sum_deg / sample_count
             } else {
                 0.0
             },
+            max_latitude_delta_body: self.max_latitude_delta_body,
             max_latitude_delta_deg: self.max_latitude_delta_deg,
             mean_latitude_delta_deg: if self.sample_count > 0 {
                 self.latitude_sum_deg / sample_count
             } else {
                 0.0
             },
+            max_distance_delta_body: self.max_distance_delta_body,
             max_distance_delta_au: self.max_distance_delta_au,
             mean_distance_delta_au: if self.distance_count > 0 {
                 Some(self.distance_sum_au / self.distance_count as f64)
@@ -4262,8 +4326,11 @@ struct BodyClassAccumulator {
     distance_sum_au: f64,
     distance_count: usize,
     max_longitude_delta_deg: f64,
+    max_longitude_delta_body: Option<CelestialBody>,
     max_latitude_delta_deg: f64,
+    max_latitude_delta_body: Option<CelestialBody>,
     max_distance_delta_au: Option<f64>,
+    max_distance_delta_body: Option<CelestialBody>,
 }
 
 impl BodyClassAccumulator {
@@ -4276,24 +4343,36 @@ impl BodyClassAccumulator {
             distance_sum_au: 0.0,
             distance_count: 0,
             max_longitude_delta_deg: 0.0,
+            max_longitude_delta_body: None,
             max_latitude_delta_deg: 0.0,
+            max_latitude_delta_body: None,
             max_distance_delta_au: None,
+            max_distance_delta_body: None,
         }
     }
 
     fn push(&mut self, sample: &ComparisonSample) {
         self.sample_count += 1;
         self.longitude_sum_deg += sample.longitude_delta_deg;
+        if sample.longitude_delta_deg >= self.max_longitude_delta_deg {
+            self.max_longitude_delta_deg = sample.longitude_delta_deg;
+            self.max_longitude_delta_body = Some(sample.body.clone());
+        }
         self.latitude_sum_deg += sample.latitude_delta_deg;
-        self.max_longitude_delta_deg = self.max_longitude_delta_deg.max(sample.longitude_delta_deg);
-        self.max_latitude_delta_deg = self.max_latitude_delta_deg.max(sample.latitude_delta_deg);
+        if sample.latitude_delta_deg >= self.max_latitude_delta_deg {
+            self.max_latitude_delta_deg = sample.latitude_delta_deg;
+            self.max_latitude_delta_body = Some(sample.body.clone());
+        }
         if let Some(delta) = sample.distance_delta_au {
             self.distance_sum_au += delta;
             self.distance_count += 1;
-            self.max_distance_delta_au = Some(
-                self.max_distance_delta_au
-                    .map_or(delta, |current| current.max(delta)),
-            );
+            match self.max_distance_delta_au {
+                Some(current) if delta < current => {}
+                _ => {
+                    self.max_distance_delta_au = Some(delta);
+                    self.max_distance_delta_body = Some(sample.body.clone());
+                }
+            }
         }
     }
 
@@ -4301,10 +4380,13 @@ impl BodyClassAccumulator {
         BodyClassSummary {
             class: self.class,
             sample_count: self.sample_count,
+            max_longitude_delta_body: self.max_longitude_delta_body,
             max_longitude_delta_deg: self.max_longitude_delta_deg,
             sum_longitude_delta_deg: self.longitude_sum_deg,
+            max_latitude_delta_body: self.max_latitude_delta_body,
             max_latitude_delta_deg: self.max_latitude_delta_deg,
             sum_latitude_delta_deg: self.latitude_sum_deg,
+            max_distance_delta_body: self.max_distance_delta_body,
             max_distance_delta_au: self.max_distance_delta_au,
             sum_distance_delta_au: self.distance_sum_au,
             distance_count: self.distance_count,
@@ -4962,17 +5044,32 @@ fn write_body_comparison_summaries(
     for summary in summaries {
         writeln!(
             f,
-            "  {}: samples={}, max Δlon={:.12}°, mean Δlon={:.12}°, max Δlat={:.12}°, mean Δlat={:.12}°, max Δdist={}, mean Δdist={}",
+            "  {}: samples={}, max Δlon={:.12}°{}, mean Δlon={:.12}°, max Δlat={:.12}°{}, mean Δlat={:.12}°, max Δdist={}{}, mean Δdist={}",
             summary.body,
             summary.sample_count,
             summary.max_longitude_delta_deg,
+            summary
+                .max_longitude_delta_body
+                .as_ref()
+                .map(|body| format!(" ({body})"))
+                .unwrap_or_default(),
             summary.mean_longitude_delta_deg,
             summary.max_latitude_delta_deg,
+            summary
+                .max_latitude_delta_body
+                .as_ref()
+                .map(|body| format!(" ({body})"))
+                .unwrap_or_default(),
             summary.mean_latitude_delta_deg,
             summary
                 .max_distance_delta_au
                 .map(|value| format!("{value:.12} AU"))
                 .unwrap_or_else(|| "n/a".to_string()),
+            summary
+                .max_distance_delta_body
+                .as_ref()
+                .map(|body| format!(" ({body})"))
+                .unwrap_or_default(),
             summary
                 .mean_distance_delta_au
                 .map(|value| format!("{value:.12} AU"))
@@ -6011,6 +6108,12 @@ mod tests {
         assert!(report.contains("Candidate backend"));
         assert!(report.contains("Comparison summary"));
         assert!(report.contains("Body-class error envelopes"));
+        let body_class_envelopes = report
+            .split("Body-class error envelopes")
+            .nth(1)
+            .expect("report should include body-class error envelopes");
+        assert!(body_class_envelopes.contains("max Δlon="));
+        assert!(body_class_envelopes.contains(" ("));
         assert!(report.contains("Body-class tolerance posture"));
         assert!(report.contains("Tolerance policy"));
         assert!(
@@ -6070,6 +6173,12 @@ mod tests {
         assert!(report.contains("lunar reference evidence: 5 samples across 5 bodies"));
         assert!(report.contains("Body comparison summaries"));
         assert!(report.contains("Body-class error envelopes"));
+        let body_class_envelopes = report
+            .split("Body-class error envelopes")
+            .nth(1)
+            .expect("report should include body-class error envelopes");
+        assert!(body_class_envelopes.contains("max Δlon="));
+        assert!(body_class_envelopes.contains(" ("));
         assert!(report.contains("VSOP87 source-backed evidence"));
         assert!(report
             .contains("VSOP87 source audit: 8 source-backed bodies, 8 vendored full-file inputs"));
@@ -8105,6 +8214,12 @@ version = "0.9.0"
         assert!(report.contains("boundary checks"));
         assert!(report.contains("Model error envelope"));
         assert!(report.contains("Body-class error envelopes"));
+        let body_class_envelopes = report
+            .split("Body-class error envelopes")
+            .nth(1)
+            .expect("artifact report should include body-class error envelopes");
+        assert!(body_class_envelopes.contains("max longitude delta:"));
+        assert!(body_class_envelopes.contains(" ("));
         assert!(report.contains("Luminaries"));
         assert!(report.contains("Major planets"));
         assert!(report.contains("baseline backend"));

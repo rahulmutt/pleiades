@@ -64,6 +64,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
 5. Expand validation evidence.
    - Add golden positions for major bodies, lunar points, and baseline asteroids.
    - Generate cross-backend comparison reports with body/date/error summaries. Aggregate and per-body summary sections are now implemented; future source-backed backend increments should populate them with tighter measured errors.
+   - Progress note: the validation and artifact reports now name the body driving each max longitude, latitude, and distance delta in the body-comparison and body-class envelope sections, which makes the release-facing error envelopes easier to audit without changing the measured corpus.
    - Store expected tolerances by backend and body class.
    - Keep validation reproducible and pure Rust.
 
