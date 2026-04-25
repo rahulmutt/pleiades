@@ -260,6 +260,21 @@ pub struct JplInterpolationQualitySummary {
     pub rms_distance_error_au: f64,
 }
 
+/// Distinct-body coverage for the interpolation-quality hold-out samples.
+#[derive(Clone, Debug, PartialEq)]
+pub struct JplInterpolationQualityKindCoverage {
+    /// Total number of interpolation-quality samples.
+    pub sample_count: usize,
+    /// Number of distinct bodies represented by the samples.
+    pub body_count: usize,
+    /// Number of distinct bodies represented by cubic interpolation samples.
+    pub cubic_body_count: usize,
+    /// Number of distinct bodies represented by quadratic interpolation samples.
+    pub quadratic_body_count: usize,
+    /// Number of distinct bodies represented by linear interpolation samples.
+    pub linear_body_count: usize,
+}
+
 /// Returns the release-facing interpolation-quality summary for the checked-in
 /// JPL snapshot.
 pub fn jpl_interpolation_quality_summary() -> Option<JplInterpolationQualitySummary> {
@@ -358,6 +373,44 @@ pub fn jpl_interpolation_quality_summary() -> Option<JplInterpolationQualitySumm
     })
 }
 
+/// Returns the distinct-body coverage breakdown for the interpolation-quality
+/// hold-out samples.
+pub fn jpl_interpolation_quality_kind_coverage() -> Option<JplInterpolationQualityKindCoverage> {
+    let samples = interpolation_quality_samples();
+    if samples.is_empty() {
+        return None;
+    }
+
+    let mut all_bodies = BTreeSet::new();
+    let mut cubic_bodies = BTreeSet::new();
+    let mut quadratic_bodies = BTreeSet::new();
+    let mut linear_bodies = BTreeSet::new();
+
+    for sample in samples {
+        let body = sample.body.to_string();
+        all_bodies.insert(body.clone());
+        match sample.interpolation_kind {
+            InterpolationQualityKind::Cubic => {
+                cubic_bodies.insert(body);
+            }
+            InterpolationQualityKind::Quadratic => {
+                quadratic_bodies.insert(body);
+            }
+            InterpolationQualityKind::Linear => {
+                linear_bodies.insert(body);
+            }
+        }
+    }
+
+    Some(JplInterpolationQualityKindCoverage {
+        sample_count: samples.len(),
+        body_count: all_bodies.len(),
+        cubic_body_count: cubic_bodies.len(),
+        quadratic_body_count: quadratic_bodies.len(),
+        linear_body_count: linear_bodies.len(),
+    })
+}
+
 /// Formats the interpolation-quality summary for release-facing reports.
 pub fn format_jpl_interpolation_quality_summary(
     summary: &JplInterpolationQualitySummary,
@@ -392,6 +445,20 @@ pub fn format_jpl_interpolation_quality_summary(
         format_body_epoch_suffix(&summary.max_distance_error_body, summary.max_distance_error_epoch),
         summary.mean_distance_error_au,
         summary.rms_distance_error_au,
+    )
+}
+
+/// Formats the distinct-body interpolation-kind coverage for release-facing reports.
+pub fn format_jpl_interpolation_quality_kind_coverage(
+    coverage: &JplInterpolationQualityKindCoverage,
+) -> String {
+    format!(
+        "JPL interpolation quality kind coverage: {} samples across {} bodies ({} cubic bodies, {} quadratic bodies, {} linear bodies)",
+        coverage.sample_count,
+        coverage.body_count,
+        coverage.cubic_body_count,
+        coverage.quadratic_body_count,
+        coverage.linear_body_count,
     )
 }
 
@@ -1737,6 +1804,23 @@ mod tests {
             summary.max_distance_error_body,
             format_instant(summary.max_distance_error_epoch)
         )));
+    }
+
+    #[test]
+    fn interpolation_quality_kind_coverage_reports_the_distinct_body_breakdown() {
+        let coverage = jpl_interpolation_quality_kind_coverage().expect("coverage should exist");
+        assert_eq!(coverage.sample_count, 21);
+        assert_eq!(coverage.body_count, 10);
+        assert!(coverage.cubic_body_count > 0);
+        assert_eq!(coverage.quadratic_body_count, 0);
+        assert!(coverage.linear_body_count > 0);
+
+        let rendered = format_jpl_interpolation_quality_kind_coverage(&coverage);
+        assert!(rendered.contains("JPL interpolation quality kind coverage:"));
+        assert!(rendered.contains("21 samples across 10 bodies"));
+        assert!(rendered.contains("cubic bodies"));
+        assert!(rendered.contains("quadratic bodies"));
+        assert!(rendered.contains("linear bodies"));
     }
 
     #[test]

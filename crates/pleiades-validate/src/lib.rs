@@ -5786,7 +5786,16 @@ fn format_jpl_interpolation_quality_summary(
 
 fn format_jpl_interpolation_quality_summary_for_report() -> String {
     match jpl_interpolation_quality_summary() {
-        Some(summary) => format_jpl_interpolation_quality_summary(&summary),
+        Some(summary) => {
+            let mut rendered = format_jpl_interpolation_quality_summary(&summary);
+            rendered.push('\n');
+            rendered.push_str("  JPL interpolation quality kind coverage: ");
+            rendered.push_str(&summary.sample_count.to_string());
+            rendered.push_str(" samples across ");
+            rendered.push_str(&summary.body_count.to_string());
+            rendered.push_str(" bodies");
+            rendered
+        }
         None => "JPL interpolation quality: unavailable".to_string(),
     }
 }
