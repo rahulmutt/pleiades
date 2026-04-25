@@ -71,6 +71,13 @@ pub fn packaged_body_coverage_summary() -> String {
     )
 }
 
+const PACKAGED_REQUEST_POLICY_SUMMARY: &str = "Packaged request policy: geocentric-only; frames=Ecliptic; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction";
+
+/// Returns the current packaged-data request policy summary.
+pub fn packaged_request_policy_summary() -> &'static str {
+    PACKAGED_REQUEST_POLICY_SUMMARY
+}
+
 #[cfg(test)]
 const AU_IN_KM: f64 = 149_597_870.7;
 
@@ -132,6 +139,7 @@ impl EphemerisBackend for PackagedDataBackend {
                 summary: artifact.header.source.clone(),
                 data_sources: vec![
                     packaged_body_coverage_summary(),
+                    packaged_request_policy_summary().to_string(),
                     "Quantized linear segments stored in pleiades-compression artifact format"
                         .to_string(),
                 ],
@@ -464,6 +472,10 @@ mod tests {
         assert_eq!(
             packaged_body_coverage_summary(),
             metadata.provenance.data_sources[0]
+        );
+        assert_eq!(
+            metadata.provenance.data_sources[1],
+            packaged_request_policy_summary()
         );
     }
 

@@ -35,7 +35,7 @@ use pleiades_core::{
     EphemerisRequest, EphemerisResult, Instant, JulianDay, Longitude, TimeRange, TimeScale,
     ZodiacMode,
 };
-use pleiades_data::{packaged_artifact, PackagedDataBackend};
+use pleiades_data::{packaged_artifact, packaged_request_policy_summary, PackagedDataBackend};
 use pleiades_elp::{
     format_lunar_theory_capability_summary, lunar_equatorial_reference_evidence,
     lunar_equatorial_reference_evidence_envelope_for_report,
@@ -2152,6 +2152,9 @@ fn render_release_summary_text() -> String {
     text.push_str("Packaged-artifact profile: ");
     text.push_str(&format_packaged_artifact_profile_summary());
     text.push('\n');
+    text.push_str("Packaged request policy: ");
+    text.push_str(packaged_request_policy_summary());
+    text.push('\n');
     text.push_str("Release bundle verification: verify-release-bundle\n");
     text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
     text.push_str("Release checklist summary: release-checklist-summary\n");
@@ -4058,6 +4061,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text);
     let _ = writeln!(text, "Packaged-artifact profile");
     let _ = writeln!(text, "  {}", format_packaged_artifact_profile_summary());
+    let _ = writeln!(text, "  {}", packaged_request_policy_summary());
     let _ = writeln!(text);
     let _ = writeln!(text, "Benchmark summaries");
     let _ = writeln!(text, "Reference benchmark");
@@ -6676,6 +6680,7 @@ mod tests {
             .contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(validation_report_summary.contains("Release notes summary: release-notes-summary"));
         assert!(validation_report_summary.contains("Packaged-artifact profile"));
+        assert!(validation_report_summary.contains("Packaged request policy"));
         assert!(validation_report_summary.contains("Benchmark summaries"));
     }
 
@@ -7610,12 +7615,14 @@ version = "0.9.0"
         assert!(release_summary.contains(
             "Packaged-artifact profile: stored channels: [Longitude, Latitude, DistanceAu]"
         ));
+        assert!(release_summary.contains("Packaged request policy"));
         assert!(release_summary.contains("applies to 11 bundled bodies"));
         assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_summary.contains("Release notes summary: release-notes-summary"));
         assert!(artifact_summary.contains("Artifact summary"));
         assert!(artifact_summary
             .contains("Artifact profile: stored channels: [Longitude, Latitude, DistanceAu]"));
+        assert!(artifact_summary.contains("Artifact request policy"));
         assert!(artifact_summary.contains("applies to 11 bundled bodies"));
         assert!(artifact_summary.contains("Model error envelope"));
         assert!(artifact_summary.contains("Release summary: release-summary"));
@@ -8756,6 +8763,7 @@ version = "0.9.0"
         assert!(report.contains("Jupiter"));
         assert!(report.contains("Pluto"));
         assert!(report.contains("boundary checks"));
+        assert!(report.contains("Artifact request policy"));
         assert!(report.contains("Model error envelope"));
         assert!(report.contains("Body-class error envelopes"));
         let body_class_envelopes = report
