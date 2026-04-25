@@ -40,6 +40,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Progress note: the compact lunar backend now also exports a canonical reference evidence slice for the published Moon example plus the J2000 lunar-point samples, and validation reports render that slice in the backend matrix and summary output so the current lunar baseline is easier to audit without changing the API contract.
    - Progress note: the lunar backend now also has a batch-path regression over the Moon, nodes, and mean apogee/perigee evidence slice, so the current supported lunar points are exercised through `positions()` in addition to single-request coverage.
    - Progress note: the compact lunar-theory specification now also exposes a structured request-policy field — TT/TDB only, tropical only, mean only, ecliptic/equatorial frames, and no topocentric observer mode — so the current baseline remains visibly scoped while source-backed ELP selection stays queued.
+   - Progress note: the lunar-theory selection data is now centralized into a single static specification, and the canonical evidence slice is checked against that supported-body list so the current Meeus-style baseline stays internally consistent as the source-selection work continues.
 
 3. Upgrade `pleiades-jpl` from snapshot fixture to reference backend.
    - Parse documented public JPL-style files or a reproducible derivative format in pure Rust.

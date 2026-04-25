@@ -36,7 +36,7 @@ const PACKAGE_NAME: &str = "pleiades-elp";
 const J2000: f64 = 2_451_545.0;
 
 /// Structured request policy for the current lunar-theory selection.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct LunarTheoryRequestPolicy {
     /// Coordinate frames the current baseline exposes.
     pub supported_frames: &'static [CoordinateFrame],
@@ -51,7 +51,7 @@ pub struct LunarTheoryRequestPolicy {
 }
 
 /// Structured description of the current lunar-theory selection.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct LunarTheorySpecification {
     /// Human-readable model name.
     pub model_name: &'static str,
@@ -87,53 +87,54 @@ pub struct LunarTheorySpecification {
     pub license_note: &'static str,
 }
 
+const SUPPORTED_LUNAR_BODIES: &[CelestialBody] = &[
+    CelestialBody::Moon,
+    CelestialBody::MeanNode,
+    CelestialBody::TrueNode,
+    CelestialBody::MeanPerigee,
+    CelestialBody::MeanApogee,
+];
+const UNSUPPORTED_LUNAR_BODIES: &[CelestialBody] =
+    &[CelestialBody::TrueApogee, CelestialBody::TruePerigee];
+const SUPPORTED_LUNAR_FRAMES: &[CoordinateFrame] =
+    &[CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial];
+const SUPPORTED_LUNAR_TIME_SCALES: &[TimeScale] = &[TimeScale::Tt, TimeScale::Tdb];
+const SUPPORTED_LUNAR_ZODIAC_MODES: &[ZodiacMode] = &[ZodiacMode::Tropical];
+const SUPPORTED_LUNAR_APPARENTNESS: &[Apparentness] = &[Apparentness::Mean];
+const LUNAR_THEORY_REQUEST_POLICY: LunarTheoryRequestPolicy = LunarTheoryRequestPolicy {
+    supported_frames: SUPPORTED_LUNAR_FRAMES,
+    supported_time_scales: SUPPORTED_LUNAR_TIME_SCALES,
+    supported_zodiac_modes: SUPPORTED_LUNAR_ZODIAC_MODES,
+    supported_apparentness: SUPPORTED_LUNAR_APPARENTNESS,
+    supports_topocentric_observer: false,
+};
+const LUNAR_THEORY_SPECIFICATION: LunarTheorySpecification = LunarTheorySpecification {
+    model_name: "Compact Meeus-style truncated lunar baseline",
+    source_identifier: "meeus-style-truncated-lunar-baseline",
+    source_citation: "Jean Meeus, Astronomical Algorithms, 2nd edition, truncated lunar position and lunar node/perigee/apogee formulae adapted into a compact pure-Rust baseline",
+    source_material:
+        "Published lunar position, node, and mean-point formulas implemented as the current pure-Rust baseline; no vendored ELP coefficient files are used yet while full ELP coefficient selection remains pending",
+    redistribution_note:
+        "No external coefficient-file redistribution constraints apply to the current baseline because the implementation does not vendor ELP coefficient tables yet",
+    supported_bodies: SUPPORTED_LUNAR_BODIES,
+    unsupported_bodies: UNSUPPORTED_LUNAR_BODIES,
+    request_policy: LUNAR_THEORY_REQUEST_POLICY,
+    supported_frames: SUPPORTED_LUNAR_FRAMES,
+    supported_time_scales: SUPPORTED_LUNAR_TIME_SCALES,
+    supported_zodiac_modes: SUPPORTED_LUNAR_ZODIAC_MODES,
+    supported_apparentness: SUPPORTED_LUNAR_APPARENTNESS,
+    supports_topocentric_observer: false,
+    date_range_note:
+        "Validated against the published 1992-04-12 geocentric Moon example, J2000 node/perigee references, and nearby high-curvature regression windows; no full ELP coefficient range has been published yet",
+    frame_note:
+        "Geocentric ecliptic coordinates are produced directly from the truncated lunar series; equatorial coordinates are derived with a mean-obliquity transform",
+    license_note:
+        "The current baseline is handwritten pure Rust and does not redistribute external coefficient tables; any future source-backed lunar theory selection will need its own provenance and redistribution review",
+};
+
 /// Returns the currently selected compact lunar-theory specification.
 pub fn lunar_theory_specification() -> LunarTheorySpecification {
-    const SUPPORTED_BODIES: &[CelestialBody] = &[
-        CelestialBody::Moon,
-        CelestialBody::MeanNode,
-        CelestialBody::TrueNode,
-        CelestialBody::MeanApogee,
-        CelestialBody::MeanPerigee,
-    ];
-    const UNSUPPORTED_BODIES: &[CelestialBody] =
-        &[CelestialBody::TrueApogee, CelestialBody::TruePerigee];
-    const SUPPORTED_FRAMES: &[CoordinateFrame] =
-        &[CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial];
-    const SUPPORTED_TIME_SCALES: &[TimeScale] = &[TimeScale::Tt, TimeScale::Tdb];
-    const SUPPORTED_ZODIAC_MODES: &[ZodiacMode] = &[ZodiacMode::Tropical];
-    const SUPPORTED_APPARENTNESS: &[Apparentness] = &[Apparentness::Mean];
-    const REQUEST_POLICY: LunarTheoryRequestPolicy = LunarTheoryRequestPolicy {
-        supported_frames: SUPPORTED_FRAMES,
-        supported_time_scales: SUPPORTED_TIME_SCALES,
-        supported_zodiac_modes: SUPPORTED_ZODIAC_MODES,
-        supported_apparentness: SUPPORTED_APPARENTNESS,
-        supports_topocentric_observer: false,
-    };
-
-    LunarTheorySpecification {
-        model_name: "Compact Meeus-style truncated lunar baseline",
-        source_identifier: "meeus-style-truncated-lunar-baseline",
-        source_citation: "Jean Meeus, Astronomical Algorithms, 2nd edition, truncated lunar position and lunar node/perigee/apogee formulae adapted into a compact pure-Rust baseline",
-        source_material:
-            "Published lunar position, node, and mean-point formulas implemented as the current pure-Rust baseline; no vendored ELP coefficient files are used yet while full ELP coefficient selection remains pending",
-        redistribution_note:
-            "No external coefficient-file redistribution constraints apply to the current baseline because the implementation does not vendor ELP coefficient tables yet",
-        supported_bodies: SUPPORTED_BODIES,
-        unsupported_bodies: UNSUPPORTED_BODIES,
-        request_policy: REQUEST_POLICY,
-        supported_frames: SUPPORTED_FRAMES,
-        supported_time_scales: SUPPORTED_TIME_SCALES,
-        supported_zodiac_modes: SUPPORTED_ZODIAC_MODES,
-        supported_apparentness: SUPPORTED_APPARENTNESS,
-        supports_topocentric_observer: false,
-        date_range_note:
-            "Validated against the published 1992-04-12 geocentric Moon example, J2000 node/perigee references, and nearby high-curvature regression windows; no full ELP coefficient range has been published yet",
-        frame_note:
-            "Geocentric ecliptic coordinates are produced directly from the truncated lunar series; equatorial coordinates are derived with a mean-obliquity transform",
-        license_note:
-            "The current baseline is handwritten pure Rust and does not redistribute external coefficient tables; any future source-backed lunar theory selection will need its own provenance and redistribution review",
-    }
+    LUNAR_THEORY_SPECIFICATION
 }
 
 /// A single canonical lunar evidence sample used by validation and reporting.
@@ -835,8 +836,8 @@ mod tests {
                 CelestialBody::Moon,
                 CelestialBody::MeanNode,
                 CelestialBody::TrueNode,
-                CelestialBody::MeanApogee,
                 CelestialBody::MeanPerigee,
+                CelestialBody::MeanApogee,
             ]
         );
         assert_eq!(
@@ -881,6 +882,8 @@ mod tests {
         assert_eq!(evidence[2].body, CelestialBody::TrueNode);
         assert_eq!(evidence[3].body, CelestialBody::MeanPerigee);
         assert_eq!(evidence[4].body, CelestialBody::MeanApogee);
+        let evidence_bodies: Vec<_> = evidence.iter().map(|sample| sample.body.clone()).collect();
+        assert_eq!(evidence_bodies, theory.supported_bodies);
 
         for sample in evidence {
             let result = backend
