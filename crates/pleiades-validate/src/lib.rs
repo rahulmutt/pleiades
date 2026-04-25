@@ -4719,12 +4719,16 @@ struct JplInterpolationQualitySummary {
     body_count: usize,
     max_bracket_span_days: f64,
     max_bracket_span_body: String,
+    max_bracket_span_epoch: Instant,
     max_longitude_error_deg: f64,
     max_longitude_error_body: String,
+    max_longitude_error_epoch: Instant,
     max_latitude_error_deg: f64,
     max_latitude_error_body: String,
+    max_latitude_error_epoch: Instant,
     max_distance_error_au: f64,
     max_distance_error_body: String,
+    max_distance_error_epoch: Instant,
 }
 
 fn jpl_interpolation_quality_summary() -> Option<JplInterpolationQualitySummary> {
@@ -4736,30 +4740,38 @@ fn jpl_interpolation_quality_summary() -> Option<JplInterpolationQualitySummary>
     let mut bodies = BTreeSet::new();
     let mut max_bracket_span_days: f64 = 0.0;
     let mut max_bracket_span_body = String::new();
+    let mut max_bracket_span_epoch = samples[0].epoch;
     let mut max_longitude_error_deg: f64 = 0.0;
     let mut max_longitude_error_body = String::new();
+    let mut max_longitude_error_epoch = samples[0].epoch;
     let mut max_latitude_error_deg: f64 = 0.0;
     let mut max_latitude_error_body = String::new();
+    let mut max_latitude_error_epoch = samples[0].epoch;
     let mut max_distance_error_au: f64 = 0.0;
     let mut max_distance_error_body = String::new();
+    let mut max_distance_error_epoch = samples[0].epoch;
 
     for sample in samples {
         bodies.insert(sample.body.to_string());
         if sample.bracket_span_days > max_bracket_span_days {
             max_bracket_span_days = sample.bracket_span_days;
             max_bracket_span_body = sample.body.to_string();
+            max_bracket_span_epoch = sample.epoch;
         }
         if sample.longitude_error_deg > max_longitude_error_deg {
             max_longitude_error_deg = sample.longitude_error_deg;
             max_longitude_error_body = sample.body.to_string();
+            max_longitude_error_epoch = sample.epoch;
         }
         if sample.latitude_error_deg > max_latitude_error_deg {
             max_latitude_error_deg = sample.latitude_error_deg;
             max_latitude_error_body = sample.body.to_string();
+            max_latitude_error_epoch = sample.epoch;
         }
         if sample.distance_error_au > max_distance_error_au {
             max_distance_error_au = sample.distance_error_au;
             max_distance_error_body = sample.body.to_string();
+            max_distance_error_epoch = sample.epoch;
         }
     }
 
@@ -4768,21 +4780,25 @@ fn jpl_interpolation_quality_summary() -> Option<JplInterpolationQualitySummary>
         body_count: bodies.len(),
         max_bracket_span_days,
         max_bracket_span_body,
+        max_bracket_span_epoch,
         max_longitude_error_deg,
         max_longitude_error_body,
+        max_longitude_error_epoch,
         max_latitude_error_deg,
         max_latitude_error_body,
+        max_latitude_error_epoch,
         max_distance_error_au,
         max_distance_error_body,
+        max_distance_error_epoch,
     })
 }
 
 fn format_jpl_interpolation_quality_summary(summary: &JplInterpolationQualitySummary) -> String {
-    fn format_body_suffix(body: &str) -> String {
+    fn format_body_epoch_suffix(body: &str, epoch: Instant) -> String {
         if body.is_empty() {
             String::new()
         } else {
-            format!(" ({body})")
+            format!(" ({body} @ {})", format_instant(epoch))
         }
     }
 
@@ -4791,13 +4807,13 @@ fn format_jpl_interpolation_quality_summary(summary: &JplInterpolationQualitySum
         summary.sample_count,
         summary.body_count,
         summary.max_bracket_span_days,
-        format_body_suffix(&summary.max_bracket_span_body),
+        format_body_epoch_suffix(&summary.max_bracket_span_body, summary.max_bracket_span_epoch),
         summary.max_longitude_error_deg,
-        format_body_suffix(&summary.max_longitude_error_body),
+        format_body_epoch_suffix(&summary.max_longitude_error_body, summary.max_longitude_error_epoch),
         summary.max_latitude_error_deg,
-        format_body_suffix(&summary.max_latitude_error_body),
+        format_body_epoch_suffix(&summary.max_latitude_error_body, summary.max_latitude_error_epoch),
         summary.max_distance_error_au,
-        format_body_suffix(&summary.max_distance_error_body),
+        format_body_epoch_suffix(&summary.max_distance_error_body, summary.max_distance_error_epoch),
     )
 }
 
@@ -6024,6 +6040,7 @@ mod tests {
         assert!(report.contains("JPL interpolation quality"));
         assert!(report.contains("JPL interpolation quality: 10 samples across 5 bodies"));
         assert!(report.contains("leave-one-out runtime interpolation evidence"));
+        assert!(report.contains("@ JD"));
         assert!(report.contains("Lunar reference evidence"));
         assert!(report.contains("lunar reference evidence: 5 samples across 5 bodies"));
         assert!(report.contains("Body comparison summaries"));
@@ -6060,10 +6077,26 @@ mod tests {
         assert!(!summary.max_distance_error_body.is_empty());
 
         let rendered = format_jpl_interpolation_quality_summary(&summary);
-        assert!(rendered.contains(&format!("({})", summary.max_bracket_span_body)));
-        assert!(rendered.contains(&format!("({})", summary.max_longitude_error_body)));
-        assert!(rendered.contains(&format!("({})", summary.max_latitude_error_body)));
-        assert!(rendered.contains(&format!("({})", summary.max_distance_error_body)));
+        assert!(rendered.contains(&format!(
+            "({} @ {}",
+            summary.max_bracket_span_body,
+            format_instant(summary.max_bracket_span_epoch)
+        )));
+        assert!(rendered.contains(&format!(
+            "({} @ {}",
+            summary.max_longitude_error_body,
+            format_instant(summary.max_longitude_error_epoch)
+        )));
+        assert!(rendered.contains(&format!(
+            "({} @ {}",
+            summary.max_latitude_error_body,
+            format_instant(summary.max_latitude_error_epoch)
+        )));
+        assert!(rendered.contains(&format!(
+            "({} @ {}",
+            summary.max_distance_error_body,
+            format_instant(summary.max_distance_error_epoch)
+        )));
     }
 
     #[test]
