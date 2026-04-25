@@ -2528,6 +2528,9 @@ fn render_release_summary_text() -> String {
         &lunar_theory_capability_summary(),
     ));
     text.push('\n');
+    text.push_str("ELP lunar request policy: ");
+    text.push_str(&lunar_theory_request_policy_summary());
+    text.push('\n');
     text.push_str("Lunar reference evidence: ");
     text.push_str(&lunar_reference_evidence_summary_for_report());
     text.push('\n');
@@ -4231,6 +4234,17 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         text,
         "  {}",
         format_jpl_interpolation_quality_summary_for_report()
+    );
+    let _ = writeln!(text);
+    let _ = writeln!(
+        text,
+        "ELP lunar capability: {}",
+        format_lunar_theory_capability_summary(&lunar_theory_capability_summary())
+    );
+    let _ = writeln!(
+        text,
+        "ELP lunar request policy: {}",
+        lunar_theory_request_policy_summary()
     );
     let _ = writeln!(text);
     let _ = writeln!(text, "Lunar reference evidence");
@@ -7261,6 +7275,10 @@ mod tests {
         assert!(report.contains("JPL interpolation quality: 21 samples across 10 bodies"));
         assert!(report.contains("leave-one-out runtime interpolation evidence"));
         assert!(report.contains("@ JD"));
+        assert!(report.contains("ELP lunar capability: lunar capability summary:"));
+        assert!(report.contains(
+            "ELP lunar request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"
+        ));
         assert!(report.contains("Lunar reference evidence"));
         assert!(report.contains(
             "lunar reference evidence: 9 samples across 5 bodies, epoch range JD 2419914.5..2459278.5"
@@ -8384,6 +8402,9 @@ version = "0.9.0"
         assert!(release_summary.contains("mean distance delta:"));
         assert!(release_summary.contains("ELP lunar capability: lunar capability summary:"));
         assert!(release_summary.contains(
+            "ELP lunar request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"
+        ));
+        assert!(release_summary.contains(
             "lunar theory catalog: 1 entry, 1 selected entry; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]"
         ));
         assert!(release_summary.contains("Lunar reference evidence: lunar reference evidence:"));
@@ -8511,6 +8532,12 @@ version = "0.9.0"
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(validation_report_summary.contains(
             "ELP lunar theory specification: Compact Meeus-style truncated lunar baseline [meeus-style-truncated-lunar-baseline; family: Meeus-style truncated analytical baseline]"
+        ));
+        assert!(
+            validation_report_summary.contains("ELP lunar capability: lunar capability summary:")
+        );
+        assert!(validation_report_summary.contains(
+            "ELP lunar request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"
         ));
         assert!(validation_report_summary.contains(
             "lunar theory catalog: 1 entry, 1 selected entry; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]"
