@@ -6256,6 +6256,11 @@ mod tests {
         assert!(rendered.contains("Target compatibility catalog:"));
         assert!(rendered.contains("Release-specific coverage beyond baseline:"));
         assert!(rendered.contains("Alias mappings for built-in house systems:"));
+        assert!(rendered.contains("Polich-Page \"topocentric\" table of houses"));
+        assert!(rendered.contains("T Polich/Page (\"topocentric\")"));
+        assert!(rendered.contains("Babylonian Huber"));
+        assert!(rendered.contains("Galactic Equator (True)"));
+        assert!(rendered.contains("Valens Moon ayanamsa"));
     }
 
     #[test]
@@ -6275,6 +6280,47 @@ mod tests {
         assert!(rendered.contains("Sunil Sheoran / Vedic Sheoran / Sheoran ayanamsa spellings"));
         assert!(rendered.contains("P.V.R. Narasimha Rao"));
         assert!(rendered.contains("B. V. Raman"));
+        assert!(rendered.contains("Polich-Page \"topocentric\" table of houses"));
+        assert!(rendered.contains("T Polich/Page (\"topocentric\")"));
+        assert!(rendered.contains("Babylonian Huber"));
+        assert!(rendered.contains("Galactic Equator (True)"));
+        assert!(rendered.contains("Valens Moon ayanamsa"));
+    }
+
+    #[test]
+    fn release_notes_command_renders_the_release_notes() {
+        let rendered = render_cli(&["release-notes"]).expect("release notes should render");
+        assert!(rendered.contains("Release notes"));
+        let release_profiles = current_release_profile_identifiers();
+        assert!(rendered.contains(&format!(
+            "Profile: {}",
+            release_profiles.compatibility_profile_id
+        )));
+        assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
+        assert!(rendered
+            .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
+        assert!(rendered.contains("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
+        assert!(rendered.contains("Release notes summary: release-notes-summary"));
+        assert!(rendered.contains("Release summary: release-summary"));
+        assert!(rendered.contains("Release checklist summary: release-checklist-summary"));
+        assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
+        assert!(
+            rendered.contains("Compatibility profile verification: verify-compatibility-profile")
+        );
+        assert!(rendered.contains("API stability posture:"));
+        assert!(rendered.contains("Deprecation policy:"));
+        assert!(rendered.contains("Release-specific coverage:"));
+        assert!(rendered.contains("selected asteroid coverage"));
+        assert!(rendered.contains("Selected asteroid evidence: 5 exact J2000 samples"));
+        assert!(rendered.contains("Reference snapshot coverage: 35 rows across 15 bodies and 4 epochs (5 asteroid rows; JD 2378499.0..2634167.0)"));
+        assert!(rendered.contains("asteroid:433-Eros"));
+        assert!(rendered.contains("Validation reference points:"));
+        assert!(rendered.contains("Compatibility caveats:"));
+        assert!(rendered.contains("Polich-Page \"topocentric\" table of houses"));
+        assert!(rendered.contains("T Polich/Page (\"topocentric\")"));
+        assert!(rendered.contains("Babylonian Huber"));
+        assert!(rendered.contains("Galactic Equator (True)"));
+        assert!(rendered.contains("Valens Moon ayanamsa"));
     }
 
     #[test]
@@ -6366,37 +6412,6 @@ mod tests {
             .expect_err("missing descriptor notes should fail profile verification");
         assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
         assert!(error.message.contains("missing notes metadata"));
-    }
-
-    #[test]
-    fn release_notes_command_renders_the_release_notes() {
-        let rendered = render_cli(&["release-notes"]).expect("release notes should render");
-        assert!(rendered.contains("Release notes"));
-        let release_profiles = current_release_profile_identifiers();
-        assert!(rendered.contains(&format!(
-            "Profile: {}",
-            release_profiles.compatibility_profile_id
-        )));
-        assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
-        assert!(rendered
-            .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
-        assert!(rendered.contains("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
-        assert!(rendered.contains("Release notes summary: release-notes-summary"));
-        assert!(rendered.contains("Release summary: release-summary"));
-        assert!(rendered.contains("Release checklist summary: release-checklist-summary"));
-        assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
-        assert!(
-            rendered.contains("Compatibility profile verification: verify-compatibility-profile")
-        );
-        assert!(rendered.contains("API stability posture:"));
-        assert!(rendered.contains("Deprecation policy:"));
-        assert!(rendered.contains("Release-specific coverage:"));
-        assert!(rendered.contains("selected asteroid coverage"));
-        assert!(rendered.contains("Selected asteroid evidence: 5 exact J2000 samples"));
-        assert!(rendered.contains("Reference snapshot coverage: 35 rows across 15 bodies and 4 epochs (5 asteroid rows; JD 2378499.0..2634167.0)"));
-        assert!(rendered.contains("asteroid:433-Eros"));
-        assert!(rendered.contains("Validation reference points:"));
-        assert!(rendered.contains("Compatibility caveats:"));
     }
 
     #[test]
