@@ -2530,6 +2530,22 @@ fn render_release_summary_text() -> String {
     text.push_str("JPL interpolation evidence: ");
     text.push_str(&format_jpl_interpolation_quality_summary_for_report());
     text.push('\n');
+    text.push_str("Source-backed backend evidence: ");
+    text.push_str(&reference_snapshot_summary_for_report());
+    text.push_str(" | ");
+    text.push_str(&reference_asteroid_evidence_summary_for_report());
+    text.push('\n');
+    text.push_str("VSOP87 evidence: ");
+    text.push_str(&format_vsop87_source_documentation_summary());
+    text.push_str(" | ");
+    text.push_str(&format_vsop87_frame_treatment_summary());
+    text.push_str(" | ");
+    text.push_str(&format_vsop87_source_audit_summary());
+    text.push_str(" | ");
+    text.push_str(&format_vsop87_canonical_evidence_summary());
+    text.push_str(" | ");
+    text.push_str(&format_vsop87_body_evidence_summary());
+    text.push('\n');
     text.push_str("ELP lunar capability: ");
     text.push_str(&format_lunar_theory_capability_summary(
         &lunar_theory_capability_summary(),
@@ -2541,8 +2557,14 @@ fn render_release_summary_text() -> String {
     text.push_str("Lunar reference evidence: ");
     text.push_str(&lunar_reference_evidence_summary_for_report());
     text.push('\n');
+    text.push_str("Lunar reference evidence envelope: ");
+    text.push_str(&lunar_reference_evidence_envelope_for_report());
+    text.push('\n');
     text.push_str("Lunar equatorial evidence: ");
     text.push_str(&lunar_equatorial_reference_evidence_summary_for_report());
+    text.push('\n');
+    text.push_str("Lunar equatorial evidence envelope: ");
+    text.push_str(&lunar_equatorial_reference_evidence_envelope_for_report());
     text.push('\n');
     text.push_str("Lunar apparent comparison evidence: ");
     text.push_str(&lunar_apparent_comparison_summary_for_report());
@@ -8066,6 +8088,16 @@ mod tests {
         assert!(rendered.contains("Expected tolerance status:"));
         assert!(rendered.contains("comparison audit regressions found"));
         assert!(rendered.contains("JPL interpolation evidence:"));
+        assert!(rendered.contains("Reference snapshot coverage:"));
+        assert!(rendered.contains("Selected asteroid evidence:"));
+        assert!(rendered.contains("VSOP87 evidence:"));
+        assert!(rendered.contains("VSOP87 source documentation:"));
+        assert!(rendered.contains("VSOP87 frame treatment:"));
+        assert!(rendered.contains("VSOP87 source audit:"));
+        assert!(rendered.contains("VSOP87 canonical J2000 source-backed evidence:"));
+        assert!(rendered.contains("VSOP87 source-backed body evidence:"));
+        assert!(rendered.contains("Lunar reference evidence envelope:"));
+        assert!(rendered.contains("Lunar equatorial evidence envelope:"));
         assert!(rendered.contains("JPL interpolation quality:"));
         assert!(rendered.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
@@ -8437,9 +8469,20 @@ version = "0.9.0"
         assert!(release_summary.contains(
             "lunar theory catalog: 1 entry, 1 selected entry; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]"
         ));
+        assert!(release_summary.contains("Source-backed backend evidence:"));
+        assert!(release_summary.contains("Reference snapshot coverage:"));
+        assert!(release_summary.contains("Selected asteroid evidence:"));
+        assert!(release_summary.contains("VSOP87 evidence:"));
+        assert!(release_summary.contains("VSOP87 source documentation:"));
+        assert!(release_summary.contains("VSOP87 frame treatment:"));
+        assert!(release_summary.contains("VSOP87 source audit:"));
+        assert!(release_summary.contains("VSOP87 canonical J2000 source-backed evidence:"));
+        assert!(release_summary.contains("VSOP87 source-backed body evidence:"));
         assert!(release_summary.contains("Lunar reference evidence: lunar reference evidence:"));
+        assert!(release_summary.contains("Lunar reference evidence envelope:"));
         assert!(release_summary
             .contains("Lunar equatorial evidence: lunar equatorial reference evidence:"));
+        assert!(release_summary.contains("Lunar equatorial evidence envelope:"));
         assert!(release_summary
             .contains("Lunar apparent comparison evidence: lunar apparent comparison evidence:"));
         assert!(release_summary.contains("Packaged request policy"));
