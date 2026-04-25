@@ -110,6 +110,27 @@ pub fn reference_snapshot_summary() -> Option<ReferenceSnapshotSummary> {
     })
 }
 
+/// Formats the checked-in reference snapshot coverage for release-facing reporting.
+pub fn format_reference_snapshot_summary(summary: &ReferenceSnapshotSummary) -> String {
+    format!(
+        "Reference snapshot coverage: {} rows across {} bodies and {} epochs ({} asteroid rows; JD {:.1}..{:.1})",
+        summary.row_count,
+        summary.body_count,
+        summary.epoch_count,
+        summary.asteroid_row_count,
+        summary.earliest_epoch.julian_day.days(),
+        summary.latest_epoch.julian_day.days(),
+    )
+}
+
+/// Returns the release-facing reference snapshot coverage summary string.
+pub fn reference_snapshot_summary_for_report() -> String {
+    match reference_snapshot_summary() {
+        Some(summary) => format_reference_snapshot_summary(&summary),
+        None => "Reference snapshot coverage: unavailable".to_string(),
+    }
+}
+
 /// Returns the source-backed asteroid subset present in the reference snapshot.
 pub fn reference_asteroids() -> &'static [pleiades_backend::CelestialBody] {
     reference_asteroid_list()
@@ -133,6 +154,35 @@ pub struct ReferenceAsteroidEvidence {
 /// Returns the exact J2000 asteroid evidence samples present in the reference snapshot.
 pub fn reference_asteroid_evidence() -> &'static [ReferenceAsteroidEvidence] {
     reference_asteroid_evidence_list()
+}
+
+fn format_bodies(bodies: &[pleiades_backend::CelestialBody]) -> String {
+    bodies
+        .iter()
+        .map(|body| body.to_string())
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+/// Formats the exact asteroid evidence slice for release-facing reporting.
+pub fn format_reference_asteroid_evidence_summary(
+    evidence: &[ReferenceAsteroidEvidence],
+) -> String {
+    if evidence.is_empty() {
+        "Selected asteroid evidence: unavailable".to_string()
+    } else {
+        format!(
+            "Selected asteroid evidence: {} exact J2000 samples at JD {:.1} ({})",
+            evidence.len(),
+            evidence[0].epoch.julian_day.days(),
+            format_bodies(reference_asteroids())
+        )
+    }
+}
+
+/// Returns the release-facing exact asteroid evidence summary string.
+pub fn reference_asteroid_evidence_summary_for_report() -> String {
+    format_reference_asteroid_evidence_summary(reference_asteroid_evidence())
 }
 
 /// Returns the comparison-only subset used by the stage-4 validation corpus.
@@ -1209,6 +1259,16 @@ mod tests {
         assert_eq!(summary.asteroid_row_count, 5);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_499.0);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
+        assert_eq!(
+            reference_snapshot_summary_for_report(),
+            "Reference snapshot coverage: 46 rows across 15 bodies and 6 epochs (5 asteroid rows; JD 2378499.0..2634167.0)"
+        );
+    }
+
+    #[test]
+    fn reference_asteroid_evidence_summary_reports_the_expected_coverage() {
+        let report = reference_asteroid_evidence_summary_for_report();
+        assert_eq!(report, "Selected asteroid evidence: 5 exact J2000 samples at JD 2451545.0 (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)");
     }
 
     #[test]

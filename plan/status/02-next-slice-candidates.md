@@ -115,7 +115,7 @@ Progress note (2026-04-25): the checked-in JPL reference snapshot now also has e
 
 Progress note (2026-04-25): the checked-in JPL reference snapshot now also publishes a compact coverage summary with row, body, epoch, asteroid-row, and epoch-range counts, and the validation/release-facing summaries now surface that snapshot coverage alongside the exact asteroid evidence rows.
 
-Progress note (2026-04-25): the JPL asteroid subset now also renders exact J2000 evidence rows in backend matrices, validation reports, and release notes, making the source-backed asteroid fixture visible in release-facing output rather than only in tests.
+Progress note (2026-04-25): the JPL asteroid subset now also renders exact J2000 evidence rows in backend matrices, validation reports, and release notes, making the source-backed asteroid fixture visible in release-facing output rather than only in tests. The JPL snapshot coverage and exact asteroid evidence summaries now also live in `pleiades-jpl`, and validation reuses those backend-owned report helpers directly so the release-facing coverage text stays co-located with the snapshot backend.
 
 Remaining suggested scope:
 
