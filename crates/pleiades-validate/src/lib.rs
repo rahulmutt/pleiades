@@ -516,10 +516,65 @@ struct BodyClassToleranceSummary {
     max_latitude_delta_deg: Option<f64>,
     max_distance_delta_body: Option<CelestialBody>,
     max_distance_delta_au: Option<f64>,
+    sum_longitude_delta_deg: f64,
+    sum_longitude_delta_sq_deg: f64,
+    sum_latitude_delta_deg: f64,
+    sum_latitude_delta_sq_deg: f64,
+    sum_distance_delta_au: f64,
+    sum_distance_delta_sq_au: f64,
+    distance_count: usize,
     outside_bodies: Vec<CelestialBody>,
 }
 
 impl BodyClassToleranceSummary {
+    fn mean_longitude_delta_deg(&self) -> f64 {
+        if self.sample_count == 0 {
+            0.0
+        } else {
+            self.sum_longitude_delta_deg / self.sample_count as f64
+        }
+    }
+
+    fn rms_longitude_delta_deg(&self) -> f64 {
+        if self.sample_count == 0 {
+            0.0
+        } else {
+            (self.sum_longitude_delta_sq_deg / self.sample_count as f64).sqrt()
+        }
+    }
+
+    fn mean_latitude_delta_deg(&self) -> f64 {
+        if self.sample_count == 0 {
+            0.0
+        } else {
+            self.sum_latitude_delta_deg / self.sample_count as f64
+        }
+    }
+
+    fn rms_latitude_delta_deg(&self) -> f64 {
+        if self.sample_count == 0 {
+            0.0
+        } else {
+            (self.sum_latitude_delta_sq_deg / self.sample_count as f64).sqrt()
+        }
+    }
+
+    fn mean_distance_delta_au(&self) -> Option<f64> {
+        if self.distance_count == 0 {
+            None
+        } else {
+            Some(self.sum_distance_delta_au / self.distance_count as f64)
+        }
+    }
+
+    fn rms_distance_delta_au(&self) -> Option<f64> {
+        if self.distance_count == 0 {
+            None
+        } else {
+            Some((self.sum_distance_delta_sq_au / self.distance_count as f64).sqrt())
+        }
+    }
+
     fn render(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "  {}", self.class.label())?;
         writeln!(
@@ -560,6 +615,16 @@ impl BodyClassToleranceSummary {
                 self.tolerance.max_longitude_delta_deg - value
             )?;
         }
+        writeln!(
+            f,
+            "    mean longitude delta: {:.12}°",
+            self.mean_longitude_delta_deg()
+        )?;
+        writeln!(
+            f,
+            "    rms longitude delta: {:.12}°",
+            self.rms_longitude_delta_deg()
+        )?;
         if let (Some(body), Some(value)) = (
             self.max_latitude_delta_body.as_ref(),
             self.max_latitude_delta_deg,
@@ -573,6 +638,16 @@ impl BodyClassToleranceSummary {
                 self.tolerance.max_latitude_delta_deg - value
             )?;
         }
+        writeln!(
+            f,
+            "    mean latitude delta: {:.12}°",
+            self.mean_latitude_delta_deg()
+        )?;
+        writeln!(
+            f,
+            "    rms latitude delta: {:.12}°",
+            self.rms_latitude_delta_deg()
+        )?;
         if let (Some(body), Some(value)) = (
             self.max_distance_delta_body.as_ref(),
             self.max_distance_delta_au,
@@ -589,6 +664,12 @@ impl BodyClassToleranceSummary {
                 limit,
                 limit - value
             )?;
+        }
+        if let Some(value) = self.mean_distance_delta_au() {
+            writeln!(f, "    mean distance delta: {:.12} AU", value)?;
+        }
+        if let Some(value) = self.rms_distance_delta_au() {
+            writeln!(f, "    rms distance delta: {:.12} AU", value)?;
         }
 
         Ok(())
@@ -3871,6 +3952,32 @@ fn render_comparison_audit_report_text(report: &ComparisonReport) -> String {
                 format_bodies(&summary.outside_bodies)
             );
         }
+        let _ = writeln!(
+            text,
+            "    mean longitude delta: {:.12}°",
+            summary.mean_longitude_delta_deg()
+        );
+        let _ = writeln!(
+            text,
+            "    rms longitude delta: {:.12}°",
+            summary.rms_longitude_delta_deg()
+        );
+        let _ = writeln!(
+            text,
+            "    mean latitude delta: {:.12}°",
+            summary.mean_latitude_delta_deg()
+        );
+        let _ = writeln!(
+            text,
+            "    rms latitude delta: {:.12}°",
+            summary.rms_latitude_delta_deg()
+        );
+        if let Some(value) = summary.mean_distance_delta_au() {
+            let _ = writeln!(text, "    mean distance delta: {:.12} AU", value);
+        }
+        if let Some(value) = summary.rms_distance_delta_au() {
+            let _ = writeln!(text, "    rms distance delta: {:.12} AU", value);
+        }
         if let (Some(body), Some(value)) = (
             summary.max_longitude_delta_body.as_ref(),
             summary.max_longitude_delta_deg,
@@ -4246,6 +4353,22 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
                 format_bodies(&summary.outside_bodies)
             );
         }
+        let _ = writeln!(
+            text,
+            "    mean Δlon={:.12}°, rms Δlon={:.12}°, mean Δlat={:.12}°, rms Δlat={:.12}°, mean Δdist={}, rms Δdist={}",
+            summary.mean_longitude_delta_deg(),
+            summary.rms_longitude_delta_deg(),
+            summary.mean_latitude_delta_deg(),
+            summary.rms_latitude_delta_deg(),
+            summary
+                .mean_distance_delta_au()
+                .map(|value| format!("{value:.12} AU"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            summary
+                .rms_distance_delta_au()
+                .map(|value| format!("{value:.12} AU"))
+                .unwrap_or_else(|| "n/a".to_string())
+        );
     }
     let _ = writeln!(text);
     let _ = writeln!(text, "Tolerance policy");
@@ -5092,6 +5215,13 @@ struct BodyClassToleranceAccumulator {
     backend_family: BackendFamily,
     body_count: usize,
     sample_count: usize,
+    sum_longitude_delta_deg: f64,
+    sum_longitude_delta_sq_deg: f64,
+    sum_latitude_delta_deg: f64,
+    sum_latitude_delta_sq_deg: f64,
+    sum_distance_delta_au: f64,
+    sum_distance_delta_sq_au: f64,
+    distance_count: usize,
     within_tolerance_body_count: usize,
     outside_tolerance_body_count: usize,
     max_longitude_delta_body: Option<CelestialBody>,
@@ -5110,6 +5240,13 @@ impl BodyClassToleranceAccumulator {
             backend_family,
             body_count: 0,
             sample_count: 0,
+            sum_longitude_delta_deg: 0.0,
+            sum_longitude_delta_sq_deg: 0.0,
+            sum_latitude_delta_deg: 0.0,
+            sum_latitude_delta_sq_deg: 0.0,
+            sum_distance_delta_au: 0.0,
+            sum_distance_delta_sq_au: 0.0,
+            distance_count: 0,
             within_tolerance_body_count: 0,
             outside_tolerance_body_count: 0,
             max_longitude_delta_body: None,
@@ -5122,32 +5259,42 @@ impl BodyClassToleranceAccumulator {
         }
     }
 
-    fn push(&mut self, summary: &BodyToleranceSummary) {
-        self.body_count += 1;
-        self.sample_count += summary.sample_count;
+    fn push_sample(&mut self, sample: &ComparisonSample) {
+        self.sample_count += 1;
+        self.sum_longitude_delta_deg += sample.longitude_delta_deg;
+        self.sum_longitude_delta_sq_deg += sample.longitude_delta_deg * sample.longitude_delta_deg;
         match self.max_longitude_delta_deg {
-            Some(current) if summary.max_longitude_delta_deg < current => {}
+            Some(current) if sample.longitude_delta_deg < current => {}
             _ => {
-                self.max_longitude_delta_deg = Some(summary.max_longitude_delta_deg);
-                self.max_longitude_delta_body = Some(summary.body.clone());
+                self.max_longitude_delta_deg = Some(sample.longitude_delta_deg);
+                self.max_longitude_delta_body = Some(sample.body.clone());
             }
         }
+        self.sum_latitude_delta_deg += sample.latitude_delta_deg;
+        self.sum_latitude_delta_sq_deg += sample.latitude_delta_deg * sample.latitude_delta_deg;
         match self.max_latitude_delta_deg {
-            Some(current) if summary.max_latitude_delta_deg < current => {}
+            Some(current) if sample.latitude_delta_deg < current => {}
             _ => {
-                self.max_latitude_delta_deg = Some(summary.max_latitude_delta_deg);
-                self.max_latitude_delta_body = Some(summary.body.clone());
+                self.max_latitude_delta_deg = Some(sample.latitude_delta_deg);
+                self.max_latitude_delta_body = Some(sample.body.clone());
             }
         }
-        if let Some(delta) = summary.max_distance_delta_au {
+        if let Some(delta) = sample.distance_delta_au {
+            self.sum_distance_delta_au += delta;
+            self.sum_distance_delta_sq_au += delta * delta;
+            self.distance_count += 1;
             match self.max_distance_delta_au {
                 Some(current) if delta < current => {}
                 _ => {
                     self.max_distance_delta_au = Some(delta);
-                    self.max_distance_delta_body = Some(summary.body.clone());
+                    self.max_distance_delta_body = Some(sample.body.clone());
                 }
             }
         }
+    }
+
+    fn push_tolerance(&mut self, summary: &BodyToleranceSummary) {
+        self.body_count += 1;
         if summary.within_tolerance {
             self.within_tolerance_body_count += 1;
         } else {
@@ -5170,6 +5317,13 @@ impl BodyClassToleranceAccumulator {
             max_latitude_delta_deg: self.max_latitude_delta_deg,
             max_distance_delta_body: self.max_distance_delta_body,
             max_distance_delta_au: self.max_distance_delta_au,
+            sum_longitude_delta_deg: self.sum_longitude_delta_deg,
+            sum_longitude_delta_sq_deg: self.sum_longitude_delta_sq_deg,
+            sum_latitude_delta_deg: self.sum_latitude_delta_deg,
+            sum_latitude_delta_sq_deg: self.sum_latitude_delta_sq_deg,
+            sum_distance_delta_au: self.sum_distance_delta_au,
+            sum_distance_delta_sq_au: self.sum_distance_delta_sq_au,
+            distance_count: self.distance_count,
             outside_bodies: self.outside_bodies,
         }
     }
@@ -5179,15 +5333,18 @@ fn body_class_tolerance_summaries(
     samples: &[ComparisonSample],
     backend_family: &BackendFamily,
 ) -> Vec<BodyClassToleranceSummary> {
-    let body_summaries = body_comparison_summaries(samples)
-        .into_iter()
-        .map(|summary| body_tolerance_summary(summary, backend_family))
-        .collect::<Vec<_>>();
+    let body_summaries = body_comparison_summaries(samples);
     let mut accumulators = BodyClass::ALL
         .map(|class| BodyClassToleranceAccumulator::new(class, backend_family.clone()));
 
+    for sample in samples {
+        accumulators[body_class(&sample.body).index()].push_sample(sample);
+    }
+
     for summary in body_summaries {
-        accumulators[body_class(&summary.body).index()].push(&summary);
+        let tolerance_summary = body_tolerance_summary(summary, backend_family);
+        accumulators[body_class(&tolerance_summary.body).index()]
+            .push_tolerance(&tolerance_summary);
     }
 
     accumulators
@@ -6881,6 +7038,12 @@ mod tests {
         assert!(body_class_tolerance_posture.contains("backend family: composite"));
         assert!(body_class_tolerance_posture
             .contains("profile: phase-1 full-file VSOP87B planetary evidence"));
+        assert!(body_class_tolerance_posture.contains("mean longitude delta:"));
+        assert!(body_class_tolerance_posture.contains("rms longitude delta:"));
+        assert!(body_class_tolerance_posture.contains("mean latitude delta:"));
+        assert!(body_class_tolerance_posture.contains("rms latitude delta:"));
+        assert!(body_class_tolerance_posture.contains("mean distance delta:"));
+        assert!(body_class_tolerance_posture.contains("rms distance delta:"));
         assert!(report.contains("Expected tolerance status"));
         assert!(report.contains("margin Δlon="));
         assert!(report.contains("margin Δdist="));
@@ -6982,6 +7145,16 @@ mod tests {
         assert!(report.contains("command: compare-backends-audit"));
         assert!(report.contains("regressions found"));
         assert!(report.contains("regression bodies: Pluto"));
+        let body_class_tolerance_posture = report
+            .split("Body-class tolerance posture")
+            .nth(1)
+            .expect("report should include body-class tolerance posture");
+        assert!(body_class_tolerance_posture.contains("mean Δlon="));
+        assert!(body_class_tolerance_posture.contains("rms Δlon="));
+        assert!(body_class_tolerance_posture.contains("mean Δlat="));
+        assert!(body_class_tolerance_posture.contains("rms Δlat="));
+        assert!(body_class_tolerance_posture.contains("mean Δdist="));
+        assert!(body_class_tolerance_posture.contains("rms Δdist="));
         assert!(report.contains("JPL interpolation quality"));
         assert!(report.contains("JPL interpolation quality: 21 samples across 10 bodies"));
         assert!(report.contains("leave-one-out runtime interpolation evidence"));
@@ -6999,6 +7172,16 @@ mod tests {
         assert!(report.contains("rms longitude delta:"));
         assert!(report.contains("rms latitude delta:"));
         assert!(report.contains("rms distance delta:"));
+        let body_class_tolerance_posture = report
+            .split("Body-class tolerance posture")
+            .nth(1)
+            .expect("report should include body-class tolerance posture");
+        assert!(body_class_tolerance_posture.contains("mean Δlon="));
+        assert!(body_class_tolerance_posture.contains("rms Δlon="));
+        assert!(body_class_tolerance_posture.contains("mean Δlat="));
+        assert!(body_class_tolerance_posture.contains("rms Δlat="));
+        assert!(body_class_tolerance_posture.contains("mean Δdist="));
+        assert!(body_class_tolerance_posture.contains("rms Δdist="));
         assert!(report.contains(" ("));
         assert!(report.contains("VSOP87 source-backed evidence"));
         assert!(report

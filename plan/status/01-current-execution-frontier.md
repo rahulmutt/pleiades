@@ -103,9 +103,11 @@ Latest progress (2026-04-25): the validation comparison envelope now also report
 
 Latest progress (2026-04-25): the compact release summary now also surfaces the ELP lunar capability line plus the lunar reference and lunar equatorial evidence summaries alongside the JPL interpolation evidence, so the one-screen release overview keeps the current lunar theory baseline visible next to the other phase-1 accuracy evidence.
 
+Latest progress (2026-04-25): the validation report and comparison-audit tolerance posture now also carry class-level mean and RMS deltas alongside the existing maxima and margin checks, so the release-facing class audit is a little easier to compare across runs while the broader threshold refinement work stays queued.
+
 Active gaps:
 
-- broader release-grade error envelopes and tolerance tables beyond the new comparison-audit gate;
+- broader release-grade error envelopes and tolerance tables beyond the comparison-audit gate and new class-level mean/RMS posture;
 - full source-backed lunar theory selection and broader lunar-point validation evidence beyond the current canonical sample slice;
 - larger JPL-style reference corpus, interpolation validation, and documented tolerance envelopes beyond the current expanded fixture;
 - production Delta T conversion, TDB handling, apparent-place corrections, and broader validated frame-conversion error envelopes beyond the shared transform helper and initial documented policy;
