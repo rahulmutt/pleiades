@@ -3,11 +3,11 @@
 //!
 //! This crate provides a narrow, source-backed backend based on a checked-in
 //! JPL Horizons vector fixture. The backend serves exact states at fixture
-//! epochs and uses quadratic interpolation on three-sample windows when it can,
-//! falling back to linear interpolation between adjacent samples when only two
-//! bracketing epochs exist. This intentionally small derivative format proves
-//! the pure-Rust reader/interpolator path before larger public JPL-derived
-//! corpora are added.
+//! epochs and uses cubic interpolation on four-sample windows when it can,
+//! falling back to quadratic interpolation on three-sample windows and linear
+//! interpolation between adjacent samples when fewer fixture points are
+//! available. This intentionally small derivative format proves the pure-Rust
+//! reader/interpolator path before larger public JPL-derived corpora are added.
 //!
 //! The checked-in fixture also includes a small set of named asteroids and a
 //! custom `catalog:designation` example so the shared body taxonomy can exercise
@@ -140,12 +140,12 @@ impl EphemerisBackend for JplSnapshotBackend {
             version: "0.1.0".to_string(),
             family: BackendFamily::ReferenceData,
             provenance: BackendProvenance {
-                summary: "NASA/JPL Horizons DE441 geocentric ecliptic fixture with exact epoch lookup and quadratic interpolation on three-sample windows"
+                summary: "NASA/JPL Horizons DE441 geocentric ecliptic fixture with exact epoch lookup and cubic interpolation on four-sample windows"
                     .to_string(),
                 data_sources: vec![
                     "NASA/JPL Horizons API vector tables (DE441)".to_string(),
                     "Checked-in derivative CSV fixture: epoch_jd,body,x_km,y_km,z_km".to_string(),
-                    "Quadratic interpolation on three-sample windows with linear fallback between adjacent same-body fixture samples".to_string(),
+                    "Cubic interpolation on four-sample windows, quadratic interpolation on three-sample windows, and linear fallback between adjacent same-body fixture samples".to_string(),
                 ],
             },
             nominal_range: if dataset_missing {
@@ -287,6 +287,22 @@ impl SnapshotEntry {
             z_km: lagrange_interpolate_3(epoch_jd, xs, [a.z_km, b.z_km, c.z_km]),
         }
     }
+
+    fn interpolate_cubic(a: &Self, b: &Self, c: &Self, d: &Self, epoch_jd: f64) -> Self {
+        let xs = [
+            a.epoch.julian_day.days(),
+            b.epoch.julian_day.days(),
+            c.epoch.julian_day.days(),
+            d.epoch.julian_day.days(),
+        ];
+        Self {
+            body: a.body.clone(),
+            epoch: Instant::new(JulianDay::from_days(epoch_jd), TimeScale::Tdb),
+            x_km: lagrange_interpolate_4(epoch_jd, xs, [a.x_km, b.x_km, c.x_km, d.x_km]),
+            y_km: lagrange_interpolate_4(epoch_jd, xs, [a.y_km, b.y_km, c.y_km, d.y_km]),
+            z_km: lagrange_interpolate_4(epoch_jd, xs, [a.z_km, b.z_km, c.z_km, d.z_km]),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -370,6 +386,18 @@ fn lagrange_interpolate_3(x: f64, xs: [f64; 3], ys: [f64; 3]) -> f64 {
     y0 * l0 + y1 * l1 + y2 * l2
 }
 
+fn lagrange_interpolate_4(x: f64, xs: [f64; 4], ys: [f64; 4]) -> f64 {
+    let [x0, x1, x2, x3] = xs;
+    let [y0, y1, y2, y3] = ys;
+
+    let l0 = (x - x1) * (x - x2) * (x - x3) / ((x0 - x1) * (x0 - x2) * (x0 - x3));
+    let l1 = (x - x0) * (x - x2) * (x - x3) / ((x1 - x0) * (x1 - x2) * (x1 - x3));
+    let l2 = (x - x0) * (x - x1) * (x - x3) / ((x2 - x0) * (x2 - x1) * (x2 - x3));
+    let l3 = (x - x0) * (x - x1) * (x - x2) / ((x3 - x0) * (x3 - x1) * (x3 - x2));
+
+    y0 * l0 + y1 * l1 + y2 * l2 + y3 * l3
+}
+
 fn interpolate_fixture_state(
     entries: &[SnapshotEntry],
     body: pleiades_backend::CelestialBody,
@@ -392,6 +420,7 @@ fn interpolate_fixture_state(
             .unwrap_or(std::cmp::Ordering::Equal)
     });
 
+    let body_entry_count = body_entries.len();
     let mut ranked = body_entries
         .into_iter()
         .map(|entry| ((entry.epoch.julian_day.days() - epoch_jd).abs(), entry))
@@ -410,29 +439,47 @@ fn interpolate_fixture_state(
             })
     });
 
+    let window_size = if body_entry_count >= 4 { 4 } else { 3 };
     let mut selected = ranked
         .into_iter()
-        .take(3)
+        .take(window_size)
         .map(|(_, entry)| entry)
         .collect::<Vec<_>>();
 
-    if selected.len() == 3 {
-        selected.sort_by(|left, right| {
-            left.epoch
-                .julian_day
-                .days()
-                .partial_cmp(&right.epoch.julian_day.days())
-                .unwrap_or(std::cmp::Ordering::Equal)
-        });
-        return Some(SnapshotEntry::interpolate_quadratic(
-            selected[0],
-            selected[1],
-            selected[2],
-            epoch_jd,
-        ));
+    match selected.len() {
+        4 => {
+            selected.sort_by(|left, right| {
+                left.epoch
+                    .julian_day
+                    .days()
+                    .partial_cmp(&right.epoch.julian_day.days())
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            });
+            Some(SnapshotEntry::interpolate_cubic(
+                selected[0],
+                selected[1],
+                selected[2],
+                selected[3],
+                epoch_jd,
+            ))
+        }
+        3 => {
+            selected.sort_by(|left, right| {
+                left.epoch
+                    .julian_day
+                    .days()
+                    .partial_cmp(&right.epoch.julian_day.days())
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            });
+            Some(SnapshotEntry::interpolate_quadratic(
+                selected[0],
+                selected[1],
+                selected[2],
+                epoch_jd,
+            ))
+        }
+        _ => None,
     }
-
-    None
 }
 
 fn angular_degrees_delta(left: f64, right: f64) -> f64 {
@@ -960,6 +1007,84 @@ mod tests {
         assert!((interpolated.x_km - 2.25).abs() < 1e-12);
         assert!((interpolated.y_km - 10.0).abs() < 1e-12);
         assert!((interpolated.z_km - 7.25).abs() < 1e-12);
+    }
+
+    #[test]
+    fn cubic_interpolation_matches_a_known_cubic() {
+        let a = SnapshotEntry {
+            body: pleiades_backend::CelestialBody::Moon,
+            epoch: Instant::new(JulianDay::from_days(0.0), TimeScale::Tdb),
+            x_km: 0.0,
+            y_km: 1.0,
+            z_km: 2.0,
+        };
+        let b = SnapshotEntry {
+            body: pleiades_backend::CelestialBody::Moon,
+            epoch: Instant::new(JulianDay::from_days(1.0), TimeScale::Tdb),
+            x_km: 1.0,
+            y_km: 2.0,
+            z_km: 3.0,
+        };
+        let c = SnapshotEntry {
+            body: pleiades_backend::CelestialBody::Moon,
+            epoch: Instant::new(JulianDay::from_days(2.0), TimeScale::Tdb),
+            x_km: 8.0,
+            y_km: 9.0,
+            z_km: 10.0,
+        };
+        let d = SnapshotEntry {
+            body: pleiades_backend::CelestialBody::Moon,
+            epoch: Instant::new(JulianDay::from_days(3.0), TimeScale::Tdb),
+            x_km: 27.0,
+            y_km: 28.0,
+            z_km: 29.0,
+        };
+
+        let interpolated = SnapshotEntry::interpolate_cubic(&a, &b, &c, &d, 1.5);
+        assert!((interpolated.x_km - 3.375).abs() < 1e-12);
+        assert!((interpolated.y_km - 4.375).abs() < 1e-12);
+        assert!((interpolated.z_km - 5.375).abs() < 1e-12);
+    }
+
+    #[test]
+    fn interpolation_uses_a_cubic_window_when_four_points_are_available() {
+        let entries = [
+            SnapshotEntry {
+                body: pleiades_backend::CelestialBody::Moon,
+                epoch: Instant::new(JulianDay::from_days(0.0), TimeScale::Tdb),
+                x_km: 0.0,
+                y_km: 1.0,
+                z_km: 2.0,
+            },
+            SnapshotEntry {
+                body: pleiades_backend::CelestialBody::Moon,
+                epoch: Instant::new(JulianDay::from_days(1.0), TimeScale::Tdb),
+                x_km: 1.0,
+                y_km: 2.0,
+                z_km: 3.0,
+            },
+            SnapshotEntry {
+                body: pleiades_backend::CelestialBody::Moon,
+                epoch: Instant::new(JulianDay::from_days(2.0), TimeScale::Tdb),
+                x_km: 8.0,
+                y_km: 9.0,
+                z_km: 10.0,
+            },
+            SnapshotEntry {
+                body: pleiades_backend::CelestialBody::Moon,
+                epoch: Instant::new(JulianDay::from_days(3.0), TimeScale::Tdb),
+                x_km: 27.0,
+                y_km: 28.0,
+                z_km: 29.0,
+            },
+        ];
+
+        let interpolated =
+            interpolate_fixture_state(&entries, pleiades_backend::CelestialBody::Moon, 1.5)
+                .expect("four fixture points should produce an interpolated state");
+        assert!((interpolated.x_km - 3.375).abs() < 1e-12);
+        assert!((interpolated.y_km - 4.375).abs() < 1e-12);
+        assert!((interpolated.z_km - 5.375).abs() < 1e-12);
     }
 
     #[test]

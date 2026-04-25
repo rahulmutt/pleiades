@@ -86,7 +86,7 @@ Progress note (2026-04-24): `pleiades-jpl` now derives coarse leave-one-out inte
 
 Progress note (2026-04-24): the compact validation report summary now also carries a JPL interpolation-quality envelope, so the current leave-one-out evidence is visible alongside the comparison summaries without changing the backend contract.
 
-Progress note (2026-04-24): the JPL snapshot backend now uses quadratic interpolation on three-sample windows when possible, with a linear fallback for sparse bodies. This keeps the checked-in public-input fixture pure Rust and geocentric while making the reference backend slightly stronger before any larger corpus work lands.
+Progress note (2026-04-25): the JPL snapshot backend now prefers cubic interpolation on four-sample windows when the fixture has enough same-body epochs, with quadratic and linear fallbacks for smaller windows. This keeps the checked-in public-input fixture pure Rust and geocentric while making the reference backend slightly stronger before any larger corpus work lands.
 
 Progress note (2026-04-25): the checked-in JPL reference snapshot now also has exact J2000 golden coverage for the named asteroid subset and the custom 433-Eros body, so the source-backed asteroid fixture path is now exercised with explicit coordinates in addition to the interpolation transparency checks.
 
@@ -96,7 +96,7 @@ Remaining suggested scope:
 
 - add additional public-input epochs or bodies if broader interpolation coverage is needed beyond the current expanded fixture;
 - validate interpolation error against independent held-out JPL Horizons epochs beyond the checked-in fixture;
-- consider higher-order interpolation once measured linear error is insufficient.
+- broaden the public-input derivative corpus if the remaining interpolation error envelope still needs tightening.
 
 ## 4. Delta T, time-scale, and observer policy
 
