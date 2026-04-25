@@ -205,6 +205,16 @@ pub fn lunar_theory_specification() -> LunarTheorySpecification {
     LUNAR_THEORY_SPECIFICATION
 }
 
+/// Returns the bodies/channels the current lunar-theory baseline explicitly supports.
+pub fn lunar_theory_supported_bodies() -> &'static [CelestialBody] {
+    LUNAR_THEORY_SPECIFICATION.supported_bodies
+}
+
+/// Returns the bodies/channels the current lunar-theory baseline explicitly rejects.
+pub fn lunar_theory_unsupported_bodies() -> &'static [CelestialBody] {
+    LUNAR_THEORY_SPECIFICATION.unsupported_bodies
+}
+
 /// A compact capability summary for the current lunar-theory selection.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct LunarTheoryCapabilitySummary {
@@ -1408,13 +1418,7 @@ impl EphemerisBackend for ElpBackend {
             },
             nominal_range: TimeRange::new(None, None),
             supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
-            body_coverage: vec![
-                CelestialBody::Moon,
-                CelestialBody::MeanNode,
-                CelestialBody::TrueNode,
-                CelestialBody::MeanApogee,
-                CelestialBody::MeanPerigee,
-            ],
+            body_coverage: lunar_theory_supported_bodies().to_vec(),
             supported_frames: vec![CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
             capabilities: BackendCapabilities {
                 geocentric: true,
@@ -1431,14 +1435,7 @@ impl EphemerisBackend for ElpBackend {
     }
 
     fn supports_body(&self, body: CelestialBody) -> bool {
-        matches!(
-            body,
-            CelestialBody::Moon
-                | CelestialBody::MeanNode
-                | CelestialBody::TrueNode
-                | CelestialBody::MeanApogee
-                | CelestialBody::MeanPerigee
-        )
+        lunar_theory_supported_bodies().contains(&body)
     }
 
     fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
@@ -2035,6 +2032,8 @@ mod tests {
             .contains("topocentric observer=false"));
         assert!(format_lunar_theory_capability_summary(&capability)
             .contains("validation window=JD 2448724.5 (TT) → JD 2459278.5 (TT)"));
+        assert_eq!(theory.supported_bodies, lunar_theory_supported_bodies());
+        assert_eq!(theory.unsupported_bodies, lunar_theory_unsupported_bodies());
         assert_eq!(
             theory.supported_bodies,
             &[
@@ -2078,6 +2077,10 @@ mod tests {
         assert!(!backend.supports_body(CelestialBody::TrueApogee));
         assert!(!backend.supports_body(CelestialBody::TruePerigee));
         assert!(!backend.supports_body(CelestialBody::Sun));
+        assert_eq!(
+            backend.metadata().body_coverage,
+            lunar_theory_supported_bodies()
+        );
 
         let evidence = lunar_reference_evidence();
         assert_eq!(evidence.len(), 9);
