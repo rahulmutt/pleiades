@@ -115,9 +115,44 @@ impl LunarTheorySourceSelection {
     }
 }
 
+/// Compact source-selection summary for the current lunar-theory baseline.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct LunarTheorySourceSummary {
+    /// Human-readable model name.
+    pub model_name: &'static str,
+    /// Stable identifier for the current baseline.
+    pub source_identifier: &'static str,
+    /// Human-readable family label for the current source selection.
+    pub source_family_label: &'static str,
+    /// Canonical bibliographic citation for the current baseline.
+    pub citation: &'static str,
+    /// Human-readable source/provenance note for the current baseline.
+    pub provenance: &'static str,
+    /// Redistribution or licensing posture for the current baseline.
+    pub redistribution_note: &'static str,
+    /// Licensing or provenance summary for the current baseline.
+    pub license_note: &'static str,
+}
+
 /// Returns the current lunar-theory source family.
 pub const fn lunar_theory_source_family() -> LunarTheorySourceFamily {
     LunarTheorySourceFamily::MeeusStyleTruncatedAnalyticalBaseline
+}
+
+/// Returns a compact source-selection summary for the current lunar theory.
+pub fn lunar_theory_source_summary() -> LunarTheorySourceSummary {
+    let theory = lunar_theory_specification();
+    let source = theory.source_selection();
+
+    LunarTheorySourceSummary {
+        model_name: theory.model_name,
+        source_identifier: source.identifier,
+        source_family_label: source.family_label(),
+        citation: source.citation,
+        provenance: source.material,
+        redistribution_note: source.redistribution_note,
+        license_note: source.license_note,
+    }
 }
 
 /// Returns the current lunar-theory request policy.
@@ -459,6 +494,25 @@ pub fn format_lunar_theory_specification(theory: &LunarTheorySpecification) -> S
 /// layers.
 pub fn lunar_theory_summary() -> String {
     format_lunar_theory_specification(&lunar_theory_specification())
+}
+
+/// Formats the compact lunar source-selection summary for release-facing reporting.
+pub fn format_lunar_theory_source_summary(summary: &LunarTheorySourceSummary) -> String {
+    format!(
+        "lunar source selection: {} [{}; family: {}]; citation: {}; provenance: {}; redistribution: {}; license: {}",
+        summary.model_name,
+        summary.source_identifier,
+        summary.source_family_label,
+        summary.citation,
+        summary.provenance,
+        summary.redistribution_note,
+        summary.license_note,
+    )
+}
+
+/// Returns the release-facing one-line summary for the current lunar source selection.
+pub fn lunar_theory_source_summary_for_report() -> String {
+    format_lunar_theory_source_summary(&lunar_theory_source_summary())
 }
 
 /// Returns the current lunar-theory request policy summary.
@@ -2087,6 +2141,28 @@ mod tests {
         assert_eq!(source.redistribution_note, theory.redistribution_note);
         assert_eq!(source.license_note, theory.license_note);
         assert_eq!(source.family_label(), theory.source_family.label());
+
+        let source_summary = lunar_theory_source_summary();
+        assert_eq!(source_summary.model_name, theory.model_name);
+        assert_eq!(source_summary.source_identifier, theory.source_identifier);
+        assert_eq!(
+            source_summary.source_family_label,
+            theory.source_family.label()
+        );
+        assert_eq!(source_summary.citation, theory.source_citation);
+        assert_eq!(source_summary.provenance, theory.source_material);
+        assert_eq!(
+            source_summary.redistribution_note,
+            theory.redistribution_note
+        );
+        assert_eq!(source_summary.license_note, theory.license_note);
+        assert_eq!(
+            format_lunar_theory_source_summary(&source_summary),
+            lunar_theory_source_summary_for_report()
+        );
+        assert!(lunar_theory_source_summary_for_report().contains("lunar source selection: "));
+        assert!(lunar_theory_source_summary_for_report().contains(theory.model_name));
+        assert!(lunar_theory_source_summary_for_report().contains(theory.source_identifier));
         assert!(summary.contains(source.citation));
         assert!(summary.contains("Moon, Mean Node, True Node, Mean Perigee, Mean Apogee"));
         assert!(summary.contains("unsupported bodies: True Apogee, True Perigee"));
