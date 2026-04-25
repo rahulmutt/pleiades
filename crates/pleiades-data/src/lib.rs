@@ -1,14 +1,16 @@
 //! Packaged compressed ephemeris backend for the common 1500-2500 range.
 //!
 //! This crate now ships a small stage-5 prototype artifact backed by the
-//! `pleiades-compression` codec. The bundled data covers the comparison-body
-//! planetary set plus the source-backed custom asteroid `asteroid:433-Eros`
-//! via quantized linear segments fitted to checked-in reference epochs, and the
-//! backend falls back to other providers when callers request bodies outside
-//! that packaged slice.
+//! `pleiades-compression` codec. The bundled data is loaded from a checked-in
+//! deterministic binary fixture that covers the comparison-body planetary set
+//! plus the source-backed custom asteroid `asteroid:433-Eros`, and the backend
+//! falls back to other providers when callers request bodies outside that
+//! packaged slice. The fixture is still regenerated from the checked-in JPL
+//! reference snapshot in tests so the packaged data stays reproducible.
 
 #![forbid(unsafe_code)]
 
+#[cfg(test)]
 use std::cmp::Ordering;
 use std::sync::OnceLock;
 
@@ -19,13 +21,16 @@ use pleiades_backend::{
     EphemerisRequest, EphemerisResult, Instant, QualityAnnotation, TimeRange, TimeScale,
     ZodiacMode,
 };
-use pleiades_compression::{
-    ArtifactHeader, BodyArtifact, ChannelKind, CompressedArtifact, PolynomialChannel, Segment,
-};
+use pleiades_compression::CompressedArtifact;
+#[cfg(test)]
+use pleiades_compression::{ArtifactHeader, BodyArtifact, ChannelKind, PolynomialChannel, Segment};
+#[cfg(test)]
 use pleiades_jpl::{reference_snapshot, SnapshotEntry};
 
 const PACKAGE_NAME: &str = "pleiades-data";
+#[cfg(test)]
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data prototype";
+#[cfg(test)]
 const ARTIFACT_SOURCE: &str = "Quantized linear segments fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with J2000 point segments for the outer planets, Pluto, and the asteroid coverage.";
 const PACKAGED_BASE_BODIES: [CelestialBody; 10] = [
     CelestialBody::Sun,
@@ -66,12 +71,15 @@ pub fn packaged_body_coverage_summary() -> String {
     )
 }
 
+#[cfg(test)]
 const AU_IN_KM: f64 = 149_597_870.7;
 
 /// Returns the canonical package name for this crate.
 pub const fn package_name() -> &'static str {
     PACKAGE_NAME
 }
+
+const PACKAGED_ARTIFACT_FIXTURE: &[u8] = include_bytes!("../tests/fixtures/packaged-artifact.bin");
 
 /// Returns the bundled packed artifact.
 pub fn packaged_artifact() -> &'static CompressedArtifact {
@@ -197,6 +205,12 @@ impl EphemerisBackend for PackagedDataBackend {
 }
 
 fn build_packaged_artifact() -> CompressedArtifact {
+    CompressedArtifact::decode(PACKAGED_ARTIFACT_FIXTURE)
+        .expect("packaged artifact fixture should decode")
+}
+
+#[cfg(test)]
+fn generate_packaged_artifact() -> CompressedArtifact {
     let mut artifact = CompressedArtifact::new(
         ArtifactHeader::new(ARTIFACT_LABEL, ARTIFACT_SOURCE),
         packaged_body_artifacts(),
@@ -207,6 +221,7 @@ fn build_packaged_artifact() -> CompressedArtifact {
     artifact
 }
 
+#[cfg(test)]
 fn packaged_body_artifacts() -> Vec<BodyArtifact> {
     let mut artifacts = Vec::new();
     let snapshot = reference_snapshot();
@@ -241,6 +256,7 @@ fn packaged_body_artifacts() -> Vec<BodyArtifact> {
     artifacts
 }
 
+#[cfg(test)]
 fn segment_from_entries(start: &SnapshotEntry, end: &SnapshotEntry) -> Segment {
     let start_coordinates = coordinates(start);
     let end_coordinates = coordinates(end);
@@ -270,6 +286,7 @@ fn segment_from_entries(start: &SnapshotEntry, end: &SnapshotEntry) -> Segment {
     )
 }
 
+#[cfg(test)]
 fn coordinates(entry: &SnapshotEntry) -> EclipticCoordinates {
     let radius_km =
         (entry.x_km * entry.x_km + entry.y_km * entry.y_km + entry.z_km * entry.z_km).sqrt();
@@ -357,11 +374,21 @@ mod tests {
     fn packaged_artifact_roundtrips_through_codec() {
         let artifact = packaged_artifact();
         let encoded = artifact.encode().expect("packaged artifact should encode");
+        assert_eq!(encoded, PACKAGED_ARTIFACT_FIXTURE);
         let decoded =
             CompressedArtifact::decode(&encoded).expect("packaged artifact should decode");
         assert_eq!(decoded.header.generation_label, ARTIFACT_LABEL);
         assert_eq!(decoded.bodies.len(), packaged_bodies().len());
         assert_eq!(decoded.checksum, artifact.checksum);
+    }
+
+    #[test]
+    fn packaged_artifact_fixture_matches_reference_snapshot_generation() {
+        let generated = generate_packaged_artifact();
+        let encoded = generated
+            .encode()
+            .expect("generated packaged artifact should encode");
+        assert_eq!(encoded, PACKAGED_ARTIFACT_FIXTURE);
     }
 
     #[test]
