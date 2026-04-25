@@ -547,7 +547,8 @@ mod tests {
     fn compare_backends_command_renders_the_comparison_report() {
         let rendered = render_cli(&["compare-backends"]).expect("compare-backends should render");
         assert!(rendered.contains("Comparison report"));
-        assert!(rendered.contains("Corpus:"));
+        assert!(rendered.contains("Comparison corpus"));
+        assert!(rendered.contains("epoch labels:"));
         assert!(rendered.contains("Reference backend:"));
         assert!(rendered.contains("Candidate backend:"));
         assert!(rendered.contains("Samples"));

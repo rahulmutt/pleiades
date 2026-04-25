@@ -412,6 +412,8 @@ pub struct BodyToleranceSummary {
 pub struct ComparisonReport {
     /// Corpus name.
     pub corpus_name: String,
+    /// Corpus summary, including its epoch range and body coverage.
+    pub corpus_summary: CorpusSummary,
     /// Apparentness mode used by the corpus.
     pub apparentness: Apparentness,
     /// Metadata for the reference backend.
@@ -1785,6 +1787,7 @@ pub fn compare_backends(
 
     Ok(ComparisonReport {
         corpus_name: corpus.name.clone(),
+        corpus_summary: corpus.summary(),
         apparentness: corpus.apparentness,
         reference_backend: reference.metadata(),
         candidate_backend: candidate.metadata(),
@@ -4082,6 +4085,8 @@ fn render_comparison_audit_report_text(report: &ComparisonReport) -> String {
         "  candidate backend: {} ({})",
         report.candidate_backend.id, report.candidate_backend.provenance.summary
     );
+    let _ = writeln!(text, "  comparison corpus");
+    write_corpus_summary_text(&mut text, &report.corpus_summary);
     let _ = writeln!(text, "  bodies checked: {}", body_count);
     let _ = writeln!(
         text,
@@ -5242,8 +5247,9 @@ impl fmt::Display for BackendMatrixDisplay<'_> {
 impl fmt::Display for ComparisonReport {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Comparison report")?;
-        writeln!(f, "Corpus: {}", self.corpus_name)?;
-        writeln!(f, "Apparentness: {}", self.apparentness)?;
+        writeln!(f, "Comparison corpus")?;
+        write_corpus_summary(f, &self.corpus_summary)?;
+        writeln!(f)?;
         writeln!(f, "Reference backend: {}", self.reference_backend.id)?;
         writeln!(f, "Candidate backend: {}", self.candidate_backend.id)?;
         writeln!(f)?;
@@ -5901,6 +5907,27 @@ fn write_corpus_summary(f: &mut fmt::Formatter<'_>, corpus: &CorpusSummary) -> f
         "  julian day span: {:.1} → {:.1}",
         corpus.earliest_julian_day, corpus.latest_julian_day
     )
+}
+
+fn write_corpus_summary_text(text: &mut String, corpus: &CorpusSummary) {
+    use std::fmt::Write as _;
+
+    let _ = writeln!(text, "  name: {}", corpus.name);
+    let _ = writeln!(text, "  description: {}", corpus.description);
+    let _ = writeln!(text, "  Apparentness: {}", corpus.apparentness);
+    let _ = writeln!(text, "  requests: {}", corpus.request_count);
+    let _ = writeln!(text, "  epochs: {}", corpus.epoch_count);
+    let _ = writeln!(
+        text,
+        "  epoch labels: {}",
+        format_instant_list(&corpus.epochs)
+    );
+    let _ = writeln!(text, "  bodies: {}", corpus.body_count);
+    let _ = writeln!(
+        text,
+        "  julian day span: {:.1} → {:.1}",
+        corpus.earliest_julian_day, corpus.latest_julian_day
+    );
 }
 
 fn write_backend_matrix(f: &mut fmt::Formatter<'_>, backend: &BackendMetadata) -> fmt::Result {
@@ -7324,8 +7351,11 @@ mod tests {
     #[test]
     fn comparison_report_uses_the_snapshot_backend() {
         let report = render_comparison_report().expect("comparison should render");
+        assert!(report.contains("Comparison corpus"));
         assert!(report.contains("JPL Horizons comparison window"));
         assert!(report.contains("Apparentness: Mean"));
+        assert!(report.contains("epoch labels:"));
+        assert!(report.contains("julian day span:"));
         assert!(report.contains("Reference backend:"));
         assert!(report.contains("Candidate backend:"));
     }
@@ -7336,6 +7366,8 @@ mod tests {
             .expect_err("comparison audit should fail while regressions remain");
         assert!(error.contains("comparison audit failed"));
         assert!(error.contains("Comparison tolerance audit"));
+        assert!(error.contains("comparison corpus"));
+        assert!(error.contains("julian day span:"));
         assert!(error.contains("Body-class error envelopes"));
         assert!(error.contains("rms longitude delta:"));
         assert!(error.contains("rms latitude delta:"));
