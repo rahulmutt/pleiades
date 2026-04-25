@@ -202,6 +202,8 @@ Progress note (2026-04-25): the compatibility-profile verification slice now als
 
 Progress note (2026-04-25): validation coverage now also pins the additional ayanamsa spellings for True Revati, True Pushya, Lahiri (ICRC), Lahiri (1940), and Yukteshwar, keeping a few more release-profile source-label entries from drifting as the catalog grows.
 
+Progress note (2026-04-25): the compatibility-profile command now also pins the remaining Dhruva Galactic Center (Middle Mula) aliases plus the explicit Suryasiddhanta (Revati), Suryasiddhanta (Citra), and True Pushya (PVRN Rao) spellings, so the current release-profile text stays anchored to the latest ayanamsa and reference-frame wording.
+
 Remaining suggested scope:
 
 - add broader coverage for any still-unpinned release-profile spellings or status lines that future catalog batches introduce.

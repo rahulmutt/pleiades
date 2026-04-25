@@ -6856,6 +6856,18 @@ mod tests {
     }
 
     #[test]
+    fn compatibility_profile_command_surfaces_remaining_ayanamsa_and_reference_aliases() {
+        let rendered =
+            render_cli(&["compatibility-profile"]).expect("compatibility profile should render");
+        assert!(rendered.contains("Suryasiddhanta (Revati)"));
+        assert!(rendered.contains("Suryasiddhanta (Citra)"));
+        assert!(rendered.contains("True Pushya (PVRN Rao)"));
+        assert!(rendered.contains("Dhruva Galactic Center (Middle Mula)"));
+        assert!(rendered.contains("Dhruva Galactic Center Middle Mula"));
+        assert!(rendered.contains("Middle of Mula"));
+    }
+
+    #[test]
     fn compatibility_profile_command_surfaces_house_table_code_spellings() {
         let rendered =
             render_cli(&["compatibility-profile"]).expect("compatibility profile should render");

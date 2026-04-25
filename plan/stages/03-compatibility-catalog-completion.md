@@ -44,6 +44,7 @@ The repository already exposes baseline house systems and ayanamsas, a larger re
    - Add profile verification that every listed built-in has a descriptor, alias policy, and implementation status.
    - Include known gaps, latitude constraints, and naming differences in generated reports.
    - Avoid claiming full target coverage until all entries are implemented and validated.
+   - Progress note: compatibility-profile verification now also pins remaining release-profile spellings for Suryasiddhanta (Revati), Suryasiddhanta (Citra), True Pushya (PVRN Rao), and the Dhruva Galactic Center (Middle Mula) aliases, so the current ayanamsa/source-label surface stays anchored as the catalog continues to grow.
 
 ## Done criteria
 
