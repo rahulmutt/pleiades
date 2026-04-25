@@ -199,6 +199,14 @@ impl ValidationCorpus {
         }
     }
 
+    /// Returns an estimated heap footprint for the corpus data in bytes.
+    pub fn estimated_heap_bytes(&self) -> usize {
+        self.requests
+            .capacity()
+            .saturating_mul(std::mem::size_of::<EphemerisRequest>())
+            .saturating_add(self.name.capacity())
+    }
+
     fn from_epochs(
         name: impl Into<String>,
         description: &'static str,
@@ -717,6 +725,8 @@ pub struct BenchmarkReport {
     pub elapsed: std::time::Duration,
     /// Total elapsed time for the batch-request path.
     pub batch_elapsed: std::time::Duration,
+    /// Estimated heap footprint of the benchmark corpus in bytes.
+    pub estimated_corpus_heap_bytes: usize,
 }
 
 impl BenchmarkReport {
@@ -1101,6 +1111,11 @@ impl fmt::Display for ValidationReport {
         )?;
         writeln!(
             f,
+            "  estimated corpus heap footprint: {} bytes",
+            self.reference_benchmark.estimated_corpus_heap_bytes
+        )?;
+        writeln!(
+            f,
             "  batch throughput: {:.2} req/s",
             self.reference_benchmark.batch_requests_per_second()
         )?;
@@ -1119,6 +1134,11 @@ impl fmt::Display for ValidationReport {
         )?;
         writeln!(
             f,
+            "  estimated corpus heap footprint: {} bytes",
+            self.candidate_benchmark.estimated_corpus_heap_bytes
+        )?;
+        writeln!(
+            f,
             "  batch throughput: {:.2} req/s",
             self.candidate_benchmark.batch_requests_per_second()
         )?;
@@ -1134,6 +1154,11 @@ impl fmt::Display for ValidationReport {
             f,
             "  ns/request (batch): {}",
             format_ns(self.packaged_benchmark.batch_nanoseconds_per_request())
+        )?;
+        writeln!(
+            f,
+            "  estimated corpus heap footprint: {} bytes",
+            self.packaged_benchmark.estimated_corpus_heap_bytes
         )?;
         writeln!(
             f,
@@ -1645,6 +1670,7 @@ pub fn benchmark_backend(
         sample_count: corpus.requests.len(),
         elapsed,
         batch_elapsed,
+        estimated_corpus_heap_bytes: corpus.estimated_heap_bytes(),
     })
 }
 
@@ -4728,6 +4754,11 @@ impl fmt::Display for BenchmarkReport {
         writeln!(f, "Batch elapsed: {:?}", self.batch_elapsed)?;
         writeln!(
             f,
+            "Estimated corpus heap footprint: {} bytes",
+            self.estimated_corpus_heap_bytes
+        )?;
+        writeln!(
+            f,
             "Nanoseconds per request (single): {}",
             format_ns(self.nanoseconds_per_request())
         )?;
@@ -6699,6 +6730,7 @@ mod tests {
         assert!(report.contains("Apparentness: Mean"));
         assert!(report.contains("Single-request elapsed:"));
         assert!(report.contains("Batch elapsed:"));
+        assert!(report.contains("Estimated corpus heap footprint:"));
         assert!(report.contains("Nanoseconds per request (single):"));
         assert!(report.contains("Nanoseconds per request (batch):"));
         assert!(report.contains("Batch throughput:"));
@@ -6740,6 +6772,7 @@ mod tests {
         assert!(report.contains("Apparentness: Mean"));
         assert!(report.contains("Benchmark corpus"));
         assert!(report.contains("Representative 1500-2500 window"));
+        assert!(report.contains("estimated corpus heap footprint:"));
         assert!(report.contains("House validation corpus"));
         assert!(report.contains("Mid-latitude reference chart"));
         assert!(report.contains("Polar stress chart"));

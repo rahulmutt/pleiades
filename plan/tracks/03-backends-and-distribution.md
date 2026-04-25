@@ -18,7 +18,7 @@ Guide the remaining backend, compression, and packaged-data work so Pleiades can
 - Implement production `pleiades-elp` lunar calculations.
 - Upgrade `pleiades-jpl` to a source-backed reference reader/interpolator.
 - Build deterministic compressed artifacts for 1500-2500 CE.
-- Benchmark lookup latency, batch throughput, artifact size, and memory footprint.
+- Benchmark lookup latency, batch throughput, artifact size, and corpus heap footprint estimates.
 
 ## Distribution constraints
 
