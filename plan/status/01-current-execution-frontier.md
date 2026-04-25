@@ -68,6 +68,8 @@ Latest progress (2026-04-25): the time-observer and lunar-theory policy docs now
 
 Latest progress (2026-04-25): validation reporting now includes a release-grade comparison tolerance audit section, and `compare-backends-audit` now fails when the built-in tolerance audit finds regressions, so release tooling has an explicit pass/fail gate in addition to the existing per-body tolerance tables. The tolerance policy used by those reports is now also surfaced as a structured backend-family/body-class catalog, so release-facing summaries can name the exact scope table they are applying.
 
+Latest progress (2026-04-25): the compact release summary now also surfaces the comparison tolerance policy catalog alongside the validation evidence and comparison envelope, so the one-screen release overview now carries the backend-family scope table without needing the full validation report.
+
 Latest progress (2026-04-25): the body-class tolerance posture now names the bodies that drive each class-level max longitude, latitude, and distance delta, so the coarse tolerance audit can point at the exact worst-case body instead of only aggregating counts and magnitudes.
 
 Latest progress (2026-04-25): the body comparison and body-class error-envelope summaries now also name the body that drives each measured max longitude, latitude, and distance delta, which makes the release-facing comparison output easier to audit without changing the measured envelopes or tolerance policy.

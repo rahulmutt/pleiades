@@ -2485,6 +2485,11 @@ fn render_release_summary_text() -> String {
         text.push_str(" outside-tolerance bodies, comparison audit ");
         text.push_str(comparison_audit_result_label(audit_regression_count));
         text.push('\n');
+        text.push_str("Comparison tolerance policy: ");
+        text.push_str(&format_comparison_tolerance_policy_for_report(
+            &report.comparison.candidate_backend.family,
+        ));
+        text.push('\n');
     }
     text.push_str("JPL interpolation evidence: ");
     text.push_str(&format_jpl_interpolation_quality_summary_for_report());
@@ -3782,6 +3787,21 @@ fn format_comparison_envelope_for_report(summary: &ComparisonSummary) -> String 
         format_summary_body(&summary.max_distance_delta_body),
         mean_distance,
         rms_distance,
+    )
+}
+
+fn format_comparison_tolerance_policy_for_report(backend_family: &BackendFamily) -> String {
+    let entries = comparison_tolerance_policy_entries(backend_family);
+    let scopes = entries
+        .iter()
+        .map(|entry| entry.scope.label())
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    format!(
+        "backend family={}; scopes={} ({scopes})",
+        backend_family_label(backend_family),
+        entries.len(),
     )
 }
 
@@ -7924,6 +7944,7 @@ mod tests {
         assert!(rendered.contains("comparison samples"));
         assert!(rendered.contains("notable regressions"));
         assert!(rendered.contains("outside-tolerance bodies"));
+        assert!(rendered.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto override)"));
         assert!(rendered.contains("Body-class tolerance posture:"));
         assert!(rendered.contains("Expected tolerance status:"));
         assert!(rendered.contains("comparison audit regressions found"));
