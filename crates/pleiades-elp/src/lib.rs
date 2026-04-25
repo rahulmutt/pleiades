@@ -680,6 +680,8 @@ pub struct LunarEquatorialReferenceEvidenceEnvelope {
     pub mean_distance_delta_au: Option<f64>,
     /// Number of samples outside the current regression limits.
     pub outside_current_limits_count: usize,
+    /// Bodies associated with samples outside the current regression limits.
+    pub outlier_bodies: Vec<CelestialBody>,
     /// Whether every sample stayed within the current regression limits.
     pub within_current_limits: bool,
 }
@@ -701,6 +703,7 @@ pub fn lunar_equatorial_reference_evidence_envelope(
     let mut max_right_ascension_delta_epoch = samples[0].epoch;
     let mut max_right_ascension_delta_deg = 0.0;
     let mut total_right_ascension_delta_deg = 0.0;
+    let mut outlier_bodies: Vec<CelestialBody> = Vec::new();
     let mut max_declination_delta_body = samples[0].body.clone();
     let mut max_declination_delta_epoch = samples[0].epoch;
     let mut max_declination_delta_deg = 0.0;
@@ -753,6 +756,9 @@ pub fn lunar_equatorial_reference_evidence_envelope(
         within_current_limits &= sample_within_limits;
         if !sample_within_limits {
             outside_current_limits_count += 1;
+            if !outlier_bodies.contains(&sample.body) {
+                outlier_bodies.push(sample.body.clone());
+            }
         }
 
         total_right_ascension_delta_deg += right_ascension_delta_deg;
@@ -803,6 +809,7 @@ pub fn lunar_equatorial_reference_evidence_envelope(
         mean_distance_delta_au: (distance_delta_sample_count > 0)
             .then_some(total_distance_delta_au / distance_delta_sample_count as f64),
         outside_current_limits_count,
+        outlier_bodies,
         within_current_limits,
     })
 }
@@ -833,9 +840,14 @@ pub fn format_lunar_equatorial_reference_evidence_envelope(
         .map(|value| format!("; mean Δdist={value:.12} AU"))
         .unwrap_or_default();
     let limit_note = "; limits: ΔRA≤1e-2°, ΔDec≤1e-2°, Δdist≤1e-8 AU";
+    let outlier_note = if envelope.outlier_bodies.is_empty() {
+        "; outliers=none".to_string()
+    } else {
+        format!("; outliers={}", format_bodies(&envelope.outlier_bodies))
+    };
 
     format!(
-        "lunar equatorial reference error envelope: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, max ΔRA={:.12}° ({}), mean ΔRA={:.12}°, max ΔDec={:.12}° ({}), mean ΔDec={:.12}°{}{}{}; outside current limits={}; within current limits={}",
+        "lunar equatorial reference error envelope: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, max ΔRA={:.12}° ({}), mean ΔRA={:.12}°, max ΔDec={:.12}° ({}), mean ΔDec={:.12}°{}{}{}{}; outside current limits={}; within current limits={}",
         envelope.sample_count,
         envelope.body_count,
         envelope.earliest_epoch.julian_day.days(),
@@ -849,6 +861,7 @@ pub fn format_lunar_equatorial_reference_evidence_envelope(
         distance,
         mean_distance,
         limit_note,
+        outlier_note,
         envelope.outside_current_limits_count,
         envelope.within_current_limits,
     )
@@ -1053,6 +1066,8 @@ pub struct LunarReferenceEvidenceEnvelope {
     pub mean_distance_delta_au: Option<f64>,
     /// Number of samples outside the current regression limits.
     pub outside_current_limits_count: usize,
+    /// Bodies associated with samples outside the current regression limits.
+    pub outlier_bodies: Vec<CelestialBody>,
     /// Whether every sample stayed within the current regression limits.
     pub within_current_limits: bool,
 }
@@ -1077,6 +1092,7 @@ pub fn lunar_reference_evidence_envelope() -> Option<LunarReferenceEvidenceEnvel
     let mut max_latitude_delta_epoch = samples[0].epoch;
     let mut max_latitude_delta_deg = 0.0;
     let mut total_latitude_delta_deg = 0.0;
+    let mut outlier_bodies: Vec<CelestialBody> = Vec::new();
     let mut max_distance_delta_body = None;
     let mut max_distance_delta_epoch = None;
     let mut max_distance_delta_au = None;
@@ -1126,6 +1142,9 @@ pub fn lunar_reference_evidence_envelope() -> Option<LunarReferenceEvidenceEnvel
         within_current_limits &= sample_within_limits;
         if !sample_within_limits {
             outside_current_limits_count += 1;
+            if !outlier_bodies.contains(&sample.body) {
+                outlier_bodies.push(sample.body.clone());
+            }
         }
 
         total_longitude_delta_deg += longitude_delta_deg;
@@ -1176,6 +1195,7 @@ pub fn lunar_reference_evidence_envelope() -> Option<LunarReferenceEvidenceEnvel
         mean_distance_delta_au: (distance_delta_sample_count > 0)
             .then_some(total_distance_delta_au / distance_delta_sample_count as f64),
         outside_current_limits_count,
+        outlier_bodies,
         within_current_limits,
     })
 }
@@ -1206,9 +1226,14 @@ pub fn format_lunar_reference_evidence_envelope(
         .map(|value| format!("; mean Δdist={value:.12} AU"))
         .unwrap_or_default();
     let limit_note = "; limits: Δlon≤1e-4° (1e-1° for mean node), Δlat≤1e-4°, Δdist≤1e-8 AU";
+    let outlier_note = if envelope.outlier_bodies.is_empty() {
+        "; outliers=none".to_string()
+    } else {
+        format!("; outliers={}", format_bodies(&envelope.outlier_bodies))
+    };
 
     format!(
-        "lunar reference error envelope: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, max Δlon={:.12}° ({}), mean Δlon={:.12}°, max Δlat={:.12}° ({}), mean Δlat={:.12}°{}{}{}; outside current limits={}; within current limits={}",
+        "lunar reference error envelope: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, max Δlon={:.12}° ({}), mean Δlon={:.12}°, max Δlat={:.12}° ({}), mean Δlat={:.12}°{}{}{}{}; outside current limits={}; within current limits={}",
         envelope.sample_count,
         envelope.body_count,
         envelope.earliest_epoch.julian_day.days(),
@@ -1222,6 +1247,7 @@ pub fn format_lunar_reference_evidence_envelope(
         distance,
         mean_distance,
         limit_note,
+        outlier_note,
         envelope.outside_current_limits_count,
         envelope.within_current_limits,
     )
@@ -2223,6 +2249,7 @@ mod tests {
         assert!(lunar_reference_evidence_envelope_for_report().contains("mean Δlon="));
         assert!(lunar_reference_evidence_envelope_for_report().contains("max Δlat="));
         assert!(lunar_reference_evidence_envelope_for_report().contains("mean Δlat="));
+        assert!(lunar_reference_evidence_envelope_for_report().contains("outliers=none"));
         assert!(lunar_reference_evidence_envelope_for_report().contains("limits: Δlon≤1e-4°"));
         assert!(
             lunar_reference_evidence_envelope_for_report().contains("within current limits=true")
