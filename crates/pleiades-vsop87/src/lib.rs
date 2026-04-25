@@ -1617,10 +1617,11 @@ mod tests {
     #[test]
     fn apparent_requests_are_rejected_explicitly() {
         let backend = Vsop87Backend::new();
-        let request = EphemerisRequest::new(
+        let mut request = EphemerisRequest::new(
             CelestialBody::Sun,
             Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt),
         );
+        request.apparent = Apparentness::Apparent;
 
         let error = backend
             .position(&request)

@@ -56,6 +56,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Implement equatorial/ecliptic transforms where the release profile claims them.
    - Ensure topocentric observer requests and apparent/mean flags either produce distinct documented behavior or return structured unsupported-feature errors.
    - Progress note: the shared `pleiades-types::EclipticCoordinates::to_equatorial` helper now centralizes the mean-obliquity ecliptic-to-equatorial rotation used by the VSOP87 and ELP paths, so the frame transform is implemented once and covered by shared unit tests instead of being duplicated per backend.
+   - Progress note: `pleiades-backend::EphemerisRequest::new` now defaults to mean geometric output, which keeps bare geocentric requests aligned with the current mean-only backend policy while still allowing callers to opt into apparent requests explicitly.
 
 5. Expand validation evidence.
    - Add golden positions for major bodies, lunar points, and baseline asteroids.

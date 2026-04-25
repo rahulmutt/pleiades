@@ -225,6 +225,9 @@ pub struct EphemerisRequest {
 
 impl EphemerisRequest {
     /// Creates a new request with sensible defaults for a tropical geocentric query.
+    ///
+    /// The default apparentness is mean geometric output so a bare request stays
+    /// compatible with the current mean-only first-party backends.
     pub fn new(body: CelestialBody, instant: Instant) -> Self {
         Self {
             body,
@@ -232,7 +235,7 @@ impl EphemerisRequest {
             observer: None,
             frame: CoordinateFrame::Ecliptic,
             zodiac_mode: ZodiacMode::Tropical,
-            apparent: Apparentness::Apparent,
+            apparent: Apparentness::Mean,
         }
     }
 }
@@ -774,7 +777,7 @@ mod tests {
         );
 
         assert_eq!(request.frame, CoordinateFrame::Ecliptic);
-        assert_eq!(request.apparent, Apparentness::Apparent);
+        assert_eq!(request.apparent, Apparentness::Mean);
         assert_eq!(request.zodiac_mode, ZodiacMode::Tropical);
     }
 

@@ -46,7 +46,7 @@ Latest progress (2026-04-25): the checked-in JPL asteroid subset now renders exa
 
 Latest progress (2026-04-25): the compact ELP lunar backend now also exposes a canonical lunar evidence slice for the published 1992-04-12 Moon example plus J2000 lunar-point references, and the validation reports now render that evidence alongside the backend matrix and summary output so the current lunar baseline is easier to audit without changing the public API.
 
-Latest progress (2026-04-25): the shared `pleiades-types::EclipticCoordinates::to_equatorial` helper now centralizes the mean-obliquity frame rotation used by the VSOP87 and ELP backends, reducing duplicate transform logic while keeping the current ecliptic-to-equatorial behavior explicit and test-covered.
+Latest progress (2026-04-25): the shared `pleiades-types::EclipticCoordinates::to_equatorial` helper now centralizes the mean-obliquity frame rotation used by the VSOP87 and ELP backends, reducing duplicate transform logic while keeping the current ecliptic-to-equatorial behavior explicit and test-covered. Raw backend requests now also default to mean geometric output, which keeps the request model aligned with the current mean-only first-party backends instead of nudging callers toward unsupported apparent-mode defaults.
 
 Latest progress (2026-04-25): `pleiades-types` and `pleiades-core::ChartRequest` now also expose caller-supplied TT-to-TDB conversion conveniences alongside the existing UTC/UT1 helpers, so TDB-tagged validation or backend requests can stay explicit without introducing a built-in relativistic model.
 
