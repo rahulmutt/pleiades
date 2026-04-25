@@ -56,7 +56,8 @@ use pleiades_houses::{
     baseline_house_systems, built_in_house_systems, release_house_systems, resolve_house_system,
 };
 use pleiades_jpl::{
-    comparison_snapshot, interpolation_quality_samples, reference_asteroid_evidence,
+    comparison_snapshot, format_jpl_interpolation_quality_summary_for_report,
+    interpolation_quality_samples, reference_asteroid_evidence,
     reference_asteroid_evidence_summary_for_report, reference_asteroids,
     reference_snapshot_summary_for_report, JplSnapshotBackend,
 };
@@ -5782,22 +5783,6 @@ fn format_jpl_interpolation_quality_summary(
     summary: &pleiades_jpl::JplInterpolationQualitySummary,
 ) -> String {
     pleiades_jpl::format_jpl_interpolation_quality_summary(summary)
-}
-
-fn format_jpl_interpolation_quality_summary_for_report() -> String {
-    match jpl_interpolation_quality_summary() {
-        Some(summary) => {
-            let mut rendered = format_jpl_interpolation_quality_summary(&summary);
-            rendered.push('\n');
-            rendered.push_str("  JPL interpolation quality kind coverage: ");
-            rendered.push_str(&summary.sample_count.to_string());
-            rendered.push_str(" samples across ");
-            rendered.push_str(&summary.body_count.to_string());
-            rendered.push_str(" bodies");
-            rendered
-        }
-        None => "JPL interpolation quality: unavailable".to_string(),
-    }
 }
 
 fn write_lunar_reference_evidence(f: &mut fmt::Formatter<'_>) -> fmt::Result {

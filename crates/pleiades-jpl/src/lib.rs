@@ -462,6 +462,28 @@ pub fn format_jpl_interpolation_quality_kind_coverage(
     )
 }
 
+/// Formats the interpolation-quality summary together with the distinct-body coverage line.
+pub fn format_jpl_interpolation_quality_summary_for_report() -> String {
+    match (
+        jpl_interpolation_quality_summary(),
+        jpl_interpolation_quality_kind_coverage(),
+    ) {
+        (Some(summary), Some(coverage)) => {
+            let mut rendered = format_jpl_interpolation_quality_summary(&summary);
+            rendered.push('\n');
+            rendered.push_str(&format_jpl_interpolation_quality_kind_coverage(&coverage));
+            rendered
+        }
+        (Some(summary), None) => {
+            let mut rendered = format_jpl_interpolation_quality_summary(&summary);
+            rendered.push('\n');
+            rendered.push_str("JPL interpolation quality kind coverage: unavailable");
+            rendered
+        }
+        (None, _) => "JPL interpolation quality: unavailable".to_string(),
+    }
+}
+
 fn format_instant(instant: Instant) -> String {
     let scale = match instant.scale {
         TimeScale::Utc => "UTC",
@@ -1821,6 +1843,16 @@ mod tests {
         assert!(rendered.contains("cubic bodies"));
         assert!(rendered.contains("quadratic bodies"));
         assert!(rendered.contains("linear bodies"));
+    }
+
+    #[test]
+    fn interpolation_quality_summary_for_report_combines_summary_and_coverage() {
+        let summary = jpl_interpolation_quality_summary().expect("summary should exist");
+        let coverage = jpl_interpolation_quality_kind_coverage().expect("coverage should exist");
+        let rendered = format_jpl_interpolation_quality_summary_for_report();
+
+        assert!(rendered.contains(&format_jpl_interpolation_quality_summary(&summary)));
+        assert!(rendered.contains(&format_jpl_interpolation_quality_kind_coverage(&coverage)));
     }
 
     #[test]
