@@ -211,6 +211,8 @@ Progress note (2026-04-25): validation coverage now also pins the additional aya
 
 Progress note (2026-04-25): the compatibility-profile command now also pins the remaining Dhruva Galactic Center (Middle Mula) aliases plus the explicit Suryasiddhanta (Revati), Suryasiddhanta (Citra), and True Pushya (PVRN Rao) spellings, so the current release-profile text stays anchored to the latest ayanamsa and reference-frame wording.
 
+Progress note (2026-04-25): the compatibility-profile and release-notes regressions now also pin Babylonian (Britton), Babylonian (Aldebaran), Suryasiddhanta (Mean Sun), Aryabhata (Mean Sun), Galactic Equator (IAU 1958), and Galactic Equator (Mula), tightening the remaining release-profile reference and mean-sun alias coverage without changing the published catalog shape.
+
 Remaining suggested scope:
 
 - add broader coverage for any still-unpinned release-profile spellings or status lines that future catalog batches introduce.

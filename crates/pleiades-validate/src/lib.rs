@@ -7739,6 +7739,20 @@ mod tests {
     }
 
     #[test]
+    fn compatibility_profile_command_surfaces_additional_reference_mode_entries() {
+        let rendered =
+            render_cli(&["compatibility-profile"]).expect("compatibility profile should render");
+        assert!(rendered.contains("Babylonian (Britton)"));
+        assert!(rendered.contains("Babylonian/Britton"));
+        assert!(rendered.contains("Babylonian (Aldebaran)"));
+        assert!(rendered.contains("Babylonian/Aldebaran = 15 Tau"));
+        assert!(rendered.contains("Suryasiddhanta (Mean Sun)"));
+        assert!(rendered.contains("Aryabhata (Mean Sun)"));
+        assert!(rendered.contains("Galactic Equator (IAU 1958)"));
+        assert!(rendered.contains("Galactic Equator (Mula)"));
+    }
+
+    #[test]
     fn compatibility_profile_command_surfaces_remaining_ayanamsa_and_reference_aliases() {
         let rendered =
             render_cli(&["compatibility-profile"]).expect("compatibility profile should render");
@@ -7822,7 +7836,10 @@ mod tests {
         assert!(rendered.contains("Neo-Porphyry"));
         assert!(rendered.contains("Makransky Sunshine"));
         assert!(rendered.contains("Babylonian Huber"));
+        assert!(rendered.contains("Babylonian (Britton)"));
+        assert!(rendered.contains("Babylonian (Aldebaran)"));
         assert!(rendered.contains("Galactic Equator (True)"));
+        assert!(rendered.contains("Galactic Equator (IAU 1958)"));
         assert!(rendered.contains("Valens Moon ayanamsa"));
     }
 
