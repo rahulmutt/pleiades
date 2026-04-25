@@ -91,6 +91,30 @@ impl fmt::Display for LunarTheorySourceFamily {
     }
 }
 
+/// Structured source selection for the current lunar-theory baseline.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct LunarTheorySourceSelection {
+    /// Structured source family for the current baseline.
+    pub family: LunarTheorySourceFamily,
+    /// Stable identifier for the current baseline.
+    pub identifier: &'static str,
+    /// Canonical bibliographic citation for the current baseline.
+    pub citation: &'static str,
+    /// Human-readable source/provenance note for the current baseline.
+    pub material: &'static str,
+    /// Redistribution or licensing posture for the current baseline.
+    pub redistribution_note: &'static str,
+    /// Licensing or provenance summary for the current baseline.
+    pub license_note: &'static str,
+}
+
+impl LunarTheorySourceSelection {
+    /// Returns the human-readable family label for the current source selection.
+    pub const fn family_label(self) -> &'static str {
+        self.family.label()
+    }
+}
+
 /// Returns the current lunar-theory source family.
 pub const fn lunar_theory_source_family() -> LunarTheorySourceFamily {
     LunarTheorySourceFamily::MeeusStyleTruncatedAnalyticalBaseline
@@ -153,6 +177,20 @@ pub struct LunarTheorySpecification {
     pub validation_window: TimeRange,
     /// Licensing or redistribution summary for the selected baseline source.
     pub license_note: &'static str,
+}
+
+impl LunarTheorySpecification {
+    /// Returns the structured source selection for the current lunar baseline.
+    pub const fn source_selection(self) -> LunarTheorySourceSelection {
+        LunarTheorySourceSelection {
+            family: self.source_family,
+            identifier: self.source_identifier,
+            citation: self.source_citation,
+            material: self.source_material,
+            redistribution_note: self.redistribution_note,
+            license_note: self.license_note,
+        }
+    }
 }
 
 const SUPPORTED_LUNAR_BODIES: &[CelestialBody] = &[
@@ -391,25 +429,26 @@ pub fn format_lunar_theory_capability_summary(summary: &LunarTheoryCapabilitySum
 /// Validation and release tooling use this helper so lunar provenance stays
 /// owned by the backend crate rather than duplicated in reporting layers.
 pub fn format_lunar_theory_specification(theory: &LunarTheorySpecification) -> String {
+    let source = theory.source_selection();
     format!(
         "ELP lunar theory specification: {} [{}; family: {}] ({} supported bodies: {}; {} unsupported bodies: {}); request policy: {}; citation: {}; provenance: {}; redistribution: {}; truncation: {}; units: {}; validation window: {}; date-range note: {}; frame treatment: {}; license: {}",
         theory.model_name,
-        theory.source_identifier,
-        theory.source_family,
+        source.identifier,
+        source.family,
         theory.supported_bodies.len(),
         format_bodies(theory.supported_bodies),
         theory.unsupported_bodies.len(),
         format_bodies(theory.unsupported_bodies),
         theory.request_policy.summary_line(),
-        theory.source_citation,
-        theory.source_material,
-        theory.redistribution_note,
+        source.citation,
+        source.material,
+        source.redistribution_note,
         theory.truncation_note,
         theory.unit_note,
         format_time_range(&theory.validation_window),
         theory.date_range_note,
         theory.frame_note,
-        theory.license_note,
+        source.license_note,
     )
 }
 
@@ -1861,6 +1900,7 @@ impl ElpBackend {
 impl EphemerisBackend for ElpBackend {
     fn metadata(&self) -> BackendMetadata {
         let theory = lunar_theory_specification();
+        let source = theory.source_selection();
         BackendMetadata {
             id: BackendId::new(PACKAGE_NAME),
             version: env!("CARGO_PKG_VERSION").to_string(),
@@ -1869,22 +1909,22 @@ impl EphemerisBackend for ElpBackend {
                 summary: format!(
                     "{} [{}; family: {}] {} The backend exposes the Moon plus mean/true node and mean apogee/perigee channels as an explicit lunar-theory selection, while explicitly leaving true apogee/perigee unsupported for now; {}",
                     theory.model_name,
-                    theory.source_identifier,
-                    theory.source_family,
-                    theory.source_citation,
-                    theory.license_note,
+                    source.identifier,
+                    source.family,
+                    source.citation,
+                    source.license_note,
                 ),
                 data_sources: vec![
                     "Meeus-style truncated lunar orbit formulas implemented in pure Rust; see docs/lunar-theory-policy.md for the current baseline scope".to_string(),
-                    lunar_theory_specification().source_identifier.to_string(),
-                    lunar_theory_specification().source_citation.to_string(),
-                    lunar_theory_specification().source_material.to_string(),
-                    lunar_theory_specification().redistribution_note.to_string(),
-                    lunar_theory_specification().truncation_note.to_string(),
-                    lunar_theory_specification().unit_note.to_string(),
-                    lunar_theory_specification().license_note.to_string(),
-                    lunar_theory_specification().date_range_note.to_string(),
-                    lunar_theory_specification().frame_note.to_string(),
+                    source.identifier.to_string(),
+                    source.citation.to_string(),
+                    source.material.to_string(),
+                    source.redistribution_note.to_string(),
+                    theory.truncation_note.to_string(),
+                    theory.unit_note.to_string(),
+                    source.license_note.to_string(),
+                    theory.date_range_note.to_string(),
+                    theory.frame_note.to_string(),
                 ],
             },
             nominal_range: TimeRange::new(None, None),
@@ -2031,6 +2071,7 @@ mod tests {
         let formatted = format_lunar_theory_specification(&theory);
 
         assert_eq!(summary, formatted);
+        let source = theory.source_selection();
         assert!(summary.contains(theory.model_name));
         assert!(summary.contains(theory.source_identifier));
         assert!(summary.contains(theory.source_family.label()));
@@ -2039,7 +2080,14 @@ mod tests {
             theory.source_family.to_string(),
             theory.source_family.label()
         );
-        assert!(summary.contains(theory.source_citation));
+        assert_eq!(source.family, theory.source_family);
+        assert_eq!(source.identifier, theory.source_identifier);
+        assert_eq!(source.citation, theory.source_citation);
+        assert_eq!(source.material, theory.source_material);
+        assert_eq!(source.redistribution_note, theory.redistribution_note);
+        assert_eq!(source.license_note, theory.license_note);
+        assert_eq!(source.family_label(), theory.source_family.label());
+        assert!(summary.contains(source.citation));
         assert!(summary.contains("Moon, Mean Node, True Node, Mean Perigee, Mean Apogee"));
         assert!(summary.contains("unsupported bodies: True Apogee, True Perigee"));
         assert!(summary.contains("validation window: JD 2448724.5 (TT) → JD 2459278.5 (TT)"));
@@ -2086,11 +2134,9 @@ mod tests {
         let metadata = ElpBackend::new().metadata();
         let theory = lunar_theory_specification();
 
+        let source = theory.source_selection();
         assert!(metadata.provenance.summary.contains(theory.model_name));
-        assert!(metadata
-            .provenance
-            .summary
-            .contains(theory.source_identifier));
+        assert!(metadata.provenance.summary.contains(source.identifier));
         assert!(metadata
             .provenance
             .summary
@@ -2100,7 +2146,14 @@ mod tests {
             theory.source_family.to_string(),
             theory.source_family.label()
         );
-        assert!(metadata.provenance.summary.contains(theory.source_citation));
+        assert_eq!(source.family, theory.source_family);
+        assert_eq!(source.identifier, theory.source_identifier);
+        assert_eq!(source.citation, theory.source_citation);
+        assert_eq!(source.material, theory.source_material);
+        assert_eq!(source.redistribution_note, theory.redistribution_note);
+        assert_eq!(source.license_note, theory.license_note);
+        assert_eq!(source.family_label(), theory.source_family.label());
+        assert!(metadata.provenance.summary.contains(source.citation));
         assert!(metadata
             .provenance
             .summary
