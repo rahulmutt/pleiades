@@ -338,7 +338,7 @@ fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
             text.push_str("  ");
             text.push_str(&summary.body.to_string());
             text.push_str(": backend family=");
-            text.push_str(&backend_family_label(&summary.tolerance.backend_family));
+            text.push_str(backend_family_label(&summary.tolerance.backend_family));
             text.push_str(", profile=");
             text.push_str(summary.tolerance.profile);
             text.push_str(", status=");

@@ -438,6 +438,7 @@ struct BodyClassSummary {
 #[derive(Clone, Debug)]
 struct BodyClassToleranceSummary {
     class: BodyClass,
+    tolerance: ComparisonTolerance,
     body_count: usize,
     sample_count: usize,
     within_tolerance_body_count: usize,
@@ -454,6 +455,12 @@ struct BodyClassToleranceSummary {
 impl BodyClassToleranceSummary {
     fn render(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "  {}", self.class.label())?;
+        writeln!(
+            f,
+            "    backend family: {}",
+            tolerance_backend_family_label(&self.tolerance.backend_family)
+        )?;
+        writeln!(f, "    profile: {}", self.tolerance.profile)?;
         writeln!(f, "    bodies: {}", self.body_count)?;
         writeln!(f, "    samples: {}", self.sample_count)?;
         writeln!(
@@ -477,19 +484,44 @@ impl BodyClassToleranceSummary {
             self.max_longitude_delta_body.as_ref(),
             self.max_longitude_delta_deg,
         ) {
-            writeln!(f, "    max longitude delta: {:.12}° ({})", value, body)?;
+            writeln!(
+                f,
+                "    max longitude delta: {:.12}° ({}) | limit Δlon≤{:.6}°, margin Δlon={:+.12}°",
+                value,
+                body,
+                self.tolerance.max_longitude_delta_deg,
+                self.tolerance.max_longitude_delta_deg - value
+            )?;
         }
         if let (Some(body), Some(value)) = (
             self.max_latitude_delta_body.as_ref(),
             self.max_latitude_delta_deg,
         ) {
-            writeln!(f, "    max latitude delta: {:.12}° ({})", value, body)?;
+            writeln!(
+                f,
+                "    max latitude delta: {:.12}° ({}) | limit Δlat≤{:.6}°, margin Δlat={:+.12}°",
+                value,
+                body,
+                self.tolerance.max_latitude_delta_deg,
+                self.tolerance.max_latitude_delta_deg - value
+            )?;
         }
         if let (Some(body), Some(value)) = (
             self.max_distance_delta_body.as_ref(),
             self.max_distance_delta_au,
         ) {
-            writeln!(f, "    max distance delta: {:.12} AU ({})", value, body)?;
+            let limit = self
+                .tolerance
+                .max_distance_delta_au
+                .expect("distance tolerance should exist for class summaries");
+            writeln!(
+                f,
+                "    max distance delta: {:.12} AU ({}) | limit Δdist={:.6} AU, margin Δdist={:+.12} AU",
+                value,
+                body,
+                limit,
+                limit - value
+            )?;
         }
 
         Ok(())
@@ -3942,41 +3974,69 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text);
     let _ = writeln!(text, "Body-class tolerance posture");
     for summary in report.comparison.body_class_tolerance_summaries() {
+        let tolerance = &summary.tolerance;
+        let max_longitude_body = summary
+            .max_longitude_delta_body
+            .as_ref()
+            .map(|body| format!(" ({body})"))
+            .unwrap_or_default();
+        let max_latitude_body = summary
+            .max_latitude_delta_body
+            .as_ref()
+            .map(|body| format!(" ({body})"))
+            .unwrap_or_default();
+        let max_distance_body = summary
+            .max_distance_delta_body
+            .as_ref()
+            .map(|body| format!(" ({body})"))
+            .unwrap_or_default();
+        let longitude_margin = summary
+            .max_longitude_delta_deg
+            .map(|value| format!("{:+.12}°", tolerance.max_longitude_delta_deg - value))
+            .unwrap_or_else(|| "n/a".to_string());
+        let latitude_margin = summary
+            .max_latitude_delta_deg
+            .map(|value| format!("{:+.12}°", tolerance.max_latitude_delta_deg - value))
+            .unwrap_or_else(|| "n/a".to_string());
+        let distance_margin = summary
+            .max_distance_delta_au
+            .zip(tolerance.max_distance_delta_au)
+            .map(|(value, limit)| format!("{:+.12} AU", limit - value))
+            .unwrap_or_else(|| "n/a".to_string());
         let _ = writeln!(
             text,
-            "  {}: bodies={}, samples={}, within tolerance bodies={}, outside tolerance bodies={}, max Δlon={}{}, max Δlat={}{}, max Δdist={}{}",
+            "  {}: backend family={}, profile={}, bodies={}, samples={}, within tolerance bodies={}, outside tolerance bodies={}, limit Δlon≤{:.6}°, margin Δlon={}, limit Δlat≤{:.6}°, margin Δlat={}, limit Δdist={}, margin Δdist={}, max Δlon={}{}, max Δlat={}{}, max Δdist={}{}",
             summary.class.label(),
+            tolerance_backend_family_label(&tolerance.backend_family),
+            tolerance.profile,
             summary.body_count,
             summary.sample_count,
             summary.within_tolerance_body_count,
             summary.outside_tolerance_body_count,
+            tolerance.max_longitude_delta_deg,
+            longitude_margin,
+            tolerance.max_latitude_delta_deg,
+            latitude_margin,
+            tolerance
+                .max_distance_delta_au
+                .map(|value| format!("{value:.6} AU"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            distance_margin,
             summary
                 .max_longitude_delta_deg
                 .map(|value| format!("{value:.12}°"))
                 .unwrap_or_else(|| "n/a".to_string()),
-            summary
-                .max_longitude_delta_body
-                .as_ref()
-                .map(|body| format!(" ({body})"))
-                .unwrap_or_default(),
+            max_longitude_body,
             summary
                 .max_latitude_delta_deg
                 .map(|value| format!("{value:.12}°"))
                 .unwrap_or_else(|| "n/a".to_string()),
-            summary
-                .max_latitude_delta_body
-                .as_ref()
-                .map(|body| format!(" ({body})"))
-                .unwrap_or_default(),
+            max_latitude_body,
             summary
                 .max_distance_delta_au
                 .map(|value| format!("{value:.12} AU"))
                 .unwrap_or_else(|| "n/a".to_string()),
-            summary
-                .max_distance_delta_body
-                .as_ref()
-                .map(|body| format!(" ({body})"))
-                .unwrap_or_default()
+            max_distance_body
         );
         if !summary.outside_bodies.is_empty() {
             let _ = writeln!(
@@ -4762,6 +4822,7 @@ fn body_class_summaries(samples: &[ComparisonSample]) -> Vec<BodyClassSummary> {
 #[derive(Clone, Debug)]
 struct BodyClassToleranceAccumulator {
     class: BodyClass,
+    backend_family: BackendFamily,
     body_count: usize,
     sample_count: usize,
     within_tolerance_body_count: usize,
@@ -4776,9 +4837,10 @@ struct BodyClassToleranceAccumulator {
 }
 
 impl BodyClassToleranceAccumulator {
-    const fn new(class: BodyClass) -> Self {
+    const fn new(class: BodyClass, backend_family: BackendFamily) -> Self {
         Self {
             class,
+            backend_family,
             body_count: 0,
             sample_count: 0,
             within_tolerance_body_count: 0,
@@ -4830,6 +4892,7 @@ impl BodyClassToleranceAccumulator {
     fn finish(self) -> BodyClassToleranceSummary {
         BodyClassToleranceSummary {
             class: self.class,
+            tolerance: comparison_tolerance_for_class(self.class, &self.backend_family),
             body_count: self.body_count,
             sample_count: self.sample_count,
             within_tolerance_body_count: self.within_tolerance_body_count,
@@ -4853,7 +4916,8 @@ fn body_class_tolerance_summaries(
         .into_iter()
         .map(|summary| body_tolerance_summary(summary, backend_family))
         .collect::<Vec<_>>();
-    let mut accumulators = BodyClass::ALL.map(BodyClassToleranceAccumulator::new);
+    let mut accumulators = BodyClass::ALL
+        .map(|class| BodyClassToleranceAccumulator::new(class, backend_family.clone()));
 
     for summary in body_summaries {
         accumulators[body_class(&summary.body).index()].push(&summary);
@@ -6485,6 +6549,13 @@ mod tests {
         assert!(body_class_envelopes.contains("max longitude delta:"));
         assert!(body_class_envelopes.contains(" ("));
         assert!(report.contains("Body-class tolerance posture"));
+        let body_class_tolerance_posture = report
+            .split("Body-class tolerance posture")
+            .nth(1)
+            .expect("report should include body-class tolerance posture");
+        assert!(body_class_tolerance_posture.contains("backend family: composite"));
+        assert!(body_class_tolerance_posture
+            .contains("profile: phase-1 full-file VSOP87B planetary evidence"));
         assert!(report.contains("Expected tolerance status"));
         assert!(report.contains("margin Δlon="));
         assert!(report.contains("margin Δdist="));
