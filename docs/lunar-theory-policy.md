@@ -43,6 +43,12 @@ The current request policy is intentionally narrow and explicit, and the same sh
 - No vendored ELP coefficient files are used yet.
 - The implementation is handwritten pure Rust, using published lunar position,
   node, and mean-point formulas as the current baseline.
+- The current truncation policy is explicit: the baseline only covers the Moon,
+  mean/true node, and mean apogee/perigee channels that validation exercises;
+  it is not a full ELP coefficient selection.
+- The current output units are explicit: angular values are reported in
+  degrees and distance values, when present, are reported in astronomical
+  units.
 - The current redistribution posture is simple: there are no external
   coefficient-file redistribution constraints to track until a source-backed
   ELP selection is adopted.

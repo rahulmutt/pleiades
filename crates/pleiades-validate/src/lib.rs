@@ -3525,7 +3525,7 @@ fn format_vsop87_source_audit_summary() -> String {
 fn format_elp_lunar_theory_summary() -> String {
     let theory = lunar_theory_specification();
     format!(
-        "ELP lunar theory specification: {} [{}] ({} supported bodies: {}; {} unsupported bodies: {}); request policy: frames={}; time scales={}; zodiac modes={}; apparentness={}; topocentric observer={}; citation: {}; provenance: {}; redistribution: {}; license: {}; validation window: {}; frame treatment: {}",
+        "ELP lunar theory specification: {} [{}] ({} supported bodies: {}; {} unsupported bodies: {}); request policy: frames={}; time scales={}; zodiac modes={}; apparentness={}; topocentric observer={}; citation: {}; provenance: {}; redistribution: {}; truncation: {}; units: {}; license: {}; validation window: {}; frame treatment: {}",
         theory.model_name,
         theory.source_identifier,
         theory.supported_bodies.len(),
@@ -3540,6 +3540,8 @@ fn format_elp_lunar_theory_summary() -> String {
         theory.source_citation,
         theory.source_material,
         theory.redistribution_note,
+        theory.truncation_note,
+        theory.unit_note,
         theory.license_note,
         theory.date_range_note,
         theory.frame_note,

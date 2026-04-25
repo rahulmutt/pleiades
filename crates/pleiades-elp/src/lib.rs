@@ -80,6 +80,10 @@ pub struct LunarTheorySpecification {
     pub supported_apparentness: &'static [Apparentness],
     /// Whether the current baseline accepts topocentric observer requests.
     pub supports_topocentric_observer: bool,
+    /// Notes the truncation/scope policy for the current baseline series.
+    pub truncation_note: &'static str,
+    /// Notes on the physical output units used by the baseline.
+    pub unit_note: &'static str,
     /// Notes the effective validation window or date-range posture.
     pub date_range_note: &'static str,
     /// Notes on the coordinate-frame treatment used by the baseline.
@@ -125,6 +129,10 @@ const LUNAR_THEORY_SPECIFICATION: LunarTheorySpecification = LunarTheorySpecific
     supported_zodiac_modes: SUPPORTED_LUNAR_ZODIAC_MODES,
     supported_apparentness: SUPPORTED_LUNAR_APPARENTNESS,
     supports_topocentric_observer: false,
+    truncation_note:
+        "The baseline is intentionally truncated to the Moon, mean/true node, and mean apogee/perigee channels currently exercised by validation; it is not a full ELP coefficient selection",
+    unit_note:
+        "Angular outputs are reported in degrees and distance outputs, when present, are reported in astronomical units",
     date_range_note:
         "Validated against the published 1992-04-12 geocentric Moon example, J2000 node/perigee references, and nearby high-curvature regression windows; no full ELP coefficient range has been published yet",
     frame_note:
@@ -379,6 +387,8 @@ impl EphemerisBackend for ElpBackend {
                     lunar_theory_specification().source_citation.to_string(),
                     lunar_theory_specification().source_material.to_string(),
                     lunar_theory_specification().redistribution_note.to_string(),
+                    lunar_theory_specification().truncation_note.to_string(),
+                    lunar_theory_specification().unit_note.to_string(),
                     lunar_theory_specification().license_note.to_string(),
                     lunar_theory_specification().date_range_note.to_string(),
                     lunar_theory_specification().frame_note.to_string(),
@@ -552,6 +562,16 @@ mod tests {
         assert!(metadata.provenance.data_sources.iter().any(
             |source| source.contains("Published lunar position, node, and mean-point formulas")
         ));
+        assert!(metadata
+            .provenance
+            .data_sources
+            .iter()
+            .any(|source| source.contains(theory.truncation_note)));
+        assert!(metadata
+            .provenance
+            .data_sources
+            .iter()
+            .any(|source| source.contains(theory.unit_note)));
         assert_eq!(
             metadata.supported_time_scales,
             vec![TimeScale::Tt, TimeScale::Tdb]
@@ -818,6 +838,8 @@ mod tests {
             .redistribution_note
             .contains("No external coefficient-file redistribution constraints"));
         assert!(theory.license_note.contains("handwritten pure Rust"));
+        assert!(theory.truncation_note.contains("truncated"));
+        assert!(theory.unit_note.contains("astronomical units"));
         assert!(theory.date_range_note.contains("1992-04-12"));
         assert!(theory.frame_note.contains("mean-obliquity"));
         assert_eq!(

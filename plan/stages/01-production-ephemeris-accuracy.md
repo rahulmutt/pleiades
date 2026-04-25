@@ -41,6 +41,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Progress note: the lunar reference evidence summary now also carries the JD 2448724.5..2451545.0 range explicitly, making the current Moon-example-to-J2000 coverage window visible in release-facing summaries.
    - Progress note: the lunar backend now also has a batch-path regression over the Moon, nodes, and mean apogee/perigee evidence slice, so the current supported lunar points are exercised through `positions()` in addition to single-request coverage.
    - Progress note: the compact lunar-theory specification now also exposes a structured request-policy field — TT/TDB only, tropical only, mean only, ecliptic/equatorial frames, and no topocentric observer mode — so the current baseline remains visibly scoped while source-backed ELP selection stays queued.
+   - Progress note: the compact lunar-theory specification now also carries explicit truncation and output-unit notes, and the validation/reporting layer renders those notes alongside the provenance fields so the current truncated baseline is easier to audit without changing the public API.
    - Progress note: the lunar-theory selection data is now centralized into a single static specification, and the canonical evidence slice is checked against that supported-body list so the current Meeus-style baseline stays internally consistent as the source-selection work continues.
 
 3. Upgrade `pleiades-jpl` from snapshot fixture to reference backend.
