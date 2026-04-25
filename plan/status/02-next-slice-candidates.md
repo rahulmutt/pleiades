@@ -95,6 +95,8 @@ Progress note (2026-04-25): the JPL reference asteroid slice now also has a batc
 
 Progress note (2026-04-25): the compact JPL interpolation-quality summary now also names the worst-case body for each error metric, so the current hold-out envelope is easier to audit while the broader public-input corpus work remains queued.
 
+Progress note (2026-04-25): the JPL interpolation-quality samples now derive from leave-one-out runtime interpolation against held-out exact rows, so the transparency evidence now measures the backend's actual interpolation path instead of only a linear counterfactual.
+
 Progress note (2026-04-25): the checked-in JPL reference snapshot now also has exact J2000 golden coverage for the named asteroid subset and the custom 433-Eros body, so the source-backed asteroid fixture path is now exercised with explicit coordinates in addition to the interpolation transparency checks.
 
 Progress note (2026-04-25): the checked-in JPL reference snapshot now also publishes a compact coverage summary with row, body, epoch, asteroid-row, and epoch-range counts, and the validation/release-facing summaries now surface that snapshot coverage alongside the exact asteroid evidence rows.

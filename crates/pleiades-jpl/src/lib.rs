@@ -146,19 +146,16 @@ pub fn comparison_bodies() -> &'static [pleiades_backend::CelestialBody] {
 /// Returns coarse leave-one-out interpolation checks derived from the checked-in
 /// fixture.
 ///
-/// Each sample treats a middle exact fixture epoch as a held-out point and
-/// linearly interpolates from the nearest earlier and later same-body fixture
-/// entries. The current fixture is intentionally sparse, so these values are
-/// evidence for report transparency rather than production interpolation
-/// tolerances.
-///
-/// Note that these samples intentionally remain linear counterfactuals even if
-/// the runtime backend later uses a higher-order interpolation fallback.
+/// Each sample removes a middle exact fixture epoch from the body-specific
+/// snapshot rows, re-runs the backend's current interpolation path, and compares
+/// the interpolated result with the held-out exact sample. The current fixture is
+/// intentionally sparse, so these values are evidence for report transparency
+/// rather than production interpolation tolerances.
 pub fn interpolation_quality_samples() -> &'static [InterpolationQualitySample] {
     interpolation_quality_sample_list()
 }
 
-/// A coarse hold-out check for the snapshot backend's linear counterfactual path.
+/// A coarse hold-out check for the snapshot backend's current interpolation path.
 #[derive(Clone, Debug, PartialEq)]
 pub struct InterpolationQualitySample {
     /// Body evaluated by this check.
@@ -676,7 +673,20 @@ fn interpolation_quality_sample_list() -> &'static [InterpolationQualitySample] 
                     let exact = window[1];
                     let after = window[2];
                     let epoch_jd = exact.epoch.julian_day.days();
-                    let interpolated = SnapshotEntry::interpolate_linear(before, after, epoch_jd);
+                    let leave_one_out_entries = entries
+                        .iter()
+                        .filter(|entry| {
+                            entry.body != exact.body || entry.epoch.julian_day.days() != epoch_jd
+                        })
+                        .cloned()
+                        .collect::<Vec<_>>();
+                    let interpolated = resolve_fixture_state_from_entries(
+                        &leave_one_out_entries,
+                        exact.body.clone(),
+                        epoch_jd,
+                    )
+                    .expect("held-out sample should still interpolate")
+                    .entry;
                     let exact_ecliptic = exact.ecliptic();
                     let interpolated_ecliptic = interpolated.ecliptic();
                     let exact_distance = exact_ecliptic.distance_au.unwrap_or_default();
@@ -733,6 +743,14 @@ fn resolve_fixture_state(
         ));
     };
 
+    resolve_fixture_state_from_entries(entries, body, epoch_jd)
+}
+
+fn resolve_fixture_state_from_entries(
+    entries: &[SnapshotEntry],
+    body: pleiades_backend::CelestialBody,
+    epoch_jd: f64,
+) -> Result<ResolvedFixtureState, EphemerisError> {
     let mut exact = None;
     let mut before = None;
     let mut after = None;

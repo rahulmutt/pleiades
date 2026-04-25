@@ -4633,7 +4633,7 @@ fn write_jpl_interpolation_quality(f: &mut fmt::Formatter<'_>) -> fmt::Result {
     )?;
     writeln!(
         f,
-        "    note: expanded public-input leave-one-out checks report current linear counterfactual interpolation error; they are not production tolerances"
+        "    note: expanded public-input leave-one-out checks report current runtime interpolation error against held-out exact rows; they are not production tolerances"
     )?;
     for sample in interpolation_quality_samples() {
         writeln!(
@@ -4724,7 +4724,7 @@ fn format_jpl_interpolation_quality_summary(summary: &JplInterpolationQualitySum
     }
 
     format!(
-        "JPL interpolation quality: {} samples across {} bodies, status transparency evidence with worst-case bodies named, max bracket span={:.1} d{}, max Δlon={:.12}°{}, max Δlat={:.12}°{}, max Δdist={:.12} AU{}",
+        "JPL interpolation quality: {} samples across {} bodies, leave-one-out runtime interpolation evidence with worst-case bodies named, max bracket span={:.1} d{}, max Δlon={:.12}°{}, max Δlat={:.12}°{}, max Δdist={:.12} AU{}",
         summary.sample_count,
         summary.body_count,
         summary.max_bracket_span_days,
@@ -5940,6 +5940,7 @@ mod tests {
         assert!(report.contains("regressions found"));
         assert!(report.contains("JPL interpolation quality"));
         assert!(report.contains("JPL interpolation quality: 10 samples across 5 bodies"));
+        assert!(report.contains("leave-one-out runtime interpolation evidence"));
         assert!(report.contains("Lunar reference evidence"));
         assert!(report.contains("lunar reference evidence: 5 samples across 5 bodies"));
         assert!(report.contains("Body comparison summaries"));
