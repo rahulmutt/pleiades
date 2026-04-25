@@ -4106,7 +4106,7 @@ fn render_comparison_audit_report_text(report: &ComparisonReport) -> String {
     }
     let _ = writeln!(text);
     let _ = writeln!(text, "Tolerance policy");
-    write_tolerance_policy_text(&mut text, &report);
+    write_tolerance_policy_text(&mut text, report);
     let _ = writeln!(text);
     let _ = writeln!(text, "Notable regressions");
     let regressions = report.notable_regressions();
