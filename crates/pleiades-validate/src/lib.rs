@@ -7158,6 +7158,9 @@ mod tests {
         assert!(rendered.contains("Whole Sign system"));
         assert!(rendered.contains("Morinus house system"));
         assert!(rendered.contains("Pullen SR (Sinusoidal Ratio) table of houses"));
+        assert!(rendered.contains("Pullen SD (Neo-Porphyry) table of houses"));
+        assert!(rendered.contains("Neo-Porphyry"));
+        assert!(rendered.contains("Makransky Sunshine"));
         assert!(rendered.contains("True Citra Paksha"));
         assert!(rendered.contains("Galactic Equator (Fiorenza)"));
         assert!(rendered.contains("Nick Anthony Fiorenza"));
@@ -7280,6 +7283,9 @@ mod tests {
         assert!(rendered.contains("Compatibility caveats:"));
         assert!(rendered.contains("Polich-Page \"topocentric\" table of houses"));
         assert!(rendered.contains("T Polich/Page (\"topocentric\")"));
+        assert!(rendered.contains("Pullen SD (Neo-Porphyry) table of houses"));
+        assert!(rendered.contains("Neo-Porphyry"));
+        assert!(rendered.contains("Makransky Sunshine"));
         assert!(rendered.contains("Babylonian Huber"));
         assert!(rendered.contains("Galactic Equator (True)"));
         assert!(rendered.contains("Valens Moon ayanamsa"));
