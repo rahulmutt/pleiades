@@ -832,9 +832,10 @@ pub fn format_lunar_equatorial_reference_evidence_envelope(
         .mean_distance_delta_au
         .map(|value| format!("; mean Δdist={value:.12} AU"))
         .unwrap_or_default();
+    let limit_note = "; limits: ΔRA≤1e-2°, ΔDec≤1e-2°, Δdist≤1e-8 AU";
 
     format!(
-        "lunar equatorial reference error envelope: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, max ΔRA={:.12}° ({}), mean ΔRA={:.12}°, max ΔDec={:.12}° ({}), mean ΔDec={:.12}°{}{}; outside current limits={}; within current limits={}",
+        "lunar equatorial reference error envelope: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, max ΔRA={:.12}° ({}), mean ΔRA={:.12}°, max ΔDec={:.12}° ({}), mean ΔDec={:.12}°{}{}{}; outside current limits={}; within current limits={}",
         envelope.sample_count,
         envelope.body_count,
         envelope.earliest_epoch.julian_day.days(),
@@ -847,6 +848,7 @@ pub fn format_lunar_equatorial_reference_evidence_envelope(
         envelope.mean_declination_delta_deg,
         distance,
         mean_distance,
+        limit_note,
         envelope.outside_current_limits_count,
         envelope.within_current_limits,
     )
@@ -1203,9 +1205,10 @@ pub fn format_lunar_reference_evidence_envelope(
         .mean_distance_delta_au
         .map(|value| format!("; mean Δdist={value:.12} AU"))
         .unwrap_or_default();
+    let limit_note = "; limits: Δlon≤1e-4° (1e-1° for mean node), Δlat≤1e-4°, Δdist≤1e-8 AU";
 
     format!(
-        "lunar reference error envelope: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, max Δlon={:.12}° ({}), mean Δlon={:.12}°, max Δlat={:.12}° ({}), mean Δlat={:.12}°{}{}; outside current limits={}; within current limits={}",
+        "lunar reference error envelope: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, max Δlon={:.12}° ({}), mean Δlon={:.12}°, max Δlat={:.12}° ({}), mean Δlat={:.12}°{}{}{}; outside current limits={}; within current limits={}",
         envelope.sample_count,
         envelope.body_count,
         envelope.earliest_epoch.julian_day.days(),
@@ -1218,6 +1221,7 @@ pub fn format_lunar_reference_evidence_envelope(
         envelope.mean_latitude_delta_deg,
         distance,
         mean_distance,
+        limit_note,
         envelope.outside_current_limits_count,
         envelope.within_current_limits,
     )
@@ -2166,6 +2170,7 @@ mod tests {
         assert!(lunar_reference_evidence_envelope_for_report().contains("mean Δlon="));
         assert!(lunar_reference_evidence_envelope_for_report().contains("max Δlat="));
         assert!(lunar_reference_evidence_envelope_for_report().contains("mean Δlat="));
+        assert!(lunar_reference_evidence_envelope_for_report().contains("limits: Δlon≤1e-4°"));
         assert!(
             lunar_reference_evidence_envelope_for_report().contains("within current limits=true")
         );
@@ -2204,6 +2209,9 @@ mod tests {
         assert!(lunar_equatorial_reference_evidence_envelope_for_report().contains("mean ΔRA="));
         assert!(lunar_equatorial_reference_evidence_envelope_for_report().contains("max ΔDec="));
         assert!(lunar_equatorial_reference_evidence_envelope_for_report().contains("mean ΔDec="));
+        assert!(
+            lunar_equatorial_reference_evidence_envelope_for_report().contains("limits: ΔRA≤1e-2°")
+        );
         assert!(lunar_equatorial_reference_evidence_envelope_for_report()
             .contains("within current limits=true"));
         assert!(lunar_equatorial_reference_evidence_envelope_for_report()
