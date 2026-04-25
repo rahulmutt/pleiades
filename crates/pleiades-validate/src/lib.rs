@@ -1171,7 +1171,7 @@ impl fmt::Display for ValidationReport {
         write_backend_matrix(f, &self.comparison.candidate_backend)?;
         writeln!(f)?;
         writeln!(f, "Comparison summary")?;
-        write_comparison_summary(f, &self.comparison.summary)?;
+        write_comparison_summary(f, &self.comparison)?;
         writeln!(f)?;
         write_body_comparison_summaries(f, &self.comparison.body_summaries())?;
         writeln!(f)?;
@@ -2530,6 +2530,7 @@ fn render_release_summary_text() -> String {
         text.push_str("Comparison envelope: ");
         text.push_str(&format_comparison_envelope_for_report(
             &report.comparison.summary,
+            &report.comparison.samples,
         ));
         text.push('\n');
         text.push_str("Body-class error envelopes:\n");
@@ -3880,7 +3881,53 @@ fn format_summary_body(body: &Option<CelestialBody>) -> String {
         .unwrap_or_default()
 }
 
-fn format_comparison_envelope_for_report(summary: &ComparisonSummary) -> String {
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct ComparisonMedianEnvelope {
+    longitude_delta_deg: f64,
+    latitude_delta_deg: f64,
+    distance_delta_au: Option<f64>,
+}
+
+fn median_value(values: &mut [f64]) -> Option<f64> {
+    if values.is_empty() {
+        return None;
+    }
+
+    values.sort_by(|left, right| left.total_cmp(right));
+    let middle = values.len() / 2;
+    if values.len() % 2 == 0 {
+        Some((values[middle - 1] + values[middle]) / 2.0)
+    } else {
+        Some(values[middle])
+    }
+}
+
+fn comparison_median_envelope(samples: &[ComparisonSample]) -> ComparisonMedianEnvelope {
+    let mut longitude_values = samples
+        .iter()
+        .map(|sample| sample.longitude_delta_deg)
+        .collect::<Vec<_>>();
+    let mut latitude_values = samples
+        .iter()
+        .map(|sample| sample.latitude_delta_deg)
+        .collect::<Vec<_>>();
+    let mut distance_values = samples
+        .iter()
+        .filter_map(|sample| sample.distance_delta_au)
+        .collect::<Vec<_>>();
+
+    ComparisonMedianEnvelope {
+        longitude_delta_deg: median_value(&mut longitude_values).unwrap_or_default(),
+        latitude_delta_deg: median_value(&mut latitude_values).unwrap_or_default(),
+        distance_delta_au: median_value(&mut distance_values),
+    }
+}
+
+fn format_comparison_envelope_for_report(
+    summary: &ComparisonSummary,
+    samples: &[ComparisonSample],
+) -> String {
+    let median = comparison_median_envelope(samples);
     let max_distance = summary
         .max_distance_delta_au
         .map(|value| format!("{value:.12} AU"))
@@ -3893,20 +3940,27 @@ fn format_comparison_envelope_for_report(summary: &ComparisonSummary) -> String 
         .rms_distance_delta_au
         .map(|value| format!("{value:.12} AU"))
         .unwrap_or_else(|| "n/a".to_string());
+    let median_distance = median
+        .distance_delta_au
+        .map(|value| format!("{value:.12} AU"))
+        .unwrap_or_else(|| "n/a".to_string());
 
     format!(
-        "max longitude delta: {:.12}°{}, mean longitude delta: {:.12}°, rms longitude delta: {:.12}°, max latitude delta: {:.12}°{}, mean latitude delta: {:.12}°, rms latitude delta: {:.12}°, max distance delta: {}{}, mean distance delta: {}, rms distance delta: {}",
+        "max longitude delta: {:.12}°{}, mean longitude delta: {:.12}°, median longitude delta: {:.12}°, rms longitude delta: {:.12}°, max latitude delta: {:.12}°{}, mean latitude delta: {:.12}°, median latitude delta: {:.12}°, rms latitude delta: {:.12}°, max distance delta: {}{}, mean distance delta: {}, median distance delta: {}, rms distance delta: {}",
         summary.max_longitude_delta_deg,
         format_summary_body(&summary.max_longitude_delta_body),
         summary.mean_longitude_delta_deg,
+        median.longitude_delta_deg,
         summary.rms_longitude_delta_deg,
         summary.max_latitude_delta_deg,
         format_summary_body(&summary.max_latitude_delta_body),
         summary.mean_latitude_delta_deg,
+        median.latitude_delta_deg,
         summary.rms_latitude_delta_deg,
         max_distance,
         format_summary_body(&summary.max_distance_delta_body),
         mean_distance,
+        median_distance,
         rms_distance,
     )
 }
@@ -4319,6 +4373,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         "  samples: {}",
         report.comparison.summary.sample_count
     );
+    let median = comparison_median_envelope(&report.comparison.samples);
     let _ = writeln!(
         text,
         "  max longitude delta: {:.12}°{}",
@@ -4344,14 +4399,40 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     );
     let _ = writeln!(
         text,
+        "  mean longitude delta: {:.12}°",
+        report.comparison.summary.mean_longitude_delta_deg
+    );
+    let _ = writeln!(
+        text,
+        "  median longitude delta: {:.12}°",
+        median.longitude_delta_deg
+    );
+    let _ = writeln!(
+        text,
         "  rms longitude delta: {:.12}°",
         report.comparison.summary.rms_longitude_delta_deg
+    );
+    let _ = writeln!(
+        text,
+        "  mean latitude delta: {:.12}°",
+        report.comparison.summary.mean_latitude_delta_deg
+    );
+    let _ = writeln!(
+        text,
+        "  median latitude delta: {:.12}°",
+        median.latitude_delta_deg
     );
     let _ = writeln!(
         text,
         "  rms latitude delta: {:.12}°",
         report.comparison.summary.rms_latitude_delta_deg
     );
+    if let Some(value) = report.comparison.summary.mean_distance_delta_au {
+        let _ = writeln!(text, "  mean distance delta: {:.12} AU", value);
+    }
+    if let Some(value) = median.distance_delta_au {
+        let _ = writeln!(text, "  median distance delta: {:.12} AU", value);
+    }
     if let Some(value) = report.comparison.summary.rms_distance_delta_au {
         let _ = writeln!(text, "  rms distance delta: {:.12} AU", value);
     }
@@ -5143,7 +5224,7 @@ impl fmt::Display for ComparisonReport {
         writeln!(f, "Reference backend: {}", self.reference_backend.id)?;
         writeln!(f, "Candidate backend: {}", self.candidate_backend.id)?;
         writeln!(f)?;
-        write_comparison_summary(f, &self.summary)?;
+        write_comparison_summary(f, self)?;
         writeln!(f)?;
         write_body_comparison_summaries(f, &self.body_summaries())?;
         writeln!(f)?;
@@ -6169,10 +6250,10 @@ fn write_lunar_high_curvature_equatorial_continuity_evidence(
     Ok(())
 }
 
-fn write_comparison_summary(
-    f: &mut fmt::Formatter<'_>,
-    summary: &ComparisonSummary,
-) -> fmt::Result {
+fn write_comparison_summary(f: &mut fmt::Formatter<'_>, report: &ComparisonReport) -> fmt::Result {
+    let summary = &report.summary;
+    let median = comparison_median_envelope(&report.samples);
+
     writeln!(f, "  samples: {}", summary.sample_count)?;
     writeln!(
         f,
@@ -6183,6 +6264,11 @@ fn write_comparison_summary(
         f,
         "  mean longitude delta: {:.12}°",
         summary.mean_longitude_delta_deg
+    )?;
+    writeln!(
+        f,
+        "  median longitude delta: {:.12}°",
+        median.longitude_delta_deg
     )?;
     writeln!(
         f,
@@ -6201,6 +6287,11 @@ fn write_comparison_summary(
     )?;
     writeln!(
         f,
+        "  median latitude delta: {:.12}°",
+        median.latitude_delta_deg
+    )?;
+    writeln!(
+        f,
         "  rms latitude delta: {:.12}°",
         summary.rms_latitude_delta_deg
     )?;
@@ -6209,6 +6300,9 @@ fn write_comparison_summary(
     }
     if let Some(value) = summary.mean_distance_delta_au {
         writeln!(f, "  mean distance delta: {:.12} AU", value)?;
+    }
+    if let Some(value) = median.distance_delta_au {
+        writeln!(f, "  median distance delta: {:.12} AU", value)?;
     }
     if let Some(value) = summary.rms_distance_delta_au {
         writeln!(f, "  rms distance delta: {:.12} AU", value)?;
@@ -7413,6 +7507,8 @@ mod tests {
         assert!(report.contains("Comparison corpus"));
         assert!(report.contains("epoch labels: JD 2378499.0 (TT)"));
         assert!(report.contains("Comparison summary"));
+        assert!(report.contains("median longitude delta:"));
+        assert!(report.contains("median latitude delta:"));
         assert!(report.contains("rms longitude delta:"));
         assert!(report.contains("rms latitude delta:"));
         assert!(report.contains("rms distance delta:"));
@@ -8248,6 +8344,8 @@ mod tests {
         assert!(rendered.contains("Custom-definition ayanamsas:"));
         assert!(rendered.contains("Compatibility caveats:"));
         assert!(rendered.contains("Comparison envelope:"));
+        assert!(rendered.contains("median longitude delta:"));
+        assert!(rendered.contains("median latitude delta:"));
         assert!(rendered.contains("Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB))"));
         assert!(rendered.contains("Body-class error envelopes:"));
         assert!(rendered.contains("max Δlon="));
@@ -8639,8 +8737,11 @@ version = "0.9.0"
         ));
         assert!(release_summary.contains("Comparison envelope: max longitude delta:"));
         assert!(release_summary.contains("mean longitude delta:"));
+        assert!(release_summary.contains("median longitude delta:"));
         assert!(release_summary.contains("mean latitude delta:"));
+        assert!(release_summary.contains("median latitude delta:"));
         assert!(release_summary.contains("mean distance delta:"));
+        assert!(release_summary.contains("median distance delta:"));
         assert!(release_summary.contains("ELP lunar capability: lunar capability summary:"));
         assert!(release_summary.contains(
             "ELP lunar request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"
