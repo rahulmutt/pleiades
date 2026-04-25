@@ -198,6 +198,8 @@ Progress note (2026-04-25): the compatibility-profile verification slice now als
 
 Progress note (2026-04-25): the same verification slice now also pins the Placidus, Koch, Whole Sign, and Sunshine table-of-houses spellings, so the exact release-profile source-label wording for a few more canonical house-system aliases stays covered as the catalog expands.
 
+Progress note (2026-04-25): validation coverage now also pins the additional ayanamsa spellings for True Revati, True Pushya, Lahiri (ICRC), Lahiri (1940), and Yukteshwar, keeping a few more release-profile source-label entries from drifting as the catalog grows.
+
 Remaining suggested scope:
 
 - add broader coverage for any still-unpinned release-profile spellings or status lines that future catalog batches introduce.

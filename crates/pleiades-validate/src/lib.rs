@@ -6823,6 +6823,11 @@ mod tests {
         assert!(rendered.contains("Babylonian Huber"));
         assert!(rendered.contains("Galactic Equator (True)"));
         assert!(rendered.contains("Valens Moon ayanamsa"));
+        assert!(rendered.contains("Lahiri (ICRC)"));
+        assert!(rendered.contains("Lahiri (1940)"));
+        assert!(rendered.contains("Yukteshwar"));
+        assert!(rendered.contains("True Revati"));
+        assert!(rendered.contains("True Pushya"));
     }
 
     #[test]
