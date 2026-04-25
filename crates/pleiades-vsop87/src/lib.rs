@@ -616,25 +616,49 @@ pub fn canonical_epoch_samples() -> Vec<Vsop87CanonicalEpochSample> {
         .collect()
 }
 
+fn canonical_epoch_requests() -> Vec<EphemerisRequest> {
+    canonical_epoch_samples()
+        .into_iter()
+        .map(|sample| {
+            let mut request = EphemerisRequest::new(
+                sample.body,
+                Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt),
+            );
+            request.apparent = Apparentness::Mean;
+            request
+        })
+        .collect()
+}
+
 /// Returns the canonical per-body error envelope used by release-facing
 /// validation reports.
+///
+/// The evidence is derived from one batch query over the canonical source-backed
+/// sample set so the validation layer exercises the backend batch path as well
+/// as the single-body query path.
 pub fn canonical_epoch_body_evidence() -> Option<Vec<Vsop87CanonicalBodyEvidence>> {
     let backend = Vsop87Backend::new();
     let profiles = body_source_profiles();
     let specs = source_specifications();
-    let mut evidence = Vec::new();
+    let samples = canonical_epoch_samples();
+    let requests = canonical_epoch_requests();
+    let results = backend.positions(&requests).ok()?;
 
-    for sample in canonical_epoch_samples() {
+    if results.len() != samples.len() {
+        return None;
+    }
+
+    let mut evidence = Vec::with_capacity(samples.len());
+
+    for (sample, result) in samples.into_iter().zip(results.into_iter()) {
+        if result.body != sample.body {
+            return None;
+        }
+
         let profile = profiles
             .iter()
             .find(|profile| profile.body == sample.body)?;
         let spec = specs.iter().find(|spec| spec.body == sample.body)?;
-        let mut request = EphemerisRequest::new(
-            sample.body.clone(),
-            Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt),
-        );
-        request.apparent = Apparentness::Mean;
-        let result = backend.position(&request).ok()?;
         let ecliptic = result.ecliptic?;
         let distance = ecliptic.distance_au?;
 
@@ -1513,6 +1537,43 @@ mod tests {
             );
             let expected_quality = QualityAnnotation::Exact;
             assert_eq!(result.quality, expected_quality);
+        }
+    }
+
+    #[test]
+    fn batch_query_preserves_canonical_sample_order_for_source_backed_paths() {
+        let backend = Vsop87Backend::new();
+        let mut requests = canonical_epoch_requests();
+        let mut samples = canonical_epoch_samples();
+        requests.reverse();
+        samples.reverse();
+
+        let results = backend
+            .positions(&requests)
+            .expect("batch query should preserve input order for every source-backed body");
+
+        assert_eq!(results.len(), samples.len());
+        for (sample, result) in samples.iter().zip(results.iter()) {
+            assert_eq!(result.body, sample.body);
+            let ecliptic = result
+                .ecliptic
+                .as_ref()
+                .expect("ecliptic result should exist");
+            assert_degrees_close(
+                ecliptic.longitude.degrees(),
+                sample.expected_longitude_deg,
+                sample.max_longitude_delta_deg,
+            );
+            assert_degrees_close(
+                ecliptic.latitude.degrees(),
+                sample.expected_latitude_deg,
+                sample.max_latitude_delta_deg,
+            );
+            assert_close(
+                ecliptic.distance_au.expect("distance should exist"),
+                sample.expected_distance_au,
+                sample.max_distance_delta_au,
+            );
         }
     }
 

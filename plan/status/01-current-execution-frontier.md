@@ -44,11 +44,11 @@ Latest progress (2026-04-25): the shared `pleiades-types::EclipticCoordinates::t
 
 Latest progress (2026-04-25): validation reporting now includes a release-grade comparison tolerance audit section, and `compare-backends-audit` now fails when the built-in tolerance audit finds regressions, so release tooling has an explicit pass/fail gate in addition to the existing per-body tolerance tables.
 
-Latest progress (2026-04-25): the VSOP87 canonical J2000 source-backed evidence summary now names the body that drives each maximum delta axis, which makes the release-facing source-backed envelope easier to audit without changing the public comparison corpus.
+Latest progress (2026-04-25): the VSOP87 canonical J2000 source-backed evidence summary now names the body that drives each maximum delta axis, which makes the release-facing source-backed envelope easier to audit without changing the public comparison corpus. The same canonical VSOP87 evidence path now also derives from one batch query over the full source-backed sample set, and the VSOP87 regression suite now checks that batch requests preserve the canonical sample order, so the validation-facing evidence and the backend batch contract stay aligned.
 
 Previous progress (2026-04-24): backend matrix release artifacts now report implementation status separately from body/catalog presence. Each implemented backend has an explicit status label and note (fixture reference, partial source-backed, preliminary algorithm, prototype artifact, or routing façade), and the compact matrix summary counts those statuses so release artifacts do not imply production accuracy merely because a backend advertises body coverage. The compact lunar-theory spec now also surfaces true apogee and true perigee as explicitly unsupported bodies, and the ELP regression tests now assert the structured `UnsupportedBody` failures for those requests.
 
-Recent test progress (2026-04-24): the VSOP87 backend now also exercises its batch API over the full source-backed Sun-through-Neptune sample set, so the canonical J2000 evidence is verified both body-by-body and in batch form.
+Recent test progress (2026-04-24): the VSOP87 backend now also exercises its batch API over the full source-backed Sun-through-Neptune sample set, and the canonical sample order is now checked explicitly through a reversed batch request set, so the canonical J2000 evidence is verified both body-by-body and as an ordered batch.
 
 Active gaps:
 
