@@ -100,8 +100,23 @@ impl ChartRequest {
     /// This convenience method mirrors [`Instant::tt_from_ut1`] so chart callers
     /// can prepare a TT request surface before assembling houses or body
     /// positions.
+    ///
+    /// For signed `TT - UT1` policies, use [`ChartRequest::with_tt_from_ut1_signed`].
     pub fn with_tt_from_ut1(mut self, delta_t: Duration) -> Result<Self, TimeScaleConversionError> {
         self.instant = self.instant.tt_from_ut1(delta_t)?;
+        Ok(self)
+    }
+
+    /// Converts the chart instant from UT1 to TT using a caller-supplied signed offset.
+    ///
+    /// This convenience method mirrors [`Instant::tt_from_ut1_signed`] so chart
+    /// callers can keep the chosen Delta T policy explicit when the `TT - UT1`
+    /// correction is negative at the chosen epoch.
+    pub fn with_tt_from_ut1_signed(
+        mut self,
+        offset_seconds: f64,
+    ) -> Result<Self, TimeScaleConversionError> {
+        self.instant = self.instant.tt_from_ut1_signed(offset_seconds)?;
         Ok(self)
     }
 
@@ -110,8 +125,23 @@ impl ChartRequest {
     /// This convenience method mirrors [`Instant::tt_from_utc`] so chart callers
     /// can keep civil-time inputs explicit without introducing built-in leap-
     /// second or Delta T modeling in the façade.
+    ///
+    /// For signed `TT - UTC` policies, use [`ChartRequest::with_tt_from_utc_signed`].
     pub fn with_tt_from_utc(mut self, delta_t: Duration) -> Result<Self, TimeScaleConversionError> {
         self.instant = self.instant.tt_from_utc(delta_t)?;
+        Ok(self)
+    }
+
+    /// Converts the chart instant from UTC to TT using a caller-supplied signed offset.
+    ///
+    /// This convenience method mirrors [`Instant::tt_from_utc_signed`] so chart
+    /// callers can keep civil-time inputs explicit when the `TT - UTC`
+    /// correction is negative at the chosen epoch.
+    pub fn with_tt_from_utc_signed(
+        mut self,
+        offset_seconds: f64,
+    ) -> Result<Self, TimeScaleConversionError> {
+        self.instant = self.instant.tt_from_utc_signed(offset_seconds)?;
         Ok(self)
     }
 
@@ -1874,6 +1904,20 @@ mod tests {
     }
 
     #[test]
+    fn chart_request_can_convert_ut1_to_tt_with_signed_offset() {
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Ut1,
+        ))
+        .with_tt_from_ut1_signed(64.184)
+        .expect("UT1 chart request should accept signed TT offsets");
+
+        assert_eq!(request.instant.scale, TimeScale::Tt);
+        let expected = 2_451_545.0 + 64.184 / 86_400.0;
+        assert!((request.instant.julian_day.days() - expected).abs() < 1e-9);
+    }
+
+    #[test]
     fn chart_request_can_convert_utc_to_tt() {
         let request = ChartRequest::new(Instant::new(
             pleiades_types::JulianDay::from_days(2_451_545.0),
@@ -1881,6 +1925,20 @@ mod tests {
         ))
         .with_tt_from_utc(Duration::from_secs_f64(64.184))
         .expect("UTC chart request should convert to TT");
+
+        assert_eq!(request.instant.scale, TimeScale::Tt);
+        let expected = 2_451_545.0 + 64.184 / 86_400.0;
+        assert!((request.instant.julian_day.days() - expected).abs() < 1e-9);
+    }
+
+    #[test]
+    fn chart_request_can_convert_utc_to_tt_with_signed_offset() {
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Utc,
+        ))
+        .with_tt_from_utc_signed(64.184)
+        .expect("UTC chart request should accept signed TT offsets");
 
         assert_eq!(request.instant.scale, TimeScale::Tt);
         let expected = 2_451_545.0 + 64.184 / 86_400.0;

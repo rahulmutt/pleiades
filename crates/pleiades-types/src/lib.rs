@@ -269,6 +269,8 @@ impl Instant {
     /// TT instant to backends that require TT. UTC-to-TT conversion is not
     /// represented by this helper, because UTC also requires leap-second and
     /// DUT1 handling outside the current type layer.
+    ///
+    /// For signed `TT - UT1` policies, use [`Instant::tt_from_ut1_signed`].
     pub fn tt_from_ut1(self, delta_t: Duration) -> Result<Self, TimeScaleConversionError> {
         if self.scale != TimeScale::Ut1 {
             return Err(TimeScaleConversionError::expected(
@@ -280,12 +282,31 @@ impl Instant {
         Ok(self.with_time_scale_offset(TimeScale::Tt, delta_t.as_secs_f64()))
     }
 
+    /// Converts a UT1-tagged instant to TT using a caller-supplied signed offset.
+    ///
+    /// `offset_seconds` must be the already-chosen signed `TT - UT1` offset in
+    /// SI seconds. The helper intentionally does not model leap seconds or
+    /// DUT1 by itself; it only makes a caller-supplied UT1-to-TT policy explicit
+    /// and reproducible for applications that need a TT-tagged request surface.
+    pub fn tt_from_ut1_signed(self, offset_seconds: f64) -> Result<Self, TimeScaleConversionError> {
+        if self.scale != TimeScale::Ut1 {
+            return Err(TimeScaleConversionError::expected(
+                TimeScale::Ut1,
+                self.scale,
+            ));
+        }
+
+        Ok(self.with_time_scale_offset(TimeScale::Tt, offset_seconds))
+    }
+
     /// Converts a UTC-tagged instant to TT using caller-supplied offset.
     ///
     /// `delta_t` must be the already-chosen `TT - UTC` offset in SI seconds.
     /// The helper intentionally does not model leap seconds or DUT1 by itself;
     /// it only makes a caller-supplied UTC-to-TT policy explicit and
     /// reproducible for applications that start from civil time.
+    ///
+    /// For signed `TT - UTC` policies, use [`Instant::tt_from_utc_signed`].
     pub fn tt_from_utc(self, delta_t: Duration) -> Result<Self, TimeScaleConversionError> {
         if self.scale != TimeScale::Utc {
             return Err(TimeScaleConversionError::expected(
@@ -295,6 +316,23 @@ impl Instant {
         }
 
         Ok(self.with_time_scale_offset(TimeScale::Tt, delta_t.as_secs_f64()))
+    }
+
+    /// Converts a UTC-tagged instant to TT using a caller-supplied signed offset.
+    ///
+    /// `offset_seconds` must be the already-chosen signed `TT - UTC` offset in
+    /// SI seconds. The helper intentionally does not model leap seconds or
+    /// DUT1 by itself; it only makes a caller-supplied UTC-to-TT policy explicit
+    /// and reproducible for applications that need a TT-tagged request surface.
+    pub fn tt_from_utc_signed(self, offset_seconds: f64) -> Result<Self, TimeScaleConversionError> {
+        if self.scale != TimeScale::Utc {
+            return Err(TimeScaleConversionError::expected(
+                TimeScale::Utc,
+                self.scale,
+            ));
+        }
+
+        Ok(self.with_time_scale_offset(TimeScale::Tt, offset_seconds))
     }
 
     /// Converts a TT-tagged instant to TDB using a caller-supplied offset.
@@ -1266,6 +1304,17 @@ mod tests {
     }
 
     #[test]
+    fn caller_supplied_time_scale_offsets_can_convert_utc_to_tt_with_signed_offset() {
+        let utc = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Utc);
+        let tt = utc
+            .tt_from_utc_signed(64.184)
+            .expect("UTC to TT conversion should accept signed UTC input");
+
+        assert_eq!(tt.scale, TimeScale::Tt);
+        assert!((tt.julian_day.days() - 2_451_545.000_742_870_4).abs() < 1e-12);
+    }
+
+    #[test]
     fn caller_supplied_time_scale_offsets_can_convert_tt_to_tdb() {
         let tt = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
         let tdb = tt
@@ -1356,6 +1405,18 @@ mod tests {
     }
 
     #[test]
+    fn caller_supplied_time_scale_offsets_can_convert_ut1_to_tt_with_signed_offset() {
+        let ut1 = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Ut1);
+        let tt = ut1
+            .tt_from_ut1_signed(64.184)
+            .expect("UT1 to TT conversion should accept signed UT1 input");
+
+        assert_eq!(tt.scale, TimeScale::Tt);
+        let expected = 2_451_545.0 + 64.184 / 86_400.0;
+        assert!((tt.julian_day.days() - expected).abs() < 1e-12);
+    }
+
+    #[test]
     fn time_scale_helpers_reject_the_wrong_source_scale() {
         let utc = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Utc);
         let ut1_error = utc
@@ -1380,6 +1441,13 @@ mod tests {
         assert_eq!(utc_error.expected, TimeScale::Utc);
         assert_eq!(utc_error.actual, TimeScale::Tt);
 
+        let utc_signed_error = tt
+            .tt_from_utc_signed(64.0)
+            .expect_err("TT is not UTC for signed UTC-to-TT conversion");
+
+        assert_eq!(utc_signed_error.expected, TimeScale::Utc);
+        assert_eq!(utc_signed_error.actual, TimeScale::Tt);
+
         let tdb_error = tt
             .tdb_from_utc(Duration::from_secs(64), Duration::from_secs(1))
             .expect_err("TT is not UTC for UTC-to-TDB conversion");
@@ -1393,6 +1461,13 @@ mod tests {
 
         assert_eq!(tt_error.expected, TimeScale::Tdb);
         assert_eq!(tt_error.actual, TimeScale::Utc);
+
+        let ut1_signed_error = utc
+            .tt_from_ut1_signed(64.0)
+            .expect_err("UTC is not UT1 for signed UT1-to-TT conversion");
+
+        assert_eq!(ut1_signed_error.expected, TimeScale::Ut1);
+        assert_eq!(ut1_signed_error.actual, TimeScale::Utc);
 
         let wrong_scale_error = tt
             .tt_from_tdb(-0.001_657)
