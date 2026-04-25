@@ -586,7 +586,7 @@ mod tests {
         assert!(compatibility.contains("House systems: 25 total"));
         assert!(compatibility
             .contains("Compatibility profile verification: verify-compatibility-profile"));
-        assert!(compatibility.contains("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
+        assert!(compatibility.contains("Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(compatibility.contains("Release notes summary: release-notes-summary"));
         assert!(compatibility.contains("Release summary: release-summary"));
         assert!(compatibility.contains("Release checklist summary: release-checklist-summary"));
@@ -632,7 +632,7 @@ mod tests {
         assert!(release_notes.contains("Release notes summary: release-notes-summary"));
         assert!(release_notes.contains("Backend matrix summary: backend-matrix-summary"));
         assert!(release_notes.contains("Artifact validation: validate-artifact"));
-        assert!(release_notes.contains("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
+        assert!(release_notes.contains("Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_notes.contains("Release checklist summary: release-checklist-summary"));
         assert!(release_notes.contains("Release bundle verification: verify-release-bundle"));
         assert!(release_notes
@@ -645,7 +645,7 @@ mod tests {
         assert!(release_notes_summary.contains("Release notes summary"));
         assert!(release_notes_summary.contains("API stability summary line:"));
         assert!(release_notes_summary.contains("Artifact validation: validate-artifact"));
-        assert!(release_notes_summary.contains("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
+        assert!(release_notes_summary.contains("Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_notes_summary.contains("Release notes: release-notes"));
         assert!(release_notes_summary
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
@@ -671,7 +671,7 @@ mod tests {
         assert!(release_checklist.contains("Backend matrix summary: backend-matrix-summary"));
         assert!(release_checklist.contains("API stability summary: api-stability-summary"));
         assert!(release_checklist.contains("Artifact validation: validate-artifact"));
-        assert!(release_checklist.contains("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
+        assert!(release_checklist.contains("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
         assert!(release_checklist.contains("Repository-managed release gates:"));
         assert!(release_checklist
             .contains("[x] cargo run -q -p pleiades-validate -- verify-compatibility-profile"));
@@ -693,10 +693,10 @@ mod tests {
             .contains("Release bundle verification: verify-release-bundle"));
         assert!(release_checklist_summary.contains("Workspace audit: workspace-audit / audit"));
         assert!(release_checklist_summary.contains("Release summary: release-summary"));
-        assert!(release_checklist_summary.contains("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
+        assert!(release_checklist_summary.contains("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
         assert!(release_checklist_summary.contains("Repository-managed release gates: 7 items"));
         assert!(release_checklist_summary.contains("Manual bundle workflow: 3 items"));
-        assert!(release_checklist_summary.contains("Bundle contents: 16 items"));
+        assert!(release_checklist_summary.contains("Bundle contents: 17 items"));
         assert!(release_checklist_summary.contains("External publishing reminders: 3 items"));
         assert!(release_checklist_summary
             .contains("See release-summary for the compact one-screen release overview."));
@@ -719,7 +719,7 @@ mod tests {
         assert!(release_summary.contains("Workspace audit: workspace-audit / audit"));
         assert!(release_summary
             .contains("[x] cargo run -q -p pleiades-validate -- verify-compatibility-profile"));
-        assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
+        assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_summary.contains("Release checklist summary: release-checklist-summary"));
         assert!(release_summary.contains("See release-notes and release-checklist"));
 

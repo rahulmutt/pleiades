@@ -694,6 +694,8 @@ pub struct ReleaseBundle {
     pub api_stability_summary_path: PathBuf,
     /// Path to the generated validation report summary file.
     pub validation_report_summary_path: PathBuf,
+    /// Path to the generated workspace-audit summary file.
+    pub workspace_audit_summary_path: PathBuf,
     /// Path to the generated artifact summary file.
     pub artifact_summary_path: PathBuf,
     /// Path to the generated validation report file.
@@ -726,6 +728,8 @@ pub struct ReleaseBundle {
     pub api_stability_summary_bytes: usize,
     /// Number of bytes written for the validation report summary.
     pub validation_report_summary_bytes: usize,
+    /// Number of bytes written for the workspace-audit summary.
+    pub workspace_audit_summary_bytes: usize,
     /// Number of bytes written for the artifact summary.
     pub artifact_summary_bytes: usize,
     /// Number of bytes written for the validation report.
@@ -756,6 +760,8 @@ pub struct ReleaseBundle {
     pub api_stability_summary_checksum: u64,
     /// Deterministic checksum for the validation report summary contents.
     pub validation_report_summary_checksum: u64,
+    /// Deterministic checksum for the workspace-audit summary contents.
+    pub workspace_audit_summary_checksum: u64,
     /// Deterministic checksum for the artifact summary contents.
     pub artifact_summary_checksum: u64,
     /// Deterministic checksum for the validation report contents.
@@ -858,6 +864,37 @@ impl fmt::Display for WorkspaceAuditReport {
         }
         Ok(())
     }
+}
+
+fn render_workspace_audit_summary_text(report: &WorkspaceAuditReport) -> String {
+    let mut text = String::new();
+    text.push_str("Workspace audit summary\n");
+    text.push_str("Workspace root: ");
+    text.push_str(&report.workspace_root.display().to_string());
+    text.push('\n');
+    text.push_str("Checked manifests: ");
+    text.push_str(&report.manifest_paths.len().to_string());
+    text.push('\n');
+    text.push_str("Checked lockfile: ");
+    text.push_str(&report.lockfile_path.display().to_string());
+    text.push('\n');
+    text.push_str("Violations: ");
+    text.push_str(&report.violations.len().to_string());
+    text.push('\n');
+    text.push_str("Result: ");
+    text.push_str(if report.is_clean() {
+        "no mandatory native build hooks detected"
+    } else {
+        "violations found"
+    });
+    text.push('\n');
+    text
+}
+
+/// Renders a compact workspace audit summary used by the CLI and release bundle.
+pub fn render_workspace_audit_summary() -> Result<String, std::io::Error> {
+    let report = workspace_audit_report()?;
+    Ok(render_workspace_audit_summary_text(&report))
 }
 
 impl fmt::Display for ValidationReport {
@@ -1058,6 +1095,11 @@ impl fmt::Display for ReleaseBundle {
         )?;
         writeln!(
             f,
+            "  workspace audit summary: {}",
+            self.workspace_audit_summary_path.display()
+        )?;
+        writeln!(
+            f,
             "  artifact summary: {}",
             self.artifact_summary_path.display()
         )?;
@@ -1181,6 +1223,11 @@ impl fmt::Display for ReleaseBundle {
         )?;
         writeln!(
             f,
+            "  workspace audit summary bytes: {}",
+            self.workspace_audit_summary_bytes
+        )?;
+        writeln!(
+            f,
             "  artifact summary bytes: {}",
             self.artifact_summary_bytes
         )?;
@@ -1198,6 +1245,11 @@ impl fmt::Display for ReleaseBundle {
             f,
             "  validation report summary checksum: 0x{:016x}",
             self.validation_report_summary_checksum
+        )?;
+        writeln!(
+            f,
+            "  workspace audit summary checksum: 0x{:016x}",
+            self.workspace_audit_summary_checksum
         )?;
         writeln!(
             f,
@@ -1279,6 +1331,10 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             } else {
                 Err(format!("workspace audit failed:\n{report}"))
             }
+        }
+        Some("workspace-audit-summary") => {
+            ensure_no_extra_args(&args[1..], "workspace-audit-summary")?;
+            render_workspace_audit_summary().map_err(|error| error.to_string())
         }
         Some("api-stability-summary") | Some("api-posture-summary") => {
             ensure_no_extra_args(&args[1..], "api-stability-summary")?;
@@ -1829,7 +1885,7 @@ fn render_compatibility_profile_summary_text() -> String {
     text.push_str(&profile.known_gaps.len().to_string());
     text.push('\n');
     text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
-    text.push_str("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary\n");
+    text.push_str("Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary\n");
     text.push_str("Release notes summary: release-notes-summary\n");
     text.push_str("Release summary: release-summary\n");
     text.push_str("Release checklist summary: release-checklist-summary\n");
@@ -1856,8 +1912,9 @@ fn render_release_notes_text() -> String {
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("Backend matrix summary: backend-matrix-summary\n");
     text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
+    text.push_str("Workspace audit summary: workspace-audit-summary\n");
     text.push_str("Artifact validation: validate-artifact\n");
-    text.push_str("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary\n");
+    text.push_str("Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary\n");
     text.push_str("Release notes summary: release-notes-summary\n");
     text.push_str("Release summary: release-summary\n");
     text.push_str("Release checklist summary: release-checklist-summary\n");
@@ -1965,8 +2022,9 @@ fn render_release_notes_summary_text() -> String {
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
     text.push_str("Artifact summary: artifact-summary / artifact-posture-summary\n");
+    text.push_str("Workspace audit summary: workspace-audit-summary\n");
     text.push_str("Artifact validation: validate-artifact\n");
-    text.push_str("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary\n");
+    text.push_str("Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary\n");
     text.push_str("Release checklist summary: release-checklist-summary\n");
     text.push_str("Release bundle verification: verify-release-bundle\n");
     text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
@@ -1995,9 +2053,10 @@ fn render_release_checklist_text() -> String {
     text.push_str("API stability summary: api-stability-summary\n");
     text.push_str("Validation report summary: validation-report-summary / validation-summary / report-summary\n");
     text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
+    text.push_str("Workspace audit summary: workspace-audit-summary\n");
     text.push_str("Artifact validation: validate-artifact\n");
     text.push_str("Release summary: release-summary\n");
-    text.push_str("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary\n");
+    text.push_str("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary\n");
     text.push('\n');
     text.push_str("Repository-managed release gates:\n");
     for item in [
@@ -2039,6 +2098,7 @@ fn render_release_checklist_text() -> String {
         "[x] api-stability.txt",
         "[x] api-stability-summary.txt",
         "[x] validation-report-summary.txt",
+        "[x] workspace-audit-summary.txt",
         "[x] validation-report.txt",
         "[x] bundle-manifest.txt",
         "[x] bundle-manifest.checksum.txt",
@@ -2180,8 +2240,9 @@ fn render_release_summary_text() -> String {
     text.push_str("Backend matrix summary: backend-matrix-summary\n");
     text.push_str("Validation report summary: validation-report-summary / validation-summary / report-summary\n");
     text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
+    text.push_str("Workspace audit summary: workspace-audit-summary\n");
     text.push_str("Workspace audit: workspace-audit / audit\n");
-    text.push_str("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary\n");
+    text.push_str("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary\n");
     text.push_str("Release notes summary: release-notes-summary\n");
     text.push_str("Artifact validation: validate-artifact\n");
     text.push_str("Packaged-artifact profile: ");
@@ -2238,15 +2299,16 @@ fn render_release_checklist_summary_text() -> String {
     text.push_str("API stability summary: api-stability-summary\n");
     text.push_str("Validation report summary: validation-report-summary / validation-summary / report-summary\n");
     text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
+    text.push_str("Workspace audit summary: workspace-audit-summary\n");
     text.push_str("Workspace audit: workspace-audit / audit\n");
     text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
     text.push_str("Artifact validation: validate-artifact\n");
     text.push_str("Release bundle verification: verify-release-bundle\n");
     text.push_str("Release summary: release-summary\n");
-    text.push_str("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary\n");
+    text.push_str("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary\n");
     text.push_str("Repository-managed release gates: 7 items\n");
     text.push_str("Manual bundle workflow: 3 items\n");
-    text.push_str("Bundle contents: 16 items\n");
+    text.push_str("Bundle contents: 17 items\n");
     text.push_str("External publishing reminders: 3 items\n");
     text.push('\n');
     text.push_str("See release-checklist for the full maintainer-facing artifact.\n");
@@ -2327,6 +2389,8 @@ pub fn render_release_bundle(
     let validation_report = build_validation_report(rounds)?;
     let validation_report_text = validation_report.to_string();
     let validation_report_summary_text = render_validation_report_summary_text(&validation_report);
+    let workspace_audit_summary_text = render_workspace_audit_summary()
+        .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
     let artifact_summary_text = render_artifact_summary()
         .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
     let provenance = workspace_provenance();
@@ -2342,6 +2406,7 @@ pub fn render_release_bundle(
     let api_stability_path = output_dir.join("api-stability.txt");
     let api_stability_summary_path = output_dir.join("api-stability-summary.txt");
     let validation_report_summary_path = output_dir.join("validation-report-summary.txt");
+    let workspace_audit_summary_path = output_dir.join("workspace-audit-summary.txt");
     let artifact_summary_path = output_dir.join("artifact-summary.txt");
     let report_path = output_dir.join("validation-report.txt");
     let manifest_path = output_dir.join("bundle-manifest.txt");
@@ -2359,10 +2424,11 @@ pub fn render_release_bundle(
     let api_stability_checksum = checksum64(&api_stability_text);
     let api_stability_summary_checksum = checksum64(&api_stability_summary_text);
     let validation_report_summary_checksum = checksum64(&validation_report_summary_text);
+    let workspace_audit_summary_checksum = checksum64(&workspace_audit_summary_text);
     let artifact_summary_checksum = checksum64(&artifact_summary_text);
     let validation_report_checksum = checksum64(&validation_report_text);
     let manifest_text = format!(
-        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease notes summary: release-notes-summary.txt\nrelease notes summary checksum (fnv1a-64): 0x{release_notes_summary_checksum:016x}\nrelease summary: release-summary.txt\nrelease summary checksum (fnv1a-64): 0x{release_summary_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nrelease checklist summary: release-checklist-summary.txt\nrelease checklist summary checksum (fnv1a-64): 0x{release_checklist_summary_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\nbackend matrix summary: backend-matrix-summary.txt\nbackend matrix summary checksum (fnv1a-64): 0x{backend_matrix_summary_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\napi stability summary: api-stability-summary.txt\napi stability summary checksum (fnv1a-64): 0x{api_stability_summary_checksum:016x}\nvalidation report summary: validation-report-summary.txt\nvalidation report summary checksum (fnv1a-64): 0x{validation_report_summary_checksum:016x}\nartifact summary: artifact-summary.txt\nartifact summary checksum (fnv1a-64): 0x{artifact_summary_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
+        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease notes summary: release-notes-summary.txt\nrelease notes summary checksum (fnv1a-64): 0x{release_notes_summary_checksum:016x}\nrelease summary: release-summary.txt\nrelease summary checksum (fnv1a-64): 0x{release_summary_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nrelease checklist summary: release-checklist-summary.txt\nrelease checklist summary checksum (fnv1a-64): 0x{release_checklist_summary_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\nbackend matrix summary: backend-matrix-summary.txt\nbackend matrix summary checksum (fnv1a-64): 0x{backend_matrix_summary_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\napi stability summary: api-stability-summary.txt\napi stability summary checksum (fnv1a-64): 0x{api_stability_summary_checksum:016x}\nvalidation report summary: validation-report-summary.txt\nvalidation report summary checksum (fnv1a-64): 0x{validation_report_summary_checksum:016x}\nworkspace audit summary: workspace-audit-summary.txt\nworkspace audit summary checksum (fnv1a-64): 0x{workspace_audit_summary_checksum:016x}\nartifact summary: artifact-summary.txt\nartifact summary checksum (fnv1a-64): 0x{artifact_summary_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
         provenance.source_revision,
         provenance.workspace_status,
         provenance.rustc_version,
@@ -2397,6 +2463,10 @@ pub fn render_release_bundle(
     fs::write(
         &validation_report_summary_path,
         validation_report_summary_text.as_bytes(),
+    )?;
+    fs::write(
+        &workspace_audit_summary_path,
+        workspace_audit_summary_text.as_bytes(),
     )?;
     let manifest_checksum = checksum64(&manifest_text);
     let manifest_checksum_text = format!("0x{manifest_checksum:016x}\n");
@@ -2434,6 +2504,8 @@ struct ParsedReleaseBundleManifest {
     api_stability_summary_checksum: u64,
     validation_report_summary_path: String,
     validation_report_summary_checksum: u64,
+    workspace_audit_summary_path: String,
+    workspace_audit_summary_checksum: u64,
     artifact_summary_path: String,
     artifact_summary_checksum: u64,
     validation_report_path: String,
@@ -2512,6 +2584,11 @@ impl ParsedReleaseBundleManifest {
                 text,
                 "validation report summary checksum (fnv1a-64):",
             )?,
+            workspace_audit_summary_path: parse_manifest_string(text, "workspace audit summary:")?,
+            workspace_audit_summary_checksum: parse_manifest_checksum(
+                text,
+                "workspace audit summary checksum (fnv1a-64):",
+            )?,
             artifact_summary_path: parse_manifest_string(text, "artifact summary:")?,
             artifact_summary_checksum: parse_manifest_checksum(
                 text,
@@ -2550,6 +2627,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
         "api-stability.txt",
         "api-stability-summary.txt",
         "validation-report-summary.txt",
+        "workspace-audit-summary.txt",
         "artifact-summary.txt",
         "validation-report.txt",
         "bundle-manifest.txt",
@@ -2586,7 +2664,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
 fn ensure_release_bundle_manifest_is_canonical(
     manifest_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    const EXPECTED_MANIFEST_LINES: [&str; 35] = [
+    const EXPECTED_MANIFEST_LINES: [&str; 37] = [
         "Release bundle manifest",
         "profile:",
         "profile checksum (fnv1a-64):",
@@ -2612,6 +2690,8 @@ fn ensure_release_bundle_manifest_is_canonical(
         "api stability summary checksum (fnv1a-64):",
         "validation report summary:",
         "validation report summary checksum (fnv1a-64):",
+        "workspace audit summary:",
+        "workspace audit summary checksum (fnv1a-64):",
         "artifact summary:",
         "artifact summary checksum (fnv1a-64):",
         "validation report:",
@@ -2685,6 +2765,7 @@ fn verify_release_bundle(
     let api_stability_path = output_dir.join("api-stability.txt");
     let api_stability_summary_path = output_dir.join("api-stability-summary.txt");
     let validation_report_summary_path = output_dir.join("validation-report-summary.txt");
+    let workspace_audit_summary_path = output_dir.join("workspace-audit-summary.txt");
     let artifact_summary_path = output_dir.join("artifact-summary.txt");
     let validation_report_path = output_dir.join("validation-report.txt");
     let manifest_path = output_dir.join("bundle-manifest.txt");
@@ -2703,6 +2784,7 @@ fn verify_release_bundle(
         (&api_stability_path, "API stability"),
         (&api_stability_summary_path, "API stability summary"),
         (&validation_report_summary_path, "validation report summary"),
+        (&workspace_audit_summary_path, "workspace audit summary"),
         (&artifact_summary_path, "artifact summary"),
         (&validation_report_path, "validation report"),
         (&manifest_path, "bundle manifest"),
@@ -2730,6 +2812,8 @@ fn verify_release_bundle(
         read_required_bundle_text(&api_stability_summary_path, "API stability summary")?;
     let validation_report_summary_text =
         read_required_bundle_text(&validation_report_summary_path, "validation report summary")?;
+    let workspace_audit_summary_text =
+        read_required_bundle_text(&workspace_audit_summary_path, "workspace audit summary")?;
     let artifact_summary_text =
         read_required_bundle_text(&artifact_summary_path, "artifact summary")?;
     let validation_report_text =
@@ -2821,6 +2905,12 @@ fn verify_release_bundle(
             manifest.validation_report_summary_path
         )));
     }
+    if manifest.workspace_audit_summary_path != "workspace-audit-summary.txt" {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected workspace audit summary file entry: {}",
+            manifest.workspace_audit_summary_path
+        )));
+    }
     if manifest.artifact_summary_path != "artifact-summary.txt" {
         return Err(ReleaseBundleError::Verification(format!(
             "unexpected artifact summary file entry: {}",
@@ -2845,6 +2935,7 @@ fn verify_release_bundle(
     let api_stability_checksum = checksum64(&api_stability_text);
     let api_stability_summary_checksum = checksum64(&api_stability_summary_text);
     let validation_report_summary_checksum = checksum64(&validation_report_summary_text);
+    let workspace_audit_summary_checksum = checksum64(&workspace_audit_summary_text);
     let artifact_summary_checksum = checksum64(&artifact_summary_text);
     let validation_report_checksum = checksum64(&validation_report_text);
     let manifest_checksum = checksum64(&manifest_text);
@@ -2939,6 +3030,12 @@ fn verify_release_bundle(
             manifest.validation_report_summary_checksum, validation_report_summary_checksum
         )));
     }
+    if manifest.workspace_audit_summary_checksum != workspace_audit_summary_checksum {
+        return Err(ReleaseBundleError::Verification(format!(
+            "workspace audit summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.workspace_audit_summary_checksum, workspace_audit_summary_checksum
+        )));
+    }
     if manifest.artifact_summary_checksum != artifact_summary_checksum {
         return Err(ReleaseBundleError::Verification(format!(
             "artifact summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
@@ -2975,6 +3072,7 @@ fn verify_release_bundle(
         api_stability_path,
         api_stability_summary_path,
         validation_report_summary_path,
+        workspace_audit_summary_path,
         artifact_summary_path,
         validation_report_path,
         manifest_path,
@@ -2991,6 +3089,7 @@ fn verify_release_bundle(
         api_stability_bytes: api_stability_text.len(),
         api_stability_summary_bytes: api_stability_summary_text.len(),
         validation_report_summary_bytes: validation_report_summary_text.len(),
+        workspace_audit_summary_bytes: workspace_audit_summary_text.len(),
         artifact_summary_bytes: artifact_summary_text.len(),
         validation_report_bytes: validation_report_text.len(),
         manifest_checksum_bytes: manifest_checksum_text.len(),
@@ -3006,6 +3105,7 @@ fn verify_release_bundle(
         api_stability_checksum,
         api_stability_summary_checksum,
         validation_report_summary_checksum,
+        workspace_audit_summary_checksum,
         artifact_summary_checksum,
         validation_report_checksum,
         manifest_checksum: manifest_checksum_value,
@@ -5889,7 +5989,7 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = default_corpus().requests.len();
     format!(
-        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  compare-backends-audit    Compare the JPL snapshot against the algorithmic composite backend and fail if the tolerance audit reports regressions\n  backend-matrix            Print the implemented backend capability matrices\n  capability-matrix         Alias for backend-matrix\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  matrix-summary            Alias for backend-matrix-summary\n  compatibility-profile     Print the release compatibility profile\n  profile                   Alias for compatibility-profile\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus with guard epochs\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validation-report-summary [--rounds N]  Render a compact validation report summary\n  report-summary [--rounds N]  Alias for validation-report-summary\n  validation-summary        Alias for validation-report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API stability summary, validation report summary, artifact summary, validation report, manifest, and manifest checksum sidecar\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  compare-backends-audit    Compare the JPL snapshot against the algorithmic composite backend and fail if the tolerance audit reports regressions\n  backend-matrix            Print the implemented backend capability matrices\n  capability-matrix         Alias for backend-matrix\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  matrix-summary            Alias for backend-matrix-summary\n  compatibility-profile     Print the release compatibility profile\n  profile                   Alias for compatibility-profile\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus with guard epochs\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validation-report-summary [--rounds N]  Render a compact validation report summary\n  report-summary [--rounds N]  Alias for validation-report-summary\n  validation-summary        Alias for validation-report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  workspace-audit-summary   Print the compact workspace audit summary\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API stability summary, validation report summary, workspace audit summary, artifact summary, validation report, manifest, and manifest checksum sidecar\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
@@ -6915,7 +7015,7 @@ mod tests {
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(rendered
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
-        assert!(rendered.contains("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
+        assert!(rendered.contains("Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
         assert!(rendered.contains("Release summary: release-summary"));
         assert!(rendered.contains("Release checklist summary: release-checklist-summary"));
@@ -6958,7 +7058,7 @@ mod tests {
         )));
         assert!(rendered.contains("Custom-definition labels:"));
         assert!(rendered.contains("Validation reference points: 1 (stage-4 validation corpus)"));
-        assert!(rendered.contains("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
+        assert!(rendered.contains("Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(rendered.contains("Compatibility caveats:"));
         assert!(
             rendered.contains("Compatibility profile verification: verify-compatibility-profile")
@@ -7122,7 +7222,7 @@ mod tests {
         assert!(rendered
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Release summary: release-summary"));
-        assert!(rendered.contains("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
+        assert!(rendered.contains("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Repository-managed release gates:"));
         assert!(rendered.contains("Manual bundle workflow:"));
         assert!(rendered.contains("Bundle contents:"));
@@ -7157,10 +7257,10 @@ mod tests {
         );
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
         assert!(rendered.contains("Release summary: release-summary"));
-        assert!(rendered.contains("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
+        assert!(rendered.contains("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Repository-managed release gates: 7 items"));
         assert!(rendered.contains("Manual bundle workflow: 3 items"));
-        assert!(rendered.contains("Bundle contents: 16 items"));
+        assert!(rendered.contains("Bundle contents: 17 items"));
         assert!(rendered.contains("External publishing reminders: 3 items"));
         assert!(rendered.contains("See release-checklist for the full maintainer-facing artifact."));
         assert!(
@@ -7204,7 +7304,7 @@ mod tests {
         assert!(rendered.contains("comparison audit regressions found"));
         assert!(rendered.contains("JPL interpolation evidence:"));
         assert!(rendered.contains("JPL interpolation quality:"));
-        assert!(rendered.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
+        assert!(rendered.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
         assert!(rendered
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
@@ -7368,6 +7468,16 @@ mod tests {
     }
 
     #[test]
+    fn workspace_audit_summary_reports_a_clean_workspace() {
+        let rendered = render_cli(&["workspace-audit-summary"])
+            .expect("workspace audit summary should render");
+        assert!(rendered.contains("Workspace audit summary"));
+        assert!(rendered.contains("Checked manifests:"));
+        assert!(rendered.contains("Checked lockfile:"));
+        assert!(rendered.contains("Result: no mandatory native build hooks detected"));
+    }
+
+    #[test]
     fn workspace_audit_detects_native_hooks_in_manifests_and_lockfile() {
         let manifest = r#"[package]
 name = "example"
@@ -7442,6 +7552,7 @@ version = "0.9.0"
         assert!(rendered.contains("API stability posture:"));
         assert!(rendered.contains("api-stability.txt"));
         assert!(rendered.contains("validation-report-summary.txt"));
+        assert!(rendered.contains("workspace-audit-summary.txt"));
         assert!(rendered.contains("artifact-summary.txt"));
         assert!(rendered.contains("validation-report.txt"));
         assert!(rendered.contains("bundle-manifest.checksum.txt"));
@@ -7480,6 +7591,9 @@ version = "0.9.0"
         let validation_report_summary =
             std::fs::read_to_string(bundle_dir.join("validation-report-summary.txt"))
                 .expect("validation report summary should be written");
+        let workspace_audit_summary =
+            std::fs::read_to_string(bundle_dir.join("workspace-audit-summary.txt"))
+                .expect("workspace audit summary should be written");
         let artifact_summary = std::fs::read_to_string(bundle_dir.join("artifact-summary.txt"))
             .expect("artifact summary should be written");
         let report = std::fs::read_to_string(bundle_dir.join("validation-report.txt"))
@@ -7520,7 +7634,7 @@ version = "0.9.0"
         assert!(release_notes_summary.contains("Release-specific coverage:"));
         assert!(release_notes_summary.contains("API stability summary line:"));
         assert!(release_notes_summary.contains("Artifact validation: validate-artifact"));
-        assert!(release_notes_summary.contains("Compact summary views: backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
+        assert!(release_notes_summary.contains("Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_notes_summary.contains("Release notes: release-notes"));
         assert!(release_notes_summary
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
@@ -7543,7 +7657,7 @@ version = "0.9.0"
         ));
         assert!(release_summary.contains("Packaged request policy"));
         assert!(release_summary.contains("applies to 11 bundled bodies"));
-        assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
+        assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_summary.contains("Release notes summary: release-notes-summary"));
         assert!(artifact_summary.contains("Artifact summary"));
         assert!(artifact_summary
@@ -7576,6 +7690,7 @@ version = "0.9.0"
         assert!(release_checklist.contains("Bundle contents:"));
         assert!(release_checklist.contains("compatibility-profile-summary.txt"));
         assert!(release_checklist.contains("release-notes-summary.txt"));
+        assert!(release_checklist.contains("workspace-audit-summary.txt"));
         assert!(release_checklist.contains("Backend matrix summary: backend-matrix-summary"));
         assert!(release_checklist.contains("API stability summary: api-stability-summary"));
         assert!(release_checklist.contains("release-summary.txt"));
@@ -7585,10 +7700,13 @@ version = "0.9.0"
         assert!(release_checklist_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(release_checklist_summary.contains("Artifact validation: validate-artifact"));
+        assert!(
+            release_checklist_summary.contains("Workspace audit summary: workspace-audit-summary")
+        );
         assert!(release_checklist_summary.contains("Workspace audit: workspace-audit / audit"));
         assert!(release_checklist_summary.contains("Repository-managed release gates: 7 items"));
         assert!(release_checklist_summary.contains("Manual bundle workflow: 3 items"));
-        assert!(release_checklist_summary.contains("Bundle contents: 16 items"));
+        assert!(release_checklist_summary.contains("Bundle contents: 17 items"));
         assert!(release_checklist_summary.contains("External publishing reminders: 3 items"));
         assert!(backend_matrix.contains("Implemented backend matrices"));
         assert!(backend_matrix.contains("JPL snapshot reference backend"));
@@ -7629,6 +7747,10 @@ version = "0.9.0"
         assert!(validation_report_summary.contains("Body-class tolerance posture"));
         assert!(validation_report_summary.contains("Expected tolerance status"));
         assert!(validation_report_summary.contains("VSOP87 source-backed evidence"));
+        assert!(workspace_audit_summary.contains("Workspace audit summary"));
+        assert!(
+            workspace_audit_summary.contains("Result: no mandatory native build hooks detected")
+        );
         assert!(validation_report_summary.contains("VSOP87 source documentation: 8 source specs, 8 source-backed body profiles, 1 fallback mean-element body profile (Pluto)"));
         assert!(validation_report_summary.contains(
             "source-backed breakdown: 8 generated binary, 0 vendored full-file, 0 truncated slice"
@@ -7707,6 +7829,7 @@ version = "0.9.0"
         assert!(manifest.contains("backend matrix summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("api stability checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("validation report summary checksum (fnv1a-64): 0x"));
+        assert!(manifest.contains("workspace audit summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("artifact summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("validation report checksum (fnv1a-64): 0x"));
         assert!(manifest_checksum.trim().starts_with("0x"));
@@ -7733,6 +7856,7 @@ version = "0.9.0"
         assert!(verified.contains("backend matrix checksum: 0x"));
         assert!(verified.contains("backend matrix summary checksum: 0x"));
         assert!(verified.contains("validation report summary checksum: 0x"));
+        assert!(verified.contains("workspace audit summary checksum: 0x"));
         assert!(verified.contains("artifact summary checksum: 0x"));
         assert!(verified.contains("validation report checksum: 0x"));
         assert!(verified.contains("manifest checksum bytes:"));
