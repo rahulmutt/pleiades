@@ -301,6 +301,7 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
         "Vehlow Equal" => &[
             "V equal Vehlow",
             "Vehlow-equal table of houses",
+            "Vehlow Equal table of houses",
             "Vehlow-equal",
             "Vehlow",
             "Vehlow equal",
@@ -374,6 +375,7 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "Neo-Porphyry",
             "Pullen (Sinusoidal Delta)",
             "Pullen SD (Sinusoidal Delta)",
+            "Pullen SD (Sinusoidal Delta) table of houses",
             "Pullen sinusoidal delta",
         ],
         "Pullen SR" => &[
@@ -1350,6 +1352,9 @@ mod tests {
             rendered.contains("V equal Vehlow, Vehlow, Vehlow equal, Vehlow house system, Vehlow Equal house system, Vehlow-equal, Vehlow-equal table of houses, Vehlow Equal table of houses -> Vehlow Equal")
         );
         assert!(rendered.contains(
+            "Vehlow-equal table of houses, Vehlow Equal table of houses, Vehlow-equal, Vehlow, Vehlow equal -> Vehlow Equal"
+        ));
+        assert!(rendered.contains(
             "S, S sripati, Śrīpati, Sripati house system, Sripati table of houses -> Sripati"
         ));
         assert!(rendered.contains("Carter (poli-equatorial)"));
@@ -1363,6 +1368,7 @@ mod tests {
         assert!(rendered.contains("Savard-A, Savard A, Savard's Albategnius -> Albategnius"));
         assert!(rendered.contains("Pullen SD"));
         assert!(rendered.contains("Pullen SD table of houses, Pullen SD (Neo-Porphyry) table of houses, Pullen SD (Neo-Porphyry), Neo-Porphyry, Pullen (Sinusoidal Delta), Pullen SD (Sinusoidal Delta), Pullen sinusoidal delta -> Pullen SD"));
+        assert!(rendered.contains("Pullen SD table of houses, Pullen SD (Neo-Porphyry) table of houses, Pullen SD (Neo-Porphyry), Neo-Porphyry, Pullen (Sinusoidal Delta), Pullen SD (Sinusoidal Delta), Pullen SD (Sinusoidal Delta) table of houses, Pullen sinusoidal delta -> Pullen SD"));
         assert!(rendered.contains("Pullen SR"));
         assert!(rendered.contains(
             "Pullen SR table of houses, Pullen SR (Sinusoidal Ratio) table of houses, Pullen SR (Sinusoidal Ratio), Pullen (Sinusoidal Ratio), Pullen sinusoidal ratio -> Pullen SR"
