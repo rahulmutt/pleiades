@@ -2013,6 +2013,21 @@ fn render_release_summary_text() -> String {
     text.push_str("Compatibility caveats: ");
     text.push_str(&profile.known_gaps.len().to_string());
     text.push('\n');
+    if let Ok(report) = build_validation_report(0) {
+        let tolerance_outside_bodies: usize = report
+            .comparison
+            .body_class_tolerance_summaries()
+            .iter()
+            .map(|summary| summary.outside_tolerance_body_count)
+            .sum();
+        text.push_str("Validation evidence: ");
+        text.push_str(&report.comparison.summary.sample_count.to_string());
+        text.push_str(" comparison samples, ");
+        text.push_str(&report.comparison.notable_regressions().len().to_string());
+        text.push_str(" notable regressions, ");
+        text.push_str(&tolerance_outside_bodies.to_string());
+        text.push_str(" outside-tolerance bodies\n");
+    }
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("Backend matrix summary: backend-matrix-summary\n");
     text.push_str("Validation report summary: validation-report-summary / validation-summary / report-summary\n");
@@ -6829,6 +6844,10 @@ mod tests {
         assert!(rendered.contains("Custom-definition labels:"));
         assert!(rendered.contains("Custom-definition ayanamsas:"));
         assert!(rendered.contains("Compatibility caveats:"));
+        assert!(rendered.contains("Validation evidence:"));
+        assert!(rendered.contains("comparison samples"));
+        assert!(rendered.contains("notable regressions"));
+        assert!(rendered.contains("outside-tolerance bodies"));
         assert!(rendered.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
         assert!(rendered

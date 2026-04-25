@@ -83,7 +83,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Generate cross-backend comparison reports with body/date/error summaries. Aggregate and per-body summary sections are now implemented; future source-backed backend increments should populate them with tighter measured errors.
    - Progress note: the validation and artifact reports now name the body driving each max longitude, latitude, and distance delta in the body-comparison and body-class envelope sections, which makes the release-facing error envelopes easier to audit without changing the measured corpus.
    - Progress note: the comparison-audit failure path now mirrors the body-class error envelopes, body-class tolerance posture, and tolerance policy sections, so release-failure output carries the same coarse envelope detail as the full validation report.
-   - Progress note: the tolerance policy and per-body tolerance summaries now record the candidate backend family explicitly, so the release-facing comparison evidence is backend-scoped in addition to the existing body-class grouping.
+   - Progress note: the compact release summary now also carries a short validation evidence line with comparison sample and tolerance counts, so the release-facing overview exposes a little more of the current error envelope without expanding into the full validation report.
    - Store expected tolerances by backend and body class.
    - Keep validation reproducible and pure Rust.
 
