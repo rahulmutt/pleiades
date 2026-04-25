@@ -6095,9 +6095,10 @@ mod tests {
             "VSOP87 source-backed body evidence: 8 body profiles (0 vendored full-file, 8 generated binary), 8 within interim limits"
         ));
         assert!(rendered.contains(
-            "ELP lunar theory specification: Compact Meeus-style analytical lunar baseline [meeus-style-analytical-lunar-baseline]"
+            "ELP lunar theory specification: Compact Meeus-style truncated lunar baseline [meeus-style-truncated-lunar-baseline]"
         ));
-        assert!(rendered.contains("provenance: Published lunar element and mean-point formulas"));
+        assert!(rendered
+            .contains("provenance: Published lunar position, node, and mean-point formulas"));
         assert!(rendered.contains(
             "redistribution: No external coefficient-file redistribution constraints apply"
         ));
@@ -6403,10 +6404,10 @@ version = "0.9.0"
         assert!(validation_report_summary
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(validation_report_summary.contains(
-            "ELP lunar theory specification: Compact Meeus-style analytical lunar baseline [meeus-style-analytical-lunar-baseline]"
+            "ELP lunar theory specification: Compact Meeus-style truncated lunar baseline [meeus-style-truncated-lunar-baseline]"
         ));
         assert!(validation_report_summary
-            .contains("provenance: Published lunar element and mean-point formulas"));
+            .contains("provenance: Published lunar position, node, and mean-point formulas"));
         assert!(validation_report_summary.contains(
             "redistribution: No external coefficient-file redistribution constraints apply"
         ));

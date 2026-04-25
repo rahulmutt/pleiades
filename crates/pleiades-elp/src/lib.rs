@@ -2,8 +2,8 @@
 //!
 //! The full ELP series data is still planned, but this crate now provides a
 //! usable Moon-and-lunar-point backend for the chart MVP by combining a
-//! compact Meeus-style analytical lunar baseline with geocentric coordinate
-//! transforms, Meeus-style mean node/perigee/apogee formulae, and
+//! compact Meeus-style truncated lunar position series with geocentric
+//! coordinate transforms, Meeus-style mean node/perigee/apogee formulae, and
 //! finite-difference mean-motion estimates.
 //!
 //! The current lunar-theory selection is intentionally explicit: the backend
@@ -28,10 +28,10 @@ use pleiades_types::{
     Latitude, Longitude, Motion, TimeRange, TimeScale, ZodiacMode,
 };
 
+mod moonposition;
+
 const PACKAGE_NAME: &str = "pleiades-elp";
 const J2000: f64 = 2_451_545.0;
-const EARTH_RADIUS_KM: f64 = 6_378.14;
-const AU_IN_KM: f64 = 149_597_870.700;
 
 /// Structured description of the current lunar-theory selection.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -67,18 +67,18 @@ pub fn lunar_theory_specification() -> LunarTheorySpecification {
         &[CelestialBody::TrueApogee, CelestialBody::TruePerigee];
 
     LunarTheorySpecification {
-        model_name: "Compact Meeus-style analytical lunar baseline",
-        source_identifier: "meeus-style-analytical-lunar-baseline",
+        model_name: "Compact Meeus-style truncated lunar baseline",
+        source_identifier: "meeus-style-truncated-lunar-baseline",
         source_material:
-            "Published lunar element and mean-point formulas implemented as the current pure-Rust baseline; no vendored ELP coefficient files are used yet while full ELP coefficient selection remains pending",
+            "Published lunar position, node, and mean-point formulas implemented as the current pure-Rust baseline; no vendored ELP coefficient files are used yet while full ELP coefficient selection remains pending",
         redistribution_note:
             "No external coefficient-file redistribution constraints apply to the current baseline because the implementation does not vendor ELP coefficient tables yet",
         supported_bodies: SUPPORTED_BODIES,
         unsupported_bodies: UNSUPPORTED_BODIES,
         date_range_note:
-            "Validated at J2000 and across nearby high-curvature regression windows; no full ELP coefficient range has been published yet",
+            "Validated against the published 1992-04-12 geocentric Moon example, J2000 node/perigee references, and nearby high-curvature regression windows; no full ELP coefficient range has been published yet",
         frame_note:
-            "Geocentric ecliptic coordinates are produced directly; equatorial coordinates are derived with a mean-obliquity transform",
+            "Geocentric ecliptic coordinates are produced directly from the truncated lunar series; equatorial coordinates are derived with a mean-obliquity transform",
     }
 }
 
@@ -108,61 +108,9 @@ impl ElpBackend {
             + 0.000_000_503_611_111_111_111_1 * t * t * t
     }
 
-    fn geocentric_coordinates(days: f64) -> HeliocentricLikeCoordinates {
-        let node = (125.1228 - 0.052_953_808_3 * days).to_radians();
-        let inclination = 5.1454_f64.to_radians();
-        let periapsis = (318.0634 + 0.164_357_322_3 * days).to_radians();
-        let semi_major_axis = 60.2666;
-        let eccentricity = 0.054900;
-        let mean_anomaly = normalize_degrees(115.3654 + 13.064_992_950_9 * days).to_radians();
-
-        let eccentric_anomaly = solve_kepler(mean_anomaly, eccentricity);
-        let xv = semi_major_axis * (eccentric_anomaly.cos() - eccentricity);
-        let yv =
-            semi_major_axis * (1.0 - eccentricity * eccentricity).sqrt() * eccentric_anomaly.sin();
-        let true_anomaly = yv.atan2(xv);
-        let radius_re = (xv * xv + yv * yv).sqrt();
-
-        let longitude = true_anomaly + periapsis;
-        let x = radius_re
-            * (node.cos() * longitude.cos() - node.sin() * longitude.sin() * inclination.cos());
-        let y = radius_re
-            * (node.sin() * longitude.cos() + node.cos() * longitude.sin() * inclination.cos());
-        let z = radius_re * (longitude.sin() * inclination.sin());
-
-        HeliocentricLikeCoordinates {
-            x,
-            y,
-            z,
-            distance_re: radius_re,
-        }
-    }
-
-    fn to_ecliptic(coords: HeliocentricLikeCoordinates) -> EclipticCoordinates {
-        let longitude = Longitude::from_degrees(coords.y.atan2(coords.x).to_degrees());
-        let latitude = Latitude::from_degrees(
-            coords
-                .z
-                .atan2((coords.x * coords.x + coords.y * coords.y).sqrt())
-                .to_degrees(),
-        );
-        let distance_km = coords.distance_re * EARTH_RADIUS_KM;
-        EclipticCoordinates::new(longitude, latitude, Some(distance_km / AU_IN_KM))
-    }
-
-    fn to_equatorial(
-        coords: HeliocentricLikeCoordinates,
-        instant: Instant,
-    ) -> EquatorialCoordinates {
-        let obliquity = Self::mean_obliquity_degrees(instant).to_radians();
-        let xeq = coords.x;
-        let yeq = coords.y * obliquity.cos() - coords.z * obliquity.sin();
-        let zeq = coords.y * obliquity.sin() + coords.z * obliquity.cos();
-        EquatorialCoordinates::new(
-            Angle::from_degrees(yeq.atan2(xeq).to_degrees()).normalized_0_360(),
-            Latitude::from_degrees(zeq.atan2((xeq * xeq + yeq * yeq).sqrt()).to_degrees()),
-            Some(coords.distance_re * EARTH_RADIUS_KM / AU_IN_KM),
-        )
+    fn moon_ecliptic_coordinates(days: f64) -> EclipticCoordinates {
+        let (longitude, latitude, distance_au) = moonposition::position(J2000 + days);
+        EclipticCoordinates::new(longitude, latitude, Some(distance_au))
     }
 
     fn mean_node_longitude(days: f64) -> f64 {
@@ -227,7 +175,7 @@ impl ElpBackend {
 
     fn ecliptic_for_body(body: CelestialBody, days: f64) -> Option<EclipticCoordinates> {
         match body {
-            CelestialBody::Moon => Some(Self::to_ecliptic(Self::geocentric_coordinates(days))),
+            CelestialBody::Moon => Some(Self::moon_ecliptic_coordinates(days)),
             CelestialBody::MeanNode => Some(EclipticCoordinates::new(
                 Longitude::from_degrees(Self::mean_node_longitude(days)),
                 Latitude::from_degrees(0.0),
@@ -407,9 +355,14 @@ impl EphemerisBackend for ElpBackend {
         result.quality = QualityAnnotation::Approximate;
         match body {
             CelestialBody::Moon => {
-                let coords = Self::geocentric_coordinates(days);
-                result.ecliptic = Some(Self::to_ecliptic(coords));
-                result.equatorial = Some(Self::to_equatorial(coords, req.instant));
+                let coords = Self::moon_ecliptic_coordinates(days);
+                result.ecliptic = Some(coords);
+                result.equatorial = Some(Self::ecliptic_point_to_equatorial(
+                    coords.longitude,
+                    coords.latitude,
+                    req.instant,
+                    coords.distance_au,
+                ));
             }
             CelestialBody::MeanNode => {
                 let longitude = Longitude::from_degrees(Self::mean_node_longitude(days));
@@ -462,33 +415,12 @@ impl EphemerisBackend for ElpBackend {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
-struct HeliocentricLikeCoordinates {
-    x: f64,
-    y: f64,
-    z: f64,
-    distance_re: f64,
-}
-
 fn normalize_degrees(angle: f64) -> f64 {
     angle.rem_euclid(360.0)
 }
 
 fn signed_longitude_delta_degrees(start: f64, end: f64) -> f64 {
     (end - start + 180.0).rem_euclid(360.0) - 180.0
-}
-
-fn solve_kepler(mean_anomaly: f64, eccentricity: f64) -> f64 {
-    let mut e = mean_anomaly
-        + eccentricity * mean_anomaly.sin() * (1.0 + eccentricity * mean_anomaly.cos());
-    for _ in 0..10 {
-        let delta = (e - eccentricity * e.sin() - mean_anomaly) / (1.0 - eccentricity * e.cos());
-        e -= delta;
-        if delta.abs() < 1e-12 {
-            break;
-        }
-    }
-    e
 }
 
 #[cfg(test)]
@@ -514,11 +446,9 @@ mod tests {
             .provenance
             .summary
             .contains("true apogee/perigee unsupported"));
-        assert!(metadata
-            .provenance
-            .data_sources
-            .iter()
-            .any(|source| source.contains("Published lunar element and mean-point formulas")));
+        assert!(metadata.provenance.data_sources.iter().any(
+            |source| source.contains("Published lunar position, node, and mean-point formulas")
+        ));
         assert!(metadata
             .provenance
             .data_sources
@@ -542,14 +472,26 @@ mod tests {
     }
 
     #[test]
-    fn j2000_moon_position_is_finite() {
+    fn published_moon_example_matches_reference() {
         let backend = ElpBackend::new();
-        let request = mean_request(CelestialBody::Moon);
-        let result = backend.position(&request).expect("moon query should work");
+        let instant = Instant::new(
+            pleiades_types::JulianDay::from_days(2_448_724.5),
+            TimeScale::Tt,
+        );
+        let result = backend
+            .position(&mean_request_at(CelestialBody::Moon, instant))
+            .expect("moon query should work");
         let ecliptic = result.ecliptic.expect("ecliptic result should exist");
         let motion = result.motion.expect("motion should be populated");
-        assert!(ecliptic.longitude.degrees().is_finite());
-        assert!(ecliptic.latitude.degrees().is_finite());
+
+        assert!((ecliptic.longitude.degrees() - 133.162_655).abs() < 1e-6);
+        assert!((ecliptic.latitude.degrees() - -3.229_126).abs() < 1e-6);
+        assert!(
+            (ecliptic.distance_au.expect("moon distance should exist") * 149_597_870.700
+                - 368_409.7)
+                .abs()
+                < 0.5
+        );
         assert!(motion
             .longitude_deg_per_day
             .expect("longitude speed should exist")
@@ -716,19 +658,19 @@ mod tests {
 
         assert_eq!(
             theory.model_name,
-            "Compact Meeus-style analytical lunar baseline"
+            "Compact Meeus-style truncated lunar baseline"
         );
         assert_eq!(
             theory.source_identifier,
-            "meeus-style-analytical-lunar-baseline"
+            "meeus-style-truncated-lunar-baseline"
         );
         assert!(theory
             .source_material
-            .contains("Published lunar element and mean-point formulas"));
+            .contains("Published lunar position, node, and mean-point formulas"));
         assert!(theory
             .redistribution_note
             .contains("No external coefficient-file redistribution constraints"));
-        assert!(theory.date_range_note.contains("J2000"));
+        assert!(theory.date_range_note.contains("1992-04-12"));
         assert!(theory.frame_note.contains("mean-obliquity"));
         assert_eq!(
             theory.supported_bodies,

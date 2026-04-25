@@ -68,6 +68,8 @@ Progress note (2026-04-24): the ELP baseline now also carries an explicit lunar-
 Progress note (2026-04-24): `pleiades-elp` now exposes a stable lunar-theory source identifier plus an explicit redistribution posture for the current Meeus-style analytical baseline, and the validation/reporting layer renders those provenance details alongside the supported/unsupported lunar bodies.
 Progress note (2026-04-25): the backend-matrix ELP section now also prints the unsupported lunar bodies explicitly, so the release-facing summary now shows the deferred true apogee/perigee channels alongside the supported lunar baseline.
 
+Progress note (2026-04-25): the `pleiades-elp` Moon path now uses a Meeus-style truncated lunar position series and validates against the published 1992-04-12 geocentric Moon example, which gives the current lunar baseline a concrete external reference point while a full ELP coefficient selection remains queued.
+
 ## 3. JPL reader/interpolator expansion
 
 **Goal:** build on the completed small fixture interpolator and turn `pleiades-jpl` into a stronger reference backend.

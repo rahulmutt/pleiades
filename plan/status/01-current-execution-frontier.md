@@ -34,6 +34,8 @@ Latest progress (2026-04-24): the JPL snapshot backend now exposes coarse leave-
 
 Latest test progress (2026-04-25): the JPL snapshot backend now has exact J2000 regression coverage for the named asteroid subset plus the custom 433-Eros entry, so the checked-in reference fixture now exercises Ceres, Pallas, Juno, Vesta, and the source-backed custom asteroid path with explicit golden coordinates.
 
+Latest progress (2026-04-25): the `pleiades-elp` Moon path now uses a Meeus-style truncated lunar position series instead of the earlier simplified orbital surrogate, and the backend now validates against the published 1992-04-12 geocentric Moon example in addition to the existing J2000 lunar-point checks. That makes the lunar baseline materially closer to the planned source-selection target while true ELP coefficient selection still remains pending.
+
 Previous progress (2026-04-24): backend matrix release artifacts now report implementation status separately from body/catalog presence. Each implemented backend has an explicit status label and note (fixture reference, partial source-backed, preliminary algorithm, prototype artifact, or routing façade), and the compact matrix summary counts those statuses so release artifacts do not imply production accuracy merely because a backend advertises body coverage. The compact lunar-theory spec now also surfaces true apogee and true perigee as explicitly unsupported bodies, and the ELP regression tests now assert the structured `UnsupportedBody` failures for those requests.
 
 Recent test progress (2026-04-24): the VSOP87 backend now also exercises its batch API over the full source-backed Sun-through-Neptune sample set, so the canonical J2000 evidence is verified both body-by-body and in batch form.
@@ -41,7 +43,7 @@ Recent test progress (2026-04-24): the VSOP87 backend now also exercises its bat
 Active gaps:
 
 - broader release-grade error envelopes and tolerance audits;
-- production lunar theory implementation and lunar point semantics;
+- full source-backed lunar theory selection and broader lunar-point validation evidence;
 - larger JPL-style reference corpus, interpolation validation, and documented tolerance envelopes beyond the current small fixture proof of concept;
 - production Delta T conversion, TDB handling, apparent-place corrections, and validated frame-conversion error envelopes beyond the initial documented policy;
 - source-backed evidence tables, reference-backed tolerance tables, and broader validation reports.
