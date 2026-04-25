@@ -10,7 +10,9 @@
 //! now use generated binary tables derived from their vendored source files.
 //! A maintainer-facing regeneration helper and `regenerate-vsop87b-tables`
 //! binary keep those checked-in blobs reproducible from the public source text.
-//! Pluto still uses compact Keplerian orbital elements,
+//! The backend accepts both TT and TDB requests as dynamical-time inputs and
+//! still rejects UT-based requests explicitly. Pluto still uses compact
+//! Keplerian orbital elements,
 //! a geocentric reduction step, and central-difference motion estimates so the
 //! workspace has an end-to-end tropical chart path while the remaining
 //! generated VSOP87 tables and Pluto-specific source selection are added
@@ -1109,7 +1111,7 @@ impl EphemerisBackend for Vsop87Backend {
                     .collect(),
             },
             nominal_range: TimeRange::new(None, None),
-            supported_time_scales: vec![TimeScale::Tt],
+            supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
             body_coverage: Self::supported_bodies().to_vec(),
             supported_frames: vec![CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
             capabilities: BackendCapabilities {
@@ -1138,10 +1140,10 @@ impl EphemerisBackend for Vsop87Backend {
             ));
         }
 
-        if req.instant.scale != TimeScale::Tt {
+        if !matches!(req.instant.scale, TimeScale::Tt | TimeScale::Tdb) {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::UnsupportedTimeScale,
-                "the VSOP87 MVP backend expects terrestrial time (TT)",
+                "the VSOP87 MVP backend expects terrestrial time (TT) or barycentric dynamical time (TDB)",
             ));
         }
 
@@ -1630,6 +1632,30 @@ mod tests {
     }
 
     #[test]
+    fn tdb_requests_are_accepted_like_tt_requests() {
+        let backend = Vsop87Backend::new();
+        let tt_request = mean_request(CelestialBody::Mars);
+        let tdb_request = EphemerisRequest::new(
+            CelestialBody::Mars,
+            Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tdb),
+        );
+
+        let tt_result = backend
+            .position(&tt_request)
+            .expect("TT request should be supported");
+        let tdb_result = backend
+            .position(&tdb_request)
+            .expect("TDB request should be supported");
+
+        assert_eq!(tt_result.body, tdb_result.body);
+        assert_eq!(tt_result.instant.scale, TimeScale::Tt);
+        assert_eq!(tdb_result.instant.scale, TimeScale::Tdb);
+        assert_eq!(tt_result.ecliptic, tdb_result.ecliptic);
+        assert_eq!(tt_result.equatorial, tdb_result.equatorial);
+        assert_eq!(tt_result.motion, tdb_result.motion);
+    }
+
+    #[test]
     fn metadata_identifies_source_backed_planet_vsop87b_paths() {
         let metadata = Vsop87Backend::new().metadata();
         assert!(metadata
@@ -1689,6 +1715,10 @@ mod tests {
             .data_sources
             .iter()
             .any(|source| source.contains("Neptune: IMCCE/CELMECH VSOP87B VSOP87B.nep")));
+        assert_eq!(
+            metadata.supported_time_scales,
+            vec![TimeScale::Tt, TimeScale::Tdb]
+        );
     }
 
     #[test]

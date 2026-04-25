@@ -4,7 +4,9 @@
 //! usable Moon-and-lunar-point backend for the chart MVP by combining a
 //! compact Meeus-style truncated lunar position series with geocentric
 //! coordinate transforms, Meeus-style mean node/perigee/apogee formulae, and
-//! finite-difference mean-motion estimates.
+//! finite-difference mean-motion estimates. The backend accepts both TT and
+//! TDB requests as dynamical-time inputs and still rejects UT-based requests
+//! explicitly.
 //!
 //! The current lunar-theory selection is intentionally explicit: the backend
 //! exposes the Moon plus the mean/true node and mean apogee/perigee channels
@@ -336,7 +338,7 @@ impl EphemerisBackend for ElpBackend {
                 ],
             },
             nominal_range: TimeRange::new(None, None),
-            supported_time_scales: vec![TimeScale::Tt],
+            supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
             body_coverage: vec![
                 CelestialBody::Moon,
                 CelestialBody::MeanNode,
@@ -385,10 +387,10 @@ impl EphemerisBackend for ElpBackend {
             ));
         }
 
-        if req.instant.scale != TimeScale::Tt {
+        if !matches!(req.instant.scale, TimeScale::Tt | TimeScale::Tdb) {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::UnsupportedTimeScale,
-                "the ELP backend expects terrestrial time (TT)",
+                "the ELP backend expects terrestrial time (TT) or barycentric dynamical time (TDB)",
             ));
         }
 
@@ -514,6 +516,10 @@ mod tests {
         assert!(metadata.provenance.data_sources.iter().any(
             |source| source.contains("Published lunar position, node, and mean-point formulas")
         ));
+        assert_eq!(
+            metadata.supported_time_scales,
+            vec![TimeScale::Tt, TimeScale::Tdb]
+        );
         assert!(metadata
             .provenance
             .data_sources
@@ -853,6 +859,30 @@ mod tests {
             .position(&request)
             .expect_err("apparent requests should be unsupported");
         assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+    }
+
+    #[test]
+    fn tdb_requests_are_accepted_like_tt_requests() {
+        let backend = ElpBackend::new();
+        let tt_request = mean_request(CelestialBody::Moon);
+        let tdb_request = EphemerisRequest::new(
+            CelestialBody::Moon,
+            Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tdb),
+        );
+
+        let tt_result = backend
+            .position(&tt_request)
+            .expect("TT request should be supported");
+        let tdb_result = backend
+            .position(&tdb_request)
+            .expect("TDB request should be supported");
+
+        assert_eq!(tt_result.body, tdb_result.body);
+        assert_eq!(tt_result.instant.scale, TimeScale::Tt);
+        assert_eq!(tdb_result.instant.scale, TimeScale::Tdb);
+        assert_eq!(tt_result.ecliptic, tdb_result.ecliptic);
+        assert_eq!(tt_result.equatorial, tdb_result.equatorial);
+        assert_eq!(tt_result.motion, tdb_result.motion);
     }
 
     #[test]
