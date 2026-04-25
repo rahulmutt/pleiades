@@ -268,6 +268,14 @@ pub struct Vsop87CanonicalEvidenceSummary {
     pub max_distance_delta_source_file: &'static str,
     /// Maximum absolute geocentric distance delta in astronomical units.
     pub max_distance_delta_au: f64,
+    /// Mean absolute geocentric longitude delta in degrees.
+    pub mean_longitude_delta_deg: f64,
+    /// Mean absolute geocentric latitude delta in degrees.
+    pub mean_latitude_delta_deg: f64,
+    /// Mean absolute geocentric distance delta in astronomical units.
+    pub mean_distance_delta_au: f64,
+    /// Number of samples that exceeded at least one interim limit.
+    pub out_of_limit_count: usize,
     /// Whether every measured body remained within the interim limits.
     pub within_interim_limits: bool,
 }
@@ -801,13 +809,17 @@ pub fn source_body_evidence_summary() -> Option<Vsop87SourceBodyEvidenceSummary>
 /// Formats the canonical VSOP87 J2000 evidence summary for reporting.
 pub fn format_canonical_epoch_evidence_summary(summary: &Vsop87CanonicalEvidenceSummary) -> String {
     format!(
-        "VSOP87 canonical J2000 source-backed evidence: {} samples, status {}, max Δlon={:.12}° ({}; {}; {}), max Δlat={:.12}° ({}; {}; {}), max Δdist={:.12} AU ({}; {}; {})",
+        "VSOP87 canonical J2000 source-backed evidence: {} samples, status {}, mean Δlon={:.12}°, mean Δlat={:.12}°, mean Δdist={:.12} AU, out-of-limit samples {}, max Δlon={:.12}° ({}; {}; {}), max Δlat={:.12}° ({}; {}; {}), max Δdist={:.12} AU ({}; {}; {})",
         summary.sample_count,
         if summary.within_interim_limits {
             "within interim limits"
         } else {
             "outside interim limits"
         },
+        summary.mean_longitude_delta_deg,
+        summary.mean_latitude_delta_deg,
+        summary.mean_distance_delta_au,
+        summary.out_of_limit_count,
         summary.max_longitude_delta_deg,
         summary.max_longitude_delta_body,
         summary.max_longitude_delta_source_kind.label(),
@@ -999,10 +1011,20 @@ pub fn canonical_epoch_evidence_summary() -> Option<Vsop87CanonicalEvidenceSumma
     let mut max_distance_delta_source_kind = first.source_kind;
     let mut max_distance_delta_source_file = first.source_file;
     let mut max_distance_delta_au = first.distance_delta_au;
+    let mut total_longitude_delta_deg = 0.0;
+    let mut total_latitude_delta_deg = 0.0;
+    let mut total_distance_delta_au = 0.0;
+    let mut out_of_limit_count = 0usize;
     let mut within_interim_limits = true;
 
     for evidence in &body_evidence {
         sample_count += 1;
+        total_longitude_delta_deg += evidence.longitude_delta_deg;
+        total_latitude_delta_deg += evidence.latitude_delta_deg;
+        total_distance_delta_au += evidence.distance_delta_au;
+        if !evidence.within_interim_limits {
+            out_of_limit_count += 1;
+        }
         if evidence.longitude_delta_deg >= max_longitude_delta_deg {
             max_longitude_delta_deg = evidence.longitude_delta_deg;
             max_longitude_delta_body = evidence.body.clone();
@@ -1038,6 +1060,10 @@ pub fn canonical_epoch_evidence_summary() -> Option<Vsop87CanonicalEvidenceSumma
         max_distance_delta_source_kind,
         max_distance_delta_source_file,
         max_distance_delta_au,
+        mean_longitude_delta_deg: total_longitude_delta_deg / sample_count as f64,
+        mean_latitude_delta_deg: total_latitude_delta_deg / sample_count as f64,
+        mean_distance_delta_au: total_distance_delta_au / sample_count as f64,
+        out_of_limit_count,
         within_interim_limits,
     })
 }
@@ -2226,6 +2252,10 @@ mod tests {
         assert!(summary.max_longitude_delta_deg > 0.0);
         assert!(summary.max_latitude_delta_deg > 0.0);
         assert!(summary.max_distance_delta_au > 0.0);
+        assert!(summary.mean_longitude_delta_deg > 0.0);
+        assert!(summary.mean_latitude_delta_deg > 0.0);
+        assert!(summary.mean_distance_delta_au > 0.0);
+        assert_eq!(summary.out_of_limit_count, 0);
         assert!(body_evidence
             .iter()
             .any(|evidence| evidence.body == summary.max_longitude_delta_body));
