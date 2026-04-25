@@ -242,14 +242,20 @@ pub struct ComparisonSample {
 pub struct ComparisonSummary {
     /// Number of samples compared.
     pub sample_count: usize,
+    /// Body with the maximum absolute longitude delta.
+    pub max_longitude_delta_body: Option<CelestialBody>,
     /// Maximum absolute longitude delta.
     pub max_longitude_delta_deg: f64,
     /// Mean absolute longitude delta.
     pub mean_longitude_delta_deg: f64,
+    /// Body with the maximum absolute latitude delta.
+    pub max_latitude_delta_body: Option<CelestialBody>,
     /// Maximum absolute latitude delta.
     pub max_latitude_delta_deg: f64,
     /// Mean absolute latitude delta.
     pub mean_latitude_delta_deg: f64,
+    /// Body with the maximum absolute distance delta.
+    pub max_distance_delta_body: Option<CelestialBody>,
     /// Maximum absolute distance delta.
     pub max_distance_delta_au: Option<f64>,
     /// Mean absolute distance delta.
@@ -1350,17 +1356,25 @@ pub fn compare_backends(
         if let Some(delta) = distance_delta_au {
             distance_sum += delta;
             distance_count += 1;
-            summary.max_distance_delta_au = Some(
-                summary
-                    .max_distance_delta_au
-                    .map_or(delta, |current| current.max(delta)),
-            );
+            match summary.max_distance_delta_au {
+                Some(current) if delta < current => {}
+                _ => {
+                    summary.max_distance_delta_au = Some(delta);
+                    summary.max_distance_delta_body = Some(request.body.clone());
+                }
+            }
         }
 
         summary.sample_count += 1;
-        summary.max_longitude_delta_deg = summary.max_longitude_delta_deg.max(longitude_delta_deg);
+        if longitude_delta_deg >= summary.max_longitude_delta_deg {
+            summary.max_longitude_delta_deg = longitude_delta_deg;
+            summary.max_longitude_delta_body = Some(request.body.clone());
+        }
         summary.mean_longitude_delta_deg += longitude_delta_deg;
-        summary.max_latitude_delta_deg = summary.max_latitude_delta_deg.max(latitude_delta_deg);
+        if latitude_delta_deg >= summary.max_latitude_delta_deg {
+            summary.max_latitude_delta_deg = latitude_delta_deg;
+            summary.max_latitude_delta_body = Some(request.body.clone());
+        }
         summary.mean_latitude_delta_deg += latitude_delta_deg;
 
         samples.push(ComparisonSample {
@@ -3292,6 +3306,12 @@ fn format_regression_bodies(regressions: &[RegressionFinding]) -> String {
     }
 }
 
+fn format_summary_body(body: &Option<CelestialBody>) -> String {
+    body.as_ref()
+        .map(|body| format!(" ({body})"))
+        .unwrap_or_default()
+}
+
 /// Renders a release-grade comparison tolerance audit used by the CLI.
 pub fn render_comparison_audit_report() -> Result<String, String> {
     let corpus = default_corpus();
@@ -3363,22 +3383,25 @@ fn render_comparison_audit_report_text(report: &ComparisonReport) -> String {
     let _ = writeln!(text, "  samples: {}", report.summary.sample_count);
     let _ = writeln!(
         text,
-        "  max longitude delta: {:.12}°",
-        report.summary.max_longitude_delta_deg
+        "  max longitude delta: {:.12}°{}",
+        report.summary.max_longitude_delta_deg,
+        format_summary_body(&report.summary.max_longitude_delta_body)
     );
     let _ = writeln!(
         text,
-        "  max latitude delta: {:.12}°",
-        report.summary.max_latitude_delta_deg
+        "  max latitude delta: {:.12}°{}",
+        report.summary.max_latitude_delta_deg,
+        format_summary_body(&report.summary.max_latitude_delta_body)
     );
     let _ = writeln!(
         text,
-        "  max distance delta: {}",
+        "  max distance delta: {}{}",
         report
             .summary
             .max_distance_delta_au
             .map(|value| format!("{value:.12} AU"))
-            .unwrap_or_else(|| "n/a".to_string())
+            .unwrap_or_else(|| "n/a".to_string()),
+        format_summary_body(&report.summary.max_distance_delta_body)
     );
     let _ = writeln!(text);
     let _ = writeln!(text, "Body-class error envelopes");
@@ -3742,23 +3765,26 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     );
     let _ = writeln!(
         text,
-        "  max longitude delta: {:.12}°",
-        report.comparison.summary.max_longitude_delta_deg
+        "  max longitude delta: {:.12}°{}",
+        report.comparison.summary.max_longitude_delta_deg,
+        format_summary_body(&report.comparison.summary.max_longitude_delta_body)
     );
     let _ = writeln!(
         text,
-        "  max latitude delta: {:.12}°",
-        report.comparison.summary.max_latitude_delta_deg
+        "  max latitude delta: {:.12}°{}",
+        report.comparison.summary.max_latitude_delta_deg,
+        format_summary_body(&report.comparison.summary.max_latitude_delta_body)
     );
     let _ = writeln!(
         text,
-        "  max distance delta: {}",
+        "  max distance delta: {}{}",
         report
             .comparison
             .summary
             .max_distance_delta_au
             .map(|value| format!("{value:.12} AU"))
-            .unwrap_or_else(|| "n/a".to_string())
+            .unwrap_or_else(|| "n/a".to_string()),
+        format_summary_body(&report.comparison.summary.max_distance_delta_body)
     );
     let _ = writeln!(text, "  notable regressions: {}", comparison_regressions);
     let _ = writeln!(
@@ -6248,6 +6274,8 @@ mod tests {
     #[test]
     fn validation_report_includes_corpus_metadata() {
         let report = render_validation_report(10).expect("validation report should render");
+        let validation_report =
+            build_validation_report(10).expect("validation report should build");
         assert!(report.contains("Validation report"));
         let release_profiles = current_release_profile_identifiers();
         assert!(report.contains("Compatibility profile"));
@@ -6287,6 +6315,40 @@ mod tests {
         assert!(report.contains("Reference backend"));
         assert!(report.contains("Candidate backend"));
         assert!(report.contains("Comparison summary"));
+        assert!(report.contains(&format!(
+            "max longitude delta: {:.12}° ({})",
+            validation_report.comparison.summary.max_longitude_delta_deg,
+            validation_report
+                .comparison
+                .summary
+                .max_longitude_delta_body
+                .as_ref()
+                .expect("comparison summary should include a max longitude body")
+        )));
+        assert!(report.contains(&format!(
+            "max latitude delta: {:.12}° ({})",
+            validation_report.comparison.summary.max_latitude_delta_deg,
+            validation_report
+                .comparison
+                .summary
+                .max_latitude_delta_body
+                .as_ref()
+                .expect("comparison summary should include a max latitude body")
+        )));
+        assert!(report.contains(&format!(
+            "max distance delta: {:.12} AU ({})",
+            validation_report
+                .comparison
+                .summary
+                .max_distance_delta_au
+                .expect("comparison summary should include a max distance delta"),
+            validation_report
+                .comparison
+                .summary
+                .max_distance_delta_body
+                .as_ref()
+                .expect("comparison summary should include a max distance body")
+        )));
         assert!(report.contains("Body-class error envelopes"));
         let body_class_envelopes = report
             .split("Body-class error envelopes")
@@ -6329,6 +6391,8 @@ mod tests {
     fn validation_report_summary_renders_a_compact_overview() {
         let report =
             render_validation_report_summary(10).expect("validation summary should render");
+        let validation_report =
+            build_validation_report(10).expect("validation report should build");
         let release_profiles = current_release_profile_identifiers();
         assert!(report.contains("Validation report summary"));
         assert!(report.contains(&format!(
@@ -6342,6 +6406,40 @@ mod tests {
         assert!(report.contains("Comparison corpus"));
         assert!(report.contains("epoch labels: JD 2378499.0 (TT)"));
         assert!(report.contains("Comparison summary"));
+        assert!(report.contains(&format!(
+            "max longitude delta: {:.12}° ({})",
+            validation_report.comparison.summary.max_longitude_delta_deg,
+            validation_report
+                .comparison
+                .summary
+                .max_longitude_delta_body
+                .as_ref()
+                .expect("comparison summary should include a max longitude body")
+        )));
+        assert!(report.contains(&format!(
+            "max latitude delta: {:.12}° ({})",
+            validation_report.comparison.summary.max_latitude_delta_deg,
+            validation_report
+                .comparison
+                .summary
+                .max_latitude_delta_body
+                .as_ref()
+                .expect("comparison summary should include a max latitude body")
+        )));
+        assert!(report.contains(&format!(
+            "max distance delta: {:.12} AU ({})",
+            validation_report
+                .comparison
+                .summary
+                .max_distance_delta_au
+                .expect("comparison summary should include a max distance delta"),
+            validation_report
+                .comparison
+                .summary
+                .max_distance_delta_body
+                .as_ref()
+                .expect("comparison summary should include a max distance body")
+        )));
         assert!(report.contains("Tolerance policy"));
         assert!(report.contains("candidate backend family: composite"));
         assert!(report.contains(
