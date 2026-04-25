@@ -40,6 +40,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Support multiple epochs through interpolation rather than exact fixture lookup only.
    - Include selected asteroid coverage for Ceres, Pallas, Juno, and Vesta when source data is available.
    - Preserve snapshot fixtures as small regression/golden tests.
+   - Progress note: the reference snapshot now has exact J2000 regression coverage for Ceres, Pallas, Juno, Vesta, and the custom 433-Eros asteroid entry, so the baseline asteroid subset is exercised as a golden path while broader corpus work remains queued.
 
 4. Strengthen time, apparentness, observer, and coordinate semantics.
    - Expand the initial Delta T policy into implemented conversion support or a release-grade caller-provided conversion contract.

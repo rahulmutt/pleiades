@@ -86,6 +86,8 @@ Progress note (2026-04-24): the compact validation report summary now also carri
 
 Progress note (2026-04-24): the JPL snapshot backend now uses quadratic interpolation on three-sample windows when possible, with a linear fallback for sparse bodies. This keeps the checked-in public-input fixture pure Rust and geocentric while making the reference backend slightly stronger before any larger corpus work lands.
 
+Progress note (2026-04-25): the checked-in JPL reference snapshot now also has exact J2000 golden coverage for the named asteroid subset and the custom 433-Eros body, so the source-backed asteroid fixture path is now exercised with explicit coordinates in addition to the interpolation transparency checks.
+
 Remaining suggested scope:
 
 - add additional public-input epochs or bodies if broader interpolation coverage is needed beyond the current expanded fixture;

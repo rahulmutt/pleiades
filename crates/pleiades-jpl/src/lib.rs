@@ -1080,6 +1080,63 @@ mod tests {
     }
 
     #[test]
+    fn snapshot_backend_resolves_named_asteroids_at_j2000() {
+        let backend = JplSnapshotBackend;
+        let cases = [
+            (
+                pleiades_backend::CelestialBody::Pallas,
+                134.04575066840783,
+                -48.351081494304466,
+                1.4371532489145409,
+            ),
+            (
+                pleiades_backend::CelestialBody::Juno,
+                278.008461932084,
+                9.450859010610209,
+                4.084400792647673,
+            ),
+            (
+                pleiades_backend::CelestialBody::Vesta,
+                245.98418908965346,
+                4.251902812654469,
+                2.898586893865609,
+            ),
+            (
+                pleiades_backend::CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros")),
+                236.28757472178148,
+                -7.734019866618642,
+                1.854402724550437,
+            ),
+        ];
+
+        for (body, expected_longitude_deg, expected_latitude_deg, expected_distance_au) in cases {
+            let request = EphemerisRequest {
+                body,
+                instant: reference_instant(),
+                observer: None,
+                frame: CoordinateFrame::Ecliptic,
+                zodiac_mode: ZodiacMode::Tropical,
+                apparent: Apparentness::Mean,
+            };
+
+            let result = backend
+                .position(&request)
+                .expect("reference snapshot should resolve the asteroid entry");
+            assert_eq!(result.quality, QualityAnnotation::Exact);
+
+            let ecliptic = result
+                .ecliptic
+                .expect("reference snapshot should include ecliptic coordinates");
+            assert!((ecliptic.longitude.degrees() - expected_longitude_deg).abs() < 1e-12);
+            assert!((ecliptic.latitude.degrees() - expected_latitude_deg).abs() < 1e-12);
+            assert!(
+                (ecliptic.distance_au.expect("distance should exist") - expected_distance_au).abs()
+                    < 1e-12
+            );
+        }
+    }
+
+    #[test]
     fn snapshot_backend_resolves_custom_asteroid_at_j2000() {
         let backend = JplSnapshotBackend;
         let request = EphemerisRequest {
@@ -1096,14 +1153,15 @@ mod tests {
         let result = backend
             .position(&request)
             .expect("reference snapshot should resolve the custom asteroid entry");
+        assert_eq!(result.quality, QualityAnnotation::Exact);
         let ecliptic = result
             .ecliptic
             .expect("reference snapshot should include ecliptic coordinates");
-        assert!(ecliptic.longitude.degrees().is_finite());
-        assert!(ecliptic.latitude.degrees().is_finite());
-        assert!(ecliptic
-            .distance_au
-            .expect("distance should exist")
-            .is_finite());
+        assert!((ecliptic.longitude.degrees() - 236.28757472178148).abs() < 1e-12);
+        assert!((ecliptic.latitude.degrees() - (-7.734019866618642)).abs() < 1e-12);
+        assert!(
+            (ecliptic.distance_au.expect("distance should exist") - 1.854402724550437).abs()
+                < 1e-12
+        );
     }
 }
