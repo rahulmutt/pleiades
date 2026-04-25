@@ -38,8 +38,9 @@ use pleiades_core::{
 use pleiades_data::{packaged_artifact, PackagedDataBackend};
 use pleiades_elp::{
     format_lunar_theory_capability_summary, lunar_reference_evidence,
-    lunar_reference_evidence_summary, lunar_reference_evidence_summary_for_report,
-    lunar_theory_capability_summary, lunar_theory_specification, lunar_theory_summary, ElpBackend,
+    lunar_reference_evidence_envelope_for_report, lunar_reference_evidence_summary,
+    lunar_reference_evidence_summary_for_report, lunar_theory_capability_summary,
+    lunar_theory_specification, lunar_theory_summary, ElpBackend,
 };
 use pleiades_houses::{
     baseline_house_systems, built_in_house_systems, release_house_systems, resolve_house_system,
@@ -3775,6 +3776,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text);
     let _ = writeln!(text, "Lunar reference evidence");
     let _ = writeln!(text, "  {}", lunar_reference_evidence_summary_for_report());
+    let _ = writeln!(text, "  {}", lunar_reference_evidence_envelope_for_report());
     let _ = writeln!(text);
     let _ = writeln!(text, "Body comparison summaries");
     for summary in report.comparison.body_summaries() {
@@ -4197,6 +4199,10 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&format_vsop87_body_evidence_summary());
     text.push('\n');
     text.push_str(&lunar_theory_summary());
+    text.push('\n');
+    text.push_str(&lunar_reference_evidence_summary_for_report());
+    text.push('\n');
+    text.push_str(&lunar_reference_evidence_envelope_for_report());
     text.push('\n');
     text.push_str("Distinct bodies covered: ");
     text.push_str(&bodies.len().to_string());
@@ -5121,6 +5127,7 @@ fn write_lunar_reference_evidence(f: &mut fmt::Formatter<'_>) -> fmt::Result {
         "    {}",
         pleiades_elp::format_lunar_reference_evidence_summary(&summary)
     )?;
+    writeln!(f, "    {}", lunar_reference_evidence_envelope_for_report())?;
     for sample in lunar_reference_evidence() {
         writeln!(
             f,
@@ -7120,6 +7127,9 @@ mod tests {
         assert!(rendered.contains(
             "ELP lunar theory specification: Compact Meeus-style truncated lunar baseline [meeus-style-truncated-lunar-baseline; family: Meeus-style truncated analytical baseline]"
         ));
+        assert!(rendered.contains("lunar reference error envelope: 9 samples across 5 bodies"));
+        assert!(rendered.contains("max Δlon="));
+        assert!(rendered.contains("max Δlat="));
         assert!(rendered.contains("request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
         assert!(rendered.contains("validation window: JD 2448724.5 (TT) → JD 2459278.5 (TT)"));
         assert!(rendered.contains("date-range note: Validated against the published 1992-04-12 geocentric Moon example, J2000 lunar-point anchors, published 1913-05-27 true-node and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example"));
@@ -7451,6 +7461,10 @@ version = "0.9.0"
         assert!(validation_report_summary.contains(
             "ELP lunar theory specification: Compact Meeus-style truncated lunar baseline [meeus-style-truncated-lunar-baseline; family: Meeus-style truncated analytical baseline]"
         ));
+        assert!(validation_report_summary
+            .contains("lunar reference error envelope: 9 samples across 5 bodies"));
+        assert!(validation_report_summary.contains("max Δlon="));
+        assert!(validation_report_summary.contains("max Δlat="));
         assert!(validation_report_summary.contains("request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
         assert!(validation_report_summary
             .contains("validation window: JD 2448724.5 (TT) → JD 2459278.5 (TT)"));

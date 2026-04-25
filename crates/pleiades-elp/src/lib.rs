@@ -512,6 +512,186 @@ pub fn lunar_reference_evidence_summary_for_report() -> String {
     }
 }
 
+/// A compact summary of the lunar reference error envelope.
+#[derive(Clone, Debug, PartialEq)]
+pub struct LunarReferenceEvidenceEnvelope {
+    /// Number of evidence samples in the checked-in reference slice.
+    pub sample_count: usize,
+    /// Number of distinct bodies covered by the evidence slice.
+    pub body_count: usize,
+    /// Earliest epoch covered by the evidence slice.
+    pub earliest_epoch: Instant,
+    /// Latest epoch covered by the evidence slice.
+    pub latest_epoch: Instant,
+    /// Body with the maximum absolute longitude delta.
+    pub max_longitude_delta_body: CelestialBody,
+    /// Epoch for the maximum absolute longitude delta.
+    pub max_longitude_delta_epoch: Instant,
+    /// Maximum absolute longitude delta in degrees.
+    pub max_longitude_delta_deg: f64,
+    /// Body with the maximum absolute latitude delta.
+    pub max_latitude_delta_body: CelestialBody,
+    /// Epoch for the maximum absolute latitude delta.
+    pub max_latitude_delta_epoch: Instant,
+    /// Maximum absolute latitude delta in degrees.
+    pub max_latitude_delta_deg: f64,
+    /// Body with the maximum absolute distance delta.
+    pub max_distance_delta_body: Option<CelestialBody>,
+    /// Epoch for the maximum absolute distance delta.
+    pub max_distance_delta_epoch: Option<Instant>,
+    /// Maximum absolute distance delta in astronomical units.
+    pub max_distance_delta_au: Option<f64>,
+    /// Whether every sample stayed within the current regression limits.
+    pub within_current_limits: bool,
+}
+
+/// Returns the current lunar reference error envelope measured against the
+/// checked-in reference slice.
+pub fn lunar_reference_evidence_envelope() -> Option<LunarReferenceEvidenceEnvelope> {
+    let samples = lunar_reference_evidence();
+    if samples.is_empty() {
+        return None;
+    }
+
+    let backend = ElpBackend::new();
+    let mut bodies = std::collections::BTreeSet::new();
+    let mut earliest_epoch = samples[0].epoch;
+    let mut latest_epoch = samples[0].epoch;
+    let mut max_longitude_delta_body = samples[0].body.clone();
+    let mut max_longitude_delta_epoch = samples[0].epoch;
+    let mut max_longitude_delta_deg = 0.0;
+    let mut max_latitude_delta_body = samples[0].body.clone();
+    let mut max_latitude_delta_epoch = samples[0].epoch;
+    let mut max_latitude_delta_deg = 0.0;
+    let mut max_distance_delta_body = None;
+    let mut max_distance_delta_epoch = None;
+    let mut max_distance_delta_au = None;
+    let mut within_current_limits = true;
+
+    for sample in samples {
+        bodies.insert(sample.body.to_string());
+        if sample.epoch.julian_day.days() < earliest_epoch.julian_day.days() {
+            earliest_epoch = sample.epoch;
+        }
+        if sample.epoch.julian_day.days() > latest_epoch.julian_day.days() {
+            latest_epoch = sample.epoch;
+        }
+
+        let result = backend
+            .position(&EphemerisRequest::new(sample.body.clone(), sample.epoch))
+            .expect("the canonical lunar evidence samples should remain computable");
+        let ecliptic = result
+            .ecliptic
+            .expect("the canonical lunar evidence samples should include ecliptic coordinates");
+
+        let longitude_delta_deg =
+            signed_longitude_delta_degrees(sample.longitude_deg, ecliptic.longitude.degrees())
+                .abs();
+        let latitude_delta_deg = (ecliptic.latitude.degrees() - sample.latitude_deg).abs();
+        let distance_delta_au = match (sample.distance_au, ecliptic.distance_au) {
+            (Some(expected), Some(actual)) => Some((actual - expected).abs()),
+            _ => None,
+        };
+
+        let longitude_limit = if sample.body == CelestialBody::MeanNode {
+            1e-1
+        } else {
+            1e-4
+        };
+        let latitude_limit = 1e-4;
+        let distance_limit = 1e-8;
+        within_current_limits &= longitude_delta_deg <= longitude_limit
+            && latitude_delta_deg <= latitude_limit
+            && match distance_delta_au {
+                Some(delta) => delta <= distance_limit,
+                None => true,
+            };
+
+        if longitude_delta_deg > max_longitude_delta_deg {
+            max_longitude_delta_deg = longitude_delta_deg;
+            max_longitude_delta_body = sample.body.clone();
+            max_longitude_delta_epoch = sample.epoch;
+        }
+        if latitude_delta_deg > max_latitude_delta_deg {
+            max_latitude_delta_deg = latitude_delta_deg;
+            max_latitude_delta_body = sample.body.clone();
+            max_latitude_delta_epoch = sample.epoch;
+        }
+        if let Some(delta) = distance_delta_au {
+            match max_distance_delta_au {
+                Some(current_max) if delta <= current_max => {}
+                _ => {
+                    max_distance_delta_body = Some(sample.body.clone());
+                    max_distance_delta_epoch = Some(sample.epoch);
+                    max_distance_delta_au = Some(delta);
+                }
+            }
+        }
+    }
+
+    Some(LunarReferenceEvidenceEnvelope {
+        sample_count: samples.len(),
+        body_count: bodies.len(),
+        earliest_epoch,
+        latest_epoch,
+        max_longitude_delta_body,
+        max_longitude_delta_epoch,
+        max_longitude_delta_deg,
+        max_latitude_delta_body,
+        max_latitude_delta_epoch,
+        max_latitude_delta_deg,
+        max_distance_delta_body,
+        max_distance_delta_epoch,
+        max_distance_delta_au,
+        within_current_limits,
+    })
+}
+
+/// Formats the lunar reference error envelope for release-facing reporting.
+pub fn format_lunar_reference_evidence_envelope(
+    envelope: &LunarReferenceEvidenceEnvelope,
+) -> String {
+    fn format_body_epoch(body: &CelestialBody, epoch: Instant) -> String {
+        format!("{} @ {}", body, format_instant(epoch))
+    }
+
+    let distance = match (
+        envelope.max_distance_delta_body.as_ref(),
+        envelope.max_distance_delta_epoch,
+        envelope.max_distance_delta_au,
+    ) {
+        (Some(body), Some(epoch), Some(delta)) => {
+            format!(
+                "; max Δdist={delta:.12} AU ({})",
+                format_body_epoch(body, epoch)
+            )
+        }
+        _ => String::new(),
+    };
+
+    format!(
+        "lunar reference error envelope: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, max Δlon={:.12}° ({}), max Δlat={:.12}° ({}){}; within current limits={}",
+        envelope.sample_count,
+        envelope.body_count,
+        envelope.earliest_epoch.julian_day.days(),
+        envelope.latest_epoch.julian_day.days(),
+        envelope.max_longitude_delta_deg,
+        format_body_epoch(&envelope.max_longitude_delta_body, envelope.max_longitude_delta_epoch),
+        envelope.max_latitude_delta_deg,
+        format_body_epoch(&envelope.max_latitude_delta_body, envelope.max_latitude_delta_epoch),
+        distance,
+        envelope.within_current_limits,
+    )
+}
+
+/// Returns the release-facing lunar reference error envelope string.
+pub fn lunar_reference_evidence_envelope_for_report() -> String {
+    match lunar_reference_evidence_envelope() {
+        Some(envelope) => format_lunar_reference_evidence_envelope(&envelope),
+        None => "lunar reference error envelope: unavailable".to_string(),
+    }
+}
+
 /// A pure-Rust lunar backend.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct ElpBackend;
@@ -1377,6 +1557,22 @@ mod tests {
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_459_278.5);
         assert!(lunar_reference_evidence_summary_for_report().contains("9 samples across 5 bodies"));
         assert!(lunar_reference_evidence_summary_for_report().contains("JD 2419914.5..2459278.5"));
+
+        let envelope = lunar_reference_evidence_envelope().expect("error envelope should exist");
+        assert_eq!(envelope.sample_count, summary.sample_count);
+        assert_eq!(envelope.body_count, summary.body_count);
+        assert_eq!(envelope.earliest_epoch, summary.earliest_epoch);
+        assert_eq!(envelope.latest_epoch, summary.latest_epoch);
+        assert!(envelope.max_longitude_delta_deg.is_finite());
+        assert!(envelope.max_latitude_delta_deg.is_finite());
+        assert!(envelope.within_current_limits);
+        assert!(lunar_reference_evidence_envelope_for_report()
+            .contains("lunar reference error envelope"));
+        assert!(lunar_reference_evidence_envelope_for_report().contains("max Δlon="));
+        assert!(lunar_reference_evidence_envelope_for_report().contains("max Δlat="));
+        assert!(
+            lunar_reference_evidence_envelope_for_report().contains("within current limits=true")
+        );
     }
 
     #[test]
