@@ -105,6 +105,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Progress note: the backend-matrix summary now also distinguishes bounded versus open-ended nominal ranges, which keeps the compact catalog view honest about which backends are still open-ended versus constrained to a published artifact window.
    - Progress note: validation benchmarking now also reports a full-chart assembly slice in addition to backend request throughput, using representative house scenarios so chart latency stays visible alongside the existing backend throughput evidence.
    - Store expected tolerances by backend and body class.
+   - Progress note: the comparison tolerance policy summaries now include the current comparison corpus size alongside the backend-family scope table, so the release-facing tolerance catalog states how many bodies and samples the scope table is being applied to.
    - Keep validation reproducible and pure Rust.
 
 ## Done criteria

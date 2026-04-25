@@ -1180,7 +1180,7 @@ impl fmt::Display for ValidationReport {
             &self.comparison.candidate_backend.family,
         )?;
         writeln!(f)?;
-        write_tolerance_policy(f, &self.comparison.candidate_backend)?;
+        write_tolerance_policy(f, &self.comparison)?;
         writeln!(f)?;
         write_tolerance_summaries(f, &self.comparison.tolerance_summaries())?;
         writeln!(f)?;
@@ -2521,7 +2521,7 @@ fn render_release_summary_text() -> String {
         text.push('\n');
         text.push_str("Comparison tolerance policy: ");
         text.push_str(&format_comparison_tolerance_policy_for_report(
-            &report.comparison.candidate_backend.family,
+            &report.comparison,
         ));
         text.push('\n');
         text.push_str(&comparison_snapshot_summary_for_report());
@@ -3833,7 +3833,8 @@ fn format_comparison_envelope_for_report(summary: &ComparisonSummary) -> String 
     )
 }
 
-fn format_comparison_tolerance_policy_for_report(backend_family: &BackendFamily) -> String {
+fn format_comparison_tolerance_policy_for_report(comparison: &ComparisonReport) -> String {
+    let backend_family = &comparison.candidate_backend.family;
     let entries = comparison_tolerance_policy_entries(backend_family);
     let scopes = entries
         .iter()
@@ -3842,9 +3843,11 @@ fn format_comparison_tolerance_policy_for_report(backend_family: &BackendFamily)
         .join(", ");
 
     format!(
-        "backend family={}; scopes={} ({scopes})",
+        "backend family={}; scopes={} ({scopes}); evidence={} bodies, {} samples",
         backend_family_label(backend_family),
         entries.len(),
+        comparison.body_summaries().len(),
+        comparison.summary.sample_count,
     )
 }
 
@@ -4081,7 +4084,7 @@ fn render_comparison_audit_report_text(report: &ComparisonReport) -> String {
     }
     let _ = writeln!(text);
     let _ = writeln!(text, "Tolerance policy");
-    write_tolerance_policy_text(&mut text, &report.candidate_backend);
+    write_tolerance_policy_text(&mut text, &report);
     let _ = writeln!(text);
     let _ = writeln!(text, "Notable regressions");
     let regressions = report.notable_regressions();
@@ -4468,7 +4471,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     }
     let _ = writeln!(text);
     let _ = writeln!(text, "Tolerance policy");
-    write_tolerance_policy_text(&mut text, &report.comparison.candidate_backend);
+    write_tolerance_policy_text(&mut text, &report.comparison);
     let _ = writeln!(text);
     let _ = writeln!(text, "Expected tolerance status");
     for summary in report.comparison.tolerance_summaries() {
@@ -6145,12 +6148,18 @@ fn tolerance_backend_family_label(family: &BackendFamily) -> String {
 
 fn write_tolerance_policy(
     f: &mut fmt::Formatter<'_>,
-    candidate_backend: &BackendMetadata,
+    comparison: &ComparisonReport,
 ) -> fmt::Result {
-    let family_label = tolerance_backend_family_label(&candidate_backend.family);
+    let family_label = tolerance_backend_family_label(&comparison.candidate_backend.family);
     writeln!(f, "Tolerance policy catalog")?;
     writeln!(f, "  candidate backend family: {}", family_label)?;
-    for entry in comparison_tolerance_policy_entries(&candidate_backend.family) {
+    writeln!(
+        f,
+        "  comparison evidence: {} bodies, {} samples",
+        comparison.body_summaries().len(),
+        comparison.summary.sample_count
+    )?;
+    for entry in comparison_tolerance_policy_entries(&comparison.candidate_backend.family) {
         let tolerance = entry.tolerance;
         writeln!(
             f,
@@ -6170,13 +6179,19 @@ fn write_tolerance_policy(
     Ok(())
 }
 
-fn write_tolerance_policy_text(text: &mut String, candidate_backend: &BackendMetadata) {
+fn write_tolerance_policy_text(text: &mut String, comparison: &ComparisonReport) {
     use std::fmt::Write as _;
 
-    let family_label = tolerance_backend_family_label(&candidate_backend.family);
+    let family_label = tolerance_backend_family_label(&comparison.candidate_backend.family);
     let _ = writeln!(text, "Tolerance policy catalog");
     let _ = writeln!(text, "  candidate backend family: {}", family_label);
-    for entry in comparison_tolerance_policy_entries(&candidate_backend.family) {
+    let _ = writeln!(
+        text,
+        "  comparison evidence: {} bodies, {} samples",
+        comparison.body_summaries().len(),
+        comparison.summary.sample_count
+    );
+    for entry in comparison_tolerance_policy_entries(&comparison.candidate_backend.family) {
         let tolerance = entry.tolerance;
         let _ = writeln!(
             text,
@@ -8046,7 +8061,7 @@ mod tests {
         assert!(rendered.contains("comparison samples"));
         assert!(rendered.contains("notable regressions"));
         assert!(rendered.contains("outside-tolerance bodies"));
-        assert!(rendered.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto override)"));
+        assert!(rendered.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto override); evidence=10 bodies, 41 samples"));
         assert!(rendered.contains("Body-class tolerance posture:"));
         assert!(rendered.contains("Expected tolerance status:"));
         assert!(rendered.contains("comparison audit regressions found"));
