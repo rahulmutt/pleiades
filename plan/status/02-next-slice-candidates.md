@@ -106,7 +106,7 @@ Progress note (2026-04-25): the JPL snapshot backend now prefers cubic interpola
 Progress note (2026-04-25): the JPL reference asteroid slice now also has a batch-path regression over the exact J2000 evidence rows, so the current public-input fixture is exercised through `positions()` as well as single-request lookups.
 
 Progress note (2026-04-25): the compact JPL interpolation-quality summary now also names the worst-case body for each error metric, so the current hold-out envelope is easier to audit while the broader public-input corpus work remains queued.
-Progress note (2026-04-25): the same summary now also carries the held-out epoch for each peak, so the interpolation audit can name the exact instant that produced the current maximum when a maintainer is comparing runs.
+Progress note (2026-04-25): the same summary now also carries the held-out epoch for each peak, and now reports mean bracket-span and mean error metrics alongside the maxima, so the interpolation audit can name the exact instant that produced the current maximum when a maintainer is comparing runs while also exposing the average leave-one-out envelope.
 
 Progress note (2026-04-25): the JPL interpolation-quality samples now derive from leave-one-out runtime interpolation against held-out exact rows, so the transparency evidence now measures the backend's actual interpolation path instead of only a linear counterfactual.
 
