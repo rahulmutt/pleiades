@@ -105,6 +105,8 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
     let mut lon: Option<f64> = None;
     let mut bodies: Vec<CelestialBody> = Vec::new();
     let mut zodiac_mode = ZodiacMode::Tropical;
+    let mut time_scale = TimeScale::Tt;
+    let mut time_scale_explicit = false;
     let mut apparentness = Apparentness::Mean;
     let mut apparentness_explicit = false;
     let mut house_system: Option<HouseSystem> = None;
@@ -116,6 +118,20 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
             "--lat" => lat = Some(parse_f64(iter.next(), "--lat")?),
             "--lon" => lon = Some(parse_f64(iter.next(), "--lon")?),
             "--body" => bodies.push(parse_body(iter.next())?),
+            "--tt" => {
+                if time_scale_explicit && time_scale != TimeScale::Tt {
+                    return Err("conflicting time-scale flags: --tt and --tdb".to_string());
+                }
+                time_scale = TimeScale::Tt;
+                time_scale_explicit = true;
+            }
+            "--tdb" => {
+                if time_scale_explicit && time_scale != TimeScale::Tdb {
+                    return Err("conflicting time-scale flags: --tt and --tdb".to_string());
+                }
+                time_scale = TimeScale::Tdb;
+                time_scale_explicit = true;
+            }
             "--mean" => {
                 if apparentness_explicit && apparentness != Apparentness::Mean {
                     return Err("conflicting apparentness flags: --mean and --apparent".to_string());
@@ -146,7 +162,7 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
             }
             "--help" | "-h" => {
                 return Ok(format!(
-                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--mean|--apparent] [--ayanamsa <name>] [--house-system <name>] [--body <name> ...]\n\nAyanamsa names may be built-in entries or custom definitions in the form custom:<name>|<epoch-jd>|<offset-degrees> (or custom-definition:<name>|<epoch-jd>|<offset-degrees>). Body names may be built-in bodies such as Sun or Moon, or custom identifiers in the form catalog:designation.",
+                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--tt|--tdb] [--mean|--apparent] [--ayanamsa <name>] [--house-system <name>] [--body <name> ...]\n\nAyanamsa names may be built-in entries or custom definitions in the form custom:<name>|<epoch-jd>|<offset-degrees> (or custom-definition:<name>|<epoch-jd>|<offset-degrees>). Body names may be built-in bodies such as Sun or Moon, or custom identifiers in the form catalog:designation.",
                     banner()
                 ));
             }
@@ -155,7 +171,7 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
     }
 
     let jd = jd.unwrap_or(2_451_545.0);
-    let instant = Instant::new(JulianDay::from_days(jd), TimeScale::Tt);
+    let instant = Instant::new(JulianDay::from_days(jd), time_scale);
     let observer = match (lat, lon) {
         (Some(lat), Some(lon)) => Some(ObserverLocation::new(
             Latitude::from_degrees(lat),
@@ -734,6 +750,17 @@ mod tests {
         assert!(rendered.contains("Moon"));
         assert!(rendered.contains("Apparentness: Mean"));
         assert!(rendered.contains("Sign summary:"));
+    }
+
+    #[test]
+    fn chart_command_can_render_tdb_tagged_instant() {
+        let rendered = render_chart(&["--jd", "2451545.0", "--tdb", "--body", "Sun"])
+            .expect("chart should render with a TDB-tagged instant");
+        assert!(
+            rendered.contains("Instant: JD 2451545 (Tdb)")
+                || rendered.contains("Instant: JD 2451545.0 (Tdb)")
+        );
+        assert!(rendered.contains("Apparentness: Mean"));
     }
 
     #[test]

@@ -50,6 +50,8 @@ Latest progress (2026-04-25): the compact ELP lunar backend now also exposes a c
 
 Latest progress (2026-04-25): the shared `pleiades-types::EclipticCoordinates::to_equatorial` helper now centralizes the mean-obliquity frame rotation used by the VSOP87 and ELP backends, reducing duplicate transform logic while keeping the current ecliptic-to-equatorial behavior explicit and test-covered. Raw backend requests now also default to mean geometric output, which keeps the request model aligned with the current mean-only first-party backends instead of nudging callers toward unsupported apparent-mode defaults.
 
+Latest progress (2026-04-25): the `pleiades-cli` chart command now accepts an explicit `--tdb` instant tag in addition to its default TT-tagged request, so chart reports can surface a TDB-tagged instant directly instead of implying a hidden conversion policy.
+
 Latest progress (2026-04-25): `pleiades-types` and `pleiades-core::ChartRequest` now also expose caller-supplied TT-to-TDB conversion conveniences alongside the existing UTC/UT1 helpers, so TDB-tagged validation or backend requests can stay explicit without introducing a built-in relativistic model.
 
 Latest progress (2026-04-25): UT1-tagged callers now also have a direct caller-supplied UT1-to-TDB convenience in `pleiades-types` and `pleiades-core::ChartRequest`, so applications that stage a TDB request from UT1 can compose the same explicit TT-UT1 and TDB-TT policy steps without hidden time-scale logic.
