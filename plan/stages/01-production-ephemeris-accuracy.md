@@ -45,6 +45,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Progress note: the compact lunar-theory specification now also carries explicit truncation and output-unit notes, and the validation/reporting layer renders those notes alongside the provenance fields so the current truncated baseline is easier to audit without changing the public API. The same baseline now also exposes its source-family label directly, which keeps the source-selection posture structured without widening the API surface.
    - Progress note: the lunar-theory selection data is now centralized into a single static specification, and the canonical evidence slice is checked against that supported-body list so the current Meeus-style baseline stays internally consistent as the source-selection work continues.
    - Progress note: the compact lunar-theory metadata now also exposes its current validation window as a structured `TimeRange` in addition to the prose date-range note, so release-facing summaries can render the sampled epoch span without inferring it from freeform text.
+   - Progress note: the release-facing lunar summary formatter now lives in `pleiades-elp`, which keeps the lunar provenance text owned by the backend crate rather than duplicated in validation/reporting code.
 
 3. Upgrade `pleiades-jpl` from snapshot fixture to reference backend.
    - Parse documented public JPL-style files or a reproducible derivative format in pure Rust.

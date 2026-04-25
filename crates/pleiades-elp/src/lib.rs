@@ -183,6 +183,113 @@ pub fn lunar_theory_specification() -> LunarTheorySpecification {
     LUNAR_THEORY_SPECIFICATION
 }
 
+/// Returns the release-facing one-line summary for the current lunar-theory selection.
+///
+/// The validation and release tooling uses this helper so the lunar provenance
+/// summary is defined in the backend crate rather than duplicated in reporting
+/// layers.
+pub fn lunar_theory_summary() -> String {
+    let theory = lunar_theory_specification();
+    format!(
+        "ELP lunar theory specification: {} [{}; family: {}] ({} supported bodies: {}; {} unsupported bodies: {}); request policy: frames={}; time scales={}; zodiac modes={}; apparentness={}; topocentric observer={}; citation: {}; provenance: {}; redistribution: {}; truncation: {}; units: {}; validation window: {}; date-range note: {}; frame treatment: {}; license: {}",
+        theory.model_name,
+        theory.source_identifier,
+        lunar_theory_source_family().label(),
+        theory.supported_bodies.len(),
+        format_bodies(theory.supported_bodies),
+        theory.unsupported_bodies.len(),
+        format_bodies(theory.unsupported_bodies),
+        format_frames(theory.request_policy.supported_frames),
+        format_time_scales(theory.request_policy.supported_time_scales),
+        format_zodiac_modes(theory.request_policy.supported_zodiac_modes),
+        format_apparentness_modes(theory.request_policy.supported_apparentness),
+        theory.request_policy.supports_topocentric_observer,
+        theory.source_citation,
+        theory.source_material,
+        theory.redistribution_note,
+        theory.truncation_note,
+        theory.unit_note,
+        format_time_range(&theory.validation_window),
+        theory.date_range_note,
+        theory.frame_note,
+        theory.license_note,
+    )
+}
+
+fn format_bodies(bodies: &[CelestialBody]) -> String {
+    bodies
+        .iter()
+        .map(|body| body.to_string())
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn format_frames(frames: &[CoordinateFrame]) -> String {
+    frames
+        .iter()
+        .map(|frame| match frame {
+            CoordinateFrame::Ecliptic => "Ecliptic",
+            CoordinateFrame::Equatorial => "Equatorial",
+            _ => "Other",
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn format_time_scales(scales: &[TimeScale]) -> String {
+    scales
+        .iter()
+        .map(|scale| match scale {
+            TimeScale::Utc => "UTC",
+            TimeScale::Ut1 => "UT1",
+            TimeScale::Tt => "TT",
+            TimeScale::Tdb => "TDB",
+            _ => "Other",
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn format_zodiac_modes(modes: &[ZodiacMode]) -> String {
+    modes
+        .iter()
+        .map(|mode| match mode {
+            ZodiacMode::Tropical => "Tropical".to_string(),
+            ZodiacMode::Sidereal { ayanamsa } => format!("Sidereal ({ayanamsa:?})"),
+            _ => "Other".to_string(),
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn format_apparentness_modes(modes: &[Apparentness]) -> String {
+    modes
+        .iter()
+        .map(|mode| mode.to_string())
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn format_time_range(range: &TimeRange) -> String {
+    match (range.start, range.end) {
+        (Some(start), Some(end)) => format!("{} → {}", format_instant(start), format_instant(end)),
+        (Some(start), None) => format!("from {}", format_instant(start)),
+        (None, Some(end)) => format!("through {}", format_instant(end)),
+        (None, None) => "unbounded".to_string(),
+    }
+}
+
+fn format_instant(instant: Instant) -> String {
+    let scale = match instant.scale {
+        TimeScale::Utc => "UTC",
+        TimeScale::Ut1 => "UT1",
+        TimeScale::Tt => "TT",
+        TimeScale::Tdb => "TDB",
+        _ => "Other",
+    };
+    format!("JD {:.1} ({scale})", instant.julian_day.days())
+}
+
 /// A single canonical lunar evidence sample used by validation and reporting.
 #[derive(Clone, Debug, PartialEq)]
 pub struct LunarReferenceSample {
@@ -580,6 +687,25 @@ mod tests {
     #[test]
     fn package_name_is_stable() {
         assert_eq!(PACKAGE_NAME, "pleiades-elp");
+    }
+
+    #[test]
+    fn lunar_theory_summary_mentions_the_selected_lunar_theory() {
+        let summary = lunar_theory_summary();
+        let theory = lunar_theory_specification();
+
+        assert!(summary.contains(theory.model_name));
+        assert!(summary.contains(theory.source_identifier));
+        assert!(summary.contains(lunar_theory_source_family().label()));
+        assert!(summary.contains(theory.source_citation));
+        assert!(summary.contains("Moon, Mean Node, True Node, Mean Perigee, Mean Apogee"));
+        assert!(summary.contains("unsupported bodies: True Apogee, True Perigee"));
+        assert!(summary.contains("validation window: JD 2448724.5 (TT) → JD 2451545.0 (TT)"));
+        assert!(summary.contains("frames=Ecliptic, Equatorial"));
+        assert!(summary.contains("time scales=TT, TDB"));
+        assert!(summary.contains("zodiac modes=Tropical"));
+        assert!(summary.contains("apparentness=Mean"));
+        assert!(summary.contains("topocentric observer=false"));
     }
 
     #[test]

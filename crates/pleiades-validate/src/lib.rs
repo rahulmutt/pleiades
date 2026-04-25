@@ -36,7 +36,9 @@ use pleiades_core::{
     ZodiacMode,
 };
 use pleiades_data::{packaged_artifact, PackagedDataBackend};
-use pleiades_elp::{lunar_reference_evidence, lunar_theory_specification, ElpBackend};
+use pleiades_elp::{
+    lunar_reference_evidence, lunar_theory_specification, lunar_theory_summary, ElpBackend,
+};
 use pleiades_houses::{
     baseline_house_systems, built_in_house_systems, release_house_systems, resolve_house_system,
 };
@@ -3522,34 +3524,6 @@ fn format_vsop87_source_audit_summary() -> String {
     )
 }
 
-fn format_elp_lunar_theory_summary() -> String {
-    let theory = lunar_theory_specification();
-    format!(
-        "ELP lunar theory specification: {} [{}; family: {}] ({} supported bodies: {}; {} unsupported bodies: {}); request policy: frames={}; time scales={}; zodiac modes={}; apparentness={}; topocentric observer={}; citation: {}; provenance: {}; redistribution: {}; truncation: {}; units: {}; validation window: {}; date-range note: {}; frame treatment: {}; license: {}",
-        theory.model_name,
-        theory.source_identifier,
-        pleiades_elp::lunar_theory_source_family().label(),
-        theory.supported_bodies.len(),
-        format_bodies(theory.supported_bodies),
-        theory.unsupported_bodies.len(),
-        format_bodies(theory.unsupported_bodies),
-        format_frames(theory.request_policy.supported_frames),
-        format_time_scales(theory.request_policy.supported_time_scales),
-        format_zodiac_modes(theory.request_policy.supported_zodiac_modes),
-        format_apparentness_modes(theory.request_policy.supported_apparentness),
-        theory.request_policy.supports_topocentric_observer,
-        theory.source_citation,
-        theory.source_material,
-        theory.redistribution_note,
-        theory.truncation_note,
-        theory.unit_note,
-        format_time_range(&theory.validation_window),
-        theory.date_range_note,
-        theory.frame_note,
-        theory.license_note,
-    )
-}
-
 fn format_reference_asteroid_evidence_summary() -> String {
     let evidence = reference_asteroid_evidence();
     if evidence.is_empty() {
@@ -3857,7 +3831,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text, "  {}", format_vsop87_body_evidence_summary());
     let _ = writeln!(text);
     let _ = writeln!(text, "ELP lunar theory specification");
-    let _ = writeln!(text, "  {}", format_elp_lunar_theory_summary());
+    let _ = writeln!(text, "  {}", lunar_theory_summary());
     let _ = writeln!(text);
     let _ = writeln!(text, "Packaged-artifact profile");
     let _ = writeln!(text, "  {}", format_packaged_artifact_profile_summary());
@@ -4063,7 +4037,7 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str(&format_vsop87_body_evidence_summary());
     text.push('\n');
-    text.push_str(&format_elp_lunar_theory_summary());
+    text.push_str(&lunar_theory_summary());
     text.push('\n');
     text.push_str("Distinct bodies covered: ");
     text.push_str(&bodies.len().to_string());
