@@ -268,22 +268,19 @@ pub fn format_lunar_theory_capability_summary(summary: &LunarTheoryCapabilitySum
     )
 }
 
-/// Returns the release-facing one-line summary for the current lunar-theory selection.
+/// Formats the release-facing one-line summary for a lunar-theory specification.
 ///
-/// The validation and release tooling uses this helper so the lunar provenance
-/// summary is defined in the backend crate rather than duplicated in reporting
-/// layers.
-pub fn lunar_theory_summary() -> String {
-    let theory = lunar_theory_specification();
-    let capability = lunar_theory_capability_summary();
+/// Validation and release tooling use this helper so lunar provenance stays
+/// owned by the backend crate rather than duplicated in reporting layers.
+pub fn format_lunar_theory_specification(theory: &LunarTheorySpecification) -> String {
     format!(
         "ELP lunar theory specification: {} [{}; family: {}] ({} supported bodies: {}; {} unsupported bodies: {}); request policy: frames={}; time scales={}; zodiac modes={}; apparentness={}; topocentric observer={}; citation: {}; provenance: {}; redistribution: {}; truncation: {}; units: {}; validation window: {}; date-range note: {}; frame treatment: {}; license: {}",
         theory.model_name,
         theory.source_identifier,
-        lunar_theory_source_family().label(),
-        capability.supported_body_count,
+        theory.source_family.label(),
+        theory.supported_bodies.len(),
         format_bodies(theory.supported_bodies),
-        capability.unsupported_body_count,
+        theory.unsupported_bodies.len(),
         format_bodies(theory.unsupported_bodies),
         format_frames(theory.request_policy.supported_frames),
         format_time_scales(theory.request_policy.supported_time_scales),
@@ -295,11 +292,20 @@ pub fn lunar_theory_summary() -> String {
         theory.redistribution_note,
         theory.truncation_note,
         theory.unit_note,
-        format_time_range(&capability.validation_window),
+        format_time_range(&theory.validation_window),
         theory.date_range_note,
         theory.frame_note,
         theory.license_note,
     )
+}
+
+/// Returns the release-facing one-line summary for the current lunar-theory selection.
+///
+/// The validation and release tooling uses this helper so the lunar provenance
+/// summary is defined in the backend crate rather than duplicated in reporting
+/// layers.
+pub fn lunar_theory_summary() -> String {
+    format_lunar_theory_specification(&lunar_theory_specification())
 }
 
 fn format_bodies(bodies: &[CelestialBody]) -> String {
@@ -1480,7 +1486,9 @@ mod tests {
     fn lunar_theory_summary_mentions_the_selected_lunar_theory() {
         let summary = lunar_theory_summary();
         let theory = lunar_theory_specification();
+        let formatted = format_lunar_theory_specification(&theory);
 
+        assert_eq!(summary, formatted);
         assert!(summary.contains(theory.model_name));
         assert!(summary.contains(theory.source_identifier));
         assert!(summary.contains(theory.source_family.label()));
