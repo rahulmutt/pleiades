@@ -2080,13 +2080,16 @@ fn render_release_summary_text() -> String {
             .iter()
             .map(|summary| summary.outside_tolerance_body_count)
             .sum();
+        let (_, _, _, audit_regression_count) = comparison_audit_totals(&report.comparison);
         text.push_str("Validation evidence: ");
         text.push_str(&report.comparison.summary.sample_count.to_string());
         text.push_str(" comparison samples, ");
         text.push_str(&report.comparison.notable_regressions().len().to_string());
         text.push_str(" notable regressions, ");
         text.push_str(&tolerance_outside_bodies.to_string());
-        text.push_str(" outside-tolerance bodies\n");
+        text.push_str(" outside-tolerance bodies, comparison audit ");
+        text.push_str(comparison_audit_result_label(audit_regression_count));
+        text.push('\n');
     }
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("Backend matrix summary: backend-matrix-summary\n");
@@ -3305,6 +3308,14 @@ pub fn render_comparison_audit_report() -> Result<String, String> {
     }
 }
 
+fn comparison_audit_result_label(regression_count: usize) -> &'static str {
+    if regression_count == 0 {
+        "clean"
+    } else {
+        "regressions found"
+    }
+}
+
 fn render_comparison_audit_report_text(report: &ComparisonReport) -> String {
     use std::fmt::Write as _;
 
@@ -3344,11 +3355,7 @@ fn render_comparison_audit_report_text(report: &ComparisonReport) -> String {
     let _ = writeln!(
         text,
         "  result: {}",
-        if regression_count == 0 {
-            "clean"
-        } else {
-            "regressions found"
-        }
+        comparison_audit_result_label(regression_count)
     );
     let _ = writeln!(text);
     let _ = writeln!(text, "Comparison summary");
@@ -7011,6 +7018,7 @@ mod tests {
         assert!(rendered.contains("comparison samples"));
         assert!(rendered.contains("notable regressions"));
         assert!(rendered.contains("outside-tolerance bodies"));
+        assert!(rendered.contains("comparison audit regressions found"));
         assert!(rendered.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
         assert!(rendered
