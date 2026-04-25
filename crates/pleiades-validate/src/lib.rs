@@ -37,7 +37,10 @@ use pleiades_core::{
 };
 use pleiades_data::{packaged_artifact, PackagedDataBackend};
 use pleiades_elp::{
-    format_lunar_theory_capability_summary, lunar_reference_evidence,
+    format_lunar_theory_capability_summary, lunar_equatorial_reference_evidence,
+    lunar_equatorial_reference_evidence_envelope_for_report,
+    lunar_equatorial_reference_evidence_summary,
+    lunar_equatorial_reference_evidence_summary_for_report, lunar_reference_evidence,
     lunar_reference_evidence_envelope_for_report, lunar_reference_evidence_summary,
     lunar_reference_evidence_summary_for_report, lunar_theory_capability_summary,
     lunar_theory_specification, lunar_theory_summary, ElpBackend,
@@ -3782,6 +3785,18 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text, "  {}", lunar_reference_evidence_summary_for_report());
     let _ = writeln!(text, "  {}", lunar_reference_evidence_envelope_for_report());
     let _ = writeln!(text);
+    let _ = writeln!(text, "Lunar equatorial reference evidence");
+    let _ = writeln!(
+        text,
+        "  {}",
+        lunar_equatorial_reference_evidence_summary_for_report()
+    );
+    let _ = writeln!(
+        text,
+        "  {}",
+        lunar_equatorial_reference_evidence_envelope_for_report()
+    );
+    let _ = writeln!(text);
     let _ = writeln!(text, "Body comparison summaries");
     for summary in report.comparison.body_summaries() {
         let _ = writeln!(
@@ -4207,6 +4222,11 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&lunar_reference_evidence_summary_for_report());
     text.push('\n');
     text.push_str(&lunar_reference_evidence_envelope_for_report());
+    text.push('\n');
+    text.push_str("Lunar equatorial reference evidence\n");
+    text.push_str(&lunar_equatorial_reference_evidence_summary_for_report());
+    text.push('\n');
+    text.push_str(&lunar_equatorial_reference_evidence_envelope_for_report());
     text.push('\n');
     text.push_str("Distinct bodies covered: ");
     text.push_str(&bodies.len().to_string());
@@ -5050,6 +5070,7 @@ fn write_backend_catalog_entry(
         writeln!(f, "    date-range note: {}", theory.date_range_note)?;
         writeln!(f, "    frame note: {}", theory.frame_note)?;
         write_lunar_reference_evidence(f)?;
+        write_lunar_equatorial_reference_evidence(f)?;
     }
     if entry.metadata.id.as_str() == "jpl-snapshot" {
         write_jpl_interpolation_quality(f)?;
@@ -5141,6 +5162,42 @@ fn write_lunar_reference_evidence(f: &mut fmt::Formatter<'_>) -> fmt::Result {
             sample.longitude_deg,
             sample.latitude_deg,
             sample
+                .distance_au
+                .map(|value| format!("{value:.12} AU"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            sample.note
+        )?;
+    }
+    Ok(())
+}
+
+fn write_lunar_equatorial_reference_evidence(f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    writeln!(f, "  Lunar equatorial reference evidence:")?;
+    if lunar_equatorial_reference_evidence_summary().is_none() {
+        writeln!(f, "    none")?;
+        return Ok(());
+    }
+
+    writeln!(
+        f,
+        "    {}",
+        lunar_equatorial_reference_evidence_summary_for_report()
+    )?;
+    writeln!(
+        f,
+        "    {}",
+        lunar_equatorial_reference_evidence_envelope_for_report()
+    )?;
+    for sample in lunar_equatorial_reference_evidence() {
+        writeln!(
+            f,
+            "    {} at JD {:.1}: ra={:.12}°, dec={:.12}°, dist={}, note={}",
+            sample.body,
+            sample.epoch.julian_day.days(),
+            sample.equatorial.right_ascension.degrees(),
+            sample.equatorial.declination.degrees(),
+            sample
+                .equatorial
                 .distance_au
                 .map(|value| format!("{value:.12} AU"))
                 .unwrap_or_else(|| "n/a".to_string()),
@@ -7208,7 +7265,10 @@ mod tests {
         assert!(rendered.contains("max Δlat="));
         assert!(rendered.contains("request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
         assert!(rendered.contains("validation window: JD 2448724.5 (TT) → JD 2459278.5 (TT)"));
-        assert!(rendered.contains("date-range note: Validated against the published 1992-04-12 geocentric Moon example, J2000 lunar-point anchors, published 1913-05-27 true-node and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example"));
+        assert!(rendered.contains("date-range note: Validated against the published 1992-04-12 geocentric Moon example, the published 1992-04-12 geocentric Moon RA/Dec example used for the mean-obliquity equatorial transform, J2000 lunar-point anchors, published 1913-05-27 true-node and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example"));
+        assert!(rendered.contains("lunar equatorial reference evidence: 1 samples across 1 bodies"));
+        assert!(rendered
+            .contains("lunar equatorial reference error envelope: 1 samples across 1 bodies"));
         assert!(rendered.contains("citation: Jean Meeus"));
         assert!(rendered
             .contains("provenance: Published lunar position, node, and mean-point formulas"));
@@ -7544,7 +7604,9 @@ version = "0.9.0"
         assert!(validation_report_summary.contains("request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
         assert!(validation_report_summary
             .contains("validation window: JD 2448724.5 (TT) → JD 2459278.5 (TT)"));
-        assert!(validation_report_summary.contains("date-range note: Validated against the published 1992-04-12 geocentric Moon example, J2000 lunar-point anchors, published 1913-05-27 true-node and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example"));
+        assert!(validation_report_summary.contains("date-range note: Validated against the published 1992-04-12 geocentric Moon example, the published 1992-04-12 geocentric Moon RA/Dec example used for the mean-obliquity equatorial transform, J2000 lunar-point anchors, published 1913-05-27 true-node and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example"));
+        assert!(validation_report_summary
+            .contains("lunar equatorial reference error envelope: 1 samples across 1 bodies"));
         assert!(validation_report_summary.contains("citation: Jean Meeus"));
         assert!(validation_report_summary
             .contains("provenance: Published lunar position, node, and mean-point formulas"));

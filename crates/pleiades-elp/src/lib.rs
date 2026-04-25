@@ -170,7 +170,7 @@ const LUNAR_THEORY_SPECIFICATION: LunarTheorySpecification = LunarTheorySpecific
     unit_note:
         "Angular outputs are reported in degrees and distance outputs, when present, are reported in astronomical units",
     date_range_note:
-        "Validated against the published 1992-04-12 geocentric Moon example, J2000 lunar-point anchors, published 1913-05-27 true-node and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example; no full ELP coefficient range has been published yet",
+        "Validated against the published 1992-04-12 geocentric Moon example, the published 1992-04-12 geocentric Moon RA/Dec example used for the mean-obliquity equatorial transform, J2000 lunar-point anchors, published 1913-05-27 true-node and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example; no full ELP coefficient range has been published yet",
     frame_note:
         "Geocentric ecliptic coordinates are produced directly from the truncated lunar series; equatorial coordinates are derived with a mean-obliquity transform",
     validation_window: LUNAR_THEORY_VALIDATION_WINDOW,
@@ -451,6 +451,35 @@ pub fn lunar_reference_evidence() -> &'static [LunarReferenceSample] {
     SAMPLES
 }
 
+/// A single canonical lunar equatorial evidence sample used by validation and reporting.
+#[derive(Clone, Debug, PartialEq)]
+pub struct LunarEquatorialReferenceSample {
+    /// Body covered by the sample.
+    pub body: CelestialBody,
+    /// Reference epoch used for the sample.
+    pub epoch: Instant,
+    /// Expected equatorial coordinates.
+    pub equatorial: EquatorialCoordinates,
+    /// Human-readable note describing the provenance of the sample.
+    pub note: &'static str,
+}
+
+/// Returns the canonical lunar equatorial evidence samples used by validation and reporting.
+pub fn lunar_equatorial_reference_evidence() -> &'static [LunarEquatorialReferenceSample] {
+    const SAMPLES: &[LunarEquatorialReferenceSample] = &[LunarEquatorialReferenceSample {
+        body: CelestialBody::Moon,
+        epoch: Instant::new(pleiades_types::JulianDay::from_days(2_448_724.5), TimeScale::Tt),
+        equatorial: EquatorialCoordinates::new(
+            Angle::from_degrees(134.688_470),
+            Latitude::from_degrees(13.768_368),
+            Some(368_409.7 / 149_597_870.700),
+        ),
+        note: "Published 1992-04-12 geocentric Moon RA/Dec example used to anchor the mean-obliquity equatorial transform",
+    }];
+
+    SAMPLES
+}
+
 /// A compact summary of the canonical lunar reference evidence slice.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct LunarReferenceEvidenceSummary {
@@ -509,6 +538,250 @@ pub fn lunar_reference_evidence_summary_for_report() -> String {
     match lunar_reference_evidence_summary() {
         Some(summary) => format_lunar_reference_evidence_summary(&summary),
         None => "lunar reference evidence: unavailable".to_string(),
+    }
+}
+
+/// A compact summary of the canonical lunar equatorial reference evidence slice.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct LunarEquatorialReferenceEvidenceSummary {
+    /// Number of evidence samples in the checked-in reference slice.
+    pub sample_count: usize,
+    /// Number of distinct bodies covered by the evidence slice.
+    pub body_count: usize,
+    /// Earliest epoch covered by the evidence slice.
+    pub earliest_epoch: Instant,
+    /// Latest epoch covered by the evidence slice.
+    pub latest_epoch: Instant,
+}
+
+/// Returns a compact summary of the canonical lunar equatorial reference evidence slice.
+pub fn lunar_equatorial_reference_evidence_summary(
+) -> Option<LunarEquatorialReferenceEvidenceSummary> {
+    let samples = lunar_equatorial_reference_evidence();
+    if samples.is_empty() {
+        return None;
+    }
+
+    let mut bodies = std::collections::BTreeSet::new();
+    let mut earliest_epoch = samples[0].epoch;
+    let mut latest_epoch = samples[0].epoch;
+
+    for sample in samples {
+        bodies.insert(sample.body.to_string());
+        if sample.epoch.julian_day.days() < earliest_epoch.julian_day.days() {
+            earliest_epoch = sample.epoch;
+        }
+        if sample.epoch.julian_day.days() > latest_epoch.julian_day.days() {
+            latest_epoch = sample.epoch;
+        }
+    }
+
+    Some(LunarEquatorialReferenceEvidenceSummary {
+        sample_count: samples.len(),
+        body_count: bodies.len(),
+        earliest_epoch,
+        latest_epoch,
+    })
+}
+
+/// Formats the lunar equatorial reference evidence summary for release-facing reporting.
+pub fn format_lunar_equatorial_reference_evidence_summary(
+    summary: &LunarEquatorialReferenceEvidenceSummary,
+) -> String {
+    format!(
+        "lunar equatorial reference evidence: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, validated against the published 1992-04-12 geocentric Moon RA/Dec example",
+        summary.sample_count,
+        summary.body_count,
+        summary.earliest_epoch.julian_day.days(),
+        summary.latest_epoch.julian_day.days(),
+    )
+}
+
+/// Returns the release-facing lunar equatorial reference evidence summary string.
+pub fn lunar_equatorial_reference_evidence_summary_for_report() -> String {
+    match lunar_equatorial_reference_evidence_summary() {
+        Some(summary) => format_lunar_equatorial_reference_evidence_summary(&summary),
+        None => "lunar equatorial reference evidence: unavailable".to_string(),
+    }
+}
+
+/// A compact summary of the lunar equatorial reference error envelope.
+#[derive(Clone, Debug, PartialEq)]
+pub struct LunarEquatorialReferenceEvidenceEnvelope {
+    /// Number of evidence samples in the checked-in reference slice.
+    pub sample_count: usize,
+    /// Number of distinct bodies covered by the evidence slice.
+    pub body_count: usize,
+    /// Earliest epoch covered by the evidence slice.
+    pub earliest_epoch: Instant,
+    /// Latest epoch covered by the evidence slice.
+    pub latest_epoch: Instant,
+    /// Body with the maximum absolute right ascension delta.
+    pub max_right_ascension_delta_body: CelestialBody,
+    /// Epoch for the maximum absolute right ascension delta.
+    pub max_right_ascension_delta_epoch: Instant,
+    /// Maximum absolute right ascension delta in degrees.
+    pub max_right_ascension_delta_deg: f64,
+    /// Body with the maximum absolute declination delta.
+    pub max_declination_delta_body: CelestialBody,
+    /// Epoch for the maximum absolute declination delta.
+    pub max_declination_delta_epoch: Instant,
+    /// Maximum absolute declination delta in degrees.
+    pub max_declination_delta_deg: f64,
+    /// Body with the maximum absolute distance delta.
+    pub max_distance_delta_body: Option<CelestialBody>,
+    /// Epoch for the maximum absolute distance delta.
+    pub max_distance_delta_epoch: Option<Instant>,
+    /// Maximum absolute distance delta in astronomical units.
+    pub max_distance_delta_au: Option<f64>,
+    /// Whether every sample stayed within the current regression limits.
+    pub within_current_limits: bool,
+}
+
+/// Returns the current lunar equatorial reference error envelope measured against the
+/// checked-in reference slice.
+pub fn lunar_equatorial_reference_evidence_envelope(
+) -> Option<LunarEquatorialReferenceEvidenceEnvelope> {
+    let samples = lunar_equatorial_reference_evidence();
+    if samples.is_empty() {
+        return None;
+    }
+
+    let backend = ElpBackend::new();
+    let mut bodies = std::collections::BTreeSet::new();
+    let mut earliest_epoch = samples[0].epoch;
+    let mut latest_epoch = samples[0].epoch;
+    let mut max_right_ascension_delta_body = samples[0].body.clone();
+    let mut max_right_ascension_delta_epoch = samples[0].epoch;
+    let mut max_right_ascension_delta_deg = 0.0;
+    let mut max_declination_delta_body = samples[0].body.clone();
+    let mut max_declination_delta_epoch = samples[0].epoch;
+    let mut max_declination_delta_deg = 0.0;
+    let mut max_distance_delta_body = None;
+    let mut max_distance_delta_epoch = None;
+    let mut max_distance_delta_au = None;
+    let mut within_current_limits = true;
+
+    for sample in samples {
+        bodies.insert(sample.body.to_string());
+        if sample.epoch.julian_day.days() < earliest_epoch.julian_day.days() {
+            earliest_epoch = sample.epoch;
+        }
+        if sample.epoch.julian_day.days() > latest_epoch.julian_day.days() {
+            latest_epoch = sample.epoch;
+        }
+
+        let result = backend
+            .position(&EphemerisRequest::new(sample.body.clone(), sample.epoch))
+            .expect("the canonical lunar equatorial evidence samples should remain computable");
+        let equatorial = result.equatorial.expect(
+            "the canonical lunar equatorial evidence samples should include equatorial coordinates",
+        );
+
+        let right_ascension_delta_deg = signed_longitude_delta_degrees(
+            sample.equatorial.right_ascension.degrees(),
+            equatorial.right_ascension.degrees(),
+        )
+        .abs();
+        let declination_delta_deg =
+            (equatorial.declination.degrees() - sample.equatorial.declination.degrees()).abs();
+        let distance_delta_au = match (sample.equatorial.distance_au, equatorial.distance_au) {
+            (Some(expected), Some(actual)) => Some((actual - expected).abs()),
+            _ => None,
+        };
+
+        let right_ascension_limit = 1e-2;
+        let declination_limit = 1e-2;
+        let distance_limit = 1e-8;
+        within_current_limits &= right_ascension_delta_deg <= right_ascension_limit
+            && declination_delta_deg <= declination_limit
+            && match distance_delta_au {
+                Some(delta) => delta <= distance_limit,
+                None => true,
+            };
+
+        if right_ascension_delta_deg > max_right_ascension_delta_deg {
+            max_right_ascension_delta_deg = right_ascension_delta_deg;
+            max_right_ascension_delta_body = sample.body.clone();
+            max_right_ascension_delta_epoch = sample.epoch;
+        }
+        if declination_delta_deg > max_declination_delta_deg {
+            max_declination_delta_deg = declination_delta_deg;
+            max_declination_delta_body = sample.body.clone();
+            max_declination_delta_epoch = sample.epoch;
+        }
+        if let Some(delta) = distance_delta_au {
+            match max_distance_delta_au {
+                Some(current_max) if delta <= current_max => {}
+                _ => {
+                    max_distance_delta_body = Some(sample.body.clone());
+                    max_distance_delta_epoch = Some(sample.epoch);
+                    max_distance_delta_au = Some(delta);
+                }
+            }
+        }
+    }
+
+    Some(LunarEquatorialReferenceEvidenceEnvelope {
+        sample_count: samples.len(),
+        body_count: bodies.len(),
+        earliest_epoch,
+        latest_epoch,
+        max_right_ascension_delta_body,
+        max_right_ascension_delta_epoch,
+        max_right_ascension_delta_deg,
+        max_declination_delta_body,
+        max_declination_delta_epoch,
+        max_declination_delta_deg,
+        max_distance_delta_body,
+        max_distance_delta_epoch,
+        max_distance_delta_au,
+        within_current_limits,
+    })
+}
+
+/// Formats the lunar equatorial reference error envelope for release-facing reporting.
+pub fn format_lunar_equatorial_reference_evidence_envelope(
+    envelope: &LunarEquatorialReferenceEvidenceEnvelope,
+) -> String {
+    fn format_body_epoch(body: &CelestialBody, epoch: Instant) -> String {
+        format!("{} @ {}", body, format_instant(epoch))
+    }
+
+    let distance = match (
+        envelope.max_distance_delta_body.as_ref(),
+        envelope.max_distance_delta_epoch,
+        envelope.max_distance_delta_au,
+    ) {
+        (Some(body), Some(epoch), Some(delta)) => {
+            format!(
+                "; max Δdist={delta:.12} AU ({})",
+                format_body_epoch(body, epoch)
+            )
+        }
+        _ => String::new(),
+    };
+
+    format!(
+        "lunar equatorial reference error envelope: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, max ΔRA={:.12}° ({}), max ΔDec={:.12}° ({}){}; within current limits={}",
+        envelope.sample_count,
+        envelope.body_count,
+        envelope.earliest_epoch.julian_day.days(),
+        envelope.latest_epoch.julian_day.days(),
+        envelope.max_right_ascension_delta_deg,
+        format_body_epoch(&envelope.max_right_ascension_delta_body, envelope.max_right_ascension_delta_epoch),
+        envelope.max_declination_delta_deg,
+        format_body_epoch(&envelope.max_declination_delta_body, envelope.max_declination_delta_epoch),
+        distance,
+        envelope.within_current_limits,
+    )
+}
+
+/// Returns the release-facing lunar equatorial reference error envelope string.
+pub fn lunar_equatorial_reference_evidence_envelope_for_report() -> String {
+    match lunar_equatorial_reference_evidence_envelope() {
+        Some(envelope) => format_lunar_equatorial_reference_evidence_envelope(&envelope),
+        None => "lunar equatorial reference error envelope: unavailable".to_string(),
     }
 }
 
@@ -1038,6 +1311,9 @@ mod tests {
         assert!(summary.contains("Moon, Mean Node, True Node, Mean Perigee, Mean Apogee"));
         assert!(summary.contains("unsupported bodies: True Apogee, True Perigee"));
         assert!(summary.contains("validation window: JD 2448724.5 (TT) → JD 2459278.5 (TT)"));
+        assert!(summary.contains(
+            "geocentric Moon RA/Dec example used for the mean-obliquity equatorial transform"
+        ));
         assert!(summary.contains("frames=Ecliptic, Equatorial"));
         assert!(summary.contains("time scales=TT, TDB"));
         assert!(summary.contains("zodiac modes=Tropical"));
@@ -1607,6 +1883,65 @@ mod tests {
         assert!(
             lunar_reference_evidence_envelope_for_report().contains("within current limits=true")
         );
+    }
+
+    #[test]
+    fn lunar_equatorial_reference_evidence_matches_the_canonical_slice() {
+        let summary = lunar_equatorial_reference_evidence_summary()
+            .expect("equatorial reference evidence should exist");
+
+        assert_eq!(summary.sample_count, 1);
+        assert_eq!(summary.body_count, 1);
+        assert_eq!(summary.earliest_epoch.julian_day.days(), 2_448_724.5);
+        assert_eq!(summary.latest_epoch.julian_day.days(), 2_448_724.5);
+        assert!(lunar_equatorial_reference_evidence_summary_for_report()
+            .contains("1 samples across 1 bodies"));
+        assert!(lunar_equatorial_reference_evidence_summary_for_report()
+            .contains("JD 2448724.5..2448724.5"));
+
+        let envelope = lunar_equatorial_reference_evidence_envelope()
+            .expect("equatorial error envelope should exist");
+        assert_eq!(envelope.sample_count, summary.sample_count);
+        assert_eq!(envelope.body_count, summary.body_count);
+        assert_eq!(envelope.earliest_epoch, summary.earliest_epoch);
+        assert_eq!(envelope.latest_epoch, summary.latest_epoch);
+        assert!(envelope.max_right_ascension_delta_deg.is_finite());
+        assert!(envelope.max_declination_delta_deg.is_finite());
+        assert!(envelope.within_current_limits);
+        assert!(lunar_equatorial_reference_evidence_envelope_for_report()
+            .contains("lunar equatorial reference error envelope"));
+        assert!(lunar_equatorial_reference_evidence_envelope_for_report().contains("max ΔRA="));
+        assert!(lunar_equatorial_reference_evidence_envelope_for_report().contains("max ΔDec="));
+        assert!(lunar_equatorial_reference_evidence_envelope_for_report()
+            .contains("within current limits=true"));
+
+        let sample = &lunar_equatorial_reference_evidence()[0];
+        assert_eq!(sample.body, CelestialBody::Moon);
+        assert_eq!(sample.epoch.julian_day.days(), 2_448_724.5);
+        let result = ElpBackend::new()
+            .position(&EphemerisRequest::new(sample.body.clone(), sample.epoch))
+            .expect("equatorial reference sample should remain computable");
+        let equatorial = result
+            .equatorial
+            .expect("equatorial reference sample should include equatorial coordinates");
+        assert!(
+            (equatorial.right_ascension.degrees() - sample.equatorial.right_ascension.degrees())
+                .abs()
+                < 1e-2
+        );
+        assert!(
+            (equatorial.declination.degrees() - sample.equatorial.declination.degrees()).abs()
+                < 1e-2
+        );
+        assert_eq!(
+            equatorial.distance_au.is_some(),
+            sample.equatorial.distance_au.is_some()
+        );
+        if let (Some(actual), Some(expected)) =
+            (equatorial.distance_au, sample.equatorial.distance_au)
+        {
+            assert!((actual - expected).abs() < 1e-8);
+        }
     }
 
     #[test]

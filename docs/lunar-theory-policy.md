@@ -66,6 +66,7 @@ The current request policy is intentionally narrow and explicit, and the same sh
 The current regression posture is intentionally small and deterministic:
 
 - the published 1992-04-12 geocentric Moon example
+- the published 1992-04-12 geocentric Moon RA/Dec example used to cross-check the shared mean-obliquity equatorial transform, now surfaced as a dedicated equatorial evidence summary in validation and backend-matrix reports
 - canonical J2000 checks for the Moon and lunar points
 - published 1913-05-27 true-ascending-node and mean-ascending-node examples
 - a published 1959-12-07 mean-ascending-node example
