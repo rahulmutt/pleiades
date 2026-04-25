@@ -50,6 +50,22 @@ fn packaged_bodies() -> &'static [CelestialBody] {
         bodies
     })
 }
+
+/// Returns the packaged body set as a human-readable provenance summary.
+pub fn packaged_body_coverage_summary() -> String {
+    let bodies = packaged_bodies();
+    let body_list = bodies
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    format!(
+        "Packaged body set: {} bundled bodies ({body_list})",
+        bodies.len()
+    )
+}
+
 const AU_IN_KM: f64 = 149_597_870.7;
 
 /// Returns the canonical package name for this crate.
@@ -107,8 +123,7 @@ impl EphemerisBackend for PackagedDataBackend {
             provenance: BackendProvenance {
                 summary: artifact.header.source.clone(),
                 data_sources: vec![
-                    "Checked-in JPL Horizons reference epochs (Sun, Moon, and asteroid:433-Eros)"
-                        .to_string(),
+                    packaged_body_coverage_summary(),
                     "Quantized linear segments stored in pleiades-compression artifact format"
                         .to_string(),
                 ],
@@ -417,5 +432,18 @@ mod tests {
             .contains(&CelestialBody::Custom(CustomBodyId::new(
                 "asteroid", "433-Eros",
             ))));
+        assert!(metadata.provenance.data_sources[0].contains("11 bundled bodies"));
+        assert!(metadata.provenance.data_sources[0].contains("asteroid:433-Eros"));
+        assert_eq!(
+            packaged_body_coverage_summary(),
+            metadata.provenance.data_sources[0]
+        );
+    }
+
+    #[test]
+    fn packaged_body_coverage_summary_matches_the_packaged_body_set() {
+        let summary = packaged_body_coverage_summary();
+        assert!(summary.contains("11 bundled bodies"));
+        assert!(summary.contains("Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros"));
     }
 }
