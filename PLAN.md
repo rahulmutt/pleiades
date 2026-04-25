@@ -22,7 +22,7 @@ This plan is derived from:
 
 ## Current implementation baseline
 
-The repository currently has all required first-party crates, shared domain types, a backend trait, composite routing helpers, a chart façade, baseline and expanded house/ayanamsa catalogs, preliminary algorithmic/snapshot/packaged backends, CLI and validation commands, release-profile reporting, bundle verification, and tests for those surfaces.
+The repository currently has all required first-party crates, shared domain types, a backend trait, composite routing helpers, a chart façade, baseline and expanded house/ayanamsa catalogs, preliminary algorithmic/snapshot/packaged backends, CLI and validation commands, release-profile reporting, full-chart benchmark evidence, bundle verification, and tests for those surfaces.
 
 Those capabilities are a strong foundation, but several spec requirements are not yet production-complete:
 

@@ -14,11 +14,15 @@ use std::process::Command;
 use std::time::Instant as StdInstant;
 
 mod artifact;
+mod chart_benchmark;
 mod house_validation;
 
 pub use artifact::{
     render_artifact_report, render_artifact_summary, ArtifactBodyInspection,
     ArtifactInspectionReport,
+};
+pub use chart_benchmark::{
+    benchmark_chart_backend, chart_benchmark_corpus_summary, ChartBenchmarkReport,
 };
 pub use house_validation::{
     house_validation_report, HouseValidationReport, HouseValidationSample, HouseValidationScenario,
@@ -863,6 +867,8 @@ pub struct ValidationReport {
     pub benchmark_corpus: CorpusSummary,
     /// Packaged-data benchmark corpus summary.
     pub packaged_benchmark_corpus: CorpusSummary,
+    /// Chart-benchmark corpus summary.
+    pub chart_benchmark_corpus: CorpusSummary,
     /// House-validation corpus summary.
     pub house_validation: HouseValidationReport,
     /// Comparison output.
@@ -875,6 +881,8 @@ pub struct ValidationReport {
     pub candidate_benchmark: BenchmarkReport,
     /// Benchmark output for the packaged-data backend.
     pub packaged_benchmark: BenchmarkReport,
+    /// Benchmark output for full chart assembly.
+    pub chart_benchmark: ChartBenchmarkReport,
 }
 
 /// A generated release bundle containing the compatibility profile, release notes,
@@ -1147,6 +1155,9 @@ impl fmt::Display for ValidationReport {
         writeln!(f, "Packaged-data benchmark corpus")?;
         write_corpus_summary(f, &self.packaged_benchmark_corpus)?;
         writeln!(f)?;
+        writeln!(f, "Chart benchmark corpus")?;
+        write_corpus_summary(f, &self.chart_benchmark_corpus)?;
+        writeln!(f)?;
         writeln!(f, "{}", self.house_validation)?;
         writeln!(f)?;
         writeln!(f, "Reference backend")?;
@@ -1248,6 +1259,24 @@ impl fmt::Display for ValidationReport {
             f,
             "  batch throughput: {:.2} req/s",
             self.packaged_benchmark.batch_requests_per_second()
+        )?;
+        writeln!(f)?;
+        writeln!(f, "Chart benchmark")?;
+        writeln!(f, "  corpus: {}", self.chart_benchmark.corpus_name)?;
+        writeln!(
+            f,
+            "  ns/chart: {}",
+            format_ns(self.chart_benchmark.nanoseconds_per_chart())
+        )?;
+        writeln!(
+            f,
+            "  estimated corpus heap footprint: {} bytes",
+            self.chart_benchmark.estimated_corpus_heap_bytes
+        )?;
+        writeln!(
+            f,
+            "  charts per second: {:.2} charts/s",
+            self.chart_benchmark.charts_per_second()
         )?;
         writeln!(f)?;
         writeln!(f, "Samples")?;
@@ -3679,6 +3708,7 @@ fn build_validation_report(rounds: usize) -> Result<ValidationReport, EphemerisE
     let comparison_corpus = default_corpus();
     let benchmark_corpus = benchmark_corpus();
     let packaged_benchmark_corpus = artifact::packaged_artifact_corpus();
+    let chart_benchmark_corpus = chart_benchmark_corpus_summary();
     let reference = default_reference_backend();
     let candidate = default_candidate_backend();
     let packaged = PackagedDataBackend::new();
@@ -3686,18 +3716,21 @@ fn build_validation_report(rounds: usize) -> Result<ValidationReport, EphemerisE
     let reference_benchmark = benchmark_backend(&reference, &comparison_corpus, rounds)?;
     let candidate_benchmark = benchmark_backend(&candidate, &benchmark_corpus, rounds)?;
     let packaged_benchmark = benchmark_backend(&packaged, &packaged_benchmark_corpus, rounds)?;
+    let chart_benchmark = benchmark_chart_backend(default_candidate_backend(), rounds)?;
     let archived_regressions = comparison.regression_archive();
 
     Ok(ValidationReport {
         comparison_corpus: comparison_corpus.summary(),
         benchmark_corpus: benchmark_corpus.summary(),
         packaged_benchmark_corpus: packaged_benchmark_corpus.summary(),
+        chart_benchmark_corpus,
         house_validation: house_validation_report(),
         comparison,
         archived_regressions,
         reference_benchmark,
         candidate_benchmark,
         packaged_benchmark,
+        chart_benchmark,
     })
 }
 
@@ -4068,7 +4101,9 @@ fn render_comparison_audit_report_text(report: &ComparisonReport) -> String {
 pub fn render_benchmark_report(rounds: usize) -> Result<String, EphemerisError> {
     let corpus = benchmark_corpus();
     let candidate = default_candidate_backend();
-    Ok(benchmark_backend(&candidate, &corpus, rounds)?.to_string())
+    let backend_report = benchmark_backend(&candidate, &corpus, rounds)?;
+    let chart_report = benchmark_chart_backend(default_candidate_backend(), rounds)?;
+    Ok(format!("{}\n\n{}", backend_report, chart_report))
 }
 
 fn vsop87_canonical_body_evidence() -> Option<Vec<pleiades_vsop87::Vsop87CanonicalBodyEvidence>> {
@@ -4573,6 +4608,30 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         text,
         "  batch throughput: {:.2} req/s",
         report.packaged_benchmark.batch_requests_per_second()
+    );
+    let _ = writeln!(text);
+    let _ = writeln!(text, "Chart benchmark");
+    let _ = writeln!(text, "  corpus: {}", report.chart_benchmark.corpus_name);
+    let _ = writeln!(
+        text,
+        "  apparentness: {}",
+        report.chart_benchmark.apparentness
+    );
+    let _ = writeln!(text, "  rounds: {}", report.chart_benchmark.rounds);
+    let _ = writeln!(
+        text,
+        "  samples per round: {}",
+        report.chart_benchmark.sample_count
+    );
+    let _ = writeln!(
+        text,
+        "  ns/chart: {}",
+        format_ns(report.chart_benchmark.nanoseconds_per_chart())
+    );
+    let _ = writeln!(
+        text,
+        "  charts per second: {:.2} charts/s",
+        report.chart_benchmark.charts_per_second()
     );
     let _ = writeln!(text, "Release bundle verification: verify-release-bundle");
     let _ = writeln!(text, "Workspace audit: workspace-audit / audit");
@@ -6562,7 +6621,7 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = default_corpus().requests.len();
     format!(
-        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  compare-backends-audit    Compare the JPL snapshot against the algorithmic composite backend and fail if the tolerance audit reports regressions\n  backend-matrix            Print the implemented backend capability matrices\n  capability-matrix         Alias for backend-matrix\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  matrix-summary            Alias for backend-matrix-summary\n  compatibility-profile     Print the release compatibility profile\n  profile                   Alias for compatibility-profile\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus with guard epochs\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validation-report-summary [--rounds N]  Render a compact validation report summary\n  report-summary [--rounds N]  Alias for validation-report-summary\n  validation-summary        Alias for validation-report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  workspace-audit-summary   Print the compact workspace audit summary\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API stability summary, validation report summary, workspace audit summary, artifact summary, validation report, manifest, and manifest checksum sidecar\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  compare-backends-audit    Compare the JPL snapshot against the algorithmic composite backend and fail if the tolerance audit reports regressions\n  backend-matrix            Print the implemented backend capability matrices\n  capability-matrix         Alias for backend-matrix\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  matrix-summary            Alias for backend-matrix-summary\n  compatibility-profile     Print the release compatibility profile\n  profile                   Alias for compatibility-profile\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus and full chart assembly on representative house scenarios\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validation-report-summary [--rounds N]  Render a compact validation report summary\n  report-summary [--rounds N]  Alias for validation-report-summary\n  validation-summary        Alias for validation-report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  workspace-audit-summary   Print the compact workspace audit summary\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API stability summary, validation report summary, workspace audit summary, artifact summary, validation report, manifest, and manifest checksum sidecar\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
@@ -6974,6 +7033,11 @@ mod tests {
         assert!(report.contains("Nanoseconds per request (single):"));
         assert!(report.contains("Nanoseconds per request (batch):"));
         assert!(report.contains("Batch throughput:"));
+        assert!(report.contains("Chart benchmark report"));
+        assert!(report.contains("Representative chart validation scenarios"));
+        assert!(report.contains("Chart elapsed:"));
+        assert!(report.contains("Nanoseconds per chart:"));
+        assert!(report.contains("Charts per second:"));
     }
 
     #[test]
@@ -7013,6 +7077,9 @@ mod tests {
         assert!(report.contains("Benchmark corpus"));
         assert!(report.contains("Representative 1500-2500 window"));
         assert!(report.contains("estimated corpus heap footprint:"));
+        assert!(report.contains("Chart benchmark corpus"));
+        assert!(report.contains("Representative chart validation scenarios"));
+        assert!(report.contains("Chart benchmark"));
         assert!(report.contains("House validation corpus"));
         assert!(report.contains("Mid-latitude reference chart"));
         assert!(report.contains("Polar stress chart"));
@@ -7241,6 +7308,7 @@ mod tests {
         assert!(report.contains("Reference benchmark"));
         assert!(report.contains("Candidate benchmark"));
         assert!(report.contains("Packaged-data benchmark"));
+        assert!(report.contains("Chart benchmark"));
     }
 
     #[test]
@@ -7296,6 +7364,7 @@ mod tests {
         assert!(validation_report_summary.contains("Expected tolerance status"));
         assert!(validation_report_summary.contains("margin Δlon="));
         assert!(validation_report_summary.contains("margin Δdist="));
+        assert!(validation_report_summary.contains("Chart benchmark"));
         assert!(validation_report_summary.contains("Comparison tolerance audit"));
         assert!(validation_report_summary.contains("command: compare-backends-audit"));
         assert!(validation_report_summary.contains("regressions found"));

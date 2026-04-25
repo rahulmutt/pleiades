@@ -110,6 +110,8 @@ Latest progress (2026-04-25): the validation report and comparison-audit toleran
 
 Latest progress (2026-04-25): the compare-backends-audit failure report now also renders the same body-class RMS lines in its error-envelope section, so failed audit output mirrors the release-grade comparison report more closely while threshold refinement remains queued.
 
+Latest progress (2026-04-25): validation benchmark reporting now also includes a full-chart assembly slice alongside the backend request-throughput benchmark, using the representative house-validation scenarios so full-chart latency stays visible in the release-facing benchmark output.
+
 Active gaps:
 
 - broader release-grade error envelopes and tolerance tables beyond the comparison-audit gate and new class-level mean/RMS posture;
