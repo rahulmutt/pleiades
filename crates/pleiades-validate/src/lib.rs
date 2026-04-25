@@ -2529,6 +2529,15 @@ fn render_release_summary_text() -> String {
             &report.comparison.summary,
         ));
         text.push('\n');
+        text.push_str("Body-class error envelopes:\n");
+        for summary in report.comparison.body_class_summaries() {
+            text.push_str("  ");
+            text.push_str(summary.class.label());
+            text.push_str(": ");
+            text.push_str(&format_body_class_comparison_envelope_for_report(&summary));
+            text.push('\n');
+        }
+        text.push('\n');
         text.push_str("Body-class tolerance posture: ");
         text.push_str(&body_class_tolerance_summaries.len().to_string());
         text.push_str(" classes checked, ");
@@ -3892,6 +3901,38 @@ fn format_comparison_envelope_for_report(summary: &ComparisonSummary) -> String 
         format_summary_body(&summary.max_latitude_delta_body),
         summary.mean_latitude_delta_deg,
         summary.rms_latitude_delta_deg,
+        max_distance,
+        format_summary_body(&summary.max_distance_delta_body),
+        mean_distance,
+        rms_distance,
+    )
+}
+
+fn format_body_class_comparison_envelope_for_report(summary: &BodyClassSummary) -> String {
+    let max_distance = summary
+        .max_distance_delta_au
+        .map(|value| format!("{value:.12} AU"))
+        .unwrap_or_else(|| "n/a".to_string());
+    let mean_distance = summary
+        .mean_distance_delta_au()
+        .map(|value| format!("{value:.12} AU"))
+        .unwrap_or_else(|| "n/a".to_string());
+    let rms_distance = summary
+        .rms_distance_delta_au()
+        .map(|value| format!("{value:.12} AU"))
+        .unwrap_or_else(|| "n/a".to_string());
+
+    format!(
+        "samples={}, max Δlon={:.12}°{}, mean Δlon={:.12}°, rms Δlon={:.12}°, max Δlat={:.12}°{}, mean Δlat={:.12}°, rms Δlat={:.12}°, max Δdist={}{}, mean Δdist={}, rms Δdist={}",
+        summary.sample_count,
+        summary.max_longitude_delta_deg,
+        format_summary_body(&summary.max_longitude_delta_body),
+        summary.mean_longitude_delta_deg(),
+        summary.rms_longitude_delta_deg(),
+        summary.max_latitude_delta_deg,
+        format_summary_body(&summary.max_latitude_delta_body),
+        summary.mean_latitude_delta_deg(),
+        summary.rms_latitude_delta_deg(),
         max_distance,
         format_summary_body(&summary.max_distance_delta_body),
         mean_distance,
@@ -8192,6 +8233,9 @@ mod tests {
         assert!(rendered.contains("Compatibility caveats:"));
         assert!(rendered.contains("Comparison envelope:"));
         assert!(rendered.contains("Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB))"));
+        assert!(rendered.contains("Body-class error envelopes:"));
+        assert!(rendered.contains("max Δlon="));
+        assert!(rendered.contains("rms Δlat="));
         assert!(rendered.contains("max longitude delta:"));
         assert!(rendered.contains("rms longitude delta:"));
         assert!(rendered.contains("max latitude delta:"));

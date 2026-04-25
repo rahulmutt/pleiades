@@ -134,6 +134,8 @@ Small preparatory backend-semantics increments have landed: supported planetary 
 
 Latest progress (2026-04-25): the comparison-audit rendering path in `pleiades-validate` was cleaned up to remove a needless borrow, keeping the validation report helpers clippy-clean while preserving the current tolerance-audit wording.
 
+Latest progress (2026-04-25): the compact release summary now also includes the body-class error envelopes alongside the existing tolerance posture, so the one-screen release view carries the class-level mean/RMS envelope without needing to open the full validation report.
+
 Latest progress (2026-04-25): the compatibility-profile verification slice now also pins Babylonian (Eta Piscium), the Suryasiddhanta / Surya Siddhanta 499 CE source-label spellings, and several remaining release-profile source names such as Equal/MC = 10th, Equal Midheaven table of houses, Vehlow Equal table of houses, Nick Anthony Fiorenza, Bob Makransky, Treindl Sunshine, True galactic equator, and Galactic equator true in the rendered compatibility profile, keeping a few still-visible release-profile labels anchored as the catalog continues to evolve.
 
 ## Constraints
