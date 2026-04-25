@@ -917,6 +917,75 @@ mod tests {
         assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
     }
 
+    #[test]
+    fn batch_query_preserves_apparent_request_rejection() {
+        struct MeanOnlyBackend {
+            calls: AtomicUsize,
+        }
+
+        impl EphemerisBackend for MeanOnlyBackend {
+            fn metadata(&self) -> BackendMetadata {
+                BackendMetadata {
+                    id: BackendId::new("mean-only"),
+                    version: "0.1.0".to_string(),
+                    family: BackendFamily::Algorithmic,
+                    provenance: BackendProvenance::new("mean-only test backend"),
+                    nominal_range: TimeRange::new(None, None),
+                    supported_time_scales: vec![TimeScale::Tt],
+                    body_coverage: vec![CelestialBody::Sun],
+                    supported_frames: vec![CoordinateFrame::Ecliptic],
+                    capabilities: BackendCapabilities::default(),
+                    accuracy: AccuracyClass::Approximate,
+                    deterministic: true,
+                    offline: true,
+                }
+            }
+
+            fn supports_body(&self, body: CelestialBody) -> bool {
+                body == CelestialBody::Sun
+            }
+
+            fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+                self.calls.fetch_add(1, Ordering::SeqCst);
+
+                validate_request_policy(
+                    req,
+                    "mean-only test backend",
+                    &[TimeScale::Tt],
+                    &[CoordinateFrame::Ecliptic],
+                    false,
+                )?;
+
+                Ok(EphemerisResult::new(
+                    BackendId::new("mean-only"),
+                    req.body.clone(),
+                    req.instant,
+                    req.frame,
+                    req.zodiac_mode.clone(),
+                    req.apparent,
+                ))
+            }
+        }
+
+        let backend = MeanOnlyBackend {
+            calls: AtomicUsize::new(0),
+        };
+        let mean_request = EphemerisRequest::new(
+            CelestialBody::Sun,
+            Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt),
+        );
+        let apparent_request = EphemerisRequest {
+            apparent: Apparentness::Apparent,
+            ..mean_request.clone()
+        };
+
+        let error = backend
+            .positions(&[mean_request, apparent_request])
+            .expect_err("batch requests should preserve apparentness rejections");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert_eq!(backend.calls.load(Ordering::SeqCst), 2);
+    }
+
     #[cfg(feature = "serde")]
     #[test]
     fn serde_roundtrip_preserves_requests_and_results() {
