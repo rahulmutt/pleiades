@@ -60,10 +60,10 @@ use pleiades_houses::{
     baseline_house_systems, built_in_house_systems, release_house_systems, resolve_house_system,
 };
 use pleiades_jpl::{
-    comparison_snapshot, format_jpl_interpolation_quality_summary_for_report,
-    interpolation_quality_samples, reference_asteroid_evidence,
-    reference_asteroid_evidence_summary_for_report, reference_asteroids,
-    reference_snapshot_summary_for_report, JplSnapshotBackend,
+    comparison_snapshot, comparison_snapshot_summary_for_report,
+    format_jpl_interpolation_quality_summary_for_report, interpolation_quality_samples,
+    reference_asteroid_evidence, reference_asteroid_evidence_summary_for_report,
+    reference_asteroids, reference_snapshot_summary_for_report, JplSnapshotBackend,
 };
 use pleiades_vsop87::{
     body_source_profiles, canonical_epoch_evidence_summary_for_report, frame_treatment_summary,
@@ -1148,6 +1148,7 @@ impl fmt::Display for ValidationReport {
         writeln!(f)?;
         writeln!(f, "Comparison corpus")?;
         write_corpus_summary(f, &self.comparison_corpus)?;
+        writeln!(f, "  {}", comparison_snapshot_summary_for_report())?;
         writeln!(f)?;
         writeln!(f, "Benchmark corpus")?;
         write_corpus_summary(f, &self.benchmark_corpus)?;
@@ -2227,6 +2228,8 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_summary_for_report());
     text.push('\n');
+    text.push_str(&comparison_snapshot_summary_for_report());
+    text.push('\n');
 
     if !profile.custom_definition_labels.is_empty() {
         text.push_str("Custom-definition labels:\n");
@@ -2283,6 +2286,8 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&reference_asteroid_evidence_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_summary_for_report());
+    text.push('\n');
+    text.push_str(&comparison_snapshot_summary_for_report());
     text.push('\n');
     text.push_str("Custom-definition labels: ");
     text.push_str(&profile.custom_definition_labels.len().to_string());
@@ -2518,6 +2523,8 @@ fn render_release_summary_text() -> String {
         text.push_str(&format_comparison_tolerance_policy_for_report(
             &report.comparison.candidate_backend.family,
         ));
+        text.push('\n');
+        text.push_str(&comparison_snapshot_summary_for_report());
         text.push('\n');
     }
     text.push_str("JPL interpolation evidence: ");
@@ -4179,6 +4186,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         "  apparentness: {}",
         report.comparison_corpus.apparentness
     );
+    let _ = writeln!(text, "  {}", comparison_snapshot_summary_for_report());
     let _ = writeln!(text);
     let _ = writeln!(text, "Comparison summary");
     let _ = writeln!(
@@ -4791,6 +4799,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&reference_asteroid_evidence_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_summary_for_report());
+    text.push('\n');
+    text.push_str(&comparison_snapshot_summary_for_report());
     text.push('\n');
     text.push_str("Backends with external data sources: ");
     text.push_str(&data_source_count.to_string());
@@ -7087,6 +7097,7 @@ mod tests {
         assert!(report.contains("Target compatibility catalog:"));
         assert!(report.contains("Comparison corpus"));
         assert!(report.contains("JPL Horizons comparison window"));
+        assert!(report.contains("Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB))"));
         assert!(report.contains("Apparentness: Mean"));
         assert!(report.contains("Benchmark corpus"));
         assert!(report.contains("Representative 1500-2500 window"));
@@ -7366,6 +7377,7 @@ mod tests {
             .expect("report summary should render");
         assert!(rendered.contains("Validation report summary"));
         assert!(rendered.contains("Comparison corpus"));
+        assert!(rendered.contains("Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB))"));
         assert!(rendered.contains("Body comparison summaries"));
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
         assert!(rendered.contains("Packaged-artifact profile"));
@@ -7756,6 +7768,7 @@ mod tests {
         assert!(rendered.contains("selected asteroid coverage"));
         assert!(rendered.contains("Selected asteroid evidence: 5 exact J2000 samples"));
         assert!(rendered.contains("Reference snapshot coverage: 46 rows across 15 bodies and 6 epochs (5 asteroid rows; JD 2378499.0 (TDB)..JD 2634167.0 (TDB))"));
+        assert!(rendered.contains("Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB))"));
         assert!(rendered.contains("asteroid:433-Eros"));
         assert!(rendered.contains("Validation reference points:"));
         assert!(rendered.contains("Compatibility caveats:"));
@@ -7917,6 +7930,7 @@ mod tests {
         assert!(rendered.contains("Release notes: release-notes"));
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(rendered.contains("Reference snapshot coverage: 46 rows across 15 bodies and 6 epochs (5 asteroid rows; JD 2378499.0 (TDB)..JD 2634167.0 (TDB))"));
+        assert!(rendered.contains("Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB))"));
         assert!(rendered
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Release checklist summary: release-checklist-summary"));
@@ -8023,6 +8037,7 @@ mod tests {
         assert!(rendered.contains("Custom-definition ayanamsas:"));
         assert!(rendered.contains("Compatibility caveats:"));
         assert!(rendered.contains("Comparison envelope:"));
+        assert!(rendered.contains("Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB))"));
         assert!(rendered.contains("max longitude delta:"));
         assert!(rendered.contains("rms longitude delta:"));
         assert!(rendered.contains("max latitude delta:"));

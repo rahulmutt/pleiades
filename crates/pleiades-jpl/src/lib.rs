@@ -131,6 +131,73 @@ pub fn reference_snapshot_summary_for_report() -> String {
     }
 }
 
+/// A compact coverage summary for the comparison snapshot used by validation.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ComparisonSnapshotSummary {
+    /// Total number of parsed snapshot rows.
+    pub row_count: usize,
+    /// Number of distinct bodies covered by the comparison corpus.
+    pub body_count: usize,
+    /// Number of distinct epochs covered by the comparison corpus.
+    pub epoch_count: usize,
+    /// Earliest epoch represented in the comparison corpus.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented in the comparison corpus.
+    pub latest_epoch: Instant,
+}
+
+/// Returns a compact coverage summary for the comparison snapshot used by validation.
+pub fn comparison_snapshot_summary() -> Option<ComparisonSnapshotSummary> {
+    let entries = comparison_snapshot();
+    if entries.is_empty() {
+        return None;
+    }
+
+    let mut bodies = BTreeSet::new();
+    let mut epochs = BTreeSet::new();
+    let mut earliest_epoch = entries[0].epoch;
+    let mut latest_epoch = entries[0].epoch;
+
+    for entry in entries {
+        bodies.insert(entry.body.to_string());
+        epochs.insert(entry.epoch.julian_day.days().to_bits());
+        if entry.epoch.julian_day.days() < earliest_epoch.julian_day.days() {
+            earliest_epoch = entry.epoch;
+        }
+        if entry.epoch.julian_day.days() > latest_epoch.julian_day.days() {
+            latest_epoch = entry.epoch;
+        }
+    }
+
+    Some(ComparisonSnapshotSummary {
+        row_count: entries.len(),
+        body_count: bodies.len(),
+        epoch_count: epochs.len(),
+        earliest_epoch,
+        latest_epoch,
+    })
+}
+
+/// Formats the comparison snapshot coverage for release-facing reporting.
+pub fn format_comparison_snapshot_summary(summary: &ComparisonSnapshotSummary) -> String {
+    format!(
+        "Comparison snapshot coverage: {} rows across {} bodies and {} epochs ({}..{})",
+        summary.row_count,
+        summary.body_count,
+        summary.epoch_count,
+        format_instant(summary.earliest_epoch),
+        format_instant(summary.latest_epoch),
+    )
+}
+
+/// Returns the release-facing comparison snapshot coverage summary string.
+pub fn comparison_snapshot_summary_for_report() -> String {
+    match comparison_snapshot_summary() {
+        Some(summary) => format_comparison_snapshot_summary(&summary),
+        None => "Comparison snapshot coverage: unavailable".to_string(),
+    }
+}
+
 /// Returns the source-backed asteroid subset present in the reference snapshot.
 pub fn reference_asteroids() -> &'static [pleiades_backend::CelestialBody] {
     reference_asteroid_list()
@@ -1419,6 +1486,21 @@ mod tests {
         assert_eq!(
             reference_snapshot_summary_for_report(),
             "Reference snapshot coverage: 46 rows across 15 bodies and 6 epochs (5 asteroid rows; JD 2378499.0 (TDB)..JD 2634167.0 (TDB))"
+        );
+    }
+
+    #[test]
+    fn comparison_snapshot_summary_reports_the_expected_coverage() {
+        let summary =
+            comparison_snapshot_summary().expect("comparison snapshot summary should exist");
+        assert_eq!(summary.row_count, 41);
+        assert_eq!(summary.body_count, 10);
+        assert_eq!(summary.epoch_count, 6);
+        assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_499.0);
+        assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
+        assert_eq!(
+            comparison_snapshot_summary_for_report(),
+            "Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB))"
         );
     }
 

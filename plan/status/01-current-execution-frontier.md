@@ -112,6 +112,8 @@ Latest progress (2026-04-25): the compare-backends-audit failure report now also
 
 Latest progress (2026-04-25): validation benchmark reporting now also includes a full-chart assembly slice alongside the backend request-throughput benchmark, using the representative house-validation scenarios so full-chart latency stays visible in the release-facing benchmark output.
 
+Latest progress (2026-04-25): the JPL comparison corpus now also has a backend-owned coverage summary that is surfaced in the validation report, release notes, and compact release summary, so the checked-in comparison window is easier to audit alongside the interpolation-quality evidence.
+
 Active gaps:
 
 - broader release-grade error envelopes and tolerance tables beyond the comparison-audit gate and new class-level mean/RMS posture;
