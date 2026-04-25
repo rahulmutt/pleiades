@@ -13,7 +13,7 @@ Turn the current compressed-artifact scaffolding into a reproducible packaged-da
 
 ## Current baseline
 
-`pleiades-compression` defines an in-memory artifact model, deterministic binary codec, artifact capability profile metadata, and lookup path. `pleiades-data` exposes a packaged backend backed by a checked-in deterministic binary artifact fixture with an ecliptic-only/no-motion profile, and validation tooling can inspect, summarize, and regenerate that fixture from the checked-in JPL reference snapshot in tests.
+`pleiades-compression` defines an in-memory artifact model, deterministic binary codec, artifact capability profile metadata, lookup path, and explicit body/segment random-access helpers. `pleiades-data` exposes a packaged backend backed by a checked-in deterministic binary artifact fixture with an ecliptic-only/no-motion profile, and validation tooling can inspect, summarize, and regenerate that fixture from the checked-in JPL reference snapshot in tests.
 
 ## Remaining implementation goals
 
@@ -46,7 +46,7 @@ Turn the current compressed-artifact scaffolding into a reproducible packaged-da
    - Bundle or fixture a small deterministic artifact for tests.
    - Provide feature-gated paths for larger distributable artifacts when appropriate.
    - Report packaged-data capabilities honestly through backend metadata and release profiles.
-   - Progress note: the packaged backend now loads a checked-in binary artifact fixture and the tests compare it against a deterministic regeneration helper from the JPL reference snapshot, so the bundled artifact path is no longer a hand-authored segment chain.
+   - Progress note: the packaged backend now loads a checked-in binary artifact fixture and the tests compare it against a deterministic regeneration helper from the JPL reference snapshot, so the bundled artifact path is no longer a hand-authored segment chain. The compression crate now also exposes explicit body and segment random-access helpers, which makes the lookup path easier to reuse in future artifact validation and generation work.
 
 ## Done criteria
 

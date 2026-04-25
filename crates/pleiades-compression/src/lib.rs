@@ -3,8 +3,8 @@
 //! The current implementation defines a small, deterministic artifact format
 //! with explicit versioning, checksums, artifact capability profiles, and
 //! quantized polynomial segments. It is intentionally simple enough to audit
-//! while still exercising the same segmented lookup flow that later, denser
-//! artifacts will use.
+//! while still exercising the same segmented lookup flow and random-access
+//! body/segment helpers that later, denser artifacts will use.
 //!
 //! Enable the optional `serde` feature to serialize compressed artifacts for
 //! inspection or interchange workflows.
@@ -307,6 +307,13 @@ impl BodyArtifact {
     pub fn new(body: CelestialBody, segments: Vec<Segment>) -> Self {
         Self { body, segments }
     }
+
+    /// Returns the segment covering the requested instant, if any.
+    pub fn segment_at(&self, instant: Instant) -> Option<&Segment> {
+        self.segments
+            .iter()
+            .find(|segment| segment.contains(instant))
+    }
 }
 
 /// A compressed ephemeris artifact.
@@ -329,6 +336,32 @@ impl CompressedArtifact {
             checksum: 0,
             bodies,
         }
+    }
+
+    /// Returns the body artifact for the requested body, if present.
+    pub fn body_artifact(&self, body: &CelestialBody) -> Option<&BodyArtifact> {
+        self.bodies.iter().find(|series| &series.body == body)
+    }
+
+    /// Returns the body segment covering the requested instant.
+    pub fn segment_for(
+        &self,
+        body: &CelestialBody,
+        instant: Instant,
+    ) -> Result<&Segment, CompressionError> {
+        let series = self.body_artifact(body).ok_or_else(|| {
+            CompressionError::new(
+                CompressionErrorKind::MissingBody,
+                format!("no packed data exists for {body:?}"),
+            )
+        })?;
+
+        series.segment_at(instant).ok_or_else(|| {
+            CompressionError::new(
+                CompressionErrorKind::OutOfRangeInstant,
+                format!("no packed segment covers {body:?} at {instant:?}"),
+            )
+        })
     }
 
     /// Returns the on-disk checksum for this artifact.
@@ -418,27 +451,7 @@ impl CompressedArtifact {
             ));
         }
 
-        let series = self
-            .bodies
-            .iter()
-            .find(|series| &series.body == body)
-            .ok_or_else(|| {
-                CompressionError::new(
-                    CompressionErrorKind::MissingBody,
-                    format!("no packed data exists for {body:?}"),
-                )
-            })?;
-
-        let segment = series
-            .segments
-            .iter()
-            .find(|segment| segment.contains(instant))
-            .ok_or_else(|| {
-                CompressionError::new(
-                    CompressionErrorKind::OutOfRangeInstant,
-                    format!("no packed segment covers {body:?} at {instant:?}"),
-                )
-            })?;
+        let segment = self.segment_for(body, instant)?;
 
         let span = segment.span_days();
         let x = if span == 0.0 {
@@ -1108,6 +1121,67 @@ mod tests {
             )
             .expect_err("missing bodies should error");
         assert_eq!(error.kind, CompressionErrorKind::MissingBody);
+    }
+
+    #[test]
+    fn random_access_helpers_return_body_and_segment_matches() {
+        let artifact = CompressedArtifact::new(
+            ArtifactHeader::new("demo", "segment access fixture"),
+            vec![BodyArtifact::new(
+                CelestialBody::Moon,
+                vec![Segment::new(
+                    Instant::new(pleiades_types::JulianDay::from_days(0.0), TimeScale::Tt),
+                    Instant::new(pleiades_types::JulianDay::from_days(2.0), TimeScale::Tt),
+                    vec![PolynomialChannel::linear(
+                        ChannelKind::Longitude,
+                        9,
+                        0.0,
+                        20.0,
+                    )],
+                )],
+            )],
+        );
+
+        let body = artifact
+            .body_artifact(&CelestialBody::Moon)
+            .expect("body lookup should work");
+        assert_eq!(body.body, CelestialBody::Moon);
+        assert_eq!(body.segments.len(), 1);
+
+        let segment = artifact
+            .segment_for(
+                &CelestialBody::Moon,
+                Instant::new(pleiades_types::JulianDay::from_days(1.0), TimeScale::Tt),
+            )
+            .expect("segment lookup should work");
+        assert_eq!(segment.start.julian_day.days(), 0.0);
+        assert_eq!(segment.end.julian_day.days(), 2.0);
+        assert!(body
+            .segment_at(Instant::new(
+                pleiades_types::JulianDay::from_days(0.0),
+                TimeScale::Tt
+            ))
+            .is_some());
+        assert!(body
+            .segment_at(Instant::new(
+                pleiades_types::JulianDay::from_days(2.0),
+                TimeScale::Tt
+            ))
+            .is_some());
+        assert!(body
+            .segment_at(Instant::new(
+                pleiades_types::JulianDay::from_days(2.1),
+                TimeScale::Tt
+            ))
+            .is_none());
+
+        let error = artifact
+            .segment_for(
+                &CelestialBody::Moon,
+                Instant::new(pleiades_types::JulianDay::from_days(2.1), TimeScale::Tt),
+            )
+            .expect_err("out-of-range instant should error");
+        assert_eq!(error.kind, CompressionErrorKind::OutOfRangeInstant);
     }
 
     #[test]
