@@ -43,7 +43,8 @@ use pleiades_elp::{
     lunar_equatorial_reference_evidence_envelope_for_report,
     lunar_equatorial_reference_evidence_summary,
     lunar_equatorial_reference_evidence_summary_for_report,
-    lunar_high_curvature_continuity_evidence_for_report, lunar_reference_evidence,
+    lunar_high_curvature_continuity_evidence_for_report,
+    lunar_high_curvature_equatorial_continuity_evidence_for_report, lunar_reference_evidence,
     lunar_reference_evidence_envelope_for_report, lunar_reference_evidence_summary,
     lunar_reference_evidence_summary_for_report, lunar_theory_capability_summary,
     lunar_theory_request_policy_summary, lunar_theory_specification, lunar_theory_summary,
@@ -4029,6 +4030,12 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         "  {}",
         lunar_high_curvature_continuity_evidence_for_report()
     );
+    let _ = writeln!(text, "Lunar high-curvature equatorial continuity evidence");
+    let _ = writeln!(
+        text,
+        "  {}",
+        lunar_high_curvature_equatorial_continuity_evidence_for_report()
+    );
     let _ = writeln!(text);
     let _ = writeln!(text, "Body comparison summaries");
     for summary in report.comparison.body_summaries() {
@@ -4528,6 +4535,9 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str("Lunar high-curvature continuity evidence\n");
     text.push_str(&lunar_high_curvature_continuity_evidence_for_report());
+    text.push('\n');
+    text.push_str("Lunar high-curvature equatorial continuity evidence\n");
+    text.push_str(&lunar_high_curvature_equatorial_continuity_evidence_for_report());
     text.push('\n');
     text.push_str("Distinct bodies covered: ");
     text.push_str(&bodies.len().to_string());
@@ -5474,6 +5484,7 @@ fn write_backend_catalog_entry(
         writeln!(f, "    frame note: {}", theory.frame_note)?;
         write_lunar_reference_evidence(f)?;
         write_lunar_equatorial_reference_evidence(f)?;
+        write_lunar_high_curvature_equatorial_continuity_evidence(f)?;
     }
     if entry.metadata.id.as_str() == "jpl-snapshot" {
         write_jpl_interpolation_quality(f)?;
@@ -5608,6 +5619,18 @@ fn write_lunar_equatorial_reference_evidence(f: &mut fmt::Formatter<'_>) -> fmt:
             sample.note
         )?;
     }
+    Ok(())
+}
+
+fn write_lunar_high_curvature_equatorial_continuity_evidence(
+    f: &mut fmt::Formatter<'_>,
+) -> fmt::Result {
+    writeln!(f, "  Lunar high-curvature equatorial continuity evidence:")?;
+    writeln!(
+        f,
+        "    {}",
+        lunar_high_curvature_equatorial_continuity_evidence_for_report()
+    )?;
     Ok(())
 }
 
@@ -6876,6 +6899,7 @@ mod tests {
             "lunar reference evidence: 9 samples across 5 bodies, epoch range JD 2419914.5..2459278.5"
         ));
         assert!(report.contains("Lunar high-curvature continuity evidence"));
+        assert!(report.contains("Lunar high-curvature equatorial continuity evidence"));
         assert!(report.contains("within regression limits=true"));
         assert!(report.contains("Body comparison summaries"));
         assert!(report.contains("Body-class error envelopes"));
@@ -7729,8 +7753,12 @@ mod tests {
             .contains("lunar equatorial reference error envelope: 1 samples across 1 bodies"));
         assert!(rendered.contains("limits: ΔRA≤1e-2°"));
         assert!(rendered.contains("Lunar high-curvature continuity evidence"));
+        assert!(rendered.contains("Lunar high-curvature equatorial continuity evidence"));
         assert!(rendered
             .contains("lunar high-curvature continuity evidence: 4 samples across 1 bodies"));
+        assert!(rendered.contains(
+            "lunar high-curvature equatorial continuity evidence: 4 samples across 1 bodies"
+        ));
         assert!(rendered.contains("within regression limits=true"));
         assert!(rendered.contains("citation: Jean Meeus"));
         assert!(rendered
