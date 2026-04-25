@@ -113,13 +113,13 @@ pub fn reference_snapshot_summary() -> Option<ReferenceSnapshotSummary> {
 /// Formats the checked-in reference snapshot coverage for release-facing reporting.
 pub fn format_reference_snapshot_summary(summary: &ReferenceSnapshotSummary) -> String {
     format!(
-        "Reference snapshot coverage: {} rows across {} bodies and {} epochs ({} asteroid rows; JD {:.1}..{:.1})",
+        "Reference snapshot coverage: {} rows across {} bodies and {} epochs ({} asteroid rows; {}..{})",
         summary.row_count,
         summary.body_count,
         summary.epoch_count,
         summary.asteroid_row_count,
-        summary.earliest_epoch.julian_day.days(),
-        summary.latest_epoch.julian_day.days(),
+        format_instant(summary.earliest_epoch),
+        format_instant(summary.latest_epoch),
     )
 }
 
@@ -172,9 +172,9 @@ pub fn format_reference_asteroid_evidence_summary(
         "Selected asteroid evidence: unavailable".to_string()
     } else {
         format!(
-            "Selected asteroid evidence: {} exact J2000 samples at JD {:.1} ({})",
+            "Selected asteroid evidence: {} exact J2000 samples at {} ({})",
             evidence.len(),
-            evidence[0].epoch.julian_day.days(),
+            format_instant(evidence[0].epoch),
             format_bodies(reference_asteroids())
         )
     }
@@ -1396,14 +1396,14 @@ mod tests {
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(
             reference_snapshot_summary_for_report(),
-            "Reference snapshot coverage: 46 rows across 15 bodies and 6 epochs (5 asteroid rows; JD 2378499.0..2634167.0)"
+            "Reference snapshot coverage: 46 rows across 15 bodies and 6 epochs (5 asteroid rows; JD 2378499.0 (TDB)..JD 2634167.0 (TDB))"
         );
     }
 
     #[test]
     fn reference_asteroid_evidence_summary_reports_the_expected_coverage() {
         let report = reference_asteroid_evidence_summary_for_report();
-        assert_eq!(report, "Selected asteroid evidence: 5 exact J2000 samples at JD 2451545.0 (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)");
+        assert_eq!(report, "Selected asteroid evidence: 5 exact J2000 samples at JD 2451545.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)");
     }
 
     #[test]

@@ -118,6 +118,7 @@ Progress note (2026-04-25): the JPL interpolation-quality samples now derive fro
 Progress note (2026-04-25): the checked-in JPL reference snapshot now also has exact J2000 golden coverage for the named asteroid subset and the custom 433-Eros body, so the source-backed asteroid fixture path is now exercised with explicit coordinates in addition to the interpolation transparency checks.
 
 Progress note (2026-04-25): the checked-in JPL reference snapshot now also publishes a compact coverage summary with row, body, epoch, asteroid-row, and epoch-range counts, and the validation/release-facing summaries now surface that snapshot coverage alongside the exact asteroid evidence rows.
+Progress note (2026-04-25): the JPL snapshot coverage and exact asteroid evidence summaries now also label their reference epochs with TDB in release-facing output, which keeps the checked-in JPL snapshot aligned with the current time-scale policy while broader corpus expansion remains queued.
 
 Progress note (2026-04-25): the JPL asteroid subset now also renders exact J2000 evidence rows in backend matrices, validation reports, and release notes, making the source-backed asteroid fixture visible in release-facing output rather than only in tests. The JPL snapshot coverage and exact asteroid evidence summaries now also live in `pleiades-jpl`, and validation reuses those backend-owned report helpers directly so the release-facing coverage text stays co-located with the snapshot backend.
 
