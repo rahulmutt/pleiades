@@ -187,6 +187,8 @@ Progress note (2026-04-25): the compatibility-profile regressions now also pin t
 
 Progress note (2026-04-24): `verify-compatibility-profile` now prints an explicit release-posture line plus custom-definition and known-gap counts, so the release-facing verification output calls out baseline preservation, explicit release additions, and documented caveats in addition to the descriptor/alias counts.
 
+Progress note (2026-04-25): the compatibility-profile verification slice now also pins the exact Swiss Ephemeris house-table code spellings and the J2000/J1900/B1950 and Suryasiddhanta source-label forms, keeping the release-facing appendix text anchored to the same interoperability spellings that the generated profile renders.
+
 Remaining suggested scope:
 
 - add broader coverage for any still-unpinned release-profile spellings or status lines that future catalog batches introduce.

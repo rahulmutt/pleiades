@@ -82,6 +82,8 @@ Latest test progress (2026-04-25): the VSOP87 regression suite now also covers t
 
 Latest progress (2026-04-25): validation comparison outputs now also carry the candidate backend family on the tolerance-policy and expected-tolerance sections, so the release-facing tolerance tables are scoped to the backend family as well as the body class and Pluto override.
 
+Latest progress (2026-04-25): compatibility-profile verification now also pins the exact Swiss Ephemeris house-table code spellings and the J2000/J1900/B1950 and Suryasiddhanta source-label forms in release-facing tests, so the source-label appendix stays anchored to the current interoperability spellings.
+
 Active gaps:
 
 - broader release-grade error envelopes and tolerance tables beyond the new comparison-audit gate;

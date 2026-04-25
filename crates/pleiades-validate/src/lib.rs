@@ -6583,6 +6583,42 @@ mod tests {
     }
 
     #[test]
+    fn compatibility_profile_command_surfaces_house_table_code_spellings() {
+        let rendered =
+            render_cli(&["compatibility-profile"]).expect("compatibility profile should render");
+        assert!(rendered.contains("A equal, E equal = A"));
+        assert!(rendered.contains("D equal / MC"));
+        assert!(rendered.contains("N, Equal/1=Aries"));
+        assert!(rendered.contains("S, S sripati"));
+        assert!(rendered.contains("I, I sunshine"));
+        assert!(rendered.contains("W equal, whole sign"));
+        assert!(rendered.contains("V equal Vehlow"));
+        assert!(rendered.contains("T, Polich-Page"));
+        assert!(rendered.contains("U, Krusinski"));
+        assert!(rendered.contains("X, Meridian houses"));
+        assert!(rendered.contains("Y APC houses"));
+        assert!(rendered.contains("M, Morinus houses"));
+        assert!(rendered.contains("G, Gauquelin"));
+    }
+
+    #[test]
+    fn compatibility_profile_command_surfaces_ayanamsa_code_spellings() {
+        let rendered =
+            render_cli(&["compatibility-profile"]).expect("compatibility profile should render");
+        assert!(rendered.contains("J2000.0 -> J2000"));
+        assert!(rendered.contains("J1900.0 -> J1900"));
+        assert!(rendered.contains("B1950.0 -> B1950"));
+        assert!(rendered.contains(
+            "SS Revati, Suryasiddhanta Revati, Surya Siddhanta Revati -> Suryasiddhanta (Revati)"
+        ));
+        assert!(rendered.contains(
+            "SS Citra, Suryasiddhanta Citra, Surya Siddhanta Citra -> Suryasiddhanta (Citra)"
+        ));
+        assert!(rendered.contains("Galact. Center = 0 Sag, Gal. Center = 0 Sag -> Galactic Center"));
+        assert!(rendered.contains("Gal. Eq."));
+    }
+
+    #[test]
     fn release_notes_command_renders_the_release_notes() {
         let rendered = render_cli(&["release-notes"]).expect("release notes should render");
         assert!(rendered.contains("Release notes"));
