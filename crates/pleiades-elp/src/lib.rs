@@ -38,8 +38,12 @@ const AU_IN_KM: f64 = 149_597_870.700;
 pub struct LunarTheorySpecification {
     /// Human-readable model name.
     pub model_name: &'static str,
+    /// Stable identifier for the selected lunar-theory baseline.
+    pub source_identifier: &'static str,
     /// Human-readable source/provenance note for the selected lunar baseline.
     pub source_material: &'static str,
+    /// Redistribution or licensing posture for the selected baseline.
+    pub redistribution_note: &'static str,
     /// Bodies/channels the current lunar baseline explicitly covers.
     pub supported_bodies: &'static [CelestialBody],
     /// Bodies/channels that are explicitly unsupported by this baseline.
@@ -64,8 +68,11 @@ pub fn lunar_theory_specification() -> LunarTheorySpecification {
 
     LunarTheorySpecification {
         model_name: "Compact Meeus-style analytical lunar baseline",
+        source_identifier: "meeus-style-analytical-lunar-baseline",
         source_material:
             "Published lunar element and mean-point formulas implemented as the current pure-Rust baseline; no vendored ELP coefficient files are used yet while full ELP coefficient selection remains pending",
+        redistribution_note:
+            "No external coefficient-file redistribution constraints apply to the current baseline because the implementation does not vendor ELP coefficient tables yet",
         supported_bodies: SUPPORTED_BODIES,
         unsupported_bodies: UNSUPPORTED_BODIES,
         date_range_note:
@@ -303,12 +310,15 @@ impl EphemerisBackend for ElpBackend {
             family: BackendFamily::Algorithmic,
             provenance: BackendProvenance {
                 summary: format!(
-                    "{} The backend exposes the Moon plus mean/true node and mean apogee/perigee channels as an explicit lunar-theory selection.",
+                    "{} [{}] The backend exposes the Moon plus mean/true node and mean apogee/perigee channels as an explicit lunar-theory selection.",
                     lunar_theory_specification().model_name,
+                    lunar_theory_specification().source_identifier,
                 ),
                 data_sources: vec![
                     "Meeus-style truncated lunar orbit formulas implemented in pure Rust; see docs/lunar-theory-policy.md for the current baseline scope".to_string(),
+                    lunar_theory_specification().source_identifier.to_string(),
                     lunar_theory_specification().source_material.to_string(),
+                    lunar_theory_specification().redistribution_note.to_string(),
                     lunar_theory_specification().date_range_note.to_string(),
                     lunar_theory_specification().frame_note.to_string(),
                 ],
@@ -498,9 +508,21 @@ mod tests {
         assert!(metadata.provenance.summary.contains(theory.model_name));
         assert!(metadata
             .provenance
+            .summary
+            .contains(theory.source_identifier));
+        assert!(metadata
+            .provenance
             .data_sources
             .iter()
             .any(|source| source.contains("Published lunar element and mean-point formulas")));
+        assert!(metadata
+            .provenance
+            .data_sources
+            .iter()
+            .any(|source| source.contains(theory.source_identifier)));
+        assert!(metadata.provenance.data_sources.iter().any(
+            |source| source.contains("No external coefficient-file redistribution constraints")
+        ));
         assert!(metadata
             .provenance
             .data_sources
@@ -692,9 +714,16 @@ mod tests {
             theory.model_name,
             "Compact Meeus-style analytical lunar baseline"
         );
+        assert_eq!(
+            theory.source_identifier,
+            "meeus-style-analytical-lunar-baseline"
+        );
         assert!(theory
             .source_material
             .contains("Published lunar element and mean-point formulas"));
+        assert!(theory
+            .redistribution_note
+            .contains("No external coefficient-file redistribution constraints"));
         assert!(theory.date_range_note.contains("J2000"));
         assert!(theory.frame_note.contains("mean-obliquity"));
         assert_eq!(

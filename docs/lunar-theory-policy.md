@@ -28,9 +28,13 @@ The backend currently rejects:
 
 ## Provenance and license posture
 
+- Source identifier: `meeus-style-analytical-lunar-baseline`.
 - No vendored ELP coefficient files are used yet.
 - The implementation is handwritten pure Rust, using published lunar element
   and mean-point formulas as the current baseline.
+- The current redistribution posture is simple: there are no external
+  coefficient-file redistribution constraints to track until a source-backed
+  ELP selection is adopted.
 - The planned full ELP selection remains pending; when it lands, this policy
   should be updated with the chosen source identifier, provenance notes, and
   any redistribution constraints.
