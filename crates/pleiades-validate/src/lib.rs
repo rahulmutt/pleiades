@@ -3895,7 +3895,7 @@ fn median_value(values: &mut [f64]) -> Option<f64> {
 
     values.sort_by(|left, right| left.total_cmp(right));
     let middle = values.len() / 2;
-    if values.len() % 2 == 0 {
+    if values.len().is_multiple_of(2) {
         Some((values[middle - 1] + values[middle]) / 2.0)
     } else {
         Some(values[middle])
@@ -4005,13 +4005,36 @@ fn format_comparison_tolerance_policy_for_report(comparison: &ComparisonReport) 
         .map(|entry| entry.scope.label())
         .collect::<Vec<_>>()
         .join(", ");
+    let limits = format_comparison_tolerance_limits_for_report(&entries);
 
     format!(
-        "backend family={}; scopes={} ({scopes}); evidence={} bodies, {} samples",
+        "backend family={}; scopes={} ({scopes}); limits={limits}; evidence={} bodies, {} samples",
         backend_family_label(backend_family),
         entries.len(),
         comparison.body_summaries().len(),
         comparison.summary.sample_count,
+    )
+}
+
+fn format_comparison_tolerance_limits_for_report(entries: &[ComparisonToleranceEntry]) -> String {
+    entries
+        .iter()
+        .map(format_comparison_tolerance_limit_for_report)
+        .collect::<Vec<_>>()
+        .join("; ")
+}
+
+fn format_comparison_tolerance_limit_for_report(entry: &ComparisonToleranceEntry) -> String {
+    let tolerance = &entry.tolerance;
+    format!(
+        "{}: Δlon≤{:.3}°, Δlat≤{:.3}°, Δdist={}",
+        entry.scope.label(),
+        tolerance.max_longitude_delta_deg,
+        tolerance.max_latitude_delta_deg,
+        tolerance
+            .max_distance_delta_au
+            .map(|value| format!("{value:.3} AU"))
+            .unwrap_or_else(|| "n/a".to_string())
     )
 }
 
@@ -8359,7 +8382,10 @@ mod tests {
         assert!(rendered.contains("Time-scale policy:"));
         assert!(rendered.contains("notable regressions"));
         assert!(rendered.contains("outside-tolerance bodies"));
-        assert!(rendered.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto override); evidence=10 bodies, 41 samples"));
+        assert!(rendered.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto override); limits="));
+        assert!(rendered.contains("Luminaries: Δlon≤45.000°, Δlat≤1.000°, Δdist=0.250 AU"));
+        assert!(rendered.contains("Pluto override: Δlon≤45.000°, Δlat≤1.000°, Δdist=0.250 AU"));
+        assert!(rendered.contains("evidence=10 bodies, 41 samples"));
         assert!(rendered.contains("Body-class tolerance posture:"));
         assert!(rendered.contains("Expected tolerance status:"));
         assert!(rendered.contains("comparison audit regressions found"));

@@ -117,6 +117,8 @@ Latest progress (2026-04-25): validation benchmark reporting now also includes a
 
 Latest progress (2026-04-25): the JPL comparison corpus now also has a backend-owned coverage summary that is surfaced in the validation report, release notes, and compact release summary, so the checked-in comparison window is easier to audit alongside the interpolation-quality evidence.
 
+Latest progress (2026-04-25): the compact validation and release summaries now also spell out the current comparison-tolerance limits per scope alongside the scope names and evidence counts, so the release-facing policy line is a little more actionable without widening the full audit output.
+
 Active gaps:
 
 - broader release-grade error envelopes and tolerance tables beyond the comparison-audit gate and new class-level mean/RMS posture;
