@@ -3433,11 +3433,11 @@ fn format_elp_lunar_theory_summary() -> String {
         format_bodies(theory.supported_bodies),
         theory.unsupported_bodies.len(),
         format_bodies(theory.unsupported_bodies),
-        format_frames(theory.supported_frames),
-        format_time_scales(theory.supported_time_scales),
-        format_zodiac_modes(theory.supported_zodiac_modes),
-        format_apparentness_modes(theory.supported_apparentness),
-        theory.supports_topocentric_observer,
+        format_frames(theory.request_policy.supported_frames),
+        format_time_scales(theory.request_policy.supported_time_scales),
+        format_zodiac_modes(theory.request_policy.supported_zodiac_modes),
+        format_apparentness_modes(theory.request_policy.supported_apparentness),
+        theory.request_policy.supports_topocentric_observer,
         theory.source_citation,
         theory.source_material,
         theory.redistribution_note,
@@ -4746,11 +4746,11 @@ fn write_backend_catalog_entry(
         writeln!(
             f,
             "    request policy: frames={}, time scales={}, zodiac modes={}, apparentness={}, topocentric observer={}",
-            format_frames(theory.supported_frames),
-            format_time_scales(theory.supported_time_scales),
-            format_zodiac_modes(theory.supported_zodiac_modes),
-            format_apparentness_modes(theory.supported_apparentness),
-            theory.supports_topocentric_observer,
+            format_frames(theory.request_policy.supported_frames),
+            format_time_scales(theory.request_policy.supported_time_scales),
+            format_zodiac_modes(theory.request_policy.supported_zodiac_modes),
+            format_apparentness_modes(theory.request_policy.supported_apparentness),
+            theory.request_policy.supports_topocentric_observer,
         )?;
         writeln!(f, "    date range note: {}", theory.date_range_note)?;
         writeln!(f, "    frame note: {}", theory.frame_note)?;

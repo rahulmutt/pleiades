@@ -26,7 +26,7 @@ The backend currently rejects:
 - non-TT/TDB input time scales
 - non-tropical zodiac requests
 
-The current request policy is intentionally narrow and explicit:
+The current request policy is intentionally narrow and explicit, and the same shape is surfaced in `pleiades-elp::LunarTheorySpecification.request_policy` so validation and release reports can read it without inferring policy from prose:
 
 - supported coordinate frames: ecliptic and equatorial
 - supported time scales: TT and TDB

@@ -35,6 +35,21 @@ mod moonposition;
 const PACKAGE_NAME: &str = "pleiades-elp";
 const J2000: f64 = 2_451_545.0;
 
+/// Structured request policy for the current lunar-theory selection.
+#[derive(Clone, Debug, PartialEq)]
+pub struct LunarTheoryRequestPolicy {
+    /// Coordinate frames the current baseline exposes.
+    pub supported_frames: &'static [CoordinateFrame],
+    /// Time scales accepted by the current baseline.
+    pub supported_time_scales: &'static [TimeScale],
+    /// Zodiac modes accepted by the current baseline.
+    pub supported_zodiac_modes: &'static [ZodiacMode],
+    /// Apparentness modes accepted by the current baseline.
+    pub supported_apparentness: &'static [Apparentness],
+    /// Whether the current baseline accepts topocentric observer requests.
+    pub supports_topocentric_observer: bool,
+}
+
 /// Structured description of the current lunar-theory selection.
 #[derive(Clone, Debug, PartialEq)]
 pub struct LunarTheorySpecification {
@@ -52,6 +67,8 @@ pub struct LunarTheorySpecification {
     pub supported_bodies: &'static [CelestialBody],
     /// Bodies/channels that are explicitly unsupported by this baseline.
     pub unsupported_bodies: &'static [CelestialBody],
+    /// Structured request policy for the current baseline.
+    pub request_policy: LunarTheoryRequestPolicy,
     /// Coordinate frames the current baseline exposes.
     pub supported_frames: &'static [CoordinateFrame],
     /// Time scales accepted by the current baseline.
@@ -86,6 +103,13 @@ pub fn lunar_theory_specification() -> LunarTheorySpecification {
     const SUPPORTED_TIME_SCALES: &[TimeScale] = &[TimeScale::Tt, TimeScale::Tdb];
     const SUPPORTED_ZODIAC_MODES: &[ZodiacMode] = &[ZodiacMode::Tropical];
     const SUPPORTED_APPARENTNESS: &[Apparentness] = &[Apparentness::Mean];
+    const REQUEST_POLICY: LunarTheoryRequestPolicy = LunarTheoryRequestPolicy {
+        supported_frames: SUPPORTED_FRAMES,
+        supported_time_scales: SUPPORTED_TIME_SCALES,
+        supported_zodiac_modes: SUPPORTED_ZODIAC_MODES,
+        supported_apparentness: SUPPORTED_APPARENTNESS,
+        supports_topocentric_observer: false,
+    };
 
     LunarTheorySpecification {
         model_name: "Compact Meeus-style truncated lunar baseline",
@@ -97,6 +121,7 @@ pub fn lunar_theory_specification() -> LunarTheorySpecification {
             "No external coefficient-file redistribution constraints apply to the current baseline because the implementation does not vendor ELP coefficient tables yet",
         supported_bodies: SUPPORTED_BODIES,
         unsupported_bodies: UNSUPPORTED_BODIES,
+        request_policy: REQUEST_POLICY,
         supported_frames: SUPPORTED_FRAMES,
         supported_time_scales: SUPPORTED_TIME_SCALES,
         supported_zodiac_modes: SUPPORTED_ZODIAC_MODES,
@@ -819,16 +844,22 @@ mod tests {
             &[CelestialBody::TrueApogee, CelestialBody::TruePerigee]
         );
         assert_eq!(
-            theory.supported_frames,
+            theory.request_policy.supported_frames,
             &[CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial]
         );
         assert_eq!(
-            theory.supported_time_scales,
+            theory.request_policy.supported_time_scales,
             &[TimeScale::Tt, TimeScale::Tdb]
         );
-        assert_eq!(theory.supported_zodiac_modes, &[ZodiacMode::Tropical]);
-        assert_eq!(theory.supported_apparentness, &[Apparentness::Mean]);
-        assert!(!theory.supports_topocentric_observer);
+        assert_eq!(
+            theory.request_policy.supported_zodiac_modes,
+            &[ZodiacMode::Tropical]
+        );
+        assert_eq!(
+            theory.request_policy.supported_apparentness,
+            &[Apparentness::Mean]
+        );
+        assert!(!theory.request_policy.supports_topocentric_observer);
         assert!(theory
             .license_note
             .contains("future source-backed lunar theory selection"));
