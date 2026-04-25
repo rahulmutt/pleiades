@@ -436,8 +436,9 @@ pub fn validate_observer_policy(
 /// The shared backend contract.
 ///
 /// Implementations must support one-request/one-result queries. Batch querying
-/// is provided as a default all-or-error adapter so callers can build chart-style
-/// workflows without hand-rolling request loops.
+/// is provided as a default all-or-error adapter that fail-fast stops on the
+/// first structured error so callers can build chart-style workflows without
+/// hand-rolling request loops.
 pub trait EphemerisBackend: Send + Sync {
     /// Returns backend metadata.
     fn metadata(&self) -> BackendMetadata;
@@ -794,6 +795,7 @@ fn should_fallback_to_secondary(kind: &EphemerisErrorKind) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use core::sync::atomic::{AtomicUsize, Ordering};
 
     struct ToyBackend;
 
@@ -974,6 +976,80 @@ mod tests {
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].quality, QualityAnnotation::Exact);
         assert!(result[0].ecliptic.is_some());
+    }
+
+    #[test]
+    fn batch_query_short_circuits_on_the_first_error() {
+        struct CountingBackend {
+            calls: AtomicUsize,
+        }
+
+        impl EphemerisBackend for CountingBackend {
+            fn metadata(&self) -> BackendMetadata {
+                BackendMetadata {
+                    id: BackendId::new("counting"),
+                    version: "0.1.0".to_string(),
+                    family: BackendFamily::Algorithmic,
+                    provenance: BackendProvenance::new("counting test backend"),
+                    nominal_range: TimeRange::new(None, None),
+                    supported_time_scales: vec![TimeScale::Tt],
+                    body_coverage: vec![CelestialBody::Sun, CelestialBody::Moon],
+                    supported_frames: vec![CoordinateFrame::Ecliptic],
+                    capabilities: BackendCapabilities::default(),
+                    accuracy: AccuracyClass::Approximate,
+                    deterministic: true,
+                    offline: true,
+                }
+            }
+
+            fn supports_body(&self, _body: CelestialBody) -> bool {
+                true
+            }
+
+            fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+                self.calls.fetch_add(1, Ordering::SeqCst);
+
+                if req.body == CelestialBody::Moon {
+                    return Err(EphemerisError::new(
+                        EphemerisErrorKind::UnsupportedBody,
+                        "Moon requests fail in the counting backend",
+                    ));
+                }
+
+                Ok(EphemerisResult::new(
+                    BackendId::new("counting"),
+                    req.body.clone(),
+                    req.instant,
+                    req.frame,
+                    req.zodiac_mode.clone(),
+                    req.apparent,
+                ))
+            }
+        }
+
+        let backend = CountingBackend {
+            calls: AtomicUsize::new(0),
+        };
+        let requests = [
+            EphemerisRequest::new(
+                CelestialBody::Sun,
+                Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt),
+            ),
+            EphemerisRequest::new(
+                CelestialBody::Moon,
+                Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt),
+            ),
+            EphemerisRequest::new(
+                CelestialBody::Sun,
+                Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt),
+            ),
+        ];
+
+        let error = backend
+            .positions(&requests)
+            .expect_err("batch requests should fail fast on the first error");
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedBody);
+        assert_eq!(backend.calls.load(Ordering::SeqCst), 2);
     }
 
     #[test]
