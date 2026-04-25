@@ -57,9 +57,9 @@ use pleiades_jpl::{
     reference_snapshot_summary_for_report, JplSnapshotBackend,
 };
 use pleiades_vsop87::{
-    body_source_profiles, frame_treatment_summary, source_audit_summary, source_audits,
-    source_body_evidence_summary, source_documentation_summary, source_specifications,
-    Vsop87Backend,
+    body_source_profiles, canonical_epoch_evidence_summary_for_report, frame_treatment_summary,
+    source_audit_summary_for_report, source_audits, source_body_evidence_summary_for_report,
+    source_documentation_summary_for_report, source_specifications, Vsop87Backend,
 };
 
 const DEFAULT_BENCHMARK_ROUNDS: usize = 10_000;
@@ -3630,125 +3630,16 @@ fn vsop87_canonical_body_evidence() -> Option<Vec<pleiades_vsop87::Vsop87Canonic
     pleiades_vsop87::canonical_epoch_body_evidence()
 }
 
-fn vsop87_canonical_evidence_summary() -> Option<pleiades_vsop87::Vsop87CanonicalEvidenceSummary> {
-    pleiades_vsop87::canonical_epoch_evidence_summary()
-}
-
 fn format_vsop87_canonical_evidence_summary() -> String {
-    match vsop87_canonical_evidence_summary() {
-        Some(summary) => format!(
-            "VSOP87 canonical J2000 source-backed evidence: {} samples, status {}, max Δlon={:.12}° ({}; {}; {}), max Δlat={:.12}° ({}; {}; {}), max Δdist={:.12} AU ({}; {}; {})",
-            summary.sample_count,
-            if summary.within_interim_limits {
-                "within interim limits"
-            } else {
-                "outside interim limits"
-            },
-            summary.max_longitude_delta_deg,
-            summary.max_longitude_delta_body,
-            summary.max_longitude_delta_source_kind.label(),
-            summary.max_longitude_delta_source_file,
-            summary.max_latitude_delta_deg,
-            summary.max_latitude_delta_body,
-            summary.max_latitude_delta_source_kind.label(),
-            summary.max_latitude_delta_source_file,
-            summary.max_distance_delta_au,
-            summary.max_distance_delta_body,
-            summary.max_distance_delta_source_kind.label(),
-            summary.max_distance_delta_source_file,
-        ),
-        None => "VSOP87 canonical J2000 source-backed evidence: unavailable".to_string(),
-    }
+    canonical_epoch_evidence_summary_for_report()
 }
 
 fn format_vsop87_body_evidence_summary() -> String {
-    match source_body_evidence_summary() {
-        Some(summary) => {
-            let outside_note = if summary.outside_interim_limit_bodies.is_empty() {
-                "none".to_string()
-            } else {
-                format_bodies(&summary.outside_interim_limit_bodies)
-            };
-            if summary.generated_binary_count == 0 && summary.truncated_count == 0 {
-                format!(
-                    "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file), {} within interim limits, {} outside interim limits; outside interim limits: {}",
-                    summary.sample_count,
-                    summary.vendored_full_file_count,
-                    summary.within_interim_limits_count,
-                    summary.outside_interim_limit_count,
-                    outside_note,
-                )
-            } else if summary.generated_binary_count > 0 && summary.truncated_count == 0 {
-                format!(
-                    "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} generated binary), {} within interim limits, {} outside interim limits; outside interim limits: {}",
-                    summary.sample_count,
-                    summary.vendored_full_file_count,
-                    summary.generated_binary_count,
-                    summary.within_interim_limits_count,
-                    summary.outside_interim_limit_count,
-                    outside_note,
-                )
-            } else if summary.generated_binary_count == 0 {
-                format!(
-                    "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} truncated slice), {} within interim limits, {} outside interim limits; outside interim limits: {}",
-                    summary.sample_count,
-                    summary.vendored_full_file_count,
-                    summary.truncated_count,
-                    summary.within_interim_limits_count,
-                    summary.outside_interim_limit_count,
-                    outside_note,
-                )
-            } else {
-                format!(
-                    "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} generated binary, {} truncated slice), {} within interim limits, {} outside interim limits; outside interim limits: {}",
-                    summary.sample_count,
-                    summary.vendored_full_file_count,
-                    summary.generated_binary_count,
-                    summary.truncated_count,
-                    summary.within_interim_limits_count,
-                    summary.outside_interim_limit_count,
-                    outside_note,
-                )
-            }
-        }
-        None => "VSOP87 source-backed body evidence: unavailable".to_string(),
-    }
-}
-
-fn format_vsop87_fallback_bodies() -> String {
-    let fallback_bodies = body_source_profiles()
-        .into_iter()
-        .filter(|profile| {
-            profile.kind == pleiades_vsop87::Vsop87BodySourceKind::MeanOrbitalElements
-        })
-        .map(|profile| profile.body)
-        .collect::<Vec<_>>();
-
-    if fallback_bodies.is_empty() {
-        "none".to_string()
-    } else {
-        format_bodies(&fallback_bodies)
-    }
+    source_body_evidence_summary_for_report()
 }
 
 fn format_vsop87_source_documentation_summary() -> String {
-    let summary = source_documentation_summary();
-    let fallback_bodies = format_vsop87_fallback_bodies();
-    format!(
-        "VSOP87 source documentation: {} source specs, {} source-backed body profiles, {} fallback mean-element body profile{} ({}); source-backed breakdown: {} generated binary, {} vendored full-file, {} truncated slice",
-        summary.source_specification_count,
-        summary.source_backed_profile_count,
-        summary.fallback_profile_count,
-        if summary.fallback_profile_count == 1 {
-            ""
-        } else {
-            "s"
-        },
-        fallback_bodies,
-        summary.generated_binary_profile_count,
-        summary.vendored_full_file_profile_count,
-        summary.truncated_profile_count,
-    )
+    source_documentation_summary_for_report()
 }
 
 fn format_vsop87_frame_treatment_summary() -> String {
@@ -3756,16 +3647,7 @@ fn format_vsop87_frame_treatment_summary() -> String {
 }
 
 fn format_vsop87_source_audit_summary() -> String {
-    let audit = source_audit_summary();
-    format!(
-        "VSOP87 source audit: {} source-backed bodies, {} vendored full-file inputs, {} total terms, max source size {} bytes / {} lines, {} deterministic fingerprints",
-        audit.source_count,
-        audit.vendored_full_file_count,
-        audit.total_term_count,
-        audit.max_byte_length,
-        audit.max_line_count,
-        audit.fingerprint_count
-    )
+    source_audit_summary_for_report()
 }
 
 fn format_packaged_artifact_profile_summary() -> String {

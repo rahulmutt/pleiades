@@ -644,6 +644,24 @@ pub fn source_audit_summary() -> Vsop87SourceAuditSummary {
     }
 }
 
+/// Formats the current VSOP87 reproducibility audit for reporting.
+pub fn format_source_audit_summary(summary: &Vsop87SourceAuditSummary) -> String {
+    format!(
+        "VSOP87 source audit: {} source-backed bodies, {} vendored full-file inputs, {} total terms, max source size {} bytes / {} lines, {} deterministic fingerprints",
+        summary.source_count,
+        summary.vendored_full_file_count,
+        summary.total_term_count,
+        summary.max_byte_length,
+        summary.max_line_count,
+        summary.fingerprint_count
+    )
+}
+
+/// Returns the release-facing reproducibility audit summary string.
+pub fn source_audit_summary_for_report() -> String {
+    format_source_audit_summary(&source_audit_summary())
+}
+
 /// Returns a summary of the current VSOP87 source-documentation catalog.
 pub fn source_documentation_summary() -> Vsop87SourceDocumentationSummary {
     let source_specs = source_specifications();
@@ -679,6 +697,53 @@ pub fn source_documentation_summary() -> Vsop87SourceDocumentationSummary {
             .filter(|profile| profile.kind == Vsop87BodySourceKind::MeanOrbitalElements)
             .count(),
     }
+}
+
+fn format_celestial_bodies(bodies: &[CelestialBody]) -> String {
+    bodies
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn format_fallback_bodies() -> String {
+    let fallback_bodies = body_source_profiles()
+        .into_iter()
+        .filter(|profile| profile.kind == Vsop87BodySourceKind::MeanOrbitalElements)
+        .map(|profile| profile.body)
+        .collect::<Vec<_>>();
+
+    if fallback_bodies.is_empty() {
+        "none".to_string()
+    } else {
+        format_celestial_bodies(&fallback_bodies)
+    }
+}
+
+/// Formats the current VSOP87 source-documentation catalog for reporting.
+pub fn format_source_documentation_summary(summary: &Vsop87SourceDocumentationSummary) -> String {
+    let fallback_bodies = format_fallback_bodies();
+    format!(
+        "VSOP87 source documentation: {} source specs, {} source-backed body profiles, {} fallback mean-element body profile{} ({}); source-backed breakdown: {} generated binary, {} vendored full-file, {} truncated slice",
+        summary.source_specification_count,
+        summary.source_backed_profile_count,
+        summary.fallback_profile_count,
+        if summary.fallback_profile_count == 1 {
+            ""
+        } else {
+            "s"
+        },
+        fallback_bodies,
+        summary.generated_binary_profile_count,
+        summary.vendored_full_file_profile_count,
+        summary.truncated_profile_count,
+    )
+}
+
+/// Returns the release-facing summary string for the current VSOP87 source-documentation catalog.
+pub fn source_documentation_summary_for_report() -> String {
+    format_source_documentation_summary(&source_documentation_summary())
 }
 
 /// Backend-owned summary of the canonical VSOP87 body evidence envelope.
@@ -731,6 +796,98 @@ pub fn source_body_evidence_summary() -> Option<Vsop87SourceBodyEvidenceSummary>
             .map(|row| row.body)
             .collect(),
     })
+}
+
+/// Formats the canonical VSOP87 J2000 evidence summary for reporting.
+pub fn format_canonical_epoch_evidence_summary(summary: &Vsop87CanonicalEvidenceSummary) -> String {
+    format!(
+        "VSOP87 canonical J2000 source-backed evidence: {} samples, status {}, max Δlon={:.12}° ({}; {}; {}), max Δlat={:.12}° ({}; {}; {}), max Δdist={:.12} AU ({}; {}; {})",
+        summary.sample_count,
+        if summary.within_interim_limits {
+            "within interim limits"
+        } else {
+            "outside interim limits"
+        },
+        summary.max_longitude_delta_deg,
+        summary.max_longitude_delta_body,
+        summary.max_longitude_delta_source_kind.label(),
+        summary.max_longitude_delta_source_file,
+        summary.max_latitude_delta_deg,
+        summary.max_latitude_delta_body,
+        summary.max_latitude_delta_source_kind.label(),
+        summary.max_latitude_delta_source_file,
+        summary.max_distance_delta_au,
+        summary.max_distance_delta_body,
+        summary.max_distance_delta_source_kind.label(),
+        summary.max_distance_delta_source_file,
+    )
+}
+
+/// Returns the release-facing canonical VSOP87 J2000 evidence summary string.
+pub fn canonical_epoch_evidence_summary_for_report() -> String {
+    match canonical_epoch_evidence_summary() {
+        Some(summary) => format_canonical_epoch_evidence_summary(&summary),
+        None => "VSOP87 canonical J2000 source-backed evidence: unavailable".to_string(),
+    }
+}
+
+/// Formats the current VSOP87 body-evidence envelope for reporting.
+pub fn format_source_body_evidence_summary(summary: &Vsop87SourceBodyEvidenceSummary) -> String {
+    let outside_note = if summary.outside_interim_limit_bodies.is_empty() {
+        "none".to_string()
+    } else {
+        format_celestial_bodies(&summary.outside_interim_limit_bodies)
+    };
+
+    if summary.generated_binary_count == 0 && summary.truncated_count == 0 {
+        format!(
+            "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file), {} within interim limits, {} outside interim limits; outside interim limits: {}",
+            summary.sample_count,
+            summary.vendored_full_file_count,
+            summary.within_interim_limits_count,
+            summary.outside_interim_limit_count,
+            outside_note,
+        )
+    } else if summary.generated_binary_count > 0 && summary.truncated_count == 0 {
+        format!(
+            "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} generated binary), {} within interim limits, {} outside interim limits; outside interim limits: {}",
+            summary.sample_count,
+            summary.vendored_full_file_count,
+            summary.generated_binary_count,
+            summary.within_interim_limits_count,
+            summary.outside_interim_limit_count,
+            outside_note,
+        )
+    } else if summary.generated_binary_count == 0 {
+        format!(
+            "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} truncated slice), {} within interim limits, {} outside interim limits; outside interim limits: {}",
+            summary.sample_count,
+            summary.vendored_full_file_count,
+            summary.truncated_count,
+            summary.within_interim_limits_count,
+            summary.outside_interim_limit_count,
+            outside_note,
+        )
+    } else {
+        format!(
+            "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} generated binary, {} truncated slice), {} within interim limits, {} outside interim limits; outside interim limits: {}",
+            summary.sample_count,
+            summary.vendored_full_file_count,
+            summary.generated_binary_count,
+            summary.truncated_count,
+            summary.within_interim_limits_count,
+            summary.outside_interim_limit_count,
+            outside_note,
+        )
+    }
+}
+
+/// Returns the release-facing source-body evidence summary string.
+pub fn source_body_evidence_summary_for_report() -> String {
+    match source_body_evidence_summary() {
+        Some(summary) => format_source_body_evidence_summary(&summary),
+        None => "VSOP87 source-backed body evidence: unavailable".to_string(),
+    }
 }
 
 /// Regenerates the checked-in binary VSOP87B coefficient blob for a vendored
@@ -2179,6 +2336,15 @@ mod tests {
     }
 
     #[test]
+    fn source_audit_report_matches_the_backend_formatter() {
+        let summary = source_audit_summary();
+        assert_eq!(
+            source_audit_summary_for_report(),
+            format_source_audit_summary(&summary)
+        );
+    }
+
+    #[test]
     fn source_documentation_summary_tracks_catalog_counts() {
         let summary = source_documentation_summary();
 
@@ -2188,6 +2354,15 @@ mod tests {
         assert_eq!(summary.vendored_full_file_profile_count, 0);
         assert_eq!(summary.truncated_profile_count, 0);
         assert_eq!(summary.fallback_profile_count, 1);
+    }
+
+    #[test]
+    fn source_documentation_report_matches_the_backend_formatter() {
+        let summary = source_documentation_summary();
+        assert_eq!(
+            source_documentation_summary_for_report(),
+            format_source_documentation_summary(&summary)
+        );
     }
 
     #[test]
@@ -2203,6 +2378,24 @@ mod tests {
         assert_eq!(summary.outside_interim_limit_count, 0);
         assert!(summary.outside_interim_limit_bodies.is_empty());
         assert!(evidence.iter().all(|row| row.within_interim_limits));
+    }
+
+    #[test]
+    fn source_body_evidence_report_matches_the_backend_formatter() {
+        let summary = source_body_evidence_summary().expect("summary should exist");
+        assert_eq!(
+            source_body_evidence_summary_for_report(),
+            format_source_body_evidence_summary(&summary)
+        );
+    }
+
+    #[test]
+    fn canonical_evidence_report_matches_the_backend_formatter() {
+        let summary = canonical_epoch_evidence_summary().expect("summary should exist");
+        assert_eq!(
+            canonical_epoch_evidence_summary_for_report(),
+            format_canonical_epoch_evidence_summary(&summary)
+        );
     }
 
     #[test]
