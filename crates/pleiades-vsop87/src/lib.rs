@@ -681,6 +681,52 @@ pub fn source_documentation_summary() -> Vsop87SourceDocumentationSummary {
     }
 }
 
+/// Backend-owned summary of the canonical VSOP87 body evidence envelope.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Vsop87SourceBodyEvidenceSummary {
+    /// Number of canonical samples measured.
+    pub sample_count: usize,
+    /// Number of samples within the interim limits.
+    pub within_interim_limits_count: usize,
+    /// Number of vendored full-file source-backed samples.
+    pub vendored_full_file_count: usize,
+    /// Number of generated-binary source-backed samples.
+    pub generated_binary_count: usize,
+    /// Number of truncated-slice source-backed samples.
+    pub truncated_count: usize,
+    /// Bodies outside the current interim limits.
+    pub outside_interim_limit_bodies: Vec<CelestialBody>,
+}
+
+/// Returns a backend-owned summary of the canonical VSOP87 body evidence.
+pub fn source_body_evidence_summary() -> Option<Vsop87SourceBodyEvidenceSummary> {
+    let evidence = canonical_epoch_body_evidence()?;
+    Some(Vsop87SourceBodyEvidenceSummary {
+        sample_count: evidence.len(),
+        within_interim_limits_count: evidence
+            .iter()
+            .filter(|row| row.within_interim_limits)
+            .count(),
+        vendored_full_file_count: evidence
+            .iter()
+            .filter(|row| row.source_kind == Vsop87BodySourceKind::VendoredVsop87b)
+            .count(),
+        generated_binary_count: evidence
+            .iter()
+            .filter(|row| row.source_kind == Vsop87BodySourceKind::GeneratedBinaryVsop87b)
+            .count(),
+        truncated_count: evidence
+            .iter()
+            .filter(|row| row.source_kind == Vsop87BodySourceKind::TruncatedVsop87b)
+            .count(),
+        outside_interim_limit_bodies: evidence
+            .into_iter()
+            .filter(|row| !row.within_interim_limits)
+            .map(|row| row.body)
+            .collect(),
+    })
+}
+
 /// Regenerates the checked-in binary VSOP87B coefficient blob for a vendored
 /// public source file.
 ///
@@ -2082,6 +2128,20 @@ mod tests {
         assert_eq!(summary.vendored_full_file_profile_count, 0);
         assert_eq!(summary.truncated_profile_count, 0);
         assert_eq!(summary.fallback_profile_count, 1);
+    }
+
+    #[test]
+    fn source_body_evidence_summary_matches_the_canonical_body_evidence() {
+        let evidence = canonical_epoch_body_evidence().expect("evidence should exist");
+        let summary = source_body_evidence_summary().expect("summary should exist");
+
+        assert_eq!(summary.sample_count, evidence.len());
+        assert_eq!(summary.within_interim_limits_count, evidence.len());
+        assert_eq!(summary.vendored_full_file_count, 0);
+        assert_eq!(summary.generated_binary_count, evidence.len());
+        assert_eq!(summary.truncated_count, 0);
+        assert!(summary.outside_interim_limit_bodies.is_empty());
+        assert!(evidence.iter().all(|row| row.within_interim_limits));
     }
 
     #[test]
