@@ -6176,7 +6176,7 @@ mod tests {
         assert!(report.contains("JPL interpolation quality: 21 samples across 10 bodies"));
         assert!(report.contains("Lunar reference evidence"));
         assert!(report.contains(
-            "lunar reference evidence: 8 samples across 5 bodies, epoch range JD 2419914.5..2459278.5"
+            "lunar reference evidence: 9 samples across 5 bodies, epoch range JD 2419914.5..2459278.5"
         ));
         assert!(report.contains("exact J2000 evidence: 5 bodies at JD 2451545.0"));
         assert!(report.contains("Body comparison summaries"));
@@ -6224,7 +6224,7 @@ mod tests {
         assert!(report.contains("@ JD"));
         assert!(report.contains("Lunar reference evidence"));
         assert!(report.contains(
-            "lunar reference evidence: 8 samples across 5 bodies, epoch range JD 2419914.5..2459278.5"
+            "lunar reference evidence: 9 samples across 5 bodies, epoch range JD 2419914.5..2459278.5"
         ));
         assert!(report.contains("Body comparison summaries"));
         assert!(report.contains("Body-class error envelopes"));
@@ -6992,7 +6992,7 @@ mod tests {
         ));
         assert!(rendered.contains("request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
         assert!(rendered.contains("validation window: JD 2448724.5 (TT) → JD 2459278.5 (TT)"));
-        assert!(rendered.contains("date-range note: Validated against the published 1992-04-12 geocentric Moon example, J2000 lunar-point anchors, and a published 2021-03-05 mean-perigee example"));
+        assert!(rendered.contains("date-range note: Validated against the published 1992-04-12 geocentric Moon example, J2000 lunar-point anchors, published 1913-05-27 true-node and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example"));
         assert!(rendered.contains("citation: Jean Meeus"));
         assert!(rendered
             .contains("provenance: Published lunar position, node, and mean-point formulas"));
@@ -7324,7 +7324,7 @@ version = "0.9.0"
         assert!(validation_report_summary.contains("request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
         assert!(validation_report_summary
             .contains("validation window: JD 2448724.5 (TT) → JD 2459278.5 (TT)"));
-        assert!(validation_report_summary.contains("date-range note: Validated against the published 1992-04-12 geocentric Moon example, J2000 lunar-point anchors, and a published 2021-03-05 mean-perigee example"));
+        assert!(validation_report_summary.contains("date-range note: Validated against the published 1992-04-12 geocentric Moon example, J2000 lunar-point anchors, published 1913-05-27 true-node and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example"));
         assert!(validation_report_summary.contains("citation: Jean Meeus"));
         assert!(validation_report_summary
             .contains("provenance: Published lunar position, node, and mean-point formulas"));

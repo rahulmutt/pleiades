@@ -48,7 +48,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Progress note: the release-facing lunar summary formatter now lives in `pleiades-elp`, which keeps the lunar provenance text owned by the backend crate rather than duplicated in validation/reporting code.
    - Progress note: the canonical lunar reference evidence summary now also lives in `pleiades-elp`, and validation/reporting reuses that backend-owned summary and formatter instead of keeping a duplicate copy in the tooling layer.
    - Progress note: the new compact lunar capability summary helper now gives validation a structured body/frame/time-scale snapshot without parsing prose, keeping the source-selection posture easier to reuse in later release reports.
-   - Progress note: the lunar reference slice now also includes the 1992 Moon example, J2000 lunar-point anchors, published 1913-05-27 and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example, which broadens the current validation evidence without changing the public request model.
+   - Progress note: the lunar reference slice now also includes the 1992 Moon example, J2000 lunar-point anchors, published 1913-05-27 true-node and mean-node examples, a published 1959-12-07 mean-node example, and a published 2021-03-05 mean-perigee example, which broadens the current validation evidence without changing the public request model.
 
 3. Upgrade `pleiades-jpl` from snapshot fixture to reference backend.
    - Parse documented public JPL-style files or a reproducible derivative format in pure Rust.

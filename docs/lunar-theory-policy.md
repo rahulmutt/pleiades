@@ -67,7 +67,8 @@ The current regression posture is intentionally small and deterministic:
 
 - the published 1992-04-12 geocentric Moon example
 - canonical J2000 checks for the Moon and lunar points
-- published 1913-05-27 and 1959-12-07 mean-ascending-node examples
+- published 1913-05-27 true-ascending-node and mean-ascending-node examples
+- a published 1959-12-07 mean-ascending-node example
 - a published 2021-03-05 mean-perigee example
 - nearby high-curvature lunar-interval regression coverage
 - explicit unsupported-body and unsupported-mode errors

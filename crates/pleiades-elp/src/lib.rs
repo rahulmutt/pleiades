@@ -170,7 +170,7 @@ const LUNAR_THEORY_SPECIFICATION: LunarTheorySpecification = LunarTheorySpecific
     unit_note:
         "Angular outputs are reported in degrees and distance outputs, when present, are reported in astronomical units",
     date_range_note:
-        "Validated against the published 1992-04-12 geocentric Moon example, J2000 lunar-point anchors, and a published 2021-03-05 mean-perigee example; no full ELP coefficient range has been published yet",
+        "Validated against the published 1992-04-12 geocentric Moon example, J2000 lunar-point anchors, published 1913-05-27 true-node and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example; no full ELP coefficient range has been published yet",
     frame_note:
         "Geocentric ecliptic coordinates are produced directly from the truncated lunar series; equatorial coordinates are derived with a mean-obliquity transform",
     validation_window: LUNAR_THEORY_VALIDATION_WINDOW,
@@ -438,6 +438,14 @@ pub fn lunar_reference_evidence() -> &'static [LunarReferenceSample] {
             distance_au: None,
             note: "J2000 mean apogee reference used to anchor the lunar point model",
         },
+        LunarReferenceSample {
+            body: CelestialBody::TrueNode,
+            epoch: Instant::new(pleiades_types::JulianDay::from_days(2_419_914.5), TimeScale::Tt),
+            longitude_deg: 0.876_3,
+            latitude_deg: 0.0,
+            distance_au: None,
+            note: "Published 1913-05-27 true ascending node example used to anchor the lunar node model",
+        },
     ];
 
     SAMPLES
@@ -488,7 +496,7 @@ pub fn lunar_reference_evidence_summary() -> Option<LunarReferenceEvidenceSummar
 /// Formats the lunar reference evidence summary for release-facing reporting.
 pub fn format_lunar_reference_evidence_summary(summary: &LunarReferenceEvidenceSummary) -> String {
     format!(
-        "lunar reference evidence: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, validated against the published 1992-04-12 Moon example plus J2000 lunar-point anchors and a published 2021-03-05 mean-perigee example",
+        "lunar reference evidence: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, validated against the published 1992-04-12 Moon example plus J2000 lunar-point anchors, published 1913-05-27 true-node and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example",
         summary.sample_count,
         summary.body_count,
         summary.earliest_epoch.julian_day.days(),
@@ -967,6 +975,31 @@ mod tests {
     }
 
     #[test]
+    fn published_true_node_example_matches_reference() {
+        let backend = ElpBackend::new();
+        let instant = Instant::new(
+            pleiades_types::JulianDay::from_days(2_419_914.5),
+            TimeScale::Tt,
+        );
+        let result = backend
+            .position(&mean_request_at(CelestialBody::TrueNode, instant))
+            .expect("true node query should work");
+        let ecliptic = result.ecliptic.expect("ecliptic result should exist");
+        let motion = result.motion.expect("motion should be populated");
+
+        assert!((ecliptic.longitude.degrees() - 0.876_3).abs() < 1e-4);
+        assert_eq!(ecliptic.latitude.degrees(), 0.0);
+        assert_eq!(ecliptic.distance_au, None);
+        assert!(motion
+            .longitude_deg_per_day
+            .expect("longitude speed should exist")
+            .is_finite());
+        assert_eq!(motion.latitude_deg_per_day, Some(0.0));
+        assert_eq!(motion.distance_au_per_day, None);
+        assert_eq!(result.quality, QualityAnnotation::Approximate);
+    }
+
+    #[test]
     fn moon_samples_remain_finite_across_high_curvature_window() {
         let backend = ElpBackend::new();
         let instants = [J2000 - 1.0, J2000, J2000 + 1.0, J2000 + 2.0]
@@ -1173,6 +1206,7 @@ mod tests {
         assert!(theory
             .date_range_note
             .contains("2021-03-05 mean-perigee example"));
+        assert!(theory.date_range_note.contains("1913-05-27 true-node"));
         assert!(theory.frame_note.contains("mean-obliquity"));
         assert_eq!(
             theory.validation_window,
@@ -1278,7 +1312,7 @@ mod tests {
         assert!(!backend.supports_body(CelestialBody::Sun));
 
         let evidence = lunar_reference_evidence();
-        assert_eq!(evidence.len(), 8);
+        assert_eq!(evidence.len(), 9);
         assert_eq!(evidence[0].body, CelestialBody::Moon);
         assert_eq!(evidence[0].epoch.julian_day.days(), 2_448_724.5);
         assert_eq!(evidence[1].body, CelestialBody::MeanNode);
@@ -1295,6 +1329,8 @@ mod tests {
         assert_eq!(evidence[6].epoch.julian_day.days(), J2000);
         assert_eq!(evidence[7].body, CelestialBody::MeanApogee);
         assert_eq!(evidence[7].epoch.julian_day.days(), J2000);
+        assert_eq!(evidence[8].body, CelestialBody::TrueNode);
+        assert_eq!(evidence[8].epoch.julian_day.days(), 2_419_914.5);
         for body in theory.supported_bodies {
             assert!(evidence.iter().any(|sample| sample.body == *body));
         }
@@ -1335,11 +1371,11 @@ mod tests {
     fn lunar_reference_evidence_summary_matches_the_canonical_slice() {
         let summary = lunar_reference_evidence_summary().expect("reference evidence should exist");
 
-        assert_eq!(summary.sample_count, 8);
+        assert_eq!(summary.sample_count, 9);
         assert_eq!(summary.body_count, 5);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_419_914.5);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_459_278.5);
-        assert!(lunar_reference_evidence_summary_for_report().contains("8 samples across 5 bodies"));
+        assert!(lunar_reference_evidence_summary_for_report().contains("9 samples across 5 bodies"));
         assert!(lunar_reference_evidence_summary_for_report().contains("JD 2419914.5..2459278.5"));
     }
 
