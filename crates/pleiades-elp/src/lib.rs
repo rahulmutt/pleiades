@@ -151,6 +151,25 @@ const LUNAR_THEORY_VALIDATION_WINDOW: TimeRange = TimeRange::new(
     )),
 );
 
+const LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS: [Instant; 4] = [
+    Instant::new(
+        pleiades_types::JulianDay::from_days(J2000 - 1.0),
+        TimeScale::Tt,
+    ),
+    Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt),
+    Instant::new(
+        pleiades_types::JulianDay::from_days(J2000 + 1.0),
+        TimeScale::Tt,
+    ),
+    Instant::new(
+        pleiades_types::JulianDay::from_days(J2000 + 2.0),
+        TimeScale::Tt,
+    ),
+];
+const LUNAR_HIGH_CURVATURE_LONGITUDE_LIMIT_DEG: f64 = 20.0;
+const LUNAR_HIGH_CURVATURE_LATITUDE_LIMIT_DEG: f64 = 10.0;
+const LUNAR_HIGH_CURVATURE_DISTANCE_LIMIT_AU: f64 = 0.02;
+
 const LUNAR_THEORY_SPECIFICATION: LunarTheorySpecification = LunarTheorySpecification {
     model_name: "Compact Meeus-style truncated lunar baseline",
     source_family: LunarTheorySourceFamily::MeeusStyleTruncatedAnalyticalBaseline,
@@ -785,6 +804,160 @@ pub fn lunar_equatorial_reference_evidence_envelope_for_report() -> String {
     match lunar_equatorial_reference_evidence_envelope() {
         Some(envelope) => format_lunar_equatorial_reference_evidence_envelope(&envelope),
         None => "lunar equatorial reference error envelope: unavailable".to_string(),
+    }
+}
+
+/// A compact summary of the lunar high-curvature continuity evidence slice.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct LunarHighCurvatureContinuityEnvelope {
+    /// Number of continuity samples in the regression slice.
+    sample_count: usize,
+    /// Number of distinct bodies covered by the regression slice.
+    body_count: usize,
+    /// Earliest epoch covered by the regression slice.
+    earliest_epoch: Instant,
+    /// Latest epoch covered by the regression slice.
+    latest_epoch: Instant,
+    /// Epoch at the start of the largest adjacent longitude step.
+    max_longitude_step_start_epoch: Instant,
+    /// Epoch at the end of the largest adjacent longitude step.
+    max_longitude_step_end_epoch: Instant,
+    /// Largest adjacent longitude step in degrees.
+    max_longitude_step_deg: f64,
+    /// Epoch at the start of the largest adjacent latitude step.
+    max_latitude_step_start_epoch: Instant,
+    /// Epoch at the end of the largest adjacent latitude step.
+    max_latitude_step_end_epoch: Instant,
+    /// Largest adjacent latitude step in degrees.
+    max_latitude_step_deg: f64,
+    /// Epoch at the start of the largest adjacent distance step.
+    max_distance_step_start_epoch: Instant,
+    /// Epoch at the end of the largest adjacent distance step.
+    max_distance_step_end_epoch: Instant,
+    /// Largest adjacent distance step in astronomical units.
+    max_distance_step_au: f64,
+    /// Whether every adjacent step stayed within the current regression limits.
+    within_regression_limits: bool,
+}
+
+fn lunar_high_curvature_continuity_envelope() -> Option<LunarHighCurvatureContinuityEnvelope> {
+    let backend = ElpBackend::new();
+    let mut bodies = std::collections::BTreeSet::new();
+    let mut earliest_epoch = LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS[0];
+    let mut latest_epoch = LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS[0];
+    let mut previous_sample: Option<(Instant, f64, f64, f64)> = None;
+    let mut max_longitude_step_start_epoch = LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS[0];
+    let mut max_longitude_step_end_epoch = LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS[0];
+    let mut max_longitude_step_deg = 0.0;
+    let mut max_latitude_step_start_epoch = LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS[0];
+    let mut max_latitude_step_end_epoch = LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS[0];
+    let mut max_latitude_step_deg = 0.0;
+    let mut max_distance_step_start_epoch = LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS[0];
+    let mut max_distance_step_end_epoch = LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS[0];
+    let mut max_distance_step_au = 0.0;
+    let mut within_regression_limits = true;
+
+    for instant in LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS {
+        let result = backend
+            .position(&EphemerisRequest::new(CelestialBody::Moon, instant))
+            .expect("the high-curvature lunar continuity samples should remain computable");
+        let ecliptic = result.ecliptic.expect(
+            "the high-curvature lunar continuity samples should include ecliptic coordinates",
+        );
+        let longitude = ecliptic.longitude.degrees();
+        let latitude = ecliptic.latitude.degrees();
+        let distance = ecliptic
+            .distance_au
+            .expect("the high-curvature lunar continuity samples should include distance");
+
+        bodies.insert(result.body.to_string());
+        if instant.julian_day.days() < earliest_epoch.julian_day.days() {
+            earliest_epoch = instant;
+        }
+        if instant.julian_day.days() > latest_epoch.julian_day.days() {
+            latest_epoch = instant;
+        }
+
+        if let Some((previous_epoch, previous_longitude, previous_latitude, previous_distance)) =
+            previous_sample
+        {
+            let longitude_step =
+                signed_longitude_delta_degrees(previous_longitude, longitude).abs();
+            let latitude_step = (latitude - previous_latitude).abs();
+            let distance_step = (distance - previous_distance).abs();
+
+            within_regression_limits &= longitude_step <= LUNAR_HIGH_CURVATURE_LONGITUDE_LIMIT_DEG
+                && latitude_step <= LUNAR_HIGH_CURVATURE_LATITUDE_LIMIT_DEG
+                && distance_step <= LUNAR_HIGH_CURVATURE_DISTANCE_LIMIT_AU;
+
+            if longitude_step > max_longitude_step_deg {
+                max_longitude_step_deg = longitude_step;
+                max_longitude_step_start_epoch = previous_epoch;
+                max_longitude_step_end_epoch = instant;
+            }
+            if latitude_step > max_latitude_step_deg {
+                max_latitude_step_deg = latitude_step;
+                max_latitude_step_start_epoch = previous_epoch;
+                max_latitude_step_end_epoch = instant;
+            }
+            if distance_step > max_distance_step_au {
+                max_distance_step_au = distance_step;
+                max_distance_step_start_epoch = previous_epoch;
+                max_distance_step_end_epoch = instant;
+            }
+        }
+
+        previous_sample = Some((instant, longitude, latitude, distance));
+    }
+
+    Some(LunarHighCurvatureContinuityEnvelope {
+        sample_count: LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS.len(),
+        body_count: bodies.len(),
+        earliest_epoch,
+        latest_epoch,
+        max_longitude_step_start_epoch,
+        max_longitude_step_end_epoch,
+        max_longitude_step_deg,
+        max_latitude_step_start_epoch,
+        max_latitude_step_end_epoch,
+        max_latitude_step_deg,
+        max_distance_step_start_epoch,
+        max_distance_step_end_epoch,
+        max_distance_step_au,
+        within_regression_limits,
+    })
+}
+
+fn format_lunar_high_curvature_continuity_evidence_envelope(
+    envelope: &LunarHighCurvatureContinuityEnvelope,
+) -> String {
+    format!(
+        "lunar high-curvature continuity evidence: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, max adjacent Δlon={:.12}° ({} → {}), max adjacent Δlat={:.12}° ({} → {}), max adjacent Δdist={:.12} AU ({} → {}), regression limits: Δlon≤{:.1}°, Δlat≤{:.1}°, Δdist≤{:.2} AU; within regression limits={}",
+        envelope.sample_count,
+        envelope.body_count,
+        envelope.earliest_epoch.julian_day.days(),
+        envelope.latest_epoch.julian_day.days(),
+        envelope.max_longitude_step_deg,
+        format_instant(envelope.max_longitude_step_start_epoch),
+        format_instant(envelope.max_longitude_step_end_epoch),
+        envelope.max_latitude_step_deg,
+        format_instant(envelope.max_latitude_step_start_epoch),
+        format_instant(envelope.max_latitude_step_end_epoch),
+        envelope.max_distance_step_au,
+        format_instant(envelope.max_distance_step_start_epoch),
+        format_instant(envelope.max_distance_step_end_epoch),
+        LUNAR_HIGH_CURVATURE_LONGITUDE_LIMIT_DEG,
+        LUNAR_HIGH_CURVATURE_LATITUDE_LIMIT_DEG,
+        LUNAR_HIGH_CURVATURE_DISTANCE_LIMIT_AU,
+        envelope.within_regression_limits,
+    )
+}
+
+/// Returns the release-facing lunar high-curvature continuity evidence string.
+pub fn lunar_high_curvature_continuity_evidence_for_report() -> String {
+    match lunar_high_curvature_continuity_envelope() {
+        Some(envelope) => format_lunar_high_curvature_continuity_evidence_envelope(&envelope),
+        None => "lunar high-curvature continuity evidence: unavailable".to_string(),
     }
 }
 
@@ -1521,6 +1694,23 @@ mod tests {
 
         assert!(previous_longitude.is_some());
         assert!(previous_distance.is_some());
+    }
+
+    #[test]
+    fn lunar_high_curvature_continuity_evidence_is_rendered() {
+        let report = lunar_high_curvature_continuity_evidence_for_report();
+
+        assert!(
+            report.contains("lunar high-curvature continuity evidence: 4 samples across 1 bodies")
+        );
+        assert!(report.contains("epoch range JD 2451544.0..2451547.0"));
+        assert!(report.contains("max adjacent Δlon="));
+        assert!(report.contains("max adjacent Δlat="));
+        assert!(report.contains("max adjacent Δdist="));
+        assert!(report.contains("within regression limits=true"));
+        assert!(report.contains("Δlon≤20.0°"));
+        assert!(report.contains("Δlat≤10.0°"));
+        assert!(report.contains("Δdist≤0.02 AU"));
     }
 
     #[test]

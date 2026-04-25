@@ -40,7 +40,8 @@ use pleiades_elp::{
     format_lunar_theory_capability_summary, lunar_equatorial_reference_evidence,
     lunar_equatorial_reference_evidence_envelope_for_report,
     lunar_equatorial_reference_evidence_summary,
-    lunar_equatorial_reference_evidence_summary_for_report, lunar_reference_evidence,
+    lunar_equatorial_reference_evidence_summary_for_report,
+    lunar_high_curvature_continuity_evidence_for_report, lunar_reference_evidence,
     lunar_reference_evidence_envelope_for_report, lunar_reference_evidence_summary,
     lunar_reference_evidence_summary_for_report, lunar_theory_capability_summary,
     lunar_theory_specification, lunar_theory_summary, ElpBackend,
@@ -3834,6 +3835,13 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         lunar_equatorial_reference_evidence_envelope_for_report()
     );
     let _ = writeln!(text);
+    let _ = writeln!(text, "Lunar high-curvature continuity evidence");
+    let _ = writeln!(
+        text,
+        "  {}",
+        lunar_high_curvature_continuity_evidence_for_report()
+    );
+    let _ = writeln!(text);
     let _ = writeln!(text, "Body comparison summaries");
     for summary in report.comparison.body_summaries() {
         let _ = writeln!(
@@ -4264,6 +4272,9 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&lunar_equatorial_reference_evidence_summary_for_report());
     text.push('\n');
     text.push_str(&lunar_equatorial_reference_evidence_envelope_for_report());
+    text.push('\n');
+    text.push_str("Lunar high-curvature continuity evidence\n");
+    text.push_str(&lunar_high_curvature_continuity_evidence_for_report());
     text.push('\n');
     text.push_str("Distinct bodies covered: ");
     text.push_str(&bodies.len().to_string());
@@ -6532,6 +6543,8 @@ mod tests {
         assert!(report.contains(
             "lunar reference evidence: 9 samples across 5 bodies, epoch range JD 2419914.5..2459278.5"
         ));
+        assert!(report.contains("Lunar high-curvature continuity evidence"));
+        assert!(report.contains("within regression limits=true"));
         assert!(report.contains("Body comparison summaries"));
         assert!(report.contains("Body-class error envelopes"));
         let body_class_envelopes = report
@@ -7330,6 +7343,10 @@ mod tests {
         assert!(rendered.contains("lunar equatorial reference evidence: 1 samples across 1 bodies"));
         assert!(rendered
             .contains("lunar equatorial reference error envelope: 1 samples across 1 bodies"));
+        assert!(rendered.contains("Lunar high-curvature continuity evidence"));
+        assert!(rendered
+            .contains("lunar high-curvature continuity evidence: 4 samples across 1 bodies"));
+        assert!(rendered.contains("within regression limits=true"));
         assert!(rendered.contains("citation: Jean Meeus"));
         assert!(rendered
             .contains("provenance: Published lunar position, node, and mean-point formulas"));
