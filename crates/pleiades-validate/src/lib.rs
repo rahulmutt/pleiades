@@ -3901,6 +3901,15 @@ fn render_comparison_audit_report_text(report: &ComparisonReport) -> String {
         );
         let _ = writeln!(
             text,
+            "    rms longitude delta: {:.12}°",
+            if summary.sample_count == 0 {
+                0.0
+            } else {
+                (summary.sum_longitude_delta_sq_deg / summary.sample_count as f64).sqrt()
+            }
+        );
+        let _ = writeln!(
+            text,
             "    max latitude delta: {:.12}°{}",
             summary.max_latitude_delta_deg,
             summary
@@ -3918,15 +3927,24 @@ fn render_comparison_audit_report_text(report: &ComparisonReport) -> String {
                 summary.sum_latitude_delta_deg / summary.sample_count as f64
             }
         );
+        let _ = writeln!(
+            text,
+            "    rms latitude delta: {:.12}°",
+            if summary.sample_count == 0 {
+                0.0
+            } else {
+                (summary.sum_latitude_delta_sq_deg / summary.sample_count as f64).sqrt()
+            }
+        );
         if let Some(value) = summary.max_distance_delta_au {
             let _ = writeln!(text, "    max distance delta: {:.12} AU", value);
         }
         if summary.distance_count > 0 {
-            let _ = writeln!(
-                text,
-                "    mean distance delta: {:.12} AU",
-                summary.sum_distance_delta_au / summary.distance_count as f64
-            );
+            let mean_distance = summary.sum_distance_delta_au / summary.distance_count as f64;
+            let rms_distance =
+                (summary.sum_distance_delta_sq_au / summary.distance_count as f64).sqrt();
+            let _ = writeln!(text, "    mean distance delta: {:.12} AU", mean_distance);
+            let _ = writeln!(text, "    rms distance delta: {:.12} AU", rms_distance);
         }
     }
     let _ = writeln!(text);
@@ -6920,6 +6938,9 @@ mod tests {
         assert!(error.contains("comparison audit failed"));
         assert!(error.contains("Comparison tolerance audit"));
         assert!(error.contains("Body-class error envelopes"));
+        assert!(error.contains("rms longitude delta:"));
+        assert!(error.contains("rms latitude delta:"));
+        assert!(error.contains("rms distance delta:"));
         assert!(error.contains("Body-class tolerance posture"));
         assert!(error.contains("Tolerance policy"));
         assert!(error.contains("Notable regressions"));

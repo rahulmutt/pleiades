@@ -105,6 +105,8 @@ Latest progress (2026-04-25): the compact release summary now also surfaces the 
 
 Latest progress (2026-04-25): the validation report and comparison-audit tolerance posture now also carry class-level mean and RMS deltas alongside the existing maxima and margin checks, so the release-facing class audit is a little easier to compare across runs while the broader threshold refinement work stays queued.
 
+Latest progress (2026-04-25): the compare-backends-audit failure report now also renders the same body-class RMS lines in its error-envelope section, so failed audit output mirrors the release-grade comparison report more closely while threshold refinement remains queued.
+
 Active gaps:
 
 - broader release-grade error envelopes and tolerance tables beyond the comparison-audit gate and new class-level mean/RMS posture;
