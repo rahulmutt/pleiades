@@ -35,7 +35,9 @@ use pleiades_core::{
     EphemerisRequest, EphemerisResult, Instant, JulianDay, Longitude, TimeRange, TimeScale,
     ZodiacMode,
 };
-use pleiades_data::{packaged_artifact, packaged_request_policy_summary, PackagedDataBackend};
+use pleiades_data::{
+    packaged_artifact, packaged_request_policy_summary_details, PackagedDataBackend,
+};
 use pleiades_elp::{
     format_lunar_theory_capability_summary, lunar_equatorial_reference_evidence,
     lunar_equatorial_reference_evidence_envelope_for_report,
@@ -2186,7 +2188,7 @@ fn render_release_summary_text() -> String {
     text.push_str(&format_packaged_artifact_profile_summary());
     text.push('\n');
     text.push_str("Packaged request policy: ");
-    text.push_str(packaged_request_policy_summary());
+    text.push_str(&packaged_request_policy_summary_details().summary_line());
     text.push('\n');
     text.push_str("Release bundle verification: verify-release-bundle\n");
     text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
@@ -4067,7 +4069,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text);
     let _ = writeln!(text, "Packaged-artifact profile");
     let _ = writeln!(text, "  {}", format_packaged_artifact_profile_summary());
-    let _ = writeln!(text, "  {}", packaged_request_policy_summary());
+    let _ = writeln!(
+        text,
+        "  {}",
+        packaged_request_policy_summary_details().summary_line()
+    );
     let _ = writeln!(text);
     let _ = writeln!(text, "Benchmark summaries");
     let _ = writeln!(text, "Reference benchmark");

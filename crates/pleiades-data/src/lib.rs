@@ -15,11 +15,11 @@ use std::cmp::Ordering;
 use std::sync::OnceLock;
 
 use pleiades_backend::{
-    validate_observer_policy, validate_request_policy, AccuracyClass, BackendCapabilities,
-    BackendFamily, BackendId, BackendMetadata, BackendProvenance, CelestialBody, CoordinateFrame,
-    CustomBodyId, EclipticCoordinates, EphemerisBackend, EphemerisError, EphemerisErrorKind,
-    EphemerisRequest, EphemerisResult, Instant, QualityAnnotation, TimeRange, TimeScale,
-    ZodiacMode,
+    validate_observer_policy, validate_request_policy, AccuracyClass, Apparentness,
+    BackendCapabilities, BackendFamily, BackendId, BackendMetadata, BackendProvenance,
+    CelestialBody, CoordinateFrame, CustomBodyId, EclipticCoordinates, EphemerisBackend,
+    EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult, Instant,
+    QualityAnnotation, TimeRange, TimeScale, ZodiacMode,
 };
 use pleiades_compression::CompressedArtifact;
 #[cfg(test)]
@@ -71,11 +71,82 @@ pub fn packaged_body_coverage_summary() -> String {
     )
 }
 
-const PACKAGED_REQUEST_POLICY_SUMMARY: &str = "Packaged request policy: geocentric-only; frames=Ecliptic; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction";
+fn join_labels<T>(values: &[T], label: impl Fn(&T) -> &'static str) -> String {
+    values.iter().map(label).collect::<Vec<_>>().join(", ")
+}
+
+/// Structured request-policy summary for the packaged-data backend.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct PackagedRequestPolicySummary {
+    /// Whether the backend is geocentric only.
+    pub geocentric_only: bool,
+    /// Coordinate frames supported by the packaged backend.
+    pub supported_frames: &'static [CoordinateFrame],
+    /// Time scales supported by the packaged backend.
+    pub supported_time_scales: &'static [TimeScale],
+    /// Zodiac modes supported by the packaged backend.
+    pub supported_zodiac_modes: &'static [ZodiacMode],
+    /// Apparentness modes supported by the packaged backend.
+    pub supported_apparentness: &'static [Apparentness],
+    /// Whether the packaged backend accepts topocentric observer requests.
+    pub supports_topocentric_observer: bool,
+    /// Note describing how TDB-tagged lookups are handled.
+    pub tdb_lookup_note: &'static str,
+}
+
+impl PackagedRequestPolicySummary {
+    /// Renders the packaged request policy into a release-facing summary line.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Packaged request policy: {}frames={}; time scales={}; zodiac modes={}; apparentness={}; topocentric observer={}; {}",
+            if self.geocentric_only {
+                "geocentric-only; "
+            } else {
+                ""
+            },
+            join_labels(self.supported_frames, |value| match value {
+                CoordinateFrame::Ecliptic => "Ecliptic",
+                CoordinateFrame::Equatorial => "Equatorial",
+                _ => "<unknown>",
+            }),
+            join_labels(self.supported_time_scales, |value| match value {
+                TimeScale::Tt => "TT",
+                TimeScale::Tdb => "TDB",
+                _ => "<unknown>",
+            }),
+            join_labels(self.supported_zodiac_modes, |value| match value {
+                ZodiacMode::Tropical => "Tropical",
+                _ => "<unknown>",
+            }),
+            join_labels(self.supported_apparentness, |value| match value {
+                Apparentness::Mean => "Mean",
+                Apparentness::Apparent => "Apparent",
+                _ => "<unknown>",
+            }),
+            self.supports_topocentric_observer,
+            self.tdb_lookup_note,
+        )
+    }
+}
+
+const PACKAGED_REQUEST_POLICY_SUMMARY: PackagedRequestPolicySummary = PackagedRequestPolicySummary {
+    geocentric_only: true,
+    supported_frames: &[CoordinateFrame::Ecliptic],
+    supported_time_scales: &[TimeScale::Tt, TimeScale::Tdb],
+    supported_zodiac_modes: &[ZodiacMode::Tropical],
+    supported_apparentness: &[Apparentness::Mean],
+    supports_topocentric_observer: false,
+    tdb_lookup_note: "TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction",
+};
+
+/// Returns the current packaged-data request-policy summary record.
+pub fn packaged_request_policy_summary_details() -> PackagedRequestPolicySummary {
+    PACKAGED_REQUEST_POLICY_SUMMARY
+}
 
 /// Returns the current packaged-data request policy summary.
 pub fn packaged_request_policy_summary() -> &'static str {
-    PACKAGED_REQUEST_POLICY_SUMMARY
+    "Packaged request policy: geocentric-only; frames=Ecliptic; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction"
 }
 
 #[cfg(test)]
@@ -139,7 +210,7 @@ impl EphemerisBackend for PackagedDataBackend {
                 summary: artifact.header.source.clone(),
                 data_sources: vec![
                     packaged_body_coverage_summary(),
-                    packaged_request_policy_summary().to_string(),
+                    packaged_request_policy_summary_details().summary_line(),
                     "Quantized linear segments stored in pleiades-compression artifact format"
                         .to_string(),
                 ],
@@ -521,9 +592,29 @@ mod tests {
             packaged_body_coverage_summary(),
             metadata.provenance.data_sources[0]
         );
+        let request_policy = packaged_request_policy_summary_details();
+        assert!(request_policy.geocentric_only);
+        assert_eq!(
+            request_policy.supported_frames,
+            &[CoordinateFrame::Ecliptic]
+        );
+        assert_eq!(
+            request_policy.supported_time_scales,
+            &[TimeScale::Tt, TimeScale::Tdb]
+        );
+        assert_eq!(
+            request_policy.supported_zodiac_modes,
+            &[ZodiacMode::Tropical]
+        );
+        assert_eq!(request_policy.supported_apparentness, &[Apparentness::Mean]);
+        assert!(!request_policy.supports_topocentric_observer);
+        assert_eq!(
+            request_policy.summary_line(),
+            packaged_request_policy_summary().to_string()
+        );
         assert_eq!(
             metadata.provenance.data_sources[1],
-            packaged_request_policy_summary()
+            request_policy.summary_line()
         );
     }
 

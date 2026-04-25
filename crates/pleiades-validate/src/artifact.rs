@@ -9,7 +9,7 @@ use pleiades_core::{
     Angle, Apparentness, CelestialBody, CoordinateFrame, EclipticCoordinates, EphemerisRequest,
     Instant, JulianDay, ZodiacMode,
 };
-use pleiades_data::{packaged_artifact, packaged_backend, packaged_request_policy_summary};
+use pleiades_data::{packaged_artifact, packaged_backend, packaged_request_policy_summary_details};
 
 /// A report describing the bundled compressed artifact and its boundary checks.
 #[derive(Clone, Debug)]
@@ -276,7 +276,7 @@ fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
     );
     text.push('\n');
     text.push_str("  Artifact request policy: ");
-    text.push_str(packaged_request_policy_summary());
+    text.push_str(&packaged_request_policy_summary_details().summary_line());
     text.push('\n');
     text.push_str("  coverage: ");
     text.push_str(&report.earliest.julian_day.to_string());
@@ -635,7 +635,7 @@ impl fmt::Display for ArtifactInspectionReport {
         writeln!(
             f,
             "  Artifact request policy: {}",
-            packaged_request_policy_summary()
+            packaged_request_policy_summary_details().summary_line()
         )?;
         writeln!(f)?;
         writeln!(f, "Bodies")?;
