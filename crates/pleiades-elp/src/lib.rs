@@ -79,6 +79,8 @@ pub const fn lunar_theory_source_family() -> LunarTheorySourceFamily {
 pub struct LunarTheorySpecification {
     /// Human-readable model name.
     pub model_name: &'static str,
+    /// Structured source family for the selected lunar-theory baseline.
+    pub source_family: LunarTheorySourceFamily,
     /// Stable identifier for the selected lunar-theory baseline.
     pub source_identifier: &'static str,
     /// Canonical bibliographic citation for the selected baseline.
@@ -151,6 +153,7 @@ const LUNAR_THEORY_VALIDATION_WINDOW: TimeRange = TimeRange::new(
 
 const LUNAR_THEORY_SPECIFICATION: LunarTheorySpecification = LunarTheorySpecification {
     model_name: "Compact Meeus-style truncated lunar baseline",
+    source_family: LunarTheorySourceFamily::MeeusStyleTruncatedAnalyticalBaseline,
     source_identifier: "meeus-style-truncated-lunar-baseline",
     source_citation: "Jean Meeus, Astronomical Algorithms, 2nd edition, truncated lunar position and lunar node/perigee/apogee formulae adapted into a compact pure-Rust baseline",
     source_material:
@@ -216,7 +219,7 @@ pub fn lunar_theory_capability_summary() -> LunarTheoryCapabilitySummary {
     LunarTheoryCapabilitySummary {
         model_name: theory.model_name,
         source_identifier: theory.source_identifier,
-        source_family_label: lunar_theory_source_family().label(),
+        source_family_label: theory.source_family.label(),
         supported_body_count: theory.supported_bodies.len(),
         unsupported_body_count: theory.unsupported_bodies.len(),
         supported_frame_count: theory.supported_frames.len(),
@@ -1123,6 +1126,7 @@ impl ElpBackend {
 
 impl EphemerisBackend for ElpBackend {
     fn metadata(&self) -> BackendMetadata {
+        let theory = lunar_theory_specification();
         BackendMetadata {
             id: BackendId::new(PACKAGE_NAME),
             version: env!("CARGO_PKG_VERSION").to_string(),
@@ -1130,11 +1134,11 @@ impl EphemerisBackend for ElpBackend {
             provenance: BackendProvenance {
                 summary: format!(
                     "{} [{}; family: {}] {} The backend exposes the Moon plus mean/true node and mean apogee/perigee channels as an explicit lunar-theory selection, while explicitly leaving true apogee/perigee unsupported for now; {}",
-                    lunar_theory_specification().model_name,
-                    lunar_theory_specification().source_identifier,
-                    lunar_theory_source_family().label(),
-                    lunar_theory_specification().source_citation,
-                    lunar_theory_specification().license_note,
+                    theory.model_name,
+                    theory.source_identifier,
+                    theory.source_family.label(),
+                    theory.source_citation,
+                    theory.license_note,
                 ),
                 data_sources: vec![
                     "Meeus-style truncated lunar orbit formulas implemented in pure Rust; see docs/lunar-theory-policy.md for the current baseline scope".to_string(),
@@ -1306,7 +1310,8 @@ mod tests {
 
         assert!(summary.contains(theory.model_name));
         assert!(summary.contains(theory.source_identifier));
-        assert!(summary.contains(lunar_theory_source_family().label()));
+        assert!(summary.contains(theory.source_family.label()));
+        assert_eq!(theory.source_family, lunar_theory_source_family());
         assert!(summary.contains(theory.source_citation));
         assert!(summary.contains("Moon, Mean Node, True Node, Mean Perigee, Mean Apogee"));
         assert!(summary.contains("unsupported bodies: True Apogee, True Perigee"));
@@ -1334,7 +1339,8 @@ mod tests {
         assert!(metadata
             .provenance
             .summary
-            .contains(lunar_theory_source_family().label()));
+            .contains(theory.source_family.label()));
+        assert_eq!(theory.source_family, lunar_theory_source_family());
         assert!(metadata.provenance.summary.contains(theory.source_citation));
         assert!(metadata
             .provenance

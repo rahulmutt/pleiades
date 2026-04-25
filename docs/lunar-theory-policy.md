@@ -36,7 +36,7 @@ The current request policy is intentionally narrow and explicit, and the same sh
 
 ## Provenance and license posture
 
-- Source family: Meeus-style truncated analytical baseline.
+- Source family: Meeus-style truncated analytical baseline, surfaced structurally as `LunarTheorySpecification.source_family`.
 - Source identifier: `meeus-style-truncated-lunar-baseline`.
 - Canonical citation: Jean Meeus, *Astronomical Algorithms*, 2nd edition,
   truncated lunar position and lunar node/perigee/apogee formulae adapted into
@@ -75,6 +75,7 @@ The current regression posture is intentionally small and deterministic:
 - explicit unsupported-body and unsupported-mode errors
 - a structured validation window exposed as `LunarTheorySpecification.validation_window` alongside the prose range note
 - a compact capability summary helper exposed as `lunar_theory_capability_summary()` for report generators that want structured counts and policy flags without parsing prose
+- the selected source family is carried directly on `LunarTheorySpecification.source_family` so the current baseline can be audited without parsing the one-line summary
 
 ## Forward path
 
