@@ -3894,16 +3894,22 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     for summary in report.comparison.tolerance_summaries() {
         let _ = writeln!(
             text,
-            "  {}: profile={}, status={}, limit Δlon≤{:.6}°, limit Δlat≤{:.6}°, limit Δdist={}, measured max Δlon={:.12}°, max Δlat={:.12}°, max Δdist={}",
+            "  {}: profile={}, status={}, limit Δlon≤{:.6}°, margin Δlon={:+.12}°, limit Δlat≤{:.6}°, margin Δlat={:+.12}°, limit Δdist={}, margin Δdist={}, measured max Δlon={:.12}°, max Δlat={:.12}°, max Δdist={}",
             summary.body,
             summary.tolerance.profile,
             if summary.within_tolerance { "within" } else { "exceeded" },
             summary.tolerance.max_longitude_delta_deg,
+            summary.longitude_margin_deg,
             summary.tolerance.max_latitude_delta_deg,
+            summary.latitude_margin_deg,
             summary
                 .tolerance
                 .max_distance_delta_au
                 .map(|value| format!("{value:.6} AU"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            summary
+                .distance_margin_au
+                .map(|value| format!("{value:+.12} AU"))
                 .unwrap_or_else(|| "n/a".to_string()),
             summary.max_longitude_delta_deg,
             summary.max_latitude_delta_deg,
@@ -6567,6 +6573,8 @@ mod tests {
         assert!(validation_report_summary.contains("Body-class error envelopes"));
         assert!(validation_report_summary.contains("Body-class tolerance posture"));
         assert!(validation_report_summary.contains("Expected tolerance status"));
+        assert!(validation_report_summary.contains("margin Δlon="));
+        assert!(validation_report_summary.contains("margin Δdist="));
         assert!(validation_report_summary.contains("Comparison tolerance audit"));
         assert!(validation_report_summary.contains("command: compare-backends-audit"));
         assert!(validation_report_summary.contains("regressions found"));
