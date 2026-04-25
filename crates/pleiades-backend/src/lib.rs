@@ -357,6 +357,82 @@ impl fmt::Display for EphemerisError {
 
 impl std::error::Error for EphemerisError {}
 
+fn format_debug_list<T: fmt::Debug>(values: &[T]) -> String {
+    values
+        .iter()
+        .map(|value| format!("{value:?}"))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+/// Validates the request-shape policy shared by the current first-party backends.
+///
+/// This helper checks the request against the backend's published time-scale,
+/// frame, and apparentness capabilities. It leaves body-specific, observer,
+/// and zodiac-mode validation to the concrete backend so implementations can
+/// keep their own source-specific error messages while sharing the common
+/// policy guardrails.
+pub fn validate_request_policy(
+    req: &EphemerisRequest,
+    backend_label: &str,
+    supported_time_scales: &[TimeScale],
+    supported_frames: &[CoordinateFrame],
+    supports_apparent: bool,
+) -> Result<(), EphemerisError> {
+    if !supported_time_scales.contains(&req.instant.scale) {
+        return Err(EphemerisError::new(
+            EphemerisErrorKind::UnsupportedTimeScale,
+            format!(
+                "{backend_label} expects one of [{}] for request instants",
+                format_debug_list(supported_time_scales)
+            ),
+        ));
+    }
+
+    if !supported_frames.contains(&req.frame) {
+        return Err(EphemerisError::new(
+            EphemerisErrorKind::UnsupportedCoordinateFrame,
+            format!(
+                "{backend_label} only returns [{}] coordinates",
+                format_debug_list(supported_frames)
+            ),
+        ));
+    }
+
+    if req.apparent == Apparentness::Apparent && !supports_apparent {
+        return Err(EphemerisError::new(
+            EphemerisErrorKind::InvalidRequest,
+            format!(
+                "{backend_label} currently returns mean geometric coordinates only; apparent corrections are not implemented"
+            ),
+        ));
+    }
+
+    Ok(())
+}
+
+/// Validates the observer policy shared by the current first-party backends.
+///
+/// Geocentric-only backends should call this after any higher-priority request
+/// checks they want to preserve so observer-bearing requests fail with a
+/// structured [`EphemerisErrorKind::InvalidObserver`] error.
+pub fn validate_observer_policy(
+    req: &EphemerisRequest,
+    backend_label: &str,
+    supports_topocentric: bool,
+) -> Result<(), EphemerisError> {
+    if req.observer.is_some() && !supports_topocentric {
+        return Err(EphemerisError::new(
+            EphemerisErrorKind::InvalidObserver,
+            format!(
+                "{backend_label} is geocentric only; topocentric positions are not implemented"
+            ),
+        ));
+    }
+
+    Ok(())
+}
+
 /// The shared backend contract.
 ///
 /// Implementations must support one-request/one-result queries. Batch querying
@@ -770,15 +846,73 @@ mod tests {
     }
 
     #[test]
-    fn request_defaults_are_sensible() {
-        let request = EphemerisRequest::new(
-            CelestialBody::Sun,
-            Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt),
-        );
+    fn request_policy_helpers_reject_unsupported_shapes() {
+        let time_scale_request = EphemerisRequest {
+            body: CelestialBody::Sun,
+            instant: Instant::new(JulianDay::from_days(2451545.0), TimeScale::Utc),
+            observer: Some(ObserverLocation::new(
+                Latitude::from_degrees(51.5),
+                Longitude::from_degrees(-0.1),
+                Some(45.0),
+            )),
+            frame: CoordinateFrame::Equatorial,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparent: Apparentness::Apparent,
+        };
+        let error = validate_request_policy(
+            &time_scale_request,
+            "toy backend",
+            &[TimeScale::Tt],
+            &[CoordinateFrame::Ecliptic],
+            false,
+        )
+        .expect_err("UTC should be rejected when only TT is supported");
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedTimeScale);
 
-        assert_eq!(request.frame, CoordinateFrame::Ecliptic);
-        assert_eq!(request.apparent, Apparentness::Mean);
-        assert_eq!(request.zodiac_mode, ZodiacMode::Tropical);
+        let frame_request = EphemerisRequest {
+            instant: Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt),
+            observer: None,
+            frame: CoordinateFrame::Equatorial,
+            apparent: Apparentness::Mean,
+            ..time_scale_request.clone()
+        };
+        let error = validate_request_policy(
+            &frame_request,
+            "toy backend",
+            &[TimeScale::Tt],
+            &[CoordinateFrame::Ecliptic],
+            false,
+        )
+        .expect_err("equatorial frame should be rejected when only ecliptic is supported");
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedCoordinateFrame);
+
+        let apparent_request = EphemerisRequest {
+            frame: CoordinateFrame::Ecliptic,
+            apparent: Apparentness::Apparent,
+            observer: None,
+            ..frame_request.clone()
+        };
+        let error = validate_request_policy(
+            &apparent_request,
+            "toy backend",
+            &[TimeScale::Tt],
+            &[CoordinateFrame::Ecliptic],
+            false,
+        )
+        .expect_err("apparent requests should be rejected when only mean output is supported");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+
+        let observer_request = EphemerisRequest {
+            observer: Some(ObserverLocation::new(
+                Latitude::from_degrees(51.5),
+                Longitude::from_degrees(-0.1),
+                Some(45.0),
+            )),
+            ..apparent_request.clone()
+        };
+        let error = validate_observer_policy(&observer_request, "toy backend", false)
+            .expect_err("topocentric requests should be rejected when unsupported");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
     }
 
     #[cfg(feature = "serde")]

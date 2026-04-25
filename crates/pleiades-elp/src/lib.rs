@@ -21,9 +21,10 @@
 #![forbid(unsafe_code)]
 
 use pleiades_backend::{
-    AccuracyClass, Apparentness, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
-    BackendProvenance, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
-    EphemerisResult, QualityAnnotation,
+    validate_observer_policy, validate_request_policy, AccuracyClass, Apparentness,
+    BackendCapabilities, BackendFamily, BackendId, BackendMetadata, BackendProvenance,
+    EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
+    QualityAnnotation,
 };
 use pleiades_types::{
     Angle, CelestialBody, CoordinateFrame, EclipticCoordinates, EquatorialCoordinates, Instant,
@@ -433,26 +434,15 @@ impl EphemerisBackend for ElpBackend {
             ));
         }
 
-        if !matches!(req.instant.scale, TimeScale::Tt | TimeScale::Tdb) {
-            return Err(EphemerisError::new(
-                EphemerisErrorKind::UnsupportedTimeScale,
-                "the ELP backend expects terrestrial time (TT) or barycentric dynamical time (TDB)",
-            ));
-        }
+        validate_request_policy(
+            req,
+            "the ELP backend",
+            SUPPORTED_LUNAR_TIME_SCALES,
+            SUPPORTED_LUNAR_FRAMES,
+            false,
+        )?;
 
-        if req.apparent != Apparentness::Mean {
-            return Err(EphemerisError::new(
-                EphemerisErrorKind::InvalidRequest,
-                "the ELP backend currently returns mean geometric coordinates only; apparent corrections are not implemented",
-            ));
-        }
-
-        if req.observer.is_some() {
-            return Err(EphemerisError::new(
-                EphemerisErrorKind::InvalidObserver,
-                "the ELP backend is geocentric only; topocentric lunar positions are not implemented",
-            ));
-        }
+        validate_observer_policy(req, "the ELP backend", false)?;
 
         let days = Self::days_since_j2000(req.instant);
         let body = req.body.clone();

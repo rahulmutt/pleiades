@@ -30,9 +30,10 @@ mod vsop87b_uranus;
 mod vsop87b_venus;
 
 use pleiades_backend::{
-    AccuracyClass, Apparentness, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
-    BackendProvenance, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
-    EphemerisResult, QualityAnnotation,
+    validate_observer_policy, validate_request_policy, AccuracyClass, Apparentness,
+    BackendCapabilities, BackendFamily, BackendId, BackendMetadata, BackendProvenance,
+    EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
+    QualityAnnotation,
 };
 use pleiades_types::{
     Angle, CelestialBody, CoordinateFrame, EclipticCoordinates, EquatorialCoordinates, Instant,
@@ -1197,26 +1198,15 @@ impl EphemerisBackend for Vsop87Backend {
             ));
         }
 
-        if !matches!(req.instant.scale, TimeScale::Tt | TimeScale::Tdb) {
-            return Err(EphemerisError::new(
-                EphemerisErrorKind::UnsupportedTimeScale,
-                "the VSOP87 MVP backend expects terrestrial time (TT) or barycentric dynamical time (TDB)",
-            ));
-        }
+        validate_request_policy(
+            req,
+            "the VSOP87 MVP backend",
+            &[TimeScale::Tt, TimeScale::Tdb],
+            &[CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
+            false,
+        )?;
 
-        if req.apparent != Apparentness::Mean {
-            return Err(EphemerisError::new(
-                EphemerisErrorKind::InvalidRequest,
-                "the VSOP87 MVP backend currently returns mean geometric coordinates only; apparent corrections are not implemented",
-            ));
-        }
-
-        if req.observer.is_some() {
-            return Err(EphemerisError::new(
-                EphemerisErrorKind::InvalidObserver,
-                "the VSOP87 MVP backend is geocentric only; topocentric positions are not implemented",
-            ));
-        }
+        validate_observer_policy(req, "the VSOP87 MVP backend", false)?;
 
         let days = Self::days_since_j2000(req.instant);
         let geocentric = Self::geocentric_coordinates(req.body.clone(), days).ok_or_else(|| {

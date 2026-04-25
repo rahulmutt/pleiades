@@ -12,6 +12,7 @@ Pleiades keeps time-scale conversion and observer semantics explicit so backend 
 - Callers that start from civil time or UT are responsible for applying an appropriate Delta T, leap-second, DUT1, and/or relativistic policy before querying a backend that requires TT or TDB.
 - `pleiades-types` provides mechanical caller-supplied offset helpers: `JulianDay::add_seconds`, `Instant::with_time_scale_offset`, `Instant::tt_from_ut1`, `Instant::tt_from_utc`, `Instant::tdb_from_tt`, and `Instant::tdb_from_utc`. These helpers make an already chosen conversion policy explicit (`target - source` seconds) but do not model Delta T, UTC leap seconds, or relativistic TDB terms themselves.
 - `pleiades-core::ChartRequest` mirrors that policy with builder conveniences for applying a caller-supplied instant offset or converting UT1-tagged, UTC-tagged, or TT-tagged chart requests to TT/TDB before chart assembly. UTC-tagged requests can now be lifted directly to TDB through caller-supplied TT-UTC and TDB-TT offsets.
+- `pleiades-backend` exposes shared request-shape helpers (`validate_request_policy` and `validate_observer_policy`) so backend crates can enforce the same time-scale, frame, apparentness, and observer rules without duplicating the policy checks.
 - Until a project-level Delta T model is implemented, validation fixtures and reports should state the time scale of each epoch explicitly and should not imply automatic UTC-to-TT or UTC-to-TDB conversion support.
 
 ## Apparent versus mean coordinates

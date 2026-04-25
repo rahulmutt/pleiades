@@ -13,10 +13,11 @@ use std::cmp::Ordering;
 use std::sync::OnceLock;
 
 use pleiades_backend::{
-    AccuracyClass, Apparentness, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
-    BackendProvenance, CelestialBody, CoordinateFrame, CustomBodyId, EclipticCoordinates,
-    EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
-    Instant, QualityAnnotation, TimeRange, TimeScale, ZodiacMode,
+    validate_observer_policy, validate_request_policy, AccuracyClass, BackendCapabilities,
+    BackendFamily, BackendId, BackendMetadata, BackendProvenance, CelestialBody, CoordinateFrame,
+    CustomBodyId, EclipticCoordinates, EphemerisBackend, EphemerisError, EphemerisErrorKind,
+    EphemerisRequest, EphemerisResult, Instant, QualityAnnotation, TimeRange, TimeScale,
+    ZodiacMode,
 };
 use pleiades_compression::{
     ArtifactHeader, BodyArtifact, ChannelKind, CompressedArtifact, PolynomialChannel, Segment,
@@ -145,19 +146,13 @@ impl EphemerisBackend for PackagedDataBackend {
             ));
         }
 
-        if req.frame != CoordinateFrame::Ecliptic {
-            return Err(EphemerisError::new(
-                EphemerisErrorKind::UnsupportedCoordinateFrame,
-                "packaged data currently serves only ecliptic coordinates",
-            ));
-        }
-
-        if req.apparent != Apparentness::Mean {
-            return Err(EphemerisError::new(
-                EphemerisErrorKind::InvalidRequest,
-                "packaged data stores mean-state lookup values only",
-            ));
-        }
+        validate_request_policy(
+            req,
+            "packaged data",
+            &[TimeScale::Tt, TimeScale::Tdb],
+            &[CoordinateFrame::Ecliptic],
+            false,
+        )?;
 
         if req.zodiac_mode != ZodiacMode::Tropical {
             return Err(EphemerisError::new(
@@ -166,12 +161,7 @@ impl EphemerisBackend for PackagedDataBackend {
             ));
         }
 
-        if req.observer.is_some() {
-            return Err(EphemerisError::new(
-                EphemerisErrorKind::InvalidObserver,
-                "packaged data is geocentric only",
-            ));
-        }
+        validate_observer_policy(req, "packaged data", false)?;
 
         let ecliptic = packaged_artifact()
             .lookup_ecliptic(&req.body, normalize_lookup_instant(req.instant))

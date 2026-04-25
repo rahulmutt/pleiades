@@ -21,9 +21,9 @@ use std::collections::BTreeSet;
 use std::sync::OnceLock;
 
 use pleiades_backend::{
-    AccuracyClass, Apparentness, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
-    BackendProvenance, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
-    EphemerisResult, QualityAnnotation,
+    validate_observer_policy, validate_request_policy, AccuracyClass, BackendCapabilities,
+    BackendFamily, BackendId, BackendMetadata, BackendProvenance, EphemerisBackend, EphemerisError,
+    EphemerisErrorKind, EphemerisRequest, EphemerisResult, QualityAnnotation,
 };
 use pleiades_types::{
     CoordinateFrame, CustomBodyId, EclipticCoordinates, Instant, JulianDay, Latitude, Longitude,
@@ -230,26 +230,13 @@ impl EphemerisBackend for JplSnapshotBackend {
     }
 
     fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
-        if !matches!(req.instant.scale, TimeScale::Tt | TimeScale::Tdb) {
-            return Err(EphemerisError::new(
-                EphemerisErrorKind::UnsupportedTimeScale,
-                "the JPL snapshot backend only serves TT or TDB requests",
-            ));
-        }
-
-        if req.frame != CoordinateFrame::Ecliptic {
-            return Err(EphemerisError::new(
-                EphemerisErrorKind::UnsupportedCoordinateFrame,
-                "the JPL snapshot backend only returns ecliptic coordinates",
-            ));
-        }
-
-        if req.apparent != Apparentness::Mean {
-            return Err(EphemerisError::new(
-                EphemerisErrorKind::InvalidRequest,
-                "the JPL snapshot backend serves geometric mean-state vectors only",
-            ));
-        }
+        validate_request_policy(
+            req,
+            "the JPL snapshot backend",
+            &[TimeScale::Tt, TimeScale::Tdb],
+            &[CoordinateFrame::Ecliptic],
+            false,
+        )?;
 
         if req.zodiac_mode != ZodiacMode::Tropical {
             return Err(EphemerisError::new(
@@ -258,12 +245,7 @@ impl EphemerisBackend for JplSnapshotBackend {
             ));
         }
 
-        if req.observer.is_some() {
-            return Err(EphemerisError::new(
-                EphemerisErrorKind::InvalidObserver,
-                "the JPL snapshot backend is geocentric only",
-            ));
-        }
+        validate_observer_policy(req, "the JPL snapshot backend", false)?;
 
         if let Some(error) = snapshot_error() {
             return Err(EphemerisError::new(
