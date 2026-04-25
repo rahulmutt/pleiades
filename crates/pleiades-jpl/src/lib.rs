@@ -1379,6 +1379,42 @@ mod tests {
     }
 
     #[test]
+    fn batch_query_preserves_reference_asteroid_order_and_values() {
+        let backend = JplSnapshotBackend;
+        let evidence = reference_asteroid_evidence();
+        let requests = evidence
+            .iter()
+            .map(|sample| EphemerisRequest {
+                body: sample.body.clone(),
+                instant: sample.epoch,
+                observer: None,
+                frame: CoordinateFrame::Ecliptic,
+                zodiac_mode: ZodiacMode::Tropical,
+                apparent: Apparentness::Mean,
+            })
+            .collect::<Vec<_>>();
+
+        let results = backend
+            .positions(&requests)
+            .expect("batch query should preserve the asteroid reference order");
+
+        assert_eq!(results.len(), evidence.len());
+        for (sample, result) in evidence.iter().zip(results.iter()) {
+            assert_eq!(result.body, sample.body);
+            assert_eq!(result.quality, QualityAnnotation::Exact);
+            let ecliptic = result
+                .ecliptic
+                .expect("reference snapshot should include ecliptic coordinates");
+            assert!((ecliptic.longitude.degrees() - sample.longitude_deg).abs() < 1e-12);
+            assert!((ecliptic.latitude.degrees() - sample.latitude_deg).abs() < 1e-12);
+            assert!(
+                (ecliptic.distance_au.expect("distance should exist") - sample.distance_au).abs()
+                    < 1e-12
+            );
+        }
+    }
+
+    #[test]
     fn reference_asteroid_evidence_exposes_exact_j2000_samples() {
         let evidence = reference_asteroid_evidence();
         assert_eq!(evidence.len(), 5);

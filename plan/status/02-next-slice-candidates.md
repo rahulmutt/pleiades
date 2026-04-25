@@ -71,6 +71,8 @@ Progress note (2026-04-25): the backend-matrix ELP section now also prints the u
 
 Progress note (2026-04-25): the `pleiades-elp` Moon path now uses a Meeus-style truncated lunar position series and validates against the published 1992-04-12 geocentric Moon example, which gives the current lunar baseline a concrete external reference point while a full ELP coefficient selection remains queued. The lunar-theory metadata now also includes an explicit Meeus citation plus a conservative license/provenance note, so validation and release summaries can distinguish source citation from redistribution posture more clearly.
 
+Progress note (2026-04-25): the supported lunar-point slice now also has a batch-path regression over the Moon, nodes, and mean apogee/perigee samples, so the current compact lunar baseline is verified through both batch and single-request lookups.
+
 ## 3. JPL reader/interpolator expansion
 
 **Goal:** build on the completed small fixture interpolator and turn `pleiades-jpl` into a stronger reference backend.
@@ -88,6 +90,8 @@ Progress note (2026-04-24): `pleiades-jpl` now derives coarse leave-one-out inte
 Progress note (2026-04-24): the compact validation report summary now also carries a JPL interpolation-quality envelope, so the current leave-one-out evidence is visible alongside the comparison summaries without changing the backend contract.
 
 Progress note (2026-04-25): the JPL snapshot backend now prefers cubic interpolation on four-sample windows when the fixture has enough same-body epochs, with quadratic and linear fallbacks for smaller windows. This keeps the checked-in public-input fixture pure Rust and geocentric while making the reference backend slightly stronger before any larger corpus work lands.
+
+Progress note (2026-04-25): the JPL reference asteroid slice now also has a batch-path regression over the exact J2000 evidence rows, so the current public-input fixture is exercised through `positions()` as well as single-request lookups.
 
 Progress note (2026-04-25): the compact JPL interpolation-quality summary now also names the worst-case body for each error metric, so the current hold-out envelope is easier to audit while the broader public-input corpus work remains queued.
 

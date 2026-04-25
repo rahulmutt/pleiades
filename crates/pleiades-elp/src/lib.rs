@@ -727,6 +727,32 @@ mod tests {
     }
 
     #[test]
+    fn batch_query_preserves_lunar_reference_order_and_values() {
+        let backend = ElpBackend::new();
+        let evidence = lunar_reference_evidence();
+        let requests = evidence
+            .iter()
+            .map(|sample| mean_request_at(sample.body.clone(), sample.epoch))
+            .collect::<Vec<_>>();
+
+        let results = backend
+            .positions(&requests)
+            .expect("batch query should preserve the lunar reference order");
+
+        assert_eq!(results.len(), evidence.len());
+        for (sample, result) in evidence.iter().zip(results.iter()) {
+            assert_eq!(result.body, sample.body);
+            let ecliptic = result.ecliptic.expect("ecliptic result should exist");
+            assert!((ecliptic.longitude.degrees() - sample.longitude_deg).abs() < 1e-6);
+            assert!((ecliptic.latitude.degrees() - sample.latitude_deg).abs() < 1e-6);
+            assert_eq!(ecliptic.distance_au.is_some(), sample.distance_au.is_some());
+            if let (Some(actual), Some(expected)) = (ecliptic.distance_au, sample.distance_au) {
+                assert!((actual - expected).abs() < 1e-8);
+            }
+        }
+    }
+
+    #[test]
     fn backend_supports_lunar_points() {
         let backend = ElpBackend::new();
         let theory = lunar_theory_specification();

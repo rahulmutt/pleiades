@@ -37,6 +37,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Progress note: validation backend-matrix output now also renders the ELP unsupported lunar bodies explicitly, so the release-facing lunar-theory section shows both the supported channels and the deferred true apogee/perigee slots.
    - Progress note: the Moon path now uses a Meeus-style truncated lunar position series instead of the earlier simplified orbital surrogate, and the backend now validates against the published 1992-04-12 geocentric Moon example in addition to the J2000 lunar-point checks.
    - Progress note: the compact lunar backend now also exports a canonical reference evidence slice for the published Moon example plus the J2000 lunar-point samples, and validation reports render that slice in the backend matrix and summary output so the current lunar baseline is easier to audit without changing the API contract.
+   - Progress note: the lunar backend now also has a batch-path regression over the Moon, nodes, and mean apogee/perigee evidence slice, so the current supported lunar points are exercised through `positions()` in addition to single-request coverage.
 
 3. Upgrade `pleiades-jpl` from snapshot fixture to reference backend.
    - Parse documented public JPL-style files or a reproducible derivative format in pure Rust.
@@ -46,6 +47,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Progress note: the reference snapshot now has exact J2000 regression coverage for Ceres, Pallas, Juno, Vesta, and the custom 433-Eros asteroid entry, so the baseline asteroid subset is exercised as a golden path while broader corpus work remains queued.
    - Progress note: validation reports, backend matrices, and release notes now render the exact J2000 asteroid evidence rows for that subset instead of listing the bodies alone, which makes the source-backed asteroid fixture path visible in release-facing output.
    - Progress note: the checked-in JPL reference snapshot now prefers cubic interpolation on four-sample windows when the fixture has enough same-body epochs, with quadratic and linear fallbacks for smaller windows, which tightens the current pure-Rust interpolator without changing the public request model.
+   - Progress note: the JPL reference backend now also has a batch-path regression over the exact asteroid evidence slice, so the same source-backed rows are verified through `positions()` as well as one-body-at-a-time queries.
 
 4. Strengthen time, apparentness, observer, and coordinate semantics.
    - Expand the initial Delta T policy into implemented conversion support or a release-grade caller-provided conversion contract.
