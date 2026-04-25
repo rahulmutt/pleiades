@@ -6,8 +6,8 @@ use crate::{
 };
 use pleiades_compression::{CompressedArtifact, CompressionError};
 use pleiades_core::{
-    Angle, Apparentness, CelestialBody, CoordinateFrame, EclipticCoordinates, EphemerisRequest,
-    Instant, JulianDay, ZodiacMode,
+    Angle, Apparentness, BackendFamily, CelestialBody, CoordinateFrame, EclipticCoordinates,
+    EphemerisRequest, Instant, JulianDay, ZodiacMode,
 };
 use pleiades_data::{packaged_artifact, packaged_backend, packaged_request_policy_summary_details};
 
@@ -329,6 +329,73 @@ fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
     if let Some(value) = report.model_comparison.summary.max_distance_delta_au {
         text.push_str(&format!("  max distance delta: {:.12} AU\n", value));
     }
+    text.push_str("\nExpected tolerance status\n");
+    let tolerance_summaries = report.model_comparison.tolerance_summaries();
+    if tolerance_summaries.is_empty() {
+        text.push_str("  none\n");
+    } else {
+        for summary in &tolerance_summaries {
+            text.push_str("  ");
+            text.push_str(&summary.body.to_string());
+            text.push_str(": backend family=");
+            text.push_str(&backend_family_label(&summary.tolerance.backend_family));
+            text.push_str(", profile=");
+            text.push_str(summary.tolerance.profile);
+            text.push_str(", status=");
+            text.push_str(if summary.within_tolerance {
+                "within"
+            } else {
+                "exceeded"
+            });
+            text.push_str(", limit Δlon≤");
+            text.push_str(&format!(
+                "{:.6}°",
+                summary.tolerance.max_longitude_delta_deg
+            ));
+            text.push_str(", margin Δlon=");
+            text.push_str(&format!("{:+.12}°", summary.longitude_margin_deg));
+            text.push_str(", limit Δlat≤");
+            text.push_str(&format!("{:.6}°", summary.tolerance.max_latitude_delta_deg));
+            text.push_str(", margin Δlat=");
+            text.push_str(&format!("{:+.12}°", summary.latitude_margin_deg));
+            text.push_str(", limit Δdist=");
+            text.push_str(
+                &summary
+                    .tolerance
+                    .max_distance_delta_au
+                    .map(|value| format!("{value:.6} AU"))
+                    .unwrap_or_else(|| "n/a".to_string()),
+            );
+            text.push_str(", margin Δdist=");
+            text.push_str(
+                &summary
+                    .distance_margin_au
+                    .map(|value| format!("{value:+.12} AU"))
+                    .unwrap_or_else(|| "n/a".to_string()),
+            );
+            text.push('\n');
+        }
+    }
+    let within_tolerance_body_count = tolerance_summaries
+        .iter()
+        .filter(|summary| summary.within_tolerance)
+        .count();
+    let outside_tolerance_body_count = tolerance_summaries.len() - within_tolerance_body_count;
+    let regression_count = report.model_comparison.notable_regressions().len();
+    text.push_str("\nComparison tolerance audit\n");
+    text.push_str("  bodies checked: ");
+    text.push_str(&tolerance_summaries.len().to_string());
+    text.push('\n');
+    text.push_str("  within tolerance bodies: ");
+    text.push_str(&within_tolerance_body_count.to_string());
+    text.push('\n');
+    text.push_str("  outside tolerance bodies: ");
+    text.push_str(&outside_tolerance_body_count.to_string());
+    text.push('\n');
+    text.push_str("  notable regressions: ");
+    text.push_str(&regression_count.to_string());
+    text.push('\n');
+
     text.push_str("\nRelease summary: release-summary\n");
     text.push_str("Release notes summary: release-notes-summary\n");
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
@@ -744,6 +811,17 @@ fn yes_no(value: bool) -> &'static str {
         "ok"
     } else {
         "failed"
+    }
+}
+
+fn backend_family_label(family: &BackendFamily) -> &'static str {
+    match family {
+        BackendFamily::Algorithmic => "algorithmic",
+        BackendFamily::ReferenceData => "reference data",
+        BackendFamily::CompressedData => "compressed data",
+        BackendFamily::Composite => "composite",
+        BackendFamily::Other(_) => "other",
+        _ => "other",
     }
 }
 

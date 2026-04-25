@@ -7673,6 +7673,9 @@ version = "0.9.0"
         assert!(artifact_summary.contains("Artifact request policy"));
         assert!(artifact_summary.contains("applies to 11 bundled bodies"));
         assert!(artifact_summary.contains("Model error envelope"));
+        assert!(artifact_summary.contains("Expected tolerance status"));
+        assert!(artifact_summary.contains("Comparison tolerance audit"));
+        assert!(artifact_summary.contains("bodies checked:"));
         assert!(artifact_summary.contains("Release summary: release-summary"));
         assert!(artifact_summary.contains("Release notes summary: release-notes-summary"));
         assert!(artifact_summary.contains("Workspace audit: workspace-audit / audit"));
