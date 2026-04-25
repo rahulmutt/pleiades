@@ -89,6 +89,71 @@ pub fn lunar_theory_specification() -> LunarTheorySpecification {
     }
 }
 
+/// A single canonical lunar evidence sample used by validation and reporting.
+#[derive(Clone, Debug, PartialEq)]
+pub struct LunarReferenceSample {
+    /// Body or lunar point covered by the sample.
+    pub body: CelestialBody,
+    /// Reference epoch used for the sample.
+    pub epoch: Instant,
+    /// Ecliptic longitude in degrees.
+    pub longitude_deg: f64,
+    /// Ecliptic latitude in degrees.
+    pub latitude_deg: f64,
+    /// Geocentric distance in astronomical units, if available.
+    pub distance_au: Option<f64>,
+    /// Human-readable note describing the provenance of the sample.
+    pub note: &'static str,
+}
+
+/// Returns the canonical lunar evidence samples used by validation and reporting.
+pub fn lunar_reference_evidence() -> &'static [LunarReferenceSample] {
+    const SAMPLES: &[LunarReferenceSample] = &[
+        LunarReferenceSample {
+            body: CelestialBody::Moon,
+            epoch: Instant::new(pleiades_types::JulianDay::from_days(2_448_724.5), TimeScale::Tt),
+            longitude_deg: 133.162_655,
+            latitude_deg: -3.229_126,
+            distance_au: Some(368_409.7 / 149_597_870.700),
+            note: "Published 1992-04-12 geocentric Moon example used as the compact lunar baseline regression sample",
+        },
+        LunarReferenceSample {
+            body: CelestialBody::MeanNode,
+            epoch: Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt),
+            longitude_deg: 125.044_547_9,
+            latitude_deg: 0.0,
+            distance_au: None,
+            note: "J2000 mean node reference used to anchor the lunar point model",
+        },
+        LunarReferenceSample {
+            body: CelestialBody::TrueNode,
+            epoch: Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt),
+            longitude_deg: 123.926_171_368_400_46,
+            latitude_deg: 0.0,
+            distance_au: None,
+            note: "J2000 true node reference used to anchor the lunar point model",
+        },
+        LunarReferenceSample {
+            body: CelestialBody::MeanPerigee,
+            epoch: Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt),
+            longitude_deg: 83.353_246_5,
+            latitude_deg: 0.0,
+            distance_au: None,
+            note: "J2000 mean perigee reference used to anchor the lunar point model",
+        },
+        LunarReferenceSample {
+            body: CelestialBody::MeanApogee,
+            epoch: Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt),
+            longitude_deg: 263.353_246_5,
+            latitude_deg: 0.0,
+            distance_au: None,
+            note: "J2000 mean apogee reference used to anchor the lunar point model",
+        },
+    ];
+
+    SAMPLES
+}
+
 /// A pure-Rust lunar backend.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct ElpBackend;
@@ -713,6 +778,28 @@ mod tests {
         assert!(!backend.supports_body(CelestialBody::TrueApogee));
         assert!(!backend.supports_body(CelestialBody::TruePerigee));
         assert!(!backend.supports_body(CelestialBody::Sun));
+
+        let evidence = lunar_reference_evidence();
+        assert_eq!(evidence.len(), 5);
+        assert_eq!(evidence[0].body, CelestialBody::Moon);
+        assert_eq!(evidence[0].epoch.julian_day.days(), 2_448_724.5);
+        assert_eq!(evidence[1].body, CelestialBody::MeanNode);
+        assert_eq!(evidence[2].body, CelestialBody::TrueNode);
+        assert_eq!(evidence[3].body, CelestialBody::MeanPerigee);
+        assert_eq!(evidence[4].body, CelestialBody::MeanApogee);
+
+        for sample in evidence {
+            let result = backend
+                .position(&mean_request_at(sample.body.clone(), sample.epoch))
+                .expect("lunar reference sample should be computable");
+            let ecliptic = result.ecliptic.expect("ecliptic result should exist");
+            assert!((ecliptic.longitude.degrees() - sample.longitude_deg).abs() < 1e-6);
+            assert!((ecliptic.latitude.degrees() - sample.latitude_deg).abs() < 1e-6);
+            assert_eq!(ecliptic.distance_au.is_some(), sample.distance_au.is_some());
+            if let (Some(actual), Some(expected)) = (ecliptic.distance_au, sample.distance_au) {
+                assert!((actual - expected).abs() < 1e-8);
+            }
+        }
 
         let instant = Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt);
         for body in [

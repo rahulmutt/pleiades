@@ -36,7 +36,7 @@ use pleiades_core::{
     ZodiacMode,
 };
 use pleiades_data::PackagedDataBackend;
-use pleiades_elp::{lunar_theory_specification, ElpBackend};
+use pleiades_elp::{lunar_reference_evidence, lunar_theory_specification, ElpBackend};
 use pleiades_houses::{
     baseline_house_systems, built_in_house_systems, release_house_systems, resolve_house_system,
 };
@@ -3500,6 +3500,13 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         format_jpl_interpolation_quality_summary_for_report()
     );
     let _ = writeln!(text);
+    let _ = writeln!(text, "Lunar reference evidence");
+    let _ = writeln!(
+        text,
+        "  {}",
+        format_lunar_reference_evidence_summary_for_report()
+    );
+    let _ = writeln!(text);
     let _ = writeln!(text, "Body comparison summaries");
     for summary in report.comparison.body_summaries() {
         let _ = writeln!(
@@ -4551,6 +4558,7 @@ fn write_backend_catalog_entry(
         )?;
         writeln!(f, "    date range note: {}", theory.date_range_note)?;
         writeln!(f, "    frame note: {}", theory.frame_note)?;
+        write_lunar_reference_evidence(f)?;
     }
     if entry.metadata.id.as_str() == "jpl-snapshot" {
         write_jpl_interpolation_quality(f)?;
@@ -4660,6 +4668,74 @@ fn format_jpl_interpolation_quality_summary_for_report() -> String {
         Some(summary) => format_jpl_interpolation_quality_summary(&summary),
         None => "JPL interpolation quality: unavailable".to_string(),
     }
+}
+
+#[derive(Clone, Copy, Debug)]
+struct LunarReferenceEvidenceSummary {
+    sample_count: usize,
+    body_count: usize,
+}
+
+fn lunar_reference_evidence_summary() -> Option<LunarReferenceEvidenceSummary> {
+    let samples = lunar_reference_evidence();
+    if samples.is_empty() {
+        return None;
+    }
+
+    let mut bodies = BTreeSet::new();
+    for sample in samples {
+        bodies.insert(sample.body.to_string());
+    }
+
+    Some(LunarReferenceEvidenceSummary {
+        sample_count: samples.len(),
+        body_count: bodies.len(),
+    })
+}
+
+fn format_lunar_reference_evidence_summary(summary: &LunarReferenceEvidenceSummary) -> String {
+    format!(
+        "lunar reference evidence: {} samples across {} bodies, validated against the published 1992-04-12 Moon example plus J2000 lunar-point references",
+        summary.sample_count,
+        summary.body_count,
+    )
+}
+
+fn format_lunar_reference_evidence_summary_for_report() -> String {
+    match lunar_reference_evidence_summary() {
+        Some(summary) => format_lunar_reference_evidence_summary(&summary),
+        None => "lunar reference evidence: unavailable".to_string(),
+    }
+}
+
+fn write_lunar_reference_evidence(f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    writeln!(f, "  Lunar reference evidence:")?;
+    let Some(summary) = lunar_reference_evidence_summary() else {
+        writeln!(f, "    none")?;
+        return Ok(());
+    };
+
+    writeln!(
+        f,
+        "    {}",
+        format_lunar_reference_evidence_summary(&summary)
+    )?;
+    for sample in lunar_reference_evidence() {
+        writeln!(
+            f,
+            "    {} at JD {:.1}: lon={:.12}°, lat={:.12}°, dist={}, note={}",
+            sample.body,
+            sample.epoch.julian_day.days(),
+            sample.longitude_deg,
+            sample.latitude_deg,
+            sample
+                .distance_au
+                .map(|value| format!("{value:.12} AU"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            sample.note
+        )?;
+    }
+    Ok(())
 }
 
 fn write_comparison_summary(
@@ -5663,6 +5739,8 @@ mod tests {
         assert!(report.contains("Major planets"));
         assert!(report.contains("interpolation quality checks:"));
         assert!(report.contains("JPL interpolation quality: 10 samples across 5 bodies"));
+        assert!(report.contains("Lunar reference evidence"));
+        assert!(report.contains("lunar reference evidence: 5 samples across 5 bodies"));
         assert!(report.contains("exact J2000 evidence: 5 bodies at JD 2451545.0"));
         assert!(report.contains("Body comparison summaries"));
         assert!(report.contains("Sun: samples="));
@@ -5696,6 +5774,8 @@ mod tests {
         assert!(report.contains("regressions found"));
         assert!(report.contains("JPL interpolation quality"));
         assert!(report.contains("JPL interpolation quality: 10 samples across 5 bodies"));
+        assert!(report.contains("Lunar reference evidence"));
+        assert!(report.contains("lunar reference evidence: 5 samples across 5 bodies"));
         assert!(report.contains("Body comparison summaries"));
         assert!(report.contains("Body-class error envelopes"));
         assert!(report.contains("VSOP87 source-backed evidence"));

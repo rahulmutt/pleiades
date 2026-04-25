@@ -38,6 +38,8 @@ Latest progress (2026-04-25): the `pleiades-elp` Moon path now uses a Meeus-styl
 
 Latest progress (2026-04-25): the checked-in JPL asteroid subset now renders exact J2000 evidence rows in validation reports, backend matrices, and release notes, so the named asteroid coverage is visible as coordinates rather than only as body labels.
 
+Latest progress (2026-04-25): the compact ELP lunar backend now also exposes a canonical lunar evidence slice for the published 1992-04-12 Moon example plus J2000 lunar-point references, and the validation reports now render that evidence alongside the backend matrix and summary output so the current lunar baseline is easier to audit without changing the public API.
+
 Latest progress (2026-04-25): the shared `pleiades-types::EclipticCoordinates::to_equatorial` helper now centralizes the mean-obliquity frame rotation used by the VSOP87 and ELP backends, reducing duplicate transform logic while keeping the current ecliptic-to-equatorial behavior explicit and test-covered.
 
 Latest progress (2026-04-25): validation reporting now includes a release-grade comparison tolerance audit section, and `compare-backends-audit` now fails when the built-in tolerance audit finds regressions, so release tooling has an explicit pass/fail gate in addition to the existing per-body tolerance tables.
@@ -49,7 +51,7 @@ Recent test progress (2026-04-24): the VSOP87 backend now also exercises its bat
 Active gaps:
 
 - broader release-grade error envelopes and tolerance tables beyond the new comparison-audit gate;
-- full source-backed lunar theory selection and broader lunar-point validation evidence;
+- full source-backed lunar theory selection and broader lunar-point validation evidence beyond the current canonical sample slice;
 - larger JPL-style reference corpus, interpolation validation, and documented tolerance envelopes beyond the current small fixture proof of concept;
 - production Delta T conversion, TDB handling, apparent-place corrections, and broader validated frame-conversion error envelopes beyond the shared transform helper and initial documented policy;
 - source-backed evidence tables, reference-backed tolerance tables, and broader validation reports.

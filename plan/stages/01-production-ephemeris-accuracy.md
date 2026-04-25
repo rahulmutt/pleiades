@@ -35,6 +35,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Progress note: the current lunar-theory selection now exposes a stable source identifier, canonical bibliographic citation, and explicit license/provenance posture alongside the supported and unsupported lunar bodies, and the validation/reporting layer renders those provenance details in release-facing summaries.
    - Progress note: validation backend-matrix output now also renders the ELP unsupported lunar bodies explicitly, so the release-facing lunar-theory section shows both the supported channels and the deferred true apogee/perigee slots.
    - Progress note: the Moon path now uses a Meeus-style truncated lunar position series instead of the earlier simplified orbital surrogate, and the backend now validates against the published 1992-04-12 geocentric Moon example in addition to the J2000 lunar-point checks.
+   - Progress note: the compact lunar backend now also exports a canonical reference evidence slice for the published Moon example plus the J2000 lunar-point samples, and validation reports render that slice in the backend matrix and summary output so the current lunar baseline is easier to audit without changing the API contract.
 
 3. Upgrade `pleiades-jpl` from snapshot fixture to reference backend.
    - Parse documented public JPL-style files or a reproducible derivative format in pure Rust.
