@@ -115,6 +115,16 @@ impl ChartRequest {
         Ok(self)
     }
 
+    /// Converts the chart instant from TT to TDB using caller-supplied offset.
+    ///
+    /// This convenience method mirrors [`Instant::tdb_from_tt`] so chart
+    /// callers can keep the chosen relativistic policy explicit without baking
+    /// a built-in TDB model into the façade.
+    pub fn with_tdb_from_tt(mut self, offset: Duration) -> Result<Self, TimeScaleConversionError> {
+        self.instant = self.instant.tdb_from_tt(offset)?;
+        Ok(self)
+    }
+
     /// Sets the included bodies.
     pub fn with_bodies(mut self, bodies: Vec<CelestialBody>) -> Self {
         self.bodies = bodies;
@@ -1700,6 +1710,20 @@ mod tests {
 
         assert_eq!(request.instant.scale, TimeScale::Tt);
         let expected = 2_451_545.0 + 64.184 / 86_400.0;
+        assert!((request.instant.julian_day.days() - expected).abs() < 1e-9);
+    }
+
+    #[test]
+    fn chart_request_can_convert_tt_to_tdb() {
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Tt,
+        ))
+        .with_tdb_from_tt(Duration::from_secs_f64(0.001_657))
+        .expect("TT chart request should convert to TDB");
+
+        assert_eq!(request.instant.scale, TimeScale::Tdb);
+        let expected = 2_451_545.0 + 0.001_657 / 86_400.0;
         assert!((request.instant.julian_day.days() - expected).abs() < 1e-9);
     }
 

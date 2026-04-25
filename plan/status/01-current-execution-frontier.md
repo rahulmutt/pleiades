@@ -48,6 +48,8 @@ Latest progress (2026-04-25): the compact ELP lunar backend now also exposes a c
 
 Latest progress (2026-04-25): the shared `pleiades-types::EclipticCoordinates::to_equatorial` helper now centralizes the mean-obliquity frame rotation used by the VSOP87 and ELP backends, reducing duplicate transform logic while keeping the current ecliptic-to-equatorial behavior explicit and test-covered.
 
+Latest progress (2026-04-25): `pleiades-types` and `pleiades-core::ChartRequest` now also expose caller-supplied TT-to-TDB conversion conveniences alongside the existing UTC/UT1 helpers, so TDB-tagged validation or backend requests can stay explicit without introducing a built-in relativistic model.
+
 Latest progress (2026-04-25): validation reporting now includes a release-grade comparison tolerance audit section, and `compare-backends-audit` now fails when the built-in tolerance audit finds regressions, so release tooling has an explicit pass/fail gate in addition to the existing per-body tolerance tables.
 
 Latest progress (2026-04-25): the VSOP87 canonical J2000 source-backed evidence summary now names the body that drives each maximum delta axis, which makes the release-facing source-backed envelope easier to audit without changing the public comparison corpus. The same canonical VSOP87 evidence path now also derives from one batch query over the full source-backed sample set, and the VSOP87 regression suite now checks that batch requests preserve the canonical sample order, so the validation-facing evidence and the backend batch contract stay aligned.

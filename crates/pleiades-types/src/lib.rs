@@ -296,6 +296,23 @@ impl Instant {
 
         Ok(self.with_time_scale_offset(TimeScale::Tt, delta_t.as_secs_f64()))
     }
+
+    /// Converts a TT-tagged instant to TDB using a caller-supplied offset.
+    ///
+    /// `offset` must be the already-chosen `TDB - TT` offset in SI seconds.
+    /// The helper intentionally does not model relativistic terms by itself;
+    /// it only makes a caller-supplied TT-to-TDB policy explicit and
+    /// reproducible for applications that need a TDB-tagged request surface.
+    pub fn tdb_from_tt(self, offset: Duration) -> Result<Self, TimeScaleConversionError> {
+        if self.scale != TimeScale::Tt {
+            return Err(TimeScaleConversionError::expected(
+                TimeScale::Tt,
+                self.scale,
+            ));
+        }
+
+        Ok(self.with_time_scale_offset(TimeScale::Tdb, offset.as_secs_f64()))
+    }
 }
 
 /// A geographic observer location.
@@ -1102,6 +1119,18 @@ mod tests {
 
         assert_eq!(tt.scale, TimeScale::Tt);
         assert!((tt.julian_day.days() - 2_451_545.000_742_870_4).abs() < 1e-12);
+    }
+
+    #[test]
+    fn caller_supplied_time_scale_offsets_can_convert_tt_to_tdb() {
+        let tt = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+        let tdb = tt
+            .tdb_from_tt(Duration::from_secs_f64(0.001_657))
+            .expect("TT to TDB conversion should accept TT input");
+
+        assert_eq!(tdb.scale, TimeScale::Tdb);
+        let expected = 2_451_545.0 + 0.001_657 / 86_400.0;
+        assert!((tdb.julian_day.days() - expected).abs() < 1e-12);
     }
 
     #[test]

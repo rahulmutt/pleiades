@@ -127,6 +127,8 @@ Progress note (2026-04-24): `pleiades-types` now provides caller-supplied time-s
 
 Progress note (2026-04-25): `pleiades-types` also now centralizes the mean-obliquity ecliptic-to-equatorial rotation in a reusable `EclipticCoordinates::to_equatorial` helper, and the VSOP87/ELP paths now call that shared transform instead of duplicating the same conversion math locally.
 
+Progress note (2026-04-25): `pleiades-types` and `pleiades-core::ChartRequest` now also expose caller-supplied TT-to-TDB conversion conveniences alongside the existing UTC/UT1 helpers, keeping TDB-tagged backend requests explicit without adding a built-in relativistic model.
+
 Progress note (2026-04-24): `pleiades-core::ChartRequest` now includes explicit time-scale conversion conveniences, including a generic caller-supplied offset builder and a UT1-to-TT helper. UTC-tagged chart requests now have the same explicit TT conversion convenience, which keeps chart assembly aligned with the typed offset policy while still requiring the caller to choose the conversion model.
 
 Progress note (2026-04-24): validation report corpus summaries now print explicit epoch labels with time-scale tags, so the report layer now exposes the reference time-scale choice alongside the corpus windows while the project still relies on caller-provided conversion policy.
