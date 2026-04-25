@@ -1003,7 +1003,14 @@ mod tests {
             .expect("start epoch should exist");
         let end = metadata.nominal_range.end.expect("end epoch should exist");
         assert!(start.julian_day.days() < end.julian_day.days());
-        assert_eq!(reference_epochs().len(), 4);
+        assert_eq!(reference_epochs().len(), 5);
+        assert_eq!(
+            reference_snapshot()
+                .iter()
+                .filter(|entry| entry.epoch.julian_day.days() == 2_400_000.0)
+                .count(),
+            10
+        );
         assert_eq!(
             reference_snapshot()
                 .iter()
@@ -1017,9 +1024,9 @@ mod tests {
     fn reference_snapshot_summary_reports_the_expected_coverage() {
         let summary =
             reference_snapshot_summary().expect("reference snapshot summary should exist");
-        assert_eq!(summary.row_count, 35);
+        assert_eq!(summary.row_count, 45);
         assert_eq!(summary.body_count, 15);
-        assert_eq!(summary.epoch_count, 4);
+        assert_eq!(summary.epoch_count, 5);
         assert_eq!(summary.asteroid_row_count, 5);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_499.0);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
@@ -1248,15 +1255,18 @@ mod tests {
     #[test]
     fn interpolation_quality_samples_are_reportable() {
         let samples = interpolation_quality_samples();
-        assert_eq!(samples.len(), 10);
+        assert_eq!(samples.len(), 20);
         assert!(samples.iter().all(|sample| {
             let epoch = sample.epoch.julian_day.days();
-            (epoch == REFERENCE_EPOCH_JD || epoch == 2_500_000.0)
+            (epoch == 2_400_000.0 || epoch == REFERENCE_EPOCH_JD || epoch == 2_500_000.0)
                 && sample.bracket_span_days > 0.0
                 && sample.longitude_error_deg.is_finite()
                 && sample.latitude_error_deg.is_finite()
                 && sample.distance_error_au.is_finite()
         }));
+        assert!(samples
+            .iter()
+            .any(|sample| sample.epoch.julian_day.days() == 2_400_000.0));
         assert!(samples
             .iter()
             .any(|sample| sample.epoch.julian_day.days() == 2_500_000.0));

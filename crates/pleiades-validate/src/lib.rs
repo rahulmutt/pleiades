@@ -6096,9 +6096,9 @@ mod tests {
     fn default_corpus_covers_the_comparison_snapshot() {
         let corpus = default_corpus();
         let summary = corpus.summary();
-        assert_eq!(corpus.requests.len(), 30);
-        assert_eq!(summary.epoch_count, 4);
-        assert_eq!(summary.epochs.len(), 4);
+        assert_eq!(corpus.requests.len(), 40);
+        assert_eq!(summary.epoch_count, 5);
+        assert_eq!(summary.epochs.len(), 5);
         assert!(summary
             .epochs
             .iter()
@@ -6230,7 +6230,7 @@ mod tests {
         assert!(report.contains("Luminaries"));
         assert!(report.contains("Major planets"));
         assert!(report.contains("interpolation quality checks:"));
-        assert!(report.contains("JPL interpolation quality: 10 samples across 5 bodies"));
+        assert!(report.contains("JPL interpolation quality: 20 samples across 10 bodies"));
         assert!(report.contains("Lunar reference evidence"));
         assert!(report.contains(
             "lunar reference evidence: 5 samples across 5 bodies, epoch range JD 2448724.5..2451545.0"
@@ -6274,7 +6274,7 @@ mod tests {
         assert!(report.contains("regressions found"));
         assert!(report.contains("regression bodies: Pluto"));
         assert!(report.contains("JPL interpolation quality"));
-        assert!(report.contains("JPL interpolation quality: 10 samples across 5 bodies"));
+        assert!(report.contains("JPL interpolation quality: 20 samples across 10 bodies"));
         assert!(report.contains("leave-one-out runtime interpolation evidence"));
         assert!(report.contains("@ JD"));
         assert!(report.contains("Lunar reference evidence"));
@@ -6646,7 +6646,7 @@ mod tests {
         assert!(rendered.contains("Release-specific coverage:"));
         assert!(rendered.contains("selected asteroid coverage"));
         assert!(rendered.contains("Selected asteroid evidence: 5 exact J2000 samples"));
-        assert!(rendered.contains("Reference snapshot coverage: 35 rows across 15 bodies and 4 epochs (5 asteroid rows; JD 2378499.0..2634167.0)"));
+        assert!(rendered.contains("Reference snapshot coverage: 45 rows across 15 bodies and 5 epochs (5 asteroid rows; JD 2378499.0..2634167.0)"));
         assert!(rendered.contains("asteroid:433-Eros"));
         assert!(rendered.contains("Validation reference points:"));
         assert!(rendered.contains("Compatibility caveats:"));
@@ -6769,7 +6769,7 @@ mod tests {
         assert!(rendered.contains("API stability summary line:"));
         assert!(rendered.contains("Release notes: release-notes"));
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
-        assert!(rendered.contains("Reference snapshot coverage: 35 rows across 15 bodies and 4 epochs (5 asteroid rows; JD 2378499.0..2634167.0)"));
+        assert!(rendered.contains("Reference snapshot coverage: 45 rows across 15 bodies and 5 epochs (5 asteroid rows; JD 2378499.0..2634167.0)"));
         assert!(rendered
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Release checklist summary: release-checklist-summary"));
@@ -6989,7 +6989,7 @@ mod tests {
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(rendered.contains("API stability summary: api-stability-summary"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
-        assert!(rendered.contains("Reference snapshot coverage: 35 rows across 15 bodies and 4 epochs (5 asteroid rows; JD 2378499.0..2634167.0)"));
+        assert!(rendered.contains("Reference snapshot coverage: 45 rows across 15 bodies and 5 epochs (5 asteroid rows; JD 2378499.0..2634167.0)"));
         assert!(rendered
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Release checklist summary: release-checklist-summary"));

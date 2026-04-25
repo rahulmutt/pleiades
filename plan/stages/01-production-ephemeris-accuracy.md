@@ -53,6 +53,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Progress note: the checked-in JPL reference snapshot now prefers cubic interpolation on four-sample windows when the fixture has enough same-body epochs, with quadratic and linear fallbacks for smaller windows, which tightens the current pure-Rust interpolator without changing the public request model.
    - Progress note: the JPL reference backend now also has a batch-path regression over the exact asteroid evidence slice, so the same source-backed rows are verified through `positions()` as well as one-body-at-a-time queries.
    - Progress note: the JPL interpolation-quality summary now also carries the worst-case epoch for each measured envelope, so the report can name both the body and the held-out instant that produced the current interpolation peak.
+   - Progress note: the checked-in JPL comparison snapshot also now includes a 2400000.0 epoch across the Sun-through-Pluto bodies, expanding the fixture to 45 rows across 15 bodies and 5 epochs and broadening the leave-one-out evidence to 20 samples across 10 bodies.
 
 4. Strengthen time, apparentness, observer, and coordinate semantics.
    - Expand the initial Delta T policy into implemented conversion support or a release-grade caller-provided conversion contract.

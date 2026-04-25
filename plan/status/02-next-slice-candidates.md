@@ -93,6 +93,8 @@ Completed first slice:
 
 Progress note (2026-04-24): `pleiades-jpl` now derives coarse leave-one-out interpolation quality samples from the checked-in public-input fixture, which now includes an additional 2500000.0 TDB epoch across the comparison-body set, and the validation backend matrix renders those measured linear-interpolation errors. These checks are intentionally labeled as transparency evidence rather than production tolerances.
 
+Progress note (2026-04-25): the checked-in JPL reference snapshot also now includes a 2400000.0 comparison epoch across the Sun-through-Pluto bodies, expanding the fixture to 45 rows across 15 bodies and 5 epochs and broadening the leave-one-out evidence to 20 samples across 10 bodies.
+
 Progress note (2026-04-24): the compact validation report summary now also carries a JPL interpolation-quality envelope, so the current leave-one-out evidence is visible alongside the comparison summaries without changing the backend contract.
 
 Progress note (2026-04-25): the JPL snapshot backend now prefers cubic interpolation on four-sample windows when the fixture has enough same-body epochs, with quadratic and linear fallbacks for smaller windows. This keeps the checked-in public-input fixture pure Rust and geocentric while making the reference backend slightly stronger before any larger corpus work lands.
@@ -112,9 +114,8 @@ Progress note (2026-04-25): the JPL asteroid subset now also renders exact J2000
 
 Remaining suggested scope:
 
-- add additional public-input epochs or bodies if broader interpolation coverage is needed beyond the current expanded fixture;
-- validate interpolation error against independent held-out JPL Horizons epochs beyond the checked-in fixture;
-- broaden the public-input derivative corpus if the remaining interpolation error envelope still needs tightening.
+- validate interpolation error against independent held-out JPL Horizons epochs beyond the expanded checked-in fixture;
+- broaden the public-input derivative corpus further only if the remaining interpolation error envelope still needs tightening.
 
 ## 4. Delta T, time-scale, and observer policy
 
