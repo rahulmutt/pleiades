@@ -920,6 +920,53 @@ pub fn source_body_evidence_summary_for_report() -> String {
     }
 }
 
+/// Errors that can occur while regenerating a checked-in VSOP87B binary table
+/// from a vendored public source file.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Vsop87TableGenerationError {
+    /// The requested file name does not match one of the vendored public source
+    /// files that this crate knows how to regenerate.
+    UnknownSourceFile {
+        source_file: String,
+        supported_source_files: Vec<&'static str>,
+    },
+    /// The vendored source text could be parsed, but the regeneration step
+    /// failed while rebuilding the binary coefficient table.
+    Parse { source_file: String, error: String },
+}
+
+impl core::fmt::Display for Vsop87TableGenerationError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::UnknownSourceFile {
+                source_file,
+                supported_source_files,
+            } => {
+                write!(
+                    f,
+                    "no vendored VSOP87B source text found for {source_file}; supported source files: {}",
+                    supported_source_files.join(", ")
+                )
+            }
+            Self::Parse { source_file, error } => {
+                write!(
+                    f,
+                    "failed to regenerate VSOP87B table for {source_file}: {error}"
+                )
+            }
+        }
+    }
+}
+
+impl std::error::Error for Vsop87TableGenerationError {}
+
+fn supported_source_files() -> Vec<&'static str> {
+    source_specifications()
+        .into_iter()
+        .map(|spec| spec.source_file)
+        .collect()
+}
+
 /// Regenerates the checked-in binary VSOP87B coefficient blob for a vendored
 /// public source file.
 ///
@@ -928,10 +975,17 @@ pub fn source_body_evidence_summary_for_report() -> String {
 /// vendored public IMCCE/CELMECH source inputs.
 pub fn try_generated_vsop87b_table_bytes_for_source_file(
     source_file: &str,
-) -> Result<Vec<u8>, String> {
-    let source = source_text_for_file(source_file)
-        .ok_or_else(|| format!("no vendored source text found for {source_file}"))?;
-    generated_vsop87b_table_bytes(source).map_err(|error| error.to_string())
+) -> Result<Vec<u8>, Vsop87TableGenerationError> {
+    let source = source_text_for_file(source_file).ok_or_else(|| {
+        Vsop87TableGenerationError::UnknownSourceFile {
+            source_file: source_file.to_string(),
+            supported_source_files: supported_source_files(),
+        }
+    })?;
+    generated_vsop87b_table_bytes(source).map_err(|error| Vsop87TableGenerationError::Parse {
+        source_file: source_file.to_string(),
+        error: error.to_string(),
+    })
 }
 
 pub fn generated_vsop87b_table_bytes_for_source_file(source_file: &str) -> Option<Vec<u8>> {
@@ -2572,6 +2626,32 @@ mod tests {
                 spec.source_file
             );
         }
+    }
+
+    #[test]
+    fn regeneration_helper_reports_unknown_source_files_explicitly() {
+        let error = try_generated_vsop87b_table_bytes_for_source_file("VSOP87B.plu")
+            .expect_err("unsupported source files should be rejected");
+
+        assert_eq!(
+            error,
+            Vsop87TableGenerationError::UnknownSourceFile {
+                source_file: "VSOP87B.plu".to_string(),
+                supported_source_files: vec![
+                    "VSOP87B.ear",
+                    "VSOP87B.mer",
+                    "VSOP87B.ven",
+                    "VSOP87B.mar",
+                    "VSOP87B.jup",
+                    "VSOP87B.sat",
+                    "VSOP87B.ura",
+                    "VSOP87B.nep",
+                ],
+            }
+        );
+        assert!(error
+            .to_string()
+            .contains("no vendored VSOP87B source text found for VSOP87B.plu"));
     }
 
     #[test]

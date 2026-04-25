@@ -18,7 +18,8 @@ fn run() -> Result<(), String> {
         .map_err(|error| format!("failed to create {}: {error}", output_dir.display()))?;
 
     for spec in source_specifications() {
-        let bytes = try_generated_vsop87b_table_bytes_for_source_file(spec.source_file)?;
+        let bytes = try_generated_vsop87b_table_bytes_for_source_file(spec.source_file)
+            .map_err(|error| error.to_string())?;
         let output_path = output_dir.join(format!("{}.bin", spec.source_file));
         fs::write(&output_path, &bytes)
             .map_err(|error| format!("failed to write {}: {error}", output_path.display()))?;
