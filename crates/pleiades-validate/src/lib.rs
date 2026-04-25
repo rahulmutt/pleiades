@@ -37,9 +37,9 @@ use pleiades_core::{
 };
 use pleiades_data::{packaged_artifact, PackagedDataBackend};
 use pleiades_elp::{
-    lunar_reference_evidence, lunar_reference_evidence_summary,
-    lunar_reference_evidence_summary_for_report, lunar_theory_specification, lunar_theory_summary,
-    ElpBackend,
+    format_lunar_theory_capability_summary, lunar_reference_evidence,
+    lunar_reference_evidence_summary, lunar_reference_evidence_summary_for_report,
+    lunar_theory_capability_summary, lunar_theory_specification, lunar_theory_summary, ElpBackend,
 };
 use pleiades_houses::{
     baseline_house_systems, built_in_house_systems, release_house_systems, resolve_house_system,
@@ -4880,6 +4880,11 @@ fn write_backend_catalog_entry(
             f,
             "    source family: {}",
             pleiades_elp::lunar_theory_source_family().label()
+        )?;
+        writeln!(
+            f,
+            "    capability summary: {}",
+            format_lunar_theory_capability_summary(&lunar_theory_capability_summary())
         )?;
         writeln!(f, "    source identifier: {}", theory.source_identifier)?;
         writeln!(f, "    source citation: {}", theory.source_citation)?;

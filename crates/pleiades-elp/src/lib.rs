@@ -183,6 +183,69 @@ pub fn lunar_theory_specification() -> LunarTheorySpecification {
     LUNAR_THEORY_SPECIFICATION
 }
 
+/// A compact capability summary for the current lunar-theory selection.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct LunarTheoryCapabilitySummary {
+    /// Human-readable model name.
+    pub model_name: &'static str,
+    /// Stable identifier for the selected lunar-theory baseline.
+    pub source_identifier: &'static str,
+    /// Human-readable source family label.
+    pub source_family_label: &'static str,
+    /// Number of supported lunar bodies/channels.
+    pub supported_body_count: usize,
+    /// Number of explicitly unsupported lunar bodies/channels.
+    pub unsupported_body_count: usize,
+    /// Number of supported coordinate frames.
+    pub supported_frame_count: usize,
+    /// Number of supported time scales.
+    pub supported_time_scale_count: usize,
+    /// Number of supported zodiac modes.
+    pub supported_zodiac_mode_count: usize,
+    /// Number of supported apparentness modes.
+    pub supported_apparentness_count: usize,
+    /// Whether the current baseline accepts topocentric observer requests.
+    pub supports_topocentric_observer: bool,
+    /// Structured validation window represented by the current evidence slice.
+    pub validation_window: TimeRange,
+}
+
+/// Returns the compact capability summary for the current lunar-theory selection.
+pub fn lunar_theory_capability_summary() -> LunarTheoryCapabilitySummary {
+    let theory = lunar_theory_specification();
+    LunarTheoryCapabilitySummary {
+        model_name: theory.model_name,
+        source_identifier: theory.source_identifier,
+        source_family_label: lunar_theory_source_family().label(),
+        supported_body_count: theory.supported_bodies.len(),
+        unsupported_body_count: theory.unsupported_bodies.len(),
+        supported_frame_count: theory.supported_frames.len(),
+        supported_time_scale_count: theory.supported_time_scales.len(),
+        supported_zodiac_mode_count: theory.supported_zodiac_modes.len(),
+        supported_apparentness_count: theory.supported_apparentness.len(),
+        supports_topocentric_observer: theory.request_policy.supports_topocentric_observer,
+        validation_window: theory.validation_window,
+    }
+}
+
+/// Formats the capability summary for release-facing reporting.
+pub fn format_lunar_theory_capability_summary(summary: &LunarTheoryCapabilitySummary) -> String {
+    format!(
+        "lunar capability summary: {} [{}; family: {}] bodies={} unsupported={} frames={} time scales={} zodiac modes={} apparentness={} topocentric observer={} validation window={}",
+        summary.model_name,
+        summary.source_identifier,
+        summary.source_family_label,
+        summary.supported_body_count,
+        summary.unsupported_body_count,
+        summary.supported_frame_count,
+        summary.supported_time_scale_count,
+        summary.supported_zodiac_mode_count,
+        summary.supported_apparentness_count,
+        summary.supports_topocentric_observer,
+        format_time_range(&summary.validation_window),
+    )
+}
+
 /// Returns the release-facing one-line summary for the current lunar-theory selection.
 ///
 /// The validation and release tooling uses this helper so the lunar provenance
@@ -190,14 +253,15 @@ pub fn lunar_theory_specification() -> LunarTheorySpecification {
 /// layers.
 pub fn lunar_theory_summary() -> String {
     let theory = lunar_theory_specification();
+    let capability = lunar_theory_capability_summary();
     format!(
         "ELP lunar theory specification: {} [{}; family: {}] ({} supported bodies: {}; {} unsupported bodies: {}); request policy: frames={}; time scales={}; zodiac modes={}; apparentness={}; topocentric observer={}; citation: {}; provenance: {}; redistribution: {}; truncation: {}; units: {}; validation window: {}; date-range note: {}; frame treatment: {}; license: {}",
         theory.model_name,
         theory.source_identifier,
         lunar_theory_source_family().label(),
-        theory.supported_bodies.len(),
+        capability.supported_body_count,
         format_bodies(theory.supported_bodies),
-        theory.unsupported_bodies.len(),
+        capability.unsupported_body_count,
         format_bodies(theory.unsupported_bodies),
         format_frames(theory.request_policy.supported_frames),
         format_time_scales(theory.request_policy.supported_time_scales),
@@ -209,7 +273,7 @@ pub fn lunar_theory_summary() -> String {
         theory.redistribution_note,
         theory.truncation_note,
         theory.unit_note,
-        format_time_range(&theory.validation_window),
+        format_time_range(&capability.validation_window),
         theory.date_range_note,
         theory.frame_note,
         theory.license_note,
@@ -1101,6 +1165,52 @@ mod tests {
                 )),
             )
         );
+        let capability = lunar_theory_capability_summary();
+        assert_eq!(capability.model_name, theory.model_name);
+        assert_eq!(capability.source_identifier, theory.source_identifier);
+        assert_eq!(
+            capability.source_family_label,
+            lunar_theory_source_family().label()
+        );
+        assert_eq!(
+            capability.supported_body_count,
+            theory.supported_bodies.len()
+        );
+        assert_eq!(
+            capability.unsupported_body_count,
+            theory.unsupported_bodies.len()
+        );
+        assert_eq!(
+            capability.supported_frame_count,
+            theory.supported_frames.len()
+        );
+        assert_eq!(
+            capability.supported_time_scale_count,
+            theory.supported_time_scales.len()
+        );
+        assert_eq!(
+            capability.supported_zodiac_mode_count,
+            theory.supported_zodiac_modes.len()
+        );
+        assert_eq!(
+            capability.supported_apparentness_count,
+            theory.supported_apparentness.len()
+        );
+        assert_eq!(
+            capability.supports_topocentric_observer,
+            theory.request_policy.supports_topocentric_observer
+        );
+        assert_eq!(capability.validation_window, theory.validation_window);
+        assert!(format_lunar_theory_capability_summary(&capability).contains("bodies=5"));
+        assert!(format_lunar_theory_capability_summary(&capability).contains("unsupported=2"));
+        assert!(format_lunar_theory_capability_summary(&capability).contains("frames=2"));
+        assert!(format_lunar_theory_capability_summary(&capability).contains("time scales=2"));
+        assert!(format_lunar_theory_capability_summary(&capability).contains("zodiac modes=1"));
+        assert!(format_lunar_theory_capability_summary(&capability).contains("apparentness=1"));
+        assert!(format_lunar_theory_capability_summary(&capability)
+            .contains("topocentric observer=false"));
+        assert!(format_lunar_theory_capability_summary(&capability)
+            .contains("validation window=JD 2448724.5 (TT) → JD 2459278.5 (TT)"));
         assert_eq!(
             theory.supported_bodies,
             &[

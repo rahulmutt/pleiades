@@ -71,6 +71,7 @@ The current regression posture is intentionally small and deterministic:
 - nearby high-curvature lunar-interval regression coverage
 - explicit unsupported-body and unsupported-mode errors
 - a structured validation window exposed as `LunarTheorySpecification.validation_window` alongside the prose range note
+- a compact capability summary helper exposed as `lunar_theory_capability_summary()` for report generators that want structured counts and policy flags without parsing prose
 
 ## Forward path
 
