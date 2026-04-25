@@ -88,6 +88,8 @@ Progress note (2026-04-24): the compact validation report summary now also carri
 
 Progress note (2026-04-25): the JPL snapshot backend now prefers cubic interpolation on four-sample windows when the fixture has enough same-body epochs, with quadratic and linear fallbacks for smaller windows. This keeps the checked-in public-input fixture pure Rust and geocentric while making the reference backend slightly stronger before any larger corpus work lands.
 
+Progress note (2026-04-25): the compact JPL interpolation-quality summary now also names the worst-case body for each error metric, so the current hold-out envelope is easier to audit while the broader public-input corpus work remains queued.
+
 Progress note (2026-04-25): the checked-in JPL reference snapshot now also has exact J2000 golden coverage for the named asteroid subset and the custom 433-Eros body, so the source-backed asteroid fixture path is now exercised with explicit coordinates in addition to the interpolation transparency checks.
 
 Progress note (2026-04-25): the JPL asteroid subset now also renders exact J2000 evidence rows in backend matrices, validation reports, and release notes, making the source-backed asteroid fixture visible in release-facing output rather than only in tests.

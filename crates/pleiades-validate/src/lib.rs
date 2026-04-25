@@ -4611,14 +4611,18 @@ fn write_jpl_interpolation_quality(f: &mut fmt::Formatter<'_>) -> fmt::Result {
     Ok(())
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 struct JplInterpolationQualitySummary {
     sample_count: usize,
     body_count: usize,
     max_bracket_span_days: f64,
+    max_bracket_span_body: String,
     max_longitude_error_deg: f64,
+    max_longitude_error_body: String,
     max_latitude_error_deg: f64,
+    max_latitude_error_body: String,
     max_distance_error_au: f64,
+    max_distance_error_body: String,
 }
 
 fn jpl_interpolation_quality_summary() -> Option<JplInterpolationQualitySummary> {
@@ -4629,37 +4633,69 @@ fn jpl_interpolation_quality_summary() -> Option<JplInterpolationQualitySummary>
 
     let mut bodies = BTreeSet::new();
     let mut max_bracket_span_days: f64 = 0.0;
+    let mut max_bracket_span_body = String::new();
     let mut max_longitude_error_deg: f64 = 0.0;
+    let mut max_longitude_error_body = String::new();
     let mut max_latitude_error_deg: f64 = 0.0;
+    let mut max_latitude_error_body = String::new();
     let mut max_distance_error_au: f64 = 0.0;
+    let mut max_distance_error_body = String::new();
 
     for sample in samples {
         bodies.insert(sample.body.to_string());
-        max_bracket_span_days = max_bracket_span_days.max(sample.bracket_span_days);
-        max_longitude_error_deg = max_longitude_error_deg.max(sample.longitude_error_deg);
-        max_latitude_error_deg = max_latitude_error_deg.max(sample.latitude_error_deg);
-        max_distance_error_au = max_distance_error_au.max(sample.distance_error_au);
+        if sample.bracket_span_days > max_bracket_span_days {
+            max_bracket_span_days = sample.bracket_span_days;
+            max_bracket_span_body = sample.body.to_string();
+        }
+        if sample.longitude_error_deg > max_longitude_error_deg {
+            max_longitude_error_deg = sample.longitude_error_deg;
+            max_longitude_error_body = sample.body.to_string();
+        }
+        if sample.latitude_error_deg > max_latitude_error_deg {
+            max_latitude_error_deg = sample.latitude_error_deg;
+            max_latitude_error_body = sample.body.to_string();
+        }
+        if sample.distance_error_au > max_distance_error_au {
+            max_distance_error_au = sample.distance_error_au;
+            max_distance_error_body = sample.body.to_string();
+        }
     }
 
     Some(JplInterpolationQualitySummary {
         sample_count: samples.len(),
         body_count: bodies.len(),
         max_bracket_span_days,
+        max_bracket_span_body,
         max_longitude_error_deg,
+        max_longitude_error_body,
         max_latitude_error_deg,
+        max_latitude_error_body,
         max_distance_error_au,
+        max_distance_error_body,
     })
 }
 
 fn format_jpl_interpolation_quality_summary(summary: &JplInterpolationQualitySummary) -> String {
+    fn format_body_suffix(body: &str) -> String {
+        if body.is_empty() {
+            String::new()
+        } else {
+            format!(" ({body})")
+        }
+    }
+
     format!(
-        "JPL interpolation quality: {} samples across {} bodies, status transparency evidence, max bracket span={:.1} d, max Δlon={:.12}°, max Δlat={:.12}°, max Δdist={:.12} AU",
+        "JPL interpolation quality: {} samples across {} bodies, status transparency evidence with worst-case bodies named, max bracket span={:.1} d{}, max Δlon={:.12}°{}, max Δlat={:.12}°{}, max Δdist={:.12} AU{}",
         summary.sample_count,
         summary.body_count,
         summary.max_bracket_span_days,
+        format_body_suffix(&summary.max_bracket_span_body),
         summary.max_longitude_error_deg,
+        format_body_suffix(&summary.max_longitude_error_body),
         summary.max_latitude_error_deg,
+        format_body_suffix(&summary.max_latitude_error_body),
         summary.max_distance_error_au,
+        format_body_suffix(&summary.max_distance_error_body),
     )
 }
 
@@ -5796,6 +5832,21 @@ mod tests {
         assert!(report.contains("Reference benchmark"));
         assert!(report.contains("Candidate benchmark"));
         assert!(report.contains("Packaged-data benchmark"));
+    }
+
+    #[test]
+    fn jpl_interpolation_quality_summary_includes_worst_case_body_labels() {
+        let summary = jpl_interpolation_quality_summary().expect("summary should exist");
+        assert!(!summary.max_bracket_span_body.is_empty());
+        assert!(!summary.max_longitude_error_body.is_empty());
+        assert!(!summary.max_latitude_error_body.is_empty());
+        assert!(!summary.max_distance_error_body.is_empty());
+
+        let rendered = format_jpl_interpolation_quality_summary(&summary);
+        assert!(rendered.contains(&format!("({})", summary.max_bracket_span_body)));
+        assert!(rendered.contains(&format!("({})", summary.max_longitude_error_body)));
+        assert!(rendered.contains(&format!("({})", summary.max_latitude_error_body)));
+        assert!(rendered.contains(&format!("({})", summary.max_distance_error_body)));
     }
 
     #[test]
