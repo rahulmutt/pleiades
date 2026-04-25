@@ -1133,6 +1133,10 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "compare-backends")?;
             render_comparison_report().map_err(render_error)
         }
+        Some("compare-backends-audit") => {
+            ensure_no_extra_args(&args[1..], "compare-backends-audit")?;
+            render_comparison_audit_report()
+        }
         Some("backend-matrix") | Some("capability-matrix") => {
             ensure_no_extra_args(&args[1..], "backend-matrix")?;
             render_backend_matrix_report().map_err(render_error)
@@ -3125,6 +3129,128 @@ pub fn render_comparison_report() -> Result<String, EphemerisError> {
     Ok(compare_backends(&reference, &candidate, &corpus)?.to_string())
 }
 
+fn comparison_audit_totals(report: &ComparisonReport) -> (usize, usize, usize, usize) {
+    let tolerance_summaries = report.tolerance_summaries();
+    let body_count = tolerance_summaries.len();
+    let within_tolerance_body_count = tolerance_summaries
+        .iter()
+        .filter(|summary| summary.within_tolerance)
+        .count();
+    let outside_tolerance_body_count = body_count.saturating_sub(within_tolerance_body_count);
+    let regression_count = report.notable_regressions().len();
+
+    (
+        body_count,
+        within_tolerance_body_count,
+        outside_tolerance_body_count,
+        regression_count,
+    )
+}
+
+/// Renders a release-grade comparison tolerance audit used by the CLI.
+pub fn render_comparison_audit_report() -> Result<String, String> {
+    let corpus = default_corpus();
+    let reference = default_reference_backend();
+    let candidate = default_candidate_backend();
+    let comparison =
+        compare_backends(&reference, &candidate, &corpus).map_err(|error| error.to_string())?;
+    let (_, _, _, regression_count) = comparison_audit_totals(&comparison);
+    let rendered = render_comparison_audit_report_text(&comparison);
+
+    if regression_count == 0 {
+        Ok(rendered)
+    } else {
+        Err(format!("comparison audit failed:\n{rendered}"))
+    }
+}
+
+fn render_comparison_audit_report_text(report: &ComparisonReport) -> String {
+    use std::fmt::Write as _;
+
+    let (body_count, within_tolerance_body_count, outside_tolerance_body_count, regression_count) =
+        comparison_audit_totals(report);
+    let mut text = String::new();
+
+    let _ = writeln!(text, "Comparison tolerance audit");
+    let _ = writeln!(text, "  corpus: {}", report.corpus_name);
+    let _ = writeln!(
+        text,
+        "  reference backend: {} ({})",
+        report.reference_backend.id, report.reference_backend.provenance.summary
+    );
+    let _ = writeln!(
+        text,
+        "  candidate backend: {} ({})",
+        report.candidate_backend.id, report.candidate_backend.provenance.summary
+    );
+    let _ = writeln!(text, "  bodies checked: {}", body_count);
+    let _ = writeln!(
+        text,
+        "  within tolerance bodies: {}",
+        within_tolerance_body_count
+    );
+    let _ = writeln!(
+        text,
+        "  outside tolerance bodies: {}",
+        outside_tolerance_body_count
+    );
+    let _ = writeln!(text, "  notable regressions: {}", regression_count);
+    let _ = writeln!(
+        text,
+        "  result: {}",
+        if regression_count == 0 {
+            "clean"
+        } else {
+            "regressions found"
+        }
+    );
+    let _ = writeln!(text);
+    let _ = writeln!(text, "Comparison summary");
+    let _ = writeln!(text, "  samples: {}", report.summary.sample_count);
+    let _ = writeln!(
+        text,
+        "  max longitude delta: {:.12}°",
+        report.summary.max_longitude_delta_deg
+    );
+    let _ = writeln!(
+        text,
+        "  max latitude delta: {:.12}°",
+        report.summary.max_latitude_delta_deg
+    );
+    let _ = writeln!(
+        text,
+        "  max distance delta: {}",
+        report
+            .summary
+            .max_distance_delta_au
+            .map(|value| format!("{value:.12} AU"))
+            .unwrap_or_else(|| "n/a".to_string())
+    );
+    let _ = writeln!(text);
+    let _ = writeln!(text, "Notable regressions");
+    let regressions = report.notable_regressions();
+    if regressions.is_empty() {
+        let _ = writeln!(text, "  none");
+    } else {
+        for finding in regressions {
+            let _ = writeln!(
+                text,
+                "  {}: Δlon={:.12}°, Δlat={:.12}°, Δdist={}, {}",
+                finding.body,
+                finding.longitude_delta_deg,
+                finding.latitude_delta_deg,
+                finding
+                    .distance_delta_au
+                    .map(|value| format!("{value:.12} AU"))
+                    .unwrap_or_else(|| "n/a".to_string()),
+                finding.note
+            );
+        }
+    }
+
+    text
+}
+
 /// Renders a benchmark report used by the CLI.
 pub fn render_benchmark_report(rounds: usize) -> Result<String, EphemerisError> {
     let corpus = benchmark_corpus();
@@ -3461,6 +3587,24 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
                 .unwrap_or_else(|| "n/a".to_string())
         );
     }
+    let _ = writeln!(text);
+    let _ = writeln!(text, "Comparison tolerance audit");
+    let (audit_body_count, audit_within_count, audit_outside_count, audit_regression_count) =
+        comparison_audit_totals(&report.comparison);
+    let _ = writeln!(text, "  command: compare-backends-audit");
+    let _ = writeln!(
+        text,
+        "  status: {}",
+        if audit_regression_count == 0 {
+            "clean"
+        } else {
+            "regressions found"
+        }
+    );
+    let _ = writeln!(text, "  bodies checked: {}", audit_body_count);
+    let _ = writeln!(text, "  within tolerance bodies: {}", audit_within_count);
+    let _ = writeln!(text, "  outside tolerance bodies: {}", audit_outside_count);
+    let _ = writeln!(text, "  notable regressions: {}", audit_regression_count);
     let _ = writeln!(text);
     let _ = writeln!(text, "House validation corpus");
     let _ = writeln!(
@@ -5065,14 +5209,7 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = default_corpus().requests.len();
     format!(
-        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix            Print the implemented backend capability matrices\n  capability-matrix         Alias for backend-matrix\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  matrix-summary            Alias for backend-matrix-summary\n  compatibility-profile     Print the release compatibility profile\n  profile                   Alias for compatibility-profile\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus with guard epochs\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validation-report-summary [--rounds N]  Render a compact validation report summary\n  report-summary [--rounds N]  Alias for validation-report-summary
-  validation-summary        Alias for validation-report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes
-  release-notes-summary     Print the compact release notes summary
-  release-checklist         Print the release maintainer checklist
-  release-checklist-summary Print the compact release checklist summary
-  checklist-summary        Alias for release-checklist-summary
-  release-summary           Print the compact release summary
-  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API stability summary, validation report summary, artifact summary, validation report, manifest, and manifest checksum sidecar\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  compare-backends-audit    Compare the JPL snapshot against the algorithmic composite backend and fail if the tolerance audit reports regressions\n  backend-matrix            Print the implemented backend capability matrices\n  capability-matrix         Alias for backend-matrix\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  matrix-summary            Alias for backend-matrix-summary\n  compatibility-profile     Print the release compatibility profile\n  profile                   Alias for compatibility-profile\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus with guard epochs\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validation-report-summary [--rounds N]  Render a compact validation report summary\n  report-summary [--rounds N]  Alias for validation-report-summary\n  validation-summary        Alias for validation-report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API stability summary, validation report summary, artifact summary, validation report, manifest, and manifest checksum sidecar\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
@@ -5456,6 +5593,16 @@ mod tests {
     }
 
     #[test]
+    fn comparison_audit_command_reports_regressions() {
+        let error = render_cli(&["compare-backends-audit"])
+            .expect_err("comparison audit should fail while regressions remain");
+        assert!(error.contains("comparison audit failed"));
+        assert!(error.contains("Comparison tolerance audit"));
+        assert!(error.contains("Notable regressions"));
+        assert!(error.contains("Pluto"));
+    }
+
+    #[test]
     fn benchmark_report_renders_a_time_summary() {
         let report = render_benchmark_report(10).expect("benchmark should render");
         assert!(report.contains("Benchmark report"));
@@ -5540,6 +5687,9 @@ mod tests {
         assert!(report.contains("Comparison corpus"));
         assert!(report.contains("epoch labels: JD 2378499.0 (TT)"));
         assert!(report.contains("Comparison summary"));
+        assert!(report.contains("Comparison tolerance audit"));
+        assert!(report.contains("command: compare-backends-audit"));
+        assert!(report.contains("regressions found"));
         assert!(report.contains("JPL interpolation quality"));
         assert!(report.contains("JPL interpolation quality: 10 samples across 5 bodies"));
         assert!(report.contains("Body comparison summaries"));
@@ -5583,6 +5733,9 @@ mod tests {
         assert!(validation_report_summary.contains("Body-class error envelopes"));
         assert!(validation_report_summary.contains("Body-class tolerance posture"));
         assert!(validation_report_summary.contains("Expected tolerance status"));
+        assert!(validation_report_summary.contains("Comparison tolerance audit"));
+        assert!(validation_report_summary.contains("command: compare-backends-audit"));
+        assert!(validation_report_summary.contains("regressions found"));
         assert!(validation_report_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(validation_report_summary.contains("Release notes summary: release-notes-summary"));
@@ -5712,6 +5865,7 @@ mod tests {
     fn cli_help_lists_the_validation_commands() {
         let rendered = render_cli(&["help"]).expect("help should render");
         assert!(rendered.contains("compare-backends"));
+        assert!(rendered.contains("compare-backends-audit"));
         assert!(rendered.contains("backend-matrix"));
         assert!(rendered.contains("capability-matrix"));
         assert!(rendered.contains("backend-matrix-summary"));

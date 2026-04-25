@@ -38,13 +38,15 @@ Latest progress (2026-04-25): the `pleiades-elp` Moon path now uses a Meeus-styl
 
 Latest progress (2026-04-25): the checked-in JPL asteroid subset now renders exact J2000 evidence rows in validation reports, backend matrices, and release notes, so the named asteroid coverage is visible as coordinates rather than only as body labels.
 
+Latest progress (2026-04-25): validation reporting now includes a release-grade comparison tolerance audit section, and `compare-backends-audit` now fails when the built-in tolerance audit finds regressions, so release tooling has an explicit pass/fail gate in addition to the existing per-body tolerance tables.
+
 Previous progress (2026-04-24): backend matrix release artifacts now report implementation status separately from body/catalog presence. Each implemented backend has an explicit status label and note (fixture reference, partial source-backed, preliminary algorithm, prototype artifact, or routing façade), and the compact matrix summary counts those statuses so release artifacts do not imply production accuracy merely because a backend advertises body coverage. The compact lunar-theory spec now also surfaces true apogee and true perigee as explicitly unsupported bodies, and the ELP regression tests now assert the structured `UnsupportedBody` failures for those requests.
 
 Recent test progress (2026-04-24): the VSOP87 backend now also exercises its batch API over the full source-backed Sun-through-Neptune sample set, so the canonical J2000 evidence is verified both body-by-body and in batch form.
 
 Active gaps:
 
-- broader release-grade error envelopes and tolerance audits;
+- broader release-grade error envelopes and tolerance tables beyond the new comparison-audit gate;
 - full source-backed lunar theory selection and broader lunar-point validation evidence;
 - larger JPL-style reference corpus, interpolation validation, and documented tolerance envelopes beyond the current small fixture proof of concept;
 - production Delta T conversion, TDB handling, apparent-place corrections, and validated frame-conversion error envelopes beyond the initial documented policy;
@@ -56,7 +58,7 @@ Continue expanding the `pleiades-vsop87` source-data increment:
 
 1. move the next phase-1 accuracy slice toward the lunar theory source-selection work, now that the source-backed VSOP87 generated-table path covers all current major planets;
 2. preserve Pluto as an explicitly documented non-VSOP87 special case until a Pluto-specific source path is selected;
-3. schedule a smaller follow-up slice for a release-grade error-envelope audit if the release process needs it.
+3. the release-grade error-envelope audit follow-up is now available through `compare-backends-audit`; remaining work is broader source-backed envelopes and threshold refinement if the release process needs it.
 
 Small preparatory backend-semantics increments have landed: supported planetary results now include deterministic central-difference mean-motion estimates, the compact ELP Moon/node path now exposes matching finite-difference mean-motion estimates, mean lunar apogee and mean lunar perigee are now explicitly supported as mean-only lunar points with finite-difference longitude speeds, direct observer-bearing requests to the geocentric VSOP87/ELP placeholders now fail explicitly instead of implying topocentric support, unsupported apparent requests are rejected rather than silently returning mean values, the initial time/observer policy is documented, caller-supplied UT1-to-TT/scale-offset helpers now exist in the shared type layer without introducing a built-in Delta T model, and `pleiades-core::ChartRequest` now includes explicit caller-supplied time-scale offset conveniences so chart assembly can adopt a chosen conversion policy before houses or body positions are queried. The Sun through Neptune paths now use public IMCCE VSOP87B source files tested against full-file J2000 golden values, and the Earth, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, and Neptune paths now have generated binary coefficient-table slices derived from vendored source files. The validation backend matrix now surfaces per-body VSOP87 source profiles. A parallel release-safety increment tightened compatibility-profile verification so descriptor metadata and repeated exact labels are checked before bundle publication. Release-grade error envelopes remain outstanding; Pluto remains a special case outside VSOP87's major-planet files; true lunar apogee/perigee remain deferred until a source-backed true-point model is selected. The VSOP87 crate now also publishes a deterministic source-audit manifest with byte counts, line counts, parsed term counts, and 64-bit fingerprints for each vendored full-file input, and now includes a maintainer-facing regeneration helper plus binary for rewriting the checked-in generated coefficient blobs from the vendored source text, giving the eventual generated-table path a reproducibility hook without changing runtime behavior.
 

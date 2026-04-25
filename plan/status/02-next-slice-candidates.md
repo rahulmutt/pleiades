@@ -40,7 +40,7 @@ Progress note (2026-04-24): the validation backend matrix now prints canonical J
 
 Progress note (2026-04-24): the VSOP87 validation output now also pairs each source-backed body profile with its source file, provenance, and measured canonical deltas, and the compact summary now reports a body-profile evidence count. The release-facing validation summaries now also distinguish the generated binary Sun-through-Neptune paths from the Pluto mean-element fallback, which makes the current source state clearer while the documented VSOP87 regeneration tooling work remains queued.
 
-Progress note (2026-04-24): the VSOP87 crate now exposes the canonical J2000 body-evidence envelope as public structured data, and the validation layer reuses that shared summary instead of duplicating the same envelope privately. This keeps the release-facing evidence shape consistent between the backend crate and validation reports while broader error-envelope auditing remains queued.
+Progress note (2026-04-24): the VSOP87 crate now exposes the canonical J2000 body-evidence envelope as public structured data, and the validation layer reuses that shared summary instead of duplicating the same envelope privately. This keeps the release-facing evidence shape consistent between the backend crate and validation reports while the new comparison-audit gate and broader source-backed envelope refinement proceed in validation.
 
 Progress note (2026-04-24): the batch API for the source-backed Sun-through-Neptune sample set is now covered by a canonical J2000 regression test, so the current VSOP87 evidence is verified both through single-position queries and through the default `positions` batch path.
 
