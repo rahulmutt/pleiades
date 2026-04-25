@@ -6176,7 +6176,7 @@ mod tests {
         assert!(report.contains("JPL interpolation quality: 21 samples across 10 bodies"));
         assert!(report.contains("Lunar reference evidence"));
         assert!(report.contains(
-            "lunar reference evidence: 6 samples across 5 bodies, epoch range JD 2448724.5..2459278.5"
+            "lunar reference evidence: 8 samples across 5 bodies, epoch range JD 2419914.5..2459278.5"
         ));
         assert!(report.contains("exact J2000 evidence: 5 bodies at JD 2451545.0"));
         assert!(report.contains("Body comparison summaries"));
@@ -6224,7 +6224,7 @@ mod tests {
         assert!(report.contains("@ JD"));
         assert!(report.contains("Lunar reference evidence"));
         assert!(report.contains(
-            "lunar reference evidence: 6 samples across 5 bodies, epoch range JD 2448724.5..2459278.5"
+            "lunar reference evidence: 8 samples across 5 bodies, epoch range JD 2419914.5..2459278.5"
         ));
         assert!(report.contains("Body comparison summaries"));
         assert!(report.contains("Body-class error envelopes"));
