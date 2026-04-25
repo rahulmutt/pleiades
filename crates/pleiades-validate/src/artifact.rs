@@ -1,4 +1,5 @@
 use core::fmt;
+use std::time::Instant as StdInstant;
 
 use crate::{
     compare_backends, default_candidate_backend, ComparisonReport, ComparisonSample,
@@ -63,6 +64,63 @@ pub struct ArtifactBodyInspection {
     pub max_boundary_latitude_delta_deg: f64,
     /// Maximum distance delta observed at any checked boundary.
     pub max_boundary_distance_delta_au: Option<f64>,
+}
+
+/// Benchmark summary for decoding the packaged compressed artifact.
+#[derive(Clone, Debug)]
+pub struct ArtifactDecodeBenchmarkReport {
+    /// Human-readable label from the artifact header.
+    pub artifact_label: String,
+    /// Source/provenance summary from the artifact header.
+    pub source: String,
+    /// Number of benchmark rounds.
+    pub rounds: usize,
+    /// Number of artifact decodes per round.
+    pub sample_count: usize,
+    /// Size of the encoded artifact in bytes.
+    pub encoded_bytes: usize,
+    /// Total elapsed time for the decode path.
+    pub elapsed: std::time::Duration,
+}
+
+impl ArtifactDecodeBenchmarkReport {
+    /// Returns the average number of nanoseconds per artifact decode.
+    pub fn nanoseconds_per_decode(&self) -> f64 {
+        let total_decodes = (self.rounds * self.sample_count) as f64;
+        if total_decodes == 0.0 {
+            return 0.0;
+        }
+
+        self.elapsed.as_secs_f64() * 1_000_000_000.0 / total_decodes
+    }
+
+    /// Returns the average throughput in artifact decodes per second.
+    pub fn decodes_per_second(&self) -> f64 {
+        let total_decodes = (self.rounds * self.sample_count) as f64;
+        if self.elapsed.is_zero() || total_decodes == 0.0 {
+            return 0.0;
+        }
+
+        total_decodes / self.elapsed.as_secs_f64()
+    }
+}
+
+impl fmt::Display for ArtifactDecodeBenchmarkReport {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "Artifact decode benchmark report")?;
+        writeln!(f, "Artifact: {}", self.artifact_label)?;
+        writeln!(f, "Source: {}", self.source)?;
+        writeln!(f, "Rounds: {}", self.rounds)?;
+        writeln!(f, "Decodes per round: {}", self.sample_count)?;
+        writeln!(f, "Encoded bytes: {}", self.encoded_bytes)?;
+        writeln!(f, "Decode elapsed: {:?}", self.elapsed)?;
+        writeln!(
+            f,
+            "Nanoseconds per decode: {:.2}",
+            self.nanoseconds_per_decode()
+        )?;
+        writeln!(f, "Decodes per second: {:.2}", self.decodes_per_second())
+    }
 }
 
 impl ArtifactInspectionReport {
@@ -139,6 +197,27 @@ pub fn render_artifact_summary() -> Result<String, ArtifactInspectionError> {
     let encoded = artifact.encode()?;
     let report = ArtifactInspectionReport::from_artifact(artifact, encoded.len())?;
     Ok(render_artifact_summary_text(&report))
+}
+
+pub(crate) fn benchmark_packaged_artifact_decode(
+    rounds: usize,
+) -> Result<ArtifactDecodeBenchmarkReport, ArtifactInspectionError> {
+    let artifact = packaged_artifact();
+    let encoded = artifact.encode()?;
+    let start = StdInstant::now();
+    for _ in 0..rounds {
+        std::hint::black_box(CompressedArtifact::decode(&encoded)?);
+    }
+    let elapsed = start.elapsed();
+
+    Ok(ArtifactDecodeBenchmarkReport {
+        artifact_label: artifact.header.generation_label.clone(),
+        source: artifact.header.source.clone(),
+        rounds,
+        sample_count: 1,
+        encoded_bytes: encoded.len(),
+        elapsed,
+    })
 }
 
 pub(crate) fn packaged_artifact_corpus() -> ValidationCorpus {

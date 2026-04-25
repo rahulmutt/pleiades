@@ -19,7 +19,7 @@ mod house_validation;
 
 pub use artifact::{
     render_artifact_report, render_artifact_summary, ArtifactBodyInspection,
-    ArtifactInspectionReport,
+    ArtifactDecodeBenchmarkReport, ArtifactInspectionReport,
 };
 pub use chart_benchmark::{
     benchmark_chart_backend, chart_benchmark_corpus_summary, ChartBenchmarkReport,
@@ -870,6 +870,8 @@ pub struct ValidationReport {
     pub packaged_benchmark_corpus: CorpusSummary,
     /// Chart-benchmark corpus summary.
     pub chart_benchmark_corpus: CorpusSummary,
+    /// Packaged-artifact decode benchmark.
+    pub artifact_decode_benchmark: ArtifactDecodeBenchmarkReport,
     /// House-validation corpus summary.
     pub house_validation: HouseValidationReport,
     /// Comparison output.
@@ -1261,6 +1263,40 @@ impl fmt::Display for ValidationReport {
             f,
             "  batch throughput: {:.2} req/s",
             self.packaged_benchmark.batch_requests_per_second()
+        )?;
+        writeln!(f)?;
+        writeln!(f, "Packaged artifact decode benchmark")?;
+        writeln!(
+            f,
+            "  artifact: {}",
+            self.artifact_decode_benchmark.artifact_label
+        )?;
+        writeln!(f, "  source: {}", self.artifact_decode_benchmark.source)?;
+        writeln!(f, "  rounds: {}", self.artifact_decode_benchmark.rounds)?;
+        writeln!(
+            f,
+            "  decodes per round: {}",
+            self.artifact_decode_benchmark.sample_count
+        )?;
+        writeln!(
+            f,
+            "  encoded bytes: {}",
+            self.artifact_decode_benchmark.encoded_bytes
+        )?;
+        writeln!(
+            f,
+            "  decode elapsed: {:?}",
+            self.artifact_decode_benchmark.elapsed
+        )?;
+        writeln!(
+            f,
+            "  ns/decode: {}",
+            format_ns(self.artifact_decode_benchmark.nanoseconds_per_decode())
+        )?;
+        writeln!(
+            f,
+            "  decodes per second: {:.2} decodes/s",
+            self.artifact_decode_benchmark.decodes_per_second()
         )?;
         writeln!(f)?;
         writeln!(f, "Chart benchmark")?;
@@ -3751,6 +3787,10 @@ fn build_validation_report(rounds: usize) -> Result<ValidationReport, EphemerisE
     let reference_benchmark = benchmark_backend(&reference, &comparison_corpus, rounds)?;
     let candidate_benchmark = benchmark_backend(&candidate, &benchmark_corpus, rounds)?;
     let packaged_benchmark = benchmark_backend(&packaged, &packaged_benchmark_corpus, rounds)?;
+    let artifact_decode_benchmark =
+        artifact::benchmark_packaged_artifact_decode(rounds).map_err(|error| {
+            EphemerisError::new(EphemerisErrorKind::MissingDataset, error.to_string())
+        })?;
     let chart_benchmark = benchmark_chart_backend(default_candidate_backend(), rounds)?;
     let archived_regressions = comparison.regression_archive();
 
@@ -3759,6 +3799,7 @@ fn build_validation_report(rounds: usize) -> Result<ValidationReport, EphemerisE
         benchmark_corpus: benchmark_corpus.summary(),
         packaged_benchmark_corpus: packaged_benchmark_corpus.summary(),
         chart_benchmark_corpus,
+        artifact_decode_benchmark,
         house_validation: house_validation_report(),
         comparison,
         archived_regressions,
@@ -4140,8 +4181,15 @@ pub fn render_benchmark_report(rounds: usize) -> Result<String, EphemerisError> 
     let corpus = benchmark_corpus();
     let candidate = default_candidate_backend();
     let backend_report = benchmark_backend(&candidate, &corpus, rounds)?;
+    let artifact_report =
+        artifact::benchmark_packaged_artifact_decode(rounds).map_err(|error| {
+            EphemerisError::new(EphemerisErrorKind::MissingDataset, error.to_string())
+        })?;
     let chart_report = benchmark_chart_backend(default_candidate_backend(), rounds)?;
-    Ok(format!("{}\n\n{}", backend_report, chart_report))
+    Ok(format!(
+        "{}\n\n{}\n\n{}",
+        backend_report, artifact_report, chart_report
+    ))
 }
 
 fn vsop87_canonical_body_evidence() -> Option<Vec<pleiades_vsop87::Vsop87CanonicalBodyEvidence>> {
@@ -4660,6 +4708,43 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         text,
         "  batch throughput: {:.2} req/s",
         report.packaged_benchmark.batch_requests_per_second()
+    );
+    let _ = writeln!(text);
+    let _ = writeln!(text, "Packaged artifact decode benchmark");
+    let _ = writeln!(
+        text,
+        "  artifact: {}",
+        report.artifact_decode_benchmark.artifact_label
+    );
+    let _ = writeln!(
+        text,
+        "  source: {}",
+        report.artifact_decode_benchmark.source
+    );
+    let _ = writeln!(
+        text,
+        "  rounds: {}",
+        report.artifact_decode_benchmark.rounds
+    );
+    let _ = writeln!(
+        text,
+        "  decodes per round: {}",
+        report.artifact_decode_benchmark.sample_count
+    );
+    let _ = writeln!(
+        text,
+        "  encoded bytes: {}",
+        report.artifact_decode_benchmark.encoded_bytes
+    );
+    let _ = writeln!(
+        text,
+        "  ns/decode: {}",
+        format_ns(report.artifact_decode_benchmark.nanoseconds_per_decode())
+    );
+    let _ = writeln!(
+        text,
+        "  decodes per second: {:.2} decodes/s",
+        report.artifact_decode_benchmark.decodes_per_second()
     );
     let _ = writeln!(text);
     let _ = writeln!(text, "Chart benchmark");
@@ -7101,6 +7186,10 @@ mod tests {
         assert!(report.contains("Nanoseconds per request (single):"));
         assert!(report.contains("Nanoseconds per request (batch):"));
         assert!(report.contains("Batch throughput:"));
+        assert!(report.contains("Artifact decode benchmark report"));
+        assert!(report.contains("Encoded bytes:"));
+        assert!(report.contains("Nanoseconds per decode:"));
+        assert!(report.contains("Decodes per second:"));
         assert!(report.contains("Chart benchmark report"));
         assert!(report.contains("Representative chart validation scenarios"));
         assert!(report.contains("Chart elapsed:"));
@@ -7148,6 +7237,7 @@ mod tests {
         assert!(report.contains("estimated corpus heap footprint:"));
         assert!(report.contains("Chart benchmark corpus"));
         assert!(report.contains("Representative chart validation scenarios"));
+        assert!(report.contains("Packaged artifact decode benchmark"));
         assert!(report.contains("Chart benchmark"));
         assert!(report.contains("House validation corpus"));
         assert!(report.contains("Mid-latitude reference chart"));
@@ -7381,6 +7471,7 @@ mod tests {
         assert!(report.contains("Reference benchmark"));
         assert!(report.contains("Candidate benchmark"));
         assert!(report.contains("Packaged-data benchmark"));
+        assert!(report.contains("Packaged artifact decode benchmark"));
         assert!(report.contains("Chart benchmark"));
     }
 
@@ -7426,6 +7517,7 @@ mod tests {
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
         assert!(rendered.contains("Packaged-artifact profile"));
         assert!(rendered.contains("Benchmark summaries"));
+        assert!(rendered.contains("Packaged artifact decode benchmark"));
 
         let validation_report_summary =
             render_cli(&["validation-report-summary", "--rounds", "10"])
@@ -7451,6 +7543,7 @@ mod tests {
         assert!(validation_report_summary
             .contains("lookup epoch policy=TT-grid retag without relativistic correction"));
         assert!(validation_report_summary.contains("Benchmark summaries"));
+        assert!(validation_report_summary.contains("Packaged artifact decode benchmark"));
     }
 
     #[test]
