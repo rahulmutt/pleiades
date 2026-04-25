@@ -4294,6 +4294,8 @@ fn render_backend_matrix_summary_text() -> String {
     let mut offline_count = 0usize;
     let mut batch_count = 0usize;
     let mut native_sidereal_count = 0usize;
+    let mut bounded_nominal_range_count = 0usize;
+    let mut open_ended_nominal_range_count = 0usize;
     let mut exact_accuracy_count = 0usize;
     let mut high_accuracy_count = 0usize;
     let mut moderate_accuracy_count = 0usize;
@@ -4315,6 +4317,13 @@ fn render_backend_matrix_summary_text() -> String {
         offline_count += usize::from(entry.metadata.offline);
         batch_count += usize::from(entry.metadata.capabilities.batch);
         native_sidereal_count += usize::from(entry.metadata.capabilities.native_sidereal);
+        if entry.metadata.nominal_range.start.is_some()
+            || entry.metadata.nominal_range.end.is_some()
+        {
+            bounded_nominal_range_count += 1;
+        } else {
+            open_ended_nominal_range_count += 1;
+        }
         match entry.metadata.accuracy {
             AccuracyClass::Exact => exact_accuracy_count += 1,
             AccuracyClass::High => high_accuracy_count += 1,
@@ -4377,6 +4386,11 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str("Native sidereal backends: ");
     text.push_str(&native_sidereal_count.to_string());
+    text.push('\n');
+    text.push_str("Nominal ranges: bounded: ");
+    text.push_str(&bounded_nominal_range_count.to_string());
+    text.push_str(", open-ended: ");
+    text.push_str(&open_ended_nominal_range_count.to_string());
     text.push('\n');
     text.push_str("Accuracy classes: Exact: ");
     text.push_str(&exact_accuracy_count.to_string());
@@ -7540,6 +7554,7 @@ mod tests {
         assert!(rendered.contains("CompressedData: 1"));
         assert!(rendered.contains("Composite: 1"));
         assert!(rendered.contains("Implementation statuses:"));
+        assert!(rendered.contains("Nominal ranges: bounded: 2, open-ended: 3"));
         assert!(rendered.contains("fixture-reference: 1"));
         assert!(rendered.contains("partial-source-backed: 1"));
         assert!(rendered.contains("preliminary-algorithm: 1"));
