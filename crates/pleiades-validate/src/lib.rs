@@ -256,18 +256,24 @@ pub struct ComparisonSummary {
     pub max_longitude_delta_deg: f64,
     /// Mean absolute longitude delta.
     pub mean_longitude_delta_deg: f64,
+    /// Root-mean-square absolute longitude delta.
+    pub rms_longitude_delta_deg: f64,
     /// Body with the maximum absolute latitude delta.
     pub max_latitude_delta_body: Option<CelestialBody>,
     /// Maximum absolute latitude delta.
     pub max_latitude_delta_deg: f64,
     /// Mean absolute latitude delta.
     pub mean_latitude_delta_deg: f64,
+    /// Root-mean-square absolute latitude delta.
+    pub rms_latitude_delta_deg: f64,
     /// Body with the maximum absolute distance delta.
     pub max_distance_delta_body: Option<CelestialBody>,
     /// Maximum absolute distance delta.
     pub max_distance_delta_au: Option<f64>,
     /// Mean absolute distance delta.
     pub mean_distance_delta_au: Option<f64>,
+    /// Root-mean-square absolute distance delta.
+    pub rms_distance_delta_au: Option<f64>,
 }
 
 /// Summary statistics for a single body within a comparison run.
@@ -283,18 +289,24 @@ pub struct BodyComparisonSummary {
     pub max_longitude_delta_deg: f64,
     /// Mean absolute longitude delta.
     pub mean_longitude_delta_deg: f64,
+    /// Root-mean-square absolute longitude delta.
+    pub rms_longitude_delta_deg: f64,
     /// Body with the maximum absolute latitude delta.
     pub max_latitude_delta_body: Option<CelestialBody>,
     /// Maximum absolute latitude delta.
     pub max_latitude_delta_deg: f64,
     /// Mean absolute latitude delta.
     pub mean_latitude_delta_deg: f64,
+    /// Root-mean-square absolute latitude delta.
+    pub rms_latitude_delta_deg: f64,
     /// Body with the maximum absolute distance delta.
     pub max_distance_delta_body: Option<CelestialBody>,
     /// Maximum absolute distance delta.
     pub max_distance_delta_au: Option<f64>,
     /// Mean absolute distance delta.
     pub mean_distance_delta_au: Option<f64>,
+    /// Root-mean-square absolute distance delta.
+    pub rms_distance_delta_au: Option<f64>,
 }
 
 /// Expected comparison tolerance for a body or body class.
@@ -1441,6 +1453,7 @@ pub fn compare_backends(
     let mut samples = Vec::with_capacity(corpus.requests.len());
     let mut summary = ComparisonSummary::default();
     let mut distance_sum = 0.0;
+    let mut distance_sum_sq = 0.0;
     let mut distance_count = 0usize;
 
     for request in &corpus.requests {
@@ -1457,6 +1470,7 @@ pub fn compare_backends(
 
         if let Some(delta) = distance_delta_au {
             distance_sum += delta;
+            distance_sum_sq += delta * delta;
             distance_count += 1;
             match summary.max_distance_delta_au {
                 Some(current) if delta < current => {}
@@ -1492,10 +1506,23 @@ pub fn compare_backends(
     if summary.sample_count > 0 {
         let sample_count = summary.sample_count as f64;
         summary.mean_longitude_delta_deg /= sample_count;
+        summary.rms_longitude_delta_deg = (samples
+            .iter()
+            .map(|sample| sample.longitude_delta_deg * sample.longitude_delta_deg)
+            .sum::<f64>()
+            / sample_count)
+            .sqrt();
         summary.mean_latitude_delta_deg /= sample_count;
+        summary.rms_latitude_delta_deg = (samples
+            .iter()
+            .map(|sample| sample.latitude_delta_deg * sample.latitude_delta_deg)
+            .sum::<f64>()
+            / sample_count)
+            .sqrt();
     }
     if distance_count > 0 {
         summary.mean_distance_delta_au = Some(distance_sum / distance_count as f64);
+        summary.rms_distance_delta_au = Some((distance_sum_sq / distance_count as f64).sqrt());
     }
 
     Ok(ComparisonReport {
@@ -3528,18 +3555,25 @@ fn format_comparison_envelope_for_report(summary: &ComparisonSummary) -> String 
         .mean_distance_delta_au
         .map(|value| format!("{value:.12} AU"))
         .unwrap_or_else(|| "n/a".to_string());
+    let rms_distance = summary
+        .rms_distance_delta_au
+        .map(|value| format!("{value:.12} AU"))
+        .unwrap_or_else(|| "n/a".to_string());
 
     format!(
-        "max longitude delta: {:.12}°{}, mean longitude delta: {:.12}°, max latitude delta: {:.12}°{}, mean latitude delta: {:.12}°, max distance delta: {}{}, mean distance delta: {}",
+        "max longitude delta: {:.12}°{}, mean longitude delta: {:.12}°, rms longitude delta: {:.12}°, max latitude delta: {:.12}°{}, mean latitude delta: {:.12}°, rms latitude delta: {:.12}°, max distance delta: {}{}, mean distance delta: {}, rms distance delta: {}",
         summary.max_longitude_delta_deg,
         format_summary_body(&summary.max_longitude_delta_body),
         summary.mean_longitude_delta_deg,
+        summary.rms_longitude_delta_deg,
         summary.max_latitude_delta_deg,
         format_summary_body(&summary.max_latitude_delta_body),
         summary.mean_latitude_delta_deg,
+        summary.rms_latitude_delta_deg,
         max_distance,
         format_summary_body(&summary.max_distance_delta_body),
         mean_distance,
+        rms_distance,
     )
 }
 
@@ -3865,6 +3899,19 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
             .unwrap_or_else(|| "n/a".to_string()),
         format_summary_body(&report.comparison.summary.max_distance_delta_body)
     );
+    let _ = writeln!(
+        text,
+        "  rms longitude delta: {:.12}°",
+        report.comparison.summary.rms_longitude_delta_deg
+    );
+    let _ = writeln!(
+        text,
+        "  rms latitude delta: {:.12}°",
+        report.comparison.summary.rms_latitude_delta_deg
+    );
+    if let Some(value) = report.comparison.summary.rms_distance_delta_au {
+        let _ = writeln!(text, "  rms distance delta: {:.12} AU", value);
+    }
     let _ = writeln!(text, "  notable regressions: {}", comparison_regressions);
     let _ = writeln!(
         text,
@@ -4629,8 +4676,11 @@ struct BodyComparisonAccumulator {
     body: CelestialBody,
     sample_count: usize,
     longitude_sum_deg: f64,
+    longitude_sum_sq_deg: f64,
     latitude_sum_deg: f64,
+    latitude_sum_sq_deg: f64,
     distance_sum_au: f64,
+    distance_sum_sq_au: f64,
     distance_count: usize,
     max_longitude_delta_deg: f64,
     max_longitude_delta_body: Option<CelestialBody>,
@@ -4646,8 +4696,11 @@ impl BodyComparisonAccumulator {
             body,
             sample_count: 0,
             longitude_sum_deg: 0.0,
+            longitude_sum_sq_deg: 0.0,
             latitude_sum_deg: 0.0,
+            latitude_sum_sq_deg: 0.0,
             distance_sum_au: 0.0,
+            distance_sum_sq_au: 0.0,
             distance_count: 0,
             max_longitude_delta_deg: 0.0,
             max_longitude_delta_body: None,
@@ -4661,17 +4714,20 @@ impl BodyComparisonAccumulator {
     fn push(&mut self, sample: &ComparisonSample) {
         self.sample_count += 1;
         self.longitude_sum_deg += sample.longitude_delta_deg;
+        self.longitude_sum_sq_deg += sample.longitude_delta_deg * sample.longitude_delta_deg;
         if sample.longitude_delta_deg >= self.max_longitude_delta_deg {
             self.max_longitude_delta_deg = sample.longitude_delta_deg;
             self.max_longitude_delta_body = Some(sample.body.clone());
         }
         self.latitude_sum_deg += sample.latitude_delta_deg;
+        self.latitude_sum_sq_deg += sample.latitude_delta_deg * sample.latitude_delta_deg;
         if sample.latitude_delta_deg >= self.max_latitude_delta_deg {
             self.max_latitude_delta_deg = sample.latitude_delta_deg;
             self.max_latitude_delta_body = Some(sample.body.clone());
         }
         if let Some(delta) = sample.distance_delta_au {
             self.distance_sum_au += delta;
+            self.distance_sum_sq_au += delta * delta;
             self.distance_count += 1;
             match self.max_distance_delta_au {
                 Some(current) if delta < current => {}
@@ -4695,6 +4751,11 @@ impl BodyComparisonAccumulator {
             } else {
                 0.0
             },
+            rms_longitude_delta_deg: if self.sample_count > 0 {
+                (self.longitude_sum_sq_deg / sample_count).sqrt()
+            } else {
+                0.0
+            },
             max_latitude_delta_body: self.max_latitude_delta_body,
             max_latitude_delta_deg: self.max_latitude_delta_deg,
             mean_latitude_delta_deg: if self.sample_count > 0 {
@@ -4702,10 +4763,20 @@ impl BodyComparisonAccumulator {
             } else {
                 0.0
             },
+            rms_latitude_delta_deg: if self.sample_count > 0 {
+                (self.latitude_sum_sq_deg / sample_count).sqrt()
+            } else {
+                0.0
+            },
             max_distance_delta_body: self.max_distance_delta_body,
             max_distance_delta_au: self.max_distance_delta_au,
             mean_distance_delta_au: if self.distance_count > 0 {
                 Some(self.distance_sum_au / self.distance_count as f64)
+            } else {
+                None
+            },
+            rms_distance_delta_au: if self.distance_count > 0 {
+                Some((self.distance_sum_sq_au / self.distance_count as f64).sqrt())
             } else {
                 None
             },
@@ -5394,6 +5465,11 @@ fn write_comparison_summary(
     )?;
     writeln!(
         f,
+        "  rms longitude delta: {:.12}°",
+        summary.rms_longitude_delta_deg
+    )?;
+    writeln!(
+        f,
         "  max latitude delta: {:.12}°",
         summary.max_latitude_delta_deg
     )?;
@@ -5402,11 +5478,19 @@ fn write_comparison_summary(
         "  mean latitude delta: {:.12}°",
         summary.mean_latitude_delta_deg
     )?;
+    writeln!(
+        f,
+        "  rms latitude delta: {:.12}°",
+        summary.rms_latitude_delta_deg
+    )?;
     if let Some(value) = summary.max_distance_delta_au {
         writeln!(f, "  max distance delta: {:.12} AU", value)?;
     }
     if let Some(value) = summary.mean_distance_delta_au {
         writeln!(f, "  mean distance delta: {:.12} AU", value)?;
+    }
+    if let Some(value) = summary.rms_distance_delta_au {
+        writeln!(f, "  rms distance delta: {:.12} AU", value)?;
     }
     Ok(())
 }
@@ -5424,7 +5508,7 @@ fn write_body_comparison_summaries(
     for summary in summaries {
         writeln!(
             f,
-            "  {}: samples={}, max Δlon={:.12}°{}, mean Δlon={:.12}°, max Δlat={:.12}°{}, mean Δlat={:.12}°, max Δdist={}{}, mean Δdist={}",
+            "  {}: samples={}, max Δlon={:.12}°{}, mean Δlon={:.12}°, rms Δlon={:.12}°, max Δlat={:.12}°{}, mean Δlat={:.12}°, rms Δlat={:.12}°, max Δdist={}{}, mean Δdist={}, rms Δdist={}",
             summary.body,
             summary.sample_count,
             summary.max_longitude_delta_deg,
@@ -5434,6 +5518,7 @@ fn write_body_comparison_summaries(
                 .map(|body| format!(" ({body})"))
                 .unwrap_or_default(),
             summary.mean_longitude_delta_deg,
+            summary.rms_longitude_delta_deg,
             summary.max_latitude_delta_deg,
             summary
                 .max_latitude_delta_body
@@ -5441,6 +5526,7 @@ fn write_body_comparison_summaries(
                 .map(|body| format!(" ({body})"))
                 .unwrap_or_default(),
             summary.mean_latitude_delta_deg,
+            summary.rms_latitude_delta_deg,
             summary
                 .max_distance_delta_au
                 .map(|value| format!("{value:.12} AU"))
@@ -5452,6 +5538,10 @@ fn write_body_comparison_summaries(
                 .unwrap_or_default(),
             summary
                 .mean_distance_delta_au
+                .map(|value| format!("{value:.12} AU"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            summary
+                .rms_distance_delta_au
                 .map(|value| format!("{value:.12} AU"))
                 .unwrap_or_else(|| "n/a".to_string())
         )?;
@@ -6621,6 +6711,9 @@ mod tests {
         assert!(report.contains("Comparison corpus"));
         assert!(report.contains("epoch labels: JD 2378499.0 (TT)"));
         assert!(report.contains("Comparison summary"));
+        assert!(report.contains("rms longitude delta:"));
+        assert!(report.contains("rms latitude delta:"));
+        assert!(report.contains("rms distance delta:"));
         assert!(report.contains(&format!(
             "max longitude delta: {:.12}° ({})",
             validation_report.comparison.summary.max_longitude_delta_deg,
@@ -7386,7 +7479,9 @@ mod tests {
         assert!(rendered.contains("Compatibility caveats:"));
         assert!(rendered.contains("Comparison envelope:"));
         assert!(rendered.contains("max longitude delta:"));
+        assert!(rendered.contains("rms longitude delta:"));
         assert!(rendered.contains("max latitude delta:"));
+        assert!(rendered.contains("rms latitude delta:"));
         assert!(rendered.contains("Validation evidence:"));
         assert!(rendered.contains("comparison samples"));
         assert!(rendered.contains("notable regressions"));

@@ -97,6 +97,8 @@ Latest progress (2026-04-25): the VSOP87 and compact ELP batch-path regressions 
 
 Latest progress (2026-04-25): the release bundle now also includes a compact `workspace-audit-summary` artifact and manifest entry, so the pure-Rust/native-dependency audit is surfaced in the same bundle family as the compatibility, backend, validation, and artifact reports.
 
+Latest progress (2026-04-25): the validation comparison envelope now also reports RMS longitude, latitude, and distance deltas in the full report, compact summary, and body-by-body envelope output, so the broader release-grade error envelope includes spread metrics in addition to maxima and means.
+
 Active gaps:
 
 - broader release-grade error envelopes and tolerance tables beyond the new comparison-audit gate;
