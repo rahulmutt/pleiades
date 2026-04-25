@@ -125,6 +125,20 @@ impl ChartRequest {
         Ok(self)
     }
 
+    /// Converts the chart instant from TT to TDB using a caller-supplied
+    /// signed offset.
+    ///
+    /// This convenience method mirrors [`Instant::tdb_from_tt_signed`] so
+    /// chart callers can keep the chosen relativistic policy explicit when the
+    /// TDB-TT correction is negative at the chosen epoch.
+    pub fn with_tdb_from_tt_signed(
+        mut self,
+        offset_seconds: f64,
+    ) -> Result<Self, TimeScaleConversionError> {
+        self.instant = self.instant.tdb_from_tt_signed(offset_seconds)?;
+        Ok(self)
+    }
+
     /// Converts the chart instant from TDB to TT using a caller-supplied
     /// signed offset.
     ///
@@ -155,6 +169,23 @@ impl ChartRequest {
         Ok(self)
     }
 
+    /// Converts the chart instant from UT1 to TDB using caller-supplied
+    /// TT-UT1 and signed TDB-TT offsets.
+    ///
+    /// This convenience method mirrors [`Instant::tdb_from_ut1_signed`] so
+    /// chart callers can prepare a TDB request surface from dynamical-time
+    /// inputs when the TDB-TT correction is negative at the chosen epoch.
+    pub fn with_tdb_from_ut1_signed(
+        mut self,
+        tt_offset: Duration,
+        tdb_offset_seconds: f64,
+    ) -> Result<Self, TimeScaleConversionError> {
+        self.instant = self
+            .instant
+            .tdb_from_ut1_signed(tt_offset, tdb_offset_seconds)?;
+        Ok(self)
+    }
+
     /// Converts the chart instant from UTC to TDB using caller-supplied
     /// TT-UTC and TDB-TT offsets.
     ///
@@ -168,6 +199,23 @@ impl ChartRequest {
         tdb_offset: Duration,
     ) -> Result<Self, TimeScaleConversionError> {
         self.instant = self.instant.tdb_from_utc(tt_offset, tdb_offset)?;
+        Ok(self)
+    }
+
+    /// Converts the chart instant from UTC to TDB using caller-supplied
+    /// TT-UTC and signed TDB-TT offsets.
+    ///
+    /// This convenience method mirrors [`Instant::tdb_from_utc_signed`] so
+    /// chart callers can prepare a TDB request surface from civil-time inputs
+    /// when the TDB-TT correction is negative at the chosen epoch.
+    pub fn with_tdb_from_utc_signed(
+        mut self,
+        tt_offset: Duration,
+        tdb_offset_seconds: f64,
+    ) -> Result<Self, TimeScaleConversionError> {
+        self.instant = self
+            .instant
+            .tdb_from_utc_signed(tt_offset, tdb_offset_seconds)?;
         Ok(self)
     }
 
@@ -1854,6 +1902,20 @@ mod tests {
     }
 
     #[test]
+    fn chart_request_can_convert_tt_to_tdb_with_signed_offset() {
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Tt,
+        ))
+        .with_tdb_from_tt_signed(-0.001_657)
+        .expect("TT chart request should accept signed TDB offsets");
+
+        assert_eq!(request.instant.scale, TimeScale::Tdb);
+        let expected = 2_451_545.0 - 0.001_657 / 86_400.0;
+        assert!((request.instant.julian_day.days() - expected).abs() < 1e-9);
+    }
+
+    #[test]
     fn chart_request_can_convert_tdb_to_tt() {
         let request = ChartRequest::new(Instant::new(
             pleiades_types::JulianDay::from_days(2_451_545.0),
@@ -1885,6 +1947,20 @@ mod tests {
     }
 
     #[test]
+    fn chart_request_can_convert_ut1_to_tdb_with_signed_offset() {
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Ut1,
+        ))
+        .with_tdb_from_ut1_signed(Duration::from_secs_f64(64.184), -0.001_657)
+        .expect("UT1 chart request should accept signed TDB offsets");
+
+        assert_eq!(request.instant.scale, TimeScale::Tdb);
+        let expected = 2_451_545.0 + (64.184 - 0.001_657) / 86_400.0;
+        assert!((request.instant.julian_day.days() - expected).abs() < 1e-9);
+    }
+
+    #[test]
     fn chart_request_can_convert_utc_to_tdb() {
         let request = ChartRequest::new(Instant::new(
             pleiades_types::JulianDay::from_days(2_451_545.0),
@@ -1898,6 +1974,20 @@ mod tests {
 
         assert_eq!(request.instant.scale, TimeScale::Tdb);
         let expected = 2_451_545.0 + (64.184 + 0.001_657) / 86_400.0;
+        assert!((request.instant.julian_day.days() - expected).abs() < 1e-9);
+    }
+
+    #[test]
+    fn chart_request_can_convert_utc_to_tdb_with_signed_offset() {
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Utc,
+        ))
+        .with_tdb_from_utc_signed(Duration::from_secs_f64(64.184), -0.001_657)
+        .expect("UTC chart request should accept signed TDB offsets");
+
+        assert_eq!(request.instant.scale, TimeScale::Tdb);
+        let expected = 2_451_545.0 + (64.184 - 0.001_657) / 86_400.0;
         assert!((request.instant.julian_day.days() - expected).abs() < 1e-9);
     }
 

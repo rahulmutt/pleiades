@@ -300,9 +300,10 @@ impl Instant {
     /// Converts a TT-tagged instant to TDB using a caller-supplied offset.
     ///
     /// `offset` must be the already-chosen `TDB - TT` offset in SI seconds.
-    /// The helper intentionally does not model relativistic terms by itself;
-    /// it only makes a caller-supplied TT-to-TDB policy explicit and
-    /// reproducible for applications that need a TDB-tagged request surface.
+    /// For signed TDB-TT policies, use [`Instant::tdb_from_tt_signed`]. The
+    /// helper intentionally does not model relativistic terms by itself; it
+    /// only makes a caller-supplied TT-to-TDB policy explicit and reproducible
+    /// for applications that need a TDB-tagged request surface.
     pub fn tdb_from_tt(self, offset: Duration) -> Result<Self, TimeScaleConversionError> {
         if self.scale != TimeScale::Tt {
             return Err(TimeScaleConversionError::expected(
@@ -312,6 +313,23 @@ impl Instant {
         }
 
         Ok(self.with_time_scale_offset(TimeScale::Tdb, offset.as_secs_f64()))
+    }
+
+    /// Converts a TT-tagged instant to TDB using a caller-supplied signed offset.
+    ///
+    /// `offset_seconds` must be the already-chosen signed `TDB - TT` offset in
+    /// SI seconds. The helper intentionally does not model relativistic terms by
+    /// itself; it only makes a caller-supplied TT-to-TDB policy explicit and
+    /// reproducible for applications that need a TDB-tagged request surface.
+    pub fn tdb_from_tt_signed(self, offset_seconds: f64) -> Result<Self, TimeScaleConversionError> {
+        if self.scale != TimeScale::Tt {
+            return Err(TimeScaleConversionError::expected(
+                TimeScale::Tt,
+                self.scale,
+            ));
+        }
+
+        Ok(self.with_time_scale_offset(TimeScale::Tdb, offset_seconds))
     }
 
     /// Converts a TDB-tagged instant to TT using a caller-supplied signed offset.
@@ -348,6 +366,24 @@ impl Instant {
         tt.tdb_from_tt(tdb_offset)
     }
 
+    /// Converts a UT1-tagged instant to TDB using caller-supplied TT-UT1 and
+    /// signed TDB-TT offsets.
+    ///
+    /// `tt_offset` must be the already-chosen `TT - UT1` offset in SI
+    /// seconds. `tdb_offset_seconds` must be the already-chosen signed
+    /// `TDB - TT` offset in SI seconds. The helper intentionally does not
+    /// model leap seconds, DUT1, or relativistic terms by itself; it only
+    /// composes caller-supplied policy steps into a reproducible TDB-tagged
+    /// instant.
+    pub fn tdb_from_ut1_signed(
+        self,
+        tt_offset: Duration,
+        tdb_offset_seconds: f64,
+    ) -> Result<Self, TimeScaleConversionError> {
+        let tt = self.tt_from_ut1(tt_offset)?;
+        tt.tdb_from_tt_signed(tdb_offset_seconds)
+    }
+
     /// Converts a UTC-tagged instant to TDB using caller-supplied TT-UTC and
     /// TDB-TT offsets.
     ///
@@ -363,6 +399,23 @@ impl Instant {
     ) -> Result<Self, TimeScaleConversionError> {
         let tt = self.tt_from_utc(tt_offset)?;
         tt.tdb_from_tt(tdb_offset)
+    }
+
+    /// Converts a UTC-tagged instant to TDB using caller-supplied TT-UTC and
+    /// signed TDB-TT offsets.
+    ///
+    /// `tt_offset` must be the already-chosen `TT - UTC` offset in SI seconds.
+    /// `tdb_offset_seconds` must be the already-chosen signed `TDB - TT`
+    /// offset in SI seconds. The helper intentionally does not model leap
+    /// seconds, DUT1, or relativistic terms by itself; it only composes
+    /// caller-supplied policy steps into a reproducible TDB-tagged instant.
+    pub fn tdb_from_utc_signed(
+        self,
+        tt_offset: Duration,
+        tdb_offset_seconds: f64,
+    ) -> Result<Self, TimeScaleConversionError> {
+        let tt = self.tt_from_utc(tt_offset)?;
+        tt.tdb_from_tt_signed(tdb_offset_seconds)
     }
 }
 
@@ -1185,6 +1238,18 @@ mod tests {
     }
 
     #[test]
+    fn caller_supplied_time_scale_offsets_can_convert_tt_to_tdb_with_signed_offset() {
+        let tt = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+        let tdb = tt
+            .tdb_from_tt_signed(-0.001_657)
+            .expect("TT to TDB conversion should accept signed TT input");
+
+        assert_eq!(tdb.scale, TimeScale::Tdb);
+        let expected = 2_451_545.0 - 0.001_657 / 86_400.0;
+        assert!((tdb.julian_day.days() - expected).abs() < 1e-12);
+    }
+
+    #[test]
     fn caller_supplied_time_scale_offsets_can_convert_tdb_to_tt() {
         let tdb = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb);
         let tt = tdb
@@ -1212,6 +1277,18 @@ mod tests {
     }
 
     #[test]
+    fn caller_supplied_time_scale_offsets_can_convert_utc_to_tdb_with_signed_offset() {
+        let utc = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Utc);
+        let tdb = utc
+            .tdb_from_utc_signed(Duration::from_secs_f64(64.184), -0.001_657)
+            .expect("UTC to TDB conversion should accept signed UTC input");
+
+        assert_eq!(tdb.scale, TimeScale::Tdb);
+        let expected = 2_451_545.0 + (64.184 - 0.001_657) / 86_400.0;
+        assert!((tdb.julian_day.days() - expected).abs() < 1e-12);
+    }
+
+    #[test]
     fn caller_supplied_time_scale_offsets_can_convert_ut1_to_tdb() {
         let ut1 = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Ut1);
         let tdb = ut1
@@ -1223,6 +1300,18 @@ mod tests {
 
         assert_eq!(tdb.scale, TimeScale::Tdb);
         let expected = 2_451_545.0 + (64.184 + 0.001_657) / 86_400.0;
+        assert!((tdb.julian_day.days() - expected).abs() < 1e-12);
+    }
+
+    #[test]
+    fn caller_supplied_time_scale_offsets_can_convert_ut1_to_tdb_with_signed_offset() {
+        let ut1 = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Ut1);
+        let tdb = ut1
+            .tdb_from_ut1_signed(Duration::from_secs_f64(64.184), -0.001_657)
+            .expect("UT1 to TDB conversion should accept signed UT1 input");
+
+        assert_eq!(tdb.scale, TimeScale::Tdb);
+        let expected = 2_451_545.0 + (64.184 - 0.001_657) / 86_400.0;
         assert!((tdb.julian_day.days() - expected).abs() < 1e-12);
     }
 
