@@ -136,10 +136,11 @@ Completed first slice (2026-04-24):
 - added round-trip tests for default and explicit profile metadata;
 - updated the packaged-data prototype to expose the conservative ecliptic-only/no-motion profile without expanding production artifact claims.
 
+Progress note (2026-04-25): artifact profile summaries now appear in `artifact-summary`, `validation-report-summary`, and `release-summary`, which makes the Phase 2 artifact capability posture visible in release-facing reports before generated production artifacts exist.
+
 Remaining suggested scope:
 
 - refine profile fields when generated artifacts introduce body-specific stored/derived semantics;
-- connect profile summaries to validation and release reports;
 - avoid claiming generated production artifacts until source-backed generation exists.
 
 ## 6. Compatibility-profile verification tightening

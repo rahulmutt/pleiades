@@ -35,7 +35,7 @@ use pleiades_core::{
     EphemerisRequest, EphemerisResult, Instant, JulianDay, Longitude, TimeRange, TimeScale,
     ZodiacMode,
 };
-use pleiades_data::PackagedDataBackend;
+use pleiades_data::{packaged_artifact, PackagedDataBackend};
 use pleiades_elp::{lunar_reference_evidence, lunar_theory_specification, ElpBackend};
 use pleiades_houses::{
     baseline_house_systems, built_in_house_systems, release_house_systems, resolve_house_system,
@@ -1965,6 +1965,9 @@ fn render_release_summary_text() -> String {
     text.push_str("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary\n");
     text.push_str("Release notes summary: release-notes-summary\n");
     text.push_str("Artifact validation: validate-artifact\n");
+    text.push_str("Packaged-artifact profile: ");
+    text.push_str(&format_packaged_artifact_profile_summary());
+    text.push('\n');
     text.push_str("Release bundle verification: verify-release-bundle\n");
     text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
     text.push_str("Release checklist summary: release-checklist-summary\n");
@@ -3429,6 +3432,10 @@ fn format_reference_asteroid_evidence_summary() -> String {
     }
 }
 
+fn format_packaged_artifact_profile_summary() -> String {
+    packaged_artifact().header.profile.summary()
+}
+
 fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     use std::fmt::Write as _;
 
@@ -3634,6 +3641,9 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text);
     let _ = writeln!(text, "ELP lunar theory specification");
     let _ = writeln!(text, "  {}", format_elp_lunar_theory_summary());
+    let _ = writeln!(text);
+    let _ = writeln!(text, "Packaged-artifact profile");
+    let _ = writeln!(text, "  {}", format_packaged_artifact_profile_summary());
     let _ = writeln!(text);
     let _ = writeln!(text, "Benchmark summaries");
     let _ = writeln!(text, "Reference benchmark");
@@ -5863,6 +5873,7 @@ mod tests {
         assert!(rendered.contains("Comparison corpus"));
         assert!(rendered.contains("Body comparison summaries"));
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
+        assert!(rendered.contains("Packaged-artifact profile"));
         assert!(rendered.contains("Benchmark summaries"));
 
         let validation_report_summary =
@@ -5880,6 +5891,7 @@ mod tests {
         assert!(validation_report_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(validation_report_summary.contains("Release notes summary: release-notes-summary"));
+        assert!(validation_report_summary.contains("Packaged-artifact profile"));
         assert!(validation_report_summary.contains("Benchmark summaries"));
     }
 
@@ -6673,9 +6685,14 @@ version = "0.9.0"
         assert!(release_summary
             .contains("Compatibility profile verification: verify-compatibility-profile"));
         assert!(release_summary.contains("Artifact validation: validate-artifact"));
+        assert!(release_summary.contains(
+            "Packaged-artifact profile: stored channels: [Longitude, Latitude, DistanceAu]"
+        ));
         assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_summary.contains("Release notes summary: release-notes-summary"));
         assert!(artifact_summary.contains("Artifact summary"));
+        assert!(artifact_summary
+            .contains("Artifact profile: stored channels: [Longitude, Latitude, DistanceAu]"));
         assert!(artifact_summary.contains("Model error envelope"));
         assert!(artifact_summary.contains("Release summary: release-summary"));
         assert!(artifact_summary.contains("Release notes summary: release-notes-summary"));

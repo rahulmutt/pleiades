@@ -148,6 +148,18 @@ impl ArtifactProfile {
         }
     }
 
+    /// Returns a compact one-line summary of the stored, derived, unsupported,
+    /// and speed-policy capabilities encoded by this profile.
+    pub fn summary(&self) -> String {
+        format!(
+            "stored channels: {:?}; derived outputs: {:?}; unsupported outputs: {:?}; speed policy: {:?}",
+            self.stored_channels,
+            self.derived_outputs,
+            self.unsupported_outputs,
+            self.speed_policy,
+        )
+    }
+
     /// Returns the current conservative profile: ecliptic longitude, latitude,
     /// and distance are stored directly; motion and richer coordinate modes are unsupported.
     pub fn ecliptic_longitude_latitude_distance() -> Self {
@@ -989,6 +1001,31 @@ mod tests {
         .expect("artifact should decode with profile");
 
         assert_eq!(decoded.header.profile, profile);
+    }
+
+    #[test]
+    fn artifact_profile_summary_lists_capability_fields() {
+        let profile = ArtifactProfile::new(
+            vec![
+                ChannelKind::Longitude,
+                ChannelKind::Latitude,
+                ChannelKind::DistanceAu,
+            ],
+            vec![ArtifactOutput::EclipticCoordinates],
+            vec![
+                ArtifactOutput::EquatorialCoordinates,
+                ArtifactOutput::ApparentCorrections,
+                ArtifactOutput::TopocentricCoordinates,
+                ArtifactOutput::SiderealCoordinates,
+                ArtifactOutput::Motion,
+            ],
+            SpeedPolicy::Unsupported,
+        );
+
+        assert_eq!(
+            profile.summary(),
+            "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates]; unsupported outputs: [EquatorialCoordinates, ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported"
+        );
     }
 
     #[cfg(feature = "serde")]

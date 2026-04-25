@@ -650,7 +650,7 @@ pub fn canonical_epoch_body_evidence() -> Option<Vec<Vsop87CanonicalBodyEvidence
 
     let mut evidence = Vec::with_capacity(samples.len());
 
-    for (sample, result) in samples.into_iter().zip(results.into_iter()) {
+    for (sample, result) in samples.into_iter().zip(results) {
         if result.body != sample.body {
             return None;
         }
