@@ -283,8 +283,10 @@ pub struct BodyComparisonSummary {
 }
 
 /// Expected comparison tolerance for a body or body class.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ComparisonTolerance {
+    /// Backend family this tolerance profile is currently scoped to.
+    pub backend_family: BackendFamily,
     /// Human-readable tolerance profile label.
     pub profile: &'static str,
     /// Maximum accepted absolute longitude delta in degrees.
@@ -860,9 +862,13 @@ impl fmt::Display for ValidationReport {
         writeln!(f)?;
         write_body_class_envelopes(f, &self.comparison.samples)?;
         writeln!(f)?;
-        write_body_class_tolerance_posture(f, &self.comparison.samples)?;
+        write_body_class_tolerance_posture(
+            f,
+            &self.comparison.samples,
+            &self.comparison.candidate_backend.family,
+        )?;
         writeln!(f)?;
-        write_tolerance_policy(f)?;
+        write_tolerance_policy(f, &self.comparison.candidate_backend)?;
         writeln!(f)?;
         write_tolerance_summaries(f, &self.comparison.tolerance_summaries())?;
         writeln!(f)?;
@@ -1444,6 +1450,8 @@ pub fn verify_compatibility_profile() -> Result<String, EphemerisError> {
 
     let house_labels_checked = verify_house_system_aliases(profile.house_systems)?;
     let ayanamsa_labels_checked = verify_ayanamsa_aliases(profile.ayanamsas)?;
+    let custom_definition_labels_checked =
+        verify_custom_definition_labels(profile.custom_definition_labels)?;
 
     let mut text = String::new();
     text.push_str("Compatibility profile verification\n");
@@ -1471,8 +1479,8 @@ pub fn verify_compatibility_profile() -> Result<String, EphemerisError> {
     text.push_str(" ayanamsa release\n");
     text.push_str("Release posture: baseline milestone preserved, release additions explicit, custom definitions tracked, caveats documented\n");
     text.push_str("Custom-definition labels verified: ");
-    text.push_str(&profile.custom_definition_labels.len().to_string());
-    text.push('\n');
+    text.push_str(&custom_definition_labels_checked.to_string());
+    text.push_str(" labels, all remain custom-definition territory\n");
     text.push_str("Compatibility caveats documented: ");
     text.push_str(&profile.known_gaps.len().to_string());
     text.push('\n');
@@ -1573,6 +1581,27 @@ fn verify_ayanamsa_aliases(
                     ),
                 ));
             }
+        }
+    }
+
+    Ok(labels_checked)
+}
+
+fn verify_custom_definition_labels(labels: &[&'static str]) -> Result<usize, EphemerisError> {
+    let mut labels_checked = 0usize;
+    let mut seen_labels = BTreeSet::new();
+
+    for label in labels {
+        labels_checked += 1;
+        ensure_unique_profile_label("custom-definition", label, &mut seen_labels)?;
+        if resolve_house_system(label).is_some() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile custom-definition label '{}' should remain unresolved as a built-in house system",
+                    label
+                ),
+            ));
         }
     }
 
@@ -3366,7 +3395,7 @@ fn render_comparison_audit_report_text(report: &ComparisonReport) -> String {
     }
     let _ = writeln!(text);
     let _ = writeln!(text, "Tolerance policy");
-    write_tolerance_policy_text(&mut text);
+    write_tolerance_policy_text(&mut text, &report.candidate_backend);
     let _ = writeln!(text);
     let _ = writeln!(text, "Notable regressions");
     let regressions = report.notable_regressions();
@@ -3776,7 +3805,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     }
     let _ = writeln!(text);
     let _ = writeln!(text, "Tolerance policy");
-    write_tolerance_policy_text(&mut text);
+    write_tolerance_policy_text(&mut text, &report.comparison.candidate_backend);
     let _ = writeln!(text);
     let _ = writeln!(text, "Expected tolerance status");
     for summary in report.comparison.tolerance_summaries() {
@@ -4185,7 +4214,7 @@ impl fmt::Display for ComparisonReport {
         writeln!(f)?;
         write_body_class_envelopes(f, &self.samples)?;
         writeln!(f)?;
-        write_body_class_tolerance_posture(f, &self.samples)?;
+        write_body_class_tolerance_posture(f, &self.samples, &self.candidate_backend.family)?;
         writeln!(f)?;
         write_tolerance_summaries(f, &self.tolerance_summaries())?;
         writeln!(f)?;
@@ -4239,15 +4268,16 @@ impl ComparisonReport {
 
     /// Returns per-body tolerance status preserving first-seen body order.
     pub fn tolerance_summaries(&self) -> Vec<BodyToleranceSummary> {
+        let candidate_family = &self.candidate_backend.family;
         self.body_summaries()
             .into_iter()
-            .map(body_tolerance_summary)
+            .map(|summary| body_tolerance_summary(summary, candidate_family))
             .collect()
     }
 
     /// Returns per-body-class tolerance posture preserving first-seen class order.
     pub(crate) fn body_class_tolerance_summaries(&self) -> Vec<BodyClassToleranceSummary> {
-        body_class_tolerance_summaries(&self.samples)
+        body_class_tolerance_summaries(&self.samples, &self.candidate_backend.family)
     }
 
     /// Returns the samples that exceed the built-in regression thresholds.
@@ -4568,10 +4598,14 @@ impl BodyClassToleranceAccumulator {
     }
 }
 
-fn body_class_tolerance_summaries(samples: &[ComparisonSample]) -> Vec<BodyClassToleranceSummary> {
+fn body_class_tolerance_summaries(
+    samples: &[ComparisonSample],
+    backend_family: &BackendFamily,
+) -> Vec<BodyClassToleranceSummary> {
     let body_summaries = body_comparison_summaries(samples)
         .into_iter()
-        .map(body_tolerance_summary);
+        .map(|summary| body_tolerance_summary(summary, backend_family))
+        .collect::<Vec<_>>();
     let mut accumulators = BodyClass::ALL.map(BodyClassToleranceAccumulator::new);
 
     for summary in body_summaries {
@@ -4585,27 +4619,34 @@ fn body_class_tolerance_summaries(samples: &[ComparisonSample]) -> Vec<BodyClass
         .collect()
 }
 
-fn comparison_tolerance_for_class(class: BodyClass) -> ComparisonTolerance {
+fn comparison_tolerance_for_class(
+    class: BodyClass,
+    backend_family: &BackendFamily,
+) -> ComparisonTolerance {
     match class {
         BodyClass::Luminary | BodyClass::MajorPlanet => ComparisonTolerance {
+            backend_family: backend_family.clone(),
             profile: "phase-1 full-file VSOP87B planetary evidence",
             max_longitude_delta_deg: REGRESSION_LONGITUDE_THRESHOLD_DEG,
             max_latitude_delta_deg: REGRESSION_LATITUDE_THRESHOLD_DEG,
             max_distance_delta_au: Some(REGRESSION_DISTANCE_THRESHOLD_AU),
         },
         BodyClass::LunarPoint => ComparisonTolerance {
+            backend_family: backend_family.clone(),
             profile: "phase-1 compact-ELP lunar evidence",
             max_longitude_delta_deg: REGRESSION_LONGITUDE_THRESHOLD_DEG,
             max_latitude_delta_deg: REGRESSION_LATITUDE_THRESHOLD_DEG,
             max_distance_delta_au: Some(REGRESSION_DISTANCE_THRESHOLD_AU),
         },
         BodyClass::Asteroid => ComparisonTolerance {
+            backend_family: backend_family.clone(),
             profile: "phase-1 asteroid comparison evidence",
             max_longitude_delta_deg: REGRESSION_LONGITUDE_THRESHOLD_DEG,
             max_latitude_delta_deg: REGRESSION_LATITUDE_THRESHOLD_DEG,
             max_distance_delta_au: Some(REGRESSION_DISTANCE_THRESHOLD_AU),
         },
         BodyClass::Custom => ComparisonTolerance {
+            backend_family: backend_family.clone(),
             profile: "phase-1 uncategorized comparison evidence",
             max_longitude_delta_deg: REGRESSION_LONGITUDE_THRESHOLD_DEG,
             max_latitude_delta_deg: REGRESSION_LATITUDE_THRESHOLD_DEG,
@@ -4614,9 +4655,13 @@ fn comparison_tolerance_for_class(class: BodyClass) -> ComparisonTolerance {
     }
 }
 
-fn comparison_tolerance_for_body(body: &CelestialBody) -> ComparisonTolerance {
+fn comparison_tolerance_for_body(
+    body: &CelestialBody,
+    backend_family: &BackendFamily,
+) -> ComparisonTolerance {
     if matches!(body, CelestialBody::Pluto) {
         return ComparisonTolerance {
+            backend_family: backend_family.clone(),
             profile: "phase-1 Pluto mean-elements fallback evidence",
             max_longitude_delta_deg: REGRESSION_LONGITUDE_THRESHOLD_DEG,
             max_latitude_delta_deg: REGRESSION_LATITUDE_THRESHOLD_DEG,
@@ -4624,11 +4669,14 @@ fn comparison_tolerance_for_body(body: &CelestialBody) -> ComparisonTolerance {
         };
     }
 
-    comparison_tolerance_for_class(body_class(body))
+    comparison_tolerance_for_class(body_class(body), backend_family)
 }
 
-fn body_tolerance_summary(summary: BodyComparisonSummary) -> BodyToleranceSummary {
-    let tolerance = comparison_tolerance_for_body(&summary.body);
+fn body_tolerance_summary(
+    summary: BodyComparisonSummary,
+    backend_family: &BackendFamily,
+) -> BodyToleranceSummary {
+    let tolerance = comparison_tolerance_for_body(&summary.body, backend_family);
     let distance_within = match (
         summary.max_distance_delta_au,
         tolerance.max_distance_delta_au,
@@ -5051,9 +5099,10 @@ fn write_body_class_envelopes(
 fn write_body_class_tolerance_posture(
     f: &mut fmt::Formatter<'_>,
     samples: &[ComparisonSample],
+    backend_family: &BackendFamily,
 ) -> fmt::Result {
     writeln!(f, "Body-class tolerance posture")?;
-    let summaries = body_class_tolerance_summaries(samples);
+    let summaries = body_class_tolerance_summaries(samples, backend_family);
     if summaries.is_empty() {
         writeln!(f, "  none")?;
         return Ok(());
@@ -5065,8 +5114,24 @@ fn write_body_class_tolerance_posture(
     Ok(())
 }
 
-fn write_tolerance_policy(f: &mut fmt::Formatter<'_>) -> fmt::Result {
+fn tolerance_backend_family_label(family: &BackendFamily) -> String {
+    match family {
+        BackendFamily::Algorithmic => "algorithmic".to_string(),
+        BackendFamily::ReferenceData => "reference data".to_string(),
+        BackendFamily::CompressedData => "compressed data".to_string(),
+        BackendFamily::Composite => "composite".to_string(),
+        BackendFamily::Other(value) => format!("other ({value})"),
+        _ => "other (unknown)".to_string(),
+    }
+}
+
+fn write_tolerance_policy(
+    f: &mut fmt::Formatter<'_>,
+    candidate_backend: &BackendMetadata,
+) -> fmt::Result {
+    let family_label = tolerance_backend_family_label(&candidate_backend.family);
     writeln!(f, "Tolerance policy")?;
+    writeln!(f, "  candidate backend family: {}", family_label)?;
     for class in [
         BodyClass::Luminary,
         BodyClass::MajorPlanet,
@@ -5074,11 +5139,12 @@ fn write_tolerance_policy(f: &mut fmt::Formatter<'_>) -> fmt::Result {
         BodyClass::Asteroid,
         BodyClass::Custom,
     ] {
-        let tolerance = comparison_tolerance_for_class(class);
+        let tolerance = comparison_tolerance_for_class(class, &candidate_backend.family);
         writeln!(
             f,
-            "  {}: profile={}, limit Δlon≤{:.6}°, limit Δlat≤{:.6}°, limit Δdist={}",
+            "  {}: backend family={}, profile={}, limit Δlon≤{:.6}°, limit Δlat≤{:.6}°, limit Δdist={}",
             class.label(),
+            tolerance_backend_family_label(&tolerance.backend_family),
             tolerance.profile,
             tolerance.max_longitude_delta_deg,
             tolerance.max_latitude_delta_deg,
@@ -5089,10 +5155,11 @@ fn write_tolerance_policy(f: &mut fmt::Formatter<'_>) -> fmt::Result {
         )?;
     }
 
-    let pluto = comparison_tolerance_for_body(&CelestialBody::Pluto);
+    let pluto = comparison_tolerance_for_body(&CelestialBody::Pluto, &candidate_backend.family);
     writeln!(
         f,
-        "  Pluto override: profile={}, limit Δlon≤{:.6}°, limit Δlat≤{:.6}°, limit Δdist={}",
+        "  Pluto override: backend family={}, profile={}, limit Δlon≤{:.6}°, limit Δlat≤{:.6}°, limit Δdist={}",
+        tolerance_backend_family_label(&pluto.backend_family),
         pluto.profile,
         pluto.max_longitude_delta_deg,
         pluto.max_latitude_delta_deg,
@@ -5105,10 +5172,12 @@ fn write_tolerance_policy(f: &mut fmt::Formatter<'_>) -> fmt::Result {
     Ok(())
 }
 
-fn write_tolerance_policy_text(text: &mut String) {
+fn write_tolerance_policy_text(text: &mut String, candidate_backend: &BackendMetadata) {
     use std::fmt::Write as _;
 
+    let family_label = tolerance_backend_family_label(&candidate_backend.family);
     let _ = writeln!(text, "Tolerance policy");
+    let _ = writeln!(text, "  candidate backend family: {}", family_label);
     for class in [
         BodyClass::Luminary,
         BodyClass::MajorPlanet,
@@ -5116,11 +5185,12 @@ fn write_tolerance_policy_text(text: &mut String) {
         BodyClass::Asteroid,
         BodyClass::Custom,
     ] {
-        let tolerance = comparison_tolerance_for_class(class);
+        let tolerance = comparison_tolerance_for_class(class, &candidate_backend.family);
         let _ = writeln!(
             text,
-            "  {}: profile={}, limit Δlon≤{:.6}°, limit Δlat≤{:.6}°, limit Δdist={}",
+            "  {}: backend family={}, profile={}, limit Δlon≤{:.6}°, limit Δlat≤{:.6}°, limit Δdist={}",
             class.label(),
+            tolerance_backend_family_label(&tolerance.backend_family),
             tolerance.profile,
             tolerance.max_longitude_delta_deg,
             tolerance.max_latitude_delta_deg,
@@ -5130,10 +5200,11 @@ fn write_tolerance_policy_text(text: &mut String) {
                 .unwrap_or_else(|| "n/a".to_string())
         );
     }
-    let pluto = comparison_tolerance_for_body(&CelestialBody::Pluto);
+    let pluto = comparison_tolerance_for_body(&CelestialBody::Pluto, &candidate_backend.family);
     let _ = writeln!(
         text,
-        "  Pluto override: profile={}, limit Δlon≤{:.6}°, limit Δlat≤{:.6}°, limit Δdist={}",
+        "  Pluto override: backend family={}, profile={}, limit Δlon≤{:.6}°, limit Δlat≤{:.6}°, limit Δdist={}",
+        tolerance_backend_family_label(&pluto.backend_family),
         pluto.profile,
         pluto.max_longitude_delta_deg,
         pluto.max_latitude_delta_deg,
@@ -5157,8 +5228,9 @@ fn write_tolerance_summaries(
     for summary in summaries {
         writeln!(
             f,
-            "  {}: profile={}, samples={}, status={}, limit Δlon≤{:.6}°, limit Δlat≤{:.6}°, limit Δdist={}, measured max Δlon={:.12}°, max Δlat={:.12}°, max Δdist={}",
+            "  {}: backend family={}, profile={}, samples={}, status={}, limit Δlon≤{:.6}°, limit Δlat≤{:.6}°, limit Δdist={}, measured max Δlon={:.12}°, max Δlat={:.12}°, max Δdist={}",
             summary.body,
+            tolerance_backend_family_label(&summary.tolerance.backend_family),
             summary.tolerance.profile,
             summary.sample_count,
             if summary.within_tolerance { "within" } else { "exceeded" },
@@ -6071,11 +6143,13 @@ mod tests {
         assert!(body_class_envelopes.contains(" ("));
         assert!(report.contains("Body-class tolerance posture"));
         assert!(report.contains("Tolerance policy"));
-        assert!(
-            report.contains("Major planets: profile=phase-1 full-file VSOP87B planetary evidence")
-        );
-        assert!(report
-            .contains("Pluto override: profile=phase-1 Pluto mean-elements fallback evidence"));
+        assert!(report.contains("candidate backend family: composite"));
+        assert!(report.contains(
+            "Major planets: backend family=composite, profile=phase-1 full-file VSOP87B planetary evidence"
+        ));
+        assert!(report.contains(
+            "Pluto override: backend family=composite, profile=phase-1 Pluto mean-elements fallback evidence"
+        ));
         assert!(report.contains("Luminaries"));
         assert!(report.contains("Major planets"));
         assert!(report.contains("interpolation quality checks:"));
@@ -6113,11 +6187,13 @@ mod tests {
         assert!(report.contains("epoch labels: JD 2378499.0 (TT)"));
         assert!(report.contains("Comparison summary"));
         assert!(report.contains("Tolerance policy"));
-        assert!(
-            report.contains("Major planets: profile=phase-1 full-file VSOP87B planetary evidence")
-        );
-        assert!(report
-            .contains("Pluto override: profile=phase-1 Pluto mean-elements fallback evidence"));
+        assert!(report.contains("candidate backend family: composite"));
+        assert!(report.contains(
+            "Major planets: backend family=composite, profile=phase-1 full-file VSOP87B planetary evidence"
+        ));
+        assert!(report.contains(
+            "Pluto override: backend family=composite, profile=phase-1 Pluto mean-elements fallback evidence"
+        ));
         assert!(report.contains("Comparison tolerance audit"));
         assert!(report.contains("command: compare-backends-audit"));
         assert!(report.contains("regressions found"));
@@ -6571,7 +6647,7 @@ mod tests {
         assert!(rendered.contains("Baseline/release slices:"));
         assert!(rendered.contains("Release posture: baseline milestone preserved, release additions explicit, custom definitions tracked, caveats documented"));
         assert!(rendered.contains(&format!(
-            "Custom-definition labels verified: {}",
+            "Custom-definition labels verified: {} labels, all remain custom-definition territory",
             profile.custom_definition_labels.len()
         )));
         assert!(rendered.contains(&format!(
@@ -6611,6 +6687,19 @@ mod tests {
             .expect_err("missing descriptor notes should fail profile verification");
         assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
         assert!(error.message.contains("missing notes metadata"));
+    }
+
+    #[test]
+    fn compatibility_profile_verification_rejects_custom_definition_labels_that_resolve_to_builtins(
+    ) {
+        let labels = ["Placidus"];
+
+        let error = verify_custom_definition_labels(&labels)
+            .expect_err("custom-definition labels should stay outside built-ins");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("should remain unresolved as a built-in house system"));
     }
 
     #[test]
