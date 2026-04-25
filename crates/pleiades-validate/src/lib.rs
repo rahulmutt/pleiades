@@ -3630,10 +3630,27 @@ fn format_vsop87_body_evidence_summary() -> String {
     }
 }
 
+fn format_vsop87_fallback_bodies() -> String {
+    let fallback_bodies = body_source_profiles()
+        .into_iter()
+        .filter(|profile| {
+            profile.kind == pleiades_vsop87::Vsop87BodySourceKind::MeanOrbitalElements
+        })
+        .map(|profile| profile.body)
+        .collect::<Vec<_>>();
+
+    if fallback_bodies.is_empty() {
+        "none".to_string()
+    } else {
+        format_bodies(&fallback_bodies)
+    }
+}
+
 fn format_vsop87_source_documentation_summary() -> String {
     let summary = source_documentation_summary();
+    let fallback_bodies = format_vsop87_fallback_bodies();
     format!(
-        "VSOP87 source documentation: {} source specs, {} source-backed body profiles, {} fallback mean-element body profile{}; source-backed breakdown: {} generated binary, {} vendored full-file, {} truncated slice",
+        "VSOP87 source documentation: {} source specs, {} source-backed body profiles, {} fallback mean-element body profile{} ({}); source-backed breakdown: {} generated binary, {} vendored full-file, {} truncated slice",
         summary.source_specification_count,
         summary.source_backed_profile_count,
         summary.fallback_profile_count,
@@ -3642,6 +3659,7 @@ fn format_vsop87_source_documentation_summary() -> String {
         } else {
             "s"
         },
+        fallback_bodies,
         summary.generated_binary_profile_count,
         summary.vendored_full_file_profile_count,
         summary.truncated_profile_count,
@@ -7244,7 +7262,7 @@ mod tests {
         assert!(rendered.contains("Accuracy classes:"));
         assert!(rendered.contains("Exact: 1"));
         assert!(rendered.contains("Approximate: 4"));
-        assert!(rendered.contains("VSOP87 source documentation: 8 source specs, 8 source-backed body profiles, 1 fallback mean-element body profile"));
+        assert!(rendered.contains("VSOP87 source documentation: 8 source specs, 8 source-backed body profiles, 1 fallback mean-element body profile (Pluto)"));
         assert!(rendered.contains(
             "source-backed breakdown: 8 generated binary, 0 vendored full-file, 0 truncated slice"
         ));
@@ -7581,7 +7599,7 @@ version = "0.9.0"
         assert!(validation_report_summary.contains("Body-class tolerance posture"));
         assert!(validation_report_summary.contains("Expected tolerance status"));
         assert!(validation_report_summary.contains("VSOP87 source-backed evidence"));
-        assert!(validation_report_summary.contains("VSOP87 source documentation: 8 source specs, 8 source-backed body profiles, 1 fallback mean-element body profile"));
+        assert!(validation_report_summary.contains("VSOP87 source documentation: 8 source specs, 8 source-backed body profiles, 1 fallback mean-element body profile (Pluto)"));
         assert!(validation_report_summary.contains(
             "source-backed breakdown: 8 generated binary, 0 vendored full-file, 0 truncated slice"
         ));
