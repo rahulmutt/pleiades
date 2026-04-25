@@ -98,7 +98,7 @@ fn help_text() -> String {
     format!(
         "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary        Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  bundle-release         Write the staged release bundle and manifest files\n  verify-release-bundle  Read a staged release bundle back and verify its manifest checksums\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  api-stability-summary  Print the compact API stability summary\n  api-posture-summary    Alias for api-stability-summary\n  compare-backends       Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix         Print the implemented backend capability matrices\n  capability-matrix      Alias for backend-matrix\n  backend-matrix-summary Print the compact backend capability matrix summary\n  matrix-summary         Alias for backend-matrix-summary\n  release-notes          Print the release compatibility notes\n  release-notes-summary   Print the compact release notes summary\n  release-checklist      Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary      Alias for release-checklist-summary\n  release-summary        Print the compact release summary\n  artifact-summary       Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  validate-artifact      Inspect and validate the bundled compressed artifact\n  workspace-audit        Check the workspace for mandatory native build hooks\n  audit                  Alias for workspace-audit\n  report                 Print the full validation report\n  generate-report        Alias for report\n  validation-report-summary  Print the compact validation report summary\n  validation-summary     Alias for validation-report-summary\n  report-summary         Alias for validation-report-summary\n  chart                  Render a basic chart report\n    --tt|--tdb|--utc|--ut1  Tag the chart instant with a time scale
     --tt-offset-seconds <seconds>  Caller-supplied TT offset for UTC/UT1-tagged instants
-    --tdb-offset-seconds <seconds> Caller-supplied TDB offset for TT-tagged instants
+    --tdb-offset-seconds <seconds> Caller-supplied signed TDB-TT offset for TT/UTC/UT1-tagged instants
     --mean               Force mean positions for backend queries\n    --apparent           Force apparent positions for backend queries\n    --body <name>        Use a built-in body or a custom catalog:designation identifier\n  help                   Show this help text",
         banner()
     )
@@ -165,7 +165,8 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
                 tt_offset_seconds = Some(parse_seconds(iter.next(), "--tt-offset-seconds")?);
             }
             "--tdb-offset-seconds" => {
-                tdb_offset_seconds = Some(parse_seconds(iter.next(), "--tdb-offset-seconds")?);
+                tdb_offset_seconds =
+                    Some(parse_signed_seconds(iter.next(), "--tdb-offset-seconds")?);
             }
             "--mean" => {
                 if apparentness_explicit && apparentness != Apparentness::Mean {
@@ -197,7 +198,7 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
             }
             "--help" | "-h" => {
                 return Ok(format!(
-                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--tt|--tdb|--utc|--ut1] [--tt-offset-seconds <seconds>] [--tdb-offset-seconds <seconds>] [--mean|--apparent] [--ayanamsa <name>] [--house-system <name>] [--body <name> ...]\n\nAyanamsa names may be built-in entries or custom definitions in the form custom:<name>|<epoch-jd>|<offset-degrees> (or custom-definition:<name>|<epoch-jd>|<offset-degrees>). Body names may be built-in bodies such as Sun or Moon, or custom identifiers in the form catalog:designation. When the chart instant is tagged as UTC or UT1, the caller must also supply the explicit TT offset before chart assembly, and may also supply a TDB offset when converting to TDB.",
+                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--tt|--tdb|--utc|--ut1] [--tt-offset-seconds <seconds>] [--tdb-offset-seconds <seconds>] [--mean|--apparent] [--ayanamsa <name>] [--house-system <name>] [--body <name> ...]\n\nAyanamsa names may be built-in entries or custom definitions in the form custom:<name>|<epoch-jd>|<offset-degrees> (or custom-definition:<name>|<epoch-jd>|<offset-degrees>). Body names may be built-in bodies such as Sun or Moon, or custom identifiers in the form catalog:designation. When the chart instant is tagged as UTC or UT1, the caller must also supply the explicit TT offset before chart assembly, and may also supply a signed TDB-TT offset when converting to TDB.",
                     banner()
                 ));
             }
@@ -284,6 +285,17 @@ fn parse_seconds(value: Option<&str>, flag: &str) -> Result<f64, String> {
     Ok(seconds)
 }
 
+fn parse_signed_seconds(value: Option<&str>, flag: &str) -> Result<f64, String> {
+    let seconds = parse_f64(value, flag)?;
+    if !seconds.is_finite() {
+        return Err(format!(
+            "invalid value for {flag}: expected a finite number"
+        ));
+    }
+
+    Ok(seconds)
+}
+
 fn build_chart_instant(
     jd: f64,
     time_scale: TimeScale,
@@ -292,7 +304,7 @@ fn build_chart_instant(
 ) -> Result<Instant, String> {
     let instant = Instant::new(JulianDay::from_days(jd), time_scale);
     let tt_offset = tt_offset_seconds.map(Duration::from_secs_f64);
-    let tdb_offset = tdb_offset_seconds.map(Duration::from_secs_f64);
+    let tdb_offset = tdb_offset_seconds;
 
     match time_scale {
         TimeScale::Utc => {
@@ -300,9 +312,9 @@ fn build_chart_instant(
                 "missing value for --tt-offset-seconds when the chart instant is tagged as UTC"
                     .to_string()
             })?;
-            if let Some(tdb_offset) = tdb_offset {
+            if let Some(tdb_offset_seconds) = tdb_offset {
                 instant
-                    .tdb_from_utc(tt_offset, tdb_offset)
+                    .tdb_from_utc_signed(tt_offset, tdb_offset_seconds)
                     .map_err(|error| error.to_string())
             } else {
                 instant
@@ -315,9 +327,9 @@ fn build_chart_instant(
                 "missing value for --tt-offset-seconds when the chart instant is tagged as UT1"
                     .to_string()
             })?;
-            if let Some(tdb_offset) = tdb_offset {
+            if let Some(tdb_offset_seconds) = tdb_offset {
                 instant
-                    .tdb_from_ut1(tt_offset, tdb_offset)
+                    .tdb_from_ut1_signed(tt_offset, tdb_offset_seconds)
                     .map_err(|error| error.to_string())
             } else {
                 instant
@@ -328,9 +340,9 @@ fn build_chart_instant(
         TimeScale::Tt => {
             if tt_offset.is_some() {
                 Err("--tt-offset-seconds is only valid when the chart instant is tagged as UTC or UT1".to_string())
-            } else if let Some(tdb_offset) = tdb_offset {
+            } else if let Some(tdb_offset_seconds) = tdb_offset {
                 instant
-                    .tdb_from_tt(tdb_offset)
+                    .tdb_from_tt_signed(tdb_offset_seconds)
                     .map_err(|error| error.to_string())
             } else {
                 Ok(instant)
@@ -904,6 +916,40 @@ mod tests {
                 || rendered.contains("Instant: JD 2451545.0 (Tdb)")
         );
         assert!(rendered.contains("Apparentness: Mean"));
+    }
+
+    #[test]
+    fn chart_command_can_convert_tt_to_tdb_with_signed_offset() {
+        let rendered = render_chart(&[
+            "--jd",
+            "2451545.0",
+            "--tt",
+            "--tdb-offset-seconds",
+            "-0.001657",
+            "--body",
+            "Sun",
+        ])
+        .expect("TT-tagged chart should accept a signed TDB-TT offset");
+        assert!(rendered.contains("Instant: JD"));
+        assert!(rendered.contains("(Tdb)"));
+    }
+
+    #[test]
+    fn chart_command_can_convert_utc_to_tdb_with_signed_offset() {
+        let rendered = render_chart(&[
+            "--jd",
+            "2451545.0",
+            "--utc",
+            "--tt-offset-seconds",
+            "64.184",
+            "--tdb-offset-seconds",
+            "-0.001657",
+            "--body",
+            "Sun",
+        ])
+        .expect("UTC chart should accept a signed TDB-TT offset");
+        assert!(rendered.contains("Instant: JD 2451545"));
+        assert!(rendered.contains("(Tdb)"));
     }
 
     #[test]
