@@ -36,7 +36,7 @@ The current request policy is intentionally narrow and explicit, and the same sh
 
 ## Provenance and license posture
 
-- Source family: Meeus-style truncated analytical baseline, surfaced structurally as `LunarTheorySpecification.source_family`.
+- Source family: Meeus-style truncated analytical baseline, surfaced structurally as `LunarTheorySpecification.source_family` and rendered via the typed `LunarTheorySourceFamily` display label in release summaries.
 - Source identifier: `meeus-style-truncated-lunar-baseline`.
 - Canonical citation: Jean Meeus, *Astronomical Algorithms*, 2nd edition,
   truncated lunar position and lunar node/perigee/apogee formulae adapted into

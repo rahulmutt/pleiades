@@ -20,6 +20,8 @@
 
 #![forbid(unsafe_code)]
 
+use core::fmt;
+
 use pleiades_backend::{
     validate_observer_policy, validate_request_policy, AccuracyClass, Apparentness,
     BackendCapabilities, BackendFamily, BackendId, BackendMetadata, BackendProvenance,
@@ -66,6 +68,12 @@ impl LunarTheorySourceFamily {
                 "Meeus-style truncated analytical baseline"
             }
         }
+    }
+}
+
+impl fmt::Display for LunarTheorySourceFamily {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.label())
     }
 }
 
@@ -287,7 +295,7 @@ pub fn format_lunar_theory_specification(theory: &LunarTheorySpecification) -> S
         "ELP lunar theory specification: {} [{}; family: {}] ({} supported bodies: {}; {} unsupported bodies: {}); request policy: frames={}; time scales={}; zodiac modes={}; apparentness={}; topocentric observer={}; citation: {}; provenance: {}; redistribution: {}; truncation: {}; units: {}; validation window: {}; date-range note: {}; frame treatment: {}; license: {}",
         theory.model_name,
         theory.source_identifier,
-        theory.source_family.label(),
+        theory.source_family,
         theory.supported_bodies.len(),
         format_bodies(theory.supported_bodies),
         theory.unsupported_bodies.len(),
@@ -1429,7 +1437,7 @@ impl EphemerisBackend for ElpBackend {
                     "{} [{}; family: {}] {} The backend exposes the Moon plus mean/true node and mean apogee/perigee channels as an explicit lunar-theory selection, while explicitly leaving true apogee/perigee unsupported for now; {}",
                     theory.model_name,
                     theory.source_identifier,
-                    theory.source_family.label(),
+                    theory.source_family,
                     theory.source_citation,
                     theory.license_note,
                 ),
@@ -1594,6 +1602,10 @@ mod tests {
         assert!(summary.contains(theory.source_identifier));
         assert!(summary.contains(theory.source_family.label()));
         assert_eq!(theory.source_family, lunar_theory_source_family());
+        assert_eq!(
+            theory.source_family.to_string(),
+            theory.source_family.label()
+        );
         assert!(summary.contains(theory.source_citation));
         assert!(summary.contains("Moon, Mean Node, True Node, Mean Perigee, Mean Apogee"));
         assert!(summary.contains("unsupported bodies: True Apogee, True Perigee"));
@@ -1623,6 +1635,10 @@ mod tests {
             .summary
             .contains(theory.source_family.label()));
         assert_eq!(theory.source_family, lunar_theory_source_family());
+        assert_eq!(
+            theory.source_family.to_string(),
+            theory.source_family.label()
+        );
         assert!(metadata.provenance.summary.contains(theory.source_citation));
         assert!(metadata
             .provenance
