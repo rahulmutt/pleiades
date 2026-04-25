@@ -125,6 +125,20 @@ impl ChartRequest {
         Ok(self)
     }
 
+    /// Converts the chart instant from TDB to TT using a caller-supplied
+    /// signed offset.
+    ///
+    /// This convenience method mirrors [`Instant::tt_from_tdb`] so chart
+    /// callers can keep the chosen relativistic policy explicit when they
+    /// already start from a TDB-tagged instant.
+    pub fn with_tt_from_tdb(
+        mut self,
+        offset_seconds: f64,
+    ) -> Result<Self, TimeScaleConversionError> {
+        self.instant = self.instant.tt_from_tdb(offset_seconds)?;
+        Ok(self)
+    }
+
     /// Converts the chart instant from UT1 to TDB using caller-supplied
     /// TT-UT1 and TDB-TT offsets.
     ///
@@ -1756,6 +1770,20 @@ mod tests {
 
         assert_eq!(request.instant.scale, TimeScale::Tdb);
         let expected = 2_451_545.0 + 0.001_657 / 86_400.0;
+        assert!((request.instant.julian_day.days() - expected).abs() < 1e-9);
+    }
+
+    #[test]
+    fn chart_request_can_convert_tdb_to_tt() {
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Tdb,
+        ))
+        .with_tt_from_tdb(-0.001_657)
+        .expect("TDB chart request should convert to TT");
+
+        assert_eq!(request.instant.scale, TimeScale::Tt);
+        let expected = 2_451_545.0 - 0.001_657 / 86_400.0;
         assert!((request.instant.julian_day.days() - expected).abs() < 1e-9);
     }
 

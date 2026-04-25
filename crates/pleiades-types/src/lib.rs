@@ -314,6 +314,23 @@ impl Instant {
         Ok(self.with_time_scale_offset(TimeScale::Tdb, offset.as_secs_f64()))
     }
 
+    /// Converts a TDB-tagged instant to TT using a caller-supplied signed offset.
+    ///
+    /// `offset_seconds` must be the already-chosen signed `TT - TDB` offset in
+    /// SI seconds. The helper intentionally does not model relativistic terms by
+    /// itself; it only makes a caller-supplied TDB-to-TT policy explicit and
+    /// reproducible for applications that need a TT-tagged request surface.
+    pub fn tt_from_tdb(self, offset_seconds: f64) -> Result<Self, TimeScaleConversionError> {
+        if self.scale != TimeScale::Tdb {
+            return Err(TimeScaleConversionError::expected(
+                TimeScale::Tdb,
+                self.scale,
+            ));
+        }
+
+        Ok(self.with_time_scale_offset(TimeScale::Tt, offset_seconds))
+    }
+
     /// Converts a UT1-tagged instant to TDB using caller-supplied TT-UT1 and
     /// TDB-TT offsets.
     ///
@@ -1168,6 +1185,18 @@ mod tests {
     }
 
     #[test]
+    fn caller_supplied_time_scale_offsets_can_convert_tdb_to_tt() {
+        let tdb = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb);
+        let tt = tdb
+            .tt_from_tdb(-0.001_657)
+            .expect("TDB to TT conversion should accept TDB input");
+
+        assert_eq!(tt.scale, TimeScale::Tt);
+        let expected = 2_451_545.0 - 0.001_657 / 86_400.0;
+        assert!((tt.julian_day.days() - expected).abs() < 1e-12);
+    }
+
+    #[test]
     fn caller_supplied_time_scale_offsets_can_convert_utc_to_tdb() {
         let utc = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Utc);
         let tdb = utc
@@ -1228,6 +1257,20 @@ mod tests {
 
         assert_eq!(tdb_error.expected, TimeScale::Utc);
         assert_eq!(tdb_error.actual, TimeScale::Tt);
+
+        let tt_error = utc
+            .tt_from_tdb(-0.001_657)
+            .expect_err("UTC is not TDB for TDB-to-TT conversion");
+
+        assert_eq!(tt_error.expected, TimeScale::Tdb);
+        assert_eq!(tt_error.actual, TimeScale::Utc);
+
+        let wrong_scale_error = tt
+            .tt_from_tdb(-0.001_657)
+            .expect_err("TT is not TDB for TDB-to-TT conversion");
+
+        assert_eq!(wrong_scale_error.expected, TimeScale::Tdb);
+        assert_eq!(wrong_scale_error.actual, TimeScale::Tt);
     }
 
     #[test]

@@ -27,7 +27,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Progress note: the crate now ships a maintainer-facing regeneration helper plus binary that rewrites the checked-in generated blobs from the vendored source text.
    - Progress note: the canonical J2000 VSOP87 evidence summary now names the body that drives each maximum delta axis, which makes the release-facing envelope easier to audit without widening the public request model.
    - Progress note: the VSOP87 source-audit summary now also prints the deterministic fingerprint count directly in release-facing output, so the reproducibility line stays explicit alongside the raw source-size and term-count evidence.
-   - Progress note: the VSOP87 regression suite now also covers the full supported major-planet batch at J2000, including the Pluto fallback path, so batch-path verification now spans the complete supported planetary set rather than only the source-backed subset.
+   - Progress note: the VSOP87 regression suite now also covers the full supported planetary batch at J2000, including the Pluto fallback path, so batch-path verification now spans the complete supported set rather than only the source-backed subset.
 
 2. Implement production `pleiades-elp` lunar calculations.
    - Select and document a pure-Rust lunar theory source.
@@ -70,6 +70,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Progress note: the `pleiades-cli` chart command now accepts an explicit `--tdb` instant tag in addition to its default TT-tagged request, so the user-facing chart report can surface a TDB-tagged instant directly instead of implying a hidden conversion policy.
    - Progress note: `pleiades-types` and `pleiades-core::ChartRequest` now also expose caller-supplied UTC-to-TDB helpers in addition to the UT1/UTC-to-TT and TT-to-TDB conveniences, so civil-time chart inputs can be lifted to TDB with explicit offset policy steps instead of hidden conversion logic.
    - Progress note: UT1-tagged callers now also have a direct caller-supplied UT1-to-TDB helper, so explicit dynamical-time staging can stay typed even when a caller already has TT-UT1 and TDB-TT offsets available.
+   - Progress note: TDB-tagged callers now also have a caller-supplied TT-from-TDB helper in `pleiades-types` and `pleiades-core::ChartRequest`, which keeps the explicit conversion policy symmetric for callers that already begin from a TDB-tagged instant.
    - Progress note: the `pleiades-cli` chart command now exposes explicit `--utc` / `--ut1` instant tags plus caller-supplied `--tt-offset-seconds` and `--tdb-offset-seconds` flags, so command-line chart runs can exercise the same conversion policy without implying a built-in Delta T or relativistic model.
 
 5. Expand validation evidence.
