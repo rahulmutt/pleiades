@@ -235,6 +235,12 @@ pub struct Vsop87CanonicalBodyEvidence {
     pub latitude_delta_deg: f64,
     /// Absolute geocentric distance delta in astronomical units.
     pub distance_delta_au: f64,
+    /// Interim longitude delta limit used for this body.
+    pub longitude_limit_deg: f64,
+    /// Interim latitude delta limit used for this body.
+    pub latitude_limit_deg: f64,
+    /// Interim distance delta limit used for this body.
+    pub distance_limit_au: f64,
     /// Whether the body is within the current interim limits.
     pub within_interim_limits: bool,
 }
@@ -252,6 +258,8 @@ pub struct Vsop87CanonicalEvidenceSummary {
     pub max_longitude_delta_source_file: &'static str,
     /// Maximum absolute geocentric longitude delta in degrees.
     pub max_longitude_delta_deg: f64,
+    /// Interim longitude delta limit for the body that drives the maximum.
+    pub max_longitude_delta_limit_deg: f64,
     /// Body with the maximum absolute geocentric latitude delta.
     pub max_latitude_delta_body: CelestialBody,
     /// Calculation family behind the maximum latitude delta body.
@@ -260,6 +268,8 @@ pub struct Vsop87CanonicalEvidenceSummary {
     pub max_latitude_delta_source_file: &'static str,
     /// Maximum absolute geocentric latitude delta in degrees.
     pub max_latitude_delta_deg: f64,
+    /// Interim latitude delta limit for the body that drives the maximum.
+    pub max_latitude_delta_limit_deg: f64,
     /// Body with the maximum absolute geocentric distance delta.
     pub max_distance_delta_body: CelestialBody,
     /// Calculation family behind the maximum distance delta body.
@@ -268,6 +278,8 @@ pub struct Vsop87CanonicalEvidenceSummary {
     pub max_distance_delta_source_file: &'static str,
     /// Maximum absolute geocentric distance delta in astronomical units.
     pub max_distance_delta_au: f64,
+    /// Interim distance delta limit for the body that drives the maximum.
+    pub max_distance_delta_limit_au: f64,
     /// Mean absolute geocentric longitude delta in degrees.
     pub mean_longitude_delta_deg: f64,
     /// Mean absolute geocentric latitude delta in degrees.
@@ -809,7 +821,7 @@ pub fn source_body_evidence_summary() -> Option<Vsop87SourceBodyEvidenceSummary>
 /// Formats the canonical VSOP87 J2000 evidence summary for reporting.
 pub fn format_canonical_epoch_evidence_summary(summary: &Vsop87CanonicalEvidenceSummary) -> String {
     format!(
-        "VSOP87 canonical J2000 source-backed evidence: {} samples, status {}, mean Δlon={:.12}°, mean Δlat={:.12}°, mean Δdist={:.12} AU, out-of-limit samples {}, max Δlon={:.12}° ({}; {}; {}), max Δlat={:.12}° ({}; {}; {}), max Δdist={:.12} AU ({}; {}; {})",
+        "VSOP87 canonical J2000 source-backed evidence: {} samples, status {}, mean Δlon={:.12}°, mean Δlat={:.12}°, mean Δdist={:.12} AU, out-of-limit samples {}, max Δlon={:.12}° (limit {:.12}°, margin {:+.12}°; {}; {}; {}), max Δlat={:.12}° (limit {:.12}°, margin {:+.12}°; {}; {}; {}), max Δdist={:.12} AU (limit {:.12} AU, margin {:+.12} AU; {}; {}; {})",
         summary.sample_count,
         if summary.within_interim_limits {
             "within interim limits"
@@ -821,14 +833,20 @@ pub fn format_canonical_epoch_evidence_summary(summary: &Vsop87CanonicalEvidence
         summary.mean_distance_delta_au,
         summary.out_of_limit_count,
         summary.max_longitude_delta_deg,
+        summary.max_longitude_delta_limit_deg,
+        summary.max_longitude_delta_limit_deg - summary.max_longitude_delta_deg,
         summary.max_longitude_delta_body,
         summary.max_longitude_delta_source_kind.label(),
         summary.max_longitude_delta_source_file,
         summary.max_latitude_delta_deg,
+        summary.max_latitude_delta_limit_deg,
+        summary.max_latitude_delta_limit_deg - summary.max_latitude_delta_deg,
         summary.max_latitude_delta_body,
         summary.max_latitude_delta_source_kind.label(),
         summary.max_latitude_delta_source_file,
         summary.max_distance_delta_au,
+        summary.max_distance_delta_limit_au,
+        summary.max_distance_delta_limit_au - summary.max_distance_delta_au,
         summary.max_distance_delta_body,
         summary.max_distance_delta_source_kind.label(),
         summary.max_distance_delta_source_file,
@@ -986,6 +1004,9 @@ pub fn canonical_epoch_body_evidence() -> Option<Vec<Vsop87CanonicalBodyEvidence
             longitude_delta_deg: longitude_delta,
             latitude_delta_deg: latitude_delta,
             distance_delta_au: distance_delta,
+            longitude_limit_deg: sample.max_longitude_delta_deg,
+            latitude_limit_deg: sample.max_latitude_delta_deg,
+            distance_limit_au: sample.max_distance_delta_au,
             within_interim_limits,
         });
     }
@@ -1003,14 +1024,17 @@ pub fn canonical_epoch_evidence_summary() -> Option<Vsop87CanonicalEvidenceSumma
     let mut max_longitude_delta_source_kind = first.source_kind;
     let mut max_longitude_delta_source_file = first.source_file;
     let mut max_longitude_delta_deg = first.longitude_delta_deg;
+    let mut max_longitude_delta_limit_deg = first.longitude_limit_deg;
     let mut max_latitude_delta_body = first.body.clone();
     let mut max_latitude_delta_source_kind = first.source_kind;
     let mut max_latitude_delta_source_file = first.source_file;
     let mut max_latitude_delta_deg = first.latitude_delta_deg;
+    let mut max_latitude_delta_limit_deg = first.latitude_limit_deg;
     let mut max_distance_delta_body = first.body.clone();
     let mut max_distance_delta_source_kind = first.source_kind;
     let mut max_distance_delta_source_file = first.source_file;
     let mut max_distance_delta_au = first.distance_delta_au;
+    let mut max_distance_delta_limit_au = first.distance_limit_au;
     let mut total_longitude_delta_deg = 0.0;
     let mut total_latitude_delta_deg = 0.0;
     let mut total_distance_delta_au = 0.0;
@@ -1030,18 +1054,21 @@ pub fn canonical_epoch_evidence_summary() -> Option<Vsop87CanonicalEvidenceSumma
             max_longitude_delta_body = evidence.body.clone();
             max_longitude_delta_source_kind = evidence.source_kind;
             max_longitude_delta_source_file = evidence.source_file;
+            max_longitude_delta_limit_deg = evidence.longitude_limit_deg;
         }
         if evidence.latitude_delta_deg >= max_latitude_delta_deg {
             max_latitude_delta_deg = evidence.latitude_delta_deg;
             max_latitude_delta_body = evidence.body.clone();
             max_latitude_delta_source_kind = evidence.source_kind;
             max_latitude_delta_source_file = evidence.source_file;
+            max_latitude_delta_limit_deg = evidence.latitude_limit_deg;
         }
         if evidence.distance_delta_au >= max_distance_delta_au {
             max_distance_delta_au = evidence.distance_delta_au;
             max_distance_delta_body = evidence.body.clone();
             max_distance_delta_source_kind = evidence.source_kind;
             max_distance_delta_source_file = evidence.source_file;
+            max_distance_delta_limit_au = evidence.distance_limit_au;
         }
         within_interim_limits &= evidence.within_interim_limits;
     }
@@ -1052,14 +1079,17 @@ pub fn canonical_epoch_evidence_summary() -> Option<Vsop87CanonicalEvidenceSumma
         max_longitude_delta_source_kind,
         max_longitude_delta_source_file,
         max_longitude_delta_deg,
+        max_longitude_delta_limit_deg,
         max_latitude_delta_body,
         max_latitude_delta_source_kind,
         max_latitude_delta_source_file,
         max_latitude_delta_deg,
+        max_latitude_delta_limit_deg,
         max_distance_delta_body,
         max_distance_delta_source_kind,
         max_distance_delta_source_file,
         max_distance_delta_au,
+        max_distance_delta_limit_au,
         mean_longitude_delta_deg: total_longitude_delta_deg / sample_count as f64,
         mean_latitude_delta_deg: total_latitude_delta_deg / sample_count as f64,
         mean_distance_delta_au: total_distance_delta_au / sample_count as f64,

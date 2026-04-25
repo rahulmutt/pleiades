@@ -53,6 +53,8 @@ Progress note (2026-04-24): the VSOP87 body-specific source metadata, canonical 
 
 Progress note (2026-04-25): the VSOP87 source documentation summary now also reports an explicit source-path breakdown for generated-binary, vendored full-file, truncated, and fallback body profiles, so the release-facing validation output can distinguish the current source mix without changing the canonical body-evidence line. The compact VSOP87 body-evidence summary now also names any bodies outside interim limits explicitly (or `none` when the current sample set stays within the interim envelope), which makes the source-backed audit easier to scan without opening the full backend matrix. The same evidence summary is now owned by `pleiades-vsop87` as a structured backend helper, and validation reuses it directly instead of recomputing the source-kind and interim-limit breakdown in the tooling layer. The canonical evidence, source documentation, and source audit report strings are now backend-owned as well, keeping the VSOP87 reporting surface consistent with the JPL and ELP helpers. The canonical J2000 evidence summary now also carries mean absolute deltas and an out-of-limit count, so the compact release-facing envelope shows a little more shape without changing the underlying comparison corpus.
 
+Progress note (2026-04-25): the canonical VSOP87 body evidence and release-facing backend-matrix lines now also spell out the per-axis interim limits and signed margins alongside the measured deltas, which makes the source-backed error envelope easier to audit without changing the underlying J2000 reference rows.
+
 ## 2. Lunar theory source selection
 
 **Goal:** turn `pleiades-elp` into a planned production implementation instead of an approximate placeholder.

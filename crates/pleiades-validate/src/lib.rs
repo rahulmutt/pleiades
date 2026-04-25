@@ -5163,7 +5163,7 @@ fn write_backend_catalog_entry(
                 for evidence in body_evidence {
                     writeln!(
                         f,
-                        "    {}: {:?} from {} — {} — Δlon={:.12}°, Δlat={:.12}°, Δdist={:.12} AU",
+                        "    {}: {:?} from {} — {} — Δlon={:.12}° / limit {:.12}° / margin {:+.12}°, Δlat={:.12}° / limit {:.12}° / margin {:+.12}°, Δdist={:.12} AU / limit {:.12} AU / margin {:+.12} AU",
                         evidence.body,
                         evidence.source_kind,
                         evidence.source_file,
@@ -5173,8 +5173,14 @@ fn write_backend_catalog_entry(
                             "outside interim limits"
                         },
                         evidence.longitude_delta_deg,
+                        evidence.longitude_limit_deg,
+                        evidence.longitude_limit_deg - evidence.longitude_delta_deg,
                         evidence.latitude_delta_deg,
-                        evidence.distance_delta_au
+                        evidence.latitude_limit_deg,
+                        evidence.latitude_limit_deg - evidence.latitude_delta_deg,
+                        evidence.distance_delta_au,
+                        evidence.distance_limit_au,
+                        evidence.distance_limit_au - evidence.distance_delta_au
                     )?;
                 }
             }
