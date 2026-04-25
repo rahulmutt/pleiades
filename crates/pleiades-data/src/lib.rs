@@ -75,6 +75,33 @@ fn join_labels<T>(values: &[T], label: impl Fn(&T) -> &'static str) -> String {
     values.iter().map(label).collect::<Vec<_>>().join(", ")
 }
 
+/// Structured policy for how packaged-data lookup epochs are handled.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PackagedLookupEpochPolicy {
+    /// TDB-tagged lookups are re-tagged onto the TT grid without relativistic correction.
+    RetagToTtGridWithoutRelativisticCorrection,
+}
+
+impl PackagedLookupEpochPolicy {
+    /// Returns the compact label used in release-facing summaries.
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::RetagToTtGridWithoutRelativisticCorrection => {
+                "TT-grid retag without relativistic correction"
+            }
+        }
+    }
+
+    /// Returns the explanatory note used in release-facing summaries.
+    pub const fn note(self) -> &'static str {
+        match self {
+            Self::RetagToTtGridWithoutRelativisticCorrection => {
+                "TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction"
+            }
+        }
+    }
+}
+
 /// Structured request-policy summary for the packaged-data backend.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct PackagedRequestPolicySummary {
@@ -90,15 +117,15 @@ pub struct PackagedRequestPolicySummary {
     pub supported_apparentness: &'static [Apparentness],
     /// Whether the packaged backend accepts topocentric observer requests.
     pub supports_topocentric_observer: bool,
-    /// Note describing how TDB-tagged lookups are handled.
-    pub tdb_lookup_note: &'static str,
+    /// Policy describing how TDB-tagged lookups are handled.
+    pub lookup_epoch_policy: PackagedLookupEpochPolicy,
 }
 
 impl PackagedRequestPolicySummary {
     /// Renders the packaged request policy into a release-facing summary line.
     pub fn summary_line(&self) -> String {
         format!(
-            "Packaged request policy: {}frames={}; time scales={}; zodiac modes={}; apparentness={}; topocentric observer={}; {}",
+            "Packaged request policy: {}frames={}; time scales={}; zodiac modes={}; apparentness={}; topocentric observer={}; lookup epoch policy={}; {}",
             if self.geocentric_only {
                 "geocentric-only; "
             } else {
@@ -124,20 +151,22 @@ impl PackagedRequestPolicySummary {
                 _ => "<unknown>",
             }),
             self.supports_topocentric_observer,
-            self.tdb_lookup_note,
+            self.lookup_epoch_policy.label(),
+            self.lookup_epoch_policy.note(),
         )
     }
 }
 
-const PACKAGED_REQUEST_POLICY_SUMMARY: PackagedRequestPolicySummary = PackagedRequestPolicySummary {
-    geocentric_only: true,
-    supported_frames: &[CoordinateFrame::Ecliptic],
-    supported_time_scales: &[TimeScale::Tt, TimeScale::Tdb],
-    supported_zodiac_modes: &[ZodiacMode::Tropical],
-    supported_apparentness: &[Apparentness::Mean],
-    supports_topocentric_observer: false,
-    tdb_lookup_note: "TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction",
-};
+const PACKAGED_REQUEST_POLICY_SUMMARY: PackagedRequestPolicySummary =
+    PackagedRequestPolicySummary {
+        geocentric_only: true,
+        supported_frames: &[CoordinateFrame::Ecliptic],
+        supported_time_scales: &[TimeScale::Tt, TimeScale::Tdb],
+        supported_zodiac_modes: &[ZodiacMode::Tropical],
+        supported_apparentness: &[Apparentness::Mean],
+        supports_topocentric_observer: false,
+        lookup_epoch_policy: PackagedLookupEpochPolicy::RetagToTtGridWithoutRelativisticCorrection,
+    };
 
 /// Returns the current packaged-data request-policy summary record.
 pub fn packaged_request_policy_summary_details() -> PackagedRequestPolicySummary {
@@ -146,7 +175,7 @@ pub fn packaged_request_policy_summary_details() -> PackagedRequestPolicySummary
 
 /// Returns the current packaged-data request policy summary.
 pub fn packaged_request_policy_summary() -> &'static str {
-    "Packaged request policy: geocentric-only; frames=Ecliptic; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction"
+    "Packaged request policy: geocentric-only; frames=Ecliptic; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false; lookup epoch policy=TT-grid retag without relativistic correction; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction"
 }
 
 #[cfg(test)]
@@ -608,6 +637,10 @@ mod tests {
         );
         assert_eq!(request_policy.supported_apparentness, &[Apparentness::Mean]);
         assert!(!request_policy.supports_topocentric_observer);
+        assert_eq!(
+            request_policy.lookup_epoch_policy,
+            PackagedLookupEpochPolicy::RetagToTtGridWithoutRelativisticCorrection
+        );
         assert_eq!(
             request_policy.summary_line(),
             packaged_request_policy_summary().to_string()

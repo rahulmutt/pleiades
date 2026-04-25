@@ -6584,6 +6584,8 @@ mod tests {
         assert!(validation_report_summary.contains("Release notes summary: release-notes-summary"));
         assert!(validation_report_summary.contains("Packaged-artifact profile"));
         assert!(validation_report_summary.contains("Packaged request policy"));
+        assert!(validation_report_summary
+            .contains("lookup epoch policy=TT-grid retag without relativistic correction"));
         assert!(validation_report_summary.contains("Benchmark summaries"));
     }
 
@@ -7642,6 +7644,8 @@ version = "0.9.0"
         assert!(validation_report_summary.contains("max Δlat="));
         assert!(validation_report_summary.contains("limits: Δlon≤1e-4°"));
         assert!(validation_report_summary.contains("request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
+        assert!(validation_report_summary
+            .contains("lookup epoch policy=TT-grid retag without relativistic correction"));
         assert!(validation_report_summary
             .contains("validation window: JD 2448724.5 (TT) → JD 2459278.5 (TT)"));
         assert!(validation_report_summary.contains("date-range note: Validated against the published 1992-04-12 geocentric Moon example, the published 1992-04-12 geocentric Moon RA/Dec example used for the mean-obliquity equatorial transform, J2000 lunar-point anchors, published 1913-05-27 true-node and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example"));

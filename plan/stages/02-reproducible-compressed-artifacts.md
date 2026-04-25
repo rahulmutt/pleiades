@@ -21,7 +21,7 @@ Turn the current compressed-artifact scaffolding into a reproducible packaged-da
    - Initial header fields, versioning, endian policy, checksums, provenance, and capability/profile sections are implemented in the codec.
    - Initial profile metadata records stored channels, derived outputs, unsupported outputs, and speed derivation policy.
    - Remaining work: refine body-specific profile semantics as generated artifacts become available and surface profile summaries in validation/release reports.
-   - Progress note: the packaged-artifact profile summary now also reports the bundled body count that shares the same conservative capability profile, which makes the current single-profile packaged scope explicit without widening the artifact format.
+   - Progress note: the packaged-artifact profile summary now also reports the bundled body count that shares the same conservative capability profile, which makes the current single-profile packaged scope explicit without widening the artifact format. The packaged-data request policy summary now also exposes a structured lookup-epoch policy label, which keeps the TT/TDB re-tagging note machine-readable for the current prototype artifact posture.
    - Keep decode deterministic and independent of platform-specific binary layout.
 
 2. Build a deterministic generation pipeline.
