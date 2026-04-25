@@ -998,6 +998,29 @@ impl EquatorialCoordinates {
             distance_au,
         }
     }
+
+    /// Converts this equatorial position back into an ecliptic position using the supplied obliquity.
+    ///
+    /// The transform is the inverse geometric rotation of [`EclipticCoordinates::to_equatorial`]:
+    /// right ascension is interpreted as a normalized angle, declination is signed, and any
+    /// available distance is preserved.
+    pub fn to_ecliptic(self, obliquity: Angle) -> EclipticCoordinates {
+        let right_ascension = self.right_ascension.degrees().to_radians();
+        let declination = self.declination.degrees().to_radians();
+        let obliquity = obliquity.radians();
+
+        let x = right_ascension.cos() * declination.cos();
+        let y = right_ascension.sin() * declination.cos() * obliquity.cos()
+            + declination.sin() * obliquity.sin();
+        let z = -right_ascension.sin() * declination.cos() * obliquity.sin()
+            + declination.sin() * obliquity.cos();
+
+        EclipticCoordinates::new(
+            Longitude::from_degrees(y.atan2(x).to_degrees()),
+            Latitude::from_degrees(z.atan2((x * x + y * y).sqrt()).to_degrees()),
+            self.distance_au,
+        )
+    }
 }
 
 /// The coarse direction of longitudinal motion.
@@ -1153,6 +1176,23 @@ mod tests {
         assert_eq!(equatorial.right_ascension.degrees(), 90.0);
         assert!((equatorial.declination.degrees() - 23.439_291_11).abs() < 1e-10);
         assert_eq!(equatorial.distance_au, Some(1.0));
+    }
+
+    #[test]
+    fn equatorial_to_ecliptic_round_trip_uses_the_same_obliquity() {
+        let ecliptic = EclipticCoordinates::new(
+            Longitude::from_degrees(123.45),
+            Latitude::from_degrees(-6.75),
+            Some(0.123),
+        );
+        let obliquity = Angle::from_degrees(23.439_291_11);
+
+        let equatorial = ecliptic.to_equatorial(obliquity);
+        let round_trip = equatorial.to_ecliptic(obliquity);
+
+        assert!((round_trip.longitude.degrees() - ecliptic.longitude.degrees()).abs() < 1e-10);
+        assert!((round_trip.latitude.degrees() - ecliptic.latitude.degrees()).abs() < 1e-10);
+        assert_eq!(round_trip.distance_au, Some(0.123));
     }
 
     #[test]

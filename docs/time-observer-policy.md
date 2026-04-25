@@ -34,6 +34,7 @@ Pleiades keeps time-scale conversion and observer semantics explicit so backend 
 ## Frame behavior
 
 - Ecliptic and equatorial result fields may both be populated by a backend, but the request frame still records the caller's requested output frame.
+- The shared type layer exposes the mean-obliquity forward rotation as `EclipticCoordinates::to_equatorial` and the inverse rotation as `EquatorialCoordinates::to_ecliptic`, so callers and backend tests can round-trip frame conversions with the same documented obliquity policy.
 - Frame transforms must document the obliquity/precession/nutation model used. Current VSOP87 and ELP placeholder paths use a mean-obliquity transform and remain approximate.
 
 ## Follow-up work
