@@ -93,7 +93,7 @@ Completed first slice:
 
 Progress note (2026-04-24): `pleiades-jpl` now derives coarse leave-one-out interpolation quality samples from the checked-in public-input fixture, which now includes an additional 2500000.0 TDB epoch across the comparison-body set, and the validation backend matrix renders those measured linear-interpolation errors. These checks are intentionally labeled as transparency evidence rather than production tolerances.
 
-Progress note (2026-04-25): the checked-in JPL reference snapshot also now includes a 2400000.0 comparison epoch across the Sun-through-Pluto bodies, expanding the fixture to 45 rows across 15 bodies and 5 epochs and broadening the leave-one-out evidence to 20 samples across 10 bodies.
+Progress note (2026-04-25): the checked-in JPL reference snapshot now includes an added 2600000.0 Mars hold-out epoch in addition to the 2400000.0 comparison epoch across the Sun-through-Pluto bodies, expanding the fixture to 46 rows across 15 bodies and 6 epochs and broadening the leave-one-out evidence to 21 samples across 10 bodies.
 
 Progress note (2026-04-24): the compact validation report summary now also carries a JPL interpolation-quality envelope, so the current leave-one-out evidence is visible alongside the comparison summaries without changing the backend contract.
 

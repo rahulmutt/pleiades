@@ -1003,7 +1003,7 @@ mod tests {
             .expect("start epoch should exist");
         let end = metadata.nominal_range.end.expect("end epoch should exist");
         assert!(start.julian_day.days() < end.julian_day.days());
-        assert_eq!(reference_epochs().len(), 5);
+        assert_eq!(reference_epochs().len(), 6);
         assert_eq!(
             reference_snapshot()
                 .iter()
@@ -1018,15 +1018,22 @@ mod tests {
                 .count(),
             10
         );
+        assert_eq!(
+            reference_snapshot()
+                .iter()
+                .filter(|entry| entry.epoch.julian_day.days() == 2_600_000.0)
+                .count(),
+            1
+        );
     }
 
     #[test]
     fn reference_snapshot_summary_reports_the_expected_coverage() {
         let summary =
             reference_snapshot_summary().expect("reference snapshot summary should exist");
-        assert_eq!(summary.row_count, 45);
+        assert_eq!(summary.row_count, 46);
         assert_eq!(summary.body_count, 15);
-        assert_eq!(summary.epoch_count, 5);
+        assert_eq!(summary.epoch_count, 6);
         assert_eq!(summary.asteroid_row_count, 5);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_499.0);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
@@ -1255,10 +1262,13 @@ mod tests {
     #[test]
     fn interpolation_quality_samples_are_reportable() {
         let samples = interpolation_quality_samples();
-        assert_eq!(samples.len(), 20);
+        assert_eq!(samples.len(), 21);
         assert!(samples.iter().all(|sample| {
             let epoch = sample.epoch.julian_day.days();
-            (epoch == 2_400_000.0 || epoch == REFERENCE_EPOCH_JD || epoch == 2_500_000.0)
+            (epoch == 2_400_000.0
+                || epoch == REFERENCE_EPOCH_JD
+                || epoch == 2_500_000.0
+                || epoch == 2_600_000.0)
                 && sample.bracket_span_days > 0.0
                 && sample.longitude_error_deg.is_finite()
                 && sample.latitude_error_deg.is_finite()
@@ -1270,6 +1280,9 @@ mod tests {
         assert!(samples
             .iter()
             .any(|sample| sample.epoch.julian_day.days() == 2_500_000.0));
+        assert!(samples
+            .iter()
+            .any(|sample| sample.epoch.julian_day.days() == 2_600_000.0));
         assert!(samples
             .iter()
             .any(|sample| sample.body == pleiades_backend::CelestialBody::Mars));
@@ -1327,6 +1340,33 @@ mod tests {
         assert!((ecliptic.latitude.degrees() - 11.838531252961646).abs() < 1e-12);
         assert!(
             (ecliptic.distance_au.expect("distance should exist") - 2.2568850705531642).abs()
+                < 1e-12
+        );
+    }
+
+    #[test]
+    fn snapshot_backend_resolves_mars_at_2600000() {
+        let backend = JplSnapshotBackend;
+        let request = EphemerisRequest {
+            body: pleiades_backend::CelestialBody::Mars,
+            instant: Instant::new(JulianDay::from_days(2_600_000.0), TimeScale::Tdb),
+            observer: None,
+            frame: CoordinateFrame::Ecliptic,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparent: Apparentness::Mean,
+        };
+
+        let result = backend
+            .position(&request)
+            .expect("reference snapshot should resolve the Mars hold-out epoch");
+        assert_eq!(result.quality, QualityAnnotation::Exact);
+        let ecliptic = result
+            .ecliptic
+            .expect("reference snapshot should include ecliptic coordinates");
+        assert!((ecliptic.longitude.degrees() - 56.24824943387116).abs() < 1e-12);
+        assert!((ecliptic.latitude.degrees() - (-0.18908796740844558)).abs() < 1e-12);
+        assert!(
+            (ecliptic.distance_au.expect("distance should exist") - 2.3186132195308553).abs()
                 < 1e-12
         );
     }

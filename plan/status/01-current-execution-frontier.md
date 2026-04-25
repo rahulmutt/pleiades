@@ -34,7 +34,7 @@ Latest progress (2026-04-25): the JPL snapshot backend now exposes coarse leave-
 
 Latest test progress (2026-04-25): the JPL snapshot backend now has exact J2000 regression coverage for the named asteroid subset plus the custom 433-Eros entry, so the checked-in reference fixture now exercises Ceres, Pallas, Juno, Vesta, and the source-backed custom asteroid path with explicit golden coordinates. The same asteroid slice is now also covered by a batch-path regression, so `positions()` preserves the checked-in reference order as well as the single-request golden values.
 
-Latest test progress (2026-04-25): the JPL comparison fixture now also includes a 2400000.0 TDB epoch across the Sun-through-Pluto comparison set, expanding the leave-one-out interpolation envelope to 20 samples across 10 bodies while keeping the backend geocentric and pure Rust.
+Latest test progress (2026-04-25): the JPL comparison fixture now also includes an added 2600000.0 TDB Mars hold-out epoch on top of the 2400000.0 TDB comparison epoch, expanding the checked-in reference snapshot to 46 rows across 15 bodies and 6 epochs and the leave-one-out interpolation envelope to 21 samples across 10 bodies while keeping the backend geocentric and pure Rust.
 
 Latest test progress (2026-04-25): the lunar backend now also covers its Moon/node/apogee/perigee reference slice through `positions()`, so the current compact lunar theory baseline is exercised by both batch and single-request queries.
 
