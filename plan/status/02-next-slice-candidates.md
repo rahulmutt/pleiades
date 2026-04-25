@@ -198,6 +198,8 @@ Progress note (2026-04-25): the compatibility-profile verification slice now als
 
 Progress note (2026-04-25): the same verification slice now also pins the Placidus, Koch, Whole Sign, and Sunshine table-of-houses spellings, so the exact release-profile source-label wording for a few more canonical house-system aliases stays covered as the catalog expands. The built-in house source-label appendix now also carries the Vehlow Equal table of houses and Pullen SD (Sinusoidal Delta) table of houses forms explicitly, which keeps those table-form variants visible in the compatibility profile alongside the broader alias coverage.
 
+Progress note (2026-04-25): the compatibility-profile verification slice now also anchors the Babylonian (Eta Piscium) and Suryasiddhanta / Surya Siddhanta 499 CE source-label spellings, so the remaining historical-source labels in the rendered profile stay pinned as the catalog grows.
+
 Progress note (2026-04-25): validation coverage now also pins the additional ayanamsa spellings for True Revati, True Pushya, Lahiri (ICRC), Lahiri (1940), and Yukteshwar, keeping a few more release-profile source-label entries from drifting as the catalog grows.
 
 Remaining suggested scope:

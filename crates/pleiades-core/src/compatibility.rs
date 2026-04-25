@@ -1440,6 +1440,9 @@ mod tests {
         assert!(rendered.contains("Hipparchus"));
         assert!(rendered.contains("Babylonian (Kugler 1)"));
         assert!(rendered.contains("Babylonian (Aldebaran)"));
+        assert!(rendered.contains("Babylonian (Eta Piscium)"));
+        assert!(rendered.contains("Suryasiddhanta 499 CE"));
+        assert!(rendered.contains("Surya Siddhanta 499 CE"));
         assert!(rendered.contains("Babylonian (House)"));
         assert!(rendered.contains("Babylonian (Sissy)"));
         assert!(rendered.contains("Babylonian (True Geoc)"));
