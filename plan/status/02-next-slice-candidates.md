@@ -90,6 +90,8 @@ Progress note (2026-04-24): the JPL snapshot backend now uses quadratic interpol
 
 Progress note (2026-04-25): the checked-in JPL reference snapshot now also has exact J2000 golden coverage for the named asteroid subset and the custom 433-Eros body, so the source-backed asteroid fixture path is now exercised with explicit coordinates in addition to the interpolation transparency checks.
 
+Progress note (2026-04-25): the JPL asteroid subset now also renders exact J2000 evidence rows in backend matrices, validation reports, and release notes, making the source-backed asteroid fixture visible in release-facing output rather than only in tests.
+
 Remaining suggested scope:
 
 - add additional public-input epochs or bodies if broader interpolation coverage is needed beyond the current expanded fixture;

@@ -41,7 +41,8 @@ use pleiades_houses::{
     baseline_house_systems, built_in_house_systems, release_house_systems, resolve_house_system,
 };
 use pleiades_jpl::{
-    comparison_snapshot, interpolation_quality_samples, reference_asteroids, JplSnapshotBackend,
+    comparison_snapshot, interpolation_quality_samples, reference_asteroid_evidence,
+    reference_asteroids, JplSnapshotBackend,
 };
 use pleiades_vsop87::{
     body_source_profiles, frame_treatment_summary, source_audit_summary, source_audits,
@@ -1724,6 +1725,8 @@ fn render_release_notes_text() -> String {
         }
         text.push('\n');
     }
+    text.push_str(&format_reference_asteroid_evidence_summary());
+    text.push('\n');
 
     if !profile.custom_definition_labels.is_empty() {
         text.push_str("Custom-definition labels:\n");
@@ -1776,6 +1779,8 @@ fn render_release_notes_summary_text() -> String {
     text.push('\n');
     text.push_str("Release-specific coverage: ");
     text.push_str(&profile.release_notes.len().to_string());
+    text.push('\n');
+    text.push_str(&format_reference_asteroid_evidence_summary());
     text.push('\n');
     text.push_str("Custom-definition labels: ");
     text.push_str(&profile.custom_definition_labels.len().to_string());
@@ -3279,6 +3284,20 @@ fn format_elp_lunar_theory_summary() -> String {
     )
 }
 
+fn format_reference_asteroid_evidence_summary() -> String {
+    let evidence = reference_asteroid_evidence();
+    if evidence.is_empty() {
+        "Selected asteroid evidence: unavailable".to_string()
+    } else {
+        format!(
+            "Selected asteroid evidence: {} exact J2000 samples at JD {:.1} ({})",
+            evidence.len(),
+            evidence[0].epoch.julian_day.days(),
+            format_bodies(reference_asteroids())
+        )
+    }
+}
+
 fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     use std::fmt::Write as _;
 
@@ -3643,6 +3662,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str("Backends with selected asteroid coverage: ");
     text.push_str(&selected_asteroid_count.to_string());
+    text.push('\n');
+    text.push_str(&format_reference_asteroid_evidence_summary());
     text.push('\n');
     text.push_str("Backends with external data sources: ");
     text.push_str(&data_source_count.to_string());
@@ -4245,6 +4266,24 @@ fn write_backend_matrix(f: &mut fmt::Formatter<'_>, backend: &BackendMetadata) -
             asteroids.len(),
             format_bodies(&asteroids)
         )?;
+        if backend.id.as_str() == "jpl-snapshot" {
+            let evidence = reference_asteroid_evidence();
+            if let Some(first) = evidence.first() {
+                writeln!(
+                    f,
+                    "  exact J2000 evidence: {} bodies at JD {:.1}",
+                    evidence.len(),
+                    first.epoch.julian_day.days()
+                )?;
+                for sample in evidence {
+                    writeln!(
+                        f,
+                        "    {}: lon={:.12}°, lat={:.12}°, dist={:.12} AU",
+                        sample.body, sample.longitude_deg, sample.latitude_deg, sample.distance_au
+                    )?;
+                }
+            }
+        }
     }
     writeln!(f, "  frames: {}", format_frames(&backend.supported_frames))?;
     writeln!(
@@ -4675,6 +4714,24 @@ fn write_reference_asteroid_section(f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "  none")?;
     } else {
         writeln!(f, "  bodies: {}", format_bodies(asteroids))?;
+        let evidence = reference_asteroid_evidence();
+        if evidence.is_empty() {
+            writeln!(f, "  exact J2000 evidence: unavailable")?;
+        } else {
+            writeln!(
+                f,
+                "  exact J2000 evidence: {} bodies at JD {:.1}",
+                evidence.len(),
+                evidence[0].epoch.julian_day.days()
+            )?;
+            for sample in evidence {
+                writeln!(
+                    f,
+                    "    {}: lon={:.12}°, lat={:.12}°, dist={:.12} AU",
+                    sample.body, sample.longitude_deg, sample.latitude_deg, sample.distance_au
+                )?;
+            }
+        }
         writeln!(
             f,
             "  note: comparison reports stay on the planetary subset while the JPL snapshot preserves selected asteroid coverage."
@@ -5424,6 +5481,7 @@ mod tests {
         )));
         assert!(report.contains("Implemented backend matrices"));
         assert!(report.contains("Selected asteroid coverage"));
+        assert!(report.contains("exact J2000 evidence: 5 bodies at JD 2451545.0"));
         assert!(report.contains("Ceres"));
         assert!(report.contains("Pallas"));
         assert!(report.contains("Juno"));
@@ -5454,6 +5512,7 @@ mod tests {
         assert!(report.contains("Major planets"));
         assert!(report.contains("interpolation quality checks:"));
         assert!(report.contains("JPL interpolation quality: 10 samples across 5 bodies"));
+        assert!(report.contains("exact J2000 evidence: 5 bodies at JD 2451545.0"));
         assert!(report.contains("Body comparison summaries"));
         assert!(report.contains("Sun: samples="));
         assert!(report.contains("Notable regressions"));
@@ -5874,6 +5933,7 @@ mod tests {
         assert!(rendered.contains("Deprecation policy:"));
         assert!(rendered.contains("Release-specific coverage:"));
         assert!(rendered.contains("selected asteroid coverage"));
+        assert!(rendered.contains("Selected asteroid evidence: 5 exact J2000 samples"));
         assert!(rendered.contains("asteroid:433-Eros"));
         assert!(rendered.contains("Validation reference points:"));
         assert!(rendered.contains("Compatibility caveats:"));
@@ -6023,6 +6083,7 @@ mod tests {
         assert!(rendered.contains(
             "selected asteroid coverage: 5 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"
         ));
+        assert!(rendered.contains("exact J2000 evidence: 5 bodies at JD 2451545.0"));
         assert!(rendered.contains("nominal range:"));
         assert!(rendered.contains("provenance sources:"));
         assert!(rendered.contains("implementation status: fixture-reference"));
@@ -6284,6 +6345,7 @@ version = "0.9.0"
         assert!(release_notes.contains("Deprecation policy:"));
         assert!(release_notes.contains("Release-specific coverage:"));
         assert!(release_notes.contains("selected asteroid coverage"));
+        assert!(release_notes.contains("Selected asteroid evidence: 5 exact J2000 samples"));
         assert!(release_notes.contains("asteroid:433-Eros"));
         assert!(release_notes.contains("Validation reference points:"));
         assert!(release_notes.contains("Compatibility caveats:"));
@@ -6366,11 +6428,15 @@ version = "0.9.0"
         assert!(backend_matrix_summary.contains("Composite: 1"));
         assert!(backend_matrix_summary
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
+        assert!(
+            backend_matrix_summary.contains("Selected asteroid evidence: 5 exact J2000 samples")
+        );
         assert!(backend_matrix_summary
             .contains("Compatibility profile verification: verify-compatibility-profile"));
         assert!(backend_matrix.contains(
             "selected asteroid coverage: 5 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"
         ));
+        assert!(backend_matrix.contains("exact J2000 evidence: 5 bodies at JD 2451545.0"));
         assert!(api_stability.contains(&format!(
             "API stability posture: {}",
             release_profiles.api_stability_profile_id

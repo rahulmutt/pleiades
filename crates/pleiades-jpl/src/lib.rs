@@ -57,6 +57,26 @@ pub fn reference_asteroids() -> &'static [pleiades_backend::CelestialBody] {
     reference_asteroid_list()
 }
 
+/// Exact J2000 asteroid reference samples from the checked-in snapshot.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReferenceAsteroidEvidence {
+    /// Asteroid body covered by the exact snapshot row.
+    pub body: pleiades_backend::CelestialBody,
+    /// Exact epoch used for the reference sample.
+    pub epoch: Instant,
+    /// Ecliptic longitude in degrees.
+    pub longitude_deg: f64,
+    /// Ecliptic latitude in degrees.
+    pub latitude_deg: f64,
+    /// Geocentric distance in astronomical units.
+    pub distance_au: f64,
+}
+
+/// Returns the exact J2000 asteroid evidence samples present in the reference snapshot.
+pub fn reference_asteroid_evidence() -> &'static [ReferenceAsteroidEvidence] {
+    reference_asteroid_evidence_list()
+}
+
 /// Returns the comparison-only subset used by the stage-4 validation corpus.
 pub fn comparison_snapshot() -> &'static [SnapshotEntry] {
     comparison_snapshot_entries()
@@ -493,6 +513,35 @@ fn reference_asteroid_list() -> &'static [pleiades_backend::CelestialBody] {
                 }
             }
             bodies
+        })
+        .as_slice()
+}
+
+fn reference_asteroid_evidence_list() -> &'static [ReferenceAsteroidEvidence] {
+    static EVIDENCE: OnceLock<Vec<ReferenceAsteroidEvidence>> = OnceLock::new();
+    EVIDENCE
+        .get_or_init(|| {
+            let mut evidence = Vec::new();
+            let Some(entries) = snapshot_entries() else {
+                return evidence;
+            };
+
+            for body in reference_asteroid_list() {
+                if let Some(entry) = entries.iter().find(|entry| {
+                    &entry.body == body && entry.epoch.julian_day.days() == REFERENCE_EPOCH_JD
+                }) {
+                    let ecliptic = entry.ecliptic();
+                    evidence.push(ReferenceAsteroidEvidence {
+                        body: body.clone(),
+                        epoch: entry.epoch,
+                        longitude_deg: ecliptic.longitude.degrees(),
+                        latitude_deg: ecliptic.latitude.degrees(),
+                        distance_au: ecliptic.distance_au.unwrap_or_default(),
+                    });
+                }
+            }
+
+            evidence
         })
         .as_slice()
 }
@@ -1134,6 +1183,29 @@ mod tests {
                     < 1e-12
             );
         }
+    }
+
+    #[test]
+    fn reference_asteroid_evidence_exposes_exact_j2000_samples() {
+        let evidence = reference_asteroid_evidence();
+        assert_eq!(evidence.len(), 5);
+        assert_eq!(reference_asteroids().len(), evidence.len());
+        assert!(evidence.iter().all(|sample| {
+            sample.epoch.julian_day.days() == REFERENCE_EPOCH_JD
+                && sample.longitude_deg.is_finite()
+                && sample.latitude_deg.is_finite()
+                && sample.distance_au.is_finite()
+        }));
+        assert_eq!(evidence[0].body, pleiades_backend::CelestialBody::Ceres);
+        assert_eq!(evidence[1].body, pleiades_backend::CelestialBody::Pallas);
+        assert_eq!(evidence[2].body, pleiades_backend::CelestialBody::Juno);
+        assert_eq!(evidence[3].body, pleiades_backend::CelestialBody::Vesta);
+        assert_eq!(
+            evidence[4].body,
+            pleiades_backend::CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros"))
+        );
+        assert!((evidence[0].longitude_deg - 184.459642854516).abs() < 1e-12);
+        assert!((evidence[4].distance_au - 1.854402724550437).abs() < 1e-12);
     }
 
     #[test]
