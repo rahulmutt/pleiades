@@ -317,7 +317,7 @@ fn source_text_for_file(source_file: &str) -> Option<&'static str> {
 }
 
 fn count_vsop87_terms(source: &str) -> usize {
-    let tables = parse_vsop87b_tables(source);
+    let tables = parse_vsop87b_tables(source).expect("known VSOP87 source file should parse");
     tables
         .longitude
         .iter()
@@ -926,8 +926,16 @@ pub fn source_body_evidence_summary_for_report() -> String {
 /// This helper is used by the maintainer-facing regeneration tool and the
 /// reproducibility tests to keep the checked-in `.bin` files aligned with the
 /// vendored public IMCCE/CELMECH source inputs.
+pub fn try_generated_vsop87b_table_bytes_for_source_file(
+    source_file: &str,
+) -> Result<Vec<u8>, String> {
+    let source = source_text_for_file(source_file)
+        .ok_or_else(|| format!("no vendored source text found for {source_file}"))?;
+    generated_vsop87b_table_bytes(source).map_err(|error| error.to_string())
+}
+
 pub fn generated_vsop87b_table_bytes_for_source_file(source_file: &str) -> Option<Vec<u8>> {
-    source_text_for_file(source_file).map(generated_vsop87b_table_bytes)
+    try_generated_vsop87b_table_bytes_for_source_file(source_file).ok()
 }
 
 /// Returns the canonical J2000 source-backed VSOP87B samples used by

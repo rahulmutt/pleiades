@@ -37,7 +37,8 @@ mod tests {
 
     #[test]
     fn parses_full_venus_tables_with_expected_series_counts() {
-        let tables = parse_vsop87b_tables(include_str!("../data/VSOP87B.ven"));
+        let tables = parse_vsop87b_tables(include_str!("../data/VSOP87B.ven"))
+            .expect("Venus source file should parse");
         assert_eq!(tables.longitude.len(), 6);
         assert_eq!(tables.latitude.len(), 6);
         assert_eq!(tables.radius.len(), 6);

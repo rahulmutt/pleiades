@@ -6,7 +6,7 @@
 //! vendored input so the Sun path has a reproducible coefficient artifact while
 //! the text parser remains available for validation and future generator work.
 
-use std::sync::OnceLock;
+use std::{fmt, sync::OnceLock};
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Vsop87Term {
@@ -28,6 +28,67 @@ pub(crate) struct Vsop87SeriesTables {
     pub(crate) latitude: Vec<Vec<Vsop87Term>>,
     pub(crate) radius: Vec<Vec<Vsop87Term>>,
 }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) enum Vsop87ParseError {
+    CoefficientBeforeHeader {
+        line: String,
+    },
+    UnexpectedSeries {
+        series: usize,
+    },
+    MalformedTermLine {
+        line: String,
+    },
+    InvalidAmplitude {
+        line: String,
+    },
+    InvalidPhase {
+        line: String,
+    },
+    InvalidFrequency {
+        line: String,
+    },
+    MalformedSection {
+        series: usize,
+        power: usize,
+        expected_terms: usize,
+        parsed_terms: usize,
+    },
+}
+
+impl fmt::Display for Vsop87ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::CoefficientBeforeHeader { line } => {
+                write!(f, "encountered VSOP87B coefficient line before a header: {line}")
+            }
+            Self::UnexpectedSeries { series } => {
+                write!(f, "unexpected VSOP87B series index {series}")
+            }
+            Self::MalformedTermLine { line } => {
+                write!(f, "malformed VSOP87B term line: {line}")
+            }
+            Self::InvalidAmplitude { line } => {
+                write!(f, "invalid VSOP87B amplitude in line: {line}")
+            }
+            Self::InvalidPhase { line } => {
+                write!(f, "invalid VSOP87B phase in line: {line}")
+            }
+            Self::InvalidFrequency { line } => {
+                write!(f, "invalid VSOP87B frequency in line: {line}")
+            }
+            Self::MalformedSection {
+                series,
+                power,
+                expected_terms,
+                parsed_terms,
+            } => write!(f, "malformed VSOP87B Earth section: series {series} power {power} expected {expected_terms} terms but parsed {parsed_terms}"),
+        }
+    }
+}
+
+impl std::error::Error for Vsop87ParseError {}
 
 static EARTH_TABLES: OnceLock<Vsop87SeriesTables> = OnceLock::new();
 
@@ -166,8 +227,8 @@ pub(crate) fn parse_generated_vsop87b_tables(bytes: &[u8]) -> Vsop87SeriesTables
     }
 }
 
-pub(crate) fn generated_vsop87b_table_bytes(source: &str) -> Vec<u8> {
-    let tables = parse_vsop87b_tables(source);
+pub(crate) fn generated_vsop87b_table_bytes(source: &str) -> Result<Vec<u8>, Vsop87ParseError> {
+    let tables = parse_vsop87b_tables(source)?;
     let mut bytes = Vec::new();
     let mut section_count = 0u32;
 
@@ -200,10 +261,10 @@ pub(crate) fn generated_vsop87b_table_bytes(source: &str) -> Vec<u8> {
         }
     }
 
-    bytes
+    Ok(bytes)
 }
 
-pub(crate) fn parse_vsop87b_tables(source: &str) -> Vsop87SeriesTables {
+pub(crate) fn parse_vsop87b_tables(source: &str) -> Result<Vsop87SeriesTables, Vsop87ParseError> {
     let mut longitude = vec![Vec::new(); 6];
     let mut latitude = vec![Vec::new(); 6];
     let mut radius = vec![Vec::new(); 6];
@@ -218,8 +279,17 @@ pub(crate) fn parse_vsop87b_tables(source: &str) -> Vsop87SeriesTables {
                             expected_terms: usize,
                             parsed_terms: usize| {
         if let (Some(series), Some(power)) = (current_series, current_power) {
-            assert_eq!(parsed_terms, expected_terms, "malformed VSOP87B Earth section: series {series} power {power} expected {expected_terms} terms but parsed {parsed_terms}");
+            if parsed_terms != expected_terms {
+                return Err(Vsop87ParseError::MalformedSection {
+                    series,
+                    power,
+                    expected_terms,
+                    parsed_terms,
+                });
+            }
         }
+
+        Ok(())
     };
 
     for line in source.lines() {
@@ -228,7 +298,7 @@ pub(crate) fn parse_vsop87b_tables(source: &str) -> Vsop87SeriesTables {
         }
 
         if let Some((series, power, terms)) = parse_header_line(line) {
-            finalize_section(current_series, current_power, expected_terms, parsed_terms);
+            finalize_section(current_series, current_power, expected_terms, parsed_terms)?;
             current_series = Some(series);
             current_power = Some(power);
             expected_terms = terms;
@@ -238,20 +308,24 @@ pub(crate) fn parse_vsop87b_tables(source: &str) -> Vsop87SeriesTables {
 
         let (series, power) = match (current_series, current_power) {
             (Some(series), Some(power)) => (series, power),
-            _ => panic!("encountered VSOP87B coefficient line before a header: {line}"),
+            _ => {
+                return Err(Vsop87ParseError::CoefficientBeforeHeader {
+                    line: line.to_owned(),
+                });
+            }
         };
 
-        let term = parse_term_line(line);
+        let term = parse_term_line(line)?;
         match series {
             1 => longitude[power].push(term),
             2 => latitude[power].push(term),
             3 => radius[power].push(term),
-            _ => panic!("unexpected VSOP87B series index {series}"),
+            _ => return Err(Vsop87ParseError::UnexpectedSeries { series }),
         }
         parsed_terms += 1;
     }
 
-    finalize_section(current_series, current_power, expected_terms, parsed_terms);
+    finalize_section(current_series, current_power, expected_terms, parsed_terms)?;
 
     assert_eq!(
         longitude.len(),
@@ -269,11 +343,11 @@ pub(crate) fn parse_vsop87b_tables(source: &str) -> Vsop87SeriesTables {
         "Earth radius series should have six powers"
     );
 
-    Vsop87SeriesTables {
+    Ok(Vsop87SeriesTables {
         longitude,
         latitude,
         radius,
-    }
+    })
 }
 
 fn parse_header_line(line: &str) -> Option<(usize, usize, usize)> {
@@ -290,23 +364,34 @@ fn parse_header_line(line: &str) -> Option<(usize, usize, usize)> {
     Some((series, power, terms))
 }
 
-fn parse_term_line(line: &str) -> Vsop87Term {
+fn parse_term_line(line: &str) -> Result<Vsop87Term, Vsop87ParseError> {
     let tokens: Vec<&str> = line.split_whitespace().collect();
-    assert!(tokens.len() >= 3, "malformed VSOP87B term line: {line}");
-    let amplitude = tokens[tokens.len() - 3]
-        .parse::<f64>()
-        .unwrap_or_else(|_| panic!("invalid VSOP87B amplitude in line: {line}"));
-    let phase = tokens[tokens.len() - 2]
-        .parse::<f64>()
-        .unwrap_or_else(|_| panic!("invalid VSOP87B phase in line: {line}"));
-    let frequency = tokens[tokens.len() - 1]
-        .parse::<f64>()
-        .unwrap_or_else(|_| panic!("invalid VSOP87B frequency in line: {line}"));
-    Vsop87Term {
+    if tokens.len() < 3 {
+        return Err(Vsop87ParseError::MalformedTermLine {
+            line: line.to_owned(),
+        });
+    }
+    let amplitude = tokens[tokens.len() - 3].parse::<f64>().map_err(|_| {
+        Vsop87ParseError::InvalidAmplitude {
+            line: line.to_owned(),
+        }
+    })?;
+    let phase =
+        tokens[tokens.len() - 2]
+            .parse::<f64>()
+            .map_err(|_| Vsop87ParseError::InvalidPhase {
+                line: line.to_owned(),
+            })?;
+    let frequency = tokens[tokens.len() - 1].parse::<f64>().map_err(|_| {
+        Vsop87ParseError::InvalidFrequency {
+            line: line.to_owned(),
+        }
+    })?;
+    Ok(Vsop87Term {
         amplitude,
         phase,
         frequency,
-    }
+    })
 }
 
 #[cfg(test)]
@@ -315,7 +400,8 @@ mod tests {
 
     #[test]
     fn parses_full_earth_tables_with_expected_series_counts() {
-        let tables = parse_vsop87b_tables(include_str!("../data/VSOP87B.ear"));
+        let tables = parse_vsop87b_tables(include_str!("../data/VSOP87B.ear"))
+            .expect("Earth source file should parse");
         assert_eq!(tables.longitude.len(), 6);
         assert_eq!(tables.latitude.len(), 6);
         assert_eq!(tables.radius.len(), 6);
@@ -351,5 +437,19 @@ mod tests {
         assert!((earth.longitude_rad.to_degrees() - 100.377_843_416_648_52).abs() < 1e-12);
         assert!((earth.latitude_rad.to_degrees() + 0.000_227_210_514_441_982_95).abs() < 1e-12);
         assert!((earth.radius_au - 0.983_327_682_322_294_2).abs() < 1e-15);
+    }
+
+    #[test]
+    fn reports_malformed_earth_source_lines_as_structured_errors() {
+        let error =
+            parse_vsop87b_tables("1.0 2.0 3.0").expect_err("missing header should be rejected");
+        assert!(matches!(
+            error,
+            Vsop87ParseError::CoefficientBeforeHeader { .. }
+        ));
+
+        let error = parse_vsop87b_tables("VARIABLE 1 *T**0 1\n1.0 2.0")
+            .expect_err("malformed coefficient row should be rejected");
+        assert!(matches!(error, Vsop87ParseError::MalformedTermLine { .. }));
     }
 }

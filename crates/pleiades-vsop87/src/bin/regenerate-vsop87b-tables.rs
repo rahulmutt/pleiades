@@ -1,6 +1,6 @@
 use std::{env, fs, path::PathBuf, process::ExitCode};
 
-use pleiades_vsop87::{generated_vsop87b_table_bytes_for_source_file, source_specifications};
+use pleiades_vsop87::{source_specifications, try_generated_vsop87b_table_bytes_for_source_file};
 
 fn main() -> ExitCode {
     match run() {
@@ -18,8 +18,7 @@ fn run() -> Result<(), String> {
         .map_err(|error| format!("failed to create {}: {error}", output_dir.display()))?;
 
     for spec in source_specifications() {
-        let bytes = generated_vsop87b_table_bytes_for_source_file(spec.source_file)
-            .ok_or_else(|| format!("no vendored source text found for {}", spec.source_file))?;
+        let bytes = try_generated_vsop87b_table_bytes_for_source_file(spec.source_file)?;
         let output_path = output_dir.join(format!("{}.bin", spec.source_file));
         fs::write(&output_path, &bytes)
             .map_err(|error| format!("failed to write {}: {error}", output_path.display()))?;

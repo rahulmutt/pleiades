@@ -37,7 +37,8 @@ mod tests {
 
     #[test]
     fn parses_full_mars_tables_with_expected_series_counts() {
-        let tables = parse_vsop87b_tables(include_str!("../data/VSOP87B.mar"));
+        let tables = parse_vsop87b_tables(include_str!("../data/VSOP87B.mar"))
+            .expect("Mars source file should parse");
         assert_eq!(tables.longitude.len(), 6);
         assert_eq!(tables.latitude.len(), 6);
         assert_eq!(tables.radius.len(), 6);
