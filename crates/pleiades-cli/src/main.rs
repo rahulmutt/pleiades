@@ -117,6 +117,7 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
     let mut apparentness = Apparentness::Mean;
     let mut apparentness_explicit = false;
     let mut house_system: Option<HouseSystem> = None;
+    let mut tt_from_tdb_offset_seconds: Option<f64> = None;
 
     let mut iter = args.iter().copied();
     while let Some(arg) = iter.next() {
@@ -168,6 +169,12 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
                 tdb_offset_seconds =
                     Some(parse_signed_seconds(iter.next(), "--tdb-offset-seconds")?);
             }
+            "--tt-from-tdb-offset-seconds" => {
+                tt_from_tdb_offset_seconds = Some(parse_signed_seconds(
+                    iter.next(),
+                    "--tt-from-tdb-offset-seconds",
+                )?);
+            }
             "--mean" => {
                 if apparentness_explicit && apparentness != Apparentness::Mean {
                     return Err("conflicting apparentness flags: --mean and --apparent".to_string());
@@ -198,7 +205,7 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
             }
             "--help" | "-h" => {
                 return Ok(format!(
-                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--tt|--tdb|--utc|--ut1] [--tt-offset-seconds <seconds>] [--tdb-offset-seconds <seconds>] [--mean|--apparent] [--ayanamsa <name>] [--house-system <name>] [--body <name> ...]\n\nAyanamsa names may be built-in entries or custom definitions in the form custom:<name>|<epoch-jd>|<offset-degrees> (or custom-definition:<name>|<epoch-jd>|<offset-degrees>). Body names may be built-in bodies such as Sun or Moon, or custom identifiers in the form catalog:designation. When the chart instant is tagged as UTC or UT1, the caller must also supply the explicit TT offset before chart assembly, and may also supply a signed TDB-TT offset when converting to TDB.",
+                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--tt|--tdb|--utc|--ut1] [--tt-offset-seconds <seconds>] [--tdb-offset-seconds <seconds>] [--tt-from-tdb-offset-seconds <seconds>] [--mean|--apparent] [--ayanamsa <name>] [--house-system <name>] [--body <name> ...]\n\nAyanamsa names may be built-in entries or custom definitions in the form custom:<name>|<epoch-jd>|<offset-degrees> (or custom-definition:<name>|<epoch-jd>|<offset-degrees>). Body names may be built-in bodies such as Sun or Moon, or custom identifiers in the form catalog:designation. When the chart instant is tagged as UTC or UT1, the caller must also supply the explicit TT offset before chart assembly, and may also supply a signed TDB-TT offset when converting to TDB. When the chart instant is tagged as TDB, the caller may supply a signed TT-TDB offset to re-tag the request as TT before assembly.",
                     banner()
                 ));
             }
@@ -207,7 +214,13 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
     }
 
     let jd = jd.unwrap_or(2_451_545.0);
-    let instant = build_chart_instant(jd, time_scale, tt_offset_seconds, tdb_offset_seconds)?;
+    let instant = build_chart_instant(
+        jd,
+        time_scale,
+        tt_offset_seconds,
+        tdb_offset_seconds,
+        tt_from_tdb_offset_seconds,
+    )?;
     let observer = match (lat, lon) {
         (Some(lat), Some(lon)) => Some(ObserverLocation::new(
             Latitude::from_degrees(lat),
@@ -301,10 +314,12 @@ fn build_chart_instant(
     time_scale: TimeScale,
     tt_offset_seconds: Option<f64>,
     tdb_offset_seconds: Option<f64>,
+    tt_from_tdb_offset_seconds: Option<f64>,
 ) -> Result<Instant, String> {
     let instant = Instant::new(JulianDay::from_days(jd), time_scale);
     let tt_offset = tt_offset_seconds.map(Duration::from_secs_f64);
     let tdb_offset = tdb_offset_seconds;
+    let tt_from_tdb_offset = tt_from_tdb_offset_seconds;
 
     match time_scale {
         TimeScale::Utc => {
@@ -338,8 +353,8 @@ fn build_chart_instant(
             }
         }
         TimeScale::Tt => {
-            if tt_offset.is_some() {
-                Err("--tt-offset-seconds is only valid when the chart instant is tagged as UTC or UT1".to_string())
+            if tt_offset.is_some() || tt_from_tdb_offset.is_some() {
+                Err("--tt-offset-seconds and --tt-from-tdb-offset-seconds are only valid when the chart instant is tagged as UTC, UT1, or TDB respectively".to_string())
             } else if let Some(tdb_offset_seconds) = tdb_offset {
                 instant
                     .tdb_from_tt_signed(tdb_offset_seconds)
@@ -350,7 +365,11 @@ fn build_chart_instant(
         }
         TimeScale::Tdb => {
             if tt_offset.is_some() || tdb_offset.is_some() {
-                Err("time-scale offsets are only supported for UTC, UT1, or TT-tagged chart instants".to_string())
+                Err("time-scale offsets are only supported for UTC, UT1, TT, or TDB-tagged chart instants".to_string())
+            } else if let Some(tt_from_tdb_offset_seconds) = tt_from_tdb_offset {
+                instant
+                    .tt_from_tdb_signed(tt_from_tdb_offset_seconds)
+                    .map_err(|error| error.to_string())
             } else {
                 Ok(instant)
             }
@@ -917,6 +936,22 @@ mod tests {
                 || rendered.contains("Instant: JD 2451545.0 (Tdb)")
         );
         assert!(rendered.contains("Apparentness: Mean"));
+    }
+
+    #[test]
+    fn chart_command_can_convert_tdb_to_tt_with_signed_offset() {
+        let rendered = render_chart(&[
+            "--jd",
+            "2451545.0",
+            "--tdb",
+            "--tt-from-tdb-offset-seconds",
+            "-0.001657",
+            "--body",
+            "Sun",
+        ])
+        .expect("TDB-tagged chart should accept a signed TT-TDB offset");
+        assert!(rendered.contains("Instant: JD"));
+        assert!(rendered.contains("(Tt)"));
     }
 
     #[test]
