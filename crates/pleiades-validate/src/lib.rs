@@ -6922,6 +6922,9 @@ mod tests {
         assert!(rendered.contains("Pullen SR (Sinusoidal Ratio) table of houses"));
         assert!(rendered.contains("True Citra Paksha"));
         assert!(rendered.contains("Galactic Equator (Fiorenza)"));
+        assert!(rendered.contains("Nick Anthony Fiorenza"));
+        assert!(rendered.contains("Bob Makransky"));
+        assert!(rendered.contains("Treindl Sunshine"));
         assert!(rendered.contains("Valens Moon"));
         assert!(rendered.contains("Babylonian (House Obs)"));
         assert!(rendered.contains("Sunil Sheoran / Vedic Sheoran / Sheoran ayanamsa spellings"));
@@ -6933,12 +6936,17 @@ mod tests {
         assert!(rendered.contains("horizon/azimuth"));
         assert!(rendered.contains("Babylonian Huber"));
         assert!(rendered.contains("Galactic Equator (True)"));
+        assert!(rendered.contains("True galactic equator"));
+        assert!(rendered.contains("Galactic equator true"));
         assert!(rendered.contains("Valens Moon ayanamsa"));
         assert!(rendered.contains("Lahiri (ICRC)"));
         assert!(rendered.contains("Lahiri (1940)"));
         assert!(rendered.contains("Yukteshwar"));
         assert!(rendered.contains("True Revati"));
         assert!(rendered.contains("True Pushya"));
+        assert!(rendered.contains("Equal/MC = 10th"));
+        assert!(rendered.contains("Equal Midheaven table of houses"));
+        assert!(rendered.contains("Vehlow Equal table of houses"));
     }
 
     #[test]
