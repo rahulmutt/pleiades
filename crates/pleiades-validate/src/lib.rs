@@ -841,6 +841,8 @@ impl fmt::Display for ValidationReport {
         writeln!(f)?;
         write_body_class_tolerance_posture(f, &self.comparison.samples)?;
         writeln!(f)?;
+        write_tolerance_policy(f)?;
+        writeln!(f)?;
         write_tolerance_summaries(f, &self.comparison.tolerance_summaries())?;
         writeln!(f)?;
         write_regression_section(
@@ -2818,15 +2820,9 @@ fn parse_manifest_usize(
     field_name: &str,
 ) -> Result<usize, ReleaseBundleError> {
     let value = extract_prefixed_value(text, prefix)?;
-    let parsed = value.parse::<usize>().map_err(|error| {
+    value.parse::<usize>().map_err(|error| {
         ReleaseBundleError::Verification(format!("invalid {field_name} entry: {error}"))
-    })?;
-    if parsed == 0 {
-        return Err(ReleaseBundleError::Verification(format!(
-            "invalid {field_name} entry: expected a positive integer"
-        )));
-    }
-    Ok(parsed)
+    })
 }
 
 fn parse_manifest_checksum(text: &str, prefix: &str) -> Result<u64, ReleaseBundleError> {
@@ -3602,6 +3598,9 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         }
     }
     let _ = writeln!(text);
+    let _ = writeln!(text, "Tolerance policy");
+    write_tolerance_policy_text(&mut text);
+    let _ = writeln!(text);
     let _ = writeln!(text, "Expected tolerance status");
     for summary in report.comparison.tolerance_summaries() {
         let _ = writeln!(
@@ -4353,40 +4352,46 @@ fn body_class_tolerance_summaries(samples: &[ComparisonSample]) -> Vec<BodyClass
         .collect()
 }
 
-fn comparison_tolerance_for_body(body: &CelestialBody) -> ComparisonTolerance {
-    match body {
-        CelestialBody::Sun
-        | CelestialBody::Mercury
-        | CelestialBody::Venus
-        | CelestialBody::Mars
-        | CelestialBody::Jupiter
-        | CelestialBody::Saturn
-        | CelestialBody::Uranus
-        | CelestialBody::Neptune => ComparisonTolerance {
+fn comparison_tolerance_for_class(class: BodyClass) -> ComparisonTolerance {
+    match class {
+        BodyClass::Luminary | BodyClass::MajorPlanet => ComparisonTolerance {
             profile: "phase-1 full-file VSOP87B planetary evidence",
             max_longitude_delta_deg: REGRESSION_LONGITUDE_THRESHOLD_DEG,
             max_latitude_delta_deg: REGRESSION_LATITUDE_THRESHOLD_DEG,
             max_distance_delta_au: Some(REGRESSION_DISTANCE_THRESHOLD_AU),
         },
-        CelestialBody::Moon => ComparisonTolerance {
+        BodyClass::LunarPoint => ComparisonTolerance {
             profile: "phase-1 compact-ELP lunar evidence",
             max_longitude_delta_deg: REGRESSION_LONGITUDE_THRESHOLD_DEG,
             max_latitude_delta_deg: REGRESSION_LATITUDE_THRESHOLD_DEG,
             max_distance_delta_au: Some(REGRESSION_DISTANCE_THRESHOLD_AU),
         },
-        CelestialBody::Pluto => ComparisonTolerance {
-            profile: "phase-1 Pluto mean-elements fallback evidence",
+        BodyClass::Asteroid => ComparisonTolerance {
+            profile: "phase-1 asteroid comparison evidence",
             max_longitude_delta_deg: REGRESSION_LONGITUDE_THRESHOLD_DEG,
             max_latitude_delta_deg: REGRESSION_LATITUDE_THRESHOLD_DEG,
             max_distance_delta_au: Some(REGRESSION_DISTANCE_THRESHOLD_AU),
         },
-        _ => ComparisonTolerance {
+        BodyClass::Custom => ComparisonTolerance {
             profile: "phase-1 uncategorized comparison evidence",
             max_longitude_delta_deg: REGRESSION_LONGITUDE_THRESHOLD_DEG,
             max_latitude_delta_deg: REGRESSION_LATITUDE_THRESHOLD_DEG,
             max_distance_delta_au: Some(REGRESSION_DISTANCE_THRESHOLD_AU),
         },
     }
+}
+
+fn comparison_tolerance_for_body(body: &CelestialBody) -> ComparisonTolerance {
+    if matches!(body, CelestialBody::Pluto) {
+        return ComparisonTolerance {
+            profile: "phase-1 Pluto mean-elements fallback evidence",
+            max_longitude_delta_deg: REGRESSION_LONGITUDE_THRESHOLD_DEG,
+            max_latitude_delta_deg: REGRESSION_LATITUDE_THRESHOLD_DEG,
+            max_distance_delta_au: Some(REGRESSION_DISTANCE_THRESHOLD_AU),
+        };
+    }
+
+    comparison_tolerance_for_class(body_class(body))
 }
 
 fn body_tolerance_summary(summary: BodyComparisonSummary) -> BodyToleranceSummary {
@@ -4907,6 +4912,85 @@ fn write_body_class_tolerance_posture(
         summary.render(f)?;
     }
     Ok(())
+}
+
+fn write_tolerance_policy(f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    writeln!(f, "Tolerance policy")?;
+    for class in [
+        BodyClass::Luminary,
+        BodyClass::MajorPlanet,
+        BodyClass::LunarPoint,
+        BodyClass::Asteroid,
+        BodyClass::Custom,
+    ] {
+        let tolerance = comparison_tolerance_for_class(class);
+        writeln!(
+            f,
+            "  {}: profile={}, limit Δlon≤{:.6}°, limit Δlat≤{:.6}°, limit Δdist={}",
+            class.label(),
+            tolerance.profile,
+            tolerance.max_longitude_delta_deg,
+            tolerance.max_latitude_delta_deg,
+            tolerance
+                .max_distance_delta_au
+                .map(|value| format!("{value:.6} AU"))
+                .unwrap_or_else(|| "n/a".to_string())
+        )?;
+    }
+
+    let pluto = comparison_tolerance_for_body(&CelestialBody::Pluto);
+    writeln!(
+        f,
+        "  Pluto override: profile={}, limit Δlon≤{:.6}°, limit Δlat≤{:.6}°, limit Δdist={}",
+        pluto.profile,
+        pluto.max_longitude_delta_deg,
+        pluto.max_latitude_delta_deg,
+        pluto
+            .max_distance_delta_au
+            .map(|value| format!("{value:.6} AU"))
+            .unwrap_or_else(|| "n/a".to_string())
+    )?;
+
+    Ok(())
+}
+
+fn write_tolerance_policy_text(text: &mut String) {
+    use std::fmt::Write as _;
+
+    let _ = writeln!(text, "Tolerance policy");
+    for class in [
+        BodyClass::Luminary,
+        BodyClass::MajorPlanet,
+        BodyClass::LunarPoint,
+        BodyClass::Asteroid,
+        BodyClass::Custom,
+    ] {
+        let tolerance = comparison_tolerance_for_class(class);
+        let _ = writeln!(
+            text,
+            "  {}: profile={}, limit Δlon≤{:.6}°, limit Δlat≤{:.6}°, limit Δdist={}",
+            class.label(),
+            tolerance.profile,
+            tolerance.max_longitude_delta_deg,
+            tolerance.max_latitude_delta_deg,
+            tolerance
+                .max_distance_delta_au
+                .map(|value| format!("{value:.6} AU"))
+                .unwrap_or_else(|| "n/a".to_string())
+        );
+    }
+    let pluto = comparison_tolerance_for_body(&CelestialBody::Pluto);
+    let _ = writeln!(
+        text,
+        "  Pluto override: profile={}, limit Δlon≤{:.6}°, limit Δlat≤{:.6}°, limit Δdist={}",
+        pluto.profile,
+        pluto.max_longitude_delta_deg,
+        pluto.max_latitude_delta_deg,
+        pluto
+            .max_distance_delta_au
+            .map(|value| format!("{value:.6} AU"))
+            .unwrap_or_else(|| "n/a".to_string())
+    );
 }
 
 fn write_tolerance_summaries(
@@ -5805,6 +5889,12 @@ mod tests {
         assert!(report.contains("Comparison summary"));
         assert!(report.contains("Body-class error envelopes"));
         assert!(report.contains("Body-class tolerance posture"));
+        assert!(report.contains("Tolerance policy"));
+        assert!(
+            report.contains("Major planets: profile=phase-1 full-file VSOP87B planetary evidence")
+        );
+        assert!(report
+            .contains("Pluto override: profile=phase-1 Pluto mean-elements fallback evidence"));
         assert!(report.contains("Luminaries"));
         assert!(report.contains("Major planets"));
         assert!(report.contains("interpolation quality checks:"));
@@ -5839,6 +5929,12 @@ mod tests {
         assert!(report.contains("Comparison corpus"));
         assert!(report.contains("epoch labels: JD 2378499.0 (TT)"));
         assert!(report.contains("Comparison summary"));
+        assert!(report.contains("Tolerance policy"));
+        assert!(
+            report.contains("Major planets: profile=phase-1 full-file VSOP87B planetary evidence")
+        );
+        assert!(report
+            .contains("Pluto override: profile=phase-1 Pluto mean-elements fallback evidence"));
         assert!(report.contains("Comparison tolerance audit"));
         assert!(report.contains("command: compare-backends-audit"));
         assert!(report.contains("regressions found"));
@@ -7138,8 +7234,8 @@ version = "0.9.0"
     }
 
     #[test]
-    fn verify_release_bundle_rejects_zero_validation_rounds() {
-        let bundle_dir = unique_temp_dir("pleiades-release-bundle-zero-validation-rounds");
+    fn verify_release_bundle_rejects_invalid_validation_rounds() {
+        let bundle_dir = unique_temp_dir("pleiades-release-bundle-invalid-validation-rounds");
         let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
         render_cli(&[
             "bundle-release",
@@ -7152,7 +7248,7 @@ version = "0.9.0"
 
         let manifest_path = bundle_dir.join("bundle-manifest.txt");
         let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
-        let tampered_manifest = manifest.replace("validation rounds: 1", "validation rounds: 0");
+        let tampered_manifest = manifest.replace("validation rounds: 1", "validation rounds: nope");
         std::fs::write(&manifest_path, &tampered_manifest).expect("manifest should be writable");
 
         let checksum_path = bundle_dir.join("bundle-manifest.checksum.txt");
@@ -7163,9 +7259,9 @@ version = "0.9.0"
         .expect("manifest checksum sidecar should be writable");
 
         let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
-            .expect_err("verification should fail for zero validation rounds");
+            .expect_err("verification should fail for invalid validation rounds");
         assert!(error.contains("release bundle verification failed"));
-        assert!(error.contains("invalid validation rounds entry: expected a positive integer"));
+        assert!(error.contains("invalid validation rounds entry"));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
     }

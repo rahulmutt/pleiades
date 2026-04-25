@@ -19,7 +19,7 @@ use pleiades_jpl::JplSnapshotBackend;
 use pleiades_validate::{
     render_api_stability_summary, render_artifact_summary, render_backend_matrix_report,
     render_backend_matrix_summary, render_cli as validate_render_cli,
-    render_compatibility_profile_summary, render_release_checklist,
+    render_compatibility_profile_summary, render_release_bundle, render_release_checklist,
     render_release_checklist_summary, render_release_notes, render_release_notes_summary,
     render_release_summary, render_validation_report_summary, verify_compatibility_profile,
 };
@@ -46,7 +46,9 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
                 return Ok(help_text());
             }
             let output_dir = parse_release_bundle_output_dir(&args[1..])?;
-            validate_render_cli(&["bundle-release", "--out", output_dir])
+            render_release_bundle(0, output_dir)
+                .map(|bundle| bundle.to_string())
+                .map_err(|error| error.to_string())
         }
         Some("verify-release-bundle") => {
             if args[1..].iter().any(|arg| *arg == "--help" || *arg == "-h") {
@@ -81,7 +83,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("workspace-audit") | Some("audit") => validate_render_cli(&["workspace-audit"]),
         Some("report") | Some("generate-report") => validate_render_cli(args),
         Some("validation-report-summary") | Some("validation-summary") | Some("report-summary") => {
-            render_validation_report_summary(10_000).map_err(render_error)
+            render_validation_report_summary(0).map_err(render_error)
         }
         Some("chart") => render_chart(&args[1..]),
         Some("help") | Some("--help") | Some("-h") => Ok(help_text()),
@@ -681,7 +683,7 @@ mod tests {
         let bundle_dir = unique_temp_dir("pleiades-cli-release-bundle");
         let bundle_dir_string = bundle_dir.display().to_string();
 
-        pleiades_validate::render_cli(&["bundle-release", "--out", &bundle_dir_string])
+        render_cli(&["bundle-release", "--out", &bundle_dir_string])
             .expect("bundle generation should succeed");
         let verified = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
             .expect("bundle verification should render");
