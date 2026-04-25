@@ -23,7 +23,7 @@ The backend currently rejects:
 - true perigee
 - apparent requests beyond mean geometric output
 - topocentric observer requests
-- non-TT input time scales
+- non-TT/TDB input time scales
 - non-tropical zodiac requests
 
 The current request policy is intentionally narrow and explicit:

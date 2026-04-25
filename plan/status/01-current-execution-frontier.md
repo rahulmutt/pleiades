@@ -52,6 +52,8 @@ Latest progress (2026-04-25): `pleiades-types` and `pleiades-core::ChartRequest`
 
 Latest progress (2026-04-25): the VSOP87 and compact lunar backend paths now accept both TT and TDB dynamical-time requests while still rejecting UT-based requests explicitly, so the current phase-1 time-scale policy is a little less frictionful for validation and chart callers without adding a built-in Delta T or relativistic conversion model.
 
+Latest progress (2026-04-25): the time-observer and lunar-theory policy docs now mirror the TT/TDB acceptance behavior, so the public policy notes no longer imply TT-only backend handling while the caller-supplied conversion model remains explicit.
+
 Latest progress (2026-04-25): validation reporting now includes a release-grade comparison tolerance audit section, and `compare-backends-audit` now fails when the built-in tolerance audit finds regressions, so release tooling has an explicit pass/fail gate in addition to the existing per-body tolerance tables.
 
 Latest progress (2026-04-25): the body-class tolerance posture now names the bodies that drive each class-level max longitude, latitude, and distance delta, so the coarse tolerance audit can point at the exact worst-case body instead of only aggregating counts and magnitudes.
