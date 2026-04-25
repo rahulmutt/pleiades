@@ -6343,6 +6343,8 @@ mod tests {
         assert!(rendered.contains("Alias mappings for built-in house systems:"));
         assert!(rendered.contains("Polich-Page \"topocentric\" table of houses"));
         assert!(rendered.contains("T Polich/Page (\"topocentric\")"));
+        assert!(rendered.contains("Poli-equatorial"));
+        assert!(rendered.contains("horizon/azimuth"));
         assert!(rendered.contains("Babylonian Huber"));
         assert!(rendered.contains("Galactic Equator (True)"));
         assert!(rendered.contains("Valens Moon ayanamsa"));
@@ -6367,6 +6369,8 @@ mod tests {
         assert!(rendered.contains("B. V. Raman"));
         assert!(rendered.contains("Polich-Page \"topocentric\" table of houses"));
         assert!(rendered.contains("T Polich/Page (\"topocentric\")"));
+        assert!(rendered.contains("Poli-equatorial"));
+        assert!(rendered.contains("horizon/azimuth"));
         assert!(rendered.contains("Babylonian Huber"));
         assert!(rendered.contains("Galactic Equator (True)"));
         assert!(rendered.contains("Valens Moon ayanamsa"));
