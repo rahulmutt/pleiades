@@ -1948,6 +1948,22 @@ mod tests {
     }
 
     #[test]
+    fn batch_query_rejects_unsupported_lunar_bodies_with_structured_errors() {
+        let backend = ElpBackend::new();
+        let instant = Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt);
+        let requests = [CelestialBody::TrueApogee, CelestialBody::TruePerigee]
+            .into_iter()
+            .map(|body| mean_request_at(body, instant))
+            .collect::<Vec<_>>();
+
+        let error = backend
+            .positions(&requests)
+            .expect_err("unsupported lunar bodies should fail explicitly through batch requests");
+
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedBody);
+    }
+
+    #[test]
     fn batch_query_preserves_equatorial_frame_and_values() {
         let backend = ElpBackend::new();
         let evidence = lunar_reference_evidence();
