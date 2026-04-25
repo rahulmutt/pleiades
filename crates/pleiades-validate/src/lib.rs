@@ -2377,6 +2377,17 @@ fn render_release_summary_text() -> String {
     text.push_str("JPL interpolation evidence: ");
     text.push_str(&format_jpl_interpolation_quality_summary_for_report());
     text.push('\n');
+    text.push_str("ELP lunar capability: ");
+    text.push_str(&format_lunar_theory_capability_summary(
+        &lunar_theory_capability_summary(),
+    ));
+    text.push('\n');
+    text.push_str("Lunar reference evidence: ");
+    text.push_str(&lunar_reference_evidence_summary_for_report());
+    text.push('\n');
+    text.push_str("Lunar equatorial evidence: ");
+    text.push_str(&lunar_equatorial_reference_evidence_summary_for_report());
+    text.push('\n');
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("Backend matrix summary: backend-matrix-summary\n");
     text.push_str("Validation report summary: validation-report-summary / validation-summary / report-summary\n");
@@ -7999,6 +8010,10 @@ version = "0.9.0"
         assert!(release_summary.contains("mean longitude delta:"));
         assert!(release_summary.contains("mean latitude delta:"));
         assert!(release_summary.contains("mean distance delta:"));
+        assert!(release_summary.contains("ELP lunar capability: lunar capability summary:"));
+        assert!(release_summary.contains("Lunar reference evidence: lunar reference evidence:"));
+        assert!(release_summary
+            .contains("Lunar equatorial evidence: lunar equatorial reference evidence:"));
         assert!(release_summary.contains("Packaged request policy"));
         assert!(release_summary.contains("applies to 11 bundled bodies"));
         assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));

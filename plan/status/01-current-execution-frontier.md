@@ -99,6 +99,8 @@ Latest progress (2026-04-25): the release bundle now also includes a compact `wo
 
 Latest progress (2026-04-25): the validation comparison envelope now also reports RMS longitude, latitude, and distance deltas in the full report, compact summary, and body-by-body envelope output, so the broader release-grade error envelope includes spread metrics in addition to maxima and means. The body-class error envelopes now also carry RMS longitude, latitude, and distance deltas, so the coarse class audit has the same spread metric as the per-body reports.
 
+Latest progress (2026-04-25): the compact release summary now also surfaces the ELP lunar capability line plus the lunar reference and lunar equatorial evidence summaries alongside the JPL interpolation evidence, so the one-screen release overview keeps the current lunar theory baseline visible next to the other phase-1 accuracy evidence.
+
 Active gaps:
 
 - broader release-grade error envelopes and tolerance tables beyond the new comparison-audit gate;
