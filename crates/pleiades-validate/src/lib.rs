@@ -3158,6 +3158,19 @@ fn comparison_audit_totals(report: &ComparisonReport) -> (usize, usize, usize, u
     )
 }
 
+fn format_regression_bodies(regressions: &[RegressionFinding]) -> String {
+    let bodies = regressions
+        .iter()
+        .map(|finding| finding.body.to_string())
+        .collect::<BTreeSet<_>>();
+
+    if bodies.is_empty() {
+        "none".to_string()
+    } else {
+        bodies.into_iter().collect::<Vec<_>>().join(", ")
+    }
+}
+
 /// Renders a release-grade comparison tolerance audit used by the CLI.
 pub fn render_comparison_audit_report() -> Result<String, String> {
     let corpus = default_corpus();
@@ -3206,6 +3219,11 @@ fn render_comparison_audit_report_text(report: &ComparisonReport) -> String {
         outside_tolerance_body_count
     );
     let _ = writeln!(text, "  notable regressions: {}", regression_count);
+    let _ = writeln!(
+        text,
+        "  regression bodies: {}",
+        format_regression_bodies(&report.notable_regressions())
+    );
     let _ = writeln!(
         text,
         "  result: {}",
@@ -3530,6 +3548,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
             .unwrap_or_else(|| "n/a".to_string())
     );
     let _ = writeln!(text, "  notable regressions: {}", comparison_regressions);
+    let _ = writeln!(
+        text,
+        "  regression bodies: {}",
+        format_regression_bodies(&report.comparison.notable_regressions())
+    );
     let _ = writeln!(text);
     let _ = writeln!(text, "JPL interpolation quality");
     let _ = writeln!(
@@ -5932,6 +5955,7 @@ mod tests {
         assert!(error.contains("comparison audit failed"));
         assert!(error.contains("Comparison tolerance audit"));
         assert!(error.contains("Notable regressions"));
+        assert!(error.contains("regression bodies: Pluto"));
         assert!(error.contains("Pluto"));
     }
 
@@ -6037,6 +6061,7 @@ mod tests {
         assert!(report.contains("Comparison tolerance audit"));
         assert!(report.contains("command: compare-backends-audit"));
         assert!(report.contains("regressions found"));
+        assert!(report.contains("regression bodies: Pluto"));
         assert!(report.contains("JPL interpolation quality"));
         assert!(report.contains("JPL interpolation quality: 10 samples across 5 bodies"));
         assert!(report.contains("leave-one-out runtime interpolation evidence"));
@@ -6122,6 +6147,7 @@ mod tests {
         assert!(validation_report_summary.contains("Comparison tolerance audit"));
         assert!(validation_report_summary.contains("command: compare-backends-audit"));
         assert!(validation_report_summary.contains("regressions found"));
+        assert!(validation_report_summary.contains("regression bodies: Pluto"));
         assert!(validation_report_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(validation_report_summary.contains("Release notes summary: release-notes-summary"));
