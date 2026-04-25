@@ -49,8 +49,8 @@ use pleiades_elp::{
     lunar_high_curvature_equatorial_continuity_evidence_for_report, lunar_reference_evidence,
     lunar_reference_evidence_envelope_for_report, lunar_reference_evidence_summary,
     lunar_reference_evidence_summary_for_report, lunar_theory_capability_summary,
-    lunar_theory_request_policy_summary, lunar_theory_specification, lunar_theory_summary,
-    ElpBackend,
+    lunar_theory_catalog_summary_for_report, lunar_theory_request_policy_summary,
+    lunar_theory_specification, lunar_theory_summary, ElpBackend,
 };
 use pleiades_houses::{
     baseline_house_systems, built_in_house_systems, release_house_systems, resolve_house_system,
@@ -2308,6 +2308,8 @@ fn render_release_summary_text() -> String {
     text.push_str("Release summary line: ");
     text.push_str(profile.summary);
     text.push('\n');
+    text.push_str(&lunar_theory_catalog_summary_for_report());
+    text.push('\n');
     text.push_str("House systems: ");
     text.push_str(&profile.house_systems.len().to_string());
     text.push_str(" total (");
@@ -4312,6 +4314,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text, "  {}", format_vsop87_body_evidence_summary());
     let _ = writeln!(text);
     let _ = writeln!(text, "ELP lunar theory specification");
+    let _ = writeln!(text, "  {}", lunar_theory_catalog_summary_for_report());
     let _ = writeln!(text, "  {}", lunar_theory_summary());
     let _ = writeln!(text);
     let _ = writeln!(text, "Packaged-artifact profile");
@@ -4566,6 +4569,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&format_vsop87_canonical_evidence_summary());
     text.push('\n');
     text.push_str(&format_vsop87_body_evidence_summary());
+    text.push('\n');
+    text.push_str(&lunar_theory_catalog_summary_for_report());
     text.push('\n');
     text.push_str(&lunar_theory_summary());
     text.push('\n');
@@ -5494,6 +5499,11 @@ fn write_backend_catalog_entry(
     } else if entry.metadata.id.as_str() == "pleiades-elp" {
         let theory = lunar_theory_specification();
         writeln!(f, "  lunar theory specification:")?;
+        writeln!(
+            f,
+            "    catalog summary: {}",
+            lunar_theory_catalog_summary_for_report()
+        )?;
         writeln!(f, "    model: {}", theory.model_name)?;
         writeln!(
             f,
@@ -7823,6 +7833,9 @@ mod tests {
         assert!(rendered.contains(
             "ELP lunar theory specification: Compact Meeus-style truncated lunar baseline [meeus-style-truncated-lunar-baseline; family: Meeus-style truncated analytical baseline]"
         ));
+        assert!(rendered.contains(
+            "lunar theory catalog: 1 entry, 1 selected entry; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]"
+        ));
         assert!(rendered.contains("lunar reference error envelope: 9 samples across 5 bodies"));
         assert!(rendered.contains("max Δlon="));
         assert!(rendered.contains("max Δlat="));
@@ -8082,6 +8095,9 @@ version = "0.9.0"
         assert!(release_summary.contains("mean latitude delta:"));
         assert!(release_summary.contains("mean distance delta:"));
         assert!(release_summary.contains("ELP lunar capability: lunar capability summary:"));
+        assert!(release_summary.contains(
+            "lunar theory catalog: 1 entry, 1 selected entry; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]"
+        ));
         assert!(release_summary.contains("Lunar reference evidence: lunar reference evidence:"));
         assert!(release_summary
             .contains("Lunar equatorial evidence: lunar equatorial reference evidence:"));
@@ -8207,6 +8223,9 @@ version = "0.9.0"
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(validation_report_summary.contains(
             "ELP lunar theory specification: Compact Meeus-style truncated lunar baseline [meeus-style-truncated-lunar-baseline; family: Meeus-style truncated analytical baseline]"
+        ));
+        assert!(validation_report_summary.contains(
+            "lunar theory catalog: 1 entry, 1 selected entry; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]"
         ));
         assert!(validation_report_summary
             .contains("lunar reference error envelope: 9 samples across 5 bodies"));

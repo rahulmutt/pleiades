@@ -101,6 +101,15 @@ pub const fn lunar_theory_request_policy() -> LunarTheoryRequestPolicy {
     LUNAR_THEORY_REQUEST_POLICY
 }
 
+/// Structured description of a catalog entry in the current lunar-theory selection.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct LunarTheoryCatalogEntry {
+    /// Whether this catalog entry is the currently selected lunar-theory baseline.
+    pub selected: bool,
+    /// Structured description of the selected lunar-theory baseline.
+    pub specification: LunarTheorySpecification,
+}
+
 /// Structured description of the current lunar-theory selection.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct LunarTheorySpecification {
@@ -227,19 +236,91 @@ const LUNAR_THEORY_SPECIFICATION: LunarTheorySpecification = LunarTheorySpecific
         "The current baseline is handwritten pure Rust and does not redistribute external coefficient tables; any future source-backed lunar theory selection will need its own provenance and redistribution review",
 };
 
+const LUNAR_THEORY_CATALOG: &[LunarTheoryCatalogEntry] = &[LunarTheoryCatalogEntry {
+    selected: true,
+    specification: LUNAR_THEORY_SPECIFICATION,
+}];
+
+/// Returns the structured catalog of lunar-theory selections.
+pub fn lunar_theory_catalog() -> &'static [LunarTheoryCatalogEntry] {
+    LUNAR_THEORY_CATALOG
+}
+
 /// Returns the currently selected compact lunar-theory specification.
 pub fn lunar_theory_specification() -> LunarTheorySpecification {
-    LUNAR_THEORY_SPECIFICATION
+    lunar_theory_catalog()
+        .iter()
+        .find(|entry| entry.selected)
+        .map(|entry| entry.specification)
+        .unwrap_or(LUNAR_THEORY_SPECIFICATION)
 }
 
 /// Returns the bodies/channels the current lunar-theory baseline explicitly supports.
 pub fn lunar_theory_supported_bodies() -> &'static [CelestialBody] {
-    LUNAR_THEORY_SPECIFICATION.supported_bodies
+    lunar_theory_specification().supported_bodies
 }
 
 /// Returns the bodies/channels the current lunar-theory baseline explicitly rejects.
 pub fn lunar_theory_unsupported_bodies() -> &'static [CelestialBody] {
-    LUNAR_THEORY_SPECIFICATION.unsupported_bodies
+    lunar_theory_specification().unsupported_bodies
+}
+
+/// A compact summary of the current lunar-theory catalog.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct LunarTheoryCatalogSummary {
+    /// Number of catalog entries.
+    pub entry_count: usize,
+    /// Number of selected catalog entries.
+    pub selected_count: usize,
+    /// Identifier of the selected lunar-theory baseline.
+    pub selected_source_identifier: &'static str,
+    /// Human-readable source family label of the selected lunar-theory baseline.
+    pub selected_source_family_label: &'static str,
+}
+
+/// Returns a compact summary of the current lunar-theory catalog.
+pub fn lunar_theory_catalog_summary() -> LunarTheoryCatalogSummary {
+    let catalog = lunar_theory_catalog();
+    let selected_entry = catalog
+        .iter()
+        .find(|entry| entry.selected)
+        .unwrap_or(&catalog[0]);
+
+    LunarTheoryCatalogSummary {
+        entry_count: catalog.len(),
+        selected_count: catalog.iter().filter(|entry| entry.selected).count(),
+        selected_source_identifier: selected_entry.specification.source_identifier,
+        selected_source_family_label: selected_entry.specification.source_family.label(),
+    }
+}
+
+/// Formats the catalog summary for release-facing reporting.
+pub fn format_lunar_theory_catalog_summary(summary: &LunarTheoryCatalogSummary) -> String {
+    let entry_label = if summary.entry_count == 1 {
+        "entry"
+    } else {
+        "entries"
+    };
+    let selected_label = if summary.selected_count == 1 {
+        "selected entry"
+    } else {
+        "selected entries"
+    };
+
+    format!(
+        "lunar theory catalog: {} {}, {} {}; selected source: {} [{}]",
+        summary.entry_count,
+        entry_label,
+        summary.selected_count,
+        selected_label,
+        summary.selected_source_identifier,
+        summary.selected_source_family_label,
+    )
+}
+
+/// Returns the release-facing catalog summary string for the current lunar-theory selection.
+pub fn lunar_theory_catalog_summary_for_report() -> String {
+    format_lunar_theory_catalog_summary(&lunar_theory_catalog_summary())
 }
 
 /// A compact capability summary for the current lunar-theory selection.
@@ -1974,6 +2055,30 @@ mod tests {
         assert!(summary.contains("zodiac modes=Tropical"));
         assert!(summary.contains("apparentness=Mean"));
         assert!(summary.contains("topocentric observer=false"));
+
+        let catalog = lunar_theory_catalog();
+        let catalog_summary = lunar_theory_catalog_summary();
+        assert_eq!(catalog.len(), 1);
+        assert!(catalog[0].selected);
+        assert_eq!(catalog[0].specification, theory);
+        assert_eq!(catalog_summary.entry_count, 1);
+        assert_eq!(catalog_summary.selected_count, 1);
+        assert_eq!(
+            catalog_summary.selected_source_identifier,
+            theory.source_identifier
+        );
+        assert_eq!(
+            catalog_summary.selected_source_family_label,
+            theory.source_family.label()
+        );
+        assert_eq!(
+            format_lunar_theory_catalog_summary(&catalog_summary),
+            lunar_theory_catalog_summary_for_report()
+        );
+        assert!(lunar_theory_catalog_summary_for_report()
+            .contains("lunar theory catalog: 1 entry, 1 selected entry"));
+        assert!(lunar_theory_catalog_summary_for_report()
+            .contains("selected source: meeus-style-truncated-lunar-baseline"));
     }
 
     #[test]
