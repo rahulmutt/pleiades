@@ -17,6 +17,7 @@
 #![forbid(unsafe_code)]
 
 use core::fmt;
+use std::collections::BTreeSet;
 use std::sync::OnceLock;
 
 use pleiades_backend::{
@@ -50,6 +51,61 @@ pub fn reference_epochs() -> &'static [Instant] {
 /// Returns the parsed reference fixture entries.
 pub fn reference_snapshot() -> &'static [SnapshotEntry] {
     snapshot_entries().unwrap_or(&[])
+}
+
+/// A compact coverage summary for the checked-in reference snapshot.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ReferenceSnapshotSummary {
+    /// Total number of parsed snapshot rows.
+    pub row_count: usize,
+    /// Number of distinct bodies covered by the snapshot.
+    pub body_count: usize,
+    /// Number of distinct epochs covered by the snapshot.
+    pub epoch_count: usize,
+    /// Number of rows that belong to the reference asteroid subset.
+    pub asteroid_row_count: usize,
+    /// Earliest epoch represented in the snapshot.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented in the snapshot.
+    pub latest_epoch: Instant,
+}
+
+/// Returns a compact coverage summary for the checked-in reference snapshot.
+pub fn reference_snapshot_summary() -> Option<ReferenceSnapshotSummary> {
+    let entries = reference_snapshot();
+    if entries.is_empty() {
+        return None;
+    }
+
+    let mut bodies = BTreeSet::new();
+    let mut epochs = BTreeSet::new();
+    let mut asteroid_row_count = 0usize;
+    let mut earliest_epoch = entries[0].epoch;
+    let mut latest_epoch = entries[0].epoch;
+    let reference_asteroids = reference_asteroids();
+
+    for entry in entries {
+        bodies.insert(entry.body.to_string());
+        epochs.insert(entry.epoch.julian_day.days().to_bits());
+        if reference_asteroids.contains(&entry.body) {
+            asteroid_row_count += 1;
+        }
+        if entry.epoch.julian_day.days() < earliest_epoch.julian_day.days() {
+            earliest_epoch = entry.epoch;
+        }
+        if entry.epoch.julian_day.days() > latest_epoch.julian_day.days() {
+            latest_epoch = entry.epoch;
+        }
+    }
+
+    Some(ReferenceSnapshotSummary {
+        row_count: entries.len(),
+        body_count: bodies.len(),
+        epoch_count: epochs.len(),
+        asteroid_row_count,
+        earliest_epoch,
+        latest_epoch,
+    })
 }
 
 /// Returns the source-backed asteroid subset present in the reference snapshot.
@@ -955,6 +1011,18 @@ mod tests {
                 .count(),
             10
         );
+    }
+
+    #[test]
+    fn reference_snapshot_summary_reports_the_expected_coverage() {
+        let summary =
+            reference_snapshot_summary().expect("reference snapshot summary should exist");
+        assert_eq!(summary.row_count, 35);
+        assert_eq!(summary.body_count, 15);
+        assert_eq!(summary.epoch_count, 4);
+        assert_eq!(summary.asteroid_row_count, 5);
+        assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_499.0);
+        assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
     }
 
     #[test]

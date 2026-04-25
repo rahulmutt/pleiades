@@ -42,7 +42,7 @@ use pleiades_houses::{
 };
 use pleiades_jpl::{
     comparison_snapshot, interpolation_quality_samples, reference_asteroid_evidence,
-    reference_asteroids, JplSnapshotBackend,
+    reference_asteroids, reference_snapshot_summary, JplSnapshotBackend,
 };
 use pleiades_vsop87::{
     body_source_profiles, frame_treatment_summary, source_audit_summary, source_audits,
@@ -1731,6 +1731,8 @@ fn render_release_notes_text() -> String {
     }
     text.push_str(&format_reference_asteroid_evidence_summary());
     text.push('\n');
+    text.push_str(&format_reference_snapshot_summary());
+    text.push('\n');
 
     if !profile.custom_definition_labels.is_empty() {
         text.push_str("Custom-definition labels:\n");
@@ -1785,6 +1787,8 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&profile.release_notes.len().to_string());
     text.push('\n');
     text.push_str(&format_reference_asteroid_evidence_summary());
+    text.push('\n');
+    text.push_str(&format_reference_snapshot_summary());
     text.push('\n');
     text.push_str("Custom-definition labels: ");
     text.push_str(&profile.custom_definition_labels.len().to_string());
@@ -3432,6 +3436,21 @@ fn format_reference_asteroid_evidence_summary() -> String {
     }
 }
 
+fn format_reference_snapshot_summary() -> String {
+    match reference_snapshot_summary() {
+        Some(summary) => format!(
+            "Reference snapshot coverage: {} rows across {} bodies and {} epochs ({} asteroid rows; JD {:.1}..{:.1})",
+            summary.row_count,
+            summary.body_count,
+            summary.epoch_count,
+            summary.asteroid_row_count,
+            summary.earliest_epoch.julian_day.days(),
+            summary.latest_epoch.julian_day.days(),
+        ),
+        None => "Reference snapshot coverage: unavailable".to_string(),
+    }
+}
+
 fn format_packaged_artifact_profile_summary() -> String {
     packaged_artifact().header.profile.summary()
 }
@@ -3830,6 +3849,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&selected_asteroid_count.to_string());
     text.push('\n');
     text.push_str(&format_reference_asteroid_evidence_summary());
+    text.push('\n');
+    text.push_str(&format_reference_snapshot_summary());
     text.push('\n');
     text.push_str("Backends with external data sources: ");
     text.push_str(&data_source_count.to_string());
@@ -6241,6 +6262,7 @@ mod tests {
         assert!(rendered.contains("Release-specific coverage:"));
         assert!(rendered.contains("selected asteroid coverage"));
         assert!(rendered.contains("Selected asteroid evidence: 5 exact J2000 samples"));
+        assert!(rendered.contains("Reference snapshot coverage: 35 rows across 15 bodies and 4 epochs (5 asteroid rows; JD 2378499.0..2634167.0)"));
         assert!(rendered.contains("asteroid:433-Eros"));
         assert!(rendered.contains("Validation reference points:"));
         assert!(rendered.contains("Compatibility caveats:"));
@@ -6267,6 +6289,7 @@ mod tests {
         assert!(rendered.contains("API stability summary line:"));
         assert!(rendered.contains("Release notes: release-notes"));
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
+        assert!(rendered.contains("Reference snapshot coverage: 35 rows across 15 bodies and 4 epochs (5 asteroid rows; JD 2378499.0..2634167.0)"));
         assert!(rendered
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Release checklist summary: release-checklist-summary"));
@@ -6482,6 +6505,7 @@ mod tests {
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(rendered.contains("API stability summary: api-stability-summary"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
+        assert!(rendered.contains("Reference snapshot coverage: 35 rows across 15 bodies and 4 epochs (5 asteroid rows; JD 2378499.0..2634167.0)"));
         assert!(rendered
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Release checklist summary: release-checklist-summary"));

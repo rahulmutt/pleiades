@@ -38,6 +38,8 @@ Latest progress (2026-04-25): packaged-artifact summaries now surface the conser
 
 Latest progress (2026-04-25): the `pleiades-elp` Moon path now uses a Meeus-style truncated lunar position series instead of the earlier simplified orbital surrogate, and the backend now validates against the published 1992-04-12 geocentric Moon example in addition to the existing J2000 lunar-point checks. The lunar-theory metadata now also carries an explicit Meeus citation plus a conservative license/provenance note, which makes the current source-selection posture easier to audit while true ELP coefficient selection still remains pending.
 
+Latest progress (2026-04-25): the checked-in JPL reference snapshot now also publishes a compact coverage summary with total rows, distinct bodies, distinct epochs, asteroid-row count, and epoch range, and the validation/release-facing summaries now surface that snapshot coverage alongside the exact asteroid evidence rows.
+
 Latest progress (2026-04-25): the checked-in JPL asteroid subset now renders exact J2000 evidence rows in validation reports, backend matrices, and release notes, so the named asteroid coverage is visible as coordinates rather than only as body labels.
 
 Latest progress (2026-04-25): the compact ELP lunar backend now also exposes a canonical lunar evidence slice for the published 1992-04-12 Moon example plus J2000 lunar-point references, and the validation reports now render that evidence alongside the backend matrix and summary output so the current lunar baseline is easier to audit without changing the public API.
