@@ -437,6 +437,54 @@ mod tests {
     }
 
     #[test]
+    fn observer_requests_are_rejected_explicitly() {
+        let backend = packaged_backend();
+        let request = EphemerisRequest {
+            body: CelestialBody::Sun,
+            instant: Instant::new(
+                pleiades_backend::JulianDay::from_days(2_451_545.0),
+                TimeScale::Tdb,
+            ),
+            observer: Some(pleiades_backend::ObserverLocation::new(
+                pleiades_backend::Latitude::from_degrees(51.5),
+                pleiades_backend::Longitude::from_degrees(0.0),
+                None,
+            )),
+            frame: CoordinateFrame::Ecliptic,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparent: pleiades_backend::Apparentness::Mean,
+        };
+
+        let error = backend
+            .position(&request)
+            .expect_err("packaged data should reject topocentric requests");
+
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
+    }
+
+    #[test]
+    fn apparent_requests_are_rejected_explicitly() {
+        let backend = packaged_backend();
+        let request = EphemerisRequest {
+            body: CelestialBody::Sun,
+            instant: Instant::new(
+                pleiades_backend::JulianDay::from_days(2_451_545.0),
+                TimeScale::Tdb,
+            ),
+            observer: None,
+            frame: CoordinateFrame::Ecliptic,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparent: pleiades_backend::Apparentness::Apparent,
+        };
+
+        let error = backend
+            .position(&request)
+            .expect_err("packaged data should reject apparent-place requests");
+
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+    }
+
+    #[test]
     fn backend_metadata_exposes_packaged_scope() {
         let metadata = packaged_backend().metadata();
         assert_eq!(metadata.id.as_str(), PACKAGE_NAME);

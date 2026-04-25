@@ -136,6 +136,8 @@ Suggested scope:
 
 Progress note (2026-04-24): chart assembly now uses the observer location for house calculations without passing it into geocentric body-position backend requests, and the VSOP87/ELP placeholder backends now reject direct observer-bearing requests with `InvalidObserver`.
 
+Progress note (2026-04-25): the JPL snapshot and packaged-data backends now also have explicit observer-bearing and apparent-place rejection regressions, so the geocentric-only request policy is covered beyond the shared backend helpers and the VSOP87/ELP placeholder path.
+
 Progress note (2026-04-25): the shared time-scale helpers now also include a direct caller-supplied UT1-to-TDB convenience in both `pleiades-types` and `pleiades-core::ChartRequest`, so dynamical-time chart staging can compose TT-UT1 and TDB-TT offsets explicitly even when the input begins at UT1.
 
 Progress note (2026-04-24): the initial time-scale, Delta T, apparentness, and observer policy is documented in `docs/time-observer-policy.md`. The current VSOP87 and ELP paths now reject `Apparentness::Apparent` requests with structured `InvalidRequest` errors instead of silently returning mean geometric coordinates, matching the existing JPL and packaged-data behavior. The shared backend request-policy helpers now centralize those time-scale, frame, apparentness, and observer checks so the concrete backends can keep their source-specific body logic while sharing the common guardrails.

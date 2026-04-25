@@ -1463,6 +1463,48 @@ mod tests {
     }
 
     #[test]
+    fn observer_requests_are_rejected_explicitly() {
+        let backend = JplSnapshotBackend;
+        let request = EphemerisRequest {
+            body: pleiades_backend::CelestialBody::Sun,
+            instant: reference_instant(),
+            observer: Some(pleiades_backend::ObserverLocation::new(
+                pleiades_backend::Latitude::from_degrees(51.5),
+                pleiades_backend::Longitude::from_degrees(0.0),
+                None,
+            )),
+            frame: CoordinateFrame::Ecliptic,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparent: Apparentness::Mean,
+        };
+
+        let error = backend
+            .position(&request)
+            .expect_err("reference snapshot should reject topocentric requests");
+
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
+    }
+
+    #[test]
+    fn apparent_requests_are_rejected_explicitly() {
+        let backend = JplSnapshotBackend;
+        let request = EphemerisRequest {
+            body: pleiades_backend::CelestialBody::Sun,
+            instant: reference_instant(),
+            observer: None,
+            frame: CoordinateFrame::Ecliptic,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparent: Apparentness::Apparent,
+        };
+
+        let error = backend
+            .position(&request)
+            .expect_err("reference snapshot should reject apparent-place requests");
+
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+    }
+
+    #[test]
     fn snapshot_data_matches_the_known_j2000_sun_longitude() {
         let entry = reference_snapshot()
             .iter()
