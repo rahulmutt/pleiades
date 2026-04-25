@@ -130,6 +130,8 @@ Suggested scope:
 
 Progress note (2026-04-24): chart assembly now uses the observer location for house calculations without passing it into geocentric body-position backend requests, and the VSOP87/ELP placeholder backends now reject direct observer-bearing requests with `InvalidObserver`.
 
+Progress note (2026-04-25): the shared time-scale helpers now also include a direct caller-supplied UT1-to-TDB convenience in both `pleiades-types` and `pleiades-core::ChartRequest`, so dynamical-time chart staging can compose TT-UT1 and TDB-TT offsets explicitly even when the input begins at UT1.
+
 Progress note (2026-04-24): the initial time-scale, Delta T, apparentness, and observer policy is documented in `docs/time-observer-policy.md`. The current VSOP87 and ELP paths now reject `Apparentness::Apparent` requests with structured `InvalidRequest` errors instead of silently returning mean geometric coordinates, matching the existing JPL and packaged-data behavior.
 
 Progress note (2026-04-24): `pleiades-types` now provides caller-supplied time-scale offset helpers (`JulianDay::add_seconds`, `Instant::with_time_scale_offset`, and `Instant::tt_from_ut1`) plus a structured `TimeScaleConversionError`. This does not add a built-in Delta T model, but it gives applications and validation fixtures a typed way to apply an explicit external `TT - UT1` policy before querying TT/TDB-only backends.

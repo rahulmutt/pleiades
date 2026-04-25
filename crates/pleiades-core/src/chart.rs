@@ -125,6 +125,22 @@ impl ChartRequest {
         Ok(self)
     }
 
+    /// Converts the chart instant from UT1 to TDB using caller-supplied
+    /// TT-UT1 and TDB-TT offsets.
+    ///
+    /// This convenience method mirrors [`Instant::tdb_from_ut1`] so chart
+    /// callers can prepare a TDB request surface from dynamical-time inputs
+    /// without introducing built-in Delta T or relativistic modeling in the
+    /// façade.
+    pub fn with_tdb_from_ut1(
+        mut self,
+        tt_offset: Duration,
+        tdb_offset: Duration,
+    ) -> Result<Self, TimeScaleConversionError> {
+        self.instant = self.instant.tdb_from_ut1(tt_offset, tdb_offset)?;
+        Ok(self)
+    }
+
     /// Converts the chart instant from UTC to TDB using caller-supplied
     /// TT-UTC and TDB-TT offsets.
     ///
@@ -1740,6 +1756,23 @@ mod tests {
 
         assert_eq!(request.instant.scale, TimeScale::Tdb);
         let expected = 2_451_545.0 + 0.001_657 / 86_400.0;
+        assert!((request.instant.julian_day.days() - expected).abs() < 1e-9);
+    }
+
+    #[test]
+    fn chart_request_can_convert_ut1_to_tdb() {
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Ut1,
+        ))
+        .with_tdb_from_ut1(
+            Duration::from_secs_f64(64.184),
+            Duration::from_secs_f64(0.001_657),
+        )
+        .expect("UT1 chart request should convert to TDB");
+
+        assert_eq!(request.instant.scale, TimeScale::Tdb);
+        let expected = 2_451_545.0 + (64.184 + 0.001_657) / 86_400.0;
         assert!((request.instant.julian_day.days() - expected).abs() < 1e-9);
     }
 
