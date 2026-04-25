@@ -2458,6 +2458,9 @@ fn render_release_summary_text() -> String {
     text.push_str("API stability posture: ");
     text.push_str(release_profiles.api_stability_profile_id);
     text.push('\n');
+    text.push_str("Time-scale policy: ");
+    text.push_str(time_scale_policy_summary_for_report());
+    text.push('\n');
     text.push_str("Release summary line: ");
     text.push_str(profile.summary);
     text.push('\n');
@@ -4283,6 +4286,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         "API stability posture: {}",
         release_profiles.api_stability_profile_id
     );
+    let _ = writeln!(
+        text,
+        "Time-scale policy: {}",
+        time_scale_policy_summary_for_report()
+    );
     let _ = writeln!(text);
     let _ = writeln!(text, "Comparison corpus");
     let _ = writeln!(text, "  name: {}", report.comparison_corpus.name);
@@ -5007,6 +5015,9 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(" (");
     text.push_str(&time_scales.join(", "));
     text.push_str(")\n");
+    text.push_str("Time-scale policy: ");
+    text.push_str(time_scale_policy_summary_for_report());
+    text.push('\n');
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("API stability summary: api-stability-summary\n");
     text.push_str("Release notes summary: release-notes-summary\n");
@@ -5057,6 +5068,10 @@ fn render_api_stability_summary_text() -> String {
     text.push_str("See release-summary for the compact one-screen release overview.\n");
 
     text
+}
+
+fn time_scale_policy_summary_for_report() -> &'static str {
+    "direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T model"
 }
 
 fn push_unique(values: &mut Vec<String>, value: String) {
@@ -7581,6 +7596,7 @@ mod tests {
         assert!(validation_report_summary.contains("Release notes summary: release-notes-summary"));
         assert!(validation_report_summary.contains("Packaged-artifact profile"));
         assert!(validation_report_summary.contains("Packaged request policy"));
+        assert!(validation_report_summary.contains("Time-scale policy:"));
         assert!(validation_report_summary
             .contains("lookup epoch policy=TT-grid retag without relativistic correction"));
         assert!(validation_report_summary.contains("Benchmark summaries"));
@@ -8242,6 +8258,7 @@ mod tests {
         assert!(rendered.contains("rms latitude delta:"));
         assert!(rendered.contains("Validation evidence:"));
         assert!(rendered.contains("comparison samples"));
+        assert!(rendered.contains("Time-scale policy:"));
         assert!(rendered.contains("notable regressions"));
         assert!(rendered.contains("outside-tolerance bodies"));
         assert!(rendered.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto override); evidence=10 bodies, 41 samples"));
@@ -8395,6 +8412,7 @@ mod tests {
         assert!(rendered.contains("Distinct bodies covered:"));
         assert!(rendered.contains("Distinct coordinate frames:"));
         assert!(rendered.contains("Distinct time scales:"));
+        assert!(rendered.contains("Time-scale policy:"));
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(rendered.contains("API stability summary: api-stability-summary"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
