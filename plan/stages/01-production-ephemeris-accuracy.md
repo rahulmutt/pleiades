@@ -54,6 +54,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Progress note: the backend-owned lunar reference evidence summary now also has a measured error-envelope companion, and both the detailed report and backend-matrix summary render that envelope line so the current lunar evidence slice exposes a compact residual snapshot alongside the canonical samples.
    - Progress note: the lunar reference slice now also includes the 1992 Moon example, J2000 lunar-point anchors, published 1913-05-27 true-node and mean-node examples, a published 1959-12-07 mean-node example, and a published 2021-03-05 mean-perigee example, which broadens the current validation evidence without changing the public request model.
    - Progress note: the `pleiades-elp::LunarTheorySpecification` record now carries the selected source family directly, which keeps the current lunar baseline selection structured for future source-backed swaps and simpler release reporting.
+   - Progress note: the lunar reference and equatorial error envelopes now also report mean residuals and explicit out-of-limit sample counts alongside the existing maxima, which makes the release-facing lunar evidence a little easier to scan while the current Meeus-style baseline remains the active lunar source-selection placeholder.
 
 3. Upgrade `pleiades-jpl` from snapshot fixture to reference backend.
    - Parse documented public JPL-style files or a reproducible derivative format in pure Rust.
