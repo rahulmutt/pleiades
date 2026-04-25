@@ -325,6 +325,46 @@ pub struct ComparisonTolerance {
     pub max_distance_delta_au: Option<f64>,
 }
 
+/// Expected tolerance scope used by the validation catalog.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum ComparisonToleranceScope {
+    /// Luminary body-class scope.
+    Luminary,
+    /// Major-planet body-class scope.
+    MajorPlanet,
+    /// Lunar-point body-class scope.
+    LunarPoint,
+    /// Asteroid body-class scope.
+    Asteroid,
+    /// Custom-body body-class scope.
+    Custom,
+    /// Pluto-specific override scope.
+    Pluto,
+}
+
+impl ComparisonToleranceScope {
+    const fn label(self) -> &'static str {
+        match self {
+            Self::Luminary => "Luminaries",
+            Self::MajorPlanet => "Major planets",
+            Self::LunarPoint => "Lunar points",
+            Self::Asteroid => "Asteroids",
+            Self::Custom => "Custom bodies",
+            Self::Pluto => "Pluto override",
+        }
+    }
+}
+
+/// One expected tolerance entry in the validation catalog.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ComparisonToleranceEntry {
+    /// Scope covered by this tolerance entry.
+    pub scope: ComparisonToleranceScope,
+    /// Expected tolerance for the scope.
+    pub tolerance: ComparisonTolerance,
+}
+
 /// Per-body comparison status against the expected tolerance table.
 #[derive(Clone, Debug, PartialEq)]
 pub struct BodyToleranceSummary {
@@ -4703,6 +4743,11 @@ impl ComparisonReport {
             .collect()
     }
 
+    /// Returns the expected tolerance catalog for the candidate backend family.
+    pub fn tolerance_policy_entries(&self) -> Vec<ComparisonToleranceEntry> {
+        comparison_tolerance_policy_entries(&self.candidate_backend.family)
+    }
+
     /// Returns per-body-class tolerance posture preserving first-seen class order.
     pub(crate) fn body_class_tolerance_summaries(&self) -> Vec<BodyClassToleranceSummary> {
         body_class_tolerance_summaries(&self.samples, &self.candidate_backend.family)
@@ -5087,35 +5132,63 @@ fn body_class_tolerance_summaries(
         .collect()
 }
 
-fn comparison_tolerance_for_class(
-    class: BodyClass,
+fn comparison_tolerance_policy_entries(
+    backend_family: &BackendFamily,
+) -> Vec<ComparisonToleranceEntry> {
+    [
+        ComparisonToleranceScope::Luminary,
+        ComparisonToleranceScope::MajorPlanet,
+        ComparisonToleranceScope::LunarPoint,
+        ComparisonToleranceScope::Asteroid,
+        ComparisonToleranceScope::Custom,
+        ComparisonToleranceScope::Pluto,
+    ]
+    .into_iter()
+    .map(|scope| ComparisonToleranceEntry {
+        scope,
+        tolerance: comparison_tolerance_for_scope(scope, backend_family),
+    })
+    .collect()
+}
+
+fn comparison_tolerance_for_scope(
+    scope: ComparisonToleranceScope,
     backend_family: &BackendFamily,
 ) -> ComparisonTolerance {
-    match class {
-        BodyClass::Luminary | BodyClass::MajorPlanet => ComparisonTolerance {
-            backend_family: backend_family.clone(),
-            profile: "phase-1 full-file VSOP87B planetary evidence",
-            max_longitude_delta_deg: REGRESSION_LONGITUDE_THRESHOLD_DEG,
-            max_latitude_delta_deg: REGRESSION_LATITUDE_THRESHOLD_DEG,
-            max_distance_delta_au: Some(REGRESSION_DISTANCE_THRESHOLD_AU),
-        },
-        BodyClass::LunarPoint => ComparisonTolerance {
+    match scope {
+        ComparisonToleranceScope::Luminary | ComparisonToleranceScope::MajorPlanet => {
+            ComparisonTolerance {
+                backend_family: backend_family.clone(),
+                profile: "phase-1 full-file VSOP87B planetary evidence",
+                max_longitude_delta_deg: REGRESSION_LONGITUDE_THRESHOLD_DEG,
+                max_latitude_delta_deg: REGRESSION_LATITUDE_THRESHOLD_DEG,
+                max_distance_delta_au: Some(REGRESSION_DISTANCE_THRESHOLD_AU),
+            }
+        }
+        ComparisonToleranceScope::LunarPoint => ComparisonTolerance {
             backend_family: backend_family.clone(),
             profile: "phase-1 compact-ELP lunar evidence",
             max_longitude_delta_deg: REGRESSION_LONGITUDE_THRESHOLD_DEG,
             max_latitude_delta_deg: REGRESSION_LATITUDE_THRESHOLD_DEG,
             max_distance_delta_au: Some(REGRESSION_DISTANCE_THRESHOLD_AU),
         },
-        BodyClass::Asteroid => ComparisonTolerance {
+        ComparisonToleranceScope::Asteroid => ComparisonTolerance {
             backend_family: backend_family.clone(),
             profile: "phase-1 asteroid comparison evidence",
             max_longitude_delta_deg: REGRESSION_LONGITUDE_THRESHOLD_DEG,
             max_latitude_delta_deg: REGRESSION_LATITUDE_THRESHOLD_DEG,
             max_distance_delta_au: Some(REGRESSION_DISTANCE_THRESHOLD_AU),
         },
-        BodyClass::Custom => ComparisonTolerance {
+        ComparisonToleranceScope::Custom => ComparisonTolerance {
             backend_family: backend_family.clone(),
             profile: "phase-1 uncategorized comparison evidence",
+            max_longitude_delta_deg: REGRESSION_LONGITUDE_THRESHOLD_DEG,
+            max_latitude_delta_deg: REGRESSION_LATITUDE_THRESHOLD_DEG,
+            max_distance_delta_au: Some(REGRESSION_DISTANCE_THRESHOLD_AU),
+        },
+        ComparisonToleranceScope::Pluto => ComparisonTolerance {
+            backend_family: backend_family.clone(),
+            profile: "phase-1 Pluto mean-elements fallback evidence",
             max_longitude_delta_deg: REGRESSION_LONGITUDE_THRESHOLD_DEG,
             max_latitude_delta_deg: REGRESSION_LATITUDE_THRESHOLD_DEG,
             max_distance_delta_au: Some(REGRESSION_DISTANCE_THRESHOLD_AU),
@@ -5123,21 +5196,36 @@ fn comparison_tolerance_for_class(
     }
 }
 
+fn comparison_tolerance_scope_for_class(class: BodyClass) -> ComparisonToleranceScope {
+    match class {
+        BodyClass::Luminary => ComparisonToleranceScope::Luminary,
+        BodyClass::MajorPlanet => ComparisonToleranceScope::MajorPlanet,
+        BodyClass::LunarPoint => ComparisonToleranceScope::LunarPoint,
+        BodyClass::Asteroid => ComparisonToleranceScope::Asteroid,
+        BodyClass::Custom => ComparisonToleranceScope::Custom,
+    }
+}
+
+fn comparison_tolerance_scope_for_body(body: &CelestialBody) -> ComparisonToleranceScope {
+    if matches!(body, CelestialBody::Pluto) {
+        return ComparisonToleranceScope::Pluto;
+    }
+
+    comparison_tolerance_scope_for_class(body_class(body))
+}
+
+fn comparison_tolerance_for_class(
+    class: BodyClass,
+    backend_family: &BackendFamily,
+) -> ComparisonTolerance {
+    comparison_tolerance_for_scope(comparison_tolerance_scope_for_class(class), backend_family)
+}
+
 fn comparison_tolerance_for_body(
     body: &CelestialBody,
     backend_family: &BackendFamily,
 ) -> ComparisonTolerance {
-    if matches!(body, CelestialBody::Pluto) {
-        return ComparisonTolerance {
-            backend_family: backend_family.clone(),
-            profile: "phase-1 Pluto mean-elements fallback evidence",
-            max_longitude_delta_deg: REGRESSION_LONGITUDE_THRESHOLD_DEG,
-            max_latitude_delta_deg: REGRESSION_LATITUDE_THRESHOLD_DEG,
-            max_distance_delta_au: Some(REGRESSION_DISTANCE_THRESHOLD_AU),
-        };
-    }
-
-    comparison_tolerance_for_class(body_class(body), backend_family)
+    comparison_tolerance_for_scope(comparison_tolerance_scope_for_body(body), backend_family)
 }
 
 fn body_tolerance_summary(
@@ -5675,20 +5763,14 @@ fn write_tolerance_policy(
     candidate_backend: &BackendMetadata,
 ) -> fmt::Result {
     let family_label = tolerance_backend_family_label(&candidate_backend.family);
-    writeln!(f, "Tolerance policy")?;
+    writeln!(f, "Tolerance policy catalog")?;
     writeln!(f, "  candidate backend family: {}", family_label)?;
-    for class in [
-        BodyClass::Luminary,
-        BodyClass::MajorPlanet,
-        BodyClass::LunarPoint,
-        BodyClass::Asteroid,
-        BodyClass::Custom,
-    ] {
-        let tolerance = comparison_tolerance_for_class(class, &candidate_backend.family);
+    for entry in comparison_tolerance_policy_entries(&candidate_backend.family) {
+        let tolerance = entry.tolerance;
         writeln!(
             f,
             "  {}: backend family={}, profile={}, limit Δlon≤{:.6}°, limit Δlat≤{:.6}°, limit Δdist={}",
-            class.label(),
+            entry.scope.label(),
             tolerance_backend_family_label(&tolerance.backend_family),
             tolerance.profile,
             tolerance.max_longitude_delta_deg,
@@ -5700,20 +5782,6 @@ fn write_tolerance_policy(
         )?;
     }
 
-    let pluto = comparison_tolerance_for_body(&CelestialBody::Pluto, &candidate_backend.family);
-    writeln!(
-        f,
-        "  Pluto override: backend family={}, profile={}, limit Δlon≤{:.6}°, limit Δlat≤{:.6}°, limit Δdist={}",
-        tolerance_backend_family_label(&pluto.backend_family),
-        pluto.profile,
-        pluto.max_longitude_delta_deg,
-        pluto.max_latitude_delta_deg,
-        pluto
-            .max_distance_delta_au
-            .map(|value| format!("{value:.6} AU"))
-            .unwrap_or_else(|| "n/a".to_string())
-    )?;
-
     Ok(())
 }
 
@@ -5721,20 +5789,14 @@ fn write_tolerance_policy_text(text: &mut String, candidate_backend: &BackendMet
     use std::fmt::Write as _;
 
     let family_label = tolerance_backend_family_label(&candidate_backend.family);
-    let _ = writeln!(text, "Tolerance policy");
+    let _ = writeln!(text, "Tolerance policy catalog");
     let _ = writeln!(text, "  candidate backend family: {}", family_label);
-    for class in [
-        BodyClass::Luminary,
-        BodyClass::MajorPlanet,
-        BodyClass::LunarPoint,
-        BodyClass::Asteroid,
-        BodyClass::Custom,
-    ] {
-        let tolerance = comparison_tolerance_for_class(class, &candidate_backend.family);
+    for entry in comparison_tolerance_policy_entries(&candidate_backend.family) {
+        let tolerance = entry.tolerance;
         let _ = writeln!(
             text,
             "  {}: backend family={}, profile={}, limit Δlon≤{:.6}°, limit Δlat≤{:.6}°, limit Δdist={}",
-            class.label(),
+            entry.scope.label(),
             tolerance_backend_family_label(&tolerance.backend_family),
             tolerance.profile,
             tolerance.max_longitude_delta_deg,
@@ -5745,19 +5807,6 @@ fn write_tolerance_policy_text(text: &mut String, candidate_backend: &BackendMet
                 .unwrap_or_else(|| "n/a".to_string())
         );
     }
-    let pluto = comparison_tolerance_for_body(&CelestialBody::Pluto, &candidate_backend.family);
-    let _ = writeln!(
-        text,
-        "  Pluto override: backend family={}, profile={}, limit Δlon≤{:.6}°, limit Δlat≤{:.6}°, limit Δdist={}",
-        tolerance_backend_family_label(&pluto.backend_family),
-        pluto.profile,
-        pluto.max_longitude_delta_deg,
-        pluto.max_latitude_delta_deg,
-        pluto
-            .max_distance_delta_au
-            .map(|value| format!("{value:.6} AU"))
-            .unwrap_or_else(|| "n/a".to_string())
-    );
 }
 
 fn write_tolerance_summaries(
@@ -7029,6 +7078,14 @@ mod tests {
         assert!(tolerance_summaries
             .iter()
             .any(|summary| summary.body == CelestialBody::Pluto && !summary.within_tolerance));
+        let tolerance_policy_entries = report.tolerance_policy_entries();
+        assert_eq!(tolerance_policy_entries.len(), 6);
+        assert!(tolerance_policy_entries
+            .iter()
+            .any(|entry| entry.scope == ComparisonToleranceScope::Luminary));
+        assert!(tolerance_policy_entries
+            .iter()
+            .any(|entry| entry.scope == ComparisonToleranceScope::Pluto));
         let body_class_tolerance_summaries = report.body_class_tolerance_summaries();
         assert!(body_class_tolerance_summaries.iter().any(|summary| {
             summary.class == BodyClass::MajorPlanet
@@ -8007,6 +8064,7 @@ version = "0.9.0"
         assert!(validation_report_summary.contains("Validation report summary"));
         assert!(validation_report_summary.contains("Comparison corpus"));
         assert!(validation_report_summary.contains("Body-class tolerance posture"));
+        assert!(validation_report_summary.contains("Tolerance policy catalog"));
         assert!(validation_report_summary.contains("Expected tolerance status"));
         assert!(validation_report_summary.contains("VSOP87 source-backed evidence"));
         assert!(workspace_audit_summary.contains("Workspace audit summary"));
