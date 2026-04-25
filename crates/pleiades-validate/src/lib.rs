@@ -439,12 +439,15 @@ struct BodyClassSummary {
     max_longitude_delta_body: Option<CelestialBody>,
     max_longitude_delta_deg: f64,
     sum_longitude_delta_deg: f64,
+    sum_longitude_delta_sq_deg: f64,
     max_latitude_delta_body: Option<CelestialBody>,
     max_latitude_delta_deg: f64,
     sum_latitude_delta_deg: f64,
+    sum_latitude_delta_sq_deg: f64,
     max_distance_delta_body: Option<CelestialBody>,
     max_distance_delta_au: Option<f64>,
     sum_distance_delta_au: f64,
+    sum_distance_delta_sq_au: f64,
     distance_count: usize,
 }
 
@@ -550,6 +553,14 @@ impl BodyClassSummary {
         }
     }
 
+    fn rms_longitude_delta_deg(&self) -> f64 {
+        if self.sample_count == 0 {
+            0.0
+        } else {
+            (self.sum_longitude_delta_sq_deg / self.sample_count as f64).sqrt()
+        }
+    }
+
     fn mean_latitude_delta_deg(&self) -> f64 {
         if self.sample_count == 0 {
             0.0
@@ -558,11 +569,27 @@ impl BodyClassSummary {
         }
     }
 
+    fn rms_latitude_delta_deg(&self) -> f64 {
+        if self.sample_count == 0 {
+            0.0
+        } else {
+            (self.sum_latitude_delta_sq_deg / self.sample_count as f64).sqrt()
+        }
+    }
+
     fn mean_distance_delta_au(&self) -> Option<f64> {
         if self.distance_count == 0 {
             None
         } else {
             Some(self.sum_distance_delta_au / self.distance_count as f64)
+        }
+    }
+
+    fn rms_distance_delta_au(&self) -> Option<f64> {
+        if self.distance_count == 0 {
+            None
+        } else {
+            Some((self.sum_distance_delta_sq_au / self.distance_count as f64).sqrt())
         }
     }
 
@@ -585,6 +612,11 @@ impl BodyClassSummary {
         )?;
         writeln!(
             f,
+            "    rms longitude delta: {:.12}°",
+            self.rms_longitude_delta_deg()
+        )?;
+        writeln!(
+            f,
             "    max latitude delta: {:.12}°",
             self.max_latitude_delta_deg
         )?;
@@ -593,11 +625,19 @@ impl BodyClassSummary {
             "    mean latitude delta: {:.12}°",
             self.mean_latitude_delta_deg()
         )?;
+        writeln!(
+            f,
+            "    rms latitude delta: {:.12}°",
+            self.rms_latitude_delta_deg()
+        )?;
         if let Some(value) = self.max_distance_delta_au {
             writeln!(f, "    max distance delta: {:.12} AU", value)?;
         }
         if let Some(value) = self.mean_distance_delta_au() {
             writeln!(f, "    mean distance delta: {:.12} AU", value)?;
+        }
+        if let Some(value) = self.rms_distance_delta_au() {
+            writeln!(f, "    rms distance delta: {:.12} AU", value)?;
         }
 
         Ok(())
@@ -3954,7 +3994,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     for summary in report.comparison.body_summaries() {
         let _ = writeln!(
             text,
-            "  {}: samples={}, max Δlon={:.12}°{}, mean Δlon={:.12}°, max Δlat={:.12}°{}, mean Δlat={:.12}°, max Δdist={}{}, mean Δdist={}",
+            "  {}: samples={}, max Δlon={:.12}°{}, mean Δlon={:.12}°, rms Δlon={:.12}°, max Δlat={:.12}°{}, mean Δlat={:.12}°, rms Δlat={:.12}°, max Δdist={}{}, mean Δdist={}, rms Δdist={}",
             summary.body,
             summary.sample_count,
             summary.max_longitude_delta_deg,
@@ -3964,6 +4004,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
                 .map(|body| format!(" ({body})"))
                 .unwrap_or_default(),
             summary.mean_longitude_delta_deg,
+            summary.rms_longitude_delta_deg,
             summary.max_latitude_delta_deg,
             summary
                 .max_latitude_delta_body
@@ -3971,6 +4012,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
                 .map(|body| format!(" ({body})"))
                 .unwrap_or_default(),
             summary.mean_latitude_delta_deg,
+            summary.rms_latitude_delta_deg,
             summary
                 .max_distance_delta_au
                 .map(|value| format!("{value:.12} AU"))
@@ -3982,6 +4024,10 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
                 .unwrap_or_default(),
             summary
                 .mean_distance_delta_au
+                .map(|value| format!("{value:.12} AU"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            summary
+                .rms_distance_delta_au
                 .map(|value| format!("{value:.12} AU"))
                 .unwrap_or_else(|| "n/a".to_string())
         );
@@ -4006,15 +4052,17 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
             .unwrap_or_default();
         let _ = writeln!(
             text,
-            "  {}: samples={}, max Δlon={:.12}°{}, mean Δlon={:.12}°, max Δlat={:.12}°{}, mean Δlat={:.12}°, max Δdist={}{}, mean Δdist={}",
+            "  {}: samples={}, max Δlon={:.12}°{}, mean Δlon={:.12}°, rms Δlon={:.12}°, max Δlat={:.12}°{}, mean Δlat={:.12}°, rms Δlat={:.12}°, max Δdist={}{}, mean Δdist={}, rms Δdist={}",
             summary.class.label(),
             summary.sample_count,
             summary.max_longitude_delta_deg,
             max_longitude_body,
             summary.mean_longitude_delta_deg(),
+            summary.rms_longitude_delta_deg(),
             summary.max_latitude_delta_deg,
             max_latitude_body,
             summary.mean_latitude_delta_deg(),
+            summary.rms_latitude_delta_deg(),
             summary
                 .max_distance_delta_au
                 .map(|value| format!("{value:.12} AU"))
@@ -4022,6 +4070,10 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
             max_distance_body,
             summary
                 .mean_distance_delta_au()
+                .map(|value| format!("{value:.12} AU"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            summary
+                .rms_distance_delta_au()
                 .map(|value| format!("{value:.12} AU"))
                 .unwrap_or_else(|| "n/a".to_string())
         );
@@ -4826,8 +4878,11 @@ struct BodyClassAccumulator {
     class: BodyClass,
     sample_count: usize,
     longitude_sum_deg: f64,
+    longitude_sum_sq_deg: f64,
     latitude_sum_deg: f64,
+    latitude_sum_sq_deg: f64,
     distance_sum_au: f64,
+    distance_sum_sq_au: f64,
     distance_count: usize,
     max_longitude_delta_deg: f64,
     max_longitude_delta_body: Option<CelestialBody>,
@@ -4843,8 +4898,11 @@ impl BodyClassAccumulator {
             class,
             sample_count: 0,
             longitude_sum_deg: 0.0,
+            longitude_sum_sq_deg: 0.0,
             latitude_sum_deg: 0.0,
+            latitude_sum_sq_deg: 0.0,
             distance_sum_au: 0.0,
+            distance_sum_sq_au: 0.0,
             distance_count: 0,
             max_longitude_delta_deg: 0.0,
             max_longitude_delta_body: None,
@@ -4858,17 +4916,20 @@ impl BodyClassAccumulator {
     fn push(&mut self, sample: &ComparisonSample) {
         self.sample_count += 1;
         self.longitude_sum_deg += sample.longitude_delta_deg;
+        self.longitude_sum_sq_deg += sample.longitude_delta_deg * sample.longitude_delta_deg;
         if sample.longitude_delta_deg >= self.max_longitude_delta_deg {
             self.max_longitude_delta_deg = sample.longitude_delta_deg;
             self.max_longitude_delta_body = Some(sample.body.clone());
         }
         self.latitude_sum_deg += sample.latitude_delta_deg;
+        self.latitude_sum_sq_deg += sample.latitude_delta_deg * sample.latitude_delta_deg;
         if sample.latitude_delta_deg >= self.max_latitude_delta_deg {
             self.max_latitude_delta_deg = sample.latitude_delta_deg;
             self.max_latitude_delta_body = Some(sample.body.clone());
         }
         if let Some(delta) = sample.distance_delta_au {
             self.distance_sum_au += delta;
+            self.distance_sum_sq_au += delta * delta;
             self.distance_count += 1;
             match self.max_distance_delta_au {
                 Some(current) if delta < current => {}
@@ -4887,12 +4948,15 @@ impl BodyClassAccumulator {
             max_longitude_delta_body: self.max_longitude_delta_body,
             max_longitude_delta_deg: self.max_longitude_delta_deg,
             sum_longitude_delta_deg: self.longitude_sum_deg,
+            sum_longitude_delta_sq_deg: self.longitude_sum_sq_deg,
             max_latitude_delta_body: self.max_latitude_delta_body,
             max_latitude_delta_deg: self.max_latitude_delta_deg,
             sum_latitude_delta_deg: self.latitude_sum_deg,
+            sum_latitude_delta_sq_deg: self.latitude_sum_sq_deg,
             max_distance_delta_body: self.max_distance_delta_body,
             max_distance_delta_au: self.max_distance_delta_au,
             sum_distance_delta_au: self.distance_sum_au,
+            sum_distance_delta_sq_au: self.distance_sum_sq_au,
             distance_count: self.distance_count,
         }
     }
@@ -6641,6 +6705,9 @@ mod tests {
             .nth(1)
             .expect("report should include body-class error envelopes");
         assert!(body_class_envelopes.contains("max longitude delta:"));
+        assert!(body_class_envelopes.contains("rms longitude delta:"));
+        assert!(body_class_envelopes.contains("rms latitude delta:"));
+        assert!(body_class_envelopes.contains("rms distance delta:"));
         assert!(body_class_envelopes.contains(" ("));
         assert!(report.contains("Body-class tolerance posture"));
         let body_class_tolerance_posture = report
@@ -6764,6 +6831,9 @@ mod tests {
         assert!(report.contains("Body comparison summaries"));
         assert!(report.contains("Body-class error envelopes"));
         assert!(report.contains("max longitude delta:"));
+        assert!(report.contains("rms longitude delta:"));
+        assert!(report.contains("rms latitude delta:"));
+        assert!(report.contains("rms distance delta:"));
         assert!(report.contains(" ("));
         assert!(report.contains("VSOP87 source-backed evidence"));
         assert!(report
