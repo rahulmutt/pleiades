@@ -37,7 +37,9 @@ use pleiades_core::{
 };
 use pleiades_data::{packaged_artifact, PackagedDataBackend};
 use pleiades_elp::{
-    lunar_reference_evidence, lunar_theory_specification, lunar_theory_summary, ElpBackend,
+    lunar_reference_evidence, lunar_reference_evidence_summary,
+    lunar_reference_evidence_summary_for_report, lunar_theory_specification, lunar_theory_summary,
+    ElpBackend,
 };
 use pleiades_houses::{
     baseline_house_systems, built_in_house_systems, release_house_systems, resolve_house_system,
@@ -3641,11 +3643,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     );
     let _ = writeln!(text);
     let _ = writeln!(text, "Lunar reference evidence");
-    let _ = writeln!(
-        text,
-        "  {}",
-        format_lunar_reference_evidence_summary_for_report()
-    );
+    let _ = writeln!(text, "  {}", lunar_reference_evidence_summary_for_report());
     let _ = writeln!(text);
     let _ = writeln!(text, "Body comparison summaries");
     for summary in report.comparison.body_summaries() {
@@ -5009,59 +5007,6 @@ fn format_jpl_interpolation_quality_summary_for_report() -> String {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
-struct LunarReferenceEvidenceSummary {
-    sample_count: usize,
-    body_count: usize,
-    earliest_epoch: Instant,
-    latest_epoch: Instant,
-}
-
-fn lunar_reference_evidence_summary() -> Option<LunarReferenceEvidenceSummary> {
-    let samples = lunar_reference_evidence();
-    if samples.is_empty() {
-        return None;
-    }
-
-    let mut bodies = BTreeSet::new();
-    let mut earliest_epoch = samples[0].epoch;
-    let mut latest_epoch = samples[0].epoch;
-
-    for sample in samples {
-        bodies.insert(sample.body.to_string());
-        if sample.epoch.julian_day.days() < earliest_epoch.julian_day.days() {
-            earliest_epoch = sample.epoch;
-        }
-        if sample.epoch.julian_day.days() > latest_epoch.julian_day.days() {
-            latest_epoch = sample.epoch;
-        }
-    }
-
-    Some(LunarReferenceEvidenceSummary {
-        sample_count: samples.len(),
-        body_count: bodies.len(),
-        earliest_epoch,
-        latest_epoch,
-    })
-}
-
-fn format_lunar_reference_evidence_summary(summary: &LunarReferenceEvidenceSummary) -> String {
-    format!(
-        "lunar reference evidence: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, validated against the published 1992-04-12 Moon example plus J2000 lunar-point references",
-        summary.sample_count,
-        summary.body_count,
-        summary.earliest_epoch.julian_day.days(),
-        summary.latest_epoch.julian_day.days(),
-    )
-}
-
-fn format_lunar_reference_evidence_summary_for_report() -> String {
-    match lunar_reference_evidence_summary() {
-        Some(summary) => format_lunar_reference_evidence_summary(&summary),
-        None => "lunar reference evidence: unavailable".to_string(),
-    }
-}
-
 fn write_lunar_reference_evidence(f: &mut fmt::Formatter<'_>) -> fmt::Result {
     writeln!(f, "  Lunar reference evidence:")?;
     let Some(summary) = lunar_reference_evidence_summary() else {
@@ -5072,7 +5017,7 @@ fn write_lunar_reference_evidence(f: &mut fmt::Formatter<'_>) -> fmt::Result {
     writeln!(
         f,
         "    {}",
-        format_lunar_reference_evidence_summary(&summary)
+        pleiades_elp::format_lunar_reference_evidence_summary(&summary)
     )?;
     for sample in lunar_reference_evidence() {
         writeln!(

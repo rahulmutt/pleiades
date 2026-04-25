@@ -355,6 +355,67 @@ pub fn lunar_reference_evidence() -> &'static [LunarReferenceSample] {
     SAMPLES
 }
 
+/// A compact summary of the canonical lunar reference evidence slice.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct LunarReferenceEvidenceSummary {
+    /// Number of evidence samples in the checked-in reference slice.
+    pub sample_count: usize,
+    /// Number of distinct bodies covered by the evidence slice.
+    pub body_count: usize,
+    /// Earliest epoch covered by the evidence slice.
+    pub earliest_epoch: Instant,
+    /// Latest epoch covered by the evidence slice.
+    pub latest_epoch: Instant,
+}
+
+/// Returns a compact summary of the canonical lunar reference evidence slice.
+pub fn lunar_reference_evidence_summary() -> Option<LunarReferenceEvidenceSummary> {
+    let samples = lunar_reference_evidence();
+    if samples.is_empty() {
+        return None;
+    }
+
+    let mut bodies = std::collections::BTreeSet::new();
+    let mut earliest_epoch = samples[0].epoch;
+    let mut latest_epoch = samples[0].epoch;
+
+    for sample in samples {
+        bodies.insert(sample.body.to_string());
+        if sample.epoch.julian_day.days() < earliest_epoch.julian_day.days() {
+            earliest_epoch = sample.epoch;
+        }
+        if sample.epoch.julian_day.days() > latest_epoch.julian_day.days() {
+            latest_epoch = sample.epoch;
+        }
+    }
+
+    Some(LunarReferenceEvidenceSummary {
+        sample_count: samples.len(),
+        body_count: bodies.len(),
+        earliest_epoch,
+        latest_epoch,
+    })
+}
+
+/// Formats the lunar reference evidence summary for release-facing reporting.
+pub fn format_lunar_reference_evidence_summary(summary: &LunarReferenceEvidenceSummary) -> String {
+    format!(
+        "lunar reference evidence: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, validated against the published 1992-04-12 Moon example plus J2000 lunar-point references",
+        summary.sample_count,
+        summary.body_count,
+        summary.earliest_epoch.julian_day.days(),
+        summary.latest_epoch.julian_day.days(),
+    )
+}
+
+/// Returns the release-facing lunar reference evidence summary string.
+pub fn lunar_reference_evidence_summary_for_report() -> String {
+    match lunar_reference_evidence_summary() {
+        Some(summary) => format_lunar_reference_evidence_summary(&summary),
+        None => "lunar reference evidence: unavailable".to_string(),
+    }
+}
+
 /// A pure-Rust lunar backend.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct ElpBackend;
@@ -1102,6 +1163,18 @@ mod tests {
                 .expect_err("unsupported lunar bodies should fail explicitly");
             assert_eq!(error.kind, EphemerisErrorKind::UnsupportedBody);
         }
+    }
+
+    #[test]
+    fn lunar_reference_evidence_summary_matches_the_canonical_slice() {
+        let summary = lunar_reference_evidence_summary().expect("reference evidence should exist");
+
+        assert_eq!(summary.sample_count, 5);
+        assert_eq!(summary.body_count, 5);
+        assert_eq!(summary.earliest_epoch.julian_day.days(), 2_448_724.5);
+        assert_eq!(summary.latest_epoch.julian_day.days(), J2000);
+        assert!(lunar_reference_evidence_summary_for_report().contains("5 samples across 5 bodies"));
+        assert!(lunar_reference_evidence_summary_for_report().contains("JD 2448724.5..2451545.0"));
     }
 
     #[test]
