@@ -3269,7 +3269,7 @@ fn vsop87_canonical_evidence_summary() -> Option<pleiades_vsop87::Vsop87Canonica
 fn format_vsop87_canonical_evidence_summary() -> String {
     match vsop87_canonical_evidence_summary() {
         Some(summary) => format!(
-            "VSOP87 canonical J2000 source-backed evidence: {} samples, status {}, max Δlon={:.12}°, max Δlat={:.12}°, max Δdist={:.12} AU",
+            "VSOP87 canonical J2000 source-backed evidence: {} samples, status {}, max Δlon={:.12}° ({}), max Δlat={:.12}° ({}), max Δdist={:.12} AU ({})",
             summary.sample_count,
             if summary.within_interim_limits {
                 "within interim limits"
@@ -3277,8 +3277,11 @@ fn format_vsop87_canonical_evidence_summary() -> String {
                 "outside interim limits"
             },
             summary.max_longitude_delta_deg,
+            summary.max_longitude_delta_body,
             summary.max_latitude_delta_deg,
+            summary.max_latitude_delta_body,
             summary.max_distance_delta_au,
+            summary.max_distance_delta_body,
         ),
         None => "VSOP87 canonical J2000 source-backed evidence: unavailable".to_string(),
     }
@@ -5818,6 +5821,9 @@ mod tests {
         assert!(report
             .contains("VSOP87 source audit: 8 source-backed bodies, 8 vendored full-file inputs"));
         assert!(report.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
+        assert!(report.contains("max Δlon="));
+        assert!(report.contains("max Δlat="));
+        assert!(report.contains("max Δdist="));
         assert!(report.contains(
             "VSOP87 source-backed body evidence: 8 body profiles (0 vendored full-file, 8 generated binary), 8 within interim limits"
         ));
@@ -6441,6 +6447,9 @@ mod tests {
         assert!(rendered
             .contains("VSOP87 source audit: 8 source-backed bodies, 8 vendored full-file inputs"));
         assert!(rendered.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
+        assert!(rendered.contains("max Δlon="));
+        assert!(rendered.contains("max Δlat="));
+        assert!(rendered.contains("max Δdist="));
         assert!(rendered.contains(
             "VSOP87 source-backed body evidence: 8 body profiles (0 vendored full-file, 8 generated binary), 8 within interim limits"
         ));

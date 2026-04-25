@@ -206,14 +206,20 @@ pub struct Vsop87CanonicalBodyEvidence {
 }
 
 /// Public summary of the canonical J2000 error envelope.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Vsop87CanonicalEvidenceSummary {
     /// Number of canonical samples measured.
     pub sample_count: usize,
+    /// Body with the maximum absolute geocentric longitude delta.
+    pub max_longitude_delta_body: CelestialBody,
     /// Maximum absolute geocentric longitude delta in degrees.
     pub max_longitude_delta_deg: f64,
+    /// Body with the maximum absolute geocentric latitude delta.
+    pub max_latitude_delta_body: CelestialBody,
     /// Maximum absolute geocentric latitude delta in degrees.
     pub max_latitude_delta_deg: f64,
+    /// Body with the maximum absolute geocentric distance delta.
+    pub max_distance_delta_body: CelestialBody,
     /// Maximum absolute geocentric distance delta in astronomical units.
     pub max_distance_delta_au: f64,
     /// Whether every measured body remained within the interim limits.
@@ -662,24 +668,40 @@ pub fn canonical_epoch_body_evidence() -> Option<Vec<Vsop87CanonicalBodyEvidence
 /// validation reports.
 pub fn canonical_epoch_evidence_summary() -> Option<Vsop87CanonicalEvidenceSummary> {
     let body_evidence = canonical_epoch_body_evidence()?;
+    let first = body_evidence.first()?;
     let mut sample_count = 0usize;
-    let mut max_longitude_delta_deg: f64 = 0.0;
-    let mut max_latitude_delta_deg: f64 = 0.0;
-    let mut max_distance_delta_au: f64 = 0.0;
+    let mut max_longitude_delta_body = first.body.clone();
+    let mut max_longitude_delta_deg = first.longitude_delta_deg;
+    let mut max_latitude_delta_body = first.body.clone();
+    let mut max_latitude_delta_deg = first.latitude_delta_deg;
+    let mut max_distance_delta_body = first.body.clone();
+    let mut max_distance_delta_au = first.distance_delta_au;
     let mut within_interim_limits = true;
 
     for evidence in &body_evidence {
         sample_count += 1;
-        max_longitude_delta_deg = max_longitude_delta_deg.max(evidence.longitude_delta_deg);
-        max_latitude_delta_deg = max_latitude_delta_deg.max(evidence.latitude_delta_deg);
-        max_distance_delta_au = max_distance_delta_au.max(evidence.distance_delta_au);
+        if evidence.longitude_delta_deg >= max_longitude_delta_deg {
+            max_longitude_delta_deg = evidence.longitude_delta_deg;
+            max_longitude_delta_body = evidence.body.clone();
+        }
+        if evidence.latitude_delta_deg >= max_latitude_delta_deg {
+            max_latitude_delta_deg = evidence.latitude_delta_deg;
+            max_latitude_delta_body = evidence.body.clone();
+        }
+        if evidence.distance_delta_au >= max_distance_delta_au {
+            max_distance_delta_au = evidence.distance_delta_au;
+            max_distance_delta_body = evidence.body.clone();
+        }
         within_interim_limits &= evidence.within_interim_limits;
     }
 
     Some(Vsop87CanonicalEvidenceSummary {
         sample_count,
+        max_longitude_delta_body,
         max_longitude_delta_deg,
+        max_latitude_delta_body,
         max_latitude_delta_deg,
+        max_distance_delta_body,
         max_distance_delta_au,
         within_interim_limits,
     })
@@ -1683,6 +1705,15 @@ mod tests {
         assert!(summary.max_longitude_delta_deg > 0.0);
         assert!(summary.max_latitude_delta_deg > 0.0);
         assert!(summary.max_distance_delta_au > 0.0);
+        assert!(body_evidence
+            .iter()
+            .any(|evidence| evidence.body == summary.max_longitude_delta_body));
+        assert!(body_evidence
+            .iter()
+            .any(|evidence| evidence.body == summary.max_latitude_delta_body));
+        assert!(body_evidence
+            .iter()
+            .any(|evidence| evidence.body == summary.max_distance_delta_body));
     }
 
     #[test]
