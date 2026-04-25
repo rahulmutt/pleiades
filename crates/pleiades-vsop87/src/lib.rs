@@ -161,6 +161,23 @@ pub struct Vsop87SourceAuditSummary {
     pub max_byte_length: usize,
 }
 
+/// Summary metrics for the current VSOP87 source-documentation catalog.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Vsop87SourceDocumentationSummary {
+    /// Number of source specifications described by the catalog.
+    pub source_specification_count: usize,
+    /// Number of source-backed body profiles described by the catalog.
+    pub source_backed_profile_count: usize,
+    /// Number of vendored full-file body profiles.
+    pub vendored_full_file_profile_count: usize,
+    /// Number of generated-binary body profiles.
+    pub generated_binary_profile_count: usize,
+    /// Number of truncated-slice body profiles.
+    pub truncated_profile_count: usize,
+    /// Number of fallback mean-element body profiles.
+    pub fallback_profile_count: usize,
+}
+
 /// Canonical J2000 reference samples for the source-backed VSOP87B paths.
 ///
 /// These values are the same full-file public IMCCE VSOP87B reference points
@@ -596,6 +613,43 @@ pub fn source_audit_summary() -> Vsop87SourceAuditSummary {
             .map(|audit| audit.byte_length)
             .max()
             .unwrap_or(0),
+    }
+}
+
+/// Returns a summary of the current VSOP87 source-documentation catalog.
+pub fn source_documentation_summary() -> Vsop87SourceDocumentationSummary {
+    let source_specs = source_specifications();
+    let source_backed_profiles = body_source_profiles();
+
+    Vsop87SourceDocumentationSummary {
+        source_specification_count: source_specs.len(),
+        source_backed_profile_count: source_backed_profiles
+            .iter()
+            .filter(|profile| {
+                matches!(
+                    profile.kind,
+                    Vsop87BodySourceKind::TruncatedVsop87b
+                        | Vsop87BodySourceKind::VendoredVsop87b
+                        | Vsop87BodySourceKind::GeneratedBinaryVsop87b
+                )
+            })
+            .count(),
+        vendored_full_file_profile_count: source_backed_profiles
+            .iter()
+            .filter(|profile| profile.kind == Vsop87BodySourceKind::VendoredVsop87b)
+            .count(),
+        generated_binary_profile_count: source_backed_profiles
+            .iter()
+            .filter(|profile| profile.kind == Vsop87BodySourceKind::GeneratedBinaryVsop87b)
+            .count(),
+        truncated_profile_count: source_backed_profiles
+            .iter()
+            .filter(|profile| profile.kind == Vsop87BodySourceKind::TruncatedVsop87b)
+            .count(),
+        fallback_profile_count: source_backed_profiles
+            .iter()
+            .filter(|profile| profile.kind == Vsop87BodySourceKind::MeanOrbitalElements)
+            .count(),
     }
 }
 
@@ -1867,6 +1921,18 @@ mod tests {
             .expect("Sun audit should exist");
         assert_eq!(earth.source_file, "VSOP87B.ear");
         assert_eq!(earth.term_count, 2_564);
+    }
+
+    #[test]
+    fn source_documentation_summary_tracks_catalog_counts() {
+        let summary = source_documentation_summary();
+
+        assert_eq!(summary.source_specification_count, 8);
+        assert_eq!(summary.source_backed_profile_count, 8);
+        assert_eq!(summary.generated_binary_profile_count, 8);
+        assert_eq!(summary.vendored_full_file_profile_count, 0);
+        assert_eq!(summary.truncated_profile_count, 0);
+        assert_eq!(summary.fallback_profile_count, 1);
     }
 
     #[test]

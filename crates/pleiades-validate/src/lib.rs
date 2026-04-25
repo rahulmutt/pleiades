@@ -46,7 +46,7 @@ use pleiades_jpl::{
 };
 use pleiades_vsop87::{
     body_source_profiles, frame_treatment_summary, source_audit_summary, source_audits,
-    source_specifications, Vsop87Backend,
+    source_documentation_summary, source_specifications, Vsop87Backend,
 };
 
 const DEFAULT_BENCHMARK_ROUNDS: usize = 10_000;
@@ -3389,31 +3389,20 @@ fn format_vsop87_body_evidence_summary() -> String {
 }
 
 fn format_vsop87_source_documentation_summary() -> String {
-    let profiles = body_source_profiles();
-    let source_backed_profiles = profiles
-        .iter()
-        .filter(|profile| {
-            matches!(
-                profile.kind,
-                pleiades_vsop87::Vsop87BodySourceKind::TruncatedVsop87b
-                    | pleiades_vsop87::Vsop87BodySourceKind::VendoredVsop87b
-                    | pleiades_vsop87::Vsop87BodySourceKind::GeneratedBinaryVsop87b
-            )
-        })
-        .count();
-    let fallback_profiles = profiles
-        .iter()
-        .filter(|profile| {
-            profile.kind == pleiades_vsop87::Vsop87BodySourceKind::MeanOrbitalElements
-        })
-        .count();
-
+    let summary = source_documentation_summary();
     format!(
-        "VSOP87 source documentation: {} source specs, {} source-backed body profiles, {} fallback mean-element body profile{}",
-        source_specifications().len(),
-        source_backed_profiles,
-        fallback_profiles,
-        if fallback_profiles == 1 { "" } else { "s" }
+        "VSOP87 source documentation: {} source specs, {} source-backed body profiles, {} fallback mean-element body profile{}; source-backed breakdown: {} generated binary, {} vendored full-file, {} truncated slice",
+        summary.source_specification_count,
+        summary.source_backed_profile_count,
+        summary.fallback_profile_count,
+        if summary.fallback_profile_count == 1 {
+            ""
+        } else {
+            "s"
+        },
+        summary.generated_binary_profile_count,
+        summary.vendored_full_file_profile_count,
+        summary.truncated_profile_count,
     )
 }
 
@@ -6847,6 +6836,9 @@ mod tests {
         assert!(rendered.contains("Approximate: 4"));
         assert!(rendered.contains("VSOP87 source documentation: 8 source specs, 8 source-backed body profiles, 1 fallback mean-element body profile"));
         assert!(rendered.contains(
+            "source-backed breakdown: 8 generated binary, 0 vendored full-file, 0 truncated slice"
+        ));
+        assert!(rendered.contains(
             "VSOP87 frame treatment: J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a mean-obliquity transform"
         ));
         assert!(rendered
@@ -7168,6 +7160,9 @@ version = "0.9.0"
         assert!(validation_report_summary.contains("Expected tolerance status"));
         assert!(validation_report_summary.contains("VSOP87 source-backed evidence"));
         assert!(validation_report_summary.contains("VSOP87 source documentation: 8 source specs, 8 source-backed body profiles, 1 fallback mean-element body profile"));
+        assert!(validation_report_summary.contains(
+            "source-backed breakdown: 8 generated binary, 0 vendored full-file, 0 truncated slice"
+        ));
         assert!(validation_report_summary.contains(
             "VSOP87 frame treatment: J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a mean-obliquity transform"
         ));
