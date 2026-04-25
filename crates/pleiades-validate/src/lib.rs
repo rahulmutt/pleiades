@@ -3524,15 +3524,22 @@ fn format_comparison_envelope_for_report(summary: &ComparisonSummary) -> String 
         .max_distance_delta_au
         .map(|value| format!("{value:.12} AU"))
         .unwrap_or_else(|| "n/a".to_string());
+    let mean_distance = summary
+        .mean_distance_delta_au
+        .map(|value| format!("{value:.12} AU"))
+        .unwrap_or_else(|| "n/a".to_string());
 
     format!(
-        "max longitude delta: {:.12}°{}, max latitude delta: {:.12}°{}, max distance delta: {}{}",
+        "max longitude delta: {:.12}°{}, mean longitude delta: {:.12}°, max latitude delta: {:.12}°{}, mean latitude delta: {:.12}°, max distance delta: {}{}, mean distance delta: {}",
         summary.max_longitude_delta_deg,
         format_summary_body(&summary.max_longitude_delta_body),
+        summary.mean_longitude_delta_deg,
         summary.max_latitude_delta_deg,
         format_summary_body(&summary.max_latitude_delta_body),
+        summary.mean_latitude_delta_deg,
         max_distance,
         format_summary_body(&summary.max_distance_delta_body),
+        mean_distance,
     )
 }
 
@@ -7734,6 +7741,10 @@ version = "0.9.0"
         assert!(release_summary.contains(
             "Packaged-artifact profile: stored channels: [Longitude, Latitude, DistanceAu]"
         ));
+        assert!(release_summary.contains("Comparison envelope: max longitude delta:"));
+        assert!(release_summary.contains("mean longitude delta:"));
+        assert!(release_summary.contains("mean latitude delta:"));
+        assert!(release_summary.contains("mean distance delta:"));
         assert!(release_summary.contains("Packaged request policy"));
         assert!(release_summary.contains("applies to 11 bundled bodies"));
         assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
