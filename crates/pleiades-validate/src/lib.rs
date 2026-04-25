@@ -6559,6 +6559,20 @@ mod tests {
     }
 
     #[test]
+    fn compatibility_profile_command_surfaces_reference_frame_and_zero_point_entries() {
+        let rendered =
+            render_cli(&["compatibility-profile"]).expect("compatibility profile should render");
+        assert!(rendered.contains("Suryasiddhanta (499 CE)"));
+        assert!(rendered.contains("Aryabhata (499 CE)"));
+        assert!(rendered.contains("Sassanian"));
+        assert!(rendered.contains("PVR Pushya-paksha"));
+        assert!(rendered.contains("Galactic Center (Rgilbrand)"));
+        assert!(rendered.contains("Galactic Center (Mardyks)"));
+        assert!(rendered.contains("Galactic Center (Mula/Wilhelm)"));
+        assert!(rendered.contains("Galactic Center (Cochrane)"));
+    }
+
+    #[test]
     fn release_notes_command_renders_the_release_notes() {
         let rendered = render_cli(&["release-notes"]).expect("release notes should render");
         assert!(rendered.contains("Release notes"));
