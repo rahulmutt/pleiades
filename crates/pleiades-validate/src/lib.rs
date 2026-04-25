@@ -566,12 +566,14 @@ pub struct BenchmarkReport {
     pub rounds: usize,
     /// Number of requests per round.
     pub sample_count: usize,
-    /// Total elapsed time.
+    /// Total elapsed time for the single-request path.
     pub elapsed: std::time::Duration,
+    /// Total elapsed time for the batch-request path.
+    pub batch_elapsed: std::time::Duration,
 }
 
 impl BenchmarkReport {
-    /// Returns the average number of nanoseconds per request.
+    /// Returns the average number of nanoseconds per request for the single-request path.
     pub fn nanoseconds_per_request(&self) -> f64 {
         let total_requests = (self.rounds * self.sample_count) as f64;
         if total_requests == 0.0 {
@@ -579,6 +581,26 @@ impl BenchmarkReport {
         }
 
         self.elapsed.as_secs_f64() * 1_000_000_000.0 / total_requests
+    }
+
+    /// Returns the average number of nanoseconds per request for the batch path.
+    pub fn batch_nanoseconds_per_request(&self) -> f64 {
+        let total_requests = (self.rounds * self.sample_count) as f64;
+        if total_requests == 0.0 {
+            return 0.0;
+        }
+
+        self.batch_elapsed.as_secs_f64() * 1_000_000_000.0 / total_requests
+    }
+
+    /// Returns the average throughput in requests per second for the batch path.
+    pub fn batch_requests_per_second(&self) -> f64 {
+        let total_requests = (self.rounds * self.sample_count) as f64;
+        if self.batch_elapsed.is_zero() || total_requests == 0.0 {
+            return 0.0;
+        }
+
+        total_requests / self.batch_elapsed.as_secs_f64()
     }
 }
 
@@ -885,24 +907,54 @@ impl fmt::Display for ValidationReport {
         writeln!(f, "  corpus: {}", self.reference_benchmark.corpus_name)?;
         writeln!(
             f,
-            "  ns/request: {}",
+            "  ns/request (single): {}",
             format_ns(self.reference_benchmark.nanoseconds_per_request())
+        )?;
+        writeln!(
+            f,
+            "  ns/request (batch): {}",
+            format_ns(self.reference_benchmark.batch_nanoseconds_per_request())
+        )?;
+        writeln!(
+            f,
+            "  batch throughput: {:.2} req/s",
+            self.reference_benchmark.batch_requests_per_second()
         )?;
         writeln!(f)?;
         writeln!(f, "Candidate benchmark")?;
         writeln!(f, "  corpus: {}", self.candidate_benchmark.corpus_name)?;
         writeln!(
             f,
-            "  ns/request: {}",
+            "  ns/request (single): {}",
             format_ns(self.candidate_benchmark.nanoseconds_per_request())
+        )?;
+        writeln!(
+            f,
+            "  ns/request (batch): {}",
+            format_ns(self.candidate_benchmark.batch_nanoseconds_per_request())
+        )?;
+        writeln!(
+            f,
+            "  batch throughput: {:.2} req/s",
+            self.candidate_benchmark.batch_requests_per_second()
         )?;
         writeln!(f)?;
         writeln!(f, "Packaged-data benchmark")?;
         writeln!(f, "  corpus: {}", self.packaged_benchmark.corpus_name)?;
         writeln!(
             f,
-            "  ns/request: {}",
+            "  ns/request (single): {}",
             format_ns(self.packaged_benchmark.nanoseconds_per_request())
+        )?;
+        writeln!(
+            f,
+            "  ns/request (batch): {}",
+            format_ns(self.packaged_benchmark.batch_nanoseconds_per_request())
+        )?;
+        writeln!(
+            f,
+            "  batch throughput: {:.2} req/s",
+            self.packaged_benchmark.batch_requests_per_second()
         )?;
         writeln!(f)?;
         writeln!(f, "Samples")?;
@@ -1345,12 +1397,19 @@ pub fn benchmark_backend(
     corpus: &ValidationCorpus,
     rounds: usize,
 ) -> Result<BenchmarkReport, EphemerisError> {
-    let start = StdInstant::now();
+    let single_start = StdInstant::now();
     for _ in 0..rounds {
         for request in &corpus.requests {
             std::hint::black_box(backend.position(request)?);
         }
     }
+    let elapsed = single_start.elapsed();
+
+    let batch_start = StdInstant::now();
+    for _ in 0..rounds {
+        std::hint::black_box(backend.positions(&corpus.requests)?);
+    }
+    let batch_elapsed = batch_start.elapsed();
 
     Ok(BenchmarkReport {
         backend: backend.metadata(),
@@ -1358,7 +1417,8 @@ pub fn benchmark_backend(
         apparentness: corpus.apparentness,
         rounds,
         sample_count: corpus.requests.len(),
-        elapsed: start.elapsed(),
+        elapsed,
+        batch_elapsed,
     })
 }
 
@@ -3914,8 +3974,18 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     );
     let _ = writeln!(
         text,
-        "  ns/request: {}",
+        "  ns/request (single): {}",
         format_ns(report.reference_benchmark.nanoseconds_per_request())
+    );
+    let _ = writeln!(
+        text,
+        "  ns/request (batch): {}",
+        format_ns(report.reference_benchmark.batch_nanoseconds_per_request())
+    );
+    let _ = writeln!(
+        text,
+        "  batch throughput: {:.2} req/s",
+        report.reference_benchmark.batch_requests_per_second()
     );
     let _ = writeln!(text);
     let _ = writeln!(text, "Candidate benchmark");
@@ -3933,8 +4003,18 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     );
     let _ = writeln!(
         text,
-        "  ns/request: {}",
+        "  ns/request (single): {}",
         format_ns(report.candidate_benchmark.nanoseconds_per_request())
+    );
+    let _ = writeln!(
+        text,
+        "  ns/request (batch): {}",
+        format_ns(report.candidate_benchmark.batch_nanoseconds_per_request())
+    );
+    let _ = writeln!(
+        text,
+        "  batch throughput: {:.2} req/s",
+        report.candidate_benchmark.batch_requests_per_second()
     );
     let _ = writeln!(text);
     let _ = writeln!(text, "Packaged-data benchmark");
@@ -3952,8 +4032,18 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     );
     let _ = writeln!(
         text,
-        "  ns/request: {}",
+        "  ns/request (single): {}",
         format_ns(report.packaged_benchmark.nanoseconds_per_request())
+    );
+    let _ = writeln!(
+        text,
+        "  ns/request (batch): {}",
+        format_ns(report.packaged_benchmark.batch_nanoseconds_per_request())
+    );
+    let _ = writeln!(
+        text,
+        "  batch throughput: {:.2} req/s",
+        report.packaged_benchmark.batch_requests_per_second()
     );
     let _ = writeln!(text, "Release bundle verification: verify-release-bundle");
     let _ = writeln!(text, "Workspace audit: workspace-audit / audit");
@@ -4275,11 +4365,22 @@ impl fmt::Display for BenchmarkReport {
         writeln!(f, "Apparentness: {}", self.apparentness)?;
         writeln!(f, "Rounds: {}", self.rounds)?;
         writeln!(f, "Samples per round: {}", self.sample_count)?;
-        writeln!(f, "Elapsed: {:?}", self.elapsed)?;
+        writeln!(f, "Single-request elapsed: {:?}", self.elapsed)?;
+        writeln!(f, "Batch elapsed: {:?}", self.batch_elapsed)?;
         writeln!(
             f,
-            "Nanoseconds per request: {}",
+            "Nanoseconds per request (single): {}",
             format_ns(self.nanoseconds_per_request())
+        )?;
+        writeln!(
+            f,
+            "Nanoseconds per request (batch): {}",
+            format_ns(self.batch_nanoseconds_per_request())
+        )?;
+        writeln!(
+            f,
+            "Batch throughput: {:.2} req/s",
+            self.batch_requests_per_second()
         )
     }
 }
@@ -6123,7 +6224,11 @@ mod tests {
         assert!(report.contains("Benchmark report"));
         assert!(report.contains("Representative 1500-2500 window"));
         assert!(report.contains("Apparentness: Mean"));
-        assert!(report.contains("Nanoseconds per request:"));
+        assert!(report.contains("Single-request elapsed:"));
+        assert!(report.contains("Batch elapsed:"));
+        assert!(report.contains("Nanoseconds per request (single):"));
+        assert!(report.contains("Nanoseconds per request (batch):"));
+        assert!(report.contains("Batch throughput:"));
     }
 
     #[test]
@@ -6201,6 +6306,9 @@ mod tests {
         assert!(report.contains("Candidate benchmark"));
         assert!(report.contains("Packaged-data benchmark corpus"));
         assert!(report.contains("Packaged-data benchmark"));
+        assert!(report.contains("ns/request (single):"));
+        assert!(report.contains("ns/request (batch):"));
+        assert!(report.contains("batch throughput:"));
     }
 
     #[test]
