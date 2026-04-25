@@ -3396,15 +3396,17 @@ fn format_vsop87_source_audit_summary() -> String {
 fn format_elp_lunar_theory_summary() -> String {
     let theory = lunar_theory_specification();
     format!(
-        "ELP lunar theory specification: {} [{}] ({} supported bodies: {}; {} unsupported bodies: {}); provenance: {}; redistribution: {}; validation window: {}; frame treatment: {}",
+        "ELP lunar theory specification: {} [{}] ({} supported bodies: {}; {} unsupported bodies: {}); citation: {}; provenance: {}; redistribution: {}; license: {}; validation window: {}; frame treatment: {}",
         theory.model_name,
         theory.source_identifier,
         theory.supported_bodies.len(),
         format_bodies(theory.supported_bodies),
         theory.unsupported_bodies.len(),
         format_bodies(theory.unsupported_bodies),
+        theory.source_citation,
         theory.source_material,
         theory.redistribution_note,
+        theory.license_note,
         theory.date_range_note,
         theory.frame_note,
     )
@@ -4533,8 +4535,10 @@ fn write_backend_catalog_entry(
         writeln!(f, "  lunar theory specification:")?;
         writeln!(f, "    model: {}", theory.model_name)?;
         writeln!(f, "    source identifier: {}", theory.source_identifier)?;
+        writeln!(f, "    source citation: {}", theory.source_citation)?;
         writeln!(f, "    source material: {}", theory.source_material)?;
         writeln!(f, "    redistribution note: {}", theory.redistribution_note)?;
+        writeln!(f, "    license note: {}", theory.license_note)?;
         writeln!(
             f,
             "    supported bodies: {}",
@@ -6312,11 +6316,13 @@ mod tests {
         assert!(rendered.contains(
             "ELP lunar theory specification: Compact Meeus-style truncated lunar baseline [meeus-style-truncated-lunar-baseline]"
         ));
+        assert!(rendered.contains("citation: Jean Meeus"));
         assert!(rendered
             .contains("provenance: Published lunar position, node, and mean-point formulas"));
         assert!(rendered.contains(
             "redistribution: No external coefficient-file redistribution constraints apply"
         ));
+        assert!(rendered.contains("license: The current baseline is handwritten pure Rust"));
         assert!(rendered.contains("2 unsupported bodies: True Apogee, True Perigee"));
         assert!(rendered.contains("Distinct bodies covered:"));
         assert!(rendered.contains("Distinct coordinate frames:"));
@@ -6626,11 +6632,14 @@ version = "0.9.0"
         assert!(validation_report_summary.contains(
             "ELP lunar theory specification: Compact Meeus-style truncated lunar baseline [meeus-style-truncated-lunar-baseline]"
         ));
+        assert!(validation_report_summary.contains("citation: Jean Meeus"));
         assert!(validation_report_summary
             .contains("provenance: Published lunar position, node, and mean-point formulas"));
         assert!(validation_report_summary.contains(
             "redistribution: No external coefficient-file redistribution constraints apply"
         ));
+        assert!(validation_report_summary
+            .contains("license: The current baseline is handwritten pure Rust"));
         assert!(
             validation_report_summary.contains("2 unsupported bodies: True Apogee, True Perigee")
         );

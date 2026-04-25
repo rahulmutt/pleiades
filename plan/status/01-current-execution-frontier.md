@@ -34,7 +34,7 @@ Latest progress (2026-04-24): the JPL snapshot backend now exposes coarse leave-
 
 Latest test progress (2026-04-25): the JPL snapshot backend now has exact J2000 regression coverage for the named asteroid subset plus the custom 433-Eros entry, so the checked-in reference fixture now exercises Ceres, Pallas, Juno, Vesta, and the source-backed custom asteroid path with explicit golden coordinates.
 
-Latest progress (2026-04-25): the `pleiades-elp` Moon path now uses a Meeus-style truncated lunar position series instead of the earlier simplified orbital surrogate, and the backend now validates against the published 1992-04-12 geocentric Moon example in addition to the existing J2000 lunar-point checks. That makes the lunar baseline materially closer to the planned source-selection target while true ELP coefficient selection still remains pending.
+Latest progress (2026-04-25): the `pleiades-elp` Moon path now uses a Meeus-style truncated lunar position series instead of the earlier simplified orbital surrogate, and the backend now validates against the published 1992-04-12 geocentric Moon example in addition to the existing J2000 lunar-point checks. The lunar-theory metadata now also carries an explicit Meeus citation plus a conservative license/provenance note, which makes the current source-selection posture easier to audit while true ELP coefficient selection still remains pending.
 
 Latest progress (2026-04-25): the checked-in JPL asteroid subset now renders exact J2000 evidence rows in validation reports, backend matrices, and release notes, so the named asteroid coverage is visible as coordinates rather than only as body labels.
 

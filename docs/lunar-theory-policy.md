@@ -29,15 +29,22 @@ The backend currently rejects:
 ## Provenance and license posture
 
 - Source identifier: `meeus-style-truncated-lunar-baseline`.
+- Canonical citation: Jean Meeus, *Astronomical Algorithms*, 2nd edition,
+  truncated lunar position and lunar node/perigee/apogee formulae adapted into
+  a compact pure-Rust baseline.
 - No vendored ELP coefficient files are used yet.
 - The implementation is handwritten pure Rust, using published lunar position,
   node, and mean-point formulas as the current baseline.
 - The current redistribution posture is simple: there are no external
   coefficient-file redistribution constraints to track until a source-backed
   ELP selection is adopted.
+- The current license/provenance note is intentionally conservative: the crate
+  does not redistribute external coefficient tables, but any future source-
+  backed lunar theory selection should document its own licensing and
+  provenance review before it is treated as production data.
 - The planned full ELP selection remains pending; when it lands, this policy
-  should be updated with the chosen source identifier, provenance notes, and
-  any redistribution constraints.
+  should be updated with the chosen source identifier, citation, provenance
+  notes, and any redistribution constraints.
 
 ## Validation posture
 

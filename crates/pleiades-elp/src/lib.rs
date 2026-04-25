@@ -40,6 +40,8 @@ pub struct LunarTheorySpecification {
     pub model_name: &'static str,
     /// Stable identifier for the selected lunar-theory baseline.
     pub source_identifier: &'static str,
+    /// Canonical bibliographic citation for the selected baseline.
+    pub source_citation: &'static str,
     /// Human-readable source/provenance note for the selected lunar baseline.
     pub source_material: &'static str,
     /// Redistribution or licensing posture for the selected baseline.
@@ -52,6 +54,8 @@ pub struct LunarTheorySpecification {
     pub date_range_note: &'static str,
     /// Notes on the coordinate-frame treatment used by the baseline.
     pub frame_note: &'static str,
+    /// Licensing or redistribution summary for the selected baseline source.
+    pub license_note: &'static str,
 }
 
 /// Returns the currently selected compact lunar-theory specification.
@@ -69,6 +73,7 @@ pub fn lunar_theory_specification() -> LunarTheorySpecification {
     LunarTheorySpecification {
         model_name: "Compact Meeus-style truncated lunar baseline",
         source_identifier: "meeus-style-truncated-lunar-baseline",
+        source_citation: "Jean Meeus, Astronomical Algorithms, 2nd edition, truncated lunar position and lunar node/perigee/apogee formulae adapted into a compact pure-Rust baseline",
         source_material:
             "Published lunar position, node, and mean-point formulas implemented as the current pure-Rust baseline; no vendored ELP coefficient files are used yet while full ELP coefficient selection remains pending",
         redistribution_note:
@@ -79,6 +84,8 @@ pub fn lunar_theory_specification() -> LunarTheorySpecification {
             "Validated against the published 1992-04-12 geocentric Moon example, J2000 node/perigee references, and nearby high-curvature regression windows; no full ELP coefficient range has been published yet",
         frame_note:
             "Geocentric ecliptic coordinates are produced directly from the truncated lunar series; equatorial coordinates are derived with a mean-obliquity transform",
+        license_note:
+            "The current baseline is handwritten pure Rust and does not redistribute external coefficient tables; any future source-backed lunar theory selection will need its own provenance and redistribution review",
     }
 }
 
@@ -258,15 +265,19 @@ impl EphemerisBackend for ElpBackend {
             family: BackendFamily::Algorithmic,
             provenance: BackendProvenance {
                 summary: format!(
-                    "{} [{}] The backend exposes the Moon plus mean/true node and mean apogee/perigee channels as an explicit lunar-theory selection, while explicitly leaving true apogee/perigee unsupported for now.",
+                    "{} [{}] {} The backend exposes the Moon plus mean/true node and mean apogee/perigee channels as an explicit lunar-theory selection, while explicitly leaving true apogee/perigee unsupported for now; {}",
                     lunar_theory_specification().model_name,
                     lunar_theory_specification().source_identifier,
+                    lunar_theory_specification().source_citation,
+                    lunar_theory_specification().license_note,
                 ),
                 data_sources: vec![
                     "Meeus-style truncated lunar orbit formulas implemented in pure Rust; see docs/lunar-theory-policy.md for the current baseline scope".to_string(),
                     lunar_theory_specification().source_identifier.to_string(),
+                    lunar_theory_specification().source_citation.to_string(),
                     lunar_theory_specification().source_material.to_string(),
                     lunar_theory_specification().redistribution_note.to_string(),
+                    lunar_theory_specification().license_note.to_string(),
                     lunar_theory_specification().date_range_note.to_string(),
                     lunar_theory_specification().frame_note.to_string(),
                 ],
@@ -442,6 +453,7 @@ mod tests {
             .provenance
             .summary
             .contains(theory.source_identifier));
+        assert!(metadata.provenance.summary.contains(theory.source_citation));
         assert!(metadata
             .provenance
             .summary
@@ -454,9 +466,19 @@ mod tests {
             .data_sources
             .iter()
             .any(|source| source.contains(theory.source_identifier)));
+        assert!(metadata
+            .provenance
+            .data_sources
+            .iter()
+            .any(|source| source.contains(theory.source_citation)));
         assert!(metadata.provenance.data_sources.iter().any(
             |source| source.contains("No external coefficient-file redistribution constraints")
         ));
+        assert!(metadata
+            .provenance
+            .data_sources
+            .iter()
+            .any(|source| source.contains("pure Rust")));
         assert!(metadata
             .provenance
             .data_sources
@@ -664,12 +686,17 @@ mod tests {
             theory.source_identifier,
             "meeus-style-truncated-lunar-baseline"
         );
+        assert_eq!(
+            theory.source_citation,
+            "Jean Meeus, Astronomical Algorithms, 2nd edition, truncated lunar position and lunar node/perigee/apogee formulae adapted into a compact pure-Rust baseline"
+        );
         assert!(theory
             .source_material
             .contains("Published lunar position, node, and mean-point formulas"));
         assert!(theory
             .redistribution_note
             .contains("No external coefficient-file redistribution constraints"));
+        assert!(theory.license_note.contains("handwritten pure Rust"));
         assert!(theory.date_range_note.contains("1992-04-12"));
         assert!(theory.frame_note.contains("mean-obliquity"));
         assert_eq!(
@@ -686,6 +713,9 @@ mod tests {
             theory.unsupported_bodies,
             &[CelestialBody::TrueApogee, CelestialBody::TruePerigee]
         );
+        assert!(theory
+            .license_note
+            .contains("future source-backed lunar theory selection"));
 
         assert!(backend.supports_body(CelestialBody::Moon));
         assert!(backend.supports_body(CelestialBody::MeanNode));

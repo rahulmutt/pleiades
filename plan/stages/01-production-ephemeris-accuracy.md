@@ -32,7 +32,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Implement or explicitly defer mean/true nodes and apogee/perigee where mathematically justified.
    - Add regression tests around high-curvature lunar intervals.
    - Progress note: the backend now has an explicit lunar-theory policy document plus a short high-curvature Moon-window regression test, so the current baseline provenance and nearby motion continuity are exercised while source-backed ELP selection remains queued.
-   - Progress note: the current lunar-theory selection now exposes a stable source identifier and explicit redistribution posture alongside the supported and unsupported lunar bodies, and the validation/reporting layer renders those provenance details in release-facing summaries.
+   - Progress note: the current lunar-theory selection now exposes a stable source identifier, canonical bibliographic citation, and explicit license/provenance posture alongside the supported and unsupported lunar bodies, and the validation/reporting layer renders those provenance details in release-facing summaries.
    - Progress note: validation backend-matrix output now also renders the ELP unsupported lunar bodies explicitly, so the release-facing lunar-theory section shows both the supported channels and the deferred true apogee/perigee slots.
    - Progress note: the Moon path now uses a Meeus-style truncated lunar position series instead of the earlier simplified orbital surrogate, and the backend now validates against the published 1992-04-12 geocentric Moon example in addition to the J2000 lunar-point checks.
 
