@@ -3525,9 +3525,10 @@ fn format_vsop87_source_audit_summary() -> String {
 fn format_elp_lunar_theory_summary() -> String {
     let theory = lunar_theory_specification();
     format!(
-        "ELP lunar theory specification: {} [{}] ({} supported bodies: {}; {} unsupported bodies: {}); request policy: frames={}; time scales={}; zodiac modes={}; apparentness={}; topocentric observer={}; citation: {}; provenance: {}; redistribution: {}; truncation: {}; units: {}; license: {}; validation window: {}; frame treatment: {}",
+        "ELP lunar theory specification: {} [{}; family: {}] ({} supported bodies: {}; {} unsupported bodies: {}); request policy: frames={}; time scales={}; zodiac modes={}; apparentness={}; topocentric observer={}; citation: {}; provenance: {}; redistribution: {}; truncation: {}; units: {}; license: {}; validation window: {}; frame treatment: {}",
         theory.model_name,
         theory.source_identifier,
+        pleiades_elp::lunar_theory_source_family().label(),
         theory.supported_bodies.len(),
         format_bodies(theory.supported_bodies),
         theory.unsupported_bodies.len(),
@@ -4829,6 +4830,11 @@ fn write_backend_catalog_entry(
         let theory = lunar_theory_specification();
         writeln!(f, "  lunar theory specification:")?;
         writeln!(f, "    model: {}", theory.model_name)?;
+        writeln!(
+            f,
+            "    source family: {}",
+            pleiades_elp::lunar_theory_source_family().label()
+        )?;
         writeln!(f, "    source identifier: {}", theory.source_identifier)?;
         writeln!(f, "    source citation: {}", theory.source_citation)?;
         writeln!(f, "    source material: {}", theory.source_material)?;
@@ -6974,7 +6980,7 @@ mod tests {
             "VSOP87 source-backed body evidence: 8 body profiles (0 vendored full-file, 8 generated binary), 8 within interim limits"
         ));
         assert!(rendered.contains(
-            "ELP lunar theory specification: Compact Meeus-style truncated lunar baseline [meeus-style-truncated-lunar-baseline]"
+            "ELP lunar theory specification: Compact Meeus-style truncated lunar baseline [meeus-style-truncated-lunar-baseline; family: Meeus-style truncated analytical baseline]"
         ));
         assert!(rendered.contains("request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
         assert!(rendered.contains("citation: Jean Meeus"));
@@ -7300,7 +7306,7 @@ version = "0.9.0"
         assert!(validation_report_summary
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(validation_report_summary.contains(
-            "ELP lunar theory specification: Compact Meeus-style truncated lunar baseline [meeus-style-truncated-lunar-baseline]"
+            "ELP lunar theory specification: Compact Meeus-style truncated lunar baseline [meeus-style-truncated-lunar-baseline; family: Meeus-style truncated analytical baseline]"
         ));
         assert!(validation_report_summary.contains("request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
         assert!(validation_report_summary.contains("citation: Jean Meeus"));

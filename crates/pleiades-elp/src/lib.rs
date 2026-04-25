@@ -51,6 +51,29 @@ pub struct LunarTheoryRequestPolicy {
     pub supports_topocentric_observer: bool,
 }
 
+/// Structured source family for the current lunar-theory selection.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum LunarTheorySourceFamily {
+    /// Compact Meeus-style truncated analytical baseline.
+    MeeusStyleTruncatedAnalyticalBaseline,
+}
+
+impl LunarTheorySourceFamily {
+    /// Human-readable label for the current source family.
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::MeeusStyleTruncatedAnalyticalBaseline => {
+                "Meeus-style truncated analytical baseline"
+            }
+        }
+    }
+}
+
+/// Returns the current lunar-theory source family.
+pub const fn lunar_theory_source_family() -> LunarTheorySourceFamily {
+    LunarTheorySourceFamily::MeeusStyleTruncatedAnalyticalBaseline
+}
+
 /// Structured description of the current lunar-theory selection.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct LunarTheorySpecification {
@@ -375,9 +398,10 @@ impl EphemerisBackend for ElpBackend {
             family: BackendFamily::Algorithmic,
             provenance: BackendProvenance {
                 summary: format!(
-                    "{} [{}] {} The backend exposes the Moon plus mean/true node and mean apogee/perigee channels as an explicit lunar-theory selection, while explicitly leaving true apogee/perigee unsupported for now; {}",
+                    "{} [{}; family: {}] {} The backend exposes the Moon plus mean/true node and mean apogee/perigee channels as an explicit lunar-theory selection, while explicitly leaving true apogee/perigee unsupported for now; {}",
                     lunar_theory_specification().model_name,
                     lunar_theory_specification().source_identifier,
+                    lunar_theory_source_family().label(),
                     lunar_theory_specification().source_citation,
                     lunar_theory_specification().license_note,
                 ),
@@ -554,6 +578,10 @@ mod tests {
             .provenance
             .summary
             .contains(theory.source_identifier));
+        assert!(metadata
+            .provenance
+            .summary
+            .contains(lunar_theory_source_family().label()));
         assert!(metadata.provenance.summary.contains(theory.source_citation));
         assert!(metadata
             .provenance
