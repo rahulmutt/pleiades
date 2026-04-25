@@ -91,6 +91,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Progress note: the validation and artifact reports now name the body driving each max longitude, latitude, and distance delta in the body-comparison and body-class envelope sections, which makes the release-facing error envelopes easier to audit without changing the measured corpus.
    - Progress note: the comparison-audit failure path now mirrors the body-class error envelopes, body-class tolerance posture, and tolerance policy sections, so release-failure output carries the same coarse envelope detail as the full validation report.
    - Progress note: the compact release summary now also carries a short validation evidence line with comparison sample and tolerance counts, and now names the comparison-audit status explicitly, so the release-facing overview exposes a little more of the current error envelope without expanding into the full validation report.
+   - Progress note: the same compact release summary now also surfaces the body-named comparison envelope, so the one-screen overview now mirrors the detailed comparison report a little more closely while the broader release-grade threshold work remains queued.
    - Store expected tolerances by backend and body class.
    - Keep validation reproducible and pure Rust.
 

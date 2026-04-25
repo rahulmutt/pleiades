@@ -2117,6 +2117,11 @@ fn render_release_summary_text() -> String {
             .map(|summary| summary.outside_tolerance_body_count)
             .sum();
         let (_, _, _, audit_regression_count) = comparison_audit_totals(&report.comparison);
+        text.push_str("Comparison envelope: ");
+        text.push_str(&format_comparison_envelope_for_report(
+            &report.comparison.summary,
+        ));
+        text.push('\n');
         text.push_str("Validation evidence: ");
         text.push_str(&report.comparison.summary.sample_count.to_string());
         text.push_str(" comparison samples, ");
@@ -3334,6 +3339,23 @@ fn format_summary_body(body: &Option<CelestialBody>) -> String {
     body.as_ref()
         .map(|body| format!(" ({body})"))
         .unwrap_or_default()
+}
+
+fn format_comparison_envelope_for_report(summary: &ComparisonSummary) -> String {
+    let max_distance = summary
+        .max_distance_delta_au
+        .map(|value| format!("{value:.12} AU"))
+        .unwrap_or_else(|| "n/a".to_string());
+
+    format!(
+        "max longitude delta: {:.12}°{}, max latitude delta: {:.12}°{}, max distance delta: {}{}",
+        summary.max_longitude_delta_deg,
+        format_summary_body(&summary.max_longitude_delta_body),
+        summary.max_latitude_delta_deg,
+        format_summary_body(&summary.max_latitude_delta_body),
+        max_distance,
+        format_summary_body(&summary.max_distance_delta_body),
+    )
 }
 
 /// Renders a release-grade comparison tolerance audit used by the CLI.
@@ -7226,6 +7248,9 @@ mod tests {
         assert!(rendered.contains("Custom-definition labels:"));
         assert!(rendered.contains("Custom-definition ayanamsas:"));
         assert!(rendered.contains("Compatibility caveats:"));
+        assert!(rendered.contains("Comparison envelope:"));
+        assert!(rendered.contains("max longitude delta:"));
+        assert!(rendered.contains("max latitude delta:"));
         assert!(rendered.contains("Validation evidence:"));
         assert!(rendered.contains("comparison samples"));
         assert!(rendered.contains("notable regressions"));
