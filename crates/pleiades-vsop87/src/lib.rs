@@ -1944,6 +1944,89 @@ mod tests {
     }
 
     #[test]
+    fn batch_query_preserves_supported_vsop87_paths_for_tdb_requests() {
+        let backend = Vsop87Backend::new();
+        let requests = Vsop87Backend::supported_bodies()
+            .iter()
+            .cloned()
+            .map(|body| {
+                let mut request = mean_request(body);
+                request.instant.scale = TimeScale::Tdb;
+                request
+            })
+            .collect::<Vec<_>>();
+
+        let results = backend
+            .positions(&requests)
+            .expect("batch TDB query should work for every supported body");
+
+        assert_eq!(results.len(), requests.len());
+        for (request, result) in requests.iter().zip(results.iter()) {
+            assert_eq!(result.body, request.body);
+            assert_eq!(result.instant.scale, TimeScale::Tdb);
+            match result.body {
+                CelestialBody::Pluto => {
+                    assert_eq!(result.quality, QualityAnnotation::Approximate);
+                }
+                _ => {
+                    assert_eq!(result.quality, QualityAnnotation::Exact);
+                }
+            }
+
+            let single = backend
+                .position(request)
+                .expect("single TDB query should work for every supported body");
+            assert_eq!(single.body, result.body);
+            assert_eq!(single.instant.scale, TimeScale::Tdb);
+            assert_eq!(single.quality, result.quality);
+
+            let ecliptic = result
+                .ecliptic
+                .as_ref()
+                .expect("ecliptic result should exist");
+            let single_ecliptic = single
+                .ecliptic
+                .as_ref()
+                .expect("single-query ecliptic result should exist");
+            assert_eq!(
+                ecliptic.longitude.degrees(),
+                single_ecliptic.longitude.degrees()
+            );
+            assert_eq!(
+                ecliptic.latitude.degrees(),
+                single_ecliptic.latitude.degrees()
+            );
+            assert_eq!(
+                ecliptic.distance_au.expect("distance should exist"),
+                single_ecliptic
+                    .distance_au
+                    .expect("single-query distance should exist")
+            );
+
+            if let Some(sample) = canonical_epoch_samples()
+                .into_iter()
+                .find(|sample| sample.body == result.body)
+            {
+                assert_degrees_close(
+                    ecliptic.longitude.degrees(),
+                    sample.expected_longitude_deg,
+                    sample.max_longitude_delta_deg,
+                );
+                assert_degrees_close(
+                    ecliptic.latitude.degrees(),
+                    sample.expected_latitude_deg,
+                    sample.max_latitude_delta_deg,
+                );
+                assert_close(
+                    ecliptic.distance_au.expect("distance should exist"),
+                    sample.expected_distance_au,
+                    sample.max_distance_delta_au,
+                );
+            }
+        }
+    }
+
+    #[test]
     fn batch_query_preserves_canonical_sample_order_for_source_backed_paths() {
         let backend = Vsop87Backend::new();
         let mut requests = canonical_epoch_requests();

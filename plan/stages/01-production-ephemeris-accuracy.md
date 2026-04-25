@@ -87,6 +87,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Progress note: chart assembly now also has a regression proving house observers are used for house calculations only and are not forwarded into geocentric body-position backend requests, which keeps the observer/topocentric separation explicit in the façade layer.
    - Progress note: UT1-tagged callers now also have a direct caller-supplied UT1-to-TDB helper, so explicit dynamical-time staging can stay typed even when a caller already has TT-UT1 and TDB-TT offsets available.
    - Progress note: TDB-tagged callers now also have a caller-supplied TT-from-TDB helper in `pleiades-types` and `pleiades-core::ChartRequest`, which keeps the explicit conversion policy symmetric for callers that already begin from a TDB-tagged instant.
+   - Progress note: the VSOP87 and compact ELP batch-path regressions now also cover explicit TDB-tagged requests for their supported body slices, so the current time-scale policy is exercised through `positions()` as well as single-request lookups without adding a built-in Delta T or relativistic conversion model.
    - Progress note: the `pleiades-cli` chart command now exposes explicit `--utc` / `--ut1` instant tags plus caller-supplied `--tt-offset-seconds` and `--tdb-offset-seconds` flags, so command-line chart runs can exercise the same conversion policy without implying a built-in Delta T or relativistic model.
 
 5. Expand validation evidence.

@@ -1911,6 +1911,43 @@ mod tests {
     }
 
     #[test]
+    fn batch_query_preserves_lunar_reference_order_for_tdb_requests() {
+        let backend = ElpBackend::new();
+        let evidence = lunar_reference_evidence();
+        let requests = evidence
+            .iter()
+            .map(|sample| {
+                let mut request = mean_request_at(sample.body.clone(), sample.epoch);
+                request.instant.scale = TimeScale::Tdb;
+                request
+            })
+            .collect::<Vec<_>>();
+
+        let results = backend
+            .positions(&requests)
+            .expect("batch TDB query should preserve the lunar reference order");
+
+        assert_eq!(results.len(), evidence.len());
+        for (sample, result) in evidence.iter().zip(results.iter()) {
+            assert_eq!(result.body, sample.body);
+            assert_eq!(result.instant.scale, TimeScale::Tdb);
+            let ecliptic = result.ecliptic.expect("ecliptic result should exist");
+            let longitude_tolerance = match sample.body {
+                CelestialBody::MeanNode => 1e-1,
+                _ => 1e-4,
+            };
+            assert!(
+                (ecliptic.longitude.degrees() - sample.longitude_deg).abs() < longitude_tolerance
+            );
+            assert!((ecliptic.latitude.degrees() - sample.latitude_deg).abs() < 1e-4);
+            assert_eq!(ecliptic.distance_au.is_some(), sample.distance_au.is_some());
+            if let (Some(actual), Some(expected)) = (ecliptic.distance_au, sample.distance_au) {
+                assert!((actual - expected).abs() < 1e-8);
+            }
+        }
+    }
+
+    #[test]
     fn batch_query_preserves_equatorial_frame_and_values() {
         let backend = ElpBackend::new();
         let evidence = lunar_reference_evidence();

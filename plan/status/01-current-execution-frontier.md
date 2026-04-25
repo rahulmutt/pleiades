@@ -93,6 +93,8 @@ Latest progress (2026-04-25): compatibility-profile verification now also pins t
 
 Latest progress (2026-04-25): the JPL, ELP, and VSOP87 batch-path regressions now also exercise explicit equatorial-frame requests, so the shared mean-obliquity transform and frame-preserving batch contract are now covered in both the single-request and batch-request paths.
 
+Latest progress (2026-04-25): the VSOP87 and compact ELP batch-path regressions now also cover explicit TDB-tagged requests for their supported body slices, so the current time-scale policy is exercised through `positions()` as well as single-request lookups without adding a built-in Delta T or relativistic conversion model.
+
 Latest progress (2026-04-25): the release bundle now also includes a compact `workspace-audit-summary` artifact and manifest entry, so the pure-Rust/native-dependency audit is surfaced in the same bundle family as the compatibility, backend, validation, and artifact reports.
 
 Active gaps:
