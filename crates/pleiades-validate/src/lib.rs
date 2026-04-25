@@ -2117,17 +2117,49 @@ fn render_release_summary_text() -> String {
     text.push_str(&profile.known_gaps.len().to_string());
     text.push('\n');
     if let Ok(report) = build_validation_report(0) {
-        let tolerance_outside_bodies: usize = report
-            .comparison
-            .body_class_tolerance_summaries()
+        let tolerance_summaries = report.comparison.tolerance_summaries();
+        let body_class_tolerance_summaries = report.comparison.body_class_tolerance_summaries();
+        let tolerance_outside_bodies: usize = body_class_tolerance_summaries
             .iter()
             .map(|summary| summary.outside_tolerance_body_count)
             .sum();
+        let outside_tolerance_body_count = tolerance_summaries
+            .iter()
+            .filter(|summary| !summary.within_tolerance)
+            .count();
+        let outside_tolerance_body_names = body_class_tolerance_summaries
+            .iter()
+            .flat_map(|summary| summary.outside_bodies.iter().cloned())
+            .collect::<Vec<_>>();
+        let outside_class_count = body_class_tolerance_summaries
+            .iter()
+            .filter(|summary| summary.outside_tolerance_body_count > 0)
+            .count();
         let (_, _, _, audit_regression_count) = comparison_audit_totals(&report.comparison);
         text.push_str("Comparison envelope: ");
         text.push_str(&format_comparison_envelope_for_report(
             &report.comparison.summary,
         ));
+        text.push('\n');
+        text.push_str("Body-class tolerance posture: ");
+        text.push_str(&body_class_tolerance_summaries.len().to_string());
+        text.push_str(" classes checked, ");
+        text.push_str(&outside_class_count.to_string());
+        text.push_str(" classes with outlier bodies, outlier bodies: ");
+        text.push_str(&format_bodies(&outside_tolerance_body_names));
+        text.push('\n');
+        text.push_str("Expected tolerance status: ");
+        text.push_str(&tolerance_summaries.len().to_string());
+        text.push_str(" bodies checked, ");
+        text.push_str(
+            &tolerance_summaries
+                .len()
+                .saturating_sub(outside_tolerance_body_count)
+                .to_string(),
+        );
+        text.push_str(" within tolerance, ");
+        text.push_str(&outside_tolerance_body_count.to_string());
+        text.push_str(" outside tolerance");
         text.push('\n');
         text.push_str("Validation evidence: ");
         text.push_str(&report.comparison.summary.sample_count.to_string());
@@ -3333,15 +3365,17 @@ fn comparison_audit_totals(report: &ComparisonReport) -> (usize, usize, usize, u
 }
 
 fn format_regression_bodies(regressions: &[RegressionFinding]) -> String {
-    let bodies = regressions
+    let mut bodies = regressions
         .iter()
         .map(|finding| finding.body.to_string())
-        .collect::<BTreeSet<_>>();
+        .collect::<Vec<_>>();
+    bodies.sort();
+    bodies.dedup();
 
     if bodies.is_empty() {
         "none".to_string()
     } else {
-        bodies.into_iter().collect::<Vec<_>>().join(", ")
+        bodies.join(", ")
     }
 }
 
@@ -7249,6 +7283,8 @@ mod tests {
         assert!(rendered.contains("comparison samples"));
         assert!(rendered.contains("notable regressions"));
         assert!(rendered.contains("outside-tolerance bodies"));
+        assert!(rendered.contains("Body-class tolerance posture:"));
+        assert!(rendered.contains("Expected tolerance status:"));
         assert!(rendered.contains("comparison audit regressions found"));
         assert!(rendered.contains("JPL interpolation evidence:"));
         assert!(rendered.contains("JPL interpolation quality:"));
