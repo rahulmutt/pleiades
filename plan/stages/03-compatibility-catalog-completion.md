@@ -27,6 +27,7 @@ The repository already exposes baseline house systems and ayanamsas, a larger re
    - Document formulas, required astronomical inputs, and numerical assumptions.
    - Return explicit errors for polar/high-latitude or numerical failure cases.
    - Verify special shapes such as Gauquelin sectors and equal/MC/Aries variants.
+   - Progress note: the house-formula regression slice now also covers both invalid-latitude rejection and a Placidus polar numerical-failure path, so the current house-system implementation explicitly exercises representative invalid-input and numerical-failure reporting for the compatibility catalog.
 
 3. Complete ayanamsa metadata and formula coverage.
    - Fill remaining reference epochs, offsets, drift/precession assumptions, and provenance notes.

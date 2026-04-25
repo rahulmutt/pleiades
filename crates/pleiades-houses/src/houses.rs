@@ -1348,12 +1348,36 @@ mod tests {
     }
 
     #[test]
+    fn placidian_houses_report_numerical_failure_at_the_pole() {
+        let mut request =
+            sample_request(HouseSystem::Placidus).with_obliquity(Angle::from_degrees(0.0));
+        request.observer.latitude = Latitude::from_degrees(90.0);
+        request.observer.longitude = Longitude::from_degrees(0.0);
+
+        let error = calculate_houses(&request).expect_err("polar Placidus iteration should fail");
+        assert_eq!(error.kind, HouseErrorKind::NumericalFailure);
+        assert!(error.message.contains("zero derivative"));
+    }
+
+    #[test]
     fn topocentric_latitude_uses_geocentric_correction() {
         let sea_level = topocentric_latitude(45.0, None).expect("latitude should convert");
         let mountain = topocentric_latitude(45.0, Some(2_000.0)).expect("latitude should convert");
 
         assert!((sea_level.degrees() - 44.807_576).abs() < 1.0e-6);
         assert!(mountain.degrees() > sea_level.degrees());
+    }
+
+    #[test]
+    fn observer_latitudes_outside_the_valid_range_are_rejected() {
+        let mut request = sample_request(HouseSystem::Equal);
+        request.observer.latitude = Latitude::from_degrees(90.000_1);
+
+        let error = calculate_houses(&request).expect_err("invalid observer latitude should fail");
+        assert_eq!(error.kind, HouseErrorKind::InvalidLatitude);
+        assert!(error
+            .message
+            .contains("observer latitude 90.0001° is outside the valid range"));
     }
 
     #[test]
