@@ -160,6 +160,15 @@ impl ArtifactProfile {
         )
     }
 
+    /// Returns the capability summary annotated with how many bodies share it.
+    pub fn summary_for_body_count(&self, body_count: usize) -> String {
+        format!(
+            "{}; applies to {} bundled bodies",
+            self.summary(),
+            body_count
+        )
+    }
+
     /// Returns the current conservative profile: ecliptic longitude, latitude,
     /// and distance are stored directly; motion and richer coordinate modes are unsupported.
     pub fn ecliptic_longitude_latitude_distance() -> Self {
@@ -1025,6 +1034,10 @@ mod tests {
         assert_eq!(
             profile.summary(),
             "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates]; unsupported outputs: [EquatorialCoordinates, ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported"
+        );
+        assert_eq!(
+            profile.summary_for_body_count(11),
+            "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates]; unsupported outputs: [EquatorialCoordinates, ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 11 bundled bodies"
         );
     }
 

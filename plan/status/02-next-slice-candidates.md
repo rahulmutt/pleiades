@@ -160,7 +160,7 @@ Completed first slice (2026-04-24):
 - added round-trip tests for default and explicit profile metadata;
 - updated the packaged-data prototype to expose the conservative ecliptic-only/no-motion profile without expanding production artifact claims.
 
-Progress note (2026-04-25): artifact profile summaries now appear in `artifact-summary`, `validation-report-summary`, and `release-summary`, which makes the Phase 2 artifact capability posture visible in release-facing reports before generated production artifacts exist.
+Progress note (2026-04-25): artifact profile summaries now appear in `artifact-summary`, `validation-report-summary`, and `release-summary`, which makes the Phase 2 artifact capability posture visible in release-facing reports before generated production artifacts exist. The packaged-artifact profile summary now also reports how many bundled bodies share the same conservative capability profile, which makes the current single-profile packaged scope a little more explicit while body-specific generated artifacts remain pending.
 
 Remaining suggested scope:
 

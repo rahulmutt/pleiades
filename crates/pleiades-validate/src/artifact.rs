@@ -266,8 +266,14 @@ fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
     text.push_str("  encoded bytes: ");
     text.push_str(&report.encoded_bytes.to_string());
     text.push('\n');
+    let artifact = packaged_artifact();
     text.push_str("  Artifact profile: ");
-    text.push_str(&packaged_artifact().header.profile.summary());
+    text.push_str(
+        &artifact
+            .header
+            .profile
+            .summary_for_body_count(artifact.bodies.len()),
+    );
     text.push('\n');
     text.push_str("  coverage: ");
     text.push_str(&report.earliest.julian_day.to_string());

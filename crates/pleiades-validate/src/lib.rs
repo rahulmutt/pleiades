@@ -3580,7 +3580,11 @@ fn format_reference_snapshot_summary() -> String {
 }
 
 fn format_packaged_artifact_profile_summary() -> String {
-    packaged_artifact().header.profile.summary()
+    let artifact = packaged_artifact();
+    artifact
+        .header
+        .profile
+        .summary_for_body_count(artifact.bodies.len())
 }
 
 fn render_validation_report_summary_text(report: &ValidationReport) -> String {
@@ -7212,11 +7216,13 @@ version = "0.9.0"
         assert!(release_summary.contains(
             "Packaged-artifact profile: stored channels: [Longitude, Latitude, DistanceAu]"
         ));
+        assert!(release_summary.contains("applies to 11 bundled bodies"));
         assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_summary.contains("Release notes summary: release-notes-summary"));
         assert!(artifact_summary.contains("Artifact summary"));
         assert!(artifact_summary
             .contains("Artifact profile: stored channels: [Longitude, Latitude, DistanceAu]"));
+        assert!(artifact_summary.contains("applies to 11 bundled bodies"));
         assert!(artifact_summary.contains("Model error envelope"));
         assert!(artifact_summary.contains("Release summary: release-summary"));
         assert!(artifact_summary.contains("Release notes summary: release-notes-summary"));
