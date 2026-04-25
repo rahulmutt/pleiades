@@ -387,6 +387,14 @@ impl Instant {
         Ok(self.with_time_scale_offset(TimeScale::Tt, offset_seconds))
     }
 
+    /// Converts a TDB-tagged instant to TT using a caller-supplied signed offset.
+    ///
+    /// This is an explicit alias for [`Instant::tt_from_tdb`] that mirrors the
+    /// signed helper naming used for the other time-scale conversion policies.
+    pub fn tt_from_tdb_signed(self, offset_seconds: f64) -> Result<Self, TimeScaleConversionError> {
+        self.tt_from_tdb(offset_seconds)
+    }
+
     /// Converts a UT1-tagged instant to TDB using caller-supplied TT-UT1 and
     /// TDB-TT offsets.
     ///
@@ -1344,6 +1352,18 @@ mod tests {
         let tt = tdb
             .tt_from_tdb(-0.001_657)
             .expect("TDB to TT conversion should accept TDB input");
+
+        assert_eq!(tt.scale, TimeScale::Tt);
+        let expected = 2_451_545.0 - 0.001_657 / 86_400.0;
+        assert!((tt.julian_day.days() - expected).abs() < 1e-12);
+    }
+
+    #[test]
+    fn caller_supplied_time_scale_offsets_can_convert_tdb_to_tt_with_signed_offset() {
+        let tdb = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb);
+        let tt = tdb
+            .tt_from_tdb_signed(-0.001_657)
+            .expect("TDB to TT conversion should accept signed TDB input");
 
         assert_eq!(tt.scale, TimeScale::Tt);
         let expected = 2_451_545.0 - 0.001_657 / 86_400.0;
