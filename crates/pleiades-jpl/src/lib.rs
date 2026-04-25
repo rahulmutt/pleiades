@@ -6,7 +6,9 @@
 //! epochs and uses cubic interpolation on four-sample windows when it can,
 //! falling back to quadratic interpolation on three-sample windows and linear
 //! interpolation between adjacent samples when fewer fixture points are
-//! available. This intentionally small derivative format proves the pure-Rust
+//! available. The checked-in ecliptic fixture can also be rotated into a
+//! mean-obliquity equatorial frame for chart requests that prefer equatorial
+//! output. This intentionally small derivative format proves the pure-Rust
 //! reader/interpolator path before larger public JPL-derived corpora are added.
 //!
 //! The checked-in fixture also includes a small set of named asteroids and a
@@ -26,8 +28,8 @@ use pleiades_backend::{
     EphemerisErrorKind, EphemerisRequest, EphemerisResult, QualityAnnotation,
 };
 use pleiades_types::{
-    CoordinateFrame, CustomBodyId, EclipticCoordinates, Instant, JulianDay, Latitude, Longitude,
-    Motion, TimeRange, TimeScale, ZodiacMode,
+    Angle, CoordinateFrame, CustomBodyId, EclipticCoordinates, Instant, JulianDay, Latitude,
+    Longitude, Motion, TimeRange, TimeScale, ZodiacMode,
 };
 
 const REFERENCE_EPOCH_JD: f64 = 2_451_545.0;
@@ -328,7 +330,7 @@ impl EphemerisBackend for JplSnapshotBackend {
             version: "0.1.0".to_string(),
             family: BackendFamily::ReferenceData,
             provenance: BackendProvenance {
-                summary: "NASA/JPL Horizons DE441 geocentric ecliptic fixture with exact epoch lookup and cubic interpolation on four-sample windows"
+                summary: "NASA/JPL Horizons DE441 geocentric fixture with exact epoch lookup, cubic interpolation on four-sample windows, and mean-obliquity equatorial output"
                     .to_string(),
                 data_sources: vec![
                     "NASA/JPL Horizons API vector tables (DE441)".to_string(),
@@ -343,7 +345,7 @@ impl EphemerisBackend for JplSnapshotBackend {
             },
             supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
             body_coverage: bodies,
-            supported_frames: vec![CoordinateFrame::Ecliptic],
+            supported_frames: vec![CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
             capabilities: BackendCapabilities {
                 geocentric: true,
                 topocentric: false,
@@ -369,7 +371,7 @@ impl EphemerisBackend for JplSnapshotBackend {
             req,
             "the JPL snapshot backend",
             &[TimeScale::Tt, TimeScale::Tdb],
-            &[CoordinateFrame::Ecliptic],
+            &[CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
             false,
         )?;
 
@@ -399,11 +401,20 @@ impl EphemerisBackend for JplSnapshotBackend {
             req.zodiac_mode.clone(),
             req.apparent,
         );
-        result.ecliptic = Some(resolved.entry.ecliptic());
+        let ecliptic = resolved.entry.ecliptic();
+        result.ecliptic = Some(ecliptic);
+        result.equatorial =
+            Some(ecliptic.to_equatorial(Angle::from_degrees(mean_obliquity_degrees(req.instant))));
         result.motion = None::<Motion>;
         result.quality = resolved.quality;
         Ok(result)
     }
+}
+
+fn mean_obliquity_degrees(instant: Instant) -> f64 {
+    let t = (instant.julian_day.days() - REFERENCE_EPOCH_JD) / 36_525.0;
+    23.439_291_111_111_11 - 0.013_004_166_666_666_667 * t - 0.000_000_163_888_888_888_888_88 * t * t
+        + 0.000_000_503_611_111_111_111_1 * t * t * t
 }
 
 /// One parsed record from the reference fixture.
@@ -1328,6 +1339,41 @@ mod tests {
             .distance_au
             .expect("distance should be present")
             .is_finite());
+    }
+
+    #[test]
+    fn j2000_equatorial_request_is_supported() {
+        let backend = JplSnapshotBackend;
+        let request = EphemerisRequest {
+            body: pleiades_backend::CelestialBody::Sun,
+            instant: reference_instant(),
+            observer: None,
+            frame: CoordinateFrame::Equatorial,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparent: Apparentness::Mean,
+        };
+
+        assert!(backend
+            .metadata()
+            .supported_frames
+            .contains(&CoordinateFrame::Equatorial));
+
+        let result = backend
+            .position(&request)
+            .expect("equatorial frame request should resolve");
+        let ecliptic = result
+            .ecliptic
+            .expect("equatorial requests should still populate ecliptic coordinates");
+        let expected =
+            ecliptic.to_equatorial(Angle::from_degrees(mean_obliquity_degrees(request.instant)));
+        let equatorial = result
+            .equatorial
+            .expect("equatorial coordinates should be present");
+
+        assert_eq!(result.frame, CoordinateFrame::Equatorial);
+        assert_eq!(equatorial, expected);
+        assert!(equatorial.right_ascension.degrees().is_finite());
+        assert!(equatorial.declination.degrees().is_finite());
     }
 
     #[test]

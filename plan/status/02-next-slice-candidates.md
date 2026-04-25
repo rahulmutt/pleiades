@@ -139,7 +139,7 @@ Progress note (2026-04-24): the initial time-scale, Delta T, apparentness, and o
 
 Progress note (2026-04-24): `pleiades-types` now provides caller-supplied time-scale offset helpers (`JulianDay::add_seconds`, `Instant::with_time_scale_offset`, and `Instant::tt_from_ut1`) plus a structured `TimeScaleConversionError`. This does not add a built-in Delta T model, but it gives applications and validation fixtures a typed way to apply an explicit external `TT - UT1` policy before querying TT/TDB-only backends.
 
-Progress note (2026-04-25): `pleiades-types` also now centralizes the mean-obliquity ecliptic-to-equatorial rotation in a reusable `EclipticCoordinates::to_equatorial` helper, and the VSOP87/ELP paths now call that shared transform instead of duplicating the same conversion math locally.
+Progress note (2026-04-25): `pleiades-types` also now centralizes the mean-obliquity ecliptic-to-equatorial rotation in a reusable `EclipticCoordinates::to_equatorial` helper, and the VSOP87/ELP paths now call that shared transform instead of duplicating the same conversion math locally. The JPL snapshot backend now also accepts equatorial-frame requests and derives equatorial coordinates from the shared ecliptic fixture, so the frame-transform policy now reaches the reference backend as well.
 
 Progress note (2026-04-25): `pleiades-types` and `pleiades-core::ChartRequest` now also expose caller-supplied TT-to-TDB conversion conveniences alongside the existing UTC/UT1 helpers, keeping TDB-tagged backend requests explicit without adding a built-in relativistic model.
 
