@@ -1410,13 +1410,20 @@ impl<B: EphemerisBackend> ChartEngine<B> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::{Arc, Mutex};
+
     use pleiades_backend::{
         AccuracyClass, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
         BackendProvenance, QualityAnnotation,
     };
-    use pleiades_types::{EclipticCoordinates, Latitude, Longitude, TimeScale};
+    use pleiades_types::{EclipticCoordinates, Latitude, Longitude, ObserverLocation, TimeScale};
 
     struct ToyChartBackend;
+
+    #[derive(Clone)]
+    struct RecordingChartBackend {
+        observers: Arc<Mutex<Vec<Option<ObserverLocation>>>>,
+    }
 
     impl EphemerisBackend for ToyChartBackend {
         fn metadata(&self) -> BackendMetadata {
@@ -1469,6 +1476,50 @@ mod tests {
             result.quality = QualityAnnotation::Approximate;
             result.ecliptic = Some(EclipticCoordinates::new(
                 longitude,
+                Latitude::from_degrees(0.0),
+                Some(1.0),
+            ));
+            Ok(result)
+        }
+    }
+
+    impl EphemerisBackend for RecordingChartBackend {
+        fn metadata(&self) -> BackendMetadata {
+            BackendMetadata {
+                id: BackendId::new("recording-chart"),
+                version: "0.1.0".to_string(),
+                family: BackendFamily::Algorithmic,
+                provenance: BackendProvenance::new("recording chart backend"),
+                nominal_range: pleiades_types::TimeRange::new(None, None),
+                supported_time_scales: vec![TimeScale::Tt],
+                body_coverage: vec![CelestialBody::Sun],
+                supported_frames: vec![pleiades_types::CoordinateFrame::Ecliptic],
+                capabilities: BackendCapabilities::default(),
+                accuracy: AccuracyClass::Approximate,
+                deterministic: true,
+                offline: true,
+            }
+        }
+
+        fn supports_body(&self, body: CelestialBody) -> bool {
+            matches!(body, CelestialBody::Sun)
+        }
+
+        fn position(&self, request: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+            self.observers
+                .lock()
+                .expect("observer log should be lockable")
+                .push(request.observer.clone());
+            let mut result = EphemerisResult::new(
+                BackendId::new("recording-chart"),
+                request.body.clone(),
+                request.instant,
+                request.frame,
+                request.zodiac_mode.clone(),
+                request.apparent,
+            );
+            result.ecliptic = Some(EclipticCoordinates::new(
+                Longitude::from_degrees(15.0),
                 Latitude::from_degrees(0.0),
                 Some(1.0),
             ));
@@ -1716,6 +1767,35 @@ mod tests {
             .iter()
             .all(|placement| placement.house.is_some()));
         assert!(chart.to_string().contains("House system: Whole Sign"));
+    }
+
+    #[test]
+    fn chart_snapshot_keeps_house_observer_out_of_body_position_requests() {
+        let observers = Arc::new(Mutex::new(Vec::new()));
+        let engine = ChartEngine::new(RecordingChartBackend {
+            observers: Arc::clone(&observers),
+        });
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2451545.0),
+            TimeScale::Tt,
+        ))
+        .with_observer(ObserverLocation::new(
+            Latitude::from_degrees(12.5),
+            Longitude::from_degrees(45.0),
+            Some(125.0),
+        ))
+        .with_house_system(crate::HouseSystem::WholeSign)
+        .with_bodies(vec![CelestialBody::Sun]);
+
+        let chart = engine
+            .chart(&request)
+            .expect("chart should render with a house observer");
+
+        assert!(chart.houses.is_some());
+        assert_eq!(chart.observer, request.observer);
+        let observers = observers.lock().expect("observer log should be lockable");
+        assert_eq!(observers.len(), 1);
+        assert!(observers.iter().all(Option::is_none));
     }
 
     #[test]
