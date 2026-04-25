@@ -3265,6 +3265,105 @@ fn render_comparison_audit_report_text(report: &ComparisonReport) -> String {
             .unwrap_or_else(|| "n/a".to_string())
     );
     let _ = writeln!(text);
+    let _ = writeln!(text, "Body-class error envelopes");
+    for summary in report.body_class_summaries() {
+        let _ = writeln!(text, "  {}", summary.class.label());
+        let _ = writeln!(text, "    samples: {}", summary.sample_count);
+        let _ = writeln!(
+            text,
+            "    max longitude delta: {:.12}°{}",
+            summary.max_longitude_delta_deg,
+            summary
+                .max_longitude_delta_body
+                .as_ref()
+                .map(|body| format!(" ({body})"))
+                .unwrap_or_default()
+        );
+        let _ = writeln!(
+            text,
+            "    mean longitude delta: {:.12}°",
+            if summary.sample_count == 0 {
+                0.0
+            } else {
+                summary.sum_longitude_delta_deg / summary.sample_count as f64
+            }
+        );
+        let _ = writeln!(
+            text,
+            "    max latitude delta: {:.12}°{}",
+            summary.max_latitude_delta_deg,
+            summary
+                .max_latitude_delta_body
+                .as_ref()
+                .map(|body| format!(" ({body})"))
+                .unwrap_or_default()
+        );
+        let _ = writeln!(
+            text,
+            "    mean latitude delta: {:.12}°",
+            if summary.sample_count == 0 {
+                0.0
+            } else {
+                summary.sum_latitude_delta_deg / summary.sample_count as f64
+            }
+        );
+        if let Some(value) = summary.max_distance_delta_au {
+            let _ = writeln!(text, "    max distance delta: {:.12} AU", value);
+        }
+        if summary.distance_count > 0 {
+            let _ = writeln!(
+                text,
+                "    mean distance delta: {:.12} AU",
+                summary.sum_distance_delta_au / summary.distance_count as f64
+            );
+        }
+    }
+    let _ = writeln!(text);
+    let _ = writeln!(text, "Body-class tolerance posture");
+    for summary in report.body_class_tolerance_summaries() {
+        let _ = writeln!(text, "  {}", summary.class.label());
+        let _ = writeln!(text, "    bodies: {}", summary.body_count);
+        let _ = writeln!(text, "    samples: {}", summary.sample_count);
+        let _ = writeln!(
+            text,
+            "    within tolerance bodies: {}",
+            summary.within_tolerance_body_count
+        );
+        let _ = writeln!(
+            text,
+            "    outside tolerance bodies: {}",
+            summary.outside_tolerance_body_count
+        );
+        if !summary.outside_bodies.is_empty() {
+            let _ = writeln!(
+                text,
+                "    outside bodies: {}",
+                format_bodies(&summary.outside_bodies)
+            );
+        }
+        if let (Some(body), Some(value)) = (
+            summary.max_longitude_delta_body.as_ref(),
+            summary.max_longitude_delta_deg,
+        ) {
+            let _ = writeln!(text, "    max longitude delta: {:.12}° ({})", value, body);
+        }
+        if let (Some(body), Some(value)) = (
+            summary.max_latitude_delta_body.as_ref(),
+            summary.max_latitude_delta_deg,
+        ) {
+            let _ = writeln!(text, "    max latitude delta: {:.12}° ({})", value, body);
+        }
+        if let (Some(body), Some(value)) = (
+            summary.max_distance_delta_body.as_ref(),
+            summary.max_distance_delta_au,
+        ) {
+            let _ = writeln!(text, "    max distance delta: {:.12} AU ({})", value, body);
+        }
+    }
+    let _ = writeln!(text);
+    let _ = writeln!(text, "Tolerance policy");
+    write_tolerance_policy_text(&mut text);
+    let _ = writeln!(text);
     let _ = writeln!(text, "Notable regressions");
     let regressions = report.notable_regressions();
     if regressions.is_empty() {
@@ -6040,6 +6139,9 @@ mod tests {
             .expect_err("comparison audit should fail while regressions remain");
         assert!(error.contains("comparison audit failed"));
         assert!(error.contains("Comparison tolerance audit"));
+        assert!(error.contains("Body-class error envelopes"));
+        assert!(error.contains("Body-class tolerance posture"));
+        assert!(error.contains("Tolerance policy"));
         assert!(error.contains("Notable regressions"));
         assert!(error.contains("regression bodies: Pluto"));
         assert!(error.contains("Pluto"));
