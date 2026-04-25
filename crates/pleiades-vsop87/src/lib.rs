@@ -952,16 +952,8 @@ impl Vsop87Backend {
     }
 
     fn to_equatorial(coords: HeliocentricCoordinates, instant: Instant) -> EquatorialCoordinates {
-        let obliquity = Self::mean_obliquity_degrees(instant).to_radians();
-        let xeq = coords.xh;
-        let yeq = coords.yh * obliquity.cos() - coords.zh * obliquity.sin();
-        let zeq = coords.yh * obliquity.sin() + coords.zh * obliquity.cos();
-
-        EquatorialCoordinates::new(
-            Angle::from_degrees(yeq.atan2(xeq).to_degrees()).normalized_0_360(),
-            Latitude::from_degrees(zeq.atan2((xeq * xeq + yeq * yeq).sqrt()).to_degrees()),
-            Some(Self::distance_au(coords)),
-        )
+        Self::to_ecliptic(coords)
+            .to_equatorial(Angle::from_degrees(Self::mean_obliquity_degrees(instant)))
     }
 
     fn motion(body: CelestialBody, days: f64) -> Option<Motion> {

@@ -50,6 +50,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Keep chart house observers separate from backend topocentric position requests unless an explicit topocentric chart mode is added.
    - Implement equatorial/ecliptic transforms where the release profile claims them.
    - Ensure topocentric observer requests and apparent/mean flags either produce distinct documented behavior or return structured unsupported-feature errors.
+   - Progress note: the shared `pleiades-types::EclipticCoordinates::to_equatorial` helper now centralizes the mean-obliquity ecliptic-to-equatorial rotation used by the VSOP87 and ELP paths, so the frame transform is implemented once and covered by shared unit tests instead of being duplicated per backend.
 
 5. Expand validation evidence.
    - Add golden positions for major bodies, lunar points, and baseline asteroids.

@@ -240,20 +240,8 @@ impl ElpBackend {
         instant: Instant,
         distance_au: Option<f64>,
     ) -> EquatorialCoordinates {
-        let obliquity = Self::mean_obliquity_degrees(instant).to_radians();
-        let longitude = longitude.degrees().to_radians();
-        let latitude = latitude.degrees().to_radians();
-        let x = longitude.cos() * latitude.cos();
-        let y =
-            longitude.sin() * latitude.cos() * obliquity.cos() - latitude.sin() * obliquity.sin();
-        let z =
-            longitude.sin() * latitude.cos() * obliquity.sin() + latitude.sin() * obliquity.cos();
-
-        EquatorialCoordinates::new(
-            Angle::from_degrees(y.atan2(x).to_degrees()).normalized_0_360(),
-            Latitude::from_degrees(z.atan2((x * x + y * y).sqrt()).to_degrees()),
-            distance_au,
-        )
+        EclipticCoordinates::new(longitude, latitude, distance_au)
+            .to_equatorial(Angle::from_degrees(Self::mean_obliquity_degrees(instant)))
     }
 }
 

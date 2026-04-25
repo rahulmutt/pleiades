@@ -827,6 +827,29 @@ impl EclipticCoordinates {
             distance_au,
         }
     }
+
+    /// Converts this ecliptic position into an equatorial position using the supplied obliquity.
+    ///
+    /// The transform is a pure geometric rotation: longitude/latitude are interpreted in the
+    /// ecliptic frame, right ascension is normalized into `[0, 360)`, declination is signed, and
+    /// any available distance is preserved.
+    pub fn to_equatorial(self, obliquity: Angle) -> EquatorialCoordinates {
+        let longitude = self.longitude.degrees().to_radians();
+        let latitude = self.latitude.degrees().to_radians();
+        let obliquity = obliquity.radians();
+
+        let x = longitude.cos() * latitude.cos();
+        let y =
+            longitude.sin() * latitude.cos() * obliquity.cos() - latitude.sin() * obliquity.sin();
+        let z =
+            longitude.sin() * latitude.cos() * obliquity.sin() + latitude.sin() * obliquity.cos();
+
+        EquatorialCoordinates::new(
+            Angle::from_degrees(y.atan2(x).to_degrees()).normalized_0_360(),
+            Latitude::from_degrees(z.atan2((x * x + y * y).sqrt()).to_degrees()),
+            self.distance_au,
+        )
+    }
 }
 
 /// Equatorial position data.
@@ -979,6 +1002,36 @@ mod tests {
     fn longitude_is_always_normalized() {
         assert_eq!(Longitude::from_degrees(390.0).degrees(), 30.0);
         assert_eq!(Longitude::from(Angle::from_degrees(-30.0)).degrees(), 330.0);
+    }
+
+    #[test]
+    fn ecliptic_to_equatorial_preserves_zero_obliquity_identity() {
+        let ecliptic = EclipticCoordinates::new(
+            Longitude::from_degrees(123.45),
+            Latitude::from_degrees(-6.75),
+            Some(0.123),
+        );
+
+        let equatorial = ecliptic.to_equatorial(Angle::from_degrees(0.0));
+
+        assert_eq!(equatorial.right_ascension.degrees(), 123.45);
+        assert!((equatorial.declination.degrees() + 6.75).abs() < 1e-12);
+        assert_eq!(equatorial.distance_au, Some(0.123));
+    }
+
+    #[test]
+    fn ecliptic_to_equatorial_rotates_by_mean_obliquity() {
+        let ecliptic = EclipticCoordinates::new(
+            Longitude::from_degrees(90.0),
+            Latitude::from_degrees(0.0),
+            Some(1.0),
+        );
+
+        let equatorial = ecliptic.to_equatorial(Angle::from_degrees(23.439_291_11));
+
+        assert_eq!(equatorial.right_ascension.degrees(), 90.0);
+        assert!((equatorial.declination.degrees() - 23.439_291_11).abs() < 1e-10);
+        assert_eq!(equatorial.distance_au, Some(1.0));
     }
 
     #[test]
