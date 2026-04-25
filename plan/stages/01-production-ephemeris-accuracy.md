@@ -68,6 +68,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Progress note: the `pleiades-cli` chart command now accepts an explicit `--tdb` instant tag in addition to its default TT-tagged request, so the user-facing chart report can surface a TDB-tagged instant directly instead of implying a hidden conversion policy.
    - Progress note: `pleiades-types` and `pleiades-core::ChartRequest` now also expose caller-supplied UTC-to-TDB helpers in addition to the UT1/UTC-to-TT and TT-to-TDB conveniences, so civil-time chart inputs can be lifted to TDB with explicit offset policy steps instead of hidden conversion logic.
    - Progress note: UT1-tagged callers now also have a direct caller-supplied UT1-to-TDB helper, so explicit dynamical-time staging can stay typed even when a caller already has TT-UT1 and TDB-TT offsets available.
+   - Progress note: the `pleiades-cli` chart command now exposes explicit `--utc` / `--ut1` instant tags plus caller-supplied `--tt-offset-seconds` and `--tdb-offset-seconds` flags, so command-line chart runs can exercise the same conversion policy without implying a built-in Delta T or relativistic model.
 
 5. Expand validation evidence.
    - Add golden positions for major bodies, lunar points, and baseline asteroids.

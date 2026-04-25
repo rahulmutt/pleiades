@@ -7,6 +7,8 @@
 
 #![forbid(unsafe_code)]
 
+use core::time::Duration;
+
 use pleiades_core::{
     current_api_stability_profile, default_chart_bodies, resolve_ayanamsa, resolve_house_system,
     Angle, Apparentness, Ayanamsa, CelestialBody, ChartEngine, ChartRequest, CompositeBackend,
@@ -94,7 +96,10 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
 
 fn help_text() -> String {
     format!(
-        "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary        Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  bundle-release         Write the staged release bundle and manifest files\n  verify-release-bundle  Read a staged release bundle back and verify its manifest checksums\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  api-stability-summary  Print the compact API stability summary\n  api-posture-summary    Alias for api-stability-summary\n  compare-backends       Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix         Print the implemented backend capability matrices\n  capability-matrix      Alias for backend-matrix\n  backend-matrix-summary Print the compact backend capability matrix summary\n  matrix-summary         Alias for backend-matrix-summary\n  release-notes          Print the release compatibility notes\n  release-notes-summary   Print the compact release notes summary\n  release-checklist      Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary      Alias for release-checklist-summary\n  release-summary        Print the compact release summary\n  artifact-summary       Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  validate-artifact      Inspect and validate the bundled compressed artifact\n  workspace-audit        Check the workspace for mandatory native build hooks\n  audit                  Alias for workspace-audit\n  report                 Print the full validation report\n  generate-report        Alias for report\n  validation-report-summary  Print the compact validation report summary\n  validation-summary     Alias for validation-report-summary\n  report-summary         Alias for validation-report-summary\n  chart                  Render a basic chart report\n    --mean               Force mean positions for backend queries\n    --apparent           Force apparent positions for backend queries\n    --body <name>        Use a built-in body or a custom catalog:designation identifier\n  help                   Show this help text",
+        "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary        Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  bundle-release         Write the staged release bundle and manifest files\n  verify-release-bundle  Read a staged release bundle back and verify its manifest checksums\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  api-stability-summary  Print the compact API stability summary\n  api-posture-summary    Alias for api-stability-summary\n  compare-backends       Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix         Print the implemented backend capability matrices\n  capability-matrix      Alias for backend-matrix\n  backend-matrix-summary Print the compact backend capability matrix summary\n  matrix-summary         Alias for backend-matrix-summary\n  release-notes          Print the release compatibility notes\n  release-notes-summary   Print the compact release notes summary\n  release-checklist      Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary      Alias for release-checklist-summary\n  release-summary        Print the compact release summary\n  artifact-summary       Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  validate-artifact      Inspect and validate the bundled compressed artifact\n  workspace-audit        Check the workspace for mandatory native build hooks\n  audit                  Alias for workspace-audit\n  report                 Print the full validation report\n  generate-report        Alias for report\n  validation-report-summary  Print the compact validation report summary\n  validation-summary     Alias for validation-report-summary\n  report-summary         Alias for validation-report-summary\n  chart                  Render a basic chart report\n    --tt|--tdb|--utc|--ut1  Tag the chart instant with a time scale
+    --tt-offset-seconds <seconds>  Caller-supplied TT offset for UTC/UT1-tagged instants
+    --tdb-offset-seconds <seconds> Caller-supplied TDB offset for TT-tagged instants
+    --mean               Force mean positions for backend queries\n    --apparent           Force apparent positions for backend queries\n    --body <name>        Use a built-in body or a custom catalog:designation identifier\n  help                   Show this help text",
         banner()
     )
 }
@@ -107,6 +112,8 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
     let mut zodiac_mode = ZodiacMode::Tropical;
     let mut time_scale = TimeScale::Tt;
     let mut time_scale_explicit = false;
+    let mut tt_offset_seconds: Option<f64> = None;
+    let mut tdb_offset_seconds: Option<f64> = None;
     let mut apparentness = Apparentness::Mean;
     let mut apparentness_explicit = false;
     let mut house_system: Option<HouseSystem> = None;
@@ -120,17 +127,45 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
             "--body" => bodies.push(parse_body(iter.next())?),
             "--tt" => {
                 if time_scale_explicit && time_scale != TimeScale::Tt {
-                    return Err("conflicting time-scale flags: --tt and --tdb".to_string());
+                    return Err(
+                        "conflicting time-scale flags: --tt, --tdb, --utc, and --ut1".to_string(),
+                    );
                 }
                 time_scale = TimeScale::Tt;
                 time_scale_explicit = true;
             }
             "--tdb" => {
                 if time_scale_explicit && time_scale != TimeScale::Tdb {
-                    return Err("conflicting time-scale flags: --tt and --tdb".to_string());
+                    return Err(
+                        "conflicting time-scale flags: --tt, --tdb, --utc, and --ut1".to_string(),
+                    );
                 }
                 time_scale = TimeScale::Tdb;
                 time_scale_explicit = true;
+            }
+            "--utc" => {
+                if time_scale_explicit && time_scale != TimeScale::Utc {
+                    return Err(
+                        "conflicting time-scale flags: --tt, --tdb, --utc, and --ut1".to_string(),
+                    );
+                }
+                time_scale = TimeScale::Utc;
+                time_scale_explicit = true;
+            }
+            "--ut1" => {
+                if time_scale_explicit && time_scale != TimeScale::Ut1 {
+                    return Err(
+                        "conflicting time-scale flags: --tt, --tdb, --utc, and --ut1".to_string(),
+                    );
+                }
+                time_scale = TimeScale::Ut1;
+                time_scale_explicit = true;
+            }
+            "--tt-offset-seconds" => {
+                tt_offset_seconds = Some(parse_seconds(iter.next(), "--tt-offset-seconds")?);
+            }
+            "--tdb-offset-seconds" => {
+                tdb_offset_seconds = Some(parse_seconds(iter.next(), "--tdb-offset-seconds")?);
             }
             "--mean" => {
                 if apparentness_explicit && apparentness != Apparentness::Mean {
@@ -162,7 +197,7 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
             }
             "--help" | "-h" => {
                 return Ok(format!(
-                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--tt|--tdb] [--mean|--apparent] [--ayanamsa <name>] [--house-system <name>] [--body <name> ...]\n\nAyanamsa names may be built-in entries or custom definitions in the form custom:<name>|<epoch-jd>|<offset-degrees> (or custom-definition:<name>|<epoch-jd>|<offset-degrees>). Body names may be built-in bodies such as Sun or Moon, or custom identifiers in the form catalog:designation.",
+                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--tt|--tdb|--utc|--ut1] [--tt-offset-seconds <seconds>] [--tdb-offset-seconds <seconds>] [--mean|--apparent] [--ayanamsa <name>] [--house-system <name>] [--body <name> ...]\n\nAyanamsa names may be built-in entries or custom definitions in the form custom:<name>|<epoch-jd>|<offset-degrees> (or custom-definition:<name>|<epoch-jd>|<offset-degrees>). Body names may be built-in bodies such as Sun or Moon, or custom identifiers in the form catalog:designation. When the chart instant is tagged as UTC or UT1, the caller must also supply the explicit TT offset before chart assembly, and may also supply a TDB offset when converting to TDB.",
                     banner()
                 ));
             }
@@ -171,7 +206,7 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
     }
 
     let jd = jd.unwrap_or(2_451_545.0);
-    let instant = Instant::new(JulianDay::from_days(jd), time_scale);
+    let instant = build_chart_instant(jd, time_scale, tt_offset_seconds, tdb_offset_seconds)?;
     let observer = match (lat, lon) {
         (Some(lat), Some(lon)) => Some(ObserverLocation::new(
             Latitude::from_degrees(lat),
@@ -236,6 +271,80 @@ fn parse_f64(value: Option<&str>, flag: &str) -> Result<f64, String> {
     value
         .parse::<f64>()
         .map_err(|error| format!("invalid value for {flag}: {error}"))
+}
+
+fn parse_seconds(value: Option<&str>, flag: &str) -> Result<f64, String> {
+    let seconds = parse_f64(value, flag)?;
+    if !seconds.is_finite() || seconds < 0.0 {
+        return Err(format!(
+            "invalid value for {flag}: expected a finite nonnegative number"
+        ));
+    }
+
+    Ok(seconds)
+}
+
+fn build_chart_instant(
+    jd: f64,
+    time_scale: TimeScale,
+    tt_offset_seconds: Option<f64>,
+    tdb_offset_seconds: Option<f64>,
+) -> Result<Instant, String> {
+    let instant = Instant::new(JulianDay::from_days(jd), time_scale);
+    let tt_offset = tt_offset_seconds.map(Duration::from_secs_f64);
+    let tdb_offset = tdb_offset_seconds.map(Duration::from_secs_f64);
+
+    match time_scale {
+        TimeScale::Utc => {
+            let tt_offset = tt_offset.ok_or_else(|| {
+                "missing value for --tt-offset-seconds when the chart instant is tagged as UTC"
+                    .to_string()
+            })?;
+            if let Some(tdb_offset) = tdb_offset {
+                instant
+                    .tdb_from_utc(tt_offset, tdb_offset)
+                    .map_err(|error| error.to_string())
+            } else {
+                instant
+                    .tt_from_utc(tt_offset)
+                    .map_err(|error| error.to_string())
+            }
+        }
+        TimeScale::Ut1 => {
+            let tt_offset = tt_offset.ok_or_else(|| {
+                "missing value for --tt-offset-seconds when the chart instant is tagged as UT1"
+                    .to_string()
+            })?;
+            if let Some(tdb_offset) = tdb_offset {
+                instant
+                    .tdb_from_ut1(tt_offset, tdb_offset)
+                    .map_err(|error| error.to_string())
+            } else {
+                instant
+                    .tt_from_ut1(tt_offset)
+                    .map_err(|error| error.to_string())
+            }
+        }
+        TimeScale::Tt => {
+            if tt_offset.is_some() {
+                Err("--tt-offset-seconds is only valid when the chart instant is tagged as UTC or UT1".to_string())
+            } else if let Some(tdb_offset) = tdb_offset {
+                instant
+                    .tdb_from_tt(tdb_offset)
+                    .map_err(|error| error.to_string())
+            } else {
+                Ok(instant)
+            }
+        }
+        TimeScale::Tdb => {
+            if tt_offset.is_some() || tdb_offset.is_some() {
+                Err("time-scale offsets are only supported for UTC, UT1, or TT-tagged chart instants".to_string())
+            } else {
+                Ok(instant)
+            }
+        }
+        _ => Err(format!("unsupported time scale: {:?}", time_scale)),
+    }
 }
 
 fn parse_body(value: Option<&str>) -> Result<CelestialBody, String> {
@@ -753,17 +862,6 @@ mod tests {
     }
 
     #[test]
-    fn chart_command_can_render_tdb_tagged_instant() {
-        let rendered = render_chart(&["--jd", "2451545.0", "--tdb", "--body", "Sun"])
-            .expect("chart should render with a TDB-tagged instant");
-        assert!(
-            rendered.contains("Instant: JD 2451545 (Tdb)")
-                || rendered.contains("Instant: JD 2451545.0 (Tdb)")
-        );
-        assert!(rendered.contains("Apparentness: Mean"));
-    }
-
-    #[test]
     fn chart_command_rejects_apparent_positions_until_supported() {
         let error = render_chart(&["--jd", "2451545.0", "--apparent", "--body", "Sun"])
             .expect_err("current first-party backends should reject apparent requests");
@@ -778,6 +876,76 @@ mod tests {
         assert!(rendered.contains("Aspect summary: 1 Sextile"));
         assert!(rendered.contains("Aspects:"));
         assert!(rendered.contains("Sun Sextile Moon"));
+    }
+
+    #[test]
+    fn chart_command_can_convert_utc_to_tt_with_caller_supplied_delta_t() {
+        let rendered = render_chart(&[
+            "--jd",
+            "2451545.0",
+            "--utc",
+            "--tt-offset-seconds",
+            "64.184",
+            "--body",
+            "Sun",
+        ])
+        .expect("UTC chart should convert to TT with an explicit offset");
+        assert!(rendered.contains("Instant: JD 2451545"));
+        assert!(rendered.contains("(Tt)"));
+        assert!(rendered.contains("Sun"));
+    }
+
+    #[test]
+    fn chart_command_can_render_tdb_tagged_instant() {
+        let rendered = render_chart(&["--jd", "2451545.0", "--tdb", "--body", "Sun"])
+            .expect("chart should render with a TDB-tagged instant");
+        assert!(
+            rendered.contains("Instant: JD 2451545 (Tdb)")
+                || rendered.contains("Instant: JD 2451545.0 (Tdb)")
+        );
+        assert!(rendered.contains("Apparentness: Mean"));
+    }
+
+    #[test]
+    fn chart_command_rejects_tt_offsets_for_tt_tagged_instants() {
+        let error = render_chart(&[
+            "--jd",
+            "2451545.0",
+            "--tt-offset-seconds",
+            "64.184",
+            "--body",
+            "Sun",
+        ])
+        .expect_err("TT-tagged chart requests should reject a caller-supplied TT offset");
+        assert!(error.contains("--tt-offset-seconds"));
+    }
+
+    #[test]
+    fn chart_command_can_convert_ut1_to_tdb_with_caller_supplied_offsets() {
+        let rendered = render_chart(&[
+            "--jd",
+            "2451545.0",
+            "--ut1",
+            "--tt-offset-seconds",
+            "64.184",
+            "--tdb-offset-seconds",
+            "0.001657",
+            "--body",
+            "Sun",
+        ])
+        .expect("UT1 chart should convert to TDB with explicit offsets");
+        assert!(rendered.contains("Instant: JD 2451545"));
+        assert!(rendered.contains("(Tdb)"));
+        assert!(rendered.contains("Sun"));
+    }
+
+    #[test]
+    fn chart_command_accepts_sidereal_ayanamsa() {
+        let rendered =
+            render_chart(&["--jd", "2451545.0", "--ayanamsa", "Lahiri", "--body", "Sun"])
+                .expect("sidereal chart should render");
+        assert!(rendered.contains("Sidereal"));
+        assert!(rendered.contains("Lahiri"));
     }
 
     #[test]
@@ -799,15 +967,6 @@ mod tests {
         assert!(rendered.contains("House cusps:"));
         assert!(rendered.contains("Sun"));
         assert!(rendered.contains(" 1:"));
-    }
-
-    #[test]
-    fn chart_command_accepts_sidereal_ayanamsa() {
-        let rendered =
-            render_chart(&["--jd", "2451545.0", "--ayanamsa", "Lahiri", "--body", "Sun"])
-                .expect("sidereal chart should render");
-        assert!(rendered.contains("Sidereal"));
-        assert!(rendered.contains("Lahiri"));
     }
 
     #[test]
