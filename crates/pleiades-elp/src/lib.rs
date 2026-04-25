@@ -1356,6 +1356,40 @@ mod tests {
     }
 
     #[test]
+    fn batch_query_preserves_equatorial_frame_and_values() {
+        let backend = ElpBackend::new();
+        let evidence = lunar_reference_evidence();
+        let requests = evidence
+            .iter()
+            .map(|sample| {
+                let mut request = mean_request_at(sample.body.clone(), sample.epoch);
+                request.frame = CoordinateFrame::Equatorial;
+                request
+            })
+            .collect::<Vec<_>>();
+
+        let results = backend
+            .positions(&requests)
+            .expect("batch equatorial query should preserve the lunar reference order");
+
+        assert_eq!(results.len(), evidence.len());
+        for (sample, result) in evidence.iter().zip(results.iter()) {
+            assert_eq!(result.body, sample.body);
+            assert_eq!(result.frame, CoordinateFrame::Equatorial);
+
+            let ecliptic = result.ecliptic.expect("ecliptic result should exist");
+            let expected = ecliptic.to_equatorial(Angle::from_degrees(
+                ElpBackend::mean_obliquity_degrees(sample.epoch),
+            ));
+            let equatorial = result.equatorial.expect("equatorial result should exist");
+
+            assert_eq!(equatorial, expected);
+            assert!(equatorial.right_ascension.degrees().is_finite());
+            assert!(equatorial.declination.degrees().is_finite());
+        }
+    }
+
+    #[test]
     fn backend_supports_lunar_points() {
         let backend = ElpBackend::new();
         let theory = lunar_theory_specification();

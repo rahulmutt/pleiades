@@ -87,6 +87,8 @@ Latest progress (2026-04-25): validation comparison outputs now also carry the c
 
 Latest progress (2026-04-25): compatibility-profile verification now also pins the exact Swiss Ephemeris house-table code spellings and the J2000/J1900/B1950 and Suryasiddhanta source-label forms in release-facing tests, so the source-label appendix stays anchored to the current interoperability spellings.
 
+Latest progress (2026-04-25): the JPL, ELP, and VSOP87 batch-path regressions now also exercise explicit equatorial-frame requests, so the shared mean-obliquity transform and frame-preserving batch contract are now covered in both the single-request and batch-request paths.
+
 Active gaps:
 
 - broader release-grade error envelopes and tolerance tables beyond the new comparison-audit gate;

@@ -1792,6 +1792,60 @@ mod tests {
     }
 
     #[test]
+    fn batch_query_preserves_equatorial_frame_and_values() {
+        let backend = Vsop87Backend::new();
+        let mut requests = canonical_epoch_requests();
+        let mut samples = canonical_epoch_samples();
+        requests.reverse();
+        samples.reverse();
+        for request in &mut requests {
+            request.frame = CoordinateFrame::Equatorial;
+        }
+
+        let results = backend
+            .positions(&requests)
+            .expect("batch equatorial query should preserve the canonical sample order");
+
+        assert_eq!(results.len(), samples.len());
+        for (sample, result) in samples.iter().zip(results.iter()) {
+            assert_eq!(result.body, sample.body);
+            assert_eq!(result.frame, CoordinateFrame::Equatorial);
+
+            let ecliptic = result
+                .ecliptic
+                .as_ref()
+                .expect("ecliptic result should exist");
+            assert_degrees_close(
+                ecliptic.longitude.degrees(),
+                sample.expected_longitude_deg,
+                sample.max_longitude_delta_deg,
+            );
+            assert_degrees_close(
+                ecliptic.latitude.degrees(),
+                sample.expected_latitude_deg,
+                sample.max_latitude_delta_deg,
+            );
+            assert_close(
+                ecliptic.distance_au.expect("distance should exist"),
+                sample.expected_distance_au,
+                sample.max_distance_delta_au,
+            );
+
+            let expected = ecliptic.to_equatorial(Angle::from_degrees(
+                Vsop87Backend::mean_obliquity_degrees(result.instant),
+            ));
+            let equatorial = result
+                .equatorial
+                .as_ref()
+                .expect("equatorial result should exist");
+
+            assert_eq!(equatorial, &expected);
+            assert!(equatorial.right_ascension.degrees().is_finite());
+            assert!(equatorial.declination.degrees().is_finite());
+        }
+    }
+
+    #[test]
     fn finite_difference_motion_is_reported_for_supported_bodies() {
         let backend = Vsop87Backend::new();
         let request = mean_request(CelestialBody::Mars);

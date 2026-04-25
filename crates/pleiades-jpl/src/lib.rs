@@ -1679,6 +1679,45 @@ mod tests {
     }
 
     #[test]
+    fn batch_query_preserves_equatorial_frame_and_values() {
+        let backend = JplSnapshotBackend;
+        let evidence = reference_asteroid_evidence();
+        let requests = evidence
+            .iter()
+            .map(|sample| EphemerisRequest {
+                body: sample.body.clone(),
+                instant: sample.epoch,
+                observer: None,
+                frame: CoordinateFrame::Equatorial,
+                zodiac_mode: ZodiacMode::Tropical,
+                apparent: Apparentness::Mean,
+            })
+            .collect::<Vec<_>>();
+
+        let results = backend
+            .positions(&requests)
+            .expect("batch equatorial query should preserve the asteroid reference order");
+
+        assert_eq!(results.len(), evidence.len());
+        for (sample, result) in evidence.iter().zip(results.iter()) {
+            assert_eq!(result.body, sample.body);
+            assert_eq!(result.frame, CoordinateFrame::Equatorial);
+            let ecliptic = result
+                .ecliptic
+                .expect("reference snapshot should include ecliptic coordinates");
+            let expected =
+                ecliptic.to_equatorial(Angle::from_degrees(mean_obliquity_degrees(sample.epoch)));
+            let equatorial = result
+                .equatorial
+                .expect("reference snapshot should include equatorial coordinates");
+
+            assert_eq!(equatorial, expected);
+            assert!(equatorial.right_ascension.degrees().is_finite());
+            assert!(equatorial.declination.degrees().is_finite());
+        }
+    }
+
+    #[test]
     fn reference_asteroid_evidence_exposes_exact_j2000_samples() {
         let evidence = reference_asteroid_evidence();
         assert_eq!(evidence.len(), 5);
