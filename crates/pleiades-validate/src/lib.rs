@@ -3525,7 +3525,7 @@ fn format_vsop87_source_audit_summary() -> String {
 fn format_elp_lunar_theory_summary() -> String {
     let theory = lunar_theory_specification();
     format!(
-        "ELP lunar theory specification: {} [{}; family: {}] ({} supported bodies: {}; {} unsupported bodies: {}); request policy: frames={}; time scales={}; zodiac modes={}; apparentness={}; topocentric observer={}; citation: {}; provenance: {}; redistribution: {}; truncation: {}; units: {}; license: {}; validation window: {}; frame treatment: {}",
+        "ELP lunar theory specification: {} [{}; family: {}] ({} supported bodies: {}; {} unsupported bodies: {}); request policy: frames={}; time scales={}; zodiac modes={}; apparentness={}; topocentric observer={}; citation: {}; provenance: {}; redistribution: {}; truncation: {}; units: {}; validation window: {}; date-range note: {}; frame treatment: {}; license: {}",
         theory.model_name,
         theory.source_identifier,
         pleiades_elp::lunar_theory_source_family().label(),
@@ -3543,9 +3543,10 @@ fn format_elp_lunar_theory_summary() -> String {
         theory.redistribution_note,
         theory.truncation_note,
         theory.unit_note,
-        theory.license_note,
+        format_time_range(&theory.validation_window),
         theory.date_range_note,
         theory.frame_note,
+        theory.license_note,
     )
 }
 
@@ -4859,7 +4860,12 @@ fn write_backend_catalog_entry(
             format_apparentness_modes(theory.request_policy.supported_apparentness),
             theory.request_policy.supports_topocentric_observer,
         )?;
-        writeln!(f, "    date range note: {}", theory.date_range_note)?;
+        writeln!(
+            f,
+            "    validation window: {}",
+            format_time_range(&theory.validation_window)
+        )?;
+        writeln!(f, "    date-range note: {}", theory.date_range_note)?;
         writeln!(f, "    frame note: {}", theory.frame_note)?;
         write_lunar_reference_evidence(f)?;
     }
@@ -6983,6 +6989,8 @@ mod tests {
             "ELP lunar theory specification: Compact Meeus-style truncated lunar baseline [meeus-style-truncated-lunar-baseline; family: Meeus-style truncated analytical baseline]"
         ));
         assert!(rendered.contains("request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
+        assert!(rendered.contains("validation window: JD 2448724.5 (TT) → JD 2451545.0 (TT)"));
+        assert!(rendered.contains("date-range note: Validated against the published 1992-04-12 geocentric Moon example, J2000 node/perigee references, and nearby high-curvature regression windows"));
         assert!(rendered.contains("citation: Jean Meeus"));
         assert!(rendered
             .contains("provenance: Published lunar position, node, and mean-point formulas"));
@@ -7309,6 +7317,9 @@ version = "0.9.0"
             "ELP lunar theory specification: Compact Meeus-style truncated lunar baseline [meeus-style-truncated-lunar-baseline; family: Meeus-style truncated analytical baseline]"
         ));
         assert!(validation_report_summary.contains("request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
+        assert!(validation_report_summary
+            .contains("validation window: JD 2448724.5 (TT) → JD 2451545.0 (TT)"));
+        assert!(validation_report_summary.contains("date-range note: Validated against the published 1992-04-12 geocentric Moon example, J2000 node/perigee references, and nearby high-curvature regression windows"));
         assert!(validation_report_summary.contains("citation: Jean Meeus"));
         assert!(validation_report_summary
             .contains("provenance: Published lunar position, node, and mean-point formulas"));

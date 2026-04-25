@@ -69,6 +69,7 @@ The current regression posture is intentionally small and deterministic:
 - canonical J2000 checks for the Moon and lunar points
 - nearby high-curvature lunar-interval regression coverage
 - explicit unsupported-body and unsupported-mode errors
+- a structured validation window exposed as `LunarTheorySpecification.validation_window` alongside the prose range note
 
 ## Forward path
 

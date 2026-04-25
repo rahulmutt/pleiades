@@ -111,6 +111,8 @@ pub struct LunarTheorySpecification {
     pub date_range_note: &'static str,
     /// Notes on the coordinate-frame treatment used by the baseline.
     pub frame_note: &'static str,
+    /// Structured validation window represented by the current evidence slice.
+    pub validation_window: TimeRange,
     /// Licensing or redistribution summary for the selected baseline source.
     pub license_note: &'static str,
 }
@@ -136,6 +138,17 @@ const LUNAR_THEORY_REQUEST_POLICY: LunarTheoryRequestPolicy = LunarTheoryRequest
     supported_apparentness: SUPPORTED_LUNAR_APPARENTNESS,
     supports_topocentric_observer: false,
 };
+const LUNAR_THEORY_VALIDATION_WINDOW: TimeRange = TimeRange::new(
+    Some(Instant::new(
+        pleiades_types::JulianDay::from_days(2_448_724.5),
+        TimeScale::Tt,
+    )),
+    Some(Instant::new(
+        pleiades_types::JulianDay::from_days(J2000),
+        TimeScale::Tt,
+    )),
+);
+
 const LUNAR_THEORY_SPECIFICATION: LunarTheorySpecification = LunarTheorySpecification {
     model_name: "Compact Meeus-style truncated lunar baseline",
     source_identifier: "meeus-style-truncated-lunar-baseline",
@@ -160,6 +173,7 @@ const LUNAR_THEORY_SPECIFICATION: LunarTheorySpecification = LunarTheorySpecific
         "Validated against the published 1992-04-12 geocentric Moon example, J2000 node/perigee references, and nearby high-curvature regression windows; no full ELP coefficient range has been published yet",
     frame_note:
         "Geocentric ecliptic coordinates are produced directly from the truncated lunar series; equatorial coordinates are derived with a mean-obliquity transform",
+    validation_window: LUNAR_THEORY_VALIDATION_WINDOW,
     license_note:
         "The current baseline is handwritten pure Rust and does not redistribute external coefficient tables; any future source-backed lunar theory selection will need its own provenance and redistribution review",
 };
@@ -870,6 +884,19 @@ mod tests {
         assert!(theory.unit_note.contains("astronomical units"));
         assert!(theory.date_range_note.contains("1992-04-12"));
         assert!(theory.frame_note.contains("mean-obliquity"));
+        assert_eq!(
+            theory.validation_window,
+            TimeRange::new(
+                Some(Instant::new(
+                    pleiades_types::JulianDay::from_days(2_448_724.5),
+                    TimeScale::Tt,
+                )),
+                Some(Instant::new(
+                    pleiades_types::JulianDay::from_days(J2000),
+                    TimeScale::Tt,
+                )),
+            )
+        );
         assert_eq!(
             theory.supported_bodies,
             &[
