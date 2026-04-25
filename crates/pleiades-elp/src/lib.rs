@@ -36,7 +36,7 @@ const PACKAGE_NAME: &str = "pleiades-elp";
 const J2000: f64 = 2_451_545.0;
 
 /// Structured description of the current lunar-theory selection.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct LunarTheorySpecification {
     /// Human-readable model name.
     pub model_name: &'static str,
@@ -52,6 +52,16 @@ pub struct LunarTheorySpecification {
     pub supported_bodies: &'static [CelestialBody],
     /// Bodies/channels that are explicitly unsupported by this baseline.
     pub unsupported_bodies: &'static [CelestialBody],
+    /// Coordinate frames the current baseline exposes.
+    pub supported_frames: &'static [CoordinateFrame],
+    /// Time scales accepted by the current baseline.
+    pub supported_time_scales: &'static [TimeScale],
+    /// Zodiac modes accepted by the current baseline.
+    pub supported_zodiac_modes: &'static [ZodiacMode],
+    /// Apparentness modes accepted by the current baseline.
+    pub supported_apparentness: &'static [Apparentness],
+    /// Whether the current baseline accepts topocentric observer requests.
+    pub supports_topocentric_observer: bool,
     /// Notes the effective validation window or date-range posture.
     pub date_range_note: &'static str,
     /// Notes on the coordinate-frame treatment used by the baseline.
@@ -71,6 +81,11 @@ pub fn lunar_theory_specification() -> LunarTheorySpecification {
     ];
     const UNSUPPORTED_BODIES: &[CelestialBody] =
         &[CelestialBody::TrueApogee, CelestialBody::TruePerigee];
+    const SUPPORTED_FRAMES: &[CoordinateFrame] =
+        &[CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial];
+    const SUPPORTED_TIME_SCALES: &[TimeScale] = &[TimeScale::Tt, TimeScale::Tdb];
+    const SUPPORTED_ZODIAC_MODES: &[ZodiacMode] = &[ZodiacMode::Tropical];
+    const SUPPORTED_APPARENTNESS: &[Apparentness] = &[Apparentness::Mean];
 
     LunarTheorySpecification {
         model_name: "Compact Meeus-style truncated lunar baseline",
@@ -82,6 +97,11 @@ pub fn lunar_theory_specification() -> LunarTheorySpecification {
             "No external coefficient-file redistribution constraints apply to the current baseline because the implementation does not vendor ELP coefficient tables yet",
         supported_bodies: SUPPORTED_BODIES,
         unsupported_bodies: UNSUPPORTED_BODIES,
+        supported_frames: SUPPORTED_FRAMES,
+        supported_time_scales: SUPPORTED_TIME_SCALES,
+        supported_zodiac_modes: SUPPORTED_ZODIAC_MODES,
+        supported_apparentness: SUPPORTED_APPARENTNESS,
+        supports_topocentric_observer: false,
         date_range_note:
             "Validated against the published 1992-04-12 geocentric Moon example, J2000 node/perigee references, and nearby high-curvature regression windows; no full ELP coefficient range has been published yet",
         frame_note:
@@ -798,6 +818,17 @@ mod tests {
             theory.unsupported_bodies,
             &[CelestialBody::TrueApogee, CelestialBody::TruePerigee]
         );
+        assert_eq!(
+            theory.supported_frames,
+            &[CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial]
+        );
+        assert_eq!(
+            theory.supported_time_scales,
+            &[TimeScale::Tt, TimeScale::Tdb]
+        );
+        assert_eq!(theory.supported_zodiac_modes, &[ZodiacMode::Tropical]);
+        assert_eq!(theory.supported_apparentness, &[Apparentness::Mean]);
+        assert!(!theory.supports_topocentric_observer);
         assert!(theory
             .license_note
             .contains("future source-backed lunar theory selection"));

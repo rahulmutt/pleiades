@@ -21,10 +21,18 @@ The backend currently rejects:
 
 - true apogee
 - true perigee
-- apparent requests
+- apparent requests beyond mean geometric output
 - topocentric observer requests
 - non-TT input time scales
 - non-tropical zodiac requests
+
+The current request policy is intentionally narrow and explicit:
+
+- supported coordinate frames: ecliptic and equatorial
+- supported time scales: TT and TDB
+- supported zodiac modes: tropical only
+- supported apparentness: mean only
+- topocentric observer support: false
 
 ## Provenance and license posture
 

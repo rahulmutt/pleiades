@@ -73,6 +73,8 @@ Progress note (2026-04-25): the `pleiades-elp` Moon path now uses a Meeus-style 
 
 Progress note (2026-04-25): the supported lunar-point slice now also has a batch-path regression over the Moon, nodes, and mean apogee/perigee samples, so the current compact lunar baseline is verified through both batch and single-request lookups.
 
+Progress note (2026-04-25): the compact lunar-theory specification now also renders its request policy explicitly — TT/TDB only, tropical only, mean only, equatorial/ecliptic frames, and no topocentric observer mode — so the current source/provenance posture is easier to audit while the eventual source-backed ELP selection remains pending.
+
 ## 3. JPL reader/interpolator expansion
 
 **Goal:** build on the completed small fixture interpolator and turn `pleiades-jpl` into a stronger reference backend.

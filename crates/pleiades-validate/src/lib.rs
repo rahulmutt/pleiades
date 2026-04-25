@@ -3402,13 +3402,18 @@ fn format_vsop87_source_audit_summary() -> String {
 fn format_elp_lunar_theory_summary() -> String {
     let theory = lunar_theory_specification();
     format!(
-        "ELP lunar theory specification: {} [{}] ({} supported bodies: {}; {} unsupported bodies: {}); citation: {}; provenance: {}; redistribution: {}; license: {}; validation window: {}; frame treatment: {}",
+        "ELP lunar theory specification: {} [{}] ({} supported bodies: {}; {} unsupported bodies: {}); request policy: frames={}; time scales={}; zodiac modes={}; apparentness={}; topocentric observer={}; citation: {}; provenance: {}; redistribution: {}; license: {}; validation window: {}; frame treatment: {}",
         theory.model_name,
         theory.source_identifier,
         theory.supported_bodies.len(),
         format_bodies(theory.supported_bodies),
         theory.unsupported_bodies.len(),
         format_bodies(theory.unsupported_bodies),
+        format_frames(theory.supported_frames),
+        format_time_scales(theory.supported_time_scales),
+        format_zodiac_modes(theory.supported_zodiac_modes),
+        format_apparentness_modes(theory.supported_apparentness),
+        theory.supports_topocentric_observer,
         theory.source_citation,
         theory.source_material,
         theory.redistribution_note,
@@ -4595,6 +4600,15 @@ fn write_backend_catalog_entry(
             "    unsupported bodies: {}",
             format_bodies(theory.unsupported_bodies)
         )?;
+        writeln!(
+            f,
+            "    request policy: frames={}, time scales={}, zodiac modes={}, apparentness={}, topocentric observer={}",
+            format_frames(theory.supported_frames),
+            format_time_scales(theory.supported_time_scales),
+            format_zodiac_modes(theory.supported_zodiac_modes),
+            format_apparentness_modes(theory.supported_apparentness),
+            theory.supports_topocentric_observer,
+        )?;
         writeln!(f, "    date range note: {}", theory.date_range_note)?;
         writeln!(f, "    frame note: {}", theory.frame_note)?;
         write_lunar_reference_evidence(f)?;
@@ -5343,6 +5357,26 @@ fn format_time_scales(scales: &[TimeScale]) -> String {
             TimeScale::Tdb => "TDB",
             _ => "Other",
         })
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn format_zodiac_modes(modes: &[ZodiacMode]) -> String {
+    modes
+        .iter()
+        .map(|mode| match mode {
+            ZodiacMode::Tropical => "Tropical".to_string(),
+            ZodiacMode::Sidereal { ayanamsa } => format!("Sidereal ({ayanamsa:?})"),
+            _ => "Other".to_string(),
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn format_apparentness_modes(modes: &[Apparentness]) -> String {
+    modes
+        .iter()
+        .map(|mode| mode.to_string())
         .collect::<Vec<_>>()
         .join(", ")
 }
@@ -6588,6 +6622,7 @@ mod tests {
         assert!(rendered.contains(
             "ELP lunar theory specification: Compact Meeus-style truncated lunar baseline [meeus-style-truncated-lunar-baseline]"
         ));
+        assert!(rendered.contains("request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
         assert!(rendered.contains("citation: Jean Meeus"));
         assert!(rendered
             .contains("provenance: Published lunar position, node, and mean-point formulas"));
@@ -6910,6 +6945,7 @@ version = "0.9.0"
         assert!(validation_report_summary.contains(
             "ELP lunar theory specification: Compact Meeus-style truncated lunar baseline [meeus-style-truncated-lunar-baseline]"
         ));
+        assert!(validation_report_summary.contains("request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
         assert!(validation_report_summary.contains("citation: Jean Meeus"));
         assert!(validation_report_summary
             .contains("provenance: Published lunar position, node, and mean-point formulas"));
