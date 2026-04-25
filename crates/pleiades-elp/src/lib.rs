@@ -671,6 +671,173 @@ pub fn lunar_equatorial_reference_evidence_summary_for_report() -> String {
     }
 }
 
+/// A reference-only apparent Moon comparison sample.
+#[derive(Clone, Debug, PartialEq)]
+pub struct LunarApparentComparisonSample {
+    /// Body covered by the sample.
+    pub body: CelestialBody,
+    /// Reference epoch used for the sample.
+    pub epoch: Instant,
+    /// Published apparent ecliptic longitude in degrees.
+    pub apparent_longitude_deg: f64,
+    /// Published apparent ecliptic latitude in degrees.
+    pub apparent_latitude_deg: f64,
+    /// Published apparent geocentric distance in astronomical units.
+    pub apparent_distance_au: f64,
+    /// Published apparent right ascension in degrees.
+    pub apparent_right_ascension_deg: f64,
+    /// Published apparent declination in degrees.
+    pub apparent_declination_deg: f64,
+    /// Human-readable note describing the provenance of the sample.
+    pub note: &'static str,
+}
+
+/// Returns the reference-only apparent Moon comparison sample used by validation and reporting.
+pub fn lunar_apparent_comparison_evidence() -> &'static [LunarApparentComparisonSample] {
+    const SAMPLES: &[LunarApparentComparisonSample] = &[LunarApparentComparisonSample {
+        body: CelestialBody::Moon,
+        epoch: Instant::new(pleiades_types::JulianDay::from_days(2_448_724.5), TimeScale::Tt),
+        apparent_longitude_deg: 133.167_264,
+        apparent_latitude_deg: -3.229_126,
+        apparent_distance_au: 368_409.7 / 149_597_870.700,
+        apparent_right_ascension_deg: 134.688_469,
+        apparent_declination_deg: 13.768_367,
+        note: "Published 1992-04-12 apparent geocentric Moon example used as a reference-only mean/apparent comparison datum",
+    }];
+
+    SAMPLES
+}
+
+/// A compact summary of the reference-only apparent Moon comparison evidence.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct LunarApparentComparisonSummary {
+    /// Number of evidence samples in the checked-in comparison slice.
+    pub sample_count: usize,
+    /// Number of distinct bodies covered by the comparison slice.
+    pub body_count: usize,
+    /// Earliest epoch covered by the comparison slice.
+    pub earliest_epoch: Instant,
+    /// Latest epoch covered by the comparison slice.
+    pub latest_epoch: Instant,
+    /// Maximum apparent minus mean ecliptic longitude delta in degrees.
+    pub max_ecliptic_longitude_delta_deg: f64,
+    /// Maximum apparent minus mean ecliptic latitude delta in degrees.
+    pub max_ecliptic_latitude_delta_deg: f64,
+    /// Maximum apparent minus mean distance delta in astronomical units.
+    pub max_ecliptic_distance_delta_au: f64,
+    /// Maximum apparent minus mean right ascension delta in degrees.
+    pub max_right_ascension_delta_deg: f64,
+    /// Maximum apparent minus mean declination delta in degrees.
+    pub max_declination_delta_deg: f64,
+}
+
+fn lunar_apparent_comparison_baseline_sample(
+    body: CelestialBody,
+    epoch: Instant,
+) -> Option<&'static LunarReferenceSample> {
+    lunar_reference_evidence()
+        .iter()
+        .find(|sample| sample.body == body && sample.epoch == epoch)
+}
+
+fn lunar_apparent_comparison_equatorial_baseline_sample(
+    body: CelestialBody,
+    epoch: Instant,
+) -> Option<&'static LunarEquatorialReferenceSample> {
+    lunar_equatorial_reference_evidence()
+        .iter()
+        .find(|sample| sample.body == body && sample.epoch == epoch)
+}
+
+/// Returns a compact summary of the reference-only apparent Moon comparison evidence.
+pub fn lunar_apparent_comparison_summary() -> Option<LunarApparentComparisonSummary> {
+    let samples = lunar_apparent_comparison_evidence();
+    if samples.is_empty() {
+        return None;
+    }
+
+    let mut bodies = std::collections::BTreeSet::new();
+    let mut earliest_epoch = samples[0].epoch;
+    let mut latest_epoch = samples[0].epoch;
+    let mut max_ecliptic_longitude_delta_deg = 0.0;
+    let mut max_ecliptic_latitude_delta_deg = 0.0;
+    let mut max_ecliptic_distance_delta_au = 0.0;
+    let mut max_right_ascension_delta_deg = 0.0;
+    let mut max_declination_delta_deg = 0.0;
+
+    for sample in samples {
+        bodies.insert(sample.body.to_string());
+        if sample.epoch.julian_day.days() < earliest_epoch.julian_day.days() {
+            earliest_epoch = sample.epoch;
+        }
+        if sample.epoch.julian_day.days() > latest_epoch.julian_day.days() {
+            latest_epoch = sample.epoch;
+        }
+
+        let mean_ecliptic =
+            lunar_apparent_comparison_baseline_sample(sample.body.clone(), sample.epoch)?;
+        let mean_equatorial = lunar_apparent_comparison_equatorial_baseline_sample(
+            sample.body.clone(),
+            sample.epoch,
+        )?;
+
+        let longitude_delta = sample.apparent_longitude_deg - mean_ecliptic.longitude_deg;
+        let latitude_delta = sample.apparent_latitude_deg - mean_ecliptic.latitude_deg;
+        let distance_delta =
+            sample.apparent_distance_au - mean_ecliptic.distance_au.unwrap_or_default();
+        let right_ascension_delta = sample.apparent_right_ascension_deg
+            - mean_equatorial.equatorial.right_ascension.degrees();
+        let declination_delta =
+            sample.apparent_declination_deg - mean_equatorial.equatorial.declination.degrees();
+
+        if bodies.len() == 1 {
+            max_ecliptic_longitude_delta_deg = longitude_delta;
+            max_ecliptic_latitude_delta_deg = latitude_delta;
+            max_ecliptic_distance_delta_au = distance_delta;
+            max_right_ascension_delta_deg = right_ascension_delta;
+            max_declination_delta_deg = declination_delta;
+        }
+    }
+
+    Some(LunarApparentComparisonSummary {
+        sample_count: samples.len(),
+        body_count: bodies.len(),
+        earliest_epoch,
+        latest_epoch,
+        max_ecliptic_longitude_delta_deg,
+        max_ecliptic_latitude_delta_deg,
+        max_ecliptic_distance_delta_au,
+        max_right_ascension_delta_deg,
+        max_declination_delta_deg,
+    })
+}
+
+/// Formats the reference-only apparent Moon comparison summary for release-facing reporting.
+pub fn format_lunar_apparent_comparison_summary(
+    summary: &LunarApparentComparisonSummary,
+) -> String {
+    format!(
+        "lunar apparent comparison evidence: {} reference-only samples across {} bodies, epoch range JD {:.1}..{:.1}, mean-only gap against the published apparent Moon example: Δlon={:+.6}°, Δlat={:+.6}°, Δdist={:+.12} AU, ΔRA={:+.6}°, ΔDec={:+.6}°; apparent requests remain unsupported",
+        summary.sample_count,
+        summary.body_count,
+        summary.earliest_epoch.julian_day.days(),
+        summary.latest_epoch.julian_day.days(),
+        summary.max_ecliptic_longitude_delta_deg,
+        summary.max_ecliptic_latitude_delta_deg,
+        summary.max_ecliptic_distance_delta_au,
+        summary.max_right_ascension_delta_deg,
+        summary.max_declination_delta_deg,
+    )
+}
+
+/// Returns the release-facing one-line apparent comparison summary.
+pub fn lunar_apparent_comparison_summary_for_report() -> String {
+    match lunar_apparent_comparison_summary() {
+        Some(summary) => format_lunar_apparent_comparison_summary(&summary),
+        None => "lunar apparent comparison evidence: unavailable".to_string(),
+    }
+}
+
 /// A compact summary of the lunar equatorial reference error envelope.
 #[derive(Clone, Debug, PartialEq)]
 pub struct LunarEquatorialReferenceEvidenceEnvelope {
@@ -2546,6 +2713,36 @@ mod tests {
         {
             assert!((actual - expected).abs() < 1e-8);
         }
+    }
+
+    #[test]
+    fn lunar_apparent_comparison_evidence_documents_the_mean_gap() {
+        let summary =
+            lunar_apparent_comparison_summary().expect("apparent comparison evidence should exist");
+
+        assert_eq!(summary.sample_count, 1);
+        assert_eq!(summary.body_count, 1);
+        assert_eq!(summary.earliest_epoch.julian_day.days(), 2_448_724.5);
+        assert_eq!(summary.latest_epoch.julian_day.days(), 2_448_724.5);
+        assert!((summary.max_ecliptic_longitude_delta_deg - 0.004_609).abs() < 1e-12);
+        assert_eq!(summary.max_ecliptic_latitude_delta_deg, 0.0);
+        assert_eq!(summary.max_ecliptic_distance_delta_au, 0.0);
+        assert!((summary.max_right_ascension_delta_deg + 0.000_001).abs() < 1e-12);
+        assert!((summary.max_declination_delta_deg + 0.000_001).abs() < 1e-12);
+        assert!(lunar_apparent_comparison_summary_for_report().contains(
+            "lunar apparent comparison evidence: 1 reference-only samples across 1 bodies"
+        ));
+        assert!(lunar_apparent_comparison_summary_for_report().contains("Δlon=+0.004609°"));
+        assert!(lunar_apparent_comparison_summary_for_report().contains("ΔRA=-0.000001°"));
+        assert!(lunar_apparent_comparison_summary_for_report()
+            .contains("apparent requests remain unsupported"));
+
+        let sample = &lunar_apparent_comparison_evidence()[0];
+        assert_eq!(sample.body, CelestialBody::Moon);
+        assert_eq!(sample.epoch.julian_day.days(), 2_448_724.5);
+        assert!(sample
+            .note
+            .contains("reference-only mean/apparent comparison datum"));
     }
 
     #[test]

@@ -67,6 +67,7 @@ The current regression posture is intentionally small and deterministic:
 
 - the published 1992-04-12 geocentric Moon example
 - the published 1992-04-12 geocentric Moon RA/Dec example used to cross-check the shared mean-obliquity equatorial transform, now surfaced as a dedicated equatorial evidence summary in validation and backend-matrix reports
+- a reference-only published 1992-04-12 apparent geocentric Moon comparison datum, surfaced so the current mean/apparent gap remains explicit while apparent requests are still rejected
 - canonical J2000 checks for the Moon and lunar points
 - published 1913-05-27 true-ascending-node and mean-ascending-node examples
 - a published 1959-12-07 mean-ascending-node example

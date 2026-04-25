@@ -39,7 +39,9 @@ use pleiades_data::{
     packaged_artifact, packaged_request_policy_summary_details, PackagedDataBackend,
 };
 use pleiades_elp::{
-    format_lunar_theory_capability_summary, lunar_equatorial_reference_evidence,
+    format_lunar_apparent_comparison_summary, format_lunar_theory_capability_summary,
+    lunar_apparent_comparison_evidence, lunar_apparent_comparison_summary,
+    lunar_apparent_comparison_summary_for_report, lunar_equatorial_reference_evidence,
     lunar_equatorial_reference_evidence_envelope_for_report,
     lunar_equatorial_reference_evidence_summary,
     lunar_equatorial_reference_evidence_summary_for_report,
@@ -2414,6 +2416,9 @@ fn render_release_summary_text() -> String {
     text.push_str("Lunar equatorial evidence: ");
     text.push_str(&lunar_equatorial_reference_evidence_summary_for_report());
     text.push('\n');
+    text.push_str("Lunar apparent comparison evidence: ");
+    text.push_str(&lunar_apparent_comparison_summary_for_report());
+    text.push('\n');
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("Backend matrix summary: backend-matrix-summary\n");
     text.push_str("Validation report summary: validation-report-summary / validation-summary / report-summary\n");
@@ -4061,6 +4066,9 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         lunar_equatorial_reference_evidence_envelope_for_report()
     );
     let _ = writeln!(text);
+    let _ = writeln!(text, "Lunar apparent comparison evidence");
+    let _ = writeln!(text, "  {}", lunar_apparent_comparison_summary_for_report());
+    let _ = writeln!(text);
     let _ = writeln!(text, "Lunar high-curvature continuity evidence");
     let _ = writeln!(
         text,
@@ -5526,6 +5534,7 @@ fn write_backend_catalog_entry(
         writeln!(f, "    frame note: {}", theory.frame_note)?;
         write_lunar_reference_evidence(f)?;
         write_lunar_equatorial_reference_evidence(f)?;
+        write_lunar_apparent_comparison_evidence(f)?;
         write_lunar_high_curvature_equatorial_continuity_evidence(f)?;
     }
     if entry.metadata.id.as_str() == "jpl-snapshot" {
@@ -5658,6 +5667,35 @@ fn write_lunar_equatorial_reference_evidence(f: &mut fmt::Formatter<'_>) -> fmt:
                 .distance_au
                 .map(|value| format!("{value:.12} AU"))
                 .unwrap_or_else(|| "n/a".to_string()),
+            sample.note
+        )?;
+    }
+    Ok(())
+}
+
+fn write_lunar_apparent_comparison_evidence(f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    writeln!(f, "  Lunar apparent comparison evidence:")?;
+    let Some(summary) = lunar_apparent_comparison_summary() else {
+        writeln!(f, "    none")?;
+        return Ok(());
+    };
+
+    writeln!(
+        f,
+        "    {}",
+        format_lunar_apparent_comparison_summary(&summary)
+    )?;
+    for sample in lunar_apparent_comparison_evidence() {
+        writeln!(
+            f,
+            "    {} at JD {:.1}: apparent lon={:.12}°, apparent lat={:.12}°, apparent dist={:.12} AU, apparent RA={:.12}°, apparent Dec={:.12}°, note={}",
+            sample.body,
+            sample.epoch.julian_day.days(),
+            sample.apparent_longitude_deg,
+            sample.apparent_latitude_deg,
+            sample.apparent_distance_au,
+            sample.apparent_right_ascension_deg,
+            sample.apparent_declination_deg,
             sample.note
         )?;
     }
@@ -8047,6 +8085,8 @@ version = "0.9.0"
         assert!(release_summary.contains("Lunar reference evidence: lunar reference evidence:"));
         assert!(release_summary
             .contains("Lunar equatorial evidence: lunar equatorial reference evidence:"));
+        assert!(release_summary
+            .contains("Lunar apparent comparison evidence: lunar apparent comparison evidence:"));
         assert!(release_summary.contains("Packaged request policy"));
         assert!(release_summary.contains("applies to 11 bundled bodies"));
         assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
