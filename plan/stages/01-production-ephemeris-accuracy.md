@@ -60,6 +60,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Progress note: the shared `pleiades-types::EclipticCoordinates::to_equatorial` helper now centralizes the mean-obliquity ecliptic-to-equatorial rotation used by the VSOP87 and ELP paths, so the frame transform is implemented once and covered by shared unit tests instead of being duplicated per backend.
    - Progress note: `pleiades-backend::EphemerisRequest::new` now defaults to mean geometric output, which keeps bare geocentric requests aligned with the current mean-only backend policy while still allowing callers to opt into apparent requests explicitly.
    - Progress note: the VSOP87 and compact lunar backend paths now accept both TT and TDB dynamical-time requests while still rejecting UT-based requests explicitly, which makes the current phase-1 time-scale policy easier to exercise in validation without adding a built-in Delta T or relativistic conversion model.
+   - Progress note: `pleiades-types` and `pleiades-core::ChartRequest` now also expose caller-supplied UTC-to-TDB helpers in addition to the UT1/UTC-to-TT and TT-to-TDB conveniences, so civil-time chart inputs can be lifted to TDB with explicit offset policy steps instead of hidden conversion logic.
 
 5. Expand validation evidence.
    - Add golden positions for major bodies, lunar points, and baseline asteroids.

@@ -313,6 +313,23 @@ impl Instant {
 
         Ok(self.with_time_scale_offset(TimeScale::Tdb, offset.as_secs_f64()))
     }
+
+    /// Converts a UTC-tagged instant to TDB using caller-supplied TT-UTC and
+    /// TDB-TT offsets.
+    ///
+    /// `tt_offset` must be the already-chosen `TT - UTC` offset in SI seconds.
+    /// `tdb_offset` must be the already-chosen `TDB - TT` offset in SI
+    /// seconds. The helper intentionally does not model leap seconds, DUT1, or
+    /// relativistic terms by itself; it only composes caller-supplied policy
+    /// steps into a reproducible TDB-tagged instant.
+    pub fn tdb_from_utc(
+        self,
+        tt_offset: Duration,
+        tdb_offset: Duration,
+    ) -> Result<Self, TimeScaleConversionError> {
+        let tt = self.tt_from_utc(tt_offset)?;
+        tt.tdb_from_tt(tdb_offset)
+    }
 }
 
 /// A geographic observer location.
@@ -1134,6 +1151,21 @@ mod tests {
     }
 
     #[test]
+    fn caller_supplied_time_scale_offsets_can_convert_utc_to_tdb() {
+        let utc = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Utc);
+        let tdb = utc
+            .tdb_from_utc(
+                Duration::from_secs_f64(64.184),
+                Duration::from_secs_f64(0.001_657),
+            )
+            .expect("UTC to TDB conversion should accept UTC input");
+
+        assert_eq!(tdb.scale, TimeScale::Tdb);
+        let expected = 2_451_545.0 + (64.184 + 0.001_657) / 86_400.0;
+        assert!((tdb.julian_day.days() - expected).abs() < 1e-12);
+    }
+
+    #[test]
     fn time_scale_helpers_reject_the_wrong_source_scale() {
         let utc = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Utc);
         let ut1_error = utc
@@ -1150,6 +1182,13 @@ mod tests {
 
         assert_eq!(utc_error.expected, TimeScale::Utc);
         assert_eq!(utc_error.actual, TimeScale::Tt);
+
+        let tdb_error = tt
+            .tdb_from_utc(Duration::from_secs(64), Duration::from_secs(1))
+            .expect_err("TT is not UTC for UTC-to-TDB conversion");
+
+        assert_eq!(tdb_error.expected, TimeScale::Utc);
+        assert_eq!(tdb_error.actual, TimeScale::Tt);
     }
 
     #[test]
