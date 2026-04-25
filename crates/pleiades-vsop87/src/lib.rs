@@ -694,6 +694,8 @@ pub struct Vsop87SourceBodyEvidenceSummary {
     pub generated_binary_count: usize,
     /// Number of truncated-slice source-backed samples.
     pub truncated_count: usize,
+    /// Number of bodies outside the current interim limits.
+    pub outside_interim_limit_count: usize,
     /// Bodies outside the current interim limits.
     pub outside_interim_limit_bodies: Vec<CelestialBody>,
 }
@@ -718,6 +720,10 @@ pub fn source_body_evidence_summary() -> Option<Vsop87SourceBodyEvidenceSummary>
         truncated_count: evidence
             .iter()
             .filter(|row| row.source_kind == Vsop87BodySourceKind::TruncatedVsop87b)
+            .count(),
+        outside_interim_limit_count: evidence
+            .iter()
+            .filter(|row| !row.within_interim_limits)
             .count(),
         outside_interim_limit_bodies: evidence
             .into_iter()
@@ -2194,6 +2200,7 @@ mod tests {
         assert_eq!(summary.vendored_full_file_count, 0);
         assert_eq!(summary.generated_binary_count, evidence.len());
         assert_eq!(summary.truncated_count, 0);
+        assert_eq!(summary.outside_interim_limit_count, 0);
         assert!(summary.outside_interim_limit_bodies.is_empty());
         assert!(evidence.iter().all(|row| row.within_interim_limits));
     }

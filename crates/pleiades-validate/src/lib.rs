@@ -3580,38 +3580,42 @@ fn format_vsop87_body_evidence_summary() -> String {
             };
             if summary.generated_binary_count == 0 && summary.truncated_count == 0 {
                 format!(
-                    "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file), {} within interim limits; outside interim limits: {}",
+                    "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file), {} within interim limits, {} outside interim limits; outside interim limits: {}",
                     summary.sample_count,
                     summary.vendored_full_file_count,
                     summary.within_interim_limits_count,
+                    summary.outside_interim_limit_count,
                     outside_note,
                 )
             } else if summary.generated_binary_count > 0 && summary.truncated_count == 0 {
                 format!(
-                    "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} generated binary), {} within interim limits; outside interim limits: {}",
+                    "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} generated binary), {} within interim limits, {} outside interim limits; outside interim limits: {}",
                     summary.sample_count,
                     summary.vendored_full_file_count,
                     summary.generated_binary_count,
                     summary.within_interim_limits_count,
+                    summary.outside_interim_limit_count,
                     outside_note,
                 )
             } else if summary.generated_binary_count == 0 {
                 format!(
-                    "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} truncated slice), {} within interim limits; outside interim limits: {}",
+                    "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} truncated slice), {} within interim limits, {} outside interim limits; outside interim limits: {}",
                     summary.sample_count,
                     summary.vendored_full_file_count,
                     summary.truncated_count,
                     summary.within_interim_limits_count,
+                    summary.outside_interim_limit_count,
                     outside_note,
                 )
             } else {
                 format!(
-                    "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} generated binary, {} truncated slice), {} within interim limits; outside interim limits: {}",
+                    "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} generated binary, {} truncated slice), {} within interim limits, {} outside interim limits; outside interim limits: {}",
                     summary.sample_count,
                     summary.vendored_full_file_count,
                     summary.generated_binary_count,
                     summary.truncated_count,
                     summary.within_interim_limits_count,
+                    summary.outside_interim_limit_count,
                     outside_note,
                 )
             }
@@ -6452,7 +6456,7 @@ mod tests {
         assert!(report.contains("max Δlat="));
         assert!(report.contains("max Δdist="));
         assert!(report.contains(
-            "VSOP87 source-backed body evidence: 8 body profiles (0 vendored full-file, 8 generated binary), 8 within interim limits; outside interim limits: none"
+            "VSOP87 source-backed body evidence: 8 body profiles (0 vendored full-file, 8 generated binary), 8 within interim limits, 0 outside interim limits; outside interim limits: none"
         ));
         assert!(report.contains("House validation corpus"));
         assert!(report.contains("Benchmark summaries"));
@@ -7194,7 +7198,7 @@ mod tests {
         assert!(rendered.contains("max Δlat="));
         assert!(rendered.contains("max Δdist="));
         assert!(rendered.contains(
-            "VSOP87 source-backed body evidence: 8 body profiles (0 vendored full-file, 8 generated binary), 8 within interim limits; outside interim limits: none"
+            "VSOP87 source-backed body evidence: 8 body profiles (0 vendored full-file, 8 generated binary), 8 within interim limits, 0 outside interim limits; outside interim limits: none"
         ));
         assert!(rendered.contains(
             "ELP lunar theory specification: Compact Meeus-style truncated lunar baseline [meeus-style-truncated-lunar-baseline; family: Meeus-style truncated analytical baseline]"
@@ -7526,7 +7530,7 @@ version = "0.9.0"
         assert!(validation_report_summary.contains("generated binary VSOP87B"));
         assert!(validation_report_summary.contains("VSOP87 source-backed evidence"));
         assert!(validation_report_summary.contains(
-            "VSOP87 source-backed body evidence: 8 body profiles (0 vendored full-file, 8 generated binary), 8 within interim limits; outside interim limits: none"
+            "VSOP87 source-backed body evidence: 8 body profiles (0 vendored full-file, 8 generated binary), 8 within interim limits, 0 outside interim limits; outside interim limits: none"
         ));
         assert!(validation_report_summary
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
