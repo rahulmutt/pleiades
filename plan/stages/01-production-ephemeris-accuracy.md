@@ -26,6 +26,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Add batch-path tests covering all supported planets at canonical epochs.
    - Progress note: the crate now ships a maintainer-facing regeneration helper plus binary that rewrites the checked-in generated blobs from the vendored source text.
    - Progress note: the canonical J2000 VSOP87 evidence summary now names the body that drives each maximum delta axis, which makes the release-facing envelope easier to audit without widening the public request model.
+   - Progress note: the VSOP87 source-audit summary now also prints the deterministic fingerprint count directly in release-facing output, so the reproducibility line stays explicit alongside the raw source-size and term-count evidence.
 
 2. Implement production `pleiades-elp` lunar calculations.
    - Select and document a pure-Rust lunar theory source.

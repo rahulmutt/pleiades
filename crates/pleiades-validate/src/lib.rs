@@ -3419,7 +3419,7 @@ fn format_vsop87_source_audit_summary() -> String {
         audit.total_term_count,
         audit.max_byte_length,
         audit.max_line_count,
-        audit.source_count
+        audit.fingerprint_count
     )
 }
 
@@ -6170,7 +6170,7 @@ mod tests {
         assert!(body_class_envelopes.contains(" ("));
         assert!(report.contains("VSOP87 source-backed evidence"));
         assert!(report
-            .contains("VSOP87 source audit: 8 source-backed bodies, 8 vendored full-file inputs"));
+            .contains("VSOP87 source audit: 8 source-backed bodies, 8 vendored full-file inputs, 35080 total terms, max source size 949753 bytes / 7141 lines, 8 deterministic fingerprints"));
         assert!(report.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(report.contains("max Δlon="));
         assert!(report.contains("max Δlat="));
@@ -6842,7 +6842,7 @@ mod tests {
             "VSOP87 frame treatment: J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a mean-obliquity transform"
         ));
         assert!(rendered
-            .contains("VSOP87 source audit: 8 source-backed bodies, 8 vendored full-file inputs"));
+            .contains("VSOP87 source audit: 8 source-backed bodies, 8 vendored full-file inputs, 35080 total terms, max source size 949753 bytes / 7141 lines, 8 deterministic fingerprints"));
         assert!(rendered.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(rendered.contains("max Δlon="));
         assert!(rendered.contains("max Δlat="));
@@ -7167,7 +7167,7 @@ version = "0.9.0"
             "VSOP87 frame treatment: J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a mean-obliquity transform"
         ));
         assert!(validation_report_summary
-            .contains("VSOP87 source audit: 8 source-backed bodies, 8 vendored full-file inputs"));
+            .contains("VSOP87 source audit: 8 source-backed bodies, 8 vendored full-file inputs, 35080 total terms, max source size 949753 bytes / 7141 lines, 8 deterministic fingerprints"));
         assert!(validation_report_summary
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(validation_report_summary.contains("VSOP87 source-backed evidence"));

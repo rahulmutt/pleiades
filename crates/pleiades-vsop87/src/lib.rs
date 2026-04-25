@@ -153,6 +153,8 @@ pub struct Vsop87SourceAuditSummary {
     pub source_count: usize,
     /// Number of vendored full-file source entries.
     pub vendored_full_file_count: usize,
+    /// Number of deterministic fingerprints recorded in the audit manifest.
+    pub fingerprint_count: usize,
     /// Total parsed coefficient term count across all audited sources.
     pub total_term_count: usize,
     /// Maximum raw source line count across the audited files.
@@ -602,6 +604,7 @@ pub fn source_audit_summary() -> Vsop87SourceAuditSummary {
             .iter()
             .filter(|audit| audit.source_file.starts_with("VSOP87B."))
             .count(),
+        fingerprint_count: audits.len(),
         total_term_count: audits.iter().map(|audit| audit.term_count).sum(),
         max_line_count: audits
             .iter()
@@ -1903,6 +1906,7 @@ mod tests {
         assert_eq!(audits.len(), 8);
         assert_eq!(summary.source_count, 8);
         assert_eq!(summary.vendored_full_file_count, 8);
+        assert_eq!(summary.fingerprint_count, 8);
         assert!(summary.total_term_count > 0);
         assert!(summary.max_byte_length > 0);
         assert!(summary.max_line_count > 0);
