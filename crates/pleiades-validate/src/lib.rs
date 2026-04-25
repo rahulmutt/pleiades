@@ -7978,6 +7978,7 @@ mod tests {
         assert!(rendered.contains("T Polich/Page (\"topocentric\")"));
         assert!(rendered.contains("Poli-equatorial"));
         assert!(rendered.contains("horizon/azimuth"));
+        assert!(rendered.contains("horizon/azimut"));
         assert!(rendered.contains("Babylonian Huber"));
         assert!(rendered.contains("Galactic Equator (True)"));
         assert!(rendered.contains("True galactic equator"));
