@@ -48,6 +48,7 @@ The repository already exposes baseline house systems and ayanamsas, a larger re
    - Progress note: the validate-command compatibility-profile and release-notes regressions now also pin the Pullen SD (Neo-Porphyry) and Makransky Sunshine spellings, keeping the current release-facing Sunshine/Pullen label variants visible alongside the broader alias audit.
    - Progress note: the latest compatibility-profile regression slice now also anchors the `Equal Midheaven house system`, `Vehlow Equal house system`, `Topocentric house system`, `Whole Sign house system`, `Gal. Center = 0 Sag`, and `Gal. Center = 0 Cap` spellings, extending the release-facing alias coverage for the still-visible house and reference-frame variants.
    - Progress note: the compatibility-profile and release-notes regressions now also pin `Babylonian (Eta Piscium)`, and the compatibility-profile command now keeps its documented alias spellings (`Babylonian/Eta Piscium`, `Babylonian Eta Piscium`, and `Eta Piscium`) visible in the release-facing catalog audit.
+   - Progress note: the compatibility-profile verification command now also renders the latitude-sensitive house-system subset as structured evidence, so the release-facing catalog audit calls out the polar-failure-constraint systems explicitly instead of only surfacing them through the summary display.
 
 ## Done criteria
 

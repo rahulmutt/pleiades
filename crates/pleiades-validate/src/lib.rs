@@ -2003,6 +2003,20 @@ pub fn verify_compatibility_profile() -> Result<String, EphemerisError> {
     text.push_str(" descriptors, ");
     text.push_str(&house_labels_checked.to_string());
     text.push_str(" labels\n");
+    text.push_str("Latitude-sensitive house systems verified: ");
+    let latitude_sensitive_house_systems = profile.latitude_sensitive_house_systems();
+    text.push_str(&latitude_sensitive_house_systems.len().to_string());
+    text.push_str(" descriptors, ");
+    text.push_str(&latitude_sensitive_house_systems.len().to_string());
+    text.push_str(" labels");
+    if !latitude_sensitive_house_systems.is_empty() {
+        text.push_str(" (");
+        text.push_str(&latitude_sensitive_house_systems.join(", "));
+        text.push(')');
+    } else {
+        text.push_str(" (none)");
+    }
+    text.push('\n');
     text.push_str("Ayanamsas verified: ");
     text.push_str(&profile.ayanamsas.len().to_string());
     text.push_str(" descriptors, ");
@@ -2240,12 +2254,7 @@ fn summarize_validation_reference_points(points: &[&str]) -> String {
 }
 
 fn summarize_latitude_sensitive_house_systems(profile: &CompatibilityProfile) -> String {
-    let latitude_sensitive = profile
-        .house_systems
-        .iter()
-        .filter(|entry| entry.latitude_sensitive)
-        .map(|entry| entry.canonical_name)
-        .collect::<Vec<_>>();
+    let latitude_sensitive = profile.latitude_sensitive_house_systems();
 
     match latitude_sensitive.as_slice() {
         [] => "0 (none)".to_string(),
@@ -8705,6 +8714,9 @@ mod tests {
             release_profiles.compatibility_profile_id
         )));
         assert!(rendered.contains("House systems verified:"));
+        assert!(rendered.contains(
+            "Latitude-sensitive house systems verified: 8 descriptors, 8 labels (Placidus, Koch, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Topocentric, Sunshine, Gauquelin sectors)"
+        ));
         assert!(rendered.contains("Ayanamsas verified:"));
         assert!(rendered.contains("Baseline/release slices:"));
         assert!(rendered.contains("Release posture: baseline milestone preserved, release additions explicit, custom definitions tracked, caveats documented"));

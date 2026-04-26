@@ -65,6 +65,15 @@ impl CompatibilityProfile {
     pub const fn release_note(&self) -> &'static str {
         self.summary
     }
+
+    /// Returns the built-in house systems that are latitude-sensitive.
+    pub fn latitude_sensitive_house_systems(&self) -> Vec<&'static str> {
+        self.house_systems
+            .iter()
+            .filter(|entry| entry.latitude_sensitive)
+            .map(|entry| entry.canonical_name)
+            .collect()
+    }
 }
 
 /// Returns the current compatibility profile.
@@ -1177,6 +1186,19 @@ mod tests {
         assert!(rendered.contains("Placidus house system, Placidus table of houses -> Placidus"));
         assert!(rendered.contains("Koch houses, Koch house system, house system of the birth place, Koch table of houses, W. Koch, W Koch -> Koch"));
         assert!(rendered.contains("Whole Sign houses, Whole Sign table of houses, Whole-sign, Whole Sign system, Whole Sign house system -> Whole Sign"));
+        assert_eq!(
+            profile.latitude_sensitive_house_systems(),
+            vec![
+                "Placidus",
+                "Koch",
+                "Horizon/Azimuth",
+                "APC",
+                "Krusinski-Pisa-Goelzer",
+                "Topocentric",
+                "Sunshine",
+                "Gauquelin sectors",
+            ]
+        );
         assert!(rendered.contains("Pullen SD (Neo-Porphyry) table of houses"));
         assert!(rendered.contains("Pullen SD (Sinusoidal Delta)"));
         assert!(rendered.contains("Pullen SR (Sinusoidal Ratio) table of houses"));
