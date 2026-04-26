@@ -647,7 +647,7 @@ pub fn format_lunar_theory_catalog_validation_summary(
 
     match summary.validation_result {
         Ok(()) => format!(
-            "lunar theory catalog validation: ok ({} entries, {} selected; selected source: {}; aliases={}; round-trip and alias uniqueness verified)",
+            "lunar theory catalog validation: ok ({} entries, {} selected; selected source: {}; aliases={}; round-trip, alias uniqueness, and case-insensitive key matching verified)",
             summary.entry_count,
             summary.selected_count,
             selected_source_summary,
@@ -2829,12 +2829,14 @@ mod tests {
             lunar_theory_catalog_validation_summary_for_report()
         );
         assert!(lunar_theory_catalog_validation_summary_for_report()
-            .contains("lunar theory catalog validation: ok (1 entries, 1 selected; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]; aliases=1"));
+            .contains("lunar theory catalog validation: ok (1 entries, 1 selected; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]; aliases=1; round-trip, alias uniqueness, and case-insensitive key matching verified)"));
         assert!(lunar_theory_catalog_summary_for_report()
             .contains("selected source: meeus-style-truncated-lunar-baseline"));
         assert!(lunar_theory_catalog_summary_for_report()
             .contains("aliases=1; supported bodies=5; unsupported bodies=2"));
         assert!(lunar_theory_catalog_validation_summary_for_report().contains("aliases=1"));
+        assert!(lunar_theory_catalog_validation_summary_for_report()
+            .contains("case-insensitive key matching verified"));
         assert_eq!(
             lunar_theory_catalog_entry_for_source_identifier(theory.source_identifier),
             Some(catalog[0])
