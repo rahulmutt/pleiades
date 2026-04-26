@@ -8591,6 +8591,9 @@ mod tests {
         assert!(rendered.contains("Equal (MC) table of houses"));
         assert!(rendered.contains("Equal (MC) house system"));
         assert!(rendered.contains("Equal Midheaven house system"));
+        assert!(rendered.contains("Equal from MC"));
+        assert!(rendered.contains("Equal (from MC)"));
+        assert!(rendered.contains("Equal (from MC) table of houses"));
         assert!(rendered.contains("Equal (1=Aries) table of houses"));
         assert!(rendered.contains("Equal (1=Aries) house system"));
         assert!(rendered.contains("Vehlow Equal table of houses"));
@@ -8608,6 +8611,9 @@ mod tests {
         assert!(rendered.contains("Pullen SD (Neo-Porphyry) table of houses"));
         assert!(rendered.contains("Neo-Porphyry"));
         assert!(rendered.contains("WvA"));
+        assert!(rendered.contains("Equal from MC"));
+        assert!(rendered.contains("Equal (from MC)"));
+        assert!(rendered.contains("Equal (from MC) table of houses"));
         assert!(rendered.contains("Makransky Sunshine"));
         assert!(rendered.contains("True Citra Paksha"));
         assert!(rendered.contains("True Chitra Paksha"));
