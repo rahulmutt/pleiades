@@ -8508,6 +8508,8 @@ mod tests {
         assert!(rendered.contains("Whole Sign house system"));
         assert!(rendered.contains("Morinus house system"));
         assert!(rendered.contains("Pullen SR (Sinusoidal Ratio) table of houses"));
+        assert!(rendered.contains("Pullen SD (Sinusoidal Delta)"));
+        assert!(rendered.contains("Pullen SD (Sinusoidal Delta) table of houses"));
         assert!(rendered.contains("Pullen SD (Neo-Porphyry) table of houses"));
         assert!(rendered.contains("Neo-Porphyry"));
         assert!(rendered.contains("Makransky Sunshine"));
@@ -8524,10 +8526,16 @@ mod tests {
         assert!(rendered.contains("P.V.R. Narasimha Rao"));
         assert!(rendered.contains("B. V. Raman"));
         assert!(rendered.contains("Polich-Page \"topocentric\" table of houses"));
+        assert!(rendered.contains("Polich/Page"));
         assert!(rendered.contains("T Polich/Page (\"topocentric\")"));
+        assert!(rendered.contains("T topocentric"));
         assert!(rendered.contains("Poli-equatorial"));
         assert!(rendered.contains("horizon/azimuth"));
         assert!(rendered.contains("horizon/azimut"));
+        assert!(rendered.contains("Horizon/Azimuth table of houses"));
+        assert!(rendered.contains("U krusinski-pisa-goelzer"));
+        assert!(rendered.contains("X axial rotation system/ Meridian houses"));
+        assert!(rendered.contains("Zariel"));
         assert!(rendered.contains("Babylonian Huber"));
         assert!(rendered.contains("Galactic Equator (True)"));
         assert!(rendered.contains("True galactic equator"));
