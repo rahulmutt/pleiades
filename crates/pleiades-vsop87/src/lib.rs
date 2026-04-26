@@ -305,6 +305,8 @@ pub struct Vsop87SourceDocumentationHealthSummary {
     /// Whether the documented source metadata stays aligned with the current
     /// VSOP87B policy for variant, frame, units, truncation, and date range.
     pub documentation_consistent: bool,
+    /// Structured labels describing any catalog inconsistencies.
+    pub issues: Vec<&'static str>,
     /// Number of source specifications described by the catalog.
     pub source_specification_count: usize,
     /// Number of public source files represented by the catalog.
@@ -1326,20 +1328,39 @@ pub fn source_documentation_health_summary() -> Vsop87SourceDocumentationHealthS
         .iter()
         .map(|spec| spec.source_file)
         .collect::<Vec<_>>();
-    let consistent = summary.source_specification_count == source_file_count
-        && summary.source_files == expected_source_files
-        && summary.source_backed_profile_count
-            == summary.generated_binary_profile_count
-                + summary.vendored_full_file_profile_count
-                + summary.truncated_profile_count
-        && summary.source_backed_profile_count + summary.fallback_profile_count
-            == body_profile_count;
+    let mut issues = Vec::new();
+
+    if summary.source_specification_count != source_file_count {
+        issues.push("source specification/file count mismatch");
+    }
+    if summary.source_files != expected_source_files {
+        issues.push("source file order mismatch");
+    }
+    if summary.source_backed_profile_count
+        != summary.generated_binary_profile_count
+            + summary.vendored_full_file_profile_count
+            + summary.truncated_profile_count
+    {
+        issues.push("source-backed profile partition mismatch");
+    }
+    if summary.source_backed_profile_count + summary.fallback_profile_count != body_profile_count {
+        issues.push("body profile coverage mismatch");
+    }
+    if summary.source_specification_count != source_specs.len() {
+        issues.push("source specification catalog count mismatch");
+    }
+    if !source_documentation_fields_are_consistent(&source_specs) {
+        issues.push("documented field mismatch");
+    }
+
+    let consistent = issues.is_empty();
     let documentation_consistent = summary.source_specification_count == source_specs.len()
         && source_documentation_fields_are_consistent(&source_specs);
 
     Vsop87SourceDocumentationHealthSummary {
         consistent,
         documentation_consistent,
+        issues,
         source_specification_count: summary.source_specification_count,
         source_file_count,
         source_files: summary.source_files,
@@ -1361,8 +1382,14 @@ pub fn source_documentation_health_summary() -> Vsop87SourceDocumentationHealthS
 pub fn format_source_documentation_health_summary(
     summary: &Vsop87SourceDocumentationHealthSummary,
 ) -> String {
+    let issues = if summary.issues.is_empty() {
+        String::new()
+    } else {
+        format!("; issues: {}", format_issue_labels(&summary.issues))
+    };
+
     format!(
-        "VSOP87 source documentation health: {} ({} source specs, {} source files, {} source-backed profiles, {} body profiles; {} generated binary profiles ({}), {} vendored full-file profiles ({}), {} truncated profiles ({}), {} fallback profiles ({}); source files: {}; source-backed bodies: {}; fallback bodies: {}; documented fields: {})",
+        "VSOP87 source documentation health: {} ({} source specs, {} source files, {} source-backed profiles, {} body profiles; {} generated binary profiles ({}), {} vendored full-file profiles ({}), {} truncated profiles ({}), {} fallback profiles ({}); source files: {}; source-backed bodies: {}; fallback bodies: {}; documented fields: {}){}",
         if summary.consistent { "ok" } else { "needs attention" },
         summary.source_specification_count,
         summary.source_file_count,
@@ -1384,6 +1411,7 @@ pub fn format_source_documentation_health_summary(
         } else {
             "needs attention"
         },
+        issues,
     )
 }
 
@@ -1396,6 +1424,14 @@ fn format_bodies(bodies: &[CelestialBody]) -> String {
             .map(ToString::to_string)
             .collect::<Vec<_>>()
             .join(", ")
+    }
+}
+
+fn format_issue_labels(issues: &[&'static str]) -> String {
+    if issues.is_empty() {
+        "none".to_string()
+    } else {
+        issues.join(", ")
     }
 }
 
@@ -4234,6 +4270,7 @@ mod tests {
 
         assert!(summary.consistent);
         assert!(summary.documentation_consistent);
+        assert!(summary.issues.is_empty());
         assert_eq!(summary.source_specification_count, 8);
         assert_eq!(summary.source_file_count, 8);
         assert_eq!(
@@ -4296,6 +4333,37 @@ mod tests {
         assert_eq!(
             source_documentation_health_summary_for_report(),
             format_source_documentation_health_summary(&summary)
+        );
+    }
+
+    #[test]
+    fn source_documentation_health_summary_lists_issues_when_inconsistent() {
+        let summary = Vsop87SourceDocumentationHealthSummary {
+            consistent: false,
+            documentation_consistent: false,
+            issues: vec![
+                "source specification/file count mismatch",
+                "documented field mismatch",
+            ],
+            source_specification_count: 1,
+            source_file_count: 2,
+            source_files: vec!["VSOP87B.ear"],
+            source_backed_profile_count: 1,
+            source_backed_bodies: vec![CelestialBody::Sun],
+            generated_binary_bodies: vec![CelestialBody::Sun],
+            vendored_full_file_bodies: vec![],
+            truncated_bodies: vec![],
+            body_profile_count: 2,
+            generated_binary_profile_count: 1,
+            vendored_full_file_profile_count: 0,
+            truncated_profile_count: 0,
+            fallback_profile_count: 1,
+            fallback_bodies: vec![CelestialBody::Pluto],
+        };
+
+        assert_eq!(
+            format_source_documentation_health_summary(&summary),
+            "VSOP87 source documentation health: needs attention (1 source specs, 2 source files, 1 source-backed profiles, 2 body profiles; 1 generated binary profiles (Sun), 0 vendored full-file profiles (none), 0 truncated profiles (none), 1 fallback profiles (Pluto); source files: VSOP87B.ear; source-backed bodies: Sun; fallback bodies: Pluto; documented fields: needs attention); issues: source specification/file count mismatch, documented field mismatch"
         );
     }
 
