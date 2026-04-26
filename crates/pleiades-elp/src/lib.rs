@@ -526,6 +526,12 @@ pub struct LunarTheoryCatalogSummary {
     pub selected_source_identifier: &'static str,
     /// Human-readable source family label of the selected lunar-theory baseline.
     pub selected_source_family_label: &'static str,
+    /// Number of aliases documented for the selected baseline.
+    pub selected_alias_count: usize,
+    /// Number of bodies/channels explicitly supported by the selected baseline.
+    pub selected_supported_body_count: usize,
+    /// Number of bodies/channels explicitly unsupported by the selected baseline.
+    pub selected_unsupported_body_count: usize,
 }
 
 /// Returns a compact summary of the current lunar-theory catalog.
@@ -541,6 +547,9 @@ pub fn lunar_theory_catalog_summary() -> LunarTheoryCatalogSummary {
         selected_count: catalog.iter().filter(|entry| entry.selected).count(),
         selected_source_identifier: selected_entry.specification.source_identifier,
         selected_source_family_label: selected_entry.specification.source_family.label(),
+        selected_alias_count: selected_entry.specification.source_aliases.len(),
+        selected_supported_body_count: selected_entry.specification.supported_bodies.len(),
+        selected_unsupported_body_count: selected_entry.specification.unsupported_bodies.len(),
     }
 }
 
@@ -558,13 +567,16 @@ pub fn format_lunar_theory_catalog_summary(summary: &LunarTheoryCatalogSummary) 
     };
 
     format!(
-        "lunar theory catalog: {} {}, {} {}; selected source: {} [{}]",
+        "lunar theory catalog: {} {}, {} {}; selected source: {} [{}]; aliases={}; supported bodies={}; unsupported bodies={}",
         summary.entry_count,
         entry_label,
         summary.selected_count,
         selected_label,
         summary.selected_source_identifier,
         summary.selected_source_family_label,
+        summary.selected_alias_count,
+        summary.selected_supported_body_count,
+        summary.selected_unsupported_body_count,
     )
 }
 
@@ -2513,6 +2525,18 @@ mod tests {
             theory.source_family.label()
         );
         assert_eq!(
+            catalog_summary.selected_alias_count,
+            theory.source_aliases.len()
+        );
+        assert_eq!(
+            catalog_summary.selected_supported_body_count,
+            theory.supported_bodies.len()
+        );
+        assert_eq!(
+            catalog_summary.selected_unsupported_body_count,
+            theory.unsupported_bodies.len()
+        );
+        assert_eq!(
             format_lunar_theory_catalog_summary(&catalog_summary),
             lunar_theory_catalog_summary_for_report()
         );
@@ -2520,6 +2544,8 @@ mod tests {
             .contains("lunar theory catalog: 1 entry, 1 selected entry"));
         assert!(lunar_theory_catalog_summary_for_report()
             .contains("selected source: meeus-style-truncated-lunar-baseline"));
+        assert!(lunar_theory_catalog_summary_for_report()
+            .contains("aliases=1; supported bodies=5; unsupported bodies=2"));
         assert_eq!(
             lunar_theory_catalog_entry_for_source_identifier(theory.source_identifier),
             Some(catalog[0])
