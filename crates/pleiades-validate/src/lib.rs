@@ -503,17 +503,20 @@ struct BodyClassSummary {
     sum_longitude_delta_deg: f64,
     sum_longitude_delta_sq_deg: f64,
     median_longitude_delta_deg: f64,
+    percentile_longitude_delta_deg: f64,
     max_latitude_delta_body: Option<CelestialBody>,
     max_latitude_delta_deg: f64,
     sum_latitude_delta_deg: f64,
     sum_latitude_delta_sq_deg: f64,
     median_latitude_delta_deg: f64,
+    percentile_latitude_delta_deg: f64,
     max_distance_delta_body: Option<CelestialBody>,
     max_distance_delta_au: Option<f64>,
     sum_distance_delta_au: f64,
     sum_distance_delta_sq_au: f64,
     distance_count: usize,
     median_distance_delta_au: Option<f64>,
+    percentile_distance_delta_au: Option<f64>,
 }
 
 #[derive(Clone, Debug)]
@@ -539,8 +542,11 @@ struct BodyClassToleranceSummary {
     sum_distance_delta_sq_au: f64,
     distance_count: usize,
     median_longitude_delta_deg: f64,
+    percentile_longitude_delta_deg: f64,
     median_latitude_delta_deg: f64,
+    percentile_latitude_delta_deg: f64,
     median_distance_delta_au: Option<f64>,
+    percentile_distance_delta_au: Option<f64>,
     outside_bodies: Vec<CelestialBody>,
 }
 
@@ -650,6 +656,11 @@ impl BodyClassToleranceSummary {
         )?;
         writeln!(
             f,
+            "    95th percentile longitude delta: {:.12}°",
+            self.percentile_longitude_delta_deg
+        )?;
+        writeln!(
+            f,
             "    rms longitude delta: {:.12}°",
             self.rms_longitude_delta_deg()
         )?;
@@ -678,6 +689,11 @@ impl BodyClassToleranceSummary {
         )?;
         writeln!(
             f,
+            "    95th percentile latitude delta: {:.12}°",
+            self.percentile_latitude_delta_deg
+        )?;
+        writeln!(
+            f,
             "    rms latitude delta: {:.12}°",
             self.rms_latitude_delta_deg()
         )?;
@@ -703,6 +719,9 @@ impl BodyClassToleranceSummary {
         }
         if let Some(value) = self.median_distance_delta_au {
             writeln!(f, "    median distance delta: {:.12} AU", value)?;
+        }
+        if let Some(value) = self.percentile_distance_delta_au {
+            writeln!(f, "    95th percentile distance delta: {:.12} AU", value)?;
         }
         if let Some(value) = self.rms_distance_delta_au() {
             writeln!(f, "    rms distance delta: {:.12} AU", value)?;
@@ -785,6 +804,11 @@ impl BodyClassSummary {
         )?;
         writeln!(
             f,
+            "    95th percentile longitude delta: {:.12}°",
+            self.percentile_longitude_delta_deg
+        )?;
+        writeln!(
+            f,
             "    rms longitude delta: {:.12}°",
             self.rms_longitude_delta_deg()
         )?;
@@ -805,6 +829,11 @@ impl BodyClassSummary {
         )?;
         writeln!(
             f,
+            "    95th percentile latitude delta: {:.12}°",
+            self.percentile_latitude_delta_deg
+        )?;
+        writeln!(
+            f,
             "    rms latitude delta: {:.12}°",
             self.rms_latitude_delta_deg()
         )?;
@@ -816,6 +845,9 @@ impl BodyClassSummary {
         }
         if let Some(value) = self.median_distance_delta_au {
             writeln!(f, "    median distance delta: {:.12} AU", value)?;
+        }
+        if let Some(value) = self.percentile_distance_delta_au {
+            writeln!(f, "    95th percentile distance delta: {:.12} AU", value)?;
         }
         if let Some(value) = self.rms_distance_delta_au() {
             writeln!(f, "    rms distance delta: {:.12} AU", value)?;
@@ -4105,23 +4137,29 @@ fn format_body_class_comparison_envelope_for_report(summary: &BodyClassSummary) 
         .unwrap_or_else(|| "n/a".to_string());
 
     format!(
-        "samples={}, max Δlon={:.12}°{}, mean Δlon={:.12}°, median Δlon={:.12}°, rms Δlon={:.12}°, max Δlat={:.12}°{}, mean Δlat={:.12}°, median Δlat={:.12}°, rms Δlat={:.12}°, max Δdist={}{}, mean Δdist={}, median Δdist={}, rms Δdist={}",
+        "samples={}, max Δlon={:.12}°{}, mean Δlon={:.12}°, median Δlon={:.12}°, 95th percentile longitude delta: {:.12}°, rms Δlon={:.12}°, max Δlat={:.12}°{}, mean Δlat={:.12}°, median Δlat={:.12}°, 95th percentile latitude delta: {:.12}°, rms Δlat={:.12}°, max Δdist={}{}, mean Δdist={}, median Δdist={}, 95th percentile distance delta: {}, rms Δdist={}",
         summary.sample_count,
         summary.max_longitude_delta_deg,
         format_summary_body(&summary.max_longitude_delta_body),
         summary.mean_longitude_delta_deg(),
         summary.median_longitude_delta_deg,
+        summary.percentile_longitude_delta_deg,
         summary.rms_longitude_delta_deg(),
         summary.max_latitude_delta_deg,
         format_summary_body(&summary.max_latitude_delta_body),
         summary.mean_latitude_delta_deg(),
         summary.median_latitude_delta_deg,
+        summary.percentile_latitude_delta_deg,
         summary.rms_latitude_delta_deg(),
         max_distance,
         format_summary_body(&summary.max_distance_delta_body),
         mean_distance,
         summary
             .median_distance_delta_au
+            .map(|value| format!("{value:.12} AU"))
+            .unwrap_or_else(|| "n/a".to_string()),
+        summary
+            .percentile_distance_delta_au
             .map(|value| format!("{value:.12} AU"))
             .unwrap_or_else(|| "n/a".to_string()),
         rms_distance,
@@ -4792,18 +4830,20 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
             .unwrap_or_default();
         let _ = writeln!(
             text,
-            "  {}: samples={}, max Δlon={:.12}°{}, mean Δlon={:.12}°, median Δlon={:.12}°, rms Δlon={:.12}°, max Δlat={:.12}°{}, mean Δlat={:.12}°, median Δlat={:.12}°, rms Δlat={:.12}°, max Δdist={}{}, mean Δdist={}, median Δdist={}, rms Δdist={}",
+            "  {}: samples={}, max Δlon={:.12}°{}, mean Δlon={:.12}°, median Δlon={:.12}°, p95 Δlon={:.12}°, rms Δlon={:.12}°, max Δlat={:.12}°{}, mean Δlat={:.12}°, median Δlat={:.12}°, p95 Δlat={:.12}°, rms Δlat={:.12}°, max Δdist={}{}, mean Δdist={}, median Δdist={}, p95 Δdist={}, rms Δdist={}",
             summary.class.label(),
             summary.sample_count,
             summary.max_longitude_delta_deg,
             max_longitude_body,
             summary.mean_longitude_delta_deg(),
             summary.median_longitude_delta_deg,
+            summary.percentile_longitude_delta_deg,
             summary.rms_longitude_delta_deg(),
             summary.max_latitude_delta_deg,
             max_latitude_body,
             summary.mean_latitude_delta_deg(),
             summary.median_latitude_delta_deg,
+            summary.percentile_latitude_delta_deg,
             summary.rms_latitude_delta_deg(),
             summary
                 .max_distance_delta_au
@@ -4816,6 +4856,10 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
                 .unwrap_or_else(|| "n/a".to_string()),
             summary
                 .median_distance_delta_au
+                .map(|value| format!("{value:.12} AU"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            summary
+                .percentile_distance_delta_au
                 .map(|value| format!("{value:.12} AU"))
                 .unwrap_or_else(|| "n/a".to_string()),
             summary
@@ -5842,17 +5886,22 @@ impl BodyClassAccumulator {
             sum_longitude_delta_deg: self.longitude_sum_deg,
             sum_longitude_delta_sq_deg: self.longitude_sum_sq_deg,
             median_longitude_delta_deg: median_value(&mut longitude_values).unwrap_or_default(),
+            percentile_longitude_delta_deg: percentile_value(&mut longitude_values, 0.95)
+                .unwrap_or_default(),
             max_latitude_delta_body: self.max_latitude_delta_body,
             max_latitude_delta_deg: self.max_latitude_delta_deg,
             sum_latitude_delta_deg: self.latitude_sum_deg,
             sum_latitude_delta_sq_deg: self.latitude_sum_sq_deg,
             median_latitude_delta_deg: median_value(&mut latitude_values).unwrap_or_default(),
+            percentile_latitude_delta_deg: percentile_value(&mut latitude_values, 0.95)
+                .unwrap_or_default(),
             max_distance_delta_body: self.max_distance_delta_body,
             max_distance_delta_au: self.max_distance_delta_au,
             sum_distance_delta_au: self.distance_sum_au,
             sum_distance_delta_sq_au: self.distance_sum_sq_au,
             distance_count: self.distance_count,
             median_distance_delta_au: median_value(&mut distance_values),
+            percentile_distance_delta_au: percentile_value(&mut distance_values, 0.95),
         }
     }
 }
@@ -6014,8 +6063,13 @@ impl BodyClassToleranceAccumulator {
             sum_distance_delta_sq_au: self.sum_distance_delta_sq_au,
             distance_count: self.distance_count,
             median_longitude_delta_deg: median_value(&mut longitude_values).unwrap_or_default(),
+            percentile_longitude_delta_deg: percentile_value(&mut longitude_values, 0.95)
+                .unwrap_or_default(),
             median_latitude_delta_deg: median_value(&mut latitude_values).unwrap_or_default(),
+            percentile_latitude_delta_deg: percentile_value(&mut latitude_values, 0.95)
+                .unwrap_or_default(),
             median_distance_delta_au: median_value(&mut distance_values),
+            percentile_distance_delta_au: percentile_value(&mut distance_values, 0.95),
             outside_bodies: self.outside_bodies,
         }
     }
@@ -7837,10 +7891,13 @@ mod tests {
             .expect("report should include body-class error envelopes");
         assert!(body_class_envelopes.contains("max longitude delta:"));
         assert!(body_class_envelopes.contains("median longitude delta:"));
+        assert!(body_class_envelopes.contains("95th percentile longitude delta:"));
         assert!(body_class_envelopes.contains("median latitude delta:"));
+        assert!(body_class_envelopes.contains("95th percentile latitude delta:"));
         assert!(body_class_envelopes.contains("rms longitude delta:"));
         assert!(body_class_envelopes.contains("rms latitude delta:"));
         assert!(body_class_envelopes.contains("median distance delta:"));
+        assert!(body_class_envelopes.contains("95th percentile distance delta:"));
         assert!(body_class_envelopes.contains("rms distance delta:"));
         assert!(body_class_envelopes.contains(" ("));
         assert!(report.contains("Body-class tolerance posture"));
@@ -7853,12 +7910,15 @@ mod tests {
             .contains("profile: phase-1 full-file VSOP87B planetary evidence"));
         assert!(body_class_tolerance_posture.contains("mean longitude delta:"));
         assert!(body_class_tolerance_posture.contains("median longitude delta:"));
+        assert!(body_class_tolerance_posture.contains("95th percentile longitude delta:"));
         assert!(body_class_tolerance_posture.contains("rms longitude delta:"));
         assert!(body_class_tolerance_posture.contains("mean latitude delta:"));
         assert!(body_class_tolerance_posture.contains("median latitude delta:"));
+        assert!(body_class_tolerance_posture.contains("95th percentile latitude delta:"));
         assert!(body_class_tolerance_posture.contains("rms latitude delta:"));
         assert!(body_class_tolerance_posture.contains("mean distance delta:"));
         assert!(body_class_tolerance_posture.contains("median distance delta:"));
+        assert!(body_class_tolerance_posture.contains("95th percentile distance delta:"));
         assert!(body_class_tolerance_posture.contains("rms distance delta:"));
         assert!(body_class_tolerance_posture.contains("outside tolerance samples:"));
         assert!(report.contains("Expected tolerance status"));
@@ -8766,7 +8826,9 @@ mod tests {
         assert!(rendered.contains("Compatibility caveats:"));
         assert!(rendered.contains("Comparison envelope:"));
         assert!(rendered.contains("median longitude delta:"));
+        assert!(rendered.contains("95th percentile longitude delta:"));
         assert!(rendered.contains("median latitude delta:"));
+        assert!(rendered.contains("95th percentile latitude delta:"));
         assert!(rendered.contains("Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB))"));
         assert!(rendered.contains("Body-class error envelopes:"));
         assert!(rendered.contains("max Δlon="));
@@ -8777,6 +8839,7 @@ mod tests {
         assert!(rendered.contains("rms longitude delta:"));
         assert!(rendered.contains("max latitude delta:"));
         assert!(rendered.contains("median latitude delta:"));
+        assert!(rendered.contains("95th percentile latitude delta:"));
         assert!(rendered.contains("rms latitude delta:"));
         assert!(rendered.contains("Validation evidence:"));
         assert!(rendered.contains("comparison samples"));
