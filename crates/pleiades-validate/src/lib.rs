@@ -77,8 +77,9 @@ use pleiades_jpl::{
 use pleiades_vsop87::{
     body_source_profiles, canonical_epoch_evidence_summary_for_report, frame_treatment_summary,
     generated_binary_audit_summary_for_report, source_audit_summary_for_report, source_audits,
-    source_body_evidence_summary_for_report, source_documentation_summary_for_report,
-    source_specifications, vsop87_request_policy_summary_for_report, Vsop87Backend,
+    source_body_evidence_summary_for_report, source_documentation_health_summary_for_report,
+    source_documentation_summary_for_report, source_specifications,
+    vsop87_request_policy_summary_for_report, Vsop87Backend,
 };
 
 const DEFAULT_BENCHMARK_ROUNDS: usize = 10_000;
@@ -2847,6 +2848,8 @@ fn render_release_summary_text() -> String {
     text.push_str("VSOP87 evidence: ");
     text.push_str(&format_vsop87_source_documentation_summary());
     text.push_str(" | ");
+    text.push_str(&format_vsop87_source_documentation_health_summary());
+    text.push_str(" | ");
     text.push_str(&format_vsop87_frame_treatment_summary());
     text.push_str(" | ");
     text.push_str("VSOP87 request policy: ");
@@ -4742,6 +4745,10 @@ fn format_vsop87_source_documentation_summary() -> String {
     source_documentation_summary_for_report()
 }
 
+fn format_vsop87_source_documentation_health_summary() -> String {
+    source_documentation_health_summary_for_report()
+}
+
 fn format_vsop87_frame_treatment_summary() -> String {
     frame_treatment_summary().to_string()
 }
@@ -5234,6 +5241,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text);
     let _ = writeln!(text, "VSOP87 source-backed evidence");
     let _ = writeln!(text, "  {}", format_vsop87_source_documentation_summary());
+    let _ = writeln!(
+        text,
+        "  {}",
+        format_vsop87_source_documentation_health_summary()
+    );
     let _ = writeln!(text, "  {}", format_vsop87_frame_treatment_summary());
     let _ = writeln!(
         text,
@@ -5590,6 +5602,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&data_source_count.to_string());
     text.push('\n');
     text.push_str(&format_vsop87_source_documentation_summary());
+    text.push('\n');
+    text.push_str(&format_vsop87_source_documentation_health_summary());
     text.push('\n');
     text.push_str(&format_vsop87_frame_treatment_summary());
     text.push('\n');
