@@ -6037,6 +6037,7 @@ pub fn render_backend_matrix_summary() -> String {
 
 fn render_backend_matrix_summary_text() -> String {
     let release_profiles = current_release_profile_identifiers();
+    let request_policy = current_request_policy_summary();
     let catalog = implemented_backend_catalog();
     let mut family_counts: BTreeMap<String, usize> = BTreeMap::new();
     let mut bodies: Vec<String> = Vec::new();
@@ -6185,6 +6186,18 @@ fn render_backend_matrix_summary_text() -> String {
         text.push_str(&regression_count.to_string());
         text.push('\n');
     }
+    text.push_str("Time-scale policy: ");
+    text.push_str(request_policy.time_scale);
+    text.push('\n');
+    text.push_str("Observer policy: ");
+    text.push_str(request_policy.observer);
+    text.push('\n');
+    text.push_str("Apparentness policy: ");
+    text.push_str(request_policy.apparentness);
+    text.push('\n');
+    text.push_str("Request policy: ");
+    text.push_str(&request_policy.summary_line());
+    text.push('\n');
     text.push_str("Frame policy: ");
     text.push_str(frame_policy_summary_for_report());
     text.push('\n');
@@ -10066,6 +10079,7 @@ mod tests {
         assert!(rendered.contains("Time-scale policy:"));
         assert!(rendered.contains("Observer policy:"));
         assert!(rendered.contains("Apparentness policy:"));
+        assert!(rendered.contains("Request policy: time-scale="));
         assert!(rendered.contains("Frame policy:"));
         assert!(rendered.contains("Zodiac policy:"));
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
