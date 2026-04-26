@@ -40,7 +40,8 @@ use pleiades_core::{
     TimeRange, TimeScale, ZodiacMode,
 };
 use pleiades_data::{
-    packaged_artifact, packaged_request_policy_summary_details, PackagedDataBackend,
+    packaged_artifact, packaged_frame_treatment_summary, packaged_request_policy_summary_details,
+    PackagedDataBackend,
 };
 use pleiades_elp::{
     format_lunar_apparent_comparison_summary, format_lunar_theory_capability_summary,
@@ -2778,6 +2779,9 @@ fn render_release_summary_text() -> String {
     text.push_str("Packaged request policy: ");
     text.push_str(&packaged_request_policy_summary_details().summary_line());
     text.push('\n');
+    text.push_str("Packaged frame treatment: ");
+    text.push_str(format_packaged_frame_treatment_summary());
+    text.push('\n');
     text.push_str("Release bundle verification: verify-release-bundle\n");
     text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
     text.push_str("Release checklist summary: release-checklist-summary\n");
@@ -4625,6 +4629,10 @@ fn format_packaged_artifact_profile_summary() -> String {
         .summary_for_body_count(artifact.bodies.len())
 }
 
+fn format_packaged_frame_treatment_summary() -> &'static str {
+    packaged_frame_treatment_summary()
+}
+
 fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     use std::fmt::Write as _;
 
@@ -5112,6 +5120,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         text,
         "  {}",
         packaged_request_policy_summary_details().summary_line()
+    );
+    let _ = writeln!(
+        text,
+        "  Packaged frame treatment: {}",
+        format_packaged_frame_treatment_summary()
     );
     let _ = writeln!(text);
     let _ = writeln!(text, "Benchmark summaries");
@@ -8262,6 +8275,7 @@ mod tests {
         assert!(validation_report_summary.contains("Release notes summary: release-notes-summary"));
         assert!(validation_report_summary.contains("Packaged-artifact profile"));
         assert!(validation_report_summary.contains("Packaged request policy"));
+        assert!(validation_report_summary.contains("Packaged frame treatment"));
         assert!(validation_report_summary.contains("Time-scale policy:"));
         assert!(validation_report_summary.contains("Observer policy:"));
         assert!(validation_report_summary.contains("Apparentness policy:"));
@@ -9427,6 +9441,7 @@ version = "0.9.0"
             "Artifact profile: byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]"
         ));
         assert!(artifact_summary.contains("Artifact request policy"));
+        assert!(artifact_summary.contains("Packaged frame treatment"));
         assert!(artifact_summary.contains("applies to 11 bundled bodies"));
         assert!(artifact_summary.contains("Model error envelope"));
         assert!(artifact_summary.contains("mean longitude delta:"));

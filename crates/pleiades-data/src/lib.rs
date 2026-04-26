@@ -185,6 +185,11 @@ pub fn packaged_request_policy_summary() -> &'static str {
     "Packaged request policy: geocentric-only; frames=Ecliptic; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false; lookup epoch policy=TT-grid retag without relativistic correction; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction"
 }
 
+/// Returns the packaged-artifact frame-treatment summary.
+pub fn packaged_frame_treatment_summary() -> &'static str {
+    "Packaged frame treatment: checked-in compressed artifact stores ecliptic coordinates directly; no equatorial channel is stored in the packaged artifact"
+}
+
 const AU_IN_KM: f64 = 149_597_870.7;
 
 /// Returns the canonical package name for this crate.
@@ -246,6 +251,7 @@ impl EphemerisBackend for PackagedDataBackend {
                 data_sources: vec![
                     packaged_body_coverage_summary(),
                     packaged_request_policy_summary_details().summary_line(),
+                    packaged_frame_treatment_summary().to_string(),
                     "Quantized linear segments stored in pleiades-compression artifact format"
                         .to_string(),
                 ],
@@ -666,6 +672,11 @@ mod tests {
             metadata.provenance.data_sources[1],
             request_policy.summary_line()
         );
+        assert_eq!(
+            metadata.provenance.data_sources[2],
+            packaged_frame_treatment_summary()
+        );
+        assert!(metadata.provenance.data_sources[2].contains("ecliptic coordinates directly"));
     }
 
     #[test]

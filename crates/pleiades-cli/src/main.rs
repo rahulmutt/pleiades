@@ -775,6 +775,7 @@ mod tests {
         assert!(release_summary.contains("House systems:"));
         assert!(release_summary
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
+        assert!(release_summary.contains("Packaged frame treatment"));
         assert!(release_summary.contains("Release gate reminders:"));
         assert!(release_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
@@ -797,6 +798,7 @@ mod tests {
             render_cli(&["artifact-summary"]).expect("artifact summary should render");
         assert!(artifact_summary.contains("Artifact summary"));
         assert!(artifact_summary.contains("Model error envelope"));
+        assert!(artifact_summary.contains("Packaged frame treatment"));
         assert!(artifact_summary.contains("Release summary: release-summary"));
         assert!(artifact_summary.contains("Release notes summary: release-notes-summary"));
         assert!(artifact_summary
