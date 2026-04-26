@@ -1442,6 +1442,92 @@ fn map_house_error(error: pleiades_houses::HouseError) -> EphemerisError {
 
 impl<B: EphemerisBackend> ChartEngine<B> {
     /// Assembles a basic chart snapshot from the backend.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use pleiades_backend::{
+    ///     AccuracyClass, Apparentness, BackendCapabilities, BackendFamily, BackendId,
+    ///     BackendMetadata, BackendProvenance, EphemerisBackend, EphemerisError, EphemerisRequest,
+    ///     EphemerisResult, QualityAnnotation, TimeRange,
+    /// };
+    /// use pleiades_core::{ChartEngine, ChartRequest};
+    /// use pleiades_types::{
+    ///     Angle, CelestialBody, CoordinateFrame, EclipticCoordinates, HouseSystem, Instant,
+    ///     JulianDay, Latitude, Longitude, ObserverLocation, TimeScale, ZodiacSign,
+    /// };
+    ///
+    /// struct DemoBackend;
+    ///
+    /// impl EphemerisBackend for DemoBackend {
+    ///     fn metadata(&self) -> BackendMetadata {
+    ///         BackendMetadata {
+    ///             id: BackendId::new("demo"),
+    ///             version: "0.1.0".to_string(),
+    ///             family: BackendFamily::Algorithmic,
+    ///             provenance: BackendProvenance::new("demo chart backend"),
+    ///             nominal_range: TimeRange::new(None, None),
+    ///             supported_time_scales: vec![TimeScale::Tt],
+    ///             body_coverage: vec![CelestialBody::Sun],
+    ///             supported_frames: vec![CoordinateFrame::Ecliptic],
+    ///             capabilities: BackendCapabilities::default(),
+    ///             accuracy: AccuracyClass::Approximate,
+    ///             deterministic: true,
+    ///             offline: true,
+    ///         }
+    ///     }
+    ///
+    ///     fn supports_body(&self, body: CelestialBody) -> bool {
+    ///         body == CelestialBody::Sun
+    ///     }
+    ///
+    ///     fn position(&self, request: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+    ///         let mut result = EphemerisResult::new(
+    ///             BackendId::new("demo"),
+    ///             request.body.clone(),
+    ///             request.instant,
+    ///             request.frame,
+    ///             request.zodiac_mode.clone(),
+    ///             request.apparent,
+    ///         );
+    ///         let ecliptic = EclipticCoordinates::new(
+    ///             Longitude::from_degrees(15.0),
+    ///             Latitude::from_degrees(0.0),
+    ///             Some(1.0),
+    ///         );
+    ///         result.ecliptic = Some(ecliptic);
+    ///         result.equatorial = Some(ecliptic.to_equatorial(Angle::from_degrees(23.4)));
+    ///         result.motion = Some(pleiades_types::Motion::new(Some(1.0), None, None));
+    ///         result.quality = QualityAnnotation::Exact;
+    ///         Ok(result)
+    ///     }
+    /// }
+    ///
+    /// let request = ChartRequest::new(Instant::new(
+    ///     JulianDay::from_days(2_451_545.0),
+    ///     TimeScale::Utc,
+    /// ))
+    /// .with_tt_from_utc_signed(64.184)
+    /// .expect("explicit UTC-to-TT conversion")
+    /// .with_observer(ObserverLocation::new(
+    ///     Latitude::from_degrees(51.5),
+    ///     Longitude::from_degrees(-0.1),
+    ///     None,
+    /// ))
+    /// .with_house_system(HouseSystem::WholeSign)
+    /// .with_bodies(vec![CelestialBody::Sun]);
+    ///
+    /// let snapshot = ChartEngine::new(DemoBackend)
+    ///     .chart(&request)
+    ///     .expect("demo chart should assemble");
+    ///
+    /// assert_eq!(snapshot.backend_id.as_str(), "demo");
+    /// assert_eq!(snapshot.zodiac_mode, pleiades_types::ZodiacMode::Tropical);
+    /// assert_eq!(snapshot.apparentness, Apparentness::Mean);
+    /// assert_eq!(snapshot.sign_for_body(&CelestialBody::Sun), Some(ZodiacSign::Aries));
+    /// assert!(snapshot.houses.is_some());
+    /// assert_eq!(snapshot.placements.len(), 1);
+    /// ```
     pub fn chart(&self, request: &ChartRequest) -> Result<ChartSnapshot, EphemerisError> {
         let metadata = self.backend.metadata();
         let backend_id = metadata.id.clone();
