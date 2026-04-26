@@ -285,6 +285,12 @@ pub struct Vsop87SourceDocumentationHealthSummary {
     pub source_backed_profile_count: usize,
     /// Bodies that still use a source-backed planetary path rather than the fallback mean-element path.
     pub source_backed_bodies: Vec<CelestialBody>,
+    /// Bodies currently served by generated-binary VSOP87B tables.
+    pub generated_binary_bodies: Vec<CelestialBody>,
+    /// Bodies currently served by vendored full-file source paths.
+    pub vendored_full_file_bodies: Vec<CelestialBody>,
+    /// Bodies currently served by truncated source slices.
+    pub truncated_bodies: Vec<CelestialBody>,
     /// Total number of body profiles in the internal catalog.
     pub body_profile_count: usize,
     /// Number of generated-binary body profiles.
@@ -1253,6 +1259,9 @@ pub fn source_documentation_health_summary() -> Vsop87SourceDocumentationHealthS
         source_file_count,
         source_backed_profile_count: summary.source_backed_profile_count,
         source_backed_bodies: summary.source_backed_bodies,
+        generated_binary_bodies: summary.generated_binary_bodies,
+        vendored_full_file_bodies: summary.vendored_full_file_bodies,
+        truncated_bodies: summary.truncated_bodies,
         body_profile_count,
         generated_binary_profile_count: summary.generated_binary_profile_count,
         vendored_full_file_profile_count: summary.vendored_full_file_profile_count,
@@ -1267,16 +1276,20 @@ pub fn format_source_documentation_health_summary(
     summary: &Vsop87SourceDocumentationHealthSummary,
 ) -> String {
     format!(
-        "VSOP87 source documentation health: {} ({} source specs, {} source files, {} source-backed profiles, {} body profiles; {} generated binary, {} vendored full-file, {} truncated, {} fallback; source-backed bodies: {}; fallback bodies: {}; documented fields: {})",
+        "VSOP87 source documentation health: {} ({} source specs, {} source files, {} source-backed profiles, {} body profiles; {} generated binary profiles ({}), {} vendored full-file profiles ({}), {} truncated profiles ({}), {} fallback profiles ({}); source-backed bodies: {}; fallback bodies: {}; documented fields: {})",
         if summary.consistent { "ok" } else { "needs attention" },
         summary.source_specification_count,
         summary.source_file_count,
         summary.source_backed_profile_count,
         summary.body_profile_count,
         summary.generated_binary_profile_count,
+        format_bodies(&summary.generated_binary_bodies),
         summary.vendored_full_file_profile_count,
+        format_bodies(&summary.vendored_full_file_bodies),
         summary.truncated_profile_count,
+        format_bodies(&summary.truncated_bodies),
         summary.fallback_profile_count,
+        format_bodies(&summary.fallback_bodies),
         format_bodies(&summary.source_backed_bodies),
         format_bodies(&summary.fallback_bodies),
         if summary.documentation_consistent {
@@ -3684,6 +3697,19 @@ mod tests {
                 CelestialBody::Neptune,
             ]
         );
+        assert_eq!(
+            summary.generated_binary_bodies,
+            vec![
+                CelestialBody::Sun,
+                CelestialBody::Mercury,
+                CelestialBody::Venus,
+                CelestialBody::Mars,
+                CelestialBody::Jupiter,
+                CelestialBody::Saturn,
+                CelestialBody::Uranus,
+                CelestialBody::Neptune,
+            ]
+        );
         assert!(summary.vendored_full_file_bodies.is_empty());
         assert!(summary.truncated_bodies.is_empty());
         assert_eq!(summary.generated_binary_profile_count, 8);
@@ -3707,6 +3733,21 @@ mod tests {
         assert_eq!(summary.source_file_count, 8);
         assert_eq!(summary.source_backed_profile_count, 8);
         assert_eq!(summary.body_profile_count, 9);
+        assert_eq!(
+            summary.generated_binary_bodies,
+            vec![
+                CelestialBody::Sun,
+                CelestialBody::Mercury,
+                CelestialBody::Venus,
+                CelestialBody::Mars,
+                CelestialBody::Jupiter,
+                CelestialBody::Saturn,
+                CelestialBody::Uranus,
+                CelestialBody::Neptune,
+            ]
+        );
+        assert!(summary.vendored_full_file_bodies.is_empty());
+        assert!(summary.truncated_bodies.is_empty());
         assert_eq!(summary.generated_binary_profile_count, 8);
         assert_eq!(summary.vendored_full_file_profile_count, 0);
         assert_eq!(summary.truncated_profile_count, 0);
@@ -3732,7 +3773,7 @@ mod tests {
         assert_eq!(summary.fallback_bodies, vec![CelestialBody::Pluto]);
         assert_eq!(
             format_source_documentation_health_summary(&summary),
-            "VSOP87 source documentation health: ok (8 source specs, 8 source files, 8 source-backed profiles, 9 body profiles; 8 generated binary, 0 vendored full-file, 0 truncated, 1 fallback; source-backed bodies: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; fallback bodies: Pluto; documented fields: variant, coordinate family, frame, units, reduction, transform note, truncation policy, and date range)"
+            "VSOP87 source documentation health: ok (8 source specs, 8 source files, 8 source-backed profiles, 9 body profiles; 8 generated binary profiles (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune), 0 vendored full-file profiles (none), 0 truncated profiles (none), 1 fallback profiles (Pluto); source-backed bodies: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; fallback bodies: Pluto; documented fields: variant, coordinate family, frame, units, reduction, transform note, truncation policy, and date range)"
         );
         assert_eq!(
             source_documentation_health_summary_for_report(),
