@@ -8640,6 +8640,17 @@ mod tests {
     }
 
     #[test]
+    fn compatibility_profile_command_surfaces_additional_ayanamsa_transliterations() {
+        let rendered =
+            render_cli(&["compatibility-profile"]).expect("compatibility profile should render");
+        assert!(rendered.contains("Aryabhatan Kaliyuga"));
+        assert!(rendered.contains("Krishnamurti-Senthilathiban"));
+        assert!(rendered.contains("Sri Yukteshwar"));
+        assert!(rendered.contains("Shri Yukteshwar"));
+        assert!(rendered.contains("De Luce"));
+    }
+
+    #[test]
     fn compatibility_profile_command_surfaces_additional_reference_mode_entries() {
         let rendered =
             render_cli(&["compatibility-profile"]).expect("compatibility profile should render");
