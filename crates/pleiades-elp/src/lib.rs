@@ -402,6 +402,181 @@ pub fn lunar_theory_catalog() -> &'static [LunarTheoryCatalogEntry] {
     LUNAR_THEORY_CATALOG
 }
 
+/// Validation errors for the structured lunar-theory catalog.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum LunarTheoryCatalogValidationError {
+    /// The catalog unexpectedly contains no entries.
+    EmptyCatalog,
+    /// The catalog unexpectedly contains no selected entry.
+    NoSelectedEntry,
+    /// The catalog unexpectedly contains more than one selected entry.
+    MultipleSelectedEntries {
+        /// Number of selected entries observed during validation.
+        selected_count: usize,
+    },
+    /// Two catalog entries share the same source identifier.
+    DuplicateSourceIdentifier {
+        /// Source identifier that collided.
+        source_identifier: &'static str,
+    },
+    /// Two catalog entries share the same model name.
+    DuplicateModelName {
+        /// Model name that collided.
+        model_name: &'static str,
+    },
+    /// Two catalog entries share the same family label.
+    DuplicateFamilyLabel {
+        /// Family label that collided.
+        family_label: &'static str,
+    },
+    /// Two catalog entries share the same documented alias.
+    DuplicateAlias {
+        /// Alias that collided.
+        alias: &'static str,
+    },
+    /// The selected entry does not round-trip through the typed selection helper.
+    SelectedEntryDoesNotRoundTrip {
+        /// Source identifier of the selected entry.
+        source_identifier: &'static str,
+    },
+}
+
+impl fmt::Display for LunarTheoryCatalogValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::EmptyCatalog => f.write_str("the lunar-theory catalog is empty"),
+            Self::NoSelectedEntry => f.write_str("the lunar-theory catalog has no selected entry"),
+            Self::MultipleSelectedEntries { selected_count } => write!(
+                f,
+                "the lunar-theory catalog has {selected_count} selected entries"
+            ),
+            Self::DuplicateSourceIdentifier { source_identifier } => write!(
+                f,
+                "the lunar-theory catalog contains duplicate source identifier `{source_identifier}`"
+            ),
+            Self::DuplicateModelName { model_name } => write!(
+                f,
+                "the lunar-theory catalog contains duplicate model name `{model_name}`"
+            ),
+            Self::DuplicateFamilyLabel { family_label } => write!(
+                f,
+                "the lunar-theory catalog contains duplicate family label `{family_label}`"
+            ),
+            Self::DuplicateAlias { alias } => write!(
+                f,
+                "the lunar-theory catalog contains duplicate alias `{alias}`"
+            ),
+            Self::SelectedEntryDoesNotRoundTrip { source_identifier } => write!(
+                f,
+                "the selected lunar-theory catalog entry `{source_identifier}` does not round-trip through the typed selection helper"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for LunarTheoryCatalogValidationError {}
+
+/// Validates the structured lunar-theory catalog for round-trip and label uniqueness.
+pub fn validate_lunar_theory_catalog() -> Result<(), LunarTheoryCatalogValidationError> {
+    let catalog = lunar_theory_catalog();
+    if catalog.is_empty() {
+        return Err(LunarTheoryCatalogValidationError::EmptyCatalog);
+    }
+
+    let selected_entries = catalog.iter().filter(|entry| entry.selected).count();
+    match selected_entries {
+        0 => return Err(LunarTheoryCatalogValidationError::NoSelectedEntry),
+        1 => {}
+        selected_count => {
+            return Err(LunarTheoryCatalogValidationError::MultipleSelectedEntries {
+                selected_count,
+            });
+        }
+    }
+
+    for (index, entry) in catalog.iter().enumerate() {
+        for other in catalog.iter().skip(index + 1) {
+            if entry
+                .specification
+                .source_identifier
+                .eq_ignore_ascii_case(other.specification.source_identifier)
+            {
+                return Err(
+                    LunarTheoryCatalogValidationError::DuplicateSourceIdentifier {
+                        source_identifier: entry.specification.source_identifier,
+                    },
+                );
+            }
+            if entry
+                .specification
+                .model_name
+                .eq_ignore_ascii_case(other.specification.model_name)
+            {
+                return Err(LunarTheoryCatalogValidationError::DuplicateModelName {
+                    model_name: entry.specification.model_name,
+                });
+            }
+            if entry
+                .specification
+                .source_family
+                .label()
+                .eq_ignore_ascii_case(other.specification.source_family.label())
+            {
+                return Err(LunarTheoryCatalogValidationError::DuplicateFamilyLabel {
+                    family_label: entry.specification.source_family.label(),
+                });
+            }
+            for alias in entry.specification.source_aliases {
+                if other.specification.matches_alias(alias)
+                    || other
+                        .specification
+                        .source_identifier
+                        .eq_ignore_ascii_case(alias)
+                    || other.specification.model_name.eq_ignore_ascii_case(alias)
+                    || other
+                        .specification
+                        .source_family
+                        .label()
+                        .eq_ignore_ascii_case(alias)
+                {
+                    return Err(LunarTheoryCatalogValidationError::DuplicateAlias { alias });
+                }
+            }
+            for alias in other.specification.source_aliases {
+                if entry.specification.matches_alias(alias)
+                    || entry
+                        .specification
+                        .source_identifier
+                        .eq_ignore_ascii_case(alias)
+                    || entry.specification.model_name.eq_ignore_ascii_case(alias)
+                    || entry
+                        .specification
+                        .source_family
+                        .label()
+                        .eq_ignore_ascii_case(alias)
+                {
+                    return Err(LunarTheoryCatalogValidationError::DuplicateAlias { alias });
+                }
+            }
+        }
+    }
+
+    let selected_entry = catalog
+        .iter()
+        .find(|entry| entry.selected)
+        .ok_or(LunarTheoryCatalogValidationError::NoSelectedEntry)?;
+    let selection = selected_entry.specification.source_selection();
+    if lunar_theory_catalog_entry_for_selection(selection) != Some(*selected_entry) {
+        return Err(
+            LunarTheoryCatalogValidationError::SelectedEntryDoesNotRoundTrip {
+                source_identifier: selected_entry.specification.source_identifier,
+            },
+        );
+    }
+
+    Ok(())
+}
+
 /// Returns the catalog entry matching the provided source identifier, when present.
 pub fn lunar_theory_catalog_entry_for_source_identifier(
     source_identifier: &str,
@@ -2629,6 +2804,7 @@ mod tests {
             resolve_lunar_theory_by_key(LunarTheoryCatalogKey::FamilyLabel("not-a-family"))
                 .is_none()
         );
+        assert!(validate_lunar_theory_catalog().is_ok());
     }
 
     #[test]
