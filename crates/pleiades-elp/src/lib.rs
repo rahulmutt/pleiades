@@ -851,6 +851,8 @@ pub struct LunarTheoryCapabilitySummary {
     pub supports_topocentric_observer: bool,
     /// Structured validation window represented by the current evidence slice.
     pub validation_window: TimeRange,
+    /// Whether the current lunar-theory catalog validates cleanly.
+    pub catalog_validation_ok: bool,
 }
 
 /// Returns the compact capability summary for the current lunar-theory selection.
@@ -870,13 +872,14 @@ pub fn lunar_theory_capability_summary() -> LunarTheoryCapabilitySummary {
         supported_apparentness_count: theory.supported_apparentness.len(),
         supports_topocentric_observer: theory.request_policy.supports_topocentric_observer,
         validation_window: theory.validation_window,
+        catalog_validation_ok: validate_lunar_theory_catalog().is_ok(),
     }
 }
 
 /// Formats the capability summary for release-facing reporting.
 pub fn format_lunar_theory_capability_summary(summary: &LunarTheoryCapabilitySummary) -> String {
     format!(
-        "lunar capability summary: {} [{}; family: {}] bodies={} ({}); unsupported={} ({}); frames={} time scales={} zodiac modes={} apparentness={} topocentric observer={} validation window={}",
+        "lunar capability summary: {} [{}; family: {}] bodies={} ({}); unsupported={} ({}); frames={} time scales={} zodiac modes={} apparentness={} topocentric observer={} validation window={}; catalog validation={}",
         summary.model_name,
         summary.source_identifier,
         summary.source_family_label,
@@ -890,6 +893,7 @@ pub fn format_lunar_theory_capability_summary(summary: &LunarTheoryCapabilitySum
         summary.supported_apparentness_count,
         summary.supports_topocentric_observer,
         format_time_range(&summary.validation_window),
+        if summary.catalog_validation_ok { "ok" } else { "error" },
     )
 }
 
@@ -3458,6 +3462,9 @@ mod tests {
             .contains("topocentric observer=false"));
         assert!(format_lunar_theory_capability_summary(&capability)
             .contains("validation window=JD 2448724.5 (TT) → JD 2459278.5 (TT)"));
+        assert!(
+            format_lunar_theory_capability_summary(&capability).contains("catalog validation=ok")
+        );
         assert_eq!(theory.supported_bodies, lunar_theory_supported_bodies());
         assert_eq!(theory.unsupported_bodies, lunar_theory_unsupported_bodies());
         assert_eq!(
