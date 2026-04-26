@@ -622,6 +622,10 @@ mod tests {
         assert!(rendered.contains("Makransky Sunshine"));
         assert!(rendered.contains("Treindl Sunshine"));
         assert!(rendered.contains("Y APC houses"));
+        assert!(rendered.contains("Wang"));
+        assert!(rendered.contains("Aries houses"));
+        assert!(rendered.contains("Fagan/Bradley"));
+        assert!(rendered.contains("Usha Shashi"));
         assert!(rendered.contains("X, Meridian houses, Meridian table of houses, Meridian house system, ARMC, Axial Rotation, Axial rotation system, Zariel, X axial rotation system/ Meridian houses -> Meridian"));
         assert!(rendered.contains("Target ayanamsa catalog:"));
         assert!(rendered.contains("Alias mappings for built-in house systems:"));
@@ -810,6 +814,10 @@ mod tests {
         assert!(release_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(release_summary.contains("Release notes summary: release-notes-summary"));
+        assert!(release_summary.contains("Wang"));
+        assert!(release_summary.contains("Aries houses"));
+        assert!(release_summary.contains("Fagan/Bradley"));
+        assert!(release_summary.contains("Usha Shashi"));
         assert!(release_summary.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto override)"));
         assert!(release_summary.contains("coverage=Luminaries: bodies=Moon, Sun, samples="));
         assert!(release_summary.contains(
