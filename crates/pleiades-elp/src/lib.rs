@@ -191,6 +191,8 @@ pub enum LunarTheoryCatalogKey<'a> {
     ModelName(&'a str),
     /// Match the source-family label.
     FamilyLabel(&'a str),
+    /// Match a documented short alias.
+    Alias(&'a str),
 }
 
 impl<'a> LunarTheoryCatalogKey<'a> {
@@ -210,6 +212,9 @@ impl<'a> LunarTheoryCatalogKey<'a> {
                 .source_family
                 .label()
                 .eq_ignore_ascii_case(family_label),
+            Self::Alias(alias) => {
+                entry.specification.matches_label(alias) && lunar_theory_source_aliases_match(alias)
+            }
         }
     }
 }
@@ -403,9 +408,7 @@ pub fn lunar_theory_catalog_entry_for_family_label(
 
 /// Returns the catalog entry matching the provided alias, when present.
 pub fn lunar_theory_catalog_entry_for_alias(alias: &str) -> Option<LunarTheoryCatalogEntry> {
-    lunar_theory_catalog().iter().copied().find(|entry| {
-        entry.specification.matches_label(alias) && lunar_theory_source_aliases_match(alias)
-    })
+    lunar_theory_catalog_entry_for_key(LunarTheoryCatalogKey::Alias(alias))
 }
 
 /// Returns the catalog entry matching the provided typed lookup key, when present.
@@ -2390,6 +2393,12 @@ mod tests {
             Some(catalog[0])
         );
         assert_eq!(
+            lunar_theory_catalog_entry_for_key(LunarTheoryCatalogKey::Alias(
+                "Meeus-style truncated lunar baseline",
+            )),
+            Some(catalog[0])
+        );
+        assert_eq!(
             lunar_theory_catalog_entry_for_label("Meeus-style truncated lunar baseline"),
             Some(catalog[0])
         );
@@ -2507,6 +2516,12 @@ mod tests {
         assert_eq!(
             resolve_lunar_theory_by_key(LunarTheoryCatalogKey::FamilyLabel(
                 theory.source_family.label(),
+            )),
+            Some(theory)
+        );
+        assert_eq!(
+            resolve_lunar_theory_by_key(LunarTheoryCatalogKey::Alias(
+                "Meeus-style truncated lunar baseline",
             )),
             Some(theory)
         );
