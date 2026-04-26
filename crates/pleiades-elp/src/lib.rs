@@ -14,8 +14,9 @@
 //! true perigee as unsupported bodies, so future source-backed ELP work can
 //! attach provenance, supported channels, unsupported channels, and date-range
 //! notes without changing the public API shape. The current catalog also has
-//! typed lookup helpers by source identifier, model name, and family label so
-//! future source-backed lunar variants can slot into the same resolution path.
+//! typed lookup helpers by source identifier, model name, structured source
+//! family, and family label so future source-backed lunar variants can slot
+//! into the same resolution path.
 //!
 //! See `docs/lunar-theory-policy.md` for the current baseline, validation
 //! scope, and source/provenance posture.
@@ -122,6 +123,11 @@ impl LunarTheorySourceSelection {
     pub const fn catalog_key(self) -> LunarTheoryCatalogKey<'static> {
         LunarTheoryCatalogKey::SourceIdentifier(self.identifier)
     }
+
+    /// Returns the typed family key for the current source selection.
+    pub const fn family_key(self) -> LunarTheoryCatalogKey<'static> {
+        LunarTheoryCatalogKey::SourceFamily(self.family)
+    }
 }
 
 /// Compact source-selection summary for the current lunar-theory baseline.
@@ -194,6 +200,8 @@ pub enum LunarTheoryCatalogKey<'a> {
     SourceIdentifier(&'a str),
     /// Match the human-readable model name.
     ModelName(&'a str),
+    /// Match the structured source-family enum.
+    SourceFamily(LunarTheorySourceFamily),
     /// Match the source-family label.
     FamilyLabel(&'a str),
     /// Match a documented short alias.
@@ -212,6 +220,7 @@ impl<'a> LunarTheoryCatalogKey<'a> {
                 .specification
                 .model_name
                 .eq_ignore_ascii_case(model_name),
+            Self::SourceFamily(source_family) => entry.specification.source_family == source_family,
             Self::FamilyLabel(family_label) => entry
                 .specification
                 .source_family
@@ -407,6 +416,13 @@ pub fn lunar_theory_catalog_entry_for_model_name(
     lunar_theory_catalog_entry_for_key(LunarTheoryCatalogKey::ModelName(model_name))
 }
 
+/// Returns the catalog entry matching the structured source family, when present.
+pub fn lunar_theory_catalog_entry_for_source_family(
+    source_family: LunarTheorySourceFamily,
+) -> Option<LunarTheoryCatalogEntry> {
+    lunar_theory_catalog_entry_for_key(LunarTheoryCatalogKey::SourceFamily(source_family))
+}
+
 /// Returns the catalog entry matching the provided source-family label, when present.
 pub fn lunar_theory_catalog_entry_for_family_label(
     family_label: &str,
@@ -445,6 +461,13 @@ pub fn resolve_lunar_theory(label: &str) -> Option<LunarTheorySpecification> {
 /// Returns the current lunar-theory specification matching the provided alias, when present.
 pub fn resolve_lunar_theory_by_alias(alias: &str) -> Option<LunarTheorySpecification> {
     lunar_theory_catalog_entry_for_alias(alias).map(|entry| entry.specification)
+}
+
+/// Returns the current lunar-theory specification matching the structured source family, when present.
+pub fn resolve_lunar_theory_by_family(
+    source_family: LunarTheorySourceFamily,
+) -> Option<LunarTheorySpecification> {
+    lunar_theory_catalog_entry_for_source_family(source_family).map(|entry| entry.specification)
 }
 
 /// Returns the current lunar-theory specification matching the provided typed lookup key, when present.
@@ -2394,6 +2417,10 @@ mod tests {
             source.catalog_key(),
             LunarTheoryCatalogKey::SourceIdentifier(theory.source_identifier)
         );
+        assert_eq!(
+            source.family_key(),
+            LunarTheoryCatalogKey::SourceFamily(theory.source_family)
+        );
         assert_eq!(resolve_lunar_theory_by_selection(source), Some(theory));
         let catalog = lunar_theory_catalog();
         assert_eq!(
@@ -2495,11 +2522,19 @@ mod tests {
             Some(catalog[0])
         );
         assert_eq!(
+            lunar_theory_catalog_entry_for_source_family(theory.source_family),
+            Some(catalog[0])
+        );
+        assert_eq!(
             lunar_theory_catalog_entry_for_family_label(theory.source_family.label()),
             Some(catalog[0])
         );
         assert_eq!(resolve_lunar_theory(theory.source_identifier), Some(theory));
         assert_eq!(resolve_lunar_theory(theory.model_name), Some(theory));
+        assert_eq!(
+            resolve_lunar_theory_by_family(theory.source_family),
+            Some(theory)
+        );
         assert_eq!(
             lunar_theory_catalog_entry_for_label(theory.source_family.label()),
             Some(catalog[0])
@@ -2533,6 +2568,10 @@ mod tests {
             Some(theory)
         );
         assert_eq!(
+            resolve_lunar_theory_by_key(LunarTheoryCatalogKey::SourceFamily(theory.source_family)),
+            Some(theory)
+        );
+        assert_eq!(
             resolve_lunar_theory_by_key(LunarTheoryCatalogKey::FamilyLabel(
                 theory.source_family.label(),
             )),
@@ -2545,6 +2584,10 @@ mod tests {
             Some(theory)
         );
         assert!(resolve_lunar_theory("not-a-lunar-theory").is_none());
+        assert!(resolve_lunar_theory_by_family(
+            LunarTheorySourceFamily::MeeusStyleTruncatedAnalyticalBaseline
+        )
+        .is_some());
         assert!(
             resolve_lunar_theory_by_key(LunarTheoryCatalogKey::FamilyLabel("not-a-family"))
                 .is_none()
