@@ -8579,6 +8579,13 @@ mod tests {
         assert!(rendered.contains("T Polich/Page (\"topocentric\")"));
         assert!(rendered.contains("Poli-equatorial"));
         assert!(rendered.contains("horizon/azimuth"));
+        assert!(rendered.contains("Meridian house system"));
+        assert!(rendered.contains("Horizon house system"));
+        assert!(rendered.contains("Horizontal house system"));
+        assert!(rendered.contains("Azimuth house system"));
+        assert!(rendered.contains("Azimuthal house system"));
+        assert!(rendered.contains("Carter's poli-equatorial"));
+        assert!(rendered.contains("Krusinski/Pisa/Goelzer house system"));
         assert!(rendered.contains("Babylonian Huber"));
         assert!(rendered.contains("Galactic Equator (True)"));
         assert!(rendered.contains("Valens Moon ayanamsa"));
@@ -8599,6 +8606,13 @@ mod tests {
         assert!(rendered.contains("Vehlow Equal table of houses"));
         assert!(rendered.contains("Vehlow Equal house system"));
         assert!(rendered.contains("Topocentric house system"));
+        assert!(rendered.contains("Meridian house system"));
+        assert!(rendered.contains("Horizon house system"));
+        assert!(rendered.contains("Horizontal house system"));
+        assert!(rendered.contains("Azimuth house system"));
+        assert!(rendered.contains("Azimuthal house system"));
+        assert!(rendered.contains("Carter's poli-equatorial"));
+        assert!(rendered.contains("Krusinski/Pisa/Goelzer house system"));
         assert!(rendered.contains("Equal table of houses"));
         assert!(rendered.contains("Equal (cusp 1 = Asc)"));
         assert!(rendered.contains("Whole Sign system"));

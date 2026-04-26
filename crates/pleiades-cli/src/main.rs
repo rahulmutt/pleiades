@@ -599,6 +599,13 @@ mod tests {
         assert!(rendered.contains("Baseline compatibility milestone:"));
         assert!(rendered.contains("Release-specific coverage beyond baseline:"));
         assert!(rendered.contains("Topocentric"));
+        assert!(rendered.contains("Meridian house system"));
+        assert!(rendered.contains("Horizon house system"));
+        assert!(rendered.contains("Horizontal house system"));
+        assert!(rendered.contains("Azimuth house system"));
+        assert!(rendered.contains("Azimuthal house system"));
+        assert!(rendered.contains("Carter's poli-equatorial"));
+        assert!(rendered.contains("Krusinski/Pisa/Goelzer house system"));
         assert!(rendered.contains("X, Meridian houses, Meridian table of houses, Meridian house system, ARMC, Axial Rotation, Axial rotation system, Zariel, X axial rotation system/ Meridian houses -> Meridian"));
         assert!(rendered.contains("Target ayanamsa catalog:"));
         assert!(rendered.contains("Alias mappings for built-in house systems:"));
