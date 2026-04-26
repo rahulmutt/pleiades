@@ -31,7 +31,11 @@ pub use house_validation::{
 use pleiades_ayanamsa::{
     baseline_ayanamsas, built_in_ayanamsas, metadata_coverage, release_ayanamsas, resolve_ayanamsa,
 };
-use pleiades_backend::zodiac_policy_summary_for_report;
+use pleiades_backend::{
+    apparentness_policy_summary_for_report, frame_policy_summary_for_report,
+    observer_policy_summary_for_report, time_scale_policy_summary_for_report,
+    zodiac_policy_summary_for_report,
+};
 use pleiades_core::{
     current_api_stability_profile, current_compatibility_profile,
     current_release_profile_identifiers, default_chart_bodies, AccuracyClass, Apparentness,
@@ -5737,22 +5741,6 @@ fn render_api_stability_summary_text() -> String {
     text.push_str("See release-summary for the compact one-screen release overview.\n");
 
     text
-}
-
-fn time_scale_policy_summary_for_report() -> &'static str {
-    "direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T model"
-}
-
-fn observer_policy_summary_for_report() -> &'static str {
-    "chart houses use observer locations; body requests stay geocentric; geocentric-only backends reject observer-bearing requests"
-}
-
-fn apparentness_policy_summary_for_report() -> &'static str {
-    "current first-party backends accept mean geometric output only; apparent requests are rejected unless a backend explicitly advertises support"
-}
-
-fn frame_policy_summary_for_report() -> &'static str {
-    "ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported"
 }
 
 fn push_unique(values: &mut Vec<String>, value: String) {

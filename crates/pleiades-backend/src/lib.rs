@@ -507,6 +507,26 @@ pub fn validate_zodiac_policy(
     Ok(())
 }
 
+/// Returns the compact report wording for the current time-scale policy.
+pub const fn time_scale_policy_summary_for_report() -> &'static str {
+    "direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T model"
+}
+
+/// Returns the compact report wording for the current observer policy.
+pub const fn observer_policy_summary_for_report() -> &'static str {
+    "chart houses use observer locations; body requests stay geocentric; geocentric-only backends reject observer-bearing requests"
+}
+
+/// Returns the compact report wording for the current apparentness policy.
+pub const fn apparentness_policy_summary_for_report() -> &'static str {
+    "current first-party backends accept mean geometric output only; apparent requests are rejected unless a backend explicitly advertises support"
+}
+
+/// Returns the compact report wording for the current frame policy.
+pub const fn frame_policy_summary_for_report() -> &'static str {
+    "ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported"
+}
+
 /// Formats the zodiac-mode policy shared by the current first-party backends.
 pub fn zodiac_policy_summary_for_report(supported_zodiac_modes: &[ZodiacMode]) -> String {
     if supported_zodiac_modes.len() == 1 && supported_zodiac_modes[0] == ZodiacMode::Tropical {
@@ -1043,6 +1063,22 @@ mod tests {
                 );
         assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
         assert!(error.message.contains("tropical coordinates only"));
+        assert_eq!(
+            time_scale_policy_summary_for_report(),
+            "direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T model"
+        );
+        assert_eq!(
+            observer_policy_summary_for_report(),
+            "chart houses use observer locations; body requests stay geocentric; geocentric-only backends reject observer-bearing requests"
+        );
+        assert_eq!(
+            apparentness_policy_summary_for_report(),
+            "current first-party backends accept mean geometric output only; apparent requests are rejected unless a backend explicitly advertises support"
+        );
+        assert_eq!(
+            frame_policy_summary_for_report(),
+            "ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported"
+        );
         assert_eq!(
             zodiac_policy_summary_for_report(&[ZodiacMode::Tropical]),
             "tropical only"
