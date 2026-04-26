@@ -119,6 +119,34 @@ impl BackendFamily {
             Self::Other(value) => Cow::Owned(format!("Other({value})")),
         }
     }
+
+    /// Returns `true` when the backend is driven primarily by external source data.
+    pub const fn is_data_backed(&self) -> bool {
+        matches!(self, Self::ReferenceData | Self::CompressedData)
+    }
+
+    /// Returns `true` when the backend is formula-driven rather than data-backed.
+    pub const fn is_algorithmic(&self) -> bool {
+        matches!(self, Self::Algorithmic)
+    }
+
+    /// Returns `true` when the backend routes across multiple providers.
+    pub const fn is_routing(&self) -> bool {
+        matches!(self, Self::Composite)
+    }
+
+    /// Returns a short posture label for release-facing summaries.
+    pub const fn posture_label(&self) -> &'static str {
+        if self.is_algorithmic() {
+            "algorithmic"
+        } else if self.is_data_backed() {
+            "data-backed"
+        } else if self.is_routing() {
+            "routing"
+        } else {
+            "other"
+        }
+    }
 }
 
 impl fmt::Display for BackendFamily {
@@ -990,6 +1018,20 @@ mod tests {
         assert_eq!(
             BackendFamily::Other("custom".to_string()).to_string(),
             "Other(custom)"
+        );
+
+        assert!(BackendFamily::ReferenceData.is_data_backed());
+        assert!(BackendFamily::CompressedData.is_data_backed());
+        assert!(!BackendFamily::Algorithmic.is_data_backed());
+        assert!(BackendFamily::Algorithmic.is_algorithmic());
+        assert!(BackendFamily::Composite.is_routing());
+        assert_eq!(BackendFamily::Algorithmic.posture_label(), "algorithmic");
+        assert_eq!(BackendFamily::ReferenceData.posture_label(), "data-backed");
+        assert_eq!(BackendFamily::CompressedData.posture_label(), "data-backed");
+        assert_eq!(BackendFamily::Composite.posture_label(), "routing");
+        assert_eq!(
+            BackendFamily::Other("custom".to_string()).posture_label(),
+            "other"
         );
 
         assert_eq!(AccuracyClass::Exact.to_string(), "Exact");

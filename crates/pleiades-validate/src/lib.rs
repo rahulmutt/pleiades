@@ -6836,6 +6836,7 @@ fn write_backend_matrix(f: &mut fmt::Formatter<'_>, backend: &BackendMetadata) -
     writeln!(f, "  id: {}", backend.id)?;
     writeln!(f, "  version: {}", backend.version)?;
     writeln!(f, "  family: {}", backend.family)?;
+    writeln!(f, "  family posture: {}", backend.family.posture_label())?;
     writeln!(f, "  accuracy: {}", backend.accuracy)?;
     writeln!(f, "  deterministic: {}", backend.deterministic)?;
     writeln!(f, "  offline: {}", backend.offline)?;
@@ -9755,6 +9756,9 @@ mod tests {
         assert!(rendered.contains("implementation status: preliminary-algorithm"));
         assert!(rendered.contains("implementation status: prototype-artifact"));
         assert!(rendered.contains("implementation status: routing-facade"));
+        assert!(rendered.contains("family posture: data-backed"));
+        assert!(rendered.contains("family posture: algorithmic"));
+        assert!(rendered.contains("family posture: routing"));
         assert!(rendered.contains("implementation note:"));
         assert!(rendered.contains("Sun through Neptune now use generated binary VSOP87B source tables derived from the vendored full-file inputs"));
         assert!(rendered.contains("expected error classes:"));
