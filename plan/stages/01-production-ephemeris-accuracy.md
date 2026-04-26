@@ -38,6 +38,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Progress note: the backend-matrix implementation note for the VSOP87 backend now correctly describes the Sun-through-Neptune generated-binary paths as derived from the vendored full-file inputs, keeping the release-facing implementation status aligned with the runtime path.
    - Progress note: the VSOP87 and ELP backend-matrix status notes now use production-neutral wording for the current Pluto and lunar baselines, so the compact release-facing implementation notes no longer imply a stale pending/MVP posture for those backends.
    - Progress note: the VSOP87 canonical J2000 evidence now also has a backend-owned equatorial companion summary, so the source-backed planetary slice now exposes a mean-obliquity frame cross-check alongside the ecliptic envelope in validation and release-facing summaries.
+   - Progress note: the VSOP87 canonical J2000 evidence now also carries a concise interim-outlier note in the validation, backend-matrix, and release summaries, so any future envelope regression can name the affected bodies without leaving the compact report readers to infer that from the aggregate count alone.
 
 2. Implement production `pleiades-elp` lunar calculations.
    - Select and document a pure-Rust lunar theory source.

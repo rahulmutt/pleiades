@@ -1425,6 +1425,30 @@ pub fn canonical_epoch_evidence_summary_for_report() -> String {
     }
 }
 
+/// Returns a concise note describing any canonical J2000 bodies outside the
+/// current interim limits.
+pub fn canonical_epoch_outlier_note_for_report() -> String {
+    match canonical_epoch_body_evidence() {
+        Some(evidence) => {
+            let outliers = evidence
+                .into_iter()
+                .filter(|row| !row.within_interim_limits)
+                .map(|row| row.body)
+                .collect::<Vec<_>>();
+
+            if outliers.is_empty() {
+                "VSOP87 canonical J2000 interim outliers: none".to_string()
+            } else {
+                format!(
+                    "VSOP87 canonical J2000 interim outliers: {}",
+                    format_celestial_bodies(&outliers)
+                )
+            }
+        }
+        None => "VSOP87 canonical J2000 interim outliers: unavailable".to_string(),
+    }
+}
+
 /// Formats the canonical VSOP87 J2000 equatorial companion summary for reporting.
 pub fn format_canonical_equatorial_evidence_summary(
     summary: &Vsop87CanonicalEquatorialEvidenceSummary,
@@ -3824,6 +3848,14 @@ mod tests {
         assert!(rendered.contains("p95 Δlon="));
         assert!(rendered.contains("p95 Δlat="));
         assert!(rendered.contains("p95 Δdist="));
+    }
+
+    #[test]
+    fn canonical_evidence_outlier_note_reports_the_current_interim_status() {
+        assert_eq!(
+            canonical_epoch_outlier_note_for_report(),
+            "VSOP87 canonical J2000 interim outliers: none"
+        );
     }
 
     #[test]
