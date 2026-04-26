@@ -137,6 +137,8 @@ pub struct LunarTheorySourceSummary {
     pub model_name: &'static str,
     /// Stable identifier for the current baseline.
     pub source_identifier: &'static str,
+    /// Typed catalog key for the current source selection.
+    pub catalog_key: LunarTheoryCatalogKey<'static>,
     /// Structured source family for the current source selection.
     pub source_family: LunarTheorySourceFamily,
     /// Human-readable family label for the current source selection.
@@ -168,6 +170,7 @@ pub fn lunar_theory_source_summary() -> LunarTheorySourceSummary {
     LunarTheorySourceSummary {
         model_name: theory.model_name,
         source_identifier: source.identifier,
+        catalog_key: source.catalog_key(),
         source_family: source.family,
         source_family_label: source.family_label(),
         source_aliases: source.source_aliases,
@@ -1002,9 +1005,10 @@ pub fn format_lunar_theory_source_summary(summary: &LunarTheorySourceSummary) ->
     };
 
     format!(
-        "lunar source selection: {} [{}; family: {}]; aliases: {}; citation: {}; provenance: {}; validation window: {}; redistribution: {}; license: {}",
+        "lunar source selection: {} [{}; selected key: {}; family: {}]; aliases: {}; citation: {}; provenance: {}; validation window: {}; redistribution: {}; license: {}",
         summary.model_name,
         summary.source_identifier,
+        summary.catalog_key,
         summary.source_family_label,
         aliases,
         summary.citation,
@@ -2779,6 +2783,10 @@ mod tests {
         assert_eq!(source_summary.source_identifier, theory.source_identifier);
         assert_eq!(source_summary.source_family, theory.source_family);
         assert_eq!(
+            source_summary.catalog_key,
+            theory.source_selection().catalog_key()
+        );
+        assert_eq!(
             source_summary.source_family_label,
             theory.source_family.label()
         );
@@ -2796,6 +2804,8 @@ mod tests {
             lunar_theory_source_summary_for_report()
         );
         assert!(lunar_theory_source_summary_for_report().contains("lunar source selection: "));
+        assert!(lunar_theory_source_summary_for_report()
+            .contains("selected key: source identifier=meeus-style-truncated-lunar-baseline"));
         assert!(lunar_theory_source_summary_for_report()
             .contains("aliases: Meeus-style truncated lunar baseline"));
         assert!(lunar_theory_source_summary_for_report().contains(theory.model_name));
