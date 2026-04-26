@@ -447,14 +447,6 @@ impl fmt::Display for EphemerisError {
 
 impl std::error::Error for EphemerisError {}
 
-fn format_debug_list<T: fmt::Debug>(values: &[T]) -> String {
-    values
-        .iter()
-        .map(|value| format!("{value:?}"))
-        .collect::<Vec<_>>()
-        .join(", ")
-}
-
 fn format_display_list<T: fmt::Display>(values: &[T]) -> String {
     values
         .iter()
@@ -482,7 +474,7 @@ pub fn validate_request_policy(
             EphemerisErrorKind::UnsupportedTimeScale,
             format!(
                 "{backend_label} expects one of [{}] for request instants",
-                format_debug_list(supported_time_scales)
+                format_display_list(supported_time_scales)
             ),
         ));
     }
@@ -492,7 +484,7 @@ pub fn validate_request_policy(
             EphemerisErrorKind::UnsupportedCoordinateFrame,
             format!(
                 "{backend_label} only returns [{}] coordinates",
-                format_debug_list(supported_frames)
+                format_display_list(supported_frames)
             ),
         ));
     }
@@ -528,7 +520,7 @@ pub fn validate_zodiac_policy(
         } else {
             format!(
                 "{backend_label} currently exposes [{}] zodiac coordinates only",
-                format_debug_list(supported_zodiac_modes)
+                format_display_list(supported_zodiac_modes)
             )
         };
 
@@ -1091,6 +1083,10 @@ mod tests {
         )
         .expect_err("UTC should be rejected when only TT is supported");
         assert_eq!(error.kind, EphemerisErrorKind::UnsupportedTimeScale);
+        assert_eq!(
+            error.message,
+            "toy backend expects one of [TT] for request instants"
+        );
 
         let frame_request = EphemerisRequest {
             instant: Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt),
@@ -1108,6 +1104,10 @@ mod tests {
         )
         .expect_err("equatorial frame should be rejected when only ecliptic is supported");
         assert_eq!(error.kind, EphemerisErrorKind::UnsupportedCoordinateFrame);
+        assert_eq!(
+            error.message,
+            "toy backend only returns [Ecliptic] coordinates"
+        );
 
         let apparent_request = EphemerisRequest {
             frame: CoordinateFrame::Ecliptic,
