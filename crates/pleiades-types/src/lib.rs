@@ -548,7 +548,7 @@ impl fmt::Display for ZodiacMode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Tropical => f.write_str("Tropical"),
-            Self::Sidereal { ayanamsa } => write!(f, "Sidereal ({ayanamsa:?})"),
+            Self::Sidereal { ayanamsa } => write!(f, "Sidereal ({ayanamsa})"),
         }
     }
 }
@@ -1006,6 +1006,15 @@ pub enum Ayanamsa {
     Custom(CustomAyanamsa),
 }
 
+impl fmt::Display for Ayanamsa {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Custom(custom) => write!(f, "{custom}"),
+            _ => write!(f, "{self:?}"),
+        }
+    }
+}
+
 /// A structured custom ayanamsa definition.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
@@ -1029,6 +1038,29 @@ impl CustomAyanamsa {
             epoch: None,
             offset_degrees: None,
         }
+    }
+}
+
+impl fmt::Display for CustomAyanamsa {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.name)?;
+
+        let mut details = Vec::new();
+        if let Some(epoch) = self.epoch {
+            details.push(format!("epoch: {epoch}"));
+        }
+        if let Some(offset_degrees) = self.offset_degrees {
+            details.push(format!("offset: {offset_degrees}"));
+        }
+        if let Some(description) = &self.description {
+            details.push(description.clone());
+        }
+
+        if !details.is_empty() {
+            write!(f, " [{}]", details.join(", "))?;
+        }
+
+        Ok(())
     }
 }
 
@@ -1356,6 +1388,21 @@ mod tests {
             .to_string(),
             "Sidereal (Lahiri)"
         );
+        assert_eq!(
+            ZodiacMode::Sidereal {
+                ayanamsa: Ayanamsa::Custom(CustomAyanamsa::new("My Custom Sidereal"))
+            }
+            .to_string(),
+            "Sidereal (My Custom Sidereal)"
+        );
+    }
+
+    #[test]
+    fn custom_ayanamsas_have_stable_display_names() {
+        let custom = CustomAyanamsa::new("My Custom Sidereal");
+
+        assert_eq!(custom.to_string(), "My Custom Sidereal");
+        assert_eq!(Ayanamsa::Custom(custom).to_string(), "My Custom Sidereal");
     }
 
     #[test]
