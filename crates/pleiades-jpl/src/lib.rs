@@ -939,7 +939,7 @@ pub fn format_jpl_independent_holdout_summary(summary: &JplIndependentHoldoutSum
     }
 
     format!(
-        "JPL independent hold-out: {} exact rows across {} bodies and {} epochs ({} → {}); max Δlon={:.12}°{}; mean Δlon={:.12}°; median Δlon={:.12}°; p95 Δlon={:.12}°; rms Δlon={:.12}°; max Δlat={:.12}°{}; mean Δlat={:.12}°; median Δlat={:.12}°; p95 Δlat={:.12}°; rms Δlat={:.12}°; max Δdist={:.12} AU{}; mean Δdist={:.12} AU; median Δdist={:.12} AU; p95 Δdist={:.12} AU; rms Δdist={:.12} AU; independent JPL Horizons rows held out from the main snapshot corpus",
+        "JPL independent hold-out: {} exact rows across {} bodies and {} epochs ({} → {}); max Δlon={:.12}°{}; mean Δlon={:.12}°; median Δlon={:.12}°; p95 Δlon={:.12}°; rms Δlon={:.12}°; max Δlat={:.12}°{}; mean Δlat={:.12}°; median Δlat={:.12}°; p95 Δlat={:.12}°; rms Δlat={:.12}°; max Δdist={:.12} AU{}; mean Δdist={:.12} AU; median Δdist={:.12} AU; p95 Δdist={:.12} AU; rms Δdist={:.12} AU; transparency evidence only, not a production tolerance envelope; independent JPL Horizons rows held out from the main snapshot corpus",
         summary.sample_count,
         summary.body_count,
         summary.epoch_count,
@@ -2151,6 +2151,9 @@ mod tests {
         assert!(rendered.contains("p95 Δlon="));
         assert!(rendered.contains("p95 Δlat="));
         assert!(rendered.contains("p95 Δdist="));
+        assert!(
+            rendered.contains("transparency evidence only, not a production tolerance envelope")
+        );
         assert!(rendered
             .contains("independent JPL Horizons rows held out from the main snapshot corpus"));
         assert!(rendered.contains(&format!(
