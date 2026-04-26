@@ -11,8 +11,9 @@ use pleiades_core::{
     EphemerisRequest, Instant, JulianDay, ZodiacMode,
 };
 use pleiades_data::{
-    packaged_artifact, packaged_artifact_regeneration_summary, packaged_backend,
-    packaged_frame_treatment_summary, packaged_request_policy_summary_details,
+    packaged_artifact, packaged_artifact_profile_summary_with_body_coverage,
+    packaged_artifact_regeneration_summary, packaged_backend, packaged_frame_treatment_summary,
+    packaged_request_policy_summary_details,
 };
 
 /// A report describing the bundled compressed artifact and its boundary checks.
@@ -361,13 +362,8 @@ fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
     text.push_str("  encoded bytes: ");
     text.push_str(&report.encoded_bytes.to_string());
     text.push('\n');
-    let artifact = packaged_artifact();
     text.push_str("  Artifact profile: ");
-    text.push_str(
-        &artifact
-            .header
-            .summary_for_body_count(artifact.bodies.len()),
-    );
+    text.push_str(&packaged_artifact_profile_summary_with_body_coverage());
     text.push('\n');
     text.push_str("  Artifact request policy: ");
     text.push_str(&packaged_request_policy_summary_details().summary_line());

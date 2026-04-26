@@ -33,6 +33,7 @@ Completed foundations:
 - tests and doctests for current behavior.
 
 Latest progress (2026-04-26): the release checklist summary now also surfaces the shared zodiac policy line, keeping the compact maintainer-facing release workflow aligned with the other report summaries and the current tropical-only request posture.
+Latest progress (2026-04-26): the artifact summary now reuses the shared packaged-artifact profile-with-body-coverage helper, so the compact artifact report names the bundled body set explicitly instead of only reporting the aggregate count.
 Latest progress (2026-04-26): the lunar reference and lunar equatorial error-envelope summaries now also surface median and 95th-percentile deltas alongside the existing mean/max fields, so the compact lunar evidence mirrors the richer VSOP87/JPL reporting shape more closely without changing the public request model.
 Latest progress (2026-04-26): the compatibility-profile and release-summary smoke tests now also pin the Wang, Aries houses, Fagan/Bradley, and Usha Shashi release-facing spellings, keeping a few more still-visible equal-house and ayanamsa labels anchored in the command-line audit path while the broader catalog breadth audit continues.
 Latest progress (2026-04-26): the compression codec and packaged-data fixture were bumped to a version-4 format that supports optional residual-correction channels in segment payloads, so the current packaged artifact can stay deterministic while future lunar fits gain a home for high-curvature correction terms.
