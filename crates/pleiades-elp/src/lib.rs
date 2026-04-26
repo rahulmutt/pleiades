@@ -605,18 +605,36 @@ pub fn validate_lunar_theory_catalog() -> Result<(), LunarTheoryCatalogValidatio
 /// Returns a compact release-facing summary of the lunar-theory catalog validation state.
 pub fn lunar_theory_catalog_validation_summary_for_report() -> String {
     let catalog = lunar_theory_catalog();
+    let selected_entry = catalog.iter().find(|entry| entry.selected);
     let selected_count = catalog.iter().filter(|entry| entry.selected).count();
+    let selected_source_summary = selected_entry
+        .map(|entry| {
+            format!(
+                "{} [{}]",
+                entry.specification.source_identifier,
+                entry.specification.source_family.label(),
+            )
+        })
+        .unwrap_or_else(|| "none".to_string());
+    let selected_alias_count = selected_entry
+        .map(|entry| entry.specification.source_aliases.len())
+        .unwrap_or(0);
+
     match validate_lunar_theory_catalog() {
         Ok(()) => format!(
-            "lunar theory catalog validation: ok ({} entries, {} selected; round-trip and alias uniqueness verified)",
+            "lunar theory catalog validation: ok ({} entries, {} selected; selected source: {}; aliases={}; round-trip and alias uniqueness verified)",
             catalog.len(),
             selected_count,
+            selected_source_summary,
+            selected_alias_count,
         ),
         Err(error) => format!(
-            "lunar theory catalog validation: error: {} ({} entries, {} selected)",
+            "lunar theory catalog validation: error: {} ({} entries, {} selected; selected source: {}; aliases={})",
             error,
             catalog.len(),
             selected_count,
+            selected_source_summary,
+            selected_alias_count,
         ),
     }
 }
@@ -2762,7 +2780,7 @@ mod tests {
         assert!(lunar_theory_catalog_summary_for_report()
             .contains("lunar theory catalog: 1 entry, 1 selected entry"));
         assert!(lunar_theory_catalog_validation_summary_for_report()
-            .contains("lunar theory catalog validation: ok (1 entries, 1 selected"));
+            .contains("lunar theory catalog validation: ok (1 entries, 1 selected; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]; aliases=1"));
         assert!(lunar_theory_catalog_summary_for_report()
             .contains("selected source: meeus-style-truncated-lunar-baseline"));
         assert!(lunar_theory_catalog_summary_for_report()
