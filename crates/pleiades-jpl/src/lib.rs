@@ -870,6 +870,8 @@ pub struct JplIndependentHoldoutSummary {
     pub sample_count: usize,
     /// Number of distinct bodies represented by the samples.
     pub body_count: usize,
+    /// Bodies represented by the samples in first-seen order.
+    pub bodies: Vec<String>,
     /// Number of distinct epochs represented by the samples.
     pub epoch_count: usize,
     /// Earliest epoch represented by the samples.
@@ -924,7 +926,8 @@ pub struct JplIndependentHoldoutSummary {
 pub fn jpl_independent_holdout_summary() -> Option<JplIndependentHoldoutSummary> {
     let entries = independent_holdout_snapshot_entries()?;
 
-    let mut bodies = BTreeSet::new();
+    let mut bodies = Vec::new();
+    let mut seen_bodies = BTreeSet::new();
     let mut epochs = BTreeSet::new();
     let mut earliest_epoch = entries[0].epoch;
     let mut latest_epoch = entries[0].epoch;
@@ -948,7 +951,10 @@ pub fn jpl_independent_holdout_summary() -> Option<JplIndependentHoldoutSummary>
     let mut distance_errors = Vec::new();
 
     for entry in entries {
-        bodies.insert(entry.body.to_string());
+        let body = entry.body.to_string();
+        if seen_bodies.insert(body.clone()) {
+            bodies.push(body);
+        }
         epochs.insert(entry.epoch.julian_day.days().to_bits());
         if entry.epoch.julian_day.days() < earliest_epoch.julian_day.days() {
             earliest_epoch = entry.epoch;
@@ -1005,6 +1011,7 @@ pub fn jpl_independent_holdout_summary() -> Option<JplIndependentHoldoutSummary>
     Some(JplIndependentHoldoutSummary {
         sample_count: entries.len(),
         body_count: bodies.len(),
+        bodies,
         epoch_count: epochs.len(),
         earliest_epoch,
         latest_epoch,
@@ -1043,9 +1050,14 @@ pub fn format_jpl_independent_holdout_summary(summary: &JplIndependentHoldoutSum
     }
 
     format!(
-        "JPL independent hold-out: {} exact rows across {} bodies and {} epochs ({} → {}); max Δlon={:.12}°{}; mean Δlon={:.12}°; median Δlon={:.12}°; p95 Δlon={:.12}°; rms Δlon={:.12}°; max Δlat={:.12}°{}; mean Δlat={:.12}°; median Δlat={:.12}°; p95 Δlat={:.12}°; rms Δlat={:.12}°; max Δdist={:.12} AU{}; mean Δdist={:.12} AU; median Δdist={:.12} AU; p95 Δdist={:.12} AU; rms Δdist={:.12} AU; transparency evidence only, not a production tolerance envelope; independent JPL Horizons rows held out from the main snapshot corpus",
+        "JPL independent hold-out: {} exact rows across {} bodies ({}) and {} epochs ({} → {}); max Δlon={:.12}°{}; mean Δlon={:.12}°; median Δlon={:.12}°; p95 Δlon={:.12}°; rms Δlon={:.12}°; max Δlat={:.12}°{}; mean Δlat={:.12}°; median Δlat={:.12}°; p95 Δlat={:.12}°; rms Δlat={:.12}°; max Δdist={:.12} AU{}; mean Δdist={:.12} AU; median Δdist={:.12} AU; p95 Δdist={:.12} AU; rms Δdist={:.12} AU; transparency evidence only, not a production tolerance envelope; independent JPL Horizons rows held out from the main snapshot corpus",
         summary.sample_count,
         summary.body_count,
+        if summary.bodies.is_empty() {
+            "none".to_string()
+        } else {
+            summary.bodies.join(", ")
+        },
         summary.epoch_count,
         format_instant(summary.earliest_epoch),
         format_instant(summary.latest_epoch),
@@ -2364,6 +2376,7 @@ mod tests {
             jpl_independent_holdout_summary().expect("independent hold-out summary should exist");
         assert_eq!(summary.sample_count, 6);
         assert_eq!(summary.body_count, 2);
+        assert_eq!(summary.bodies, vec!["Mars", "Jupiter"]);
         assert_eq!(summary.epoch_count, 3);
         assert!(summary.earliest_epoch.julian_day.days() <= summary.latest_epoch.julian_day.days());
         assert!(summary.max_longitude_error_deg.is_finite());
@@ -2387,7 +2400,7 @@ mod tests {
 
         let rendered = format_jpl_independent_holdout_summary(&summary);
         assert!(rendered.contains("JPL independent hold-out:"));
-        assert!(rendered.contains("6 exact rows across 2 bodies and 3 epochs"));
+        assert!(rendered.contains("6 exact rows across 2 bodies (Mars, Jupiter) and 3 epochs"));
         assert!(rendered.contains("p95 Δlon="));
         assert!(rendered.contains("p95 Δlat="));
         assert!(rendered.contains("p95 Δdist="));
