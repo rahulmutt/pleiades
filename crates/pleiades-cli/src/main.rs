@@ -620,6 +620,8 @@ mod tests {
         assert!(rendered.contains("True Citra Paksha"));
         assert!(rendered.contains("True Chitra Paksha"));
         assert!(rendered.contains("True Chitrapaksha"));
+        assert!(rendered.contains("Lahiri (VP285)"));
+        assert!(rendered.contains("Krishnamurti (VP291)"));
     }
 
     #[test]

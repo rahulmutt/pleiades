@@ -8735,6 +8735,8 @@ mod tests {
         assert!(rendered.contains("Babylonian (House Obs)"));
         assert!(rendered.contains("Sunil Sheoran / Vedic Sheoran / Sheoran ayanamsa spellings"));
         assert!(rendered.contains("True Sheoran"));
+        assert!(rendered.contains("Lahiri (VP285)"));
+        assert!(rendered.contains("Krishnamurti (VP291)"));
         assert!(rendered.contains("P.V.R. Narasimha Rao"));
         assert!(rendered.contains("B. V. Raman"));
         assert!(rendered.contains("Polich-Page \"topocentric\" table of houses"));

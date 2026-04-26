@@ -233,6 +233,8 @@ Progress note (2026-04-25): the compatibility-profile command now also pins the 
 
 Progress note (2026-04-25): the compatibility-profile and release-notes regressions now also pin Babylonian (Britton), Babylonian (Aldebaran), Suryasiddhanta (Mean Sun), Aryabhata (Mean Sun), Galactic Equator (IAU 1958), and Galactic Equator (Mula), tightening the remaining release-profile reference and mean-sun alias coverage without changing the published catalog shape.
 
+Progress note (2026-04-26): the compatibility-profile smoke tests now also pin Lahiri (VP285) and Krishnamurti (VP291), keeping the remaining release-profile ayanamsa variants visible in both the CLI and validation coverage paths as the catalog-breadth audit continues.
+
 Remaining suggested scope:
 
 - add broader coverage for any still-unpinned release-profile spellings or status lines that future catalog batches introduce.
