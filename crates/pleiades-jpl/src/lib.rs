@@ -911,6 +911,60 @@ pub struct JplInterpolationQualitySummary {
     pub rms_distance_error_au: f64,
 }
 
+impl JplInterpolationQualitySummary {
+    /// Returns the compact release-facing interpolation-quality summary line.
+    pub fn summary_line(&self) -> String {
+        fn format_body_epoch_suffix(body: &str, epoch: Instant) -> String {
+            if body.is_empty() {
+                String::new()
+            } else {
+                format!(" ({body} @ {})", format_instant(epoch))
+            }
+        }
+
+        format!(
+            "JPL interpolation quality: {} samples across {} bodies and {} epochs ({} cubic, {} quadratic, {} linear), epoch window {} → {}; leave-one-out runtime interpolation evidence with worst-case bodies named, max bracket span={:.1} d{}; mean bracket span={:.1} d; median bracket span={:.1} d; p95 bracket span={:.1} d; max Δlon={:.12}°{}; mean Δlon={:.12}°; median Δlon={:.12}°; p95 Δlon={:.12}°; rms Δlon={:.12}°; max Δlat={:.12}°{}; mean Δlat={:.12}°; median Δlat={:.12}°; p95 Δlat={:.12}°; rms Δlat={:.12}°; max Δdist={:.12} AU{}; mean Δdist={:.12} AU; median Δdist={:.12} AU; p95 Δdist={:.12} AU; rms Δdist={:.12} AU; transparency evidence only, not a production tolerance envelope",
+            self.sample_count,
+            self.body_count,
+            self.epoch_count,
+            format_instant(self.earliest_epoch),
+            format_instant(self.latest_epoch),
+            self.cubic_sample_count,
+            self.quadratic_sample_count,
+            self.linear_sample_count,
+            self.max_bracket_span_days,
+            format_body_epoch_suffix(&self.max_bracket_span_body, self.max_bracket_span_epoch),
+            self.mean_bracket_span_days,
+            self.median_bracket_span_days,
+            self.percentile_bracket_span_days,
+            self.max_longitude_error_deg,
+            format_body_epoch_suffix(&self.max_longitude_error_body, self.max_longitude_error_epoch),
+            self.mean_longitude_error_deg,
+            self.median_longitude_error_deg,
+            self.percentile_longitude_error_deg,
+            self.rms_longitude_error_deg,
+            self.max_latitude_error_deg,
+            format_body_epoch_suffix(&self.max_latitude_error_body, self.max_latitude_error_epoch),
+            self.mean_latitude_error_deg,
+            self.median_latitude_error_deg,
+            self.percentile_latitude_error_deg,
+            self.rms_latitude_error_deg,
+            self.max_distance_error_au,
+            format_body_epoch_suffix(&self.max_distance_error_body, self.max_distance_error_epoch),
+            self.mean_distance_error_au,
+            self.median_distance_error_au,
+            self.percentile_distance_error_au,
+            self.rms_distance_error_au,
+        )
+    }
+}
+
+impl fmt::Display for JplInterpolationQualitySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Distinct-body coverage for the interpolation-quality hold-out samples.
 #[derive(Clone, Debug, PartialEq)]
 pub struct JplInterpolationQualityKindCoverage {
@@ -1091,8 +1145,27 @@ pub fn jpl_interpolation_quality_kind_coverage() -> Option<JplInterpolationQuali
     })
 }
 
-/// A compact validation summary for the independent hold-out rows that are not
-/// part of the main snapshot corpus.
+impl JplInterpolationQualityKindCoverage {
+    /// Returns the compact release-facing coverage summary line.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "JPL interpolation quality kind coverage: {} samples across {} bodies ({} cubic bodies, {} quadratic bodies, {} linear bodies)",
+            self.sample_count,
+            self.body_count,
+            self.cubic_body_count,
+            self.quadratic_body_count,
+            self.linear_body_count,
+        )
+    }
+}
+
+impl fmt::Display for JplInterpolationQualityKindCoverage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns the release-facing interpolation-quality summary for the checked-in
 #[derive(Clone, Debug, PartialEq)]
 pub struct JplIndependentHoldoutSummary {
     /// Total number of hold-out samples.
@@ -1268,53 +1341,66 @@ pub fn jpl_independent_holdout_summary() -> Option<JplIndependentHoldoutSummary>
     })
 }
 
+impl JplIndependentHoldoutSummary {
+    /// Returns the compact release-facing independent hold-out summary line.
+    pub fn summary_line(&self) -> String {
+        fn format_body_epoch_suffix(body: &str, epoch: Instant) -> String {
+            if body.is_empty() {
+                String::new()
+            } else {
+                format!(" ({body} @ {})", format_instant(epoch))
+            }
+        }
+
+        format!(
+            "JPL independent hold-out: {} exact rows across {} bodies ({}) and {} epochs ({} → {}); max Δlon={:.12}°{}; mean Δlon={:.12}°; median Δlon={:.12}°; p95 Δlon={:.12}°; rms Δlon={:.12}°; max Δlat={:.12}°{}; mean Δlat={:.12}°; median Δlat={:.12}°; p95 Δlat={:.12}°; rms Δlat={:.12}°; max Δdist={:.12} AU{}; mean Δdist={:.12} AU; median Δdist={:.12} AU; p95 Δdist={:.12} AU; rms Δdist={:.12} AU; transparency evidence only, not a production tolerance envelope; independent JPL Horizons rows held out from the main snapshot corpus",
+            self.sample_count,
+            self.body_count,
+            if self.bodies.is_empty() {
+                "none".to_string()
+            } else {
+                self.bodies.join(", ")
+            },
+            self.epoch_count,
+            format_instant(self.earliest_epoch),
+            format_instant(self.latest_epoch),
+            self.max_longitude_error_deg,
+            format_body_epoch_suffix(&self.max_longitude_error_body, self.max_longitude_error_epoch),
+            self.mean_longitude_error_deg,
+            self.median_longitude_error_deg,
+            self.percentile_longitude_error_deg,
+            self.rms_longitude_error_deg,
+            self.max_latitude_error_deg,
+            format_body_epoch_suffix(&self.max_latitude_error_body, self.max_latitude_error_epoch),
+            self.mean_latitude_error_deg,
+            self.median_latitude_error_deg,
+            self.percentile_latitude_error_deg,
+            self.rms_latitude_error_deg,
+            self.max_distance_error_au,
+            format_body_epoch_suffix(&self.max_distance_error_body, self.max_distance_error_epoch),
+            self.mean_distance_error_au,
+            self.median_distance_error_au,
+            self.percentile_distance_error_au,
+            self.rms_distance_error_au,
+        )
+    }
+}
+
+impl fmt::Display for JplIndependentHoldoutSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Formats the independent hold-out summary for release-facing reporting.
 pub fn format_jpl_independent_holdout_summary(summary: &JplIndependentHoldoutSummary) -> String {
-    fn format_body_epoch_suffix(body: &str, epoch: Instant) -> String {
-        if body.is_empty() {
-            String::new()
-        } else {
-            format!(" ({body} @ {})", format_instant(epoch))
-        }
-    }
-
-    format!(
-        "JPL independent hold-out: {} exact rows across {} bodies ({}) and {} epochs ({} → {}); max Δlon={:.12}°{}; mean Δlon={:.12}°; median Δlon={:.12}°; p95 Δlon={:.12}°; rms Δlon={:.12}°; max Δlat={:.12}°{}; mean Δlat={:.12}°; median Δlat={:.12}°; p95 Δlat={:.12}°; rms Δlat={:.12}°; max Δdist={:.12} AU{}; mean Δdist={:.12} AU; median Δdist={:.12} AU; p95 Δdist={:.12} AU; rms Δdist={:.12} AU; transparency evidence only, not a production tolerance envelope; independent JPL Horizons rows held out from the main snapshot corpus",
-        summary.sample_count,
-        summary.body_count,
-        if summary.bodies.is_empty() {
-            "none".to_string()
-        } else {
-            summary.bodies.join(", ")
-        },
-        summary.epoch_count,
-        format_instant(summary.earliest_epoch),
-        format_instant(summary.latest_epoch),
-        summary.max_longitude_error_deg,
-        format_body_epoch_suffix(&summary.max_longitude_error_body, summary.max_longitude_error_epoch),
-        summary.mean_longitude_error_deg,
-        summary.median_longitude_error_deg,
-        summary.percentile_longitude_error_deg,
-        summary.rms_longitude_error_deg,
-        summary.max_latitude_error_deg,
-        format_body_epoch_suffix(&summary.max_latitude_error_body, summary.max_latitude_error_epoch),
-        summary.mean_latitude_error_deg,
-        summary.median_latitude_error_deg,
-        summary.percentile_latitude_error_deg,
-        summary.rms_latitude_error_deg,
-        summary.max_distance_error_au,
-        format_body_epoch_suffix(&summary.max_distance_error_body, summary.max_distance_error_epoch),
-        summary.mean_distance_error_au,
-        summary.median_distance_error_au,
-        summary.percentile_distance_error_au,
-        summary.rms_distance_error_au,
-    )
+    summary.summary_line()
 }
 
 /// Returns the release-facing independent hold-out interpolation summary string.
 pub fn jpl_independent_holdout_summary_for_report() -> String {
     match jpl_independent_holdout_summary() {
-        Some(summary) => format_jpl_independent_holdout_summary(&summary),
+        Some(summary) => summary.to_string(),
         None => match independent_holdout_snapshot_error() {
             Some(error) => format!("JPL independent hold-out: unavailable ({error})"),
             None => "JPL independent hold-out: unavailable".to_string(),
@@ -1354,48 +1440,7 @@ fn percentile_f64(values: &mut [f64], percentile: f64) -> f64 {
 pub fn format_jpl_interpolation_quality_summary(
     summary: &JplInterpolationQualitySummary,
 ) -> String {
-    fn format_body_epoch_suffix(body: &str, epoch: Instant) -> String {
-        if body.is_empty() {
-            String::new()
-        } else {
-            format!(" ({body} @ {})", format_instant(epoch))
-        }
-    }
-
-    format!(
-        "JPL interpolation quality: {} samples across {} bodies and {} epochs ({} cubic, {} quadratic, {} linear), epoch window {} → {}; leave-one-out runtime interpolation evidence with worst-case bodies named, max bracket span={:.1} d{}; mean bracket span={:.1} d; median bracket span={:.1} d; p95 bracket span={:.1} d; max Δlon={:.12}°{}; mean Δlon={:.12}°; median Δlon={:.12}°; p95 Δlon={:.12}°; rms Δlon={:.12}°; max Δlat={:.12}°{}; mean Δlat={:.12}°; median Δlat={:.12}°; p95 Δlat={:.12}°; rms Δlat={:.12}°; max Δdist={:.12} AU{}; mean Δdist={:.12} AU; median Δdist={:.12} AU; p95 Δdist={:.12} AU; rms Δdist={:.12} AU; transparency evidence only, not a production tolerance envelope",
-        summary.sample_count,
-        summary.body_count,
-        summary.epoch_count,
-        format_instant(summary.earliest_epoch),
-        format_instant(summary.latest_epoch),
-        summary.cubic_sample_count,
-        summary.quadratic_sample_count,
-        summary.linear_sample_count,
-        summary.max_bracket_span_days,
-        format_body_epoch_suffix(&summary.max_bracket_span_body, summary.max_bracket_span_epoch),
-        summary.mean_bracket_span_days,
-        summary.median_bracket_span_days,
-        summary.percentile_bracket_span_days,
-        summary.max_longitude_error_deg,
-        format_body_epoch_suffix(&summary.max_longitude_error_body, summary.max_longitude_error_epoch),
-        summary.mean_longitude_error_deg,
-        summary.median_longitude_error_deg,
-        summary.percentile_longitude_error_deg,
-        summary.rms_longitude_error_deg,
-        summary.max_latitude_error_deg,
-        format_body_epoch_suffix(&summary.max_latitude_error_body, summary.max_latitude_error_epoch),
-        summary.mean_latitude_error_deg,
-        summary.median_latitude_error_deg,
-        summary.percentile_latitude_error_deg,
-        summary.rms_latitude_error_deg,
-        summary.max_distance_error_au,
-        format_body_epoch_suffix(&summary.max_distance_error_body, summary.max_distance_error_epoch),
-        summary.mean_distance_error_au,
-        summary.median_distance_error_au,
-        summary.percentile_distance_error_au,
-        summary.rms_distance_error_au,
-    )
+    summary.summary_line()
 }
 
 /// Formats the distinct-body interpolation-kind coverage for release-facing reports.
@@ -1419,13 +1464,13 @@ pub fn format_jpl_interpolation_quality_summary_for_report() -> String {
         jpl_interpolation_quality_kind_coverage(),
     ) {
         (Some(summary), Some(coverage)) => {
-            let mut rendered = format_jpl_interpolation_quality_summary(&summary);
+            let mut rendered = summary.to_string();
             rendered.push('\n');
-            rendered.push_str(&format_jpl_interpolation_quality_kind_coverage(&coverage));
+            rendered.push_str(&coverage.to_string());
             rendered
         }
         (Some(summary), None) => {
-            let mut rendered = format_jpl_interpolation_quality_summary(&summary);
+            let mut rendered = summary.to_string();
             rendered.push('\n');
             rendered.push_str("JPL interpolation quality kind coverage: unavailable");
             rendered
@@ -2820,6 +2865,8 @@ mod tests {
         assert!(!summary.max_latitude_error_body.is_empty());
         assert!(!summary.max_distance_error_body.is_empty());
 
+        assert_eq!(summary.to_string(), summary.summary_line());
+
         let rendered = format_jpl_independent_holdout_summary(&summary);
         assert!(rendered.contains("JPL independent hold-out:"));
         assert!(rendered.contains("6 exact rows across 2 bodies (Mars, Jupiter) and 3 epochs"));
@@ -3549,6 +3596,8 @@ mod tests {
         assert!(!summary.max_latitude_error_body.is_empty());
         assert!(!summary.max_distance_error_body.is_empty());
 
+        assert_eq!(summary.to_string(), summary.summary_line());
+
         let rendered = format_jpl_interpolation_quality_summary(&summary);
         assert!(rendered.contains("cubic"));
         assert!(rendered.contains("quadratic"));
@@ -3603,6 +3652,8 @@ mod tests {
         assert!(coverage.cubic_body_count > 0);
         assert_eq!(coverage.quadratic_body_count, 0);
         assert!(coverage.linear_body_count > 0);
+
+        assert_eq!(coverage.to_string(), coverage.summary_line());
 
         let rendered = format_jpl_interpolation_quality_kind_coverage(&coverage);
         assert!(rendered.contains("JPL interpolation quality kind coverage:"));
