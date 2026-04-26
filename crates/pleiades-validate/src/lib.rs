@@ -4135,6 +4135,32 @@ fn verify_release_bundle(
             manifest.api_stability_summary_checksum, api_stability_summary_checksum
         )));
     }
+
+    ensure_release_profile_line_alignment("release notes", &release_notes_text, profile_id)?;
+    ensure_release_profile_summary_alignment(
+        "release notes summary",
+        &release_notes_summary_text,
+        profile_id,
+        api_stability_posture_id,
+    )?;
+    ensure_release_profile_summary_alignment(
+        "release summary",
+        &release_summary_text,
+        profile_id,
+        api_stability_posture_id,
+    )?;
+    ensure_release_profile_summary_alignment(
+        "release checklist",
+        &release_checklist_text,
+        profile_id,
+        api_stability_posture_id,
+    )?;
+    ensure_release_profile_identifiers_alignment(
+        &release_profile_identifiers_text,
+        profile_id,
+        api_stability_posture_id,
+    )?;
+
     if manifest.validation_report_summary_checksum != validation_report_summary_checksum {
         return Err(ReleaseBundleError::Verification(format!(
             "validation report summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
@@ -4338,6 +4364,75 @@ fn extract_prefixed_value<'a>(text: &'a str, prefix: &str) -> Result<&'a str, Re
     }
 
     Ok(value)
+}
+
+fn ensure_release_profile_line_alignment(
+    label: &str,
+    text: &str,
+    expected_profile_id: &str,
+) -> Result<(), ReleaseBundleError> {
+    let profile_id = match extract_prefixed_value(text, "Profile: ") {
+        Ok(profile_id) => profile_id,
+        Err(ReleaseBundleError::Verification(message)) => {
+            return Err(ReleaseBundleError::Verification(format!(
+                "{label}: {message}"
+            )));
+        }
+        Err(error) => return Err(error),
+    };
+
+    if profile_id != expected_profile_id {
+        return Err(ReleaseBundleError::Verification(format!(
+            "{label} profile id mismatch: expected {expected_profile_id}, found {profile_id}"
+        )));
+    }
+
+    Ok(())
+}
+
+fn ensure_release_profile_summary_alignment(
+    label: &str,
+    text: &str,
+    expected_profile_id: &str,
+    expected_api_stability_posture_id: &str,
+) -> Result<(), ReleaseBundleError> {
+    ensure_release_profile_line_alignment(label, text, expected_profile_id)?;
+
+    let api_stability_posture_id = match extract_prefixed_value(text, "API stability posture: ") {
+        Ok(api_stability_posture_id) => api_stability_posture_id,
+        Err(ReleaseBundleError::Verification(message)) => {
+            return Err(ReleaseBundleError::Verification(format!(
+                "{label}: {message}"
+            )));
+        }
+        Err(error) => return Err(error),
+    };
+
+    if api_stability_posture_id != expected_api_stability_posture_id {
+        return Err(ReleaseBundleError::Verification(format!(
+            "{label} API stability posture id mismatch: expected {expected_api_stability_posture_id}, found {api_stability_posture_id}"
+        )));
+    }
+
+    Ok(())
+}
+
+fn ensure_release_profile_identifiers_alignment(
+    text: &str,
+    expected_profile_id: &str,
+    expected_api_stability_posture_id: &str,
+) -> Result<(), ReleaseBundleError> {
+    let expected = format!(
+        "Release profile identifiers: compatibility={expected_profile_id}, api-stability={expected_api_stability_posture_id}"
+    );
+    let found = text.trim_end();
+    if found != expected {
+        return Err(ReleaseBundleError::Verification(format!(
+            "release-profile identifiers mismatch: expected '{expected}', found '{found}'"
+        )));
+    }
+
+    Ok(())
 }
 
 fn workspace_root() -> PathBuf {
@@ -11419,6 +11514,90 @@ version = "0.9.0"
             "release-notes-summary.txt",
             "release notes summary checksum mismatch",
         );
+    }
+
+    #[test]
+    fn verify_release_bundle_profile_alignment_helpers_accept_matching_release_text() {
+        let release_profiles = current_release_profile_identifiers();
+        let profile_id = release_profiles.compatibility_profile_id;
+        let api_stability_posture_id = release_profiles.api_stability_profile_id;
+        let release_notes_summary = format!(
+            "Release notes summary\nProfile: {profile_id}\nAPI stability posture: {api_stability_posture_id}\n"
+        );
+        let release_summary = format!(
+            "Release summary\nProfile: {profile_id}\nAPI stability posture: {api_stability_posture_id}\n"
+        );
+        let release_checklist = format!(
+            "Release checklist\nProfile: {profile_id}\nAPI stability posture: {api_stability_posture_id}\n"
+        );
+        let release_profile_identifiers = format!(
+            "Release profile identifiers: compatibility={profile_id}, api-stability={api_stability_posture_id}\n"
+        );
+
+        ensure_release_profile_line_alignment(
+            "release notes",
+            &format!("Release notes\nProfile: {profile_id}\n"),
+            profile_id,
+        )
+        .expect("matching release notes should verify");
+        ensure_release_profile_summary_alignment(
+            "release notes summary",
+            &release_notes_summary,
+            profile_id,
+            api_stability_posture_id,
+        )
+        .expect("matching release notes summary should verify");
+        ensure_release_profile_summary_alignment(
+            "release summary",
+            &release_summary,
+            profile_id,
+            api_stability_posture_id,
+        )
+        .expect("matching release summary should verify");
+        ensure_release_profile_summary_alignment(
+            "release checklist",
+            &release_checklist,
+            profile_id,
+            api_stability_posture_id,
+        )
+        .expect("matching release checklist should verify");
+        ensure_release_profile_identifiers_alignment(
+            &release_profile_identifiers,
+            profile_id,
+            api_stability_posture_id,
+        )
+        .expect("matching release profile identifiers should verify");
+    }
+
+    #[test]
+    fn verify_release_bundle_profile_alignment_helpers_reject_mismatched_release_text() {
+        let release_profiles = current_release_profile_identifiers();
+        let profile_id = release_profiles.compatibility_profile_id;
+        let api_stability_posture_id = release_profiles.api_stability_profile_id;
+
+        let error = ensure_release_profile_summary_alignment(
+            "release summary",
+            "Release summary\nProfile: incorrect-profile\nAPI stability posture: incorrect-api\n",
+            profile_id,
+            api_stability_posture_id,
+        )
+        .expect_err("mismatched release summary should fail");
+        assert!(error
+            .to_string()
+            .contains("release bundle verification failed"));
+        assert!(error
+            .to_string()
+            .contains("release summary profile id mismatch"));
+
+        let error = ensure_release_profile_identifiers_alignment(
+            "Release profile identifiers: compatibility=incorrect-profile, api-stability=incorrect-api\n",
+            profile_id,
+            api_stability_posture_id,
+        )
+        .expect_err("mismatched release-profile identifiers should fail");
+        assert!(error
+            .to_string()
+            .contains("release-profile identifiers mismatch"));
     }
 
     #[test]
