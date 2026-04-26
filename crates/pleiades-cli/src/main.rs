@@ -605,6 +605,10 @@ mod tests {
         assert!(rendered.contains("Azimuth house system"));
         assert!(rendered.contains("Azimuthal house system"));
         assert!(rendered.contains("Carter's poli-equatorial"));
+        assert!(rendered.contains("Poli-equatorial"));
+        assert!(rendered.contains("horizon/azimuth"));
+        assert!(rendered.contains("T Polich/Page (\"topocentric\")"));
+        assert!(rendered.contains("Zariel"));
         assert!(rendered.contains("Krusinski/Pisa/Goelzer house system"));
         assert!(rendered.contains("X, Meridian houses, Meridian table of houses, Meridian house system, ARMC, Axial Rotation, Axial rotation system, Zariel, X axial rotation system/ Meridian houses -> Meridian"));
         assert!(rendered.contains("Target ayanamsa catalog:"));
