@@ -407,11 +407,60 @@ fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
         report.model_comparison.summary.max_longitude_delta_deg
     ));
     text.push_str(&format!(
+        "  mean longitude delta: {:.12}°\n",
+        report.model_comparison.summary.mean_longitude_delta_deg
+    ));
+    let median = crate::comparison_median_envelope(&report.model_comparison.samples);
+    let percentile = crate::comparison_percentile_envelope(&report.model_comparison.samples, 0.95);
+    text.push_str(&format!(
+        "  median longitude delta: {:.12}°\n",
+        median.longitude_delta_deg
+    ));
+    text.push_str(&format!(
+        "  95th percentile longitude delta: {:.12}°\n",
+        percentile.longitude_delta_deg
+    ));
+    text.push_str(&format!(
+        "  rms longitude delta: {:.12}°\n",
+        report.model_comparison.summary.rms_longitude_delta_deg
+    ));
+    text.push_str(&format!(
         "  max latitude delta: {:.12}°\n",
         report.model_comparison.summary.max_latitude_delta_deg
     ));
+    text.push_str(&format!(
+        "  mean latitude delta: {:.12}°\n",
+        report.model_comparison.summary.mean_latitude_delta_deg
+    ));
+    text.push_str(&format!(
+        "  median latitude delta: {:.12}°\n",
+        median.latitude_delta_deg
+    ));
+    text.push_str(&format!(
+        "  95th percentile latitude delta: {:.12}°\n",
+        percentile.latitude_delta_deg
+    ));
+    text.push_str(&format!(
+        "  rms latitude delta: {:.12}°\n",
+        report.model_comparison.summary.rms_latitude_delta_deg
+    ));
     if let Some(value) = report.model_comparison.summary.max_distance_delta_au {
         text.push_str(&format!("  max distance delta: {:.12} AU\n", value));
+    }
+    if let Some(value) = report.model_comparison.summary.mean_distance_delta_au {
+        text.push_str(&format!("  mean distance delta: {:.12} AU\n", value));
+    }
+    if let Some(value) = median.distance_delta_au {
+        text.push_str(&format!("  median distance delta: {:.12} AU\n", value));
+    }
+    if let Some(value) = percentile.distance_delta_au {
+        text.push_str(&format!(
+            "  95th percentile distance delta: {:.12} AU\n",
+            value
+        ));
+    }
+    if let Some(value) = report.model_comparison.summary.rms_distance_delta_au {
+        text.push_str(&format!("  rms distance delta: {:.12} AU\n", value));
     }
     text.push_str("\nExpected tolerance status\n");
     let tolerance_summaries = report.model_comparison.tolerance_summaries();

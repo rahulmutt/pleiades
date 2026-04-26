@@ -9429,6 +9429,18 @@ version = "0.9.0"
         assert!(artifact_summary.contains("Artifact request policy"));
         assert!(artifact_summary.contains("applies to 11 bundled bodies"));
         assert!(artifact_summary.contains("Model error envelope"));
+        assert!(artifact_summary.contains("mean longitude delta:"));
+        assert!(artifact_summary.contains("median longitude delta:"));
+        assert!(artifact_summary.contains("95th percentile longitude delta:"));
+        assert!(artifact_summary.contains("rms longitude delta:"));
+        assert!(artifact_summary.contains("mean latitude delta:"));
+        assert!(artifact_summary.contains("median latitude delta:"));
+        assert!(artifact_summary.contains("95th percentile latitude delta:"));
+        assert!(artifact_summary.contains("rms latitude delta:"));
+        assert!(artifact_summary.contains("mean distance delta:"));
+        assert!(artifact_summary.contains("median distance delta:"));
+        assert!(artifact_summary.contains("95th percentile distance delta:"));
+        assert!(artifact_summary.contains("rms distance delta:"));
         assert!(artifact_summary.contains("Expected tolerance status"));
         assert!(artifact_summary.contains("Comparison tolerance audit"));
         assert!(artifact_summary.contains("bodies checked:"));
