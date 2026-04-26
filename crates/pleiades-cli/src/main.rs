@@ -28,7 +28,7 @@ use pleiades_validate::{
 use pleiades_vsop87::Vsop87Backend;
 
 fn banner() -> &'static str {
-    "pleiades-cli chart MVP"
+    "pleiades-cli chart utility"
 }
 
 fn render_cli(args: &[&str]) -> Result<String, String> {

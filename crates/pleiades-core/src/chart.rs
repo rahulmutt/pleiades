@@ -1159,11 +1159,24 @@ impl fmt::Display for ChartSnapshot {
             "Instant: {} ({:?})",
             self.instant.julian_day, self.instant.scale
         )?;
+        writeln!(
+            f,
+            "Time-scale policy: caller-supplied instant scale; no built-in Delta T or relativistic model"
+        )?;
         if let Some(observer) = &self.observer {
             writeln!(
                 f,
                 "Observer: {} / {}",
                 observer.latitude, observer.longitude
+            )?;
+            writeln!(
+                f,
+                "Observer policy: used for houses only; body positions remain geocentric"
+            )?;
+        } else {
+            writeln!(
+                f,
+                "Observer policy: geocentric body positions; no house observer supplied"
             )?;
         }
         writeln!(f, "Zodiac mode: {:?}", self.zodiac_mode)?;
@@ -1831,7 +1844,9 @@ mod tests {
             Apparentness::Apparent
         );
         assert_eq!(chart.apparentness, Apparentness::Apparent);
-        assert!(chart.to_string().contains("Apparentness: Apparent"));
+        let rendered = chart.to_string();
+        assert!(rendered.contains("Apparentness: Apparent"));
+        assert!(rendered.contains("Time-scale policy: caller-supplied instant scale; no built-in Delta T or relativistic model"));
     }
 
     #[test]
@@ -1858,7 +1873,10 @@ mod tests {
             .placements
             .iter()
             .all(|placement| placement.house.is_some()));
-        assert!(chart.to_string().contains("House system: Whole Sign"));
+        let rendered = chart.to_string();
+        assert!(rendered.contains("House system: Whole Sign"));
+        assert!(rendered
+            .contains("Observer policy: used for houses only; body positions remain geocentric"));
     }
 
     #[test]
