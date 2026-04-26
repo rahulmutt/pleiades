@@ -1141,7 +1141,12 @@ impl core::fmt::Display for Vsop87TableGenerationError {
 
 impl std::error::Error for Vsop87TableGenerationError {}
 
-fn supported_source_files() -> Vec<&'static str> {
+/// Returns the supported vendored VSOP87B source files in source-spec order.
+///
+/// This list is primarily used by maintainer-facing regeneration tooling and
+/// reproducibility checks so downstream code can discover the expected public
+/// input files without hardcoding the table-specific match block.
+pub fn supported_source_files() -> Vec<&'static str> {
     source_specifications()
         .into_iter()
         .map(|spec| spec.source_file)
@@ -3133,6 +3138,14 @@ mod tests {
             );
         }
         assert!(checked_in_generated_vsop87b_table_bytes_for_source_file("VSOP87B.plu").is_none());
+    }
+
+    #[test]
+    fn supported_source_files_are_exposed_for_reproducibility_tooling() {
+        assert_eq!(
+            supported_source_files(),
+            source_documentation_summary().source_files
+        );
     }
 
     #[test]
