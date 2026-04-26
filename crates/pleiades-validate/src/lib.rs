@@ -63,9 +63,9 @@ use pleiades_houses::{
 use pleiades_jpl::{
     comparison_snapshot, comparison_snapshot_summary_for_report,
     format_jpl_interpolation_quality_summary_for_report, interpolation_quality_samples,
-    jpl_snapshot_evidence_summary_for_report, reference_asteroid_evidence,
-    reference_asteroid_evidence_summary_for_report, reference_asteroids,
-    reference_snapshot_summary_for_report, JplSnapshotBackend,
+    jpl_snapshot_evidence_summary_for_report, jpl_snapshot_request_policy_summary_for_report,
+    reference_asteroid_evidence, reference_asteroid_evidence_summary_for_report,
+    reference_asteroids, reference_snapshot_summary_for_report, JplSnapshotBackend,
 };
 use pleiades_vsop87::{
     body_source_profiles, canonical_epoch_evidence_summary_for_report, frame_treatment_summary,
@@ -2624,6 +2624,9 @@ fn render_release_summary_text() -> String {
     text.push_str("JPL interpolation evidence: ");
     text.push_str(&format_jpl_interpolation_quality_summary_for_report());
     text.push('\n');
+    text.push_str("JPL request policy: ");
+    text.push_str(&jpl_snapshot_request_policy_summary_for_report());
+    text.push('\n');
     text.push_str("Source-backed backend evidence: ");
     text.push_str(&jpl_snapshot_evidence_summary_for_report());
     text.push('\n');
@@ -4580,6 +4583,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         text,
         "  {}",
         format_jpl_interpolation_quality_summary_for_report()
+    );
+    let _ = writeln!(
+        text,
+        "JPL request policy: {}",
+        jpl_snapshot_request_policy_summary_for_report()
     );
     let _ = writeln!(text);
     let _ = writeln!(
@@ -8608,6 +8616,7 @@ mod tests {
         assert!(rendered.contains("Expected tolerance status:"));
         assert!(rendered.contains("comparison audit regressions found"));
         assert!(rendered.contains("JPL interpolation evidence:"));
+        assert!(rendered.contains("JPL request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
         assert!(rendered.contains("Reference snapshot coverage:"));
         assert!(rendered.contains("Selected asteroid evidence:"));
         assert!(rendered.contains("VSOP87 evidence:"));
@@ -8998,6 +9007,7 @@ version = "0.9.0"
         assert!(release_summary.contains(
             "lunar source selection: Compact Meeus-style truncated lunar baseline [meeus-style-truncated-lunar-baseline; family: Meeus-style truncated analytical baseline]"
         ));
+        assert!(release_summary.contains("JPL request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
         assert!(release_summary.contains("Source-backed backend evidence:"));
         assert!(release_summary.contains("Reference snapshot coverage:"));
         assert!(release_summary.contains("Selected asteroid evidence:"));

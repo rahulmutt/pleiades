@@ -28,8 +28,8 @@ use pleiades_backend::{
     EphemerisErrorKind, EphemerisRequest, EphemerisResult, QualityAnnotation,
 };
 use pleiades_types::{
-    Angle, CoordinateFrame, CustomBodyId, EclipticCoordinates, Instant, JulianDay, Latitude,
-    Longitude, Motion, TimeRange, TimeScale, ZodiacMode,
+    Angle, Apparentness, CoordinateFrame, CustomBodyId, EclipticCoordinates, Instant, JulianDay,
+    Latitude, Longitude, Motion, TimeRange, TimeScale, ZodiacMode,
 };
 
 const REFERENCE_EPOCH_JD: f64 = 2_451_545.0;
@@ -231,6 +231,56 @@ fn format_bodies(bodies: &[pleiades_backend::CelestialBody]) -> String {
         .join(", ")
 }
 
+fn format_coordinate_frames(frames: &[CoordinateFrame]) -> String {
+    frames
+        .iter()
+        .map(|frame| match frame {
+            CoordinateFrame::Ecliptic => "Ecliptic",
+            CoordinateFrame::Equatorial => "Equatorial",
+            _ => "Other",
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn format_time_scales(time_scales: &[TimeScale]) -> String {
+    time_scales
+        .iter()
+        .map(|scale| match scale {
+            TimeScale::Utc => "UTC",
+            TimeScale::Ut1 => "UT1",
+            TimeScale::Tt => "TT",
+            TimeScale::Tdb => "TDB",
+            _ => "Other",
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn format_zodiac_modes(zodiac_modes: &[ZodiacMode]) -> String {
+    zodiac_modes
+        .iter()
+        .map(|mode| match mode {
+            ZodiacMode::Tropical => "Tropical",
+            ZodiacMode::Sidereal { .. } => "Sidereal",
+            _ => "Other",
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn format_apparentness_modes(modes: &[Apparentness]) -> String {
+    modes
+        .iter()
+        .map(|mode| match mode {
+            Apparentness::Mean => "Mean",
+            Apparentness::Apparent => "Apparent",
+            _ => "Other",
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
 /// Formats the exact asteroid evidence slice for release-facing reporting.
 pub fn format_reference_asteroid_evidence_summary(
     evidence: &[ReferenceAsteroidEvidence],
@@ -260,6 +310,53 @@ pub fn jpl_snapshot_evidence_summary_for_report() -> String {
         reference_asteroid_evidence_summary_for_report(),
         comparison_snapshot_summary_for_report(),
     )
+}
+
+/// Structured request policy for the current JPL snapshot backend.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct JplSnapshotRequestPolicy {
+    /// Coordinate frames the current snapshot backend exposes.
+    pub supported_frames: &'static [CoordinateFrame],
+    /// Time scales accepted by the current snapshot backend.
+    pub supported_time_scales: &'static [TimeScale],
+    /// Zodiac modes accepted by the current snapshot backend.
+    pub supported_zodiac_modes: &'static [ZodiacMode],
+    /// Apparentness modes accepted by the current snapshot backend.
+    pub supported_apparentness: &'static [Apparentness],
+    /// Whether the current snapshot backend accepts topocentric observer requests.
+    pub supports_topocentric_observer: bool,
+}
+
+impl JplSnapshotRequestPolicy {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "frames={}; time scales={}; zodiac modes={}; apparentness={}; topocentric observer={}",
+            format_coordinate_frames(self.supported_frames),
+            format_time_scales(self.supported_time_scales),
+            format_zodiac_modes(self.supported_zodiac_modes),
+            format_apparentness_modes(self.supported_apparentness),
+            self.supports_topocentric_observer,
+        )
+    }
+}
+
+const JPL_SNAPSHOT_REQUEST_POLICY: JplSnapshotRequestPolicy = JplSnapshotRequestPolicy {
+    supported_frames: &[CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
+    supported_time_scales: &[TimeScale::Tt, TimeScale::Tdb],
+    supported_zodiac_modes: &[ZodiacMode::Tropical],
+    supported_apparentness: &[Apparentness::Mean],
+    supports_topocentric_observer: false,
+};
+
+/// Returns the current JPL snapshot request policy.
+pub const fn jpl_snapshot_request_policy() -> JplSnapshotRequestPolicy {
+    JPL_SNAPSHOT_REQUEST_POLICY
+}
+
+/// Returns the release-facing JPL snapshot request policy summary string.
+pub fn jpl_snapshot_request_policy_summary_for_report() -> String {
+    jpl_snapshot_request_policy().summary_line()
 }
 
 /// Returns the comparison-only subset used by the stage-4 validation corpus.

@@ -122,7 +122,7 @@ Progress note (2026-04-25): the JPL snapshot coverage and exact asteroid evidenc
 
 Progress note (2026-04-25): the JPL asteroid subset now also renders exact J2000 evidence rows in backend matrices, validation reports, and release notes, making the source-backed asteroid fixture visible in release-facing output rather than only in tests. The JPL snapshot coverage and exact asteroid evidence summaries now also live in `pleiades-jpl`, and validation reuses those backend-owned report helpers directly so the release-facing coverage text stays co-located with the snapshot backend.
 
-Progress note (2026-04-25): the JPL interpolation-quality summary plus distinct-body coverage line now also live in `pleiades-jpl` as one backend-owned report helper, and validation reuses that combined formatter directly so the release-facing interpolation evidence stays co-located with the snapshot backend instead of rebuilding the two-line report privately.
+Progress note (2026-04-25): the JPL interpolation-quality summary plus distinct-body coverage line now also live in `pleiades-jpl` as one backend-owned report helper, and validation reuses that combined formatter directly so the release-facing interpolation evidence stays co-located with the snapshot backend instead of rebuilding the two-line report privately. The same backend now also publishes a compact request-policy line for the reference snapshot posture, so the current TT/TDB, equatorial/ecliptic, mean-only, and geocentric-only semantics stay visible in release-facing reports alongside the interpolation evidence.
 
 Remaining suggested scope:
 
