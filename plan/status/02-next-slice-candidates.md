@@ -210,6 +210,7 @@ Progress note (2026-04-25): the same verification slice now also pins the Placid
 
 Progress note (2026-04-26): the compatibility-profile regression coverage now also pins the True Chitra Paksha and True Chitrapaksha spellings alongside the already-covered True Citra Paksha alias batch, so the release-facing ayanamsa appendix keeps that interoperability trio explicitly covered in both the CLI and validation smoke tests.
 Progress note (2026-04-26): the compatibility-profile regressions now also pin the WvA alias from the APC house-family appendix, keeping that short-form house label explicitly covered in the release-facing catalog checks alongside the broader source-label batches.
+Progress note (2026-04-26): the compatibility-profile command tests now also pin the `Equal (cusp 1 = Asc)` and `Whole Sign (house 1 = Aries)` forms, so the ascendant-anchored equal-house and whole-sign source-label wording stays anchored in the release-facing verification path.
 
 Progress note (2026-04-25): the compatibility-profile verification slice now also anchors the Babylonian (Eta Piscium) and Suryasiddhanta / Surya Siddhanta 499 CE source-label spellings, so the remaining historical-source labels in the rendered profile stay pinned as the catalog grows.
 

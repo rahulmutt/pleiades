@@ -8514,8 +8514,10 @@ mod tests {
         assert!(rendered.contains("Vehlow Equal house system"));
         assert!(rendered.contains("Topocentric house system"));
         assert!(rendered.contains("Equal table of houses"));
+        assert!(rendered.contains("Equal (cusp 1 = Asc)"));
         assert!(rendered.contains("Whole Sign system"));
         assert!(rendered.contains("Whole Sign house system"));
+        assert!(rendered.contains("Whole Sign (house 1 = Aries)"));
         assert!(rendered.contains("Morinus house system"));
         assert!(rendered.contains("Pullen SR (Sinusoidal Ratio) table of houses"));
         assert!(rendered.contains("Pullen SD (Sinusoidal Delta)"));
