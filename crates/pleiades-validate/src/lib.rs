@@ -9255,7 +9255,7 @@ mod tests {
         assert!(rendered.contains("Accuracy classes:"));
         assert!(rendered.contains("Exact: 1"));
         assert!(rendered.contains("Approximate: 4"));
-        assert!(rendered.contains("VSOP87 source documentation: 8 source specs, 8 source-backed body profiles, 1 fallback mean-element body profile (Pluto)"));
+        assert!(rendered.contains("VSOP87 source documentation: 8 source specs, 8 source-backed body profiles, 1 fallback mean-element body profile (Pluto); source-backed bodies: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune"));
         assert!(rendered.contains(
             "source-backed breakdown: 8 generated binary, 0 vendored full-file, 0 truncated slice"
         ));
@@ -9716,7 +9716,7 @@ version = "0.9.0"
         assert!(
             workspace_audit_summary.contains("Result: no mandatory native build hooks detected")
         );
-        assert!(validation_report_summary.contains("VSOP87 source documentation: 8 source specs, 8 source-backed body profiles, 1 fallback mean-element body profile (Pluto)"));
+        assert!(validation_report_summary.contains("VSOP87 source documentation: 8 source specs, 8 source-backed body profiles, 1 fallback mean-element body profile (Pluto); source-backed bodies: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune"));
         assert!(validation_report_summary.contains(
             "source-backed breakdown: 8 generated binary, 0 vendored full-file, 0 truncated slice"
         ));

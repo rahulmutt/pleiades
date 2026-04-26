@@ -188,6 +188,8 @@ pub struct Vsop87SourceDocumentationSummary {
     pub source_specification_count: usize,
     /// Number of source-backed body profiles described by the catalog.
     pub source_backed_profile_count: usize,
+    /// Bodies that still use a source-backed planetary path rather than the fallback mean-element path.
+    pub source_backed_bodies: Vec<CelestialBody>,
     /// Number of vendored full-file body profiles.
     pub vendored_full_file_profile_count: usize,
     /// Number of generated-binary body profiles.
@@ -824,19 +826,23 @@ pub fn source_documentation_summary() -> Vsop87SourceDocumentationSummary {
     date_ranges.sort_unstable();
     date_ranges.dedup();
 
+    let source_backed_bodies = source_backed_profiles
+        .iter()
+        .filter(|profile| {
+            matches!(
+                profile.kind,
+                Vsop87BodySourceKind::TruncatedVsop87b
+                    | Vsop87BodySourceKind::VendoredVsop87b
+                    | Vsop87BodySourceKind::GeneratedBinaryVsop87b
+            )
+        })
+        .map(|profile| profile.body.clone())
+        .collect::<Vec<_>>();
+
     Vsop87SourceDocumentationSummary {
         source_specification_count: source_specs.len(),
-        source_backed_profile_count: source_backed_profiles
-            .iter()
-            .filter(|profile| {
-                matches!(
-                    profile.kind,
-                    Vsop87BodySourceKind::TruncatedVsop87b
-                        | Vsop87BodySourceKind::VendoredVsop87b
-                        | Vsop87BodySourceKind::GeneratedBinaryVsop87b
-                )
-            })
-            .count(),
+        source_backed_profile_count: source_backed_bodies.len(),
+        source_backed_bodies,
         vendored_full_file_profile_count: source_backed_profiles
             .iter()
             .filter(|profile| profile.kind == Vsop87BodySourceKind::VendoredVsop87b)
@@ -868,6 +874,11 @@ fn format_celestial_bodies(bodies: &[CelestialBody]) -> String {
 
 /// Formats the current VSOP87 source-documentation catalog for reporting.
 pub fn format_source_documentation_summary(summary: &Vsop87SourceDocumentationSummary) -> String {
+    let source_backed_bodies = if summary.source_backed_bodies.is_empty() {
+        "none".to_string()
+    } else {
+        format_celestial_bodies(&summary.source_backed_bodies)
+    };
     let fallback_bodies = if summary.fallback_bodies.is_empty() {
         "none".to_string()
     } else {
@@ -879,7 +890,7 @@ pub fn format_source_documentation_summary(summary: &Vsop87SourceDocumentationSu
         summary.date_ranges.join("; ")
     };
     format!(
-        "VSOP87 source documentation: {} source specs, {} source-backed body profiles, {} fallback mean-element body profile{} ({}); source-backed breakdown: {} generated binary, {} vendored full-file, {} truncated slice; date ranges: {}",
+        "VSOP87 source documentation: {} source specs, {} source-backed body profiles, {} fallback mean-element body profile{} ({}); source-backed bodies: {}; source-backed breakdown: {} generated binary, {} vendored full-file, {} truncated slice; date ranges: {}",
         summary.source_specification_count,
         summary.source_backed_profile_count,
         summary.fallback_profile_count,
@@ -889,6 +900,7 @@ pub fn format_source_documentation_summary(summary: &Vsop87SourceDocumentationSu
             "s"
         },
         fallback_bodies,
+        source_backed_bodies,
         summary.generated_binary_profile_count,
         summary.vendored_full_file_profile_count,
         summary.truncated_profile_count,
@@ -2831,6 +2843,19 @@ mod tests {
 
         assert_eq!(summary.source_specification_count, 8);
         assert_eq!(summary.source_backed_profile_count, 8);
+        assert_eq!(
+            summary.source_backed_bodies,
+            vec![
+                CelestialBody::Sun,
+                CelestialBody::Mercury,
+                CelestialBody::Venus,
+                CelestialBody::Mars,
+                CelestialBody::Jupiter,
+                CelestialBody::Saturn,
+                CelestialBody::Uranus,
+                CelestialBody::Neptune,
+            ]
+        );
         assert_eq!(summary.generated_binary_profile_count, 8);
         assert_eq!(summary.vendored_full_file_profile_count, 0);
         assert_eq!(summary.truncated_profile_count, 0);
