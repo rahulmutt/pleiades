@@ -141,6 +141,12 @@ impl PackagedArtifactRegenerationSummary {
     }
 }
 
+impl fmt::Display for PackagedArtifactRegenerationSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Returns the structured packaged-artifact regeneration provenance.
 pub fn packaged_artifact_regeneration_summary_details() -> PackagedArtifactRegenerationSummary {
     PackagedArtifactRegenerationSummary {
@@ -153,7 +159,7 @@ pub fn packaged_artifact_regeneration_summary_details() -> PackagedArtifactRegen
 
 /// Returns the packaged-artifact regeneration provenance summary.
 pub fn packaged_artifact_regeneration_summary() -> String {
-    packaged_artifact_regeneration_summary_details().summary_line()
+    packaged_artifact_regeneration_summary_details().to_string()
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -921,6 +927,7 @@ mod tests {
         );
 
         let provenance = summary.summary_line();
+        assert_eq!(summary.to_string(), provenance);
         assert!(provenance.contains(
             "Packaged artifact regeneration source: label=stage-5 packaged-data prototype"
         ));

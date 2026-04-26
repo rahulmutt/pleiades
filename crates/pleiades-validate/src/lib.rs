@@ -45,8 +45,9 @@ use pleiades_core::{
     TimeRange, TimeScale, ZodiacMode,
 };
 use pleiades_data::{
-    packaged_artifact_profile_summary_with_body_coverage, packaged_artifact_regeneration_summary,
-    packaged_frame_treatment_summary, packaged_request_policy_summary_details, PackagedDataBackend,
+    packaged_artifact_profile_summary_with_body_coverage,
+    packaged_artifact_regeneration_summary_details, packaged_frame_treatment_summary,
+    packaged_request_policy_summary_details, PackagedDataBackend,
 };
 use pleiades_elp::{
     format_lunar_apparent_comparison_summary, format_lunar_theory_capability_summary,
@@ -3068,7 +3069,7 @@ fn render_release_summary_text() -> String {
     text.push_str(&format_packaged_artifact_profile_summary());
     text.push('\n');
     text.push_str("Packaged-artifact regeneration: ");
-    text.push_str(&packaged_artifact_regeneration_summary());
+    text.push_str(&packaged_artifact_regeneration_summary_details().to_string());
     text.push('\n');
     text.push_str("Packaged request policy: ");
     text.push_str(&packaged_request_policy_summary_details().summary_line());
