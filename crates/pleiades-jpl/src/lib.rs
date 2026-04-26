@@ -393,6 +393,12 @@ pub struct JplInterpolationQualitySummary {
     pub sample_count: usize,
     /// Number of distinct bodies represented by the samples.
     pub body_count: usize,
+    /// Number of distinct epochs represented by the samples.
+    pub epoch_count: usize,
+    /// Earliest epoch represented by the samples.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented by the samples.
+    pub latest_epoch: Instant,
     /// Number of samples that used cubic interpolation.
     pub cubic_sample_count: usize,
     /// Number of samples that used quadratic interpolation.
@@ -479,6 +485,9 @@ pub fn jpl_interpolation_quality_summary() -> Option<JplInterpolationQualitySumm
     }
 
     let mut bodies = BTreeSet::new();
+    let mut epochs = BTreeSet::new();
+    let mut earliest_epoch = samples[0].epoch;
+    let mut latest_epoch = samples[0].epoch;
     let mut cubic_sample_count = 0usize;
     let mut quadratic_sample_count = 0usize;
     let mut linear_sample_count = 0usize;
@@ -508,6 +517,13 @@ pub fn jpl_interpolation_quality_summary() -> Option<JplInterpolationQualitySumm
 
     for sample in samples {
         bodies.insert(sample.body.to_string());
+        epochs.insert(sample.epoch.julian_day.days().to_bits());
+        if sample.epoch.julian_day.days() < earliest_epoch.julian_day.days() {
+            earliest_epoch = sample.epoch;
+        }
+        if sample.epoch.julian_day.days() > latest_epoch.julian_day.days() {
+            latest_epoch = sample.epoch;
+        }
         match sample.interpolation_kind {
             InterpolationQualityKind::Cubic => cubic_sample_count += 1,
             InterpolationQualityKind::Quadratic => quadratic_sample_count += 1,
@@ -553,6 +569,9 @@ pub fn jpl_interpolation_quality_summary() -> Option<JplInterpolationQualitySumm
         percentile_bracket_span_days: percentile_f64(&mut bracket_spans, 0.95),
         sample_count: samples.len(),
         body_count: bodies.len(),
+        epoch_count: epochs.len(),
+        earliest_epoch,
+        latest_epoch,
         cubic_sample_count,
         quadratic_sample_count,
         linear_sample_count,
@@ -663,9 +682,12 @@ pub fn format_jpl_interpolation_quality_summary(
     }
 
     format!(
-        "JPL interpolation quality: {} samples across {} bodies ({} cubic, {} quadratic, {} linear), leave-one-out runtime interpolation evidence with worst-case bodies named, max bracket span={:.1} d{}; mean bracket span={:.1} d; median bracket span={:.1} d; p95 bracket span={:.1} d; max Δlon={:.12}°{}; mean Δlon={:.12}°; median Δlon={:.12}°; p95 Δlon={:.12}°; rms Δlon={:.12}°; max Δlat={:.12}°{}; mean Δlat={:.12}°; median Δlat={:.12}°; p95 Δlat={:.12}°; rms Δlat={:.12}°; max Δdist={:.12} AU{}; mean Δdist={:.12} AU; median Δdist={:.12} AU; p95 Δdist={:.12} AU; rms Δdist={:.12} AU; transparency evidence only, not a production tolerance envelope",
+        "JPL interpolation quality: {} samples across {} bodies and {} epochs ({} cubic, {} quadratic, {} linear), epoch window {} → {}; leave-one-out runtime interpolation evidence with worst-case bodies named, max bracket span={:.1} d{}; mean bracket span={:.1} d; median bracket span={:.1} d; p95 bracket span={:.1} d; max Δlon={:.12}°{}; mean Δlon={:.12}°; median Δlon={:.12}°; p95 Δlon={:.12}°; rms Δlon={:.12}°; max Δlat={:.12}°{}; mean Δlat={:.12}°; median Δlat={:.12}°; p95 Δlat={:.12}°; rms Δlat={:.12}°; max Δdist={:.12} AU{}; mean Δdist={:.12} AU; median Δdist={:.12} AU; p95 Δdist={:.12} AU; rms Δdist={:.12} AU; transparency evidence only, not a production tolerance envelope",
         summary.sample_count,
         summary.body_count,
+        summary.epoch_count,
+        format_instant(summary.earliest_epoch),
+        format_instant(summary.latest_epoch),
         summary.cubic_sample_count,
         summary.quadratic_sample_count,
         summary.linear_sample_count,
@@ -2105,6 +2127,8 @@ mod tests {
         let summary = jpl_interpolation_quality_summary().expect("summary should exist");
         assert_eq!(summary.sample_count, 21);
         assert_eq!(summary.body_count, 10);
+        assert_eq!(summary.epoch_count, 4);
+        assert!(summary.earliest_epoch.julian_day.days() <= summary.latest_epoch.julian_day.days());
         assert_eq!(
             summary.cubic_sample_count
                 + summary.quadratic_sample_count
@@ -2138,6 +2162,8 @@ mod tests {
         assert!(rendered.contains("cubic"));
         assert!(rendered.contains("quadratic"));
         assert!(rendered.contains("linear"));
+        assert!(rendered.contains("21 samples across 10 bodies and 4 epochs"));
+        assert!(rendered.contains("epoch window"));
         assert!(rendered.contains("mean bracket span="));
         assert!(rendered.contains("median bracket span="));
         assert!(rendered.contains("p95 bracket span="));
