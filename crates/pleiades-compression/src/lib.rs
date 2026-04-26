@@ -189,6 +189,36 @@ impl fmt::Display for ArtifactOutput {
     }
 }
 
+/// Describes how a high-level artifact output is represented by the profile.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+#[non_exhaustive]
+pub enum ArtifactOutputSupport {
+    /// The output is reconstructed deterministically from stored data.
+    Derived,
+    /// The output is explicitly unsupported by the profile.
+    Unsupported,
+    /// The output is neither stored nor explicitly declared by the profile.
+    Unlisted,
+}
+
+impl ArtifactOutputSupport {
+    /// Returns the compact label used in release-facing summaries.
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Derived => "derived",
+            Self::Unsupported => "unsupported",
+            Self::Unlisted => "unlisted",
+        }
+    }
+}
+
+impl fmt::Display for ArtifactOutputSupport {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.label())
+    }
+}
+
 impl fmt::Display for ArtifactProfile {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.summary_line())
@@ -311,6 +341,30 @@ impl ArtifactProfile {
     /// Returns the capability summary annotated with how many bodies share it.
     pub fn summary_line_with_body_count(&self, body_count: usize) -> String {
         self.summary_for_body_count(body_count)
+    }
+
+    /// Returns how a high-level output is represented by this profile.
+    pub fn output_support(&self, output: ArtifactOutput) -> ArtifactOutputSupport {
+        if self.derived_outputs.contains(&output) {
+            ArtifactOutputSupport::Derived
+        } else if self.unsupported_outputs.contains(&output) {
+            ArtifactOutputSupport::Unsupported
+        } else {
+            ArtifactOutputSupport::Unlisted
+        }
+    }
+
+    /// Returns whether the profile can reconstruct the requested output.
+    pub fn supports_output(&self, output: ArtifactOutput) -> bool {
+        matches!(self.output_support(output), ArtifactOutputSupport::Derived)
+    }
+
+    /// Returns whether the profile explicitly marks the output unsupported.
+    pub fn is_unsupported_output(&self, output: ArtifactOutput) -> bool {
+        matches!(
+            self.output_support(output),
+            ArtifactOutputSupport::Unsupported
+        )
     }
 
     /// Returns the current conservative profile: ecliptic longitude, latitude,
@@ -1318,6 +1372,45 @@ mod tests {
 
         assert_eq!(decoded.header.profile, profile);
         assert_eq!(decoded.header.endian_policy, EndianPolicy::LittleEndian);
+    }
+
+    #[test]
+    fn artifact_profile_reports_output_support_statuses() {
+        let profile = ArtifactProfile::ecliptic_longitude_latitude_distance();
+
+        assert_eq!(
+            profile.output_support(ArtifactOutput::EclipticCoordinates),
+            ArtifactOutputSupport::Derived
+        );
+        assert_eq!(
+            profile.output_support(ArtifactOutput::EquatorialCoordinates),
+            ArtifactOutputSupport::Unsupported
+        );
+        assert_eq!(
+            profile.output_support(ArtifactOutput::Motion),
+            ArtifactOutputSupport::Unsupported
+        );
+        assert_eq!(
+            profile.output_support(ArtifactOutput::SiderealCoordinates),
+            ArtifactOutputSupport::Unsupported
+        );
+        assert!(profile.supports_output(ArtifactOutput::EclipticCoordinates));
+        assert!(!profile.supports_output(ArtifactOutput::EquatorialCoordinates));
+        assert!(profile.is_unsupported_output(ArtifactOutput::EquatorialCoordinates));
+        assert!(profile.is_unsupported_output(ArtifactOutput::SiderealCoordinates));
+
+        let unlisted_profile = ArtifactProfile::new(
+            vec![ChannelKind::Longitude],
+            Vec::new(),
+            Vec::new(),
+            SpeedPolicy::Unsupported,
+        );
+        assert_eq!(
+            unlisted_profile.output_support(ArtifactOutput::Motion),
+            ArtifactOutputSupport::Unlisted
+        );
+        assert!(!unlisted_profile.supports_output(ArtifactOutput::Motion));
+        assert!(!unlisted_profile.is_unsupported_output(ArtifactOutput::Motion));
     }
 
     #[test]

@@ -387,10 +387,10 @@ const LUNAR_THEORY_SPECIFICATION: LunarTheorySpecification = LunarTheorySpecific
     source_identifier: "meeus-style-truncated-lunar-baseline",
     source_citation: "Jean Meeus, Astronomical Algorithms, 2nd edition, truncated lunar position and lunar node/perigee/apogee formulae adapted into a compact pure-Rust baseline",
     source_material:
-        "Published lunar position, node, and mean-point formulas implemented as the current pure-Rust baseline; the current baseline does not yet vendor ELP coefficient files",
+        "Published lunar position, node, and mean-point formulas implemented as the current pure-Rust baseline; no ELP coefficient files are bundled",
     source_aliases: LUNAR_THEORY_SOURCE_ALIASES,
     redistribution_note:
-        "No external coefficient-file redistribution constraints apply to the current baseline because the implementation does not vendor ELP coefficient tables yet",
+        "No external coefficient-file redistribution constraints apply because the baseline does not bundle ELP coefficient tables",
     supported_bodies: SUPPORTED_LUNAR_BODIES,
     unsupported_bodies: UNSUPPORTED_LUNAR_BODIES,
     request_policy: LUNAR_THEORY_REQUEST_POLICY,
@@ -3825,10 +3825,10 @@ mod tests {
             .contains("Published lunar position, node, and mean-point formulas"));
         assert!(theory
             .source_material
-            .contains("the current baseline does not yet vendor ELP coefficient files"));
+            .contains("no ELP coefficient files are bundled"));
         assert!(theory
             .redistribution_note
-            .contains("No external coefficient-file redistribution constraints"));
+            .contains("does not bundle ELP coefficient tables"));
         assert!(theory.license_note.contains("handwritten pure Rust"));
         assert!(theory.truncation_note.contains("truncated"));
         assert!(theory.unit_note.contains("astronomical units"));
