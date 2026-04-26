@@ -137,6 +137,8 @@ pub struct LunarTheorySourceSummary {
     pub model_name: &'static str,
     /// Stable identifier for the current baseline.
     pub source_identifier: &'static str,
+    /// Structured source family for the current source selection.
+    pub source_family: LunarTheorySourceFamily,
     /// Human-readable family label for the current source selection.
     pub source_family_label: &'static str,
     /// Alternate names or documented aliases for the current baseline.
@@ -166,6 +168,7 @@ pub fn lunar_theory_source_summary() -> LunarTheorySourceSummary {
     LunarTheorySourceSummary {
         model_name: theory.model_name,
         source_identifier: source.identifier,
+        source_family: source.family,
         source_family_label: source.family_label(),
         source_aliases: source.source_aliases,
         citation: source.citation,
@@ -791,6 +794,8 @@ pub struct LunarTheoryCatalogSummary {
     pub selected_count: usize,
     /// Identifier of the selected lunar-theory baseline.
     pub selected_source_identifier: &'static str,
+    /// Structured source family of the selected lunar-theory baseline.
+    pub selected_source_family: LunarTheorySourceFamily,
     /// Human-readable source family label of the selected lunar-theory baseline.
     pub selected_source_family_label: &'static str,
     /// Number of aliases documented for the selected baseline.
@@ -813,6 +818,7 @@ pub fn lunar_theory_catalog_summary() -> LunarTheoryCatalogSummary {
         entry_count: catalog.len(),
         selected_count: catalog.iter().filter(|entry| entry.selected).count(),
         selected_source_identifier: selected_entry.specification.source_identifier,
+        selected_source_family: selected_entry.specification.source_family,
         selected_source_family_label: selected_entry.specification.source_family.label(),
         selected_alias_count: selected_entry.specification.source_aliases.len(),
         selected_supported_body_count: selected_entry.specification.supported_bodies.len(),
@@ -859,6 +865,8 @@ pub struct LunarTheoryCapabilitySummary {
     pub model_name: &'static str,
     /// Stable identifier for the selected lunar-theory baseline.
     pub source_identifier: &'static str,
+    /// Structured source family for the selected lunar-theory baseline.
+    pub source_family: LunarTheorySourceFamily,
     /// Human-readable source family label.
     pub source_family_label: &'static str,
     /// Bodies/channels the current baseline explicitly supports.
@@ -891,6 +899,7 @@ pub fn lunar_theory_capability_summary() -> LunarTheoryCapabilitySummary {
     LunarTheoryCapabilitySummary {
         model_name: theory.model_name,
         source_identifier: theory.source_identifier,
+        source_family: theory.source_family,
         source_family_label: theory.source_family.label(),
         supported_bodies: theory.supported_bodies,
         unsupported_bodies: theory.unsupported_bodies,
@@ -2745,6 +2754,7 @@ mod tests {
         let source_summary = lunar_theory_source_summary();
         assert_eq!(source_summary.model_name, theory.model_name);
         assert_eq!(source_summary.source_identifier, theory.source_identifier);
+        assert_eq!(source_summary.source_family, theory.source_family);
         assert_eq!(
             source_summary.source_family_label,
             theory.source_family.label()
@@ -2797,6 +2807,7 @@ mod tests {
             catalog_summary.selected_source_identifier,
             theory.source_identifier
         );
+        assert_eq!(catalog_summary.selected_source_family, theory.source_family);
         assert_eq!(
             catalog_summary.selected_source_family_label,
             theory.source_family.label()
@@ -3529,6 +3540,7 @@ mod tests {
         let capability = lunar_theory_capability_summary();
         assert_eq!(capability.model_name, theory.model_name);
         assert_eq!(capability.source_identifier, theory.source_identifier);
+        assert_eq!(capability.source_family, theory.source_family);
         assert_eq!(
             capability.source_family_label,
             lunar_theory_source_family().label()
