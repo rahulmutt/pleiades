@@ -340,11 +340,17 @@ pub fn reference_asteroid_equatorial_evidence_summary_for_report() -> String {
     format_reference_asteroid_equatorial_evidence_summary(reference_asteroid_equatorial_evidence())
 }
 
+/// Returns the source-material summary for the checked-in reference snapshot.
+pub fn reference_snapshot_source_summary_for_report() -> &'static str {
+    "Reference snapshot source: NASA/JPL Horizons API vector tables (DE441); geocentric ecliptic J2000; TDB reference epoch JD 2451545.0"
+}
+
 /// Returns the combined snapshot evidence summary used by validation and release reports.
 pub fn jpl_snapshot_evidence_summary_for_report() -> String {
     format!(
-        "{} | {} | {} | {}",
+        "{} | {} | {} | {} | {}",
         reference_snapshot_summary_for_report(),
+        reference_snapshot_source_summary_for_report(),
         reference_asteroid_evidence_summary_for_report(),
         reference_asteroid_equatorial_evidence_summary_for_report(),
         comparison_snapshot_summary_for_report(),
@@ -1778,9 +1784,18 @@ mod tests {
     }
 
     #[test]
+    fn reference_snapshot_source_summary_reports_the_expected_provenance() {
+        assert_eq!(
+            reference_snapshot_source_summary_for_report(),
+            "Reference snapshot source: NASA/JPL Horizons API vector tables (DE441); geocentric ecliptic J2000; TDB reference epoch JD 2451545.0"
+        );
+    }
+
+    #[test]
     fn jpl_snapshot_evidence_summary_combines_the_backend_reports() {
         let report = jpl_snapshot_evidence_summary_for_report();
         assert!(report.contains(&reference_snapshot_summary_for_report()));
+        assert!(report.contains(reference_snapshot_source_summary_for_report()));
         assert!(report.contains(&reference_asteroid_evidence_summary_for_report()));
         assert!(report.contains(&reference_asteroid_equatorial_evidence_summary_for_report()));
         assert!(report.contains(&comparison_snapshot_summary_for_report()));
