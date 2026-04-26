@@ -10033,6 +10033,7 @@ version = "0.9.0"
             "lunar source selection: Compact Meeus-style truncated lunar baseline [meeus-style-truncated-lunar-baseline; selected key: source identifier=meeus-style-truncated-lunar-baseline; family: Meeus-style truncated analytical baseline]; aliases: Meeus-style truncated lunar baseline"
         ));
         assert!(release_summary.contains("JPL independent hold-out:"));
+        assert!(release_summary.contains("Independent hold-out manifest:"));
         assert!(release_summary.contains("JPL request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
         assert!(release_summary.contains("JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"));
         assert!(release_summary.contains(

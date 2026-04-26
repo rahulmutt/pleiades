@@ -509,10 +509,15 @@ pub fn independent_holdout_source_summary_for_report() -> String {
     format!("Independent hold-out source: {source}; coverage={coverage}; columns={columns}")
 }
 
+/// Returns the manifest summary for the checked-in hold-out snapshot.
+pub fn independent_holdout_manifest_summary_for_report() -> String {
+    independent_holdout_snapshot_manifest().summary_line("Independent hold-out manifest")
+}
+
 /// Returns the combined snapshot evidence summary used by validation and release reports.
 pub fn jpl_snapshot_evidence_summary_for_report() -> String {
     format!(
-        "{} | {} | {} | {} | {} | {} | {} | {} | {} | {}",
+        "{} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {}",
         reference_snapshot_summary_for_report(),
         reference_snapshot_equatorial_parity_summary_for_report(),
         reference_snapshot_source_summary_for_report(),
@@ -522,6 +527,7 @@ pub fn jpl_snapshot_evidence_summary_for_report() -> String {
         comparison_snapshot_summary_for_report(),
         independent_holdout_snapshot_summary_for_report(),
         independent_holdout_source_summary_for_report(),
+        independent_holdout_manifest_summary_for_report(),
         jpl_independent_holdout_summary_for_report(),
     )
 }
@@ -2538,6 +2544,7 @@ mod tests {
         assert!(report.contains(&comparison_snapshot_summary_for_report()));
         assert!(report.contains(&independent_holdout_snapshot_summary_for_report()));
         assert!(report.contains(&independent_holdout_source_summary_for_report()));
+        assert!(report.contains(&independent_holdout_manifest_summary_for_report()));
         assert!(report.contains(&jpl_independent_holdout_summary_for_report()));
     }
 
