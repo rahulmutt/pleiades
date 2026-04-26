@@ -8610,11 +8610,16 @@ mod tests {
         assert!(rendered.contains("Release-specific coverage beyond baseline:"));
         assert!(rendered.contains("Alias mappings for built-in house systems:"));
         assert!(rendered.contains("Polich-Page \"topocentric\" table of houses"));
+        assert!(rendered.contains("Polich Page"));
         assert!(rendered.contains("T Polich/Page (\"topocentric\")"));
         assert!(rendered.contains("Poli-equatorial"));
+        assert!(rendered.contains("Poli-Equatorial"));
         assert!(rendered.contains("horizon/azimuth"));
+        assert!(rendered.contains("Meridian table of houses"));
         assert!(rendered.contains("Meridian house system"));
         assert!(rendered.contains("Horizon house system"));
+        assert!(rendered.contains("Whole-sign"));
+        assert!(rendered.contains("Equal Quadrant"));
         assert!(rendered.contains("Horizontal house system"));
         assert!(rendered.contains("Azimuth house system"));
         assert!(rendered.contains("Azimuthal house system"));

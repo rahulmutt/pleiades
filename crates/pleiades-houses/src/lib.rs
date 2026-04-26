@@ -1374,4 +1374,28 @@ mod tests {
             assert!(unique_names.contains(entry.canonical_name));
         }
     }
+
+    #[test]
+    fn additional_release_house_aliases_resolve_to_builtin_systems() {
+        assert_eq!(
+            resolve_house_system("Polich Page"),
+            Some(HouseSystem::Topocentric)
+        );
+        assert_eq!(
+            resolve_house_system("Poli-Equatorial"),
+            Some(HouseSystem::Carter)
+        );
+        assert_eq!(
+            resolve_house_system("Equal Quadrant"),
+            Some(HouseSystem::Porphyry)
+        );
+        assert_eq!(
+            resolve_house_system("Meridian table of houses"),
+            Some(HouseSystem::Meridian)
+        );
+        assert_eq!(
+            resolve_house_system("Whole-sign"),
+            Some(HouseSystem::WholeSign)
+        );
+    }
 }
