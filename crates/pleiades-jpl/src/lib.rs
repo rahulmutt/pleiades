@@ -362,7 +362,7 @@ pub fn jpl_snapshot_request_policy_summary_for_report() -> String {
 
 /// Returns the current JPL snapshot frame-treatment summary.
 pub fn frame_treatment_summary() -> &'static str {
-    "JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"
+    "checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"
 }
 
 /// Returns the comparison-only subset used by the stage-4 validation corpus.
@@ -2231,7 +2231,7 @@ mod tests {
     fn frame_treatment_summary_documents_the_shared_mean_obliquity_transform() {
         assert_eq!(
             frame_treatment_summary(),
-            "JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"
+            "checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"
         );
     }
 

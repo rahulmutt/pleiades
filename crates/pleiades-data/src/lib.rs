@@ -187,7 +187,7 @@ pub fn packaged_request_policy_summary() -> &'static str {
 
 /// Returns the packaged-artifact frame-treatment summary.
 pub fn packaged_frame_treatment_summary() -> &'static str {
-    "Packaged frame treatment: checked-in compressed artifact stores ecliptic coordinates directly; no equatorial channel is stored in the packaged artifact"
+    "checked-in compressed artifact stores ecliptic coordinates directly; no equatorial channel is stored in the packaged artifact"
 }
 
 const AU_IN_KM: f64 = 149_597_870.7;

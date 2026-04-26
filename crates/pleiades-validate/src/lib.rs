@@ -8998,7 +8998,7 @@ mod tests {
         assert!(rendered.contains("comparison audit regressions found"));
         assert!(rendered.contains("JPL interpolation evidence:"));
         assert!(rendered.contains("JPL request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
-        assert!(rendered.contains("JPL frame treatment: JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"));
+        assert!(rendered.contains("JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"));
         assert!(rendered.contains("Reference snapshot coverage:"));
         assert!(rendered.contains("Selected asteroid evidence:"));
         assert!(rendered.contains("VSOP87 evidence:"));
@@ -9413,7 +9413,7 @@ version = "0.9.0"
             "lunar source selection: Compact Meeus-style truncated lunar baseline [meeus-style-truncated-lunar-baseline; family: Meeus-style truncated analytical baseline]; aliases: Meeus-style truncated lunar baseline"
         ));
         assert!(release_summary.contains("JPL request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
-        assert!(release_summary.contains("JPL frame treatment: JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"));
+        assert!(release_summary.contains("JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"));
         assert!(release_summary.contains("Source-backed backend evidence:"));
         assert!(release_summary.contains("Reference snapshot coverage:"));
         assert!(release_summary.contains("Selected asteroid evidence:"));
