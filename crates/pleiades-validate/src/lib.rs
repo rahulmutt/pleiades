@@ -9517,6 +9517,9 @@ version = "0.9.0"
         assert!(artifact_summary.contains("Expected tolerance status"));
         assert!(artifact_summary.contains("Comparison tolerance audit"));
         assert!(artifact_summary.contains("bodies checked:"));
+        assert!(artifact_summary.contains("Artifact decode benchmark"));
+        assert!(artifact_summary.contains("ns/decode:"));
+        assert!(artifact_summary.contains("decodes/s:"));
         assert!(artifact_summary.contains("Release summary: release-summary"));
         assert!(artifact_summary.contains("Release notes summary: release-notes-summary"));
         assert!(artifact_summary.contains("Workspace audit: workspace-audit / audit"));
@@ -10693,6 +10696,9 @@ version = "0.9.0"
         assert!(report.contains("Artifact request policy"));
         assert!(report.contains("Model error envelope"));
         assert!(report.contains("Body-class error envelopes"));
+        assert!(report.contains("Artifact decode benchmark"));
+        assert!(report.contains("nanoseconds per decode:"));
+        assert!(report.contains("decodes per second:"));
         let body_class_envelopes = report
             .split("Body-class error envelopes")
             .nth(1)

@@ -44,6 +44,8 @@ pub struct ArtifactInspectionReport {
     pub latest: Instant,
     /// Comparison report against the algorithmic baseline.
     pub model_comparison: ComparisonReport,
+    /// Decode benchmark for the packaged artifact.
+    pub decode_benchmark: ArtifactDecodeBenchmarkReport,
     /// Per-body validation summaries.
     pub bodies: Vec<ArtifactBodyInspection>,
 }
@@ -169,6 +171,7 @@ impl ArtifactInspectionReport {
             &packaged_backend(),
             &comparison_corpus,
         )?;
+        let decode_benchmark = benchmark_packaged_artifact_decode(1)?;
 
         Ok(Self {
             generation_label: decoded.header.generation_label,
@@ -184,6 +187,7 @@ impl ArtifactInspectionReport {
             earliest: earliest.unwrap_or_else(|| artifact_first_instant(artifact)),
             latest: latest.unwrap_or_else(|| artifact_first_instant(artifact)),
             model_comparison,
+            decode_benchmark,
             bodies,
         })
     }
@@ -533,6 +537,26 @@ fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
     text.push('\n');
     text.push_str("  notable regressions: ");
     text.push_str(&regression_count.to_string());
+    text.push('\n');
+    text.push_str("\nArtifact decode benchmark\n");
+    text.push_str("  artifact: ");
+    text.push_str(&report.decode_benchmark.artifact_label);
+    text.push_str("; source: ");
+    text.push_str(&report.decode_benchmark.source);
+    text.push_str("; rounds: ");
+    text.push_str(&report.decode_benchmark.rounds.to_string());
+    text.push_str("; decodes/round: ");
+    text.push_str(&report.decode_benchmark.sample_count.to_string());
+    text.push_str("; ns/decode: ");
+    text.push_str(&format!(
+        "{:.2}",
+        report.decode_benchmark.nanoseconds_per_decode()
+    ));
+    text.push_str("; decodes/s: ");
+    text.push_str(&format!(
+        "{:.2}",
+        report.decode_benchmark.decodes_per_second()
+    ));
     text.push('\n');
 
     text.push_str("\nRelease summary: release-summary\n");
@@ -941,6 +965,33 @@ impl fmt::Display for ArtifactInspectionReport {
                 )?;
             }
         }
+
+        writeln!(f)?;
+        writeln!(f, "Artifact decode benchmark")?;
+        writeln!(f, "  artifact: {}", self.decode_benchmark.artifact_label)?;
+        writeln!(f, "  source: {}", self.decode_benchmark.source)?;
+        writeln!(f, "  rounds: {}", self.decode_benchmark.rounds)?;
+        writeln!(
+            f,
+            "  decodes per round: {}",
+            self.decode_benchmark.sample_count
+        )?;
+        writeln!(
+            f,
+            "  encoded bytes: {}",
+            self.decode_benchmark.encoded_bytes
+        )?;
+        writeln!(f, "  elapsed: {:?}", self.decode_benchmark.elapsed)?;
+        writeln!(
+            f,
+            "  nanoseconds per decode: {:.2}",
+            self.decode_benchmark.nanoseconds_per_decode()
+        )?;
+        writeln!(
+            f,
+            "  decodes per second: {:.2}",
+            self.decode_benchmark.decodes_per_second()
+        )?;
 
         Ok(())
     }

@@ -43,6 +43,7 @@ Turn the current compressed-artifact scaffolding into a reproducible packaged-da
    - Compare decoded positions and speeds against generation sources.
    - Benchmark artifact size, lookup latency, batch throughput, and memory footprint.
    - Include measured limits in artifact metadata and validation reports.
+   - Progress note: the artifact inspection report now also renders a packaged-artifact decode benchmark slice alongside the existing comparison envelope and boundary checks, so the compact validation path surfaces a concrete decode-cost measurement without waiting for a separate benchmark command.
 
 5. Upgrade `pleiades-data` to consume generated artifacts.
    - Bundle or fixture a small deterministic artifact for tests.
