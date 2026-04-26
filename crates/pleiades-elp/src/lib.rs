@@ -98,6 +98,8 @@ impl fmt::Display for LunarTheorySourceFamily {
 pub struct LunarTheorySourceSelection {
     /// Structured source family for the current baseline.
     pub family: LunarTheorySourceFamily,
+    /// Alternate names or documented aliases for the current baseline.
+    pub source_aliases: &'static [&'static str],
     /// Stable identifier for the current baseline.
     pub identifier: &'static str,
     /// Canonical bibliographic citation for the current baseline.
@@ -131,6 +133,8 @@ pub struct LunarTheorySourceSummary {
     pub source_identifier: &'static str,
     /// Human-readable family label for the current source selection.
     pub source_family_label: &'static str,
+    /// Alternate names or documented aliases for the current baseline.
+    pub source_aliases: &'static [&'static str],
     /// Canonical bibliographic citation for the current baseline.
     pub citation: &'static str,
     /// Human-readable source/provenance note for the current baseline.
@@ -157,6 +161,7 @@ pub fn lunar_theory_source_summary() -> LunarTheorySourceSummary {
         model_name: theory.model_name,
         source_identifier: source.identifier,
         source_family_label: source.family_label(),
+        source_aliases: source.source_aliases,
         citation: source.citation,
         provenance: source.material,
         validation_window: theory.validation_window,
@@ -212,9 +217,7 @@ impl<'a> LunarTheoryCatalogKey<'a> {
                 .source_family
                 .label()
                 .eq_ignore_ascii_case(family_label),
-            Self::Alias(alias) => {
-                entry.specification.matches_label(alias) && lunar_theory_source_aliases_match(alias)
-            }
+            Self::Alias(alias) => entry.specification.matches_alias(alias),
         }
     }
 }
@@ -232,6 +235,8 @@ pub struct LunarTheorySpecification {
     pub source_citation: &'static str,
     /// Human-readable source/provenance note for the selected lunar baseline.
     pub source_material: &'static str,
+    /// Alternate names or documented aliases for the selected baseline.
+    pub source_aliases: &'static [&'static str],
     /// Redistribution or licensing posture for the selected baseline.
     pub redistribution_note: &'static str,
     /// Bodies/channels the current lunar baseline explicitly covers.
@@ -269,6 +274,7 @@ impl LunarTheorySpecification {
     pub const fn source_selection(self) -> LunarTheorySourceSelection {
         LunarTheorySourceSelection {
             family: self.source_family,
+            source_aliases: self.source_aliases,
             identifier: self.source_identifier,
             citation: self.source_citation,
             material: self.source_material,
@@ -277,12 +283,19 @@ impl LunarTheorySpecification {
         }
     }
 
+    /// Returns `true` when the provided label matches one of the documented aliases.
+    pub fn matches_alias(self, label: &str) -> bool {
+        self.source_aliases
+            .iter()
+            .any(|alias| alias.eq_ignore_ascii_case(label))
+    }
+
     /// Returns `true` when the provided label matches the built-in lunar selection.
     pub fn matches_label(self, label: &str) -> bool {
         self.source_identifier.eq_ignore_ascii_case(label)
             || self.model_name.eq_ignore_ascii_case(label)
             || self.source_family.label().eq_ignore_ascii_case(label)
-            || lunar_theory_source_aliases_match(label)
+            || self.matches_alias(label)
     }
 }
 
@@ -296,12 +309,6 @@ const SUPPORTED_LUNAR_BODIES: &[CelestialBody] = &[
 const UNSUPPORTED_LUNAR_BODIES: &[CelestialBody] =
     &[CelestialBody::TrueApogee, CelestialBody::TruePerigee];
 const LUNAR_THEORY_SOURCE_ALIASES: &[&str] = &["Meeus-style truncated lunar baseline"];
-
-fn lunar_theory_source_aliases_match(label: &str) -> bool {
-    LUNAR_THEORY_SOURCE_ALIASES
-        .iter()
-        .any(|alias| alias.eq_ignore_ascii_case(label))
-}
 
 const SUPPORTED_LUNAR_FRAMES: &[CoordinateFrame] =
     &[CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial];
@@ -352,6 +359,7 @@ const LUNAR_THEORY_SPECIFICATION: LunarTheorySpecification = LunarTheorySpecific
     source_citation: "Jean Meeus, Astronomical Algorithms, 2nd edition, truncated lunar position and lunar node/perigee/apogee formulae adapted into a compact pure-Rust baseline",
     source_material:
         "Published lunar position, node, and mean-point formulas implemented as the current pure-Rust baseline; no vendored ELP coefficient files are used yet while full ELP coefficient selection remains pending",
+    source_aliases: LUNAR_THEORY_SOURCE_ALIASES,
     redistribution_note:
         "No external coefficient-file redistribution constraints apply to the current baseline because the implementation does not vendor ELP coefficient tables yet",
     supported_bodies: SUPPORTED_LUNAR_BODIES,
@@ -645,11 +653,18 @@ pub fn lunar_theory_summary() -> String {
 
 /// Formats the compact lunar source-selection summary for release-facing reporting.
 pub fn format_lunar_theory_source_summary(summary: &LunarTheorySourceSummary) -> String {
+    let aliases = if summary.source_aliases.is_empty() {
+        "none".to_string()
+    } else {
+        summary.source_aliases.join(", ")
+    };
+
     format!(
-        "lunar source selection: {} [{}; family: {}]; citation: {}; provenance: {}; validation window: {}; redistribution: {}; license: {}",
+        "lunar source selection: {} [{}; family: {}]; aliases: {}; citation: {}; provenance: {}; validation window: {}; redistribution: {}; license: {}",
         summary.model_name,
         summary.source_identifier,
         summary.source_family_label,
+        aliases,
         summary.citation,
         summary.provenance,
         format_time_range(&summary.validation_window),
@@ -2364,6 +2379,7 @@ mod tests {
             theory.source_family.label()
         );
         assert_eq!(source.family, theory.source_family);
+        assert_eq!(source.source_aliases, theory.source_aliases);
         assert_eq!(source.identifier, theory.source_identifier);
         assert_eq!(source.citation, theory.source_citation);
         assert_eq!(
@@ -2385,21 +2401,21 @@ mod tests {
             Some(theory)
         );
         assert_eq!(
-            resolve_lunar_theory_by_alias("Meeus-style truncated lunar baseline"),
+            resolve_lunar_theory_by_alias(theory.source_aliases[0]),
             Some(theory)
         );
         assert_eq!(
-            lunar_theory_catalog_entry_for_alias("Meeus-style truncated lunar baseline"),
+            lunar_theory_catalog_entry_for_alias(theory.source_aliases[0]),
             Some(catalog[0])
         );
         assert_eq!(
             lunar_theory_catalog_entry_for_key(LunarTheoryCatalogKey::Alias(
-                "Meeus-style truncated lunar baseline",
+                theory.source_aliases[0],
             )),
             Some(catalog[0])
         );
         assert_eq!(
-            lunar_theory_catalog_entry_for_label("Meeus-style truncated lunar baseline"),
+            lunar_theory_catalog_entry_for_label(theory.source_aliases[0]),
             Some(catalog[0])
         );
         assert!(resolve_lunar_theory_by_alias("not-a-lunar-alias").is_none());
@@ -2414,6 +2430,7 @@ mod tests {
         assert_eq!(source_summary.citation, theory.source_citation);
         assert_eq!(source_summary.provenance, theory.source_material);
         assert_eq!(source_summary.validation_window, theory.validation_window);
+        assert_eq!(source_summary.source_aliases, theory.source_aliases);
         assert_eq!(
             source_summary.redistribution_note,
             theory.redistribution_note
@@ -2424,6 +2441,8 @@ mod tests {
             lunar_theory_source_summary_for_report()
         );
         assert!(lunar_theory_source_summary_for_report().contains("lunar source selection: "));
+        assert!(lunar_theory_source_summary_for_report()
+            .contains("aliases: Meeus-style truncated lunar baseline"));
         assert!(lunar_theory_source_summary_for_report().contains(theory.model_name));
         assert!(lunar_theory_source_summary_for_report().contains(theory.source_identifier));
         assert!(lunar_theory_source_summary_for_report()
@@ -2551,6 +2570,7 @@ mod tests {
             theory.source_family.label()
         );
         assert_eq!(source.family, theory.source_family);
+        assert_eq!(source.source_aliases, theory.source_aliases);
         assert_eq!(source.identifier, theory.source_identifier);
         assert_eq!(source.citation, theory.source_citation);
         assert_eq!(source.material, theory.source_material);
