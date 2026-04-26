@@ -2582,6 +2582,11 @@ fn render_release_summary_text() -> String {
             &report.comparison.samples,
         ));
         text.push('\n');
+        text.push_str("Comparison tail envelope: ");
+        text.push_str(&format_comparison_percentile_envelope_for_report(
+            &report.comparison.samples,
+        ));
+        text.push('\n');
         text.push_str("Body-class error envelopes:\n");
         for summary in report.comparison.body_class_summaries() {
             text.push_str("  ");
@@ -3941,6 +3946,13 @@ struct ComparisonMedianEnvelope {
     distance_delta_au: Option<f64>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct ComparisonPercentileEnvelope {
+    longitude_delta_deg: f64,
+    latitude_delta_deg: f64,
+    distance_delta_au: Option<f64>,
+}
+
 fn median_value(values: &mut [f64]) -> Option<f64> {
     if values.is_empty() {
         return None;
@@ -3952,6 +3964,24 @@ fn median_value(values: &mut [f64]) -> Option<f64> {
         Some((values[middle - 1] + values[middle]) / 2.0)
     } else {
         Some(values[middle])
+    }
+}
+
+fn percentile_value(values: &mut [f64], percentile: f64) -> Option<f64> {
+    if values.is_empty() {
+        return None;
+    }
+
+    values.sort_by(|left, right| left.total_cmp(right));
+    let percentile = percentile.clamp(0.0, 1.0);
+    let position = percentile * (values.len().saturating_sub(1)) as f64;
+    let lower_index = position.floor() as usize;
+    let upper_index = position.ceil() as usize;
+    if lower_index == upper_index {
+        Some(values[lower_index])
+    } else {
+        let weight = position - lower_index as f64;
+        Some(values[lower_index] + (values[upper_index] - values[lower_index]) * weight)
     }
 }
 
@@ -3974,6 +4004,44 @@ fn comparison_median_envelope(samples: &[ComparisonSample]) -> ComparisonMedianE
         latitude_delta_deg: median_value(&mut latitude_values).unwrap_or_default(),
         distance_delta_au: median_value(&mut distance_values),
     }
+}
+
+fn comparison_percentile_envelope(
+    samples: &[ComparisonSample],
+    percentile: f64,
+) -> ComparisonPercentileEnvelope {
+    let mut longitude_values = samples
+        .iter()
+        .map(|sample| sample.longitude_delta_deg)
+        .collect::<Vec<_>>();
+    let mut latitude_values = samples
+        .iter()
+        .map(|sample| sample.latitude_delta_deg)
+        .collect::<Vec<_>>();
+    let mut distance_values = samples
+        .iter()
+        .filter_map(|sample| sample.distance_delta_au)
+        .collect::<Vec<_>>();
+
+    ComparisonPercentileEnvelope {
+        longitude_delta_deg: percentile_value(&mut longitude_values, percentile)
+            .unwrap_or_default(),
+        latitude_delta_deg: percentile_value(&mut latitude_values, percentile).unwrap_or_default(),
+        distance_delta_au: percentile_value(&mut distance_values, percentile),
+    }
+}
+
+fn format_comparison_percentile_envelope_for_report(samples: &[ComparisonSample]) -> String {
+    let percentile = comparison_percentile_envelope(samples, 0.95);
+    let distance = percentile
+        .distance_delta_au
+        .map(|value| format!("{value:.12} AU"))
+        .unwrap_or_else(|| "n/a".to_string());
+
+    format!(
+        "95th percentile absolute deltas: longitude {:.12}°, latitude {:.12}°, distance {}",
+        percentile.longitude_delta_deg, percentile.latitude_delta_deg, distance,
+    )
 }
 
 fn format_comparison_envelope_for_report(
@@ -4202,6 +4270,11 @@ fn render_comparison_audit_report_text(report: &ComparisonReport) -> String {
             .map(|value| format!("{value:.12} AU"))
             .unwrap_or_else(|| "n/a".to_string()),
         format_summary_body(&report.summary.max_distance_delta_body)
+    );
+    let _ = writeln!(
+        text,
+        "  {}",
+        format_comparison_percentile_envelope_for_report(&report.samples)
     );
     let _ = writeln!(text);
     let _ = writeln!(text, "Body-class error envelopes");
@@ -4576,6 +4649,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     if let Some(value) = report.comparison.summary.rms_distance_delta_au {
         let _ = writeln!(text, "  rms distance delta: {:.12} AU", value);
     }
+    let _ = writeln!(
+        text,
+        "  {}",
+        format_comparison_percentile_envelope_for_report(&report.comparison.samples)
+    );
     let _ = writeln!(text, "  notable regressions: {}", comparison_regressions);
     let _ = writeln!(
         text,
@@ -6553,6 +6631,11 @@ fn write_comparison_summary(f: &mut fmt::Formatter<'_>, report: &ComparisonRepor
     if let Some(value) = summary.rms_distance_delta_au {
         writeln!(f, "  rms distance delta: {:.12} AU", value)?;
     }
+    writeln!(
+        f,
+        "  {}",
+        format_comparison_percentile_envelope_for_report(&report.samples)
+    )?;
     Ok(())
 }
 
@@ -7699,6 +7782,7 @@ mod tests {
         assert!(report.contains("Reference backend"));
         assert!(report.contains("Candidate backend"));
         assert!(report.contains("Comparison summary"));
+        assert!(report.contains("95th percentile absolute deltas:"));
         assert!(report.contains(&format!(
             "max longitude delta: {:.12}° ({})",
             validation_report.comparison.summary.max_longitude_delta_deg,
@@ -7817,6 +7901,7 @@ mod tests {
         assert!(report.contains("Comparison corpus"));
         assert!(report.contains("epoch labels: JD 2378499.0 (TT)"));
         assert!(report.contains("Comparison summary"));
+        assert!(report.contains("95th percentile absolute deltas:"));
         assert!(report.contains("median longitude delta:"));
         assert!(report.contains("median latitude delta:"));
         assert!(report.contains("rms longitude delta:"));
@@ -9072,6 +9157,9 @@ version = "0.9.0"
             "Packaged-artifact profile: stored channels: [Longitude, Latitude, DistanceAu]"
         ));
         assert!(release_summary.contains("Comparison envelope: max longitude delta:"));
+        assert!(
+            release_summary.contains("Comparison tail envelope: 95th percentile absolute deltas:")
+        );
         assert!(release_summary.contains("mean longitude delta:"));
         assert!(release_summary.contains("median longitude delta:"));
         assert!(release_summary.contains("mean latitude delta:"));
