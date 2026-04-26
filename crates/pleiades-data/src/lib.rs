@@ -243,6 +243,12 @@ impl PackagedArtifactProfileSummary {
     }
 }
 
+impl fmt::Display for PackagedArtifactProfileSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Returns the current packaged-artifact profile summary record.
 pub fn packaged_artifact_profile_summary_details() -> PackagedArtifactProfileSummary {
     let artifact = packaged_artifact();
@@ -260,7 +266,7 @@ pub fn packaged_artifact_profile_summary_details() -> PackagedArtifactProfileSum
 
 /// Returns the current packaged-artifact profile summary.
 pub fn packaged_artifact_profile_summary() -> String {
-    packaged_artifact_profile_summary_details().summary_line()
+    packaged_artifact_profile_summary_details().to_string()
 }
 
 /// Returns the current packaged-artifact profile summary with bundled body coverage.
@@ -955,6 +961,7 @@ mod tests {
                 .header
                 .summary_for_body_count(artifact.bodies.len())
         );
+        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             summary.summary_line_with_bodies(),
             format!(
