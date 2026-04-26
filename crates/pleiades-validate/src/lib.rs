@@ -53,9 +53,9 @@ use pleiades_elp::{
     lunar_high_curvature_equatorial_continuity_evidence_for_report, lunar_reference_evidence,
     lunar_reference_evidence_envelope_for_report, lunar_reference_evidence_summary,
     lunar_reference_evidence_summary_for_report, lunar_theory_capability_summary,
-    lunar_theory_catalog_summary_for_report, lunar_theory_request_policy_summary,
-    lunar_theory_source_summary_for_report, lunar_theory_specification, lunar_theory_summary,
-    ElpBackend,
+    lunar_theory_catalog_summary_for_report, lunar_theory_catalog_validation_summary_for_report,
+    lunar_theory_request_policy_summary, lunar_theory_source_summary_for_report,
+    lunar_theory_specification, lunar_theory_summary, ElpBackend,
 };
 use pleiades_houses::{
     baseline_house_systems, built_in_house_systems, release_house_systems, resolve_house_system,
@@ -2547,6 +2547,8 @@ fn render_release_summary_text() -> String {
     text.push_str(profile.summary);
     text.push('\n');
     text.push_str(&lunar_theory_catalog_summary_for_report());
+    text.push('\n');
+    text.push_str(&lunar_theory_catalog_validation_summary_for_report());
     text.push('\n');
     text.push_str(&lunar_theory_source_summary_for_report());
     text.push('\n');
@@ -5045,6 +5047,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text);
     let _ = writeln!(text, "ELP lunar theory specification");
     let _ = writeln!(text, "  {}", lunar_theory_catalog_summary_for_report());
+    let _ = writeln!(
+        text,
+        "  {}",
+        lunar_theory_catalog_validation_summary_for_report()
+    );
     let _ = writeln!(text, "  {}", lunar_theory_source_summary_for_report());
     let _ = writeln!(text, "  {}", lunar_theory_summary());
     let _ = writeln!(text);
@@ -5383,6 +5390,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&format_vsop87_body_evidence_summary());
     text.push('\n');
     text.push_str(&lunar_theory_catalog_summary_for_report());
+    text.push('\n');
+    text.push_str(&lunar_theory_catalog_validation_summary_for_report());
     text.push('\n');
     text.push_str(&lunar_theory_source_summary_for_report());
     text.push('\n');
@@ -6449,6 +6458,11 @@ fn write_backend_catalog_entry(
             f,
             "    catalog summary: {}",
             lunar_theory_catalog_summary_for_report()
+        )?;
+        writeln!(
+            f,
+            "    catalog validation: {}",
+            lunar_theory_catalog_validation_summary_for_report()
         )?;
         writeln!(f, "    model: {}", theory.model_name)?;
         writeln!(
@@ -9018,6 +9032,9 @@ mod tests {
         assert!(rendered.contains(
             "lunar theory catalog: 1 entry, 1 selected entry; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]"
         ));
+        assert!(rendered.contains(
+            "lunar theory catalog validation: ok (1 entries, 1 selected; round-trip and alias uniqueness verified)"
+        ));
         assert!(rendered.contains("lunar reference error envelope: 9 samples across 5 bodies"));
         assert!(rendered.contains("max Δlon="));
         assert!(rendered.contains("max Δlat="));
@@ -9451,6 +9468,9 @@ version = "0.9.0"
         ));
         assert!(validation_report_summary.contains(
             "lunar theory catalog: 1 entry, 1 selected entry; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]"
+        ));
+        assert!(validation_report_summary.contains(
+            "lunar theory catalog validation: ok (1 entries, 1 selected; round-trip and alias uniqueness verified)"
         ));
         assert!(validation_report_summary
             .contains("lunar reference error envelope: 9 samples across 5 bodies"));

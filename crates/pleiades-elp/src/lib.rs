@@ -577,6 +577,25 @@ pub fn validate_lunar_theory_catalog() -> Result<(), LunarTheoryCatalogValidatio
     Ok(())
 }
 
+/// Returns a compact release-facing summary of the lunar-theory catalog validation state.
+pub fn lunar_theory_catalog_validation_summary_for_report() -> String {
+    let catalog = lunar_theory_catalog();
+    let selected_count = catalog.iter().filter(|entry| entry.selected).count();
+    match validate_lunar_theory_catalog() {
+        Ok(()) => format!(
+            "lunar theory catalog validation: ok ({} entries, {} selected; round-trip and alias uniqueness verified)",
+            catalog.len(),
+            selected_count,
+        ),
+        Err(error) => format!(
+            "lunar theory catalog validation: error: {} ({} entries, {} selected)",
+            error,
+            catalog.len(),
+            selected_count,
+        ),
+    }
+}
+
 /// Returns the catalog entry matching the provided source identifier, when present.
 pub fn lunar_theory_catalog_entry_for_source_identifier(
     source_identifier: &str,
@@ -2717,6 +2736,8 @@ mod tests {
         );
         assert!(lunar_theory_catalog_summary_for_report()
             .contains("lunar theory catalog: 1 entry, 1 selected entry"));
+        assert!(lunar_theory_catalog_validation_summary_for_report()
+            .contains("lunar theory catalog validation: ok (1 entries, 1 selected"));
         assert!(lunar_theory_catalog_summary_for_report()
             .contains("selected source: meeus-style-truncated-lunar-baseline"));
         assert!(lunar_theory_catalog_summary_for_report()
