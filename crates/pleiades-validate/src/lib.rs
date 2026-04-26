@@ -31,6 +31,7 @@ pub use house_validation::{
 use pleiades_ayanamsa::{
     baseline_ayanamsas, built_in_ayanamsas, metadata_coverage, release_ayanamsas, resolve_ayanamsa,
 };
+use pleiades_backend::zodiac_policy_summary_for_report;
 use pleiades_core::{
     current_api_stability_profile, current_compatibility_profile,
     current_release_profile_identifiers, default_chart_bodies, AccuracyClass, Apparentness,
@@ -67,8 +68,8 @@ use pleiades_jpl::{
     format_jpl_interpolation_quality_kind_coverage,
     format_jpl_interpolation_quality_summary_for_report,
     frame_treatment_summary as jpl_frame_treatment_summary, interpolation_quality_samples,
-    jpl_interpolation_quality_kind_coverage, jpl_snapshot_evidence_summary_for_report,
-    jpl_snapshot_request_policy_summary_for_report,
+    jpl_independent_holdout_summary_for_report, jpl_interpolation_quality_kind_coverage,
+    jpl_snapshot_evidence_summary_for_report, jpl_snapshot_request_policy_summary_for_report,
     reference_asteroid_equatorial_evidence_summary_for_report, reference_asteroid_evidence,
     reference_asteroid_evidence_summary_for_report, reference_asteroids,
     reference_snapshot_summary_for_report, JplSnapshotBackend,
@@ -2628,6 +2629,9 @@ fn render_release_summary_text() -> String {
     text.push_str("Frame policy: ");
     text.push_str(frame_policy_summary_for_report());
     text.push('\n');
+    text.push_str("Zodiac policy: ");
+    text.push_str(&zodiac_policy_summary_for_report(&[ZodiacMode::Tropical]));
+    text.push('\n');
     text.push_str("Release summary line: ");
     text.push_str(profile.summary);
     text.push('\n');
@@ -2770,6 +2774,8 @@ fn render_release_summary_text() -> String {
     }
     text.push_str("JPL interpolation evidence: ");
     text.push_str(&format_jpl_interpolation_quality_summary_for_report());
+    text.push('\n');
+    text.push_str(&jpl_independent_holdout_summary_for_report());
     text.push('\n');
     text.push_str("JPL request policy: ");
     text.push_str(&jpl_snapshot_request_policy_summary_for_report());
@@ -4731,6 +4737,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         apparentness_policy_summary_for_report()
     );
     let _ = writeln!(text, "Frame policy: {}", frame_policy_summary_for_report());
+    let _ = writeln!(
+        text,
+        "Zodiac policy: {}",
+        zodiac_policy_summary_for_report(&[ZodiacMode::Tropical])
+    );
     let _ = writeln!(text);
     let _ = writeln!(text, "Comparison corpus");
     let _ = writeln!(text, "  name: {}", report.comparison_corpus.name);
@@ -4840,6 +4851,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         "  {}",
         format_jpl_interpolation_quality_summary_for_report()
     );
+    let _ = writeln!(text, "  {}", jpl_independent_holdout_summary_for_report());
     let _ = writeln!(
         text,
         "JPL request policy: {}",
@@ -5506,6 +5518,9 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str("Frame policy: ");
     text.push_str(frame_policy_summary_for_report());
     text.push('\n');
+    text.push_str("Zodiac policy: ");
+    text.push_str(&zodiac_policy_summary_for_report(&[ZodiacMode::Tropical]));
+    text.push('\n');
     text.push_str("Backends with external data sources: ");
     text.push_str(&data_source_count.to_string());
     text.push('\n');
@@ -5568,6 +5583,9 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str("Apparentness policy: ");
     text.push_str(apparentness_policy_summary_for_report());
+    text.push('\n');
+    text.push_str("Zodiac policy: ");
+    text.push_str(&zodiac_policy_summary_for_report(&[ZodiacMode::Tropical]));
     text.push('\n');
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("API stability summary: api-stability-summary\n");
@@ -6685,6 +6703,7 @@ fn write_jpl_interpolation_quality(f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f,
         "    note: expanded public-input leave-one-out checks report current runtime interpolation error against held-out exact rows; they are not production tolerances"
     )?;
+    writeln!(f, "    {}", jpl_independent_holdout_summary_for_report())?;
     for sample in interpolation_quality_samples() {
         writeln!(
             f,
@@ -8116,6 +8135,7 @@ mod tests {
         assert!(report.contains("interpolation quality checks:"));
         assert!(report.contains("JPL interpolation quality: 21 samples across 10 bodies"));
         assert!(report.contains("JPL interpolation quality kind coverage:"));
+        assert!(report.contains("JPL independent hold-out:"));
         assert!(report.contains("transparency evidence only, not a production tolerance envelope"));
         assert!(report.contains("Lunar reference"));
         assert!(report.contains(
@@ -8222,6 +8242,7 @@ mod tests {
         assert!(body_class_tolerance_posture.contains("rms Δdist="));
         assert!(report.contains("JPL interpolation quality"));
         assert!(report.contains("JPL interpolation quality: 21 samples across 10 bodies"));
+        assert!(report.contains("JPL independent hold-out:"));
         assert!(report.contains("leave-one-out runtime interpolation evidence"));
         assert!(report.contains("transparency evidence only, not a production tolerance envelope"));
         assert!(report.contains("@ JD"));
@@ -8358,6 +8379,7 @@ mod tests {
         assert!(validation_report_summary.contains("Observer policy:"));
         assert!(validation_report_summary.contains("Apparentness policy:"));
         assert!(validation_report_summary.contains("Frame policy:"));
+        assert!(validation_report_summary.contains("Zodiac policy:"));
         assert!(validation_report_summary
             .contains("lookup epoch policy=TT-grid retag without relativistic correction"));
         assert!(validation_report_summary.contains("Benchmark summaries"));
@@ -9116,6 +9138,7 @@ mod tests {
         assert!(rendered.contains("Time-scale policy:"));
         assert!(rendered.contains("Observer policy:"));
         assert!(rendered.contains("Apparentness policy:"));
+        assert!(rendered.contains("Zodiac policy:"));
         assert!(rendered.contains("notable regressions"));
         assert!(rendered.contains("outside-tolerance bodies"));
         assert!(rendered.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto override); limits="));
@@ -9129,6 +9152,7 @@ mod tests {
         assert!(rendered.contains("Expected tolerance status:"));
         assert!(rendered.contains("comparison audit regressions found"));
         assert!(rendered.contains("JPL interpolation evidence:"));
+        assert!(rendered.contains("JPL independent hold-out:"));
         assert!(rendered.contains("JPL request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
         assert!(rendered.contains("JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"));
         assert!(rendered.contains("Reference snapshot coverage:"));
@@ -9285,6 +9309,7 @@ mod tests {
         assert!(rendered.contains("Observer policy:"));
         assert!(rendered.contains("Apparentness policy:"));
         assert!(rendered.contains("Frame policy:"));
+        assert!(rendered.contains("Zodiac policy:"));
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(rendered.contains("API stability summary: api-stability-summary"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
@@ -9545,6 +9570,7 @@ version = "0.9.0"
         assert!(release_summary.contains(
             "lunar source selection: Compact Meeus-style truncated lunar baseline [meeus-style-truncated-lunar-baseline; selected key: source identifier=meeus-style-truncated-lunar-baseline; family: Meeus-style truncated analytical baseline]; aliases: Meeus-style truncated lunar baseline"
         ));
+        assert!(release_summary.contains("JPL independent hold-out:"));
         assert!(release_summary.contains("JPL request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
         assert!(release_summary.contains("JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"));
         assert!(release_summary.contains("Source-backed backend evidence:"));

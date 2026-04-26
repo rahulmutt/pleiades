@@ -404,6 +404,14 @@ fn format_debug_list<T: fmt::Debug>(values: &[T]) -> String {
         .join(", ")
 }
 
+fn format_display_list<T: fmt::Display>(values: &[T]) -> String {
+    values
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
 /// Validates the request-shape policy shared by the current first-party backends.
 ///
 /// This helper checks the request against the backend's published time-scale,
@@ -480,6 +488,18 @@ pub fn validate_zodiac_policy(
     }
 
     Ok(())
+}
+
+/// Formats the zodiac-mode policy shared by the current first-party backends.
+pub fn zodiac_policy_summary_for_report(supported_zodiac_modes: &[ZodiacMode]) -> String {
+    if supported_zodiac_modes.len() == 1 && supported_zodiac_modes[0] == ZodiacMode::Tropical {
+        "tropical only".to_string()
+    } else {
+        format!(
+            "zodiac modes=[{}]",
+            format_display_list(supported_zodiac_modes)
+        )
+    }
 }
 
 /// Validates the observer policy shared by the current first-party backends.
@@ -1006,6 +1026,10 @@ mod tests {
                 );
         assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
         assert!(error.message.contains("tropical coordinates only"));
+        assert_eq!(
+            zodiac_policy_summary_for_report(&[ZodiacMode::Tropical]),
+            "tropical only"
+        );
 
         let observer_request = EphemerisRequest {
             observer: Some(ObserverLocation::new(

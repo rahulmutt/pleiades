@@ -106,6 +106,7 @@ name = "pleiades-validate"
 version = "0.1.0"
 dependencies = [
  "pleiades-ayanamsa",
+ "pleiades-backend",
  "pleiades-compression",
  "pleiades-core",
  "pleiades-data",

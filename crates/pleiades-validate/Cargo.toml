@@ -8,6 +8,7 @@ publish = false
 
 [dependencies]
 pleiades-ayanamsa = { path = "../pleiades-ayanamsa" }
+pleiades-backend = { path = "../pleiades-backend" }
 pleiades-compression = { path = "../pleiades-compression" }
 pleiades-core = { path = "../pleiades-core" }
 pleiades-data = { path = "../pleiades-data" }
