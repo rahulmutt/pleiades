@@ -64,6 +64,8 @@ pub struct ReferenceSnapshotSummary {
     pub row_count: usize,
     /// Number of distinct bodies covered by the snapshot.
     pub body_count: usize,
+    /// Bodies covered by the snapshot in first-seen order.
+    pub bodies: &'static [pleiades_backend::CelestialBody],
     /// Number of distinct epochs covered by the snapshot.
     pub epoch_count: usize,
     /// Number of rows that belong to the reference asteroid subset.
@@ -105,6 +107,7 @@ pub fn reference_snapshot_summary() -> Option<ReferenceSnapshotSummary> {
     Some(ReferenceSnapshotSummary {
         row_count: entries.len(),
         body_count: bodies.len(),
+        bodies: snapshot_bodies(),
         epoch_count: epochs.len(),
         asteroid_row_count,
         earliest_epoch,
@@ -120,6 +123,8 @@ pub struct ReferenceSnapshotEquatorialParitySummary {
     pub row_count: usize,
     /// Number of distinct bodies covered by the snapshot.
     pub body_count: usize,
+    /// Bodies covered by the snapshot in first-seen order.
+    pub bodies: &'static [pleiades_backend::CelestialBody],
     /// Number of distinct epochs covered by the snapshot.
     pub epoch_count: usize,
     /// Earliest epoch represented in the snapshot.
@@ -134,6 +139,7 @@ pub fn reference_snapshot_equatorial_parity_summary(
     reference_snapshot_summary().map(|summary| ReferenceSnapshotEquatorialParitySummary {
         row_count: summary.row_count,
         body_count: summary.body_count,
+        bodies: summary.bodies,
         epoch_count: summary.epoch_count,
         earliest_epoch: summary.earliest_epoch,
         latest_epoch: summary.latest_epoch,
@@ -144,12 +150,13 @@ impl ReferenceSnapshotEquatorialParitySummary {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         format!(
-            "JPL reference snapshot equatorial parity: {} rows across {} bodies and {} epochs ({}..{}); mean-obliquity transform against the checked-in ecliptic fixture",
+            "JPL reference snapshot equatorial parity: {} rows across {} bodies and {} epochs ({}..{}); bodies: {}; mean-obliquity transform against the checked-in ecliptic fixture",
             self.row_count,
             self.body_count,
             self.epoch_count,
             format_instant(self.earliest_epoch),
             format_instant(self.latest_epoch),
+            format_bodies(self.bodies),
         )
     }
 }
@@ -180,13 +187,14 @@ impl ReferenceSnapshotSummary {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         format!(
-            "Reference snapshot coverage: {} rows across {} bodies and {} epochs ({} asteroid rows; {}..{})",
+            "Reference snapshot coverage: {} rows across {} bodies and {} epochs ({} asteroid rows; {}..{}); bodies: {}",
             self.row_count,
             self.body_count,
             self.epoch_count,
             self.asteroid_row_count,
             format_instant(self.earliest_epoch),
             format_instant(self.latest_epoch),
+            format_bodies(self.bodies),
         )
     }
 }
@@ -2572,13 +2580,17 @@ mod tests {
             reference_snapshot_summary().expect("reference snapshot summary should exist");
         assert_eq!(summary.row_count, 46);
         assert_eq!(summary.body_count, 15);
+        assert_eq!(summary.bodies, reference_bodies());
         assert_eq!(summary.epoch_count, 6);
         assert_eq!(summary.asteroid_row_count, 5);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_499.0);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(
             summary.summary_line(),
-            "Reference snapshot coverage: 46 rows across 15 bodies and 6 epochs (5 asteroid rows; JD 2378499.0 (TDB)..JD 2634167.0 (TDB))"
+            format!(
+                "Reference snapshot coverage: 46 rows across 15 bodies and 6 epochs (5 asteroid rows; JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: {}",
+                format_bodies(reference_bodies())
+            )
         );
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
@@ -2593,12 +2605,16 @@ mod tests {
             .expect("reference snapshot equatorial parity summary should exist");
         assert_eq!(summary.row_count, 46);
         assert_eq!(summary.body_count, 15);
+        assert_eq!(summary.bodies, reference_bodies());
         assert_eq!(summary.epoch_count, 6);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_499.0);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(
             summary.summary_line(),
-            "JPL reference snapshot equatorial parity: 46 rows across 15 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); mean-obliquity transform against the checked-in ecliptic fixture"
+            format!(
+                "JPL reference snapshot equatorial parity: 46 rows across 15 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: {}; mean-obliquity transform against the checked-in ecliptic fixture",
+                format_bodies(reference_bodies())
+            )
         );
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
