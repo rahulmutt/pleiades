@@ -130,6 +130,8 @@ Latest progress (2026-04-25): the JPL comparison corpus now also has a backend-o
 
 Latest progress (2026-04-25): the compact validation and release summaries now also spell out the current comparison-tolerance limits per scope alongside the scope names and evidence counts, so the release-facing policy line is a little more actionable without widening the full audit output.
 
+Latest progress (2026-04-26): the comparison-tolerance policy summaries now also carry the comparison window and candidate coordinate-frame coverage alongside the scope catalog, so the release-facing tolerance view ties the scope table to the evidence range more explicitly.
+
 Active gaps:
 
 - broader release-grade error envelopes and tolerance tables beyond the comparison-audit gate and new class-level mean/RMS posture;

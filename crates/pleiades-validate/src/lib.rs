@@ -4188,11 +4188,14 @@ fn format_comparison_tolerance_policy_for_report(comparison: &ComparisonReport) 
         })
         .collect::<Vec<_>>()
         .join("; ");
+    let coordinate_frames = format_frames(comparison_coordinate_frames(comparison));
 
     format!(
-        "backend family={}; scopes={} ({scopes}); limits={limits}; coverage={coverage}; evidence={} bodies, {} samples",
+        "backend family={}; scopes={} ({scopes}); limits={limits}; coverage={coverage}; window=JD {:.1} → {:.1}; frames={coordinate_frames}; evidence={} bodies, {} samples",
         backend_family_label(backend_family),
         entries.len(),
+        comparison.corpus_summary.earliest_julian_day,
+        comparison.corpus_summary.latest_julian_day,
         comparison.body_summaries().len(),
         comparison.summary.sample_count,
     )
@@ -4218,6 +4221,10 @@ fn format_comparison_tolerance_limit_for_report(entry: &ComparisonToleranceEntry
             .map(|value| format!("{value:.3} AU"))
             .unwrap_or_else(|| "n/a".to_string())
     )
+}
+
+fn comparison_coordinate_frames(comparison: &ComparisonReport) -> &[CoordinateFrame] {
+    &comparison.candidate_backend.supported_frames
 }
 
 /// Renders a release-grade comparison tolerance audit used by the CLI.
@@ -6862,6 +6869,7 @@ fn write_tolerance_policy(
 ) -> fmt::Result {
     let family_label = tolerance_backend_family_label(&comparison.candidate_backend.family);
     let coverage = comparison_tolerance_policy_coverage(comparison);
+    let coordinate_frames = format_frames(comparison_coordinate_frames(comparison));
     writeln!(f, "Tolerance policy catalog")?;
     writeln!(f, "  candidate backend family: {}", family_label)?;
     writeln!(
@@ -6870,6 +6878,12 @@ fn write_tolerance_policy(
         comparison.body_summaries().len(),
         comparison.summary.sample_count
     )?;
+    writeln!(
+        f,
+        "  comparison window: JD {:.1} → {:.1}",
+        comparison.corpus_summary.earliest_julian_day, comparison.corpus_summary.latest_julian_day
+    )?;
+    writeln!(f, "  coordinate frames: {}", coordinate_frames)?;
     for scope_coverage in coverage {
         let tolerance = scope_coverage.entry.tolerance;
         let bodies = if scope_coverage.bodies.is_empty() {
@@ -6902,6 +6916,7 @@ fn write_tolerance_policy_text(text: &mut String, comparison: &ComparisonReport)
 
     let family_label = tolerance_backend_family_label(&comparison.candidate_backend.family);
     let coverage = comparison_tolerance_policy_coverage(comparison);
+    let coordinate_frames = format_frames(comparison_coordinate_frames(comparison));
     let _ = writeln!(text, "Tolerance policy catalog");
     let _ = writeln!(text, "  candidate backend family: {}", family_label);
     let _ = writeln!(
@@ -6910,6 +6925,12 @@ fn write_tolerance_policy_text(text: &mut String, comparison: &ComparisonReport)
         comparison.body_summaries().len(),
         comparison.summary.sample_count
     );
+    let _ = writeln!(
+        text,
+        "  comparison window: JD {:.1} → {:.1}",
+        comparison.corpus_summary.earliest_julian_day, comparison.corpus_summary.latest_julian_day
+    );
+    let _ = writeln!(text, "  coordinate frames: {}", coordinate_frames);
     for scope_coverage in coverage {
         let tolerance = scope_coverage.entry.tolerance;
         let bodies = if scope_coverage.bodies.is_empty() {
@@ -7995,6 +8016,10 @@ mod tests {
         assert!(report.contains("rms longitude delta:"));
         assert!(report.contains("rms latitude delta:"));
         assert!(report.contains("rms distance delta:"));
+        assert!(report.contains("Tolerance policy"));
+        assert!(report.contains("candidate backend family: composite"));
+        assert!(report.contains("comparison window: JD"));
+        assert!(report.contains("coordinate frames: Ecliptic"));
         assert!(report.contains(&format!(
             "max longitude delta: {:.12}° ({})",
             validation_report.comparison.summary.max_longitude_delta_deg,
@@ -8865,6 +8890,8 @@ mod tests {
         assert!(rendered.contains("outside-tolerance bodies"));
         assert!(rendered.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto override); limits="));
         assert!(rendered.contains("coverage=Luminaries: bodies=Moon, Sun, samples="));
+        assert!(rendered.contains("window=JD"));
+        assert!(rendered.contains("frames=Ecliptic"));
         assert!(rendered.contains("Luminaries: Δlon≤45.000°, Δlat≤1.000°, Δdist=0.250 AU"));
         assert!(rendered.contains("Pluto override: Δlon≤45.000°, Δlat≤1.000°, Δdist=0.250 AU"));
         assert!(rendered.contains("evidence=10 bodies, 41 samples"));
