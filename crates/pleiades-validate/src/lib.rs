@@ -83,9 +83,10 @@ use pleiades_vsop87::{
     body_source_profiles, canonical_epoch_equatorial_evidence_summary_for_report,
     canonical_epoch_evidence_summary_for_report, canonical_epoch_outlier_note_for_report,
     frame_treatment_summary, generated_binary_audit_summary_for_report,
-    source_audit_summary_for_report, source_audits, source_body_evidence_summary_for_report,
-    source_documentation_health_summary_for_report, source_documentation_summary_for_report,
-    source_specifications, vsop87_request_policy_summary_for_report, Vsop87Backend,
+    source_audit_summary_for_report, source_audits, source_body_class_evidence_summary_for_report,
+    source_body_evidence_summary_for_report, source_documentation_health_summary_for_report,
+    source_documentation_summary_for_report, source_specifications,
+    vsop87_request_policy_summary_for_report, Vsop87Backend,
 };
 
 const DEFAULT_BENCHMARK_ROUNDS: usize = 10_000;
@@ -2980,6 +2981,8 @@ fn render_release_summary_text() -> String {
     text.push_str(&format_vsop87_equatorial_evidence_summary());
     text.push_str(" | ");
     text.push_str(&format_vsop87_body_evidence_summary());
+    text.push_str(" | ");
+    text.push_str(&format_vsop87_source_body_class_evidence_summary());
     text.push('\n');
     text.push_str("ELP lunar capability: ");
     text.push_str(&format_lunar_theory_capability_summary(
@@ -4854,6 +4857,10 @@ fn format_vsop87_equatorial_evidence_summary() -> String {
 
 fn format_vsop87_body_evidence_summary() -> String {
     source_body_evidence_summary_for_report()
+}
+
+fn format_vsop87_source_body_class_evidence_summary() -> String {
+    source_body_class_evidence_summary_for_report()
 }
 
 fn format_vsop87_canonical_outlier_note_summary() -> String {
@@ -9676,6 +9683,9 @@ mod tests {
         assert!(rendered.contains("Reference snapshot coverage:"));
         assert!(rendered.contains("Selected asteroid evidence:"));
         assert!(rendered.contains("VSOP87 evidence:"));
+        assert!(rendered.contains("VSOP87 source-backed body-class envelopes:"));
+        assert!(rendered.contains("Luminary: samples=1, bodies: Sun"));
+        assert!(rendered.contains("Major planets: samples=7, bodies: Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune"));
         assert!(rendered.contains("VSOP87 source documentation:"));
         assert!(rendered.contains("VSOP87 frame treatment:"));
         assert!(rendered.contains("VSOP87 request policy:"));
@@ -10162,6 +10172,9 @@ version = "0.9.0"
         assert!(release_summary.contains("Selected asteroid equatorial evidence:"));
         assert!(release_summary.contains("Comparison snapshot coverage:"));
         assert!(release_summary.contains("VSOP87 evidence:"));
+        assert!(release_summary.contains("VSOP87 source-backed body-class envelopes:"));
+        assert!(release_summary.contains("Luminary: samples=1, bodies: Sun"));
+        assert!(release_summary.contains("Major planets: samples=7, bodies: Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune"));
         assert!(release_summary.contains("VSOP87 source documentation:"));
         assert!(release_summary.contains("VSOP87 frame treatment:"));
         assert!(release_summary.contains("VSOP87 request policy:"));

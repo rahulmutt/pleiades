@@ -1580,6 +1580,289 @@ pub fn source_body_evidence_summary_for_report() -> String {
     }
 }
 
+/// Body classes used for source-backed VSOP87 error-envelope rollups.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Vsop87SourceBodyClass {
+    /// The source-backed solar body.
+    Luminary,
+    /// The source-backed planetary bodies.
+    MajorPlanet,
+}
+
+impl Vsop87SourceBodyClass {
+    const ALL: [Self; 2] = [Self::Luminary, Self::MajorPlanet];
+
+    /// Human-readable label used in release-facing summaries.
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Luminary => "Luminary",
+            Self::MajorPlanet => "Major planets",
+        }
+    }
+}
+
+impl fmt::Display for Vsop87SourceBodyClass {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.label())
+    }
+}
+
+fn source_body_class(body: &CelestialBody) -> Vsop87SourceBodyClass {
+    match body {
+        CelestialBody::Sun => Vsop87SourceBodyClass::Luminary,
+        _ => Vsop87SourceBodyClass::MajorPlanet,
+    }
+}
+
+/// Backend-owned summary for the canonical J2000 source-backed body classes.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Vsop87SourceBodyClassEvidenceSummary {
+    /// Body class covered by this summary.
+    pub class: Vsop87SourceBodyClass,
+    /// Number of canonical samples measured for the class.
+    pub sample_count: usize,
+    /// Canonical bodies measured in source-backed order for the class.
+    pub sample_bodies: Vec<CelestialBody>,
+    /// Number of samples within the interim limits.
+    pub within_interim_limits_count: usize,
+    /// Number of samples outside the current interim limits.
+    pub outside_interim_limit_count: usize,
+    /// Bodies outside the current interim limits.
+    pub outside_interim_limit_bodies: Vec<CelestialBody>,
+    /// Body with the maximum absolute longitude delta.
+    pub max_longitude_delta_body: CelestialBody,
+    /// Calculation family behind the maximum longitude delta body.
+    pub max_longitude_delta_source_kind: Vsop87BodySourceKind,
+    /// Public source file behind the maximum longitude delta body.
+    pub max_longitude_delta_source_file: &'static str,
+    /// Maximum absolute longitude delta in degrees.
+    pub max_longitude_delta_deg: f64,
+    /// Interim longitude delta limit for the body that drives the maximum.
+    pub max_longitude_delta_limit_deg: f64,
+    /// Body with the maximum absolute latitude delta.
+    pub max_latitude_delta_body: CelestialBody,
+    /// Calculation family behind the maximum latitude delta body.
+    pub max_latitude_delta_source_kind: Vsop87BodySourceKind,
+    /// Public source file behind the maximum latitude delta body.
+    pub max_latitude_delta_source_file: &'static str,
+    /// Maximum absolute latitude delta in degrees.
+    pub max_latitude_delta_deg: f64,
+    /// Interim latitude delta limit for the body that drives the maximum.
+    pub max_latitude_delta_limit_deg: f64,
+    /// Body with the maximum absolute distance delta.
+    pub max_distance_delta_body: CelestialBody,
+    /// Calculation family behind the maximum distance delta body.
+    pub max_distance_delta_source_kind: Vsop87BodySourceKind,
+    /// Public source file behind the maximum distance delta body.
+    pub max_distance_delta_source_file: &'static str,
+    /// Maximum absolute distance delta in astronomical units.
+    pub max_distance_delta_au: f64,
+    /// Interim distance delta limit for the body that drives the maximum.
+    pub max_distance_delta_limit_au: f64,
+    /// Mean absolute longitude delta in degrees.
+    pub mean_longitude_delta_deg: f64,
+    /// Root-mean-square longitude delta in degrees.
+    pub rms_longitude_delta_deg: f64,
+    /// Mean absolute latitude delta in degrees.
+    pub mean_latitude_delta_deg: f64,
+    /// Root-mean-square latitude delta in degrees.
+    pub rms_latitude_delta_deg: f64,
+    /// Mean absolute distance delta in astronomical units.
+    pub mean_distance_delta_au: f64,
+    /// Root-mean-square distance delta in astronomical units.
+    pub rms_distance_delta_au: f64,
+}
+
+impl Vsop87SourceBodyClassEvidenceSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format_source_body_class_evidence_entry(self)
+    }
+}
+
+impl fmt::Display for Vsop87SourceBodyClassEvidenceSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns the backend-owned canonical J2000 source-backed body-class evidence.
+pub fn source_body_class_evidence_summary() -> Option<Vec<Vsop87SourceBodyClassEvidenceSummary>> {
+    let evidence = canonical_epoch_body_evidence()?;
+    let mut summaries = Vec::new();
+
+    for class in Vsop87SourceBodyClass::ALL {
+        let class_rows: Vec<_> = evidence
+            .iter()
+            .filter(|row| source_body_class(&row.body) == class)
+            .collect();
+        if class_rows.is_empty() {
+            continue;
+        }
+
+        let sample_bodies = class_rows
+            .iter()
+            .map(|row| row.body.clone())
+            .collect::<Vec<_>>();
+        let mut longitude_values = Vec::with_capacity(class_rows.len());
+        let mut latitude_values = Vec::with_capacity(class_rows.len());
+        let mut distance_values = Vec::with_capacity(class_rows.len());
+        let mut max_longitude_delta_body = class_rows[0].body.clone();
+        let mut max_longitude_delta_source_kind = class_rows[0].source_kind;
+        let mut max_longitude_delta_source_file = class_rows[0].source_file;
+        let mut max_longitude_delta_deg = class_rows[0].longitude_delta_deg;
+        let mut max_longitude_delta_limit_deg = class_rows[0].longitude_limit_deg;
+        let mut max_latitude_delta_body = class_rows[0].body.clone();
+        let mut max_latitude_delta_source_kind = class_rows[0].source_kind;
+        let mut max_latitude_delta_source_file = class_rows[0].source_file;
+        let mut max_latitude_delta_deg = class_rows[0].latitude_delta_deg;
+        let mut max_latitude_delta_limit_deg = class_rows[0].latitude_limit_deg;
+        let mut max_distance_delta_body = class_rows[0].body.clone();
+        let mut max_distance_delta_source_kind = class_rows[0].source_kind;
+        let mut max_distance_delta_source_file = class_rows[0].source_file;
+        let mut max_distance_delta_au = class_rows[0].distance_delta_au;
+        let mut max_distance_delta_limit_au = class_rows[0].distance_limit_au;
+        let mut within_interim_limits_count = 0usize;
+        let mut outside_interim_limit_bodies = Vec::new();
+
+        for row in &class_rows {
+            longitude_values.push(row.longitude_delta_deg);
+            latitude_values.push(row.latitude_delta_deg);
+            distance_values.push(row.distance_delta_au);
+            if row.within_interim_limits {
+                within_interim_limits_count += 1;
+            } else {
+                outside_interim_limit_bodies.push(row.body.clone());
+            }
+
+            if row.longitude_delta_deg > max_longitude_delta_deg {
+                max_longitude_delta_body = row.body.clone();
+                max_longitude_delta_source_kind = row.source_kind;
+                max_longitude_delta_source_file = row.source_file;
+                max_longitude_delta_deg = row.longitude_delta_deg;
+                max_longitude_delta_limit_deg = row.longitude_limit_deg;
+            }
+            if row.latitude_delta_deg > max_latitude_delta_deg {
+                max_latitude_delta_body = row.body.clone();
+                max_latitude_delta_source_kind = row.source_kind;
+                max_latitude_delta_source_file = row.source_file;
+                max_latitude_delta_deg = row.latitude_delta_deg;
+                max_latitude_delta_limit_deg = row.latitude_limit_deg;
+            }
+            if row.distance_delta_au > max_distance_delta_au {
+                max_distance_delta_body = row.body.clone();
+                max_distance_delta_source_kind = row.source_kind;
+                max_distance_delta_source_file = row.source_file;
+                max_distance_delta_au = row.distance_delta_au;
+                max_distance_delta_limit_au = row.distance_limit_au;
+            }
+        }
+
+        let sample_count = class_rows.len();
+        summaries.push(Vsop87SourceBodyClassEvidenceSummary {
+            class,
+            sample_count,
+            sample_bodies,
+            within_interim_limits_count,
+            outside_interim_limit_count: sample_count - within_interim_limits_count,
+            outside_interim_limit_bodies,
+            max_longitude_delta_body,
+            max_longitude_delta_source_kind,
+            max_longitude_delta_source_file,
+            max_longitude_delta_deg,
+            max_longitude_delta_limit_deg,
+            max_latitude_delta_body,
+            max_latitude_delta_source_kind,
+            max_latitude_delta_source_file,
+            max_latitude_delta_deg,
+            max_latitude_delta_limit_deg,
+            max_distance_delta_body,
+            max_distance_delta_source_kind,
+            max_distance_delta_source_file,
+            max_distance_delta_au,
+            max_distance_delta_limit_au,
+            mean_longitude_delta_deg: longitude_values.iter().sum::<f64>() / sample_count as f64,
+            rms_longitude_delta_deg: rms_f64(&longitude_values),
+            mean_latitude_delta_deg: latitude_values.iter().sum::<f64>() / sample_count as f64,
+            rms_latitude_delta_deg: rms_f64(&latitude_values),
+            mean_distance_delta_au: distance_values.iter().sum::<f64>() / sample_count as f64,
+            rms_distance_delta_au: rms_f64(&distance_values),
+        });
+    }
+
+    Some(summaries)
+}
+
+/// Formats a single canonical VSOP87 body-class evidence envelope.
+fn format_source_body_class_evidence_entry(
+    summary: &Vsop87SourceBodyClassEvidenceSummary,
+) -> String {
+    let outside_note = if summary.outside_interim_limit_bodies.is_empty() {
+        "none".to_string()
+    } else {
+        format_celestial_bodies(&summary.outside_interim_limit_bodies)
+    };
+
+    format!(
+        "{}: samples={}, bodies: {}, within interim limits {}, outside interim limits {}; out-of-limit bodies: {}; mean Δlon={:.12}°, rms Δlon={:.12}°, mean Δlat={:.12}°, rms Δlat={:.12}°, mean Δdist={:.12} AU, rms Δdist={:.12} AU, max Δlon={:.12}° (limit {:.12}°, margin {:+.12}°; {}; {}; {}), max Δlat={:.12}° (limit {:.12}°, margin {:+.12}°; {}; {}; {}), max Δdist={:.12} AU (limit {:.12} AU, margin {:+.12} AU; {}; {}; {})",
+        summary.class,
+        summary.sample_count,
+        format_celestial_bodies(&summary.sample_bodies),
+        summary.within_interim_limits_count,
+        summary.outside_interim_limit_count,
+        outside_note,
+        summary.mean_longitude_delta_deg,
+        summary.rms_longitude_delta_deg,
+        summary.mean_latitude_delta_deg,
+        summary.rms_latitude_delta_deg,
+        summary.mean_distance_delta_au,
+        summary.rms_distance_delta_au,
+        summary.max_longitude_delta_deg,
+        summary.max_longitude_delta_limit_deg,
+        summary.max_longitude_delta_limit_deg - summary.max_longitude_delta_deg,
+        summary.max_longitude_delta_body,
+        summary.max_longitude_delta_source_kind,
+        summary.max_longitude_delta_source_file,
+        summary.max_latitude_delta_deg,
+        summary.max_latitude_delta_limit_deg,
+        summary.max_latitude_delta_limit_deg - summary.max_latitude_delta_deg,
+        summary.max_latitude_delta_body,
+        summary.max_latitude_delta_source_kind,
+        summary.max_latitude_delta_source_file,
+        summary.max_distance_delta_au,
+        summary.max_distance_delta_limit_au,
+        summary.max_distance_delta_limit_au - summary.max_distance_delta_au,
+        summary.max_distance_delta_body,
+        summary.max_distance_delta_source_kind,
+        summary.max_distance_delta_source_file,
+    )
+}
+
+/// Formats the canonical VSOP87 body-class evidence for reporting.
+pub fn format_source_body_class_evidence_summary(
+    summaries: &[Vsop87SourceBodyClassEvidenceSummary],
+) -> String {
+    if summaries.is_empty() {
+        return "VSOP87 source-backed body-class envelopes: unavailable".to_string();
+    }
+
+    let rendered = summaries
+        .iter()
+        .map(Vsop87SourceBodyClassEvidenceSummary::summary_line)
+        .collect::<Vec<_>>()
+        .join(" | ");
+
+    format!("VSOP87 source-backed body-class envelopes: {rendered}")
+}
+
+/// Returns the release-facing source-body-class evidence summary string.
+pub fn source_body_class_evidence_summary_for_report() -> String {
+    match source_body_class_evidence_summary() {
+        Some(summary) => format_source_body_class_evidence_summary(&summary),
+        None => "VSOP87 source-backed body-class envelopes: unavailable".to_string(),
+    }
+}
+
 /// Errors that can occur while regenerating a checked-in VSOP87B binary table
 /// from a vendored public source file.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -3971,6 +4254,38 @@ mod tests {
             summary.to_string(),
             source_body_evidence_summary_for_report()
         );
+    }
+
+    #[test]
+    fn source_body_class_evidence_report_matches_the_backend_formatter() {
+        let summary = source_body_class_evidence_summary().expect("summary should exist");
+        assert_eq!(summary.len(), 2);
+        assert_eq!(summary[0].class, Vsop87SourceBodyClass::Luminary);
+        assert_eq!(summary[0].sample_count, 1);
+        assert_eq!(summary[0].sample_bodies, vec![CelestialBody::Sun]);
+        assert_eq!(summary[1].class, Vsop87SourceBodyClass::MajorPlanet);
+        assert_eq!(summary[1].sample_count, 7);
+        assert_eq!(
+            summary[1].sample_bodies,
+            vec![
+                CelestialBody::Mercury,
+                CelestialBody::Venus,
+                CelestialBody::Mars,
+                CelestialBody::Jupiter,
+                CelestialBody::Saturn,
+                CelestialBody::Uranus,
+                CelestialBody::Neptune,
+            ]
+        );
+        let rendered = source_body_class_evidence_summary_for_report();
+        assert_eq!(
+            rendered,
+            format_source_body_class_evidence_summary(&summary)
+        );
+        assert_eq!(summary[0].summary_line(), summary[0].to_string());
+        assert_eq!(summary[1].summary_line(), summary[1].to_string());
+        assert!(rendered.contains("Luminary: samples=1, bodies: Sun"));
+        assert!(rendered.contains("Major planets: samples=7, bodies: Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune"));
     }
 
     #[test]
