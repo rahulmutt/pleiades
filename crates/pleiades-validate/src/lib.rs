@@ -9688,7 +9688,13 @@ mod tests {
         ));
         assert!(rendered.contains("lunar reference error envelope: 9 samples across 5 bodies"));
         assert!(rendered.contains("max Δlon="));
+        assert!(rendered.contains("mean Δlon="));
+        assert!(rendered.contains("median Δlon="));
+        assert!(rendered.contains("p95 Δlon="));
         assert!(rendered.contains("max Δlat="));
+        assert!(rendered.contains("mean Δlat="));
+        assert!(rendered.contains("median Δlat="));
+        assert!(rendered.contains("p95 Δlat="));
         assert!(rendered.contains("limits: Δlon≤1e-4°"));
         assert!(rendered.contains("request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
         assert!(rendered.contains("validation window: JD 2448724.5 (TT) → JD 2459278.5 (TT)"));
@@ -9696,6 +9702,9 @@ mod tests {
         assert!(rendered.contains("lunar equatorial reference evidence: 1 samples across 1 bodies"));
         assert!(rendered
             .contains("lunar equatorial reference error envelope: 1 samples across 1 bodies"));
+        assert!(rendered.contains("mean ΔRA="));
+        assert!(rendered.contains("median ΔRA="));
+        assert!(rendered.contains("p95 ΔRA="));
         assert!(rendered.contains("limits: ΔRA≤1e-2°"));
         assert!(rendered.contains("Lunar high-curvature continuity evidence"));
         assert!(rendered.contains("Lunar high-curvature equatorial continuity evidence"));
@@ -10224,7 +10233,13 @@ version = "0.9.0"
         assert!(validation_report_summary
             .contains("lunar reference error envelope: 9 samples across 5 bodies"));
         assert!(validation_report_summary.contains("max Δlon="));
+        assert!(validation_report_summary.contains("mean Δlon="));
+        assert!(validation_report_summary.contains("median Δlon="));
+        assert!(validation_report_summary.contains("p95 Δlon="));
         assert!(validation_report_summary.contains("max Δlat="));
+        assert!(validation_report_summary.contains("mean Δlat="));
+        assert!(validation_report_summary.contains("median Δlat="));
+        assert!(validation_report_summary.contains("p95 Δlat="));
         assert!(validation_report_summary.contains("limits: Δlon≤1e-4°"));
         assert!(validation_report_summary.contains("request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
         assert!(validation_report_summary
@@ -10234,6 +10249,9 @@ version = "0.9.0"
         assert!(validation_report_summary.contains("date-range note: Validated against the published 1992-04-12 geocentric Moon example, the published 1992-04-12 geocentric Moon RA/Dec example used for the mean-obliquity equatorial transform, J2000 lunar-point anchors including the mean apogee and mean perigee references, published 1913-05-27 true-node and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example"));
         assert!(validation_report_summary
             .contains("lunar equatorial reference error envelope: 1 samples across 1 bodies"));
+        assert!(validation_report_summary.contains("mean ΔRA="));
+        assert!(validation_report_summary.contains("median ΔRA="));
+        assert!(validation_report_summary.contains("p95 ΔRA="));
         assert!(validation_report_summary.contains("limits: ΔRA≤1e-2°"));
         assert!(validation_report_summary.contains("citation: Jean Meeus"));
         assert!(validation_report_summary

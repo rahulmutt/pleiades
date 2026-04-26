@@ -1644,6 +1644,38 @@ pub fn lunar_apparent_comparison_summary_for_report() -> String {
     }
 }
 
+fn median_value(values: &mut [f64]) -> Option<f64> {
+    if values.is_empty() {
+        return None;
+    }
+
+    values.sort_by(|left, right| left.partial_cmp(right).unwrap_or(std::cmp::Ordering::Equal));
+    let midpoint = values.len() / 2;
+    if values.len() % 2 == 0 {
+        Some((values[midpoint - 1] + values[midpoint]) / 2.0)
+    } else {
+        Some(values[midpoint])
+    }
+}
+
+fn percentile_value(values: &mut [f64], percentile: f64) -> Option<f64> {
+    if values.is_empty() {
+        return None;
+    }
+
+    values.sort_by(|left, right| left.partial_cmp(right).unwrap_or(std::cmp::Ordering::Equal));
+    let percentile = percentile.clamp(0.0, 1.0);
+    let position = percentile * (values.len().saturating_sub(1)) as f64;
+    let lower_index = position.floor() as usize;
+    let upper_index = position.ceil() as usize;
+    if lower_index == upper_index {
+        Some(values[lower_index])
+    } else {
+        let weight = position - lower_index as f64;
+        Some(values[lower_index] * (1.0 - weight) + values[upper_index] * weight)
+    }
+}
+
 /// A compact summary of the lunar equatorial reference error envelope.
 #[derive(Clone, Debug, PartialEq)]
 pub struct LunarEquatorialReferenceEvidenceEnvelope {
@@ -1663,6 +1695,10 @@ pub struct LunarEquatorialReferenceEvidenceEnvelope {
     pub max_right_ascension_delta_deg: f64,
     /// Mean absolute right ascension delta in degrees across the evidence slice.
     pub mean_right_ascension_delta_deg: f64,
+    /// Median absolute right ascension delta in degrees across the evidence slice.
+    pub median_right_ascension_delta_deg: f64,
+    /// 95th-percentile absolute right ascension delta in degrees across the evidence slice.
+    pub percentile_right_ascension_delta_deg: f64,
     /// Body with the maximum absolute declination delta.
     pub max_declination_delta_body: CelestialBody,
     /// Epoch for the maximum absolute declination delta.
@@ -1671,6 +1707,10 @@ pub struct LunarEquatorialReferenceEvidenceEnvelope {
     pub max_declination_delta_deg: f64,
     /// Mean absolute declination delta in degrees across the evidence slice.
     pub mean_declination_delta_deg: f64,
+    /// Median absolute declination delta in degrees across the evidence slice.
+    pub median_declination_delta_deg: f64,
+    /// 95th-percentile absolute declination delta in degrees across the evidence slice.
+    pub percentile_declination_delta_deg: f64,
     /// Body with the maximum absolute distance delta.
     pub max_distance_delta_body: Option<CelestialBody>,
     /// Epoch for the maximum absolute distance delta.
@@ -1679,6 +1719,10 @@ pub struct LunarEquatorialReferenceEvidenceEnvelope {
     pub max_distance_delta_au: Option<f64>,
     /// Mean absolute distance delta in astronomical units across the samples that include distance.
     pub mean_distance_delta_au: Option<f64>,
+    /// Median absolute distance delta in astronomical units across the samples that include distance.
+    pub median_distance_delta_au: Option<f64>,
+    /// 95th-percentile absolute distance delta in astronomical units across the samples that include distance.
+    pub percentile_distance_delta_au: Option<f64>,
     /// Number of samples outside the current regression limits.
     pub outside_current_limits_count: usize,
     /// Bodies associated with samples outside the current regression limits.
@@ -1704,15 +1748,18 @@ pub fn lunar_equatorial_reference_evidence_envelope(
     let mut max_right_ascension_delta_epoch = samples[0].epoch;
     let mut max_right_ascension_delta_deg = 0.0;
     let mut total_right_ascension_delta_deg = 0.0;
+    let mut right_ascension_deltas = Vec::with_capacity(samples.len());
     let mut outlier_bodies: Vec<CelestialBody> = Vec::new();
     let mut max_declination_delta_body = samples[0].body.clone();
     let mut max_declination_delta_epoch = samples[0].epoch;
     let mut max_declination_delta_deg = 0.0;
     let mut total_declination_delta_deg = 0.0;
+    let mut declination_deltas = Vec::with_capacity(samples.len());
     let mut max_distance_delta_body = None;
     let mut max_distance_delta_epoch = None;
     let mut max_distance_delta_au = None;
     let mut total_distance_delta_au = 0.0;
+    let mut distance_deltas = Vec::new();
     let mut distance_delta_sample_count = 0usize;
     let mut outside_current_limits_count = 0usize;
     let mut within_current_limits = true;
@@ -1763,9 +1810,12 @@ pub fn lunar_equatorial_reference_evidence_envelope(
         }
 
         total_right_ascension_delta_deg += right_ascension_delta_deg;
+        right_ascension_deltas.push(right_ascension_delta_deg);
         total_declination_delta_deg += declination_delta_deg;
+        declination_deltas.push(declination_delta_deg);
         if let Some(delta) = distance_delta_au {
             total_distance_delta_au += delta;
+            distance_deltas.push(delta);
             distance_delta_sample_count += 1;
         }
 
@@ -1791,6 +1841,13 @@ pub fn lunar_equatorial_reference_evidence_envelope(
         }
     }
 
+    let mut right_ascension_deltas_for_median = right_ascension_deltas.clone();
+    let mut right_ascension_deltas_for_percentile = right_ascension_deltas;
+    let mut declination_deltas_for_median = declination_deltas.clone();
+    let mut declination_deltas_for_percentile = declination_deltas;
+    let mut distance_deltas_for_median = distance_deltas.clone();
+    let mut distance_deltas_for_percentile = distance_deltas;
+
     Some(LunarEquatorialReferenceEvidenceEnvelope {
         sample_count: samples.len(),
         body_count: bodies.len(),
@@ -1800,15 +1857,31 @@ pub fn lunar_equatorial_reference_evidence_envelope(
         max_right_ascension_delta_epoch,
         max_right_ascension_delta_deg,
         mean_right_ascension_delta_deg: total_right_ascension_delta_deg / samples.len() as f64,
+        median_right_ascension_delta_deg: median_value(&mut right_ascension_deltas_for_median)
+            .unwrap_or_default(),
+        percentile_right_ascension_delta_deg: percentile_value(
+            &mut right_ascension_deltas_for_percentile,
+            0.95,
+        )
+        .unwrap_or_default(),
         max_declination_delta_body,
         max_declination_delta_epoch,
         max_declination_delta_deg,
         mean_declination_delta_deg: total_declination_delta_deg / samples.len() as f64,
+        median_declination_delta_deg: median_value(&mut declination_deltas_for_median)
+            .unwrap_or_default(),
+        percentile_declination_delta_deg: percentile_value(
+            &mut declination_deltas_for_percentile,
+            0.95,
+        )
+        .unwrap_or_default(),
         max_distance_delta_body,
         max_distance_delta_epoch,
         max_distance_delta_au,
         mean_distance_delta_au: (distance_delta_sample_count > 0)
             .then_some(total_distance_delta_au / distance_delta_sample_count as f64),
+        median_distance_delta_au: median_value(&mut distance_deltas_for_median),
+        percentile_distance_delta_au: percentile_value(&mut distance_deltas_for_percentile, 0.95),
         outside_current_limits_count,
         outlier_bodies,
         within_current_limits,
@@ -1840,6 +1913,14 @@ pub fn format_lunar_equatorial_reference_evidence_envelope(
         .mean_distance_delta_au
         .map(|value| format!("; mean Δdist={value:.12} AU"))
         .unwrap_or_default();
+    let median_distance = envelope
+        .median_distance_delta_au
+        .map(|value| format!("; median Δdist={value:.12} AU"))
+        .unwrap_or_default();
+    let percentile_distance = envelope
+        .percentile_distance_delta_au
+        .map(|value| format!("; p95 Δdist={value:.12} AU"))
+        .unwrap_or_default();
     let limit_note = "; limits: ΔRA≤1e-2°, ΔDec≤1e-2°, Δdist≤1e-8 AU";
     let outlier_note = if envelope.outlier_bodies.is_empty() {
         "; outliers=none".to_string()
@@ -1848,7 +1929,7 @@ pub fn format_lunar_equatorial_reference_evidence_envelope(
     };
 
     format!(
-        "lunar equatorial reference error envelope: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, max ΔRA={:.12}° ({}), mean ΔRA={:.12}°, max ΔDec={:.12}° ({}), mean ΔDec={:.12}°{}{}{}{}; outside current limits={}; within current limits={}",
+        "lunar equatorial reference error envelope: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, max ΔRA={:.12}° ({}), mean ΔRA={:.12}°, median ΔRA={:.12}°, p95 ΔRA={:.12}°, max ΔDec={:.12}° ({}), mean ΔDec={:.12}°, median ΔDec={:.12}°, p95 ΔDec={:.12}°{}{}{}{}{}{}; outside current limits={}; within current limits={}",
         envelope.sample_count,
         envelope.body_count,
         envelope.earliest_epoch.julian_day.days(),
@@ -1856,11 +1937,17 @@ pub fn format_lunar_equatorial_reference_evidence_envelope(
         envelope.max_right_ascension_delta_deg,
         format_body_epoch(&envelope.max_right_ascension_delta_body, envelope.max_right_ascension_delta_epoch),
         envelope.mean_right_ascension_delta_deg,
+        envelope.median_right_ascension_delta_deg,
+        envelope.percentile_right_ascension_delta_deg,
         envelope.max_declination_delta_deg,
         format_body_epoch(&envelope.max_declination_delta_body, envelope.max_declination_delta_epoch),
         envelope.mean_declination_delta_deg,
+        envelope.median_declination_delta_deg,
+        envelope.percentile_declination_delta_deg,
         distance,
         mean_distance,
+        median_distance,
+        percentile_distance,
         limit_note,
         outlier_note,
         envelope.outside_current_limits_count,
@@ -2214,6 +2301,10 @@ pub struct LunarReferenceEvidenceEnvelope {
     pub max_longitude_delta_deg: f64,
     /// Mean absolute longitude delta in degrees across the evidence slice.
     pub mean_longitude_delta_deg: f64,
+    /// Median absolute longitude delta in degrees across the evidence slice.
+    pub median_longitude_delta_deg: f64,
+    /// 95th-percentile absolute longitude delta in degrees across the evidence slice.
+    pub percentile_longitude_delta_deg: f64,
     /// Body with the maximum absolute latitude delta.
     pub max_latitude_delta_body: CelestialBody,
     /// Epoch for the maximum absolute latitude delta.
@@ -2222,6 +2313,10 @@ pub struct LunarReferenceEvidenceEnvelope {
     pub max_latitude_delta_deg: f64,
     /// Mean absolute latitude delta in degrees across the evidence slice.
     pub mean_latitude_delta_deg: f64,
+    /// Median absolute latitude delta in degrees across the evidence slice.
+    pub median_latitude_delta_deg: f64,
+    /// 95th-percentile absolute latitude delta in degrees across the evidence slice.
+    pub percentile_latitude_delta_deg: f64,
     /// Body with the maximum absolute distance delta.
     pub max_distance_delta_body: Option<CelestialBody>,
     /// Epoch for the maximum absolute distance delta.
@@ -2230,6 +2325,10 @@ pub struct LunarReferenceEvidenceEnvelope {
     pub max_distance_delta_au: Option<f64>,
     /// Mean absolute distance delta in astronomical units across the samples that include distance.
     pub mean_distance_delta_au: Option<f64>,
+    /// Median absolute distance delta in astronomical units across the samples that include distance.
+    pub median_distance_delta_au: Option<f64>,
+    /// 95th-percentile absolute distance delta in astronomical units across the samples that include distance.
+    pub percentile_distance_delta_au: Option<f64>,
     /// Number of samples outside the current regression limits.
     pub outside_current_limits_count: usize,
     /// Bodies associated with samples outside the current regression limits.
@@ -2254,15 +2353,18 @@ pub fn lunar_reference_evidence_envelope() -> Option<LunarReferenceEvidenceEnvel
     let mut max_longitude_delta_epoch = samples[0].epoch;
     let mut max_longitude_delta_deg = 0.0;
     let mut total_longitude_delta_deg = 0.0;
+    let mut longitude_deltas = Vec::with_capacity(samples.len());
     let mut max_latitude_delta_body = samples[0].body.clone();
     let mut max_latitude_delta_epoch = samples[0].epoch;
     let mut max_latitude_delta_deg = 0.0;
     let mut total_latitude_delta_deg = 0.0;
+    let mut latitude_deltas = Vec::with_capacity(samples.len());
     let mut outlier_bodies: Vec<CelestialBody> = Vec::new();
     let mut max_distance_delta_body = None;
     let mut max_distance_delta_epoch = None;
     let mut max_distance_delta_au = None;
     let mut total_distance_delta_au = 0.0;
+    let mut distance_deltas = Vec::new();
     let mut distance_delta_sample_count = 0usize;
     let mut outside_current_limits_count = 0usize;
     let mut within_current_limits = true;
@@ -2314,9 +2416,12 @@ pub fn lunar_reference_evidence_envelope() -> Option<LunarReferenceEvidenceEnvel
         }
 
         total_longitude_delta_deg += longitude_delta_deg;
+        longitude_deltas.push(longitude_delta_deg);
         total_latitude_delta_deg += latitude_delta_deg;
+        latitude_deltas.push(latitude_delta_deg);
         if let Some(delta) = distance_delta_au {
             total_distance_delta_au += delta;
+            distance_deltas.push(delta);
             distance_delta_sample_count += 1;
         }
 
@@ -2342,6 +2447,13 @@ pub fn lunar_reference_evidence_envelope() -> Option<LunarReferenceEvidenceEnvel
         }
     }
 
+    let mut longitude_deltas_for_median = longitude_deltas.clone();
+    let mut longitude_deltas_for_percentile = longitude_deltas;
+    let mut latitude_deltas_for_median = latitude_deltas.clone();
+    let mut latitude_deltas_for_percentile = latitude_deltas;
+    let mut distance_deltas_for_median = distance_deltas.clone();
+    let mut distance_deltas_for_percentile = distance_deltas;
+
     Some(LunarReferenceEvidenceEnvelope {
         sample_count: samples.len(),
         body_count: bodies.len(),
@@ -2351,15 +2463,28 @@ pub fn lunar_reference_evidence_envelope() -> Option<LunarReferenceEvidenceEnvel
         max_longitude_delta_epoch,
         max_longitude_delta_deg,
         mean_longitude_delta_deg: total_longitude_delta_deg / samples.len() as f64,
+        median_longitude_delta_deg: median_value(&mut longitude_deltas_for_median)
+            .unwrap_or_default(),
+        percentile_longitude_delta_deg: percentile_value(
+            &mut longitude_deltas_for_percentile,
+            0.95,
+        )
+        .unwrap_or_default(),
         max_latitude_delta_body,
         max_latitude_delta_epoch,
         max_latitude_delta_deg,
         mean_latitude_delta_deg: total_latitude_delta_deg / samples.len() as f64,
+        median_latitude_delta_deg: median_value(&mut latitude_deltas_for_median)
+            .unwrap_or_default(),
+        percentile_latitude_delta_deg: percentile_value(&mut latitude_deltas_for_percentile, 0.95)
+            .unwrap_or_default(),
         max_distance_delta_body,
         max_distance_delta_epoch,
         max_distance_delta_au,
         mean_distance_delta_au: (distance_delta_sample_count > 0)
             .then_some(total_distance_delta_au / distance_delta_sample_count as f64),
+        median_distance_delta_au: median_value(&mut distance_deltas_for_median),
+        percentile_distance_delta_au: percentile_value(&mut distance_deltas_for_percentile, 0.95),
         outside_current_limits_count,
         outlier_bodies,
         within_current_limits,
@@ -2391,6 +2516,14 @@ pub fn format_lunar_reference_evidence_envelope(
         .mean_distance_delta_au
         .map(|value| format!("; mean Δdist={value:.12} AU"))
         .unwrap_or_default();
+    let median_distance = envelope
+        .median_distance_delta_au
+        .map(|value| format!("; median Δdist={value:.12} AU"))
+        .unwrap_or_default();
+    let percentile_distance = envelope
+        .percentile_distance_delta_au
+        .map(|value| format!("; p95 Δdist={value:.12} AU"))
+        .unwrap_or_default();
     let limit_note = "; limits: Δlon≤1e-4° (1e-1° for mean node), Δlat≤1e-4°, Δdist≤1e-8 AU";
     let outlier_note = if envelope.outlier_bodies.is_empty() {
         "; outliers=none".to_string()
@@ -2399,7 +2532,7 @@ pub fn format_lunar_reference_evidence_envelope(
     };
 
     format!(
-        "lunar reference error envelope: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, max Δlon={:.12}° ({}), mean Δlon={:.12}°, max Δlat={:.12}° ({}), mean Δlat={:.12}°{}{}{}{}; outside current limits={}; within current limits={}",
+        "lunar reference error envelope: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, max Δlon={:.12}° ({}), mean Δlon={:.12}°, median Δlon={:.12}°, p95 Δlon={:.12}°, max Δlat={:.12}° ({}), mean Δlat={:.12}°, median Δlat={:.12}°, p95 Δlat={:.12}°{}{}{}{}{}{}; outside current limits={}; within current limits={}",
         envelope.sample_count,
         envelope.body_count,
         envelope.earliest_epoch.julian_day.days(),
@@ -2407,11 +2540,17 @@ pub fn format_lunar_reference_evidence_envelope(
         envelope.max_longitude_delta_deg,
         format_body_epoch(&envelope.max_longitude_delta_body, envelope.max_longitude_delta_epoch),
         envelope.mean_longitude_delta_deg,
+        envelope.median_longitude_delta_deg,
+        envelope.percentile_longitude_delta_deg,
         envelope.max_latitude_delta_deg,
         format_body_epoch(&envelope.max_latitude_delta_body, envelope.max_latitude_delta_epoch),
         envelope.mean_latitude_delta_deg,
+        envelope.median_latitude_delta_deg,
+        envelope.percentile_latitude_delta_deg,
         distance,
         mean_distance,
+        median_distance,
+        percentile_distance,
         limit_note,
         outlier_note,
         envelope.outside_current_limits_count,
@@ -3854,16 +3993,24 @@ mod tests {
         assert_eq!(envelope.latest_epoch, summary.latest_epoch);
         assert!(envelope.max_longitude_delta_deg.is_finite());
         assert!(envelope.mean_longitude_delta_deg.is_finite());
+        assert!(envelope.median_longitude_delta_deg.is_finite());
+        assert!(envelope.percentile_longitude_delta_deg.is_finite());
         assert!(envelope.max_latitude_delta_deg.is_finite());
         assert!(envelope.mean_latitude_delta_deg.is_finite());
+        assert!(envelope.median_latitude_delta_deg.is_finite());
+        assert!(envelope.percentile_latitude_delta_deg.is_finite());
         assert_eq!(envelope.outside_current_limits_count, 0);
         assert!(envelope.within_current_limits);
         assert!(lunar_reference_evidence_envelope_for_report()
             .contains("lunar reference error envelope"));
         assert!(lunar_reference_evidence_envelope_for_report().contains("max Δlon="));
         assert!(lunar_reference_evidence_envelope_for_report().contains("mean Δlon="));
+        assert!(lunar_reference_evidence_envelope_for_report().contains("median Δlon="));
+        assert!(lunar_reference_evidence_envelope_for_report().contains("p95 Δlon="));
         assert!(lunar_reference_evidence_envelope_for_report().contains("max Δlat="));
         assert!(lunar_reference_evidence_envelope_for_report().contains("mean Δlat="));
+        assert!(lunar_reference_evidence_envelope_for_report().contains("median Δlat="));
+        assert!(lunar_reference_evidence_envelope_for_report().contains("p95 Δlat="));
         assert!(lunar_reference_evidence_envelope_for_report().contains("outliers=none"));
         assert!(lunar_reference_evidence_envelope_for_report().contains("limits: Δlon≤1e-4°"));
         assert!(
@@ -3894,16 +4041,24 @@ mod tests {
         assert_eq!(envelope.latest_epoch, summary.latest_epoch);
         assert!(envelope.max_right_ascension_delta_deg.is_finite());
         assert!(envelope.mean_right_ascension_delta_deg.is_finite());
+        assert!(envelope.median_right_ascension_delta_deg.is_finite());
+        assert!(envelope.percentile_right_ascension_delta_deg.is_finite());
         assert!(envelope.max_declination_delta_deg.is_finite());
         assert!(envelope.mean_declination_delta_deg.is_finite());
+        assert!(envelope.median_declination_delta_deg.is_finite());
+        assert!(envelope.percentile_declination_delta_deg.is_finite());
         assert_eq!(envelope.outside_current_limits_count, 0);
         assert!(envelope.within_current_limits);
         assert!(lunar_equatorial_reference_evidence_envelope_for_report()
             .contains("lunar equatorial reference error envelope"));
         assert!(lunar_equatorial_reference_evidence_envelope_for_report().contains("max ΔRA="));
         assert!(lunar_equatorial_reference_evidence_envelope_for_report().contains("mean ΔRA="));
+        assert!(lunar_equatorial_reference_evidence_envelope_for_report().contains("median ΔRA="));
+        assert!(lunar_equatorial_reference_evidence_envelope_for_report().contains("p95 ΔRA="));
         assert!(lunar_equatorial_reference_evidence_envelope_for_report().contains("max ΔDec="));
         assert!(lunar_equatorial_reference_evidence_envelope_for_report().contains("mean ΔDec="));
+        assert!(lunar_equatorial_reference_evidence_envelope_for_report().contains("median ΔDec="));
+        assert!(lunar_equatorial_reference_evidence_envelope_for_report().contains("p95 ΔDec="));
         assert!(
             lunar_equatorial_reference_evidence_envelope_for_report().contains("limits: ΔRA≤1e-2°")
         );
