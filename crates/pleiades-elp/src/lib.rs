@@ -992,10 +992,11 @@ pub fn format_lunar_theory_capability_summary(summary: &LunarTheoryCapabilitySum
 pub fn format_lunar_theory_specification(theory: &LunarTheorySpecification) -> String {
     let source = theory.source_selection();
     format!(
-        "ELP lunar theory specification: {} [{}; family: {}] ({} supported bodies: {}; {} unsupported bodies: {}); request policy: {}; citation: {}; provenance: {}; redistribution: {}; truncation: {}; units: {}; validation window: {}; date-range note: {}; frame treatment: {}; license: {}",
+        "ELP lunar theory specification: {} [{}; family: {}; selected key: {}] ({} supported bodies: {}; {} unsupported bodies: {}); request policy: {}; citation: {}; provenance: {}; redistribution: {}; truncation: {}; units: {}; validation window: {}; date-range note: {}; frame treatment: {}; license: {}",
         theory.model_name,
         source.identifier,
         source.family,
+        source.catalog_key(),
         theory.supported_bodies.len(),
         format_bodies(theory.supported_bodies),
         theory.unsupported_bodies.len(),
@@ -2877,6 +2878,8 @@ mod tests {
         assert!(summary.contains(theory.model_name));
         assert!(summary.contains(theory.source_identifier));
         assert!(summary.contains(theory.source_family.label()));
+        assert!(summary
+            .contains("selected key: source identifier=meeus-style-truncated-lunar-baseline"));
         assert_eq!(theory.source_family, lunar_theory_source_family());
         assert_eq!(
             theory.source_family.to_string(),
