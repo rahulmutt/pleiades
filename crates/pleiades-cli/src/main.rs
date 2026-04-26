@@ -1087,6 +1087,21 @@ mod tests {
     }
 
     #[test]
+    fn chart_command_rejects_tdb_offsets_for_tdb_tagged_instants() {
+        let error = render_chart(&[
+            "--jd",
+            "2451545.0",
+            "--tdb",
+            "--tdb-offset-seconds",
+            "-0.001657",
+            "--body",
+            "Sun",
+        ])
+        .expect_err("TDB-tagged chart requests should reject a caller-supplied TDB-TT offset");
+        assert!(error.contains("--tdb-offset-seconds"));
+    }
+
+    #[test]
     fn chart_command_can_convert_tt_to_tdb_with_signed_offset() {
         let rendered = render_chart(&[
             "--jd",
