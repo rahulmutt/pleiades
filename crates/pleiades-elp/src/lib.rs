@@ -331,12 +331,48 @@ pub fn lunar_theory_catalog() -> &'static [LunarTheoryCatalogEntry] {
     LUNAR_THEORY_CATALOG
 }
 
+/// Returns the catalog entry matching the provided source identifier, when present.
+pub fn lunar_theory_catalog_entry_for_source_identifier(
+    source_identifier: &str,
+) -> Option<LunarTheoryCatalogEntry> {
+    lunar_theory_catalog().iter().copied().find(|entry| {
+        entry
+            .specification
+            .source_identifier
+            .eq_ignore_ascii_case(source_identifier)
+    })
+}
+
+/// Returns the catalog entry matching the provided model name, when present.
+pub fn lunar_theory_catalog_entry_for_model_name(
+    model_name: &str,
+) -> Option<LunarTheoryCatalogEntry> {
+    lunar_theory_catalog().iter().copied().find(|entry| {
+        entry
+            .specification
+            .model_name
+            .eq_ignore_ascii_case(model_name)
+    })
+}
+
+/// Returns the catalog entry matching the provided source-family label, when present.
+pub fn lunar_theory_catalog_entry_for_family_label(
+    family_label: &str,
+) -> Option<LunarTheoryCatalogEntry> {
+    lunar_theory_catalog().iter().copied().find(|entry| {
+        entry
+            .specification
+            .source_family
+            .label()
+            .eq_ignore_ascii_case(family_label)
+    })
+}
+
 /// Returns the catalog entry matching the provided label, when present.
 pub fn lunar_theory_catalog_entry_for_label(label: &str) -> Option<LunarTheoryCatalogEntry> {
-    lunar_theory_catalog()
-        .iter()
-        .copied()
-        .find(|entry| entry.specification.matches_label(label))
+    lunar_theory_catalog_entry_for_source_identifier(label)
+        .or_else(|| lunar_theory_catalog_entry_for_model_name(label))
+        .or_else(|| lunar_theory_catalog_entry_for_family_label(label))
 }
 
 /// Returns the current lunar-theory specification matching the provided label, when present.
@@ -2300,6 +2336,18 @@ mod tests {
             .contains("lunar theory catalog: 1 entry, 1 selected entry"));
         assert!(lunar_theory_catalog_summary_for_report()
             .contains("selected source: meeus-style-truncated-lunar-baseline"));
+        assert_eq!(
+            lunar_theory_catalog_entry_for_source_identifier(theory.source_identifier),
+            Some(catalog[0])
+        );
+        assert_eq!(
+            lunar_theory_catalog_entry_for_model_name(theory.model_name),
+            Some(catalog[0])
+        );
+        assert_eq!(
+            lunar_theory_catalog_entry_for_family_label(theory.source_family.label()),
+            Some(catalog[0])
+        );
         assert_eq!(resolve_lunar_theory(theory.source_identifier), Some(theory));
         assert_eq!(resolve_lunar_theory(theory.model_name), Some(theory));
         assert_eq!(
