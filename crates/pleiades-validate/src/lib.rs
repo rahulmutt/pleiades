@@ -8613,6 +8613,8 @@ mod tests {
         assert!(rendered.contains("Azimuthal house system"));
         assert!(rendered.contains("Carter's poli-equatorial"));
         assert!(rendered.contains("Krusinski/Pisa/Goelzer house system"));
+        assert!(rendered.contains("Albategnius"));
+        assert!(rendered.contains("Gauquelin sectors"));
         assert!(rendered.contains("Equal table of houses"));
         assert!(rendered.contains("Equal (cusp 1 = Asc)"));
         assert!(rendered.contains("Whole Sign system"));
@@ -9076,6 +9078,8 @@ mod tests {
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
         assert!(rendered.contains("Workspace audit: workspace-audit / audit"));
         assert!(rendered.contains("House systems:"));
+        assert!(rendered.contains("Albategnius"));
+        assert!(rendered.contains("Gauquelin sectors"));
         assert!(rendered.contains("Ayanamsas:"));
         assert!(rendered.contains("Validation reference points: 1 (stage-4 validation corpus)"));
         assert!(rendered.contains("Custom-definition labels:"));
