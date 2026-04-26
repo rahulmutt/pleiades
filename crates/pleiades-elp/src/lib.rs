@@ -1,7 +1,7 @@
 //! Lunar backend boundary based on a compact pure-Rust analytical model.
 //!
 //! The full ELP series data is still planned, but this crate now provides a
-//! usable Moon-and-lunar-point backend for the chart MVP by combining a
+//! usable Moon-and-lunar-point backend for chart workflows by combining a
 //! compact Meeus-style truncated lunar position series with geocentric
 //! coordinate transforms, Meeus-style mean node/perigee/apogee formulae, and
 //! finite-difference mean-motion estimates. The backend accepts both TT and

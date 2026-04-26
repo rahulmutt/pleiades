@@ -17,9 +17,8 @@
 //! uses compact
 //! Keplerian orbital elements,
 //! a geocentric reduction step, and central-difference motion estimates so the
-//! workspace has an end-to-end tropical chart path while the remaining
-//! generated VSOP87 tables and Pluto-specific source selection are added
-//! incrementally.
+//! workspace has an end-to-end tropical chart path while the remaining Pluto-
+//! specific source selection is added incrementally.
 
 #![forbid(unsafe_code)]
 
@@ -197,6 +196,8 @@ pub struct Vsop87SourceDocumentationSummary {
     pub fallback_profile_count: usize,
     /// Bodies that still use the fallback mean-element path.
     pub fallback_bodies: Vec<CelestialBody>,
+    /// Unique date-range notes carried by the source specifications.
+    pub date_ranges: Vec<&'static str>,
 }
 
 /// Canonical J2000 reference samples for the source-backed VSOP87B paths.
@@ -814,6 +815,13 @@ pub fn source_documentation_summary() -> Vsop87SourceDocumentationSummary {
         .map(|profile| profile.body.clone())
         .collect::<Vec<_>>();
 
+    let mut date_ranges = source_specs
+        .iter()
+        .map(|spec| spec.date_range)
+        .collect::<Vec<_>>();
+    date_ranges.sort_unstable();
+    date_ranges.dedup();
+
     Vsop87SourceDocumentationSummary {
         source_specification_count: source_specs.len(),
         source_backed_profile_count: source_backed_profiles
@@ -844,6 +852,7 @@ pub fn source_documentation_summary() -> Vsop87SourceDocumentationSummary {
             .filter(|profile| profile.kind == Vsop87BodySourceKind::MeanOrbitalElements)
             .count(),
         fallback_bodies,
+        date_ranges,
     }
 }
 
@@ -862,8 +871,13 @@ pub fn format_source_documentation_summary(summary: &Vsop87SourceDocumentationSu
     } else {
         format_celestial_bodies(&summary.fallback_bodies)
     };
+    let date_ranges = if summary.date_ranges.is_empty() {
+        "none".to_string()
+    } else {
+        summary.date_ranges.join("; ")
+    };
     format!(
-        "VSOP87 source documentation: {} source specs, {} source-backed body profiles, {} fallback mean-element body profile{} ({}); source-backed breakdown: {} generated binary, {} vendored full-file, {} truncated slice",
+        "VSOP87 source documentation: {} source specs, {} source-backed body profiles, {} fallback mean-element body profile{} ({}); source-backed breakdown: {} generated binary, {} vendored full-file, {} truncated slice; date ranges: {}",
         summary.source_specification_count,
         summary.source_backed_profile_count,
         summary.fallback_profile_count,
@@ -876,6 +890,7 @@ pub fn format_source_documentation_summary(summary: &Vsop87SourceDocumentationSu
         summary.generated_binary_profile_count,
         summary.vendored_full_file_profile_count,
         summary.truncated_profile_count,
+        date_ranges,
     )
 }
 
@@ -2756,6 +2771,10 @@ mod tests {
         assert_eq!(summary.truncated_profile_count, 0);
         assert_eq!(summary.fallback_profile_count, 1);
         assert_eq!(summary.fallback_bodies, vec![CelestialBody::Pluto]);
+        assert_eq!(
+            summary.date_ranges,
+            vec!["full public source file; J2000 canonical reference sample"]
+        );
     }
 
     #[test]

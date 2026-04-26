@@ -1,11 +1,11 @@
 //! Chart assembly and higher-level chart helpers built on top of backend position queries.
 //!
-//! The first chart MVP keeps the workflow intentionally small: callers provide
-//! a set of bodies, the façade queries the backend, and the result captures the
-//! body placements plus their zodiac signs and the apparentness mode used for
-//! the backend queries. House placement can be requested explicitly for
-//! chart-aware consumers, which keeps the workflow practical without hardwiring
-//! more chart logic than the façade needs.
+//! The current chart façade keeps the workflow intentionally small: callers
+//! provide a set of bodies, the façade queries the backend, and the result
+//! captures the body placements plus their zodiac signs and the apparentness
+//! mode used for the backend queries. House placement can be requested
+//! explicitly for chart-aware consumers, which keeps the workflow practical
+//! without hardwiring more chart logic than the façade needs.
 
 use core::{fmt, time::Duration};
 

@@ -19,7 +19,7 @@ Today the workspace provides:
 
 `pleiades` is currently in a release-hardening phase.
 
-That means the core workspace structure, chart MVP, packaged-data backend, validation pipeline, and release tooling are already in place, while coverage, polish, and compatibility breadth continue to improve.
+That means the core workspace structure, chart façade, packaged-data backend, validation pipeline, and release tooling are already in place, while coverage, polish, and compatibility breadth continue to improve.
 
 If you want the detailed implementation and planning view, see:
 
