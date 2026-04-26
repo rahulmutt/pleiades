@@ -1159,6 +1159,16 @@ impl WorkspaceAuditReport {
     }
 }
 
+fn workspace_audit_rule_counts(
+    violations: &[WorkspaceAuditViolation],
+) -> BTreeMap<&'static str, usize> {
+    let mut counts = BTreeMap::new();
+    for violation in violations {
+        *counts.entry(violation.rule).or_insert(0) += 1;
+    }
+    counts
+}
+
 impl fmt::Display for WorkspaceAuditReport {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Workspace audit")?;
@@ -1171,6 +1181,10 @@ impl fmt::Display for WorkspaceAuditReport {
         }
 
         writeln!(f, "Result: violations found")?;
+        writeln!(f, "Rule counts:")?;
+        for (rule, count) in workspace_audit_rule_counts(&self.violations) {
+            writeln!(f, "  {}: {}", rule, count)?;
+        }
         for violation in &self.violations {
             writeln!(
                 f,
@@ -1199,6 +1213,16 @@ fn render_workspace_audit_summary_text(report: &WorkspaceAuditReport) -> String 
     text.push_str("Violations: ");
     text.push_str(&report.violations.len().to_string());
     text.push('\n');
+    if !report.is_clean() {
+        text.push_str("Rule counts:\n");
+        for (rule, count) in workspace_audit_rule_counts(&report.violations) {
+            text.push_str("  ");
+            text.push_str(rule);
+            text.push_str(": ");
+            text.push_str(&count.to_string());
+            text.push('\n');
+        }
+    }
     text.push_str("Result: ");
     text.push_str(if report.is_clean() {
         "no mandatory native build hooks detected"
@@ -9614,6 +9638,44 @@ version = "0.9.0"
         assert!(lockfile_violations
             .iter()
             .any(|violation| violation.rule == "lockfile.native-package"));
+    }
+
+    #[test]
+    fn workspace_audit_summary_groups_rule_counts_for_violations() {
+        let report = WorkspaceAuditReport {
+            workspace_root: PathBuf::from("/workspace"),
+            manifest_paths: vec![PathBuf::from("/workspace/Cargo.toml")],
+            lockfile_path: PathBuf::from("/workspace/Cargo.lock"),
+            violations: vec![
+                WorkspaceAuditViolation {
+                    path: PathBuf::from("/workspace/Cargo.toml"),
+                    rule: "package.build",
+                    detail: "package declares a build script".to_string(),
+                },
+                WorkspaceAuditViolation {
+                    path: PathBuf::from("/workspace/Cargo.toml"),
+                    rule: "package.build",
+                    detail: "package declares a build script".to_string(),
+                },
+                WorkspaceAuditViolation {
+                    path: PathBuf::from("/workspace/Cargo.lock"),
+                    rule: "lockfile.native-package",
+                    detail: "lockfile package `openssl-sys` suggests a native build dependency and should be reviewed".to_string(),
+                },
+            ],
+        };
+
+        let rendered = render_workspace_audit_summary_text(&report);
+        assert!(rendered.contains("Violations: 3"));
+        assert!(rendered.contains("Rule counts:"));
+        assert!(rendered.contains("package.build: 2"));
+        assert!(rendered.contains("lockfile.native-package: 1"));
+        assert!(rendered.contains("Result: violations found"));
+
+        let display = report.to_string();
+        assert!(display.contains("Rule counts:"));
+        assert!(display.contains("package.build: 2"));
+        assert!(display.contains("lockfile.native-package: 1"));
     }
 
     #[test]
