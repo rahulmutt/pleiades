@@ -1257,7 +1257,7 @@ impl fmt::Display for ChartSnapshot {
                 .unwrap_or_else(|| "n/a".to_string());
             writeln!(
                 f,
-                "  - {:<12} {:>9}  {:<10}  {:>3}  {:<10}  {:?}",
+                "  - {:<12} {:>9}  {:<10}  {:>3}  {:<10}  {}",
                 placement.body, longitude, sign, house, motion, placement.position.quality,
             )?;
         }

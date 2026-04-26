@@ -311,6 +311,24 @@ pub enum QualityAnnotation {
     Unknown,
 }
 
+impl QualityAnnotation {
+    /// Returns a stable human-readable label for the quality annotation.
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Exact => "Exact",
+            Self::Interpolated => "Interpolated",
+            Self::Approximate => "Approximate",
+            Self::Unknown => "Unknown",
+        }
+    }
+}
+
+impl fmt::Display for QualityAnnotation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.label())
+    }
+}
+
 /// A backend result containing the requested coordinates where available.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
@@ -957,6 +975,11 @@ mod tests {
         assert_eq!(AccuracyClass::Moderate.to_string(), "Moderate");
         assert_eq!(AccuracyClass::Approximate.to_string(), "Approximate");
         assert_eq!(AccuracyClass::Unknown.to_string(), "Unknown");
+
+        assert_eq!(QualityAnnotation::Exact.to_string(), "Exact");
+        assert_eq!(QualityAnnotation::Interpolated.to_string(), "Interpolated");
+        assert_eq!(QualityAnnotation::Approximate.to_string(), "Approximate");
+        assert_eq!(QualityAnnotation::Unknown.to_string(), "Unknown");
 
         assert_eq!(
             EphemerisErrorKind::UnsupportedBody.to_string(),

@@ -33,6 +33,7 @@ Completed foundations:
 - tests and doctests for current behavior.
 
 Latest progress (2026-04-26): the release checklist summary now also surfaces the shared zodiac policy line, keeping the compact maintainer-facing release workflow aligned with the other report summaries and the current tropical-only request posture.
+Latest progress (2026-04-26): backend quality annotations now have stable display labels in `pleiades-backend`, and chart snapshots render that typed label directly instead of Debug formatting, keeping the chart body-quality column aligned with the shared contract.
 Latest progress (2026-04-26): the JPL reference snapshot equatorial parity line now renders with a single backend prefix instead of a duplicated report label, keeping the compact provenance text cleaner while preserving the same coverage evidence.
 Latest progress (2026-04-26): the artifact summary now reuses the shared packaged-artifact profile-with-body-coverage helper, so the compact artifact report names the bundled body set explicitly instead of only reporting the aggregate count.
 Latest progress (2026-04-26): the packaged-data request-policy summary helper now derives its cached release-facing string from the structured summary record instead of a duplicated hardcoded literal, keeping the artifact policy wording centralized on the typed backend data.
