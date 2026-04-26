@@ -290,18 +290,24 @@ pub struct Vsop87CanonicalEvidenceSummary {
     pub mean_longitude_delta_deg: f64,
     /// Median absolute geocentric longitude delta in degrees.
     pub median_longitude_delta_deg: f64,
+    /// 95th percentile absolute geocentric longitude delta in degrees.
+    pub percentile_longitude_delta_deg: f64,
     /// Root-mean-square geocentric longitude delta in degrees.
     pub rms_longitude_delta_deg: f64,
     /// Mean absolute geocentric latitude delta in degrees.
     pub mean_latitude_delta_deg: f64,
     /// Median absolute geocentric latitude delta in degrees.
     pub median_latitude_delta_deg: f64,
+    /// 95th percentile absolute geocentric latitude delta in degrees.
+    pub percentile_latitude_delta_deg: f64,
     /// Root-mean-square geocentric latitude delta in degrees.
     pub rms_latitude_delta_deg: f64,
     /// Mean absolute geocentric distance delta in astronomical units.
     pub mean_distance_delta_au: f64,
     /// Median absolute geocentric distance delta in astronomical units.
     pub median_distance_delta_au: f64,
+    /// 95th percentile absolute geocentric distance delta in astronomical units.
+    pub percentile_distance_delta_au: f64,
     /// Root-mean-square geocentric distance delta in astronomical units.
     pub rms_distance_delta_au: f64,
     /// Number of samples that exceeded at least one interim limit.
@@ -933,7 +939,7 @@ pub fn source_body_evidence_summary() -> Option<Vsop87SourceBodyEvidenceSummary>
 /// Formats the canonical VSOP87 J2000 evidence summary for reporting.
 pub fn format_canonical_epoch_evidence_summary(summary: &Vsop87CanonicalEvidenceSummary) -> String {
     format!(
-        "VSOP87 canonical J2000 source-backed evidence: {} samples, status {}, mean Δlon={:.12}°, median Δlon={:.12}°, rms Δlon={:.12}°, mean Δlat={:.12}°, median Δlat={:.12}°, rms Δlat={:.12}°, mean Δdist={:.12} AU, median Δdist={:.12} AU, rms Δdist={:.12} AU, out-of-limit samples {}, max Δlon={:.12}° (limit {:.12}°, margin {:+.12}°; {}; {}; {}), max Δlat={:.12}° (limit {:.12}°, margin {:+.12}°; {}; {}; {}), max Δdist={:.12} AU (limit {:.12} AU, margin {:+.12} AU; {}; {}; {})",
+        "VSOP87 canonical J2000 source-backed evidence: {} samples, status {}, mean Δlon={:.12}°, median Δlon={:.12}°, p95 Δlon={:.12}°, rms Δlon={:.12}°, mean Δlat={:.12}°, median Δlat={:.12}°, p95 Δlat={:.12}°, rms Δlat={:.12}°, mean Δdist={:.12} AU, median Δdist={:.12} AU, p95 Δdist={:.12} AU, rms Δdist={:.12} AU, out-of-limit samples {}, max Δlon={:.12}° (limit {:.12}°, margin {:+.12}°; {}; {}; {}), max Δlat={:.12}° (limit {:.12}°, margin {:+.12}°; {}; {}; {}), max Δdist={:.12} AU (limit {:.12} AU, margin {:+.12} AU; {}; {}; {})",
         summary.sample_count,
         if summary.within_interim_limits {
             "within interim limits"
@@ -942,12 +948,15 @@ pub fn format_canonical_epoch_evidence_summary(summary: &Vsop87CanonicalEvidence
         },
         summary.mean_longitude_delta_deg,
         summary.median_longitude_delta_deg,
+        summary.percentile_longitude_delta_deg,
         summary.rms_longitude_delta_deg,
         summary.mean_latitude_delta_deg,
         summary.median_latitude_delta_deg,
+        summary.percentile_latitude_delta_deg,
         summary.rms_latitude_delta_deg,
         summary.mean_distance_delta_au,
         summary.median_distance_delta_au,
+        summary.percentile_distance_delta_au,
         summary.rms_distance_delta_au,
         summary.out_of_limit_count,
         summary.max_longitude_delta_deg,
@@ -1278,12 +1287,15 @@ pub fn canonical_epoch_evidence_summary() -> Option<Vsop87CanonicalEvidenceSumma
         max_distance_delta_limit_au,
         mean_longitude_delta_deg: total_longitude_delta_deg / sample_count as f64,
         median_longitude_delta_deg: median_f64(&mut longitude_values),
+        percentile_longitude_delta_deg: percentile_f64(&mut longitude_values, 0.95),
         rms_longitude_delta_deg: rms_f64(&longitude_values),
         mean_latitude_delta_deg: total_latitude_delta_deg / sample_count as f64,
         median_latitude_delta_deg: median_f64(&mut latitude_values),
+        percentile_latitude_delta_deg: percentile_f64(&mut latitude_values, 0.95),
         rms_latitude_delta_deg: rms_f64(&latitude_values),
         mean_distance_delta_au: total_distance_delta_au / sample_count as f64,
         median_distance_delta_au: median_f64(&mut distance_values),
+        percentile_distance_delta_au: percentile_f64(&mut distance_values, 0.95),
         rms_distance_delta_au: rms_f64(&distance_values),
         out_of_limit_count,
         within_interim_limits,
@@ -1304,6 +1316,23 @@ fn median_f64(values: &mut [f64]) -> f64 {
         (values[mid - 1] + values[mid]) / 2.0
     } else {
         values[mid]
+    }
+}
+
+fn percentile_f64(values: &mut [f64], percentile: f64) -> f64 {
+    values.sort_by(|left, right| left.total_cmp(right));
+    let percentile = percentile.clamp(0.0, 1.0);
+    if values.len() == 1 {
+        return values[0];
+    }
+    let position = percentile * (values.len() - 1) as f64;
+    let lower = position.floor() as usize;
+    let upper = position.ceil() as usize;
+    if lower == upper {
+        values[lower]
+    } else {
+        let fraction = position - lower as f64;
+        values[lower] + (values[upper] - values[lower]) * fraction
     }
 }
 
@@ -2588,11 +2617,14 @@ mod tests {
         assert!(summary.mean_longitude_delta_deg > 0.0);
         assert!(summary.median_longitude_delta_deg > 0.0);
         assert!(summary.rms_longitude_delta_deg > 0.0);
+        assert!(summary.percentile_longitude_delta_deg > 0.0);
         assert!(summary.mean_latitude_delta_deg > 0.0);
         assert!(summary.median_latitude_delta_deg > 0.0);
+        assert!(summary.percentile_latitude_delta_deg > 0.0);
         assert!(summary.rms_latitude_delta_deg > 0.0);
         assert!(summary.mean_distance_delta_au > 0.0);
         assert!(summary.median_distance_delta_au > 0.0);
+        assert!(summary.percentile_distance_delta_au > 0.0);
         assert!(summary.rms_distance_delta_au > 0.0);
         assert_eq!(summary.out_of_limit_count, 0);
         assert!(body_evidence
@@ -2783,10 +2815,11 @@ mod tests {
     #[test]
     fn canonical_evidence_report_matches_the_backend_formatter() {
         let summary = canonical_epoch_evidence_summary().expect("summary should exist");
-        assert_eq!(
-            canonical_epoch_evidence_summary_for_report(),
-            format_canonical_epoch_evidence_summary(&summary)
-        );
+        let rendered = canonical_epoch_evidence_summary_for_report();
+        assert_eq!(rendered, format_canonical_epoch_evidence_summary(&summary));
+        assert!(rendered.contains("p95 Δlon="));
+        assert!(rendered.contains("p95 Δlat="));
+        assert!(rendered.contains("p95 Δdist="));
     }
 
     #[test]
