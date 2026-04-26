@@ -323,6 +323,72 @@ pub fn independent_holdout_snapshot_summary_for_report() -> String {
     }
 }
 
+/// A compact coverage summary for the independent hold-out corpus in
+/// equatorial-frame batch parity mode.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct IndependentHoldoutSnapshotEquatorialParitySummary {
+    /// Total number of parsed hold-out rows exercised through equatorial requests.
+    pub row_count: usize,
+    /// Number of distinct bodies covered by the hold-out corpus.
+    pub body_count: usize,
+    /// Number of distinct epochs covered by the hold-out corpus.
+    pub epoch_count: usize,
+    /// Earliest epoch represented in the hold-out corpus.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented in the hold-out corpus.
+    pub latest_epoch: Instant,
+}
+
+/// Returns a compact equatorial parity summary for the checked-in hold-out corpus.
+pub fn independent_holdout_snapshot_equatorial_parity_summary(
+) -> Option<IndependentHoldoutSnapshotEquatorialParitySummary> {
+    independent_holdout_snapshot_summary().map(|summary| {
+        IndependentHoldoutSnapshotEquatorialParitySummary {
+            row_count: summary.row_count,
+            body_count: summary.body_count,
+            epoch_count: summary.epoch_count,
+            earliest_epoch: summary.earliest_epoch,
+            latest_epoch: summary.latest_epoch,
+        }
+    })
+}
+
+impl IndependentHoldoutSnapshotEquatorialParitySummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "JPL independent hold-out equatorial parity: {} rows across {} bodies and {} epochs ({}..{}); mean-obliquity transform against the checked-in ecliptic fixture",
+            self.row_count,
+            self.body_count,
+            self.epoch_count,
+            format_instant(self.earliest_epoch),
+            format_instant(self.latest_epoch),
+        )
+    }
+}
+
+impl fmt::Display for IndependentHoldoutSnapshotEquatorialParitySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Formats the checked-in independent hold-out equatorial parity summary for
+/// release-facing reporting.
+pub fn format_independent_holdout_snapshot_equatorial_parity_summary(
+    summary: &IndependentHoldoutSnapshotEquatorialParitySummary,
+) -> String {
+    summary.summary_line()
+}
+
+/// Returns the release-facing independent hold-out equatorial parity summary string.
+pub fn independent_holdout_snapshot_equatorial_parity_summary_for_report() -> String {
+    match independent_holdout_snapshot_equatorial_parity_summary() {
+        Some(summary) => format_independent_holdout_snapshot_equatorial_parity_summary(&summary),
+        None => "JPL independent hold-out equatorial parity: unavailable".to_string(),
+    }
+}
+
 /// Returns a compact coverage summary for the comparison snapshot used by validation.
 pub fn comparison_snapshot_summary() -> Option<ComparisonSnapshotSummary> {
     let entries = comparison_snapshot();
@@ -667,7 +733,7 @@ pub fn independent_holdout_manifest_summary_for_report() -> String {
 /// Returns the combined snapshot evidence summary used by validation and release reports.
 pub fn jpl_snapshot_evidence_summary_for_report() -> String {
     format!(
-        "{} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {}",
+        "{} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {}",
         reference_snapshot_summary_for_report(),
         reference_snapshot_equatorial_parity_summary_for_report(),
         reference_snapshot_source_summary_for_report(),
@@ -678,6 +744,7 @@ pub fn jpl_snapshot_evidence_summary_for_report() -> String {
         comparison_snapshot_source_summary_for_report(),
         comparison_snapshot_manifest_summary_for_report(),
         independent_holdout_snapshot_summary_for_report(),
+        independent_holdout_snapshot_equatorial_parity_summary_for_report(),
         independent_holdout_source_summary_for_report(),
         independent_holdout_manifest_summary_for_report(),
         jpl_independent_holdout_summary_for_report(),
@@ -2707,6 +2774,25 @@ mod tests {
     }
 
     #[test]
+    fn independent_holdout_snapshot_equatorial_parity_summary_reports_the_expected_coverage() {
+        let summary = independent_holdout_snapshot_equatorial_parity_summary()
+            .expect("independent hold-out equatorial parity summary should exist");
+        assert_eq!(summary.row_count, 6);
+        assert_eq!(summary.body_count, 2);
+        assert_eq!(summary.epoch_count, 3);
+        assert_eq!(summary.earliest_epoch.julian_day.days(), 2_451_910.5);
+        assert_eq!(summary.latest_epoch.julian_day.days(), 2_451_912.5);
+        assert_eq!(
+            summary.summary_line(),
+            "JPL independent hold-out equatorial parity: 6 rows across 2 bodies and 3 epochs (JD 2451910.5 (TDB)..JD 2451912.5 (TDB)); mean-obliquity transform against the checked-in ecliptic fixture"
+        );
+        assert_eq!(
+            independent_holdout_snapshot_equatorial_parity_summary_for_report(),
+            summary.summary_line()
+        );
+    }
+
+    #[test]
     fn independent_holdout_summary_reports_the_expected_envelope() {
         let summary =
             jpl_independent_holdout_summary().expect("independent hold-out summary should exist");
@@ -2790,6 +2876,55 @@ mod tests {
     }
 
     #[test]
+    fn batch_query_preserves_independent_holdout_order_and_equatorial_values() {
+        let backend = JplSnapshotBackend;
+        let entries = independent_holdout_snapshot_entries()
+            .expect("independent hold-out entries should exist");
+        let requests = entries
+            .iter()
+            .map(|entry| EphemerisRequest {
+                body: entry.body.clone(),
+                instant: entry.epoch,
+                observer: None,
+                frame: CoordinateFrame::Equatorial,
+                zodiac_mode: ZodiacMode::Tropical,
+                apparent: Apparentness::Mean,
+            })
+            .collect::<Vec<_>>();
+
+        let results = backend
+            .positions(&requests)
+            .expect("equatorial batch query should resolve the independent hold-out rows");
+
+        assert_eq!(results.len(), entries.len());
+        for ((entry, request), batch_result) in
+            entries.iter().zip(requests.iter()).zip(results.iter())
+        {
+            assert_eq!(batch_result.body, entry.body);
+            assert_eq!(batch_result.instant, entry.epoch);
+            assert_eq!(batch_result.frame, request.frame);
+            assert_eq!(batch_result.zodiac_mode, request.zodiac_mode);
+            assert_eq!(batch_result.apparent, request.apparent);
+            let expected_equatorial = batch_result
+                .ecliptic
+                .expect("equatorial requests should still populate ecliptic coordinates")
+                .to_equatorial(Angle::from_degrees(mean_obliquity_degrees(
+                    batch_result.instant,
+                )));
+            let equatorial = batch_result
+                .equatorial
+                .expect("equatorial coordinates should be present for the hold-out rows");
+            assert_eq!(equatorial, expected_equatorial);
+            assert!(equatorial.right_ascension.degrees().is_finite());
+            assert!(equatorial.declination.degrees().is_finite());
+            let single = backend
+                .position(request)
+                .expect("single query should match the independent hold-out equatorial batch path");
+            assert_eq!(batch_result, &single);
+        }
+    }
+
+    #[test]
     fn jpl_snapshot_evidence_summary_combines_the_backend_reports() {
         let report = jpl_snapshot_evidence_summary_for_report();
         assert!(report.contains(&reference_snapshot_summary_for_report()));
@@ -2802,6 +2937,9 @@ mod tests {
         assert!(report.contains(&comparison_snapshot_source_summary_for_report()));
         assert!(report.contains(&comparison_snapshot_manifest_summary_for_report()));
         assert!(report.contains(&independent_holdout_snapshot_summary_for_report()));
+        assert!(
+            report.contains(&independent_holdout_snapshot_equatorial_parity_summary_for_report())
+        );
         assert!(report.contains(&independent_holdout_source_summary_for_report()));
         assert!(report.contains(&independent_holdout_manifest_summary_for_report()));
         assert!(report.contains(&jpl_independent_holdout_summary_for_report()));

@@ -72,9 +72,11 @@ use pleiades_jpl::{
     comparison_snapshot_source_summary_for_report, comparison_snapshot_summary_for_report,
     format_jpl_interpolation_quality_kind_coverage,
     format_jpl_interpolation_quality_summary_for_report,
-    frame_treatment_summary as jpl_frame_treatment_summary, interpolation_quality_samples,
-    jpl_independent_holdout_summary_for_report, jpl_interpolation_quality_kind_coverage,
-    jpl_snapshot_evidence_summary_for_report, jpl_snapshot_request_policy_summary_for_report,
+    frame_treatment_summary as jpl_frame_treatment_summary,
+    independent_holdout_snapshot_equatorial_parity_summary_for_report as jpl_independent_holdout_snapshot_equatorial_parity_summary_for_report,
+    interpolation_quality_samples, jpl_independent_holdout_summary_for_report,
+    jpl_interpolation_quality_kind_coverage, jpl_snapshot_evidence_summary_for_report,
+    jpl_snapshot_request_policy_summary_for_report,
     reference_asteroid_equatorial_evidence_summary_for_report, reference_asteroid_evidence,
     reference_asteroid_evidence_summary_for_report, reference_asteroids,
     reference_snapshot_equatorial_parity_summary_for_report, reference_snapshot_summary_for_report,
@@ -2959,6 +2961,8 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str(&jpl_independent_holdout_summary_for_report());
     text.push('\n');
+    text.push_str(&jpl_independent_holdout_snapshot_equatorial_parity_summary_for_report());
+    text.push('\n');
     text.push_str("JPL request policy: ");
     text.push_str(&jpl_snapshot_request_policy_summary_for_report());
     text.push('\n');
@@ -5060,6 +5064,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text, "  {}", jpl_independent_holdout_summary_for_report());
     let _ = writeln!(
         text,
+        "  {}",
+        jpl_independent_holdout_snapshot_equatorial_parity_summary_for_report()
+    );
+    let _ = writeln!(
+        text,
         "JPL request policy: {}",
         jpl_snapshot_request_policy_summary_for_report()
     );
@@ -7090,6 +7099,11 @@ fn write_jpl_interpolation_quality(f: &mut fmt::Formatter<'_>) -> fmt::Result {
         "    note: expanded public-input leave-one-out checks report current runtime interpolation error against held-out exact rows; they are not production tolerances"
     )?;
     writeln!(f, "    {}", jpl_independent_holdout_summary_for_report())?;
+    writeln!(
+        f,
+        "    {}",
+        jpl_independent_holdout_snapshot_equatorial_parity_summary_for_report()
+    )?;
     for sample in interpolation_quality_samples() {
         writeln!(
             f,
@@ -8563,6 +8577,7 @@ mod tests {
         assert!(report.contains("JPL interpolation quality: 21 samples across 10 bodies"));
         assert!(report.contains("JPL interpolation quality kind coverage:"));
         assert!(report.contains("JPL independent hold-out:"));
+        assert!(report.contains("JPL independent hold-out equatorial parity:"));
         assert!(report.contains("transparency evidence only, not a production tolerance envelope"));
         assert!(report.contains("Lunar reference"));
         assert!(report.contains(
@@ -8670,6 +8685,7 @@ mod tests {
         assert!(report.contains("JPL interpolation quality"));
         assert!(report.contains("JPL interpolation quality: 21 samples across 10 bodies"));
         assert!(report.contains("JPL independent hold-out:"));
+        assert!(report.contains("JPL independent hold-out equatorial parity:"));
         assert!(report.contains("leave-one-out runtime interpolation evidence"));
         assert!(report.contains("transparency evidence only, not a production tolerance envelope"));
         assert!(report.contains("@ JD"));
@@ -9706,6 +9722,7 @@ mod tests {
         assert!(rendered.contains("comparison audit regressions found"));
         assert!(rendered.contains("JPL interpolation evidence:"));
         assert!(rendered.contains("JPL independent hold-out:"));
+        assert!(rendered.contains("JPL independent hold-out equatorial parity:"));
         assert!(rendered.contains("JPL request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
         assert!(rendered.contains("JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"));
         assert!(rendered.contains("Reference snapshot coverage:"));
@@ -10200,6 +10217,7 @@ version = "0.9.0"
             "lunar source selection: Compact Meeus-style truncated lunar baseline [meeus-style-truncated-lunar-baseline; selected key: source identifier=meeus-style-truncated-lunar-baseline; family: Meeus-style truncated analytical baseline]; aliases: Meeus-style truncated lunar baseline"
         ));
         assert!(release_summary.contains("JPL independent hold-out:"));
+        assert!(release_summary.contains("JPL independent hold-out equatorial parity:"));
         assert!(release_summary.contains("Independent hold-out manifest:"));
         assert!(release_summary.contains("JPL request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
         assert!(release_summary.contains("JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"));
