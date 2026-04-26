@@ -102,6 +102,11 @@ impl HouseSnapshot {
             self.cusps.get(house - 1).copied()
         }
     }
+
+    /// Ensures the snapshot contains only finite numeric values.
+    pub fn validate(&self) -> Result<(), HouseError> {
+        validate_house_snapshot(self)
+    }
 }
 
 /// Error categories for house calculations.
@@ -221,14 +226,17 @@ pub fn calculate_houses(request: &HouseRequest) -> Result<HouseSnapshot, HouseEr
         }
     };
 
-    Ok(HouseSnapshot {
+    let snapshot = HouseSnapshot {
         system: request.system.clone(),
         instant: request.instant,
         observer: request.observer.clone(),
         obliquity,
         angles,
         cusps,
-    })
+    };
+    snapshot.validate()?;
+
+    Ok(snapshot)
 }
 
 /// Returns the one-based house number for a longitude and cusp set.
@@ -275,6 +283,31 @@ fn validate_obliquity(obliquity: Angle) -> Result<Angle, HouseError> {
     }
 
     Ok(obliquity)
+}
+
+fn validate_house_snapshot(snapshot: &HouseSnapshot) -> Result<(), HouseError> {
+    check_finite("obliquity", snapshot.obliquity.degrees())?;
+    check_finite("ascendant", snapshot.angles.ascendant.degrees())?;
+    check_finite("descendant", snapshot.angles.descendant.degrees())?;
+    check_finite("midheaven", snapshot.angles.midheaven.degrees())?;
+    check_finite("imum coeli", snapshot.angles.imum_coeli.degrees())?;
+
+    for (index, cusp) in snapshot.cusps.iter().enumerate() {
+        check_finite(format!("cusp {}", index + 1), cusp.degrees())?;
+    }
+
+    Ok(())
+}
+
+fn check_finite(label: impl Into<String>, value: f64) -> Result<(), HouseError> {
+    if value.is_finite() {
+        Ok(())
+    } else {
+        Err(HouseError::new(
+            HouseErrorKind::NumericalFailure,
+            format!("house calculation produced a non-finite {}", label.into()),
+        ))
+    }
 }
 
 fn derive_angles(instant: Instant, observer: &ObserverLocation, obliquity: Angle) -> HouseAngles {
@@ -1419,6 +1452,32 @@ mod tests {
                 assert!(error.message.contains("obliquity override must be finite"));
             }
         }
+    }
+
+    #[test]
+    fn house_snapshots_reject_non_finite_derived_values() {
+        let mut cusps = vec![Longitude::from_degrees(0.0); 12];
+        cusps[4] = Longitude::from_degrees(f64::NAN);
+
+        let snapshot = HouseSnapshot {
+            system: HouseSystem::Equal,
+            instant: sample_request(HouseSystem::Equal).instant,
+            observer: sample_request(HouseSystem::Equal).observer,
+            obliquity: Angle::from_degrees(23.4),
+            angles: HouseAngles {
+                ascendant: Longitude::from_degrees(15.0),
+                descendant: Longitude::from_degrees(195.0),
+                midheaven: Longitude::from_degrees(45.0),
+                imum_coeli: Longitude::from_degrees(225.0),
+            },
+            cusps,
+        };
+
+        let error = snapshot
+            .validate()
+            .expect_err("non-finite cusp should fail");
+        assert_eq!(error.kind, HouseErrorKind::NumericalFailure);
+        assert!(error.message.contains("non-finite cusp 5"));
     }
 
     #[test]
