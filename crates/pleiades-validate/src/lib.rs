@@ -5543,14 +5543,7 @@ fn push_unique(values: &mut Vec<String>, value: String) {
 }
 
 fn backend_family_label(family: &BackendFamily) -> String {
-    match family {
-        BackendFamily::Algorithmic => "Algorithmic".to_string(),
-        BackendFamily::ReferenceData => "ReferenceData".to_string(),
-        BackendFamily::CompressedData => "CompressedData".to_string(),
-        BackendFamily::Composite => "Composite".to_string(),
-        BackendFamily::Other(value) => format!("Other({value})"),
-        _ => "Other(unknown)".to_string(),
-    }
+    family.to_string()
 }
 
 /// Renders a backend capability matrix for the implemented backend catalog.
@@ -6341,8 +6334,8 @@ fn write_corpus_summary_text(text: &mut String, corpus: &CorpusSummary) {
 fn write_backend_matrix(f: &mut fmt::Formatter<'_>, backend: &BackendMetadata) -> fmt::Result {
     writeln!(f, "  id: {}", backend.id)?;
     writeln!(f, "  version: {}", backend.version)?;
-    writeln!(f, "  family: {:?}", backend.family)?;
-    writeln!(f, "  accuracy: {:?}", backend.accuracy)?;
+    writeln!(f, "  family: {}", backend.family)?;
+    writeln!(f, "  accuracy: {}", backend.accuracy)?;
     writeln!(f, "  deterministic: {}", backend.deterministic)?;
     writeln!(f, "  offline: {}", backend.offline)?;
     writeln!(

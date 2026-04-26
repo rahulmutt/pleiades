@@ -60,6 +60,7 @@
 #![forbid(unsafe_code)]
 
 use core::fmt;
+use std::borrow::Cow;
 
 pub use pleiades_types::{
     Angle, Apparentness, Ayanamsa, CelestialBody, CoordinateFrame, CustomAyanamsa, CustomBodyId,
@@ -107,6 +108,25 @@ pub enum BackendFamily {
     Other(String),
 }
 
+impl BackendFamily {
+    /// Returns a stable human-readable label for the backend family.
+    pub fn display_name(&self) -> Cow<'_, str> {
+        match self {
+            Self::Algorithmic => Cow::Borrowed("Algorithmic"),
+            Self::ReferenceData => Cow::Borrowed("ReferenceData"),
+            Self::CompressedData => Cow::Borrowed("CompressedData"),
+            Self::Composite => Cow::Borrowed("Composite"),
+            Self::Other(value) => Cow::Owned(format!("Other({value})")),
+        }
+    }
+}
+
+impl fmt::Display for BackendFamily {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.display_name())
+    }
+}
+
 /// A rough accuracy class for a backend.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -122,6 +142,25 @@ pub enum AccuracyClass {
     Approximate,
     /// Accuracy class is unknown or not yet published.
     Unknown,
+}
+
+impl AccuracyClass {
+    /// Returns a stable human-readable label for the accuracy class.
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Exact => "Exact",
+            Self::High => "High",
+            Self::Moderate => "Moderate",
+            Self::Approximate => "Approximate",
+            Self::Unknown => "Unknown",
+        }
+    }
+}
+
+impl fmt::Display for AccuracyClass {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.label())
+    }
 }
 
 /// Provenance summary for a backend.
@@ -796,6 +835,24 @@ fn should_fallback_to_secondary(kind: &EphemerisErrorKind) -> bool {
 mod tests {
     use super::*;
     use core::sync::atomic::{AtomicUsize, Ordering};
+
+    #[test]
+    fn family_and_accuracy_labels_are_stable() {
+        assert_eq!(BackendFamily::Algorithmic.to_string(), "Algorithmic");
+        assert_eq!(BackendFamily::ReferenceData.to_string(), "ReferenceData");
+        assert_eq!(BackendFamily::CompressedData.to_string(), "CompressedData");
+        assert_eq!(BackendFamily::Composite.to_string(), "Composite");
+        assert_eq!(
+            BackendFamily::Other("custom".to_string()).to_string(),
+            "Other(custom)"
+        );
+
+        assert_eq!(AccuracyClass::Exact.to_string(), "Exact");
+        assert_eq!(AccuracyClass::High.to_string(), "High");
+        assert_eq!(AccuracyClass::Moderate.to_string(), "Moderate");
+        assert_eq!(AccuracyClass::Approximate.to_string(), "Approximate");
+        assert_eq!(AccuracyClass::Unknown.to_string(), "Unknown");
+    }
 
     struct ToyBackend;
 
