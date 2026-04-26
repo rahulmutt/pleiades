@@ -553,18 +553,54 @@ const INDEPENDENT_HOLDOUT_SOURCE_FALLBACK: &str = "NASA/JPL Horizons API vector 
 const INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK: &str =
     "Mars and Jupiter at 2001-01-01 through 2001-01-03.";
 
-/// Returns the source-material summary for the checked-in reference snapshot.
-pub fn reference_snapshot_source_summary_for_report() -> &'static str {
-    static SUMMARY: OnceLock<String> = OnceLock::new();
+/// Backend-owned provenance summary for the checked-in reference snapshot source material.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReferenceSnapshotSourceSummary {
+    /// Source attribution for the checked-in reference snapshot.
+    pub source: String,
+    /// Frame and coordinate posture described by the checked-in reference snapshot.
+    pub frame_treatment: String,
+    /// Reference epoch used by the checked-in snapshot.
+    pub reference_epoch: Instant,
+}
+
+impl ReferenceSnapshotSourceSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Reference snapshot source: {}; {}; TDB reference epoch {}",
+            self.source,
+            self.frame_treatment,
+            format_instant(self.reference_epoch),
+        )
+    }
+}
+
+impl fmt::Display for ReferenceSnapshotSourceSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns the backend-owned provenance summary for the checked-in reference snapshot.
+pub fn reference_snapshot_source_summary() -> ReferenceSnapshotSourceSummary {
+    static SUMMARY: OnceLock<ReferenceSnapshotSourceSummary> = OnceLock::new();
     SUMMARY
         .get_or_init(|| {
             let manifest = reference_snapshot_manifest();
             let source = manifest.source_or(REFERENCE_SNAPSHOT_SOURCE_FALLBACK);
-            format!(
-                "Reference snapshot source: {source}; geocentric ecliptic J2000; TDB reference epoch JD 2451545.0"
-            )
+            ReferenceSnapshotSourceSummary {
+                source: source.to_string(),
+                frame_treatment: "geocentric ecliptic J2000".to_string(),
+                reference_epoch: reference_instant(),
+            }
         })
-        .as_str()
+        .clone()
+}
+
+/// Returns the source-material summary for the checked-in reference snapshot.
+pub fn reference_snapshot_source_summary_for_report() -> String {
+    reference_snapshot_source_summary().summary_line()
 }
 
 /// Returns the manifest summary for the checked-in reference snapshot.
@@ -572,14 +608,55 @@ pub fn reference_snapshot_manifest_summary_for_report() -> String {
     reference_snapshot_manifest().summary_line("Reference snapshot manifest")
 }
 
+/// Backend-owned provenance summary for the checked-in hold-out snapshot source material.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct IndependentHoldoutSourceSummary {
+    /// Source attribution for the hold-out snapshot.
+    pub source: String,
+    /// Coverage note for the hold-out snapshot.
+    pub coverage: String,
+    /// CSV column layout for the hold-out snapshot.
+    pub columns: String,
+}
+
+impl IndependentHoldoutSourceSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Independent hold-out source: {}; coverage={}; columns={}",
+            self.source, self.coverage, self.columns
+        )
+    }
+}
+
+impl fmt::Display for IndependentHoldoutSourceSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns the backend-owned provenance summary for the checked-in hold-out snapshot.
+pub fn independent_holdout_source_summary() -> IndependentHoldoutSourceSummary {
+    static SUMMARY: OnceLock<IndependentHoldoutSourceSummary> = OnceLock::new();
+    SUMMARY
+        .get_or_init(|| {
+            let manifest = independent_holdout_snapshot_manifest();
+            IndependentHoldoutSourceSummary {
+                source: manifest
+                    .source_or(INDEPENDENT_HOLDOUT_SOURCE_FALLBACK)
+                    .to_string(),
+                coverage: manifest
+                    .coverage_or(INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK)
+                    .to_string(),
+                columns: manifest.columns_summary(),
+            }
+        })
+        .clone()
+}
+
 /// Returns the source-material summary for the checked-in hold-out snapshot.
 pub fn independent_holdout_source_summary_for_report() -> String {
-    let manifest = independent_holdout_snapshot_manifest();
-    let source = manifest.source_or(INDEPENDENT_HOLDOUT_SOURCE_FALLBACK);
-    let coverage = manifest.coverage_or(INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK);
-    let columns = manifest.columns_summary();
-
-    format!("Independent hold-out source: {source}; coverage={coverage}; columns={columns}")
+    independent_holdout_source_summary().summary_line()
 }
 
 /// Returns the manifest summary for the checked-in hold-out snapshot.
@@ -2552,9 +2629,49 @@ mod tests {
 
     #[test]
     fn reference_snapshot_source_summary_reports_the_expected_provenance() {
+        let summary = reference_snapshot_source_summary();
+
+        assert_eq!(
+            summary.source,
+            "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables."
+        );
+        assert_eq!(summary.frame_treatment, "geocentric ecliptic J2000");
+        assert_eq!(summary.reference_epoch.julian_day.days(), 2_451_545.0);
+        assert_eq!(
+            summary.summary_line(),
+            format!(
+                "Reference snapshot source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; geocentric ecliptic J2000; TDB reference epoch {}",
+                format_instant(summary.reference_epoch)
+            )
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             reference_snapshot_source_summary_for_report(),
-            "Reference snapshot source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; geocentric ecliptic J2000; TDB reference epoch JD 2451545.0"
+            summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn independent_holdout_source_summary_reports_the_expected_provenance() {
+        let summary = independent_holdout_source_summary();
+
+        assert_eq!(
+            summary.source,
+            "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables."
+        );
+        assert_eq!(
+            summary.coverage,
+            "Mars and Jupiter at 2001-01-01 through 2001-01-03."
+        );
+        assert_eq!(summary.columns, "epoch_jd, body, x_km, y_km, z_km");
+        assert_eq!(
+            summary.summary_line(),
+            "Independent hold-out source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=Mars and Jupiter at 2001-01-01 through 2001-01-03.; columns=epoch_jd, body, x_km, y_km, z_km"
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            independent_holdout_source_summary_for_report(),
+            summary.summary_line()
         );
     }
 
@@ -2667,7 +2784,7 @@ mod tests {
         let report = jpl_snapshot_evidence_summary_for_report();
         assert!(report.contains(&reference_snapshot_summary_for_report()));
         assert!(report.contains(&reference_snapshot_equatorial_parity_summary_for_report()));
-        assert!(report.contains(reference_snapshot_source_summary_for_report()));
+        assert!(report.contains(&reference_snapshot_source_summary_for_report()));
         assert!(report.contains(&reference_snapshot_manifest_summary_for_report()));
         assert!(report.contains(&reference_asteroid_evidence_summary_for_report()));
         assert!(report.contains(&reference_asteroid_equatorial_evidence_summary_for_report()));
