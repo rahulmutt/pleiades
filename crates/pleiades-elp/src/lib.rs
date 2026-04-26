@@ -115,6 +115,11 @@ impl LunarTheorySourceSelection {
     pub const fn family_label(self) -> &'static str {
         self.family.label()
     }
+
+    /// Returns the typed catalog key for the current source selection.
+    pub const fn catalog_key(self) -> LunarTheoryCatalogKey<'static> {
+        LunarTheoryCatalogKey::SourceIdentifier(self.identifier)
+    }
 }
 
 /// Compact source-selection summary for the current lunar-theory baseline.
@@ -414,6 +419,13 @@ pub fn resolve_lunar_theory_by_key(
     key: LunarTheoryCatalogKey<'_>,
 ) -> Option<LunarTheorySpecification> {
     lunar_theory_catalog_entry_for_key(key).map(|entry| entry.specification)
+}
+
+/// Returns the current lunar-theory specification matching the provided source selection, when present.
+pub fn resolve_lunar_theory_by_selection(
+    selection: LunarTheorySourceSelection,
+) -> Option<LunarTheorySpecification> {
+    resolve_lunar_theory_by_key(selection.catalog_key())
 }
 
 /// Returns the currently selected compact lunar-theory specification.
@@ -2337,6 +2349,11 @@ mod tests {
         assert_eq!(source.redistribution_note, theory.redistribution_note);
         assert_eq!(source.license_note, theory.license_note);
         assert_eq!(source.family_label(), theory.source_family.label());
+        assert_eq!(
+            source.catalog_key(),
+            LunarTheoryCatalogKey::SourceIdentifier(theory.source_identifier)
+        );
+        assert_eq!(resolve_lunar_theory_by_selection(source), Some(theory));
 
         let source_summary = lunar_theory_source_summary();
         assert_eq!(source_summary.model_name, theory.model_name);
