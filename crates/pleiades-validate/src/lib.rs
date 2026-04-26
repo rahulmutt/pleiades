@@ -7351,11 +7351,7 @@ fn is_selected_asteroid(body: &CelestialBody) -> bool {
 fn format_frames(frames: &[CoordinateFrame]) -> String {
     frames
         .iter()
-        .map(|frame| match frame {
-            CoordinateFrame::Ecliptic => "Ecliptic",
-            CoordinateFrame::Equatorial => "Equatorial",
-            _ => "Other",
-        })
+        .map(ToString::to_string)
         .collect::<Vec<_>>()
         .join(", ")
 }
@@ -7363,13 +7359,7 @@ fn format_frames(frames: &[CoordinateFrame]) -> String {
 fn format_time_scales(scales: &[TimeScale]) -> String {
     scales
         .iter()
-        .map(|scale| match scale {
-            TimeScale::Utc => "UTC",
-            TimeScale::Ut1 => "UT1",
-            TimeScale::Tt => "TT",
-            TimeScale::Tdb => "TDB",
-            _ => "Other",
-        })
+        .map(ToString::to_string)
         .collect::<Vec<_>>()
         .join(", ")
 }
@@ -7408,14 +7398,7 @@ fn format_time_range(range: &TimeRange) -> String {
 }
 
 fn format_instant(instant: Instant) -> String {
-    let scale = match instant.scale {
-        TimeScale::Utc => "UTC",
-        TimeScale::Ut1 => "UT1",
-        TimeScale::Tt => "TT",
-        TimeScale::Tdb => "TDB",
-        _ => "Other",
-    };
-    format!("JD {:.1} ({scale})", instant.julian_day.days())
+    format!("JD {:.1} ({})", instant.julian_day.days(), instant.scale)
 }
 
 fn format_instant_list(instants: &[Instant]) -> String {

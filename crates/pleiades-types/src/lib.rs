@@ -200,6 +200,18 @@ pub enum TimeScale {
     Tdb,
 }
 
+impl fmt::Display for TimeScale {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let label = match self {
+            Self::Utc => "UTC",
+            Self::Ut1 => "UT1",
+            Self::Tt => "TT",
+            Self::Tdb => "TDB",
+        };
+        f.write_str(label)
+    }
+}
+
 /// Number of SI seconds in one Julian day.
 pub const SECONDS_PER_DAY: f64 = 86_400.0;
 
@@ -223,7 +235,7 @@ impl fmt::Display for TimeScaleConversionError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "time-scale conversion expected {:?}, got {:?}",
+            "time-scale conversion expected {}, got {}",
             self.expected, self.actual
         )
     }
@@ -497,6 +509,16 @@ pub enum CoordinateFrame {
     Ecliptic,
     /// Equatorial right ascension/declination coordinates.
     Equatorial,
+}
+
+impl fmt::Display for CoordinateFrame {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let label = match self {
+            Self::Ecliptic => "Ecliptic",
+            Self::Equatorial => "Equatorial",
+        };
+        f.write_str(label)
+    }
 }
 
 /// Whether coordinates should be interpreted in tropical or sidereal mode.
@@ -1257,6 +1279,32 @@ mod tests {
         assert_eq!(
             CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros")).to_string(),
             "asteroid:433-Eros"
+        );
+    }
+
+    #[test]
+    fn time_scales_have_stable_display_names() {
+        assert_eq!(TimeScale::Utc.to_string(), "UTC");
+        assert_eq!(TimeScale::Ut1.to_string(), "UT1");
+        assert_eq!(TimeScale::Tt.to_string(), "TT");
+        assert_eq!(TimeScale::Tdb.to_string(), "TDB");
+    }
+
+    #[test]
+    fn coordinate_frames_have_stable_display_names() {
+        assert_eq!(CoordinateFrame::Ecliptic.to_string(), "Ecliptic");
+        assert_eq!(CoordinateFrame::Equatorial.to_string(), "Equatorial");
+    }
+
+    #[test]
+    fn time_scale_conversion_errors_use_stable_display_labels() {
+        let error = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt)
+            .tt_from_ut1(Duration::from_secs(1))
+            .expect_err("TT is not UT1");
+
+        assert_eq!(
+            error.to_string(),
+            "time-scale conversion expected UT1, got TT"
         );
     }
 
