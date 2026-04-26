@@ -7988,9 +7988,16 @@ mod tests {
         let rendered =
             render_cli(&["compatibility-profile"]).expect("compatibility profile should render");
         assert!(rendered.contains("Equal (MC) table of houses"));
+        assert!(rendered.contains("Equal (MC) house system"));
+        assert!(rendered.contains("Equal Midheaven house system"));
         assert!(rendered.contains("Equal (1=Aries) table of houses"));
+        assert!(rendered.contains("Equal (1=Aries) house system"));
+        assert!(rendered.contains("Vehlow Equal table of houses"));
+        assert!(rendered.contains("Vehlow Equal house system"));
+        assert!(rendered.contains("Topocentric house system"));
         assert!(rendered.contains("Equal table of houses"));
         assert!(rendered.contains("Whole Sign system"));
+        assert!(rendered.contains("Whole Sign house system"));
         assert!(rendered.contains("Morinus house system"));
         assert!(rendered.contains("Pullen SR (Sinusoidal Ratio) table of houses"));
         assert!(rendered.contains("Pullen SD (Neo-Porphyry) table of houses"));
@@ -8038,6 +8045,8 @@ mod tests {
         assert!(rendered.contains("Galactic Center (Mardyks)"));
         assert!(rendered.contains("Galactic Center (Mula/Wilhelm)"));
         assert!(rendered.contains("Galactic Center (Cochrane)"));
+        assert!(rendered.contains("Gal. Center = 0 Sag"));
+        assert!(rendered.contains("Gal. Center = 0 Cap"));
     }
 
     #[test]
