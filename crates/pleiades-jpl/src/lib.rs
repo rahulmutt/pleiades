@@ -491,7 +491,7 @@ pub fn format_jpl_interpolation_quality_summary(
     }
 
     format!(
-        "JPL interpolation quality: {} samples across {} bodies ({} cubic, {} quadratic, {} linear), leave-one-out runtime interpolation evidence with worst-case bodies named, max bracket span={:.1} d{}; mean bracket span={:.1} d; max Δlon={:.12}°{}; mean Δlon={:.12}°; rms Δlon={:.12}°; max Δlat={:.12}°{}; mean Δlat={:.12}°; rms Δlat={:.12}°; max Δdist={:.12} AU{}; mean Δdist={:.12} AU; rms Δdist={:.12} AU",
+        "JPL interpolation quality: {} samples across {} bodies ({} cubic, {} quadratic, {} linear), leave-one-out runtime interpolation evidence with worst-case bodies named, max bracket span={:.1} d{}; mean bracket span={:.1} d; max Δlon={:.12}°{}; mean Δlon={:.12}°; rms Δlon={:.12}°; max Δlat={:.12}°{}; mean Δlat={:.12}°; rms Δlat={:.12}°; max Δdist={:.12} AU{}; mean Δdist={:.12} AU; rms Δdist={:.12} AU; transparency evidence only, not a production tolerance envelope",
         summary.sample_count,
         summary.body_count,
         summary.cubic_sample_count,
@@ -1908,6 +1908,9 @@ mod tests {
             summary.max_distance_error_body,
             format_instant(summary.max_distance_error_epoch)
         )));
+        assert!(
+            rendered.contains("transparency evidence only, not a production tolerance envelope")
+        );
     }
 
     #[test]

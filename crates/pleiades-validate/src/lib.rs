@@ -7655,6 +7655,7 @@ mod tests {
         assert!(report.contains("Major planets"));
         assert!(report.contains("interpolation quality checks:"));
         assert!(report.contains("JPL interpolation quality: 21 samples across 10 bodies"));
+        assert!(report.contains("transparency evidence only, not a production tolerance envelope"));
         assert!(report.contains("Lunar reference evidence"));
         assert!(report.contains(
             "lunar reference evidence: 9 samples across 5 bodies, epoch range JD 2419914.5..2459278.5"
@@ -7756,6 +7757,7 @@ mod tests {
         assert!(report.contains("JPL interpolation quality"));
         assert!(report.contains("JPL interpolation quality: 21 samples across 10 bodies"));
         assert!(report.contains("leave-one-out runtime interpolation evidence"));
+        assert!(report.contains("transparency evidence only, not a production tolerance envelope"));
         assert!(report.contains("@ JD"));
         assert!(report.contains("ELP lunar capability: lunar capability summary:"));
         assert!(report.contains(
