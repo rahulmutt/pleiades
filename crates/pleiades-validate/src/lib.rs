@@ -2655,19 +2655,19 @@ fn render_release_summary_text() -> String {
     text.push_str("ELP lunar request policy: ");
     text.push_str(&lunar_theory_request_policy_summary());
     text.push('\n');
-    text.push_str("Lunar reference evidence: ");
+    text.push_str("Lunar reference: ");
     text.push_str(&lunar_reference_evidence_summary_for_report());
     text.push('\n');
-    text.push_str("Lunar reference evidence envelope: ");
+    text.push_str("Lunar reference envelope: ");
     text.push_str(&lunar_reference_evidence_envelope_for_report());
     text.push('\n');
-    text.push_str("Lunar equatorial evidence: ");
+    text.push_str("Lunar equatorial reference: ");
     text.push_str(&lunar_equatorial_reference_evidence_summary_for_report());
     text.push('\n');
-    text.push_str("Lunar equatorial evidence envelope: ");
+    text.push_str("Lunar equatorial reference envelope: ");
     text.push_str(&lunar_equatorial_reference_evidence_envelope_for_report());
     text.push('\n');
-    text.push_str("Lunar apparent comparison evidence: ");
+    text.push_str("Lunar apparent comparison: ");
     text.push_str(&lunar_apparent_comparison_summary_for_report());
     text.push('\n');
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
@@ -4608,11 +4608,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     );
     let _ = writeln!(text, "  {}", lunar_theory_source_summary_for_report());
     let _ = writeln!(text);
-    let _ = writeln!(text, "Lunar reference evidence");
+    let _ = writeln!(text, "Lunar reference");
     let _ = writeln!(text, "  {}", lunar_reference_evidence_summary_for_report());
     let _ = writeln!(text, "  {}", lunar_reference_evidence_envelope_for_report());
     let _ = writeln!(text);
-    let _ = writeln!(text, "Lunar equatorial reference evidence");
+    let _ = writeln!(text, "Lunar equatorial reference");
     let _ = writeln!(
         text,
         "  {}",
@@ -4624,7 +4624,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         lunar_equatorial_reference_evidence_envelope_for_report()
     );
     let _ = writeln!(text);
-    let _ = writeln!(text, "Lunar apparent comparison evidence");
+    let _ = writeln!(text, "Lunar apparent comparison");
     let _ = writeln!(text, "  {}", lunar_apparent_comparison_summary_for_report());
     let _ = writeln!(text);
     let _ = writeln!(text, "Lunar high-curvature continuity evidence");
@@ -5228,7 +5228,7 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str(&lunar_reference_evidence_envelope_for_report());
     text.push('\n');
-    text.push_str("Lunar equatorial reference evidence\n");
+    text.push_str("Lunar equatorial reference\n");
     text.push_str(&lunar_equatorial_reference_evidence_summary_for_report());
     text.push('\n');
     text.push_str(&lunar_equatorial_reference_evidence_envelope_for_report());
@@ -6382,7 +6382,7 @@ fn format_jpl_interpolation_quality_summary(
 }
 
 fn write_lunar_reference_evidence(f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    writeln!(f, "  Lunar reference evidence:")?;
+    writeln!(f, "  Lunar reference:")?;
     let Some(summary) = lunar_reference_evidence_summary() else {
         writeln!(f, "    none")?;
         return Ok(());
@@ -6413,7 +6413,7 @@ fn write_lunar_reference_evidence(f: &mut fmt::Formatter<'_>) -> fmt::Result {
 }
 
 fn write_lunar_equatorial_reference_evidence(f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    writeln!(f, "  Lunar equatorial reference evidence:")?;
+    writeln!(f, "  Lunar equatorial reference:")?;
     if lunar_equatorial_reference_evidence_summary().is_none() {
         writeln!(f, "    none")?;
         return Ok(());
@@ -6449,7 +6449,7 @@ fn write_lunar_equatorial_reference_evidence(f: &mut fmt::Formatter<'_>) -> fmt:
 }
 
 fn write_lunar_apparent_comparison_evidence(f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    writeln!(f, "  Lunar apparent comparison evidence:")?;
+    writeln!(f, "  Lunar apparent comparison:")?;
     let Some(summary) = lunar_apparent_comparison_summary() else {
         writeln!(f, "    none")?;
         return Ok(());
@@ -7722,7 +7722,7 @@ mod tests {
         assert!(report.contains("interpolation quality checks:"));
         assert!(report.contains("JPL interpolation quality: 21 samples across 10 bodies"));
         assert!(report.contains("transparency evidence only, not a production tolerance envelope"));
-        assert!(report.contains("Lunar reference evidence"));
+        assert!(report.contains("Lunar reference"));
         assert!(report.contains(
             "lunar reference evidence: 9 samples across 5 bodies, epoch range JD 2419914.5..2459278.5"
         ));
@@ -7829,7 +7829,7 @@ mod tests {
         assert!(report.contains(
             "ELP lunar request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"
         ));
-        assert!(report.contains("Lunar reference evidence"));
+        assert!(report.contains("Lunar reference"));
         assert!(report.contains(
             "lunar reference evidence: 9 samples across 5 bodies, epoch range JD 2419914.5..2459278.5"
         ));
@@ -8647,8 +8647,8 @@ mod tests {
         assert!(rendered.contains("VSOP87 source audit:"));
         assert!(rendered.contains("VSOP87 canonical J2000 source-backed evidence:"));
         assert!(rendered.contains("VSOP87 source-backed body evidence:"));
-        assert!(rendered.contains("Lunar reference evidence envelope:"));
-        assert!(rendered.contains("Lunar equatorial evidence envelope:"));
+        assert!(rendered.contains("Lunar reference envelope:"));
+        assert!(rendered.contains("Lunar equatorial reference envelope:"));
         assert!(rendered.contains("JPL interpolation quality:"));
         assert!(rendered.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
@@ -9040,13 +9040,13 @@ version = "0.9.0"
         assert!(release_summary.contains("VSOP87 source audit:"));
         assert!(release_summary.contains("VSOP87 canonical J2000 source-backed evidence:"));
         assert!(release_summary.contains("VSOP87 source-backed body evidence:"));
-        assert!(release_summary.contains("Lunar reference evidence: lunar reference evidence:"));
-        assert!(release_summary.contains("Lunar reference evidence envelope:"));
+        assert!(release_summary.contains("Lunar reference: lunar reference evidence:"));
+        assert!(release_summary.contains("Lunar reference envelope:"));
         assert!(release_summary
-            .contains("Lunar equatorial evidence: lunar equatorial reference evidence:"));
-        assert!(release_summary.contains("Lunar equatorial evidence envelope:"));
+            .contains("Lunar equatorial reference: lunar equatorial reference evidence:"));
+        assert!(release_summary.contains("Lunar equatorial reference envelope:"));
         assert!(release_summary
-            .contains("Lunar apparent comparison evidence: lunar apparent comparison evidence:"));
+            .contains("Lunar apparent comparison: lunar apparent comparison evidence:"));
         assert!(release_summary.contains("Packaged request policy"));
         assert!(release_summary.contains("applies to 11 bundled bodies"));
         assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
