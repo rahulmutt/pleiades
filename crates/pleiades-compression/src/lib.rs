@@ -2,9 +2,11 @@
 //!
 //! The current implementation defines a small, deterministic artifact format
 //! with explicit versioning, checksums, artifact capability profiles, and
-//! quantized polynomial segments. It is intentionally simple enough to audit
-//! while still exercising the same segmented lookup flow and random-access
-//! body/segment helpers that later, denser artifacts will use.
+//! quantized polynomial segments. Optional residual-correction channels are
+//! also supported so denser artifacts can keep a compact base fit while
+//! layering deterministic corrections on top. The format is intentionally
+//! simple enough to audit while still exercising the same segmented lookup flow
+//! and random-access body/segment helpers that later, denser artifacts will use.
 //!
 //! Enable the optional `serde` feature to serialize compressed artifacts for
 //! inspection or interchange workflows.
@@ -40,7 +42,7 @@ use pleiades_types::{
 };
 
 /// Current artifact format version.
-pub const ARTIFACT_VERSION: u16 = 3;
+pub const ARTIFACT_VERSION: u16 = 4;
 
 const ARTIFACT_MAGIC: [u8; 8] = *b"PLDEPHEM";
 
@@ -387,6 +389,8 @@ pub struct Segment {
     pub end: Instant,
     /// Quantized polynomial channels.
     pub channels: Vec<PolynomialChannel>,
+    /// Optional residual-correction channels layered on top of the base fit.
+    pub residual_channels: Vec<PolynomialChannel>,
 }
 
 impl Segment {
@@ -396,6 +400,22 @@ impl Segment {
             start,
             end,
             channels,
+            residual_channels: Vec::new(),
+        }
+    }
+
+    /// Creates a new segment with optional residual-correction channels.
+    pub fn with_residual_channels(
+        start: Instant,
+        end: Instant,
+        channels: Vec<PolynomialChannel>,
+        residual_channels: Vec<PolynomialChannel>,
+    ) -> Self {
+        Self {
+            start,
+            end,
+            channels,
+            residual_channels,
         }
     }
 
@@ -414,15 +434,29 @@ impl Segment {
         self.channels.iter().find(|channel| channel.kind == kind)
     }
 
+    fn residual_channel(&self, kind: ChannelKind) -> Option<&PolynomialChannel> {
+        self.residual_channels
+            .iter()
+            .find(|channel| channel.kind == kind)
+    }
+
     fn evaluate_channel(&self, kind: ChannelKind, x: f64) -> Result<f64, CompressionError> {
-        self.channel(kind)
+        let base = self
+            .channel(kind)
             .map(|channel| channel.evaluate(x))
             .ok_or_else(|| {
                 CompressionError::new(
                     CompressionErrorKind::MissingChannel,
                     format!("missing {kind:?} channel"),
                 )
-            })
+            })?;
+
+        let residual = self
+            .residual_channel(kind)
+            .map(|channel| channel.evaluate(x))
+            .unwrap_or(0.0);
+
+        Ok(base + residual)
     }
 }
 
@@ -788,20 +822,11 @@ fn encode_segment(bytes: &mut Vec<u8>, segment: &Segment) -> Result<(), Compress
     encode_instant(bytes, segment.end);
     write_u8(bytes, segment.channels.len() as u8);
     for channel in &segment.channels {
-        write_u8(bytes, encode_channel_kind(channel.kind));
-        write_u8(bytes, channel.scale_exponent);
-        write_u8(bytes, channel.coefficients.len() as u8);
-        let scale = 10f64.powi(channel.scale_exponent as i32);
-        for coefficient in &channel.coefficients {
-            let scaled = (*coefficient * scale).round();
-            if !scaled.is_finite() || scaled < i64::MIN as f64 || scaled > i64::MAX as f64 {
-                return Err(CompressionError::new(
-                    CompressionErrorKind::QuantizationOverflow,
-                    "a polynomial coefficient exceeded the supported quantization range",
-                ));
-            }
-            write_i64(bytes, scaled as i64);
-        }
+        encode_polynomial_channel(bytes, channel)?;
+    }
+    write_u8(bytes, segment.residual_channels.len() as u8);
+    for channel in &segment.residual_channels {
+        encode_polynomial_channel(bytes, channel)?;
     }
     Ok(())
 }
@@ -812,17 +837,19 @@ fn decode_segment(cursor: &mut Cursor<'_>) -> Result<Segment, CompressionError> 
     let channel_count = cursor.read_u8()? as usize;
     let mut channels = Vec::with_capacity(channel_count);
     for _ in 0..channel_count {
-        let kind = decode_channel_kind(cursor.read_u8()?)?;
-        let scale_exponent = cursor.read_u8()?;
-        let coefficient_count = cursor.read_u8()? as usize;
-        let scale = 10f64.powi(scale_exponent as i32);
-        let mut coefficients = Vec::with_capacity(coefficient_count);
-        for _ in 0..coefficient_count {
-            coefficients.push(cursor.read_i64()? as f64 / scale);
-        }
-        channels.push(PolynomialChannel::new(kind, scale_exponent, coefficients));
+        channels.push(decode_polynomial_channel(cursor)?);
     }
-    Ok(Segment::new(start, end, channels))
+    let residual_channel_count = cursor.read_u8()? as usize;
+    let mut residual_channels = Vec::with_capacity(residual_channel_count);
+    for _ in 0..residual_channel_count {
+        residual_channels.push(decode_polynomial_channel(cursor)?);
+    }
+    Ok(Segment::with_residual_channels(
+        start,
+        end,
+        channels,
+        residual_channels,
+    ))
 }
 
 fn encode_instant(bytes: &mut Vec<u8>, instant: Instant) {
@@ -834,6 +861,41 @@ fn decode_instant(cursor: &mut Cursor<'_>) -> Result<Instant, CompressionError> 
     let julian_day = cursor.read_f64()?;
     let scale = decode_time_scale(cursor.read_u8()?)?;
     Ok(Instant::new(JulianDay::from_days(julian_day), scale))
+}
+
+fn encode_polynomial_channel(
+    bytes: &mut Vec<u8>,
+    channel: &PolynomialChannel,
+) -> Result<(), CompressionError> {
+    write_u8(bytes, encode_channel_kind(channel.kind));
+    write_u8(bytes, channel.scale_exponent);
+    write_u8(bytes, channel.coefficients.len() as u8);
+    let scale = 10f64.powi(channel.scale_exponent as i32);
+    for coefficient in &channel.coefficients {
+        let scaled = (*coefficient * scale).round();
+        if !scaled.is_finite() || scaled < i64::MIN as f64 || scaled > i64::MAX as f64 {
+            return Err(CompressionError::new(
+                CompressionErrorKind::QuantizationOverflow,
+                "a polynomial coefficient exceeded the supported quantization range",
+            ));
+        }
+        write_i64(bytes, scaled as i64);
+    }
+    Ok(())
+}
+
+fn decode_polynomial_channel(
+    cursor: &mut Cursor<'_>,
+) -> Result<PolynomialChannel, CompressionError> {
+    let kind = decode_channel_kind(cursor.read_u8()?)?;
+    let scale_exponent = cursor.read_u8()?;
+    let coefficient_count = cursor.read_u8()? as usize;
+    let scale = 10f64.powi(scale_exponent as i32);
+    let mut coefficients = Vec::with_capacity(coefficient_count);
+    for _ in 0..coefficient_count {
+        coefficients.push(cursor.read_i64()? as f64 / scale);
+    }
+    Ok(PolynomialChannel::new(kind, scale_exponent, coefficients))
 }
 
 fn encode_celestial_body(
@@ -1231,6 +1293,72 @@ mod tests {
 
         assert_eq!(decoded.header.profile, profile);
         assert_eq!(decoded.header.endian_policy, EndianPolicy::LittleEndian);
+    }
+
+    #[test]
+    fn residual_channels_are_applied_during_lookup() {
+        let artifact = CompressedArtifact::new(
+            ArtifactHeader::new("residual demo", "unit test residual channels"),
+            vec![BodyArtifact::new(
+                CelestialBody::Sun,
+                vec![Segment::with_residual_channels(
+                    Instant::new(pleiades_types::JulianDay::from_days(0.0), TimeScale::Tt),
+                    Instant::new(pleiades_types::JulianDay::from_days(1.0), TimeScale::Tt),
+                    vec![
+                        PolynomialChannel::linear(ChannelKind::Longitude, 9, 10.0, 11.0),
+                        PolynomialChannel::new(ChannelKind::Latitude, 9, vec![1.0]),
+                        PolynomialChannel::new(ChannelKind::DistanceAu, 12, vec![2.0]),
+                    ],
+                    vec![
+                        PolynomialChannel::new(ChannelKind::Longitude, 9, vec![0.25]),
+                        PolynomialChannel::new(ChannelKind::Latitude, 9, vec![0.0]),
+                        PolynomialChannel::new(ChannelKind::DistanceAu, 12, vec![-0.1]),
+                    ],
+                )],
+            )],
+        );
+
+        let lookup = artifact
+            .lookup_ecliptic(
+                &CelestialBody::Sun,
+                Instant::new(pleiades_types::JulianDay::from_days(0.5), TimeScale::Tt),
+            )
+            .expect("residual-corrected lookup should succeed");
+
+        assert!((lookup.longitude.degrees() - 10.75).abs() < 1e-12);
+        assert!((lookup.latitude.degrees() - 1.0).abs() < 1e-12);
+        assert!((lookup.distance_au.unwrap() - 1.9).abs() < 1e-12);
+    }
+
+    #[test]
+    fn residual_channels_roundtrip_through_the_codec() {
+        let segment = Segment::with_residual_channels(
+            Instant::new(pleiades_types::JulianDay::from_days(10.0), TimeScale::Tt),
+            Instant::new(pleiades_types::JulianDay::from_days(11.0), TimeScale::Tt),
+            vec![
+                PolynomialChannel::linear(ChannelKind::Longitude, 9, 20.0, 22.0),
+                PolynomialChannel::new(ChannelKind::Latitude, 9, vec![3.0]),
+                PolynomialChannel::new(ChannelKind::DistanceAu, 12, vec![4.0]),
+            ],
+            vec![
+                PolynomialChannel::new(ChannelKind::Longitude, 9, vec![0.5]),
+                PolynomialChannel::new(ChannelKind::Latitude, 9, vec![-0.25]),
+                PolynomialChannel::new(ChannelKind::DistanceAu, 12, vec![0.125]),
+            ],
+        );
+        let artifact = CompressedArtifact::new(
+            ArtifactHeader::new("residual roundtrip demo", "unit test residual roundtrip"),
+            vec![BodyArtifact::new(CelestialBody::Sun, vec![segment.clone()])],
+        );
+
+        let decoded = CompressedArtifact::decode(
+            &artifact
+                .encode()
+                .expect("artifact with residual channels should encode"),
+        )
+        .expect("artifact with residual channels should decode");
+
+        assert_eq!(decoded.bodies[0].segments[0], segment);
     }
 
     #[test]
