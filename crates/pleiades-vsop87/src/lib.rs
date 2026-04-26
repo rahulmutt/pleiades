@@ -1173,6 +1173,27 @@ pub fn generated_vsop87b_table_bytes_for_source_file(source_file: &str) -> Optio
     try_generated_vsop87b_table_bytes_for_source_file(source_file).ok()
 }
 
+/// Returns the checked-in generated binary blob for a supported VSOP87B source file.
+///
+/// This helper keeps the source-file-to-binary mapping explicit for the
+/// regeneration tests and maintainer-facing tooling while the runtime path
+/// continues to load the generated blobs from `include_bytes!`.
+pub fn checked_in_generated_vsop87b_table_bytes_for_source_file(
+    source_file: &str,
+) -> Option<&'static [u8]> {
+    match source_file {
+        "VSOP87B.ear" => Some(include_bytes!("../data/VSOP87B.ear.bin") as &'static [u8]),
+        "VSOP87B.mer" => Some(include_bytes!("../data/VSOP87B.mer.bin") as &'static [u8]),
+        "VSOP87B.ven" => Some(include_bytes!("../data/VSOP87B.ven.bin") as &'static [u8]),
+        "VSOP87B.mar" => Some(include_bytes!("../data/VSOP87B.mar.bin") as &'static [u8]),
+        "VSOP87B.jup" => Some(include_bytes!("../data/VSOP87B.jup.bin") as &'static [u8]),
+        "VSOP87B.sat" => Some(include_bytes!("../data/VSOP87B.sat.bin") as &'static [u8]),
+        "VSOP87B.ura" => Some(include_bytes!("../data/VSOP87B.ura.bin") as &'static [u8]),
+        "VSOP87B.nep" => Some(include_bytes!("../data/VSOP87B.nep.bin") as &'static [u8]),
+        _ => None,
+    }
+}
+
 /// Returns the canonical J2000 source-backed VSOP87B samples used by
 /// validation reporting.
 pub fn canonical_epoch_samples() -> Vec<Vsop87CanonicalEpochSample> {
@@ -3091,17 +3112,9 @@ mod tests {
         for spec in source_specifications() {
             let regenerated = generated_vsop87b_table_bytes_for_source_file(spec.source_file)
                 .expect("source-backed tables should regenerate");
-            let expected = match spec.source_file {
-                "VSOP87B.ear" => include_bytes!("../data/VSOP87B.ear.bin").as_slice(),
-                "VSOP87B.mer" => include_bytes!("../data/VSOP87B.mer.bin").as_slice(),
-                "VSOP87B.ven" => include_bytes!("../data/VSOP87B.ven.bin").as_slice(),
-                "VSOP87B.mar" => include_bytes!("../data/VSOP87B.mar.bin").as_slice(),
-                "VSOP87B.jup" => include_bytes!("../data/VSOP87B.jup.bin").as_slice(),
-                "VSOP87B.sat" => include_bytes!("../data/VSOP87B.sat.bin").as_slice(),
-                "VSOP87B.ura" => include_bytes!("../data/VSOP87B.ura.bin").as_slice(),
-                "VSOP87B.nep" => include_bytes!("../data/VSOP87B.nep.bin").as_slice(),
-                other => panic!("unexpected VSOP87B source file {other}"),
-            };
+            let expected =
+                checked_in_generated_vsop87b_table_bytes_for_source_file(spec.source_file)
+                    .expect("supported source files should have a checked-in generated blob");
             assert_eq!(
                 regenerated.as_slice(),
                 expected,
@@ -3109,6 +3122,17 @@ mod tests {
                 spec.source_file
             );
         }
+    }
+
+    #[test]
+    fn checked_in_generated_tables_cover_the_supported_source_file_set() {
+        for source_file in supported_source_files() {
+            assert!(
+                checked_in_generated_vsop87b_table_bytes_for_source_file(source_file).is_some(),
+                "supported source file {source_file} should have a checked-in generated blob"
+            );
+        }
+        assert!(checked_in_generated_vsop87b_table_bytes_for_source_file("VSOP87B.plu").is_none());
     }
 
     #[test]
