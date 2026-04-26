@@ -23,6 +23,7 @@ Pleiades keeps time-scale conversion and observer semantics explicit so backend 
 - Current first-party source/data backends report **mean geometric** coordinates only.
 - Backends whose metadata has `capabilities.apparent = false` must reject `Apparentness::Apparent` requests instead of silently returning mean coordinates.
 - `pleiades-backend::EphemerisRequest::new` defaults to `Apparentness::Mean` so bare requests line up with the current mean-only first-party backends.
+- `pleiades-core::ChartSnapshot` now renders an explicit apparentness policy line so chart output states whether the snapshot was built from a mean or apparent request before backend-specific accuracy details are consulted.
 - Light-time, aberration, deflection, nutation, and related apparent-place corrections are planned production work and must be documented per backend when implemented.
 
 ## Observer and topocentric behavior

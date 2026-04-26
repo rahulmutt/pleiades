@@ -1181,6 +1181,19 @@ impl fmt::Display for ChartSnapshot {
         }
         writeln!(f, "Zodiac mode: {:?}", self.zodiac_mode)?;
         writeln!(f, "Apparentness: {}", self.apparentness)?;
+        writeln!(
+            f,
+            "Apparentness policy: {}",
+            match self.apparentness {
+                Apparentness::Mean => {
+                    "mean geometric request by default; apparent corrections require backend support"
+                }
+                Apparentness::Apparent => {
+                    "apparent request explicitly requested; backend support required"
+                }
+                _ => "requested apparentness is backend-dependent",
+            }
+        )?;
         if let Some(houses) = &self.houses {
             let house_name = crate::house_system_descriptor(&houses.system)
                 .map(|descriptor| descriptor.canonical_name)
@@ -1677,6 +1690,7 @@ mod tests {
         assert!(rendered.contains("Sun"));
         assert!(rendered.contains("Moon"));
         assert!(rendered.contains("Sign summary: 1 Aries, 1 Taurus"));
+        assert!(rendered.contains("Apparentness policy: mean geometric request by default; apparent corrections require backend support"));
     }
 
     #[test]
@@ -1846,6 +1860,9 @@ mod tests {
         assert_eq!(chart.apparentness, Apparentness::Apparent);
         let rendered = chart.to_string();
         assert!(rendered.contains("Apparentness: Apparent"));
+        assert!(rendered.contains(
+            "Apparentness policy: apparent request explicitly requested; backend support required"
+        ));
         assert!(rendered.contains("Time-scale policy: caller-supplied instant scale; no built-in Delta T or relativistic model"));
     }
 
