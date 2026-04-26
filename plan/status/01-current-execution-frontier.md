@@ -206,7 +206,7 @@ Latest progress (2026-04-26): the compact compatibility-profile summary and veri
 
 Latest progress (2026-04-25): the compact release summary now also includes the body-class error envelopes alongside the existing tolerance posture, so the one-screen release view carries the class-level mean/RMS envelope without needing to open the full validation report.
 
-Latest progress (2026-04-26): house calculations now reject non-finite obliquity overrides explicitly instead of letting NaN inputs flow into the quadrant formulas, and the remaining house-system docs were retitled to drop the stale MVP wording so the public-facing house module language matches the current production-ready behavior.
+Latest progress (2026-04-26): house calculations now reject non-finite obliquity overrides explicitly instead of letting NaN or infinite inputs flow into the quadrant formulas, and the remaining house-system docs were retitled to drop the stale MVP wording so the public-facing house module language matches the current production-ready behavior.
 
 Latest progress (2026-04-25): the compatibility-profile verification slice now also pins Babylonian (Eta Piscium), the Suryasiddhanta / Surya Siddhanta 499 CE source-label spellings, and several remaining release-profile source names such as Equal/MC = 10th, Equal Midheaven table of houses, Vehlow Equal table of houses, Nick Anthony Fiorenza, Bob Makransky, Treindl Sunshine, True galactic equator, and Galactic equator true in the rendered compatibility profile, keeping a few still-visible release-profile labels anchored as the catalog continues to evolve.
 

@@ -256,6 +256,8 @@ fn validate_observer(observer: &ObserverLocation) -> Result<(), HouseError> {
     Ok(())
 }
 
+/// Rejects NaN and infinite obliquity overrides before they can flow into the
+/// quadrant formulas.
 fn validate_obliquity(obliquity: Angle) -> Result<Angle, HouseError> {
     if !obliquity.is_finite() {
         return Err(HouseError::new(
@@ -1395,12 +1397,14 @@ mod tests {
 
     #[test]
     fn non_finite_obliquity_overrides_are_rejected() {
-        let request =
-            sample_request(HouseSystem::Equal).with_obliquity(Angle::from_degrees(f64::NAN));
+        for obliquity in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            let request =
+                sample_request(HouseSystem::Equal).with_obliquity(Angle::from_degrees(obliquity));
 
-        let error = calculate_houses(&request).expect_err("invalid obliquity should fail");
-        assert_eq!(error.kind, HouseErrorKind::NumericalFailure);
-        assert!(error.message.contains("obliquity override must be finite"));
+            let error = calculate_houses(&request).expect_err("invalid obliquity should fail");
+            assert_eq!(error.kind, HouseErrorKind::NumericalFailure);
+            assert!(error.message.contains("obliquity override must be finite"));
+        }
     }
 
     #[test]
