@@ -962,6 +962,11 @@ pub fn lunar_theory_request_policy_summary() -> String {
     lunar_theory_request_policy().summary_line()
 }
 
+/// Returns the current lunar-theory frame-treatment summary.
+pub fn lunar_theory_frame_treatment_summary() -> &'static str {
+    lunar_theory_specification().frame_note
+}
+
 fn format_bodies(bodies: &[CelestialBody]) -> String {
     bodies
         .iter()

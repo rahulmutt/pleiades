@@ -54,8 +54,9 @@ use pleiades_elp::{
     lunar_reference_evidence_envelope_for_report, lunar_reference_evidence_summary,
     lunar_reference_evidence_summary_for_report, lunar_theory_capability_summary,
     lunar_theory_catalog_summary_for_report, lunar_theory_catalog_validation_summary_for_report,
-    lunar_theory_request_policy_summary, lunar_theory_source_summary_for_report,
-    lunar_theory_specification, lunar_theory_summary, ElpBackend,
+    lunar_theory_frame_treatment_summary, lunar_theory_request_policy_summary,
+    lunar_theory_source_summary_for_report, lunar_theory_specification, lunar_theory_summary,
+    ElpBackend,
 };
 use pleiades_houses::{
     baseline_house_systems, built_in_house_systems, release_house_systems, resolve_house_system,
@@ -2702,6 +2703,9 @@ fn render_release_summary_text() -> String {
     text.push_str("ELP lunar request policy: ");
     text.push_str(&lunar_theory_request_policy_summary());
     text.push('\n');
+    text.push_str("ELP frame treatment: ");
+    text.push_str(lunar_theory_frame_treatment_summary());
+    text.push('\n');
     text.push_str("Lunar reference: ");
     text.push_str(&lunar_reference_evidence_summary_for_report());
     text.push('\n');
@@ -4742,6 +4746,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         text,
         "ELP lunar request policy: {}",
         lunar_theory_request_policy_summary()
+    );
+    let _ = writeln!(
+        text,
+        "ELP frame treatment: {}",
+        lunar_theory_frame_treatment_summary()
     );
     let _ = writeln!(text, "  {}", lunar_theory_source_summary_for_report());
     let _ = writeln!(text);
@@ -9310,6 +9319,9 @@ version = "0.9.0"
             "ELP lunar request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"
         ));
         assert!(release_summary.contains(
+            "ELP frame treatment: Geocentric ecliptic coordinates are produced directly from the truncated lunar series; equatorial coordinates are derived with a mean-obliquity transform"
+        ));
+        assert!(release_summary.contains(
             "lunar theory catalog: 1 entry, 1 selected entry; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]"
         ));
         assert!(release_summary.contains(
@@ -9465,6 +9477,9 @@ version = "0.9.0"
         );
         assert!(validation_report_summary.contains(
             "ELP lunar request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"
+        ));
+        assert!(validation_report_summary.contains(
+            "ELP frame treatment: Geocentric ecliptic coordinates are produced directly from the truncated lunar series; equatorial coordinates are derived with a mean-obliquity transform"
         ));
         assert!(validation_report_summary.contains(
             "lunar theory catalog: 1 entry, 1 selected entry; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]"
