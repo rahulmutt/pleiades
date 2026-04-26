@@ -121,7 +121,11 @@ impl fmt::Display for ArtifactDecodeBenchmarkReport {
         writeln!(f, "Rounds: {}", self.rounds)?;
         writeln!(f, "Decodes per round: {}", self.sample_count)?;
         writeln!(f, "Encoded bytes: {}", self.encoded_bytes)?;
-        writeln!(f, "Decode elapsed: {:?}", self.elapsed)?;
+        writeln!(
+            f,
+            "Decode elapsed: {}",
+            super::format_duration(self.elapsed)
+        )?;
         writeln!(
             f,
             "Nanoseconds per decode: {:.2}",
@@ -980,7 +984,11 @@ impl fmt::Display for ArtifactInspectionReport {
             "  encoded bytes: {}",
             self.decode_benchmark.encoded_bytes
         )?;
-        writeln!(f, "  elapsed: {:?}", self.decode_benchmark.elapsed)?;
+        writeln!(
+            f,
+            "  elapsed: {}",
+            super::format_duration(self.decode_benchmark.elapsed)
+        )?;
         writeln!(
             f,
             "  nanoseconds per decode: {:.2}",

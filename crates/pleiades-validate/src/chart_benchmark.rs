@@ -75,7 +75,7 @@ impl fmt::Display for ChartBenchmarkReport {
         writeln!(f, "Rounds: {}", self.rounds)?;
         writeln!(f, "Samples per round: {}", self.sample_count)?;
         writeln!(f, "Methodology: {}", self.methodology_summary())?;
-        writeln!(f, "Chart elapsed: {:?}", self.elapsed)?;
+        writeln!(f, "Chart elapsed: {}", super::format_duration(self.elapsed))?;
         writeln!(
             f,
             "Estimated corpus heap footprint: {} bytes",

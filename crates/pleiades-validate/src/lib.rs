@@ -1482,8 +1482,8 @@ impl fmt::Display for ValidationReport {
         )?;
         writeln!(
             f,
-            "  decode elapsed: {:?}",
-            self.artifact_decode_benchmark.elapsed
+            "  decode elapsed: {}",
+            format_duration(self.artifact_decode_benchmark.elapsed)
         )?;
         writeln!(
             f,
@@ -6106,8 +6106,12 @@ impl fmt::Display for BenchmarkReport {
         writeln!(f, "Rounds: {}", self.rounds)?;
         writeln!(f, "Samples per round: {}", self.sample_count)?;
         writeln!(f, "Methodology: {}", self.methodology_summary())?;
-        writeln!(f, "Single-request elapsed: {:?}", self.elapsed)?;
-        writeln!(f, "Batch elapsed: {:?}", self.batch_elapsed)?;
+        writeln!(
+            f,
+            "Single-request elapsed: {}",
+            format_duration(self.elapsed)
+        )?;
+        writeln!(f, "Batch elapsed: {}", format_duration(self.batch_elapsed))?;
         writeln!(
             f,
             "Estimated corpus heap footprint: {} bytes",
@@ -7889,6 +7893,10 @@ fn format_instant_list(instants: &[Instant]) -> String {
 
 fn format_ns(value: f64) -> String {
     format!("{value:.2}")
+}
+
+fn format_duration(duration: std::time::Duration) -> String {
+    format!("{:.6}s", duration.as_secs_f64())
 }
 
 fn ensure_no_extra_args(args: &[&str], command: &str) -> Result<(), String> {

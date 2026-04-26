@@ -29,6 +29,7 @@ Completed foundations:
 - compression model, sample artifact lookup, explicit body/segment random-access helpers, and an explicit little-endian byte-order field in the compressed artifact header that validation/release reports now surface;
 - CLI, validation reports, backend matrix, release notes/checklists, bundle generation, and bundle verification;
 - validation benchmark reports now include single-request latency, batch throughput, an estimated corpus heap footprint for the representative corpus, and a packaged-artifact decode benchmark, so the benchmark command and report summaries better match the validation/testing spec;
+- Latest progress (2026-04-26): the release-facing benchmark reports now render elapsed durations with explicit second units instead of `Debug`-style `Duration` output, keeping the validation, artifact, and chart timing lines unit-stable across the compact and detailed views;
 - comparison reports and comparison-audit output now carry the comparison corpus summary, including epoch labels and julian-day span, so the validation-facing tolerance window is visible alongside the body deltas instead of only the corpus name;
 - tests and doctests for current behavior.
 
