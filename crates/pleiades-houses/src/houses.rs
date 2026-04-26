@@ -202,6 +202,12 @@ pub fn calculate_houses(request: &HouseRequest) -> Result<HouseSnapshot, HouseEr
         HouseSystem::Topocentric => {
             topocentric_houses(request.instant, &request.observer, obliquity)?.into()
         }
+        HouseSystem::Custom(custom) => {
+            return Err(HouseError::new(
+                HouseErrorKind::UnsupportedHouseSystem,
+                format!("house placement for custom house system {custom} is not implemented yet"),
+            ))
+        }
         _ => {
             return Err(HouseError::new(
                 HouseErrorKind::UnsupportedHouseSystem,
@@ -1249,7 +1255,7 @@ fn catalog_name(system: &HouseSystem) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pleiades_types::{Angle, Latitude};
+    use pleiades_types::{Angle, CustomHouseSystem, Latitude};
 
     fn observer() -> ObserverLocation {
         ObserverLocation::new(
@@ -1405,6 +1411,20 @@ mod tests {
             assert_eq!(error.kind, HouseErrorKind::NumericalFailure);
             assert!(error.message.contains("obliquity override must be finite"));
         }
+    }
+
+    #[test]
+    fn custom_house_systems_are_reported_explicitly_when_unsupported() {
+        let mut custom = CustomHouseSystem::new("My Custom Houses");
+        custom.aliases.push("MCH".to_string());
+        custom.notes = Some("user-defined formula".to_string());
+
+        let error = calculate_houses(&sample_request(HouseSystem::Custom(custom)))
+            .expect_err("custom house systems should still be rejected");
+        assert_eq!(error.kind, HouseErrorKind::UnsupportedHouseSystem);
+        assert!(error
+            .message
+            .contains("house placement for custom house system My Custom Houses [aliases: MCH] (user-defined formula) is not implemented yet"));
     }
 
     #[test]

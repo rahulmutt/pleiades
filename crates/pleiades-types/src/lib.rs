@@ -851,6 +851,22 @@ impl CustomHouseSystem {
     }
 }
 
+impl fmt::Display for CustomHouseSystem {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.name)?;
+
+        if !self.aliases.is_empty() {
+            write!(f, " [aliases: {}]", self.aliases.join(", "))?;
+        }
+
+        if let Some(notes) = &self.notes {
+            write!(f, " ({notes})")?;
+        }
+
+        Ok(())
+    }
+}
+
 /// A built-in or custom ayanamsa selection.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
@@ -1288,6 +1304,19 @@ mod tests {
         assert_eq!(
             CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros")).to_string(),
             "asteroid:433-Eros"
+        );
+    }
+
+    #[test]
+    fn custom_house_system_display_includes_aliases_and_notes() {
+        let mut custom = CustomHouseSystem::new("My Custom Houses");
+        custom.aliases.push("MCH".to_string());
+        custom.aliases.push("Test Houses".to_string());
+        custom.notes = Some("based on a user-defined formula".to_string());
+
+        assert_eq!(
+            custom.to_string(),
+            "My Custom Houses [aliases: MCH, Test Houses] (based on a user-defined formula)"
         );
     }
 
