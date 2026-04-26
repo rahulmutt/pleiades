@@ -174,6 +174,41 @@ pub struct LunarTheoryCatalogEntry {
     pub specification: LunarTheorySpecification,
 }
 
+/// Typed lookup keys for resolving a lunar-theory catalog entry.
+///
+/// This keeps future source-backed lunar catalogs explicit about which label
+/// family is being matched instead of relying only on the generic string helper.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum LunarTheoryCatalogKey<'a> {
+    /// Match the stable source identifier.
+    SourceIdentifier(&'a str),
+    /// Match the human-readable model name.
+    ModelName(&'a str),
+    /// Match the source-family label.
+    FamilyLabel(&'a str),
+}
+
+impl<'a> LunarTheoryCatalogKey<'a> {
+    /// Returns `true` when this key matches the provided catalog entry.
+    pub fn matches(self, entry: &LunarTheoryCatalogEntry) -> bool {
+        match self {
+            Self::SourceIdentifier(source_identifier) => entry
+                .specification
+                .source_identifier
+                .eq_ignore_ascii_case(source_identifier),
+            Self::ModelName(model_name) => entry
+                .specification
+                .model_name
+                .eq_ignore_ascii_case(model_name),
+            Self::FamilyLabel(family_label) => entry
+                .specification
+                .source_family
+                .label()
+                .eq_ignore_ascii_case(family_label),
+        }
+    }
+}
+
 /// Structured description of the current lunar-theory selection.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct LunarTheorySpecification {
@@ -335,37 +370,31 @@ pub fn lunar_theory_catalog() -> &'static [LunarTheoryCatalogEntry] {
 pub fn lunar_theory_catalog_entry_for_source_identifier(
     source_identifier: &str,
 ) -> Option<LunarTheoryCatalogEntry> {
-    lunar_theory_catalog().iter().copied().find(|entry| {
-        entry
-            .specification
-            .source_identifier
-            .eq_ignore_ascii_case(source_identifier)
-    })
+    lunar_theory_catalog_entry_for_key(LunarTheoryCatalogKey::SourceIdentifier(source_identifier))
 }
 
 /// Returns the catalog entry matching the provided model name, when present.
 pub fn lunar_theory_catalog_entry_for_model_name(
     model_name: &str,
 ) -> Option<LunarTheoryCatalogEntry> {
-    lunar_theory_catalog().iter().copied().find(|entry| {
-        entry
-            .specification
-            .model_name
-            .eq_ignore_ascii_case(model_name)
-    })
+    lunar_theory_catalog_entry_for_key(LunarTheoryCatalogKey::ModelName(model_name))
 }
 
 /// Returns the catalog entry matching the provided source-family label, when present.
 pub fn lunar_theory_catalog_entry_for_family_label(
     family_label: &str,
 ) -> Option<LunarTheoryCatalogEntry> {
-    lunar_theory_catalog().iter().copied().find(|entry| {
-        entry
-            .specification
-            .source_family
-            .label()
-            .eq_ignore_ascii_case(family_label)
-    })
+    lunar_theory_catalog_entry_for_key(LunarTheoryCatalogKey::FamilyLabel(family_label))
+}
+
+/// Returns the catalog entry matching the provided typed lookup key, when present.
+pub fn lunar_theory_catalog_entry_for_key(
+    key: LunarTheoryCatalogKey<'_>,
+) -> Option<LunarTheoryCatalogEntry> {
+    lunar_theory_catalog()
+        .iter()
+        .copied()
+        .find(|entry| key.matches(entry))
 }
 
 /// Returns the catalog entry matching the provided label, when present.
@@ -378,6 +407,13 @@ pub fn lunar_theory_catalog_entry_for_label(label: &str) -> Option<LunarTheoryCa
 /// Returns the current lunar-theory specification matching the provided label, when present.
 pub fn resolve_lunar_theory(label: &str) -> Option<LunarTheorySpecification> {
     lunar_theory_catalog_entry_for_label(label).map(|entry| entry.specification)
+}
+
+/// Returns the current lunar-theory specification matching the provided typed lookup key, when present.
+pub fn resolve_lunar_theory_by_key(
+    key: LunarTheoryCatalogKey<'_>,
+) -> Option<LunarTheorySpecification> {
+    lunar_theory_catalog_entry_for_key(key).map(|entry| entry.specification)
 }
 
 /// Returns the currently selected compact lunar-theory specification.
@@ -2384,7 +2420,45 @@ mod tests {
             lunar_theory_catalog_entry_for_label(theory.source_family.label()),
             Some(catalog[0])
         );
+        assert_eq!(
+            lunar_theory_catalog_entry_for_key(LunarTheoryCatalogKey::SourceIdentifier(
+                theory.source_identifier,
+            )),
+            Some(catalog[0])
+        );
+        assert_eq!(
+            lunar_theory_catalog_entry_for_key(
+                LunarTheoryCatalogKey::ModelName(theory.model_name,)
+            ),
+            Some(catalog[0])
+        );
+        assert_eq!(
+            lunar_theory_catalog_entry_for_key(LunarTheoryCatalogKey::FamilyLabel(
+                theory.source_family.label(),
+            )),
+            Some(catalog[0])
+        );
+        assert_eq!(
+            resolve_lunar_theory_by_key(LunarTheoryCatalogKey::SourceIdentifier(
+                theory.source_identifier,
+            )),
+            Some(theory)
+        );
+        assert_eq!(
+            resolve_lunar_theory_by_key(LunarTheoryCatalogKey::ModelName(theory.model_name)),
+            Some(theory)
+        );
+        assert_eq!(
+            resolve_lunar_theory_by_key(LunarTheoryCatalogKey::FamilyLabel(
+                theory.source_family.label(),
+            )),
+            Some(theory)
+        );
         assert!(resolve_lunar_theory("not-a-lunar-theory").is_none());
+        assert!(
+            resolve_lunar_theory_by_key(LunarTheoryCatalogKey::FamilyLabel("not-a-family"))
+                .is_none()
+        );
     }
 
     #[test]
