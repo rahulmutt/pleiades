@@ -147,6 +147,76 @@ pub struct ComparisonSnapshotSummary {
     pub latest_epoch: Instant,
 }
 
+/// A compact coverage summary for the independent hold-out corpus used to
+/// validate interpolation against rows that are not part of the main snapshot.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct IndependentHoldoutSnapshotSummary {
+    /// Total number of parsed hold-out rows.
+    pub row_count: usize,
+    /// Number of distinct bodies covered by the hold-out corpus.
+    pub body_count: usize,
+    /// Number of distinct epochs covered by the hold-out corpus.
+    pub epoch_count: usize,
+    /// Earliest epoch represented in the hold-out corpus.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented in the hold-out corpus.
+    pub latest_epoch: Instant,
+}
+
+/// Returns a compact coverage summary for the independent hold-out corpus.
+pub fn independent_holdout_snapshot_summary() -> Option<IndependentHoldoutSnapshotSummary> {
+    let entries = independent_holdout_snapshot_entries()?;
+
+    let mut bodies = BTreeSet::new();
+    let mut epochs = BTreeSet::new();
+    let mut earliest_epoch = entries[0].epoch;
+    let mut latest_epoch = entries[0].epoch;
+
+    for entry in entries {
+        bodies.insert(entry.body.to_string());
+        epochs.insert(entry.epoch.julian_day.days().to_bits());
+        if entry.epoch.julian_day.days() < earliest_epoch.julian_day.days() {
+            earliest_epoch = entry.epoch;
+        }
+        if entry.epoch.julian_day.days() > latest_epoch.julian_day.days() {
+            latest_epoch = entry.epoch;
+        }
+    }
+
+    Some(IndependentHoldoutSnapshotSummary {
+        row_count: entries.len(),
+        body_count: bodies.len(),
+        epoch_count: epochs.len(),
+        earliest_epoch,
+        latest_epoch,
+    })
+}
+
+/// Formats the independent hold-out corpus coverage for release-facing reporting.
+pub fn format_independent_holdout_snapshot_summary(
+    summary: &IndependentHoldoutSnapshotSummary,
+) -> String {
+    format!(
+        "Independent hold-out coverage: {} rows across {} bodies and {} epochs ({}..{})",
+        summary.row_count,
+        summary.body_count,
+        summary.epoch_count,
+        format_instant(summary.earliest_epoch),
+        format_instant(summary.latest_epoch),
+    )
+}
+
+/// Returns the release-facing independent hold-out coverage summary string.
+pub fn independent_holdout_snapshot_summary_for_report() -> String {
+    match independent_holdout_snapshot_summary() {
+        Some(summary) => format_independent_holdout_snapshot_summary(&summary),
+        None => match independent_holdout_snapshot_error() {
+            Some(error) => format!("Independent hold-out coverage: unavailable ({error})"),
+            None => "Independent hold-out coverage: unavailable".to_string(),
+        },
+    }
+}
+
 /// Returns a compact coverage summary for the comparison snapshot used by validation.
 pub fn comparison_snapshot_summary() -> Option<ComparisonSnapshotSummary> {
     let entries = comparison_snapshot();
@@ -348,12 +418,14 @@ pub fn reference_snapshot_source_summary_for_report() -> &'static str {
 /// Returns the combined snapshot evidence summary used by validation and release reports.
 pub fn jpl_snapshot_evidence_summary_for_report() -> String {
     format!(
-        "{} | {} | {} | {} | {}",
+        "{} | {} | {} | {} | {} | {} | {}",
         reference_snapshot_summary_for_report(),
         reference_snapshot_source_summary_for_report(),
         reference_asteroid_evidence_summary_for_report(),
         reference_asteroid_equatorial_evidence_summary_for_report(),
         comparison_snapshot_summary_for_report(),
+        independent_holdout_snapshot_summary_for_report(),
+        jpl_independent_holdout_summary_for_report(),
     )
 }
 
@@ -684,6 +756,213 @@ pub fn jpl_interpolation_quality_kind_coverage() -> Option<JplInterpolationQuali
         quadratic_body_count: quadratic_bodies.len(),
         linear_body_count: linear_bodies.len(),
     })
+}
+
+/// A compact validation summary for the independent hold-out rows that are not
+/// part of the main snapshot corpus.
+#[derive(Clone, Debug, PartialEq)]
+pub struct JplIndependentHoldoutSummary {
+    /// Total number of hold-out samples.
+    pub sample_count: usize,
+    /// Number of distinct bodies represented by the samples.
+    pub body_count: usize,
+    /// Number of distinct epochs represented by the samples.
+    pub epoch_count: usize,
+    /// Earliest epoch represented by the samples.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented by the samples.
+    pub latest_epoch: Instant,
+    /// Largest longitude error among the samples.
+    pub max_longitude_error_deg: f64,
+    /// Body associated with the largest longitude error.
+    pub max_longitude_error_body: String,
+    /// Held-out epoch associated with the largest longitude error.
+    pub max_longitude_error_epoch: Instant,
+    /// Mean longitude error across the samples.
+    pub mean_longitude_error_deg: f64,
+    /// Median longitude error across the samples.
+    pub median_longitude_error_deg: f64,
+    /// Root-mean-square longitude error across the samples.
+    pub rms_longitude_error_deg: f64,
+    /// Largest latitude error among the samples.
+    pub max_latitude_error_deg: f64,
+    /// Body associated with the largest latitude error.
+    pub max_latitude_error_body: String,
+    /// Held-out epoch associated with the largest latitude error.
+    pub max_latitude_error_epoch: Instant,
+    /// Mean latitude error across the samples.
+    pub mean_latitude_error_deg: f64,
+    /// Median latitude error across the samples.
+    pub median_latitude_error_deg: f64,
+    /// Root-mean-square latitude error across the samples.
+    pub rms_latitude_error_deg: f64,
+    /// Largest distance error among the samples.
+    pub max_distance_error_au: f64,
+    /// Body associated with the largest distance error.
+    pub max_distance_error_body: String,
+    /// Held-out epoch associated with the largest distance error.
+    pub max_distance_error_epoch: Instant,
+    /// Mean distance error across the samples.
+    pub mean_distance_error_au: f64,
+    /// Median distance error across the samples.
+    pub median_distance_error_au: f64,
+    /// Root-mean-square distance error across the samples.
+    pub rms_distance_error_au: f64,
+}
+
+/// Returns a compact validation summary for the independent hold-out rows.
+pub fn jpl_independent_holdout_summary() -> Option<JplIndependentHoldoutSummary> {
+    let entries = independent_holdout_snapshot_entries()?;
+
+    let mut bodies = BTreeSet::new();
+    let mut epochs = BTreeSet::new();
+    let mut earliest_epoch = entries[0].epoch;
+    let mut latest_epoch = entries[0].epoch;
+    let mut max_longitude_error_deg: f64 = 0.0;
+    let mut max_longitude_error_body = String::new();
+    let mut max_longitude_error_epoch = entries[0].epoch;
+    let mut total_longitude_error_deg = 0.0;
+    let mut total_longitude_error_sq_deg = 0.0;
+    let mut longitude_errors = Vec::new();
+    let mut max_latitude_error_deg: f64 = 0.0;
+    let mut max_latitude_error_body = String::new();
+    let mut max_latitude_error_epoch = entries[0].epoch;
+    let mut total_latitude_error_deg = 0.0;
+    let mut total_latitude_error_sq_deg = 0.0;
+    let mut latitude_errors = Vec::new();
+    let mut max_distance_error_au: f64 = 0.0;
+    let mut max_distance_error_body = String::new();
+    let mut max_distance_error_epoch = entries[0].epoch;
+    let mut total_distance_error_au = 0.0;
+    let mut total_distance_error_sq_au = 0.0;
+    let mut distance_errors = Vec::new();
+
+    for entry in entries {
+        bodies.insert(entry.body.to_string());
+        epochs.insert(entry.epoch.julian_day.days().to_bits());
+        if entry.epoch.julian_day.days() < earliest_epoch.julian_day.days() {
+            earliest_epoch = entry.epoch;
+        }
+        if entry.epoch.julian_day.days() > latest_epoch.julian_day.days() {
+            latest_epoch = entry.epoch;
+        }
+
+        let interpolated = resolve_fixture_state(entry.body.clone(), entry.epoch.julian_day.days())
+            .expect("independent hold-out rows should interpolate against the main snapshot")
+            .entry;
+        let exact_ecliptic = entry.ecliptic();
+        let interpolated_ecliptic = interpolated.ecliptic();
+        let exact_distance = exact_ecliptic.distance_au.unwrap_or_default();
+        let interpolated_distance = interpolated_ecliptic.distance_au.unwrap_or_default();
+
+        let longitude_error = angular_degrees_delta(
+            exact_ecliptic.longitude.degrees(),
+            interpolated_ecliptic.longitude.degrees(),
+        );
+        let latitude_error =
+            (exact_ecliptic.latitude.degrees() - interpolated_ecliptic.latitude.degrees()).abs();
+        let distance_error = (exact_distance - interpolated_distance).abs();
+
+        total_longitude_error_deg += longitude_error;
+        total_longitude_error_sq_deg += longitude_error * longitude_error;
+        longitude_errors.push(longitude_error);
+        total_latitude_error_deg += latitude_error;
+        total_latitude_error_sq_deg += latitude_error * latitude_error;
+        latitude_errors.push(latitude_error);
+        total_distance_error_au += distance_error;
+        total_distance_error_sq_au += distance_error * distance_error;
+        distance_errors.push(distance_error);
+
+        if longitude_error > max_longitude_error_deg {
+            max_longitude_error_deg = longitude_error;
+            max_longitude_error_body = entry.body.to_string();
+            max_longitude_error_epoch = entry.epoch;
+        }
+        if latitude_error > max_latitude_error_deg {
+            max_latitude_error_deg = latitude_error;
+            max_latitude_error_body = entry.body.to_string();
+            max_latitude_error_epoch = entry.epoch;
+        }
+        if distance_error > max_distance_error_au {
+            max_distance_error_au = distance_error;
+            max_distance_error_body = entry.body.to_string();
+            max_distance_error_epoch = entry.epoch;
+        }
+    }
+
+    let sample_count = entries.len() as f64;
+
+    Some(JplIndependentHoldoutSummary {
+        sample_count: entries.len(),
+        body_count: bodies.len(),
+        epoch_count: epochs.len(),
+        earliest_epoch,
+        latest_epoch,
+        max_longitude_error_deg,
+        max_longitude_error_body,
+        max_longitude_error_epoch,
+        mean_longitude_error_deg: total_longitude_error_deg / sample_count,
+        median_longitude_error_deg: median_f64(&mut longitude_errors),
+        rms_longitude_error_deg: (total_longitude_error_sq_deg / sample_count).sqrt(),
+        max_latitude_error_deg,
+        max_latitude_error_body,
+        max_latitude_error_epoch,
+        mean_latitude_error_deg: total_latitude_error_deg / sample_count,
+        median_latitude_error_deg: median_f64(&mut latitude_errors),
+        rms_latitude_error_deg: (total_latitude_error_sq_deg / sample_count).sqrt(),
+        max_distance_error_au,
+        max_distance_error_body,
+        max_distance_error_epoch,
+        mean_distance_error_au: total_distance_error_au / sample_count,
+        median_distance_error_au: median_f64(&mut distance_errors),
+        rms_distance_error_au: (total_distance_error_sq_au / sample_count).sqrt(),
+    })
+}
+
+/// Formats the independent hold-out summary for release-facing reporting.
+pub fn format_jpl_independent_holdout_summary(summary: &JplIndependentHoldoutSummary) -> String {
+    fn format_body_epoch_suffix(body: &str, epoch: Instant) -> String {
+        if body.is_empty() {
+            String::new()
+        } else {
+            format!(" ({body} @ {})", format_instant(epoch))
+        }
+    }
+
+    format!(
+        "JPL independent hold-out: {} exact rows across {} bodies and {} epochs ({} → {}); max Δlon={:.12}°{}; mean Δlon={:.12}°; median Δlon={:.12}°; rms Δlon={:.12}°; max Δlat={:.12}°{}; mean Δlat={:.12}°; median Δlat={:.12}°; rms Δlat={:.12}°; max Δdist={:.12} AU{}; mean Δdist={:.12} AU; median Δdist={:.12} AU; rms Δdist={:.12} AU; independent JPL Horizons rows held out from the main snapshot corpus",
+        summary.sample_count,
+        summary.body_count,
+        summary.epoch_count,
+        format_instant(summary.earliest_epoch),
+        format_instant(summary.latest_epoch),
+        summary.max_longitude_error_deg,
+        format_body_epoch_suffix(&summary.max_longitude_error_body, summary.max_longitude_error_epoch),
+        summary.mean_longitude_error_deg,
+        summary.median_longitude_error_deg,
+        summary.rms_longitude_error_deg,
+        summary.max_latitude_error_deg,
+        format_body_epoch_suffix(&summary.max_latitude_error_body, summary.max_latitude_error_epoch),
+        summary.mean_latitude_error_deg,
+        summary.median_latitude_error_deg,
+        summary.rms_latitude_error_deg,
+        summary.max_distance_error_au,
+        format_body_epoch_suffix(&summary.max_distance_error_body, summary.max_distance_error_epoch),
+        summary.mean_distance_error_au,
+        summary.median_distance_error_au,
+        summary.rms_distance_error_au,
+    )
+}
+
+/// Returns the release-facing independent hold-out interpolation summary string.
+pub fn jpl_independent_holdout_summary_for_report() -> String {
+    match jpl_independent_holdout_summary() {
+        Some(summary) => format_jpl_independent_holdout_summary(&summary),
+        None => match independent_holdout_snapshot_error() {
+            Some(error) => format!("JPL independent hold-out: unavailable ({error})"),
+            None => "JPL independent hold-out: unavailable".to_string(),
+        },
+    }
 }
 
 fn median_f64(values: &mut [f64]) -> f64 {
@@ -1251,6 +1530,27 @@ fn comparison_snapshot_entries() -> &'static [SnapshotEntry] {
         .as_slice()
 }
 
+fn independent_holdout_state() -> &'static SnapshotState {
+    static STATE: OnceLock<SnapshotState> = OnceLock::new();
+    STATE.get_or_init(|| {
+        match load_snapshot_from_str(include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/data/independent_holdout_snapshot.csv"
+        ))) {
+            Ok(entries) => SnapshotState::Loaded(entries),
+            Err(error) => SnapshotState::Failed(error),
+        }
+    })
+}
+
+fn independent_holdout_snapshot_entries() -> Option<&'static [SnapshotEntry]> {
+    independent_holdout_state().entries()
+}
+
+fn independent_holdout_snapshot_error() -> Option<&'static SnapshotLoadError> {
+    independent_holdout_state().error()
+}
+
 fn comparison_body_list() -> &'static [pleiades_backend::CelestialBody] {
     static BODIES: OnceLock<Vec<pleiades_backend::CelestialBody>> = OnceLock::new();
     BODIES
@@ -1792,6 +2092,57 @@ mod tests {
     }
 
     #[test]
+    fn independent_holdout_snapshot_summary_reports_the_expected_coverage() {
+        let summary = independent_holdout_snapshot_summary()
+            .expect("independent hold-out summary should exist");
+        assert_eq!(summary.row_count, 6);
+        assert_eq!(summary.body_count, 2);
+        assert_eq!(summary.epoch_count, 3);
+        assert_eq!(summary.earliest_epoch.julian_day.days(), 2_451_910.5);
+        assert_eq!(summary.latest_epoch.julian_day.days(), 2_451_912.5);
+        assert_eq!(
+            independent_holdout_snapshot_summary_for_report(),
+            "Independent hold-out coverage: 6 rows across 2 bodies and 3 epochs (JD 2451910.5 (TDB)..JD 2451912.5 (TDB))"
+        );
+    }
+
+    #[test]
+    fn independent_holdout_summary_reports_the_expected_envelope() {
+        let summary =
+            jpl_independent_holdout_summary().expect("independent hold-out summary should exist");
+        assert_eq!(summary.sample_count, 6);
+        assert_eq!(summary.body_count, 2);
+        assert_eq!(summary.epoch_count, 3);
+        assert!(summary.earliest_epoch.julian_day.days() <= summary.latest_epoch.julian_day.days());
+        assert!(summary.max_longitude_error_deg.is_finite());
+        assert!(summary.mean_longitude_error_deg.is_finite());
+        assert!(summary.median_longitude_error_deg.is_finite());
+        assert!(summary.rms_longitude_error_deg.is_finite());
+        assert!(summary.max_latitude_error_deg.is_finite());
+        assert!(summary.mean_latitude_error_deg.is_finite());
+        assert!(summary.median_latitude_error_deg.is_finite());
+        assert!(summary.rms_latitude_error_deg.is_finite());
+        assert!(summary.max_distance_error_au.is_finite());
+        assert!(summary.mean_distance_error_au.is_finite());
+        assert!(summary.median_distance_error_au.is_finite());
+        assert!(summary.rms_distance_error_au.is_finite());
+        assert!(!summary.max_longitude_error_body.is_empty());
+        assert!(!summary.max_latitude_error_body.is_empty());
+        assert!(!summary.max_distance_error_body.is_empty());
+
+        let rendered = format_jpl_independent_holdout_summary(&summary);
+        assert!(rendered.contains("JPL independent hold-out:"));
+        assert!(rendered.contains("6 exact rows across 2 bodies and 3 epochs"));
+        assert!(rendered
+            .contains("independent JPL Horizons rows held out from the main snapshot corpus"));
+        assert!(rendered.contains(&format!(
+            "({} @ {}",
+            summary.max_longitude_error_body,
+            format_instant(summary.max_longitude_error_epoch)
+        )));
+    }
+
+    #[test]
     fn jpl_snapshot_evidence_summary_combines_the_backend_reports() {
         let report = jpl_snapshot_evidence_summary_for_report();
         assert!(report.contains(&reference_snapshot_summary_for_report()));
@@ -1799,6 +2150,8 @@ mod tests {
         assert!(report.contains(&reference_asteroid_evidence_summary_for_report()));
         assert!(report.contains(&reference_asteroid_equatorial_evidence_summary_for_report()));
         assert!(report.contains(&comparison_snapshot_summary_for_report()));
+        assert!(report.contains(&independent_holdout_snapshot_summary_for_report()));
+        assert!(report.contains(&jpl_independent_holdout_summary_for_report()));
     }
 
     #[test]
