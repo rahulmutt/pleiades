@@ -2375,20 +2375,17 @@ mod tests {
         let requests = reference_snapshot()
             .iter()
             .enumerate()
-            .map(|(index, entry)| {
-                let request = EphemerisRequest {
-                    body: entry.body.clone(),
-                    instant: entry.epoch,
-                    observer: None,
-                    frame: if index % 2 == 0 {
-                        CoordinateFrame::Ecliptic
-                    } else {
-                        CoordinateFrame::Equatorial
-                    },
-                    zodiac_mode: ZodiacMode::Tropical,
-                    apparent: Apparentness::Mean,
-                };
-                request
+            .map(|(index, entry)| EphemerisRequest {
+                body: entry.body.clone(),
+                instant: entry.epoch,
+                observer: None,
+                frame: if index % 2 == 0 {
+                    CoordinateFrame::Ecliptic
+                } else {
+                    CoordinateFrame::Equatorial
+                },
+                zodiac_mode: ZodiacMode::Tropical,
+                apparent: Apparentness::Mean,
             })
             .collect::<Vec<_>>();
 
