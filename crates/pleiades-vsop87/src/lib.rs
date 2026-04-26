@@ -3212,6 +3212,67 @@ mod tests {
     }
 
     #[test]
+    fn batch_query_preserves_mixed_frame_requests_and_values() {
+        let backend = Vsop87Backend::new();
+        let requests = canonical_epoch_requests()
+            .into_iter()
+            .enumerate()
+            .map(|(index, mut request)| {
+                request.frame = if index % 2 == 0 {
+                    CoordinateFrame::Ecliptic
+                } else {
+                    CoordinateFrame::Equatorial
+                };
+                request
+            })
+            .collect::<Vec<_>>();
+        let samples = canonical_epoch_samples();
+
+        let results = backend
+            .positions(&requests)
+            .expect("mixed frame batch query should preserve the canonical sample order");
+
+        assert_eq!(results.len(), samples.len());
+        for ((request, result), sample) in requests.iter().zip(results.iter()).zip(samples.iter()) {
+            assert_eq!(result.body, sample.body);
+            assert_eq!(result.instant, request.instant);
+            assert_eq!(result.frame, request.frame);
+
+            let ecliptic = result
+                .ecliptic
+                .as_ref()
+                .expect("ecliptic result should exist");
+            assert_degrees_close(
+                ecliptic.longitude.degrees(),
+                sample.expected_longitude_deg,
+                sample.max_longitude_delta_deg,
+            );
+            assert_degrees_close(
+                ecliptic.latitude.degrees(),
+                sample.expected_latitude_deg,
+                sample.max_latitude_delta_deg,
+            );
+            assert_close(
+                ecliptic.distance_au.expect("distance should exist"),
+                sample.expected_distance_au,
+                sample.max_distance_delta_au,
+            );
+
+            let expected = ecliptic.to_equatorial(Angle::from_degrees(
+                Vsop87Backend::mean_obliquity_degrees(result.instant),
+            ));
+            let equatorial = result
+                .equatorial
+                .as_ref()
+                .expect("equatorial result should exist");
+
+            assert_eq!(equatorial, &expected);
+            assert!(equatorial.right_ascension.degrees().is_finite());
+            assert!(equatorial.declination.degrees().is_finite());
+        }
+    }
+
+    #[test]
     fn finite_difference_motion_is_reported_for_supported_bodies() {
         let backend = Vsop87Backend::new();
         let request = mean_request(CelestialBody::Mars);

@@ -3763,6 +3763,47 @@ mod tests {
     }
 
     #[test]
+    fn batch_query_preserves_mixed_frame_requests_and_values() {
+        let backend = ElpBackend::new();
+        let evidence = lunar_reference_evidence();
+        let requests = evidence
+            .iter()
+            .enumerate()
+            .map(|(index, sample)| {
+                let mut request = mean_request_at(sample.body.clone(), sample.epoch);
+                request.frame = if index % 2 == 0 {
+                    CoordinateFrame::Ecliptic
+                } else {
+                    CoordinateFrame::Equatorial
+                };
+                request
+            })
+            .collect::<Vec<_>>();
+
+        let results = backend
+            .positions(&requests)
+            .expect("mixed frame batch query should preserve the lunar reference order");
+
+        assert_eq!(results.len(), evidence.len());
+        for ((request, result), sample) in requests.iter().zip(results.iter()).zip(evidence.iter())
+        {
+            assert_eq!(result.body, sample.body);
+            assert_eq!(result.instant, sample.epoch);
+            assert_eq!(result.frame, request.frame);
+
+            let ecliptic = result.ecliptic.expect("ecliptic result should exist");
+            let expected = ecliptic.to_equatorial(Angle::from_degrees(
+                ElpBackend::mean_obliquity_degrees(sample.epoch),
+            ));
+            let equatorial = result.equatorial.expect("equatorial result should exist");
+
+            assert_eq!(equatorial, expected);
+            assert!(equatorial.right_ascension.degrees().is_finite());
+            assert!(equatorial.declination.degrees().is_finite());
+        }
+    }
+
+    #[test]
     fn backend_supports_lunar_points() {
         let backend = ElpBackend::new();
         let theory = lunar_theory_specification();

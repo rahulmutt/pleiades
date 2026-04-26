@@ -2370,6 +2370,59 @@ mod tests {
     }
 
     #[test]
+    fn batch_query_preserves_mixed_frame_requests_and_values() {
+        let backend = JplSnapshotBackend;
+        let requests = reference_snapshot()
+            .iter()
+            .enumerate()
+            .map(|(index, entry)| {
+                let request = EphemerisRequest {
+                    body: entry.body.clone(),
+                    instant: entry.epoch,
+                    observer: None,
+                    frame: if index % 2 == 0 {
+                        CoordinateFrame::Ecliptic
+                    } else {
+                        CoordinateFrame::Equatorial
+                    },
+                    zodiac_mode: ZodiacMode::Tropical,
+                    apparent: Apparentness::Mean,
+                };
+                request
+            })
+            .collect::<Vec<_>>();
+
+        let results = backend
+            .positions(&requests)
+            .expect("mixed frame batch query should preserve the reference snapshot order");
+
+        assert_eq!(results.len(), requests.len());
+        for ((request, result), entry) in requests
+            .iter()
+            .zip(results.iter())
+            .zip(reference_snapshot().iter())
+        {
+            assert_eq!(result.body, entry.body);
+            assert_eq!(result.instant, entry.epoch);
+            assert_eq!(result.frame, request.frame);
+
+            let ecliptic = result
+                .ecliptic
+                .expect("reference snapshot entries should include ecliptic coordinates");
+            assert_eq!(ecliptic, entry.ecliptic());
+
+            let expected_equatorial =
+                ecliptic.to_equatorial(Angle::from_degrees(mean_obliquity_degrees(result.instant)));
+            let equatorial = result
+                .equatorial
+                .expect("equatorial coordinates should be present for mixed frame batch requests");
+            assert_eq!(equatorial, expected_equatorial);
+            assert!(equatorial.right_ascension.degrees().is_finite());
+            assert!(equatorial.declination.degrees().is_finite());
+        }
+    }
+
+    #[test]
     fn reference_snapshot_source_summary_reports_the_expected_provenance() {
         assert_eq!(
             reference_snapshot_source_summary_for_report(),
