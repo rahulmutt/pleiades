@@ -20,6 +20,7 @@ Several downstream requirements depend on trusted ephemeris outputs:
 Completed foundations:
 
 - per-body comparison summaries, body-class error envelopes, and expected tolerance status sections in validation reports, including class-level median offsets alongside the existing maxima, means, and RMS figures, so measured backend deltas are visible by body and grouped by class against explicit interim evidence thresholds; the per-body comparison summary record now also has a backend-owned `summary_line()`/`Display` helper that the validation formatter reuses directly instead of rebuilding the same compact wording inline;
+- Latest progress (2026-04-26): the aggregate comparison summary now also has a backend-owned `summary_line()`/`Display` helper, and the compact validation/release comparison envelope now reuses that typed aggregate line before appending the median values, keeping the maxima/means/RMS wording centralized alongside the existing per-body summary helper.
 - managed Rust workspace and mandatory crate layout;
 - typed domain vocabulary in `pleiades-types`;
 - backend contract, metadata, errors, batch fallback, and composite routing in `pleiades-backend`, with the lower-level request docs now also showing the default tropical/ecliptic/mean-geometric request shape explicitly, the shared request-policy errors now using stable display labels for supported time scales, frames, and zodiac modes, and the backend matrix now surfacing an explicit family-posture line for algorithmic, data-backed, and routing families;

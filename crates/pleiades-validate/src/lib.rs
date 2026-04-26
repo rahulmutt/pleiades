@@ -314,6 +314,49 @@ pub struct ComparisonSummary {
     pub rms_distance_delta_au: Option<f64>,
 }
 
+impl ComparisonSummary {
+    /// Returns the compact release-facing summary line for the aggregate comparison envelope.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "samples: {}, max longitude delta: {:.12}°{}, mean longitude delta: {:.12}°, rms longitude delta: {:.12}°, max latitude delta: {:.12}°{}, mean latitude delta: {:.12}°, rms latitude delta: {:.12}°, max distance delta: {}{}, mean distance delta: {}, rms distance delta: {}",
+            self.sample_count,
+            self.max_longitude_delta_deg,
+            self.max_longitude_delta_body
+                .as_ref()
+                .map(|body| format!(" ({body})"))
+                .unwrap_or_default(),
+            self.mean_longitude_delta_deg,
+            self.rms_longitude_delta_deg,
+            self.max_latitude_delta_deg,
+            self.max_latitude_delta_body
+                .as_ref()
+                .map(|body| format!(" ({body})"))
+                .unwrap_or_default(),
+            self.mean_latitude_delta_deg,
+            self.rms_latitude_delta_deg,
+            self.max_distance_delta_au
+                .map(|value| format!("{value:.12} AU"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            self.max_distance_delta_body
+                .as_ref()
+                .map(|body| format!(" ({body})"))
+                .unwrap_or_default(),
+            self.mean_distance_delta_au
+                .map(|value| format!("{value:.12} AU"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            self.rms_distance_delta_au
+                .map(|value| format!("{value:.12} AU"))
+                .unwrap_or_else(|| "n/a".to_string()),
+        )
+    }
+}
+
+impl fmt::Display for ComparisonSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Summary statistics for a single body within a comparison run.
 #[derive(Clone, Debug, PartialEq)]
 pub struct BodyComparisonSummary {
@@ -4677,40 +4720,17 @@ fn format_comparison_envelope_for_report(
     samples: &[ComparisonSample],
 ) -> String {
     let median = comparison_median_envelope(samples);
-    let max_distance = summary
-        .max_distance_delta_au
-        .map(|value| format!("{value:.12} AU"))
-        .unwrap_or_else(|| "n/a".to_string());
-    let mean_distance = summary
-        .mean_distance_delta_au
-        .map(|value| format!("{value:.12} AU"))
-        .unwrap_or_else(|| "n/a".to_string());
-    let rms_distance = summary
-        .rms_distance_delta_au
-        .map(|value| format!("{value:.12} AU"))
-        .unwrap_or_else(|| "n/a".to_string());
     let median_distance = median
         .distance_delta_au
         .map(|value| format!("{value:.12} AU"))
         .unwrap_or_else(|| "n/a".to_string());
 
     format!(
-        "max longitude delta: {:.12}°{}, mean longitude delta: {:.12}°, median longitude delta: {:.12}°, rms longitude delta: {:.12}°, max latitude delta: {:.12}°{}, mean latitude delta: {:.12}°, median latitude delta: {:.12}°, rms latitude delta: {:.12}°, max distance delta: {}{}, mean distance delta: {}, median distance delta: {}, rms distance delta: {}",
-        summary.max_longitude_delta_deg,
-        format_summary_body(&summary.max_longitude_delta_body),
-        summary.mean_longitude_delta_deg,
+        "{}; median longitude delta: {:.12}°, median latitude delta: {:.12}°, median distance delta: {}",
+        summary,
         median.longitude_delta_deg,
-        summary.rms_longitude_delta_deg,
-        summary.max_latitude_delta_deg,
-        format_summary_body(&summary.max_latitude_delta_body),
-        summary.mean_latitude_delta_deg,
         median.latitude_delta_deg,
-        summary.rms_latitude_delta_deg,
-        max_distance,
-        format_summary_body(&summary.max_distance_delta_body),
-        mean_distance,
         median_distance,
-        rms_distance,
     )
 }
 
@@ -10341,7 +10361,7 @@ version = "0.9.0"
             release_profiles
         )));
         assert!(manifest.contains("release-profile-identifiers.txt"));
-        assert!(release_summary.contains("Comparison envelope: max longitude delta:"));
+        assert!(release_summary.contains("Comparison envelope: samples:"));
         assert!(
             release_summary.contains("Comparison tail envelope: 95th percentile absolute deltas:")
         );
@@ -11647,6 +11667,32 @@ version = "0.9.0"
         assert!(report.contains("Luminaries"));
         assert!(report.contains("Major planets"));
         assert!(report.contains("baseline backend"));
+    }
+
+    #[test]
+    fn comparison_summary_summary_line_includes_bodies_and_counts() {
+        let summary = ComparisonSummary {
+            sample_count: 3,
+            max_longitude_delta_body: Some(CelestialBody::Sun),
+            max_longitude_delta_deg: 0.123_456_789_012,
+            mean_longitude_delta_deg: 0.012_345_678_901,
+            rms_longitude_delta_deg: 0.023_456_789_012,
+            max_latitude_delta_body: Some(CelestialBody::Moon),
+            max_latitude_delta_deg: 0.223_456_789_012,
+            mean_latitude_delta_deg: 0.032_345_678_901,
+            rms_latitude_delta_deg: 0.043_456_789_012,
+            max_distance_delta_body: Some(CelestialBody::Mars),
+            max_distance_delta_au: Some(0.001_234_567_89),
+            mean_distance_delta_au: Some(0.000_234_567_89),
+            rms_distance_delta_au: Some(0.000_334_567_89),
+        };
+
+        let rendered = summary.summary_line();
+        assert!(rendered.contains("samples: 3"));
+        assert!(rendered.contains("max longitude delta: 0.123456789012° (Sun)"));
+        assert!(rendered.contains("max latitude delta: 0.223456789012° (Moon)"));
+        assert!(rendered.contains("max distance delta: 0.001234567890 AU (Mars)"));
+        assert_eq!(rendered, format!("{summary}"));
     }
 
     #[test]
