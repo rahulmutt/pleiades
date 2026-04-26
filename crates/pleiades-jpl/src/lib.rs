@@ -353,6 +353,23 @@ pub fn comparison_snapshot_summary() -> Option<ComparisonSnapshotSummary> {
     })
 }
 
+/// Returns the source/material summary for the comparison snapshot used by validation.
+pub fn comparison_snapshot_source_summary_for_report() -> String {
+    let manifest = comparison_snapshot_manifest();
+    let source = manifest
+        .source_or("NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.");
+    let coverage = manifest.coverage_or(
+        "Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.",
+    );
+    let columns = manifest.columns_summary();
+    format!("Comparison snapshot source: {source}; coverage={coverage}; columns={columns}")
+}
+
+/// Returns the manifest summary for the comparison snapshot used by validation.
+pub fn comparison_snapshot_manifest_summary_for_report() -> String {
+    comparison_snapshot_manifest().summary_line("Comparison snapshot manifest")
+}
+
 impl ComparisonSnapshotSummary {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
@@ -569,7 +586,7 @@ pub fn independent_holdout_manifest_summary_for_report() -> String {
 /// Returns the combined snapshot evidence summary used by validation and release reports.
 pub fn jpl_snapshot_evidence_summary_for_report() -> String {
     format!(
-        "{} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {}",
+        "{} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {}",
         reference_snapshot_summary_for_report(),
         reference_snapshot_equatorial_parity_summary_for_report(),
         reference_snapshot_source_summary_for_report(),
@@ -577,6 +594,8 @@ pub fn jpl_snapshot_evidence_summary_for_report() -> String {
         reference_asteroid_evidence_summary_for_report(),
         reference_asteroid_equatorial_evidence_summary_for_report(),
         comparison_snapshot_summary_for_report(),
+        comparison_snapshot_source_summary_for_report(),
+        comparison_snapshot_manifest_summary_for_report(),
         independent_holdout_snapshot_summary_for_report(),
         independent_holdout_source_summary_for_report(),
         independent_holdout_manifest_summary_for_report(),
@@ -639,6 +658,17 @@ pub fn frame_treatment_summary() -> &'static str {
 /// Returns the comparison-only subset used by the stage-4 validation corpus.
 pub fn comparison_snapshot() -> &'static [SnapshotEntry] {
     comparison_snapshot_entries()
+}
+
+/// Returns the parsed manifest for the comparison snapshot.
+pub fn comparison_snapshot_manifest() -> &'static SnapshotManifest {
+    static MANIFEST: OnceLock<SnapshotManifest> = OnceLock::new();
+    MANIFEST.get_or_init(|| {
+        parse_snapshot_manifest(include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/data/j2000_snapshot.csv"
+        )))
+    })
 }
 
 /// Returns the comparison-only body coverage used by validation tooling.
@@ -2395,6 +2425,29 @@ mod tests {
     }
 
     #[test]
+    fn comparison_snapshot_manifest_parses_the_documented_header_comments() {
+        let manifest = comparison_snapshot_manifest();
+        assert_eq!(
+            manifest.title.as_deref(),
+            Some("JPL Horizons reference snapshot.")
+        );
+        assert_eq!(
+            manifest.source.as_deref(),
+            Some("NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.")
+        );
+        assert_eq!(manifest.coverage, None);
+        assert_eq!(manifest.columns, ["body", "x_km", "y_km", "z_km"]);
+        assert_eq!(
+            comparison_snapshot_source_summary_for_report(),
+            "Comparison snapshot source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.; coverage=Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.; columns=body, x_km, y_km, z_km"
+        );
+        assert_eq!(
+            manifest.summary_line("Comparison snapshot manifest"),
+            "Comparison snapshot manifest: JPL Horizons reference snapshot.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.; coverage=unknown; columns=body, x_km, y_km, z_km"
+        );
+    }
+
+    #[test]
     fn reference_asteroid_equatorial_evidence_summary_reports_the_expected_coverage() {
         let report = reference_asteroid_equatorial_evidence_summary_for_report();
         assert_eq!(report, "Selected asteroid equatorial evidence: 5 exact J2000 samples at JD 2451545.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros) using a mean-obliquity equatorial transform");
@@ -2614,6 +2667,8 @@ mod tests {
         assert!(report.contains(&reference_asteroid_evidence_summary_for_report()));
         assert!(report.contains(&reference_asteroid_equatorial_evidence_summary_for_report()));
         assert!(report.contains(&comparison_snapshot_summary_for_report()));
+        assert!(report.contains(&comparison_snapshot_source_summary_for_report()));
+        assert!(report.contains(&comparison_snapshot_manifest_summary_for_report()));
         assert!(report.contains(&independent_holdout_snapshot_summary_for_report()));
         assert!(report.contains(&independent_holdout_source_summary_for_report()));
         assert!(report.contains(&independent_holdout_manifest_summary_for_report()));

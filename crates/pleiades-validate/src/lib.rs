@@ -68,7 +68,8 @@ use pleiades_houses::{
     baseline_house_systems, built_in_house_systems, release_house_systems, resolve_house_system,
 };
 use pleiades_jpl::{
-    comparison_snapshot, comparison_snapshot_summary_for_report,
+    comparison_snapshot, comparison_snapshot_manifest_summary_for_report,
+    comparison_snapshot_source_summary_for_report, comparison_snapshot_summary_for_report,
     format_jpl_interpolation_quality_kind_coverage,
     format_jpl_interpolation_quality_summary_for_report,
     frame_treatment_summary as jpl_frame_treatment_summary, interpolation_quality_samples,
@@ -2590,6 +2591,10 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&comparison_snapshot_summary_for_report());
     text.push('\n');
+    text.push_str(&comparison_snapshot_source_summary_for_report());
+    text.push('\n');
+    text.push_str(&comparison_snapshot_manifest_summary_for_report());
+    text.push('\n');
 
     if !profile.custom_definition_labels.is_empty() {
         text.push_str("Custom-definition labels:\n");
@@ -2653,6 +2658,10 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&reference_snapshot_summary_for_report());
     text.push('\n');
     text.push_str(&comparison_snapshot_summary_for_report());
+    text.push('\n');
+    text.push_str(&comparison_snapshot_source_summary_for_report());
+    text.push('\n');
+    text.push_str(&comparison_snapshot_manifest_summary_for_report());
     text.push('\n');
     text.push_str("Custom-definition labels: ");
     text.push_str(&profile.custom_definition_labels.len().to_string());
@@ -4960,6 +4969,16 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         report.comparison_corpus.apparentness
     );
     let _ = writeln!(text, "  {}", comparison_snapshot_summary_for_report());
+    let _ = writeln!(
+        text,
+        "  {}",
+        comparison_snapshot_source_summary_for_report()
+    );
+    let _ = writeln!(
+        text,
+        "  {}",
+        comparison_snapshot_manifest_summary_for_report()
+    );
     let _ = writeln!(text);
     let _ = writeln!(text, "Comparison summary");
     let _ = writeln!(
@@ -5857,6 +5876,10 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&reference_snapshot_equatorial_parity_summary_for_report());
     text.push('\n');
     text.push_str(&comparison_snapshot_summary_for_report());
+    text.push('\n');
+    text.push_str(&comparison_snapshot_source_summary_for_report());
+    text.push('\n');
+    text.push_str(&comparison_snapshot_manifest_summary_for_report());
     text.push('\n');
     if let Ok(report) = build_validation_report(0) {
         let (_, within_tolerance_body_count, outside_tolerance_body_count, regression_count) =
