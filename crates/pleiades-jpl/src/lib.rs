@@ -2096,6 +2096,48 @@ mod tests {
     }
 
     #[test]
+    fn batch_query_preserves_reference_snapshot_order_and_equatorial_values() {
+        let backend = JplSnapshotBackend;
+        let requests = reference_snapshot()
+            .iter()
+            .map(|entry| EphemerisRequest {
+                body: entry.body.clone(),
+                instant: entry.epoch,
+                observer: None,
+                frame: CoordinateFrame::Equatorial,
+                zodiac_mode: ZodiacMode::Tropical,
+                apparent: Apparentness::Mean,
+            })
+            .collect::<Vec<_>>();
+
+        let results = backend
+            .positions(&requests)
+            .expect("batch query should preserve the reference snapshot order");
+
+        assert_eq!(results.len(), requests.len());
+        for (entry, result) in reference_snapshot().iter().zip(results.iter()) {
+            assert_eq!(result.body, entry.body);
+            assert_eq!(result.instant, entry.epoch);
+            assert_eq!(result.frame, CoordinateFrame::Equatorial);
+            assert_eq!(result.quality, QualityAnnotation::Exact);
+
+            let ecliptic = result
+                .ecliptic
+                .expect("reference snapshot entries should include ecliptic coordinates");
+            assert_eq!(ecliptic, entry.ecliptic());
+
+            let expected_equatorial =
+                ecliptic.to_equatorial(Angle::from_degrees(mean_obliquity_degrees(result.instant)));
+            let equatorial = result
+                .equatorial
+                .expect("equatorial coordinates should be present for equatorial batch requests");
+            assert_eq!(equatorial, expected_equatorial);
+            assert!(equatorial.right_ascension.degrees().is_finite());
+            assert!(equatorial.declination.degrees().is_finite());
+        }
+    }
+
+    #[test]
     fn reference_snapshot_source_summary_reports_the_expected_provenance() {
         assert_eq!(
             reference_snapshot_source_summary_for_report(),

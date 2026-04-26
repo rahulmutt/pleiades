@@ -128,6 +128,7 @@ Progress note (2026-04-25): the JPL asteroid subset now also renders exact J2000
 Progress note (2026-04-25): the JPL interpolation-quality summary plus distinct-body coverage line now also live in `pleiades-jpl` as one backend-owned report helper, and validation reuses that combined formatter directly so the release-facing interpolation evidence stays co-located with the snapshot backend instead of rebuilding the two-line report privately. The same backend now also publishes a compact request-policy line for the reference snapshot posture, so the current TT/TDB, equatorial/ecliptic, mean-only, and geocentric-only semantics stay visible in release-facing reports alongside the interpolation evidence.
 
 Progress note (2026-04-26): the JPL snapshot backend now also publishes a small independent Mars/Jupiter hold-out corpus from the same public Horizons source material, and the validation/release evidence now renders that separate hold-out interpolation envelope alongside the existing leave-one-out transparency summary, so the first suggested JPL hold-out validation slice has landed while broader corpus expansion remains conditional on the remaining envelope.
+Progress note (2026-04-26): the JPL snapshot backend now also has a batch-path regression over the full checked-in reference snapshot in equatorial mode, preserving exact order and exact-coordinate parity across every reference row while exercising the mean-obliquity transform on the complete public-input fixture.
 
 Remaining suggested scope:
 
