@@ -276,7 +276,6 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         &[
             "V equal Vehlow",
             "Vehlow",
-            "Vehlow equal",
             "Vehlow house system",
             "Vehlow Equal house system",
             "Vehlow-equal",
@@ -730,7 +729,6 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         &[
             "V equal Vehlow",
             "Vehlow",
-            "Vehlow equal",
             "Vehlow house system",
             "Vehlow Equal house system",
             "Vehlow-equal",

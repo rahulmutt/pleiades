@@ -2010,6 +2010,7 @@ pub fn verify_compatibility_profile() -> Result<String, EphemerisError> {
     text.push_str(" descriptors, ");
     text.push_str(&house_labels_checked.to_string());
     text.push_str(" labels\n");
+    text.push_str("Alias uniqueness checks: exact and case-insensitive labels verified\n");
     text.push_str("Latitude-sensitive house systems verified: ");
     let latitude_sensitive_house_systems = profile.latitude_sensitive_house_systems();
     text.push_str(&latitude_sensitive_house_systems.len().to_string());
@@ -2087,12 +2088,19 @@ fn verify_house_system_aliases(
 ) -> Result<usize, EphemerisError> {
     let mut labels_checked = 0usize;
     let mut seen_labels = BTreeSet::new();
+    let mut seen_labels_case_insensitive = BTreeMap::new();
 
     for entry in entries {
         ensure_profile_descriptor_metadata("house-system", entry.canonical_name, entry.notes)?;
 
         labels_checked += 1;
-        ensure_unique_profile_label("house-system", entry.canonical_name, &mut seen_labels)?;
+        ensure_unique_profile_label(
+            "house-system",
+            entry.canonical_name,
+            entry.canonical_name,
+            &mut seen_labels,
+            &mut seen_labels_case_insensitive,
+        )?;
         if resolve_house_system(entry.canonical_name) != Some(entry.system.clone()) {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,
@@ -2105,7 +2113,13 @@ fn verify_house_system_aliases(
 
         for alias in entry.aliases {
             labels_checked += 1;
-            ensure_unique_profile_label("house-system", alias, &mut seen_labels)?;
+            ensure_unique_profile_label(
+                "house-system",
+                alias,
+                entry.canonical_name,
+                &mut seen_labels,
+                &mut seen_labels_case_insensitive,
+            )?;
             if resolve_house_system(alias) != Some(entry.system.clone()) {
                 return Err(EphemerisError::new(
                     EphemerisErrorKind::InvalidRequest,
@@ -2126,12 +2140,19 @@ fn verify_ayanamsa_aliases(
 ) -> Result<usize, EphemerisError> {
     let mut labels_checked = 0usize;
     let mut seen_labels = BTreeSet::new();
+    let mut seen_labels_case_insensitive = BTreeMap::new();
 
     for entry in entries {
         ensure_profile_descriptor_metadata("ayanamsa", entry.canonical_name, entry.notes)?;
 
         labels_checked += 1;
-        ensure_unique_profile_label("ayanamsa", entry.canonical_name, &mut seen_labels)?;
+        ensure_unique_profile_label(
+            "ayanamsa",
+            entry.canonical_name,
+            entry.canonical_name,
+            &mut seen_labels,
+            &mut seen_labels_case_insensitive,
+        )?;
         if resolve_ayanamsa(entry.canonical_name) != Some(entry.ayanamsa.clone()) {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,
@@ -2144,7 +2165,13 @@ fn verify_ayanamsa_aliases(
 
         for alias in entry.aliases {
             labels_checked += 1;
-            ensure_unique_profile_label("ayanamsa", alias, &mut seen_labels)?;
+            ensure_unique_profile_label(
+                "ayanamsa",
+                alias,
+                entry.canonical_name,
+                &mut seen_labels,
+                &mut seen_labels_case_insensitive,
+            )?;
             if resolve_ayanamsa(alias) != Some(entry.ayanamsa.clone()) {
                 return Err(EphemerisError::new(
                     EphemerisErrorKind::InvalidRequest,
@@ -2176,10 +2203,17 @@ fn is_intentional_custom_definition_ayanamsa_homograph(label: &str) -> bool {
 fn verify_custom_definition_labels(labels: &[&'static str]) -> Result<usize, EphemerisError> {
     let mut labels_checked = 0usize;
     let mut seen_labels = BTreeSet::new();
+    let mut seen_labels_case_insensitive = BTreeMap::new();
 
     for label in labels {
         labels_checked += 1;
-        ensure_unique_profile_label("custom-definition", label, &mut seen_labels)?;
+        ensure_unique_profile_label(
+            "custom-definition",
+            label,
+            label,
+            &mut seen_labels,
+            &mut seen_labels_case_insensitive,
+        )?;
         if resolve_house_system(label).is_some()
             || (resolve_ayanamsa(label).is_some()
                 && !is_intentional_custom_definition_ayanamsa_homograph(label))
@@ -2225,7 +2259,9 @@ fn ensure_profile_descriptor_metadata(
 fn ensure_unique_profile_label(
     catalog_label: &str,
     label: &str,
+    item_identity: &str,
     seen_labels: &mut BTreeSet<String>,
+    seen_labels_case_insensitive: &mut BTreeMap<String, String>,
 ) -> Result<(), EphemerisError> {
     if label.trim().is_empty() {
         return Err(EphemerisError::new(
@@ -2235,7 +2271,7 @@ fn ensure_unique_profile_label(
     }
 
     let normalized = label.trim().to_string();
-    if !seen_labels.insert(normalized) {
+    if !seen_labels.insert(normalized.clone()) {
         return Err(EphemerisError::new(
             EphemerisErrorKind::InvalidRequest,
             format!(
@@ -2243,6 +2279,24 @@ fn ensure_unique_profile_label(
                 label
             ),
         ));
+    }
+
+    let normalized_case_insensitive = normalized.to_ascii_lowercase();
+    match seen_labels_case_insensitive.get(&normalized_case_insensitive) {
+        Some(existing_identity) if existing_identity == item_identity => {}
+        Some(_) => {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile {catalog_label} labels are not unique ignoring case: duplicate label '{}'",
+                    label
+                ),
+            ));
+        }
+        None => {
+            seen_labels_case_insensitive
+                .insert(normalized_case_insensitive, item_identity.to_string());
+        }
     }
 
     Ok(())
@@ -8915,6 +8969,8 @@ mod tests {
             release_profiles.compatibility_profile_id
         )));
         assert!(rendered.contains("House systems verified:"));
+        assert!(rendered
+            .contains("Alias uniqueness checks: exact and case-insensitive labels verified"));
         assert!(rendered.contains(
             "Latitude-sensitive house systems verified: 8 descriptors, 8 labels (Placidus, Koch, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Topocentric, Sunshine, Gauquelin sectors)"
         ));
@@ -8951,6 +9007,33 @@ mod tests {
     }
 
     #[test]
+    fn compatibility_profile_verification_rejects_case_insensitive_duplicate_house_labels() {
+        let descriptors = [
+            pleiades_houses::HouseSystemDescriptor::new(
+                HouseSystem::Placidus,
+                "Placidus",
+                &[],
+                "Quadrant system used for case-insensitive duplicate-label coverage.",
+                true,
+            ),
+            pleiades_houses::HouseSystemDescriptor::new(
+                HouseSystem::Koch,
+                "placidus",
+                &[],
+                "Quadrant system used for case-insensitive duplicate-label coverage.",
+                true,
+            ),
+        ];
+
+        let error = verify_house_system_aliases(&descriptors)
+            .expect_err("case-insensitive duplicate labels should fail profile verification");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("labels are not unique ignoring case"));
+    }
+
+    #[test]
     fn compatibility_profile_verification_rejects_missing_descriptor_notes() {
         let descriptors = [pleiades_ayanamsa::AyanamsaDescriptor::new(
             Ayanamsa::Lahiri,
@@ -8965,6 +9048,35 @@ mod tests {
             .expect_err("missing descriptor notes should fail profile verification");
         assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
         assert!(error.message.contains("missing notes metadata"));
+    }
+
+    #[test]
+    fn compatibility_profile_verification_rejects_case_insensitive_duplicate_ayanamsa_labels() {
+        let descriptors = [
+            pleiades_ayanamsa::AyanamsaDescriptor::new(
+                Ayanamsa::Lahiri,
+                "Lahiri",
+                &[],
+                "Sidereal mode used for case-insensitive duplicate-label coverage.",
+                Some(JulianDay::from_days(2_435_553.5)),
+                Some(pleiades_core::Angle::from_degrees(23.245_524_743)),
+            ),
+            pleiades_ayanamsa::AyanamsaDescriptor::new(
+                Ayanamsa::TrueRevati,
+                "lahiri",
+                &[],
+                "Sidereal mode used for case-insensitive duplicate-label coverage.",
+                Some(JulianDay::from_days(2_444_907.5)),
+                Some(pleiades_core::Angle::from_degrees(0.0)),
+            ),
+        ];
+
+        let error = verify_ayanamsa_aliases(&descriptors)
+            .expect_err("case-insensitive duplicate labels should fail profile verification");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("labels are not unique ignoring case"));
     }
 
     #[test]
@@ -9000,6 +9112,20 @@ mod tests {
         let checked = verify_custom_definition_labels(&labels)
             .expect("intentional custom-definition homographs should remain allowed");
         assert_eq!(checked, 1);
+    }
+
+    #[test]
+    fn compatibility_profile_verification_rejects_case_insensitive_duplicate_custom_definition_labels(
+    ) {
+        let labels = ["custom delta", "Custom Delta"];
+
+        let error = verify_custom_definition_labels(&labels).expect_err(
+            "case-insensitive duplicate custom-definition labels should fail verification",
+        );
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("labels are not unique ignoring case"));
     }
 
     #[test]
