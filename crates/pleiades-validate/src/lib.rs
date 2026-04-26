@@ -8679,7 +8679,7 @@ mod tests {
         assert!(report.contains(" ("));
         assert!(report.contains("VSOP87 source-backed evidence"));
         assert!(report
-            .contains("VSOP87 source audit: 8 source-backed bodies, 8 vendored full-file inputs, 35080 total terms, max source size 949753 bytes / 7141 lines, 8 deterministic fingerprints"));
+            .contains("VSOP87 source audit: 8 source-backed bodies (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune) across 8 source files (VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep); 8 vendored full-file inputs, 35080 total terms, max source size 949753 bytes / 7141 lines, 8 deterministic fingerprints"));
         assert!(report
             .contains("VSOP87 generated binary audit: 8 checked-in blobs across 8 source files"));
         assert!(report.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
@@ -9778,7 +9778,7 @@ mod tests {
             "VSOP87 frame treatment: J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a mean-obliquity transform"
         ));
         assert!(rendered
-            .contains("VSOP87 source audit: 8 source-backed bodies, 8 vendored full-file inputs, 35080 total terms, max source size 949753 bytes / 7141 lines, 8 deterministic fingerprints"));
+            .contains("VSOP87 source audit: 8 source-backed bodies (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune) across 8 source files (VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep); 8 vendored full-file inputs, 35080 total terms, max source size 949753 bytes / 7141 lines, 8 deterministic fingerprints"));
         assert!(rendered
             .contains("VSOP87 generated binary audit: 8 checked-in blobs across 8 source files"));
         assert!(rendered.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
@@ -10313,7 +10313,7 @@ version = "0.9.0"
         ));
         assert!(validation_report_summary.contains("VSOP87 request policy:"));
         assert!(validation_report_summary
-            .contains("VSOP87 source audit: 8 source-backed bodies, 8 vendored full-file inputs, 35080 total terms, max source size 949753 bytes / 7141 lines, 8 deterministic fingerprints"));
+            .contains("VSOP87 source audit: 8 source-backed bodies (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune) across 8 source files (VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep); 8 vendored full-file inputs, 35080 total terms, max source size 949753 bytes / 7141 lines, 8 deterministic fingerprints"));
         assert!(validation_report_summary
             .contains("VSOP87 generated binary audit: 8 checked-in blobs across 8 source files"));
         assert!(validation_report_summary

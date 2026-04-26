@@ -213,6 +213,10 @@ pub struct Vsop87SourceAudit {
 pub struct Vsop87SourceAuditSummary {
     /// Number of source-backed bodies represented in the audit manifest.
     pub source_count: usize,
+    /// Source-backed bodies represented in the audit manifest, in release-facing body order.
+    pub source_bodies: Vec<CelestialBody>,
+    /// Public source files represented in the audit manifest.
+    pub source_files: Vec<&'static str>,
     /// Number of vendored full-file source entries.
     pub vendored_full_file_count: usize,
     /// Number of deterministic fingerprints recorded in the audit manifest.
@@ -556,6 +560,14 @@ fn fnv1a_64(bytes: &[u8]) -> u64 {
         hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
     }
     hash
+}
+
+fn join_display<T: fmt::Display>(values: &[T]) -> String {
+    values
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
@@ -962,8 +974,11 @@ pub fn source_audits() -> Vec<Vsop87SourceAudit> {
 /// Returns a small reproducibility summary for the current VSOP87-backed bodies.
 pub fn source_audit_summary() -> Vsop87SourceAuditSummary {
     let audits = source_audits();
+    let source_specs = source_specifications();
     Vsop87SourceAuditSummary {
         source_count: audits.len(),
+        source_bodies: source_backed_body_order(),
+        source_files: source_specs.iter().map(|spec| spec.source_file).collect(),
         vendored_full_file_count: audits
             .iter()
             .filter(|audit| audit.source_file.starts_with("VSOP87B."))
@@ -986,8 +1001,11 @@ pub fn source_audit_summary() -> Vsop87SourceAuditSummary {
 /// Formats the current VSOP87 reproducibility audit for reporting.
 pub fn format_source_audit_summary(summary: &Vsop87SourceAuditSummary) -> String {
     format!(
-        "VSOP87 source audit: {} source-backed bodies, {} vendored full-file inputs, {} total terms, max source size {} bytes / {} lines, {} deterministic fingerprints",
+        "VSOP87 source audit: {} source-backed bodies ({}) across {} source files ({}); {} vendored full-file inputs, {} total terms, max source size {} bytes / {} lines, {} deterministic fingerprints",
         summary.source_count,
+        join_display(&summary.source_bodies),
+        summary.source_files.len(),
+        join_display(&summary.source_files),
         summary.vendored_full_file_count,
         summary.total_term_count,
         summary.max_byte_length,
@@ -3642,6 +3660,14 @@ mod tests {
 
         assert_eq!(audits.len(), 8);
         assert_eq!(summary.source_count, 8);
+        assert_eq!(summary.source_bodies, source_backed_body_order());
+        assert_eq!(
+            summary.source_files,
+            source_specifications()
+                .iter()
+                .map(|spec| spec.source_file)
+                .collect::<Vec<_>>()
+        );
         assert_eq!(summary.vendored_full_file_count, 8);
         assert_eq!(summary.fingerprint_count, 8);
         assert!(summary.total_term_count > 0);
@@ -3667,6 +3693,10 @@ mod tests {
     #[test]
     fn source_audit_report_matches_the_backend_formatter() {
         let summary = source_audit_summary();
+        assert_eq!(
+            source_audit_summary_for_report(),
+            "VSOP87 source audit: 8 source-backed bodies (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune) across 8 source files (VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep); 8 vendored full-file inputs, 35080 total terms, max source size 949753 bytes / 7141 lines, 8 deterministic fingerprints"
+        );
         assert_eq!(
             source_audit_summary_for_report(),
             format_source_audit_summary(&summary)
