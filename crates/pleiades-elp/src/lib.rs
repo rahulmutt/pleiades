@@ -1073,58 +1073,32 @@ pub fn lunar_theory_frame_treatment_summary() -> &'static str {
     lunar_theory_specification().frame_note
 }
 
-fn format_bodies(bodies: &[CelestialBody]) -> String {
-    bodies
+fn join_display<T: fmt::Display>(values: &[T]) -> String {
+    values
         .iter()
-        .map(|body| body.to_string())
+        .map(ToString::to_string)
         .collect::<Vec<_>>()
         .join(", ")
+}
+
+fn format_bodies(bodies: &[CelestialBody]) -> String {
+    join_display(bodies)
 }
 
 fn format_frames(frames: &[CoordinateFrame]) -> String {
-    frames
-        .iter()
-        .map(|frame| match frame {
-            CoordinateFrame::Ecliptic => "Ecliptic",
-            CoordinateFrame::Equatorial => "Equatorial",
-            _ => "Other",
-        })
-        .collect::<Vec<_>>()
-        .join(", ")
+    join_display(frames)
 }
 
 fn format_time_scales(scales: &[TimeScale]) -> String {
-    scales
-        .iter()
-        .map(|scale| match scale {
-            TimeScale::Utc => "UTC",
-            TimeScale::Ut1 => "UT1",
-            TimeScale::Tt => "TT",
-            TimeScale::Tdb => "TDB",
-            _ => "Other",
-        })
-        .collect::<Vec<_>>()
-        .join(", ")
+    join_display(scales)
 }
 
 fn format_zodiac_modes(modes: &[ZodiacMode]) -> String {
-    modes
-        .iter()
-        .map(|mode| match mode {
-            ZodiacMode::Tropical => "Tropical".to_string(),
-            ZodiacMode::Sidereal { ayanamsa } => format!("Sidereal ({ayanamsa:?})"),
-            _ => "Other".to_string(),
-        })
-        .collect::<Vec<_>>()
-        .join(", ")
+    join_display(modes)
 }
 
 fn format_apparentness_modes(modes: &[Apparentness]) -> String {
-    modes
-        .iter()
-        .map(|mode| mode.to_string())
-        .collect::<Vec<_>>()
-        .join(", ")
+    join_display(modes)
 }
 
 fn format_time_range(range: &TimeRange) -> String {
@@ -1137,14 +1111,7 @@ fn format_time_range(range: &TimeRange) -> String {
 }
 
 fn format_instant(instant: Instant) -> String {
-    let scale = match instant.scale {
-        TimeScale::Utc => "UTC",
-        TimeScale::Ut1 => "UT1",
-        TimeScale::Tt => "TT",
-        TimeScale::Tdb => "TDB",
-        _ => "Other",
-    };
-    format!("JD {:.1} ({scale})", instant.julian_day.days())
+    format!("JD {:.1} ({})", instant.julian_day.days(), instant.scale)
 }
 
 /// A single canonical lunar evidence sample used by validation and reporting.

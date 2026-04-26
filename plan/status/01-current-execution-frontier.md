@@ -36,6 +36,8 @@ Completed foundations:
 - Latest progress (2026-04-26): the per-body tolerance status record now also renders as a typed `summary_line()`/`Display` helper, and the validation formatter reuses that record directly instead of rebuilding the compact expected-tolerance wording inline.
 - tests and doctests for current behavior.
 
+Latest progress (2026-04-26): the VSOP87, ELP, and JPL backend summary helpers now reuse the shared typed `Display` labels for frames, time scales, zodiac modes, apparentness, and instants instead of maintaining parallel enum-to-string match tables, which keeps the compact release-facing request-policy text aligned with the public type vocabulary.
+
 Latest progress (2026-04-26): the release checklist summary now also surfaces the shared zodiac policy line, keeping the compact maintainer-facing release workflow aligned with the other report summaries and the current tropical-only request posture.
 Latest progress (2026-04-26): custom sidereal labels now round-trip through stable `Display` output as well, so `ZodiacMode::Sidereal` renders user-defined ayanamsas with their explicit names instead of a debug dump while the built-in release labels continue to use the shared typed formatting path.
 Latest progress (2026-04-26): the workspace serde feature now enables `std` alongside `derive`, which keeps the serde-gated String and Vec payloads in the shared types crate compatible with all-features linting instead of failing on the optional serialization path.

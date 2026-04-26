@@ -624,6 +624,22 @@ fn join_display<T: fmt::Display>(values: &[T]) -> String {
         .join(", ")
 }
 
+fn format_coordinate_frames(frames: &[CoordinateFrame]) -> String {
+    join_display(frames)
+}
+
+fn format_time_scales(time_scales: &[TimeScale]) -> String {
+    join_display(time_scales)
+}
+
+fn format_zodiac_modes(zodiac_modes: &[ZodiacMode]) -> String {
+    join_display(zodiac_modes)
+}
+
+fn format_apparentness_modes(modes: &[Apparentness]) -> String {
+    join_display(modes)
+}
+
 fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
     BODY_CATALOG.get_or_init(|| {
         let earth_date_range = "full public source file; J2000 canonical reference sample";
@@ -901,56 +917,6 @@ pub fn source_specifications() -> Vec<Vsop87SourceSpecification> {
 /// Returns the current frame-treatment summary for VSOP87-backed results.
 pub fn frame_treatment_summary() -> &'static str {
     "VSOP87 frame treatment: J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a mean-obliquity transform"
-}
-
-fn format_coordinate_frames(frames: &[CoordinateFrame]) -> String {
-    frames
-        .iter()
-        .map(|frame| match frame {
-            CoordinateFrame::Ecliptic => "Ecliptic",
-            CoordinateFrame::Equatorial => "Equatorial",
-            _ => "Other",
-        })
-        .collect::<Vec<_>>()
-        .join(", ")
-}
-
-fn format_time_scales(time_scales: &[TimeScale]) -> String {
-    time_scales
-        .iter()
-        .map(|time_scale| match time_scale {
-            TimeScale::Tt => "TT",
-            TimeScale::Tdb => "TDB",
-            TimeScale::Utc => "UTC",
-            TimeScale::Ut1 => "UT1",
-            _ => "Other",
-        })
-        .collect::<Vec<_>>()
-        .join(", ")
-}
-
-fn format_zodiac_modes(zodiac_modes: &[ZodiacMode]) -> String {
-    zodiac_modes
-        .iter()
-        .map(|zodiac_mode| match zodiac_mode {
-            ZodiacMode::Tropical => "Tropical",
-            ZodiacMode::Sidereal { .. } => "Sidereal",
-            _ => "Other",
-        })
-        .collect::<Vec<_>>()
-        .join(", ")
-}
-
-fn format_apparentness_modes(modes: &[Apparentness]) -> String {
-    modes
-        .iter()
-        .map(|mode| match mode {
-            Apparentness::Mean => "Mean",
-            Apparentness::Apparent => "Apparent",
-            _ => "Other",
-        })
-        .collect::<Vec<_>>()
-        .join(", ")
 }
 
 /// Structured request policy for the current VSOP87 backend.

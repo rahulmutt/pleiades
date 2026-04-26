@@ -514,62 +514,32 @@ pub fn reference_asteroid_equatorial_evidence() -> &'static [ReferenceAsteroidEq
     reference_asteroid_equatorial_evidence_list()
 }
 
-fn format_bodies(bodies: &[pleiades_backend::CelestialBody]) -> String {
-    bodies
+fn join_display<T: fmt::Display>(values: &[T]) -> String {
+    values
         .iter()
-        .map(|body| body.to_string())
+        .map(ToString::to_string)
         .collect::<Vec<_>>()
         .join(", ")
+}
+
+fn format_bodies(bodies: &[pleiades_backend::CelestialBody]) -> String {
+    join_display(bodies)
 }
 
 fn format_coordinate_frames(frames: &[CoordinateFrame]) -> String {
-    frames
-        .iter()
-        .map(|frame| match frame {
-            CoordinateFrame::Ecliptic => "Ecliptic",
-            CoordinateFrame::Equatorial => "Equatorial",
-            _ => "Other",
-        })
-        .collect::<Vec<_>>()
-        .join(", ")
+    join_display(frames)
 }
 
 fn format_time_scales(time_scales: &[TimeScale]) -> String {
-    time_scales
-        .iter()
-        .map(|scale| match scale {
-            TimeScale::Utc => "UTC",
-            TimeScale::Ut1 => "UT1",
-            TimeScale::Tt => "TT",
-            TimeScale::Tdb => "TDB",
-            _ => "Other",
-        })
-        .collect::<Vec<_>>()
-        .join(", ")
+    join_display(time_scales)
 }
 
 fn format_zodiac_modes(zodiac_modes: &[ZodiacMode]) -> String {
-    zodiac_modes
-        .iter()
-        .map(|mode| match mode {
-            ZodiacMode::Tropical => "Tropical",
-            ZodiacMode::Sidereal { .. } => "Sidereal",
-            _ => "Other",
-        })
-        .collect::<Vec<_>>()
-        .join(", ")
+    join_display(zodiac_modes)
 }
 
 fn format_apparentness_modes(modes: &[Apparentness]) -> String {
-    modes
-        .iter()
-        .map(|mode| match mode {
-            Apparentness::Mean => "Mean",
-            Apparentness::Apparent => "Apparent",
-            _ => "Other",
-        })
-        .collect::<Vec<_>>()
-        .join(", ")
+    join_display(modes)
 }
 
 /// Formats the exact asteroid evidence slice for release-facing reporting.
@@ -1480,14 +1450,7 @@ pub fn format_jpl_interpolation_quality_summary_for_report() -> String {
 }
 
 fn format_instant(instant: Instant) -> String {
-    let scale = match instant.scale {
-        TimeScale::Utc => "UTC",
-        TimeScale::Ut1 => "UT1",
-        TimeScale::Tt => "TT",
-        TimeScale::Tdb => "TDB",
-        _ => "Other",
-    };
-    format!("JD {:.1} ({scale})", instant.julian_day.days())
+    format!("JD {:.1} ({})", instant.julian_day.days(), instant.scale)
 }
 
 /// Interpolation path used for a hold-out quality sample.
