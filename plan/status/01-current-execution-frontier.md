@@ -31,6 +31,7 @@ Completed foundations:
 - validation benchmark reports now include single-request latency, batch throughput, an estimated corpus heap footprint for the representative corpus, and a packaged-artifact decode benchmark, so the benchmark command and report summaries better match the validation/testing spec;
 - Latest progress (2026-04-26): the release-facing benchmark reports now render elapsed durations with explicit second units instead of `Debug`-style `Duration` output, keeping the validation, artifact, and chart timing lines unit-stable across the compact and detailed views;
 - comparison reports and comparison-audit output now carry the comparison corpus summary, including epoch labels and julian-day span, so the validation-facing tolerance window is visible alongside the body deltas instead of only the corpus name;
+- Latest progress (2026-04-26): the per-body tolerance status record now also renders as a typed `summary_line()`/`Display` helper, and the validation formatter reuses that record directly instead of rebuilding the compact expected-tolerance wording inline.
 - tests and doctests for current behavior.
 
 Latest progress (2026-04-26): the release checklist summary now also surfaces the shared zodiac policy line, keeping the compact maintainer-facing release workflow aligned with the other report summaries and the current tropical-only request posture.

@@ -148,7 +148,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Progress note: custom house-system definitions now render their name, aliases, and notes in unsupported-house errors, which makes the release-facing extensibility boundary more explicit without changing the public house API.
    - Progress note: backend quality annotations now have stable display labels in `pleiades-backend`, and chart snapshots render that typed label directly instead of Debug formatting, which keeps the body-quality column aligned with the shared backend contract.
    - Store expected tolerances by backend and body class.
-   - Progress note: the comparison tolerance policy summaries now include the current comparison corpus size alongside the backend-family scope table, and the compact release summary now also carries per-scope body-and-sample coverage counts, so the release-facing tolerance catalog now ties the policy table a little more directly to the current corpus.
+   - Progress note: the comparison tolerance policy summaries now include the current comparison corpus size alongside the backend-family scope table, and the compact release summary now also carries per-scope body-and-sample coverage counts, so the release-facing tolerance catalog now ties the policy table a little more directly to the current corpus. The per-body tolerance status record now also renders as a typed `summary_line()`/`Display` helper, and the validation formatter reuses that record directly instead of rebuilding the compact expected-tolerance wording inline.
    - Keep validation reproducible and pure Rust.
 
 ## Done criteria
