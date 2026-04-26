@@ -1156,7 +1156,7 @@ impl fmt::Display for ChartSnapshot {
         writeln!(f, "Backend: {}", self.backend_id)?;
         writeln!(
             f,
-            "Instant: {} ({:?})",
+            "Instant: {} ({})",
             self.instant.julian_day, self.instant.scale
         )?;
         writeln!(
@@ -1694,6 +1694,7 @@ mod tests {
         assert!(rendered.contains("Sun"));
         assert!(rendered.contains("Moon"));
         assert!(rendered.contains("Sign summary: 1 Aries, 1 Taurus"));
+        assert!(rendered.contains("Instant: JD 2451545 (TT)"));
         assert!(rendered.contains(
             "Frame policy: ecliptic body positions are requested from the backend; house calculations remain separate"
         ));

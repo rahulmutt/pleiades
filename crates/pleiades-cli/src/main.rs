@@ -407,7 +407,7 @@ fn build_chart_instant(
                 Ok(instant)
             }
         }
-        _ => Err(format!("unsupported time scale: {:?}", time_scale)),
+        _ => Err(format!("unsupported time scale: {}", time_scale)),
     }
 }
 
@@ -991,7 +991,7 @@ mod tests {
         ])
         .expect("UTC chart should convert to TT with an explicit offset");
         assert!(rendered.contains("Instant: JD 2451545"));
-        assert!(rendered.contains("(Tt)"));
+        assert!(rendered.contains("(TT)"));
         assert!(rendered.contains("Sun"));
     }
 
@@ -1000,8 +1000,8 @@ mod tests {
         let rendered = render_chart(&["--jd", "2451545.0", "--tdb", "--body", "Sun"])
             .expect("chart should render with a TDB-tagged instant");
         assert!(
-            rendered.contains("Instant: JD 2451545 (Tdb)")
-                || rendered.contains("Instant: JD 2451545.0 (Tdb)")
+            rendered.contains("Instant: JD 2451545 (TDB)")
+                || rendered.contains("Instant: JD 2451545.0 (TDB)")
         );
         assert!(rendered.contains("Apparentness: Mean"));
     }
@@ -1019,7 +1019,7 @@ mod tests {
         ])
         .expect("TDB-tagged chart should accept a signed TT-TDB offset");
         assert!(rendered.contains("Instant: JD"));
-        assert!(rendered.contains("(Tt)"));
+        assert!(rendered.contains("(TT)"));
     }
 
     #[test]
@@ -1035,7 +1035,7 @@ mod tests {
         ])
         .expect("TT-tagged chart should accept a signed TDB-TT offset");
         assert!(rendered.contains("Instant: JD"));
-        assert!(rendered.contains("(Tdb)"));
+        assert!(rendered.contains("(TDB)"));
     }
 
     #[test]
@@ -1053,7 +1053,7 @@ mod tests {
         ])
         .expect("UTC chart should accept a signed TDB-TT offset");
         assert!(rendered.contains("Instant: JD 2451545"));
-        assert!(rendered.contains("(Tdb)"));
+        assert!(rendered.contains("(TDB)"));
     }
 
     #[test]
@@ -1085,7 +1085,7 @@ mod tests {
         ])
         .expect("UT1 chart should convert to TDB with explicit offsets");
         assert!(rendered.contains("Instant: JD 2451545"));
-        assert!(rendered.contains("(Tdb)"));
+        assert!(rendered.contains("(TDB)"));
         assert!(rendered.contains("Sun"));
     }
 
