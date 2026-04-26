@@ -1274,6 +1274,8 @@ impl fmt::Display for ValidationReport {
         writeln!(f)?;
         write_regression_archive_section(f, &self.archived_regressions)?;
         writeln!(f)?;
+        writeln!(f, "{}", benchmark_provenance_text())?;
+        writeln!(f)?;
         writeln!(f, "Benchmark summaries")?;
         writeln!(f, "Reference benchmark")?;
         writeln!(f, "  corpus: {}", self.reference_benchmark.corpus_name)?;
@@ -2894,6 +2896,14 @@ fn workspace_provenance() -> WorkspaceProvenance {
         workspace_status,
         rustc_version,
     }
+}
+
+fn benchmark_provenance_text() -> String {
+    let provenance = workspace_provenance();
+    format!(
+        "Benchmark provenance\n  source revision: {}\n  workspace status: {}\n  rustc version: {}",
+        provenance.source_revision, provenance.workspace_status, provenance.rustc_version
+    )
 }
 
 /// Writes a release bundle containing the compatibility profile, release notes,
@@ -4585,8 +4595,11 @@ pub fn render_benchmark_report(rounds: usize) -> Result<String, EphemerisError> 
         })?;
     let chart_report = benchmark_chart_backend(default_candidate_backend(), rounds)?;
     Ok(format!(
-        "{}\n\n{}\n\n{}",
-        backend_report, artifact_report, chart_report
+        "{}\n\n{}\n\n{}\n\n{}",
+        benchmark_provenance_text(),
+        backend_report,
+        artifact_report,
+        chart_report
     ))
 }
 
@@ -5126,6 +5139,8 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         "  Packaged frame treatment: {}",
         format_packaged_frame_treatment_summary()
     );
+    let _ = writeln!(text);
+    let _ = writeln!(text, "{}", benchmark_provenance_text());
     let _ = writeln!(text);
     let _ = writeln!(text, "Benchmark summaries");
     let _ = writeln!(text, "Reference benchmark");
@@ -7888,6 +7903,10 @@ mod tests {
     #[test]
     fn benchmark_report_renders_a_time_summary() {
         let report = render_benchmark_report(10).expect("benchmark should render");
+        assert!(report.contains("Benchmark provenance"));
+        assert!(report.contains("source revision:"));
+        assert!(report.contains("workspace status:"));
+        assert!(report.contains("rustc version:"));
         assert!(report.contains("Benchmark report"));
         assert!(report.contains("Representative 1500-2500 window"));
         assert!(report.contains("Apparentness: Mean"));
@@ -8196,6 +8215,10 @@ mod tests {
             "VSOP87 source-backed body evidence: 8 body profiles (0 vendored full-file, 8 generated binary), 8 within interim limits, 0 outside interim limits; outside interim limits: none"
         ));
         assert!(report.contains("House validation corpus"));
+        assert!(report.contains("Benchmark provenance"));
+        assert!(report.contains("source revision:"));
+        assert!(report.contains("workspace status:"));
+        assert!(report.contains("rustc version:"));
         assert!(report.contains("Benchmark summaries"));
         assert!(report.contains("Release bundle verification: verify-release-bundle"));
         assert!(report.contains("Workspace audit: workspace-audit / audit"));
@@ -8251,6 +8274,10 @@ mod tests {
         assert!(rendered.contains("Body comparison summaries"));
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
         assert!(rendered.contains("Packaged-artifact profile"));
+        assert!(rendered.contains("Benchmark provenance"));
+        assert!(rendered.contains("source revision:"));
+        assert!(rendered.contains("workspace status:"));
+        assert!(rendered.contains("rustc version:"));
         assert!(rendered.contains("Benchmark summaries"));
         assert!(rendered.contains("Packaged artifact decode benchmark"));
 
