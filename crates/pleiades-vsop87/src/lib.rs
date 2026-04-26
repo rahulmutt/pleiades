@@ -285,6 +285,8 @@ pub struct Vsop87SourceDocumentationHealthSummary {
     pub source_specification_count: usize,
     /// Number of public source files represented by the catalog.
     pub source_file_count: usize,
+    /// Public source files represented by the catalog in release-facing order.
+    pub source_files: Vec<&'static str>,
     /// Number of source-backed body profiles described by the catalog.
     pub source_backed_profile_count: usize,
     /// Bodies that still use a source-backed planetary path rather than the fallback mean-element path.
@@ -1260,7 +1262,12 @@ pub fn source_documentation_health_summary() -> Vsop87SourceDocumentationHealthS
     let source_specs = source_specifications();
     let body_profile_count = body_catalog_entries().len();
     let source_file_count = summary.source_files.len();
+    let expected_source_files = source_specs
+        .iter()
+        .map(|spec| spec.source_file)
+        .collect::<Vec<_>>();
     let consistent = summary.source_specification_count == source_file_count
+        && summary.source_files == expected_source_files
         && summary.source_backed_profile_count
             == summary.generated_binary_profile_count
                 + summary.vendored_full_file_profile_count
@@ -1275,6 +1282,7 @@ pub fn source_documentation_health_summary() -> Vsop87SourceDocumentationHealthS
         documentation_consistent,
         source_specification_count: summary.source_specification_count,
         source_file_count,
+        source_files: summary.source_files,
         source_backed_profile_count: summary.source_backed_profile_count,
         source_backed_bodies: summary.source_backed_bodies,
         generated_binary_bodies: summary.generated_binary_bodies,
@@ -1294,7 +1302,7 @@ pub fn format_source_documentation_health_summary(
     summary: &Vsop87SourceDocumentationHealthSummary,
 ) -> String {
     format!(
-        "VSOP87 source documentation health: {} ({} source specs, {} source files, {} source-backed profiles, {} body profiles; {} generated binary profiles ({}), {} vendored full-file profiles ({}), {} truncated profiles ({}), {} fallback profiles ({}); source-backed bodies: {}; fallback bodies: {}; documented fields: {})",
+        "VSOP87 source documentation health: {} ({} source specs, {} source files, {} source-backed profiles, {} body profiles; {} generated binary profiles ({}), {} vendored full-file profiles ({}), {} truncated profiles ({}), {} fallback profiles ({}); source files: {}; source-backed bodies: {}; fallback bodies: {}; documented fields: {})",
         if summary.consistent { "ok" } else { "needs attention" },
         summary.source_specification_count,
         summary.source_file_count,
@@ -1308,6 +1316,7 @@ pub fn format_source_documentation_health_summary(
         format_bodies(&summary.truncated_bodies),
         summary.fallback_profile_count,
         format_bodies(&summary.fallback_bodies),
+        format_source_files(&summary.source_files),
         format_bodies(&summary.source_backed_bodies),
         format_bodies(&summary.fallback_bodies),
         if summary.documentation_consistent {
@@ -1327,6 +1336,14 @@ fn format_bodies(bodies: &[CelestialBody]) -> String {
             .map(ToString::to_string)
             .collect::<Vec<_>>()
             .join(", ")
+    }
+}
+
+fn format_source_files(source_files: &[&'static str]) -> String {
+    if source_files.is_empty() {
+        "none".to_string()
+    } else {
+        source_files.join(", ")
     }
 }
 
@@ -4105,6 +4122,19 @@ mod tests {
         assert!(summary.documentation_consistent);
         assert_eq!(summary.source_specification_count, 8);
         assert_eq!(summary.source_file_count, 8);
+        assert_eq!(
+            summary.source_files,
+            vec![
+                "VSOP87B.ear",
+                "VSOP87B.mer",
+                "VSOP87B.ven",
+                "VSOP87B.mar",
+                "VSOP87B.jup",
+                "VSOP87B.sat",
+                "VSOP87B.ura",
+                "VSOP87B.nep",
+            ]
+        );
         assert_eq!(summary.source_backed_profile_count, 8);
         assert_eq!(summary.body_profile_count, 9);
         assert_eq!(
@@ -4147,7 +4177,7 @@ mod tests {
         assert_eq!(summary.fallback_bodies, vec![CelestialBody::Pluto]);
         assert_eq!(
             format_source_documentation_health_summary(&summary),
-            "VSOP87 source documentation health: ok (8 source specs, 8 source files, 8 source-backed profiles, 9 body profiles; 8 generated binary profiles (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune), 0 vendored full-file profiles (none), 0 truncated profiles (none), 1 fallback profiles (Pluto); source-backed bodies: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; fallback bodies: Pluto; documented fields: variant, coordinate family, frame, units, reduction, transform note, truncation policy, and date range)"
+            "VSOP87 source documentation health: ok (8 source specs, 8 source files, 8 source-backed profiles, 9 body profiles; 8 generated binary profiles (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune), 0 vendored full-file profiles (none), 0 truncated profiles (none), 1 fallback profiles (Pluto); source files: VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep; source-backed bodies: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; fallback bodies: Pluto; documented fields: variant, coordinate family, frame, units, reduction, transform note, truncation policy, and date range)"
         );
         assert_eq!(
             source_documentation_health_summary_for_report(),
