@@ -607,6 +607,9 @@ mod tests {
         assert!(rendered.contains("True Pushya"));
         assert!(rendered.contains("Djwhal Khul"));
         assert!(rendered.contains("True Revati"));
+        assert!(rendered.contains("True Citra Paksha"));
+        assert!(rendered.contains("True Chitra Paksha"));
+        assert!(rendered.contains("True Chitrapaksha"));
     }
 
     #[test]

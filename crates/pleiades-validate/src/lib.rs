@@ -8483,6 +8483,8 @@ mod tests {
         assert!(rendered.contains("Neo-Porphyry"));
         assert!(rendered.contains("Makransky Sunshine"));
         assert!(rendered.contains("True Citra Paksha"));
+        assert!(rendered.contains("True Chitra Paksha"));
+        assert!(rendered.contains("True Chitrapaksha"));
         assert!(rendered.contains("Galactic Equator (Fiorenza)"));
         assert!(rendered.contains("Nick Anthony Fiorenza"));
         assert!(rendered.contains("Bob Makransky"));
