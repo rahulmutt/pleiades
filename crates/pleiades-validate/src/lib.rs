@@ -7409,7 +7409,7 @@ fn implemented_backend_catalog() -> Vec<BackendMatrixEntry> {
             label: "VSOP87 planetary backend",
             metadata: Vsop87Backend::new().metadata(),
             implementation_status: BackendImplementationStatus::PartialSourceBacked,
-            status_note: "Sun, Mercury, Venus, and Mars now use generated binary VSOP87B source tables, Jupiter, Saturn, Uranus, and Neptune still use vendored full-file source files, and Pluto remains a mean-element fallback pending a selected source path",
+            status_note: "Sun through Neptune now use generated binary VSOP87B source tables derived from the vendored full-file inputs, and Pluto remains a mean-element fallback pending a selected source path",
             expected_error_kinds: VSOP87_EXPECTED_ERROR_KINDS,
             required_data_files: &[],
         },
@@ -9339,6 +9339,7 @@ mod tests {
         assert!(rendered.contains("implementation status: prototype-artifact"));
         assert!(rendered.contains("implementation status: routing-facade"));
         assert!(rendered.contains("implementation note:"));
+        assert!(rendered.contains("Sun through Neptune now use generated binary VSOP87B source tables derived from the vendored full-file inputs"));
         assert!(rendered.contains("expected error classes:"));
         assert!(rendered.contains("required external data files:"));
         assert!(rendered.contains("crates/pleiades-jpl/data/reference_snapshot.csv"));

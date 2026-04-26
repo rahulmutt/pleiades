@@ -34,6 +34,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Progress note: the VSOP87 request-policy and unsupported-body messages now use the production backend label instead of the older MVP phrasing, so request failures stay aligned with the source-backed backend state.
    - Progress note: the canonical VSOP87 evidence summary now also reports 95th-percentile longitude, latitude, and distance deltas, giving the backend-owned source-backed envelope a compact upper-tail metric alongside the existing mean/median/RMS view.
    - Progress note: the VSOP87 source-backed body evidence summary now also prints the canonical source-backed body order, so the compact provenance line now mirrors the Sun-through-Neptune ordering instead of only listing aggregate counts.
+   - Progress note: the backend-matrix implementation note for the VSOP87 backend now correctly describes the Sun-through-Neptune generated-binary paths as derived from the vendored full-file inputs, keeping the release-facing implementation status aligned with the runtime path.
 
 2. Implement production `pleiades-elp` lunar calculations.
    - Select and document a pure-Rust lunar theory source.
