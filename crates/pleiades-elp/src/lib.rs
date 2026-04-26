@@ -384,7 +384,7 @@ const LUNAR_THEORY_SPECIFICATION: LunarTheorySpecification = LunarTheorySpecific
     unit_note:
         "Angular outputs are reported in degrees and distance outputs, when present, are reported in astronomical units",
     date_range_note:
-        "Validated against the published 1992-04-12 geocentric Moon example, the published 1992-04-12 geocentric Moon RA/Dec example used for the mean-obliquity equatorial transform, J2000 lunar-point anchors, published 1913-05-27 true-node and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example; no full ELP coefficient range has been published yet",
+        "Validated against the published 1992-04-12 geocentric Moon example, the published 1992-04-12 geocentric Moon RA/Dec example used for the mean-obliquity equatorial transform, J2000 lunar-point anchors including the mean apogee and mean perigee references, published 1913-05-27 true-node and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example; no full ELP coefficient range has been published yet",
     frame_note:
         "Geocentric ecliptic coordinates are produced directly from the truncated lunar series; equatorial coordinates are derived with a mean-obliquity transform",
     validation_window: LUNAR_THEORY_VALIDATION_WINDOW,
@@ -1212,7 +1212,7 @@ pub fn lunar_reference_evidence_summary() -> Option<LunarReferenceEvidenceSummar
 /// Formats the lunar reference evidence summary for release-facing reporting.
 pub fn format_lunar_reference_evidence_summary(summary: &LunarReferenceEvidenceSummary) -> String {
     format!(
-        "lunar reference evidence: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, validated against the published 1992-04-12 Moon example plus J2000 lunar-point anchors, published 1913-05-27 true-node and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example",
+        "lunar reference evidence: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, validated against the published 1992-04-12 Moon example plus J2000 lunar-point anchors, including the mean apogee and mean perigee references, published 1913-05-27 true-node and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example",
         summary.sample_count,
         summary.body_count,
         summary.earliest_epoch.julian_day.days(),
@@ -2742,6 +2742,7 @@ mod tests {
         assert!(summary.contains(
             "geocentric Moon RA/Dec example used for the mean-obliquity equatorial transform"
         ));
+        assert!(summary.contains("mean apogee"));
         assert_eq!(
             lunar_theory_request_policy_summary(),
             theory.request_policy.summary_line()
@@ -2790,6 +2791,7 @@ mod tests {
             .contains("selected source: meeus-style-truncated-lunar-baseline"));
         assert!(lunar_theory_catalog_summary_for_report()
             .contains("aliases=1; supported bodies=5; unsupported bodies=2"));
+        assert!(lunar_theory_catalog_validation_summary_for_report().contains("aliases=1"));
         assert_eq!(
             lunar_theory_catalog_entry_for_source_identifier(theory.source_identifier),
             Some(catalog[0])
