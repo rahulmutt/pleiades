@@ -32,9 +32,9 @@ use pleiades_ayanamsa::{
     baseline_ayanamsas, built_in_ayanamsas, metadata_coverage, release_ayanamsas, resolve_ayanamsa,
 };
 use pleiades_backend::{
-    apparentness_policy_summary_for_report, frame_policy_summary_for_report,
-    observer_policy_summary_for_report, time_scale_policy_summary_for_report,
-    zodiac_policy_summary_for_report,
+    apparentness_policy_summary_for_report, current_request_policy_summary,
+    frame_policy_summary_for_report, observer_policy_summary_for_report,
+    time_scale_policy_summary_for_report, zodiac_policy_summary_for_report,
 };
 use pleiades_core::{
     current_api_stability_profile, current_compatibility_profile,
@@ -2786,6 +2786,7 @@ fn render_release_summary_text() -> String {
     let profile = current_compatibility_profile();
     let release_profiles = current_release_profile_identifiers();
     let api_stability = current_api_stability_profile();
+    let request_policy = current_request_policy_summary();
     let mut text = String::new();
 
     text.push_str("Release summary\n");
@@ -2799,16 +2800,16 @@ fn render_release_summary_text() -> String {
     text.push_str(&release_profiles.to_string());
     text.push('\n');
     text.push_str("Time-scale policy: ");
-    text.push_str(time_scale_policy_summary_for_report());
+    text.push_str(request_policy.time_scale);
     text.push('\n');
     text.push_str("Observer policy: ");
-    text.push_str(observer_policy_summary_for_report());
+    text.push_str(request_policy.observer);
     text.push('\n');
     text.push_str("Apparentness policy: ");
-    text.push_str(apparentness_policy_summary_for_report());
+    text.push_str(request_policy.apparentness);
     text.push('\n');
     text.push_str("Frame policy: ");
-    text.push_str(frame_policy_summary_for_report());
+    text.push_str(request_policy.frame);
     text.push('\n');
     text.push_str("Zodiac policy: ");
     text.push_str(&zodiac_policy_summary_for_report(&[ZodiacMode::Tropical]));
@@ -4912,6 +4913,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     use std::fmt::Write as _;
 
     let release_profiles = current_release_profile_identifiers();
+    let request_policy = current_request_policy_summary();
     let comparison_regressions = report.comparison.notable_regressions().len();
     let mut text = String::new();
 
@@ -4927,22 +4929,10 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         release_profiles.api_stability_profile_id
     );
     let _ = writeln!(text, "Release profile identifiers: {}", release_profiles);
-    let _ = writeln!(
-        text,
-        "Time-scale policy: {}",
-        time_scale_policy_summary_for_report()
-    );
-    let _ = writeln!(
-        text,
-        "Observer policy: {}",
-        observer_policy_summary_for_report()
-    );
-    let _ = writeln!(
-        text,
-        "Apparentness policy: {}",
-        apparentness_policy_summary_for_report()
-    );
-    let _ = writeln!(text, "Frame policy: {}", frame_policy_summary_for_report());
+    let _ = writeln!(text, "Time-scale policy: {}", request_policy.time_scale);
+    let _ = writeln!(text, "Observer policy: {}", request_policy.observer);
+    let _ = writeln!(text, "Apparentness policy: {}", request_policy.apparentness);
+    let _ = writeln!(text, "Frame policy: {}", request_policy.frame);
     let _ = writeln!(
         text,
         "Zodiac policy: {}",
