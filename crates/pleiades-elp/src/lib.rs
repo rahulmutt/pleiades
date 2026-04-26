@@ -234,6 +234,20 @@ impl<'a> LunarTheoryCatalogKey<'a> {
     }
 }
 
+impl fmt::Display for LunarTheoryCatalogKey<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::SourceIdentifier(source_identifier) => {
+                write!(f, "source identifier={source_identifier}")
+            }
+            Self::ModelName(model_name) => write!(f, "model name={model_name}"),
+            Self::SourceFamily(source_family) => write!(f, "source family={source_family}"),
+            Self::FamilyLabel(family_label) => write!(f, "family label={family_label}"),
+            Self::Alias(alias) => write!(f, "alias={alias}"),
+        }
+    }
+}
+
 /// Structured description of the current lunar-theory selection.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct LunarTheorySpecification {
@@ -643,6 +657,10 @@ pub fn format_lunar_theory_catalog_validation_summary(
         .selected_source
         .map(|source| format!("{} [{}]", source.identifier, source.family_label()))
         .unwrap_or_else(|| "none".to_string());
+    let selected_catalog_key = summary
+        .selected_source
+        .map(|source| source.catalog_key().to_string())
+        .unwrap_or_else(|| "none".to_string());
     let selected_alias_count = summary
         .selected_source
         .map(|source| source.source_aliases.len())
@@ -650,18 +668,20 @@ pub fn format_lunar_theory_catalog_validation_summary(
 
     match summary.validation_result {
         Ok(()) => format!(
-            "lunar theory catalog validation: ok ({} entries, {} selected; selected source: {}; aliases={}; round-trip, alias uniqueness, and case-insensitive key matching verified)",
+            "lunar theory catalog validation: ok ({} entries, {} selected; selected source: {}; selected key: {}; aliases={}; round-trip, alias uniqueness, and case-insensitive key matching verified)",
             summary.entry_count,
             summary.selected_count,
             selected_source_summary,
+            selected_catalog_key,
             selected_alias_count,
         ),
         Err(error) => format!(
-            "lunar theory catalog validation: error: {} ({} entries, {} selected; selected source: {}; aliases={})",
+            "lunar theory catalog validation: error: {} ({} entries, {} selected; selected source: {}; selected key: {}; aliases={})",
             error,
             summary.entry_count,
             summary.selected_count,
             selected_source_summary,
+            selected_catalog_key,
             selected_alias_count,
         ),
     }
@@ -2720,6 +2740,14 @@ mod tests {
             source.family_key(),
             LunarTheoryCatalogKey::SourceFamily(theory.source_family)
         );
+        assert_eq!(
+            source.catalog_key().to_string(),
+            "source identifier=meeus-style-truncated-lunar-baseline"
+        );
+        assert_eq!(
+            source.family_key().to_string(),
+            "source family=Meeus-style truncated analytical baseline"
+        );
         assert_eq!(resolve_lunar_theory_by_selection(source), Some(theory));
         let catalog = lunar_theory_catalog();
         assert_eq!(
@@ -2835,7 +2863,7 @@ mod tests {
             lunar_theory_catalog_validation_summary_for_report()
         );
         assert!(lunar_theory_catalog_validation_summary_for_report()
-            .contains("lunar theory catalog validation: ok (1 entries, 1 selected; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]; aliases=1; round-trip, alias uniqueness, and case-insensitive key matching verified)"));
+            .contains("lunar theory catalog validation: ok (1 entries, 1 selected; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]; selected key: source identifier=meeus-style-truncated-lunar-baseline; aliases=1; round-trip, alias uniqueness, and case-insensitive key matching verified)"));
         assert!(lunar_theory_catalog_summary_for_report()
             .contains("selected source: meeus-style-truncated-lunar-baseline"));
         assert!(lunar_theory_catalog_summary_for_report()

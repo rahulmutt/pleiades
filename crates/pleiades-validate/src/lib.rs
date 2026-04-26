@@ -9222,7 +9222,7 @@ mod tests {
             "lunar theory catalog: 1 entry, 1 selected entry; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]"
         ));
         assert!(rendered.contains(
-            "lunar theory catalog validation: ok (1 entries, 1 selected; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]; aliases=1; round-trip, alias uniqueness, and case-insensitive key matching verified)"
+            "lunar theory catalog validation: ok (1 entries, 1 selected; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]; selected key: source identifier=meeus-style-truncated-lunar-baseline; aliases=1; round-trip, alias uniqueness, and case-insensitive key matching verified)"
         ));
         assert!(rendered.contains("lunar reference error envelope: 9 samples across 5 bodies"));
         assert!(rendered.contains("max Δlon="));
@@ -9694,7 +9694,7 @@ version = "0.9.0"
             "lunar theory catalog: 1 entry, 1 selected entry; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]"
         ));
         assert!(validation_report_summary.contains(
-            "lunar theory catalog validation: ok (1 entries, 1 selected; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]; aliases=1; round-trip, alias uniqueness, and case-insensitive key matching verified)"
+            "lunar theory catalog validation: ok (1 entries, 1 selected; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]; selected key: source identifier=meeus-style-truncated-lunar-baseline; aliases=1; round-trip, alias uniqueness, and case-insensitive key matching verified)"
         ));
         assert!(validation_report_summary
             .contains("lunar reference error envelope: 9 samples across 5 bodies"));
