@@ -27,7 +27,10 @@ use pleiades_compression::{
     ArtifactHeader, ArtifactProfile, BodyArtifact, ChannelKind, EndianPolicy, PolynomialChannel,
     Segment,
 };
-use pleiades_jpl::{reference_snapshot, reference_snapshot_summary_for_report, SnapshotEntry};
+use pleiades_jpl::{
+    format_reference_snapshot_summary, reference_snapshot, reference_snapshot_summary,
+    ReferenceSnapshotSummary, SnapshotEntry,
+};
 
 const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data prototype";
@@ -71,14 +74,63 @@ pub fn packaged_body_coverage_summary() -> String {
     )
 }
 
+/// Structured regeneration provenance for the packaged artifact.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PackagedArtifactRegenerationSummary {
+    /// Human-readable generation label.
+    pub label: &'static str,
+    /// Human-readable provenance/source summary.
+    pub source: &'static str,
+    /// Bodies bundled into the packaged artifact.
+    pub bodies: Vec<CelestialBody>,
+    /// Coverage summary for the checked-in JPL reference snapshot used for regeneration.
+    pub reference_snapshot: Option<ReferenceSnapshotSummary>,
+}
+
+impl PackagedArtifactRegenerationSummary {
+    /// Returns the bundled bodies as a compact human-readable line.
+    pub fn body_coverage_line(&self) -> String {
+        let body_list = self
+            .bodies
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        format!("{} bundled bodies ({body_list})", self.bodies.len())
+    }
+
+    /// Returns the checked-in JPL snapshot coverage as a compact human-readable line.
+    pub fn reference_snapshot_line(&self) -> String {
+        self.reference_snapshot
+            .map(|summary| format_reference_snapshot_summary(&summary))
+            .unwrap_or_else(|| "Reference snapshot coverage: unavailable".to_string())
+    }
+
+    /// Returns the full packaged-artifact regeneration provenance summary.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Packaged artifact regeneration source: label={}; source={}; {}",
+            self.label,
+            self.source,
+            self.reference_snapshot_line(),
+        )
+    }
+}
+
+/// Returns the structured packaged-artifact regeneration provenance.
+pub fn packaged_artifact_regeneration_summary_details() -> PackagedArtifactRegenerationSummary {
+    PackagedArtifactRegenerationSummary {
+        label: ARTIFACT_LABEL,
+        source: ARTIFACT_SOURCE,
+        bodies: packaged_bodies().to_vec(),
+        reference_snapshot: reference_snapshot_summary(),
+    }
+}
+
 /// Returns the packaged-artifact regeneration provenance summary.
 pub fn packaged_artifact_regeneration_summary() -> String {
-    format!(
-        "Packaged artifact regeneration source: label={}; source={}; {}",
-        ARTIFACT_LABEL,
-        ARTIFACT_SOURCE,
-        reference_snapshot_summary_for_report(),
-    )
+    packaged_artifact_regeneration_summary_details().summary_line()
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -839,13 +891,26 @@ mod tests {
 
     #[test]
     fn packaged_artifact_regeneration_summary_includes_reference_snapshot_coverage() {
-        let summary = packaged_artifact_regeneration_summary();
-        assert!(summary.contains(
+        let summary = packaged_artifact_regeneration_summary_details();
+        assert_eq!(summary.label, ARTIFACT_LABEL);
+        assert_eq!(summary.source, ARTIFACT_SOURCE);
+        assert_eq!(summary.bodies.len(), packaged_bodies().len());
+        assert_eq!(
+            summary.body_coverage_line(),
+            "11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"
+        );
+        assert_eq!(
+            packaged_body_coverage_summary(),
+            format!("Packaged body set: {}", summary.body_coverage_line())
+        );
+
+        let provenance = summary.summary_line();
+        assert!(provenance.contains(
             "Packaged artifact regeneration source: label=stage-5 packaged-data prototype"
         ));
-        assert!(summary.contains("Reference snapshot coverage:"));
-        assert!(summary.contains("rows across"));
-        assert!(summary.contains("asteroid rows"));
+        assert!(provenance.contains("Reference snapshot coverage:"));
+        assert!(provenance.contains("rows across"));
+        assert!(provenance.contains("asteroid rows"));
     }
 
     #[test]

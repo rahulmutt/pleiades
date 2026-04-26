@@ -16,7 +16,8 @@ use pleiades_core::{
     Longitude, ObserverLocation, RoutingBackend, TimeScale, ZodiacMode,
 };
 use pleiades_data::{
-    packaged_artifact_regeneration_summary, regenerate_packaged_artifact, PackagedDataBackend,
+    packaged_artifact_regeneration_summary, packaged_artifact_regeneration_summary_details,
+    regenerate_packaged_artifact, PackagedDataBackend,
 };
 use pleiades_elp::ElpBackend;
 use pleiades_jpl::JplSnapshotBackend;
@@ -301,6 +302,8 @@ fn render_packaged_artifact_regeneration(output_path: &str) -> Result<String, St
     std::fs::write(output_path, &encoded)
         .map_err(|error| format!("failed to write {}: {error}", output_path))?;
 
+    let regeneration = packaged_artifact_regeneration_summary_details();
+
     Ok(format!(
         "Packaged artifact regenerated\n  path: {}\n  label: {}\n  source: {}\n  checksum: 0x{:016x}\n  bytes: {}\n  bodies: {}\n  {}",
         output_path,
@@ -308,7 +311,7 @@ fn render_packaged_artifact_regeneration(output_path: &str) -> Result<String, St
         artifact.header.source,
         artifact.checksum,
         encoded.len(),
-        artifact.bodies.len(),
+        regeneration.body_coverage_line(),
         packaged_artifact_regeneration_summary(),
     ))
 }
@@ -834,6 +837,7 @@ mod tests {
         .expect("packaged artifact regeneration should render");
         assert!(regenerated.contains("Packaged artifact regenerated"));
         assert!(regenerated.contains("stage-5 packaged-data prototype"));
+        assert!(regenerated.contains("11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"));
         assert!(regenerated.contains("Packaged artifact regeneration source:"));
         assert!(regenerated.contains("Reference snapshot coverage:"));
         assert!(artifact_fixture_path.exists());
