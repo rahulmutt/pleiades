@@ -2337,6 +2337,43 @@ mod tests {
     }
 
     #[test]
+    fn batch_query_preserves_independent_holdout_order_and_single_query_parity() {
+        let backend = JplSnapshotBackend;
+        let entries = independent_holdout_snapshot_entries()
+            .expect("independent hold-out entries should exist");
+        let requests = entries
+            .iter()
+            .map(|entry| EphemerisRequest {
+                body: entry.body.clone(),
+                instant: entry.epoch,
+                observer: None,
+                frame: CoordinateFrame::Ecliptic,
+                zodiac_mode: ZodiacMode::Tropical,
+                apparent: Apparentness::Mean,
+            })
+            .collect::<Vec<_>>();
+
+        let results = backend
+            .positions(&requests)
+            .expect("batch query should resolve the independent hold-out rows");
+
+        assert_eq!(results.len(), entries.len());
+        for ((entry, request), batch_result) in
+            entries.iter().zip(requests.iter()).zip(results.iter())
+        {
+            assert_eq!(batch_result.body, entry.body);
+            assert_eq!(batch_result.instant, entry.epoch);
+            assert_eq!(batch_result.frame, request.frame);
+            assert_eq!(batch_result.zodiac_mode, request.zodiac_mode);
+            assert_eq!(batch_result.apparent, request.apparent);
+            let single = backend
+                .position(request)
+                .expect("single query should match the independent hold-out batch path");
+            assert_eq!(batch_result, &single);
+        }
+    }
+
+    #[test]
     fn jpl_snapshot_evidence_summary_combines_the_backend_reports() {
         let report = jpl_snapshot_evidence_summary_for_report();
         assert!(report.contains(&reference_snapshot_summary_for_report()));
