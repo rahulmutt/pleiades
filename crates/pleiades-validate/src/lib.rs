@@ -8558,6 +8558,10 @@ mod tests {
         assert!(rendered.contains("Babylonian/Britton"));
         assert!(rendered.contains("Babylonian (Aldebaran)"));
         assert!(rendered.contains("Babylonian/Aldebaran = 15 Tau"));
+        assert!(rendered.contains("Babylonian (Eta Piscium)"));
+        assert!(rendered.contains("Babylonian/Eta Piscium"));
+        assert!(rendered.contains("Babylonian Eta Piscium"));
+        assert!(rendered.contains("Eta Piscium"));
         assert!(rendered.contains("Suryasiddhanta (Mean Sun)"));
         assert!(rendered.contains("Aryabhata (Mean Sun)"));
         assert!(rendered.contains("Galactic Equator (IAU 1958)"));
@@ -8650,6 +8654,7 @@ mod tests {
         assert!(rendered.contains("Babylonian Huber"));
         assert!(rendered.contains("Babylonian (Britton)"));
         assert!(rendered.contains("Babylonian (Aldebaran)"));
+        assert!(rendered.contains("Babylonian (Eta Piscium)"));
         assert!(rendered.contains("Galactic Equator (True)"));
         assert!(rendered.contains("Galactic Equator (IAU 1958)"));
         assert!(rendered.contains("Valens Moon ayanamsa"));
