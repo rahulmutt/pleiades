@@ -13,8 +13,9 @@
 //! from the public source text. The backend accepts both TT and TDB requests as
 //! dynamical-time inputs and still rejects UT-based requests explicitly. It
 //! exposes mean-only tropical geocentric ecliptic/equatorial results and does
-//! not accept topocentric observer or apparent-place requests yet. Pluto still
-//! uses compact
+//! not accept topocentric observer or apparent-place requests yet. The source-backed
+//! and fallback body-profile helpers are public so reproducibility tooling can reuse
+//! the backend-owned catalog partition directly. Pluto still uses compact
 //! Keplerian orbital elements,
 //! a geocentric reduction step, and central-difference motion estimates so the
 //! workspace has an end-to-end tropical chart path while the remaining Pluto-
@@ -103,6 +104,30 @@ pub struct Vsop87BodySource {
 pub fn body_source_profiles() -> Vec<Vsop87BodySource> {
     body_catalog_entries()
         .iter()
+        .map(|entry| entry.source_profile.clone())
+        .collect()
+}
+
+/// Returns the source-backed VSOP87 body profiles used by [`Vsop87Backend`].
+///
+/// This is the public reproducibility-friendly subset of [`body_source_profiles()`]
+/// that excludes the remaining mean-element Pluto fallback.
+pub fn source_backed_body_profiles() -> Vec<Vsop87BodySource> {
+    body_catalog_entries()
+        .iter()
+        .filter(|entry| entry.source_profile.kind != Vsop87BodySourceKind::MeanOrbitalElements)
+        .map(|entry| entry.source_profile.clone())
+        .collect()
+}
+
+/// Returns the fallback VSOP87 body profiles used by [`Vsop87Backend`].
+///
+/// The current catalog keeps Pluto in this separate mean-element bucket until a
+/// Pluto-specific source path is selected.
+pub fn fallback_body_profiles() -> Vec<Vsop87BodySource> {
+    body_catalog_entries()
+        .iter()
+        .filter(|entry| entry.source_profile.kind == Vsop87BodySourceKind::MeanOrbitalElements)
         .map(|entry| entry.source_profile.clone())
         .collect()
 }
@@ -928,11 +953,11 @@ pub fn generated_binary_audit_summary_for_report() -> String {
 /// Returns a summary of the current VSOP87 source-documentation catalog.
 pub fn source_documentation_summary() -> Vsop87SourceDocumentationSummary {
     let source_specs = source_specifications();
-    let source_backed_profiles = body_source_profiles();
+    let source_backed_profiles = source_backed_body_profiles();
+    let fallback_profiles = fallback_body_profiles();
 
-    let fallback_bodies = source_backed_profiles
+    let fallback_bodies = fallback_profiles
         .iter()
-        .filter(|profile| profile.kind == Vsop87BodySourceKind::MeanOrbitalElements)
         .map(|profile| profile.body.clone())
         .collect::<Vec<_>>();
 
@@ -945,14 +970,6 @@ pub fn source_documentation_summary() -> Vsop87SourceDocumentationSummary {
 
     let source_backed_bodies = source_backed_profiles
         .iter()
-        .filter(|profile| {
-            matches!(
-                profile.kind,
-                Vsop87BodySourceKind::TruncatedVsop87b
-                    | Vsop87BodySourceKind::VendoredVsop87b
-                    | Vsop87BodySourceKind::GeneratedBinaryVsop87b
-            )
-        })
         .map(|profile| profile.body.clone())
         .collect::<Vec<_>>();
     let generated_binary_bodies = source_backed_profiles
@@ -977,7 +994,7 @@ pub fn source_documentation_summary() -> Vsop87SourceDocumentationSummary {
 
     Vsop87SourceDocumentationSummary {
         source_specification_count: source_specs.len(),
-        source_backed_profile_count: source_backed_bodies.len(),
+        source_backed_profile_count: source_backed_profiles.len(),
         source_backed_bodies,
         source_files,
         generated_binary_bodies,
@@ -995,10 +1012,7 @@ pub fn source_documentation_summary() -> Vsop87SourceDocumentationSummary {
             .iter()
             .filter(|profile| profile.kind == Vsop87BodySourceKind::TruncatedVsop87b)
             .count(),
-        fallback_profile_count: source_backed_profiles
-            .iter()
-            .filter(|profile| profile.kind == Vsop87BodySourceKind::MeanOrbitalElements)
-            .count(),
+        fallback_profile_count: fallback_profiles.len(),
         fallback_bodies,
         date_ranges,
     }
@@ -3422,6 +3436,43 @@ mod tests {
         assert_eq!(
             supported_source_files(),
             source_documentation_summary().source_files
+        );
+    }
+
+    #[test]
+    fn source_backed_and_fallback_body_profiles_are_exposed_for_reproducibility_tooling() {
+        let source_backed_profiles = source_backed_body_profiles();
+        let fallback_profiles = fallback_body_profiles();
+        let summary = source_documentation_summary();
+
+        assert_eq!(
+            source_backed_profiles.len(),
+            summary.source_backed_profile_count
+        );
+        assert_eq!(fallback_profiles.len(), summary.fallback_profile_count);
+        assert_eq!(
+            source_backed_profiles
+                .iter()
+                .map(|profile| profile.body.clone())
+                .collect::<Vec<_>>(),
+            summary.source_backed_bodies
+        );
+        assert_eq!(
+            fallback_profiles
+                .iter()
+                .map(|profile| profile.body.clone())
+                .collect::<Vec<_>>(),
+            summary.fallback_bodies
+        );
+        assert!(fallback_profiles
+            .iter()
+            .all(|profile| profile.kind == Vsop87BodySourceKind::MeanOrbitalElements));
+        assert!(source_backed_profiles
+            .iter()
+            .all(|profile| profile.kind != Vsop87BodySourceKind::MeanOrbitalElements));
+        assert_eq!(
+            source_backed_profiles.len() + fallback_profiles.len(),
+            body_source_profiles().len()
         );
     }
 
