@@ -41,8 +41,8 @@ use pleiades_core::{
     TimeRange, TimeScale, ZodiacMode,
 };
 use pleiades_data::{
-    packaged_artifact_profile_summary_with_body_coverage, packaged_frame_treatment_summary,
-    packaged_request_policy_summary_details, PackagedDataBackend,
+    packaged_artifact_profile_summary_with_body_coverage, packaged_artifact_regeneration_summary,
+    packaged_frame_treatment_summary, packaged_request_policy_summary_details, PackagedDataBackend,
 };
 use pleiades_elp::{
     format_lunar_apparent_comparison_summary, format_lunar_theory_capability_summary,
@@ -2900,6 +2900,9 @@ fn render_release_summary_text() -> String {
     text.push_str("Artifact validation: validate-artifact\n");
     text.push_str("Packaged-artifact profile: ");
     text.push_str(&format_packaged_artifact_profile_summary());
+    text.push('\n');
+    text.push_str("Packaged-artifact regeneration: ");
+    text.push_str(&packaged_artifact_regeneration_summary());
     text.push('\n');
     text.push_str("Packaged request policy: ");
     text.push_str(&packaged_request_policy_summary_details().summary_line());
@@ -9745,6 +9748,9 @@ version = "0.9.0"
         assert!(release_summary.contains(
             "Packaged-artifact profile: byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]"
         ));
+        assert!(release_summary.contains(
+            "Packaged-artifact regeneration: Packaged artifact regeneration source: label=stage-5 packaged-data prototype"
+        ));
         assert!(release_summary.contains("Comparison envelope: max longitude delta:"));
         assert!(
             release_summary.contains("Comparison tail envelope: 95th percentile absolute deltas:")
@@ -9800,6 +9806,9 @@ version = "0.9.0"
             "Artifact profile: byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]"
         ));
         assert!(artifact_summary.contains("Artifact request policy"));
+        assert!(artifact_summary.contains(
+            "regeneration provenance: Packaged artifact regeneration source: label=stage-5 packaged-data prototype"
+        ));
         assert!(artifact_summary.contains("Packaged frame treatment"));
         assert!(artifact_summary.contains("applies to 11 bundled bodies"));
         assert!(artifact_summary.contains("Model error envelope"));
