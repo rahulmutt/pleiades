@@ -4972,6 +4972,157 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         format_jpl_frame_treatment_summary()
     );
     let _ = writeln!(text);
+    let _ = writeln!(text, "{}", benchmark_provenance_text());
+    let _ = writeln!(text);
+    let _ = writeln!(text, "Benchmark summaries");
+    let _ = writeln!(text, "Reference benchmark");
+    let _ = writeln!(text, "  corpus: {}", report.reference_benchmark.corpus_name);
+    let _ = writeln!(
+        text,
+        "  apparentness: {}",
+        report.reference_benchmark.apparentness
+    );
+    let _ = writeln!(text, "  rounds: {}", report.reference_benchmark.rounds);
+    let _ = writeln!(
+        text,
+        "  samples per round: {}",
+        report.reference_benchmark.sample_count
+    );
+    let _ = writeln!(
+        text,
+        "  ns/request (single): {}",
+        format_ns(report.reference_benchmark.nanoseconds_per_request())
+    );
+    let _ = writeln!(
+        text,
+        "  ns/request (batch): {}",
+        format_ns(report.reference_benchmark.batch_nanoseconds_per_request())
+    );
+    let _ = writeln!(
+        text,
+        "  batch throughput: {:.2} req/s",
+        report.reference_benchmark.batch_requests_per_second()
+    );
+    let _ = writeln!(text);
+    let _ = writeln!(text, "Candidate benchmark");
+    let _ = writeln!(text, "  corpus: {}", report.candidate_benchmark.corpus_name);
+    let _ = writeln!(
+        text,
+        "  apparentness: {}",
+        report.candidate_benchmark.apparentness
+    );
+    let _ = writeln!(text, "  rounds: {}", report.candidate_benchmark.rounds);
+    let _ = writeln!(
+        text,
+        "  samples per round: {}",
+        report.candidate_benchmark.sample_count
+    );
+    let _ = writeln!(
+        text,
+        "  ns/request (single): {}",
+        format_ns(report.candidate_benchmark.nanoseconds_per_request())
+    );
+    let _ = writeln!(
+        text,
+        "  ns/request (batch): {}",
+        format_ns(report.candidate_benchmark.batch_nanoseconds_per_request())
+    );
+    let _ = writeln!(
+        text,
+        "  batch throughput: {:.2} req/s",
+        report.candidate_benchmark.batch_requests_per_second()
+    );
+    let _ = writeln!(text);
+    let _ = writeln!(text, "Packaged-data benchmark");
+    let _ = writeln!(text, "  corpus: {}", report.packaged_benchmark.corpus_name);
+    let _ = writeln!(
+        text,
+        "  apparentness: {}",
+        report.packaged_benchmark.apparentness
+    );
+    let _ = writeln!(text, "  rounds: {}", report.packaged_benchmark.rounds);
+    let _ = writeln!(
+        text,
+        "  samples per round: {}",
+        report.packaged_benchmark.sample_count
+    );
+    let _ = writeln!(
+        text,
+        "  ns/request (single): {}",
+        format_ns(report.packaged_benchmark.nanoseconds_per_request())
+    );
+    let _ = writeln!(
+        text,
+        "  ns/request (batch): {}",
+        format_ns(report.packaged_benchmark.batch_nanoseconds_per_request())
+    );
+    let _ = writeln!(
+        text,
+        "  batch throughput: {:.2} req/s",
+        report.packaged_benchmark.batch_requests_per_second()
+    );
+    let _ = writeln!(text);
+    let _ = writeln!(text, "Packaged artifact decode benchmark");
+    let _ = writeln!(
+        text,
+        "  artifact: {}",
+        report.artifact_decode_benchmark.artifact_label
+    );
+    let _ = writeln!(
+        text,
+        "  source: {}",
+        report.artifact_decode_benchmark.source
+    );
+    let _ = writeln!(
+        text,
+        "  rounds: {}",
+        report.artifact_decode_benchmark.rounds
+    );
+    let _ = writeln!(
+        text,
+        "  decodes per round: {}",
+        report.artifact_decode_benchmark.sample_count
+    );
+    let _ = writeln!(
+        text,
+        "  encoded bytes: {}",
+        report.artifact_decode_benchmark.encoded_bytes
+    );
+    let _ = writeln!(
+        text,
+        "  ns/decode: {}",
+        format_ns(report.artifact_decode_benchmark.nanoseconds_per_decode())
+    );
+    let _ = writeln!(
+        text,
+        "  decodes per second: {:.2} decodes/s",
+        report.artifact_decode_benchmark.decodes_per_second()
+    );
+    let _ = writeln!(text);
+    let _ = writeln!(text, "Chart benchmark");
+    let _ = writeln!(text, "  corpus: {}", report.chart_benchmark.corpus_name);
+    let _ = writeln!(
+        text,
+        "  apparentness: {}",
+        report.chart_benchmark.apparentness
+    );
+    let _ = writeln!(text, "  rounds: {}", report.chart_benchmark.rounds);
+    let _ = writeln!(
+        text,
+        "  samples per round: {}",
+        report.chart_benchmark.sample_count
+    );
+    let _ = writeln!(
+        text,
+        "  ns/chart: {}",
+        format_ns(report.chart_benchmark.nanoseconds_per_chart())
+    );
+    let _ = writeln!(
+        text,
+        "  charts per second: {:.2} charts/s",
+        report.chart_benchmark.charts_per_second()
+    );
+    let _ = writeln!(text);
     let _ = writeln!(
         text,
         "ELP lunar capability: {}",
