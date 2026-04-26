@@ -68,7 +68,8 @@ use pleiades_jpl::{
     format_jpl_interpolation_quality_summary_for_report,
     frame_treatment_summary as jpl_frame_treatment_summary, interpolation_quality_samples,
     jpl_interpolation_quality_kind_coverage, jpl_snapshot_evidence_summary_for_report,
-    jpl_snapshot_request_policy_summary_for_report, reference_asteroid_evidence,
+    jpl_snapshot_request_policy_summary_for_report,
+    reference_asteroid_equatorial_evidence_summary_for_report, reference_asteroid_evidence,
     reference_asteroid_evidence_summary_for_report, reference_asteroids,
     reference_snapshot_summary_for_report, JplSnapshotBackend,
 };
@@ -2376,6 +2377,8 @@ fn render_release_notes_text() -> String {
     }
     text.push_str(&reference_asteroid_evidence_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_asteroid_equatorial_evidence_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_summary_for_report());
     text.push('\n');
     text.push_str(&comparison_snapshot_summary_for_report());
@@ -2437,6 +2440,8 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&summarize_latitude_sensitive_house_systems(&profile));
     text.push('\n');
     text.push_str(&reference_asteroid_evidence_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_asteroid_equatorial_evidence_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_summary_for_report());
     text.push('\n');
@@ -9393,6 +9398,7 @@ version = "0.9.0"
         assert!(release_notes.contains("Release-specific coverage:"));
         assert!(release_notes.contains("selected asteroid coverage"));
         assert!(release_notes.contains("Selected asteroid evidence: 5 exact J2000 samples"));
+        assert!(release_notes.contains("Selected asteroid equatorial evidence: 5 exact J2000 samples at JD 2451545.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros) using a mean-obliquity equatorial transform"));
         assert!(release_notes.contains("asteroid:433-Eros"));
         assert!(release_notes.contains("Validation reference points:"));
         assert!(release_notes.contains("Compatibility caveats:"));
@@ -9457,6 +9463,7 @@ version = "0.9.0"
         assert!(release_summary.contains("Source-backed backend evidence:"));
         assert!(release_summary.contains("Reference snapshot coverage:"));
         assert!(release_summary.contains("Selected asteroid evidence:"));
+        assert!(release_summary.contains("Selected asteroid equatorial evidence:"));
         assert!(release_summary.contains("Comparison snapshot coverage:"));
         assert!(release_summary.contains("VSOP87 evidence:"));
         assert!(release_summary.contains("VSOP87 source documentation:"));

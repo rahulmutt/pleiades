@@ -219,9 +219,25 @@ pub struct ReferenceAsteroidEvidence {
     pub distance_au: f64,
 }
 
+/// Exact J2000 asteroid equatorial samples derived from the checked-in snapshot.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReferenceAsteroidEquatorialEvidence {
+    /// Asteroid body covered by the exact snapshot row.
+    pub body: pleiades_backend::CelestialBody,
+    /// Exact epoch used for the reference sample.
+    pub epoch: Instant,
+    /// Mean-obliquity equatorial coordinates derived from the ecliptic sample.
+    pub equatorial: pleiades_types::EquatorialCoordinates,
+}
+
 /// Returns the exact J2000 asteroid evidence samples present in the reference snapshot.
 pub fn reference_asteroid_evidence() -> &'static [ReferenceAsteroidEvidence] {
     reference_asteroid_evidence_list()
+}
+
+/// Returns the exact J2000 asteroid equatorial evidence samples derived from the reference snapshot.
+pub fn reference_asteroid_equatorial_evidence() -> &'static [ReferenceAsteroidEquatorialEvidence] {
+    reference_asteroid_equatorial_evidence_list()
 }
 
 fn format_bodies(bodies: &[pleiades_backend::CelestialBody]) -> String {
@@ -303,12 +319,34 @@ pub fn reference_asteroid_evidence_summary_for_report() -> String {
     format_reference_asteroid_evidence_summary(reference_asteroid_evidence())
 }
 
+/// Formats the equatorial asteroid evidence slice for release-facing reporting.
+pub fn format_reference_asteroid_equatorial_evidence_summary(
+    evidence: &[ReferenceAsteroidEquatorialEvidence],
+) -> String {
+    if evidence.is_empty() {
+        "Selected asteroid equatorial evidence: unavailable".to_string()
+    } else {
+        format!(
+            "Selected asteroid equatorial evidence: {} exact J2000 samples at {} ({}) using a mean-obliquity equatorial transform",
+            evidence.len(),
+            format_instant(evidence[0].epoch),
+            format_bodies(reference_asteroids())
+        )
+    }
+}
+
+/// Returns the release-facing equatorial asteroid evidence summary string.
+pub fn reference_asteroid_equatorial_evidence_summary_for_report() -> String {
+    format_reference_asteroid_equatorial_evidence_summary(reference_asteroid_equatorial_evidence())
+}
+
 /// Returns the combined snapshot evidence summary used by validation and release reports.
 pub fn jpl_snapshot_evidence_summary_for_report() -> String {
     format!(
-        "{} | {} | {}",
+        "{} | {} | {} | {}",
         reference_snapshot_summary_for_report(),
         reference_asteroid_evidence_summary_for_report(),
+        reference_asteroid_equatorial_evidence_summary_for_report(),
         comparison_snapshot_summary_for_report(),
     )
 }
@@ -1266,6 +1304,31 @@ fn reference_asteroid_evidence_list() -> &'static [ReferenceAsteroidEvidence] {
         .as_slice()
 }
 
+fn reference_asteroid_equatorial_evidence_list() -> &'static [ReferenceAsteroidEquatorialEvidence] {
+    static EVIDENCE: OnceLock<Vec<ReferenceAsteroidEquatorialEvidence>> = OnceLock::new();
+    EVIDENCE
+        .get_or_init(|| {
+            reference_asteroid_evidence()
+                .iter()
+                .map(|sample| {
+                    let ecliptic = EclipticCoordinates::new(
+                        Longitude::from_degrees(sample.longitude_deg),
+                        Latitude::from_degrees(sample.latitude_deg),
+                        Some(sample.distance_au),
+                    );
+                    ReferenceAsteroidEquatorialEvidence {
+                        body: sample.body.clone(),
+                        epoch: sample.epoch,
+                        equatorial: ecliptic.to_equatorial(Angle::from_degrees(
+                            mean_obliquity_degrees(sample.epoch),
+                        )),
+                    }
+                })
+                .collect()
+        })
+        .as_slice()
+}
+
 fn interpolation_quality_sample_list() -> &'static [InterpolationQualitySample] {
     static SAMPLES: OnceLock<Vec<InterpolationQualitySample>> = OnceLock::new();
     SAMPLES
@@ -1709,10 +1772,17 @@ mod tests {
     }
 
     #[test]
+    fn reference_asteroid_equatorial_evidence_summary_reports_the_expected_coverage() {
+        let report = reference_asteroid_equatorial_evidence_summary_for_report();
+        assert_eq!(report, "Selected asteroid equatorial evidence: 5 exact J2000 samples at JD 2451545.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros) using a mean-obliquity equatorial transform");
+    }
+
+    #[test]
     fn jpl_snapshot_evidence_summary_combines_the_backend_reports() {
         let report = jpl_snapshot_evidence_summary_for_report();
         assert!(report.contains(&reference_snapshot_summary_for_report()));
         assert!(report.contains(&reference_asteroid_evidence_summary_for_report()));
+        assert!(report.contains(&reference_asteroid_equatorial_evidence_summary_for_report()));
         assert!(report.contains(&comparison_snapshot_summary_for_report()));
     }
 
@@ -2414,7 +2484,7 @@ mod tests {
     #[test]
     fn batch_query_preserves_equatorial_frame_and_values() {
         let backend = JplSnapshotBackend;
-        let evidence = reference_asteroid_evidence();
+        let evidence = reference_asteroid_equatorial_evidence();
         let requests = evidence
             .iter()
             .map(|sample| EphemerisRequest {
@@ -2435,16 +2505,11 @@ mod tests {
         for (sample, result) in evidence.iter().zip(results.iter()) {
             assert_eq!(result.body, sample.body);
             assert_eq!(result.frame, CoordinateFrame::Equatorial);
-            let ecliptic = result
-                .ecliptic
-                .expect("reference snapshot should include ecliptic coordinates");
-            let expected =
-                ecliptic.to_equatorial(Angle::from_degrees(mean_obliquity_degrees(sample.epoch)));
             let equatorial = result
                 .equatorial
                 .expect("reference snapshot should include equatorial coordinates");
 
-            assert_eq!(equatorial, expected);
+            assert_eq!(equatorial, sample.equatorial);
             assert!(equatorial.right_ascension.degrees().is_finite());
             assert!(equatorial.declination.degrees().is_finite());
         }
