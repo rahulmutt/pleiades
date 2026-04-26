@@ -2922,6 +2922,81 @@ mod tests {
     }
 
     #[test]
+    fn lunar_theory_catalog_resolvers_are_case_insensitive_across_key_families() {
+        let theory = lunar_theory_specification();
+        let catalog = lunar_theory_catalog();
+        let source_identifier_upper = theory.source_identifier.to_uppercase();
+        let model_name_upper = theory.model_name.to_uppercase();
+        let family_label_upper = theory.source_family.label().to_uppercase();
+        let alias_upper = theory.source_aliases[0].to_uppercase();
+
+        assert_eq!(
+            resolve_lunar_theory_by_key(LunarTheoryCatalogKey::SourceIdentifier(
+                source_identifier_upper.as_str(),
+            )),
+            Some(theory)
+        );
+        assert_eq!(
+            resolve_lunar_theory_by_key(LunarTheoryCatalogKey::ModelName(
+                model_name_upper.as_str(),
+            )),
+            Some(theory)
+        );
+        assert_eq!(
+            resolve_lunar_theory_by_key(LunarTheoryCatalogKey::FamilyLabel(
+                family_label_upper.as_str(),
+            )),
+            Some(theory)
+        );
+        assert_eq!(
+            resolve_lunar_theory_by_key(LunarTheoryCatalogKey::Alias(alias_upper.as_str())),
+            Some(theory)
+        );
+        assert_eq!(
+            lunar_theory_catalog_entry_for_key(LunarTheoryCatalogKey::SourceIdentifier(
+                source_identifier_upper.as_str(),
+            )),
+            Some(catalog[0])
+        );
+        assert_eq!(
+            lunar_theory_catalog_entry_for_key(LunarTheoryCatalogKey::ModelName(
+                model_name_upper.as_str(),
+            )),
+            Some(catalog[0])
+        );
+        assert_eq!(
+            lunar_theory_catalog_entry_for_key(LunarTheoryCatalogKey::FamilyLabel(
+                family_label_upper.as_str(),
+            )),
+            Some(catalog[0])
+        );
+        assert_eq!(
+            lunar_theory_catalog_entry_for_key(LunarTheoryCatalogKey::Alias(alias_upper.as_str())),
+            Some(catalog[0])
+        );
+        assert_eq!(
+            resolve_lunar_theory_by_alias(alias_upper.as_str()),
+            Some(theory)
+        );
+        assert_eq!(
+            lunar_theory_catalog_entry_for_label(source_identifier_upper.as_str()),
+            Some(catalog[0])
+        );
+        assert_eq!(
+            lunar_theory_catalog_entry_for_label(model_name_upper.as_str()),
+            Some(catalog[0])
+        );
+        assert_eq!(
+            lunar_theory_catalog_entry_for_label(family_label_upper.as_str()),
+            Some(catalog[0])
+        );
+        assert_eq!(
+            lunar_theory_catalog_entry_for_label(alias_upper.as_str()),
+            Some(catalog[0])
+        );
+    }
+
+    #[test]
     fn lunar_theory_catalog_validation_rejects_duplicate_aliases_within_entry() {
         let duplicate_alias_catalog = [LunarTheoryCatalogEntry {
             selected: true,
