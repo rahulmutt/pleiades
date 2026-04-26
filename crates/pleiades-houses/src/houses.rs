@@ -1552,15 +1552,24 @@ mod tests {
     }
 
     #[test]
-    fn sunshine_release_system_is_available() {
+    fn sunshine_release_system_anchors_the_documented_axes() {
         let snapshot = calculate_houses(&sample_request(HouseSystem::Sunshine))
             .expect("sunshine houses should work");
         assert_eq!(snapshot.cusps.len(), 12);
-        assert!(snapshot.cusps[0].degrees().is_finite());
-        assert!(snapshot.cusps[9].degrees().is_finite());
-        assert!(snapshot.cusps[3].degrees().is_finite());
-        assert!(snapshot.cusps[6].degrees().is_finite());
-        assert_ne!(snapshot.cusps[0], snapshot.cusps[9]);
+        assert!(
+            snapshot.cusps[0] == snapshot.angles.ascendant
+                || snapshot.cusps[0] == longitude_opposite(snapshot.angles.ascendant)
+        );
+        assert!(
+            snapshot.cusps[9] == snapshot.angles.midheaven
+                || snapshot.cusps[9] == longitude_opposite(snapshot.angles.midheaven)
+        );
+        assert_eq!(snapshot.cusps[3], longitude_opposite(snapshot.cusps[9]));
+        assert_eq!(snapshot.cusps[6], longitude_opposite(snapshot.cusps[0]));
+        assert_eq!(
+            (snapshot.cusps[9].degrees() - snapshot.cusps[0].degrees()).rem_euclid(360.0),
+            90.0
+        );
     }
 
     #[test]
