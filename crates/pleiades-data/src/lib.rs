@@ -16,11 +16,11 @@ use std::cmp::Ordering;
 use std::sync::OnceLock;
 
 use pleiades_backend::{
-    validate_observer_policy, validate_request_policy, AccuracyClass, Apparentness,
-    BackendCapabilities, BackendFamily, BackendId, BackendMetadata, BackendProvenance,
-    CelestialBody, CoordinateFrame, CustomBodyId, EclipticCoordinates, EphemerisBackend,
-    EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult, Instant,
-    QualityAnnotation, TimeRange, TimeScale, ZodiacMode,
+    validate_observer_policy, validate_request_policy, validate_zodiac_policy, AccuracyClass,
+    Apparentness, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
+    BackendProvenance, CelestialBody, CoordinateFrame, CustomBodyId, EclipticCoordinates,
+    EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
+    Instant, QualityAnnotation, TimeRange, TimeScale, ZodiacMode,
 };
 use pleiades_compression::CompressedArtifact;
 use pleiades_compression::{ArtifactHeader, BodyArtifact, ChannelKind, PolynomialChannel, Segment};
@@ -291,12 +291,7 @@ impl EphemerisBackend for PackagedDataBackend {
             false,
         )?;
 
-        if req.zodiac_mode != ZodiacMode::Tropical {
-            return Err(EphemerisError::new(
-                EphemerisErrorKind::InvalidRequest,
-                "sidereal conversion is handled above the packaged-data backend",
-            ));
-        }
+        validate_zodiac_policy(req, "packaged data", &[ZodiacMode::Tropical])?;
 
         validate_observer_policy(req, "packaged data", false)?;
 

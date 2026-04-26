@@ -23,9 +23,10 @@ use std::collections::BTreeSet;
 use std::sync::OnceLock;
 
 use pleiades_backend::{
-    validate_observer_policy, validate_request_policy, AccuracyClass, BackendCapabilities,
-    BackendFamily, BackendId, BackendMetadata, BackendProvenance, EphemerisBackend, EphemerisError,
-    EphemerisErrorKind, EphemerisRequest, EphemerisResult, QualityAnnotation,
+    validate_observer_policy, validate_request_policy, validate_zodiac_policy, AccuracyClass,
+    BackendCapabilities, BackendFamily, BackendId, BackendMetadata, BackendProvenance,
+    EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
+    QualityAnnotation,
 };
 use pleiades_types::{
     Angle, Apparentness, CoordinateFrame, CustomBodyId, EclipticCoordinates, Instant, JulianDay,
@@ -871,12 +872,7 @@ impl EphemerisBackend for JplSnapshotBackend {
             false,
         )?;
 
-        if req.zodiac_mode != ZodiacMode::Tropical {
-            return Err(EphemerisError::new(
-                EphemerisErrorKind::InvalidRequest,
-                "sidereal conversion is handled above the backend layer",
-            ));
-        }
+        validate_zodiac_policy(req, "the JPL snapshot backend", &[ZodiacMode::Tropical])?;
 
         validate_observer_policy(req, "the JPL snapshot backend", false)?;
 

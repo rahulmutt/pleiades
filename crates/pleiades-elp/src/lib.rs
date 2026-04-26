@@ -26,10 +26,10 @@
 use core::fmt;
 
 use pleiades_backend::{
-    validate_observer_policy, validate_request_policy, AccuracyClass, Apparentness,
-    BackendCapabilities, BackendFamily, BackendId, BackendMetadata, BackendProvenance,
-    EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
-    QualityAnnotation,
+    validate_observer_policy, validate_request_policy, validate_zodiac_policy, AccuracyClass,
+    Apparentness, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
+    BackendProvenance, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
+    EphemerisResult, QualityAnnotation,
 };
 use pleiades_types::{
     Angle, CelestialBody, CoordinateFrame, EclipticCoordinates, EquatorialCoordinates, Instant,
@@ -2580,12 +2580,7 @@ impl EphemerisBackend for ElpBackend {
             ));
         }
 
-        if req.zodiac_mode != ZodiacMode::Tropical {
-            return Err(EphemerisError::new(
-                EphemerisErrorKind::InvalidRequest,
-                "the ELP backend currently exposes tropical coordinates only",
-            ));
-        }
+        validate_zodiac_policy(req, "the ELP backend", &[ZodiacMode::Tropical])?;
 
         validate_request_policy(
             req,

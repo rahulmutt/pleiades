@@ -32,10 +32,10 @@ mod vsop87b_uranus;
 mod vsop87b_venus;
 
 use pleiades_backend::{
-    validate_observer_policy, validate_request_policy, AccuracyClass, Apparentness,
-    BackendCapabilities, BackendFamily, BackendId, BackendMetadata, BackendProvenance,
-    EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
-    QualityAnnotation,
+    validate_observer_policy, validate_request_policy, validate_zodiac_policy, AccuracyClass,
+    Apparentness, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
+    BackendProvenance, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
+    EphemerisResult, QualityAnnotation,
 };
 use pleiades_types::{
     Angle, CelestialBody, CoordinateFrame, EclipticCoordinates, EquatorialCoordinates, Instant,
@@ -1749,12 +1749,7 @@ impl EphemerisBackend for Vsop87Backend {
     }
 
     fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
-        if req.zodiac_mode != ZodiacMode::Tropical {
-            return Err(EphemerisError::new(
-                EphemerisErrorKind::InvalidRequest,
-                format!("{BACKEND_LABEL} currently exposes tropical coordinates only"),
-            ));
-        }
+        validate_zodiac_policy(req, BACKEND_LABEL, &[ZodiacMode::Tropical])?;
 
         validate_request_policy(
             req,

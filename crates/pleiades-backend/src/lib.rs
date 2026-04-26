@@ -450,6 +450,38 @@ pub fn validate_request_policy(
     Ok(())
 }
 
+/// Validates the zodiac-mode policy shared by the current first-party backends.
+///
+/// Current first-party backends that do not advertise native sidereal support
+/// should call this after higher-priority request checks so sidereal requests
+/// fail with a structured [`EphemerisErrorKind::InvalidRequest`] error rather
+/// than being silently coerced to tropical coordinates.
+pub fn validate_zodiac_policy(
+    req: &EphemerisRequest,
+    backend_label: &str,
+    supported_zodiac_modes: &[ZodiacMode],
+) -> Result<(), EphemerisError> {
+    if !supported_zodiac_modes.contains(&req.zodiac_mode) {
+        let message = if supported_zodiac_modes.len() == 1
+            && supported_zodiac_modes[0] == ZodiacMode::Tropical
+        {
+            format!("{backend_label} currently exposes tropical coordinates only")
+        } else {
+            format!(
+                "{backend_label} currently exposes [{}] zodiac coordinates only",
+                format_debug_list(supported_zodiac_modes)
+            )
+        };
+
+        return Err(EphemerisError::new(
+            EphemerisErrorKind::InvalidRequest,
+            message,
+        ));
+    }
+
+    Ok(())
+}
+
 /// Validates the observer policy shared by the current first-party backends.
 ///
 /// Geocentric-only backends should call this after any higher-priority request
@@ -960,6 +992,20 @@ mod tests {
         )
         .expect_err("apparent requests should be rejected when only mean output is supported");
         assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+
+        let sidereal_request = EphemerisRequest {
+            zodiac_mode: ZodiacMode::Sidereal {
+                ayanamsa: pleiades_types::Ayanamsa::FaganBradley,
+            },
+            ..apparent_request.clone()
+        };
+        let error =
+            validate_zodiac_policy(&sidereal_request, "toy backend", &[ZodiacMode::Tropical])
+                .expect_err(
+                    "sidereal requests should be rejected when only tropical output is supported",
+                );
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error.message.contains("tropical coordinates only"));
 
         let observer_request = EphemerisRequest {
             observer: Some(ObserverLocation::new(
