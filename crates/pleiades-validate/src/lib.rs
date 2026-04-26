@@ -398,6 +398,80 @@ pub struct ComparisonToleranceEntry {
     pub tolerance: ComparisonTolerance,
 }
 
+/// Structured comparison tolerance policy details for a validation report.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ComparisonTolerancePolicySummary {
+    /// Backend family used to select the comparison tolerance catalog.
+    pub backend_family: BackendFamily,
+    /// Tolerance entries in catalog order.
+    pub entries: Vec<ComparisonToleranceEntry>,
+    /// Scope coverage rows in catalog order.
+    pub coverage: Vec<ComparisonToleranceScopeCoverageSummary>,
+    /// Number of unique bodies covered by the comparison corpus.
+    pub comparison_body_count: usize,
+    /// Number of comparison samples in the corpus.
+    pub comparison_sample_count: usize,
+    /// Comparison corpus time window.
+    pub comparison_window: TimeRange,
+    /// Candidate backend coordinate frames covered by the comparison corpus.
+    pub coordinate_frames: Vec<CoordinateFrame>,
+}
+
+impl ComparisonTolerancePolicySummary {
+    /// Renders the compact report wording for this tolerance policy.
+    pub fn summary_line(&self) -> String {
+        let scopes = self
+            .entries
+            .iter()
+            .map(|entry| entry.scope.label())
+            .collect::<Vec<_>>()
+            .join(", ");
+        let limits = format_comparison_tolerance_limits_for_report(&self.entries);
+        let coverage = self
+            .coverage
+            .iter()
+            .map(|scope_coverage| {
+                format!(
+                    "{}: bodies={}, samples={}",
+                    scope_coverage.entry.scope.label(),
+                    if scope_coverage.bodies.is_empty() {
+                        "none".to_string()
+                    } else {
+                        format_bodies(&scope_coverage.bodies)
+                    },
+                    scope_coverage.sample_count,
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("; ");
+        let coordinate_frames = format_frames(&self.coordinate_frames);
+        let window_start = self
+            .comparison_window
+            .start
+            .map(|instant| format!("JD {:.1}", instant.julian_day.days()))
+            .unwrap_or_else(|| "n/a".to_string());
+        let window_end = self
+            .comparison_window
+            .end
+            .map(|instant| format!("JD {:.1}", instant.julian_day.days()))
+            .unwrap_or_else(|| "n/a".to_string());
+
+        format!(
+            "backend family={}; scopes={} ({scopes}); limits={limits}; coverage={coverage}; window={window_start} → {window_end}; frames={coordinate_frames}; evidence={} bodies, {} samples",
+            backend_family_label(&self.backend_family),
+            self.entries.len(),
+            self.comparison_body_count,
+            self.comparison_sample_count,
+        )
+    }
+}
+
+impl fmt::Display for ComparisonTolerancePolicySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Per-body comparison status against the expected tolerance table.
 #[derive(Clone, Debug, PartialEq)]
 pub struct BodyToleranceSummary {
@@ -4401,39 +4475,29 @@ fn format_body_class_comparison_envelope_for_report(summary: &BodyClassSummary) 
     )
 }
 
-fn format_comparison_tolerance_policy_for_report(comparison: &ComparisonReport) -> String {
-    let backend_family = &comparison.candidate_backend.family;
-    let entries = comparison_tolerance_policy_entries(backend_family);
+fn comparison_tolerance_policy_summary_details(
+    comparison: &ComparisonReport,
+) -> ComparisonTolerancePolicySummary {
+    let entries = comparison_tolerance_policy_entries(&comparison.candidate_backend.family);
     let coverage = comparison_tolerance_policy_coverage(comparison);
-    let scopes = entries
-        .iter()
-        .map(|entry| entry.scope.label())
-        .collect::<Vec<_>>()
-        .join(", ");
-    let limits = format_comparison_tolerance_limits_for_report(&entries);
-    let coverage = coverage
-        .iter()
-        .map(|scope_coverage| {
-            format!(
-                "{}: bodies={}, samples={}",
-                scope_coverage.entry.scope.label(),
-                format_bodies(&scope_coverage.bodies),
-                scope_coverage.sample_count
-            )
-        })
-        .collect::<Vec<_>>()
-        .join("; ");
-    let coordinate_frames = format_frames(comparison_coordinate_frames(comparison));
+    let comparison_window = TimeRange::new(
+        comparison.corpus_summary.epochs.first().copied(),
+        comparison.corpus_summary.epochs.last().copied(),
+    );
 
-    format!(
-        "backend family={}; scopes={} ({scopes}); limits={limits}; coverage={coverage}; window=JD {:.1} → {:.1}; frames={coordinate_frames}; evidence={} bodies, {} samples",
-        backend_family_label(backend_family),
-        entries.len(),
-        comparison.corpus_summary.earliest_julian_day,
-        comparison.corpus_summary.latest_julian_day,
-        comparison.body_summaries().len(),
-        comparison.summary.sample_count,
-    )
+    ComparisonTolerancePolicySummary {
+        backend_family: comparison.candidate_backend.family.clone(),
+        entries,
+        coverage,
+        comparison_body_count: comparison.body_summaries().len(),
+        comparison_sample_count: comparison.summary.sample_count,
+        comparison_window,
+        coordinate_frames: comparison_coordinate_frames(comparison).to_vec(),
+    }
+}
+
+fn format_comparison_tolerance_policy_for_report(comparison: &ComparisonReport) -> String {
+    comparison_tolerance_policy_summary_details(comparison).summary_line()
 }
 
 fn format_comparison_tolerance_limits_for_report(entries: &[ComparisonToleranceEntry]) -> String {
@@ -6092,6 +6156,11 @@ impl ComparisonReport {
         comparison_tolerance_policy_entries(&self.candidate_backend.family)
     }
 
+    /// Returns the structured tolerance policy summary for the candidate backend family.
+    pub fn tolerance_policy_summary(&self) -> ComparisonTolerancePolicySummary {
+        comparison_tolerance_policy_summary_details(self)
+    }
+
     /// Returns per-body-class tolerance posture preserving first-seen class order.
     pub(crate) fn body_class_tolerance_summaries(&self) -> Vec<BodyClassToleranceSummary> {
         body_class_tolerance_summaries(&self.samples, &self.candidate_backend.family)
@@ -7292,16 +7361,19 @@ fn tolerance_backend_family_label(family: &BackendFamily) -> String {
     }
 }
 
-#[derive(Clone, Debug)]
-struct ComparisonToleranceScopeCoverage {
-    entry: ComparisonToleranceEntry,
-    bodies: Vec<CelestialBody>,
-    sample_count: usize,
+#[derive(Clone, Debug, PartialEq)]
+pub struct ComparisonToleranceScopeCoverageSummary {
+    /// Tolerance entry covered by this scope summary.
+    pub entry: ComparisonToleranceEntry,
+    /// Bodies assigned to this tolerance scope in first-seen order.
+    pub bodies: Vec<CelestialBody>,
+    /// Total number of samples covered by this tolerance scope.
+    pub sample_count: usize,
 }
 
 fn comparison_tolerance_policy_coverage(
     comparison: &ComparisonReport,
-) -> Vec<ComparisonToleranceScopeCoverage> {
+) -> Vec<ComparisonToleranceScopeCoverageSummary> {
     let entries = comparison_tolerance_policy_entries(&comparison.candidate_backend.family);
     let tolerance_summaries = comparison.tolerance_summaries();
 
@@ -7318,7 +7390,7 @@ fn comparison_tolerance_policy_coverage(
                 }
             }
 
-            ComparisonToleranceScopeCoverage {
+            ComparisonToleranceScopeCoverageSummary {
                 entry,
                 bodies,
                 sample_count,
@@ -8238,6 +8310,33 @@ mod tests {
         assert!(report.contains("julian day span:"));
         assert!(report.contains("Reference backend:"));
         assert!(report.contains("Candidate backend:"));
+    }
+
+    #[test]
+    fn comparison_tolerance_policy_summary_matches_the_rendered_line() {
+        let corpus = default_corpus();
+        let reference = default_reference_backend();
+        let candidate = default_candidate_backend();
+        let report =
+            compare_backends(&reference, &candidate, &corpus).expect("comparison should build");
+        let summary = report.tolerance_policy_summary();
+
+        assert_eq!(
+            summary.summary_line(),
+            format_comparison_tolerance_policy_for_report(&report)
+        );
+        assert!(summary.summary_line().contains("frames=Ecliptic"));
+        assert_eq!(summary.coverage.len(), summary.entries.len());
+        assert_eq!(summary.comparison_body_count, report.body_summaries().len());
+        assert_eq!(summary.comparison_sample_count, report.summary.sample_count);
+        assert_eq!(
+            summary.comparison_window.start,
+            corpus.summary().epochs.first().copied()
+        );
+        assert_eq!(
+            summary.comparison_window.end,
+            corpus.summary().epochs.last().copied()
+        );
     }
 
     #[test]
