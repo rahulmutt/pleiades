@@ -140,19 +140,32 @@ pub fn reference_snapshot_equatorial_parity_summary(
     })
 }
 
+impl ReferenceSnapshotEquatorialParitySummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "JPL reference snapshot equatorial parity: {} rows across {} bodies and {} epochs ({}..{}); mean-obliquity transform against the checked-in ecliptic fixture",
+            self.row_count,
+            self.body_count,
+            self.epoch_count,
+            format_instant(self.earliest_epoch),
+            format_instant(self.latest_epoch),
+        )
+    }
+}
+
+impl fmt::Display for ReferenceSnapshotEquatorialParitySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Formats the checked-in reference snapshot equatorial parity summary for
 /// release-facing reporting.
 pub fn format_reference_snapshot_equatorial_parity_summary(
     summary: &ReferenceSnapshotEquatorialParitySummary,
 ) -> String {
-    format!(
-        "JPL reference snapshot equatorial parity: {} rows across {} bodies and {} epochs ({}..{}); mean-obliquity transform against the checked-in ecliptic fixture",
-        summary.row_count,
-        summary.body_count,
-        summary.epoch_count,
-        format_instant(summary.earliest_epoch),
-        format_instant(summary.latest_epoch),
-    )
+    summary.summary_line()
 }
 
 /// Returns the release-facing reference snapshot equatorial parity summary string.
@@ -163,17 +176,30 @@ pub fn reference_snapshot_equatorial_parity_summary_for_report() -> String {
     }
 }
 
+impl ReferenceSnapshotSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Reference snapshot coverage: {} rows across {} bodies and {} epochs ({} asteroid rows; {}..{})",
+            self.row_count,
+            self.body_count,
+            self.epoch_count,
+            self.asteroid_row_count,
+            format_instant(self.earliest_epoch),
+            format_instant(self.latest_epoch),
+        )
+    }
+}
+
+impl fmt::Display for ReferenceSnapshotSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Formats the checked-in reference snapshot coverage for release-facing reporting.
 pub fn format_reference_snapshot_summary(summary: &ReferenceSnapshotSummary) -> String {
-    format!(
-        "Reference snapshot coverage: {} rows across {} bodies and {} epochs ({} asteroid rows; {}..{})",
-        summary.row_count,
-        summary.body_count,
-        summary.epoch_count,
-        summary.asteroid_row_count,
-        format_instant(summary.earliest_epoch),
-        format_instant(summary.latest_epoch),
-    )
+    summary.summary_line()
 }
 
 /// Returns the release-facing reference snapshot coverage summary string.
@@ -251,24 +277,37 @@ pub fn independent_holdout_snapshot_summary() -> Option<IndependentHoldoutSnapsh
     })
 }
 
+impl IndependentHoldoutSnapshotSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let bodies = if self.bodies.is_empty() {
+            "none".to_string()
+        } else {
+            self.bodies.join(", ")
+        };
+        format!(
+            "Independent hold-out coverage: {} rows across {} bodies and {} epochs ({}..{}); bodies: {}",
+            self.row_count,
+            self.body_count,
+            self.epoch_count,
+            format_instant(self.earliest_epoch),
+            format_instant(self.latest_epoch),
+            bodies,
+        )
+    }
+}
+
+impl fmt::Display for IndependentHoldoutSnapshotSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Formats the independent hold-out corpus coverage for release-facing reporting.
 pub fn format_independent_holdout_snapshot_summary(
     summary: &IndependentHoldoutSnapshotSummary,
 ) -> String {
-    let bodies = if summary.bodies.is_empty() {
-        "none".to_string()
-    } else {
-        summary.bodies.join(", ")
-    };
-    format!(
-        "Independent hold-out coverage: {} rows across {} bodies and {} epochs ({}..{}); bodies: {}",
-        summary.row_count,
-        summary.body_count,
-        summary.epoch_count,
-        format_instant(summary.earliest_epoch),
-        format_instant(summary.latest_epoch),
-        bodies,
-    )
+    summary.summary_line()
 }
 
 /// Returns the release-facing independent hold-out coverage summary string.
@@ -314,16 +353,29 @@ pub fn comparison_snapshot_summary() -> Option<ComparisonSnapshotSummary> {
     })
 }
 
+impl ComparisonSnapshotSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Comparison snapshot coverage: {} rows across {} bodies and {} epochs ({}..{})",
+            self.row_count,
+            self.body_count,
+            self.epoch_count,
+            format_instant(self.earliest_epoch),
+            format_instant(self.latest_epoch),
+        )
+    }
+}
+
+impl fmt::Display for ComparisonSnapshotSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Formats the comparison snapshot coverage for release-facing reporting.
 pub fn format_comparison_snapshot_summary(summary: &ComparisonSnapshotSummary) -> String {
-    format!(
-        "Comparison snapshot coverage: {} rows across {} bodies and {} epochs ({}..{})",
-        summary.row_count,
-        summary.body_count,
-        summary.epoch_count,
-        format_instant(summary.earliest_epoch),
-        format_instant(summary.latest_epoch),
-    )
+    summary.summary_line()
 }
 
 /// Returns the release-facing comparison snapshot coverage summary string.
@@ -2286,8 +2338,13 @@ mod tests {
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_499.0);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(
-            reference_snapshot_summary_for_report(),
+            summary.summary_line(),
             "Reference snapshot coverage: 46 rows across 15 bodies and 6 epochs (5 asteroid rows; JD 2378499.0 (TDB)..JD 2634167.0 (TDB))"
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            reference_snapshot_summary_for_report(),
+            summary.summary_line()
         );
     }
 
@@ -2301,8 +2358,13 @@ mod tests {
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_499.0);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(
-            reference_snapshot_equatorial_parity_summary_for_report(),
+            summary.summary_line(),
             "JPL reference snapshot equatorial parity: 46 rows across 15 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); mean-obliquity transform against the checked-in ecliptic fixture"
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            reference_snapshot_equatorial_parity_summary_for_report(),
+            summary.summary_line()
         );
     }
 
@@ -2316,8 +2378,13 @@ mod tests {
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_499.0);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(
-            comparison_snapshot_summary_for_report(),
+            summary.summary_line(),
             "Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB))"
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            comparison_snapshot_summary_for_report(),
+            summary.summary_line()
         );
     }
 
@@ -2444,8 +2511,13 @@ mod tests {
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_451_910.5);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_451_912.5);
         assert_eq!(
-            independent_holdout_snapshot_summary_for_report(),
+            summary.summary_line(),
             "Independent hold-out coverage: 6 rows across 2 bodies and 3 epochs (JD 2451910.5 (TDB)..JD 2451912.5 (TDB)); bodies: Mars, Jupiter"
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            independent_holdout_snapshot_summary_for_report(),
+            summary.summary_line()
         );
     }
 
