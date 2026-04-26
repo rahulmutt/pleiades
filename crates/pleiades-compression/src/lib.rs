@@ -125,6 +125,25 @@ impl ArtifactHeader {
             profile,
         }
     }
+
+    /// Returns a compact one-line summary of the byte order and capability
+    /// profile encoded by this header.
+    pub fn summary(&self) -> String {
+        format!(
+            "byte order: {}; {}",
+            self.endian_policy,
+            self.profile.summary()
+        )
+    }
+
+    /// Returns the header summary annotated with how many bodies share it.
+    pub fn summary_for_body_count(&self, body_count: usize) -> String {
+        format!(
+            "{}; applies to {} bundled bodies",
+            self.summary(),
+            body_count
+        )
+    }
 }
 
 /// Artifact-level output semantics for fields that are not raw segment channels.
@@ -1175,6 +1194,21 @@ mod tests {
         assert_eq!(
             profile.summary_for_body_count(11),
             "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates]; unsupported outputs: [EquatorialCoordinates, ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 11 bundled bodies"
+        );
+
+        let header = ArtifactHeader::with_profile_and_endian(
+            "demo",
+            "source",
+            EndianPolicy::LittleEndian,
+            profile,
+        );
+        assert_eq!(
+            header.summary(),
+            "byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates]; unsupported outputs: [EquatorialCoordinates, ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported"
+        );
+        assert_eq!(
+            header.summary_for_body_count(11),
+            "byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates]; unsupported outputs: [EquatorialCoordinates, ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 11 bundled bodies"
         );
     }
 

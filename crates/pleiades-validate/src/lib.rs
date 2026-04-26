@@ -4608,7 +4608,6 @@ fn format_packaged_artifact_profile_summary() -> String {
     let artifact = packaged_artifact();
     artifact
         .header
-        .profile
         .summary_for_body_count(artifact.bodies.len())
 }
 
@@ -9341,7 +9340,7 @@ version = "0.9.0"
             .contains("Compatibility profile verification: verify-compatibility-profile"));
         assert!(release_summary.contains("Artifact validation: validate-artifact"));
         assert!(release_summary.contains(
-            "Packaged-artifact profile: stored channels: [Longitude, Latitude, DistanceAu]"
+            "Packaged-artifact profile: byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]"
         ));
         assert!(release_summary.contains("Comparison envelope: max longitude delta:"));
         assert!(
@@ -9391,8 +9390,9 @@ version = "0.9.0"
         assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_summary.contains("Release notes summary: release-notes-summary"));
         assert!(artifact_summary.contains("Artifact summary"));
-        assert!(artifact_summary
-            .contains("Artifact profile: stored channels: [Longitude, Latitude, DistanceAu]"));
+        assert!(artifact_summary.contains(
+            "Artifact profile: byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]"
+        ));
         assert!(artifact_summary.contains("Artifact request policy"));
         assert!(artifact_summary.contains("applies to 11 bundled bodies"));
         assert!(artifact_summary.contains("Model error envelope"));

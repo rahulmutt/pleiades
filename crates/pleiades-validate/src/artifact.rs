@@ -356,7 +356,6 @@ fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
     text.push_str(
         &artifact
             .header
-            .profile
             .summary_for_body_count(artifact.bodies.len()),
     );
     text.push('\n');
