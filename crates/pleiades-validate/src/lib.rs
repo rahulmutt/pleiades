@@ -6960,7 +6960,7 @@ fn write_backend_catalog_entry(
         for profile in body_source_profiles() {
             writeln!(
                 f,
-                "    {}: {:?}, {:?}, {}",
+                "    {}: kind={}, accuracy={}, {}",
                 profile.body, profile.kind, profile.accuracy, profile.provenance
             )?;
         }
@@ -7005,7 +7005,7 @@ fn write_backend_catalog_entry(
                 for evidence in body_evidence {
                     writeln!(
                         f,
-                        "    {}: {:?} from {} — {} — Δlon={:.12}° / limit {:.12}° / margin {:+.12}°, Δlat={:.12}° / limit {:.12}° / margin {:+.12}°, Δdist={:.12} AU / limit {:.12} AU / margin {:+.12} AU",
+                        "    {}: kind={} from {} — {} — Δlon={:.12}° / limit {:.12}° / margin {:+.12}°, Δlat={:.12}° / limit {:.12}° / margin {:+.12}°, Δdist={:.12} AU / limit {:.12} AU / margin {:+.12} AU",
                         evidence.body,
                         evidence.source_kind,
                         evidence.source_file,
@@ -9827,15 +9827,17 @@ mod tests {
         assert!(rendered.contains("geocentric planetary reduction against Earth coefficients"));
         assert!(rendered.contains("solar reduction from Earth coefficients"));
         assert!(rendered.contains("canonical J2000 VSOP87B evidence:"));
-        assert!(rendered.contains("Sun: GeneratedBinaryVsop87b from VSOP87B.ear"));
-        assert!(rendered.contains("Mercury: GeneratedBinaryVsop87b from VSOP87B.mer"));
-        assert!(rendered.contains("Venus: GeneratedBinaryVsop87b from VSOP87B.ven"));
-        assert!(rendered.contains("Mars: GeneratedBinaryVsop87b from VSOP87B.mar"));
-        assert!(rendered.contains("Jupiter: GeneratedBinaryVsop87b"));
-        assert!(rendered.contains("Saturn: GeneratedBinaryVsop87b"));
-        assert!(rendered.contains("Uranus: GeneratedBinaryVsop87b"));
-        assert!(rendered.contains("Neptune: GeneratedBinaryVsop87b"));
-        assert!(rendered.contains("Pluto: MeanOrbitalElements"));
+        assert!(rendered.contains("Sun: kind=generated binary VSOP87B, accuracy=Exact"));
+        assert!(rendered.contains("Mercury: kind=generated binary VSOP87B, accuracy=Exact"));
+        assert!(rendered.contains("Venus: kind=generated binary VSOP87B, accuracy=Exact"));
+        assert!(rendered.contains("Mars: kind=generated binary VSOP87B, accuracy=Exact"));
+        assert!(rendered.contains("Jupiter: kind=generated binary VSOP87B, accuracy=Exact"));
+        assert!(rendered.contains("Saturn: kind=generated binary VSOP87B, accuracy=Exact"));
+        assert!(rendered.contains("Uranus: kind=generated binary VSOP87B, accuracy=Exact"));
+        assert!(rendered.contains("Neptune: kind=generated binary VSOP87B, accuracy=Exact"));
+        assert!(
+            rendered.contains("Pluto: kind=mean orbital elements fallback, accuracy=Approximate")
+        );
         assert!(rendered.contains("Meeus-style truncated lunar orbit formulas"));
         assert!(rendered.contains("NASA/JPL Horizons API vector tables (DE441)"));
         assert!(rendered.contains("interpolation quality checks:"));
