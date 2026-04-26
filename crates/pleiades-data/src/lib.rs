@@ -276,7 +276,10 @@ pub fn packaged_request_policy_summary_details() -> PackagedRequestPolicySummary
 
 /// Returns the current packaged-data request policy summary.
 pub fn packaged_request_policy_summary() -> &'static str {
-    "Packaged request policy: geocentric-only; frames=Ecliptic; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false; lookup epoch policy=TT-grid retag without relativistic correction; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction"
+    static SUMMARY: OnceLock<String> = OnceLock::new();
+    SUMMARY
+        .get_or_init(|| packaged_request_policy_summary_details().summary_line())
+        .as_str()
 }
 
 /// Returns the packaged-artifact frame-treatment summary.
