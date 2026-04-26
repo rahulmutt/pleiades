@@ -387,7 +387,7 @@ const LUNAR_THEORY_SPECIFICATION: LunarTheorySpecification = LunarTheorySpecific
     source_identifier: "meeus-style-truncated-lunar-baseline",
     source_citation: "Jean Meeus, Astronomical Algorithms, 2nd edition, truncated lunar position and lunar node/perigee/apogee formulae adapted into a compact pure-Rust baseline",
     source_material:
-        "Published lunar position, node, and mean-point formulas implemented as the current pure-Rust baseline; no ELP coefficient files are bundled",
+        "Published lunar position, node, and mean-point formulas implemented as the current pure-Rust baseline; no ELP coefficient files are bundled in the baseline",
     source_aliases: LUNAR_THEORY_SOURCE_ALIASES,
     redistribution_note:
         "No external coefficient-file redistribution constraints apply because the baseline does not bundle ELP coefficient tables",
@@ -3825,7 +3825,7 @@ mod tests {
             .contains("Published lunar position, node, and mean-point formulas"));
         assert!(theory
             .source_material
-            .contains("no ELP coefficient files are bundled"));
+            .contains("no ELP coefficient files are bundled in the baseline"));
         assert!(theory
             .redistribution_note
             .contains("does not bundle ELP coefficient tables"));

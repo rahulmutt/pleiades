@@ -2804,7 +2804,7 @@ impl EphemerisBackend for Vsop87Backend {
                         )
                     })
                     .chain([
-                        "Paul Schlyter-style mean orbital elements for planets outside the VSOP87 coefficient tables".to_string(),
+                        "Paul Schlyter-style mean orbital elements for planets outside the source-backed VSOP87 coefficient tables".to_string(),
                         "Meeus-style coordinate transforms for geocentric reduction".to_string(),
                     ])
                     .collect(),
@@ -3813,7 +3813,7 @@ mod tests {
             .provenance
             .data_sources
             .iter()
-            .any(|source| source.contains("outside the VSOP87 coefficient tables")));
+            .any(|source| source.contains("outside the source-backed VSOP87 coefficient tables")));
         assert!(metadata
             .provenance
             .data_sources
