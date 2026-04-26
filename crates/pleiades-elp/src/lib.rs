@@ -3475,6 +3475,53 @@ mod tests {
     }
 
     #[test]
+    fn batch_query_preserves_lunar_reference_order_for_mixed_time_scales() {
+        let backend = ElpBackend::new();
+        let evidence = lunar_reference_evidence();
+        let requests = evidence
+            .iter()
+            .enumerate()
+            .map(|(index, sample)| {
+                let mut request = mean_request_at(sample.body.clone(), sample.epoch);
+                request.instant.scale = if index % 2 == 0 {
+                    TimeScale::Tt
+                } else {
+                    TimeScale::Tdb
+                };
+                request
+            })
+            .collect::<Vec<_>>();
+
+        let results = backend
+            .positions(&requests)
+            .expect("batch mixed-scale query should preserve the lunar reference order");
+
+        assert_eq!(results.len(), evidence.len());
+        for (request, result) in requests.iter().zip(results.iter()) {
+            assert_eq!(result.body, request.body);
+            assert_eq!(result.instant.scale, request.instant.scale);
+            let single = backend
+                .position(request)
+                .expect("single mixed-scale query should preserve the lunar reference order");
+            assert_eq!(single.body, result.body);
+            assert_eq!(single.instant.scale, request.instant.scale);
+            let ecliptic = result.ecliptic.expect("ecliptic result should exist");
+            let single_ecliptic = single
+                .ecliptic
+                .expect("single-query ecliptic result should exist");
+            assert_eq!(
+                ecliptic.longitude.degrees(),
+                single_ecliptic.longitude.degrees()
+            );
+            assert_eq!(
+                ecliptic.latitude.degrees(),
+                single_ecliptic.latitude.degrees()
+            );
+            assert_eq!(ecliptic.distance_au, single_ecliptic.distance_au);
+        }
+    }
+
+    #[test]
     fn batch_query_rejects_unsupported_lunar_bodies_with_structured_errors() {
         let backend = ElpBackend::new();
         let instant = Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt);

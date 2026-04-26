@@ -2317,6 +2317,64 @@ mod tests {
     }
 
     #[test]
+    fn batch_query_preserves_supported_vsop87_paths_for_mixed_time_scales() {
+        let backend = Vsop87Backend::new();
+        let requests = Vsop87Backend::supported_bodies()
+            .iter()
+            .cloned()
+            .enumerate()
+            .map(|(index, body)| {
+                let mut request = mean_request(body);
+                request.instant.scale = if index % 2 == 0 {
+                    TimeScale::Tt
+                } else {
+                    TimeScale::Tdb
+                };
+                request
+            })
+            .collect::<Vec<_>>();
+
+        let results = backend
+            .positions(&requests)
+            .expect("batch mixed-scale query should work for every supported body");
+
+        assert_eq!(results.len(), requests.len());
+        for (request, result) in requests.iter().zip(results.iter()) {
+            assert_eq!(result.body, request.body);
+            assert_eq!(result.instant.scale, request.instant.scale);
+            let single = backend
+                .position(request)
+                .expect("single mixed-scale query should work for every supported body");
+            assert_eq!(single.body, result.body);
+            assert_eq!(single.instant.scale, request.instant.scale);
+            assert_eq!(single.quality, result.quality);
+
+            let ecliptic = result
+                .ecliptic
+                .as_ref()
+                .expect("ecliptic result should exist");
+            let single_ecliptic = single
+                .ecliptic
+                .as_ref()
+                .expect("single-query ecliptic result should exist");
+            assert_eq!(
+                ecliptic.longitude.degrees(),
+                single_ecliptic.longitude.degrees()
+            );
+            assert_eq!(
+                ecliptic.latitude.degrees(),
+                single_ecliptic.latitude.degrees()
+            );
+            assert_eq!(
+                ecliptic.distance_au.expect("distance should exist"),
+                single_ecliptic
+                    .distance_au
+                    .expect("single-query distance should exist")
+            );
+        }
+    }
+
+    #[test]
     fn batch_query_preserves_canonical_sample_order_for_source_backed_paths() {
         let backend = Vsop87Backend::new();
         let mut requests = canonical_epoch_requests();

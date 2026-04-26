@@ -2664,6 +2664,67 @@ mod tests {
     }
 
     #[test]
+    fn batch_query_preserves_mixed_time_scales_across_the_reference_snapshot() {
+        let backend = JplSnapshotBackend;
+        let requests = reference_snapshot()
+            .iter()
+            .enumerate()
+            .map(|(index, entry)| EphemerisRequest {
+                body: entry.body.clone(),
+                instant: Instant::new(
+                    entry.epoch.julian_day,
+                    if index % 2 == 0 {
+                        TimeScale::Tt
+                    } else {
+                        TimeScale::Tdb
+                    },
+                ),
+                observer: None,
+                frame: CoordinateFrame::Ecliptic,
+                zodiac_mode: ZodiacMode::Tropical,
+                apparent: Apparentness::Mean,
+            })
+            .collect::<Vec<_>>();
+
+        let results = backend
+            .positions(&requests)
+            .expect("reference snapshot should preserve mixed TT/TDB batch requests");
+
+        assert_eq!(results.len(), requests.len());
+        for (request, result) in requests.iter().zip(results.iter()) {
+            assert_eq!(result.body, request.body);
+            assert_eq!(result.instant.scale, request.instant.scale);
+            let single = backend
+                .position(request)
+                .expect("single mixed-scale query should match the batch result");
+            assert_eq!(single.body, result.body);
+            assert_eq!(single.instant.scale, request.instant.scale);
+            assert_eq!(single.quality, result.quality);
+
+            let ecliptic = result
+                .ecliptic
+                .expect("reference snapshot should include ecliptic coordinates");
+            let single_ecliptic = single
+                .ecliptic
+                .expect("single-query reference snapshot should include ecliptic coordinates");
+            assert_eq!(
+                ecliptic.longitude.degrees(),
+                single_ecliptic.longitude.degrees()
+            );
+            assert_eq!(
+                ecliptic.latitude.degrees(),
+                single_ecliptic.latitude.degrees()
+            );
+            assert_eq!(
+                ecliptic.distance_au.expect("distance should exist"),
+                single_ecliptic
+                    .distance_au
+                    .expect("single-query distance should exist")
+            );
+        }
+    }
+
+    #[test]
     fn snapshot_data_matches_the_known_j2000_sun_longitude() {
         let entry = reference_snapshot()
             .iter()
