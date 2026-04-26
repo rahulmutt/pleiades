@@ -8512,6 +8512,7 @@ mod tests {
         assert!(rendered.contains("Pullen SD (Sinusoidal Delta) table of houses"));
         assert!(rendered.contains("Pullen SD (Neo-Porphyry) table of houses"));
         assert!(rendered.contains("Neo-Porphyry"));
+        assert!(rendered.contains("WvA"));
         assert!(rendered.contains("Makransky Sunshine"));
         assert!(rendered.contains("True Citra Paksha"));
         assert!(rendered.contains("True Chitra Paksha"));
@@ -8657,6 +8658,7 @@ mod tests {
         assert!(rendered.contains("Deprecation policy:"));
         assert!(rendered.contains("Release-specific coverage:"));
         assert!(rendered.contains("selected asteroid coverage"));
+        assert!(rendered.contains("WvA"));
         assert!(rendered.contains("Selected asteroid evidence: 5 exact J2000 samples"));
         assert!(rendered.contains("Reference snapshot coverage: 46 rows across 15 bodies and 6 epochs (5 asteroid rows; JD 2378499.0 (TDB)..JD 2634167.0 (TDB))"));
         assert!(rendered.contains("Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB))"));
