@@ -247,6 +247,17 @@ impl BackendProvenance {
             data_sources: Vec::new(),
         }
     }
+
+    /// Returns a compact one-line rendering of the provenance summary.
+    pub fn summary_line(&self) -> String {
+        self.summary.clone()
+    }
+}
+
+impl fmt::Display for BackendProvenance {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary)
+    }
 }
 
 /// Capability flags for a backend.
@@ -1187,6 +1198,18 @@ mod tests {
         assert!(summary.summary_line().contains("observer="));
         assert!(summary.summary_line().contains("apparentness="));
         assert!(summary.summary_line().contains("frame="));
+    }
+
+    #[test]
+    fn backend_provenance_summary_has_a_compact_display() {
+        let provenance = BackendProvenance {
+            summary: "toy backend for tests".to_string(),
+            data_sources: vec!["source A".to_string(), "source B".to_string()],
+        };
+
+        assert_eq!(provenance.to_string(), provenance.summary_line());
+        assert_eq!(provenance.summary_line(), "toy backend for tests");
+        assert!(provenance.summary_line().contains("toy backend for tests"));
     }
 
     #[test]

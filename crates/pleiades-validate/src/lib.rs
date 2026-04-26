@@ -5042,12 +5042,14 @@ fn render_comparison_audit_report_text(report: &ComparisonReport) -> String {
     let _ = writeln!(
         text,
         "  reference backend: {} ({})",
-        report.reference_backend.id, report.reference_backend.provenance.summary
+        report.reference_backend.id,
+        report.reference_backend.provenance.summary_line()
     );
     let _ = writeln!(
         text,
         "  candidate backend: {} ({})",
-        report.candidate_backend.id, report.candidate_backend.provenance.summary
+        report.candidate_backend.id,
+        report.candidate_backend.provenance.summary_line()
     );
     let _ = writeln!(text, "  comparison corpus");
     write_corpus_summary_text(&mut text, &report.corpus_summary);
@@ -7371,7 +7373,7 @@ fn write_backend_matrix(f: &mut fmt::Formatter<'_>, backend: &BackendMetadata) -
         "  capabilities: {}",
         format_capabilities(&backend.capabilities)
     )?;
-    writeln!(f, "  provenance: {}", backend.provenance.summary)?;
+    writeln!(f, "  provenance: {}", backend.provenance.summary_line())?;
     if !backend.provenance.data_sources.is_empty() {
         writeln!(
             f,
