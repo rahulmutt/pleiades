@@ -13,7 +13,9 @@
 //! through a small structured specification, and it also lists true apogee /
 //! true perigee as unsupported bodies, so future source-backed ELP work can
 //! attach provenance, supported channels, unsupported channels, and date-range
-//! notes without changing the public API shape.
+//! notes without changing the public API shape. The current catalog also has
+//! typed lookup helpers by source identifier, model name, and family label so
+//! future source-backed lunar variants can slot into the same resolution path.
 //!
 //! See `docs/lunar-theory-policy.md` for the current baseline, validation
 //! scope, and source/provenance posture.
@@ -229,6 +231,13 @@ impl LunarTheorySpecification {
             license_note: self.license_note,
         }
     }
+
+    /// Returns `true` when the provided label matches the built-in lunar selection.
+    pub fn matches_label(self, label: &str) -> bool {
+        self.source_identifier.eq_ignore_ascii_case(label)
+            || self.model_name.eq_ignore_ascii_case(label)
+            || self.source_family.label().eq_ignore_ascii_case(label)
+    }
 }
 
 const SUPPORTED_LUNAR_BODIES: &[CelestialBody] = &[
@@ -320,6 +329,19 @@ const LUNAR_THEORY_CATALOG: &[LunarTheoryCatalogEntry] = &[LunarTheoryCatalogEnt
 /// Returns the structured catalog of lunar-theory selections.
 pub fn lunar_theory_catalog() -> &'static [LunarTheoryCatalogEntry] {
     LUNAR_THEORY_CATALOG
+}
+
+/// Returns the catalog entry matching the provided label, when present.
+pub fn lunar_theory_catalog_entry_for_label(label: &str) -> Option<LunarTheoryCatalogEntry> {
+    lunar_theory_catalog()
+        .iter()
+        .copied()
+        .find(|entry| entry.specification.matches_label(label))
+}
+
+/// Returns the current lunar-theory specification matching the provided label, when present.
+pub fn resolve_lunar_theory(label: &str) -> Option<LunarTheorySpecification> {
+    lunar_theory_catalog_entry_for_label(label).map(|entry| entry.specification)
 }
 
 /// Returns the currently selected compact lunar-theory specification.
@@ -2278,6 +2300,13 @@ mod tests {
             .contains("lunar theory catalog: 1 entry, 1 selected entry"));
         assert!(lunar_theory_catalog_summary_for_report()
             .contains("selected source: meeus-style-truncated-lunar-baseline"));
+        assert_eq!(resolve_lunar_theory(theory.source_identifier), Some(theory));
+        assert_eq!(resolve_lunar_theory(theory.model_name), Some(theory));
+        assert_eq!(
+            lunar_theory_catalog_entry_for_label(theory.source_family.label()),
+            Some(catalog[0])
+        );
+        assert!(resolve_lunar_theory("not-a-lunar-theory").is_none());
     }
 
     #[test]
