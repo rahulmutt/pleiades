@@ -41,7 +41,7 @@ use pleiades_core::{
     TimeRange, TimeScale, ZodiacMode,
 };
 use pleiades_data::{
-    packaged_artifact_profile_summary, packaged_frame_treatment_summary,
+    packaged_artifact_profile_summary_with_body_coverage, packaged_frame_treatment_summary,
     packaged_request_policy_summary_details, PackagedDataBackend,
 };
 use pleiades_elp::{
@@ -4753,7 +4753,7 @@ fn format_vsop87_source_audit_summary() -> String {
 }
 
 fn format_packaged_artifact_profile_summary() -> String {
-    packaged_artifact_profile_summary()
+    packaged_artifact_profile_summary_with_body_coverage()
 }
 
 fn format_packaged_frame_treatment_summary() -> &'static str {

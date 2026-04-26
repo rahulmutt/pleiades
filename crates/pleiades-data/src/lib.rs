@@ -85,6 +85,8 @@ pub fn packaged_artifact_regeneration_summary() -> String {
 pub struct PackagedArtifactProfileSummary {
     /// Number of bundled bodies that share the packaged artifact profile.
     pub body_count: usize,
+    /// Bodies bundled under the packaged artifact profile.
+    pub bodies: Vec<CelestialBody>,
     /// Byte-order policy encoded by the packaged artifact.
     pub endian_policy: EndianPolicy,
     /// Capability profile encoded by the packaged artifact.
@@ -100,6 +102,22 @@ impl PackagedArtifactProfileSummary {
             self.profile.summary_for_body_count(self.body_count),
         )
     }
+
+    /// Renders the packaged artifact profile with its bundled body list.
+    pub fn summary_line_with_bodies(&self) -> String {
+        let body_list = self
+            .bodies
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        format!(
+            "byte order: {}; {}; bundled bodies: {body_list}",
+            self.endian_policy,
+            self.profile.summary_for_body_count(self.body_count),
+        )
+    }
 }
 
 /// Returns the current packaged-artifact profile summary record.
@@ -107,6 +125,11 @@ pub fn packaged_artifact_profile_summary_details() -> PackagedArtifactProfileSum
     let artifact = packaged_artifact();
     PackagedArtifactProfileSummary {
         body_count: artifact.bodies.len(),
+        bodies: artifact
+            .bodies
+            .iter()
+            .map(|series| series.body.clone())
+            .collect(),
         endian_policy: artifact.header.endian_policy,
         profile: artifact.header.profile.clone(),
     }
@@ -115,6 +138,11 @@ pub fn packaged_artifact_profile_summary_details() -> PackagedArtifactProfileSum
 /// Returns the current packaged-artifact profile summary.
 pub fn packaged_artifact_profile_summary() -> String {
     packaged_artifact_profile_summary_details().summary_line()
+}
+
+/// Returns the current packaged-artifact profile summary with bundled body coverage.
+pub fn packaged_artifact_profile_summary_with_body_coverage() -> String {
+    packaged_artifact_profile_summary_details().summary_line_with_bodies()
 }
 
 fn join_display<T: fmt::Display>(values: &[T]) -> String {
@@ -767,6 +795,14 @@ mod tests {
         let summary = packaged_artifact_profile_summary_details();
 
         assert_eq!(summary.body_count, artifact.bodies.len());
+        assert_eq!(
+            summary.bodies,
+            artifact
+                .bodies
+                .iter()
+                .map(|series| series.body.clone())
+                .collect::<Vec<_>>()
+        );
         assert_eq!(summary.endian_policy, artifact.header.endian_policy);
         assert_eq!(summary.profile, artifact.header.profile);
         assert_eq!(
@@ -776,10 +812,28 @@ mod tests {
                 .summary_for_body_count(artifact.bodies.len())
         );
         assert_eq!(
+            summary.summary_line_with_bodies(),
+            format!(
+                "{}; bundled bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros",
+                artifact
+                    .header
+                    .summary_for_body_count(artifact.bodies.len())
+            )
+        );
+        assert_eq!(
             packaged_artifact_profile_summary(),
             artifact
                 .header
                 .summary_for_body_count(artifact.bodies.len())
+        );
+        assert_eq!(
+            packaged_artifact_profile_summary_with_body_coverage(),
+            format!(
+                "{}; bundled bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros",
+                artifact
+                    .header
+                    .summary_for_body_count(artifact.bodies.len())
+            )
         );
     }
 
