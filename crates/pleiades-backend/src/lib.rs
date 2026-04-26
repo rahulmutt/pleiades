@@ -385,6 +385,22 @@ pub enum EphemerisErrorKind {
     InvalidRequest,
 }
 
+impl fmt::Display for EphemerisErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let label = match self {
+            EphemerisErrorKind::UnsupportedBody => "UnsupportedBody",
+            EphemerisErrorKind::UnsupportedCoordinateFrame => "UnsupportedCoordinateFrame",
+            EphemerisErrorKind::UnsupportedTimeScale => "UnsupportedTimeScale",
+            EphemerisErrorKind::InvalidObserver => "InvalidObserver",
+            EphemerisErrorKind::OutOfRangeInstant => "OutOfRangeInstant",
+            EphemerisErrorKind::MissingDataset => "MissingDataset",
+            EphemerisErrorKind::NumericalFailure => "NumericalFailure",
+            EphemerisErrorKind::InvalidRequest => "InvalidRequest",
+        };
+        f.write_str(label)
+    }
+}
+
 /// A structured backend error.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -407,7 +423,7 @@ impl EphemerisError {
 
 impl fmt::Display for EphemerisError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}: {}", self.kind, self.message)
+        write!(f, "{}: {}", self.kind, self.message)
     }
 }
 
@@ -941,6 +957,42 @@ mod tests {
         assert_eq!(AccuracyClass::Moderate.to_string(), "Moderate");
         assert_eq!(AccuracyClass::Approximate.to_string(), "Approximate");
         assert_eq!(AccuracyClass::Unknown.to_string(), "Unknown");
+
+        assert_eq!(
+            EphemerisErrorKind::UnsupportedBody.to_string(),
+            "UnsupportedBody"
+        );
+        assert_eq!(
+            EphemerisErrorKind::UnsupportedCoordinateFrame.to_string(),
+            "UnsupportedCoordinateFrame"
+        );
+        assert_eq!(
+            EphemerisErrorKind::UnsupportedTimeScale.to_string(),
+            "UnsupportedTimeScale"
+        );
+        assert_eq!(
+            EphemerisErrorKind::InvalidObserver.to_string(),
+            "InvalidObserver"
+        );
+        assert_eq!(
+            EphemerisErrorKind::OutOfRangeInstant.to_string(),
+            "OutOfRangeInstant"
+        );
+        assert_eq!(
+            EphemerisErrorKind::MissingDataset.to_string(),
+            "MissingDataset"
+        );
+        assert_eq!(
+            EphemerisErrorKind::NumericalFailure.to_string(),
+            "NumericalFailure"
+        );
+        assert_eq!(
+            EphemerisErrorKind::InvalidRequest.to_string(),
+            "InvalidRequest"
+        );
+
+        let error = EphemerisError::new(EphemerisErrorKind::InvalidRequest, "example failure");
+        assert_eq!(error.to_string(), "InvalidRequest: example failure");
     }
 
     struct ToyBackend;

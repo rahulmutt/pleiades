@@ -7764,7 +7764,7 @@ fn format_capabilities(capabilities: &BackendCapabilities) -> String {
 fn format_error_kinds(kinds: &[EphemerisErrorKind]) -> String {
     kinds
         .iter()
-        .map(|kind| format!("{:?}", kind))
+        .map(ToString::to_string)
         .collect::<Vec<_>>()
         .join(", ")
 }
