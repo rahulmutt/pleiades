@@ -9053,6 +9053,10 @@ mod tests {
         assert!(rendered.contains("Babylonian/Eta Piscium"));
         assert!(rendered.contains("Babylonian Eta Piscium"));
         assert!(rendered.contains("Eta Piscium"));
+        assert!(rendered.contains("Hipparchus"));
+        assert!(rendered.contains("Djwhal Khul"));
+        assert!(rendered.contains("Udayagiri"));
+        assert!(rendered.contains("True Mula"));
         assert!(rendered.contains("Suryasiddhanta (Mean Sun)"));
         assert!(rendered.contains("Aryabhata (Mean Sun)"));
         assert!(rendered.contains("Galactic Equator (IAU 1958)"));
