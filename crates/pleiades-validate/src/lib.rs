@@ -2499,6 +2499,9 @@ fn render_release_summary_text() -> String {
     text.push_str("Observer policy: ");
     text.push_str(observer_policy_summary_for_report());
     text.push('\n');
+    text.push_str("Apparentness policy: ");
+    text.push_str(apparentness_policy_summary_for_report());
+    text.push('\n');
     text.push_str("Release summary line: ");
     text.push_str(profile.summary);
     text.push('\n');
@@ -4470,6 +4473,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         "Observer policy: {}",
         observer_policy_summary_for_report()
     );
+    let _ = writeln!(
+        text,
+        "Apparentness policy: {}",
+        apparentness_policy_summary_for_report()
+    );
     let _ = writeln!(text);
     let _ = writeln!(text, "Comparison corpus");
     let _ = writeln!(text, "  name: {}", report.comparison_corpus.name);
@@ -5239,6 +5247,9 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str("Observer policy: ");
     text.push_str(observer_policy_summary_for_report());
     text.push('\n');
+    text.push_str("Apparentness policy: ");
+    text.push_str(apparentness_policy_summary_for_report());
+    text.push('\n');
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("API stability summary: api-stability-summary\n");
     text.push_str("Release notes summary: release-notes-summary\n");
@@ -5297,6 +5308,10 @@ fn time_scale_policy_summary_for_report() -> &'static str {
 
 fn observer_policy_summary_for_report() -> &'static str {
     "chart houses use observer locations; body requests stay geocentric; geocentric-only backends reject observer-bearing requests"
+}
+
+fn apparentness_policy_summary_for_report() -> &'static str {
+    "current first-party backends accept mean geometric output only; apparent requests are rejected unless a backend explicitly advertises support"
 }
 
 fn push_unique(values: &mut Vec<String>, value: String) {
@@ -7903,6 +7918,7 @@ mod tests {
         assert!(validation_report_summary.contains("Packaged request policy"));
         assert!(validation_report_summary.contains("Time-scale policy:"));
         assert!(validation_report_summary.contains("Observer policy:"));
+        assert!(validation_report_summary.contains("Apparentness policy:"));
         assert!(validation_report_summary
             .contains("lookup epoch policy=TT-grid retag without relativistic correction"));
         assert!(validation_report_summary.contains("Benchmark summaries"));
@@ -8581,6 +8597,7 @@ mod tests {
         assert!(rendered.contains("comparison samples"));
         assert!(rendered.contains("Time-scale policy:"));
         assert!(rendered.contains("Observer policy:"));
+        assert!(rendered.contains("Apparentness policy:"));
         assert!(rendered.contains("notable regressions"));
         assert!(rendered.contains("outside-tolerance bodies"));
         assert!(rendered.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto override); limits="));
@@ -8740,6 +8757,7 @@ mod tests {
         assert!(rendered.contains("Distinct time scales:"));
         assert!(rendered.contains("Time-scale policy:"));
         assert!(rendered.contains("Observer policy:"));
+        assert!(rendered.contains("Apparentness policy:"));
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(rendered.contains("API stability summary: api-stability-summary"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
