@@ -1179,6 +1179,10 @@ impl fmt::Display for ChartSnapshot {
                 "Observer policy: geocentric body positions; no house observer supplied"
             )?;
         }
+        writeln!(
+            f,
+            "Frame policy: ecliptic body positions are requested from the backend; house calculations remain separate"
+        )?;
         writeln!(f, "Zodiac mode: {:?}", self.zodiac_mode)?;
         writeln!(f, "Apparentness: {}", self.apparentness)?;
         writeln!(
@@ -1690,6 +1694,9 @@ mod tests {
         assert!(rendered.contains("Sun"));
         assert!(rendered.contains("Moon"));
         assert!(rendered.contains("Sign summary: 1 Aries, 1 Taurus"));
+        assert!(rendered.contains(
+            "Frame policy: ecliptic body positions are requested from the backend; house calculations remain separate"
+        ));
         assert!(rendered.contains("Apparentness policy: mean geometric request by default; apparent corrections require backend support"));
     }
 

@@ -147,6 +147,7 @@ Latest progress (2026-04-25): the JPL comparison corpus now also has a backend-o
 Latest progress (2026-04-25): the compact validation and release summaries now also spell out the current comparison-tolerance limits per scope alongside the scope names and evidence counts, so the release-facing policy line is a little more actionable without widening the full audit output.
 
 Latest progress (2026-04-26): the comparison-tolerance policy summaries now also carry the comparison window and candidate coordinate-frame coverage alongside the scope catalog, so the release-facing tolerance view ties the scope table to the evidence range more explicitly.
+Latest progress (2026-04-26): chart snapshots now also render an explicit ecliptic frame policy line, so the chart-facing report makes the geocentric ecliptic body-position request shape visible alongside the existing time-scale, observer, and apparentness notes.
 
 Active gaps:
 
