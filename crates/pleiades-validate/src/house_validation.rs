@@ -7,6 +7,7 @@
 #![forbid(unsafe_code)]
 
 use core::fmt;
+use std::collections::BTreeSet;
 
 use pleiades_core::{
     baseline_house_systems, calculate_houses, HouseError, HouseRequest, HouseSnapshot,
@@ -102,7 +103,59 @@ impl HouseValidationReport {
         Self { scenarios }
     }
 
-    fn success_count(samples: &[HouseValidationSample]) -> usize {
+    /// Returns the total number of scenario/sample calculations.
+    pub fn sample_count(&self) -> usize {
+        self.scenarios
+            .iter()
+            .map(|scenario| scenario.samples.len())
+            .sum()
+    }
+
+    /// Returns the number of successful calculations in the report.
+    pub fn success_count(&self) -> usize {
+        self.scenarios
+            .iter()
+            .flat_map(|scenario| scenario.samples.iter())
+            .filter(|sample| sample.result.is_ok())
+            .count()
+    }
+
+    /// Returns the number of failing calculations in the report.
+    pub fn failure_count(&self) -> usize {
+        self.sample_count().saturating_sub(self.success_count())
+    }
+
+    /// Returns the distinct latitude-sensitive house systems represented by the report.
+    pub fn latitude_sensitive_systems(&self) -> Vec<&'static str> {
+        let mut systems = BTreeSet::new();
+        for scenario in &self.scenarios {
+            for sample in &scenario.samples {
+                if sample.descriptor.latitude_sensitive {
+                    systems.insert(sample.descriptor.canonical_name);
+                }
+            }
+        }
+        systems.into_iter().collect()
+    }
+
+    /// Returns a compact release-facing summary line.
+    pub fn summary_line(&self) -> String {
+        let latitude_sensitive_systems = self.latitude_sensitive_systems();
+        format!(
+            "House validation corpus: {} scenarios, {} samples, {} successes, {} failures; latitude-sensitive systems: {}",
+            self.scenarios.len(),
+            self.sample_count(),
+            self.success_count(),
+            self.failure_count(),
+            if latitude_sensitive_systems.is_empty() {
+                "none".to_string()
+            } else {
+                latitude_sensitive_systems.join(", ")
+            }
+        )
+    }
+
+    fn success_count_for(samples: &[HouseValidationSample]) -> usize {
         samples
             .iter()
             .filter(|sample| sample.result.is_ok())
@@ -128,7 +181,7 @@ impl fmt::Display for HouseValidationReport {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "House validation corpus")?;
         for scenario in &self.scenarios {
-            let success_count = Self::success_count(&scenario.samples);
+            let success_count = Self::success_count_for(&scenario.samples);
             let failure_names = Self::failure_names(&scenario.samples);
 
             writeln!(f, "{}", scenario.label)?;
@@ -201,4 +254,29 @@ impl fmt::Display for HouseValidationReport {
 /// Renders the default house-validation corpus.
 pub fn house_validation_report() -> HouseValidationReport {
     HouseValidationReport::new()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn summary_line_reports_scenario_and_latitude_sensitive_counts() {
+        let report = house_validation_report();
+
+        assert_eq!(report.scenarios.len(), 4);
+        assert_eq!(
+            report.sample_count(),
+            report.scenarios.len() * baseline_house_systems().len()
+        );
+        assert_eq!(
+            report.latitude_sensitive_systems(),
+            vec!["Koch", "Placidus", "Topocentric"]
+        );
+
+        let summary = report.summary_line();
+        assert!(summary.contains("House validation corpus: 4 scenarios"));
+        assert!(summary.contains("samples"));
+        assert!(summary.contains("latitude-sensitive systems: Koch, Placidus, Topocentric"));
+    }
 }

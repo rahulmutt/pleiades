@@ -61,6 +61,7 @@ The repository already exposes baseline house systems and ayanamsas, a larger re
    - Progress note: the CLI compatibility-profile smoke tests now also pin the `Whole Sign system`, `Whole Sign house system`, and `Whole Sign (house 1 = Aries)` spellings, which keeps the whole-sign family anchored in the command-line catalog audit alongside the already-covered equal-house and topocentric variants.
    - Progress note: the compatibility-profile verification now also rejects case-insensitive duplicate labels that would collide across different house-system, ayanamsa, or custom-definition entries, while still allowing same-entry alias spellings such as the current `Vehlow Equal`/`Vehlow equal` pair to coexist, so future catalog additions cannot silently drift into ambiguous cross-entry alias collisions even when spellings differ only by ASCII case.
    - Progress note: the compatibility-profile smoke tests now also pin `Hipparchus`, `Djwhal Khul`, `Udayagiri`, and `True Mula`, keeping a few more release-profile ayanamsa labels explicitly covered in the CLI and validation audit paths as the catalog breadth pass continues.
+   - Progress note: the validation and release summary views now also surface the compact house-validation corpus line from the representative baseline scenarios, so the formula-validation slice is visible in the short release-facing reports instead of only in the detailed house report.
 
 ## Done criteria
 

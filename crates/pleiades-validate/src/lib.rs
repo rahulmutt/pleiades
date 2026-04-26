@@ -2982,6 +2982,9 @@ fn render_release_summary_text() -> String {
         text.push_str(" outside-tolerance bodies, comparison audit ");
         text.push_str(comparison_audit_result_label(audit_regression_count));
         text.push('\n');
+        text.push_str("House validation corpus: ");
+        text.push_str(&report.house_validation.summary_line());
+        text.push('\n');
         text.push_str("Comparison tolerance policy: ");
         text.push_str(&format_comparison_tolerance_policy_for_report(
             &report.comparison,
@@ -5008,6 +5011,9 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         "  {}",
         comparison_snapshot_manifest_summary_for_report()
     );
+    let _ = writeln!(text);
+    let _ = writeln!(text, "House validation corpus");
+    let _ = writeln!(text, "  {}", report.house_validation.summary_line());
     let _ = writeln!(text);
     let _ = writeln!(text, "Comparison summary");
     let _ = writeln!(
@@ -8642,6 +8648,8 @@ mod tests {
         )));
         assert!(report.contains("Comparison corpus"));
         assert!(report.contains("epoch labels: JD 2378499.0 (TT)"));
+        assert!(report.contains("House validation corpus"));
+        assert!(report.contains("House validation corpus: 4 scenarios"));
         assert!(report.contains("Comparison summary"));
         assert!(report.contains("95th percentile absolute deltas:"));
         assert!(report.contains("median longitude delta:"));
@@ -9731,6 +9739,7 @@ mod tests {
         assert!(rendered.contains("95th percentile latitude delta:"));
         assert!(rendered.contains("rms latitude delta:"));
         assert!(rendered.contains("Validation evidence:"));
+        assert!(rendered.contains("House validation corpus: 4 scenarios"));
         assert!(rendered.contains("comparison samples"));
         assert!(rendered.contains("Time-scale policy:"));
         assert!(rendered.contains("Observer policy:"));

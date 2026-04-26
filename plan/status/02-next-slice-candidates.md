@@ -245,6 +245,7 @@ Progress note (2026-04-25): the compatibility-profile and release-notes regressi
 Progress note (2026-04-26): the compatibility-profile smoke tests now also pin Lahiri (VP285) and Krishnamurti (VP291), keeping the remaining release-profile ayanamsa variants visible in both the CLI and validation coverage paths as the catalog-breadth audit continues.
 Progress note (2026-04-26): the CLI compatibility-profile smoke test now also pins the `Pullen SD (Neo-Porphyry) table of houses`, `Makransky Sunshine`, `Treindl Sunshine`, `Y APC houses`, `Equal (1=Aries) table of houses`, and `Equal/MC = 10th` spellings, keeping a few more release-profile house aliases anchored in the command-level audit path as the catalog-breadth pass continues.
 Progress note (2026-04-26): the CLI and validation compatibility-profile smoke tests now also pin the long-form Sunshine alias `Sunshine table of houses, by Bob Makransky`, keeping that release-facing house-system spelling visible alongside the shorter Makransky and Treindl variants in the catalog audit.
+Progress note (2026-04-26): the validation and release summary views now also surface the compact house-validation corpus line from the representative baseline scenarios, so the formula-validation slice is visible in the short release-facing reports instead of only in the detailed house report.
 
 Remaining suggested scope:
 
