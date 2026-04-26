@@ -476,9 +476,9 @@ impl fmt::Display for LunarTheoryCatalogValidationError {
 
 impl std::error::Error for LunarTheoryCatalogValidationError {}
 
-/// Validates the structured lunar-theory catalog for round-trip and label uniqueness.
-pub fn validate_lunar_theory_catalog() -> Result<(), LunarTheoryCatalogValidationError> {
-    let catalog = lunar_theory_catalog();
+fn validate_lunar_theory_catalog_entries(
+    catalog: &[LunarTheoryCatalogEntry],
+) -> Result<(), LunarTheoryCatalogValidationError> {
     if catalog.is_empty() {
         return Err(LunarTheoryCatalogValidationError::EmptyCatalog);
     }
@@ -495,6 +495,26 @@ pub fn validate_lunar_theory_catalog() -> Result<(), LunarTheoryCatalogValidatio
     }
 
     for (index, entry) in catalog.iter().enumerate() {
+        for (alias_index, alias) in entry.specification.source_aliases.iter().enumerate() {
+            if alias.eq_ignore_ascii_case(entry.specification.source_identifier)
+                || alias.eq_ignore_ascii_case(entry.specification.model_name)
+                || alias.eq_ignore_ascii_case(entry.specification.source_family.label())
+            {
+                return Err(LunarTheoryCatalogValidationError::DuplicateAlias { alias });
+            }
+
+            for other_alias in entry
+                .specification
+                .source_aliases
+                .iter()
+                .skip(alias_index + 1)
+            {
+                if alias.eq_ignore_ascii_case(other_alias) {
+                    return Err(LunarTheoryCatalogValidationError::DuplicateAlias { alias });
+                }
+            }
+        }
+
         for other in catalog.iter().skip(index + 1) {
             if entry
                 .specification
@@ -575,6 +595,11 @@ pub fn validate_lunar_theory_catalog() -> Result<(), LunarTheoryCatalogValidatio
     }
 
     Ok(())
+}
+
+/// Validates the structured lunar-theory catalog for round-trip and alias/core-label uniqueness.
+pub fn validate_lunar_theory_catalog() -> Result<(), LunarTheoryCatalogValidationError> {
+    validate_lunar_theory_catalog_entries(lunar_theory_catalog())
 }
 
 /// Returns a compact release-facing summary of the lunar-theory catalog validation state.
@@ -2826,6 +2851,45 @@ mod tests {
                 .is_none()
         );
         assert!(validate_lunar_theory_catalog().is_ok());
+    }
+
+    #[test]
+    fn lunar_theory_catalog_validation_rejects_duplicate_aliases_within_entry() {
+        let duplicate_alias_catalog = [LunarTheoryCatalogEntry {
+            selected: true,
+            specification: LunarTheorySpecification {
+                source_aliases: &[
+                    "Meeus-style truncated lunar baseline",
+                    "meeus-style truncated lunar baseline",
+                ],
+                ..LUNAR_THEORY_SPECIFICATION
+            },
+        }];
+
+        assert!(matches!(
+            validate_lunar_theory_catalog_entries(&duplicate_alias_catalog),
+            Err(LunarTheoryCatalogValidationError::DuplicateAlias {
+                alias: "Meeus-style truncated lunar baseline"
+            })
+        ));
+    }
+
+    #[test]
+    fn lunar_theory_catalog_validation_rejects_alias_collisions_with_core_labels() {
+        let colliding_alias_catalog = [LunarTheoryCatalogEntry {
+            selected: true,
+            specification: LunarTheorySpecification {
+                source_aliases: &["meeus-style-truncated-lunar-baseline"],
+                ..LUNAR_THEORY_SPECIFICATION
+            },
+        }];
+
+        assert!(matches!(
+            validate_lunar_theory_catalog_entries(&colliding_alias_catalog),
+            Err(LunarTheoryCatalogValidationError::DuplicateAlias {
+                alias: "meeus-style-truncated-lunar-baseline"
+            })
+        ));
     }
 
     #[test]
