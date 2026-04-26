@@ -603,6 +603,9 @@ mod tests {
         assert!(rendered.contains("Horizontal house system"));
         assert!(rendered.contains("Azimuth house system"));
         assert!(rendered.contains("Azimuthal house system"));
+        assert!(rendered.contains("Whole Sign system"));
+        assert!(rendered.contains("Whole Sign house system"));
+        assert!(rendered.contains("Whole Sign (house 1 = Aries)"));
         assert!(rendered.contains("Carter's poli-equatorial"));
         assert!(rendered.contains("Poli-equatorial"));
         assert!(rendered.contains("horizon/azimuth"));
