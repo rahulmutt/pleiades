@@ -334,6 +334,7 @@ struct Vsop87BodyCatalogEntry {
 
 static BODY_CATALOG: OnceLock<Vec<Vsop87BodyCatalogEntry>> = OnceLock::new();
 static SOURCE_AUDITS: OnceLock<Vec<Vsop87SourceAudit>> = OnceLock::new();
+static GENERATED_BINARY_AUDITS: OnceLock<Vec<Vsop87GeneratedBlobAudit>> = OnceLock::new();
 
 fn source_text_for_file(source_file: &str) -> Option<&'static str> {
     match source_file {
@@ -810,6 +811,89 @@ pub fn format_source_audit_summary(summary: &Vsop87SourceAuditSummary) -> String
 /// Returns the release-facing reproducibility audit summary string.
 pub fn source_audit_summary_for_report() -> String {
     format_source_audit_summary(&source_audit_summary())
+}
+
+/// A reproducibility audit record for one checked-in generated VSOP87B blob.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Vsop87GeneratedBlobAudit {
+    /// Body covered by the generated blob.
+    pub body: CelestialBody,
+    /// Public coefficient file backing the body.
+    pub source_file: &'static str,
+    /// Checked-in generated blob byte length.
+    pub byte_length: usize,
+    /// Deterministic 64-bit fingerprint of the checked-in generated blob.
+    pub fingerprint: u64,
+}
+
+/// Summary metrics for the current VSOP87 generated-blob audit manifest.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Vsop87GeneratedBlobAuditSummary {
+    /// Number of checked-in generated blobs represented in the audit manifest.
+    pub blob_count: usize,
+    /// Number of source files represented in the audit manifest.
+    pub source_file_count: usize,
+    /// Total checked-in blob byte length across the manifest.
+    pub total_byte_length: usize,
+    /// Maximum checked-in blob byte length across the manifest.
+    pub max_byte_length: usize,
+    /// Number of deterministic fingerprints recorded in the audit manifest.
+    pub fingerprint_count: usize,
+}
+
+/// Returns the reproducibility audit records for the current checked-in generated blobs.
+pub fn generated_binary_audits() -> Vec<Vsop87GeneratedBlobAudit> {
+    GENERATED_BINARY_AUDITS
+        .get_or_init(|| {
+            source_specifications()
+                .into_iter()
+                .map(|spec| {
+                    let blob =
+                        checked_in_generated_vsop87b_table_bytes_for_source_file(spec.source_file)
+                            .expect("known VSOP87 generated blob");
+                    Vsop87GeneratedBlobAudit {
+                        body: spec.body,
+                        source_file: spec.source_file,
+                        byte_length: blob.len(),
+                        fingerprint: fnv1a_64(blob),
+                    }
+                })
+                .collect()
+        })
+        .clone()
+}
+
+/// Returns a small reproducibility summary for the current generated VSOP87B blobs.
+pub fn generated_binary_audit_summary() -> Vsop87GeneratedBlobAuditSummary {
+    let audits = generated_binary_audits();
+    Vsop87GeneratedBlobAuditSummary {
+        blob_count: audits.len(),
+        source_file_count: audits.len(),
+        total_byte_length: audits.iter().map(|audit| audit.byte_length).sum(),
+        max_byte_length: audits
+            .iter()
+            .map(|audit| audit.byte_length)
+            .max()
+            .unwrap_or(0),
+        fingerprint_count: audits.len(),
+    }
+}
+
+/// Formats the checked-in generated VSOP87B blob audit for reporting.
+pub fn format_generated_binary_audit_summary(summary: &Vsop87GeneratedBlobAuditSummary) -> String {
+    format!(
+        "VSOP87 generated binary audit: {} checked-in blobs across {} source files, {} total bytes, max blob size {} bytes, {} deterministic fingerprints",
+        summary.blob_count,
+        summary.source_file_count,
+        summary.total_byte_length,
+        summary.max_byte_length,
+        summary.fingerprint_count
+    )
+}
+
+/// Returns the release-facing generated binary audit summary string.
+pub fn generated_binary_audit_summary_for_report() -> String {
+    format_generated_binary_audit_summary(&generated_binary_audit_summary())
 }
 
 /// Returns a summary of the current VSOP87 source-documentation catalog.
@@ -2987,6 +3071,42 @@ mod tests {
         assert_eq!(
             source_audit_summary_for_report(),
             format_source_audit_summary(&summary)
+        );
+    }
+
+    #[test]
+    fn generated_binary_audit_manifest_tracks_all_checked_in_blobs() {
+        let audits = generated_binary_audits();
+        let summary = generated_binary_audit_summary();
+
+        assert_eq!(audits.len(), 8);
+        assert_eq!(summary.blob_count, 8);
+        assert_eq!(summary.source_file_count, 8);
+        assert_eq!(summary.fingerprint_count, 8);
+        assert!(summary.total_byte_length > 0);
+        assert!(summary.max_byte_length > 0);
+        assert_eq!(
+            audits
+                .iter()
+                .map(|audit| audit.source_file)
+                .collect::<Vec<_>>(),
+            source_specifications()
+                .iter()
+                .map(|spec| spec.source_file)
+                .collect::<Vec<_>>()
+        );
+
+        let mut fingerprints = audits
+            .iter()
+            .map(|audit| audit.fingerprint)
+            .collect::<Vec<_>>();
+        fingerprints.sort_unstable();
+        fingerprints.dedup();
+        assert_eq!(fingerprints.len(), audits.len());
+
+        assert_eq!(
+            generated_binary_audit_summary_for_report(),
+            format_generated_binary_audit_summary(&summary)
         );
     }
 

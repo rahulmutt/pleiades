@@ -76,9 +76,9 @@ use pleiades_jpl::{
 };
 use pleiades_vsop87::{
     body_source_profiles, canonical_epoch_evidence_summary_for_report, frame_treatment_summary,
-    source_audit_summary_for_report, source_audits, source_body_evidence_summary_for_report,
-    source_documentation_summary_for_report, source_specifications,
-    vsop87_request_policy_summary_for_report, Vsop87Backend,
+    generated_binary_audit_summary_for_report, source_audit_summary_for_report, source_audits,
+    source_body_evidence_summary_for_report, source_documentation_summary_for_report,
+    source_specifications, vsop87_request_policy_summary_for_report, Vsop87Backend,
 };
 
 const DEFAULT_BENCHMARK_ROUNDS: usize = 10_000;
@@ -2850,6 +2850,8 @@ fn render_release_summary_text() -> String {
     text.push_str(" | ");
     text.push_str(&format_vsop87_source_audit_summary());
     text.push_str(" | ");
+    text.push_str(&generated_binary_audit_summary_for_report());
+    text.push_str(" | ");
     text.push_str(&format_vsop87_canonical_evidence_summary());
     text.push_str(" | ");
     text.push_str(&format_vsop87_body_evidence_summary());
@@ -5234,6 +5236,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         format_vsop87_request_policy_summary()
     );
     let _ = writeln!(text, "  {}", format_vsop87_source_audit_summary());
+    let _ = writeln!(text, "  {}", generated_binary_audit_summary_for_report());
     let _ = writeln!(text, "  {}", format_vsop87_canonical_evidence_summary());
     let _ = writeln!(text, "  {}", format_vsop87_body_evidence_summary());
     let _ = writeln!(text);
@@ -5589,6 +5592,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&format_vsop87_request_policy_summary());
     text.push('\n');
     text.push_str(&format_vsop87_source_audit_summary());
+    text.push('\n');
+    text.push_str(&generated_binary_audit_summary_for_report());
     text.push('\n');
     text.push_str(&format_vsop87_canonical_evidence_summary());
     text.push('\n');
@@ -6619,6 +6624,9 @@ fn write_backend_catalog_entry(
                 audit.fingerprint
             )?;
         }
+
+        writeln!(f, "  generated binary audit:")?;
+        writeln!(f, "    {}", generated_binary_audit_summary_for_report())?;
 
         writeln!(f, "  canonical J2000 VSOP87B evidence:")?;
         match vsop87_canonical_body_evidence() {
@@ -8334,6 +8342,8 @@ mod tests {
         assert!(report.contains("VSOP87 source-backed evidence"));
         assert!(report
             .contains("VSOP87 source audit: 8 source-backed bodies, 8 vendored full-file inputs, 35080 total terms, max source size 949753 bytes / 7141 lines, 8 deterministic fingerprints"));
+        assert!(report
+            .contains("VSOP87 generated binary audit: 8 checked-in blobs across 8 source files"));
         assert!(report.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(report.contains("generated binary VSOP87B"));
         assert!(report.contains("generated binary VSOP87B; VSOP87B."));
@@ -9403,6 +9413,8 @@ mod tests {
         ));
         assert!(rendered
             .contains("VSOP87 source audit: 8 source-backed bodies, 8 vendored full-file inputs, 35080 total terms, max source size 949753 bytes / 7141 lines, 8 deterministic fingerprints"));
+        assert!(rendered
+            .contains("VSOP87 generated binary audit: 8 checked-in blobs across 8 source files"));
         assert!(rendered.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(rendered.contains("generated binary VSOP87B"));
         assert!(rendered.contains("generated binary VSOP87B; VSOP87B."));
@@ -9729,6 +9741,7 @@ version = "0.9.0"
         assert!(release_summary.contains("VSOP87 frame treatment:"));
         assert!(release_summary.contains("VSOP87 request policy:"));
         assert!(release_summary.contains("VSOP87 source audit:"));
+        assert!(release_summary.contains("VSOP87 generated binary audit:"));
         assert!(release_summary.contains("VSOP87 canonical J2000 source-backed evidence:"));
         assert!(release_summary.contains("VSOP87 source-backed body evidence:"));
         assert!(release_summary.contains("Lunar reference: lunar reference evidence:"));
@@ -9865,6 +9878,8 @@ version = "0.9.0"
         assert!(validation_report_summary.contains("VSOP87 request policy:"));
         assert!(validation_report_summary
             .contains("VSOP87 source audit: 8 source-backed bodies, 8 vendored full-file inputs, 35080 total terms, max source size 949753 bytes / 7141 lines, 8 deterministic fingerprints"));
+        assert!(validation_report_summary
+            .contains("VSOP87 generated binary audit: 8 checked-in blobs across 8 source files"));
         assert!(validation_report_summary
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(validation_report_summary.contains("generated binary VSOP87B"));
