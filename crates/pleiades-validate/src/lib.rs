@@ -2578,6 +2578,9 @@ fn render_release_summary_text() -> String {
     text.push_str("Apparentness policy: ");
     text.push_str(apparentness_policy_summary_for_report());
     text.push('\n');
+    text.push_str("Frame policy: ");
+    text.push_str(frame_policy_summary_for_report());
+    text.push('\n');
     text.push_str("Release summary line: ");
     text.push_str(profile.summary);
     text.push('\n');
@@ -4653,6 +4656,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         "Apparentness policy: {}",
         apparentness_policy_summary_for_report()
     );
+    let _ = writeln!(text, "Frame policy: {}", frame_policy_summary_for_report());
     let _ = writeln!(text);
     let _ = writeln!(text, "Comparison corpus");
     let _ = writeln!(text, "  name: {}", report.comparison_corpus.name);
@@ -5418,6 +5422,9 @@ fn render_backend_matrix_summary_text() -> String {
         text.push_str(&regression_count.to_string());
         text.push('\n');
     }
+    text.push_str("Frame policy: ");
+    text.push_str(frame_policy_summary_for_report());
+    text.push('\n');
     text.push_str("Backends with external data sources: ");
     text.push_str(&data_source_count.to_string());
     text.push('\n');
@@ -5543,6 +5550,10 @@ fn observer_policy_summary_for_report() -> &'static str {
 
 fn apparentness_policy_summary_for_report() -> &'static str {
     "current first-party backends accept mean geometric output only; apparent requests are rejected unless a backend explicitly advertises support"
+}
+
+fn frame_policy_summary_for_report() -> &'static str {
+    "ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported"
 }
 
 fn push_unique(values: &mut Vec<String>, value: String) {
@@ -8256,6 +8267,7 @@ mod tests {
         assert!(validation_report_summary.contains("Time-scale policy:"));
         assert!(validation_report_summary.contains("Observer policy:"));
         assert!(validation_report_summary.contains("Apparentness policy:"));
+        assert!(validation_report_summary.contains("Frame policy:"));
         assert!(validation_report_summary
             .contains("lookup epoch policy=TT-grid retag without relativistic correction"));
         assert!(validation_report_summary.contains("Benchmark summaries"));
@@ -9126,6 +9138,7 @@ mod tests {
         assert!(rendered.contains("Time-scale policy:"));
         assert!(rendered.contains("Observer policy:"));
         assert!(rendered.contains("Apparentness policy:"));
+        assert!(rendered.contains("Frame policy:"));
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(rendered.contains("API stability summary: api-stability-summary"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
