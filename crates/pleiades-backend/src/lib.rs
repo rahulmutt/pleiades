@@ -267,6 +267,23 @@ impl EphemerisRequest {
     ///
     /// The default apparentness is mean geometric output so a bare request stays
     /// compatible with the current mean-only first-party backends.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use pleiades_backend::{Apparentness, EphemerisRequest};
+    /// use pleiades_types::{CelestialBody, CoordinateFrame, Instant, JulianDay, TimeScale, ZodiacMode};
+    ///
+    /// let request = EphemerisRequest::new(
+    ///     CelestialBody::Mars,
+    ///     Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+    /// );
+    ///
+    /// assert_eq!(request.frame, CoordinateFrame::Ecliptic);
+    /// assert_eq!(request.zodiac_mode, ZodiacMode::Tropical);
+    /// assert_eq!(request.apparent, Apparentness::Mean);
+    /// assert!(request.observer.is_none());
+    /// ```
     pub fn new(body: CelestialBody, instant: Instant) -> Self {
         Self {
             body,
