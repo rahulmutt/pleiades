@@ -47,6 +47,7 @@ use crate::vsop87b_earth::{generated_vsop87b_table_bytes, parse_vsop87b_tables};
 
 const PACKAGE_NAME: &str = "pleiades-vsop87";
 const BACKEND_LABEL: &str = "the VSOP87 backend";
+const J1900: f64 = 2_415_020.0;
 const J2000: f64 = 2_451_545.0;
 
 /// Calculation family currently used for an individual VSOP87 backend body.
@@ -2394,6 +2395,74 @@ mod tests {
     }
 
     #[test]
+    fn batch_query_preserves_supported_vsop87_paths_at_the_j1900_reference_epoch() {
+        let backend = Vsop87Backend::new();
+        let instant = Instant::new(pleiades_types::JulianDay::from_days(J1900), TimeScale::Tdb);
+        let requests = Vsop87Backend::supported_bodies()
+            .iter()
+            .cloned()
+            .map(|body| {
+                let mut request = mean_request_at(body, instant);
+                request.frame = CoordinateFrame::Equatorial;
+                request
+            })
+            .collect::<Vec<_>>();
+
+        let results = backend
+            .positions(&requests)
+            .expect("batch query should preserve the supported planetary set at J1900");
+
+        assert_eq!(results.len(), requests.len());
+        for (request, result) in requests.iter().zip(results.iter()) {
+            assert_eq!(result.body, request.body);
+            assert_eq!(result.instant, request.instant);
+            assert_eq!(result.frame, CoordinateFrame::Equatorial);
+            match result.body {
+                CelestialBody::Pluto => {
+                    assert_eq!(result.quality, QualityAnnotation::Approximate);
+                }
+                _ => {
+                    assert_eq!(result.quality, QualityAnnotation::Exact);
+                }
+            }
+
+            let single = backend
+                .position(request)
+                .expect("single query should match the J1900 batch path");
+            assert_eq!(single.body, result.body);
+            assert_eq!(single.instant, result.instant);
+            assert_eq!(single.frame, result.frame);
+            assert_eq!(single.quality, result.quality);
+            assert_eq!(single.ecliptic, result.ecliptic);
+            assert_eq!(single.equatorial, result.equatorial);
+            assert_eq!(single.motion, result.motion);
+
+            let ecliptic = result
+                .ecliptic
+                .as_ref()
+                .expect("ecliptic result should exist");
+            assert!(ecliptic.longitude.degrees().is_finite());
+            assert!(ecliptic.latitude.degrees().is_finite());
+            assert!(ecliptic
+                .distance_au
+                .expect("distance should exist")
+                .is_finite());
+
+            let expected = ecliptic.to_equatorial(Angle::from_degrees(
+                Vsop87Backend::mean_obliquity_degrees(result.instant),
+            ));
+            let equatorial = result
+                .equatorial
+                .as_ref()
+                .expect("equatorial result should exist");
+
+            assert_eq!(equatorial, &expected);
+            assert!(equatorial.right_ascension.degrees().is_finite());
+            assert!(equatorial.declination.degrees().is_finite());
+        }
+    }
+
+    #[test]
     fn finite_difference_motion_is_reported_for_supported_bodies() {
         let backend = Vsop87Backend::new();
         let request = mean_request(CelestialBody::Mars);
@@ -2936,10 +3005,14 @@ mod tests {
     }
 
     fn mean_request(body: CelestialBody) -> EphemerisRequest {
-        let mut request = EphemerisRequest::new(
+        mean_request_at(
             body,
             Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt),
-        );
+        )
+    }
+
+    fn mean_request_at(body: CelestialBody, instant: Instant) -> EphemerisRequest {
+        let mut request = EphemerisRequest::new(body, instant);
         request.apparent = Apparentness::Mean;
         request
     }
