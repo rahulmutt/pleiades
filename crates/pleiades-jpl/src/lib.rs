@@ -782,6 +782,8 @@ pub struct JplIndependentHoldoutSummary {
     pub mean_longitude_error_deg: f64,
     /// Median longitude error across the samples.
     pub median_longitude_error_deg: f64,
+    /// 95th percentile longitude error across the samples.
+    pub percentile_longitude_error_deg: f64,
     /// Root-mean-square longitude error across the samples.
     pub rms_longitude_error_deg: f64,
     /// Largest latitude error among the samples.
@@ -794,6 +796,8 @@ pub struct JplIndependentHoldoutSummary {
     pub mean_latitude_error_deg: f64,
     /// Median latitude error across the samples.
     pub median_latitude_error_deg: f64,
+    /// 95th percentile latitude error across the samples.
+    pub percentile_latitude_error_deg: f64,
     /// Root-mean-square latitude error across the samples.
     pub rms_latitude_error_deg: f64,
     /// Largest distance error among the samples.
@@ -806,6 +810,8 @@ pub struct JplIndependentHoldoutSummary {
     pub mean_distance_error_au: f64,
     /// Median distance error across the samples.
     pub median_distance_error_au: f64,
+    /// 95th percentile distance error across the samples.
+    pub percentile_distance_error_au: f64,
     /// Root-mean-square distance error across the samples.
     pub rms_distance_error_au: f64,
 }
@@ -903,18 +909,21 @@ pub fn jpl_independent_holdout_summary() -> Option<JplIndependentHoldoutSummary>
         max_longitude_error_epoch,
         mean_longitude_error_deg: total_longitude_error_deg / sample_count,
         median_longitude_error_deg: median_f64(&mut longitude_errors),
+        percentile_longitude_error_deg: percentile_f64(&mut longitude_errors, 0.95),
         rms_longitude_error_deg: (total_longitude_error_sq_deg / sample_count).sqrt(),
         max_latitude_error_deg,
         max_latitude_error_body,
         max_latitude_error_epoch,
         mean_latitude_error_deg: total_latitude_error_deg / sample_count,
         median_latitude_error_deg: median_f64(&mut latitude_errors),
+        percentile_latitude_error_deg: percentile_f64(&mut latitude_errors, 0.95),
         rms_latitude_error_deg: (total_latitude_error_sq_deg / sample_count).sqrt(),
         max_distance_error_au,
         max_distance_error_body,
         max_distance_error_epoch,
         mean_distance_error_au: total_distance_error_au / sample_count,
         median_distance_error_au: median_f64(&mut distance_errors),
+        percentile_distance_error_au: percentile_f64(&mut distance_errors, 0.95),
         rms_distance_error_au: (total_distance_error_sq_au / sample_count).sqrt(),
     })
 }
@@ -930,7 +939,7 @@ pub fn format_jpl_independent_holdout_summary(summary: &JplIndependentHoldoutSum
     }
 
     format!(
-        "JPL independent hold-out: {} exact rows across {} bodies and {} epochs ({} → {}); max Δlon={:.12}°{}; mean Δlon={:.12}°; median Δlon={:.12}°; rms Δlon={:.12}°; max Δlat={:.12}°{}; mean Δlat={:.12}°; median Δlat={:.12}°; rms Δlat={:.12}°; max Δdist={:.12} AU{}; mean Δdist={:.12} AU; median Δdist={:.12} AU; rms Δdist={:.12} AU; independent JPL Horizons rows held out from the main snapshot corpus",
+        "JPL independent hold-out: {} exact rows across {} bodies and {} epochs ({} → {}); max Δlon={:.12}°{}; mean Δlon={:.12}°; median Δlon={:.12}°; p95 Δlon={:.12}°; rms Δlon={:.12}°; max Δlat={:.12}°{}; mean Δlat={:.12}°; median Δlat={:.12}°; p95 Δlat={:.12}°; rms Δlat={:.12}°; max Δdist={:.12} AU{}; mean Δdist={:.12} AU; median Δdist={:.12} AU; p95 Δdist={:.12} AU; rms Δdist={:.12} AU; independent JPL Horizons rows held out from the main snapshot corpus",
         summary.sample_count,
         summary.body_count,
         summary.epoch_count,
@@ -940,16 +949,19 @@ pub fn format_jpl_independent_holdout_summary(summary: &JplIndependentHoldoutSum
         format_body_epoch_suffix(&summary.max_longitude_error_body, summary.max_longitude_error_epoch),
         summary.mean_longitude_error_deg,
         summary.median_longitude_error_deg,
+        summary.percentile_longitude_error_deg,
         summary.rms_longitude_error_deg,
         summary.max_latitude_error_deg,
         format_body_epoch_suffix(&summary.max_latitude_error_body, summary.max_latitude_error_epoch),
         summary.mean_latitude_error_deg,
         summary.median_latitude_error_deg,
+        summary.percentile_latitude_error_deg,
         summary.rms_latitude_error_deg,
         summary.max_distance_error_au,
         format_body_epoch_suffix(&summary.max_distance_error_body, summary.max_distance_error_epoch),
         summary.mean_distance_error_au,
         summary.median_distance_error_au,
+        summary.percentile_distance_error_au,
         summary.rms_distance_error_au,
     )
 }
@@ -2117,14 +2129,17 @@ mod tests {
         assert!(summary.max_longitude_error_deg.is_finite());
         assert!(summary.mean_longitude_error_deg.is_finite());
         assert!(summary.median_longitude_error_deg.is_finite());
+        assert!(summary.percentile_longitude_error_deg.is_finite());
         assert!(summary.rms_longitude_error_deg.is_finite());
         assert!(summary.max_latitude_error_deg.is_finite());
         assert!(summary.mean_latitude_error_deg.is_finite());
         assert!(summary.median_latitude_error_deg.is_finite());
+        assert!(summary.percentile_latitude_error_deg.is_finite());
         assert!(summary.rms_latitude_error_deg.is_finite());
         assert!(summary.max_distance_error_au.is_finite());
         assert!(summary.mean_distance_error_au.is_finite());
         assert!(summary.median_distance_error_au.is_finite());
+        assert!(summary.percentile_distance_error_au.is_finite());
         assert!(summary.rms_distance_error_au.is_finite());
         assert!(!summary.max_longitude_error_body.is_empty());
         assert!(!summary.max_latitude_error_body.is_empty());
@@ -2133,6 +2148,9 @@ mod tests {
         let rendered = format_jpl_independent_holdout_summary(&summary);
         assert!(rendered.contains("JPL independent hold-out:"));
         assert!(rendered.contains("6 exact rows across 2 bodies and 3 epochs"));
+        assert!(rendered.contains("p95 Δlon="));
+        assert!(rendered.contains("p95 Δlat="));
+        assert!(rendered.contains("p95 Δdist="));
         assert!(rendered
             .contains("independent JPL Horizons rows held out from the main snapshot corpus"));
         assert!(rendered.contains(&format!(
