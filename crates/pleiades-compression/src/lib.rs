@@ -165,6 +165,26 @@ pub enum ArtifactOutput {
     Motion,
 }
 
+impl ArtifactOutput {
+    /// Returns the compact label used in release-facing summaries.
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::EclipticCoordinates => "EclipticCoordinates",
+            Self::EquatorialCoordinates => "EquatorialCoordinates",
+            Self::ApparentCorrections => "ApparentCorrections",
+            Self::TopocentricCoordinates => "TopocentricCoordinates",
+            Self::SiderealCoordinates => "SiderealCoordinates",
+            Self::Motion => "Motion",
+        }
+    }
+}
+
+impl fmt::Display for ArtifactOutput {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.label())
+    }
+}
+
 /// Declares how motion/speed values are represented by an artifact.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -180,6 +200,24 @@ pub enum SpeedPolicy {
     NumericalDifference,
 }
 
+impl SpeedPolicy {
+    /// Returns the compact label used in release-facing summaries.
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Unsupported => "Unsupported",
+            Self::Stored => "Stored",
+            Self::FittedDerivative => "FittedDerivative",
+            Self::NumericalDifference => "NumericalDifference",
+        }
+    }
+}
+
+impl fmt::Display for SpeedPolicy {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.label())
+    }
+}
+
 /// Capability/profile metadata for a compressed artifact.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -192,6 +230,15 @@ pub struct ArtifactProfile {
     pub unsupported_outputs: Vec<ArtifactOutput>,
     /// Motion/speed representation policy.
     pub speed_policy: SpeedPolicy,
+}
+
+fn format_bracketed_labels<T: fmt::Display>(values: &[T]) -> String {
+    let labels = values
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!("[{labels}]")
 }
 
 impl ArtifactProfile {
@@ -214,10 +261,10 @@ impl ArtifactProfile {
     /// and speed-policy capabilities encoded by this profile.
     pub fn summary(&self) -> String {
         format!(
-            "stored channels: {:?}; derived outputs: {:?}; unsupported outputs: {:?}; speed policy: {:?}",
-            self.stored_channels,
-            self.derived_outputs,
-            self.unsupported_outputs,
+            "stored channels: {}; derived outputs: {}; unsupported outputs: {}; speed policy: {}",
+            format_bracketed_labels(&self.stored_channels),
+            format_bracketed_labels(&self.derived_outputs),
+            format_bracketed_labels(&self.unsupported_outputs),
             self.speed_policy,
         )
     }
@@ -265,6 +312,23 @@ pub enum ChannelKind {
     Latitude,
     /// Radius vector or distance in astronomical units.
     DistanceAu,
+}
+
+impl ChannelKind {
+    /// Returns the compact label used in release-facing summaries.
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Longitude => "Longitude",
+            Self::Latitude => "Latitude",
+            Self::DistanceAu => "DistanceAu",
+        }
+    }
+}
+
+impl fmt::Display for ChannelKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.label())
+    }
 }
 
 /// Quantized polynomial coefficients for one channel of a time segment.
@@ -1210,6 +1274,47 @@ mod tests {
             header.summary_for_body_count(11),
             "byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates]; unsupported outputs: [EquatorialCoordinates, ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 11 bundled bodies"
         );
+    }
+
+    #[test]
+    fn artifact_profile_labels_are_stable() {
+        assert_eq!(ChannelKind::Longitude.label(), "Longitude");
+        assert_eq!(ChannelKind::Latitude.label(), "Latitude");
+        assert_eq!(ChannelKind::DistanceAu.label(), "DistanceAu");
+
+        assert_eq!(
+            ArtifactOutput::EclipticCoordinates.label(),
+            "EclipticCoordinates"
+        );
+        assert_eq!(
+            ArtifactOutput::EquatorialCoordinates.label(),
+            "EquatorialCoordinates"
+        );
+        assert_eq!(
+            ArtifactOutput::ApparentCorrections.label(),
+            "ApparentCorrections"
+        );
+        assert_eq!(
+            ArtifactOutput::TopocentricCoordinates.label(),
+            "TopocentricCoordinates"
+        );
+        assert_eq!(
+            ArtifactOutput::SiderealCoordinates.label(),
+            "SiderealCoordinates"
+        );
+        assert_eq!(ArtifactOutput::Motion.label(), "Motion");
+
+        assert_eq!(SpeedPolicy::Unsupported.label(), "Unsupported");
+        assert_eq!(SpeedPolicy::Stored.label(), "Stored");
+        assert_eq!(SpeedPolicy::FittedDerivative.label(), "FittedDerivative");
+        assert_eq!(
+            SpeedPolicy::NumericalDifference.label(),
+            "NumericalDifference"
+        );
+
+        assert_eq!(ChannelKind::Longitude.to_string(), "Longitude");
+        assert_eq!(ArtifactOutput::Motion.to_string(), "Motion");
+        assert_eq!(SpeedPolicy::Stored.to_string(), "Stored");
     }
 
     #[cfg(feature = "serde")]
