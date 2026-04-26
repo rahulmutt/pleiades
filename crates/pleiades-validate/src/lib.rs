@@ -8606,6 +8606,19 @@ mod tests {
     }
 
     #[test]
+    fn compatibility_profile_command_surfaces_additional_equal_release_labels() {
+        let rendered =
+            render_cli(&["compatibility-profile"]).expect("compatibility profile should render");
+        assert!(rendered.contains("Equal/MC table of houses"));
+        assert!(rendered.contains("Equal/MC house system"));
+        assert!(rendered.contains("Equal/1=Aries table of houses"));
+        assert!(rendered.contains("Equal/1=Aries house system"));
+        assert!(rendered.contains("Equal/1=0 Aries"));
+        assert!(rendered.contains("Equal (cusp 1 = 0° Aries)"));
+        assert!(rendered.contains("Whole Sign (house 1 = Aries) table of houses"));
+    }
+
+    #[test]
     fn compatibility_profile_command_surfaces_reference_frame_and_zero_point_entries() {
         let rendered =
             render_cli(&["compatibility-profile"]).expect("compatibility profile should render");

@@ -212,6 +212,8 @@ Progress note (2026-04-26): the compatibility-profile regression coverage now al
 Progress note (2026-04-26): the compatibility-profile regressions now also pin the WvA alias from the APC house-family appendix, keeping that short-form house label explicitly covered in the release-facing catalog checks alongside the broader source-label batches.
 Progress note (2026-04-26): the compatibility-profile command tests now also pin the `Equal (cusp 1 = Asc)` and `Whole Sign (house 1 = Aries)` forms, so the ascendant-anchored equal-house and whole-sign source-label wording stays anchored in the release-facing verification path.
 
+Progress note (2026-04-26): the same compatibility-profile slice now also pins the remaining Equal/MC and Equal/1=Aries table-and-system spellings, including the `Equal/MC table of houses`, `Equal/MC house system`, `Equal/1=Aries table of houses`, `Equal/1=Aries house system`, `Equal/1=0 Aries`, `Equal (cusp 1 = 0° Aries)`, and `Whole Sign (house 1 = Aries) table of houses` forms, so the release-facing equal-house appendix stays anchored as the catalog grows.
+
 Progress note (2026-04-25): the compatibility-profile verification slice now also anchors the Babylonian (Eta Piscium) and Suryasiddhanta / Surya Siddhanta 499 CE source-label spellings, so the remaining historical-source labels in the rendered profile stay pinned as the catalog grows.
 
 Progress note (2026-04-25): validation coverage now also pins the additional ayanamsa spellings for True Revati, True Pushya, Lahiri (ICRC), Lahiri (1940), and Yukteshwar, keeping a few more release-profile source-label entries from drifting as the catalog grows.
