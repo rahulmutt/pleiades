@@ -2557,6 +2557,45 @@ mod tests {
     }
 
     #[test]
+    fn batch_query_preserves_interpolation_quality_samples_and_order() {
+        let backend = JplSnapshotBackend;
+        let samples = interpolation_quality_samples();
+        let requests = samples
+            .iter()
+            .map(|sample| EphemerisRequest {
+                body: sample.body.clone(),
+                instant: sample.epoch,
+                observer: None,
+                frame: CoordinateFrame::Ecliptic,
+                zodiac_mode: ZodiacMode::Tropical,
+                apparent: Apparentness::Mean,
+            })
+            .collect::<Vec<_>>();
+
+        let results = backend
+            .positions(&requests)
+            .expect("batch query should resolve the interpolation-quality samples");
+
+        assert_eq!(results.len(), samples.len());
+        for (sample, result) in samples.iter().zip(results.iter()) {
+            assert_eq!(result.body, sample.body);
+            assert_eq!(result.instant, sample.epoch);
+            assert_eq!(result.frame, CoordinateFrame::Ecliptic);
+            assert_eq!(result.apparent, Apparentness::Mean);
+            assert_eq!(result.quality, QualityAnnotation::Exact);
+            let ecliptic = result
+                .ecliptic
+                .expect("batch results should include ecliptic coordinates");
+            assert!(ecliptic.longitude.degrees().is_finite());
+            assert!(ecliptic.latitude.degrees().is_finite());
+            assert!(ecliptic
+                .distance_au
+                .expect("distance should exist")
+                .is_finite());
+        }
+    }
+
+    #[test]
     fn interpolation_quality_summary_reports_the_worst_case_labels() {
         let summary = jpl_interpolation_quality_summary().expect("summary should exist");
         assert_eq!(summary.sample_count, 21);
