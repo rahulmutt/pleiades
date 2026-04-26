@@ -3921,8 +3921,9 @@ mod tests {
         assert_eq!(summary.outside_interim_limit_count, 0);
         assert!(summary.outside_interim_limit_bodies.is_empty());
         assert!(evidence.iter().all(|row| row.within_interim_limits));
-        assert!(format_source_body_evidence_summary(&summary)
-            .contains("source-backed body order: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune"));
+        assert!(format_source_body_evidence_summary(&summary).contains(
+            "source-backed body order: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune"
+        ));
     }
 
     #[test]

@@ -28,7 +28,7 @@ The workspace already has CLI/report commands, compatibility-profile summaries, 
    - Generate reports from real backend and artifact evidence.
    - Include accuracy tables, regression summaries, benchmark methodology, and environment metadata.
    - Archive reports with release artifacts and checksums.
-   - Progress note: the benchmark command and validation benchmark summaries now surface workspace provenance alongside the timing numbers, so the release-facing benchmark output records source revision, workspace status, and rustc version in addition to the measured latencies and throughput.
+   - Progress note: the benchmark command and validation benchmark summaries now surface workspace provenance alongside the timing numbers, so the release-facing benchmark output records source revision, workspace status, and rustc version in addition to the measured latencies and throughput. The dedicated benchmark report now also spells out the benchmark methodology for the backend and chart workloads, so the rounds, samples-per-round, and workload split are visible in the CLI benchmark output instead of only being implied by the surrounding section labels.
 
 3. Improve public API documentation.
    - Add rustdoc examples for common chart workflows, backend selection, sidereal conversion, houses, and packaged data.

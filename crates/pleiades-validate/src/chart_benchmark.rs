@@ -56,6 +56,14 @@ impl ChartBenchmarkReport {
 
         total_requests / self.elapsed.as_secs_f64()
     }
+
+    /// Returns the benchmark methodology summary.
+    pub fn methodology_summary(&self) -> String {
+        format!(
+            "{} rounds x {} charts per round on the {} corpus; apparentness {}; chart assembly is measured end to end",
+            self.rounds, self.sample_count, self.corpus_name, self.apparentness
+        )
+    }
 }
 
 impl fmt::Display for ChartBenchmarkReport {
@@ -66,6 +74,7 @@ impl fmt::Display for ChartBenchmarkReport {
         writeln!(f, "Apparentness: {}", self.apparentness)?;
         writeln!(f, "Rounds: {}", self.rounds)?;
         writeln!(f, "Samples per round: {}", self.sample_count)?;
+        writeln!(f, "Methodology: {}", self.methodology_summary())?;
         writeln!(f, "Chart elapsed: {:?}", self.elapsed)?;
         writeln!(
             f,

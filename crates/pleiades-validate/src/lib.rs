@@ -936,6 +936,14 @@ impl BenchmarkReport {
 
         total_requests / self.batch_elapsed.as_secs_f64()
     }
+
+    /// Returns the benchmark methodology summary.
+    pub fn methodology_summary(&self) -> String {
+        format!(
+            "{} rounds x {} requests per round on the {} corpus; apparentness {}; single-request and batch paths are measured separately",
+            self.rounds, self.sample_count, self.corpus_name, self.apparentness
+        )
+    }
 }
 
 /// A preserved archive of regression cases from a comparison run.
@@ -6035,6 +6043,7 @@ impl fmt::Display for BenchmarkReport {
         writeln!(f, "Apparentness: {}", self.apparentness)?;
         writeln!(f, "Rounds: {}", self.rounds)?;
         writeln!(f, "Samples per round: {}", self.sample_count)?;
+        writeln!(f, "Methodology: {}", self.methodology_summary())?;
         writeln!(f, "Single-request elapsed: {:?}", self.elapsed)?;
         writeln!(f, "Batch elapsed: {:?}", self.batch_elapsed)?;
         writeln!(
@@ -8262,6 +8271,9 @@ mod tests {
         assert!(report.contains("Benchmark report"));
         assert!(report.contains("Representative 1500-2500 window"));
         assert!(report.contains("Apparentness: Mean"));
+        assert!(report.contains("Methodology:"));
+        assert!(report.contains("single-request and batch paths are measured separately"));
+        assert!(report.contains("chart assembly is measured end to end"));
         assert!(report.contains("Single-request elapsed:"));
         assert!(report.contains("Batch elapsed:"));
         assert!(report.contains("Estimated corpus heap footprint:"));
