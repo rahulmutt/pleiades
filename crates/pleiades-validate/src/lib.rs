@@ -8341,7 +8341,7 @@ mod tests {
         assert!(report.contains("max Δlat="));
         assert!(report.contains("max Δdist="));
         assert!(report.contains(
-            "VSOP87 source-backed body evidence: 8 body profiles (0 vendored full-file, 8 generated binary), 8 within interim limits, 0 outside interim limits; outside interim limits: none"
+            "VSOP87 source-backed body evidence: 8 body profiles (0 vendored full-file, 8 generated binary), bodies: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, 8 within interim limits, 0 outside interim limits; outside interim limits: none"
         ));
         assert!(report.contains("House validation corpus"));
         assert!(report.contains("Benchmark provenance"));
@@ -9407,7 +9407,7 @@ mod tests {
         assert!(rendered.contains("max Δlat="));
         assert!(rendered.contains("max Δdist="));
         assert!(rendered.contains(
-            "VSOP87 source-backed body evidence: 8 body profiles (0 vendored full-file, 8 generated binary), 8 within interim limits, 0 outside interim limits; outside interim limits: none"
+            "VSOP87 source-backed body evidence: 8 body profiles (0 vendored full-file, 8 generated binary), bodies: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, 8 within interim limits, 0 outside interim limits; outside interim limits: none"
         ));
         assert!(rendered.contains(
             "ELP lunar theory specification: Compact Meeus-style truncated lunar baseline [meeus-style-truncated-lunar-baseline; family: Meeus-style truncated analytical baseline]"
@@ -9867,7 +9867,7 @@ version = "0.9.0"
         assert!(validation_report_summary.contains("generated binary VSOP87B"));
         assert!(validation_report_summary.contains("VSOP87 source-backed evidence"));
         assert!(validation_report_summary.contains(
-            "VSOP87 source-backed body evidence: 8 body profiles (0 vendored full-file, 8 generated binary), 8 within interim limits, 0 outside interim limits; outside interim limits: none"
+            "VSOP87 source-backed body evidence: 8 body profiles (0 vendored full-file, 8 generated binary), bodies: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, 8 within interim limits, 0 outside interim limits; outside interim limits: none"
         ));
         assert!(validation_report_summary
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));

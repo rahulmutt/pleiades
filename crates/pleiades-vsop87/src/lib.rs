@@ -920,6 +920,8 @@ pub fn source_documentation_summary_for_report() -> String {
 pub struct Vsop87SourceBodyEvidenceSummary {
     /// Number of canonical samples measured.
     pub sample_count: usize,
+    /// Canonical bodies measured in source-backed order.
+    pub sample_bodies: Vec<CelestialBody>,
     /// Number of samples within the interim limits.
     pub within_interim_limits_count: usize,
     /// Number of vendored full-file source-backed samples.
@@ -939,6 +941,7 @@ pub fn source_body_evidence_summary() -> Option<Vsop87SourceBodyEvidenceSummary>
     let evidence = canonical_epoch_body_evidence()?;
     Some(Vsop87SourceBodyEvidenceSummary {
         sample_count: evidence.len(),
+        sample_bodies: evidence.iter().map(|row| row.body.clone()).collect(),
         within_interim_limits_count: evidence
             .iter()
             .filter(|row| row.within_interim_limits)
@@ -1028,42 +1031,48 @@ pub fn format_source_body_evidence_summary(summary: &Vsop87SourceBodyEvidenceSum
         format_celestial_bodies(&summary.outside_interim_limit_bodies)
     };
 
+    let bodies = format_celestial_bodies(&summary.sample_bodies);
+
     if summary.generated_binary_count == 0 && summary.truncated_count == 0 {
         format!(
-            "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file), {} within interim limits, {} outside interim limits; outside interim limits: {}",
+            "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file), bodies: {}, {} within interim limits, {} outside interim limits; outside interim limits: {}",
             summary.sample_count,
             summary.vendored_full_file_count,
+            bodies,
             summary.within_interim_limits_count,
             summary.outside_interim_limit_count,
             outside_note,
         )
     } else if summary.generated_binary_count > 0 && summary.truncated_count == 0 {
         format!(
-            "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} generated binary), {} within interim limits, {} outside interim limits; outside interim limits: {}",
+            "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} generated binary), bodies: {}, {} within interim limits, {} outside interim limits; outside interim limits: {}",
             summary.sample_count,
             summary.vendored_full_file_count,
             summary.generated_binary_count,
+            bodies,
             summary.within_interim_limits_count,
             summary.outside_interim_limit_count,
             outside_note,
         )
     } else if summary.generated_binary_count == 0 {
         format!(
-            "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} truncated slice), {} within interim limits, {} outside interim limits; outside interim limits: {}",
+            "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} truncated slice), bodies: {}, {} within interim limits, {} outside interim limits; outside interim limits: {}",
             summary.sample_count,
             summary.vendored_full_file_count,
             summary.truncated_count,
+            bodies,
             summary.within_interim_limits_count,
             summary.outside_interim_limit_count,
             outside_note,
         )
     } else {
         format!(
-            "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} generated binary, {} truncated slice), {} within interim limits, {} outside interim limits; outside interim limits: {}",
+            "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} generated binary, {} truncated slice), bodies: {}, {} within interim limits, {} outside interim limits; outside interim limits: {}",
             summary.sample_count,
             summary.vendored_full_file_count,
             summary.generated_binary_count,
             summary.truncated_count,
+            bodies,
             summary.within_interim_limits_count,
             summary.outside_interim_limit_count,
             outside_note,
@@ -3008,6 +3017,13 @@ mod tests {
         let summary = source_body_evidence_summary().expect("summary should exist");
 
         assert_eq!(summary.sample_count, evidence.len());
+        assert_eq!(
+            summary.sample_bodies,
+            evidence
+                .iter()
+                .map(|row| row.body.clone())
+                .collect::<Vec<_>>()
+        );
         assert_eq!(summary.within_interim_limits_count, evidence.len());
         assert_eq!(summary.vendored_full_file_count, 0);
         assert_eq!(summary.generated_binary_count, evidence.len());
@@ -3015,6 +3031,8 @@ mod tests {
         assert_eq!(summary.outside_interim_limit_count, 0);
         assert!(summary.outside_interim_limit_bodies.is_empty());
         assert!(evidence.iter().all(|row| row.within_interim_limits));
+        assert!(format_source_body_evidence_summary(&summary)
+            .contains("bodies: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune"));
     }
 
     #[test]
