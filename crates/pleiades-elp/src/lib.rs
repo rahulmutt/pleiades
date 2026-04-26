@@ -277,6 +277,7 @@ impl LunarTheorySpecification {
         self.source_identifier.eq_ignore_ascii_case(label)
             || self.model_name.eq_ignore_ascii_case(label)
             || self.source_family.label().eq_ignore_ascii_case(label)
+            || lunar_theory_source_aliases_match(label)
     }
 }
 
@@ -289,6 +290,14 @@ const SUPPORTED_LUNAR_BODIES: &[CelestialBody] = &[
 ];
 const UNSUPPORTED_LUNAR_BODIES: &[CelestialBody] =
     &[CelestialBody::TrueApogee, CelestialBody::TruePerigee];
+const LUNAR_THEORY_SOURCE_ALIASES: &[&str] = &["Meeus-style truncated lunar baseline"];
+
+fn lunar_theory_source_aliases_match(label: &str) -> bool {
+    LUNAR_THEORY_SOURCE_ALIASES
+        .iter()
+        .any(|alias| alias.eq_ignore_ascii_case(label))
+}
+
 const SUPPORTED_LUNAR_FRAMES: &[CoordinateFrame] =
     &[CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial];
 const SUPPORTED_LUNAR_TIME_SCALES: &[TimeScale] = &[TimeScale::Tt, TimeScale::Tdb];
@@ -392,6 +401,13 @@ pub fn lunar_theory_catalog_entry_for_family_label(
     lunar_theory_catalog_entry_for_key(LunarTheoryCatalogKey::FamilyLabel(family_label))
 }
 
+/// Returns the catalog entry matching the provided alias, when present.
+pub fn lunar_theory_catalog_entry_for_alias(alias: &str) -> Option<LunarTheoryCatalogEntry> {
+    lunar_theory_catalog().iter().copied().find(|entry| {
+        entry.specification.matches_label(alias) && lunar_theory_source_aliases_match(alias)
+    })
+}
+
 /// Returns the catalog entry matching the provided typed lookup key, when present.
 pub fn lunar_theory_catalog_entry_for_key(
     key: LunarTheoryCatalogKey<'_>,
@@ -407,11 +423,17 @@ pub fn lunar_theory_catalog_entry_for_label(label: &str) -> Option<LunarTheoryCa
     lunar_theory_catalog_entry_for_source_identifier(label)
         .or_else(|| lunar_theory_catalog_entry_for_model_name(label))
         .or_else(|| lunar_theory_catalog_entry_for_family_label(label))
+        .or_else(|| lunar_theory_catalog_entry_for_alias(label))
 }
 
 /// Returns the current lunar-theory specification matching the provided label, when present.
 pub fn resolve_lunar_theory(label: &str) -> Option<LunarTheorySpecification> {
     lunar_theory_catalog_entry_for_label(label).map(|entry| entry.specification)
+}
+
+/// Returns the current lunar-theory specification matching the provided alias, when present.
+pub fn resolve_lunar_theory_by_alias(alias: &str) -> Option<LunarTheorySpecification> {
+    lunar_theory_catalog_entry_for_alias(alias).map(|entry| entry.specification)
 }
 
 /// Returns the current lunar-theory specification matching the provided typed lookup key, when present.
@@ -2354,6 +2376,24 @@ mod tests {
             LunarTheoryCatalogKey::SourceIdentifier(theory.source_identifier)
         );
         assert_eq!(resolve_lunar_theory_by_selection(source), Some(theory));
+        let catalog = lunar_theory_catalog();
+        assert_eq!(
+            resolve_lunar_theory("Meeus-style truncated lunar baseline"),
+            Some(theory)
+        );
+        assert_eq!(
+            resolve_lunar_theory_by_alias("Meeus-style truncated lunar baseline"),
+            Some(theory)
+        );
+        assert_eq!(
+            lunar_theory_catalog_entry_for_alias("Meeus-style truncated lunar baseline"),
+            Some(catalog[0])
+        );
+        assert_eq!(
+            lunar_theory_catalog_entry_for_label("Meeus-style truncated lunar baseline"),
+            Some(catalog[0])
+        );
+        assert!(resolve_lunar_theory_by_alias("not-a-lunar-alias").is_none());
 
         let source_summary = lunar_theory_source_summary();
         assert_eq!(source_summary.model_name, theory.model_name);
@@ -2396,7 +2436,6 @@ mod tests {
         assert!(summary.contains("apparentness=Mean"));
         assert!(summary.contains("topocentric observer=false"));
 
-        let catalog = lunar_theory_catalog();
         let catalog_summary = lunar_theory_catalog_summary();
         assert_eq!(catalog.len(), 1);
         assert!(catalog[0].selected);
