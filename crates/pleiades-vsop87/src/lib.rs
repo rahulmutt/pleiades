@@ -127,6 +127,18 @@ pub fn source_backed_body_profiles() -> Vec<Vsop87BodySource> {
         .collect()
 }
 
+/// Returns the canonical body order for the source-backed VSOP87 profiles.
+///
+/// The returned order is the same reproducibility order used by the source
+/// catalog and release-facing summaries: Sun through Neptune, excluding the
+/// mean-element Pluto fallback.
+pub fn source_backed_body_order() -> Vec<CelestialBody> {
+    source_backed_body_profiles()
+        .into_iter()
+        .map(|profile| profile.body)
+        .collect()
+}
+
 /// Returns the fallback VSOP87 body profiles used by [`Vsop87Backend`].
 ///
 /// The current catalog keeps Pluto in this separate mean-element bucket until a
@@ -1054,10 +1066,7 @@ pub fn source_documentation_summary() -> Vsop87SourceDocumentationSummary {
     date_ranges.sort_unstable();
     date_ranges.dedup();
 
-    let source_backed_bodies = source_backed_profiles
-        .iter()
-        .map(|profile| profile.body.clone())
-        .collect::<Vec<_>>();
+    let source_backed_bodies = source_backed_body_order();
     let generated_binary_bodies = source_backed_profiles
         .iter()
         .filter(|profile| profile.kind == Vsop87BodySourceKind::GeneratedBinaryVsop87b)
@@ -3804,6 +3813,7 @@ mod tests {
             summary.source_backed_profile_count
         );
         assert_eq!(fallback_profiles.len(), summary.fallback_profile_count);
+        assert_eq!(source_backed_body_order(), summary.source_backed_bodies);
         assert_eq!(
             source_backed_profiles
                 .iter()
