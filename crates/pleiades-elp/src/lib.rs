@@ -142,7 +142,7 @@ pub const fn lunar_theory_source_family() -> LunarTheorySourceFamily {
 /// Returns a compact source-selection summary for the current lunar theory.
 pub fn lunar_theory_source_summary() -> LunarTheorySourceSummary {
     let theory = lunar_theory_specification();
-    let source = theory.source_selection();
+    let source = lunar_theory_source_selection();
 
     LunarTheorySourceSummary {
         model_name: theory.model_name,
@@ -326,6 +326,11 @@ pub fn lunar_theory_specification() -> LunarTheorySpecification {
         .find(|entry| entry.selected)
         .map(|entry| entry.specification)
         .unwrap_or(LUNAR_THEORY_SPECIFICATION)
+}
+
+/// Returns the structured source selection for the current lunar-theory baseline.
+pub fn lunar_theory_source_selection() -> LunarTheorySourceSelection {
+    lunar_theory_specification().source_selection()
 }
 
 /// Returns the bodies/channels the current lunar-theory baseline explicitly supports.
@@ -2134,6 +2139,8 @@ mod tests {
 
         assert_eq!(summary, formatted);
         let source = theory.source_selection();
+        let source_selection = lunar_theory_source_selection();
+        assert_eq!(source_selection, source);
         assert!(summary.contains(theory.model_name));
         assert!(summary.contains(theory.source_identifier));
         assert!(summary.contains(theory.source_family.label()));
@@ -2145,6 +2152,10 @@ mod tests {
         assert_eq!(source.family, theory.source_family);
         assert_eq!(source.identifier, theory.source_identifier);
         assert_eq!(source.citation, theory.source_citation);
+        assert_eq!(
+            source_selection.family_label(),
+            theory.source_family.label()
+        );
         assert_eq!(source.material, theory.source_material);
         assert_eq!(source.redistribution_note, theory.redistribution_note);
         assert_eq!(source.license_note, theory.license_note);
@@ -2219,6 +2230,7 @@ mod tests {
         let theory = lunar_theory_specification();
 
         let source = theory.source_selection();
+        assert_eq!(lunar_theory_source_selection(), source);
         assert!(metadata.provenance.summary.contains(theory.model_name));
         assert!(metadata.provenance.summary.contains(source.identifier));
         assert!(metadata
