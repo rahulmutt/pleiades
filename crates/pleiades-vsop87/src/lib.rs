@@ -45,6 +45,7 @@ use pleiades_types::{
 use std::sync::OnceLock;
 
 use crate::vsop87b_earth::{generated_vsop87b_table_bytes, parse_vsop87b_tables};
+use std::fmt;
 
 const PACKAGE_NAME: &str = "pleiades-vsop87";
 const BACKEND_LABEL: &str = "the VSOP87 backend";
@@ -79,6 +80,12 @@ impl Vsop87BodySourceKind {
             Self::GeneratedBinaryVsop87b => "generated binary VSOP87B",
             Self::MeanOrbitalElements => "mean orbital elements fallback",
         }
+    }
+}
+
+impl fmt::Display for Vsop87BodySourceKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.label())
     }
 }
 
@@ -1223,19 +1230,19 @@ pub fn format_canonical_epoch_evidence_summary(summary: &Vsop87CanonicalEvidence
         summary.max_longitude_delta_limit_deg,
         summary.max_longitude_delta_limit_deg - summary.max_longitude_delta_deg,
         summary.max_longitude_delta_body,
-        summary.max_longitude_delta_source_kind.label(),
+        summary.max_longitude_delta_source_kind,
         summary.max_longitude_delta_source_file,
         summary.max_latitude_delta_deg,
         summary.max_latitude_delta_limit_deg,
         summary.max_latitude_delta_limit_deg - summary.max_latitude_delta_deg,
         summary.max_latitude_delta_body,
-        summary.max_latitude_delta_source_kind.label(),
+        summary.max_latitude_delta_source_kind,
         summary.max_latitude_delta_source_file,
         summary.max_distance_delta_au,
         summary.max_distance_delta_limit_au,
         summary.max_distance_delta_limit_au - summary.max_distance_delta_au,
         summary.max_distance_delta_body,
-        summary.max_distance_delta_source_kind.label(),
+        summary.max_distance_delta_source_kind,
         summary.max_distance_delta_source_file,
     )
 }
@@ -3342,6 +3349,33 @@ mod tests {
         assert_eq!(policy.supported_zodiac_modes, &[ZodiacMode::Tropical]);
         assert_eq!(policy.supported_apparentness, &[Apparentness::Mean]);
         assert!(!policy.supports_topocentric_observer);
+    }
+
+    #[test]
+    fn source_kind_display_labels_match_the_release_facing_labels() {
+        let cases = [
+            (
+                Vsop87BodySourceKind::TruncatedVsop87b,
+                "truncated VSOP87B slice",
+            ),
+            (
+                Vsop87BodySourceKind::VendoredVsop87b,
+                "vendored full-file VSOP87B",
+            ),
+            (
+                Vsop87BodySourceKind::GeneratedBinaryVsop87b,
+                "generated binary VSOP87B",
+            ),
+            (
+                Vsop87BodySourceKind::MeanOrbitalElements,
+                "mean orbital elements fallback",
+            ),
+        ];
+
+        for (kind, expected) in cases {
+            assert_eq!(kind.label(), expected);
+            assert_eq!(kind.to_string(), expected);
+        }
     }
 
     #[test]
