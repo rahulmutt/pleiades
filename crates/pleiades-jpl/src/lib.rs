@@ -19,6 +19,7 @@
 #![forbid(unsafe_code)]
 
 use core::fmt;
+use std::borrow::Cow;
 use std::collections::BTreeSet;
 use std::sync::OnceLock;
 
@@ -474,16 +475,18 @@ pub fn reference_asteroid_equatorial_evidence_summary_for_report() -> String {
     format_reference_asteroid_equatorial_evidence_summary(reference_asteroid_equatorial_evidence())
 }
 
+const REFERENCE_SNAPSHOT_SOURCE_FALLBACK: &str = "NASA/JPL Horizons API vector tables (DE441)";
+const INDEPENDENT_HOLDOUT_SOURCE_FALLBACK: &str = "NASA/JPL Horizons API vector tables (DE441)";
+const INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK: &str =
+    "Mars and Jupiter at 2001-01-01 through 2001-01-03.";
+
 /// Returns the source-material summary for the checked-in reference snapshot.
 pub fn reference_snapshot_source_summary_for_report() -> &'static str {
     static SUMMARY: OnceLock<String> = OnceLock::new();
     SUMMARY
         .get_or_init(|| {
             let manifest = reference_snapshot_manifest();
-            let source = manifest
-                .source
-                .as_deref()
-                .unwrap_or("NASA/JPL Horizons API vector tables (DE441)");
+            let source = manifest.source_or(REFERENCE_SNAPSHOT_SOURCE_FALLBACK);
             format!(
                 "Reference snapshot source: {source}; geocentric ecliptic J2000; TDB reference epoch JD 2451545.0"
             )
@@ -499,19 +502,9 @@ pub fn reference_snapshot_manifest_summary_for_report() -> String {
 /// Returns the source-material summary for the checked-in hold-out snapshot.
 pub fn independent_holdout_source_summary_for_report() -> String {
     let manifest = independent_holdout_snapshot_manifest();
-    let source = manifest
-        .source
-        .as_deref()
-        .unwrap_or("NASA/JPL Horizons API vector tables (DE441)");
-    let coverage = manifest
-        .coverage
-        .as_deref()
-        .unwrap_or("Mars and Jupiter at 2001-01-01 through 2001-01-03.");
-    let columns = if manifest.columns.is_empty() {
-        "none".to_string()
-    } else {
-        manifest.columns.join(", ")
-    };
+    let source = manifest.source_or(INDEPENDENT_HOLDOUT_SOURCE_FALLBACK);
+    let coverage = manifest.coverage_or(INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK);
+    let columns = manifest.columns_summary();
 
     format!("Independent hold-out source: {source}; coverage={coverage}; columns={columns}")
 }
@@ -1374,16 +1367,46 @@ pub struct SnapshotManifest {
 }
 
 impl SnapshotManifest {
-    /// Formats the parsed manifest into the compact release-facing summary line.
-    pub fn summary_line(&self, label: &str) -> String {
-        let title = self.title.as_deref().unwrap_or("unknown");
-        let source = self.source.as_deref().unwrap_or("unknown");
-        let coverage = self.coverage.as_deref().unwrap_or("unknown");
-        let columns = if self.columns.is_empty() {
+    /// Returns the source label, or the provided fallback when the manifest omits it.
+    pub fn source_or(&self, fallback: &'static str) -> Cow<'_, str> {
+        self.source
+            .as_deref()
+            .map(Cow::Borrowed)
+            .unwrap_or(Cow::Borrowed(fallback))
+    }
+
+    /// Returns the coverage label, or the provided fallback when the manifest omits it.
+    pub fn coverage_or(&self, fallback: &'static str) -> Cow<'_, str> {
+        self.coverage
+            .as_deref()
+            .map(Cow::Borrowed)
+            .unwrap_or(Cow::Borrowed(fallback))
+    }
+
+    fn columns_summary(&self) -> String {
+        if self.columns.is_empty() {
             "none".to_string()
         } else {
             self.columns.join(", ")
-        };
+        }
+    }
+
+    /// Formats the parsed manifest into the compact release-facing summary line.
+    pub fn summary_line(&self, label: &str) -> String {
+        self.summary_line_with_defaults(label, "unknown", "unknown")
+    }
+
+    /// Formats the parsed manifest using explicit default labels for missing provenance.
+    pub fn summary_line_with_defaults(
+        &self,
+        label: &str,
+        source_fallback: &'static str,
+        coverage_fallback: &'static str,
+    ) -> String {
+        let title = self.title.as_deref().unwrap_or("unknown");
+        let source = self.source_or(source_fallback);
+        let coverage = self.coverage_or(coverage_fallback);
+        let columns = self.columns_summary();
         format!("{label}: {title}; source={source}; coverage={coverage}; columns={columns}")
     }
 }
@@ -2509,6 +2532,28 @@ mod tests {
         assert_eq!(
             manifest.summary_line("Independent hold-out manifest"),
             "Independent hold-out manifest: Independent JPL Horizons hold-out snapshot used only for interpolation validation.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=Mars and Jupiter at 2001-01-01 through 2001-01-03.; columns=epoch_jd, body, x_km, y_km, z_km"
+        );
+    }
+
+    #[test]
+    fn snapshot_manifest_summary_line_uses_provided_defaults() {
+        let manifest = SnapshotManifest {
+            title: Some("Example manifest.".to_string()),
+            ..Default::default()
+        };
+
+        assert_eq!(
+            manifest.summary_line_with_defaults(
+                "Example manifest",
+                "example source",
+                "example coverage",
+            ),
+            "Example manifest: Example manifest.; source=example source; coverage=example coverage; columns=none"
+        );
+        assert_eq!(manifest.source_or("fallback source"), "fallback source");
+        assert_eq!(
+            manifest.coverage_or("fallback coverage"),
+            "fallback coverage"
         );
     }
 
