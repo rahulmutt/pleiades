@@ -478,18 +478,7 @@ impl ComparisonTolerancePolicySummary {
         let coverage = self
             .coverage
             .iter()
-            .map(|scope_coverage| {
-                format!(
-                    "{}: bodies={}, samples={}",
-                    scope_coverage.entry.scope.label(),
-                    if scope_coverage.bodies.is_empty() {
-                        "none".to_string()
-                    } else {
-                        format_bodies(&scope_coverage.bodies)
-                    },
-                    scope_coverage.sample_count,
-                )
-            })
+            .map(ComparisonToleranceScopeCoverageSummary::summary_line)
             .collect::<Vec<_>>()
             .join("; ");
         let coordinate_frames = format_frames(&self.coordinate_frames);
@@ -517,6 +506,129 @@ impl ComparisonTolerancePolicySummary {
 impl fmt::Display for ComparisonTolerancePolicySummary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.summary_line())
+    }
+}
+
+/// Scope coverage row within a comparison tolerance policy summary.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ComparisonToleranceScopeCoverageSummary {
+    /// Tolerance entry covered by this scope summary.
+    pub entry: ComparisonToleranceEntry,
+    /// Bodies assigned to this tolerance scope in first-seen order.
+    pub bodies: Vec<CelestialBody>,
+    /// Total number of samples covered by this tolerance scope.
+    pub sample_count: usize,
+}
+
+impl ComparisonToleranceScopeCoverageSummary {
+    /// Renders the compact report wording for this tolerance coverage row.
+    pub fn summary_line(&self) -> String {
+        let bodies = if self.bodies.is_empty() {
+            "none".to_string()
+        } else {
+            format_bodies(&self.bodies)
+        };
+        let tolerance = &self.entry.tolerance;
+        format!(
+            "{}: backend family={}, profile={}, bodies={}, samples={}, limit Δlon≤{:.6}°, limit Δlat≤{:.6}°, limit Δdist={}",
+            self.entry.scope.label(),
+            tolerance_backend_family_label(&tolerance.backend_family),
+            tolerance.profile,
+            bodies,
+            self.sample_count,
+            tolerance.max_longitude_delta_deg,
+            tolerance.max_latitude_delta_deg,
+            tolerance
+                .max_distance_delta_au
+                .map(|value| format!("{value:.6} AU"))
+                .unwrap_or_else(|| "n/a".to_string())
+        )
+    }
+}
+
+impl fmt::Display for ComparisonToleranceScopeCoverageSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn comparison_tolerance_policy_coverage(
+    comparison: &ComparisonReport,
+) -> Vec<ComparisonToleranceScopeCoverageSummary> {
+    let entries = comparison_tolerance_policy_entries(&comparison.candidate_backend.family);
+    let tolerance_summaries = comparison.tolerance_summaries();
+
+    entries
+        .into_iter()
+        .map(|entry| {
+            let mut bodies = Vec::new();
+            let mut sample_count = 0;
+
+            for summary in &tolerance_summaries {
+                if comparison_tolerance_scope_for_body(&summary.body) == entry.scope {
+                    bodies.push(summary.body.clone());
+                    sample_count += summary.sample_count;
+                }
+            }
+
+            ComparisonToleranceScopeCoverageSummary {
+                entry,
+                bodies,
+                sample_count,
+            }
+        })
+        .collect()
+}
+
+fn write_tolerance_policy(
+    f: &mut fmt::Formatter<'_>,
+    comparison: &ComparisonReport,
+) -> fmt::Result {
+    let family_label = tolerance_backend_family_label(&comparison.candidate_backend.family);
+    let coverage = comparison_tolerance_policy_coverage(comparison);
+    let coordinate_frames = format_frames(comparison_coordinate_frames(comparison));
+    writeln!(f, "Tolerance policy catalog")?;
+    writeln!(f, "  candidate backend family: {}", family_label)?;
+    writeln!(
+        f,
+        "  comparison evidence: {} bodies, {} samples",
+        comparison.body_summaries().len(),
+        comparison.summary.sample_count
+    )?;
+    writeln!(
+        f,
+        "  comparison window: JD {:.1} → {:.1}",
+        comparison.corpus_summary.earliest_julian_day, comparison.corpus_summary.latest_julian_day
+    )?;
+    writeln!(f, "  coordinate frames: {}", coordinate_frames)?;
+    for scope_coverage in coverage {
+        writeln!(f, "  {}", scope_coverage.summary_line())?;
+    }
+    Ok(())
+}
+
+fn write_tolerance_policy_text(text: &mut String, comparison: &ComparisonReport) {
+    use std::fmt::Write as _;
+
+    let family_label = tolerance_backend_family_label(&comparison.candidate_backend.family);
+    let coverage = comparison_tolerance_policy_coverage(comparison);
+    let coordinate_frames = format_frames(comparison_coordinate_frames(comparison));
+    let _ = writeln!(text, "Tolerance policy catalog");
+    let _ = writeln!(text, "  candidate backend family: {}", family_label);
+    let _ = writeln!(
+        text,
+        "  comparison evidence: {} bodies, {} samples",
+        comparison.body_summaries().len(),
+        comparison.summary.sample_count
+    );
+    let _ = writeln!(
+        text,
+        "  comparison window: JD {:.1} → {:.1}",
+        comparison.corpus_summary.earliest_julian_day, comparison.corpus_summary.latest_julian_day
+    );
+    let _ = writeln!(text, "  coordinate frames: {}", coordinate_frames);
+    for scope_coverage in coverage {
+        let _ = writeln!(text, "  {}", scope_coverage.summary_line());
     }
 }
 
@@ -7515,137 +7627,6 @@ fn tolerance_backend_family_label(family: &BackendFamily) -> String {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct ComparisonToleranceScopeCoverageSummary {
-    /// Tolerance entry covered by this scope summary.
-    pub entry: ComparisonToleranceEntry,
-    /// Bodies assigned to this tolerance scope in first-seen order.
-    pub bodies: Vec<CelestialBody>,
-    /// Total number of samples covered by this tolerance scope.
-    pub sample_count: usize,
-}
-
-fn comparison_tolerance_policy_coverage(
-    comparison: &ComparisonReport,
-) -> Vec<ComparisonToleranceScopeCoverageSummary> {
-    let entries = comparison_tolerance_policy_entries(&comparison.candidate_backend.family);
-    let tolerance_summaries = comparison.tolerance_summaries();
-
-    entries
-        .into_iter()
-        .map(|entry| {
-            let mut bodies = Vec::new();
-            let mut sample_count = 0;
-
-            for summary in &tolerance_summaries {
-                if comparison_tolerance_scope_for_body(&summary.body) == entry.scope {
-                    bodies.push(summary.body.clone());
-                    sample_count += summary.sample_count;
-                }
-            }
-
-            ComparisonToleranceScopeCoverageSummary {
-                entry,
-                bodies,
-                sample_count,
-            }
-        })
-        .collect()
-}
-
-fn write_tolerance_policy(
-    f: &mut fmt::Formatter<'_>,
-    comparison: &ComparisonReport,
-) -> fmt::Result {
-    let family_label = tolerance_backend_family_label(&comparison.candidate_backend.family);
-    let coverage = comparison_tolerance_policy_coverage(comparison);
-    let coordinate_frames = format_frames(comparison_coordinate_frames(comparison));
-    writeln!(f, "Tolerance policy catalog")?;
-    writeln!(f, "  candidate backend family: {}", family_label)?;
-    writeln!(
-        f,
-        "  comparison evidence: {} bodies, {} samples",
-        comparison.body_summaries().len(),
-        comparison.summary.sample_count
-    )?;
-    writeln!(
-        f,
-        "  comparison window: JD {:.1} → {:.1}",
-        comparison.corpus_summary.earliest_julian_day, comparison.corpus_summary.latest_julian_day
-    )?;
-    writeln!(f, "  coordinate frames: {}", coordinate_frames)?;
-    for scope_coverage in coverage {
-        let tolerance = scope_coverage.entry.tolerance;
-        let bodies = if scope_coverage.bodies.is_empty() {
-            "none".to_string()
-        } else {
-            format_bodies(&scope_coverage.bodies)
-        };
-        writeln!(
-            f,
-            "  {}: backend family={}, profile={}, bodies={}, samples={}, limit Δlon≤{:.6}°, limit Δlat≤{:.6}°, limit Δdist={}",
-            scope_coverage.entry.scope.label(),
-            tolerance_backend_family_label(&tolerance.backend_family),
-            tolerance.profile,
-            bodies,
-            scope_coverage.sample_count,
-            tolerance.max_longitude_delta_deg,
-            tolerance.max_latitude_delta_deg,
-            tolerance
-                .max_distance_delta_au
-                .map(|value| format!("{value:.6} AU"))
-                .unwrap_or_else(|| "n/a".to_string())
-        )?;
-    }
-
-    Ok(())
-}
-
-fn write_tolerance_policy_text(text: &mut String, comparison: &ComparisonReport) {
-    use std::fmt::Write as _;
-
-    let family_label = tolerance_backend_family_label(&comparison.candidate_backend.family);
-    let coverage = comparison_tolerance_policy_coverage(comparison);
-    let coordinate_frames = format_frames(comparison_coordinate_frames(comparison));
-    let _ = writeln!(text, "Tolerance policy catalog");
-    let _ = writeln!(text, "  candidate backend family: {}", family_label);
-    let _ = writeln!(
-        text,
-        "  comparison evidence: {} bodies, {} samples",
-        comparison.body_summaries().len(),
-        comparison.summary.sample_count
-    );
-    let _ = writeln!(
-        text,
-        "  comparison window: JD {:.1} → {:.1}",
-        comparison.corpus_summary.earliest_julian_day, comparison.corpus_summary.latest_julian_day
-    );
-    let _ = writeln!(text, "  coordinate frames: {}", coordinate_frames);
-    for scope_coverage in coverage {
-        let tolerance = scope_coverage.entry.tolerance;
-        let bodies = if scope_coverage.bodies.is_empty() {
-            "none".to_string()
-        } else {
-            format_bodies(&scope_coverage.bodies)
-        };
-        let _ = writeln!(
-            text,
-            "  {}: backend family={}, profile={}, bodies={}, samples={}, limit Δlon≤{:.6}°, limit Δlat≤{:.6}°, limit Δdist={}",
-            scope_coverage.entry.scope.label(),
-            tolerance_backend_family_label(&tolerance.backend_family),
-            tolerance.profile,
-            bodies,
-            scope_coverage.sample_count,
-            tolerance.max_longitude_delta_deg,
-            tolerance.max_latitude_delta_deg,
-            tolerance
-                .max_distance_delta_au
-                .map(|value| format!("{value:.6} AU"))
-                .unwrap_or_else(|| "n/a".to_string())
-        );
-    }
-}
-
 fn write_tolerance_summaries(
     f: &mut fmt::Formatter<'_>,
     summaries: &[BodyToleranceSummary],
@@ -8474,6 +8455,26 @@ mod tests {
             summary.comparison_window.end,
             corpus.summary().epochs.last().copied()
         );
+    }
+
+    #[test]
+    fn comparison_tolerance_scope_coverage_summary_has_a_displayable_summary_line() {
+        let corpus = default_corpus();
+        let reference = default_reference_backend();
+        let candidate = default_candidate_backend();
+        let report =
+            compare_backends(&reference, &candidate, &corpus).expect("comparison should build");
+        let summary = report.tolerance_policy_summary();
+        let coverage = summary
+            .coverage
+            .first()
+            .expect("comparison should include at least one tolerance coverage row");
+
+        assert_eq!(coverage.summary_line(), coverage.to_string());
+        assert!(coverage.summary_line().contains("backend family="));
+        assert!(coverage
+            .summary_line()
+            .contains(coverage.entry.scope.label()));
     }
 
     #[test]
@@ -9840,7 +9841,7 @@ mod tests {
         assert!(rendered.contains("notable regressions"));
         assert!(rendered.contains("outside-tolerance bodies"));
         assert!(rendered.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto override); limits="));
-        assert!(rendered.contains("coverage=Luminaries: bodies=Moon, Sun, samples="));
+        assert!(rendered.contains("coverage=Luminaries: backend family=composite, profile=phase-1 full-file VSOP87B planetary evidence, bodies=Moon, Sun, samples="));
         assert!(rendered.contains("window=JD"));
         assert!(rendered.contains("frames=Ecliptic"));
         assert!(rendered.contains("Luminaries: Δlon≤45.000°, Δlat≤1.000°, Δdist=0.250 AU"));
