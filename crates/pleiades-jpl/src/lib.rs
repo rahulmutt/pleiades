@@ -149,12 +149,14 @@ pub struct ComparisonSnapshotSummary {
 
 /// A compact coverage summary for the independent hold-out corpus used to
 /// validate interpolation against rows that are not part of the main snapshot.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct IndependentHoldoutSnapshotSummary {
     /// Total number of parsed hold-out rows.
     pub row_count: usize,
     /// Number of distinct bodies covered by the hold-out corpus.
     pub body_count: usize,
+    /// Bodies covered by the hold-out corpus in first-seen order.
+    pub bodies: Vec<String>,
     /// Number of distinct epochs covered by the hold-out corpus.
     pub epoch_count: usize,
     /// Earliest epoch represented in the hold-out corpus.
@@ -167,13 +169,17 @@ pub struct IndependentHoldoutSnapshotSummary {
 pub fn independent_holdout_snapshot_summary() -> Option<IndependentHoldoutSnapshotSummary> {
     let entries = independent_holdout_snapshot_entries()?;
 
-    let mut bodies = BTreeSet::new();
+    let mut bodies = Vec::new();
+    let mut seen_bodies = BTreeSet::new();
     let mut epochs = BTreeSet::new();
     let mut earliest_epoch = entries[0].epoch;
     let mut latest_epoch = entries[0].epoch;
 
     for entry in entries {
-        bodies.insert(entry.body.to_string());
+        let body = entry.body.to_string();
+        if seen_bodies.insert(body.clone()) {
+            bodies.push(body);
+        }
         epochs.insert(entry.epoch.julian_day.days().to_bits());
         if entry.epoch.julian_day.days() < earliest_epoch.julian_day.days() {
             earliest_epoch = entry.epoch;
@@ -186,6 +192,7 @@ pub fn independent_holdout_snapshot_summary() -> Option<IndependentHoldoutSnapsh
     Some(IndependentHoldoutSnapshotSummary {
         row_count: entries.len(),
         body_count: bodies.len(),
+        bodies,
         epoch_count: epochs.len(),
         earliest_epoch,
         latest_epoch,
@@ -196,13 +203,19 @@ pub fn independent_holdout_snapshot_summary() -> Option<IndependentHoldoutSnapsh
 pub fn format_independent_holdout_snapshot_summary(
     summary: &IndependentHoldoutSnapshotSummary,
 ) -> String {
+    let bodies = if summary.bodies.is_empty() {
+        "none".to_string()
+    } else {
+        summary.bodies.join(", ")
+    };
     format!(
-        "Independent hold-out coverage: {} rows across {} bodies and {} epochs ({}..{})",
+        "Independent hold-out coverage: {} rows across {} bodies and {} epochs ({}..{}); bodies: {}",
         summary.row_count,
         summary.body_count,
         summary.epoch_count,
         format_instant(summary.earliest_epoch),
         format_instant(summary.latest_epoch),
+        bodies,
     )
 }
 
@@ -2268,12 +2281,13 @@ mod tests {
             .expect("independent hold-out summary should exist");
         assert_eq!(summary.row_count, 6);
         assert_eq!(summary.body_count, 2);
+        assert_eq!(summary.bodies, vec!["Mars", "Jupiter"]);
         assert_eq!(summary.epoch_count, 3);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_451_910.5);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_451_912.5);
         assert_eq!(
             independent_holdout_snapshot_summary_for_report(),
-            "Independent hold-out coverage: 6 rows across 2 bodies and 3 epochs (JD 2451910.5 (TDB)..JD 2451912.5 (TDB))"
+            "Independent hold-out coverage: 6 rows across 2 bodies and 3 epochs (JD 2451910.5 (TDB)..JD 2451912.5 (TDB)); bodies: Mars, Jupiter"
         );
     }
 
