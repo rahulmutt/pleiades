@@ -128,6 +128,8 @@ pub struct LunarTheorySourceSummary {
     pub citation: &'static str,
     /// Human-readable source/provenance note for the current baseline.
     pub provenance: &'static str,
+    /// Structured validation window represented by the current evidence slice.
+    pub validation_window: TimeRange,
     /// Redistribution or licensing posture for the current baseline.
     pub redistribution_note: &'static str,
     /// Licensing or provenance summary for the current baseline.
@@ -150,6 +152,7 @@ pub fn lunar_theory_source_summary() -> LunarTheorySourceSummary {
         source_family_label: source.family_label(),
         citation: source.citation,
         provenance: source.material,
+        validation_window: theory.validation_window,
         redistribution_note: source.redistribution_note,
         license_note: source.license_note,
     }
@@ -512,12 +515,13 @@ pub fn lunar_theory_summary() -> String {
 /// Formats the compact lunar source-selection summary for release-facing reporting.
 pub fn format_lunar_theory_source_summary(summary: &LunarTheorySourceSummary) -> String {
     format!(
-        "lunar source selection: {} [{}; family: {}]; citation: {}; provenance: {}; redistribution: {}; license: {}",
+        "lunar source selection: {} [{}; family: {}]; citation: {}; provenance: {}; validation window: {}; redistribution: {}; license: {}",
         summary.model_name,
         summary.source_identifier,
         summary.source_family_label,
         summary.citation,
         summary.provenance,
+        format_time_range(&summary.validation_window),
         summary.redistribution_note,
         summary.license_note,
     )
@@ -2170,6 +2174,7 @@ mod tests {
         );
         assert_eq!(source_summary.citation, theory.source_citation);
         assert_eq!(source_summary.provenance, theory.source_material);
+        assert_eq!(source_summary.validation_window, theory.validation_window);
         assert_eq!(
             source_summary.redistribution_note,
             theory.redistribution_note
@@ -2182,6 +2187,8 @@ mod tests {
         assert!(lunar_theory_source_summary_for_report().contains("lunar source selection: "));
         assert!(lunar_theory_source_summary_for_report().contains(theory.model_name));
         assert!(lunar_theory_source_summary_for_report().contains(theory.source_identifier));
+        assert!(lunar_theory_source_summary_for_report()
+            .contains("validation window: JD 2448724.5 (TT) → JD 2459278.5 (TT)"));
         assert!(summary.contains(source.citation));
         assert!(summary.contains("Moon, Mean Node, True Node, Mean Perigee, Mean Apogee"));
         assert!(summary.contains("unsupported bodies: True Apogee, True Perigee"));
