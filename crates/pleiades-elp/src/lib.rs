@@ -405,6 +405,10 @@ pub struct LunarTheoryCapabilitySummary {
     pub source_identifier: &'static str,
     /// Human-readable source family label.
     pub source_family_label: &'static str,
+    /// Bodies/channels the current baseline explicitly supports.
+    pub supported_bodies: &'static [CelestialBody],
+    /// Bodies/channels that are explicitly unsupported by this baseline.
+    pub unsupported_bodies: &'static [CelestialBody],
     /// Number of supported lunar bodies/channels.
     pub supported_body_count: usize,
     /// Number of explicitly unsupported lunar bodies/channels.
@@ -430,6 +434,8 @@ pub fn lunar_theory_capability_summary() -> LunarTheoryCapabilitySummary {
         model_name: theory.model_name,
         source_identifier: theory.source_identifier,
         source_family_label: theory.source_family.label(),
+        supported_bodies: theory.supported_bodies,
+        unsupported_bodies: theory.unsupported_bodies,
         supported_body_count: theory.supported_bodies.len(),
         unsupported_body_count: theory.unsupported_bodies.len(),
         supported_frame_count: theory.supported_frames.len(),
@@ -444,12 +450,14 @@ pub fn lunar_theory_capability_summary() -> LunarTheoryCapabilitySummary {
 /// Formats the capability summary for release-facing reporting.
 pub fn format_lunar_theory_capability_summary(summary: &LunarTheoryCapabilitySummary) -> String {
     format!(
-        "lunar capability summary: {} [{}; family: {}] bodies={} unsupported={} frames={} time scales={} zodiac modes={} apparentness={} topocentric observer={} validation window={}",
+        "lunar capability summary: {} [{}; family: {}] bodies={} ({}); unsupported={} ({}); frames={} time scales={} zodiac modes={} apparentness={} topocentric observer={} validation window={}",
         summary.model_name,
         summary.source_identifier,
         summary.source_family_label,
         summary.supported_body_count,
+        format_bodies(summary.supported_bodies),
         summary.unsupported_body_count,
+        format_bodies(summary.unsupported_bodies),
         summary.supported_frame_count,
         summary.supported_time_scale_count,
         summary.supported_zodiac_mode_count,
@@ -2699,6 +2707,8 @@ mod tests {
             capability.source_family_label,
             lunar_theory_source_family().label()
         );
+        assert_eq!(capability.supported_bodies, theory.supported_bodies);
+        assert_eq!(capability.unsupported_bodies, theory.unsupported_bodies);
         assert_eq!(
             capability.supported_body_count,
             theory.supported_bodies.len()
@@ -2729,7 +2739,11 @@ mod tests {
         );
         assert_eq!(capability.validation_window, theory.validation_window);
         assert!(format_lunar_theory_capability_summary(&capability).contains("bodies=5"));
+        assert!(format_lunar_theory_capability_summary(&capability)
+            .contains("Moon, Mean Node, True Node, Mean Perigee, Mean Apogee"));
         assert!(format_lunar_theory_capability_summary(&capability).contains("unsupported=2"));
+        assert!(format_lunar_theory_capability_summary(&capability)
+            .contains("True Apogee, True Perigee"));
         assert!(format_lunar_theory_capability_summary(&capability).contains("frames=2"));
         assert!(format_lunar_theory_capability_summary(&capability).contains("time scales=2"));
         assert!(format_lunar_theory_capability_summary(&capability).contains("zodiac modes=1"));

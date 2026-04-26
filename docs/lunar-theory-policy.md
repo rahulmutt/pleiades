@@ -40,6 +40,7 @@ The current request policy is intentionally narrow and explicit, and the same sh
 - The current selection is also exposed as a one-entry catalog via `lunar_theory_catalog()` and `lunar_theory_catalog_summary()`, so future source-backed lunar-theory variants can be added without changing the reporting shape.
 - The current source-selection fields are also grouped structurally via `LunarTheorySpecification::source_selection()`, which keeps the family, identifier, citation, provenance, redistribution, and license posture available as one typed record for backend-owned reporting.
 - A compact `lunar_theory_source_summary()` helper and `lunar_theory_source_summary_for_report()` formatter expose the same source-selection record as a shorter release-facing provenance line when reports do not need the full specification string.
+- The compact `lunar_theory_capability_summary()` helper now includes the supported and unsupported lunar body lists alongside the policy counts, so release-facing capability snapshots can show the exact channels covered by the current baseline without parsing the full specification string.
 - Source identifier: `meeus-style-truncated-lunar-baseline`.
 - Canonical citation: Jean Meeus, *Astronomical Algorithms*, 2nd edition,
   truncated lunar position and lunar node/perigee/apogee formulae adapted into
