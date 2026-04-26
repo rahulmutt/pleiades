@@ -103,9 +103,10 @@ impl PackagedArtifactRegenerationSummary {
     /// Returns the full packaged-artifact regeneration provenance summary.
     pub fn summary_line(&self) -> String {
         format!(
-            "Packaged artifact regeneration source: label={}; source={}; {}",
+            "Packaged artifact regeneration source: label={}; source={}; bundled bodies: {}; {}",
             self.label,
             self.source,
+            self.body_coverage_line(),
             self.reference_snapshot_line(),
         )
     }
@@ -887,6 +888,7 @@ mod tests {
         assert!(provenance.contains(
             "Packaged artifact regeneration source: label=stage-5 packaged-data prototype"
         ));
+        assert!(provenance.contains("11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"));
         assert!(provenance.contains("Reference snapshot coverage:"));
         assert!(provenance.contains("rows across"));
         assert!(provenance.contains("asteroid rows"));

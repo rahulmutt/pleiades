@@ -16,8 +16,7 @@ use pleiades_core::{
     Longitude, ObserverLocation, RoutingBackend, TimeScale, ZodiacMode,
 };
 use pleiades_data::{
-    packaged_artifact_regeneration_summary, packaged_artifact_regeneration_summary_details,
-    regenerate_packaged_artifact, PackagedDataBackend,
+    packaged_artifact_regeneration_summary, regenerate_packaged_artifact, PackagedDataBackend,
 };
 use pleiades_elp::ElpBackend;
 use pleiades_jpl::JplSnapshotBackend;
@@ -302,16 +301,13 @@ fn render_packaged_artifact_regeneration(output_path: &str) -> Result<String, St
     std::fs::write(output_path, &encoded)
         .map_err(|error| format!("failed to write {}: {error}", output_path))?;
 
-    let regeneration = packaged_artifact_regeneration_summary_details();
-
     Ok(format!(
-        "Packaged artifact regenerated\n  path: {}\n  label: {}\n  source: {}\n  checksum: 0x{:016x}\n  bytes: {}\n  bodies: {}\n  {}",
+        "Packaged artifact regenerated\n  path: {}\n  label: {}\n  source: {}\n  checksum: 0x{:016x}\n  bytes: {}\n  {}",
         output_path,
         artifact.header.generation_label,
         artifact.header.source,
         artifact.checksum,
         encoded.len(),
-        regeneration.body_coverage_line(),
         packaged_artifact_regeneration_summary(),
     ))
 }
