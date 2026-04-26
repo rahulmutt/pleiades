@@ -211,12 +211,14 @@ pub fn reference_snapshot_summary_for_report() -> String {
 }
 
 /// A compact coverage summary for the comparison snapshot used by validation.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ComparisonSnapshotSummary {
     /// Total number of parsed snapshot rows.
     pub row_count: usize,
     /// Number of distinct bodies covered by the comparison corpus.
     pub body_count: usize,
+    /// Bodies covered by the comparison corpus in first-seen order.
+    pub bodies: Vec<pleiades_backend::CelestialBody>,
     /// Number of distinct epochs covered by the comparison corpus.
     pub epoch_count: usize,
     /// Earliest epoch represented in the comparison corpus.
@@ -347,6 +349,7 @@ pub fn comparison_snapshot_summary() -> Option<ComparisonSnapshotSummary> {
     Some(ComparisonSnapshotSummary {
         row_count: entries.len(),
         body_count: bodies.len(),
+        bodies: comparison_body_list().to_vec(),
         epoch_count: epochs.len(),
         earliest_epoch,
         latest_epoch,
@@ -374,12 +377,13 @@ impl ComparisonSnapshotSummary {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         format!(
-            "Comparison snapshot coverage: {} rows across {} bodies and {} epochs ({}..{})",
+            "Comparison snapshot coverage: {} rows across {} bodies and {} epochs ({}..{}); bodies: {}",
             self.row_count,
             self.body_count,
             self.epoch_count,
             format_instant(self.earliest_epoch),
             format_instant(self.latest_epoch),
+            format_bodies(&self.bodies),
         )
     }
 }
@@ -2407,9 +2411,10 @@ mod tests {
         assert_eq!(summary.epoch_count, 6);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_499.0);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
+        assert_eq!(summary.bodies.as_slice(), comparison_bodies());
         assert_eq!(
             summary.summary_line(),
-            "Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB))"
+            "Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Mercury, Moon, Sun, Venus, Jupiter, Saturn, Uranus, Neptune, Pluto"
         );
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(

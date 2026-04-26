@@ -8466,7 +8466,7 @@ mod tests {
         assert!(report.contains("Target compatibility catalog:"));
         assert!(report.contains("Comparison corpus"));
         assert!(report.contains("JPL Horizons comparison window"));
-        assert!(report.contains("Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB))"));
+        assert!(report.contains("Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Mercury, Moon, Sun, Venus, Jupiter, Saturn, Uranus, Neptune, Pluto"));
         assert!(report.contains("Apparentness: Mean"));
         assert!(report.contains("Benchmark corpus"));
         assert!(report.contains("Representative 1500-2500 window"));
@@ -8782,7 +8782,7 @@ mod tests {
             .expect("report summary should render");
         assert!(rendered.contains("Validation report summary"));
         assert!(rendered.contains("Comparison corpus"));
-        assert!(rendered.contains("Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB))"));
+        assert!(rendered.contains("Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Mercury, Moon, Sun, Venus, Jupiter, Saturn, Uranus, Neptune, Pluto"));
         assert!(rendered.contains("Body comparison summaries"));
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
         assert!(rendered.contains("Packaged-artifact profile"));
@@ -9310,7 +9310,7 @@ mod tests {
         assert!(rendered.contains("WvA"));
         assert!(rendered.contains("Selected asteroid evidence: 5 exact J2000 samples"));
         assert!(rendered.contains("Reference snapshot coverage: 46 rows across 15 bodies and 6 epochs (5 asteroid rows; JD 2378499.0 (TDB)..JD 2634167.0 (TDB))"));
-        assert!(rendered.contains("Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB))"));
+        assert!(rendered.contains("Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Mercury, Moon, Sun, Venus, Jupiter, Saturn, Uranus, Neptune, Pluto"));
         assert!(rendered.contains("asteroid:433-Eros"));
         assert!(rendered.contains("Validation reference points:"));
         assert!(rendered.contains("Compatibility caveats:"));
@@ -9559,7 +9559,7 @@ mod tests {
         assert!(rendered.contains("Release notes: release-notes"));
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(rendered.contains("Reference snapshot coverage: 46 rows across 15 bodies and 6 epochs (5 asteroid rows; JD 2378499.0 (TDB)..JD 2634167.0 (TDB))"));
-        assert!(rendered.contains("Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB))"));
+        assert!(rendered.contains("Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Mercury, Moon, Sun, Venus, Jupiter, Saturn, Uranus, Neptune, Pluto"));
         assert!(rendered
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Release checklist summary: release-checklist-summary"));
@@ -9681,7 +9681,7 @@ mod tests {
         assert!(rendered.contains("95th percentile longitude delta:"));
         assert!(rendered.contains("median latitude delta:"));
         assert!(rendered.contains("95th percentile latitude delta:"));
-        assert!(rendered.contains("Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB))"));
+        assert!(rendered.contains("Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Mercury, Moon, Sun, Venus, Jupiter, Saturn, Uranus, Neptune, Pluto"));
         assert!(rendered.contains("Body-class error envelopes:"));
         assert!(rendered.contains("max Δlon="));
         assert!(rendered.contains("median Δlon="));
