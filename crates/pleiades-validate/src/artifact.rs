@@ -13,7 +13,7 @@ use pleiades_core::{
 use pleiades_data::{
     packaged_artifact, packaged_artifact_profile_summary_with_body_coverage,
     packaged_artifact_regeneration_summary_details, packaged_backend,
-    packaged_frame_treatment_summary, packaged_request_policy_summary_details,
+    packaged_frame_treatment_summary_details, packaged_request_policy_summary_details,
 };
 
 /// A report describing the bundled compressed artifact and its boundary checks.
@@ -373,7 +373,7 @@ fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
     text.push_str(&packaged_request_policy_summary_details().summary_line());
     text.push('\n');
     text.push_str("  Packaged frame treatment: ");
-    text.push_str(packaged_frame_treatment_summary());
+    text.push_str(&packaged_frame_treatment_summary_details().to_string());
     text.push('\n');
     text.push_str("  coverage: ");
     text.push_str(&report.earliest.julian_day.to_string());

@@ -46,7 +46,7 @@ use pleiades_core::{
 };
 use pleiades_data::{
     packaged_artifact_profile_summary_with_body_coverage,
-    packaged_artifact_regeneration_summary_details, packaged_frame_treatment_summary,
+    packaged_artifact_regeneration_summary_details, packaged_frame_treatment_summary_details,
     packaged_request_policy_summary_details, PackagedDataBackend,
 };
 use pleiades_elp::{
@@ -3145,7 +3145,7 @@ fn render_release_summary_text() -> String {
     text.push_str(&packaged_request_policy_summary_details().summary_line());
     text.push('\n');
     text.push_str("Packaged frame treatment: ");
-    text.push_str(format_packaged_frame_treatment_summary());
+    text.push_str(&format_packaged_frame_treatment_summary());
     text.push('\n');
     text.push_str("Release bundle verification: verify-release-bundle\n");
     text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
@@ -5059,8 +5059,8 @@ fn format_packaged_artifact_profile_summary() -> String {
     packaged_artifact_profile_summary_with_body_coverage()
 }
 
-fn format_packaged_frame_treatment_summary() -> &'static str {
-    packaged_frame_treatment_summary()
+fn format_packaged_frame_treatment_summary() -> String {
+    packaged_frame_treatment_summary_details().to_string()
 }
 
 fn render_validation_report_summary_text(report: &ValidationReport) -> String {
