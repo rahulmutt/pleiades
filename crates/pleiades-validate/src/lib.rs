@@ -5344,6 +5344,21 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str(&comparison_snapshot_summary_for_report());
     text.push('\n');
+    if let Ok(report) = build_validation_report(0) {
+        let (_, within_tolerance_body_count, outside_tolerance_body_count, regression_count) =
+            comparison_audit_totals(&report.comparison);
+        text.push_str("Comparison audit: compare-backends-audit; status=");
+        text.push_str(comparison_audit_result_label(regression_count));
+        text.push_str(", bodies checked=");
+        text.push_str(&report.comparison.body_summaries().len().to_string());
+        text.push_str(", within tolerance bodies=");
+        text.push_str(&within_tolerance_body_count.to_string());
+        text.push_str(", outside tolerance bodies=");
+        text.push_str(&outside_tolerance_body_count.to_string());
+        text.push_str(", notable regressions=");
+        text.push_str(&regression_count.to_string());
+        text.push('\n');
+    }
     text.push_str("Backends with external data sources: ");
     text.push_str(&data_source_count.to_string());
     text.push('\n');
@@ -9013,6 +9028,9 @@ mod tests {
         assert!(rendered.contains("API stability summary: api-stability-summary"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
         assert!(rendered.contains("Reference snapshot coverage: 46 rows across 15 bodies and 6 epochs (5 asteroid rows; JD 2378499.0 (TDB)..JD 2634167.0 (TDB))"));
+        assert!(rendered.contains("Comparison audit: compare-backends-audit; status="));
+        assert!(rendered.contains("within tolerance bodies="));
+        assert!(rendered.contains("outside tolerance bodies="));
         assert!(rendered
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Release checklist summary: release-checklist-summary"));
