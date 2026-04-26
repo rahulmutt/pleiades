@@ -2325,9 +2325,106 @@ pub fn render_release_summary() -> String {
     render_release_summary_text()
 }
 
-/// Verifies that the release compatibility profile stays synchronized with the
-/// canonical house-system and ayanamsa catalogs.
-pub fn verify_compatibility_profile() -> Result<String, EphemerisError> {
+/// A compact summary of the compatibility-profile verification posture.
+#[derive(Clone, Debug)]
+pub struct CompatibilityProfileVerificationSummary {
+    /// Release profile identifier that was verified.
+    pub profile_id: String,
+    /// Number of house-system descriptors checked.
+    pub house_system_descriptor_count: usize,
+    /// Number of house-system labels checked, including aliases.
+    pub house_system_label_count: usize,
+    /// Latitude-sensitive house systems exposed by the profile.
+    pub latitude_sensitive_house_systems: Vec<String>,
+    /// Number of ayanamsa descriptors checked.
+    pub ayanamsa_descriptor_count: usize,
+    /// Number of ayanamsa labels checked, including aliases.
+    pub ayanamsa_label_count: usize,
+    /// Number of baseline house-system descriptors.
+    pub baseline_house_system_count: usize,
+    /// Number of release-specific house-system descriptors.
+    pub release_house_system_count: usize,
+    /// Number of baseline ayanamsa descriptors.
+    pub baseline_ayanamsa_count: usize,
+    /// Number of release-specific ayanamsa descriptors.
+    pub release_ayanamsa_count: usize,
+    /// Release-specific house-system canonical names.
+    pub release_house_canonical_names: String,
+    /// Release-specific ayanamsa canonical names.
+    pub release_ayanamsa_canonical_names: String,
+    /// Number of custom-definition labels checked.
+    pub custom_definition_label_count: usize,
+    /// Number of documented compatibility caveats.
+    pub compatibility_caveat_count: usize,
+}
+
+impl CompatibilityProfileVerificationSummary {
+    /// Renders the verification summary as compact release-facing text.
+    pub fn summary_line(&self) -> String {
+        let mut text = String::new();
+        text.push_str("Compatibility profile verification\n");
+        text.push_str("Profile: ");
+        text.push_str(&self.profile_id);
+        text.push('\n');
+        text.push_str("House systems verified: ");
+        text.push_str(&self.house_system_descriptor_count.to_string());
+        text.push_str(" descriptors, ");
+        text.push_str(&self.house_system_label_count.to_string());
+        text.push_str(" labels\n");
+        text.push_str("Alias uniqueness checks: exact and case-insensitive labels verified\n");
+        text.push_str("Latitude-sensitive house systems verified: ");
+        text.push_str(&self.latitude_sensitive_house_systems.len().to_string());
+        text.push_str(" descriptors, ");
+        text.push_str(&self.latitude_sensitive_house_systems.len().to_string());
+        text.push_str(" labels");
+        if !self.latitude_sensitive_house_systems.is_empty() {
+            text.push_str(" (");
+            text.push_str(&self.latitude_sensitive_house_systems.join(", "));
+            text.push(')');
+        } else {
+            text.push_str(" (none)");
+        }
+        text.push('\n');
+        text.push_str("Ayanamsas verified: ");
+        text.push_str(&self.ayanamsa_descriptor_count.to_string());
+        text.push_str(" descriptors, ");
+        text.push_str(&self.ayanamsa_label_count.to_string());
+        text.push_str(" labels\n");
+        text.push_str("Baseline/release slices: ");
+        text.push_str(&self.baseline_house_system_count.to_string());
+        text.push_str(" house baseline + ");
+        text.push_str(&self.release_house_system_count.to_string());
+        text.push_str(" house release, ");
+        text.push_str(&self.baseline_ayanamsa_count.to_string());
+        text.push_str(" ayanamsa baseline + ");
+        text.push_str(&self.release_ayanamsa_count.to_string());
+        text.push_str(" ayanamsa release\n");
+        text.push_str("Release-specific house-system canonical names verified: ");
+        text.push_str(&self.release_house_canonical_names);
+        text.push('\n');
+        text.push_str("Release-specific ayanamsa canonical names verified: ");
+        text.push_str(&self.release_ayanamsa_canonical_names);
+        text.push('\n');
+        text.push_str("Release posture: baseline milestone preserved, release additions explicit, custom definitions tracked, caveats documented\n");
+        text.push_str("Custom-definition labels verified: ");
+        text.push_str(&self.custom_definition_label_count.to_string());
+        text.push_str(" labels, all remain custom-definition territory\n");
+        text.push_str("Compatibility caveats documented: ");
+        text.push_str(&self.compatibility_caveat_count.to_string());
+        text.push('\n');
+        text
+    }
+}
+
+impl fmt::Display for CompatibilityProfileVerificationSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns the structured compatibility-profile verification posture.
+pub fn compatibility_profile_verification_summary(
+) -> Result<CompatibilityProfileVerificationSummary, EphemerisError> {
     let profile = current_compatibility_profile();
     let release_profiles = current_release_profile_identifiers();
 
@@ -2373,65 +2470,38 @@ pub fn verify_compatibility_profile() -> Result<String, EphemerisError> {
     let custom_definition_labels_checked =
         verify_custom_definition_labels(profile.custom_definition_labels)?;
 
-    let mut text = String::new();
-    text.push_str("Compatibility profile verification\n");
-    text.push_str("Profile: ");
-    text.push_str(profile.profile_id);
-    text.push('\n');
-    text.push_str("House systems verified: ");
-    text.push_str(&profile.house_systems.len().to_string());
-    text.push_str(" descriptors, ");
-    text.push_str(&house_labels_checked.to_string());
-    text.push_str(" labels\n");
-    text.push_str("Alias uniqueness checks: exact and case-insensitive labels verified\n");
-    text.push_str("Latitude-sensitive house systems verified: ");
-    let latitude_sensitive_house_systems = profile.latitude_sensitive_house_systems();
-    text.push_str(&latitude_sensitive_house_systems.len().to_string());
-    text.push_str(" descriptors, ");
-    text.push_str(&latitude_sensitive_house_systems.len().to_string());
-    text.push_str(" labels");
-    if !latitude_sensitive_house_systems.is_empty() {
-        text.push_str(" (");
-        text.push_str(&latitude_sensitive_house_systems.join(", "));
-        text.push(')');
-    } else {
-        text.push_str(" (none)");
-    }
-    text.push('\n');
-    text.push_str("Ayanamsas verified: ");
-    text.push_str(&profile.ayanamsas.len().to_string());
-    text.push_str(" descriptors, ");
-    text.push_str(&ayanamsa_labels_checked.to_string());
-    text.push_str(" labels\n");
-    text.push_str("Baseline/release slices: ");
-    text.push_str(&profile.baseline_house_systems.len().to_string());
-    text.push_str(" house baseline + ");
-    text.push_str(&profile.release_house_systems.len().to_string());
-    text.push_str(" house release, ");
-    text.push_str(&profile.baseline_ayanamsas.len().to_string());
-    text.push_str(" ayanamsa baseline + ");
-    text.push_str(&profile.release_ayanamsas.len().to_string());
-    text.push_str(" ayanamsa release\n");
-    text.push_str("Release-specific house-system canonical names verified: ");
-    text.push_str(&summarize_descriptor_names(
-        profile.release_house_systems,
-        |entry| entry.canonical_name,
-    ));
-    text.push('\n');
-    text.push_str("Release-specific ayanamsa canonical names verified: ");
-    text.push_str(&summarize_descriptor_names(
-        profile.release_ayanamsas,
-        |entry| entry.canonical_name,
-    ));
-    text.push('\n');
-    text.push_str("Release posture: baseline milestone preserved, release additions explicit, custom definitions tracked, caveats documented\n");
-    text.push_str("Custom-definition labels verified: ");
-    text.push_str(&custom_definition_labels_checked.to_string());
-    text.push_str(" labels, all remain custom-definition territory\n");
-    text.push_str("Compatibility caveats documented: ");
-    text.push_str(&profile.known_gaps.len().to_string());
-    text.push('\n');
-    Ok(text)
+    Ok(CompatibilityProfileVerificationSummary {
+        profile_id: release_profiles.compatibility_profile_id.to_string(),
+        house_system_descriptor_count: profile.house_systems.len(),
+        house_system_label_count: house_labels_checked,
+        latitude_sensitive_house_systems: profile
+            .latitude_sensitive_house_systems()
+            .into_iter()
+            .map(|label| label.to_string())
+            .collect(),
+        ayanamsa_descriptor_count: profile.ayanamsas.len(),
+        ayanamsa_label_count: ayanamsa_labels_checked,
+        baseline_house_system_count: profile.baseline_house_systems.len(),
+        release_house_system_count: profile.release_house_systems.len(),
+        baseline_ayanamsa_count: profile.baseline_ayanamsas.len(),
+        release_ayanamsa_count: profile.release_ayanamsas.len(),
+        release_house_canonical_names: summarize_descriptor_names(
+            profile.release_house_systems,
+            |entry| entry.canonical_name,
+        ),
+        release_ayanamsa_canonical_names: summarize_descriptor_names(
+            profile.release_ayanamsas,
+            |entry| entry.canonical_name,
+        ),
+        custom_definition_label_count: custom_definition_labels_checked,
+        compatibility_caveat_count: profile.known_gaps.len(),
+    })
+}
+
+/// Verifies that the release compatibility profile stays synchronized with the
+/// canonical house-system and ayanamsa catalogs.
+pub fn verify_compatibility_profile() -> Result<String, EphemerisError> {
+    Ok(compatibility_profile_verification_summary()?.summary_line())
 }
 
 fn ensure_profile_slice_matches<T>(
@@ -9688,6 +9758,56 @@ mod tests {
             "Compatibility caveats documented: {}",
             profile.known_gaps.len()
         )));
+    }
+
+    #[test]
+    fn compatibility_profile_verification_summary_renders_consistently() {
+        let summary = compatibility_profile_verification_summary()
+            .expect("compatibility profile verification summary should render");
+        let release_profiles = current_release_profile_identifiers();
+        let profile = current_compatibility_profile();
+
+        assert_eq!(
+            summary.profile_id,
+            release_profiles.compatibility_profile_id
+        );
+        assert_eq!(
+            summary.house_system_descriptor_count,
+            profile.house_systems.len()
+        );
+        assert_eq!(summary.ayanamsa_descriptor_count, profile.ayanamsas.len());
+        assert_eq!(
+            summary.baseline_house_system_count,
+            profile.baseline_house_systems.len()
+        );
+        assert_eq!(
+            summary.release_house_system_count,
+            profile.release_house_systems.len()
+        );
+        assert_eq!(
+            summary.baseline_ayanamsa_count,
+            profile.baseline_ayanamsas.len()
+        );
+        assert_eq!(
+            summary.release_ayanamsa_count,
+            profile.release_ayanamsas.len()
+        );
+        assert_eq!(
+            summary.custom_definition_label_count,
+            profile.custom_definition_labels.len()
+        );
+        assert_eq!(summary.compatibility_caveat_count, profile.known_gaps.len());
+        assert_eq!(summary.summary_line(), summary.to_string());
+        assert_eq!(
+            verify_compatibility_profile().unwrap(),
+            summary.summary_line()
+        );
+        assert!(summary
+            .summary_line()
+            .contains("Compatibility profile verification"));
+        assert!(summary
+            .summary_line()
+            .contains("Release posture: baseline milestone preserved, release additions explicit, custom definitions tracked, caveats documented"));
     }
 
     #[test]
