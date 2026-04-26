@@ -407,6 +407,8 @@ pub struct JplInterpolationQualitySummary {
     pub max_bracket_span_epoch: Instant,
     /// Mean bracketing span across the samples.
     pub mean_bracket_span_days: f64,
+    /// Median bracketing span across the samples.
+    pub median_bracket_span_days: f64,
     /// Largest longitude error among the samples.
     pub max_longitude_error_deg: f64,
     /// Body associated with the largest longitude error.
@@ -415,6 +417,8 @@ pub struct JplInterpolationQualitySummary {
     pub max_longitude_error_epoch: Instant,
     /// Mean longitude error across the samples.
     pub mean_longitude_error_deg: f64,
+    /// Median longitude error across the samples.
+    pub median_longitude_error_deg: f64,
     /// Root-mean-square longitude error across the samples.
     pub rms_longitude_error_deg: f64,
     /// Largest latitude error among the samples.
@@ -425,6 +429,8 @@ pub struct JplInterpolationQualitySummary {
     pub max_latitude_error_epoch: Instant,
     /// Mean latitude error across the samples.
     pub mean_latitude_error_deg: f64,
+    /// Median latitude error across the samples.
+    pub median_latitude_error_deg: f64,
     /// Root-mean-square latitude error across the samples.
     pub rms_latitude_error_deg: f64,
     /// Largest distance error among the samples.
@@ -435,6 +441,8 @@ pub struct JplInterpolationQualitySummary {
     pub max_distance_error_epoch: Instant,
     /// Mean distance error across the samples.
     pub mean_distance_error_au: f64,
+    /// Median distance error across the samples.
+    pub median_distance_error_au: f64,
     /// Root-mean-square distance error across the samples.
     pub rms_distance_error_au: f64,
 }
@@ -470,21 +478,25 @@ pub fn jpl_interpolation_quality_summary() -> Option<JplInterpolationQualitySumm
     let mut max_bracket_span_body = String::new();
     let mut max_bracket_span_epoch = samples[0].epoch;
     let mut total_bracket_span_days = 0.0;
+    let mut bracket_spans = Vec::new();
     let mut max_longitude_error_deg: f64 = 0.0;
     let mut max_longitude_error_body = String::new();
     let mut max_longitude_error_epoch = samples[0].epoch;
     let mut total_longitude_error_deg = 0.0;
     let mut total_longitude_error_sq_deg = 0.0;
+    let mut longitude_errors = Vec::new();
     let mut max_latitude_error_deg: f64 = 0.0;
     let mut max_latitude_error_body = String::new();
     let mut max_latitude_error_epoch = samples[0].epoch;
     let mut total_latitude_error_deg = 0.0;
     let mut total_latitude_error_sq_deg = 0.0;
+    let mut latitude_errors = Vec::new();
     let mut max_distance_error_au: f64 = 0.0;
     let mut max_distance_error_body = String::new();
     let mut max_distance_error_epoch = samples[0].epoch;
     let mut total_distance_error_au = 0.0;
     let mut total_distance_error_sq_au = 0.0;
+    let mut distance_errors = Vec::new();
 
     for sample in samples {
         bodies.insert(sample.body.to_string());
@@ -494,12 +506,16 @@ pub fn jpl_interpolation_quality_summary() -> Option<JplInterpolationQualitySumm
             InterpolationQualityKind::Linear => linear_sample_count += 1,
         }
         total_bracket_span_days += sample.bracket_span_days;
+        bracket_spans.push(sample.bracket_span_days);
         total_longitude_error_deg += sample.longitude_error_deg;
         total_longitude_error_sq_deg += sample.longitude_error_deg * sample.longitude_error_deg;
+        longitude_errors.push(sample.longitude_error_deg);
         total_latitude_error_deg += sample.latitude_error_deg;
         total_latitude_error_sq_deg += sample.latitude_error_deg * sample.latitude_error_deg;
+        latitude_errors.push(sample.latitude_error_deg);
         total_distance_error_au += sample.distance_error_au;
         total_distance_error_sq_au += sample.distance_error_au * sample.distance_error_au;
+        distance_errors.push(sample.distance_error_au);
         if sample.bracket_span_days > max_bracket_span_days {
             max_bracket_span_days = sample.bracket_span_days;
             max_bracket_span_body = sample.body.to_string();
@@ -525,6 +541,7 @@ pub fn jpl_interpolation_quality_summary() -> Option<JplInterpolationQualitySumm
     let sample_count = samples.len() as f64;
 
     Some(JplInterpolationQualitySummary {
+        median_bracket_span_days: median_f64(&mut bracket_spans),
         sample_count: samples.len(),
         body_count: bodies.len(),
         cubic_sample_count,
@@ -538,16 +555,19 @@ pub fn jpl_interpolation_quality_summary() -> Option<JplInterpolationQualitySumm
         max_longitude_error_body,
         max_longitude_error_epoch,
         mean_longitude_error_deg: total_longitude_error_deg / sample_count,
+        median_longitude_error_deg: median_f64(&mut longitude_errors),
         rms_longitude_error_deg: (total_longitude_error_sq_deg / sample_count).sqrt(),
         max_latitude_error_deg,
         max_latitude_error_body,
         max_latitude_error_epoch,
         mean_latitude_error_deg: total_latitude_error_deg / sample_count,
+        median_latitude_error_deg: median_f64(&mut latitude_errors),
         rms_latitude_error_deg: (total_latitude_error_sq_deg / sample_count).sqrt(),
         max_distance_error_au,
         max_distance_error_body,
         max_distance_error_epoch,
         mean_distance_error_au: total_distance_error_au / sample_count,
+        median_distance_error_au: median_f64(&mut distance_errors),
         rms_distance_error_au: (total_distance_error_sq_au / sample_count).sqrt(),
     })
 }
@@ -590,6 +610,16 @@ pub fn jpl_interpolation_quality_kind_coverage() -> Option<JplInterpolationQuali
     })
 }
 
+fn median_f64(values: &mut [f64]) -> f64 {
+    values.sort_by(|left, right| left.partial_cmp(right).unwrap_or(std::cmp::Ordering::Equal));
+    let mid = values.len() / 2;
+    if values.len().is_multiple_of(2) {
+        (values[mid - 1] + values[mid]) / 2.0
+    } else {
+        values[mid]
+    }
+}
+
 /// Formats the interpolation-quality summary for release-facing reports.
 pub fn format_jpl_interpolation_quality_summary(
     summary: &JplInterpolationQualitySummary,
@@ -603,7 +633,7 @@ pub fn format_jpl_interpolation_quality_summary(
     }
 
     format!(
-        "JPL interpolation quality: {} samples across {} bodies ({} cubic, {} quadratic, {} linear), leave-one-out runtime interpolation evidence with worst-case bodies named, max bracket span={:.1} d{}; mean bracket span={:.1} d; max Δlon={:.12}°{}; mean Δlon={:.12}°; rms Δlon={:.12}°; max Δlat={:.12}°{}; mean Δlat={:.12}°; rms Δlat={:.12}°; max Δdist={:.12} AU{}; mean Δdist={:.12} AU; rms Δdist={:.12} AU; transparency evidence only, not a production tolerance envelope",
+        "JPL interpolation quality: {} samples across {} bodies ({} cubic, {} quadratic, {} linear), leave-one-out runtime interpolation evidence with worst-case bodies named, max bracket span={:.1} d{}; mean bracket span={:.1} d; median bracket span={:.1} d; max Δlon={:.12}°{}; mean Δlon={:.12}°; median Δlon={:.12}°; rms Δlon={:.12}°; max Δlat={:.12}°{}; mean Δlat={:.12}°; median Δlat={:.12}°; rms Δlat={:.12}°; max Δdist={:.12} AU{}; mean Δdist={:.12} AU; median Δdist={:.12} AU; rms Δdist={:.12} AU; transparency evidence only, not a production tolerance envelope",
         summary.sample_count,
         summary.body_count,
         summary.cubic_sample_count,
@@ -612,17 +642,21 @@ pub fn format_jpl_interpolation_quality_summary(
         summary.max_bracket_span_days,
         format_body_epoch_suffix(&summary.max_bracket_span_body, summary.max_bracket_span_epoch),
         summary.mean_bracket_span_days,
+        summary.median_bracket_span_days,
         summary.max_longitude_error_deg,
         format_body_epoch_suffix(&summary.max_longitude_error_body, summary.max_longitude_error_epoch),
         summary.mean_longitude_error_deg,
+        summary.median_longitude_error_deg,
         summary.rms_longitude_error_deg,
         summary.max_latitude_error_deg,
         format_body_epoch_suffix(&summary.max_latitude_error_body, summary.max_latitude_error_epoch),
         summary.mean_latitude_error_deg,
+        summary.median_latitude_error_deg,
         summary.rms_latitude_error_deg,
         summary.max_distance_error_au,
         format_body_epoch_suffix(&summary.max_distance_error_body, summary.max_distance_error_epoch),
         summary.mean_distance_error_au,
+        summary.median_distance_error_au,
         summary.rms_distance_error_au,
     )
 }
@@ -2047,11 +2081,15 @@ mod tests {
         assert_eq!(summary.quadratic_sample_count, 0);
         assert!(summary.linear_sample_count > 0);
         assert!(summary.mean_bracket_span_days.is_finite());
+        assert!(summary.median_bracket_span_days.is_finite());
         assert!(summary.mean_longitude_error_deg.is_finite());
+        assert!(summary.median_longitude_error_deg.is_finite());
         assert!(summary.rms_longitude_error_deg.is_finite());
         assert!(summary.mean_latitude_error_deg.is_finite());
+        assert!(summary.median_latitude_error_deg.is_finite());
         assert!(summary.rms_latitude_error_deg.is_finite());
         assert!(summary.mean_distance_error_au.is_finite());
+        assert!(summary.median_distance_error_au.is_finite());
         assert!(summary.rms_distance_error_au.is_finite());
         assert!(!summary.max_bracket_span_body.is_empty());
         assert!(!summary.max_longitude_error_body.is_empty());
@@ -2063,11 +2101,15 @@ mod tests {
         assert!(rendered.contains("quadratic"));
         assert!(rendered.contains("linear"));
         assert!(rendered.contains("mean bracket span="));
+        assert!(rendered.contains("median bracket span="));
         assert!(rendered.contains("mean Δlon="));
+        assert!(rendered.contains("median Δlon="));
         assert!(rendered.contains("rms Δlon="));
         assert!(rendered.contains("mean Δlat="));
+        assert!(rendered.contains("median Δlat="));
         assert!(rendered.contains("rms Δlat="));
         assert!(rendered.contains("mean Δdist="));
+        assert!(rendered.contains("median Δdist="));
         assert!(rendered.contains("rms Δdist="));
         assert!(rendered.contains(&format!(
             "({} @ {}",
