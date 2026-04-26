@@ -12,8 +12,8 @@
 
 #![forbid(unsafe_code)]
 
-use std::cmp::Ordering;
 use std::sync::OnceLock;
+use std::{cmp::Ordering, fmt};
 
 use pleiades_backend::{
     validate_observer_policy, validate_request_policy, validate_zodiac_policy, AccuracyClass,
@@ -23,7 +23,10 @@ use pleiades_backend::{
     Instant, QualityAnnotation, TimeRange, TimeScale, ZodiacMode,
 };
 use pleiades_compression::CompressedArtifact;
-use pleiades_compression::{ArtifactHeader, BodyArtifact, ChannelKind, PolynomialChannel, Segment};
+use pleiades_compression::{
+    ArtifactHeader, ArtifactProfile, BodyArtifact, ChannelKind, EndianPolicy, PolynomialChannel,
+    Segment,
+};
 use pleiades_jpl::{reference_snapshot, reference_snapshot_summary_for_report, SnapshotEntry};
 
 const PACKAGE_NAME: &str = "pleiades-data";
@@ -78,8 +81,48 @@ pub fn packaged_artifact_regeneration_summary() -> String {
     )
 }
 
-fn join_labels<T>(values: &[T], label: impl Fn(&T) -> &'static str) -> String {
-    values.iter().map(label).collect::<Vec<_>>().join(", ")
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PackagedArtifactProfileSummary {
+    /// Number of bundled bodies that share the packaged artifact profile.
+    pub body_count: usize,
+    /// Byte-order policy encoded by the packaged artifact.
+    pub endian_policy: EndianPolicy,
+    /// Capability profile encoded by the packaged artifact.
+    pub profile: ArtifactProfile,
+}
+
+impl PackagedArtifactProfileSummary {
+    /// Renders the packaged artifact profile into a release-facing summary line.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "byte order: {}; {}",
+            self.endian_policy,
+            self.profile.summary_for_body_count(self.body_count),
+        )
+    }
+}
+
+/// Returns the current packaged-artifact profile summary record.
+pub fn packaged_artifact_profile_summary_details() -> PackagedArtifactProfileSummary {
+    let artifact = packaged_artifact();
+    PackagedArtifactProfileSummary {
+        body_count: artifact.bodies.len(),
+        endian_policy: artifact.header.endian_policy,
+        profile: artifact.header.profile.clone(),
+    }
+}
+
+/// Returns the current packaged-artifact profile summary.
+pub fn packaged_artifact_profile_summary() -> String {
+    packaged_artifact_profile_summary_details().summary_line()
+}
+
+fn join_display<T: fmt::Display>(values: &[T]) -> String {
+    values
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 /// Structured policy for how packaged-data lookup epochs are handled.
@@ -106,6 +149,12 @@ impl PackagedLookupEpochPolicy {
                 "TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction"
             }
         }
+    }
+}
+
+impl fmt::Display for PackagedLookupEpochPolicy {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.label())
     }
 }
 
@@ -138,27 +187,12 @@ impl PackagedRequestPolicySummary {
             } else {
                 ""
             },
-            join_labels(self.supported_frames, |value| match value {
-                CoordinateFrame::Ecliptic => "Ecliptic",
-                CoordinateFrame::Equatorial => "Equatorial",
-                _ => "<unknown>",
-            }),
-            join_labels(self.supported_time_scales, |value| match value {
-                TimeScale::Tt => "TT",
-                TimeScale::Tdb => "TDB",
-                _ => "<unknown>",
-            }),
-            join_labels(self.supported_zodiac_modes, |value| match value {
-                ZodiacMode::Tropical => "Tropical",
-                _ => "<unknown>",
-            }),
-            join_labels(self.supported_apparentness, |value| match value {
-                Apparentness::Mean => "Mean",
-                Apparentness::Apparent => "Apparent",
-                _ => "<unknown>",
-            }),
+            join_display(self.supported_frames),
+            join_display(self.supported_time_scales),
+            join_display(self.supported_zodiac_modes),
+            join_display(self.supported_apparentness),
             self.supports_topocentric_observer,
-            self.lookup_epoch_policy.label(),
+            self.lookup_epoch_policy,
             self.lookup_epoch_policy.note(),
         )
     }
@@ -677,6 +711,28 @@ mod tests {
             packaged_frame_treatment_summary()
         );
         assert!(metadata.provenance.data_sources[2].contains("ecliptic coordinates directly"));
+    }
+
+    #[test]
+    fn packaged_artifact_profile_summary_details_match_the_bundled_header() {
+        let artifact = packaged_artifact();
+        let summary = packaged_artifact_profile_summary_details();
+
+        assert_eq!(summary.body_count, artifact.bodies.len());
+        assert_eq!(summary.endian_policy, artifact.header.endian_policy);
+        assert_eq!(summary.profile, artifact.header.profile);
+        assert_eq!(
+            summary.summary_line(),
+            artifact
+                .header
+                .summary_for_body_count(artifact.bodies.len())
+        );
+        assert_eq!(
+            packaged_artifact_profile_summary(),
+            artifact
+                .header
+                .summary_for_body_count(artifact.bodies.len())
+        );
     }
 
     #[test]

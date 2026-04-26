@@ -40,8 +40,8 @@ use pleiades_core::{
     TimeRange, TimeScale, ZodiacMode,
 };
 use pleiades_data::{
-    packaged_artifact, packaged_frame_treatment_summary, packaged_request_policy_summary_details,
-    PackagedDataBackend,
+    packaged_artifact_profile_summary, packaged_frame_treatment_summary,
+    packaged_request_policy_summary_details, PackagedDataBackend,
 };
 use pleiades_elp::{
     format_lunar_apparent_comparison_summary, format_lunar_theory_capability_summary,
@@ -4690,10 +4690,7 @@ fn format_vsop87_source_audit_summary() -> String {
 }
 
 fn format_packaged_artifact_profile_summary() -> String {
-    let artifact = packaged_artifact();
-    artifact
-        .header
-        .summary_for_body_count(artifact.bodies.len())
+    packaged_artifact_profile_summary()
 }
 
 fn format_packaged_frame_treatment_summary() -> &'static str {
