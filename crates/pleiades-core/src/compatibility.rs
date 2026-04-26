@@ -1134,6 +1134,7 @@ mod tests {
         let profile = current_compatibility_profile();
         assert!(profile.release_note().contains("David Cochrane"));
         assert!(profile.release_note().contains("Nick Anthony Fiorenza"));
+        assert!(profile.release_note().contains("True Sheoran"));
         assert!(profile
             .release_note()
             .contains("Equal Midheaven table of houses"));
