@@ -763,7 +763,7 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
                 source_profile: source_profile(
                     CelestialBody::Pluto,
                     Vsop87BodySourceKind::MeanOrbitalElements,
-                    "compact mean orbital elements fallback pending source-backed VSOP87 coefficient tables",
+                    "current mean-element fallback body until a Pluto-specific source path is selected",
                     AccuracyClass::Approximate,
                 ),
                 source_specification: None,

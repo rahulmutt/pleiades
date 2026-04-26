@@ -7443,7 +7443,7 @@ fn implemented_backend_catalog() -> Vec<BackendMatrixEntry> {
             label: "VSOP87 planetary backend",
             metadata: Vsop87Backend::new().metadata(),
             implementation_status: BackendImplementationStatus::PartialSourceBacked,
-            status_note: "Sun through Neptune now use generated binary VSOP87B source tables derived from the vendored full-file inputs, and Pluto remains a mean-element fallback pending a selected source path",
+            status_note: "Sun through Neptune now use generated binary VSOP87B source tables derived from the vendored full-file inputs, and Pluto remains the current mean-element fallback body until a Pluto-specific source path is selected",
             expected_error_kinds: VSOP87_EXPECTED_ERROR_KINDS,
             required_data_files: &[],
         },
@@ -7451,7 +7451,7 @@ fn implemented_backend_catalog() -> Vec<BackendMatrixEntry> {
             label: "ELP lunar backend (Moon and lunar nodes)",
             metadata: ElpBackend::new().metadata(),
             implementation_status: BackendImplementationStatus::PreliminaryAlgorithm,
-            status_note: "compact lunar and lunar-point formulas provide deterministic interim behavior pending documented production lunar-theory ingestion",
+            status_note: "compact lunar and lunar-point formulas provide the current deterministic baseline while documented production lunar-theory ingestion remains open",
             expected_error_kinds: ELP_EXPECTED_ERROR_KINDS,
             required_data_files: &[],
         },
@@ -9420,7 +9420,9 @@ mod tests {
         assert!(rendered.contains("expanded public-input leave-one-out checks"));
         assert!(rendered.contains("Mars at JD 2451545.0"));
         assert!(rendered.contains("VSOP87 planetary backend"));
+        assert!(rendered.contains("Pluto remains the current mean-element fallback body until a Pluto-specific source path is selected"));
         assert!(rendered.contains("ELP lunar backend (Moon and lunar nodes)"));
+        assert!(rendered.contains("compact lunar and lunar-point formulas provide the current deterministic baseline while documented production lunar-theory ingestion remains open"));
         assert!(rendered.contains("unsupported bodies: True Apogee, True Perigee"));
         assert!(rendered.contains("Packaged data backend"));
         assert!(rendered.contains("Composite routed backend"));
