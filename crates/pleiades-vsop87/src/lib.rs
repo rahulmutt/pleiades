@@ -256,6 +256,19 @@ pub struct Vsop87SourceDocumentationSummary {
     pub date_ranges: Vec<&'static str>,
 }
 
+impl Vsop87SourceDocumentationSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format_source_documentation_summary(self)
+    }
+}
+
+impl fmt::Display for Vsop87SourceDocumentationSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Consistency check for the current VSOP87 source-documentation catalog.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Vsop87SourceDocumentationHealthSummary {
@@ -284,6 +297,19 @@ pub struct Vsop87SourceDocumentationHealthSummary {
     pub fallback_profile_count: usize,
     /// Bodies that still use the fallback mean-element path.
     pub fallback_bodies: Vec<CelestialBody>,
+}
+
+impl Vsop87SourceDocumentationHealthSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format_source_documentation_health_summary(self)
+    }
+}
+
+impl fmt::Display for Vsop87SourceDocumentationHealthSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
 }
 
 /// Canonical J2000 reference samples for the source-backed VSOP87B paths.
@@ -1187,7 +1213,7 @@ pub fn format_source_documentation_summary(summary: &Vsop87SourceDocumentationSu
 
 /// Returns the release-facing summary string for the current VSOP87 source-documentation catalog.
 pub fn source_documentation_summary_for_report() -> String {
-    format_source_documentation_summary(&source_documentation_summary())
+    source_documentation_summary().summary_line()
 }
 
 /// Returns a consistency check for the current VSOP87 source-documentation catalog.
@@ -1275,7 +1301,7 @@ fn format_bodies(bodies: &[CelestialBody]) -> String {
 
 /// Returns the release-facing source-documentation health string.
 pub fn source_documentation_health_summary_for_report() -> String {
-    format_source_documentation_health_summary(&source_documentation_health_summary())
+    source_documentation_health_summary().summary_line()
 }
 
 /// Backend-owned summary of the canonical VSOP87 body evidence envelope.
@@ -1297,6 +1323,19 @@ pub struct Vsop87SourceBodyEvidenceSummary {
     pub outside_interim_limit_count: usize,
     /// Bodies outside the current interim limits.
     pub outside_interim_limit_bodies: Vec<CelestialBody>,
+}
+
+impl Vsop87SourceBodyEvidenceSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format_source_body_evidence_summary(self)
+    }
+}
+
+impl fmt::Display for Vsop87SourceBodyEvidenceSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
 }
 
 /// Returns a backend-owned summary of the canonical VSOP87 body evidence.
@@ -1481,7 +1520,7 @@ pub fn format_source_body_evidence_summary(summary: &Vsop87SourceBodyEvidenceSum
 /// Returns the release-facing source-body evidence summary string.
 pub fn source_body_evidence_summary_for_report() -> String {
     match source_body_evidence_summary() {
-        Some(summary) => format_source_body_evidence_summary(&summary),
+        Some(summary) => summary.summary_line(),
         None => "VSOP87 source-backed body evidence: unavailable".to_string(),
     }
 }
@@ -3648,6 +3687,11 @@ mod tests {
         assert_eq!(summary.vendored_full_file_profile_count, 0);
         assert_eq!(summary.truncated_profile_count, 0);
         assert_eq!(summary.fallback_profile_count, 1);
+        assert_eq!(summary.summary_line(), summary.to_string());
+        assert_eq!(
+            source_documentation_health_summary_for_report(),
+            summary.summary_line()
+        );
         assert_eq!(
             summary.source_backed_bodies,
             vec![
@@ -3725,6 +3769,8 @@ mod tests {
         let summary = source_documentation_summary();
         let rendered = source_documentation_summary_for_report();
         assert_eq!(rendered, format_source_documentation_summary(&summary));
+        assert_eq!(summary.summary_line(), rendered);
+        assert_eq!(summary.to_string(), rendered);
         assert!(rendered.contains("source files: VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep"));
         assert!(rendered.contains("source-backed breakdown: 8 generated binary bodies (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune), 0 vendored full-file bodies (none), 0 truncated slice bodies (none)"));
     }
@@ -3759,6 +3805,14 @@ mod tests {
         assert_eq!(
             source_body_evidence_summary_for_report(),
             format_source_body_evidence_summary(&summary)
+        );
+        assert_eq!(
+            summary.summary_line(),
+            source_body_evidence_summary_for_report()
+        );
+        assert_eq!(
+            summary.to_string(),
+            source_body_evidence_summary_for_report()
         );
     }
 
