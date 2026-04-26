@@ -789,6 +789,42 @@ mod tests {
     }
 
     #[test]
+    fn packaged_tdb_single_requests_match_tt_grid_lookups() {
+        let backend = packaged_backend();
+        let tt_request = EphemerisRequest {
+            body: CelestialBody::Sun,
+            instant: Instant::new(
+                pleiades_backend::JulianDay::from_days(2_451_545.0),
+                TimeScale::Tt,
+            ),
+            observer: None,
+            frame: CoordinateFrame::Ecliptic,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparent: pleiades_backend::Apparentness::Mean,
+        };
+        let tdb_request = EphemerisRequest {
+            instant: Instant::new(tt_request.instant.julian_day, TimeScale::Tdb),
+            ..tt_request.clone()
+        };
+
+        let tt_result = backend
+            .position(&tt_request)
+            .expect("TT requests should succeed through the single-request path");
+        let tdb_result = backend
+            .position(&tdb_request)
+            .expect("TDB requests should succeed through the single-request path");
+
+        assert_eq!(tt_result.instant.scale, TimeScale::Tt);
+        assert_eq!(tdb_result.instant.scale, TimeScale::Tdb);
+        assert_eq!(tt_result.quality, QualityAnnotation::Interpolated);
+        assert_eq!(tdb_result.quality, QualityAnnotation::Interpolated);
+        assert_eq!(tt_result.ecliptic, tdb_result.ecliptic);
+        assert_eq!(tt_result.backend_id, tdb_result.backend_id);
+        assert_eq!(tt_result.body, tdb_result.body);
+        assert_eq!(tt_result.apparent, tdb_result.apparent);
+    }
+
+    #[test]
     fn packaged_body_coverage_summary_matches_the_packaged_body_set() {
         let summary = packaged_body_coverage_summary();
         assert!(summary.contains("11 bundled bodies"));
