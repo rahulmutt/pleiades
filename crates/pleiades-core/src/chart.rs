@@ -1432,6 +1432,7 @@ fn map_house_error(error: pleiades_houses::HouseError) -> EphemerisError {
             EphemerisErrorKind::InvalidRequest
         }
         pleiades_houses::HouseErrorKind::InvalidLatitude => EphemerisErrorKind::InvalidObserver,
+        pleiades_houses::HouseErrorKind::InvalidObliquity => EphemerisErrorKind::InvalidRequest,
         pleiades_houses::HouseErrorKind::NumericalFailure => EphemerisErrorKind::NumericalFailure,
         _ => EphemerisErrorKind::InvalidRequest,
     };

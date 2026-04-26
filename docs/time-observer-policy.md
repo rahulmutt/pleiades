@@ -33,6 +33,7 @@ Pleiades keeps time-scale conversion and observer semantics explicit so backend 
 - Chart-level observer locations are currently used for house calculations.
 - Body positions in chart assembly are queried geocentrically unless a future API adds an explicit topocentric position mode.
 - Geocentric-only backends must reject direct backend requests that include an observer location with a structured `InvalidObserver` error.
+- House calculations validate obliquity overrides up front; non-finite overrides are rejected with a structured invalid-obliquity house error instead of flowing into the quadrant formulas.
 - This separation prevents an observer used for houses from being mistaken for topocentric planetary or lunar coordinates.
 
 ## Frame behavior

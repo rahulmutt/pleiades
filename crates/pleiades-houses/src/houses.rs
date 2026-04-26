@@ -112,6 +112,8 @@ pub enum HouseErrorKind {
     UnsupportedHouseSystem,
     /// The observer latitude is outside the mathematically valid range.
     InvalidLatitude,
+    /// The supplied obliquity override was not finite.
+    InvalidObliquity,
     /// The calculation failed for a numerical reason.
     NumericalFailure,
 }
@@ -267,7 +269,7 @@ fn validate_observer(observer: &ObserverLocation) -> Result<(), HouseError> {
 fn validate_obliquity(obliquity: Angle) -> Result<Angle, HouseError> {
     if !obliquity.is_finite() {
         return Err(HouseError::new(
-            HouseErrorKind::NumericalFailure,
+            HouseErrorKind::InvalidObliquity,
             "house obliquity override must be finite",
         ));
     }
@@ -1403,13 +1405,19 @@ mod tests {
 
     #[test]
     fn non_finite_obliquity_overrides_are_rejected() {
-        for obliquity in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
-            let request =
-                sample_request(HouseSystem::Equal).with_obliquity(Angle::from_degrees(obliquity));
+        for system in [
+            HouseSystem::Equal,
+            HouseSystem::Placidus,
+            HouseSystem::Topocentric,
+        ] {
+            for obliquity in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+                let request =
+                    sample_request(system.clone()).with_obliquity(Angle::from_degrees(obliquity));
 
-            let error = calculate_houses(&request).expect_err("invalid obliquity should fail");
-            assert_eq!(error.kind, HouseErrorKind::NumericalFailure);
-            assert!(error.message.contains("obliquity override must be finite"));
+                let error = calculate_houses(&request).expect_err("invalid obliquity should fail");
+                assert_eq!(error.kind, HouseErrorKind::InvalidObliquity);
+                assert!(error.message.contains("obliquity override must be finite"));
+            }
         }
     }
 
