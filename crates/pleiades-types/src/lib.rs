@@ -532,6 +532,15 @@ pub enum ZodiacMode {
     Sidereal { ayanamsa: Ayanamsa },
 }
 
+impl fmt::Display for ZodiacMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Tropical => f.write_str("Tropical"),
+            Self::Sidereal { ayanamsa } => write!(f, "Sidereal ({ayanamsa:?})"),
+        }
+    }
+}
+
 /// One of the twelve zodiac signs.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -1294,6 +1303,18 @@ mod tests {
     fn coordinate_frames_have_stable_display_names() {
         assert_eq!(CoordinateFrame::Ecliptic.to_string(), "Ecliptic");
         assert_eq!(CoordinateFrame::Equatorial.to_string(), "Equatorial");
+    }
+
+    #[test]
+    fn zodiac_modes_have_stable_display_names() {
+        assert_eq!(ZodiacMode::Tropical.to_string(), "Tropical");
+        assert_eq!(
+            ZodiacMode::Sidereal {
+                ayanamsa: Ayanamsa::Lahiri
+            }
+            .to_string(),
+            "Sidereal (Lahiri)"
+        );
     }
 
     #[test]

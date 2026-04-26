@@ -1183,7 +1183,7 @@ impl fmt::Display for ChartSnapshot {
             f,
             "Frame policy: ecliptic body positions are requested from the backend; house calculations remain separate"
         )?;
-        writeln!(f, "Zodiac mode: {:?}", self.zodiac_mode)?;
+        writeln!(f, "Zodiac mode: {}", self.zodiac_mode)?;
         writeln!(f, "Apparentness: {}", self.apparentness)?;
         writeln!(
             f,
@@ -1845,6 +1845,8 @@ mod tests {
             request.zodiac_mode
         );
         assert_eq!(chart.placements[0].sign, Some(ZodiacSign::Pisces));
+        let rendered = chart.to_string();
+        assert!(rendered.contains("Zodiac mode: Sidereal (Lahiri)"));
     }
 
     #[test]

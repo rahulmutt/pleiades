@@ -5372,10 +5372,10 @@ fn render_backend_matrix_summary_text() -> String {
             push_unique(&mut bodies, body.to_string());
         }
         for frame in &entry.metadata.supported_frames {
-            push_unique(&mut frames, format!("{:?}", frame));
+            push_unique(&mut frames, frame.to_string());
         }
         for scale in &entry.metadata.supported_time_scales {
-            push_unique(&mut time_scales, format!("{:?}", scale));
+            push_unique(&mut time_scales, scale.to_string());
         }
     }
 
@@ -9203,8 +9203,8 @@ mod tests {
         assert!(rendered.contains("license: The current baseline is handwritten pure Rust"));
         assert!(rendered.contains("2 unsupported bodies: True Apogee, True Perigee"));
         assert!(rendered.contains("Distinct bodies covered:"));
-        assert!(rendered.contains("Distinct coordinate frames:"));
-        assert!(rendered.contains("Distinct time scales:"));
+        assert!(rendered.contains("Distinct coordinate frames: 2 (Ecliptic, Equatorial)"));
+        assert!(rendered.contains("Distinct time scales: 2 (TT, TDB)"));
         assert!(rendered.contains("Time-scale policy:"));
         assert!(rendered.contains("Observer policy:"));
         assert!(rendered.contains("Apparentness policy:"));
