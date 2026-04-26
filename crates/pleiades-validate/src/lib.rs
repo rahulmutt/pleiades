@@ -75,7 +75,8 @@ use pleiades_jpl::{
     reference_snapshot_summary_for_report, JplSnapshotBackend,
 };
 use pleiades_vsop87::{
-    body_source_profiles, canonical_epoch_evidence_summary_for_report, frame_treatment_summary,
+    body_source_profiles, canonical_epoch_equatorial_evidence_summary_for_report,
+    canonical_epoch_evidence_summary_for_report, frame_treatment_summary,
     generated_binary_audit_summary_for_report, source_audit_summary_for_report, source_audits,
     source_body_evidence_summary_for_report, source_documentation_health_summary_for_report,
     source_documentation_summary_for_report, source_specifications,
@@ -2861,6 +2862,8 @@ fn render_release_summary_text() -> String {
     text.push_str(" | ");
     text.push_str(&format_vsop87_canonical_evidence_summary());
     text.push_str(" | ");
+    text.push_str(&format_vsop87_equatorial_evidence_summary());
+    text.push_str(" | ");
     text.push_str(&format_vsop87_body_evidence_summary());
     text.push('\n');
     text.push_str("ELP lunar capability: ");
@@ -4740,6 +4743,10 @@ fn format_vsop87_canonical_evidence_summary() -> String {
     canonical_epoch_evidence_summary_for_report()
 }
 
+fn format_vsop87_equatorial_evidence_summary() -> String {
+    canonical_epoch_equatorial_evidence_summary_for_report()
+}
+
 fn format_vsop87_body_evidence_summary() -> String {
     source_body_evidence_summary_for_report()
 }
@@ -5258,6 +5265,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text, "  {}", format_vsop87_source_audit_summary());
     let _ = writeln!(text, "  {}", generated_binary_audit_summary_for_report());
     let _ = writeln!(text, "  {}", format_vsop87_canonical_evidence_summary());
+    let _ = writeln!(text, "  {}", format_vsop87_equatorial_evidence_summary());
     let _ = writeln!(text, "  {}", format_vsop87_body_evidence_summary());
     let _ = writeln!(text);
     let _ = writeln!(text, "ELP lunar theory specification");
@@ -5618,6 +5626,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&generated_binary_audit_summary_for_report());
     text.push('\n');
     text.push_str(&format_vsop87_canonical_evidence_summary());
+    text.push('\n');
+    text.push_str(&format_vsop87_equatorial_evidence_summary());
     text.push('\n');
     text.push_str(&format_vsop87_body_evidence_summary());
     text.push('\n');
@@ -8377,6 +8387,7 @@ mod tests {
         assert!(report
             .contains("VSOP87 generated binary audit: 8 checked-in blobs across 8 source files"));
         assert!(report.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
+        assert!(report.contains("VSOP87 canonical J2000 equatorial companion evidence: 8 samples"));
         assert!(report.contains("generated binary VSOP87B"));
         assert!(report.contains("generated binary VSOP87B; VSOP87B."));
         assert!(report.contains("max Δlon="));
@@ -9361,6 +9372,7 @@ mod tests {
         assert!(rendered.contains("VSOP87 request policy:"));
         assert!(rendered.contains("VSOP87 source audit:"));
         assert!(rendered.contains("VSOP87 canonical J2000 source-backed evidence:"));
+        assert!(rendered.contains("VSOP87 canonical J2000 equatorial companion evidence:"));
         assert!(rendered.contains("VSOP87 source-backed body evidence:"));
         assert!(rendered.contains("Lunar reference envelope:"));
         assert!(rendered.contains("Lunar equatorial reference envelope:"));
@@ -9459,6 +9471,9 @@ mod tests {
         assert!(rendered
             .contains("VSOP87 generated binary audit: 8 checked-in blobs across 8 source files"));
         assert!(rendered.contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
+        assert!(
+            rendered.contains("VSOP87 canonical J2000 equatorial companion evidence: 8 samples")
+        );
         assert!(rendered.contains("generated binary VSOP87B"));
         assert!(rendered.contains("generated binary VSOP87B; VSOP87B."));
         assert!(rendered.contains("max Δlon="));
@@ -9789,6 +9804,7 @@ version = "0.9.0"
         assert!(release_summary.contains("VSOP87 source audit:"));
         assert!(release_summary.contains("VSOP87 generated binary audit:"));
         assert!(release_summary.contains("VSOP87 canonical J2000 source-backed evidence:"));
+        assert!(release_summary.contains("VSOP87 canonical J2000 equatorial companion evidence:"));
         assert!(release_summary.contains("VSOP87 source-backed body evidence:"));
         assert!(release_summary.contains("Lunar reference: lunar reference evidence:"));
         assert!(release_summary.contains("Lunar reference envelope:"));
@@ -9885,6 +9901,8 @@ version = "0.9.0"
         assert!(backend_matrix_summary.contains("Composite: 1"));
         assert!(backend_matrix_summary
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
+        assert!(backend_matrix_summary
+            .contains("VSOP87 canonical J2000 equatorial companion evidence: 8 samples"));
         assert!(
             backend_matrix_summary.contains("Selected asteroid evidence: 5 exact J2000 samples")
         );
@@ -9931,6 +9949,8 @@ version = "0.9.0"
             .contains("VSOP87 generated binary audit: 8 checked-in blobs across 8 source files"));
         assert!(validation_report_summary
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
+        assert!(validation_report_summary
+            .contains("VSOP87 canonical J2000 equatorial companion evidence: 8 samples"));
         assert!(validation_report_summary.contains("generated binary VSOP87B"));
         assert!(validation_report_summary.contains("VSOP87 source-backed evidence"));
         assert!(validation_report_summary.contains(
