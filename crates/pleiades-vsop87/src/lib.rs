@@ -1686,14 +1686,26 @@ pub struct Vsop87SourceBodyClassEvidenceSummary {
     pub max_distance_delta_limit_au: f64,
     /// Mean absolute longitude delta in degrees.
     pub mean_longitude_delta_deg: f64,
+    /// Median absolute longitude delta in degrees.
+    pub median_longitude_delta_deg: f64,
+    /// 95th-percentile absolute longitude delta in degrees.
+    pub percentile_longitude_delta_deg: f64,
     /// Root-mean-square longitude delta in degrees.
     pub rms_longitude_delta_deg: f64,
     /// Mean absolute latitude delta in degrees.
     pub mean_latitude_delta_deg: f64,
+    /// Median absolute latitude delta in degrees.
+    pub median_latitude_delta_deg: f64,
+    /// 95th-percentile absolute latitude delta in degrees.
+    pub percentile_latitude_delta_deg: f64,
     /// Root-mean-square latitude delta in degrees.
     pub rms_latitude_delta_deg: f64,
     /// Mean absolute distance delta in astronomical units.
     pub mean_distance_delta_au: f64,
+    /// Median absolute distance delta in astronomical units.
+    pub median_distance_delta_au: f64,
+    /// 95th-percentile absolute distance delta in astronomical units.
+    pub percentile_distance_delta_au: f64,
     /// Root-mean-square distance delta in astronomical units.
     pub rms_distance_delta_au: f64,
 }
@@ -1784,6 +1796,12 @@ pub fn source_body_class_evidence_summary() -> Option<Vec<Vsop87SourceBodyClassE
         }
 
         let sample_count = class_rows.len();
+        let mut longitude_values_for_median = longitude_values.clone();
+        let mut longitude_values_for_percentile = longitude_values;
+        let mut latitude_values_for_median = latitude_values.clone();
+        let mut latitude_values_for_percentile = latitude_values;
+        let mut distance_values_for_median = distance_values.clone();
+        let mut distance_values_for_percentile = distance_values;
         summaries.push(Vsop87SourceBodyClassEvidenceSummary {
             class,
             sample_count,
@@ -1806,12 +1824,27 @@ pub fn source_body_class_evidence_summary() -> Option<Vec<Vsop87SourceBodyClassE
             max_distance_delta_source_file,
             max_distance_delta_au,
             max_distance_delta_limit_au,
-            mean_longitude_delta_deg: longitude_values.iter().sum::<f64>() / sample_count as f64,
-            rms_longitude_delta_deg: rms_f64(&longitude_values),
-            mean_latitude_delta_deg: latitude_values.iter().sum::<f64>() / sample_count as f64,
-            rms_latitude_delta_deg: rms_f64(&latitude_values),
-            mean_distance_delta_au: distance_values.iter().sum::<f64>() / sample_count as f64,
-            rms_distance_delta_au: rms_f64(&distance_values),
+            mean_longitude_delta_deg: longitude_values_for_median.iter().sum::<f64>()
+                / sample_count as f64,
+            median_longitude_delta_deg: median_f64(&mut longitude_values_for_median),
+            percentile_longitude_delta_deg: percentile_f64(
+                &mut longitude_values_for_percentile,
+                0.95,
+            ),
+            rms_longitude_delta_deg: rms_f64(&longitude_values_for_percentile),
+            mean_latitude_delta_deg: latitude_values_for_median.iter().sum::<f64>()
+                / sample_count as f64,
+            median_latitude_delta_deg: median_f64(&mut latitude_values_for_median),
+            percentile_latitude_delta_deg: percentile_f64(
+                &mut latitude_values_for_percentile,
+                0.95,
+            ),
+            rms_latitude_delta_deg: rms_f64(&latitude_values_for_percentile),
+            mean_distance_delta_au: distance_values_for_median.iter().sum::<f64>()
+                / sample_count as f64,
+            median_distance_delta_au: median_f64(&mut distance_values_for_median),
+            percentile_distance_delta_au: percentile_f64(&mut distance_values_for_percentile, 0.95),
+            rms_distance_delta_au: rms_f64(&distance_values_for_percentile),
         });
     }
 
@@ -1829,7 +1862,7 @@ fn format_source_body_class_evidence_entry(
     };
 
     format!(
-        "{}: samples={}, bodies: {}, within interim limits {}, outside interim limits {}; out-of-limit bodies: {}; mean Δlon={:.12}°, rms Δlon={:.12}°, mean Δlat={:.12}°, rms Δlat={:.12}°, mean Δdist={:.12} AU, rms Δdist={:.12} AU, max Δlon={:.12}° (limit {:.12}°, margin {:+.12}°; {}; {}; {}), max Δlat={:.12}° (limit {:.12}°, margin {:+.12}°; {}; {}; {}), max Δdist={:.12} AU (limit {:.12} AU, margin {:+.12} AU; {}; {}; {})",
+        "{}: samples={}, bodies: {}, within interim limits {}, outside interim limits {}; out-of-limit bodies: {}; mean Δlon={:.12}°, median Δlon={:.12}°, p95 Δlon={:.12}°, rms Δlon={:.12}°, mean Δlat={:.12}°, median Δlat={:.12}°, p95 Δlat={:.12}°, rms Δlat={:.12}°, mean Δdist={:.12} AU, median Δdist={:.12} AU, p95 Δdist={:.12} AU, rms Δdist={:.12} AU, max Δlon={:.12}° (limit {:.12}°, margin {:+.12}°; {}; {}; {}), max Δlat={:.12}° (limit {:.12}°, margin {:+.12}°; {}; {}; {}), max Δdist={:.12} AU (limit {:.12} AU, margin {:+.12} AU; {}; {}; {})",
         summary.class,
         summary.sample_count,
         format_celestial_bodies(&summary.sample_bodies),
@@ -1837,10 +1870,16 @@ fn format_source_body_class_evidence_entry(
         summary.outside_interim_limit_count,
         outside_note,
         summary.mean_longitude_delta_deg,
+        summary.median_longitude_delta_deg,
+        summary.percentile_longitude_delta_deg,
         summary.rms_longitude_delta_deg,
         summary.mean_latitude_delta_deg,
+        summary.median_latitude_delta_deg,
+        summary.percentile_latitude_delta_deg,
         summary.rms_latitude_delta_deg,
         summary.mean_distance_delta_au,
+        summary.median_distance_delta_au,
+        summary.percentile_distance_delta_au,
         summary.rms_distance_delta_au,
         summary.max_longitude_delta_deg,
         summary.max_longitude_delta_limit_deg,
@@ -4331,6 +4370,12 @@ mod tests {
         assert_eq!(summary[0].summary_line(), summary[0].to_string());
         assert_eq!(summary[1].summary_line(), summary[1].to_string());
         assert!(rendered.contains("Luminary: samples=1, bodies: Sun"));
+        assert!(rendered.contains("median Δlon="));
+        assert!(rendered.contains("p95 Δlon="));
+        assert!(rendered.contains("median Δlat="));
+        assert!(rendered.contains("p95 Δlat="));
+        assert!(rendered.contains("median Δdist="));
+        assert!(rendered.contains("p95 Δdist="));
         assert!(rendered.contains("Major planets: samples=7, bodies: Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune"));
     }
 

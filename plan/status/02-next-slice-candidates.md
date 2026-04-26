@@ -56,7 +56,7 @@ Progress note (2026-04-26): the VSOP87 source-documentation summary now also car
 
 Progress note (2026-04-25): the canonical VSOP87 body evidence and release-facing backend-matrix lines now also spell out the per-axis interim limits and signed margins alongside the measured deltas, which makes the source-backed error envelope easier to audit without changing the underlying J2000 reference rows.
 Progress note (2026-04-26): the canonical VSOP87 evidence summary now also includes median and RMS longitude, latitude, and distance deltas, so the release-facing source-backed envelope now carries both central-tendency and spread statistics in addition to the existing mean/max lines.
-Progress note (2026-04-26): the VSOP87 backend now also rolls the canonical evidence into backend-owned luminary and major-planet envelope summaries, and validation/release output now renders those class-level error envelopes alongside the per-body source evidence so the release-facing source-backed audit is a little easier to scan.
+Progress note (2026-04-26): the VSOP87 backend now also rolls the canonical evidence into backend-owned luminary and major-planet envelope summaries, and validation/release output now renders those class-level error envelopes alongside the per-body source evidence so the release-facing source-backed audit is a little easier to scan. The same backend-owned class summaries now also carry median and 95th-percentile longitude, latitude, and distance deltas, which gives the class rollups a fuller shape view than mean/RMS alone.
 
 ## 2. Lunar theory source selection
 

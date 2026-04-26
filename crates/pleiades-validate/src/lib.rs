@@ -9720,6 +9720,12 @@ mod tests {
         assert!(rendered.contains("VSOP87 evidence:"));
         assert!(rendered.contains("VSOP87 source-backed body-class envelopes:"));
         assert!(rendered.contains("Luminary: samples=1, bodies: Sun"));
+        assert!(rendered.contains("median Δlon="));
+        assert!(rendered.contains("p95 Δlon="));
+        assert!(rendered.contains("median Δlat="));
+        assert!(rendered.contains("p95 Δlat="));
+        assert!(rendered.contains("median Δdist="));
+        assert!(rendered.contains("p95 Δdist="));
         assert!(rendered.contains("Major planets: samples=7, bodies: Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune"));
         assert!(rendered.contains("VSOP87 source documentation:"));
         assert!(rendered.contains("VSOP87 frame treatment:"));
@@ -10212,6 +10218,12 @@ version = "0.9.0"
         assert!(release_summary.contains("VSOP87 evidence:"));
         assert!(release_summary.contains("VSOP87 source-backed body-class envelopes:"));
         assert!(release_summary.contains("Luminary: samples=1, bodies: Sun"));
+        assert!(release_summary.contains("median Δlon="));
+        assert!(release_summary.contains("p95 Δlon="));
+        assert!(release_summary.contains("median Δlat="));
+        assert!(release_summary.contains("p95 Δlat="));
+        assert!(release_summary.contains("median Δdist="));
+        assert!(release_summary.contains("p95 Δdist="));
         assert!(release_summary.contains("Major planets: samples=7, bodies: Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune"));
         assert!(release_summary.contains("VSOP87 source documentation:"));
         assert!(release_summary.contains("VSOP87 frame treatment:"));
