@@ -426,6 +426,9 @@ impl CompressedArtifact {
     }
 
     /// Decodes an artifact from a binary blob.
+    ///
+    /// Checksum mismatches are rejected with [`CompressionErrorKind::ChecksumMismatch`]
+    /// before the payload is parsed.
     pub fn decode(bytes: &[u8]) -> Result<Self, CompressionError> {
         let mut cursor = Cursor::new(bytes);
         let magic = cursor.read_array::<8>()?;
@@ -1061,6 +1064,34 @@ mod tests {
             decoded.checksum,
             artifact.checksum().expect("checksum should compute")
         );
+    }
+
+    #[test]
+    fn decode_rejects_checksum_corruption() {
+        let artifact = CompressedArtifact::new(
+            ArtifactHeader::new("demo", "tamper check fixture"),
+            vec![BodyArtifact::new(
+                CelestialBody::Sun,
+                vec![Segment::new(
+                    Instant::new(pleiades_types::JulianDay::from_days(0.0), TimeScale::Tt),
+                    Instant::new(pleiades_types::JulianDay::from_days(1.0), TimeScale::Tt),
+                    vec![PolynomialChannel::linear(
+                        ChannelKind::Longitude,
+                        9,
+                        10.0,
+                        11.0,
+                    )],
+                )],
+            )],
+        );
+
+        let mut encoded = artifact.encode().expect("artifact should encode");
+        let last_index = encoded.len() - 1;
+        encoded[last_index] ^= 0x01;
+
+        let error =
+            CompressedArtifact::decode(&encoded).expect_err("tampered artifact should fail");
+        assert_eq!(error.kind, CompressionErrorKind::ChecksumMismatch);
     }
 
     #[test]

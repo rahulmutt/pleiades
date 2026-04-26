@@ -488,6 +488,21 @@ mod tests {
     }
 
     #[test]
+    fn packaged_artifact_decode_rejects_checksum_corruption() {
+        let mut encoded = PACKAGED_ARTIFACT_FIXTURE.to_vec();
+        let last_index = encoded.len() - 1;
+        encoded[last_index] ^= 0x01;
+
+        let error = CompressedArtifact::decode(&encoded)
+            .expect_err("tampered packaged artifact should fail to decode");
+
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::ChecksumMismatch
+        );
+    }
+
+    #[test]
     fn packaged_artifact_fixture_matches_reference_snapshot_generation() {
         let generated = regenerate_packaged_artifact();
         let encoded = generated
