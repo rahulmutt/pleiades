@@ -261,6 +261,8 @@ pub struct Vsop87CanonicalBodyEvidence {
 pub struct Vsop87CanonicalEvidenceSummary {
     /// Number of canonical samples measured.
     pub sample_count: usize,
+    /// Canonical bodies measured in source-backed order.
+    pub sample_bodies: Vec<CelestialBody>,
     /// Body with the maximum absolute geocentric longitude delta.
     pub max_longitude_delta_body: CelestialBody,
     /// Calculation family behind the maximum longitude delta body.
@@ -968,8 +970,9 @@ pub fn source_body_evidence_summary() -> Option<Vsop87SourceBodyEvidenceSummary>
 /// Formats the canonical VSOP87 J2000 evidence summary for reporting.
 pub fn format_canonical_epoch_evidence_summary(summary: &Vsop87CanonicalEvidenceSummary) -> String {
     format!(
-        "VSOP87 canonical J2000 source-backed evidence: {} samples, status {}, mean Δlon={:.12}°, median Δlon={:.12}°, p95 Δlon={:.12}°, rms Δlon={:.12}°, mean Δlat={:.12}°, median Δlat={:.12}°, p95 Δlat={:.12}°, rms Δlat={:.12}°, mean Δdist={:.12} AU, median Δdist={:.12} AU, p95 Δdist={:.12} AU, rms Δdist={:.12} AU, out-of-limit samples {}, max Δlon={:.12}° (limit {:.12}°, margin {:+.12}°; {}; {}; {}), max Δlat={:.12}° (limit {:.12}°, margin {:+.12}°; {}; {}; {}), max Δdist={:.12} AU (limit {:.12} AU, margin {:+.12} AU; {}; {}; {})",
+        "VSOP87 canonical J2000 source-backed evidence: {} samples, bodies: {}, status {}, mean Δlon={:.12}°, median Δlon={:.12}°, p95 Δlon={:.12}°, rms Δlon={:.12}°, mean Δlat={:.12}°, median Δlat={:.12}°, p95 Δlat={:.12}°, rms Δlat={:.12}°, mean Δdist={:.12} AU, median Δdist={:.12} AU, p95 Δdist={:.12} AU, rms Δdist={:.12} AU, out-of-limit samples {}, max Δlon={:.12}° (limit {:.12}°, margin {:+.12}°; {}; {}; {}), max Δlat={:.12}° (limit {:.12}°, margin {:+.12}°; {}; {}; {}), max Δdist={:.12} AU (limit {:.12} AU, margin {:+.12} AU; {}; {}; {})",
         summary.sample_count,
+        format_celestial_bodies(&summary.sample_bodies),
         if summary.within_interim_limits {
             "within interim limits"
         } else {
@@ -1236,6 +1239,10 @@ pub fn canonical_epoch_body_evidence() -> Option<Vec<Vsop87CanonicalBodyEvidence
 /// validation reports.
 pub fn canonical_epoch_evidence_summary() -> Option<Vsop87CanonicalEvidenceSummary> {
     let body_evidence = canonical_epoch_body_evidence()?;
+    let sample_bodies = body_evidence
+        .iter()
+        .map(|evidence| evidence.body.clone())
+        .collect::<Vec<_>>();
     let first = body_evidence.first()?;
     let mut sample_count = 0usize;
     let mut max_longitude_delta_body = first.body.clone();
@@ -1299,6 +1306,7 @@ pub fn canonical_epoch_evidence_summary() -> Option<Vsop87CanonicalEvidenceSumma
 
     Some(Vsop87CanonicalEvidenceSummary {
         sample_count,
+        sample_bodies,
         max_longitude_delta_body,
         max_longitude_delta_source_kind,
         max_longitude_delta_source_file,
@@ -2786,6 +2794,13 @@ mod tests {
 
         assert_eq!(body_evidence.len(), samples.len());
         assert_eq!(summary.sample_count, samples.len());
+        assert_eq!(
+            summary.sample_bodies,
+            samples
+                .iter()
+                .map(|sample| sample.body.clone())
+                .collect::<Vec<_>>()
+        );
         assert!(summary.within_interim_limits);
         assert!(body_evidence
             .iter()
@@ -3019,6 +3034,13 @@ mod tests {
         assert!(rendered.contains("p95 Δlon="));
         assert!(rendered.contains("p95 Δlat="));
         assert!(rendered.contains("p95 Δdist="));
+    }
+
+    #[test]
+    fn canonical_evidence_report_lists_the_measured_bodies() {
+        let rendered = canonical_epoch_evidence_summary_for_report();
+        assert!(rendered
+            .contains("bodies: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune"));
     }
 
     #[test]
