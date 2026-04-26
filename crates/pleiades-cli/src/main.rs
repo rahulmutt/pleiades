@@ -617,6 +617,8 @@ mod tests {
         assert!(rendered.contains("True Pushya"));
         assert!(rendered.contains("Djwhal Khul"));
         assert!(rendered.contains("True Revati"));
+        assert!(rendered.contains("True Mula (Chandra Hari)"));
+        assert!(rendered.contains("Galactic Equator (Fiorenza)"));
         assert!(rendered.contains("True Citra Paksha"));
         assert!(rendered.contains("True Chitra Paksha"));
         assert!(rendered.contains("True Chitrapaksha"));
@@ -668,6 +670,7 @@ mod tests {
         assert!(compatibility.contains("Release summary: release-summary"));
         assert!(compatibility.contains("Release checklist summary: release-checklist-summary"));
         assert!(compatibility.contains("Release bundle verification: verify-release-bundle"));
+        assert!(compatibility.contains("Galactic Equator (Fiorenza)"));
 
         let verification = render_cli(&["verify-compatibility-profile"])
             .expect("compatibility profile verification should render");
@@ -716,6 +719,8 @@ mod tests {
             .contains("Compatibility profile verification: verify-compatibility-profile"));
         assert!(release_notes.contains("API stability posture:"));
         assert!(release_notes.contains("Bundle provenance:"));
+        assert!(release_notes.contains("True Mula (Chandra Hari)"));
+        assert!(release_notes.contains("Galactic Equator (Fiorenza)"));
 
         let release_notes_summary =
             render_cli(&["release-notes-summary"]).expect("release notes summary should render");
