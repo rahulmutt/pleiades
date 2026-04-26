@@ -412,19 +412,58 @@ pub fn reference_asteroid_equatorial_evidence_summary_for_report() -> String {
 
 /// Returns the source-material summary for the checked-in reference snapshot.
 pub fn reference_snapshot_source_summary_for_report() -> &'static str {
-    "Reference snapshot source: NASA/JPL Horizons API vector tables (DE441); geocentric ecliptic J2000; TDB reference epoch JD 2451545.0"
+    static SUMMARY: OnceLock<String> = OnceLock::new();
+    SUMMARY
+        .get_or_init(|| {
+            let manifest = reference_snapshot_manifest();
+            let source = manifest
+                .source
+                .as_deref()
+                .unwrap_or("NASA/JPL Horizons API vector tables (DE441)");
+            format!(
+                "Reference snapshot source: {source}; geocentric ecliptic J2000; TDB reference epoch JD 2451545.0"
+            )
+        })
+        .as_str()
+}
+
+/// Returns the manifest summary for the checked-in reference snapshot.
+pub fn reference_snapshot_manifest_summary_for_report() -> String {
+    reference_snapshot_manifest().summary_line("Reference snapshot manifest")
+}
+
+/// Returns the source-material summary for the checked-in hold-out snapshot.
+pub fn independent_holdout_source_summary_for_report() -> String {
+    let manifest = independent_holdout_snapshot_manifest();
+    let source = manifest
+        .source
+        .as_deref()
+        .unwrap_or("NASA/JPL Horizons API vector tables (DE441)");
+    let coverage = manifest
+        .coverage
+        .as_deref()
+        .unwrap_or("Mars and Jupiter at 2001-01-01 through 2001-01-03.");
+    let columns = if manifest.columns.is_empty() {
+        "none".to_string()
+    } else {
+        manifest.columns.join(", ")
+    };
+
+    format!("Independent hold-out source: {source}; coverage={coverage}; columns={columns}")
 }
 
 /// Returns the combined snapshot evidence summary used by validation and release reports.
 pub fn jpl_snapshot_evidence_summary_for_report() -> String {
     format!(
-        "{} | {} | {} | {} | {} | {} | {}",
+        "{} | {} | {} | {} | {} | {} | {} | {} | {}",
         reference_snapshot_summary_for_report(),
         reference_snapshot_source_summary_for_report(),
+        reference_snapshot_manifest_summary_for_report(),
         reference_asteroid_evidence_summary_for_report(),
         reference_asteroid_equatorial_evidence_summary_for_report(),
         comparison_snapshot_summary_for_report(),
         independent_holdout_snapshot_summary_for_report(),
+        independent_holdout_source_summary_for_report(),
         jpl_independent_holdout_summary_for_report(),
     )
 }
@@ -1242,6 +1281,81 @@ fn mean_obliquity_degrees(instant: Instant) -> f64 {
     let t = (instant.julian_day.days() - REFERENCE_EPOCH_JD) / 36_525.0;
     23.439_291_111_111_11 - 0.013_004_166_666_666_667 * t - 0.000_000_163_888_888_888_888_88 * t * t
         + 0.000_000_503_611_111_111_111_1 * t * t * t
+}
+
+/// File-level metadata parsed from a checked-in JPL-style snapshot.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct SnapshotManifest {
+    /// Human-readable title comment from the fixture.
+    pub title: Option<String>,
+    /// Source comment from the fixture.
+    pub source: Option<String>,
+    /// Coverage comment from the fixture.
+    pub coverage: Option<String>,
+    /// Parsed columns comment from the fixture.
+    pub columns: Vec<String>,
+}
+
+impl SnapshotManifest {
+    fn summary_line(&self, label: &str) -> String {
+        let title = self.title.as_deref().unwrap_or("unknown");
+        let source = self.source.as_deref().unwrap_or("unknown");
+        let coverage = self.coverage.as_deref().unwrap_or("unknown");
+        let columns = if self.columns.is_empty() {
+            "none".to_string()
+        } else {
+            self.columns.join(", ")
+        };
+        format!("{label}: {title}; source={source}; coverage={coverage}; columns={columns}")
+    }
+}
+
+fn parse_snapshot_manifest(source: &str) -> SnapshotManifest {
+    let mut manifest = SnapshotManifest::default();
+
+    for line in source.lines() {
+        let trimmed = line.trim();
+        let Some(comment) = trimmed.strip_prefix('#') else {
+            continue;
+        };
+        let comment = comment.trim();
+        if let Some(value) = comment.strip_prefix("Source:") {
+            manifest.source = Some(value.trim().to_string());
+        } else if let Some(value) = comment.strip_prefix("Coverage:") {
+            manifest.coverage = Some(value.trim().to_string());
+        } else if let Some(value) = comment.strip_prefix("Columns:") {
+            manifest.columns = value
+                .split(',')
+                .map(|column| column.trim())
+                .filter(|column| !column.is_empty())
+                .map(ToOwned::to_owned)
+                .collect();
+        } else if manifest.title.is_none() && !comment.is_empty() {
+            manifest.title = Some(comment.to_string());
+        }
+    }
+
+    manifest
+}
+
+fn reference_snapshot_manifest() -> &'static SnapshotManifest {
+    static MANIFEST: OnceLock<SnapshotManifest> = OnceLock::new();
+    MANIFEST.get_or_init(|| {
+        parse_snapshot_manifest(include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/data/reference_snapshot.csv"
+        )))
+    })
+}
+
+fn independent_holdout_snapshot_manifest() -> &'static SnapshotManifest {
+    static MANIFEST: OnceLock<SnapshotManifest> = OnceLock::new();
+    MANIFEST.get_or_init(|| {
+        parse_snapshot_manifest(include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/data/independent_holdout_snapshot.csv"
+        )))
+    })
 }
 
 /// One parsed record from the reference fixture.
@@ -2141,7 +2255,7 @@ mod tests {
     fn reference_snapshot_source_summary_reports_the_expected_provenance() {
         assert_eq!(
             reference_snapshot_source_summary_for_report(),
-            "Reference snapshot source: NASA/JPL Horizons API vector tables (DE441); geocentric ecliptic J2000; TDB reference epoch JD 2451545.0"
+            "Reference snapshot source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; geocentric ecliptic J2000; TDB reference epoch JD 2451545.0"
         );
     }
 
@@ -2210,11 +2324,49 @@ mod tests {
         let report = jpl_snapshot_evidence_summary_for_report();
         assert!(report.contains(&reference_snapshot_summary_for_report()));
         assert!(report.contains(reference_snapshot_source_summary_for_report()));
+        assert!(report.contains(&reference_snapshot_manifest_summary_for_report()));
         assert!(report.contains(&reference_asteroid_evidence_summary_for_report()));
         assert!(report.contains(&reference_asteroid_equatorial_evidence_summary_for_report()));
         assert!(report.contains(&comparison_snapshot_summary_for_report()));
         assert!(report.contains(&independent_holdout_snapshot_summary_for_report()));
+        assert!(report.contains(&independent_holdout_source_summary_for_report()));
         assert!(report.contains(&jpl_independent_holdout_summary_for_report()));
+    }
+
+    #[test]
+    fn reference_snapshot_manifest_parses_the_documented_header_comments() {
+        let manifest = reference_snapshot_manifest();
+        assert_eq!(
+            manifest.title.as_deref(),
+            Some("JPL Horizons reference snapshot.")
+        );
+        assert_eq!(
+            manifest.source.as_deref(),
+            Some("NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.")
+        );
+        assert_eq!(manifest.coverage.as_deref(), Some("inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; outer planets and Pluto sampled at J2000 and 2132."));
+        assert_eq!(
+            manifest.columns,
+            ["epoch_jd", "body", "x_km", "y_km", "z_km"]
+        );
+    }
+
+    #[test]
+    fn independent_holdout_snapshot_manifest_parses_the_documented_header_comments() {
+        let manifest = independent_holdout_snapshot_manifest();
+        assert_eq!(manifest.title.as_deref(), Some("Independent JPL Horizons hold-out snapshot used only for interpolation validation."));
+        assert_eq!(
+            manifest.source.as_deref(),
+            Some("NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.")
+        );
+        assert_eq!(
+            manifest.coverage.as_deref(),
+            Some("Mars and Jupiter at 2001-01-01 through 2001-01-03.")
+        );
+        assert_eq!(
+            manifest.columns,
+            ["epoch_jd", "body", "x_km", "y_km", "z_km"]
+        );
     }
 
     #[test]
