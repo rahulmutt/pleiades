@@ -467,6 +467,19 @@ pub struct Vsop87CanonicalEvidenceSummary {
     pub within_interim_limits: bool,
 }
 
+impl Vsop87CanonicalEvidenceSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format_canonical_epoch_evidence_summary(self)
+    }
+}
+
+impl fmt::Display for Vsop87CanonicalEvidenceSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Backend-owned summary for the canonical J2000 equatorial companion evidence.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Vsop87CanonicalEquatorialBodyEvidence {
@@ -541,6 +554,19 @@ pub struct Vsop87CanonicalEquatorialEvidenceSummary {
     pub percentile_distance_delta_au: f64,
     /// Root-mean-square distance delta in astronomical units.
     pub rms_distance_delta_au: f64,
+}
+
+impl Vsop87CanonicalEquatorialEvidenceSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format_canonical_equatorial_evidence_summary(self)
+    }
+}
+
+impl fmt::Display for Vsop87CanonicalEquatorialEvidenceSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -1502,7 +1528,7 @@ pub fn format_canonical_epoch_evidence_summary(summary: &Vsop87CanonicalEvidence
 /// Returns the release-facing canonical VSOP87 J2000 evidence summary string.
 pub fn canonical_epoch_evidence_summary_for_report() -> String {
     match canonical_epoch_evidence_summary() {
-        Some(summary) => format_canonical_epoch_evidence_summary(&summary),
+        Some(summary) => summary.summary_line(),
         None => "VSOP87 canonical J2000 source-backed evidence: unavailable".to_string(),
     }
 }
@@ -2395,7 +2421,7 @@ pub fn canonical_epoch_equatorial_evidence_summary(
 /// summary string.
 pub fn canonical_epoch_equatorial_evidence_summary_for_report() -> String {
     match canonical_epoch_equatorial_evidence_summary() {
-        Some(summary) => format_canonical_equatorial_evidence_summary(&summary),
+        Some(summary) => summary.summary_line(),
         None => "VSOP87 canonical J2000 equatorial companion evidence: unavailable".to_string(),
     }
 }
@@ -4417,6 +4443,8 @@ mod tests {
         let summary = canonical_epoch_evidence_summary().expect("summary should exist");
         let rendered = canonical_epoch_evidence_summary_for_report();
         assert_eq!(rendered, format_canonical_epoch_evidence_summary(&summary));
+        assert_eq!(summary.summary_line(), summary.to_string());
+        assert_eq!(rendered, summary.summary_line());
         assert!(rendered.contains("p95 Δlon="));
         assert!(rendered.contains("p95 Δlat="));
         assert!(rendered.contains("p95 Δdist="));
@@ -4439,6 +4467,8 @@ mod tests {
             rendered,
             format_canonical_equatorial_evidence_summary(&summary)
         );
+        assert_eq!(summary.summary_line(), summary.to_string());
+        assert_eq!(rendered, summary.summary_line());
         assert!(rendered.contains("p95 Δra="));
         assert!(rendered.contains("p95 Δdec="));
         assert!(rendered.contains("p95 Δdist="));
