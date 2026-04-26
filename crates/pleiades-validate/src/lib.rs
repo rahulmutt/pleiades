@@ -347,6 +347,50 @@ pub struct BodyComparisonSummary {
     pub rms_distance_delta_au: Option<f64>,
 }
 
+impl BodyComparisonSummary {
+    /// Returns the compact release-facing summary line for one body.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "{}: samples={}, max Δlon={:.12}°{}, mean Δlon={:.12}°, rms Δlon={:.12}°, max Δlat={:.12}°{}, mean Δlat={:.12}°, rms Δlat={:.12}°, max Δdist={}{}, mean Δdist={}, rms Δdist={}",
+            self.body,
+            self.sample_count,
+            self.max_longitude_delta_deg,
+            self.max_longitude_delta_body
+                .as_ref()
+                .map(|body| format!(" ({body})"))
+                .unwrap_or_default(),
+            self.mean_longitude_delta_deg,
+            self.rms_longitude_delta_deg,
+            self.max_latitude_delta_deg,
+            self.max_latitude_delta_body
+                .as_ref()
+                .map(|body| format!(" ({body})"))
+                .unwrap_or_default(),
+            self.mean_latitude_delta_deg,
+            self.rms_latitude_delta_deg,
+            self.max_distance_delta_au
+                .map(|value| format!("{value:.12} AU"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            self.max_distance_delta_body
+                .as_ref()
+                .map(|body| format!(" ({body})"))
+                .unwrap_or_default(),
+            self.mean_distance_delta_au
+                .map(|value| format!("{value:.12} AU"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            self.rms_distance_delta_au
+                .map(|value| format!("{value:.12} AU"))
+                .unwrap_or_else(|| "n/a".to_string())
+        )
+    }
+}
+
+impl fmt::Display for BodyComparisonSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Expected comparison tolerance for a body or body class.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ComparisonTolerance {
@@ -7351,45 +7395,7 @@ fn write_body_comparison_summaries(
     }
 
     for summary in summaries {
-        writeln!(
-            f,
-            "  {}: samples={}, max Δlon={:.12}°{}, mean Δlon={:.12}°, rms Δlon={:.12}°, max Δlat={:.12}°{}, mean Δlat={:.12}°, rms Δlat={:.12}°, max Δdist={}{}, mean Δdist={}, rms Δdist={}",
-            summary.body,
-            summary.sample_count,
-            summary.max_longitude_delta_deg,
-            summary
-                .max_longitude_delta_body
-                .as_ref()
-                .map(|body| format!(" ({body})"))
-                .unwrap_or_default(),
-            summary.mean_longitude_delta_deg,
-            summary.rms_longitude_delta_deg,
-            summary.max_latitude_delta_deg,
-            summary
-                .max_latitude_delta_body
-                .as_ref()
-                .map(|body| format!(" ({body})"))
-                .unwrap_or_default(),
-            summary.mean_latitude_delta_deg,
-            summary.rms_latitude_delta_deg,
-            summary
-                .max_distance_delta_au
-                .map(|value| format!("{value:.12} AU"))
-                .unwrap_or_else(|| "n/a".to_string()),
-            summary
-                .max_distance_delta_body
-                .as_ref()
-                .map(|body| format!(" ({body})"))
-                .unwrap_or_default(),
-            summary
-                .mean_distance_delta_au
-                .map(|value| format!("{value:.12} AU"))
-                .unwrap_or_else(|| "n/a".to_string()),
-            summary
-                .rms_distance_delta_au
-                .map(|value| format!("{value:.12} AU"))
-                .unwrap_or_else(|| "n/a".to_string())
-        )?;
+        writeln!(f, "  {}", summary.summary_line())?;
     }
     Ok(())
 }
@@ -8416,6 +8422,23 @@ mod tests {
         assert_eq!(summary.summary_line(), summary.to_string());
         assert!(summary.summary_line().contains("backend family="));
         assert!(summary.summary_line().contains("status="));
+    }
+
+    #[test]
+    fn body_comparison_summary_has_a_displayable_summary_line() {
+        let corpus = default_corpus();
+        let reference = default_reference_backend();
+        let candidate = default_candidate_backend();
+        let report =
+            compare_backends(&reference, &candidate, &corpus).expect("comparison should build");
+        let body_summaries = report.body_summaries();
+        let summary = body_summaries
+            .first()
+            .expect("comparison should include at least one body summary");
+
+        assert_eq!(summary.summary_line(), summary.to_string());
+        assert!(summary.summary_line().contains("samples="));
+        assert!(summary.summary_line().contains("max Δlon="));
     }
 
     #[test]
