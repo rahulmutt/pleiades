@@ -615,8 +615,14 @@ mod tests {
         assert!(rendered.contains("Krusinski/Pisa/Goelzer house system"));
         assert!(rendered.contains("Equal (cusp 1 = Asc)"));
         assert!(rendered.contains("Equal from MC"));
+        assert!(rendered.contains("Equal (1=Aries) table of houses"));
+        assert!(rendered.contains("Equal/MC = 10th"));
         assert!(rendered.contains("WvA"));
         assert!(rendered.contains("Gauquelin table of sectors"));
+        assert!(rendered.contains("Pullen SD (Neo-Porphyry) table of houses"));
+        assert!(rendered.contains("Makransky Sunshine"));
+        assert!(rendered.contains("Treindl Sunshine"));
+        assert!(rendered.contains("Y APC houses"));
         assert!(rendered.contains("X, Meridian houses, Meridian table of houses, Meridian house system, ARMC, Axial Rotation, Axial rotation system, Zariel, X axial rotation system/ Meridian houses -> Meridian"));
         assert!(rendered.contains("Target ayanamsa catalog:"));
         assert!(rendered.contains("Alias mappings for built-in house systems:"));

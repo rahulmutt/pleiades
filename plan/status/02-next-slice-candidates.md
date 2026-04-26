@@ -236,6 +236,7 @@ Progress note (2026-04-25): the compatibility-profile command now also pins the 
 Progress note (2026-04-25): the compatibility-profile and release-notes regressions now also pin Babylonian (Britton), Babylonian (Aldebaran), Suryasiddhanta (Mean Sun), Aryabhata (Mean Sun), Galactic Equator (IAU 1958), and Galactic Equator (Mula), tightening the remaining release-profile reference and mean-sun alias coverage without changing the published catalog shape.
 
 Progress note (2026-04-26): the compatibility-profile smoke tests now also pin Lahiri (VP285) and Krishnamurti (VP291), keeping the remaining release-profile ayanamsa variants visible in both the CLI and validation coverage paths as the catalog-breadth audit continues.
+Progress note (2026-04-26): the CLI compatibility-profile smoke test now also pins the `Pullen SD (Neo-Porphyry) table of houses`, `Makransky Sunshine`, `Treindl Sunshine`, `Y APC houses`, `Equal (1=Aries) table of houses`, and `Equal/MC = 10th` spellings, keeping a few more release-profile house aliases anchored in the command-level audit path as the catalog-breadth pass continues.
 
 Remaining suggested scope:
 
