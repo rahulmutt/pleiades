@@ -458,6 +458,13 @@ pub fn resolve_lunar_theory(label: &str) -> Option<LunarTheorySpecification> {
     lunar_theory_catalog_entry_for_label(label).map(|entry| entry.specification)
 }
 
+/// Returns the catalog entry matching the provided source selection, when present.
+pub fn lunar_theory_catalog_entry_for_selection(
+    selection: LunarTheorySourceSelection,
+) -> Option<LunarTheoryCatalogEntry> {
+    lunar_theory_catalog_entry_for_key(selection.catalog_key())
+}
+
 /// Returns the current lunar-theory specification matching the provided alias, when present.
 pub fn resolve_lunar_theory_by_alias(alias: &str) -> Option<LunarTheorySpecification> {
     lunar_theory_catalog_entry_for_alias(alias).map(|entry| entry.specification)
@@ -2582,6 +2589,10 @@ mod tests {
                 "Meeus-style truncated lunar baseline",
             )),
             Some(theory)
+        );
+        assert_eq!(
+            lunar_theory_catalog_entry_for_selection(source),
+            Some(catalog[0])
         );
         assert!(resolve_lunar_theory("not-a-lunar-theory").is_none());
         assert!(resolve_lunar_theory_by_family(
