@@ -281,6 +281,7 @@ Latest progress (2026-04-26): `HouseSnapshot` now also exposes a `house_for_long
 Latest progress (2026-04-26): custom house-system definitions now render their name, aliases, and notes in unsupported-house errors, which makes the release-facing extensibility boundary more explicit without changing the public house API.
 
 Latest progress (2026-04-25): the compatibility-profile verification slice now also pins Babylonian (Eta Piscium), the Suryasiddhanta / Surya Siddhanta 499 CE source-label spellings, and several remaining release-profile source names such as Equal/MC = 10th, Equal Midheaven table of houses, Vehlow Equal table of houses, Nick Anthony Fiorenza, Bob Makransky, Treindl Sunshine, True galactic equator, and Galactic equator true in the rendered compatibility profile, keeping a few still-visible release-profile labels anchored as the catalog continues to evolve.
+Latest progress (2026-04-26): the compact house-validation corpus summary now also names the representative scenario labels directly, which makes the release-facing house evidence a little more traceable without changing the underlying baseline sample set.
 Latest progress (2026-04-26): the compact release-summary and validation-summary tests now assert the backend-family/profile wording in the Luminaries tolerance coverage row, so the release-facing comparison corpus checks stay aligned with the current structured tolerance policy text instead of the older abbreviated coverage snippet.
 
 ## Constraints

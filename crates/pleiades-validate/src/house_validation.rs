@@ -138,12 +138,26 @@ impl HouseValidationReport {
         systems.into_iter().collect()
     }
 
+    /// Returns the scenario labels represented by the report.
+    pub fn scenario_labels(&self) -> Vec<&'static str> {
+        self.scenarios
+            .iter()
+            .map(|scenario| scenario.label)
+            .collect()
+    }
+
     /// Returns a compact release-facing summary line.
     pub fn summary_line(&self) -> String {
         let latitude_sensitive_systems = self.latitude_sensitive_systems();
+        let scenario_labels = self.scenario_labels();
         format!(
-            "House validation corpus: {} scenarios, {} samples, {} successes, {} failures; latitude-sensitive systems: {}",
+            "House validation corpus: {} scenarios ({}), {} samples, {} successes, {} failures; latitude-sensitive systems: {}",
             self.scenarios.len(),
+            if scenario_labels.is_empty() {
+                "none".to_string()
+            } else {
+                scenario_labels.join(", ")
+            },
             self.sample_count(),
             self.success_count(),
             self.failure_count(),
@@ -273,9 +287,22 @@ mod tests {
             report.latitude_sensitive_systems(),
             vec!["Koch", "Placidus", "Topocentric"]
         );
+        assert_eq!(
+            report.scenario_labels(),
+            vec![
+                "Mid-latitude reference chart",
+                "Equatorial reference chart",
+                "Polar stress chart",
+                "Southern hemisphere reference chart",
+            ]
+        );
 
         let summary = report.summary_line();
         assert!(summary.contains("House validation corpus: 4 scenarios"));
+        assert!(summary.contains("Mid-latitude reference chart"));
+        assert!(summary.contains("Equatorial reference chart"));
+        assert!(summary.contains("Polar stress chart"));
+        assert!(summary.contains("Southern hemisphere reference chart"));
         assert!(summary.contains("samples"));
         assert!(summary.contains("latitude-sensitive systems: Koch, Placidus, Topocentric"));
     }
