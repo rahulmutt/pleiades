@@ -4719,6 +4719,26 @@ struct ComparisonPercentileEnvelope {
     distance_delta_au: Option<f64>,
 }
 
+impl ComparisonPercentileEnvelope {
+    fn summary_line(&self) -> String {
+        let distance = self
+            .distance_delta_au
+            .map(|value| format!("{value:.12} AU"))
+            .unwrap_or_else(|| "n/a".to_string());
+
+        format!(
+            "95th percentile absolute deltas: longitude {:.12}°, latitude {:.12}°, distance {}",
+            self.longitude_delta_deg, self.latitude_delta_deg, distance,
+        )
+    }
+}
+
+impl fmt::Display for ComparisonPercentileEnvelope {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 fn median_value(values: &mut [f64]) -> Option<f64> {
     if values.is_empty() {
         return None;
@@ -4798,16 +4818,7 @@ fn comparison_percentile_envelope(
 }
 
 fn format_comparison_percentile_envelope_for_report(samples: &[ComparisonSample]) -> String {
-    let percentile = comparison_percentile_envelope(samples, 0.95);
-    let distance = percentile
-        .distance_delta_au
-        .map(|value| format!("{value:.12} AU"))
-        .unwrap_or_else(|| "n/a".to_string());
-
-    format!(
-        "95th percentile absolute deltas: longitude {:.12}°, latitude {:.12}°, distance {}",
-        percentile.longitude_delta_deg, percentile.latitude_delta_deg, distance,
-    )
+    comparison_percentile_envelope(samples, 0.95).summary_line()
 }
 
 fn format_comparison_envelope_for_report(
@@ -8634,6 +8645,23 @@ mod tests {
         assert_eq!(summary.summary_line(), summary.to_string());
         assert!(summary.summary_line().contains("samples="));
         assert!(summary.summary_line().contains("max Δlon="));
+    }
+
+    #[test]
+    fn comparison_percentile_envelope_has_a_displayable_summary_line() {
+        let corpus = default_corpus();
+        let reference = default_reference_backend();
+        let candidate = default_candidate_backend();
+        let report =
+            compare_backends(&reference, &candidate, &corpus).expect("comparison should build");
+        let envelope = comparison_percentile_envelope(&report.samples, 0.95);
+
+        assert_eq!(envelope.summary_line(), envelope.to_string());
+        assert!(envelope
+            .summary_line()
+            .contains("95th percentile absolute deltas:"));
+        assert!(envelope.summary_line().contains("longitude"));
+        assert!(envelope.summary_line().contains("latitude"));
     }
 
     #[test]
