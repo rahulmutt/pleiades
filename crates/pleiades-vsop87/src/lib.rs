@@ -47,6 +47,7 @@ use crate::vsop87b_earth::{generated_vsop87b_table_bytes, parse_vsop87b_tables};
 
 const PACKAGE_NAME: &str = "pleiades-vsop87";
 const BACKEND_LABEL: &str = "the VSOP87 backend";
+#[cfg(test)]
 const J1900: f64 = 2_415_020.0;
 const J2000: f64 = 2_451_545.0;
 
