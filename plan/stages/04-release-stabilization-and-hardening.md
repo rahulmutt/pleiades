@@ -34,6 +34,7 @@ The workspace already has CLI/report commands, compatibility-profile summaries, 
    - Add rustdoc examples for common chart workflows, backend selection, sidereal conversion, houses, and packaged data.
    - Document units, frames, time scales, Delta T policy, normalization, and failure modes.
    - Clarify unstable or experimental APIs before publishing semver promises.
+   - Progress note: the core chart request docs now include a worked explicit UTC-to-TDB chart-assembly example, and the low-level time-scale helpers now also include doctested caller-supplied conversion examples, so the public API examples now exercise the explicit conversion policy rather than relying only on prose.
 
 4. Strengthen CI and audit gates.
    - Run formatting, clippy, tests, doc tests, compatibility-profile verification, artifact validation, release-bundle verification, and native-dependency audits.

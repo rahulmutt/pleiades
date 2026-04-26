@@ -39,6 +39,33 @@ pub const fn default_chart_bodies() -> &'static [CelestialBody] {
 }
 
 /// A request for chart assembly.
+///
+/// # Example
+///
+/// ```
+/// use core::time::Duration;
+/// use pleiades_core::ChartRequest;
+/// use pleiades_types::{
+///     HouseSystem, Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale,
+/// };
+///
+/// let request = ChartRequest::new(Instant::new(
+///     JulianDay::from_days(2_451_545.0),
+///     TimeScale::Utc,
+/// ))
+/// .with_observer(ObserverLocation::new(
+///     Latitude::from_degrees(51.5),
+///     Longitude::from_degrees(-0.1),
+///     None,
+/// ))
+/// .with_house_system(HouseSystem::WholeSign)
+/// .with_tdb_from_utc_signed(Duration::from_secs_f64(64.184), -0.001_657)
+/// .expect("explicit time-scale conversion");
+///
+/// assert_eq!(request.instant.scale, TimeScale::Tdb);
+/// assert_eq!(request.house_system, Some(HouseSystem::WholeSign));
+/// assert!(request.observer.is_some());
+/// ```
 #[derive(Clone, Debug, PartialEq)]
 pub struct ChartRequest {
     /// The instant to chart.

@@ -336,6 +336,18 @@ impl Instant {
     /// SI seconds. The helper intentionally does not model leap seconds or
     /// DUT1 by itself; it only makes a caller-supplied UTC-to-TT policy explicit
     /// and reproducible for applications that need a TT-tagged request surface.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use pleiades_types::{Instant, JulianDay, TimeScale};
+    ///
+    /// let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Utc);
+    /// let converted = instant.tt_from_utc_signed(64.184).expect("UTC-tagged instant");
+    ///
+    /// assert_eq!(converted.scale, TimeScale::Tt);
+    /// assert!(converted.julian_day.days() > instant.julian_day.days());
+    /// ```
     pub fn tt_from_utc_signed(self, offset_seconds: f64) -> Result<Self, TimeScaleConversionError> {
         if self.scale != TimeScale::Utc {
             return Err(TimeScaleConversionError::expected(
