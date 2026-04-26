@@ -63,11 +63,13 @@ use pleiades_houses::{
 };
 use pleiades_jpl::{
     comparison_snapshot, comparison_snapshot_summary_for_report,
+    format_jpl_interpolation_quality_kind_coverage,
     format_jpl_interpolation_quality_summary_for_report,
     frame_treatment_summary as jpl_frame_treatment_summary, interpolation_quality_samples,
-    jpl_snapshot_evidence_summary_for_report, jpl_snapshot_request_policy_summary_for_report,
-    reference_asteroid_evidence, reference_asteroid_evidence_summary_for_report,
-    reference_asteroids, reference_snapshot_summary_for_report, JplSnapshotBackend,
+    jpl_interpolation_quality_kind_coverage, jpl_snapshot_evidence_summary_for_report,
+    jpl_snapshot_request_policy_summary_for_report, reference_asteroid_evidence,
+    reference_asteroid_evidence_summary_for_report, reference_asteroids,
+    reference_snapshot_summary_for_report, JplSnapshotBackend,
 };
 use pleiades_vsop87::{
     body_source_profiles, canonical_epoch_evidence_summary_for_report, frame_treatment_summary,
@@ -6588,6 +6590,18 @@ fn write_jpl_interpolation_quality(f: &mut fmt::Formatter<'_>) -> fmt::Result {
         "    {}",
         format_jpl_interpolation_quality_summary(&summary)
     )?;
+    if let Some(coverage) = jpl_interpolation_quality_kind_coverage() {
+        writeln!(
+            f,
+            "    {}",
+            format_jpl_interpolation_quality_kind_coverage(&coverage)
+        )?;
+    } else {
+        writeln!(
+            f,
+            "    JPL interpolation quality kind coverage: unavailable"
+        )?;
+    }
     writeln!(
         f,
         "    note: expanded public-input leave-one-out checks report current runtime interpolation error against held-out exact rows; they are not production tolerances"
@@ -8018,6 +8032,7 @@ mod tests {
         assert!(report.contains("Major planets"));
         assert!(report.contains("interpolation quality checks:"));
         assert!(report.contains("JPL interpolation quality: 21 samples across 10 bodies"));
+        assert!(report.contains("JPL interpolation quality kind coverage:"));
         assert!(report.contains("transparency evidence only, not a production tolerance envelope"));
         assert!(report.contains("Lunar reference"));
         assert!(report.contains(
