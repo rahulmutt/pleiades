@@ -35,8 +35,8 @@
 use core::fmt;
 
 use pleiades_types::{
-    CelestialBody, CustomBodyId, EclipticCoordinates, Instant, JulianDay, Latitude, Longitude,
-    TimeScale,
+    Angle, CelestialBody, CustomBodyId, EclipticCoordinates, EquatorialCoordinates, Instant,
+    JulianDay, Latitude, Longitude, TimeScale,
 };
 
 /// Current artifact format version.
@@ -604,6 +604,22 @@ impl CompressedArtifact {
             Latitude::from_degrees(latitude),
             Some(distance_au),
         ))
+    }
+
+    /// Returns equatorial coordinates reconstructed from the stored ecliptic channels.
+    ///
+    /// This keeps the artifact format focused on the stored channels while still allowing
+    /// the runtime to reconstruct a derived coordinate family when the caller supplies the
+    /// geometric obliquity used for the mean-obliquity frame rotation.
+    pub fn lookup_equatorial(
+        &self,
+        body: &CelestialBody,
+        instant: Instant,
+        obliquity: Angle,
+    ) -> Result<EquatorialCoordinates, CompressionError> {
+        Ok(self
+            .lookup_ecliptic(body, instant)?
+            .to_equatorial(obliquity))
     }
 
     fn encode_payload(&self) -> Result<Vec<u8>, CompressionError> {
@@ -1512,5 +1528,36 @@ mod tests {
         assert_eq!(decoded.bodies[1].body, CelestialBody::TrueApogee);
         assert_eq!(decoded.bodies[2].body, CelestialBody::MeanPerigee);
         assert_eq!(decoded.bodies[3].body, CelestialBody::TruePerigee);
+    }
+
+    #[test]
+    fn lookup_equatorial_reconstructs_derived_coordinates() {
+        let artifact = CompressedArtifact::new(
+            ArtifactHeader::new("demo", "equatorial lookup fixture"),
+            vec![BodyArtifact::new(
+                CelestialBody::Sun,
+                vec![Segment::new(
+                    Instant::new(pleiades_types::JulianDay::from_days(0.0), TimeScale::Tt),
+                    Instant::new(pleiades_types::JulianDay::from_days(2.0), TimeScale::Tt),
+                    vec![
+                        PolynomialChannel::linear(ChannelKind::Longitude, 9, 10.0, 20.0),
+                        PolynomialChannel::linear(ChannelKind::Latitude, 9, 1.0, 3.0),
+                        PolynomialChannel::linear(ChannelKind::DistanceAu, 12, 0.5, 0.75),
+                    ],
+                )],
+            )],
+        );
+
+        let instant = Instant::new(pleiades_types::JulianDay::from_days(1.0), TimeScale::Tt);
+        let obliquity = Angle::from_degrees(23.439_291_11);
+        let ecliptic = artifact
+            .lookup_ecliptic(&CelestialBody::Sun, instant)
+            .expect("ecliptic lookup should succeed");
+        let equatorial = artifact
+            .lookup_equatorial(&CelestialBody::Sun, instant, obliquity)
+            .expect("equatorial lookup should succeed");
+
+        assert_eq!(equatorial, ecliptic.to_equatorial(obliquity));
+        assert_eq!(equatorial.distance_au, Some(0.625));
     }
 }
