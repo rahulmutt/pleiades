@@ -19,7 +19,7 @@ Several downstream requirements depend on trusted ephemeris outputs:
 
 Completed foundations:
 
-- per-body comparison summaries, body-class error envelopes, and expected tolerance status sections in validation reports, so measured backend deltas are visible by body and grouped by class against explicit interim evidence thresholds;
+- per-body comparison summaries, body-class error envelopes, and expected tolerance status sections in validation reports, including class-level median offsets alongside the existing maxima, means, and RMS figures, so measured backend deltas are visible by body and grouped by class against explicit interim evidence thresholds;
 - managed Rust workspace and mandatory crate layout;
 - typed domain vocabulary in `pleiades-types`;
 - backend contract, metadata, errors, batch fallback, and composite routing in `pleiades-backend`;
@@ -108,7 +108,7 @@ Latest progress (2026-04-25): the VSOP87 and compact ELP batch-path regressions 
 
 Latest progress (2026-04-25): the release bundle now also includes a compact `workspace-audit-summary` artifact and manifest entry, so the pure-Rust/native-dependency audit is surfaced in the same bundle family as the compatibility, backend, validation, and artifact reports.
 
-Latest progress (2026-04-25): the validation comparison envelope now also reports RMS longitude, latitude, and distance deltas in the full report, compact summary, and body-by-body envelope output, so the broader release-grade error envelope includes spread metrics in addition to maxima and means. The body-class error envelopes now also carry RMS longitude, latitude, and distance deltas, so the coarse class audit has the same spread metric as the per-body reports.
+Latest progress (2026-04-25): the validation comparison envelope now also reports RMS longitude, latitude, and distance deltas in the full report, compact summary, and body-by-body envelope output, so the broader release-grade error envelope includes spread metrics in addition to maxima and means. The body-class error envelopes now also carry RMS longitude, latitude, and distance deltas, and now include median longitude, latitude, and distance offsets in the detailed and compact release views, so the coarse class audit has the same spread and central-tendency metrics as the per-body reports.
 
 Latest progress (2026-04-25): the compact release summary now also surfaces the ELP lunar capability line plus the lunar reference and lunar equatorial evidence summaries alongside the JPL interpolation evidence, so the one-screen release overview keeps the current lunar theory baseline visible next to the other phase-1 accuracy evidence. The compact release and validation summaries now also render the lunar request-policy line explicitly, so the current TT/TDB, frame, apparentness, and observer posture is visible at a glance in release-facing output.
 
