@@ -2037,6 +2037,18 @@ pub fn verify_compatibility_profile() -> Result<String, EphemerisError> {
     text.push_str(" ayanamsa baseline + ");
     text.push_str(&profile.release_ayanamsas.len().to_string());
     text.push_str(" ayanamsa release\n");
+    text.push_str("Release-specific house systems verified: ");
+    text.push_str(&summarize_descriptor_names(
+        profile.release_house_systems,
+        |entry| entry.canonical_name,
+    ));
+    text.push('\n');
+    text.push_str("Release-specific ayanamsas verified: ");
+    text.push_str(&summarize_descriptor_names(
+        profile.release_ayanamsas,
+        |entry| entry.canonical_name,
+    ));
+    text.push('\n');
     text.push_str("Release posture: baseline milestone preserved, release additions explicit, custom definitions tracked, caveats documented\n");
     text.push_str("Custom-definition labels verified: ");
     text.push_str(&custom_definition_labels_checked.to_string());
@@ -2273,6 +2285,19 @@ fn summarize_latitude_sensitive_house_systems(profile: &CompatibilityProfile) ->
     }
 }
 
+fn summarize_descriptor_names<T>(
+    entries: &[T],
+    canonical_name: impl Fn(&T) -> &'static str,
+) -> String {
+    let names = entries.iter().map(canonical_name).collect::<Vec<_>>();
+
+    match names.as_slice() {
+        [] => "0 (none)".to_string(),
+        [single] => format!("1 ({single})"),
+        _ => format!("{} ({})", names.len(), names.join(", ")),
+    }
+}
+
 fn render_compatibility_profile_summary_text() -> String {
     let profile = current_compatibility_profile();
     let release_profiles = current_release_profile_identifiers();
@@ -2305,6 +2330,18 @@ fn render_compatibility_profile_summary_text() -> String {
     text.push('/');
     text.push_str(&coverage.total.to_string());
     text.push_str(" entries with both a reference epoch and offset\n");
+    text.push_str("Release-specific house systems: ");
+    text.push_str(&summarize_descriptor_names(
+        profile.release_house_systems,
+        |entry| entry.canonical_name,
+    ));
+    text.push('\n');
+    text.push_str("Release-specific ayanamsas: ");
+    text.push_str(&summarize_descriptor_names(
+        profile.release_ayanamsas,
+        |entry| entry.canonical_name,
+    ));
+    text.push('\n');
     text.push_str("Custom-definition labels: ");
     text.push_str(&profile.custom_definition_labels.len().to_string());
     text.push('\n');
@@ -8778,6 +8815,9 @@ mod tests {
             "Ayanamsa sidereal metadata: {}/{} entries with both a reference epoch and offset",
             coverage.with_sidereal_metadata, coverage.total
         )));
+        assert!(rendered.contains("Release-specific house systems:"));
+        assert!(rendered.contains("Equal (MC), Equal (1=Aries), Vehlow Equal"));
+        assert!(rendered.contains("Release-specific ayanamsas:"));
         assert!(rendered.contains("Custom-definition labels:"));
         assert!(rendered.contains("Validation reference points: 1 (stage-4 validation corpus)"));
         assert!(rendered.contains("Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
@@ -8811,6 +8851,9 @@ mod tests {
         ));
         assert!(rendered.contains("Ayanamsas verified:"));
         assert!(rendered.contains("Baseline/release slices:"));
+        assert!(rendered.contains("Release-specific house systems verified:"));
+        assert!(rendered.contains("Equal (MC), Equal (1=Aries), Vehlow Equal"));
+        assert!(rendered.contains("Release-specific ayanamsas verified:"));
         assert!(rendered.contains("Release posture: baseline milestone preserved, release additions explicit, custom definitions tracked, caveats documented"));
         assert!(rendered.contains(&format!(
             "Custom-definition labels verified: {} labels, all remain custom-definition territory",
