@@ -249,6 +249,9 @@ pub struct Vsop87SourceDocumentationSummary {
 pub struct Vsop87SourceDocumentationHealthSummary {
     /// Whether the catalog counts line up with the internal body catalog.
     pub consistent: bool,
+    /// Whether the documented source metadata stays aligned with the current
+    /// VSOP87B policy for variant, frame, units, truncation, and date range.
+    pub documentation_consistent: bool,
     /// Number of source specifications described by the catalog.
     pub source_specification_count: usize,
     /// Number of public source files represented by the catalog.
@@ -1175,8 +1178,23 @@ pub fn source_documentation_summary_for_report() -> String {
 }
 
 /// Returns a consistency check for the current VSOP87 source-documentation catalog.
+fn source_documentation_fields_are_consistent(source_specs: &[Vsop87SourceSpecification]) -> bool {
+    source_specs.iter().all(|spec| {
+        spec.variant == "VSOP87B"
+            && spec.coordinate_family == "heliocentric spherical variables"
+            && spec.frame == "J2000 ecliptic/equinox"
+            && spec.units == "degrees and astronomical units"
+            && spec.reduction.contains("geocentric")
+            && spec.transform_note.contains("mean-obliquity transform")
+            && spec.truncation_policy
+                == "generated binary coefficient table derived from vendored full source file"
+            && spec.date_range == "full public source file; J2000 canonical reference sample"
+    })
+}
+
 pub fn source_documentation_health_summary() -> Vsop87SourceDocumentationHealthSummary {
     let summary = source_documentation_summary();
+    let source_specs = source_specifications();
     let body_profile_count = body_catalog_entries().len();
     let source_file_count = summary.source_files.len();
     let consistent = summary.source_specification_count == source_file_count
@@ -1186,9 +1204,12 @@ pub fn source_documentation_health_summary() -> Vsop87SourceDocumentationHealthS
                 + summary.truncated_profile_count
         && summary.source_backed_profile_count + summary.fallback_profile_count
             == body_profile_count;
+    let documentation_consistent = summary.source_specification_count == source_specs.len()
+        && source_documentation_fields_are_consistent(&source_specs);
 
     Vsop87SourceDocumentationHealthSummary {
         consistent,
+        documentation_consistent,
         source_specification_count: summary.source_specification_count,
         source_file_count,
         source_backed_profile_count: summary.source_backed_profile_count,
@@ -1205,7 +1226,7 @@ pub fn format_source_documentation_health_summary(
     summary: &Vsop87SourceDocumentationHealthSummary,
 ) -> String {
     format!(
-        "VSOP87 source documentation health: {} ({} source specs, {} source files, {} source-backed profiles, {} body profiles; {} generated binary, {} vendored full-file, {} truncated, {} fallback)",
+        "VSOP87 source documentation health: {} ({} source specs, {} source files, {} source-backed profiles, {} body profiles; {} generated binary, {} vendored full-file, {} truncated, {} fallback; documented fields: {})",
         if summary.consistent { "ok" } else { "needs attention" },
         summary.source_specification_count,
         summary.source_file_count,
@@ -1215,6 +1236,11 @@ pub fn format_source_documentation_health_summary(
         summary.vendored_full_file_profile_count,
         summary.truncated_profile_count,
         summary.fallback_profile_count,
+        if summary.documentation_consistent {
+            "variant, coordinate family, frame, units, reduction, transform note, truncation policy, and date range"
+        } else {
+            "needs attention"
+        },
     )
 }
 
@@ -3584,6 +3610,7 @@ mod tests {
         let summary = source_documentation_health_summary();
 
         assert!(summary.consistent);
+        assert!(summary.documentation_consistent);
         assert_eq!(summary.source_specification_count, 8);
         assert_eq!(summary.source_file_count, 8);
         assert_eq!(summary.source_backed_profile_count, 8);
@@ -3594,7 +3621,7 @@ mod tests {
         assert_eq!(summary.fallback_profile_count, 1);
         assert_eq!(
             format_source_documentation_health_summary(&summary),
-            "VSOP87 source documentation health: ok (8 source specs, 8 source files, 8 source-backed profiles, 9 body profiles; 8 generated binary, 0 vendored full-file, 0 truncated, 1 fallback)"
+            "VSOP87 source documentation health: ok (8 source specs, 8 source files, 8 source-backed profiles, 9 body profiles; 8 generated binary, 0 vendored full-file, 0 truncated, 1 fallback; documented fields: variant, coordinate family, frame, units, reduction, transform note, truncation policy, and date range)"
         );
         assert_eq!(
             source_documentation_health_summary_for_report(),

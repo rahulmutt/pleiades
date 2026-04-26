@@ -80,6 +80,7 @@ The VSOP87 backend matrix entry now also prints canonical J2000 source-backed ev
 
 Latest progress (2026-04-26): the VSOP87 source-documentation summary now also enumerates the source-backed body list explicitly, so the compact release-facing provenance line now names the current Sun-through-Neptune source-backed set alongside the fallback Pluto path without requiring the backend matrix to be opened.
 Latest progress (2026-04-26): the VSOP87 backend-matrix implementation note now correctly describes the Sun-through-Neptune generated-binary paths as derived from the vendored full-file inputs, keeping the compact release-facing backend status aligned with the runtime path.
+Latest progress (2026-04-26): the VSOP87 source-documentation health check now also verifies the documented variant, coordinate-family, frame, units, reduction, transform-note, truncation-policy, and date-range invariants in addition to the catalog counts, so the compact release-facing provenance can flag documentation drift as well as body-count drift.
 
 Latest test progress (2026-04-25): the JPL snapshot backend now has exact J2000 regression coverage for the named asteroid subset plus the custom 433-Eros entry, so the checked-in reference fixture now exercises Ceres, Pallas, Juno, Vesta, and the source-backed custom asteroid path with explicit golden coordinates. The same asteroid slice is now also covered by a batch-path regression, so `positions()` preserves the checked-in reference order as well as the single-request golden values.
 
