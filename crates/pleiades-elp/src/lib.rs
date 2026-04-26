@@ -983,14 +983,24 @@ pub struct LunarApparentComparisonSummary {
     pub earliest_epoch: Instant,
     /// Latest epoch covered by the comparison slice.
     pub latest_epoch: Instant,
+    /// Epoch that produces the maximum apparent minus mean ecliptic longitude delta.
+    pub max_ecliptic_longitude_epoch: Instant,
     /// Maximum apparent minus mean ecliptic longitude delta in degrees.
     pub max_ecliptic_longitude_delta_deg: f64,
+    /// Epoch that produces the maximum apparent minus mean ecliptic latitude delta.
+    pub max_ecliptic_latitude_epoch: Instant,
     /// Maximum apparent minus mean ecliptic latitude delta in degrees.
     pub max_ecliptic_latitude_delta_deg: f64,
+    /// Epoch that produces the maximum apparent minus mean distance delta.
+    pub max_ecliptic_distance_epoch: Instant,
     /// Maximum apparent minus mean distance delta in astronomical units.
     pub max_ecliptic_distance_delta_au: f64,
+    /// Epoch that produces the maximum apparent minus mean right ascension delta.
+    pub max_right_ascension_epoch: Instant,
     /// Maximum apparent minus mean right ascension delta in degrees.
     pub max_right_ascension_delta_deg: f64,
+    /// Epoch that produces the maximum apparent minus mean declination delta.
+    pub max_declination_epoch: Instant,
     /// Maximum apparent minus mean declination delta in degrees.
     pub max_declination_delta_deg: f64,
 }
@@ -1023,14 +1033,19 @@ pub fn lunar_apparent_comparison_summary() -> Option<LunarApparentComparisonSumm
     let mut bodies = std::collections::BTreeSet::new();
     let mut earliest_epoch = samples[0].epoch;
     let mut latest_epoch = samples[0].epoch;
+    let mut max_ecliptic_longitude_epoch = samples[0].epoch;
     let mut max_ecliptic_longitude_delta_deg = 0.0;
     let mut max_ecliptic_longitude_delta_abs = 0.0;
+    let mut max_ecliptic_latitude_epoch = samples[0].epoch;
     let mut max_ecliptic_latitude_delta_deg = 0.0;
     let mut max_ecliptic_latitude_delta_abs = 0.0;
+    let mut max_ecliptic_distance_epoch = samples[0].epoch;
     let mut max_ecliptic_distance_delta_au = 0.0;
     let mut max_ecliptic_distance_delta_abs = 0.0;
+    let mut max_right_ascension_epoch = samples[0].epoch;
     let mut max_right_ascension_delta_deg = 0.0;
     let mut max_right_ascension_delta_abs = 0.0;
+    let mut max_declination_epoch = samples[0].epoch;
     let mut max_declination_delta_deg = 0.0;
     let mut max_declination_delta_abs = 0.0;
 
@@ -1070,26 +1085,31 @@ pub fn lunar_apparent_comparison_summary() -> Option<LunarApparentComparisonSumm
         if longitude_delta_abs >= max_ecliptic_longitude_delta_abs {
             max_ecliptic_longitude_delta_abs = longitude_delta_abs;
             max_ecliptic_longitude_delta_deg = longitude_delta;
+            max_ecliptic_longitude_epoch = sample.epoch;
         }
         let latitude_delta_abs = latitude_delta.abs();
         if latitude_delta_abs >= max_ecliptic_latitude_delta_abs {
             max_ecliptic_latitude_delta_abs = latitude_delta_abs;
             max_ecliptic_latitude_delta_deg = latitude_delta;
+            max_ecliptic_latitude_epoch = sample.epoch;
         }
         let distance_delta_abs = distance_delta.abs();
         if distance_delta_abs >= max_ecliptic_distance_delta_abs {
             max_ecliptic_distance_delta_abs = distance_delta_abs;
             max_ecliptic_distance_delta_au = distance_delta;
+            max_ecliptic_distance_epoch = sample.epoch;
         }
         let right_ascension_delta_abs = right_ascension_delta.abs();
         if right_ascension_delta_abs >= max_right_ascension_delta_abs {
             max_right_ascension_delta_abs = right_ascension_delta_abs;
             max_right_ascension_delta_deg = right_ascension_delta;
+            max_right_ascension_epoch = sample.epoch;
         }
         let declination_delta_abs = declination_delta.abs();
         if declination_delta_abs >= max_declination_delta_abs {
             max_declination_delta_abs = declination_delta_abs;
             max_declination_delta_deg = declination_delta;
+            max_declination_epoch = sample.epoch;
         }
     }
 
@@ -1102,10 +1122,15 @@ pub fn lunar_apparent_comparison_summary() -> Option<LunarApparentComparisonSumm
         body_count: bodies.len(),
         earliest_epoch,
         latest_epoch,
+        max_ecliptic_longitude_epoch,
         max_ecliptic_longitude_delta_deg,
+        max_ecliptic_latitude_epoch,
         max_ecliptic_latitude_delta_deg,
+        max_ecliptic_distance_epoch,
         max_ecliptic_distance_delta_au,
+        max_right_ascension_epoch,
         max_right_ascension_delta_deg,
+        max_declination_epoch,
         max_declination_delta_deg,
     })
 }
@@ -1115,16 +1140,21 @@ pub fn format_lunar_apparent_comparison_summary(
     summary: &LunarApparentComparisonSummary,
 ) -> String {
     format!(
-        "lunar apparent comparison evidence: {} reference-only samples across {} bodies, epoch range JD {:.1}..{:.1}, mean-only gap against the published apparent Moon examples: Δlon={:+.6}°, Δlat={:+.6}°, Δdist={:+.12} AU, ΔRA={:+.6}°, ΔDec={:+.6}°; apparent requests remain unsupported",
+        "lunar apparent comparison evidence: {} reference-only samples across {} bodies, epoch range JD {:.1}..{:.1}, mean-only gap against the published apparent Moon examples: Δlon={:+.6}° @ JD {:.1}, Δlat={:+.6}° @ JD {:.1}, Δdist={:+.12} AU @ JD {:.1}, ΔRA={:+.6}° @ JD {:.1}, ΔDec={:+.6}° @ JD {:.1}; apparent requests remain unsupported",
         summary.sample_count,
         summary.body_count,
         summary.earliest_epoch.julian_day.days(),
         summary.latest_epoch.julian_day.days(),
         summary.max_ecliptic_longitude_delta_deg,
+        summary.max_ecliptic_longitude_epoch.julian_day.days(),
         summary.max_ecliptic_latitude_delta_deg,
+        summary.max_ecliptic_latitude_epoch.julian_day.days(),
         summary.max_ecliptic_distance_delta_au,
+        summary.max_ecliptic_distance_epoch.julian_day.days(),
         summary.max_right_ascension_delta_deg,
+        summary.max_right_ascension_epoch.julian_day.days(),
         summary.max_declination_delta_deg,
+        summary.max_declination_epoch.julian_day.days(),
     )
 }
 
@@ -3122,11 +3152,18 @@ mod tests {
         assert!(summary.max_ecliptic_distance_delta_au.is_finite());
         assert!(summary.max_right_ascension_delta_deg.is_finite());
         assert!(summary.max_declination_delta_deg.is_finite());
+        let known_epochs = [2_440_214.916_7, 2_448_724.5];
+        assert!(known_epochs.contains(&summary.max_ecliptic_longitude_epoch.julian_day.days()));
+        assert!(known_epochs.contains(&summary.max_ecliptic_latitude_epoch.julian_day.days()));
+        assert!(known_epochs.contains(&summary.max_ecliptic_distance_epoch.julian_day.days()));
+        assert!(known_epochs.contains(&summary.max_right_ascension_epoch.julian_day.days()));
+        assert!(known_epochs.contains(&summary.max_declination_epoch.julian_day.days()));
         assert!(lunar_apparent_comparison_summary_for_report().contains(
             "lunar apparent comparison evidence: 2 reference-only samples across 1 bodies"
         ));
         assert!(lunar_apparent_comparison_summary_for_report()
             .contains("mean-only gap against the published apparent Moon examples"));
+        assert!(lunar_apparent_comparison_summary_for_report().contains("@ JD"));
         assert!(lunar_apparent_comparison_summary_for_report()
             .contains("apparent requests remain unsupported"));
 
