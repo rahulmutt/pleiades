@@ -1580,6 +1580,12 @@ impl SnapshotManifest {
     }
 }
 
+impl fmt::Display for SnapshotManifest {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line_with_defaults("Snapshot manifest", "unknown", "unknown"))
+    }
+}
+
 fn parse_snapshot_manifest(source: &str) -> SnapshotManifest {
     let mut manifest = SnapshotManifest::default();
 
@@ -2526,6 +2532,10 @@ mod tests {
         assert_eq!(
             manifest.summary_line("Comparison snapshot manifest"),
             "Comparison snapshot manifest: JPL Horizons reference snapshot.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.; coverage=unknown; columns=body, x_km, y_km, z_km"
+        );
+        assert_eq!(
+            manifest.to_string(),
+            "Snapshot manifest: JPL Horizons reference snapshot.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.; coverage=unknown; columns=body, x_km, y_km, z_km"
         );
     }
 
