@@ -2513,6 +2513,22 @@ mod tests {
     }
 
     #[test]
+    fn batch_query_rejects_topocentric_requests_explicitly() {
+        let backend = Vsop87Backend::new();
+        let mut request = mean_request(CelestialBody::Mars);
+        request.observer = Some(pleiades_types::ObserverLocation::new(
+            Latitude::from_degrees(51.5),
+            Longitude::from_degrees(0.0),
+            None,
+        ));
+
+        let error = backend
+            .positions(&[request])
+            .expect_err("topocentric batch requests should be unsupported");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
+    }
+
+    #[test]
     fn apparent_requests_are_rejected_explicitly() {
         let backend = Vsop87Backend::new();
         let mut request = EphemerisRequest::new(
@@ -2524,6 +2540,22 @@ mod tests {
         let error = backend
             .position(&request)
             .expect_err("apparent requests should be unsupported");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error.message.contains(BACKEND_LABEL));
+    }
+
+    #[test]
+    fn batch_query_rejects_apparent_requests_explicitly() {
+        let backend = Vsop87Backend::new();
+        let mut request = EphemerisRequest::new(
+            CelestialBody::Sun,
+            Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt),
+        );
+        request.apparent = Apparentness::Apparent;
+
+        let error = backend
+            .positions(&[request])
+            .expect_err("apparent batch requests should be unsupported");
         assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
         assert!(error.message.contains(BACKEND_LABEL));
     }

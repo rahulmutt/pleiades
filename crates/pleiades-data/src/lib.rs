@@ -620,6 +620,32 @@ mod tests {
     }
 
     #[test]
+    fn batch_query_rejects_topocentric_requests_explicitly() {
+        let backend = packaged_backend();
+        let request = EphemerisRequest {
+            body: CelestialBody::Sun,
+            instant: Instant::new(
+                pleiades_backend::JulianDay::from_days(2_451_545.0),
+                TimeScale::Tdb,
+            ),
+            observer: Some(pleiades_backend::ObserverLocation::new(
+                pleiades_backend::Latitude::from_degrees(51.5),
+                pleiades_backend::Longitude::from_degrees(0.0),
+                None,
+            )),
+            frame: CoordinateFrame::Ecliptic,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparent: pleiades_backend::Apparentness::Mean,
+        };
+
+        let error = backend
+            .positions(&[request])
+            .expect_err("packaged data should reject topocentric batch requests");
+
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
+    }
+
+    #[test]
     fn apparent_requests_are_rejected_explicitly() {
         let backend = packaged_backend();
         let request = EphemerisRequest {
@@ -637,6 +663,28 @@ mod tests {
         let error = backend
             .position(&request)
             .expect_err("packaged data should reject apparent-place requests");
+
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+    }
+
+    #[test]
+    fn batch_query_rejects_apparent_requests_explicitly() {
+        let backend = packaged_backend();
+        let request = EphemerisRequest {
+            body: CelestialBody::Sun,
+            instant: Instant::new(
+                pleiades_backend::JulianDay::from_days(2_451_545.0),
+                TimeScale::Tdb,
+            ),
+            observer: None,
+            frame: CoordinateFrame::Ecliptic,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparent: pleiades_backend::Apparentness::Apparent,
+        };
+
+        let error = backend
+            .positions(&[request])
+            .expect_err("packaged data should reject apparent batch requests");
 
         assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
     }
