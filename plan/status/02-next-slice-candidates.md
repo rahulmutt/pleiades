@@ -222,6 +222,7 @@ Progress note (2026-04-26): the compatibility-profile smoke tests now also pin `
 Progress note (2026-04-26): the compatibility-profile smoke tests now also pin `Skydram/Galactic Alignment` and `Skydram (Mardyks)`, keeping the Galactic Center (Mardyks) alias spellings explicitly covered in the CLI compatibility-profile output as the breadth audit continues.
 
 Progress note (2026-04-26): the same compatibility-profile slice now also pins the remaining Equal/MC and Equal/1=Aries table-and-system spellings, including the `Equal/MC table of houses`, `Equal/MC house system`, `Equal/1=Aries table of houses`, `Equal/1=Aries house system`, `Equal/1=0 Aries`, `Equal (cusp 1 = 0° Aries)`, and `Whole Sign (house 1 = Aries) table of houses` forms, so the release-facing equal-house appendix stays anchored as the catalog grows.
+Progress note (2026-04-26): the release-notes regression now also anchors `Krusinski/Pisa/Goelzer` and `Equal/MC = 10th`, keeping a couple of still-visible release-profile house spellings exercised in the compact maintainer-facing summary while the broader catalog audit continues.
 
 Progress note (2026-04-25): the compatibility-profile verification slice now also anchors the Babylonian (Eta Piscium) and Suryasiddhanta / Surya Siddhanta 499 CE source-label spellings, so the remaining historical-source labels in the rendered profile stay pinned as the catalog grows.
 

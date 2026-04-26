@@ -8855,6 +8855,8 @@ mod tests {
         assert!(rendered.contains("Babylonian (Britton)"));
         assert!(rendered.contains("Babylonian (Aldebaran)"));
         assert!(rendered.contains("Babylonian (Eta Piscium)"));
+        assert!(rendered.contains("Krusinski/Pisa/Goelzer"));
+        assert!(rendered.contains("Equal/MC = 10th"));
         assert!(rendered.contains("Galactic Equator (True)"));
         assert!(rendered.contains("Galactic Equator (IAU 1958)"));
         assert!(rendered.contains("Valens Moon ayanamsa"));
