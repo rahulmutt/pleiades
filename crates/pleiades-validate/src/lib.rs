@@ -7254,7 +7254,7 @@ fn write_backend_matrix(f: &mut fmt::Formatter<'_>, backend: &BackendMetadata) -
     writeln!(f, "  id: {}", backend.id)?;
     writeln!(f, "  version: {}", backend.version)?;
     writeln!(f, "  family: {}", backend.family)?;
-    writeln!(f, "  family posture: {}", backend.family.posture_label())?;
+    writeln!(f, "  family posture: {}", backend.family.posture())?;
     writeln!(f, "  accuracy: {}", backend.accuracy)?;
     writeln!(f, "  deterministic: {}", backend.deterministic)?;
     writeln!(f, "  offline: {}", backend.offline)?;

@@ -108,6 +108,39 @@ pub enum BackendFamily {
     Other(String),
 }
 
+/// A coarse posture label for how a backend family is typically categorized in release summaries.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum BackendFamilyPosture {
+    /// Formula-driven backends.
+    Algorithmic,
+    /// Reference-data and packaged-data backends.
+    DataBacked,
+    /// Multi-provider routing backends.
+    Routing,
+    /// Families that do not yet have a sharper public posture label.
+    Other,
+}
+
+impl BackendFamilyPosture {
+    /// Returns a stable human-readable label for the posture classification.
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Algorithmic => "algorithmic",
+            Self::DataBacked => "data-backed",
+            Self::Routing => "routing",
+            Self::Other => "other",
+        }
+    }
+}
+
+impl fmt::Display for BackendFamilyPosture {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.label())
+    }
+}
+
 impl BackendFamily {
     /// Returns a stable human-readable label for the backend family.
     pub fn display_name(&self) -> Cow<'_, str> {
@@ -135,17 +168,22 @@ impl BackendFamily {
         matches!(self, Self::Composite)
     }
 
+    /// Returns the coarse posture classification used in compact release summaries.
+    pub const fn posture(&self) -> BackendFamilyPosture {
+        if self.is_algorithmic() {
+            BackendFamilyPosture::Algorithmic
+        } else if self.is_data_backed() {
+            BackendFamilyPosture::DataBacked
+        } else if self.is_routing() {
+            BackendFamilyPosture::Routing
+        } else {
+            BackendFamilyPosture::Other
+        }
+    }
+
     /// Returns a short posture label for release-facing summaries.
     pub const fn posture_label(&self) -> &'static str {
-        if self.is_algorithmic() {
-            "algorithmic"
-        } else if self.is_data_backed() {
-            "data-backed"
-        } else if self.is_routing() {
-            "routing"
-        } else {
-            "other"
-        }
+        self.posture().label()
     }
 }
 
@@ -1060,6 +1098,25 @@ mod tests {
         assert!(!BackendFamily::Algorithmic.is_data_backed());
         assert!(BackendFamily::Algorithmic.is_algorithmic());
         assert!(BackendFamily::Composite.is_routing());
+        assert_eq!(
+            BackendFamily::Algorithmic.posture().to_string(),
+            "algorithmic"
+        );
+        assert_eq!(
+            BackendFamily::ReferenceData.posture().to_string(),
+            "data-backed"
+        );
+        assert_eq!(
+            BackendFamily::CompressedData.posture().to_string(),
+            "data-backed"
+        );
+        assert_eq!(BackendFamily::Composite.posture().to_string(), "routing");
+        assert_eq!(
+            BackendFamily::Other("custom".to_string())
+                .posture()
+                .to_string(),
+            "other"
+        );
         assert_eq!(BackendFamily::Algorithmic.posture_label(), "algorithmic");
         assert_eq!(BackendFamily::ReferenceData.posture_label(), "data-backed");
         assert_eq!(BackendFamily::CompressedData.posture_label(), "data-backed");
