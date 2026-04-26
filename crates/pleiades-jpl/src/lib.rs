@@ -111,6 +111,57 @@ pub fn reference_snapshot_summary() -> Option<ReferenceSnapshotSummary> {
     })
 }
 
+/// A compact coverage summary for the checked-in reference snapshot in
+/// equatorial-frame batch parity mode.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ReferenceSnapshotEquatorialParitySummary {
+    /// Total number of parsed snapshot rows exercised through equatorial requests.
+    pub row_count: usize,
+    /// Number of distinct bodies covered by the snapshot.
+    pub body_count: usize,
+    /// Number of distinct epochs covered by the snapshot.
+    pub epoch_count: usize,
+    /// Earliest epoch represented in the snapshot.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented in the snapshot.
+    pub latest_epoch: Instant,
+}
+
+/// Returns a compact equatorial parity summary for the checked-in reference snapshot.
+pub fn reference_snapshot_equatorial_parity_summary(
+) -> Option<ReferenceSnapshotEquatorialParitySummary> {
+    reference_snapshot_summary().map(|summary| ReferenceSnapshotEquatorialParitySummary {
+        row_count: summary.row_count,
+        body_count: summary.body_count,
+        epoch_count: summary.epoch_count,
+        earliest_epoch: summary.earliest_epoch,
+        latest_epoch: summary.latest_epoch,
+    })
+}
+
+/// Formats the checked-in reference snapshot equatorial parity summary for
+/// release-facing reporting.
+pub fn format_reference_snapshot_equatorial_parity_summary(
+    summary: &ReferenceSnapshotEquatorialParitySummary,
+) -> String {
+    format!(
+        "Reference snapshot equatorial parity: {} rows across {} bodies and {} epochs ({}..{}); mean-obliquity transform against the checked-in ecliptic fixture",
+        summary.row_count,
+        summary.body_count,
+        summary.epoch_count,
+        format_instant(summary.earliest_epoch),
+        format_instant(summary.latest_epoch),
+    )
+}
+
+/// Returns the release-facing reference snapshot equatorial parity summary string.
+pub fn reference_snapshot_equatorial_parity_summary_for_report() -> String {
+    match reference_snapshot_equatorial_parity_summary() {
+        Some(summary) => format_reference_snapshot_equatorial_parity_summary(&summary),
+        None => "Reference snapshot equatorial parity: unavailable".to_string(),
+    }
+}
+
 /// Formats the checked-in reference snapshot coverage for release-facing reporting.
 pub fn format_reference_snapshot_summary(summary: &ReferenceSnapshotSummary) -> String {
     format!(
@@ -468,8 +519,9 @@ pub fn independent_holdout_source_summary_for_report() -> String {
 /// Returns the combined snapshot evidence summary used by validation and release reports.
 pub fn jpl_snapshot_evidence_summary_for_report() -> String {
     format!(
-        "{} | {} | {} | {} | {} | {} | {} | {} | {}",
+        "{} | {} | {} | {} | {} | {} | {} | {} | {} | {}",
         reference_snapshot_summary_for_report(),
+        reference_snapshot_equatorial_parity_summary_for_report(),
         reference_snapshot_source_summary_for_report(),
         reference_snapshot_manifest_summary_for_report(),
         reference_asteroid_evidence_summary_for_report(),
@@ -2199,6 +2251,21 @@ mod tests {
     }
 
     #[test]
+    fn reference_snapshot_equatorial_parity_summary_reports_the_expected_coverage() {
+        let summary = reference_snapshot_equatorial_parity_summary()
+            .expect("reference snapshot equatorial parity summary should exist");
+        assert_eq!(summary.row_count, 46);
+        assert_eq!(summary.body_count, 15);
+        assert_eq!(summary.epoch_count, 6);
+        assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_499.0);
+        assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
+        assert_eq!(
+            reference_snapshot_equatorial_parity_summary_for_report(),
+            "Reference snapshot equatorial parity: 46 rows across 15 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); mean-obliquity transform against the checked-in ecliptic fixture"
+        );
+    }
+
+    #[test]
     fn comparison_snapshot_summary_reports_the_expected_coverage() {
         let summary =
             comparison_snapshot_summary().expect("comparison snapshot summary should exist");
@@ -2377,6 +2444,7 @@ mod tests {
     fn jpl_snapshot_evidence_summary_combines_the_backend_reports() {
         let report = jpl_snapshot_evidence_summary_for_report();
         assert!(report.contains(&reference_snapshot_summary_for_report()));
+        assert!(report.contains(&reference_snapshot_equatorial_parity_summary_for_report()));
         assert!(report.contains(reference_snapshot_source_summary_for_report()));
         assert!(report.contains(&reference_snapshot_manifest_summary_for_report()));
         assert!(report.contains(&reference_asteroid_evidence_summary_for_report()));
