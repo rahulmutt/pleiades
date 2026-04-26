@@ -19,6 +19,7 @@ Guide the remaining backend, compression, and packaged-data work so Pleiades can
 - Upgrade `pleiades-jpl` to a source-backed reference reader/interpolator.
 - Build deterministic compressed artifacts for 1500-2500 CE.
 - Benchmark lookup latency, batch throughput, artifact size, and corpus heap footprint estimates.
+- Progress note: the packaged-data backend now advertises equatorial-frame support and reconstructs equatorial coordinates from stored ecliptic channels at query time, so the compressed-artifact profile now matches the runtime stored-versus-derived contract instead of implying an ecliptic-only packaged surface.
 
 ## Distribution constraints
 

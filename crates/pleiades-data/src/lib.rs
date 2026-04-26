@@ -5,10 +5,13 @@
 //! deterministic binary fixture that covers the comparison-body planetary set
 //! plus the source-backed custom asteroid `asteroid:433-Eros`, and the backend
 //! falls back to other providers when callers request bodies outside that
-//! packaged slice. The fixture is still regenerated from the checked-in JPL
-//! reference snapshot in tests so the packaged data stays reproducible. A maintainer-facing
-//! regeneration helper can rebuild the checked-in fixture from the bundled JPL reference
-//! snapshot without introducing any native tooling.
+//! packaged slice. The packaged artifact stores ecliptic coordinates directly
+//! and reconstructs equatorial coordinates from the stored channels and
+//! mean-obliquity transform when requested. The fixture is still regenerated
+//! from the checked-in JPL reference snapshot in tests so the packaged data
+//! stays reproducible. A maintainer-facing regeneration helper can rebuild the
+//! checked-in fixture from the bundled JPL reference snapshot without
+//! introducing any native tooling.
 //!
 //! # Examples
 //!
@@ -32,7 +35,7 @@ use std::{cmp::Ordering, fmt};
 
 use pleiades_backend::{
     validate_observer_policy, validate_request_policy, validate_zodiac_policy, AccuracyClass,
-    Apparentness, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
+    Angle, Apparentness, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
     BackendProvenance, CelestialBody, CoordinateFrame, CustomBodyId, EclipticCoordinates,
     EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
     Instant, QualityAnnotation, TimeRange, TimeScale, ZodiacMode,
@@ -365,7 +368,7 @@ impl PackagedRequestPolicySummary {
 const PACKAGED_REQUEST_POLICY_SUMMARY: PackagedRequestPolicySummary =
     PackagedRequestPolicySummary {
         geocentric_only: true,
-        supported_frames: &[CoordinateFrame::Ecliptic],
+        supported_frames: &[CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
         supported_time_scales: &[TimeScale::Tt, TimeScale::Tdb],
         supported_zodiac_modes: &[ZodiacMode::Tropical],
         supported_apparentness: &[Apparentness::Mean],
@@ -393,7 +396,7 @@ pub struct PackagedFrameTreatmentSummary;
 impl PackagedFrameTreatmentSummary {
     /// Returns the frame-treatment posture as a compact human-readable line.
     pub const fn summary_line(self) -> &'static str {
-        "checked-in compressed artifact stores ecliptic coordinates directly; no equatorial channel is stored in the packaged artifact"
+        "checked-in compressed artifact stores ecliptic coordinates directly; equatorial coordinates are reconstructed from the stored channels and mean-obliquity transform"
     }
 }
 
@@ -488,14 +491,14 @@ impl EphemerisBackend for PackagedDataBackend {
                     packaged_body_coverage_summary_details().summary_line(),
                     packaged_request_policy_summary_details().summary_line(),
                     packaged_frame_treatment_summary_details().to_string(),
-                    "Quantized linear segments stored in pleiades-compression artifact format"
+                    "Quantized linear segments stored in pleiades-compression artifact format; equatorial coordinates are reconstructed at runtime from stored channels"
                         .to_string(),
                 ],
             },
             nominal_range: range,
             supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
             body_coverage: bodies,
-            supported_frames: vec![CoordinateFrame::Ecliptic],
+            supported_frames: vec![CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
             capabilities: BackendCapabilities {
                 geocentric: true,
                 topocentric: false,
@@ -529,7 +532,7 @@ impl EphemerisBackend for PackagedDataBackend {
             req,
             "packaged data",
             &[TimeScale::Tt, TimeScale::Tdb],
-            &[CoordinateFrame::Ecliptic],
+            &[CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
             false,
         )?;
 
@@ -537,9 +540,12 @@ impl EphemerisBackend for PackagedDataBackend {
 
         validate_observer_policy(req, "packaged data", false)?;
 
+        let lookup_instant = normalize_lookup_instant(req.instant);
         let ecliptic = packaged_artifact()
-            .lookup_ecliptic(&req.body, normalize_lookup_instant(req.instant))
+            .lookup_ecliptic(&req.body, lookup_instant)
             .map_err(map_artifact_error)?;
+        let equatorial =
+            ecliptic.to_equatorial(Angle::from_degrees(mean_obliquity_degrees(req.instant)));
 
         let mut result = EphemerisResult::new(
             BackendId::new(PACKAGE_NAME),
@@ -550,6 +556,7 @@ impl EphemerisBackend for PackagedDataBackend {
             req.apparent,
         );
         result.ecliptic = Some(ecliptic);
+        result.equatorial = Some(equatorial);
         result.quality = QualityAnnotation::Interpolated;
         Ok(result)
     }
@@ -691,6 +698,12 @@ fn normalize_lookup_instant(instant: Instant) -> Instant {
     }
 }
 
+fn mean_obliquity_degrees(instant: Instant) -> f64 {
+    let t = (instant.julian_day.days() - 2_451_545.0) / 36_525.0;
+    23.439_291_111_111_11 - 0.013_004_166_666_666_667 * t - 0.000_000_163_888_888_888_888_88 * t * t
+        + 0.000_000_503_611_111_111_111_1 * t * t * t
+}
+
 fn map_artifact_error(error: pleiades_compression::CompressionError) -> EphemerisError {
     let kind = match error.kind {
         pleiades_compression::CompressionErrorKind::MissingBody => {
@@ -774,6 +787,66 @@ mod tests {
         assert!((ecliptic.longitude.degrees() - expected.longitude.degrees()).abs() < 1e-8);
         assert!((ecliptic.latitude.degrees() - expected.latitude.degrees()).abs() < 1e-8);
         assert!((ecliptic.distance_au.unwrap() - expected.distance_au.unwrap()).abs() < 1e-12);
+    }
+
+    #[test]
+    fn equatorial_frame_requests_return_derived_coordinates() {
+        let backend = packaged_backend();
+        let reference = reference_snapshot()
+            .iter()
+            .find(|entry| {
+                entry.body == CelestialBody::Sun
+                    && (entry.epoch.julian_day.days() - 2_451_545.0).abs() < f64::EPSILON
+            })
+            .expect("reference snapshot should include the Sun at J2000");
+        let request = EphemerisRequest {
+            body: CelestialBody::Sun,
+            instant: reference.epoch,
+            observer: None,
+            frame: CoordinateFrame::Equatorial,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparent: pleiades_backend::Apparentness::Mean,
+        };
+
+        let result = backend
+            .position(&request)
+            .expect("packaged equatorial request should succeed");
+        let expected = coordinates(reference).to_equatorial(pleiades_backend::Angle::from_degrees(
+            mean_obliquity_degrees(reference.epoch),
+        ));
+
+        assert_eq!(result.frame, CoordinateFrame::Equatorial);
+        let actual_ecliptic = result
+            .ecliptic
+            .expect("packaged equatorial request should still expose ecliptic coordinates");
+        let expected_ecliptic = coordinates(reference);
+        assert!(
+            (actual_ecliptic.longitude.degrees() - expected_ecliptic.longitude.degrees()).abs()
+                < 1e-8
+        );
+        assert!(
+            (actual_ecliptic.latitude.degrees() - expected_ecliptic.latitude.degrees()).abs()
+                < 1e-8
+        );
+        assert!(
+            (actual_ecliptic.distance_au.unwrap() - expected_ecliptic.distance_au.unwrap()).abs()
+                < 1e-12
+        );
+        let actual_equatorial = result
+            .equatorial
+            .expect("packaged equatorial request should return derived equatorial coordinates");
+        assert!(
+            (actual_equatorial.right_ascension.degrees() - expected.right_ascension.degrees())
+                .abs()
+                < 1e-8
+        );
+        assert!(
+            (actual_equatorial.declination.degrees() - expected.declination.degrees()).abs() < 1e-8
+        );
+        assert!(
+            (actual_equatorial.distance_au.unwrap() - expected.distance_au.unwrap()).abs() < 1e-12
+        );
+        assert_eq!(result.quality, QualityAnnotation::Interpolated);
     }
 
     #[test]
@@ -932,7 +1005,7 @@ mod tests {
         assert!(request_policy.geocentric_only);
         assert_eq!(
             request_policy.supported_frames,
-            &[CoordinateFrame::Ecliptic]
+            &[CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial]
         );
         assert_eq!(
             request_policy.supported_time_scales,
@@ -965,6 +1038,8 @@ mod tests {
             packaged_frame_treatment_summary()
         );
         assert!(metadata.provenance.data_sources[2].contains("ecliptic coordinates directly"));
+        assert!(metadata.provenance.data_sources[2]
+            .contains("equatorial coordinates are reconstructed"));
     }
 
     #[test]
@@ -988,6 +1063,10 @@ mod tests {
             artifact
                 .header
                 .summary_for_body_count(artifact.bodies.len())
+        );
+        assert_eq!(
+            summary.profile.summary_line(),
+            "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported"
         );
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(

@@ -368,7 +368,10 @@ impl ArtifactProfile {
     }
 
     /// Returns the current conservative profile: ecliptic longitude, latitude,
-    /// and distance are stored directly; motion and richer coordinate modes are unsupported.
+    /// and distance are stored directly; ecliptic coordinates are reconstructed
+    /// from those channels, equatorial coordinates are derived from the stored
+    /// ecliptic coordinates and mean-obliquity policy, and motion or richer
+    /// coordinate modes remain unsupported.
     pub fn ecliptic_longitude_latitude_distance() -> Self {
         Self::new(
             vec![
@@ -376,9 +379,11 @@ impl ArtifactProfile {
                 ChannelKind::Latitude,
                 ChannelKind::DistanceAu,
             ],
-            vec![ArtifactOutput::EclipticCoordinates],
             vec![
+                ArtifactOutput::EclipticCoordinates,
                 ArtifactOutput::EquatorialCoordinates,
+            ],
+            vec![
                 ArtifactOutput::ApparentCorrections,
                 ArtifactOutput::TopocentricCoordinates,
                 ArtifactOutput::SiderealCoordinates,
@@ -1493,7 +1498,7 @@ mod tests {
         );
         assert_eq!(
             profile.output_support(ArtifactOutput::EquatorialCoordinates),
-            ArtifactOutputSupport::Unsupported
+            ArtifactOutputSupport::Derived
         );
         assert_eq!(
             profile.output_support(ArtifactOutput::Motion),
@@ -1504,8 +1509,8 @@ mod tests {
             ArtifactOutputSupport::Unsupported
         );
         assert!(profile.supports_output(ArtifactOutput::EclipticCoordinates));
-        assert!(!profile.supports_output(ArtifactOutput::EquatorialCoordinates));
-        assert!(profile.is_unsupported_output(ArtifactOutput::EquatorialCoordinates));
+        assert!(profile.supports_output(ArtifactOutput::EquatorialCoordinates));
+        assert!(!profile.is_unsupported_output(ArtifactOutput::EquatorialCoordinates));
         assert!(profile.is_unsupported_output(ArtifactOutput::SiderealCoordinates));
 
         let unlisted_profile = ArtifactProfile::new(
@@ -1725,9 +1730,11 @@ mod tests {
                 ChannelKind::Latitude,
                 ChannelKind::DistanceAu,
             ],
-            vec![ArtifactOutput::EclipticCoordinates],
             vec![
+                ArtifactOutput::EclipticCoordinates,
                 ArtifactOutput::EquatorialCoordinates,
+            ],
+            vec![
                 ArtifactOutput::ApparentCorrections,
                 ArtifactOutput::TopocentricCoordinates,
                 ArtifactOutput::SiderealCoordinates,
@@ -1738,23 +1745,23 @@ mod tests {
 
         assert_eq!(
             profile.summary(),
-            "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates]; unsupported outputs: [EquatorialCoordinates, ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported"
+            "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported"
         );
         assert_eq!(
             profile.summary_line(),
-            "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates]; unsupported outputs: [EquatorialCoordinates, ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported"
+            "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported"
         );
         assert_eq!(
             profile.summary_for_body_count(11),
-            "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates]; unsupported outputs: [EquatorialCoordinates, ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 11 bundled bodies"
+            "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 11 bundled bodies"
         );
         assert_eq!(
             profile.summary_line_with_body_count(11),
-            "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates]; unsupported outputs: [EquatorialCoordinates, ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 11 bundled bodies"
+            "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 11 bundled bodies"
         );
         assert_eq!(
             profile.to_string(),
-            "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates]; unsupported outputs: [EquatorialCoordinates, ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported"
+            "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported"
         );
 
         let header = ArtifactHeader::with_profile_and_endian(
@@ -1765,19 +1772,19 @@ mod tests {
         );
         assert_eq!(
             header.summary(),
-            "byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates]; unsupported outputs: [EquatorialCoordinates, ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported"
+            "byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported"
         );
         assert_eq!(
             header.summary_line(),
-            "byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates]; unsupported outputs: [EquatorialCoordinates, ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported"
+            "byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported"
         );
         assert_eq!(
             header.summary_for_body_count(11),
-            "byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates]; unsupported outputs: [EquatorialCoordinates, ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 11 bundled bodies"
+            "byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 11 bundled bodies"
         );
         assert_eq!(
             header.to_string(),
-            "byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates]; unsupported outputs: [EquatorialCoordinates, ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported"
+            "byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported"
         );
     }
 
