@@ -1744,6 +1744,67 @@ mod tests {
     }
 
     #[test]
+    fn batch_query_rejects_unsupported_time_scales_explicitly() {
+        let backend = JplSnapshotBackend;
+        let requests = vec![EphemerisRequest {
+            body: pleiades_backend::CelestialBody::Sun,
+            instant: Instant::new(JulianDay::from_days(REFERENCE_EPOCH_JD), TimeScale::Utc),
+            observer: None,
+            frame: CoordinateFrame::Ecliptic,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparent: Apparentness::Mean,
+        }];
+
+        let error = backend
+            .positions(&requests)
+            .expect_err("reference snapshot should reject unsupported batch time-scale requests");
+
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedTimeScale);
+    }
+
+    #[test]
+    fn batch_query_rejects_observer_requests_explicitly() {
+        let backend = JplSnapshotBackend;
+        let requests = vec![EphemerisRequest {
+            body: pleiades_backend::CelestialBody::Sun,
+            instant: reference_instant(),
+            observer: Some(pleiades_backend::ObserverLocation::new(
+                pleiades_backend::Latitude::from_degrees(51.5),
+                pleiades_backend::Longitude::from_degrees(0.0),
+                None,
+            )),
+            frame: CoordinateFrame::Ecliptic,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparent: Apparentness::Mean,
+        }];
+
+        let error = backend
+            .positions(&requests)
+            .expect_err("reference snapshot should reject topocentric batch requests");
+
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
+    }
+
+    #[test]
+    fn batch_query_rejects_apparent_requests_explicitly() {
+        let backend = JplSnapshotBackend;
+        let requests = vec![EphemerisRequest {
+            body: pleiades_backend::CelestialBody::Sun,
+            instant: reference_instant(),
+            observer: None,
+            frame: CoordinateFrame::Ecliptic,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparent: Apparentness::Apparent,
+        }];
+
+        let error = backend
+            .positions(&requests)
+            .expect_err("reference snapshot should reject apparent batch requests");
+
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+    }
+
+    #[test]
     fn snapshot_data_matches_the_known_j2000_sun_longitude() {
         let entry = reference_snapshot()
             .iter()
