@@ -652,47 +652,60 @@ pub fn lunar_theory_catalog_validation_summary() -> LunarTheoryCatalogValidation
     }
 }
 
+impl LunarTheoryCatalogValidationSummary {
+    /// Returns the compact release-facing summary line for the catalog validation state.
+    pub fn summary_line(&self) -> String {
+        let selected_source_summary = self
+            .selected_source
+            .map(|source| format!("{} [{}]", source.identifier, source.family_label()))
+            .unwrap_or_else(|| "none".to_string());
+        let selected_catalog_key = self
+            .selected_source
+            .map(|source| source.catalog_key().to_string())
+            .unwrap_or_else(|| "none".to_string());
+        let selected_alias_count = self
+            .selected_source
+            .map(|source| source.source_aliases.len())
+            .unwrap_or(0);
+
+        match self.validation_result {
+            Ok(()) => format!(
+                "lunar theory catalog validation: ok ({} entries, {} selected; selected source: {}; selected key: {}; aliases={}; round-trip, alias uniqueness, and case-insensitive key matching verified)",
+                self.entry_count,
+                self.selected_count,
+                selected_source_summary,
+                selected_catalog_key,
+                selected_alias_count,
+            ),
+            Err(error) => format!(
+                "lunar theory catalog validation: error: {} ({} entries, {} selected; selected source: {}; selected key: {}; aliases={})",
+                error,
+                self.entry_count,
+                self.selected_count,
+                selected_source_summary,
+                selected_catalog_key,
+                selected_alias_count,
+            ),
+        }
+    }
+}
+
+impl fmt::Display for LunarTheoryCatalogValidationSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Formats the compact validation summary for release-facing reporting.
 pub fn format_lunar_theory_catalog_validation_summary(
     summary: &LunarTheoryCatalogValidationSummary,
 ) -> String {
-    let selected_source_summary = summary
-        .selected_source
-        .map(|source| format!("{} [{}]", source.identifier, source.family_label()))
-        .unwrap_or_else(|| "none".to_string());
-    let selected_catalog_key = summary
-        .selected_source
-        .map(|source| source.catalog_key().to_string())
-        .unwrap_or_else(|| "none".to_string());
-    let selected_alias_count = summary
-        .selected_source
-        .map(|source| source.source_aliases.len())
-        .unwrap_or(0);
-
-    match summary.validation_result {
-        Ok(()) => format!(
-            "lunar theory catalog validation: ok ({} entries, {} selected; selected source: {}; selected key: {}; aliases={}; round-trip, alias uniqueness, and case-insensitive key matching verified)",
-            summary.entry_count,
-            summary.selected_count,
-            selected_source_summary,
-            selected_catalog_key,
-            selected_alias_count,
-        ),
-        Err(error) => format!(
-            "lunar theory catalog validation: error: {} ({} entries, {} selected; selected source: {}; selected key: {}; aliases={})",
-            error,
-            summary.entry_count,
-            summary.selected_count,
-            selected_source_summary,
-            selected_catalog_key,
-            selected_alias_count,
-        ),
-    }
+    summary.summary_line()
 }
 
 /// Returns a compact release-facing summary of the lunar-theory catalog validation state.
 pub fn lunar_theory_catalog_validation_summary_for_report() -> String {
-    format_lunar_theory_catalog_validation_summary(&lunar_theory_catalog_validation_summary())
+    lunar_theory_catalog_validation_summary().summary_line()
 }
 
 /// Returns the catalog entry matching the provided source identifier, when present.
@@ -938,25 +951,38 @@ pub fn lunar_theory_capability_summary() -> LunarTheoryCapabilitySummary {
     }
 }
 
+impl LunarTheoryCapabilitySummary {
+    /// Returns the compact release-facing summary line for the current lunar selection.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "lunar capability summary: {} [{}; family: {}] bodies={} ({}); unsupported={} ({}); frames={} time scales={} zodiac modes={} apparentness={} topocentric observer={} validation window={}; catalog validation={}",
+            self.model_name,
+            self.source_identifier,
+            self.source_family_label,
+            self.supported_body_count,
+            format_bodies(self.supported_bodies),
+            self.unsupported_body_count,
+            format_bodies(self.unsupported_bodies),
+            self.supported_frame_count,
+            self.supported_time_scale_count,
+            self.supported_zodiac_mode_count,
+            self.supported_apparentness_count,
+            self.supports_topocentric_observer,
+            format_time_range(&self.validation_window),
+            if self.catalog_validation_ok { "ok" } else { "error" },
+        )
+    }
+}
+
+impl fmt::Display for LunarTheoryCapabilitySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Formats the capability summary for release-facing reporting.
 pub fn format_lunar_theory_capability_summary(summary: &LunarTheoryCapabilitySummary) -> String {
-    format!(
-        "lunar capability summary: {} [{}; family: {}] bodies={} ({}); unsupported={} ({}); frames={} time scales={} zodiac modes={} apparentness={} topocentric observer={} validation window={}; catalog validation={}",
-        summary.model_name,
-        summary.source_identifier,
-        summary.source_family_label,
-        summary.supported_body_count,
-        format_bodies(summary.supported_bodies),
-        summary.unsupported_body_count,
-        format_bodies(summary.unsupported_bodies),
-        summary.supported_frame_count,
-        summary.supported_time_scale_count,
-        summary.supported_zodiac_mode_count,
-        summary.supported_apparentness_count,
-        summary.supports_topocentric_observer,
-        format_time_range(&summary.validation_window),
-        if summary.catalog_validation_ok { "ok" } else { "error" },
-    )
+    summary.summary_line()
 }
 
 /// Formats the release-facing one-line summary for a lunar-theory specification.
@@ -996,32 +1022,45 @@ pub fn lunar_theory_summary() -> String {
     format_lunar_theory_specification(&lunar_theory_specification())
 }
 
+impl LunarTheorySourceSummary {
+    /// Returns the compact release-facing summary line for the current lunar source selection.
+    pub fn summary_line(&self) -> String {
+        let aliases = if self.source_aliases.is_empty() {
+            "none".to_string()
+        } else {
+            self.source_aliases.join(", ")
+        };
+
+        format!(
+            "lunar source selection: {} [{}; selected key: {}; family: {}]; aliases: {}; citation: {}; provenance: {}; validation window: {}; redistribution: {}; license: {}",
+            self.model_name,
+            self.source_identifier,
+            self.catalog_key,
+            self.source_family_label,
+            aliases,
+            self.citation,
+            self.provenance,
+            format_time_range(&self.validation_window),
+            self.redistribution_note,
+            self.license_note,
+        )
+    }
+}
+
+impl fmt::Display for LunarTheorySourceSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Formats the compact lunar source-selection summary for release-facing reporting.
 pub fn format_lunar_theory_source_summary(summary: &LunarTheorySourceSummary) -> String {
-    let aliases = if summary.source_aliases.is_empty() {
-        "none".to_string()
-    } else {
-        summary.source_aliases.join(", ")
-    };
-
-    format!(
-        "lunar source selection: {} [{}; selected key: {}; family: {}]; aliases: {}; citation: {}; provenance: {}; validation window: {}; redistribution: {}; license: {}",
-        summary.model_name,
-        summary.source_identifier,
-        summary.catalog_key,
-        summary.source_family_label,
-        aliases,
-        summary.citation,
-        summary.provenance,
-        format_time_range(&summary.validation_window),
-        summary.redistribution_note,
-        summary.license_note,
-    )
+    summary.summary_line()
 }
 
 /// Returns the release-facing one-line summary for the current lunar source selection.
 pub fn lunar_theory_source_summary_for_report() -> String {
-    format_lunar_theory_source_summary(&lunar_theory_source_summary())
+    lunar_theory_source_summary().summary_line()
 }
 
 /// Returns the current lunar-theory request policy summary.
@@ -2800,6 +2839,11 @@ mod tests {
         );
         assert_eq!(source_summary.license_note, theory.license_note);
         assert_eq!(
+            source_summary.summary_line(),
+            format_lunar_theory_source_summary(&source_summary)
+        );
+        assert_eq!(source_summary.to_string(), source_summary.summary_line());
+        assert_eq!(
             format_lunar_theory_source_summary(&source_summary),
             lunar_theory_source_summary_for_report()
         );
@@ -2868,6 +2912,14 @@ mod tests {
         assert_eq!(catalog_validation_summary.selected_count, 1);
         assert_eq!(catalog_validation_summary.selected_source, Some(source));
         assert!(catalog_validation_summary.validation_result.is_ok());
+        assert_eq!(
+            catalog_validation_summary.summary_line(),
+            format_lunar_theory_catalog_validation_summary(&catalog_validation_summary)
+        );
+        assert_eq!(
+            catalog_validation_summary.to_string(),
+            catalog_validation_summary.summary_line()
+        );
         assert_eq!(
             format_lunar_theory_catalog_validation_summary(&catalog_validation_summary),
             lunar_theory_catalog_validation_summary_for_report()
@@ -3656,6 +3708,11 @@ mod tests {
             theory.request_policy.supports_topocentric_observer
         );
         assert_eq!(capability.validation_window, theory.validation_window);
+        assert_eq!(
+            capability.summary_line(),
+            format_lunar_theory_capability_summary(&capability)
+        );
+        assert_eq!(capability.to_string(), capability.summary_line());
         assert!(format_lunar_theory_capability_summary(&capability).contains("bodies=5"));
         assert!(format_lunar_theory_capability_summary(&capability)
             .contains("Moon, Mean Node, True Node, Mean Perigee, Mean Apogee"));
