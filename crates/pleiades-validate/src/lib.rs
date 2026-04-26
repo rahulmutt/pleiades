@@ -76,7 +76,8 @@ use pleiades_jpl::{
     jpl_snapshot_evidence_summary_for_report, jpl_snapshot_request_policy_summary_for_report,
     reference_asteroid_equatorial_evidence_summary_for_report, reference_asteroid_evidence,
     reference_asteroid_evidence_summary_for_report, reference_asteroids,
-    reference_snapshot_summary_for_report, JplSnapshotBackend,
+    reference_snapshot_equatorial_parity_summary_for_report, reference_snapshot_summary_for_report,
+    JplSnapshotBackend,
 };
 use pleiades_vsop87::{
     body_source_profiles, canonical_epoch_equatorial_evidence_summary_for_report,
@@ -2870,6 +2871,9 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str("JPL frame treatment: ");
     text.push_str(&format_jpl_frame_treatment_summary());
+    text.push('\n');
+    text.push_str("JPL reference snapshot equatorial parity: ");
+    text.push_str(&reference_snapshot_equatorial_parity_summary_for_report());
     text.push('\n');
     text.push_str("Source-backed backend evidence: ");
     text.push_str(&jpl_snapshot_evidence_summary_for_report());
@@ -5764,6 +5768,9 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&reference_asteroid_evidence_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_summary_for_report());
+    text.push('\n');
+    text.push_str("JPL reference snapshot equatorial parity: ");
+    text.push_str(&reference_snapshot_equatorial_parity_summary_for_report());
     text.push('\n');
     text.push_str(&comparison_snapshot_summary_for_report());
     text.push('\n');
@@ -9996,6 +10003,9 @@ version = "0.9.0"
         assert!(release_summary.contains("JPL independent hold-out:"));
         assert!(release_summary.contains("JPL request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
         assert!(release_summary.contains("JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"));
+        assert!(release_summary.contains(
+            "JPL reference snapshot equatorial parity: Reference snapshot equatorial parity:"
+        ));
         assert!(release_summary.contains("Source-backed backend evidence:"));
         assert!(release_summary.contains("Reference snapshot coverage:"));
         assert!(release_summary.contains("Selected asteroid evidence:"));
@@ -10103,6 +10113,9 @@ version = "0.9.0"
         assert!(backend_matrix_summary.contains("Backends: 5"));
         assert!(backend_matrix_summary.contains("Algorithmic: 2"));
         assert!(backend_matrix_summary.contains("Composite: 1"));
+        assert!(backend_matrix_summary.contains(
+            "JPL reference snapshot equatorial parity: Reference snapshot equatorial parity:"
+        ));
         assert!(backend_matrix_summary
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(backend_matrix_summary
