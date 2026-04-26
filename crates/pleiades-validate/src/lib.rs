@@ -8727,6 +8727,8 @@ mod tests {
         assert!(rendered.contains("PVR Pushya-paksha"));
         assert!(rendered.contains("Galactic Center (Rgilbrand)"));
         assert!(rendered.contains("Galactic Center (Mardyks)"));
+        assert!(rendered.contains("Skydram/Galactic Alignment"));
+        assert!(rendered.contains("Skydram (Mardyks)"));
         assert!(rendered.contains("Galactic Center (Mula/Wilhelm)"));
         assert!(rendered.contains("Galactic Center (Cochrane)"));
         assert!(rendered.contains("Gal. Center = 0 Sag"));

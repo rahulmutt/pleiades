@@ -219,6 +219,7 @@ Progress note (2026-04-26): the compatibility-profile command tests now also pin
 Progress note (2026-04-26): the compatibility-profile and release-summary smoke tests now also pin `Albategnius` and `Gauquelin sectors`, keeping the remaining release-specific house-system additions visible in the compact release-facing catalog views as the broader alias audit continues.
 
 Progress note (2026-04-26): the compatibility-profile smoke tests now also pin `True Sheoran`, which keeps one more release-profile ayanamsa spelling explicitly covered in both the core release-note rendering and the CLI compatibility-profile output as the breadth audit continues.
+Progress note (2026-04-26): the compatibility-profile smoke tests now also pin `Skydram/Galactic Alignment` and `Skydram (Mardyks)`, keeping the Galactic Center (Mardyks) alias spellings explicitly covered in the CLI compatibility-profile output as the breadth audit continues.
 
 Progress note (2026-04-26): the same compatibility-profile slice now also pins the remaining Equal/MC and Equal/1=Aries table-and-system spellings, including the `Equal/MC table of houses`, `Equal/MC house system`, `Equal/1=Aries table of houses`, `Equal/1=Aries house system`, `Equal/1=0 Aries`, `Equal (cusp 1 = 0° Aries)`, and `Whole Sign (house 1 = Aries) table of houses` forms, so the release-facing equal-house appendix stays anchored as the catalog grows.
 
