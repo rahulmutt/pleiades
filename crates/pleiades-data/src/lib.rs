@@ -24,7 +24,7 @@ use pleiades_backend::{
 };
 use pleiades_compression::CompressedArtifact;
 use pleiades_compression::{ArtifactHeader, BodyArtifact, ChannelKind, PolynomialChannel, Segment};
-use pleiades_jpl::{reference_snapshot, SnapshotEntry};
+use pleiades_jpl::{reference_snapshot, reference_snapshot_summary_for_report, SnapshotEntry};
 
 const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data prototype";
@@ -65,6 +65,16 @@ pub fn packaged_body_coverage_summary() -> String {
     format!(
         "Packaged body set: {} bundled bodies ({body_list})",
         bodies.len()
+    )
+}
+
+/// Returns the packaged-artifact regeneration provenance summary.
+pub fn packaged_artifact_regeneration_summary() -> String {
+    format!(
+        "Packaged artifact regeneration source: label={}; source={}; {}",
+        ARTIFACT_LABEL,
+        ARTIFACT_SOURCE,
+        reference_snapshot_summary_for_report(),
     )
 }
 
@@ -661,6 +671,17 @@ mod tests {
             metadata.provenance.data_sources[1],
             request_policy.summary_line()
         );
+    }
+
+    #[test]
+    fn packaged_artifact_regeneration_summary_includes_reference_snapshot_coverage() {
+        let summary = packaged_artifact_regeneration_summary();
+        assert!(summary.contains(
+            "Packaged artifact regeneration source: label=stage-5 packaged-data prototype"
+        ));
+        assert!(summary.contains("Reference snapshot coverage:"));
+        assert!(summary.contains("rows across"));
+        assert!(summary.contains("asteroid rows"));
     }
 
     #[test]

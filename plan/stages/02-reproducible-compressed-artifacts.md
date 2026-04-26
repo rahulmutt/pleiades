@@ -29,7 +29,7 @@ Turn the current compressed-artifact scaffolding into a reproducible packaged-da
    - Fit body/channel-specific polynomial or Chebyshev segments.
    - Support shorter or residual-corrected lunar segments.
    - Stamp source versions, generation parameters, and checksums.
-   - Progress note: `pleiades-data` now exposes a public pure-Rust regeneration helper for the packaged artifact, and `pleiades-cli` can write the checked-in fixture back to disk from the reference snapshot so maintainers have an explicit regeneration path without ad hoc scripts.
+   - Progress note: `pleiades-data` now exposes a public pure-Rust regeneration helper for the packaged artifact, and `pleiades-cli` can write the checked-in fixture back to disk from the reference snapshot so maintainers have an explicit regeneration path without ad hoc scripts. The regeneration command now also surfaces a backend-owned JPL reference-snapshot coverage line alongside the artifact label/source/checksum, which makes the public-input lineage visible in the maintainer-facing regeneration output.
 
 3. Implement binary encode/decode and random access.
    - Move beyond sample in-memory construction to a stable serialized artifact representation.

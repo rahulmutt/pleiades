@@ -15,7 +15,9 @@ use pleiades_core::{
     CustomAyanamsa, CustomBodyId, EphemerisError, HouseSystem, Instant, JulianDay, Latitude,
     Longitude, ObserverLocation, RoutingBackend, TimeScale, ZodiacMode,
 };
-use pleiades_data::{regenerate_packaged_artifact, PackagedDataBackend};
+use pleiades_data::{
+    packaged_artifact_regeneration_summary, regenerate_packaged_artifact, PackagedDataBackend,
+};
 use pleiades_elp::ElpBackend;
 use pleiades_jpl::JplSnapshotBackend;
 use pleiades_validate::{
@@ -300,13 +302,14 @@ fn render_packaged_artifact_regeneration(output_path: &str) -> Result<String, St
         .map_err(|error| format!("failed to write {}: {error}", output_path))?;
 
     Ok(format!(
-        "Packaged artifact regenerated\n  path: {}\n  label: {}\n  source: {}\n  checksum: 0x{:016x}\n  bytes: {}\n  bodies: {}",
+        "Packaged artifact regenerated\n  path: {}\n  label: {}\n  source: {}\n  checksum: 0x{:016x}\n  bytes: {}\n  bodies: {}\n  {}",
         output_path,
         artifact.header.generation_label,
         artifact.header.source,
         artifact.checksum,
         encoded.len(),
         artifact.bodies.len(),
+        packaged_artifact_regeneration_summary(),
     ))
 }
 
@@ -811,6 +814,8 @@ mod tests {
         .expect("packaged artifact regeneration should render");
         assert!(regenerated.contains("Packaged artifact regenerated"));
         assert!(regenerated.contains("stage-5 packaged-data prototype"));
+        assert!(regenerated.contains("Packaged artifact regeneration source:"));
+        assert!(regenerated.contains("Reference snapshot coverage:"));
         assert!(artifact_fixture_path.exists());
         let written = std::fs::read(&artifact_fixture_path)
             .expect("packaged artifact regeneration should write bytes");
