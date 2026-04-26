@@ -1297,7 +1297,8 @@ pub struct SnapshotManifest {
 }
 
 impl SnapshotManifest {
-    fn summary_line(&self, label: &str) -> String {
+    /// Formats the parsed manifest into the compact release-facing summary line.
+    pub fn summary_line(&self, label: &str) -> String {
         let title = self.title.as_deref().unwrap_or("unknown");
         let source = self.source.as_deref().unwrap_or("unknown");
         let coverage = self.coverage.as_deref().unwrap_or("unknown");
@@ -1338,7 +1339,8 @@ fn parse_snapshot_manifest(source: &str) -> SnapshotManifest {
     manifest
 }
 
-fn reference_snapshot_manifest() -> &'static SnapshotManifest {
+/// Returns the parsed manifest for the checked-in reference snapshot.
+pub fn reference_snapshot_manifest() -> &'static SnapshotManifest {
     static MANIFEST: OnceLock<SnapshotManifest> = OnceLock::new();
     MANIFEST.get_or_init(|| {
         parse_snapshot_manifest(include_str!(concat!(
@@ -1348,7 +1350,8 @@ fn reference_snapshot_manifest() -> &'static SnapshotManifest {
     })
 }
 
-fn independent_holdout_snapshot_manifest() -> &'static SnapshotManifest {
+/// Returns the parsed manifest for the checked-in hold-out snapshot.
+pub fn independent_holdout_snapshot_manifest() -> &'static SnapshotManifest {
     static MANIFEST: OnceLock<SnapshotManifest> = OnceLock::new();
     MANIFEST.get_or_init(|| {
         parse_snapshot_manifest(include_str!(concat!(
@@ -2349,6 +2352,10 @@ mod tests {
             manifest.columns,
             ["epoch_jd", "body", "x_km", "y_km", "z_km"]
         );
+        assert_eq!(
+            manifest.summary_line("Reference snapshot manifest"),
+            "Reference snapshot manifest: JPL Horizons reference snapshot.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; outer planets and Pluto sampled at J2000 and 2132.; columns=epoch_jd, body, x_km, y_km, z_km"
+        );
     }
 
     #[test]
@@ -2366,6 +2373,10 @@ mod tests {
         assert_eq!(
             manifest.columns,
             ["epoch_jd", "body", "x_km", "y_km", "z_km"]
+        );
+        assert_eq!(
+            manifest.summary_line("Independent hold-out manifest"),
+            "Independent hold-out manifest: Independent JPL Horizons hold-out snapshot used only for interpolation validation.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=Mars and Jupiter at 2001-01-01 through 2001-01-03.; columns=epoch_jd, body, x_km, y_km, z_km"
         );
     }
 

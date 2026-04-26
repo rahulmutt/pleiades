@@ -129,6 +129,7 @@ Progress note (2026-04-25): the JPL interpolation-quality summary plus distinct-
 
 Progress note (2026-04-26): the JPL snapshot backend now also publishes a small independent Mars/Jupiter hold-out corpus from the same public Horizons source material, and the validation/release evidence now renders that separate hold-out interpolation envelope alongside the existing leave-one-out transparency summary, so the first suggested JPL hold-out validation slice has landed while broader corpus expansion remains conditional on the remaining envelope.
 Progress note (2026-04-26): the JPL snapshot backend now also has a batch-path regression over the full checked-in reference snapshot in equatorial mode, preserving exact order and exact-coordinate parity across every reference row while exercising the mean-obliquity transform on the complete public-input fixture. The checked-in JPL reference and hold-out CSV comments are now parsed into structured manifest metadata too, and the release-facing evidence helper now surfaces the hold-out source line from that metadata so the public-input provenance is less hardcoded.
+Progress note (2026-04-26): the parsed JPL snapshot manifests are now also exposed through public summary-line helpers, so downstream code can reuse the checked-in reference and hold-out provenance metadata directly instead of treating the fixture headers as report-only strings.
 
 Remaining suggested scope:
 
