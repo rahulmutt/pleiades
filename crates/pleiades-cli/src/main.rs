@@ -774,6 +774,7 @@ mod tests {
             .contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(release_summary.contains("Release notes summary: release-notes-summary"));
         assert!(release_summary.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto override)"));
+        assert!(release_summary.contains("coverage=Luminaries: bodies=Moon, Sun, samples="));
         assert!(release_summary.contains(
             "Validation report summary: validation-report-summary / validation-summary / report-summary"
         ));
