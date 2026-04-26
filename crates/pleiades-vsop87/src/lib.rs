@@ -44,6 +44,7 @@ use std::sync::OnceLock;
 use crate::vsop87b_earth::{generated_vsop87b_table_bytes, parse_vsop87b_tables};
 
 const PACKAGE_NAME: &str = "pleiades-vsop87";
+const BACKEND_LABEL: &str = "the VSOP87 backend";
 const J2000: f64 = 2_451_545.0;
 
 /// Calculation family currently used for an individual VSOP87 backend body.
@@ -1562,25 +1563,25 @@ impl EphemerisBackend for Vsop87Backend {
         if req.zodiac_mode != ZodiacMode::Tropical {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,
-                "the VSOP87 MVP backend currently exposes tropical coordinates only",
+                format!("{BACKEND_LABEL} currently exposes tropical coordinates only"),
             ));
         }
 
         validate_request_policy(
             req,
-            "the VSOP87 MVP backend",
+            BACKEND_LABEL,
             &[TimeScale::Tt, TimeScale::Tdb],
             &[CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
             false,
         )?;
 
-        validate_observer_policy(req, "the VSOP87 MVP backend", false)?;
+        validate_observer_policy(req, BACKEND_LABEL, false)?;
 
         let days = Self::days_since_j2000(req.instant);
         let geocentric = Self::geocentric_coordinates(req.body.clone(), days).ok_or_else(|| {
             EphemerisError::new(
                 EphemerisErrorKind::UnsupportedBody,
-                "requested body is not implemented in the VSOP87 MVP backend",
+                format!("requested body is not implemented in {BACKEND_LABEL}"),
             )
         })?;
 
@@ -2258,6 +2259,19 @@ mod tests {
             .position(&request)
             .expect_err("apparent requests should be unsupported");
         assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error.message.contains(BACKEND_LABEL));
+    }
+
+    #[test]
+    fn unsupported_bodies_report_the_current_backend_label() {
+        let backend = Vsop87Backend::new();
+        let request = mean_request(CelestialBody::Moon);
+
+        let error = backend
+            .position(&request)
+            .expect_err("moon requests should be unsupported");
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedBody);
+        assert!(error.message.contains(BACKEND_LABEL));
     }
 
     #[test]
