@@ -63,8 +63,9 @@ use pleiades_houses::{
 use pleiades_jpl::{
     comparison_snapshot, comparison_snapshot_summary_for_report,
     format_jpl_interpolation_quality_summary_for_report, interpolation_quality_samples,
-    reference_asteroid_evidence, reference_asteroid_evidence_summary_for_report,
-    reference_asteroids, reference_snapshot_summary_for_report, JplSnapshotBackend,
+    jpl_snapshot_evidence_summary_for_report, reference_asteroid_evidence,
+    reference_asteroid_evidence_summary_for_report, reference_asteroids,
+    reference_snapshot_summary_for_report, JplSnapshotBackend,
 };
 use pleiades_vsop87::{
     body_source_profiles, canonical_epoch_evidence_summary_for_report, frame_treatment_summary,
@@ -2624,9 +2625,7 @@ fn render_release_summary_text() -> String {
     text.push_str(&format_jpl_interpolation_quality_summary_for_report());
     text.push('\n');
     text.push_str("Source-backed backend evidence: ");
-    text.push_str(&reference_snapshot_summary_for_report());
-    text.push_str(" | ");
-    text.push_str(&reference_asteroid_evidence_summary_for_report());
+    text.push_str(&jpl_snapshot_evidence_summary_for_report());
     text.push('\n');
     text.push_str("VSOP87 evidence: ");
     text.push_str(&format_vsop87_source_documentation_summary());
@@ -9002,6 +9001,7 @@ version = "0.9.0"
         assert!(release_summary.contains("Source-backed backend evidence:"));
         assert!(release_summary.contains("Reference snapshot coverage:"));
         assert!(release_summary.contains("Selected asteroid evidence:"));
+        assert!(release_summary.contains("Comparison snapshot coverage:"));
         assert!(release_summary.contains("VSOP87 evidence:"));
         assert!(release_summary.contains("VSOP87 source documentation:"));
         assert!(release_summary.contains("VSOP87 frame treatment:"));

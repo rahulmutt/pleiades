@@ -252,6 +252,16 @@ pub fn reference_asteroid_evidence_summary_for_report() -> String {
     format_reference_asteroid_evidence_summary(reference_asteroid_evidence())
 }
 
+/// Returns the combined snapshot evidence summary used by validation and release reports.
+pub fn jpl_snapshot_evidence_summary_for_report() -> String {
+    format!(
+        "{} | {} | {}",
+        reference_snapshot_summary_for_report(),
+        reference_asteroid_evidence_summary_for_report(),
+        comparison_snapshot_summary_for_report(),
+    )
+}
+
 /// Returns the comparison-only subset used by the stage-4 validation corpus.
 pub fn comparison_snapshot() -> &'static [SnapshotEntry] {
     comparison_snapshot_entries()
@@ -1508,6 +1518,14 @@ mod tests {
     fn reference_asteroid_evidence_summary_reports_the_expected_coverage() {
         let report = reference_asteroid_evidence_summary_for_report();
         assert_eq!(report, "Selected asteroid evidence: 5 exact J2000 samples at JD 2451545.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)");
+    }
+
+    #[test]
+    fn jpl_snapshot_evidence_summary_combines_the_backend_reports() {
+        let report = jpl_snapshot_evidence_summary_for_report();
+        assert!(report.contains(&reference_snapshot_summary_for_report()));
+        assert!(report.contains(&reference_asteroid_evidence_summary_for_report()));
+        assert!(report.contains(&comparison_snapshot_summary_for_report()));
     }
 
     #[test]
