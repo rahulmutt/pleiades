@@ -24,8 +24,8 @@ use pleiades_backend::{
 };
 use pleiades_compression::CompressedArtifact;
 use pleiades_compression::{
-    ArtifactHeader, ArtifactProfile, BodyArtifact, ChannelKind, EndianPolicy, PolynomialChannel,
-    Segment,
+    join_display, ArtifactHeader, ArtifactProfile, BodyArtifact, ChannelKind, EndianPolicy,
+    PolynomialChannel, Segment,
 };
 use pleiades_jpl::{
     format_reference_snapshot_summary, reference_snapshot, reference_snapshot_summary,
@@ -62,15 +62,11 @@ fn packaged_bodies() -> &'static [CelestialBody] {
 /// Returns the packaged body set as a human-readable provenance summary.
 pub fn packaged_body_coverage_summary() -> String {
     let bodies = packaged_bodies();
-    let body_list = bodies
-        .iter()
-        .map(ToString::to_string)
-        .collect::<Vec<_>>()
-        .join(", ");
 
     format!(
-        "Packaged body set: {} bundled bodies ({body_list})",
-        bodies.len()
+        "Packaged body set: {} bundled bodies ({})",
+        bodies.len(),
+        join_display(bodies)
     )
 }
 
@@ -90,14 +86,11 @@ pub struct PackagedArtifactRegenerationSummary {
 impl PackagedArtifactRegenerationSummary {
     /// Returns the bundled bodies as a compact human-readable line.
     pub fn body_coverage_line(&self) -> String {
-        let body_list = self
-            .bodies
-            .iter()
-            .map(ToString::to_string)
-            .collect::<Vec<_>>()
-            .join(", ");
-
-        format!("{} bundled bodies ({body_list})", self.bodies.len())
+        format!(
+            "{} bundled bodies ({})",
+            self.bodies.len(),
+            join_display(&self.bodies)
+        )
     }
 
     /// Returns the checked-in JPL snapshot coverage as a compact human-readable line.
@@ -157,17 +150,11 @@ impl PackagedArtifactProfileSummary {
 
     /// Renders the packaged artifact profile with its bundled body list.
     pub fn summary_line_with_bodies(&self) -> String {
-        let body_list = self
-            .bodies
-            .iter()
-            .map(ToString::to_string)
-            .collect::<Vec<_>>()
-            .join(", ");
-
         format!(
-            "byte order: {}; {}; bundled bodies: {body_list}",
+            "byte order: {}; {}; bundled bodies: {}",
             self.endian_policy,
             self.profile.summary_for_body_count(self.body_count),
+            join_display(&self.bodies),
         )
     }
 }
@@ -195,14 +182,6 @@ pub fn packaged_artifact_profile_summary() -> String {
 /// Returns the current packaged-artifact profile summary with bundled body coverage.
 pub fn packaged_artifact_profile_summary_with_body_coverage() -> String {
     packaged_artifact_profile_summary_details().summary_line_with_bodies()
-}
-
-fn join_display<T: fmt::Display>(values: &[T]) -> String {
-    values
-        .iter()
-        .map(ToString::to_string)
-        .collect::<Vec<_>>()
-        .join(", ")
 }
 
 /// Structured policy for how packaged-data lookup epochs are handled.

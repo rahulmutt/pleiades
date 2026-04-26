@@ -232,13 +232,21 @@ pub struct ArtifactProfile {
     pub speed_policy: SpeedPolicy,
 }
 
-fn format_bracketed_labels<T: fmt::Display>(values: &[T]) -> String {
-    let labels = values
+/// Joins displayable values into a compact comma-separated list.
+///
+/// This helper is used by release-facing summaries that need a stable,
+/// human-readable body or capability listing without introducing an extra
+/// formatting dependency in downstream crates.
+pub fn join_display<T: fmt::Display>(values: &[T]) -> String {
+    values
         .iter()
         .map(ToString::to_string)
         .collect::<Vec<_>>()
-        .join(", ");
-    format!("[{labels}]")
+        .join(", ")
+}
+
+fn format_bracketed_labels<T: fmt::Display>(values: &[T]) -> String {
+    format!("[{}]", join_display(values))
 }
 
 impl ArtifactProfile {
@@ -1331,6 +1339,10 @@ mod tests {
         assert_eq!(ChannelKind::Longitude.to_string(), "Longitude");
         assert_eq!(ArtifactOutput::Motion.to_string(), "Motion");
         assert_eq!(SpeedPolicy::Stored.to_string(), "Stored");
+        assert_eq!(
+            join_display(&[CelestialBody::Sun, CelestialBody::Moon]),
+            "Sun, Moon"
+        );
     }
 
     #[cfg(feature = "serde")]
