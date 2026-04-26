@@ -687,6 +687,8 @@ impl CompressedArtifact {
             ));
         }
 
+        validate_body_artifacts(&bodies)?;
+
         Ok(Self {
             header,
             checksum,
@@ -744,11 +746,13 @@ impl CompressedArtifact {
     }
 
     fn encode_payload(&self) -> Result<Vec<u8>, CompressionError> {
+        validate_body_artifacts(&self.bodies)?;
+
         let mut bytes = Vec::new();
         write_string(&mut bytes, &self.header.generation_label);
         write_string(&mut bytes, &self.header.source);
         write_u8(&mut bytes, encode_endian_policy(self.header.endian_policy));
-        encode_artifact_profile(&mut bytes, &self.header.profile);
+        encode_artifact_profile(&mut bytes, &self.header.profile)?;
         write_u16(&mut bytes, self.bodies.len() as u16);
         for body in &self.bodies {
             encode_body(&mut bytes, body)?;
@@ -830,7 +834,12 @@ fn decode_endian_policy(value: u8) -> Result<EndianPolicy, CompressionError> {
     }
 }
 
-fn encode_artifact_profile(bytes: &mut Vec<u8>, profile: &ArtifactProfile) {
+fn encode_artifact_profile(
+    bytes: &mut Vec<u8>,
+    profile: &ArtifactProfile,
+) -> Result<(), CompressionError> {
+    validate_artifact_profile(profile)?;
+
     write_u8(bytes, profile.stored_channels.len() as u8);
     for channel in &profile.stored_channels {
         write_u8(bytes, encode_channel_kind(*channel));
@@ -847,6 +856,7 @@ fn encode_artifact_profile(bytes: &mut Vec<u8>, profile: &ArtifactProfile) {
     }
 
     write_u8(bytes, encode_speed_policy(profile.speed_policy));
+    Ok(())
 }
 
 fn decode_artifact_profile(cursor: &mut Cursor<'_>) -> Result<ArtifactProfile, CompressionError> {
@@ -869,12 +879,77 @@ fn decode_artifact_profile(cursor: &mut Cursor<'_>) -> Result<ArtifactProfile, C
     }
 
     let speed_policy = decode_speed_policy(cursor.read_u8()?)?;
-    Ok(ArtifactProfile::new(
+    let profile = ArtifactProfile::new(
         stored_channels,
         derived_outputs,
         unsupported_outputs,
         speed_policy,
-    ))
+    );
+    validate_artifact_profile(&profile)?;
+    Ok(profile)
+}
+
+fn validate_artifact_profile(profile: &ArtifactProfile) -> Result<(), CompressionError> {
+    validate_unique_values("artifact profile stored channels", &profile.stored_channels)?;
+    validate_unique_values("artifact profile derived outputs", &profile.derived_outputs)?;
+    validate_unique_values(
+        "artifact profile unsupported outputs",
+        &profile.unsupported_outputs,
+    )?;
+    validate_disjoint_values(
+        "artifact profile derived outputs",
+        &profile.derived_outputs,
+        "artifact profile unsupported outputs",
+        &profile.unsupported_outputs,
+    )?;
+    Ok(())
+}
+
+fn validate_body_artifacts(bodies: &[BodyArtifact]) -> Result<(), CompressionError> {
+    for (index, body) in bodies.iter().enumerate() {
+        if bodies[..index].iter().any(|other| other.body == body.body) {
+            return Err(CompressionError::new(
+                CompressionErrorKind::InvalidFormat,
+                format!("compressed artifact contains duplicate body entry {body:?}"),
+            ));
+        }
+    }
+
+    Ok(())
+}
+
+fn validate_unique_values<T: fmt::Display + Eq>(
+    label: &str,
+    values: &[T],
+) -> Result<(), CompressionError> {
+    for (index, value) in values.iter().enumerate() {
+        if values[..index].contains(value) {
+            return Err(CompressionError::new(
+                CompressionErrorKind::InvalidFormat,
+                format!("{label} contains duplicate {value} entry"),
+            ));
+        }
+    }
+
+    Ok(())
+}
+
+fn validate_disjoint_values<T: fmt::Display + Eq>(
+    left_label: &str,
+    left: &[T],
+    right_label: &str,
+    right: &[T],
+) -> Result<(), CompressionError> {
+    for value in left {
+        if right.contains(value) {
+            return Err(CompressionError::new(
+                CompressionErrorKind::InvalidFormat,
+                format!("{left_label} and {right_label} both include {value}"),
+            ));
+        }
+    }
+
+    Ok(())
 }
 
 fn encode_body(bytes: &mut Vec<u8>, body: &BodyArtifact) -> Result<(), CompressionError> {
@@ -897,6 +972,8 @@ fn decode_body(cursor: &mut Cursor<'_>) -> Result<BodyArtifact, CompressionError
 }
 
 fn encode_segment(bytes: &mut Vec<u8>, segment: &Segment) -> Result<(), CompressionError> {
+    validate_segment(segment)?;
+
     encode_instant(bytes, segment.start);
     encode_instant(bytes, segment.end);
     write_u8(bytes, segment.channels.len() as u8);
@@ -923,12 +1000,44 @@ fn decode_segment(cursor: &mut Cursor<'_>) -> Result<Segment, CompressionError> 
     for _ in 0..residual_channel_count {
         residual_channels.push(decode_polynomial_channel(cursor)?);
     }
-    Ok(Segment::with_residual_channels(
-        start,
-        end,
-        channels,
-        residual_channels,
-    ))
+    let segment = Segment::with_residual_channels(start, end, channels, residual_channels);
+    validate_segment(&segment)?;
+    Ok(segment)
+}
+
+fn validate_segment(segment: &Segment) -> Result<(), CompressionError> {
+    if segment.end.julian_day.days() < segment.start.julian_day.days() {
+        return Err(CompressionError::new(
+            CompressionErrorKind::InvalidFormat,
+            "segment end precedes segment start",
+        ));
+    }
+
+    if segment.start.scale != segment.end.scale {
+        return Err(CompressionError::new(
+            CompressionErrorKind::InvalidFormat,
+            "segment start and end use different time scales",
+        ));
+    }
+
+    validate_unique_values(
+        "segment stored channels",
+        &segment
+            .channels
+            .iter()
+            .map(|channel| channel.kind)
+            .collect::<Vec<_>>(),
+    )?;
+    validate_unique_values(
+        "segment residual channels",
+        &segment
+            .residual_channels
+            .iter()
+            .map(|channel| channel.kind)
+            .collect::<Vec<_>>(),
+    )?;
+
+    Ok(())
 }
 
 fn encode_instant(bytes: &mut Vec<u8>, instant: Instant) {
@@ -1411,6 +1520,112 @@ mod tests {
         );
         assert!(!unlisted_profile.supports_output(ArtifactOutput::Motion));
         assert!(!unlisted_profile.is_unsupported_output(ArtifactOutput::Motion));
+    }
+
+    #[test]
+    fn artifact_encoding_rejects_duplicate_profile_entries() {
+        let artifact = CompressedArtifact::new(
+            ArtifactHeader::with_profile(
+                "duplicate profile demo",
+                "unit test duplicate profile entries",
+                ArtifactProfile::new(
+                    vec![ChannelKind::Longitude, ChannelKind::Longitude],
+                    vec![ArtifactOutput::EclipticCoordinates],
+                    vec![ArtifactOutput::EquatorialCoordinates],
+                    SpeedPolicy::Unsupported,
+                ),
+            ),
+            Vec::new(),
+        );
+
+        let error = artifact
+            .encode()
+            .expect_err("duplicate profile entries should be rejected");
+        assert_eq!(error.kind, CompressionErrorKind::InvalidFormat);
+    }
+
+    #[test]
+    fn artifact_encoding_rejects_duplicate_segment_channels() {
+        let artifact = CompressedArtifact::new(
+            ArtifactHeader::new(
+                "duplicate segment demo",
+                "unit test duplicate segment channels",
+            ),
+            vec![BodyArtifact::new(
+                CelestialBody::Moon,
+                vec![Segment::new(
+                    Instant::new(pleiades_types::JulianDay::from_days(0.0), TimeScale::Tt),
+                    Instant::new(pleiades_types::JulianDay::from_days(1.0), TimeScale::Tt),
+                    vec![
+                        PolynomialChannel::linear(ChannelKind::Longitude, 9, 0.0, 1.0),
+                        PolynomialChannel::linear(ChannelKind::Longitude, 9, 2.0, 3.0),
+                        PolynomialChannel::linear(ChannelKind::Latitude, 9, 4.0, 5.0),
+                        PolynomialChannel::linear(ChannelKind::DistanceAu, 12, 0.1, 0.2),
+                    ],
+                )],
+            )],
+        );
+
+        let error = artifact
+            .encode()
+            .expect_err("duplicate segment channels should be rejected");
+        assert_eq!(error.kind, CompressionErrorKind::InvalidFormat);
+    }
+
+    #[test]
+    fn artifact_encoding_rejects_mismatched_segment_scales() {
+        let artifact = CompressedArtifact::new(
+            ArtifactHeader::new(
+                "mismatched segment scales demo",
+                "unit test mismatched segment scales",
+            ),
+            vec![BodyArtifact::new(
+                CelestialBody::Moon,
+                vec![Segment::new(
+                    Instant::new(pleiades_types::JulianDay::from_days(0.0), TimeScale::Tt),
+                    Instant::new(pleiades_types::JulianDay::from_days(1.0), TimeScale::Tdb),
+                    vec![
+                        PolynomialChannel::linear(ChannelKind::Longitude, 9, 0.0, 1.0),
+                        PolynomialChannel::linear(ChannelKind::Latitude, 9, 2.0, 3.0),
+                        PolynomialChannel::linear(ChannelKind::DistanceAu, 12, 0.1, 0.2),
+                    ],
+                )],
+            )],
+        );
+
+        let error = artifact
+            .encode()
+            .expect_err("mismatched segment scales should be rejected");
+        assert_eq!(error.kind, CompressionErrorKind::InvalidFormat);
+    }
+
+    #[test]
+    fn artifact_decoding_rejects_duplicate_body_entries() {
+        let profile = ArtifactProfile::ecliptic_longitude_latitude_distance();
+        let mut payload = Vec::new();
+        write_string(&mut payload, "duplicate body decode demo");
+        write_string(&mut payload, "unit test duplicate body decode");
+        write_u8(
+            &mut payload,
+            encode_endian_policy(EndianPolicy::LittleEndian),
+        );
+        encode_artifact_profile(&mut payload, &profile).expect("profile should encode");
+        write_u16(&mut payload, 2);
+        encode_celestial_body(&mut payload, &CelestialBody::Sun).expect("Sun should encode");
+        write_u16(&mut payload, 0);
+        encode_celestial_body(&mut payload, &CelestialBody::Sun).expect("Sun should encode");
+        write_u16(&mut payload, 0);
+
+        let checksum = fnv1a64(&payload);
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&ARTIFACT_MAGIC);
+        write_u16(&mut bytes, ARTIFACT_VERSION);
+        write_u64(&mut bytes, checksum);
+        bytes.extend_from_slice(&payload);
+
+        let error = CompressedArtifact::decode(&bytes)
+            .expect_err("duplicate body entries should be rejected");
+        assert_eq!(error.kind, CompressionErrorKind::InvalidFormat);
     }
 
     #[test]
