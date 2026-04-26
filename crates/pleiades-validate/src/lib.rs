@@ -522,6 +522,7 @@ struct BodyClassToleranceSummary {
     sample_count: usize,
     within_tolerance_body_count: usize,
     outside_tolerance_body_count: usize,
+    outside_tolerance_sample_count: usize,
     max_longitude_delta_body: Option<CelestialBody>,
     max_longitude_delta_deg: Option<f64>,
     max_latitude_delta_body: Option<CelestialBody>,
@@ -609,6 +610,11 @@ impl BodyClassToleranceSummary {
             f,
             "    outside tolerance bodies: {}",
             self.outside_tolerance_body_count
+        )?;
+        writeln!(
+            f,
+            "    outside tolerance samples: {}",
+            self.outside_tolerance_sample_count
         )?;
         if !self.outside_bodies.is_empty() {
             writeln!(
@@ -5785,6 +5791,7 @@ struct BodyClassToleranceAccumulator {
     distance_count: usize,
     within_tolerance_body_count: usize,
     outside_tolerance_body_count: usize,
+    outside_tolerance_sample_count: usize,
     max_longitude_delta_body: Option<CelestialBody>,
     max_longitude_delta_deg: Option<f64>,
     max_latitude_delta_body: Option<CelestialBody>,
@@ -5813,6 +5820,7 @@ impl BodyClassToleranceAccumulator {
             distance_count: 0,
             within_tolerance_body_count: 0,
             outside_tolerance_body_count: 0,
+            outside_tolerance_sample_count: 0,
             max_longitude_delta_body: None,
             max_longitude_delta_deg: None,
             max_latitude_delta_body: None,
@@ -5858,6 +5866,18 @@ impl BodyClassToleranceAccumulator {
                 }
             }
         }
+
+        let tolerance = comparison_tolerance_for_class(self.class, &self.backend_family);
+        let distance_within = match (sample.distance_delta_au, tolerance.max_distance_delta_au) {
+            (Some(measured), Some(limit)) => measured <= limit,
+            (None, _) | (_, None) => true,
+        };
+        if sample.longitude_delta_deg > tolerance.max_longitude_delta_deg
+            || sample.latitude_delta_deg > tolerance.max_latitude_delta_deg
+            || !distance_within
+        {
+            self.outside_tolerance_sample_count += 1;
+        }
     }
 
     fn push_tolerance(&mut self, summary: &BodyToleranceSummary) {
@@ -5881,6 +5901,7 @@ impl BodyClassToleranceAccumulator {
             sample_count: self.sample_count,
             within_tolerance_body_count: self.within_tolerance_body_count,
             outside_tolerance_body_count: self.outside_tolerance_body_count,
+            outside_tolerance_sample_count: self.outside_tolerance_sample_count,
             max_longitude_delta_body: self.max_longitude_delta_body,
             max_longitude_delta_deg: self.max_longitude_delta_deg,
             max_latitude_delta_body: self.max_latitude_delta_body,
@@ -7684,6 +7705,7 @@ mod tests {
         assert!(body_class_tolerance_posture.contains("mean distance delta:"));
         assert!(body_class_tolerance_posture.contains("median distance delta:"));
         assert!(body_class_tolerance_posture.contains("rms distance delta:"));
+        assert!(body_class_tolerance_posture.contains("outside tolerance samples:"));
         assert!(report.contains("Expected tolerance status"));
         assert!(report.contains("margin Δlon="));
         assert!(report.contains("margin Δdist="));
