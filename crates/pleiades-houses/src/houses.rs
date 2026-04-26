@@ -3,7 +3,7 @@
 //! The catalog layer in this crate already enumerates the target compatibility
 //! set. This module implements the practical house-placement workflows for the
 //! baseline systems so the chart layer can offer real house cusps instead of
-//! catalog-only placeholders.
+//! catalog-only stubs.
 //!
 //! Equal, Whole Sign, and Porphyry remain the simplest space/ecliptic systems.
 //! Placidus, Koch, Alcabitius, and Topocentric use iterative or time-divisional
@@ -101,6 +101,11 @@ impl HouseSnapshot {
         } else {
             self.cusps.get(house - 1).copied()
         }
+    }
+
+    /// Returns the one-based house number for a longitude using this snapshot's cusps.
+    pub fn house_for_longitude(&self, longitude: Longitude) -> usize {
+        house_for_longitude(longitude, &self.cusps)
     }
 
     /// Ensures the snapshot contains only finite numeric values.
@@ -1620,14 +1625,40 @@ mod tests {
             Longitude::from_degrees(270.0),
             Longitude::from_degrees(300.0),
         ];
+        let snapshot = HouseSnapshot {
+            system: HouseSystem::Equal,
+            instant: sample_request(HouseSystem::Equal).instant,
+            observer: observer(),
+            obliquity: Angle::from_degrees(23.4),
+            angles: HouseAngles {
+                ascendant: Longitude::from_degrees(15.0),
+                descendant: Longitude::from_degrees(195.0),
+                midheaven: Longitude::from_degrees(75.0),
+                imum_coeli: Longitude::from_degrees(255.0),
+            },
+            cusps: cusps.to_vec(),
+        };
 
         assert_eq!(
             house_for_longitude(Longitude::from_degrees(359.0), &cusps),
             1
         );
+        assert_eq!(house_for_longitude(Longitude::from_degrees(0.0), &cusps), 2);
         assert_eq!(
-            house_for_longitude(Longitude::from_degrees(15.0), &cusps),
+            snapshot.house_for_longitude(Longitude::from_degrees(15.0)),
             2
+        );
+        assert_eq!(
+            snapshot.house_for_longitude(Longitude::from_degrees(29.999)),
+            2
+        );
+        assert_eq!(
+            snapshot.house_for_longitude(Longitude::from_degrees(30.0)),
+            3
+        );
+        assert_eq!(
+            snapshot.house_for_longitude(Longitude::from_degrees(44.999)),
+            3
         );
     }
 }
