@@ -40,9 +40,33 @@ use pleiades_types::{
 };
 
 /// Current artifact format version.
-pub const ARTIFACT_VERSION: u16 = 2;
+pub const ARTIFACT_VERSION: u16 = 3;
 
 const ARTIFACT_MAGIC: [u8; 8] = *b"PLDEPHEM";
+
+/// Describes the byte-order policy encoded by a compressed artifact.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+#[non_exhaustive]
+pub enum EndianPolicy {
+    /// The artifact stores its numeric fields in little-endian byte order.
+    LittleEndian,
+}
+
+impl EndianPolicy {
+    /// Returns the compact label used in release-facing summaries.
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::LittleEndian => "little-endian",
+        }
+    }
+}
+
+impl fmt::Display for EndianPolicy {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.label())
+    }
+}
 
 /// Describes the non-body metadata stored in a compressed artifact.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -54,13 +78,15 @@ pub struct ArtifactHeader {
     pub generation_label: String,
     /// Human-readable provenance/source summary.
     pub source: String,
+    /// Explicit byte-order policy for the stored numeric fields.
+    pub endian_policy: EndianPolicy,
     /// Artifact capability profile describing stored, derived, and unsupported outputs.
     pub profile: ArtifactProfile,
 }
 
 impl ArtifactHeader {
-    /// Creates a new header using the current artifact version and a conservative
-    /// ecliptic-only profile.
+    /// Creates a new header using the current artifact version, an explicit
+    /// little-endian byte-order policy, and a conservative ecliptic-only profile.
     pub fn new(generation_label: impl Into<String>, source: impl Into<String>) -> Self {
         Self::with_profile(
             generation_label,
@@ -69,16 +95,33 @@ impl ArtifactHeader {
         )
     }
 
-    /// Creates a new header using the current artifact version and an explicit profile.
+    /// Creates a new header using the current artifact version, an explicit
+    /// little-endian byte-order policy, and an explicit profile.
     pub fn with_profile(
         generation_label: impl Into<String>,
         source: impl Into<String>,
+        profile: ArtifactProfile,
+    ) -> Self {
+        Self::with_profile_and_endian(
+            generation_label,
+            source,
+            EndianPolicy::LittleEndian,
+            profile,
+        )
+    }
+
+    /// Creates a new header with an explicit byte-order policy and profile.
+    pub fn with_profile_and_endian(
+        generation_label: impl Into<String>,
+        source: impl Into<String>,
+        endian_policy: EndianPolicy,
         profile: ArtifactProfile,
     ) -> Self {
         Self {
             version: ARTIFACT_VERSION,
             generation_label: generation_label.into(),
             source: source.into(),
+            endian_policy,
             profile,
         }
     }
@@ -415,6 +458,7 @@ impl CompressedArtifact {
             version,
             generation_label: payload_cursor.read_string()?,
             source: payload_cursor.read_string()?,
+            endian_policy: decode_endian_policy(payload_cursor.read_u8()?)?,
             profile: decode_artifact_profile(&mut payload_cursor)?,
         };
         let body_count = payload_cursor.read_u16()? as usize;
@@ -475,6 +519,7 @@ impl CompressedArtifact {
         let mut bytes = Vec::new();
         write_string(&mut bytes, &self.header.generation_label);
         write_string(&mut bytes, &self.header.source);
+        write_u8(&mut bytes, encode_endian_policy(self.header.endian_policy));
         encode_artifact_profile(&mut bytes, &self.header.profile);
         write_u16(&mut bytes, self.bodies.len() as u16);
         for body in &self.bodies {
@@ -499,6 +544,8 @@ pub enum CompressionErrorKind {
     Truncated,
     /// The artifact contents were malformed.
     InvalidFormat,
+    /// The artifact declared an unsupported byte-order policy.
+    UnsupportedEndianPolicy,
     /// The requested body was not present.
     MissingBody,
     /// A required channel was absent.
@@ -538,6 +585,22 @@ impl fmt::Display for CompressionError {
 }
 
 impl std::error::Error for CompressionError {}
+
+fn encode_endian_policy(policy: EndianPolicy) -> u8 {
+    match policy {
+        EndianPolicy::LittleEndian => 0,
+    }
+}
+
+fn decode_endian_policy(value: u8) -> Result<EndianPolicy, CompressionError> {
+    match value {
+        0 => Ok(EndianPolicy::LittleEndian),
+        other => Err(CompressionError::new(
+            CompressionErrorKind::UnsupportedEndianPolicy,
+            format!("artifact byte-order policy {other} is not supported"),
+        )),
+    }
+}
 
 fn encode_artifact_profile(bytes: &mut Vec<u8>, profile: &ArtifactProfile) {
     write_u8(bytes, profile.stored_channels.len() as u8);
@@ -969,6 +1032,7 @@ mod tests {
         assert_eq!(decoded.header.version, ARTIFACT_VERSION);
         assert_eq!(decoded.header.generation_label, "demo");
         assert_eq!(decoded.header.source, "unit test fixture");
+        assert_eq!(decoded.header.endian_policy, EndianPolicy::LittleEndian);
         assert_eq!(
             decoded.header.profile.stored_channels,
             vec![
@@ -1023,6 +1087,30 @@ mod tests {
         .expect("artifact should decode with profile");
 
         assert_eq!(decoded.header.profile, profile);
+        assert_eq!(decoded.header.endian_policy, EndianPolicy::LittleEndian);
+    }
+
+    #[test]
+    fn explicit_endian_policy_roundtrip_preserves_header_metadata() {
+        let artifact = CompressedArtifact::new(
+            ArtifactHeader::with_profile_and_endian(
+                "endian demo",
+                "unit test endian policy",
+                EndianPolicy::LittleEndian,
+                ArtifactProfile::ecliptic_longitude_latitude_distance(),
+            ),
+            Vec::new(),
+        );
+
+        let decoded = CompressedArtifact::decode(
+            &artifact
+                .encode()
+                .expect("artifact should encode with explicit endian policy"),
+        )
+        .expect("artifact should decode with explicit endian policy");
+
+        assert_eq!(decoded.header.endian_policy, EndianPolicy::LittleEndian);
+        assert_eq!(decoded.header.generation_label, "endian demo");
     }
 
     #[test]

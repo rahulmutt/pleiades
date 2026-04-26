@@ -460,6 +460,7 @@ fn map_artifact_error(error: pleiades_compression::CompressionError) -> Ephemeri
         }
         pleiades_compression::CompressionErrorKind::QuantizationOverflow
         | pleiades_compression::CompressionErrorKind::InvalidFormat
+        | pleiades_compression::CompressionErrorKind::UnsupportedEndianPolicy
         | pleiades_compression::CompressionErrorKind::InvalidMagic
         | pleiades_compression::CompressionErrorKind::UnsupportedVersion
         | pleiades_compression::CompressionErrorKind::ChecksumMismatch

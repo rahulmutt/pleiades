@@ -5,7 +5,7 @@ use crate::{
     compare_backends, default_candidate_backend, ComparisonReport, ComparisonSample,
     ValidationCorpus,
 };
-use pleiades_compression::{CompressedArtifact, CompressionError};
+use pleiades_compression::{CompressedArtifact, CompressionError, EndianPolicy};
 use pleiades_core::{
     Angle, Apparentness, BackendFamily, CelestialBody, CoordinateFrame, EclipticCoordinates,
     EphemerisRequest, Instant, JulianDay, ZodiacMode,
@@ -21,6 +21,8 @@ pub struct ArtifactInspectionReport {
     pub source: String,
     /// Artifact format version.
     pub version: u16,
+    /// Byte-order policy encoded in the artifact header.
+    pub endian_policy: EndianPolicy,
     /// The encoded artifact checksum.
     pub checksum: u64,
     /// Size of the encoded artifact in bytes.
@@ -169,6 +171,7 @@ impl ArtifactInspectionReport {
             generation_label: decoded.header.generation_label,
             source: decoded.header.source,
             version: decoded.header.version,
+            endian_policy: decoded.header.endian_policy,
             checksum: decoded.checksum,
             encoded_bytes,
             roundtrip_ok: true,
@@ -340,6 +343,9 @@ fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
     text.push('\n');
     text.push_str("  version: ");
     text.push_str(&report.version.to_string());
+    text.push('\n');
+    text.push_str("  byte order: ");
+    text.push_str(report.endian_policy.label());
     text.push('\n');
     text.push_str(&format!("  checksum: 0x{:016x}\n", report.checksum));
     text.push_str("  encoded bytes: ");
@@ -767,6 +773,7 @@ impl fmt::Display for ArtifactInspectionReport {
         writeln!(f, "  label: {}", self.generation_label)?;
         writeln!(f, "  source: {}", self.source)?;
         writeln!(f, "  version: {}", self.version)?;
+        writeln!(f, "  byte order: {}", self.endian_policy.label())?;
         writeln!(f, "  checksum: 0x{:016x}", self.checksum)?;
         writeln!(f, "  encoded bytes: {}", self.encoded_bytes)?;
         writeln!(f, "  roundtrip decode: {}", yes_no(self.roundtrip_ok))?;

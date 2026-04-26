@@ -10489,6 +10489,7 @@ version = "0.9.0"
         let report = render_artifact_report().expect("artifact report should render");
         assert!(report.contains("Artifact validation report"));
         assert!(report.contains("stage-5 packaged-data prototype"));
+        assert!(report.contains("byte order: little-endian"));
         assert!(report.contains("roundtrip decode: ok"));
         assert!(report.contains("checksum verified: ok"));
         assert!(report.contains("Bodies"));
