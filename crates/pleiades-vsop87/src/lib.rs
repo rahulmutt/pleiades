@@ -192,6 +192,12 @@ pub struct Vsop87SourceDocumentationSummary {
     pub source_backed_bodies: Vec<CelestialBody>,
     /// Public source files currently represented by the catalog.
     pub source_files: Vec<&'static str>,
+    /// Bodies currently served by generated-binary VSOP87B tables.
+    pub generated_binary_bodies: Vec<CelestialBody>,
+    /// Bodies currently served by vendored full-file source paths.
+    pub vendored_full_file_bodies: Vec<CelestialBody>,
+    /// Bodies currently served by truncated source slices.
+    pub truncated_bodies: Vec<CelestialBody>,
     /// Number of vendored full-file body profiles.
     pub vendored_full_file_profile_count: usize,
     /// Number of generated-binary body profiles.
@@ -926,6 +932,21 @@ pub fn source_documentation_summary() -> Vsop87SourceDocumentationSummary {
         })
         .map(|profile| profile.body.clone())
         .collect::<Vec<_>>();
+    let generated_binary_bodies = source_backed_profiles
+        .iter()
+        .filter(|profile| profile.kind == Vsop87BodySourceKind::GeneratedBinaryVsop87b)
+        .map(|profile| profile.body.clone())
+        .collect::<Vec<_>>();
+    let vendored_full_file_bodies = source_backed_profiles
+        .iter()
+        .filter(|profile| profile.kind == Vsop87BodySourceKind::VendoredVsop87b)
+        .map(|profile| profile.body.clone())
+        .collect::<Vec<_>>();
+    let truncated_bodies = source_backed_profiles
+        .iter()
+        .filter(|profile| profile.kind == Vsop87BodySourceKind::TruncatedVsop87b)
+        .map(|profile| profile.body.clone())
+        .collect::<Vec<_>>();
     let source_files = source_specs
         .iter()
         .map(|spec| spec.source_file)
@@ -936,6 +957,9 @@ pub fn source_documentation_summary() -> Vsop87SourceDocumentationSummary {
         source_backed_profile_count: source_backed_bodies.len(),
         source_backed_bodies,
         source_files,
+        generated_binary_bodies,
+        vendored_full_file_bodies,
+        truncated_bodies,
         vendored_full_file_profile_count: source_backed_profiles
             .iter()
             .filter(|profile| profile.kind == Vsop87BodySourceKind::VendoredVsop87b)
@@ -987,8 +1011,23 @@ pub fn format_source_documentation_summary(summary: &Vsop87SourceDocumentationSu
     } else {
         summary.date_ranges.join("; ")
     };
+    let generated_binary_bodies = if summary.generated_binary_bodies.is_empty() {
+        "none".to_string()
+    } else {
+        format_celestial_bodies(&summary.generated_binary_bodies)
+    };
+    let vendored_full_file_bodies = if summary.vendored_full_file_bodies.is_empty() {
+        "none".to_string()
+    } else {
+        format_celestial_bodies(&summary.vendored_full_file_bodies)
+    };
+    let truncated_bodies = if summary.truncated_bodies.is_empty() {
+        "none".to_string()
+    } else {
+        format_celestial_bodies(&summary.truncated_bodies)
+    };
     format!(
-        "VSOP87 source documentation: {} source specs, {} source-backed body profiles, {} fallback mean-element body profile{} ({}); source-backed bodies: {}; source files: {}; source-backed breakdown: {} generated binary, {} vendored full-file, {} truncated slice; date ranges: {}",
+        "VSOP87 source documentation: {} source specs, {} source-backed body profiles, {} fallback mean-element body profile{} ({}); source-backed bodies: {}; source files: {}; source-backed breakdown: {} generated binary bodies ({}), {} vendored full-file bodies ({}), {} truncated slice bodies ({}); date ranges: {}",
         summary.source_specification_count,
         summary.source_backed_profile_count,
         summary.fallback_profile_count,
@@ -1001,8 +1040,11 @@ pub fn format_source_documentation_summary(summary: &Vsop87SourceDocumentationSu
         source_backed_bodies,
         source_files,
         summary.generated_binary_profile_count,
+        generated_binary_bodies,
         summary.vendored_full_file_profile_count,
+        vendored_full_file_bodies,
         summary.truncated_profile_count,
+        truncated_bodies,
         date_ranges,
     )
 }
@@ -3142,6 +3184,25 @@ mod tests {
                 "VSOP87B.nep",
             ]
         );
+        assert_eq!(
+            summary.generated_binary_bodies,
+            summary.source_backed_bodies
+        );
+        assert_eq!(
+            summary.generated_binary_bodies,
+            vec![
+                CelestialBody::Sun,
+                CelestialBody::Mercury,
+                CelestialBody::Venus,
+                CelestialBody::Mars,
+                CelestialBody::Jupiter,
+                CelestialBody::Saturn,
+                CelestialBody::Uranus,
+                CelestialBody::Neptune,
+            ]
+        );
+        assert!(summary.vendored_full_file_bodies.is_empty());
+        assert!(summary.truncated_bodies.is_empty());
         assert_eq!(summary.generated_binary_profile_count, 8);
         assert_eq!(summary.vendored_full_file_profile_count, 0);
         assert_eq!(summary.truncated_profile_count, 0);
@@ -3180,6 +3241,7 @@ mod tests {
         let rendered = source_documentation_summary_for_report();
         assert_eq!(rendered, format_source_documentation_summary(&summary));
         assert!(rendered.contains("source files: VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep"));
+        assert!(rendered.contains("source-backed breakdown: 8 generated binary bodies (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune), 0 vendored full-file bodies (none), 0 truncated slice bodies (none)"));
     }
 
     #[test]
