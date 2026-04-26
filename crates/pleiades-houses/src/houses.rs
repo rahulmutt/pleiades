@@ -1,9 +1,9 @@
-//! House-system calculations for the baseline chart MVP.
+//! House-system calculations for the baseline chart workflow.
 //!
 //! The catalog layer in this crate already enumerates the target compatibility
-//! set. This module now implements the first practical house-placement
-//! workflows for the baseline systems so the chart layer can offer real house
-//! cusps instead of catalog-only placeholders.
+//! set. This module implements the practical house-placement workflows for the
+//! baseline systems so the chart layer can offer real house cusps instead of
+//! catalog-only placeholders.
 //!
 //! Equal, Whole Sign, and Porphyry remain the simplest space/ecliptic systems.
 //! Placidus, Koch, Alcabitius, and Topocentric use iterative or time-divisional
@@ -147,9 +147,11 @@ impl std::error::Error for HouseError {}
 pub fn calculate_houses(request: &HouseRequest) -> Result<HouseSnapshot, HouseError> {
     validate_observer(&request.observer)?;
 
-    let obliquity = request
-        .obliquity
-        .unwrap_or_else(|| mean_obliquity(request.instant));
+    let obliquity = validate_obliquity(
+        request
+            .obliquity
+            .unwrap_or_else(|| mean_obliquity(request.instant)),
+    )?;
     let angles = derive_angles(request.instant, &request.observer, obliquity);
     let cusps = match &request.system {
         HouseSystem::Equal => equal_houses(angles.ascendant).into(),
@@ -252,6 +254,17 @@ fn validate_observer(observer: &ObserverLocation) -> Result<(), HouseError> {
     }
 
     Ok(())
+}
+
+fn validate_obliquity(obliquity: Angle) -> Result<Angle, HouseError> {
+    if !obliquity.is_finite() {
+        return Err(HouseError::new(
+            HouseErrorKind::NumericalFailure,
+            "house obliquity override must be finite",
+        ));
+    }
+
+    Ok(obliquity)
 }
 
 fn derive_angles(instant: Instant, observer: &ObserverLocation, obliquity: Angle) -> HouseAngles {
@@ -1378,6 +1391,16 @@ mod tests {
         assert!(error
             .message
             .contains("observer latitude 90.0001° is outside the valid range"));
+    }
+
+    #[test]
+    fn non_finite_obliquity_overrides_are_rejected() {
+        let request =
+            sample_request(HouseSystem::Equal).with_obliquity(Angle::from_degrees(f64::NAN));
+
+        let error = calculate_houses(&request).expect_err("invalid obliquity should fail");
+        assert_eq!(error.kind, HouseErrorKind::NumericalFailure);
+        assert!(error.message.contains("obliquity override must be finite"));
     }
 
     #[test]

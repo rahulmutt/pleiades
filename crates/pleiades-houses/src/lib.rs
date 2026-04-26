@@ -1,9 +1,9 @@
 //! House-system catalog definitions and compatibility metadata.
 //!
-//! This crate focuses on the catalog layer and the first chart MVP house-
-//! placement helpers: it enumerates the baseline built-in house systems, their
-//! common aliases, latitude-sensitive notes, and the Stage 3 baseline house
-//! formulas that power the chart workflow. It also carries the first Stage 6
+//! This crate focuses on the catalog layer and the baseline chart house-
+//! placement helpers: it enumerates the built-in house systems, their common
+//! aliases, latitude-sensitive notes, and the Stage 3 baseline house formulas
+//! that power the chart workflow. It also carries the first Stage 6
 //! compatibility-expansion additions so release profiles can distinguish the
 //! baseline milestone from newer catalog breadth. The resolver additionally
 //! accepts the common Swiss Ephemeris house-system letter codes used by
