@@ -39,6 +39,18 @@ impl ApiStabilityProfile {
     pub const fn stability_note(&self) -> &'static str {
         self.summary
     }
+
+    /// Returns a compact release-facing summary line for the stability posture.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "API stability posture: {}; stable surfaces: {}; experimental surfaces: {}; deprecation policy items: {}; intentional limits: {}",
+            self.profile_id,
+            self.stable_surfaces.len(),
+            self.experimental_surfaces.len(),
+            self.deprecation_policy.len(),
+            self.intentional_limits.len()
+        )
+    }
 }
 
 /// Returns the current API stability posture.
@@ -174,6 +186,25 @@ mod tests {
             .intentional_limits
             .iter()
             .any(|line| line.contains("Validation report text")));
+        let summary_line = profile.summary_line();
+        assert!(summary_line.contains("API stability posture:"));
+        assert!(summary_line.contains(CURRENT_API_STABILITY_PROFILE_ID));
+        assert!(summary_line.contains(&format!(
+            "stable surfaces: {}",
+            profile.stable_surfaces.len()
+        )));
+        assert!(summary_line.contains(&format!(
+            "experimental surfaces: {}",
+            profile.experimental_surfaces.len()
+        )));
+        assert!(summary_line.contains(&format!(
+            "deprecation policy items: {}",
+            profile.deprecation_policy.len()
+        )));
+        assert!(summary_line.contains(&format!(
+            "intentional limits: {}",
+            profile.intentional_limits.len()
+        )));
         assert!(profile.to_string().contains("API stability posture:"));
     }
 }

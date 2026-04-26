@@ -750,6 +750,7 @@ mod tests {
         let api_stability =
             render_cli(&["api-stability-summary"]).expect("api stability summary should render");
         assert!(api_stability.contains("API stability summary"));
+        assert!(api_stability.contains("Summary line: API stability posture:"));
         assert!(api_stability.contains("Stable surfaces: 6"));
         assert!(api_stability.contains(&format!(
             "Compatibility profile: {}",

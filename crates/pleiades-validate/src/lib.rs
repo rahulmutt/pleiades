@@ -2675,7 +2675,7 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&profile.known_gaps.len().to_string());
     text.push('\n');
     text.push_str("API stability summary line: ");
-    text.push_str(api_stability.summary);
+    text.push_str(&api_stability.summary_line());
     text.push('\n');
     text.push_str("Release notes: release-notes\n");
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
@@ -3045,7 +3045,7 @@ fn render_release_summary_text() -> String {
     text.push_str("Release checklist summary: release-checklist-summary\n");
     text.push('\n');
     text.push_str("API stability summary line: ");
-    text.push_str(api_stability.summary);
+    text.push_str(&api_stability.summary_line());
     text.push('\n');
     text.push_str("Release gate reminders:\n");
     for item in [
@@ -6005,6 +6005,9 @@ fn render_api_stability_summary_text() -> String {
     text.push_str("API stability summary\n");
     text.push_str("Profile: ");
     text.push_str(profile.profile_id);
+    text.push('\n');
+    text.push_str("Summary line: ");
+    text.push_str(&profile.summary_line());
     text.push('\n');
     text.push_str("Compatibility profile: ");
     text.push_str(release_profiles.compatibility_profile_id);
@@ -9010,10 +9013,19 @@ mod tests {
         let rendered =
             render_cli(&["api-stability-summary"]).expect("api stability summary should render");
         let release_profiles = current_release_profile_identifiers();
+        let api_stability = current_api_stability_profile();
         assert!(rendered.contains("API stability summary"));
         assert!(rendered.contains(&format!(
             "Profile: {}",
             release_profiles.api_stability_profile_id
+        )));
+        assert!(rendered.contains(&format!(
+            "Summary line: API stability posture: {}; stable surfaces: {}; experimental surfaces: {}; deprecation policy items: {}; intentional limits: {}",
+            release_profiles.api_stability_profile_id,
+            api_stability.stable_surfaces.len(),
+            api_stability.experimental_surfaces.len(),
+            api_stability.deprecation_policy.len(),
+            api_stability.intentional_limits.len()
         )));
         assert!(rendered.contains(&format!(
             "Compatibility profile: {}",
@@ -10129,7 +10141,9 @@ version = "0.9.0"
         assert!(release_notes_summary.contains(
             "Latitude-sensitive house systems: 8 (Placidus, Koch, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Topocentric, Sunshine, Gauquelin sectors)"
         ));
-        assert!(release_notes_summary.contains("API stability summary line:"));
+        assert!(
+            release_notes_summary.contains("API stability summary line: API stability posture:")
+        );
         assert!(release_notes_summary.contains("Artifact validation: validate-artifact"));
         assert!(release_notes_summary.contains("Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_notes_summary.contains("Release notes: release-notes"));
@@ -10141,6 +10155,7 @@ version = "0.9.0"
         assert!(release_notes_summary
             .contains("Compatibility profile verification: verify-compatibility-profile"));
         assert!(release_summary.contains("Release summary"));
+        assert!(release_summary.contains("API stability summary line: API stability posture:"));
         assert!(release_summary.contains(
             "Latitude-sensitive house systems: 8 (Placidus, Koch, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Topocentric, Sunshine, Gauquelin sectors)"
         ));
