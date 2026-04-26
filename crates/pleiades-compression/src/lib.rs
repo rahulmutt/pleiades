@@ -352,9 +352,14 @@ impl BodyArtifact {
     }
 
     /// Returns the segment covering the requested instant, if any.
+    ///
+    /// When two adjacent segments both include the same boundary instant, the
+    /// later segment wins. This keeps shared segment edges deterministic for
+    /// piecewise artifacts that use inclusive endpoints.
     pub fn segment_at(&self, instant: Instant) -> Option<&Segment> {
         self.segments
             .iter()
+            .rev()
             .find(|segment| segment.contains(instant))
     }
 }
@@ -1301,6 +1306,51 @@ mod tests {
             )
             .expect_err("out-of-range instant should error");
         assert_eq!(error.kind, CompressionErrorKind::OutOfRangeInstant);
+    }
+
+    #[test]
+    fn random_access_helpers_prefer_the_later_segment_on_shared_boundaries() {
+        let artifact = CompressedArtifact::new(
+            ArtifactHeader::new("demo", "boundary fixture"),
+            vec![BodyArtifact::new(
+                CelestialBody::Moon,
+                vec![
+                    Segment::new(
+                        Instant::new(pleiades_types::JulianDay::from_days(0.0), TimeScale::Tt),
+                        Instant::new(pleiades_types::JulianDay::from_days(1.0), TimeScale::Tt),
+                        vec![
+                            PolynomialChannel::linear(ChannelKind::Longitude, 9, 0.0, 10.0),
+                            PolynomialChannel::linear(ChannelKind::Latitude, 9, 1.0, 2.0),
+                            PolynomialChannel::linear(ChannelKind::DistanceAu, 12, 0.1, 0.2),
+                        ],
+                    ),
+                    Segment::new(
+                        Instant::new(pleiades_types::JulianDay::from_days(1.0), TimeScale::Tt),
+                        Instant::new(pleiades_types::JulianDay::from_days(2.0), TimeScale::Tt),
+                        vec![
+                            PolynomialChannel::linear(ChannelKind::Longitude, 9, 20.0, 30.0),
+                            PolynomialChannel::linear(ChannelKind::Latitude, 9, 3.0, 4.0),
+                            PolynomialChannel::linear(ChannelKind::DistanceAu, 12, 0.3, 0.4),
+                        ],
+                    ),
+                ],
+            )],
+        );
+
+        let shared_boundary =
+            Instant::new(pleiades_types::JulianDay::from_days(1.0), TimeScale::Tt);
+        let segment = artifact
+            .segment_for(&CelestialBody::Moon, shared_boundary)
+            .expect("shared boundary should resolve to the later segment");
+        assert_eq!(segment.start.julian_day.days(), 1.0);
+        assert_eq!(segment.end.julian_day.days(), 2.0);
+
+        let ecliptic = artifact
+            .lookup_ecliptic(&CelestialBody::Moon, shared_boundary)
+            .expect("boundary lookup should succeed");
+        assert_eq!(ecliptic.longitude.degrees(), 20.0);
+        assert_eq!(ecliptic.latitude.degrees(), 3.0);
+        assert_eq!(ecliptic.distance_au, Some(0.3));
     }
 
     #[test]
