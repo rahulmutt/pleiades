@@ -10220,6 +10220,8 @@ version = "0.9.0"
         assert!(release_summary.contains(
             "Packaged-artifact regeneration: Packaged artifact regeneration source: label=stage-5 packaged-data prototype"
         ));
+        assert!(release_summary.contains("checksum=0x"));
+        assert!(release_summary.contains("generation policy: adjacent same-body linear segments"));
         assert!(release_summary.contains("Comparison envelope: max longitude delta:"));
         assert!(
             release_summary.contains("Comparison tail envelope: 95th percentile absolute deltas:")
@@ -10295,6 +10297,8 @@ version = "0.9.0"
         assert!(artifact_summary.contains(
             "regeneration provenance: Packaged artifact regeneration source: label=stage-5 packaged-data prototype"
         ));
+        assert!(artifact_summary.contains("checksum=0x"));
+        assert!(artifact_summary.contains("generation policy: adjacent same-body linear segments"));
         assert!(artifact_summary.contains("Packaged frame treatment"));
         assert!(artifact_summary.contains("applies to 11 bundled bodies"));
         assert!(artifact_summary.contains("Model error envelope"));

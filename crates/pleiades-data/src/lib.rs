@@ -99,6 +99,37 @@ pub fn packaged_body_coverage_summary() -> String {
     packaged_body_coverage_summary_details().summary_line()
 }
 
+/// Structured generation policy for the packaged artifact.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PackagedArtifactGenerationPolicy {
+    /// Adjacent same-body source epochs are fit with linear segments.
+    AdjacentSameBodyLinearSegments,
+}
+
+impl PackagedArtifactGenerationPolicy {
+    /// Returns the compact label used in release-facing summaries.
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::AdjacentSameBodyLinearSegments => "adjacent same-body linear segments",
+        }
+    }
+
+    /// Returns the explanatory note used in release-facing summaries.
+    pub const fn note(self) -> &'static str {
+        match self {
+            Self::AdjacentSameBodyLinearSegments => {
+                "bodies with a single sampled epoch use point segments; multi-epoch bodies are fit with linear segments between adjacent same-body source epochs"
+            }
+        }
+    }
+}
+
+impl fmt::Display for PackagedArtifactGenerationPolicy {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.label())
+    }
+}
+
 /// Structured regeneration provenance for the packaged artifact.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PackagedArtifactRegenerationSummary {
@@ -106,6 +137,10 @@ pub struct PackagedArtifactRegenerationSummary {
     pub label: &'static str,
     /// Human-readable provenance/source summary.
     pub source: &'static str,
+    /// Checksum of the checked-in packaged artifact.
+    pub checksum: u64,
+    /// Generation policy used to turn reference snapshots into segments.
+    pub generation_policy: PackagedArtifactGenerationPolicy,
     /// Bodies bundled into the packaged artifact.
     pub bodies: Vec<CelestialBody>,
     /// Coverage summary for the checked-in JPL reference snapshot used for regeneration.
@@ -129,12 +164,23 @@ impl PackagedArtifactRegenerationSummary {
             .unwrap_or_else(|| "Reference snapshot coverage: unavailable".to_string())
     }
 
+    /// Returns the generation policy as a compact human-readable line.
+    pub fn generation_policy_line(&self) -> String {
+        format!(
+            "generation policy: {}; {}",
+            self.generation_policy,
+            self.generation_policy.note()
+        )
+    }
+
     /// Returns the full packaged-artifact regeneration provenance summary.
     pub fn summary_line(&self) -> String {
         format!(
-            "Packaged artifact regeneration source: label={}; source={}; bundled bodies: {}; {}",
+            "Packaged artifact regeneration source: label={}; source={}; checksum=0x{:016x}; {}; bundled bodies: {}; {}",
             self.label,
             self.source,
+            self.checksum,
+            self.generation_policy_line(),
             self.body_coverage_line(),
             self.reference_snapshot_line(),
         )
@@ -152,6 +198,8 @@ pub fn packaged_artifact_regeneration_summary_details() -> PackagedArtifactRegen
     PackagedArtifactRegenerationSummary {
         label: ARTIFACT_LABEL,
         source: ARTIFACT_SOURCE,
+        checksum: packaged_artifact().checksum,
+        generation_policy: PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments,
         bodies: packaged_bodies().to_vec(),
         reference_snapshot: reference_snapshot_summary(),
     }
@@ -910,12 +958,22 @@ mod tests {
     #[test]
     fn packaged_artifact_regeneration_summary_includes_reference_snapshot_coverage() {
         let summary = packaged_artifact_regeneration_summary_details();
+        let artifact = packaged_artifact();
         assert_eq!(summary.label, ARTIFACT_LABEL);
         assert_eq!(summary.source, ARTIFACT_SOURCE);
+        assert_eq!(summary.checksum, artifact.checksum);
+        assert_eq!(
+            summary.generation_policy,
+            PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments
+        );
         assert_eq!(summary.bodies.len(), packaged_bodies().len());
         assert_eq!(
             summary.body_coverage_line(),
             "11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"
+        );
+        assert_eq!(
+            summary.generation_policy_line(),
+            "generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch bodies are fit with linear segments between adjacent same-body source epochs"
         );
         assert_eq!(
             packaged_body_coverage_summary_details().summary_line(),
@@ -931,6 +989,8 @@ mod tests {
         assert!(provenance.contains(
             "Packaged artifact regeneration source: label=stage-5 packaged-data prototype"
         ));
+        assert!(provenance.contains("checksum=0x"));
+        assert!(provenance.contains("generation policy: adjacent same-body linear segments"));
         assert!(provenance.contains("11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"));
         assert!(provenance.contains("Reference snapshot coverage:"));
         assert!(provenance.contains("rows across"));
