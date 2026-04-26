@@ -9165,6 +9165,7 @@ mod tests {
         assert!(rendered.contains("Galactic Center (Cochrane)"));
         assert!(rendered.contains("P.V.R. Narasimha Rao"));
         assert!(rendered.contains("Bob Makransky"));
+        assert!(rendered.contains("Sunshine table of houses, by Bob Makransky"));
         assert!(rendered.contains("Treindl Sunshine"));
         assert!(rendered.contains("Valens Moon"));
         assert!(rendered.contains("Babylonian (House Obs)"));

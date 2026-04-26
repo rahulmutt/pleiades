@@ -653,6 +653,7 @@ mod tests {
         assert!(rendered.contains("Gauquelin table of sectors"));
         assert!(rendered.contains("Pullen SD (Neo-Porphyry) table of houses"));
         assert!(rendered.contains("Makransky Sunshine"));
+        assert!(rendered.contains("Sunshine table of houses, by Bob Makransky"));
         assert!(rendered.contains("Treindl Sunshine"));
         assert!(rendered.contains("Y APC houses"));
         assert!(rendered.contains("Wang"));
