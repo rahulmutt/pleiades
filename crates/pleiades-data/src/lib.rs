@@ -59,15 +59,44 @@ fn packaged_bodies() -> &'static [CelestialBody] {
     })
 }
 
+/// Structured coverage summary for the bodies bundled into the packaged artifact.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PackagedBodyCoverageSummary {
+    /// Number of bodies bundled into the packaged artifact.
+    pub body_count: usize,
+    /// Bodies bundled into the packaged artifact.
+    pub bodies: Vec<CelestialBody>,
+}
+
+impl PackagedBodyCoverageSummary {
+    /// Returns the bundled body set as a compact human-readable line.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Packaged body set: {} bundled bodies ({})",
+            self.body_count,
+            join_display(&self.bodies)
+        )
+    }
+}
+
+impl fmt::Display for PackagedBodyCoverageSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns the structured packaged body coverage summary.
+pub fn packaged_body_coverage_summary_details() -> PackagedBodyCoverageSummary {
+    let bodies = packaged_bodies().to_vec();
+    PackagedBodyCoverageSummary {
+        body_count: bodies.len(),
+        bodies,
+    }
+}
+
 /// Returns the packaged body set as a human-readable provenance summary.
 pub fn packaged_body_coverage_summary() -> String {
-    let bodies = packaged_bodies();
-
-    format!(
-        "Packaged body set: {} bundled bodies ({})",
-        bodies.len(),
-        join_display(bodies)
-    )
+    packaged_body_coverage_summary_details().summary_line()
 }
 
 /// Structured regeneration provenance for the packaged artifact.
@@ -346,7 +375,7 @@ impl EphemerisBackend for PackagedDataBackend {
             provenance: BackendProvenance {
                 summary: artifact.header.source.clone(),
                 data_sources: vec![
-                    packaged_body_coverage_summary(),
+                    packaged_body_coverage_summary_details().summary_line(),
                     packaged_request_policy_summary_details().summary_line(),
                     packaged_frame_treatment_summary().to_string(),
                     "Quantized linear segments stored in pleiades-compression artifact format"
@@ -883,8 +912,12 @@ mod tests {
             "11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"
         );
         assert_eq!(
-            packaged_body_coverage_summary(),
+            packaged_body_coverage_summary_details().summary_line(),
             format!("Packaged body set: {}", summary.body_coverage_line())
+        );
+        assert_eq!(
+            packaged_body_coverage_summary(),
+            packaged_body_coverage_summary_details().to_string()
         );
 
         let provenance = summary.summary_line();
@@ -977,8 +1010,13 @@ mod tests {
 
     #[test]
     fn packaged_body_coverage_summary_matches_the_packaged_body_set() {
-        let summary = packaged_body_coverage_summary();
-        assert!(summary.contains("11 bundled bodies"));
-        assert!(summary.contains("Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros"));
+        let summary = packaged_body_coverage_summary_details();
+        assert_eq!(summary.body_count, packaged_bodies().len());
+        assert_eq!(summary.bodies, packaged_bodies().to_vec());
+        assert_eq!(
+            summary.summary_line(),
+            "Packaged body set: 11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"
+        );
+        assert_eq!(packaged_body_coverage_summary(), summary.to_string());
     }
 }
