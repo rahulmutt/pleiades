@@ -422,16 +422,63 @@ pub fn comparison_snapshot_summary() -> Option<ComparisonSnapshotSummary> {
     })
 }
 
+/// Backend-owned provenance summary for the comparison snapshot used by validation.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ComparisonSnapshotSourceSummary {
+    /// Source attribution for the comparison snapshot.
+    pub source: String,
+    /// Coverage note for the comparison snapshot.
+    pub coverage: String,
+    /// CSV column layout for the comparison snapshot.
+    pub columns: String,
+}
+
+impl ComparisonSnapshotSourceSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Comparison snapshot source: {}; coverage={}; columns={}",
+            self.source, self.coverage, self.columns
+        )
+    }
+}
+
+impl fmt::Display for ComparisonSnapshotSourceSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns the backend-owned provenance summary for the comparison snapshot.
+pub fn comparison_snapshot_source_summary() -> ComparisonSnapshotSourceSummary {
+    static SUMMARY: OnceLock<ComparisonSnapshotSourceSummary> = OnceLock::new();
+    SUMMARY
+        .get_or_init(|| {
+            let manifest = comparison_snapshot_manifest();
+            ComparisonSnapshotSourceSummary {
+                source: manifest
+                    .source_or("NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.")
+                    .to_string(),
+                coverage: manifest.coverage_or(
+                    "Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.",
+                )
+                .to_string(),
+                columns: manifest.columns_summary(),
+            }
+        })
+        .clone()
+}
+
+/// Formats the source/material summary for the comparison snapshot used by validation.
+pub fn format_comparison_snapshot_source_summary(
+    summary: &ComparisonSnapshotSourceSummary,
+) -> String {
+    summary.summary_line()
+}
+
 /// Returns the source/material summary for the comparison snapshot used by validation.
 pub fn comparison_snapshot_source_summary_for_report() -> String {
-    let manifest = comparison_snapshot_manifest();
-    let source = manifest
-        .source_or("NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.");
-    let coverage = manifest.coverage_or(
-        "Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.",
-    );
-    let columns = manifest.columns_summary();
-    format!("Comparison snapshot source: {source}; coverage={coverage}; columns={columns}")
+    comparison_snapshot_source_summary().summary_line()
 }
 
 /// Returns the manifest summary for the comparison snapshot used by validation.
@@ -2590,6 +2637,7 @@ mod tests {
     #[test]
     fn comparison_snapshot_manifest_parses_the_documented_header_comments() {
         let manifest = comparison_snapshot_manifest();
+        let source_summary = comparison_snapshot_source_summary();
         assert_eq!(
             manifest.title.as_deref(),
             Some("JPL Horizons reference snapshot.")
@@ -2601,8 +2649,17 @@ mod tests {
         assert_eq!(manifest.coverage, None);
         assert_eq!(manifest.columns, ["body", "x_km", "y_km", "z_km"]);
         assert_eq!(
-            comparison_snapshot_source_summary_for_report(),
+            source_summary.summary_line(),
             "Comparison snapshot source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.; coverage=Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.; columns=body, x_km, y_km, z_km"
+        );
+        assert_eq!(source_summary.to_string(), source_summary.summary_line());
+        assert_eq!(
+            format_comparison_snapshot_source_summary(&source_summary),
+            source_summary.summary_line()
+        );
+        assert_eq!(
+            comparison_snapshot_source_summary_for_report(),
+            source_summary.summary_line()
         );
         assert_eq!(
             manifest.summary_line("Comparison snapshot manifest"),

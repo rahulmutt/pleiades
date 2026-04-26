@@ -69,7 +69,7 @@ use pleiades_houses::{
 };
 use pleiades_jpl::{
     comparison_snapshot, comparison_snapshot_manifest_summary_for_report,
-    comparison_snapshot_source_summary_for_report, comparison_snapshot_summary_for_report,
+    comparison_snapshot_source_summary, comparison_snapshot_summary_for_report,
     format_jpl_interpolation_quality_kind_coverage,
     format_jpl_interpolation_quality_summary_for_report,
     frame_treatment_summary as jpl_frame_treatment_summary,
@@ -2848,7 +2848,7 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&comparison_snapshot_summary_for_report());
     text.push('\n');
-    text.push_str(&comparison_snapshot_source_summary_for_report());
+    text.push_str(&comparison_snapshot_source_summary().summary_line());
     text.push('\n');
     text.push_str(&comparison_snapshot_manifest_summary_for_report());
     text.push('\n');
@@ -2916,7 +2916,7 @@ fn render_release_notes_summary_text() -> String {
     text.push('\n');
     text.push_str(&comparison_snapshot_summary_for_report());
     text.push('\n');
-    text.push_str(&comparison_snapshot_source_summary_for_report());
+    text.push_str(&comparison_snapshot_source_summary().summary_line());
     text.push('\n');
     text.push_str(&comparison_snapshot_manifest_summary_for_report());
     text.push('\n');
@@ -5348,7 +5348,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(
         text,
         "  {}",
-        comparison_snapshot_source_summary_for_report()
+        comparison_snapshot_source_summary().summary_line()
     );
     let _ = writeln!(
         text,
@@ -6262,7 +6262,7 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str(&comparison_snapshot_summary_for_report());
     text.push('\n');
-    text.push_str(&comparison_snapshot_source_summary_for_report());
+    text.push_str(&comparison_snapshot_source_summary().summary_line());
     text.push('\n');
     text.push_str(&comparison_snapshot_manifest_summary_for_report());
     text.push('\n');
