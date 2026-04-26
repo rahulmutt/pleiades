@@ -131,18 +131,20 @@ impl ArtifactHeader {
     /// Returns a compact one-line summary of the byte order and capability
     /// profile encoded by this header.
     pub fn summary(&self) -> String {
-        format!(
-            "byte order: {}; {}",
-            self.endian_policy,
-            self.profile.summary()
-        )
+        self.summary_line()
+    }
+
+    /// Returns a compact one-line summary of the byte order and capability
+    /// profile encoded by this header.
+    pub fn summary_line(&self) -> String {
+        format!("byte order: {}; {}", self.endian_policy, self.profile)
     }
 
     /// Returns the header summary annotated with how many bodies share it.
     pub fn summary_for_body_count(&self, body_count: usize) -> String {
         format!(
             "{}; applies to {} bundled bodies",
-            self.summary(),
+            self.summary_line(),
             body_count
         )
     }
@@ -184,6 +186,18 @@ impl ArtifactOutput {
 impl fmt::Display for ArtifactOutput {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.label())
+    }
+}
+
+impl fmt::Display for ArtifactProfile {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+impl fmt::Display for ArtifactHeader {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
     }
 }
 
@@ -270,6 +284,12 @@ impl ArtifactProfile {
     /// Returns a compact one-line summary of the stored, derived, unsupported,
     /// and speed-policy capabilities encoded by this profile.
     pub fn summary(&self) -> String {
+        self.summary_line()
+    }
+
+    /// Returns a compact one-line summary of the stored, derived, unsupported,
+    /// and speed-policy capabilities encoded by this profile.
+    pub fn summary_line(&self) -> String {
         format!(
             "stored channels: {}; derived outputs: {}; unsupported outputs: {}; speed policy: {}",
             format_bracketed_labels(&self.stored_channels),
@@ -283,9 +303,14 @@ impl ArtifactProfile {
     pub fn summary_for_body_count(&self, body_count: usize) -> String {
         format!(
             "{}; applies to {} bundled bodies",
-            self.summary(),
+            self.summary_line(),
             body_count
         )
+    }
+
+    /// Returns the capability summary annotated with how many bodies share it.
+    pub fn summary_line_with_body_count(&self, body_count: usize) -> String {
+        self.summary_for_body_count(body_count)
     }
 
     /// Returns the current conservative profile: ecliptic longitude, latitude,
@@ -1408,8 +1433,20 @@ mod tests {
             "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates]; unsupported outputs: [EquatorialCoordinates, ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported"
         );
         assert_eq!(
+            profile.summary_line(),
+            "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates]; unsupported outputs: [EquatorialCoordinates, ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported"
+        );
+        assert_eq!(
             profile.summary_for_body_count(11),
             "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates]; unsupported outputs: [EquatorialCoordinates, ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 11 bundled bodies"
+        );
+        assert_eq!(
+            profile.summary_line_with_body_count(11),
+            "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates]; unsupported outputs: [EquatorialCoordinates, ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 11 bundled bodies"
+        );
+        assert_eq!(
+            profile.to_string(),
+            "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates]; unsupported outputs: [EquatorialCoordinates, ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported"
         );
 
         let header = ArtifactHeader::with_profile_and_endian(
@@ -1423,8 +1460,16 @@ mod tests {
             "byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates]; unsupported outputs: [EquatorialCoordinates, ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported"
         );
         assert_eq!(
+            header.summary_line(),
+            "byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates]; unsupported outputs: [EquatorialCoordinates, ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported"
+        );
+        assert_eq!(
             header.summary_for_body_count(11),
             "byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates]; unsupported outputs: [EquatorialCoordinates, ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 11 bundled bodies"
+        );
+        assert_eq!(
+            header.to_string(),
+            "byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates]; unsupported outputs: [EquatorialCoordinates, ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported"
         );
     }
 
