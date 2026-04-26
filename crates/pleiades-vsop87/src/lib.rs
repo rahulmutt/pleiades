@@ -190,6 +190,8 @@ pub struct Vsop87SourceDocumentationSummary {
     pub source_backed_profile_count: usize,
     /// Bodies that still use a source-backed planetary path rather than the fallback mean-element path.
     pub source_backed_bodies: Vec<CelestialBody>,
+    /// Public source files currently represented by the catalog.
+    pub source_files: Vec<&'static str>,
     /// Number of vendored full-file body profiles.
     pub vendored_full_file_profile_count: usize,
     /// Number of generated-binary body profiles.
@@ -840,11 +842,16 @@ pub fn source_documentation_summary() -> Vsop87SourceDocumentationSummary {
         })
         .map(|profile| profile.body.clone())
         .collect::<Vec<_>>();
+    let source_files = source_specs
+        .iter()
+        .map(|spec| spec.source_file)
+        .collect::<Vec<_>>();
 
     Vsop87SourceDocumentationSummary {
         source_specification_count: source_specs.len(),
         source_backed_profile_count: source_backed_bodies.len(),
         source_backed_bodies,
+        source_files,
         vendored_full_file_profile_count: source_backed_profiles
             .iter()
             .filter(|profile| profile.kind == Vsop87BodySourceKind::VendoredVsop87b)
@@ -886,13 +893,18 @@ pub fn format_source_documentation_summary(summary: &Vsop87SourceDocumentationSu
     } else {
         format_celestial_bodies(&summary.fallback_bodies)
     };
+    let source_files = if summary.source_files.is_empty() {
+        "none".to_string()
+    } else {
+        summary.source_files.join(", ")
+    };
     let date_ranges = if summary.date_ranges.is_empty() {
         "none".to_string()
     } else {
         summary.date_ranges.join("; ")
     };
     format!(
-        "VSOP87 source documentation: {} source specs, {} source-backed body profiles, {} fallback mean-element body profile{} ({}); source-backed bodies: {}; source-backed breakdown: {} generated binary, {} vendored full-file, {} truncated slice; date ranges: {}",
+        "VSOP87 source documentation: {} source specs, {} source-backed body profiles, {} fallback mean-element body profile{} ({}); source-backed bodies: {}; source files: {}; source-backed breakdown: {} generated binary, {} vendored full-file, {} truncated slice; date ranges: {}",
         summary.source_specification_count,
         summary.source_backed_profile_count,
         summary.fallback_profile_count,
@@ -903,6 +915,7 @@ pub fn format_source_documentation_summary(summary: &Vsop87SourceDocumentationSu
         },
         fallback_bodies,
         source_backed_bodies,
+        source_files,
         summary.generated_binary_profile_count,
         summary.vendored_full_file_profile_count,
         summary.truncated_profile_count,
@@ -2970,6 +2983,19 @@ mod tests {
                 CelestialBody::Neptune,
             ]
         );
+        assert_eq!(
+            summary.source_files,
+            vec![
+                "VSOP87B.ear",
+                "VSOP87B.mer",
+                "VSOP87B.ven",
+                "VSOP87B.mar",
+                "VSOP87B.jup",
+                "VSOP87B.sat",
+                "VSOP87B.ura",
+                "VSOP87B.nep",
+            ]
+        );
         assert_eq!(summary.generated_binary_profile_count, 8);
         assert_eq!(summary.vendored_full_file_profile_count, 0);
         assert_eq!(summary.truncated_profile_count, 0);
@@ -3005,10 +3031,9 @@ mod tests {
     #[test]
     fn source_documentation_report_matches_the_backend_formatter() {
         let summary = source_documentation_summary();
-        assert_eq!(
-            source_documentation_summary_for_report(),
-            format_source_documentation_summary(&summary)
-        );
+        let rendered = source_documentation_summary_for_report();
+        assert_eq!(rendered, format_source_documentation_summary(&summary));
+        assert!(rendered.contains("source files: VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep"));
     }
 
     #[test]
