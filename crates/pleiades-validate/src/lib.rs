@@ -8084,15 +8084,7 @@ fn format_time_scales(scales: &[TimeScale]) -> String {
 }
 
 fn format_capabilities(capabilities: &BackendCapabilities) -> String {
-    format!(
-        "geocentric={}, topocentric={}, apparent={}, mean={}, batch={}, native_sidereal={}",
-        capabilities.geocentric,
-        capabilities.topocentric,
-        capabilities.apparent,
-        capabilities.mean,
-        capabilities.batch,
-        capabilities.native_sidereal
-    )
+    capabilities.summary_line()
 }
 
 fn format_error_kinds(kinds: &[EphemerisErrorKind]) -> String {

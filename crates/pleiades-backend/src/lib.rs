@@ -242,6 +242,27 @@ impl Default for BackendCapabilities {
     }
 }
 
+impl BackendCapabilities {
+    /// Returns a compact one-line rendering of the declared capability flags.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "geocentric={}; topocentric={}; apparent={}; mean={}; batch={}; native_sidereal={}",
+            self.geocentric,
+            self.topocentric,
+            self.apparent,
+            self.mean,
+            self.batch,
+            self.native_sidereal
+        )
+    }
+}
+
+impl fmt::Display for BackendCapabilities {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Nominal backend metadata.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
@@ -1109,6 +1130,21 @@ mod tests {
         assert!(summary.summary_line().contains("observer="));
         assert!(summary.summary_line().contains("apparentness="));
         assert!(summary.summary_line().contains("frame="));
+    }
+
+    #[test]
+    fn backend_capabilities_summary_has_a_compact_display() {
+        let capabilities = BackendCapabilities::default();
+
+        assert_eq!(capabilities.to_string(), capabilities.summary_line());
+        assert_eq!(
+            capabilities.summary_line(),
+            "geocentric=true; topocentric=false; apparent=true; mean=true; batch=true; native_sidereal=false"
+        );
+        assert!(capabilities.summary_line().contains("geocentric="));
+        assert!(capabilities.summary_line().contains("topocentric="));
+        assert!(capabilities.summary_line().contains("apparent="));
+        assert!(capabilities.summary_line().contains("native_sidereal="));
     }
 
     struct ToyBackend;
