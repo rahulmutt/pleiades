@@ -671,6 +671,9 @@ mod tests {
         assert!(rendered.contains("True Revati"));
         assert!(rendered.contains("True Mula (Chandra Hari)"));
         assert!(rendered.contains("Galactic Equator (Fiorenza)"));
+        assert!(rendered.contains("Nick Anthony Fiorenza"));
+        assert!(rendered.contains("Galactic Center (Cochrane)"));
+        assert!(rendered.contains("P.V.R. Narasimha Rao"));
         assert!(rendered.contains("True Citra Paksha"));
         assert!(rendered.contains("True Chitra Paksha"));
         assert!(rendered.contains("True Chitrapaksha"));

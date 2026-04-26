@@ -9118,6 +9118,8 @@ mod tests {
         assert!(rendered.contains("True Chitrapaksha"));
         assert!(rendered.contains("Galactic Equator (Fiorenza)"));
         assert!(rendered.contains("Nick Anthony Fiorenza"));
+        assert!(rendered.contains("Galactic Center (Cochrane)"));
+        assert!(rendered.contains("P.V.R. Narasimha Rao"));
         assert!(rendered.contains("Bob Makransky"));
         assert!(rendered.contains("Treindl Sunshine"));
         assert!(rendered.contains("Valens Moon"));
