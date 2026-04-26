@@ -359,6 +359,11 @@ pub fn jpl_snapshot_request_policy_summary_for_report() -> String {
     jpl_snapshot_request_policy().summary_line()
 }
 
+/// Returns the current JPL snapshot frame-treatment summary.
+pub fn frame_treatment_summary() -> &'static str {
+    "JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"
+}
+
 /// Returns the comparison-only subset used by the stage-4 validation corpus.
 pub fn comparison_snapshot() -> &'static [SnapshotEntry] {
     comparison_snapshot_entries()
@@ -2114,6 +2119,14 @@ mod tests {
 
         assert!(rendered.contains(&format_jpl_interpolation_quality_summary(&summary)));
         assert!(rendered.contains(&format_jpl_interpolation_quality_kind_coverage(&coverage)));
+    }
+
+    #[test]
+    fn frame_treatment_summary_documents_the_shared_mean_obliquity_transform() {
+        assert_eq!(
+            frame_treatment_summary(),
+            "JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"
+        );
     }
 
     #[test]
