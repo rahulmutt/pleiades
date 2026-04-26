@@ -1039,6 +1039,10 @@ pub struct Vsop87GeneratedBlobAudit {
 pub struct Vsop87GeneratedBlobAuditSummary {
     /// Number of checked-in generated blobs represented in the audit manifest.
     pub blob_count: usize,
+    /// Bodies represented in the audit manifest.
+    pub source_bodies: Vec<CelestialBody>,
+    /// Source files represented in the audit manifest.
+    pub source_files: Vec<&'static str>,
     /// Number of source files represented in the audit manifest.
     pub source_file_count: usize,
     /// Total checked-in blob byte length across the manifest.
@@ -1076,6 +1080,8 @@ pub fn generated_binary_audit_summary() -> Vsop87GeneratedBlobAuditSummary {
     let audits = generated_binary_audits();
     Vsop87GeneratedBlobAuditSummary {
         blob_count: audits.len(),
+        source_bodies: audits.iter().map(|audit| audit.body.clone()).collect(),
+        source_files: audits.iter().map(|audit| audit.source_file).collect(),
         source_file_count: audits.len(),
         total_byte_length: audits.iter().map(|audit| audit.byte_length).sum(),
         max_byte_length: audits
@@ -1090,9 +1096,11 @@ pub fn generated_binary_audit_summary() -> Vsop87GeneratedBlobAuditSummary {
 /// Formats the checked-in generated VSOP87B blob audit for reporting.
 pub fn format_generated_binary_audit_summary(summary: &Vsop87GeneratedBlobAuditSummary) -> String {
     format!(
-        "VSOP87 generated binary audit: {} checked-in blobs across {} source files, {} total bytes, max blob size {} bytes, {} deterministic fingerprints",
+        "VSOP87 generated binary audit: {} checked-in blobs across {} source files (bodies: {}; files: {}); {} total bytes, max blob size {} bytes, {} deterministic fingerprints",
         summary.blob_count,
         summary.source_file_count,
+        join_display(&summary.source_bodies),
+        join_display(&summary.source_files),
         summary.total_byte_length,
         summary.max_byte_length,
         summary.fingerprint_count
@@ -4012,6 +4020,14 @@ mod tests {
         assert_eq!(summary.blob_count, 8);
         assert_eq!(summary.source_file_count, 8);
         assert_eq!(summary.fingerprint_count, 8);
+        assert_eq!(summary.source_bodies, source_backed_body_order());
+        assert_eq!(
+            summary.source_files,
+            source_specifications()
+                .iter()
+                .map(|spec| spec.source_file)
+                .collect::<Vec<_>>()
+        );
         assert!(summary.total_byte_length > 0);
         assert!(summary.max_byte_length > 0);
         assert_eq!(
@@ -4019,10 +4035,7 @@ mod tests {
                 .iter()
                 .map(|audit| audit.source_file)
                 .collect::<Vec<_>>(),
-            source_specifications()
-                .iter()
-                .map(|spec| spec.source_file)
-                .collect::<Vec<_>>()
+            summary.source_files
         );
 
         let mut fingerprints = audits
@@ -4037,6 +4050,9 @@ mod tests {
             generated_binary_audit_summary_for_report(),
             format_generated_binary_audit_summary(&summary)
         );
+        assert!(generated_binary_audit_summary_for_report().contains(
+            "VSOP87 generated binary audit: 8 checked-in blobs across 8 source files (bodies: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; files: VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep)"
+        ));
     }
 
     #[test]
