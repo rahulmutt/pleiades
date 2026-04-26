@@ -229,6 +229,30 @@ pub struct Vsop87SourceAuditSummary {
     pub max_byte_length: usize,
 }
 
+impl Vsop87SourceAuditSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "VSOP87 source audit: {} source-backed bodies ({}) across {} source files ({}); {} vendored full-file inputs, {} total terms, max source size {} bytes / {} lines, {} deterministic fingerprints",
+            self.source_count,
+            join_display(&self.source_bodies),
+            self.source_files.len(),
+            join_display(&self.source_files),
+            self.vendored_full_file_count,
+            self.total_term_count,
+            self.max_byte_length,
+            self.max_line_count,
+            self.fingerprint_count
+        )
+    }
+}
+
+impl fmt::Display for Vsop87SourceAuditSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Summary metrics for the current VSOP87 source-documentation catalog.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Vsop87SourceDocumentationSummary {
@@ -1002,23 +1026,12 @@ pub fn source_audit_summary() -> Vsop87SourceAuditSummary {
 
 /// Formats the current VSOP87 reproducibility audit for reporting.
 pub fn format_source_audit_summary(summary: &Vsop87SourceAuditSummary) -> String {
-    format!(
-        "VSOP87 source audit: {} source-backed bodies ({}) across {} source files ({}); {} vendored full-file inputs, {} total terms, max source size {} bytes / {} lines, {} deterministic fingerprints",
-        summary.source_count,
-        join_display(&summary.source_bodies),
-        summary.source_files.len(),
-        join_display(&summary.source_files),
-        summary.vendored_full_file_count,
-        summary.total_term_count,
-        summary.max_byte_length,
-        summary.max_line_count,
-        summary.fingerprint_count
-    )
+    summary.summary_line()
 }
 
 /// Returns the release-facing reproducibility audit summary string.
 pub fn source_audit_summary_for_report() -> String {
-    format_source_audit_summary(&source_audit_summary())
+    source_audit_summary().to_string()
 }
 
 /// A reproducibility audit record for one checked-in generated VSOP87B blob.
@@ -1051,6 +1064,28 @@ pub struct Vsop87GeneratedBlobAuditSummary {
     pub max_byte_length: usize,
     /// Number of deterministic fingerprints recorded in the audit manifest.
     pub fingerprint_count: usize,
+}
+
+impl Vsop87GeneratedBlobAuditSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "VSOP87 generated binary audit: {} checked-in blobs across {} source files (bodies: {}; files: {}); {} total bytes, max blob size {} bytes, {} deterministic fingerprints",
+            self.blob_count,
+            self.source_file_count,
+            join_display(&self.source_bodies),
+            join_display(&self.source_files),
+            self.total_byte_length,
+            self.max_byte_length,
+            self.fingerprint_count
+        )
+    }
+}
+
+impl fmt::Display for Vsop87GeneratedBlobAuditSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
 }
 
 /// Returns the reproducibility audit records for the current checked-in generated blobs.
@@ -1095,21 +1130,12 @@ pub fn generated_binary_audit_summary() -> Vsop87GeneratedBlobAuditSummary {
 
 /// Formats the checked-in generated VSOP87B blob audit for reporting.
 pub fn format_generated_binary_audit_summary(summary: &Vsop87GeneratedBlobAuditSummary) -> String {
-    format!(
-        "VSOP87 generated binary audit: {} checked-in blobs across {} source files (bodies: {}; files: {}); {} total bytes, max blob size {} bytes, {} deterministic fingerprints",
-        summary.blob_count,
-        summary.source_file_count,
-        join_display(&summary.source_bodies),
-        join_display(&summary.source_files),
-        summary.total_byte_length,
-        summary.max_byte_length,
-        summary.fingerprint_count
-    )
+    summary.summary_line()
 }
 
 /// Returns the release-facing generated binary audit summary string.
 pub fn generated_binary_audit_summary_for_report() -> String {
-    format_generated_binary_audit_summary(&generated_binary_audit_summary())
+    generated_binary_audit_summary().to_string()
 }
 
 /// Returns a summary of the current VSOP87 source-documentation catalog.
@@ -4044,6 +4070,7 @@ mod tests {
             source_audit_summary_for_report(),
             "VSOP87 source audit: 8 source-backed bodies (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune) across 8 source files (VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep); 8 vendored full-file inputs, 35080 total terms, max source size 949753 bytes / 7141 lines, 8 deterministic fingerprints"
         );
+        assert_eq!(summary.summary_line(), summary.to_string());
         assert_eq!(
             source_audit_summary_for_report(),
             format_source_audit_summary(&summary)
@@ -4085,6 +4112,7 @@ mod tests {
         fingerprints.dedup();
         assert_eq!(fingerprints.len(), audits.len());
 
+        assert_eq!(summary.summary_line(), summary.to_string());
         assert_eq!(
             generated_binary_audit_summary_for_report(),
             format_generated_binary_audit_summary(&summary)
