@@ -1483,6 +1483,35 @@ pub struct LunarApparentComparisonSummary {
     pub max_declination_delta_deg: f64,
 }
 
+impl LunarApparentComparisonSummary {
+    /// Returns the release-facing one-line apparent comparison summary.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "lunar apparent comparison evidence: {} reference-only samples across {} bodies, epoch range JD {:.1}..{:.1}, mean-only gap against the published apparent Moon examples: Δlon={:+.6}° @ JD {:.1}, Δlat={:+.6}° @ JD {:.1}, Δdist={:+.12} AU @ JD {:.1}, ΔRA={:+.6}° @ JD {:.1}, ΔDec={:+.6}° @ JD {:.1}; apparent requests remain unsupported",
+            self.sample_count,
+            self.body_count,
+            self.earliest_epoch.julian_day.days(),
+            self.latest_epoch.julian_day.days(),
+            self.max_ecliptic_longitude_delta_deg,
+            self.max_ecliptic_longitude_epoch.julian_day.days(),
+            self.max_ecliptic_latitude_delta_deg,
+            self.max_ecliptic_latitude_epoch.julian_day.days(),
+            self.max_ecliptic_distance_delta_au,
+            self.max_ecliptic_distance_epoch.julian_day.days(),
+            self.max_right_ascension_delta_deg,
+            self.max_right_ascension_epoch.julian_day.days(),
+            self.max_declination_delta_deg,
+            self.max_declination_epoch.julian_day.days(),
+        )
+    }
+}
+
+impl fmt::Display for LunarApparentComparisonSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 fn lunar_apparent_comparison_baseline_sample(
     body: CelestialBody,
     epoch: Instant,
@@ -1617,23 +1646,7 @@ pub fn lunar_apparent_comparison_summary() -> Option<LunarApparentComparisonSumm
 pub fn format_lunar_apparent_comparison_summary(
     summary: &LunarApparentComparisonSummary,
 ) -> String {
-    format!(
-        "lunar apparent comparison evidence: {} reference-only samples across {} bodies, epoch range JD {:.1}..{:.1}, mean-only gap against the published apparent Moon examples: Δlon={:+.6}° @ JD {:.1}, Δlat={:+.6}° @ JD {:.1}, Δdist={:+.12} AU @ JD {:.1}, ΔRA={:+.6}° @ JD {:.1}, ΔDec={:+.6}° @ JD {:.1}; apparent requests remain unsupported",
-        summary.sample_count,
-        summary.body_count,
-        summary.earliest_epoch.julian_day.days(),
-        summary.latest_epoch.julian_day.days(),
-        summary.max_ecliptic_longitude_delta_deg,
-        summary.max_ecliptic_longitude_epoch.julian_day.days(),
-        summary.max_ecliptic_latitude_delta_deg,
-        summary.max_ecliptic_latitude_epoch.julian_day.days(),
-        summary.max_ecliptic_distance_delta_au,
-        summary.max_ecliptic_distance_epoch.julian_day.days(),
-        summary.max_right_ascension_delta_deg,
-        summary.max_right_ascension_epoch.julian_day.days(),
-        summary.max_declination_delta_deg,
-        summary.max_declination_epoch.julian_day.days(),
-    )
+    summary.summary_line()
 }
 
 /// Returns the release-facing one-line apparent comparison summary.
@@ -4168,6 +4181,7 @@ mod tests {
         assert!(lunar_apparent_comparison_summary_for_report().contains("@ JD"));
         assert!(lunar_apparent_comparison_summary_for_report()
             .contains("apparent requests remain unsupported"));
+        assert_eq!(summary.summary_line(), summary.to_string());
 
         let samples = lunar_apparent_comparison_evidence();
         assert_eq!(samples.len(), 2);

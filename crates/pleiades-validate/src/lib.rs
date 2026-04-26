@@ -50,10 +50,9 @@ use pleiades_data::{
     packaged_request_policy_summary_details, PackagedDataBackend,
 };
 use pleiades_elp::{
-    format_lunar_apparent_comparison_summary, format_lunar_theory_capability_summary,
-    lunar_apparent_comparison_evidence, lunar_apparent_comparison_summary,
-    lunar_apparent_comparison_summary_for_report, lunar_equatorial_reference_evidence,
-    lunar_equatorial_reference_evidence_envelope_for_report,
+    format_lunar_theory_capability_summary, lunar_apparent_comparison_evidence,
+    lunar_apparent_comparison_summary, lunar_apparent_comparison_summary_for_report,
+    lunar_equatorial_reference_evidence, lunar_equatorial_reference_evidence_envelope_for_report,
     lunar_equatorial_reference_evidence_summary,
     lunar_equatorial_reference_evidence_summary_for_report,
     lunar_high_curvature_continuity_evidence_for_report,
@@ -2845,6 +2844,9 @@ fn render_release_summary_text() -> String {
     text.push_str("Frame policy: ");
     text.push_str(request_policy.frame);
     text.push('\n');
+    text.push_str("Request policy: ");
+    text.push_str(&request_policy.summary_line());
+    text.push('\n');
     text.push_str("Zodiac policy: ");
     text.push_str(&zodiac_policy_summary_for_report(&[ZodiacMode::Tropical]));
     text.push('\n');
@@ -4969,6 +4971,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text, "Observer policy: {}", request_policy.observer);
     let _ = writeln!(text, "Apparentness policy: {}", request_policy.apparentness);
     let _ = writeln!(text, "Frame policy: {}", request_policy.frame);
+    let _ = writeln!(text, "Request policy: {}", request_policy.summary_line());
     let _ = writeln!(
         text,
         "Zodiac policy: {}",
@@ -7236,11 +7239,7 @@ fn write_lunar_apparent_comparison_evidence(f: &mut fmt::Formatter<'_>) -> fmt::
         return Ok(());
     };
 
-    writeln!(
-        f,
-        "    {}",
-        format_lunar_apparent_comparison_summary(&summary)
-    )?;
+    writeln!(f, "    {}", summary.summary_line())?;
     for sample in lunar_apparent_comparison_evidence() {
         writeln!(
             f,

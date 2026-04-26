@@ -501,6 +501,20 @@ impl RequestPolicySummary {
     pub const fn current() -> Self {
         current_request_policy_summary()
     }
+
+    /// Returns a compact one-line rendering of the shared request-policy posture.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "time-scale={}; observer={}; apparentness={}; frame={}",
+            self.time_scale, self.observer, self.apparentness, self.frame
+        )
+    }
+}
+
+impl fmt::Display for RequestPolicySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
 }
 
 /// Returns the current shared request-policy posture used by validation and reports.
@@ -1080,6 +1094,21 @@ mod tests {
 
         let error = EphemerisError::new(EphemerisErrorKind::InvalidRequest, "example failure");
         assert_eq!(error.to_string(), "InvalidRequest: example failure");
+    }
+
+    #[test]
+    fn request_policy_summary_has_a_compact_display() {
+        let summary = RequestPolicySummary::current();
+
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            summary.summary_line(),
+            "time-scale=direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T model; observer=chart houses use observer locations; body requests stay geocentric; geocentric-only backends reject observer-bearing requests; apparentness=current first-party backends accept mean geometric output only; apparent requests are rejected unless a backend explicitly advertises support; frame=ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported"
+        );
+        assert!(summary.summary_line().contains("time-scale="));
+        assert!(summary.summary_line().contains("observer="));
+        assert!(summary.summary_line().contains("apparentness="));
+        assert!(summary.summary_line().contains("frame="));
     }
 
     struct ToyBackend;
