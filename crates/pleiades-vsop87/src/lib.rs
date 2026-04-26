@@ -191,6 +191,8 @@ pub struct Vsop87SourceDocumentationSummary {
     pub truncated_profile_count: usize,
     /// Number of fallback mean-element body profiles.
     pub fallback_profile_count: usize,
+    /// Bodies that still use the fallback mean-element path.
+    pub fallback_bodies: Vec<CelestialBody>,
 }
 
 /// Canonical J2000 reference samples for the source-backed VSOP87B paths.
@@ -687,6 +689,12 @@ pub fn source_documentation_summary() -> Vsop87SourceDocumentationSummary {
     let source_specs = source_specifications();
     let source_backed_profiles = body_source_profiles();
 
+    let fallback_bodies = source_backed_profiles
+        .iter()
+        .filter(|profile| profile.kind == Vsop87BodySourceKind::MeanOrbitalElements)
+        .map(|profile| profile.body.clone())
+        .collect::<Vec<_>>();
+
     Vsop87SourceDocumentationSummary {
         source_specification_count: source_specs.len(),
         source_backed_profile_count: source_backed_profiles
@@ -716,6 +724,7 @@ pub fn source_documentation_summary() -> Vsop87SourceDocumentationSummary {
             .iter()
             .filter(|profile| profile.kind == Vsop87BodySourceKind::MeanOrbitalElements)
             .count(),
+        fallback_bodies,
     }
 }
 
@@ -727,23 +736,13 @@ fn format_celestial_bodies(bodies: &[CelestialBody]) -> String {
         .join(", ")
 }
 
-fn format_fallback_bodies() -> String {
-    let fallback_bodies = body_source_profiles()
-        .into_iter()
-        .filter(|profile| profile.kind == Vsop87BodySourceKind::MeanOrbitalElements)
-        .map(|profile| profile.body)
-        .collect::<Vec<_>>();
-
-    if fallback_bodies.is_empty() {
-        "none".to_string()
-    } else {
-        format_celestial_bodies(&fallback_bodies)
-    }
-}
-
 /// Formats the current VSOP87 source-documentation catalog for reporting.
 pub fn format_source_documentation_summary(summary: &Vsop87SourceDocumentationSummary) -> String {
-    let fallback_bodies = format_fallback_bodies();
+    let fallback_bodies = if summary.fallback_bodies.is_empty() {
+        "none".to_string()
+    } else {
+        format_celestial_bodies(&summary.fallback_bodies)
+    };
     format!(
         "VSOP87 source documentation: {} source specs, {} source-backed body profiles, {} fallback mean-element body profile{} ({}); source-backed breakdown: {} generated binary, {} vendored full-file, {} truncated slice",
         summary.source_specification_count,
@@ -2559,6 +2558,7 @@ mod tests {
         assert_eq!(summary.vendored_full_file_profile_count, 0);
         assert_eq!(summary.truncated_profile_count, 0);
         assert_eq!(summary.fallback_profile_count, 1);
+        assert_eq!(summary.fallback_bodies, vec![CelestialBody::Pluto]);
     }
 
     #[test]
