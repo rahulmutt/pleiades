@@ -52,6 +52,7 @@ The repository already exposes baseline house systems and ayanamsas, a larger re
    - Progress note: the compact compatibility-profile summary and verification output now also surface the exact release-specific house-system and ayanamsa canonical-name lists, so the current release slice names are visible directly in the audit output instead of only through count-based summaries.
    - Progress note: the compatibility-profile and release-notes regressions now also pin the remaining Equal-from-MC label family — including `Equal from MC`, `Equal (from MC)`, and `Equal (from MC) table of houses` — so the equal-house appendix keeps those Midheaven-anchored forms explicit alongside the already-covered `Equal/MC` variants.
    - Progress note: the compatibility-profile and release-summary smoke tests now also pin `Albategnius` and `Gauquelin sectors`, keeping the remaining release-specific house-system additions visible in the compact release-facing catalog views as the broader alias audit continues.
+   - Progress note: compatibility-profile and release-notes regressions now also pin the Dhruva/Gal.Center/Mula (Wilhelm), Mula Wilhelm, and Wilhelm spellings, keeping the remaining Mula/Wilhelm galactic-reference variants visible in the release-facing catalog audit.
 
 ## Done criteria
 

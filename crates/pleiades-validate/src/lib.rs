@@ -8773,6 +8773,9 @@ mod tests {
         assert!(rendered.contains("True Pushya (PVRN Rao)"));
         assert!(rendered.contains("Dhruva Galactic Center (Middle Mula)"));
         assert!(rendered.contains("Dhruva Galactic Center Middle Mula"));
+        assert!(rendered.contains("Dhruva/Gal.Center/Mula (Wilhelm)"));
+        assert!(rendered.contains("Mula Wilhelm"));
+        assert!(rendered.contains("Wilhelm"));
         assert!(rendered.contains("Middle of Mula"));
     }
 
