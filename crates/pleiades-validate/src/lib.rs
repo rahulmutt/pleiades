@@ -2880,7 +2880,6 @@ fn render_release_summary_text() -> String {
     text.push_str("JPL frame treatment: ");
     text.push_str(&format_jpl_frame_treatment_summary());
     text.push('\n');
-    text.push_str("JPL reference snapshot equatorial parity: ");
     text.push_str(&reference_snapshot_equatorial_parity_summary_for_report());
     text.push('\n');
     text.push_str("Source-backed backend evidence: ");
@@ -5784,7 +5783,6 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_summary_for_report());
     text.push('\n');
-    text.push_str("JPL reference snapshot equatorial parity: ");
     text.push_str(&reference_snapshot_equatorial_parity_summary_for_report());
     text.push('\n');
     text.push_str(&comparison_snapshot_summary_for_report());
@@ -10049,7 +10047,7 @@ version = "0.9.0"
         assert!(release_summary.contains("JPL request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
         assert!(release_summary.contains("JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"));
         assert!(release_summary.contains(
-            "JPL reference snapshot equatorial parity: Reference snapshot equatorial parity:"
+            "JPL reference snapshot equatorial parity: 46 rows across 15 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); mean-obliquity transform against the checked-in ecliptic fixture"
         ));
         assert!(release_summary.contains("Source-backed backend evidence:"));
         assert!(release_summary.contains("Reference snapshot coverage:"));
@@ -10160,7 +10158,7 @@ version = "0.9.0"
         assert!(backend_matrix_summary.contains("Algorithmic: 2"));
         assert!(backend_matrix_summary.contains("Composite: 1"));
         assert!(backend_matrix_summary.contains(
-            "JPL reference snapshot equatorial parity: Reference snapshot equatorial parity:"
+            "JPL reference snapshot equatorial parity: 46 rows across 15 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); mean-obliquity transform against the checked-in ecliptic fixture"
         ));
         assert!(backend_matrix_summary
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));

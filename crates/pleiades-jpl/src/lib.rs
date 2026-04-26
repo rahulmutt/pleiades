@@ -146,7 +146,7 @@ pub fn format_reference_snapshot_equatorial_parity_summary(
     summary: &ReferenceSnapshotEquatorialParitySummary,
 ) -> String {
     format!(
-        "Reference snapshot equatorial parity: {} rows across {} bodies and {} epochs ({}..{}); mean-obliquity transform against the checked-in ecliptic fixture",
+        "JPL reference snapshot equatorial parity: {} rows across {} bodies and {} epochs ({}..{}); mean-obliquity transform against the checked-in ecliptic fixture",
         summary.row_count,
         summary.body_count,
         summary.epoch_count,
@@ -159,7 +159,7 @@ pub fn format_reference_snapshot_equatorial_parity_summary(
 pub fn reference_snapshot_equatorial_parity_summary_for_report() -> String {
     match reference_snapshot_equatorial_parity_summary() {
         Some(summary) => format_reference_snapshot_equatorial_parity_summary(&summary),
-        None => "Reference snapshot equatorial parity: unavailable".to_string(),
+        None => "JPL reference snapshot equatorial parity: unavailable".to_string(),
     }
 }
 
@@ -2302,7 +2302,7 @@ mod tests {
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(
             reference_snapshot_equatorial_parity_summary_for_report(),
-            "Reference snapshot equatorial parity: 46 rows across 15 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); mean-obliquity transform against the checked-in ecliptic fixture"
+            "JPL reference snapshot equatorial parity: 46 rows across 15 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); mean-obliquity transform against the checked-in ecliptic fixture"
         );
     }
 
