@@ -9166,10 +9166,10 @@ mod tests {
         assert!(rendered.contains("Release-specific house-system canonical names:"));
         assert!(rendered.contains("Equal (MC), Equal (1=Aries), Vehlow Equal"));
         assert!(rendered.contains("Release-specific ayanamsa canonical names:"));
-        assert!(rendered.contains("Custom-definition labels:"));
+        assert!(rendered.contains("Custom-definition labels: 9"));
         assert!(rendered.contains("Validation reference points: 1 (stage-4 validation corpus)"));
         assert!(rendered.contains("Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
-        assert!(rendered.contains("Compatibility caveats:"));
+        assert!(rendered.contains("Compatibility caveats: 2"));
         assert!(
             rendered.contains("Compatibility profile verification: verify-compatibility-profile")
         );
@@ -9485,9 +9485,9 @@ mod tests {
         assert!(rendered.contains("Ayanamsas:"));
         assert!(rendered.contains("Release-specific ayanamsa canonical names: 54 (True Citra, J2000, J1900, B1950, True Revati, True Mula, Suryasiddhanta (Revati), Suryasiddhanta (Citra), Lahiri (ICRC), Lahiri (1940), Usha Shashi, Suryasiddhanta (499 CE), Aryabhata (499 CE), Sassanian, DeLuce, Yukteshwar, PVR Pushya-paksha, Sheoran, Hipparchus, Babylonian (Kugler 1), Babylonian (Kugler 2), Babylonian (Kugler 3), Babylonian (Huber), Babylonian (Eta Piscium), Babylonian (Aldebaran), Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs), Galactic Center, Galactic Equator, True Pushya, Udayagiri, Djwhal Khul, JN Bhasin, Suryasiddhanta (Mean Sun), Aryabhata (Mean Sun), Babylonian (Britton), Aryabhata (522 CE), Lahiri (VP285), Krishnamurti (VP291), True Sheoran, Galactic Center (Rgilbrand), Galactic Center (Mardyks), Galactic Center (Mula/Wilhelm), Dhruva Galactic Center (Middle Mula), Galactic Center (Cochrane), Galactic Equator (IAU 1958), Galactic Equator (True), Galactic Equator (Mula), Galactic Equator (Fiorenza), Valens Moon)"));
         assert!(rendered.contains("Validation reference points: 1 (stage-4 validation corpus)"));
-        assert!(rendered.contains("Custom-definition labels:"));
+        assert!(rendered.contains("Custom-definition labels: 9"));
         assert!(rendered.contains("Custom-definition ayanamsas:"));
-        assert!(rendered.contains("Compatibility caveats:"));
+        assert!(rendered.contains("Compatibility caveats: 2"));
         assert!(rendered.contains("Comparison envelope:"));
         assert!(rendered.contains("median longitude delta:"));
         assert!(rendered.contains("95th percentile longitude delta:"));
@@ -9944,6 +9944,7 @@ version = "0.9.0"
         assert!(release_notes_summary.contains("Artifact validation: validate-artifact"));
         assert!(release_notes_summary.contains("Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_notes_summary.contains("Release notes: release-notes"));
+        assert!(release_notes_summary.contains("Compatibility caveats: 2"));
         assert!(release_notes_summary
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(release_notes_summary
