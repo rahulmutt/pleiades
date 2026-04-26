@@ -126,6 +126,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Progress note: the VSOP87 and compact ELP batch-path regressions now also cover explicit TDB-tagged requests for their supported body slices, so the current time-scale policy is exercised through `positions()` as well as single-request lookups without adding a built-in Delta T or relativistic conversion model.
    - Progress note: the VSOP87, ELP, and JPL batch-path regressions now also cover mixed TT/TDB request sets, so batch queries preserve each request's own time-scale label even when a single call mixes dynamical-time scales instead of normalizing them to a hidden batch-wide policy.
    - Progress note: the `pleiades-cli` chart command now exposes explicit `--utc` / `--ut1` instant tags plus caller-supplied `--tt-offset-seconds` and signed `--tdb-offset-seconds` flags, so command-line chart runs can exercise the same conversion policy without implying a built-in Delta T or relativistic model.
+   - Progress note: the chart CLI now rejects time-scale offset flags that do not match the tagged instant, so caller-supplied TT/TT-TDB retagging helpers stay explicit instead of being silently ignored on UTC/UT1/TDB requests.
 
 5. Expand validation evidence.
    - Add golden positions for major bodies, lunar points, and baseline asteroids.

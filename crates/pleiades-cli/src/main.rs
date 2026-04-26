@@ -355,6 +355,12 @@ fn build_chart_instant(
 
     match time_scale {
         TimeScale::Utc => {
+            if tt_from_tdb_offset.is_some() {
+                return Err(
+                    "--tt-from-tdb-offset-seconds is only valid when the chart instant is tagged as TDB"
+                        .to_string(),
+                );
+            }
             let tt_offset = tt_offset.ok_or_else(|| {
                 "missing value for --tt-offset-seconds when the chart instant is tagged as UTC"
                     .to_string()
@@ -370,6 +376,12 @@ fn build_chart_instant(
             }
         }
         TimeScale::Ut1 => {
+            if tt_from_tdb_offset.is_some() {
+                return Err(
+                    "--tt-from-tdb-offset-seconds is only valid when the chart instant is tagged as TDB"
+                        .to_string(),
+                );
+            }
             let tt_offset = tt_offset.ok_or_else(|| {
                 "missing value for --tt-offset-seconds when the chart instant is tagged as UT1"
                     .to_string()
@@ -385,9 +397,19 @@ fn build_chart_instant(
             }
         }
         TimeScale::Tt => {
-            if tt_offset.is_some() || tt_from_tdb_offset.is_some() {
-                Err("--tt-offset-seconds and --tt-from-tdb-offset-seconds are only valid when the chart instant is tagged as UTC, UT1, or TDB respectively".to_string())
-            } else if let Some(tdb_offset_seconds) = tdb_offset {
+            if tt_offset.is_some() {
+                return Err(
+                    "--tt-offset-seconds is only valid when the chart instant is tagged as UTC or UT1"
+                        .to_string(),
+                );
+            }
+            if tt_from_tdb_offset.is_some() {
+                return Err(
+                    "--tt-from-tdb-offset-seconds is only valid when the chart instant is tagged as TDB"
+                        .to_string(),
+                );
+            }
+            if let Some(tdb_offset_seconds) = tdb_offset {
                 instant
                     .tdb_from_tt_signed(tdb_offset_seconds)
                     .map_err(|error| error.to_string())
@@ -396,9 +418,19 @@ fn build_chart_instant(
             }
         }
         TimeScale::Tdb => {
-            if tt_offset.is_some() || tdb_offset.is_some() {
-                Err("time-scale offsets are only supported for UTC, UT1, TT, or TDB-tagged chart instants".to_string())
-            } else if let Some(tt_from_tdb_offset_seconds) = tt_from_tdb_offset {
+            if tt_offset.is_some() {
+                return Err(
+                    "--tt-offset-seconds is only valid when the chart instant is tagged as UTC or UT1"
+                        .to_string(),
+                );
+            }
+            if tdb_offset.is_some() {
+                return Err(
+                    "--tdb-offset-seconds is only valid when the chart instant is tagged as TT, UTC, or UT1"
+                        .to_string(),
+                );
+            }
+            if let Some(tt_from_tdb_offset_seconds) = tt_from_tdb_offset {
                 instant
                     .tt_from_tdb_signed(tt_from_tdb_offset_seconds)
                     .map_err(|error| error.to_string())
@@ -1100,6 +1132,38 @@ mod tests {
         ])
         .expect_err("TT-tagged chart requests should reject a caller-supplied TT offset");
         assert!(error.contains("--tt-offset-seconds"));
+    }
+
+    #[test]
+    fn chart_command_rejects_tt_offsets_for_tdb_tagged_instants() {
+        let error = render_chart(&[
+            "--jd",
+            "2451545.0",
+            "--tdb",
+            "--tt-offset-seconds",
+            "64.184",
+            "--body",
+            "Sun",
+        ])
+        .expect_err("TDB-tagged chart requests should reject a caller-supplied TT offset");
+        assert!(error.contains("--tt-offset-seconds"));
+    }
+
+    #[test]
+    fn chart_command_rejects_tdb_retagging_offsets_for_utc_tagged_instants() {
+        let error = render_chart(&[
+            "--jd",
+            "2451545.0",
+            "--utc",
+            "--tt-offset-seconds",
+            "64.184",
+            "--tt-from-tdb-offset-seconds",
+            "-0.001657",
+            "--body",
+            "Sun",
+        ])
+        .expect_err("UTC-tagged chart requests should reject a TDB-to-TT retagging offset");
+        assert!(error.contains("--tt-from-tdb-offset-seconds"));
     }
 
     #[test]
