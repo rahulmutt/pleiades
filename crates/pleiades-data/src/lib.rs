@@ -9,6 +9,21 @@
 //! reference snapshot in tests so the packaged data stays reproducible. A maintainer-facing
 //! regeneration helper can rebuild the checked-in fixture from the bundled JPL reference
 //! snapshot without introducing any native tooling.
+//!
+//! # Examples
+//!
+//! ```
+//! use pleiades_backend::{CelestialBody, Instant, JulianDay, TimeScale};
+//! use pleiades_data::{packaged_backend, packaged_body_coverage_summary, packaged_lookup};
+//!
+//! let _backend = packaged_backend();
+//! let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+//! let sun = packaged_lookup(&CelestialBody::Sun, instant)
+//!     .expect("Sun should be in the packaged artifact");
+//!
+//! assert!(sun.distance_au.is_some());
+//! assert!(packaged_body_coverage_summary().contains("433-Eros"));
+//! ```
 
 #![forbid(unsafe_code)]
 
@@ -414,6 +429,19 @@ pub fn packaged_artifact() -> &'static CompressedArtifact {
 }
 
 /// Returns a packaged lookup for a body and instant.
+///
+/// # Examples
+///
+/// ```
+/// use pleiades_backend::{CelestialBody, Instant, JulianDay, TimeScale};
+/// use pleiades_data::packaged_lookup;
+///
+/// let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+/// let sun = packaged_lookup(&CelestialBody::Sun, instant)
+///     .expect("Sun should be present in the packaged artifact");
+///
+/// assert!(sun.distance_au.is_some());
+/// ```
 pub fn packaged_lookup(
     body: &CelestialBody,
     instant: Instant,

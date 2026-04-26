@@ -1226,6 +1226,19 @@ pub fn resolve_ayanamsa(label: &str) -> Option<Ayanamsa> {
 /// Built-in catalog entries use the published reference epoch and offset
 /// metadata where available. Custom ayanamsas can supply the same information
 /// directly on the `CustomAyanamsa` definition.
+///
+/// # Examples
+///
+/// ```
+/// use pleiades_ayanamsa::sidereal_offset;
+/// use pleiades_types::{Ayanamsa, Instant, JulianDay, TimeScale};
+///
+/// let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+/// let offset = sidereal_offset(&Ayanamsa::Lahiri, instant)
+///     .expect("Lahiri should carry reference sidereal metadata");
+///
+/// assert!(offset.degrees() > 20.0);
+/// ```
 pub fn sidereal_offset(ayanamsa: &Ayanamsa, instant: Instant) -> Option<Angle> {
     match ayanamsa {
         Ayanamsa::Custom(custom) => {
