@@ -6,11 +6,12 @@
 //! plus the source-backed custom asteroid `asteroid:433-Eros`, and the backend
 //! falls back to other providers when callers request bodies outside that
 //! packaged slice. The fixture is still regenerated from the checked-in JPL
-//! reference snapshot in tests so the packaged data stays reproducible.
+//! reference snapshot in tests so the packaged data stays reproducible. A maintainer-facing
+//! regeneration helper can rebuild the checked-in fixture from the bundled JPL reference
+//! snapshot without introducing any native tooling.
 
 #![forbid(unsafe_code)]
 
-#[cfg(test)]
 use std::cmp::Ordering;
 use std::sync::OnceLock;
 
@@ -22,15 +23,11 @@ use pleiades_backend::{
     QualityAnnotation, TimeRange, TimeScale, ZodiacMode,
 };
 use pleiades_compression::CompressedArtifact;
-#[cfg(test)]
 use pleiades_compression::{ArtifactHeader, BodyArtifact, ChannelKind, PolynomialChannel, Segment};
-#[cfg(test)]
 use pleiades_jpl::{reference_snapshot, SnapshotEntry};
 
 const PACKAGE_NAME: &str = "pleiades-data";
-#[cfg(test)]
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data prototype";
-#[cfg(test)]
 const ARTIFACT_SOURCE: &str = "Quantized linear segments fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with J2000 point segments for the outer planets, Pluto, and the asteroid coverage.";
 const PACKAGED_BASE_BODIES: [CelestialBody; 10] = [
     CelestialBody::Sun,
@@ -178,7 +175,6 @@ pub fn packaged_request_policy_summary() -> &'static str {
     "Packaged request policy: geocentric-only; frames=Ecliptic; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false; lookup epoch policy=TT-grid retag without relativistic correction; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction"
 }
 
-#[cfg(test)]
 const AU_IN_KM: f64 = 149_597_870.7;
 
 /// Returns the canonical package name for this crate.
@@ -317,8 +313,11 @@ fn build_packaged_artifact() -> CompressedArtifact {
         .expect("packaged artifact fixture should decode")
 }
 
-#[cfg(test)]
-fn generate_packaged_artifact() -> CompressedArtifact {
+/// Rebuilds the packaged artifact from the checked-in JPL reference snapshot.
+///
+/// This helper is deterministic and pure Rust so maintainers can regenerate the
+/// checked-in fixture without relying on platform-specific tooling.
+pub fn regenerate_packaged_artifact() -> CompressedArtifact {
     let mut artifact = CompressedArtifact::new(
         ArtifactHeader::new(ARTIFACT_LABEL, ARTIFACT_SOURCE),
         packaged_body_artifacts(),
@@ -329,7 +328,6 @@ fn generate_packaged_artifact() -> CompressedArtifact {
     artifact
 }
 
-#[cfg(test)]
 fn packaged_body_artifacts() -> Vec<BodyArtifact> {
     let mut artifacts = Vec::new();
     let snapshot = reference_snapshot();
@@ -364,7 +362,6 @@ fn packaged_body_artifacts() -> Vec<BodyArtifact> {
     artifacts
 }
 
-#[cfg(test)]
 fn segment_from_entries(start: &SnapshotEntry, end: &SnapshotEntry) -> Segment {
     let start_coordinates = coordinates(start);
     let end_coordinates = coordinates(end);
@@ -394,7 +391,6 @@ fn segment_from_entries(start: &SnapshotEntry, end: &SnapshotEntry) -> Segment {
     )
 }
 
-#[cfg(test)]
 fn coordinates(entry: &SnapshotEntry) -> EclipticCoordinates {
     let radius_km =
         (entry.x_km * entry.x_km + entry.y_km * entry.y_km + entry.z_km * entry.z_km).sqrt();
@@ -492,7 +488,7 @@ mod tests {
 
     #[test]
     fn packaged_artifact_fixture_matches_reference_snapshot_generation() {
-        let generated = generate_packaged_artifact();
+        let generated = regenerate_packaged_artifact();
         let encoded = generated
             .encode()
             .expect("generated packaged artifact should encode");
