@@ -34,10 +34,10 @@ use pleiades_ayanamsa::{
 use pleiades_core::{
     current_api_stability_profile, current_compatibility_profile,
     current_release_profile_identifiers, default_chart_bodies, AccuracyClass, Apparentness,
-    BackendCapabilities, BackendFamily, BackendMetadata, CelestialBody, CompositeBackend,
-    CoordinateFrame, EclipticCoordinates, EphemerisBackend, EphemerisError, EphemerisErrorKind,
-    EphemerisRequest, EphemerisResult, Instant, JulianDay, Longitude, TimeRange, TimeScale,
-    ZodiacMode,
+    BackendCapabilities, BackendFamily, BackendMetadata, CelestialBody, CompatibilityProfile,
+    CompositeBackend, CoordinateFrame, EclipticCoordinates, EphemerisBackend, EphemerisError,
+    EphemerisErrorKind, EphemerisRequest, EphemerisResult, Instant, JulianDay, Longitude,
+    TimeRange, TimeScale, ZodiacMode,
 };
 use pleiades_data::{
     packaged_artifact, packaged_request_policy_summary_details, PackagedDataBackend,
@@ -2239,6 +2239,25 @@ fn summarize_validation_reference_points(points: &[&str]) -> String {
     }
 }
 
+fn summarize_latitude_sensitive_house_systems(profile: &CompatibilityProfile) -> String {
+    let latitude_sensitive = profile
+        .house_systems
+        .iter()
+        .filter(|entry| entry.latitude_sensitive)
+        .map(|entry| entry.canonical_name)
+        .collect::<Vec<_>>();
+
+    match latitude_sensitive.as_slice() {
+        [] => "0 (none)".to_string(),
+        [single] => format!("1 ({single})"),
+        _ => format!(
+            "{} ({})",
+            latitude_sensitive.len(),
+            latitude_sensitive.join(", ")
+        ),
+    }
+}
+
 fn render_compatibility_profile_summary_text() -> String {
     let profile = current_compatibility_profile();
     let release_profiles = current_release_profile_identifiers();
@@ -2256,6 +2275,9 @@ fn render_compatibility_profile_summary_text() -> String {
     text.push_str(" baseline, ");
     text.push_str(&profile.release_house_systems.len().to_string());
     text.push_str(" release-specific)\n");
+    text.push_str("Latitude-sensitive house systems: ");
+    text.push_str(&summarize_latitude_sensitive_house_systems(&profile));
+    text.push('\n');
     text.push_str("Ayanamsas: ");
     text.push_str(&profile.ayanamsas.len().to_string());
     text.push_str(" total (");
@@ -2396,6 +2418,9 @@ fn render_release_notes_summary_text() -> String {
     text.push('\n');
     text.push_str("Release-specific coverage: ");
     text.push_str(&profile.release_notes.len().to_string());
+    text.push('\n');
+    text.push_str("Latitude-sensitive house systems: ");
+    text.push_str(&summarize_latitude_sensitive_house_systems(&profile));
     text.push('\n');
     text.push_str(&reference_asteroid_evidence_summary_for_report());
     text.push('\n');
@@ -2546,6 +2571,9 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str("Release summary line: ");
     text.push_str(profile.summary);
+    text.push('\n');
+    text.push_str("Latitude-sensitive house systems: ");
+    text.push_str(&summarize_latitude_sensitive_house_systems(&profile));
     text.push('\n');
     text.push_str(&lunar_theory_catalog_summary_for_report());
     text.push('\n');
@@ -9264,6 +9292,9 @@ version = "0.9.0"
             "Compatibility profile summary\nProfile: {}",
             release_profiles.compatibility_profile_id
         )));
+        assert!(profile_summary.contains(
+            "Latitude-sensitive house systems: 8 (Placidus, Koch, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Topocentric, Sunshine, Gauquelin sectors)"
+        ));
         assert!(release_notes.contains("Release notes"));
         assert!(release_notes.contains("Release notes summary: release-notes-summary"));
         assert!(release_notes.contains("Backend matrix summary: backend-matrix-summary"));
@@ -9283,6 +9314,9 @@ version = "0.9.0"
         assert!(release_notes.contains("Rust compiler version"));
         assert!(release_notes_summary.contains("Release notes summary"));
         assert!(release_notes_summary.contains("Release-specific coverage:"));
+        assert!(release_notes_summary.contains(
+            "Latitude-sensitive house systems: 8 (Placidus, Koch, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Topocentric, Sunshine, Gauquelin sectors)"
+        ));
         assert!(release_notes_summary.contains("API stability summary line:"));
         assert!(release_notes_summary.contains("Artifact validation: validate-artifact"));
         assert!(release_notes_summary.contains("Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
@@ -9294,6 +9328,9 @@ version = "0.9.0"
         assert!(release_notes_summary
             .contains("Compatibility profile verification: verify-compatibility-profile"));
         assert!(release_summary.contains("Release summary"));
+        assert!(release_summary.contains(
+            "Latitude-sensitive house systems: 8 (Placidus, Koch, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Topocentric, Sunshine, Gauquelin sectors)"
+        ));
         assert!(release_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(release_summary.contains("Backend matrix summary: backend-matrix-summary"));
