@@ -1701,6 +1701,29 @@ mod tests {
     }
 
     #[test]
+    fn chart_snapshot_without_observer_renders_geocentric_policy_line() {
+        let instant = Instant::new(
+            pleiades_types::JulianDay::from_days(2451545.0),
+            TimeScale::Tt,
+        );
+        let chart = ChartSnapshot {
+            backend_id: BackendId::new("toy-chart"),
+            instant,
+            observer: None,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparentness: Apparentness::Mean,
+            houses: None,
+            placements: vec![],
+        };
+
+        let rendered = chart.to_string();
+        assert!(rendered
+            .contains("Observer policy: geocentric body positions; no house observer supplied"));
+        assert!(!rendered
+            .contains("Observer policy: used for houses only; body positions remain geocentric"));
+    }
+
+    #[test]
     fn chart_snapshot_exposes_dominant_sign_and_house_summaries() {
         let instant = Instant::new(
             pleiades_types::JulianDay::from_days(2451545.0),
