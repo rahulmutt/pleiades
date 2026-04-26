@@ -4183,6 +4183,18 @@ mod tests {
     }
 
     #[test]
+    fn batch_query_rejects_apparent_requests_explicitly() {
+        let backend = ElpBackend::new();
+        let mut request = mean_request(CelestialBody::Moon);
+        request.apparent = Apparentness::Apparent;
+
+        let error = backend
+            .positions(&[request])
+            .expect_err("apparent batch requests should be unsupported");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+    }
+
+    #[test]
     fn tdb_requests_are_accepted_like_tt_requests() {
         let backend = ElpBackend::new();
         let tt_request = mean_request(CelestialBody::Moon);
@@ -4219,6 +4231,22 @@ mod tests {
         let error = backend
             .position(&request)
             .expect_err("topocentric requests should be unsupported");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
+    }
+
+    #[test]
+    fn batch_query_rejects_topocentric_requests_explicitly() {
+        let backend = ElpBackend::new();
+        let mut request = mean_request(CelestialBody::Moon);
+        request.observer = Some(pleiades_types::ObserverLocation::new(
+            Latitude::from_degrees(51.5),
+            Longitude::from_degrees(0.0),
+            None,
+        ));
+
+        let error = backend
+            .positions(&[request])
+            .expect_err("topocentric batch requests should be unsupported");
         assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
     }
 
