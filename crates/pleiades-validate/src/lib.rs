@@ -1220,6 +1220,7 @@ impl fmt::Display for ValidationReport {
         writeln!(f)?;
         writeln!(f, "API stability posture")?;
         writeln!(f, "  id: {}", release_profiles.api_stability_profile_id)?;
+        writeln!(f, "Release profile identifiers: {}", release_profiles)?;
         writeln!(f, "{}", current_api_stability_profile())?;
         writeln!(f)?;
         write_backend_catalog(
@@ -2670,6 +2671,9 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str("API stability posture: ");
     text.push_str(release_profiles.api_stability_profile_id);
+    text.push('\n');
+    text.push_str("Release profile identifiers: ");
+    text.push_str(&release_profiles.to_string());
     text.push('\n');
     text.push_str("Time-scale policy: ");
     text.push_str(time_scale_policy_summary_for_report());
@@ -4780,6 +4784,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         "API stability posture: {}",
         release_profiles.api_stability_profile_id
     );
+    let _ = writeln!(text, "Release profile identifiers: {}", release_profiles);
     let _ = writeln!(
         text,
         "Time-scale policy: {}",
@@ -5650,6 +5655,9 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&zodiac_policy_summary_for_report(&[ZodiacMode::Tropical]));
     text.push('\n');
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
+    text.push_str("Release profile identifiers: ");
+    text.push_str(&release_profiles.to_string());
+    text.push('\n');
     text.push_str("API stability summary: api-stability-summary\n");
     text.push_str("Release notes summary: release-notes-summary\n");
     text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
@@ -5678,6 +5686,9 @@ fn render_api_stability_summary_text() -> String {
     text.push('\n');
     text.push_str("Compatibility profile: ");
     text.push_str(release_profiles.compatibility_profile_id);
+    text.push('\n');
+    text.push_str("Release profile identifiers: ");
+    text.push_str(&release_profiles.to_string());
     text.push('\n');
     text.push_str("Stable surfaces: ");
     text.push_str(&profile.stable_surfaces.len().to_string());
@@ -8079,6 +8090,10 @@ mod tests {
             "  id: {}",
             release_profiles.api_stability_profile_id
         )));
+        assert!(report.contains(&format!(
+            "Release profile identifiers: compatibility={}, api-stability={}",
+            release_profiles.compatibility_profile_id, release_profiles.api_stability_profile_id
+        )));
         assert!(report.contains("Implemented backend matrices"));
         assert!(report.contains("Selected asteroid coverage"));
         assert!(report.contains("exact J2000 evidence: 5 bodies at JD 2451545.0"));
@@ -8447,6 +8462,9 @@ mod tests {
         assert!(validation_report_summary.contains("Apparentness policy:"));
         assert!(validation_report_summary.contains("Frame policy:"));
         assert!(validation_report_summary.contains("Zodiac policy:"));
+        assert!(validation_report_summary.contains(
+            "Release profile identifiers: compatibility=pleiades-compatibility-profile/0.6.122, api-stability=pleiades-api-stability/0.1.0"
+        ));
         assert!(validation_report_summary
             .contains("lookup epoch policy=TT-grid retag without relativistic correction"));
         assert!(validation_report_summary.contains("Benchmark summaries"));
@@ -8645,6 +8663,10 @@ mod tests {
         assert!(rendered.contains(&format!(
             "Compatibility profile: {}",
             release_profiles.compatibility_profile_id
+        )));
+        assert!(rendered.contains(&format!(
+            "Release profile identifiers: compatibility={}, api-stability={}",
+            release_profiles.compatibility_profile_id, release_profiles.api_stability_profile_id
         )));
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(rendered.contains("Stable surfaces:"));
@@ -9257,6 +9279,10 @@ mod tests {
         assert!(rendered.contains(&format!(
             "API stability posture: {}",
             release_profiles.api_stability_profile_id
+        )));
+        assert!(rendered.contains(&format!(
+            "Release profile identifiers: compatibility={}, api-stability={}",
+            release_profiles.compatibility_profile_id, release_profiles.api_stability_profile_id
         )));
         assert!(rendered.contains("Release summary line:"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
