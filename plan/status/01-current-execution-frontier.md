@@ -35,6 +35,7 @@ Completed foundations:
 - tests and doctests for current behavior.
 
 Latest progress (2026-04-26): the release checklist summary now also surfaces the shared zodiac policy line, keeping the compact maintainer-facing release workflow aligned with the other report summaries and the current tropical-only request posture.
+Latest progress (2026-04-26): comparison-tolerance scope coverage rows now also have backend-owned `summary_line()`/`Display` helpers, and the validation/release tolerance-policy renderers reuse those typed rows directly instead of rebuilding the per-scope wording inline, which keeps the compact release-facing tolerance catalog a little more consistently typed.
 Latest progress (2026-04-26): the core compressed-artifact profile record now also implements `Display` and a `summary_line()` helper, so downstream validation and release helpers can reuse the typed codec metadata directly instead of reconstructing the stored/derived/unsupported capability wording locally.
 Latest progress (2026-04-26): the API stability profile now also exposes a compact `summary_line()` helper, and the release/validation summary views reuse it for the short API stability lines so the compact posture wording stays typed instead of being rebuilt from ad hoc literals.
 Latest progress (2026-04-26): backend quality annotations now have stable display labels in `pleiades-backend`, and chart snapshots render that typed label directly instead of Debug formatting, keeping the chart body-quality column aligned with the shared contract.

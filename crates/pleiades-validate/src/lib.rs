@@ -516,6 +516,8 @@ pub struct ComparisonToleranceScopeCoverageSummary {
     pub entry: ComparisonToleranceEntry,
     /// Bodies assigned to this tolerance scope in first-seen order.
     pub bodies: Vec<CelestialBody>,
+    /// Number of distinct bodies assigned to this tolerance scope.
+    pub body_count: usize,
     /// Total number of samples covered by this tolerance scope.
     pub sample_count: usize,
 }
@@ -530,10 +532,11 @@ impl ComparisonToleranceScopeCoverageSummary {
         };
         let tolerance = &self.entry.tolerance;
         format!(
-            "{}: backend family={}, profile={}, bodies={}, samples={}, limit Δlon≤{:.6}°, limit Δlat≤{:.6}°, limit Δdist={}",
+            "{}: backend family={}, profile={}, bodies={} ({}), samples={}, limit Δlon≤{:.6}°, limit Δlat≤{:.6}°, limit Δdist={}",
             self.entry.scope.label(),
             tolerance_backend_family_label(&tolerance.backend_family),
             tolerance.profile,
+            self.body_count,
             bodies,
             self.sample_count,
             tolerance.max_longitude_delta_deg,
@@ -573,6 +576,7 @@ fn comparison_tolerance_policy_coverage(
 
             ComparisonToleranceScopeCoverageSummary {
                 entry,
+                body_count: bodies.len(),
                 bodies,
                 sample_count,
             }
@@ -8475,6 +8479,7 @@ mod tests {
         assert!(coverage
             .summary_line()
             .contains(coverage.entry.scope.label()));
+        assert_eq!(coverage.body_count, coverage.bodies.len());
     }
 
     #[test]
@@ -9841,7 +9846,7 @@ mod tests {
         assert!(rendered.contains("notable regressions"));
         assert!(rendered.contains("outside-tolerance bodies"));
         assert!(rendered.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto override); limits="));
-        assert!(rendered.contains("coverage=Luminaries: backend family=composite, profile=phase-1 full-file VSOP87B planetary evidence, bodies=Moon, Sun, samples="));
+        assert!(rendered.contains("coverage=Luminaries: backend family=composite, profile=phase-1 full-file VSOP87B planetary evidence, bodies=2 (Moon, Sun), samples="));
         assert!(rendered.contains("window=JD"));
         assert!(rendered.contains("frames=Ecliptic"));
         assert!(rendered.contains("Luminaries: Δlon≤45.000°, Δlat≤1.000°, Δdist=0.250 AU"));
