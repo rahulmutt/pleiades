@@ -1324,34 +1324,12 @@ pub fn source_documentation_health_summary() -> Vsop87SourceDocumentationHealthS
     let source_specs = source_specifications();
     let body_profile_count = body_catalog_entries().len();
     let source_file_count = summary.source_files.len();
-    let expected_source_files = source_specs
-        .iter()
-        .map(|spec| spec.source_file)
-        .collect::<Vec<_>>();
-    let mut issues = Vec::new();
-
-    if summary.source_specification_count != source_file_count {
-        issues.push("source specification/file count mismatch");
-    }
-    if summary.source_files != expected_source_files {
-        issues.push("source file order mismatch");
-    }
-    if summary.source_backed_profile_count
-        != summary.generated_binary_profile_count
-            + summary.vendored_full_file_profile_count
-            + summary.truncated_profile_count
-    {
-        issues.push("source-backed profile partition mismatch");
-    }
-    if summary.source_backed_profile_count + summary.fallback_profile_count != body_profile_count {
-        issues.push("body profile coverage mismatch");
-    }
-    if summary.source_specification_count != source_specs.len() {
-        issues.push("source specification catalog count mismatch");
-    }
-    if !source_documentation_fields_are_consistent(&source_specs) {
-        issues.push("documented field mismatch");
-    }
+    let issues = source_documentation_health_issues(
+        &summary,
+        &source_specs,
+        body_profile_count,
+        source_file_count,
+    );
 
     let consistent = issues.is_empty();
     let documentation_consistent = summary.source_specification_count == source_specs.len()
@@ -1389,7 +1367,7 @@ pub fn format_source_documentation_health_summary(
     };
 
     format!(
-        "VSOP87 source documentation health: {} ({} source specs, {} source files, {} source-backed profiles, {} body profiles; {} generated binary profiles ({}), {} vendored full-file profiles ({}), {} truncated profiles ({}), {} fallback profiles ({}); source files: {}; source-backed bodies: {}; fallback bodies: {}; documented fields: {}){}",
+        "VSOP87 source documentation health: {} ({} source specs, {} source files, {} source-backed profiles, {} body profiles; {} generated binary profiles ({}), {} vendored full-file profiles ({}), {} truncated profiles ({}), {} fallback profiles ({}); source files: {}; source-backed order: {}; fallback order: {}; documented fields: {}){}",
         if summary.consistent { "ok" } else { "needs attention" },
         summary.source_specification_count,
         summary.source_file_count,
@@ -1413,6 +1391,60 @@ pub fn format_source_documentation_health_summary(
         },
         issues,
     )
+}
+
+fn source_documentation_partition_bodies(
+    summary: &Vsop87SourceDocumentationSummary,
+) -> Vec<CelestialBody> {
+    summary
+        .generated_binary_bodies
+        .iter()
+        .chain(summary.vendored_full_file_bodies.iter())
+        .chain(summary.truncated_bodies.iter())
+        .cloned()
+        .collect()
+}
+
+fn source_documentation_health_issues(
+    summary: &Vsop87SourceDocumentationSummary,
+    source_specs: &[Vsop87SourceSpecification],
+    body_profile_count: usize,
+    source_file_count: usize,
+) -> Vec<&'static str> {
+    let expected_source_files = source_specs
+        .iter()
+        .map(|spec| spec.source_file)
+        .collect::<Vec<_>>();
+    let expected_source_backed_bodies = source_documentation_partition_bodies(summary);
+    let mut issues = Vec::new();
+
+    if summary.source_specification_count != source_file_count {
+        issues.push("source specification/file count mismatch");
+    }
+    if summary.source_files != expected_source_files {
+        issues.push("source file order mismatch");
+    }
+    if summary.source_backed_bodies != expected_source_backed_bodies {
+        issues.push("source-backed body order mismatch");
+    }
+    if summary.source_backed_profile_count
+        != summary.generated_binary_profile_count
+            + summary.vendored_full_file_profile_count
+            + summary.truncated_profile_count
+    {
+        issues.push("source-backed profile partition mismatch");
+    }
+    if summary.source_backed_profile_count + summary.fallback_profile_count != body_profile_count {
+        issues.push("body profile coverage mismatch");
+    }
+    if summary.source_specification_count != source_specs.len() {
+        issues.push("source specification catalog count mismatch");
+    }
+    if !source_documentation_fields_are_consistent(source_specs) {
+        issues.push("documented field mismatch");
+    }
+
+    issues
 }
 
 fn format_bodies(bodies: &[CelestialBody]) -> String {
@@ -4266,6 +4298,7 @@ mod tests {
 
     #[test]
     fn source_documentation_health_summary_confirms_catalog_partitioning() {
+        let documentation_summary = source_documentation_summary();
         let summary = source_documentation_health_summary();
 
         assert!(summary.consistent);
@@ -4325,10 +4358,14 @@ mod tests {
                 CelestialBody::Neptune,
             ]
         );
+        assert_eq!(
+            source_documentation_partition_bodies(&documentation_summary),
+            documentation_summary.source_backed_bodies
+        );
         assert_eq!(summary.fallback_bodies, vec![CelestialBody::Pluto]);
         assert_eq!(
             format_source_documentation_health_summary(&summary),
-            "VSOP87 source documentation health: ok (8 source specs, 8 source files, 8 source-backed profiles, 9 body profiles; 8 generated binary profiles (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune), 0 vendored full-file profiles (none), 0 truncated profiles (none), 1 fallback profiles (Pluto); source files: VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep; source-backed bodies: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; fallback bodies: Pluto; documented fields: variant, coordinate family, frame, units, reduction, transform note, truncation policy, and date range)"
+            "VSOP87 source documentation health: ok (8 source specs, 8 source files, 8 source-backed profiles, 9 body profiles; 8 generated binary profiles (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune), 0 vendored full-file profiles (none), 0 truncated profiles (none), 1 fallback profiles (Pluto); source files: VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep; source-backed order: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; fallback order: Pluto; documented fields: variant, coordinate family, frame, units, reduction, transform note, truncation policy, and date range)"
         );
         assert_eq!(
             source_documentation_health_summary_for_report(),
@@ -4363,8 +4400,24 @@ mod tests {
 
         assert_eq!(
             format_source_documentation_health_summary(&summary),
-            "VSOP87 source documentation health: needs attention (1 source specs, 2 source files, 1 source-backed profiles, 2 body profiles; 1 generated binary profiles (Sun), 0 vendored full-file profiles (none), 0 truncated profiles (none), 1 fallback profiles (Pluto); source files: VSOP87B.ear; source-backed bodies: Sun; fallback bodies: Pluto; documented fields: needs attention); issues: source specification/file count mismatch, documented field mismatch"
+            "VSOP87 source documentation health: needs attention (1 source specs, 2 source files, 1 source-backed profiles, 2 body profiles; 1 generated binary profiles (Sun), 0 vendored full-file profiles (none), 0 truncated profiles (none), 1 fallback profiles (Pluto); source files: VSOP87B.ear; source-backed order: Sun; fallback order: Pluto; documented fields: needs attention); issues: source specification/file count mismatch, documented field mismatch"
         );
+    }
+
+    #[test]
+    fn source_documentation_health_issues_detect_partition_order_drift() {
+        let mut summary = source_documentation_summary();
+        summary.source_backed_bodies.reverse();
+        let source_specs = source_specifications();
+
+        let issues = source_documentation_health_issues(
+            &summary,
+            &source_specs,
+            body_catalog_entries().len(),
+            summary.source_files.len(),
+        );
+
+        assert!(issues.contains(&"source-backed body order mismatch"));
     }
 
     #[test]
