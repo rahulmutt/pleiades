@@ -67,7 +67,7 @@ pub enum Vsop87BodySourceKind {
     /// source file.
     GeneratedBinaryVsop87b,
     /// Coordinates are produced from compact mean orbital elements while the
-    /// complete VSOP87 coefficient path is still pending.
+    /// remaining Pluto-specific source path is modeled separately.
     MeanOrbitalElements,
 }
 
@@ -107,7 +107,7 @@ pub struct Vsop87BodySource {
 ///
 /// The returned list is derived from the unified VSOP87 body catalog so the
 /// source profile, source documentation, and canonical J2000 evidence stay in
-/// sync as the backend moves from vendored source files toward generated tables.
+/// sync as the backend continues expanding the generated-table pipeline.
 pub fn body_source_profiles() -> Vec<Vsop87BodySource> {
     body_catalog_entries()
         .iter()
@@ -353,7 +353,7 @@ impl fmt::Display for Vsop87SourceDocumentationHealthSummary {
 /// These values are the same full-file public IMCCE VSOP87B reference points
 /// exercised by the backend regression tests. The validation tooling uses them
 /// to render measured deltas against the checked-in source-backed coefficient
-/// paths while the complete generated-table pipeline is still pending.
+/// paths while the generated-table pipeline continues to expand.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Vsop87CanonicalEpochSample {
     /// Body measured at the canonical epoch.

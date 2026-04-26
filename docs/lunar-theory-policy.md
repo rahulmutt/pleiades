@@ -63,9 +63,9 @@ The current request policy is intentionally narrow and explicit, and the same sh
   does not redistribute external coefficient tables, but any future source-
   backed lunar theory selection should document its own licensing and
   provenance review before it is treated as production data.
-- The planned full ELP selection remains pending; when it lands, this policy
-  should be updated with the chosen source identifier, citation, provenance
-  notes, and any redistribution constraints.
+- A future full ELP selection has not been chosen yet; when it lands, this
+  policy should be updated with the chosen source identifier, citation,
+  provenance notes, and any redistribution constraints.
 
 ## Validation posture
 
