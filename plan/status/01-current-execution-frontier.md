@@ -73,7 +73,7 @@ Latest progress (2026-04-26): the JPL snapshot backend now also has batch-path r
 
 Latest progress (2026-04-25): validation reporting now includes a release-grade comparison tolerance audit section, and `compare-backends-audit` now fails when the built-in tolerance audit finds regressions, so release tooling has an explicit pass/fail gate in addition to the existing per-body tolerance tables. The tolerance policy used by those reports is now also surfaced as a structured backend-family/body-class catalog, so release-facing summaries can name the exact scope table they are applying. The compact tolerance-policy summary now also carries the current comparison corpus size, so the release-facing catalog line states how many bodies and samples the scope table is being applied to.
 
-Latest progress (2026-04-25): the compact release summary now also surfaces the comparison tolerance policy catalog alongside the validation evidence and comparison envelope, so the one-screen release overview now carries the backend-family scope table without needing the full validation report.
+Latest progress (2026-04-26): the compact release summary’s comparison tolerance policy line now also includes per-scope body-and-sample coverage counts alongside the backend-family scope table and tolerance limits, so the one-screen release overview makes the policy-to-corpus relationship a little easier to audit without opening the full validation report.
 
 Latest progress (2026-04-25): the body-class tolerance posture now names the bodies that drive each class-level max longitude, latitude, and distance delta, so the coarse tolerance audit can point at the exact worst-case body instead of only aggregating counts and magnitudes.
 

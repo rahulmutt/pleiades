@@ -4044,18 +4044,40 @@ fn format_body_class_comparison_envelope_for_report(summary: &BodyClassSummary) 
 fn format_comparison_tolerance_policy_for_report(comparison: &ComparisonReport) -> String {
     let backend_family = &comparison.candidate_backend.family;
     let entries = comparison_tolerance_policy_entries(backend_family);
+    let tolerance_summaries = comparison.tolerance_summaries();
     let scopes = entries
         .iter()
         .map(|entry| entry.scope.label())
         .collect::<Vec<_>>()
         .join(", ");
     let limits = format_comparison_tolerance_limits_for_report(&entries);
+    let coverage = entries
+        .iter()
+        .map(|entry| {
+            let body_count = tolerance_summaries
+                .iter()
+                .filter(|summary| comparison_tolerance_scope_for_body(&summary.body) == entry.scope)
+                .count();
+            let sample_count = tolerance_summaries
+                .iter()
+                .filter(|summary| comparison_tolerance_scope_for_body(&summary.body) == entry.scope)
+                .map(|summary| summary.sample_count)
+                .sum::<usize>();
+            format!(
+                "{}: {} bodies, {} samples",
+                entry.scope.label(),
+                body_count,
+                sample_count
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("; ");
 
     format!(
-        "backend family={}; scopes={} ({scopes}); limits={limits}; evidence={} bodies, {} samples",
+        "backend family={}; scopes={} ({scopes}); limits={limits}; coverage={coverage}; evidence={} bodies, {} samples",
         backend_family_label(backend_family),
         entries.len(),
-        comparison.body_summaries().len(),
+        tolerance_summaries.len(),
         comparison.summary.sample_count,
     )
 }
@@ -8562,6 +8584,7 @@ mod tests {
         assert!(rendered.contains("notable regressions"));
         assert!(rendered.contains("outside-tolerance bodies"));
         assert!(rendered.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto override); limits="));
+        assert!(rendered.contains("coverage=Luminaries:"));
         assert!(rendered.contains("Luminaries: Δlon≤45.000°, Δlat≤1.000°, Δdist=0.250 AU"));
         assert!(rendered.contains("Pluto override: Δlon≤45.000°, Δlat≤1.000°, Δdist=0.250 AU"));
         assert!(rendered.contains("evidence=10 bodies, 41 samples"));
