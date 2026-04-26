@@ -22,6 +22,7 @@ The workspace already has CLI/report commands, compatibility-profile summaries, 
    - Version profile identifiers and archive the exact profile shipped with each release.
    - Include supported bodies, house systems, ayanamsas, aliases, backend matrices, time ranges, constraints, and known gaps.
    - Require profile verification in CI or release scripts.
+   - Progress note: the compact release summary now also mirrors the release-specific house-system and ayanamsa canonical-name breakdowns from the compatibility profile, so the one-screen release posture now shows the explicit name lists alongside the aggregate catalog counts.
 
 2. Harden validation and benchmark reports.
    - Generate reports from real backend and artifact evidence.

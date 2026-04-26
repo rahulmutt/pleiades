@@ -2647,6 +2647,12 @@ fn render_release_summary_text() -> String {
     text.push_str(" baseline, ");
     text.push_str(&profile.release_house_systems.len().to_string());
     text.push_str(" release-specific)\n");
+    text.push_str("Release-specific house-system canonical names: ");
+    text.push_str(&summarize_descriptor_names(
+        profile.release_house_systems,
+        |entry| entry.canonical_name,
+    ));
+    text.push('\n');
     text.push_str("Ayanamsas: ");
     text.push_str(&profile.ayanamsas.len().to_string());
     text.push_str(" total (");
@@ -2654,6 +2660,12 @@ fn render_release_summary_text() -> String {
     text.push_str(" baseline, ");
     text.push_str(&profile.release_ayanamsas.len().to_string());
     text.push_str(" release-specific)\n");
+    text.push_str("Release-specific ayanamsa canonical names: ");
+    text.push_str(&summarize_descriptor_names(
+        profile.release_ayanamsas,
+        |entry| entry.canonical_name,
+    ));
+    text.push('\n');
     text.push_str("Validation reference points: ");
     text.push_str(&summarize_validation_reference_points(
         profile.validation_reference_points,
@@ -9078,9 +9090,9 @@ mod tests {
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
         assert!(rendered.contains("Workspace audit: workspace-audit / audit"));
         assert!(rendered.contains("House systems:"));
-        assert!(rendered.contains("Albategnius"));
-        assert!(rendered.contains("Gauquelin sectors"));
+        assert!(rendered.contains("Release-specific house-system canonical names: 13 (Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter (poli-equatorial), Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen SD, Pullen SR, Sunshine, Gauquelin sectors)"));
         assert!(rendered.contains("Ayanamsas:"));
+        assert!(rendered.contains("Release-specific ayanamsa canonical names: 54 (True Citra, J2000, J1900, B1950, True Revati, True Mula, Suryasiddhanta (Revati), Suryasiddhanta (Citra), Lahiri (ICRC), Lahiri (1940), Usha Shashi, Suryasiddhanta (499 CE), Aryabhata (499 CE), Sassanian, DeLuce, Yukteshwar, PVR Pushya-paksha, Sheoran, Hipparchus, Babylonian (Kugler 1), Babylonian (Kugler 2), Babylonian (Kugler 3), Babylonian (Huber), Babylonian (Eta Piscium), Babylonian (Aldebaran), Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs), Galactic Center, Galactic Equator, True Pushya, Udayagiri, Djwhal Khul, JN Bhasin, Suryasiddhanta (Mean Sun), Aryabhata (Mean Sun), Babylonian (Britton), Aryabhata (522 CE), Lahiri (VP285), Krishnamurti (VP291), True Sheoran, Galactic Center (Rgilbrand), Galactic Center (Mardyks), Galactic Center (Mula/Wilhelm), Dhruva Galactic Center (Middle Mula), Galactic Center (Cochrane), Galactic Equator (IAU 1958), Galactic Equator (True), Galactic Equator (Mula), Galactic Equator (Fiorenza), Valens Moon)"));
         assert!(rendered.contains("Validation reference points: 1 (stage-4 validation corpus)"));
         assert!(rendered.contains("Custom-definition labels:"));
         assert!(rendered.contains("Custom-definition ayanamsas:"));
