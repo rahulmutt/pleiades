@@ -6,12 +6,15 @@
 //! and major planets. The Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus,
 //! and Neptune paths evaluate public IMCCE VSOP87B sources (heliocentric
 //! spherical variables, J2000 ecliptic/equinox) transformed to geocentric
-//! chart-facing coordinates. The Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, and Neptune paths
-//! now use generated binary tables derived from their vendored source files.
-//! A maintainer-facing regeneration helper and `regenerate-vsop87b-tables`
-//! binary keep those checked-in blobs reproducible from the public source text.
-//! The backend accepts both TT and TDB requests as dynamical-time inputs and
-//! still rejects UT-based requests explicitly. Pluto still uses compact
+//! chart-facing coordinates. The Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus,
+//! and Neptune paths now use generated binary tables derived from their vendored
+//! source files. A maintainer-facing regeneration helper and
+//! `regenerate-vsop87b-tables` binary keep those checked-in blobs reproducible
+//! from the public source text. The backend accepts both TT and TDB requests as
+//! dynamical-time inputs and still rejects UT-based requests explicitly. It
+//! exposes mean-only tropical geocentric ecliptic/equatorial results and does
+//! not accept topocentric observer or apparent-place requests yet. Pluto still
+//! uses compact
 //! Keplerian orbital elements,
 //! a geocentric reduction step, and central-difference motion estimates so the
 //! workspace has an end-to-end tropical chart path while the remaining
@@ -616,6 +619,103 @@ pub fn source_specifications() -> Vec<Vsop87SourceSpecification> {
 /// Returns the current frame-treatment summary for VSOP87-backed results.
 pub fn frame_treatment_summary() -> &'static str {
     "VSOP87 frame treatment: J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a mean-obliquity transform"
+}
+
+fn format_coordinate_frames(frames: &[CoordinateFrame]) -> String {
+    frames
+        .iter()
+        .map(|frame| match frame {
+            CoordinateFrame::Ecliptic => "Ecliptic",
+            CoordinateFrame::Equatorial => "Equatorial",
+            _ => "Other",
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn format_time_scales(time_scales: &[TimeScale]) -> String {
+    time_scales
+        .iter()
+        .map(|time_scale| match time_scale {
+            TimeScale::Tt => "TT",
+            TimeScale::Tdb => "TDB",
+            TimeScale::Utc => "UTC",
+            TimeScale::Ut1 => "UT1",
+            _ => "Other",
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn format_zodiac_modes(zodiac_modes: &[ZodiacMode]) -> String {
+    zodiac_modes
+        .iter()
+        .map(|zodiac_mode| match zodiac_mode {
+            ZodiacMode::Tropical => "Tropical",
+            ZodiacMode::Sidereal { .. } => "Sidereal",
+            _ => "Other",
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn format_apparentness_modes(modes: &[Apparentness]) -> String {
+    modes
+        .iter()
+        .map(|mode| match mode {
+            Apparentness::Mean => "Mean",
+            Apparentness::Apparent => "Apparent",
+            _ => "Other",
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+/// Structured request policy for the current VSOP87 backend.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Vsop87RequestPolicy {
+    /// Coordinate frames the current backend exposes.
+    pub supported_frames: &'static [CoordinateFrame],
+    /// Time scales accepted by the current backend.
+    pub supported_time_scales: &'static [TimeScale],
+    /// Zodiac modes accepted by the current backend.
+    pub supported_zodiac_modes: &'static [ZodiacMode],
+    /// Apparentness modes accepted by the current backend.
+    pub supported_apparentness: &'static [Apparentness],
+    /// Whether the current backend accepts topocentric observer requests.
+    pub supports_topocentric_observer: bool,
+}
+
+impl Vsop87RequestPolicy {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "frames={}; time scales={}; zodiac modes={}; apparentness={}; topocentric observer={}",
+            format_coordinate_frames(self.supported_frames),
+            format_time_scales(self.supported_time_scales),
+            format_zodiac_modes(self.supported_zodiac_modes),
+            format_apparentness_modes(self.supported_apparentness),
+            self.supports_topocentric_observer,
+        )
+    }
+}
+
+const VSOP87_REQUEST_POLICY: Vsop87RequestPolicy = Vsop87RequestPolicy {
+    supported_frames: &[CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
+    supported_time_scales: &[TimeScale::Tt, TimeScale::Tdb],
+    supported_zodiac_modes: &[ZodiacMode::Tropical],
+    supported_apparentness: &[Apparentness::Mean],
+    supports_topocentric_observer: false,
+};
+
+/// Returns the current VSOP87 request policy.
+pub const fn vsop87_request_policy() -> Vsop87RequestPolicy {
+    VSOP87_REQUEST_POLICY
+}
+
+/// Returns the release-facing VSOP87 request policy summary string.
+pub fn vsop87_request_policy_summary_for_report() -> String {
+    vsop87_request_policy().summary_line()
 }
 
 /// Returns the reproducibility audit records for the current VSOP87-backed bodies.
@@ -2573,6 +2673,27 @@ mod tests {
         assert_eq!(summary.truncated_profile_count, 0);
         assert_eq!(summary.fallback_profile_count, 1);
         assert_eq!(summary.fallback_bodies, vec![CelestialBody::Pluto]);
+    }
+
+    #[test]
+    fn request_policy_summary_tracks_the_public_backend_posture() {
+        let policy = vsop87_request_policy();
+
+        assert_eq!(
+            policy.summary_line(),
+            "frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"
+        );
+        assert_eq!(
+            policy.supported_frames,
+            &[CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial]
+        );
+        assert_eq!(
+            policy.supported_time_scales,
+            &[TimeScale::Tt, TimeScale::Tdb]
+        );
+        assert_eq!(policy.supported_zodiac_modes, &[ZodiacMode::Tropical]);
+        assert_eq!(policy.supported_apparentness, &[Apparentness::Mean]);
+        assert!(!policy.supports_topocentric_observer);
     }
 
     #[test]
