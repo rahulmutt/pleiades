@@ -1320,6 +1320,8 @@ pub struct JplInterpolationQualityKindCoverage {
     pub sample_count: usize,
     /// Number of distinct bodies represented by the samples.
     pub body_count: usize,
+    /// Bodies represented by the samples in first-seen order.
+    pub bodies: Vec<String>,
     /// Number of distinct bodies represented by cubic interpolation samples.
     pub cubic_body_count: usize,
     /// Number of distinct bodies represented by quadratic interpolation samples.
@@ -1464,13 +1466,16 @@ pub fn jpl_interpolation_quality_kind_coverage() -> Option<JplInterpolationQuali
     }
 
     let mut all_bodies = BTreeSet::new();
+    let mut first_seen_bodies = Vec::new();
     let mut cubic_bodies = BTreeSet::new();
     let mut quadratic_bodies = BTreeSet::new();
     let mut linear_bodies = BTreeSet::new();
 
     for sample in samples {
         let body = sample.body.to_string();
-        all_bodies.insert(body.clone());
+        if all_bodies.insert(body.clone()) {
+            first_seen_bodies.push(body.clone());
+        }
         match sample.interpolation_kind {
             InterpolationQualityKind::Cubic => {
                 cubic_bodies.insert(body);
@@ -1487,6 +1492,7 @@ pub fn jpl_interpolation_quality_kind_coverage() -> Option<JplInterpolationQuali
     Some(JplInterpolationQualityKindCoverage {
         sample_count: samples.len(),
         body_count: all_bodies.len(),
+        bodies: first_seen_bodies,
         cubic_body_count: cubic_bodies.len(),
         quadratic_body_count: quadratic_bodies.len(),
         linear_body_count: linear_bodies.len(),
@@ -1496,10 +1502,17 @@ pub fn jpl_interpolation_quality_kind_coverage() -> Option<JplInterpolationQuali
 impl JplInterpolationQualityKindCoverage {
     /// Returns the compact release-facing coverage summary line.
     pub fn summary_line(&self) -> String {
+        let bodies = if self.bodies.is_empty() {
+            "none".to_string()
+        } else {
+            self.bodies.join(", ")
+        };
+
         format!(
-            "JPL interpolation quality kind coverage: {} samples across {} bodies ({} cubic bodies, {} quadratic bodies, {} linear bodies)",
+            "JPL interpolation quality kind coverage: {} samples across {} bodies [{}] ({} cubic bodies, {} quadratic bodies, {} linear bodies)",
             self.sample_count,
             self.body_count,
+            bodies,
             self.cubic_body_count,
             self.quadratic_body_count,
             self.linear_body_count,
@@ -1795,14 +1808,7 @@ pub fn format_jpl_interpolation_quality_summary(
 pub fn format_jpl_interpolation_quality_kind_coverage(
     coverage: &JplInterpolationQualityKindCoverage,
 ) -> String {
-    format!(
-        "JPL interpolation quality kind coverage: {} samples across {} bodies ({} cubic bodies, {} quadratic bodies, {} linear bodies)",
-        coverage.sample_count,
-        coverage.body_count,
-        coverage.cubic_body_count,
-        coverage.quadratic_body_count,
-        coverage.linear_body_count,
-    )
+    coverage.summary_line()
 }
 
 /// Formats the interpolation-quality summary together with the distinct-body coverage line.
@@ -4108,6 +4114,8 @@ mod tests {
         let coverage = jpl_interpolation_quality_kind_coverage().expect("coverage should exist");
         assert_eq!(coverage.sample_count, 21);
         assert_eq!(coverage.body_count, 10);
+        assert_eq!(coverage.bodies.len(), coverage.body_count);
+        assert!(!coverage.bodies.is_empty());
         assert!(coverage.cubic_body_count > 0);
         assert_eq!(coverage.quadratic_body_count, 0);
         assert!(coverage.linear_body_count > 0);
@@ -4116,7 +4124,8 @@ mod tests {
 
         let rendered = format_jpl_interpolation_quality_kind_coverage(&coverage);
         assert!(rendered.contains("JPL interpolation quality kind coverage:"));
-        assert!(rendered.contains("21 samples across 10 bodies"));
+        assert!(rendered.contains("21 samples across 10 bodies ["));
+        assert!(rendered.contains(&coverage.bodies[0]));
         assert!(rendered.contains("cubic bodies"));
         assert!(rendered.contains("quadratic bodies"));
         assert!(rendered.contains("linear bodies"));
