@@ -77,7 +77,7 @@ pub struct ReferenceSnapshotSummary {
 }
 
 /// Structured validation errors for a reference snapshot coverage summary.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ReferenceSnapshotSummaryValidationError {
     /// The summary did not expose any bodies.
     MissingBodies,
