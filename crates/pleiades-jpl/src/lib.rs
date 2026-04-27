@@ -2125,9 +2125,7 @@ fn parse_snapshot_manifest(source: &str) -> SnapshotManifest {
         } else if let Some(value) = comment.strip_prefix("Columns:") {
             manifest.columns = value
                 .split(',')
-                .map(|column| column.trim())
-                .filter(|column| !column.is_empty())
-                .map(ToOwned::to_owned)
+                .map(|column| column.trim().to_string())
                 .collect();
         } else if manifest.title.is_none() && !comment.is_empty() {
             manifest.title = Some(comment.to_string());
@@ -3167,6 +3165,25 @@ mod tests {
         assert_eq!(
             SnapshotManifestValidationError::BlankColumn { index: 1 }.to_string(),
             "blank column at index 1"
+        );
+    }
+
+    #[test]
+    fn parsed_manifest_preserves_blank_columns_for_validation() {
+        let manifest = parse_snapshot_manifest(
+            "# Example snapshot.\n# Source: Example source\n# Columns: body, , x_km\n",
+        );
+
+        assert_eq!(manifest.title.as_deref(), Some("Example snapshot."));
+        assert_eq!(manifest.source.as_deref(), Some("Example source"));
+        assert_eq!(manifest.columns, ["body", "", "x_km"]);
+        assert_eq!(
+            manifest.validate(),
+            Err(SnapshotManifestValidationError::BlankColumn { index: 1 })
+        );
+        assert_eq!(
+            manifest.summary_line("Example manifest"),
+            "Example manifest: Example snapshot.; source=Example source; coverage=unknown; columns=body, , x_km"
         );
     }
 
