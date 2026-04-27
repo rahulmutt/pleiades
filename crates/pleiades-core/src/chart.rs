@@ -2635,6 +2635,45 @@ mod tests {
     }
 
     #[test]
+    fn chart_request_signed_time_scale_helpers_reject_non_finite_offsets() {
+        let tt_request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Tt,
+        ));
+        let tt_error = tt_request
+            .with_tdb_from_tt_signed(f64::NAN)
+            .expect_err("TT chart request should reject non-finite TDB offsets");
+        assert!(matches!(
+            tt_error,
+            TimeScaleConversionError::NonFiniteOffset
+        ));
+
+        let ut1_request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Ut1,
+        ));
+        let ut1_error = ut1_request
+            .with_tdb_from_ut1_signed(Duration::from_secs_f64(64.184), f64::INFINITY)
+            .expect_err("UT1 chart request should reject non-finite TDB offsets");
+        assert!(matches!(
+            ut1_error,
+            TimeScaleConversionError::NonFiniteOffset
+        ));
+
+        let utc_request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Utc,
+        ));
+        let utc_error = utc_request
+            .with_tdb_from_utc_signed(Duration::from_secs_f64(64.184), f64::NEG_INFINITY)
+            .expect_err("UTC chart request should reject non-finite TDB offsets");
+        assert!(matches!(
+            utc_error,
+            TimeScaleConversionError::NonFiniteOffset
+        ));
+    }
+
+    #[test]
     fn chart_request_time_scale_conversions_preserve_the_rest_of_the_request_shape() {
         let mut custom = pleiades_types::CustomHouseSystem::new("My Custom Houses");
         custom.aliases.push("My Alias".to_string());
