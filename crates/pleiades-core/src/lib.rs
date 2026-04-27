@@ -163,9 +163,18 @@ impl<B: EphemerisBackend> ChartEngine<B> {
     /// [`ChartRequest::validate_against_metadata`], which lets callers preflight
     /// chart shape, house-observer policy, zodiac routing, frame support, and
     /// body coverage directly from the engine when they want to separate
-    /// validation from chart assembly.
+    /// validation from chart assembly. The backend metadata is validated first so
+    /// the request preflight fails closed if the backend inventory itself drifts
+    /// out of consistency.
     pub fn validate_chart_request(&self, request: &ChartRequest) -> Result<(), EphemerisError> {
-        request.validate_against_metadata(&self.backend.metadata())
+        let metadata = self.validated_metadata().map_err(|error| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!("backend metadata failed validation: {error}"),
+            )
+        })?;
+
+        request.validate_against_metadata(&metadata)
     }
 
     /// Returns whether the backend supports a body.
@@ -333,6 +342,26 @@ mod tests {
         let error_text = error.to_string();
         assert!(error_text
             .contains("backend metadata field `body coverage` contains duplicate entry `Sun`"));
+
+        let chart_request =
+            ChartRequest::new(Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt))
+                .with_bodies(vec![CelestialBody::Sun]);
+
+        let validation_error = engine
+            .validate_chart_request(&chart_request)
+            .expect_err("invalid backend metadata should reject chart preflights");
+        assert_eq!(validation_error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(validation_error
+            .message
+            .contains("backend metadata failed validation: backend metadata field `body coverage` contains duplicate entry `Sun`"));
+
+        let chart_error = engine
+            .chart(&chart_request)
+            .expect_err("invalid backend metadata should reject chart assembly");
+        assert_eq!(chart_error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(chart_error
+            .message
+            .contains("backend metadata failed validation: backend metadata field `body coverage` contains duplicate entry `Sun`"));
     }
 
     #[test]

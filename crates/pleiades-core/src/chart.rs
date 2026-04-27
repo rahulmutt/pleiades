@@ -1865,8 +1865,16 @@ impl<B: EphemerisBackend> ChartEngine<B> {
     /// assert!(snapshot.houses.is_some());
     /// assert_eq!(snapshot.placements.len(), 1);
     /// ```
+    ///
+    /// The engine validates the backend metadata first so malformed backend
+    /// inventory fails closed before the request shape is assembled.
     pub fn chart(&self, request: &ChartRequest) -> Result<ChartSnapshot, EphemerisError> {
-        let metadata = self.backend.metadata();
+        let metadata = self.validated_metadata().map_err(|error| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!("backend metadata failed validation: {error}"),
+            )
+        })?;
         request.validate_against_metadata(&metadata)?;
 
         let backend_id = metadata.id.clone();
