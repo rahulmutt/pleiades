@@ -217,6 +217,79 @@ pub struct ArtifactBoundaryEnvelopeSummary {
     pub max_boundary_distance_delta_au: Option<f64>,
 }
 
+/// Errors returned when a packaged-artifact boundary continuity summary is internally inconsistent.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ArtifactBoundaryEnvelopeSummaryValidationError {
+    /// A stored numeric field was not finite.
+    NonFiniteValue {
+        /// Field name for the offending value.
+        field: &'static str,
+        /// Offending value.
+        value: f64,
+    },
+    /// The distance-channel counters or aggregates disagreed with each other.
+    InconsistentDistanceCoverage {
+        /// Number of checks with a distance channel.
+        boundary_distance_check_count: usize,
+        /// Whether the summed distance channel is present.
+        has_sum: bool,
+        /// Whether the squared distance channel is present.
+        has_sum_sq: bool,
+        /// Whether a maximum distance delta is present.
+        has_max: bool,
+    },
+    /// The zero-check summary still carried data that should have been empty.
+    UnexpectedDataForEmptySummary {
+        /// Field that should have stayed empty or zero.
+        field: &'static str,
+    },
+    /// A non-empty summary was missing the body label that should identify the maximum longitude delta.
+    MissingLongitudeBody,
+    /// A non-empty summary was missing the body label that should identify the maximum latitude delta.
+    MissingLatitudeBody,
+    /// A non-empty distance-channel summary was missing the body label that should identify the maximum distance delta.
+    MissingDistanceBody,
+}
+
+impl ArtifactBoundaryEnvelopeSummaryValidationError {
+    /// Returns a compact one-line rendering of the validation failure.
+    pub fn summary_line(&self) -> String {
+        match self {
+            Self::NonFiniteValue { field, value } => {
+                format!("artifact boundary summary field `{field}` must be finite, got {value}")
+            }
+            Self::InconsistentDistanceCoverage {
+                boundary_distance_check_count,
+                has_sum,
+                has_sum_sq,
+                has_max,
+            } => format!(
+                "artifact boundary summary distance coverage is inconsistent: {boundary_distance_check_count} distance checks, sum={has_sum}, squared_sum={has_sum_sq}, max={has_max}"
+            ),
+            Self::UnexpectedDataForEmptySummary { field } => {
+                format!("artifact boundary summary field `{field}` must be empty when there are no boundary checks")
+            }
+            Self::MissingLongitudeBody => {
+                "artifact boundary summary is missing the maximum-longitude body label".to_string()
+            }
+            Self::MissingLatitudeBody => {
+                "artifact boundary summary is missing the maximum-latitude body label".to_string()
+            }
+            Self::MissingDistanceBody => {
+                "artifact boundary summary is missing the maximum-distance body label".to_string()
+            }
+        }
+    }
+}
+
+impl fmt::Display for ArtifactBoundaryEnvelopeSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+impl std::error::Error for ArtifactBoundaryEnvelopeSummaryValidationError {}
+
 impl ArtifactBoundaryEnvelopeSummary {
     /// Returns the mean longitude delta across all checked boundaries.
     pub fn mean_boundary_longitude_delta_deg(&self) -> f64 {
@@ -274,6 +347,181 @@ impl ArtifactBoundaryEnvelopeSummary {
                 (sum / self.boundary_distance_check_count as f64).sqrt()
             }
         })
+    }
+
+    /// Validates the stored summary invariants before it is formatted or reused by release reports.
+    pub fn validate(&self) -> Result<(), ArtifactBoundaryEnvelopeSummaryValidationError> {
+        for (field, value) in [
+            (
+                "sum_boundary_longitude_delta_deg",
+                self.sum_boundary_longitude_delta_deg,
+            ),
+            (
+                "sum_boundary_longitude_delta_deg_sq",
+                self.sum_boundary_longitude_delta_deg_sq,
+            ),
+            (
+                "sum_boundary_latitude_delta_deg",
+                self.sum_boundary_latitude_delta_deg,
+            ),
+            (
+                "sum_boundary_latitude_delta_deg_sq",
+                self.sum_boundary_latitude_delta_deg_sq,
+            ),
+            (
+                "max_boundary_longitude_delta_deg",
+                self.max_boundary_longitude_delta_deg,
+            ),
+            (
+                "max_boundary_latitude_delta_deg",
+                self.max_boundary_latitude_delta_deg,
+            ),
+        ] {
+            if !value.is_finite() {
+                return Err(
+                    ArtifactBoundaryEnvelopeSummaryValidationError::NonFiniteValue { field, value },
+                );
+            }
+        }
+
+        if let Some(value) = self.sum_boundary_distance_delta_au {
+            if !value.is_finite() {
+                return Err(
+                    ArtifactBoundaryEnvelopeSummaryValidationError::NonFiniteValue {
+                        field: "sum_boundary_distance_delta_au",
+                        value,
+                    },
+                );
+            }
+        }
+        if let Some(value) = self.sum_boundary_distance_delta_au_sq {
+            if !value.is_finite() {
+                return Err(
+                    ArtifactBoundaryEnvelopeSummaryValidationError::NonFiniteValue {
+                        field: "sum_boundary_distance_delta_au_sq",
+                        value,
+                    },
+                );
+            }
+        }
+        if let Some(value) = self.max_boundary_distance_delta_au {
+            if !value.is_finite() {
+                return Err(
+                    ArtifactBoundaryEnvelopeSummaryValidationError::NonFiniteValue {
+                        field: "max_boundary_distance_delta_au",
+                        value,
+                    },
+                );
+            }
+        }
+
+        if self.boundary_distance_check_count > self.boundary_check_count {
+            return Err(
+                ArtifactBoundaryEnvelopeSummaryValidationError::InconsistentDistanceCoverage {
+                    boundary_distance_check_count: self.boundary_distance_check_count,
+                    has_sum: self.sum_boundary_distance_delta_au.is_some(),
+                    has_sum_sq: self.sum_boundary_distance_delta_au_sq.is_some(),
+                    has_max: self.max_boundary_distance_delta_au.is_some(),
+                },
+            );
+        }
+
+        match self.boundary_check_count {
+            0 => {
+                if self.sum_boundary_longitude_delta_deg != 0.0 {
+                    return Err(ArtifactBoundaryEnvelopeSummaryValidationError::UnexpectedDataForEmptySummary {
+                        field: "sum_boundary_longitude_delta_deg",
+                    });
+                }
+                if self.sum_boundary_longitude_delta_deg_sq != 0.0 {
+                    return Err(ArtifactBoundaryEnvelopeSummaryValidationError::UnexpectedDataForEmptySummary {
+                        field: "sum_boundary_longitude_delta_deg_sq",
+                    });
+                }
+                if self.sum_boundary_latitude_delta_deg != 0.0 {
+                    return Err(ArtifactBoundaryEnvelopeSummaryValidationError::UnexpectedDataForEmptySummary {
+                        field: "sum_boundary_latitude_delta_deg",
+                    });
+                }
+                if self.sum_boundary_latitude_delta_deg_sq != 0.0 {
+                    return Err(ArtifactBoundaryEnvelopeSummaryValidationError::UnexpectedDataForEmptySummary {
+                        field: "sum_boundary_latitude_delta_deg_sq",
+                    });
+                }
+                if self.boundary_distance_check_count != 0
+                    || self.sum_boundary_distance_delta_au.is_some()
+                    || self.sum_boundary_distance_delta_au_sq.is_some()
+                    || self.max_boundary_distance_delta_au.is_some()
+                {
+                    return Err(ArtifactBoundaryEnvelopeSummaryValidationError::UnexpectedDataForEmptySummary {
+                        field: "distance boundary data",
+                    });
+                }
+                if self.max_boundary_longitude_delta_body.is_some() {
+                    return Err(ArtifactBoundaryEnvelopeSummaryValidationError::UnexpectedDataForEmptySummary {
+                        field: "max_boundary_longitude_delta_body",
+                    });
+                }
+                if self.max_boundary_latitude_delta_body.is_some() {
+                    return Err(ArtifactBoundaryEnvelopeSummaryValidationError::UnexpectedDataForEmptySummary {
+                        field: "max_boundary_latitude_delta_body",
+                    });
+                }
+            }
+            _ => {
+                if self.max_boundary_longitude_delta_body.is_none() {
+                    return Err(
+                        ArtifactBoundaryEnvelopeSummaryValidationError::MissingLongitudeBody,
+                    );
+                }
+                if self.max_boundary_latitude_delta_body.is_none() {
+                    return Err(
+                        ArtifactBoundaryEnvelopeSummaryValidationError::MissingLatitudeBody,
+                    );
+                }
+                match (
+                    self.boundary_distance_check_count,
+                    self.sum_boundary_distance_delta_au,
+                    self.sum_boundary_distance_delta_au_sq,
+                    self.max_boundary_distance_delta_au,
+                ) {
+                    (0, None, None, None) => {}
+                    (0, _, _, _) => {
+                        return Err(ArtifactBoundaryEnvelopeSummaryValidationError::InconsistentDistanceCoverage {
+                            boundary_distance_check_count: 0,
+                            has_sum: self.sum_boundary_distance_delta_au.is_some(),
+                            has_sum_sq: self.sum_boundary_distance_delta_au_sq.is_some(),
+                            has_max: self.max_boundary_distance_delta_au.is_some(),
+                        });
+                    }
+                    (_, Some(_), Some(_), Some(_)) => {}
+                    (count, has_sum, has_sum_sq, has_max) => {
+                        return Err(ArtifactBoundaryEnvelopeSummaryValidationError::InconsistentDistanceCoverage {
+                            boundary_distance_check_count: count,
+                            has_sum: has_sum.is_some(),
+                            has_sum_sq: has_sum_sq.is_some(),
+                            has_max: has_max.is_some(),
+                        });
+                    }
+                }
+                if self.boundary_distance_check_count > 0
+                    && self.max_boundary_distance_delta_body.is_none()
+                {
+                    return Err(
+                        ArtifactBoundaryEnvelopeSummaryValidationError::MissingDistanceBody,
+                    );
+                }
+                if self.boundary_distance_check_count == 0
+                    && self.max_boundary_distance_delta_body.is_some()
+                {
+                    return Err(ArtifactBoundaryEnvelopeSummaryValidationError::UnexpectedDataForEmptySummary {
+                        field: "max_boundary_distance_delta_body",
+                    });
+                }
+            }
+        }
+
+        Ok(())
     }
 
     /// Returns the aggregate boundary envelope as a compact human-readable line.
@@ -440,7 +688,7 @@ impl ArtifactInspectionReport {
         )?;
         let decode_benchmark = benchmark_packaged_artifact_decode(1)?;
 
-        Ok(Self {
+        let report = Self {
             generation_label: decoded.header.generation_label,
             source: decoded.header.source,
             version: decoded.header.version,
@@ -456,7 +704,11 @@ impl ArtifactInspectionReport {
             model_comparison,
             decode_benchmark,
             bodies,
-        })
+        };
+        artifact_boundary_envelope_summary(&report)
+            .validate()
+            .map_err(ArtifactInspectionError::BoundaryEnvelope)?;
+        Ok(report)
     }
 }
 
@@ -474,7 +726,11 @@ pub fn artifact_boundary_envelope_summary_for_report(
     let artifact = packaged_artifact();
     let encoded = artifact.encode()?;
     let report = ArtifactInspectionReport::from_artifact(artifact, encoded.len())?;
-    Ok(artifact_boundary_envelope_summary(&report))
+    let summary = artifact_boundary_envelope_summary(&report);
+    summary
+        .validate()
+        .map_err(ArtifactInspectionError::BoundaryEnvelope)?;
+    Ok(summary)
 }
 
 /// Renders a compact summary of the bundled artifact validation report.
@@ -1369,6 +1625,8 @@ pub enum ArtifactInspectionError {
     Compression(CompressionError),
     /// Validation failure while comparing the packaged artifact to the baseline backend.
     Validation(pleiades_core::EphemerisError),
+    /// Validation failure while checking the aggregated artifact boundary envelope.
+    BoundaryEnvelope(ArtifactBoundaryEnvelopeSummaryValidationError),
 }
 
 impl core::fmt::Display for ArtifactInspectionError {
@@ -1376,6 +1634,7 @@ impl core::fmt::Display for ArtifactInspectionError {
         match self {
             Self::Compression(error) => write!(f, "{error}"),
             Self::Validation(error) => write!(f, "{error}"),
+            Self::BoundaryEnvelope(error) => write!(f, "{error}"),
         }
     }
 }
@@ -1396,7 +1655,10 @@ impl From<pleiades_core::EphemerisError> for ArtifactInspectionError {
 
 #[cfg(test)]
 mod tests {
-    use super::{ArtifactBodyInspection, ArtifactBoundaryEnvelopeSummary};
+    use super::{
+        ArtifactBodyInspection, ArtifactBoundaryEnvelopeSummary,
+        ArtifactBoundaryEnvelopeSummaryValidationError,
+    };
     use pleiades_core::{CelestialBody, Instant, JulianDay, TimeScale};
 
     fn instant(days: f64) -> Instant {
@@ -1470,5 +1732,40 @@ mod tests {
         assert!(rendered.contains("max boundary Δlon=0.180000000000° (Moon)"));
         assert!(rendered.contains("max boundary Δlat=0.270000000000° (Sun)"));
         assert!(rendered.contains("max boundary Δdist=0.330000000000 AU (Moon)"));
+        assert!(summary.validate().is_ok());
+    }
+
+    #[test]
+    fn boundary_envelope_summary_rejects_inconsistent_distance_channels() {
+        let summary = ArtifactBoundaryEnvelopeSummary {
+            body_count: 1,
+            boundary_check_count: 2,
+            sum_boundary_longitude_delta_deg: 0.30,
+            sum_boundary_longitude_delta_deg_sq: 0.07,
+            sum_boundary_latitude_delta_deg: 0.60,
+            sum_boundary_latitude_delta_deg_sq: 0.29,
+            sum_boundary_distance_delta_au: Some(0.90),
+            sum_boundary_distance_delta_au_sq: None,
+            boundary_distance_check_count: 1,
+            max_boundary_longitude_delta_body: Some(CelestialBody::Moon),
+            max_boundary_longitude_delta_deg: 0.18,
+            max_boundary_latitude_delta_body: Some(CelestialBody::Sun),
+            max_boundary_latitude_delta_deg: 0.27,
+            max_boundary_distance_delta_body: None,
+            max_boundary_distance_delta_au: None,
+        };
+
+        let error = summary
+            .validate()
+            .expect_err("inconsistent distance coverage should fail");
+        assert!(matches!(
+            error,
+            ArtifactBoundaryEnvelopeSummaryValidationError::InconsistentDistanceCoverage {
+                boundary_distance_check_count: 1,
+                has_sum: true,
+                has_sum_sq: false,
+                has_max: false,
+            }
+        ));
     }
 }
