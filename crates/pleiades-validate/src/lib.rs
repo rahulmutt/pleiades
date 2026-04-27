@@ -2671,6 +2671,14 @@ pub fn compatibility_profile_verification_summary(
         profile.validation_reference_points,
     )?;
     verify_profile_text_section("compatibility-caveat", profile.known_gaps)?;
+    verify_profile_text_sections_are_disjoint(&[
+        ("release-note", profile.release_notes),
+        (
+            "validation-reference-point",
+            profile.validation_reference_points,
+        ),
+        ("compatibility-caveat", profile.known_gaps),
+    ])?;
 
     Ok(CompatibilityProfileVerificationSummary {
         profile_id: release_profiles.compatibility_profile_id.to_string(),
@@ -2930,6 +2938,31 @@ fn verify_profile_text_section(
     }
 
     Ok(entries_checked)
+}
+
+fn verify_profile_text_sections_are_disjoint(
+    sections: &[(&'static str, &'static [&'static str])],
+) -> Result<(), EphemerisError> {
+    let mut seen_entries = BTreeMap::<String, &'static str>::new();
+
+    for (section_label, entries) in sections {
+        for entry in *entries {
+            let normalized_entry = entry.trim().to_string();
+            if let Some(existing_section) = seen_entries.get(&normalized_entry) {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "compatibility profile text sections are not unique: duplicate entry '{}' appears in both {} and {}",
+                        entry, existing_section, section_label
+                    ),
+                ));
+            }
+
+            seen_entries.insert(normalized_entry, section_label);
+        }
+    }
+
+    Ok(())
 }
 
 fn ensure_profile_descriptor_metadata(
@@ -10450,6 +10483,19 @@ mod tests {
             .expect_err("duplicate caveat entries should fail verification");
         assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
         assert!(error.message.contains("entries are not unique"));
+    }
+
+    #[test]
+    fn compatibility_profile_verification_rejects_duplicate_text_across_sections() {
+        let error = verify_profile_text_sections_are_disjoint(&[
+            ("release-note", &["shared release text"]),
+            ("compatibility-caveat", &["shared release text"]),
+        ])
+        .expect_err("duplicate prose across sections should fail verification");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error.message.contains(
+            "duplicate entry 'shared release text' appears in both release-note and compatibility-caveat"
+        ));
     }
 
     #[test]
