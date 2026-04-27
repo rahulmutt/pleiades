@@ -290,7 +290,7 @@ pub struct ComparisonSample {
 }
 
 /// Summary statistics for a comparison run.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ComparisonSummary {
     /// Number of samples compared.
     pub sample_count: usize,
@@ -5198,6 +5198,40 @@ impl fmt::Display for ComparisonPercentileEnvelope {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+struct ComparisonEnvelopeSummary {
+    summary: ComparisonSummary,
+    median: ComparisonMedianEnvelope,
+    percentile: ComparisonPercentileEnvelope,
+}
+
+impl ComparisonEnvelopeSummary {
+    fn summary_line(&self) -> String {
+        format!("{}; {}", self.summary, self.median)
+    }
+
+    fn percentile_line(&self) -> String {
+        self.percentile.summary_line()
+    }
+}
+
+impl fmt::Display for ComparisonEnvelopeSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn comparison_envelope_summary(
+    summary: &ComparisonSummary,
+    samples: &[ComparisonSample],
+) -> ComparisonEnvelopeSummary {
+    ComparisonEnvelopeSummary {
+        summary: summary.clone(),
+        median: comparison_median_envelope(samples),
+        percentile: comparison_percentile_envelope(samples, 0.95),
+    }
+}
+
 fn median_value(values: &mut [f64]) -> Option<f64> {
     if values.is_empty() {
         return None;
@@ -5284,9 +5318,7 @@ fn format_comparison_envelope_for_report(
     summary: &ComparisonSummary,
     samples: &[ComparisonSample],
 ) -> String {
-    let median = comparison_median_envelope(samples);
-
-    format!("{}; {}", summary, median.summary_line())
+    comparison_envelope_summary(summary, samples).summary_line()
 }
 
 fn format_body_class_comparison_envelope_for_report(summary: &BodyClassSummary) -> String {
@@ -8045,7 +8077,8 @@ fn write_lunar_high_curvature_equatorial_continuity_evidence(
 
 fn write_comparison_summary(f: &mut fmt::Formatter<'_>, report: &ComparisonReport) -> fmt::Result {
     let summary = &report.summary;
-    let median = comparison_median_envelope(&report.samples);
+    let comparison_envelope = comparison_envelope_summary(summary, &report.samples);
+    let median = comparison_envelope.median;
 
     writeln!(f, "  samples: {}", summary.sample_count)?;
     writeln!(
@@ -8100,11 +8133,7 @@ fn write_comparison_summary(f: &mut fmt::Formatter<'_>, report: &ComparisonRepor
     if let Some(value) = summary.rms_distance_delta_au {
         writeln!(f, "  rms distance delta: {:.12} AU", value)?;
     }
-    writeln!(
-        f,
-        "  {}",
-        format_comparison_percentile_envelope_for_report(&report.samples)
-    )?;
+    writeln!(f, "  {}", comparison_envelope.percentile_line())?;
     Ok(())
 }
 
@@ -9040,6 +9069,26 @@ mod tests {
             .contains("95th percentile absolute deltas:"));
         assert!(envelope.summary_line().contains("longitude"));
         assert!(envelope.summary_line().contains("latitude"));
+    }
+
+    #[test]
+    fn comparison_envelope_summary_has_a_displayable_summary_line() {
+        let corpus = default_corpus();
+        let reference = default_reference_backend();
+        let candidate = default_candidate_backend();
+        let report =
+            compare_backends(&reference, &candidate, &corpus).expect("comparison should build");
+        let envelope = comparison_envelope_summary(&report.summary, &report.samples);
+
+        assert_eq!(envelope.summary_line(), envelope.to_string());
+        assert_eq!(
+            envelope.percentile_line(),
+            comparison_percentile_envelope(&report.samples, 0.95).summary_line()
+        );
+        assert!(envelope.summary_line().contains("median longitude delta:"));
+        assert!(envelope
+            .percentile_line()
+            .contains("95th percentile absolute deltas:"));
     }
 
     #[test]
