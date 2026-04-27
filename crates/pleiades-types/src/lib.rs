@@ -1225,12 +1225,27 @@ impl Motion {
         }
     }
 
+    /// Returns the longitudinal motion speed when available.
+    pub const fn longitude_speed(self) -> Option<f64> {
+        self.longitude_deg_per_day
+    }
+
+    /// Returns the latitudinal motion speed when available.
+    pub const fn latitude_speed(self) -> Option<f64> {
+        self.latitude_deg_per_day
+    }
+
+    /// Returns the radial motion speed when available.
+    pub const fn distance_speed(self) -> Option<f64> {
+        self.distance_au_per_day
+    }
+
     /// Returns the coarse longitudinal motion direction when that speed is available.
     ///
     /// The classification is sign-based: positive speed is direct, negative speed is retrograde,
     /// and an exact zero speed is stationary.
     pub fn longitude_direction(self) -> Option<MotionDirection> {
-        self.longitude_deg_per_day.map(|speed| {
+        self.longitude_speed().map(|speed| {
             if speed > 0.0 {
                 MotionDirection::Direct
             } else if speed < 0.0 {
@@ -1706,6 +1721,15 @@ mod tests {
 
         assert_eq!(wrong_scale_error.expected, TimeScale::Tdb);
         assert_eq!(wrong_scale_error.actual, TimeScale::Tt);
+    }
+
+    #[test]
+    fn motion_accessors_return_the_original_speed_components() {
+        let motion = Motion::new(Some(0.12), Some(-0.03), Some(0.000_4));
+
+        assert_eq!(motion.longitude_speed(), Some(0.12));
+        assert_eq!(motion.latitude_speed(), Some(-0.03));
+        assert_eq!(motion.distance_speed(), Some(0.000_4));
     }
 
     #[test]

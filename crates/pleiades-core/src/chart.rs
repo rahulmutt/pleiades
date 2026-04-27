@@ -602,17 +602,17 @@ impl BodyPlacement {
 
     /// Returns the longitudinal motion speed when the backend supplied motion data.
     pub fn longitude_speed(&self) -> Option<f64> {
-        self.motion()?.longitude_deg_per_day
+        self.motion()?.longitude_speed()
     }
 
     /// Returns the latitudinal motion speed when the backend supplied motion data.
     pub fn latitude_speed(&self) -> Option<f64> {
-        self.motion()?.latitude_deg_per_day
+        self.motion()?.latitude_speed()
     }
 
     /// Returns the radial motion speed when the backend supplied motion data.
     pub fn distance_speed(&self) -> Option<f64> {
-        self.motion()?.distance_au_per_day
+        self.motion()?.distance_speed()
     }
 }
 
