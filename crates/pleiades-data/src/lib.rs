@@ -11,7 +11,9 @@
 //! from the checked-in JPL reference snapshot in tests so the packaged data
 //! stays reproducible. A maintainer-facing regeneration helper can rebuild the
 //! checked-in fixture from the bundled JPL reference snapshot without
-//! introducing any native tooling.
+//! introducing any native tooling. When the `packaged-artifact-path` feature is
+//! enabled, callers can also load an explicit artifact file for larger or
+//! externally distributed packaged datasets.
 //!
 //! # Examples
 //!
@@ -30,8 +32,12 @@
 
 #![forbid(unsafe_code)]
 
-use std::sync::OnceLock;
+use std::path::PathBuf;
+use std::sync::{Arc, OnceLock};
 use std::{cmp::Ordering, fmt};
+
+#[cfg(feature = "packaged-artifact-path")]
+use std::path::Path;
 
 use pleiades_backend::{
     validate_observer_policy, validate_request_policy, validate_zodiac_policy, AccuracyClass,
@@ -473,6 +479,58 @@ pub fn packaged_artifact() -> &'static CompressedArtifact {
     ARTIFACT.get_or_init(build_packaged_artifact)
 }
 
+/// Decodes a packaged artifact from raw bytes.
+pub fn packaged_artifact_from_bytes(
+    bytes: &[u8],
+) -> Result<CompressedArtifact, pleiades_compression::CompressionError> {
+    let artifact = CompressedArtifact::decode(bytes)?;
+    artifact.validate()?;
+    Ok(artifact)
+}
+
+/// Errors that can occur while loading an external packaged artifact.
+#[derive(Debug)]
+pub enum PackagedArtifactLoadError {
+    /// The artifact could not be read from disk.
+    Io {
+        /// Path that was attempted.
+        path: PathBuf,
+        /// The underlying I/O error.
+        error: std::io::Error,
+    },
+    /// The artifact decoded but failed validation.
+    Decode(pleiades_compression::CompressionError),
+}
+
+impl fmt::Display for PackagedArtifactLoadError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Io { path, error } => write!(
+                f,
+                "failed to read packaged artifact at {}: {}",
+                path.display(),
+                error
+            ),
+            Self::Decode(error) => write!(f, "failed to decode packaged artifact: {}", error),
+        }
+    }
+}
+
+impl std::error::Error for PackagedArtifactLoadError {}
+
+#[cfg(feature = "packaged-artifact-path")]
+/// Loads a packaged artifact from a file path.
+pub fn packaged_artifact_from_path(
+    path: impl AsRef<Path>,
+) -> Result<CompressedArtifact, PackagedArtifactLoadError> {
+    let path = path.as_ref();
+    let bytes = std::fs::read(path).map_err(|error| PackagedArtifactLoadError::Io {
+        path: path.to_path_buf(),
+        error,
+    })?;
+    packaged_artifact_from_bytes(&bytes).map_err(PackagedArtifactLoadError::Decode)
+}
+
 /// Returns a packaged lookup for a body and instant.
 ///
 /// # Examples
@@ -514,20 +572,72 @@ pub fn packaged_backend() -> PackagedDataBackend {
     PackagedDataBackend::new()
 }
 
+/// Returns a packaged-data backend built from an explicit artifact.
+pub fn packaged_backend_from_artifact(artifact: CompressedArtifact) -> PackagedDataBackend {
+    PackagedDataBackend::from_artifact(artifact)
+}
+
+/// Returns a packaged-data backend built from decoded artifact bytes.
+pub fn packaged_backend_from_bytes(
+    bytes: &[u8],
+) -> Result<PackagedDataBackend, PackagedArtifactLoadError> {
+    PackagedDataBackend::from_bytes(bytes)
+}
+
+#[cfg(feature = "packaged-artifact-path")]
+/// Returns a packaged-data backend built from a decoded artifact file.
+pub fn packaged_backend_from_path(
+    path: impl AsRef<Path>,
+) -> Result<PackagedDataBackend, PackagedArtifactLoadError> {
+    PackagedDataBackend::from_path(path)
+}
+
 /// A packaged compressed-data backend.
-#[derive(Debug, Default, Clone, Copy)]
-pub struct PackagedDataBackend;
+#[derive(Debug, Clone)]
+pub struct PackagedDataBackend {
+    artifact: Arc<CompressedArtifact>,
+}
+
+impl Default for PackagedDataBackend {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl PackagedDataBackend {
-    /// Creates a new packaged-data backend.
-    pub const fn new() -> Self {
-        Self
+    /// Creates a new packaged-data backend backed by the checked-in fixture.
+    pub fn new() -> Self {
+        Self::from_artifact(packaged_artifact().clone())
+    }
+
+    /// Creates a packaged-data backend from an explicit artifact.
+    pub fn from_artifact(artifact: CompressedArtifact) -> Self {
+        Self {
+            artifact: Arc::new(artifact),
+        }
+    }
+
+    /// Creates a packaged-data backend from decoded artifact bytes.
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, PackagedArtifactLoadError> {
+        Ok(Self::from_artifact(
+            packaged_artifact_from_bytes(bytes).map_err(PackagedArtifactLoadError::Decode)?,
+        ))
+    }
+
+    #[cfg(feature = "packaged-artifact-path")]
+    /// Creates a packaged-data backend from an artifact file.
+    pub fn from_path(path: impl AsRef<Path>) -> Result<Self, PackagedArtifactLoadError> {
+        Ok(Self::from_artifact(packaged_artifact_from_path(path)?))
+    }
+
+    fn artifact(&self) -> &CompressedArtifact {
+        &self.artifact
     }
 }
 
 impl EphemerisBackend for PackagedDataBackend {
     fn metadata(&self) -> BackendMetadata {
-        let artifact = packaged_artifact();
+        let artifact = self.artifact();
         let bodies = artifact
             .bodies
             .iter()
@@ -572,7 +682,7 @@ impl EphemerisBackend for PackagedDataBackend {
     }
 
     fn supports_body(&self, body: CelestialBody) -> bool {
-        packaged_artifact()
+        self.artifact
             .bodies
             .iter()
             .any(|series| series.body == body)
@@ -599,7 +709,8 @@ impl EphemerisBackend for PackagedDataBackend {
         validate_observer_policy(req, "packaged data", false)?;
 
         let lookup_instant = normalize_lookup_instant(req.instant);
-        let ecliptic = packaged_artifact()
+        let ecliptic = self
+            .artifact
             .lookup_ecliptic(&req.body, lookup_instant)
             .map_err(map_artifact_error)?;
         let equatorial = ecliptic.to_equatorial(req.instant.mean_obliquity());
@@ -620,12 +731,8 @@ impl EphemerisBackend for PackagedDataBackend {
 }
 
 fn build_packaged_artifact() -> CompressedArtifact {
-    let artifact = CompressedArtifact::decode(PACKAGED_ARTIFACT_FIXTURE)
-        .expect("packaged artifact fixture should decode");
-    artifact
-        .validate()
-        .expect("packaged artifact fixture should validate");
-    artifact
+    packaged_artifact_from_bytes(PACKAGED_ARTIFACT_FIXTURE)
+        .expect("packaged artifact fixture should decode and validate")
 }
 
 /// Rebuilds the packaged artifact from the checked-in JPL reference snapshot.
@@ -803,6 +910,45 @@ mod tests {
         assert_eq!(decoded.header.generation_label, ARTIFACT_LABEL);
         assert_eq!(decoded.bodies.len(), packaged_bodies().len());
         assert_eq!(decoded.checksum, artifact.checksum);
+    }
+
+    #[test]
+    fn packaged_backend_from_artifact_uses_supplied_metadata() {
+        let mut artifact = regenerate_packaged_artifact();
+        artifact.header.source = "external packaged artifact".to_string();
+
+        let backend = PackagedDataBackend::from_artifact(artifact);
+        let metadata = backend.metadata();
+
+        assert_eq!(metadata.provenance.summary, "external packaged artifact");
+        assert!(metadata.body_coverage.contains(&CelestialBody::Sun));
+        assert!(metadata
+            .supported_frames
+            .contains(&CoordinateFrame::Equatorial));
+    }
+
+    #[cfg(feature = "packaged-artifact-path")]
+    #[test]
+    fn packaged_backend_from_path_loads_a_file_artifact() {
+        let path = std::env::temp_dir().join(format!(
+            "pleiades-data-packaged-artifact-{}-{}.bin",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("system clock should be after the Unix epoch")
+                .as_nanos()
+        ));
+        std::fs::write(&path, PACKAGED_ARTIFACT_FIXTURE).expect("test artifact should be writable");
+
+        let backend = PackagedDataBackend::from_path(&path)
+            .expect("packaged artifact path should load successfully");
+        let metadata = backend.metadata();
+
+        assert_eq!(metadata.id.as_str(), PACKAGE_NAME);
+        assert!(metadata.offline);
+        assert!(metadata.body_coverage.contains(&CelestialBody::Sun));
+
+        let _ = std::fs::remove_file(&path);
     }
 
     #[test]

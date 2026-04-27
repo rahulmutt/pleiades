@@ -6,6 +6,9 @@ license.workspace = true
 rust-version.workspace = true
 publish = false
 
+[features]
+packaged-artifact-path = []
+
 [dependencies]
 pleiades-backend = { path = "../pleiades-backend" }
 pleiades-compression = { path = "../pleiades-compression" }
