@@ -2671,6 +2671,21 @@ pub fn compatibility_profile_verification_summary(
         release_ayanamsas(),
     )?;
 
+    verify_profile_catalog_partitions_are_disjoint(
+        "house-system",
+        profile.baseline_house_systems,
+        profile.release_house_systems,
+        |entry| entry.canonical_name,
+        |entry| entry.aliases,
+    )?;
+    verify_profile_catalog_partitions_are_disjoint(
+        "ayanamsa",
+        profile.baseline_ayanamsas,
+        profile.release_ayanamsas,
+        |entry| entry.canonical_name,
+        |entry| entry.aliases,
+    )?;
+
     let house_labels_checked = verify_house_system_aliases(profile.house_systems)?;
     let ayanamsa_labels_checked = verify_ayanamsa_aliases(profile.ayanamsas)?;
     let custom_definition_labels_checked =
@@ -2745,6 +2760,39 @@ where
                 actual.len()
             ),
         ));
+    }
+
+    Ok(())
+}
+
+fn verify_profile_catalog_partitions_are_disjoint<T>(
+    catalog_label: &str,
+    baseline_entries: &[T],
+    release_entries: &[T],
+    canonical_name: impl Fn(&T) -> &'static str,
+    aliases: impl Fn(&T) -> &'static [&'static str],
+) -> Result<(), EphemerisError> {
+    let mut baseline_labels = BTreeSet::new();
+
+    for entry in baseline_entries {
+        baseline_labels.insert(canonical_name(entry).trim().to_ascii_lowercase());
+        for alias in aliases(entry) {
+            baseline_labels.insert(alias.trim().to_ascii_lowercase());
+        }
+    }
+
+    for entry in release_entries {
+        for label in std::iter::once(canonical_name(entry)).chain(aliases(entry).iter().copied()) {
+            let normalized_label = label.trim().to_ascii_lowercase();
+            if baseline_labels.contains(&normalized_label) {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "compatibility profile {catalog_label} baseline and release slices overlap on label '{label}'",
+                    ),
+                ));
+            }
+        }
     }
 
     Ok(())
@@ -10425,6 +10473,90 @@ mod tests {
         assert!(summary
             .summary_line()
             .contains("Release posture: baseline milestone preserved, release additions explicit, custom definitions tracked, caveats documented"));
+    }
+
+    #[test]
+    fn compatibility_profile_partition_checks_cover_the_current_catalog() {
+        let profile = current_compatibility_profile();
+
+        verify_profile_catalog_partitions_are_disjoint(
+            "house-system",
+            profile.baseline_house_systems,
+            profile.release_house_systems,
+            |entry| entry.canonical_name,
+            |entry| entry.aliases,
+        )
+        .expect("the current house catalog partitions should remain disjoint");
+
+        verify_profile_catalog_partitions_are_disjoint(
+            "ayanamsa",
+            profile.baseline_ayanamsas,
+            profile.release_ayanamsas,
+            |entry| entry.canonical_name,
+            |entry| entry.aliases,
+        )
+        .expect("the current ayanamsa catalog partitions should remain disjoint");
+    }
+
+    #[test]
+    fn compatibility_profile_partition_checks_reject_overlapping_labels() {
+        let house_baseline = [pleiades_houses::HouseSystemDescriptor::new(
+            HouseSystem::Placidus,
+            "Placidus",
+            &["Placidus house system"],
+            "Quadrant system used for partition-overlap coverage.",
+            true,
+        )];
+        let house_release = [pleiades_houses::HouseSystemDescriptor::new(
+            HouseSystem::Koch,
+            "Koch",
+            &["Placidus"],
+            "Quadrant system used for partition-overlap coverage.",
+            true,
+        )];
+
+        let error = verify_profile_catalog_partitions_are_disjoint(
+            "house-system",
+            &house_baseline,
+            &house_release,
+            |entry| entry.canonical_name,
+            |entry| entry.aliases,
+        )
+        .expect_err("overlapping house-system labels should fail profile verification");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("baseline and release slices overlap on label 'Placidus'"));
+
+        let ayanamsa_baseline = [pleiades_ayanamsa::AyanamsaDescriptor::new(
+            Ayanamsa::Lahiri,
+            "Lahiri",
+            &["Lahiri ayanamsa"],
+            "Sidereal mode used for partition-overlap coverage.",
+            Some(JulianDay::from_days(2_435_553.5)),
+            Some(pleiades_core::Angle::from_degrees(23.245_524_743)),
+        )];
+        let ayanamsa_release = [pleiades_ayanamsa::AyanamsaDescriptor::new(
+            Ayanamsa::Raman,
+            "Raman",
+            &["Lahiri"],
+            "Sidereal mode used for partition-overlap coverage.",
+            Some(JulianDay::from_days(2_415_020.0)),
+            Some(pleiades_core::Angle::from_degrees(21.014_44)),
+        )];
+
+        let error = verify_profile_catalog_partitions_are_disjoint(
+            "ayanamsa",
+            &ayanamsa_baseline,
+            &ayanamsa_release,
+            |entry| entry.canonical_name,
+            |entry| entry.aliases,
+        )
+        .expect_err("overlapping ayanamsa labels should fail profile verification");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("baseline and release slices overlap on label 'Lahiri'"));
     }
 
     #[test]
