@@ -473,6 +473,7 @@ impl ArtifactProfileCoverageSummary {
     /// that the embedded artifact profile is internally consistent.
     pub fn validate(&self) -> Result<(), CompressionError> {
         self.profile.validate()?;
+        validate_unique_values("artifact profile coverage bundled bodies", &self.bodies)?;
         if self.body_count != self.bodies.len() {
             return Err(CompressionError::new(
                 CompressionErrorKind::InvalidFormat,
@@ -2167,6 +2168,22 @@ mod tests {
         assert!(error
             .message
             .contains("artifact profile coverage body count does not match bundled body list"));
+    }
+
+    #[test]
+    fn artifact_profile_coverage_validation_rejects_duplicate_bodies() {
+        let coverage = ArtifactProfileCoverageSummary::new(
+            ArtifactProfile::ecliptic_longitude_latitude_distance(),
+            vec![CelestialBody::Sun, CelestialBody::Moon, CelestialBody::Sun],
+        );
+
+        let error = coverage
+            .validate()
+            .expect_err("duplicate bundled bodies should be rejected");
+        assert_eq!(error.kind, CompressionErrorKind::InvalidFormat);
+        assert!(error
+            .message
+            .contains("artifact profile coverage bundled bodies contains duplicate Sun entry"));
     }
 
     #[test]
