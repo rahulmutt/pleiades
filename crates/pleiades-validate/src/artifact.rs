@@ -666,7 +666,7 @@ fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
     text.push_str(&packaged_artifact_profile_summary_with_body_coverage());
     text.push('\n');
     text.push_str("  Artifact request policy: ");
-    text.push_str(&packaged_request_policy_summary_details().summary_line());
+    text.push_str(&packaged_request_policy_summary_details().to_string());
     text.push('\n');
     text.push_str("  Packaged frame treatment: ");
     text.push_str(&packaged_frame_treatment_summary_details().to_string());
@@ -1233,7 +1233,7 @@ impl fmt::Display for ArtifactInspectionReport {
         writeln!(
             f,
             "  Artifact request policy: {}",
-            packaged_request_policy_summary_details().summary_line()
+            packaged_request_policy_summary_details()
         )?;
         writeln!(f)?;
         writeln!(f, "Bodies")?;

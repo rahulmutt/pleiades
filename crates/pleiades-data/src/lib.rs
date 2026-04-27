@@ -369,6 +369,12 @@ impl PackagedRequestPolicySummary {
     }
 }
 
+impl fmt::Display for PackagedRequestPolicySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 const PACKAGED_REQUEST_POLICY_SUMMARY: PackagedRequestPolicySummary =
     PackagedRequestPolicySummary {
         geocentric_only: true,
@@ -389,7 +395,7 @@ pub fn packaged_request_policy_summary_details() -> PackagedRequestPolicySummary
 pub fn packaged_request_policy_summary() -> &'static str {
     static SUMMARY: OnceLock<String> = OnceLock::new();
     SUMMARY
-        .get_or_init(|| packaged_request_policy_summary_details().summary_line())
+        .get_or_init(|| packaged_request_policy_summary_details().to_string())
         .as_str()
 }
 
@@ -520,7 +526,7 @@ impl EphemerisBackend for PackagedDataBackend {
                 summary: artifact.header.source.clone(),
                 data_sources: vec![
                     packaged_body_coverage_summary_details().summary_line(),
-                    packaged_request_policy_summary_details().summary_line(),
+                    packaged_request_policy_summary_details().to_string(),
                     packaged_frame_treatment_summary_details().to_string(),
                     packaged_artifact_storage_summary_details()
                         .summary_line()
@@ -1058,9 +1064,10 @@ mod tests {
             request_policy.summary_line(),
             packaged_request_policy_summary().to_string()
         );
+        assert_eq!(request_policy.to_string(), request_policy.summary_line());
         assert_eq!(
             metadata.provenance.data_sources[1],
-            request_policy.summary_line()
+            request_policy.to_string()
         );
         assert_eq!(
             metadata.provenance.data_sources[2],

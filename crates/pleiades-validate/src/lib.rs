@@ -3578,7 +3578,7 @@ fn render_release_summary_text() -> String {
     text.push_str(&packaged_artifact_regeneration_summary_details().to_string());
     text.push('\n');
     text.push_str("Packaged request policy: ");
-    text.push_str(&packaged_request_policy_summary_details().summary_line());
+    text.push_str(&packaged_request_policy_summary_details().to_string());
     text.push('\n');
     text.push_str("Packaged frame treatment: ");
     text.push_str(&format_packaged_frame_treatment_summary());
@@ -6181,11 +6181,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text);
     let _ = writeln!(text, "Packaged-artifact profile");
     let _ = writeln!(text, "  {}", format_packaged_artifact_profile_summary());
-    let _ = writeln!(
-        text,
-        "  {}",
-        packaged_request_policy_summary_details().summary_line()
-    );
+    let _ = writeln!(text, "  {}", packaged_request_policy_summary_details());
     let _ = writeln!(
         text,
         "  Packaged frame treatment: {}",
