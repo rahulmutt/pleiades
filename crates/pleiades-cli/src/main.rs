@@ -671,6 +671,8 @@ mod tests {
         assert!(rendered.contains("True Pushya"));
         assert!(rendered.contains("Djwhal Khul"));
         assert!(rendered.contains("True Revati"));
+        assert!(rendered.contains("Babylonian (Eta Piscium)"));
+        assert!(rendered.contains("Galactic Equator (Mula)"));
         assert!(rendered.contains("True Mula (Chandra Hari)"));
         assert!(rendered.contains("Galactic Equator (Fiorenza)"));
         assert!(rendered.contains("Galactic Equator (True)"));
@@ -734,6 +736,8 @@ mod tests {
         assert!(compatibility.contains("Release summary: release-summary"));
         assert!(compatibility.contains("Release checklist summary: release-checklist-summary"));
         assert!(compatibility.contains("Release bundle verification: verify-release-bundle"));
+        assert!(compatibility.contains("Babylonian (Eta Piscium)"));
+        assert!(compatibility.contains("Galactic Equator (Mula)"));
         assert!(compatibility.contains("Galactic Equator (Fiorenza)"));
 
         let verification = render_cli(&["verify-compatibility-profile"])
@@ -785,6 +789,8 @@ mod tests {
         assert!(release_notes.contains("API stability posture:"));
         assert!(release_notes.contains("Bundle provenance:"));
         assert!(release_notes.contains("True Mula (Chandra Hari)"));
+        assert!(release_notes.contains("Babylonian (Eta Piscium)"));
+        assert!(release_notes.contains("Galactic Equator (Mula)"));
         assert!(release_notes.contains("Galactic Equator (Fiorenza)"));
         assert!(release_notes.contains("Galactic Equator (True)"));
         assert!(release_notes.contains("Galactic Center (Rgilbrand)"));
