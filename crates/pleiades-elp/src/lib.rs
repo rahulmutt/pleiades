@@ -1869,71 +1869,84 @@ pub fn lunar_equatorial_reference_evidence_envelope(
     })
 }
 
+impl LunarEquatorialReferenceEvidenceEnvelope {
+    /// Returns the release-facing one-line lunar equatorial reference error envelope.
+    pub fn summary_line(&self) -> String {
+        fn format_body_epoch(body: &CelestialBody, epoch: Instant) -> String {
+            format!("{} @ {}", body, format_instant(epoch))
+        }
+
+        let distance = match (
+            self.max_distance_delta_body.as_ref(),
+            self.max_distance_delta_epoch,
+            self.max_distance_delta_au,
+        ) {
+            (Some(body), Some(epoch), Some(delta)) => {
+                format!(
+                    "; max Δdist={delta:.12} AU ({})",
+                    format_body_epoch(body, epoch)
+                )
+            }
+            _ => String::new(),
+        };
+        let mean_distance = self
+            .mean_distance_delta_au
+            .map(|value| format!("; mean Δdist={value:.12} AU"))
+            .unwrap_or_default();
+        let median_distance = self
+            .median_distance_delta_au
+            .map(|value| format!("; median Δdist={value:.12} AU"))
+            .unwrap_or_default();
+        let percentile_distance = self
+            .percentile_distance_delta_au
+            .map(|value| format!("; p95 Δdist={value:.12} AU"))
+            .unwrap_or_default();
+        let limit_note = "; limits: ΔRA≤1e-2°, ΔDec≤1e-2°, Δdist≤1e-8 AU";
+        let outlier_note = if self.outlier_bodies.is_empty() {
+            "; outliers=none".to_string()
+        } else {
+            format!("; outliers={}", format_bodies(&self.outlier_bodies))
+        };
+
+        format!(
+            "lunar equatorial reference error envelope: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, max ΔRA={:.12}° ({}), mean ΔRA={:.12}°, median ΔRA={:.12}°, p95 ΔRA={:.12}°, max ΔDec={:.12}° ({}), mean ΔDec={:.12}°, median ΔDec={:.12}°, p95 ΔDec={:.12}°{}{}{}{}{}{}; outside current limits={}; within current limits={}",
+            self.sample_count,
+            self.body_count,
+            self.earliest_epoch.julian_day.days(),
+            self.latest_epoch.julian_day.days(),
+            self.max_right_ascension_delta_deg,
+            format_body_epoch(&self.max_right_ascension_delta_body, self.max_right_ascension_delta_epoch),
+            self.mean_right_ascension_delta_deg,
+            self.median_right_ascension_delta_deg,
+            self.percentile_right_ascension_delta_deg,
+            self.max_declination_delta_deg,
+            format_body_epoch(&self.max_declination_delta_body, self.max_declination_delta_epoch),
+            self.mean_declination_delta_deg,
+            self.median_declination_delta_deg,
+            self.percentile_declination_delta_deg,
+            distance,
+            mean_distance,
+            median_distance,
+            percentile_distance,
+            limit_note,
+            outlier_note,
+            self.outside_current_limits_count,
+            self.within_current_limits,
+        )
+    }
+}
+
+impl fmt::Display for LunarEquatorialReferenceEvidenceEnvelope {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Formats the lunar equatorial reference error envelope for release-facing reporting.
 pub fn format_lunar_equatorial_reference_evidence_envelope(
     envelope: &LunarEquatorialReferenceEvidenceEnvelope,
 ) -> String {
-    fn format_body_epoch(body: &CelestialBody, epoch: Instant) -> String {
-        format!("{} @ {}", body, format_instant(epoch))
-    }
-
-    let distance = match (
-        envelope.max_distance_delta_body.as_ref(),
-        envelope.max_distance_delta_epoch,
-        envelope.max_distance_delta_au,
-    ) {
-        (Some(body), Some(epoch), Some(delta)) => {
-            format!(
-                "; max Δdist={delta:.12} AU ({})",
-                format_body_epoch(body, epoch)
-            )
-        }
-        _ => String::new(),
-    };
-    let mean_distance = envelope
-        .mean_distance_delta_au
-        .map(|value| format!("; mean Δdist={value:.12} AU"))
-        .unwrap_or_default();
-    let median_distance = envelope
-        .median_distance_delta_au
-        .map(|value| format!("; median Δdist={value:.12} AU"))
-        .unwrap_or_default();
-    let percentile_distance = envelope
-        .percentile_distance_delta_au
-        .map(|value| format!("; p95 Δdist={value:.12} AU"))
-        .unwrap_or_default();
-    let limit_note = "; limits: ΔRA≤1e-2°, ΔDec≤1e-2°, Δdist≤1e-8 AU";
-    let outlier_note = if envelope.outlier_bodies.is_empty() {
-        "; outliers=none".to_string()
-    } else {
-        format!("; outliers={}", format_bodies(&envelope.outlier_bodies))
-    };
-
-    format!(
-        "lunar equatorial reference error envelope: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, max ΔRA={:.12}° ({}), mean ΔRA={:.12}°, median ΔRA={:.12}°, p95 ΔRA={:.12}°, max ΔDec={:.12}° ({}), mean ΔDec={:.12}°, median ΔDec={:.12}°, p95 ΔDec={:.12}°{}{}{}{}{}{}; outside current limits={}; within current limits={}",
-        envelope.sample_count,
-        envelope.body_count,
-        envelope.earliest_epoch.julian_day.days(),
-        envelope.latest_epoch.julian_day.days(),
-        envelope.max_right_ascension_delta_deg,
-        format_body_epoch(&envelope.max_right_ascension_delta_body, envelope.max_right_ascension_delta_epoch),
-        envelope.mean_right_ascension_delta_deg,
-        envelope.median_right_ascension_delta_deg,
-        envelope.percentile_right_ascension_delta_deg,
-        envelope.max_declination_delta_deg,
-        format_body_epoch(&envelope.max_declination_delta_body, envelope.max_declination_delta_epoch),
-        envelope.mean_declination_delta_deg,
-        envelope.median_declination_delta_deg,
-        envelope.percentile_declination_delta_deg,
-        distance,
-        mean_distance,
-        median_distance,
-        percentile_distance,
-        limit_note,
-        outlier_note,
-        envelope.outside_current_limits_count,
-        envelope.within_current_limits,
-    )
+    envelope.summary_line()
 }
 
 /// Returns the release-facing lunar equatorial reference error envelope string.
@@ -2472,71 +2485,84 @@ pub fn lunar_reference_evidence_envelope() -> Option<LunarReferenceEvidenceEnvel
     })
 }
 
+impl LunarReferenceEvidenceEnvelope {
+    /// Returns the release-facing one-line lunar reference error envelope.
+    pub fn summary_line(&self) -> String {
+        fn format_body_epoch(body: &CelestialBody, epoch: Instant) -> String {
+            format!("{} @ {}", body, format_instant(epoch))
+        }
+
+        let distance = match (
+            self.max_distance_delta_body.as_ref(),
+            self.max_distance_delta_epoch,
+            self.max_distance_delta_au,
+        ) {
+            (Some(body), Some(epoch), Some(delta)) => {
+                format!(
+                    "; max Δdist={delta:.12} AU ({})",
+                    format_body_epoch(body, epoch)
+                )
+            }
+            _ => String::new(),
+        };
+        let mean_distance = self
+            .mean_distance_delta_au
+            .map(|value| format!("; mean Δdist={value:.12} AU"))
+            .unwrap_or_default();
+        let median_distance = self
+            .median_distance_delta_au
+            .map(|value| format!("; median Δdist={value:.12} AU"))
+            .unwrap_or_default();
+        let percentile_distance = self
+            .percentile_distance_delta_au
+            .map(|value| format!("; p95 Δdist={value:.12} AU"))
+            .unwrap_or_default();
+        let limit_note = "; limits: Δlon≤1e-4° (1e-1° for mean node), Δlat≤1e-4°, Δdist≤1e-8 AU";
+        let outlier_note = if self.outlier_bodies.is_empty() {
+            "; outliers=none".to_string()
+        } else {
+            format!("; outliers={}", format_bodies(&self.outlier_bodies))
+        };
+
+        format!(
+            "lunar reference error envelope: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, max Δlon={:.12}° ({}), mean Δlon={:.12}°, median Δlon={:.12}°, p95 Δlon={:.12}°, max Δlat={:.12}° ({}), mean Δlat={:.12}°, median Δlat={:.12}°, p95 Δlat={:.12}°{}{}{}{}{}{}; outside current limits={}; within current limits={}",
+            self.sample_count,
+            self.body_count,
+            self.earliest_epoch.julian_day.days(),
+            self.latest_epoch.julian_day.days(),
+            self.max_longitude_delta_deg,
+            format_body_epoch(&self.max_longitude_delta_body, self.max_longitude_delta_epoch),
+            self.mean_longitude_delta_deg,
+            self.median_longitude_delta_deg,
+            self.percentile_longitude_delta_deg,
+            self.max_latitude_delta_deg,
+            format_body_epoch(&self.max_latitude_delta_body, self.max_latitude_delta_epoch),
+            self.mean_latitude_delta_deg,
+            self.median_latitude_delta_deg,
+            self.percentile_latitude_delta_deg,
+            distance,
+            mean_distance,
+            median_distance,
+            percentile_distance,
+            limit_note,
+            outlier_note,
+            self.outside_current_limits_count,
+            self.within_current_limits,
+        )
+    }
+}
+
+impl fmt::Display for LunarReferenceEvidenceEnvelope {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Formats the lunar reference error envelope for release-facing reporting.
 pub fn format_lunar_reference_evidence_envelope(
     envelope: &LunarReferenceEvidenceEnvelope,
 ) -> String {
-    fn format_body_epoch(body: &CelestialBody, epoch: Instant) -> String {
-        format!("{} @ {}", body, format_instant(epoch))
-    }
-
-    let distance = match (
-        envelope.max_distance_delta_body.as_ref(),
-        envelope.max_distance_delta_epoch,
-        envelope.max_distance_delta_au,
-    ) {
-        (Some(body), Some(epoch), Some(delta)) => {
-            format!(
-                "; max Δdist={delta:.12} AU ({})",
-                format_body_epoch(body, epoch)
-            )
-        }
-        _ => String::new(),
-    };
-    let mean_distance = envelope
-        .mean_distance_delta_au
-        .map(|value| format!("; mean Δdist={value:.12} AU"))
-        .unwrap_or_default();
-    let median_distance = envelope
-        .median_distance_delta_au
-        .map(|value| format!("; median Δdist={value:.12} AU"))
-        .unwrap_or_default();
-    let percentile_distance = envelope
-        .percentile_distance_delta_au
-        .map(|value| format!("; p95 Δdist={value:.12} AU"))
-        .unwrap_or_default();
-    let limit_note = "; limits: Δlon≤1e-4° (1e-1° for mean node), Δlat≤1e-4°, Δdist≤1e-8 AU";
-    let outlier_note = if envelope.outlier_bodies.is_empty() {
-        "; outliers=none".to_string()
-    } else {
-        format!("; outliers={}", format_bodies(&envelope.outlier_bodies))
-    };
-
-    format!(
-        "lunar reference error envelope: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, max Δlon={:.12}° ({}), mean Δlon={:.12}°, median Δlon={:.12}°, p95 Δlon={:.12}°, max Δlat={:.12}° ({}), mean Δlat={:.12}°, median Δlat={:.12}°, p95 Δlat={:.12}°{}{}{}{}{}{}; outside current limits={}; within current limits={}",
-        envelope.sample_count,
-        envelope.body_count,
-        envelope.earliest_epoch.julian_day.days(),
-        envelope.latest_epoch.julian_day.days(),
-        envelope.max_longitude_delta_deg,
-        format_body_epoch(&envelope.max_longitude_delta_body, envelope.max_longitude_delta_epoch),
-        envelope.mean_longitude_delta_deg,
-        envelope.median_longitude_delta_deg,
-        envelope.percentile_longitude_delta_deg,
-        envelope.max_latitude_delta_deg,
-        format_body_epoch(&envelope.max_latitude_delta_body, envelope.max_latitude_delta_epoch),
-        envelope.mean_latitude_delta_deg,
-        envelope.median_latitude_delta_deg,
-        envelope.percentile_latitude_delta_deg,
-        distance,
-        mean_distance,
-        median_distance,
-        percentile_distance,
-        limit_note,
-        outlier_note,
-        envelope.outside_current_limits_count,
-        envelope.within_current_limits,
-    )
+    envelope.summary_line()
 }
 
 /// Returns the release-facing lunar reference error envelope string.
@@ -4031,6 +4057,11 @@ mod tests {
             lunar_reference_evidence_envelope_for_report().contains("within current limits=true")
         );
         assert!(lunar_reference_evidence_envelope_for_report().contains("outside current limits=0"));
+        assert_eq!(envelope.summary_line(), envelope.to_string());
+        assert_eq!(
+            format_lunar_reference_evidence_envelope(&envelope),
+            envelope.summary_line()
+        );
     }
 
     #[test]
@@ -4080,6 +4111,11 @@ mod tests {
             .contains("within current limits=true"));
         assert!(lunar_equatorial_reference_evidence_envelope_for_report()
             .contains("outside current limits=0"));
+        assert_eq!(envelope.summary_line(), envelope.to_string());
+        assert_eq!(
+            format_lunar_equatorial_reference_evidence_envelope(&envelope),
+            envelope.summary_line()
+        );
 
         let sample = &lunar_equatorial_reference_evidence()[0];
         assert_eq!(sample.body, CelestialBody::Moon);
