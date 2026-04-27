@@ -1629,12 +1629,17 @@ mod tests {
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.request_count, packaged_bodies().len());
         assert_eq!(summary.body_count, packaged_bodies().len());
-        assert_eq!(summary.tt_request_count + summary.tdb_request_count, summary.request_count);
-        assert!(summary.parity_preserved);
-        assert!(summary.summary_line().contains("Packaged mixed TT/TDB batch parity:"));
-        assert!(packaged_mixed_tt_tdb_batch_parity_summary_for_report().contains(
-            "Packaged mixed TT/TDB batch parity:"
-        ));
+        assert_eq!(
+            summary.tt_request_count + summary.tdb_request_count,
+            summary.request_count
+        );
+        assert!(summary.order_preserved);
+        assert!(summary.single_query_parity_preserved);
+        assert!(summary
+            .summary_line()
+            .contains("Packaged mixed TT/TDB batch parity:"));
+        assert!(packaged_mixed_tt_tdb_batch_parity_summary_for_report()
+            .contains("Packaged mixed TT/TDB batch parity:"));
     }
 
     #[test]
