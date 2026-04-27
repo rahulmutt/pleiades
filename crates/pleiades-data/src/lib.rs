@@ -420,6 +420,33 @@ pub fn packaged_frame_treatment_summary() -> &'static str {
     packaged_frame_treatment_summary_details().summary_line()
 }
 
+/// Structured storage/reconstruction summary for the packaged artifact.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PackagedArtifactStorageSummary;
+
+impl PackagedArtifactStorageSummary {
+    /// Returns the storage and reconstruction posture as a compact human-readable line.
+    pub const fn summary_line(self) -> &'static str {
+        "Quantized linear segments stored in pleiades-compression artifact format; equatorial coordinates are reconstructed at runtime from stored channels"
+    }
+}
+
+impl fmt::Display for PackagedArtifactStorageSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.summary_line())
+    }
+}
+
+/// Returns the structured packaged-artifact storage/reconstruction summary.
+pub const fn packaged_artifact_storage_summary_details() -> PackagedArtifactStorageSummary {
+    PackagedArtifactStorageSummary
+}
+
+/// Returns the packaged-artifact storage/reconstruction summary.
+pub fn packaged_artifact_storage_summary() -> &'static str {
+    packaged_artifact_storage_summary_details().summary_line()
+}
+
 const AU_IN_KM: f64 = 149_597_870.7;
 
 /// Returns the canonical package name for this crate.
@@ -495,7 +522,8 @@ impl EphemerisBackend for PackagedDataBackend {
                     packaged_body_coverage_summary_details().summary_line(),
                     packaged_request_policy_summary_details().summary_line(),
                     packaged_frame_treatment_summary_details().to_string(),
-                    "Quantized linear segments stored in pleiades-compression artifact format; equatorial coordinates are reconstructed at runtime from stored channels"
+                    packaged_artifact_storage_summary_details()
+                        .summary_line()
                         .to_string(),
                 ],
             },
@@ -1045,6 +1073,17 @@ mod tests {
         assert!(metadata.provenance.data_sources[2].contains("ecliptic coordinates directly"));
         assert!(metadata.provenance.data_sources[2]
             .contains("equatorial coordinates are reconstructed"));
+        assert_eq!(
+            metadata.provenance.data_sources[3],
+            packaged_artifact_storage_summary()
+        );
+        assert_eq!(
+            packaged_artifact_storage_summary_details().to_string(),
+            packaged_artifact_storage_summary()
+        );
+        assert!(metadata.provenance.data_sources[3].contains("Quantized linear segments"));
+        assert!(metadata.provenance.data_sources[3]
+            .contains("equatorial coordinates are reconstructed at runtime"));
     }
 
     #[test]
