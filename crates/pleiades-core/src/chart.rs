@@ -330,14 +330,16 @@ impl ChartRequest {
     /// `docs/time-observer-policy.md`:
     ///
     /// - the instant's explicit time scale is rendered directly,
-    /// - observer-bearing chart requests are described as house-only,
-    /// - geocentric requests are described explicitly when no observer is set,
+    /// - observer-bearing chart requests are described as house-only when a
+    ///   house system is also requested,
+    /// - geocentric requests are described explicitly when no observer is set
+    ///   or the observer is not used for house calculations,
     /// - the current zodiac mode, apparentness, body count, and house-system
     ///   selection stay visible in a single line.
     ///
     /// [`fmt::Display`] renders the same text as this helper.
     pub fn summary_line(&self) -> String {
-        let observer_policy = if self.observer.is_some() {
+        let observer_policy = if self.observer.is_some() && self.house_system.is_some() {
             "house-only"
         } else {
             "geocentric"
@@ -2338,6 +2340,25 @@ mod tests {
         assert_eq!(
             request.summary_line(),
             "instant=JD 2451545 (UTC); bodies=2; zodiac=Sidereal (Lahiri); apparentness=Apparent; observer=house-only; house system=Whole Sign"
+        );
+    }
+
+    #[test]
+    fn chart_request_summary_line_stays_geocentric_without_a_house_system() {
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Tt,
+        ))
+        .with_observer(ObserverLocation::new(
+            Latitude::from_degrees(12.5),
+            Longitude::from_degrees(45.0),
+            Some(100.0),
+        ))
+        .with_bodies(vec![CelestialBody::Sun, CelestialBody::Moon]);
+
+        assert_eq!(
+            request.summary_line(),
+            "instant=JD 2451545 (TT); bodies=2; zodiac=Tropical; apparentness=Mean; observer=geocentric; house system=none"
         );
     }
 
