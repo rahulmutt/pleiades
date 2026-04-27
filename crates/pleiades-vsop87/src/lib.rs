@@ -536,7 +536,33 @@ impl Vsop87SourceDocumentationHealthSummary {
     /// Validates that the summary represents a healthy, internally consistent
     /// VSOP87 source-documentation catalog.
     pub fn validate(&self) -> Result<(), Box<Vsop87SourceDocumentationHealthError>> {
-        if self.consistent && self.documentation_consistent && self.issues.is_empty() {
+        let source_backed_profile_partition_count = self.generated_binary_profile_count
+            + self.vendored_full_file_profile_count
+            + self.truncated_profile_count;
+        let source_backed_list_count = self.generated_binary_bodies.len()
+            + self.vendored_full_file_bodies.len()
+            + self.truncated_bodies.len();
+        let body_profile_list_count = source_backed_list_count + self.fallback_bodies.len();
+        let structural_consistency = self.source_file_count == self.source_files.len()
+            && self.source_specification_count == self.source_file_count
+            && self.source_backed_profile_count == self.source_backed_bodies.len()
+            && self.source_backed_profile_count == self.source_backed_partition_bodies.len()
+            && self.source_backed_profile_count == source_backed_profile_partition_count
+            && self.source_backed_profile_count == source_backed_list_count
+            && self.body_profile_count
+                == self.source_backed_profile_count + self.fallback_profile_count
+            && self.body_profile_count == body_profile_list_count
+            && self.generated_binary_profile_count == self.generated_binary_bodies.len()
+            && self.vendored_full_file_profile_count == self.vendored_full_file_bodies.len()
+            && self.truncated_profile_count == self.truncated_bodies.len()
+            && self.fallback_profile_count == self.fallback_bodies.len()
+            && self.source_backed_bodies == self.source_backed_partition_bodies;
+
+        if self.consistent
+            && self.documentation_consistent
+            && self.issues.is_empty()
+            && structural_consistency
+        {
             Ok(())
         } else {
             Err(Box::new(Vsop87SourceDocumentationHealthError {
@@ -5175,6 +5201,34 @@ mod tests {
         assert_eq!(error.summary(), &summary);
         assert_eq!(error.summary_line(), summary.summary_line());
         assert_eq!(error.to_string(), summary.summary_line());
+    }
+
+    #[test]
+    fn source_documentation_health_summary_rejects_partition_order_drift() {
+        let mut summary = source_documentation_health_summary();
+        assert!(summary.validate().is_ok());
+
+        summary.source_backed_partition_bodies.reverse();
+
+        let error = summary
+            .validate()
+            .expect_err("partition order drift should fail validation");
+        assert_eq!(error.summary(), &summary);
+        assert_eq!(error.summary_line(), summary.summary_line());
+    }
+
+    #[test]
+    fn source_documentation_health_summary_rejects_profile_count_drift() {
+        let mut summary = source_documentation_health_summary();
+        assert!(summary.validate().is_ok());
+
+        summary.generated_binary_profile_count += 1;
+
+        let error = summary
+            .validate()
+            .expect_err("profile count drift should fail validation");
+        assert_eq!(error.summary(), &summary);
+        assert_eq!(error.summary_line(), summary.summary_line());
     }
 
     #[test]
