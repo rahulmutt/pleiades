@@ -11998,6 +11998,7 @@ version = "0.9.0"
         assert!(report.contains("Jupiter"));
         assert!(report.contains("Pluto"));
         assert!(report.contains("boundary checks"));
+        assert!(report.contains("Artifact boundary envelope"));
         assert!(report.contains("Artifact request policy"));
         assert!(report.contains("Model error envelope"));
         assert!(report.contains("Body-class error envelopes"));

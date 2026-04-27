@@ -873,6 +873,7 @@ mod tests {
         let artifact_summary =
             render_cli(&["artifact-summary"]).expect("artifact summary should render");
         assert!(artifact_summary.contains("Artifact summary"));
+        assert!(artifact_summary.contains("Artifact boundary envelope"));
         assert!(artifact_summary.contains("Model error envelope"));
         assert!(artifact_summary.contains("Packaged frame treatment"));
         assert!(artifact_summary.contains("Release summary: release-summary"));
@@ -909,6 +910,7 @@ mod tests {
             render_cli(&["validate-artifact"]).expect("validate-artifact should render");
         assert!(artifact_report.contains("Artifact validation report"));
         assert!(artifact_report.contains("Bodies"));
+        assert!(artifact_report.contains("Artifact boundary envelope"));
         assert!(artifact_report.contains("Model error envelope"));
 
         let workspace_audit = render_cli(&["workspace-audit"])

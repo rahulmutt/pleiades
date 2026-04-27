@@ -74,6 +74,68 @@ pub struct ArtifactBodyInspection {
     pub max_boundary_distance_delta_au: Option<f64>,
 }
 
+/// Aggregate boundary continuity envelope for the packaged artifact.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ArtifactBoundaryEnvelopeSummary {
+    /// Number of bundled bodies contributing boundary checks.
+    pub body_count: usize,
+    /// Total number of boundary checks across all bundled bodies.
+    pub boundary_check_count: usize,
+    /// Body that produced the largest longitude delta.
+    pub max_boundary_longitude_delta_body: Option<CelestialBody>,
+    /// Maximum longitude delta observed at a shared boundary.
+    pub max_boundary_longitude_delta_deg: f64,
+    /// Body that produced the largest latitude delta.
+    pub max_boundary_latitude_delta_body: Option<CelestialBody>,
+    /// Maximum latitude delta observed at a shared boundary.
+    pub max_boundary_latitude_delta_deg: f64,
+    /// Body that produced the largest distance delta.
+    pub max_boundary_distance_delta_body: Option<CelestialBody>,
+    /// Maximum distance delta observed at a shared boundary.
+    pub max_boundary_distance_delta_au: Option<f64>,
+}
+
+impl ArtifactBoundaryEnvelopeSummary {
+    /// Returns the aggregate boundary envelope as a compact human-readable line.
+    pub fn summary_line(&self) -> String {
+        if self.boundary_check_count == 0 {
+            return format!(
+                "Artifact boundary envelope: 0 checks across {} bundled bodies",
+                self.body_count
+            );
+        }
+
+        format!(
+            "Artifact boundary envelope: {} checks across {} bundled bodies, max boundary Δlon={:.12}°{}, max boundary Δlat={:.12}°{}, max boundary Δdist={}{}",
+            self.boundary_check_count,
+            self.body_count,
+            self.max_boundary_longitude_delta_deg,
+            self.max_boundary_longitude_delta_body
+                .as_ref()
+                .map(|body| format!(" ({body})"))
+                .unwrap_or_default(),
+            self.max_boundary_latitude_delta_deg,
+            self.max_boundary_latitude_delta_body
+                .as_ref()
+                .map(|body| format!(" ({body})"))
+                .unwrap_or_default(),
+            self.max_boundary_distance_delta_au
+                .map(|value| format!("{value:.12} AU"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            self.max_boundary_distance_delta_body
+                .as_ref()
+                .map(|body| format!(" ({body})"))
+                .unwrap_or_default(),
+        )
+    }
+}
+
+impl fmt::Display for ArtifactBoundaryEnvelopeSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Benchmark summary for decoding the packaged compressed artifact.
 #[derive(Clone, Debug)]
 pub struct ArtifactDecodeBenchmarkReport {
@@ -386,6 +448,9 @@ fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
     text.push_str("  segments: ");
     text.push_str(&report.segment_count.to_string());
     text.push_str(" total\n");
+    text.push_str("  ");
+    text.push_str(&artifact_boundary_envelope_summary(report).summary_line());
+    text.push('\n');
     text.push_str("  roundtrip decode: ");
     text.push_str(yes_no(report.roundtrip_ok));
     text.push('\n');
@@ -609,6 +674,50 @@ struct BoundaryDelta {
     longitude_delta_deg: f64,
     latitude_delta_deg: f64,
     distance_delta_au: Option<f64>,
+}
+
+fn artifact_boundary_envelope_summary(
+    report: &ArtifactInspectionReport,
+) -> ArtifactBoundaryEnvelopeSummary {
+    let mut summary = ArtifactBoundaryEnvelopeSummary {
+        body_count: report.bodies.len(),
+        boundary_check_count: 0,
+        max_boundary_longitude_delta_body: None,
+        max_boundary_longitude_delta_deg: 0.0,
+        max_boundary_latitude_delta_body: None,
+        max_boundary_latitude_delta_deg: 0.0,
+        max_boundary_distance_delta_body: None,
+        max_boundary_distance_delta_au: None,
+    };
+
+    for body in &report.bodies {
+        summary.boundary_check_count += body.boundary_checks;
+        if body.boundary_checks == 0 {
+            continue;
+        }
+
+        if body.max_boundary_longitude_delta_deg >= summary.max_boundary_longitude_delta_deg {
+            summary.max_boundary_longitude_delta_deg = body.max_boundary_longitude_delta_deg;
+            summary.max_boundary_longitude_delta_body = Some(body.body.clone());
+        }
+        if body.max_boundary_latitude_delta_deg >= summary.max_boundary_latitude_delta_deg {
+            summary.max_boundary_latitude_delta_deg = body.max_boundary_latitude_delta_deg;
+            summary.max_boundary_latitude_delta_body = Some(body.body.clone());
+        }
+        match (
+            summary.max_boundary_distance_delta_au,
+            body.max_boundary_distance_delta_au,
+        ) {
+            (Some(current), Some(next)) if next < current => {}
+            (_, Some(next)) => {
+                summary.max_boundary_distance_delta_au = Some(next);
+                summary.max_boundary_distance_delta_body = Some(body.body.clone());
+            }
+            _ => {}
+        }
+    }
+
+    summary
 }
 
 fn boundary_delta(left: &EclipticCoordinates, right: &EclipticCoordinates) -> BoundaryDelta {
@@ -866,6 +975,7 @@ impl fmt::Display for ArtifactInspectionReport {
             "  coverage: {} → {}",
             self.earliest.julian_day, self.latest.julian_day
         )?;
+        writeln!(f, "  {}", artifact_boundary_envelope_summary(self))?;
         writeln!(
             f,
             "  Artifact request policy: {}",
