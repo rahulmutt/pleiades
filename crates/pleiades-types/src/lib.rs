@@ -436,6 +436,18 @@ impl Instant {
     ///
     /// This is an explicit alias for [`Instant::tt_from_tdb`] that mirrors the
     /// signed helper naming used for the other time-scale conversion policies.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use pleiades_types::{Instant, JulianDay, TimeScale};
+    ///
+    /// let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb);
+    /// let converted = instant.tt_from_tdb_signed(-0.001_657).expect("TDB-tagged instant");
+    ///
+    /// assert_eq!(converted.scale, TimeScale::Tt);
+    /// assert!(converted.julian_day.days() < instant.julian_day.days());
+    /// ```
     pub fn tt_from_tdb_signed(self, offset_seconds: f64) -> Result<Self, TimeScaleConversionError> {
         self.tt_from_tdb(offset_seconds)
     }
@@ -466,6 +478,21 @@ impl Instant {
     /// model leap seconds, DUT1, or relativistic terms by itself; it only
     /// composes caller-supplied policy steps into a reproducible TDB-tagged
     /// instant.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use std::time::Duration;
+    /// use pleiades_types::{Instant, JulianDay, TimeScale};
+    ///
+    /// let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Ut1);
+    /// let converted = instant
+    ///     .tdb_from_ut1_signed(Duration::from_secs_f64(64.184), -0.001_657)
+    ///     .expect("UT1-tagged instant");
+    ///
+    /// assert_eq!(converted.scale, TimeScale::Tdb);
+    /// assert!(converted.julian_day.days() > instant.julian_day.days());
+    /// ```
     pub fn tdb_from_ut1_signed(
         self,
         tt_offset: Duration,
@@ -500,6 +527,21 @@ impl Instant {
     /// offset in SI seconds. The helper intentionally does not model leap
     /// seconds, DUT1, or relativistic terms by itself; it only composes
     /// caller-supplied policy steps into a reproducible TDB-tagged instant.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use std::time::Duration;
+    /// use pleiades_types::{Instant, JulianDay, TimeScale};
+    ///
+    /// let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Utc);
+    /// let converted = instant
+    ///     .tdb_from_utc_signed(Duration::from_secs_f64(64.184), -0.001_657)
+    ///     .expect("UTC-tagged instant");
+    ///
+    /// assert_eq!(converted.scale, TimeScale::Tdb);
+    /// assert!(converted.julian_day.days() > instant.julian_day.days());
+    /// ```
     pub fn tdb_from_utc_signed(
         self,
         tt_offset: Duration,
