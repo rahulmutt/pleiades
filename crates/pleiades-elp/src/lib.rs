@@ -2113,6 +2113,38 @@ struct LunarHighCurvatureContinuityEnvelope {
     within_regression_limits: bool,
 }
 
+impl LunarHighCurvatureContinuityEnvelope {
+    /// Returns the compact release-facing summary line for this continuity evidence slice.
+    fn summary_line(&self) -> String {
+        format!(
+            "lunar high-curvature continuity evidence: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, max adjacent Δlon={:.12}° ({} → {}), max adjacent Δlat={:.12}° ({} → {}), max adjacent Δdist={:.12} AU ({} → {}), regression limits: Δlon≤{:.1}°, Δlat≤{:.1}°, Δdist≤{:.2} AU; within regression limits={}",
+            self.sample_count,
+            self.body_count,
+            self.earliest_epoch.julian_day.days(),
+            self.latest_epoch.julian_day.days(),
+            self.max_longitude_step_deg,
+            format_instant(self.max_longitude_step_start_epoch),
+            format_instant(self.max_longitude_step_end_epoch),
+            self.max_latitude_step_deg,
+            format_instant(self.max_latitude_step_start_epoch),
+            format_instant(self.max_latitude_step_end_epoch),
+            self.max_distance_step_au,
+            format_instant(self.max_distance_step_start_epoch),
+            format_instant(self.max_distance_step_end_epoch),
+            LUNAR_HIGH_CURVATURE_LONGITUDE_LIMIT_DEG,
+            LUNAR_HIGH_CURVATURE_LATITUDE_LIMIT_DEG,
+            LUNAR_HIGH_CURVATURE_DISTANCE_LIMIT_AU,
+            self.within_regression_limits,
+        )
+    }
+}
+
+impl fmt::Display for LunarHighCurvatureContinuityEnvelope {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 fn lunar_high_curvature_continuity_envelope() -> Option<LunarHighCurvatureContinuityEnvelope> {
     let backend = ElpBackend::new();
     let mut bodies = std::collections::BTreeSet::new();
@@ -2204,26 +2236,7 @@ fn lunar_high_curvature_continuity_envelope() -> Option<LunarHighCurvatureContin
 fn format_lunar_high_curvature_continuity_evidence_envelope(
     envelope: &LunarHighCurvatureContinuityEnvelope,
 ) -> String {
-    format!(
-        "lunar high-curvature continuity evidence: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, max adjacent Δlon={:.12}° ({} → {}), max adjacent Δlat={:.12}° ({} → {}), max adjacent Δdist={:.12} AU ({} → {}), regression limits: Δlon≤{:.1}°, Δlat≤{:.1}°, Δdist≤{:.2} AU; within regression limits={}",
-        envelope.sample_count,
-        envelope.body_count,
-        envelope.earliest_epoch.julian_day.days(),
-        envelope.latest_epoch.julian_day.days(),
-        envelope.max_longitude_step_deg,
-        format_instant(envelope.max_longitude_step_start_epoch),
-        format_instant(envelope.max_longitude_step_end_epoch),
-        envelope.max_latitude_step_deg,
-        format_instant(envelope.max_latitude_step_start_epoch),
-        format_instant(envelope.max_latitude_step_end_epoch),
-        envelope.max_distance_step_au,
-        format_instant(envelope.max_distance_step_start_epoch),
-        format_instant(envelope.max_distance_step_end_epoch),
-        LUNAR_HIGH_CURVATURE_LONGITUDE_LIMIT_DEG,
-        LUNAR_HIGH_CURVATURE_LATITUDE_LIMIT_DEG,
-        LUNAR_HIGH_CURVATURE_DISTANCE_LIMIT_AU,
-        envelope.within_regression_limits,
-    )
+    envelope.summary_line()
 }
 
 /// Returns the release-facing lunar high-curvature continuity evidence string.
@@ -2268,6 +2281,38 @@ struct LunarHighCurvatureEquatorialContinuityEnvelope {
     max_distance_step_au: f64,
     /// Whether every adjacent step stayed within the current regression limits.
     within_regression_limits: bool,
+}
+
+impl LunarHighCurvatureEquatorialContinuityEnvelope {
+    /// Returns the compact release-facing summary line for this equatorial evidence slice.
+    fn summary_line(&self) -> String {
+        format!(
+            "lunar high-curvature equatorial continuity evidence: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, max adjacent ΔRA={:.12}° ({} → {}), max adjacent ΔDec={:.12}° ({} → {}), max adjacent Δdist={:.12} AU ({} → {}), regression limits: ΔRA≤{:.1}°, ΔDec≤{:.1}°, Δdist≤{:.2} AU; within regression limits={}",
+            self.sample_count,
+            self.body_count,
+            self.earliest_epoch.julian_day.days(),
+            self.latest_epoch.julian_day.days(),
+            self.max_right_ascension_step_deg,
+            format_instant(self.max_right_ascension_step_start_epoch),
+            format_instant(self.max_right_ascension_step_end_epoch),
+            self.max_declination_step_deg,
+            format_instant(self.max_declination_step_start_epoch),
+            format_instant(self.max_declination_step_end_epoch),
+            self.max_distance_step_au,
+            format_instant(self.max_distance_step_start_epoch),
+            format_instant(self.max_distance_step_end_epoch),
+            LUNAR_HIGH_CURVATURE_RIGHT_ASCENSION_LIMIT_DEG,
+            LUNAR_HIGH_CURVATURE_DECLINATION_LIMIT_DEG,
+            LUNAR_HIGH_CURVATURE_DISTANCE_LIMIT_AU,
+            self.within_regression_limits,
+        )
+    }
+}
+
+impl fmt::Display for LunarHighCurvatureEquatorialContinuityEnvelope {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
 }
 
 fn lunar_high_curvature_equatorial_continuity_envelope(
@@ -2367,26 +2412,7 @@ fn lunar_high_curvature_equatorial_continuity_envelope(
 fn format_lunar_high_curvature_equatorial_continuity_evidence_envelope(
     envelope: &LunarHighCurvatureEquatorialContinuityEnvelope,
 ) -> String {
-    format!(
-        "lunar high-curvature equatorial continuity evidence: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, max adjacent ΔRA={:.12}° ({} → {}), max adjacent ΔDec={:.12}° ({} → {}), max adjacent Δdist={:.12} AU ({} → {}), regression limits: ΔRA≤{:.1}°, ΔDec≤{:.1}°, Δdist≤{:.2} AU; within regression limits={}",
-        envelope.sample_count,
-        envelope.body_count,
-        envelope.earliest_epoch.julian_day.days(),
-        envelope.latest_epoch.julian_day.days(),
-        envelope.max_right_ascension_step_deg,
-        format_instant(envelope.max_right_ascension_step_start_epoch),
-        format_instant(envelope.max_right_ascension_step_end_epoch),
-        envelope.max_declination_step_deg,
-        format_instant(envelope.max_declination_step_start_epoch),
-        format_instant(envelope.max_declination_step_end_epoch),
-        envelope.max_distance_step_au,
-        format_instant(envelope.max_distance_step_start_epoch),
-        format_instant(envelope.max_distance_step_end_epoch),
-        LUNAR_HIGH_CURVATURE_RIGHT_ASCENSION_LIMIT_DEG,
-        LUNAR_HIGH_CURVATURE_DECLINATION_LIMIT_DEG,
-        LUNAR_HIGH_CURVATURE_DISTANCE_LIMIT_AU,
-        envelope.within_regression_limits,
-    )
+    envelope.summary_line()
 }
 
 /// Returns the release-facing lunar high-curvature equatorial continuity evidence string.
@@ -3602,8 +3628,10 @@ mod tests {
 
     #[test]
     fn lunar_high_curvature_continuity_evidence_is_rendered() {
+        let envelope = lunar_high_curvature_continuity_envelope().expect("envelope should exist");
         let report = lunar_high_curvature_continuity_evidence_for_report();
 
+        assert_eq!(report, envelope.summary_line());
         assert!(
             report.contains("lunar high-curvature continuity evidence: 4 samples across 1 bodies")
         );
@@ -3619,8 +3647,11 @@ mod tests {
 
     #[test]
     fn lunar_high_curvature_equatorial_continuity_evidence_is_rendered() {
+        let envelope = lunar_high_curvature_equatorial_continuity_envelope()
+            .expect("equatorial envelope should exist");
         let report = lunar_high_curvature_equatorial_continuity_evidence_for_report();
 
+        assert_eq!(report, envelope.summary_line());
         assert!(report.contains(
             "lunar high-curvature equatorial continuity evidence: 4 samples across 1 bodies"
         ));
