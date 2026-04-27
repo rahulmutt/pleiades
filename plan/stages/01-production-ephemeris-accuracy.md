@@ -45,6 +45,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
 
 Progress note: the compact validation report summary now also surfaces the VSOP87 source-backed body-class envelopes alongside the existing source documentation and body evidence lines, keeping the coarse class rollup visible in the shorter release-facing validation view too.
 Progress note: the VSOP87 source-specification records now have typed `summary_line()`/`Display` helpers plus reusable single-catalog formatting helpers, so the documented variant, frame, unit, and date-range fields can travel through typed report code instead of being rebuilt ad hoc.
+Progress note: `pleiades-vsop87` now also exposes a reusable batch-request corpus helper for arbitrary body iterators, instant tags, and coordinate frames, and the canonical J2000/J1900 batch-path regressions reuse that helper directly so validation tools can share the same request-shape construction instead of rebuilding it at each call site.
 
 2. Implement production `pleiades-elp` lunar calculations.
    - Select and document a pure-Rust lunar theory source.

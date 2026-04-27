@@ -2291,18 +2291,38 @@ pub fn canonical_epoch_samples() -> Vec<Vsop87CanonicalEpochSample> {
         .collect()
 }
 
-fn canonical_epoch_requests() -> Vec<EphemerisRequest> {
-    canonical_epoch_samples()
+/// Builds a batch request corpus for the provided bodies at a shared instant
+/// and coordinate frame.
+///
+/// The requests preserve the iterator order and default to tropical mean
+/// geometric geocentric output, which makes the helper suitable for canonical
+/// batch regressions and reproducibility tooling.
+pub fn requests_for_bodies_at<I>(
+    bodies: I,
+    instant: Instant,
+    frame: CoordinateFrame,
+) -> Vec<EphemerisRequest>
+where
+    I: IntoIterator<Item = CelestialBody>,
+{
+    bodies
         .into_iter()
-        .map(|sample| {
-            let mut request = EphemerisRequest::new(
-                sample.body,
-                Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt),
-            );
-            request.apparent = Apparentness::Mean;
+        .map(|body| {
+            let mut request = EphemerisRequest::new(body, instant);
+            request.frame = frame;
             request
         })
         .collect()
+}
+
+fn canonical_epoch_requests() -> Vec<EphemerisRequest> {
+    requests_for_bodies_at(
+        canonical_epoch_samples()
+            .into_iter()
+            .map(|sample| sample.body),
+        Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt),
+        CoordinateFrame::Ecliptic,
+    )
 }
 
 /// Returns the canonical per-body error envelope used by release-facing
@@ -3752,16 +3772,11 @@ mod tests {
     #[test]
     fn batch_query_preserves_supported_vsop87_paths_at_the_j1900_reference_epoch() {
         let backend = Vsop87Backend::new();
-        let instant = Instant::new(pleiades_types::JulianDay::from_days(J1900), TimeScale::Tdb);
-        let requests = Vsop87Backend::supported_bodies()
-            .iter()
-            .cloned()
-            .map(|body| {
-                let mut request = mean_request_at(body, instant);
-                request.frame = CoordinateFrame::Equatorial;
-                request
-            })
-            .collect::<Vec<_>>();
+        let requests = requests_for_bodies_at(
+            Vsop87Backend::supported_bodies().iter().cloned(),
+            Instant::new(pleiades_types::JulianDay::from_days(J1900), TimeScale::Tdb),
+            CoordinateFrame::Equatorial,
+        );
 
         let results = backend
             .positions(&requests)
@@ -4861,6 +4876,32 @@ mod tests {
             supported_source_files(),
             source_documentation_summary().source_files
         );
+    }
+
+    #[test]
+    fn request_corpus_helper_preserves_body_order_and_defaults() {
+        let instant = Instant::new(pleiades_types::JulianDay::from_days(J1900), TimeScale::Tdb);
+        let bodies = vec![
+            CelestialBody::Mars,
+            CelestialBody::Sun,
+            CelestialBody::Neptune,
+        ];
+        let requests = requests_for_bodies_at(bodies.clone(), instant, CoordinateFrame::Equatorial);
+
+        assert_eq!(
+            requests
+                .iter()
+                .map(|request| request.body.clone())
+                .collect::<Vec<_>>(),
+            bodies
+        );
+        assert!(requests.iter().all(|request| {
+            request.instant == instant
+                && request.frame == CoordinateFrame::Equatorial
+                && request.zodiac_mode == ZodiacMode::Tropical
+                && request.apparent == Apparentness::Mean
+                && request.observer.is_none()
+        }));
     }
 
     #[test]
