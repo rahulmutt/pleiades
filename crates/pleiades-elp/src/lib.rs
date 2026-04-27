@@ -992,6 +992,31 @@ pub struct LunarTheoryCatalogSummary {
     pub selected_unsupported_body_count: usize,
 }
 
+/// Validation error for a lunar-theory catalog summary that drifted from the current selection.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LunarTheoryCatalogSummaryValidationError {
+    /// A rendered summary field no longer matches the current lunar-theory catalog.
+    FieldOutOfSync { field: &'static str },
+    /// The current catalog no longer contains a selected entry.
+    MissingSelectedEntry,
+}
+
+impl fmt::Display for LunarTheoryCatalogSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the lunar catalog summary field `{field}` is out of sync with the current catalog"
+            ),
+            Self::MissingSelectedEntry => {
+                f.write_str("the lunar catalog no longer contains a selected entry")
+            }
+        }
+    }
+}
+
+impl std::error::Error for LunarTheoryCatalogSummaryValidationError {}
+
 /// Returns a compact summary of the current lunar-theory catalog.
 pub fn lunar_theory_catalog_summary() -> LunarTheoryCatalogSummary {
     let catalog = lunar_theory_catalog();
@@ -1013,6 +1038,61 @@ pub fn lunar_theory_catalog_summary() -> LunarTheoryCatalogSummary {
 }
 
 impl LunarTheoryCatalogSummary {
+    /// Returns `Ok(())` when the summary still matches the current lunar-theory catalog.
+    pub fn validate(&self) -> Result<(), LunarTheoryCatalogSummaryValidationError> {
+        let catalog = lunar_theory_catalog();
+        let selected_count = catalog.iter().filter(|entry| entry.selected).count();
+        let Some(selected_entry) = catalog.iter().find(|entry| entry.selected) else {
+            return Err(LunarTheoryCatalogSummaryValidationError::MissingSelectedEntry);
+        };
+
+        if self.entry_count != catalog.len() {
+            return Err(LunarTheoryCatalogSummaryValidationError::FieldOutOfSync {
+                field: "entry_count",
+            });
+        }
+        if self.selected_count != selected_count {
+            return Err(LunarTheoryCatalogSummaryValidationError::FieldOutOfSync {
+                field: "selected_count",
+            });
+        }
+        if self.selected_source_identifier != selected_entry.specification.source_identifier {
+            return Err(LunarTheoryCatalogSummaryValidationError::FieldOutOfSync {
+                field: "selected_source_identifier",
+            });
+        }
+        if self.selected_source_family != selected_entry.specification.source_family {
+            return Err(LunarTheoryCatalogSummaryValidationError::FieldOutOfSync {
+                field: "selected_source_family",
+            });
+        }
+        if self.selected_source_family_label != selected_entry.specification.source_family.label() {
+            return Err(LunarTheoryCatalogSummaryValidationError::FieldOutOfSync {
+                field: "selected_source_family_label",
+            });
+        }
+        if self.selected_alias_count != selected_entry.specification.source_aliases.len() {
+            return Err(LunarTheoryCatalogSummaryValidationError::FieldOutOfSync {
+                field: "selected_alias_count",
+            });
+        }
+        if self.selected_supported_body_count != selected_entry.specification.supported_bodies.len()
+        {
+            return Err(LunarTheoryCatalogSummaryValidationError::FieldOutOfSync {
+                field: "selected_supported_body_count",
+            });
+        }
+        if self.selected_unsupported_body_count
+            != selected_entry.specification.unsupported_bodies.len()
+        {
+            return Err(LunarTheoryCatalogSummaryValidationError::FieldOutOfSync {
+                field: "selected_unsupported_body_count",
+            });
+        }
+
+        Ok(())
+    }
+
     /// Returns the compact release-facing summary line for the current lunar catalog.
     pub fn summary_line(&self) -> String {
         let entry_label = if self.entry_count == 1 {
@@ -1052,9 +1132,22 @@ pub fn format_lunar_theory_catalog_summary(summary: &LunarTheoryCatalogSummary) 
     summary.summary_line()
 }
 
+fn format_validated_lunar_theory_catalog_summary_for_report(
+    summary: &LunarTheoryCatalogSummary,
+) -> String {
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("lunar theory catalog: unavailable ({error})"),
+    }
+}
+
 /// Returns the release-facing catalog summary string for the current lunar-theory selection.
+///
+/// The report helper validates the backend-owned catalog summary first so any
+/// future drift in the rendered selection fields shows up as an unavailable
+/// report line instead of a silently stale summary.
 pub fn lunar_theory_catalog_summary_for_report() -> String {
-    lunar_theory_catalog_summary().summary_line()
+    format_validated_lunar_theory_catalog_summary_for_report(&lunar_theory_catalog_summary())
 }
 
 /// A compact capability summary for the current lunar-theory selection.
@@ -3530,6 +3623,20 @@ mod tests {
         );
         assert!(lunar_theory_catalog_summary_for_report()
             .contains("lunar theory catalog: 1 entry, 1 selected entry"));
+        assert!(catalog_summary.validate().is_ok());
+        let mut drifted_catalog_summary = catalog_summary;
+        drifted_catalog_summary.selected_alias_count += 1;
+        let error = drifted_catalog_summary
+            .validate()
+            .expect_err("drifted catalog summary should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "the lunar catalog summary field `selected_alias_count` is out of sync with the current catalog"
+        );
+        assert_eq!(
+            format_validated_lunar_theory_catalog_summary_for_report(&drifted_catalog_summary),
+            "lunar theory catalog: unavailable (the lunar catalog summary field `selected_alias_count` is out of sync with the current catalog)"
+        );
         let catalog_validation_summary = lunar_theory_catalog_validation_summary();
         assert_eq!(catalog_validation_summary.entry_count, 1);
         assert_eq!(catalog_validation_summary.selected_count, 1);
