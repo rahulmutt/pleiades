@@ -2455,6 +2455,7 @@ enum SnapshotLoadErrorKind {
         column: &'static str,
     },
     UnexpectedExtraColumns,
+    BlankBody,
     UnsupportedBody {
         body: String,
     },
@@ -2474,6 +2475,7 @@ impl fmt::Display for SnapshotLoadErrorKind {
         match self {
             Self::MissingColumn { column } => write!(f, "missing {column} column"),
             Self::UnexpectedExtraColumns => f.write_str("unexpected extra columns"),
+            Self::BlankBody => f.write_str("blank body"),
             Self::UnsupportedBody { body } => write!(f, "unsupported body '{body}'"),
             Self::InvalidNumber { column, value } => {
                 write!(f, "invalid {column} value '{value}'")
@@ -3021,6 +3023,13 @@ fn parse_body(
     body: &str,
     line_number: usize,
 ) -> Result<pleiades_backend::CelestialBody, SnapshotLoadError> {
+    if body.is_empty() {
+        return Err(SnapshotLoadError::new(
+            line_number,
+            SnapshotLoadErrorKind::BlankBody,
+        ));
+    }
+
     let body = match body {
         "Sun" => pleiades_backend::CelestialBody::Sun,
         "Moon" => pleiades_backend::CelestialBody::Moon,
@@ -4039,6 +4048,10 @@ mod tests {
         let error = load_snapshot_from_str("2451545.0,Comet,1.0,2.0,3.0\n")
             .expect_err("unsupported bodies should be reported");
         assert!(format!("{error}").contains("unsupported body 'Comet'"));
+
+        let error = load_snapshot_from_str("2451545.0,,1.0,2.0,3.0\n")
+            .expect_err("blank bodies should be reported");
+        assert!(format!("{error}").contains("blank body"));
     }
 
     #[test]
