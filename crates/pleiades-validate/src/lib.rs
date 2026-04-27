@@ -11045,6 +11045,7 @@ mod tests {
         let rendered =
             render_cli(&["release-notes-summary"]).expect("release notes summary should render");
         let release_profiles = current_release_profile_identifiers();
+        let profile = current_compatibility_profile();
         assert!(rendered.contains("Release notes summary"));
         assert!(rendered.contains(&format!(
             "Profile: {}",
@@ -11058,6 +11059,14 @@ mod tests {
         assert!(rendered.contains("Custom-definition labels:"));
         assert!(rendered.contains("Validation reference points: 1 (stage-4 validation corpus)"));
         assert!(rendered.contains("Compatibility caveats:"));
+        assert!(rendered.contains(&format!(
+            "Custom-definition labels: {}",
+            profile.custom_definition_labels.len()
+        )));
+        assert!(rendered.contains(&format!(
+            "Compatibility caveats: {}",
+            profile.known_gaps.len()
+        )));
         assert!(rendered.contains("API stability summary line: API stability posture: pleiades-api-stability/0.1.0; stable surfaces: 6; experimental surfaces: 3; deprecation policy items: 4; intentional limits: 3"));
         assert!(rendered.contains("Reference snapshot source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; geocentric ecliptic J2000; TDB reference epoch JD 2451545.0 (TDB)"));
         assert!(rendered.contains("Comparison snapshot source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.; coverage=Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.; columns=body, x_km, y_km, z_km"));
@@ -11154,6 +11163,7 @@ mod tests {
     fn release_summary_command_renders_the_quick_overview() {
         let rendered = render_cli(&["release-summary"]).expect("release summary should render");
         let release_profiles = current_release_profile_identifiers();
+        let profile = current_compatibility_profile();
         assert!(rendered.contains("Release summary"));
         assert!(rendered.contains(&format!(
             "Profile: {}",
@@ -11192,6 +11202,12 @@ mod tests {
         assert!(rendered.contains("Custom-definition label names: Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs), True Balarama, Aphoric, Takra"));
         assert!(rendered.contains("Custom-definition ayanamsas:"));
         assert!(rendered.contains("Compatibility caveats: 2"));
+        assert!(rendered.contains(&format!(
+            "Ayanamsas: {} total ({} baseline, {} release-specific)",
+            profile.ayanamsas.len(),
+            profile.baseline_ayanamsas.len(),
+            profile.release_ayanamsas.len()
+        )));
         assert!(rendered.contains("Comparison envelope:"));
         assert!(rendered.contains("median longitude delta:"));
         assert!(rendered.contains("95th percentile longitude delta:"));
