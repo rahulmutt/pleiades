@@ -64,11 +64,28 @@ impl ObserverPolicy {
             Self::HouseOnly => "house-only",
         }
     }
+
+    /// Returns the compact one-line rendering of the observer policy.
+    ///
+    /// This mirrors [`Display`] so request and snapshot summaries can reuse a
+    /// single typed vocabulary without duplicating the policy label table.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use pleiades_core::ObserverPolicy;
+    ///
+    /// assert_eq!(ObserverPolicy::HouseOnly.summary_line(), "house-only");
+    /// assert_eq!(ObserverPolicy::Geocentric.to_string(), "geocentric");
+    /// ```
+    pub const fn summary_line(self) -> &'static str {
+        self.as_str()
+    }
 }
 
 impl fmt::Display for ObserverPolicy {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_str())
+        f.write_str(self.summary_line())
     }
 }
 
@@ -385,7 +402,7 @@ impl ChartRequest {
             self.bodies.len(),
             self.zodiac_mode,
             self.apparentness,
-            self.observer_policy(),
+            self.observer_policy().summary_line(),
             house_system,
         )
     }
@@ -471,7 +488,7 @@ impl ChartSnapshot {
             self.placements.len(),
             self.zodiac_mode,
             self.apparentness,
-            self.observer_policy(),
+            self.observer_policy().summary_line(),
             house_system,
             house_cusp_count,
         )
@@ -2385,6 +2402,7 @@ mod tests {
         .with_apparentness(Apparentness::Apparent);
 
         assert_eq!(request.observer_policy(), ObserverPolicy::HouseOnly);
+        assert_eq!(ObserverPolicy::HouseOnly.summary_line(), "house-only");
         assert_eq!(
             request.summary_line(),
             "instant=JD 2451545 (UTC); bodies=2; zodiac=Sidereal (Lahiri); apparentness=Apparent; observer=house-only; house system=Whole Sign"
