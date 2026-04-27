@@ -220,6 +220,13 @@ impl fmt::Display for HouseValidationReport {
             }
 
             for sample in &scenario.samples {
+                let request = HouseRequest::new(
+                    scenario.instant,
+                    scenario.observer.clone(),
+                    sample.descriptor.system.clone(),
+                );
+
+                writeln!(f, "  request: {}", request)?;
                 match &sample.result {
                     Ok(snapshot) => {
                         writeln!(

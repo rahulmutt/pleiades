@@ -8968,6 +8968,7 @@ mod tests {
         assert!(report.contains("Packaged artifact decode benchmark"));
         assert!(report.contains("Chart benchmark"));
         assert!(report.contains("House validation corpus"));
+        assert!(report.contains("request: instant="));
         assert!(report.contains("Mid-latitude reference chart"));
         assert!(report.contains("Polar stress chart"));
         assert!(report.contains("Equatorial reference chart"));

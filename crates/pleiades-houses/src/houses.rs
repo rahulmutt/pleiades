@@ -47,6 +47,30 @@ impl HouseRequest {
         self.obliquity = Some(obliquity);
         self
     }
+
+    /// Returns a compact one-line rendering of the house request.
+    pub fn summary_line(&self) -> String {
+        let obliquity = self
+            .obliquity
+            .map(|value| value.to_string())
+            .unwrap_or_else(|| "auto".to_string());
+
+        let system = match &self.system {
+            HouseSystem::Custom(custom) => custom.to_string(),
+            other => catalog_name(other).to_string(),
+        };
+
+        format!(
+            "instant={}; observer={}; system={}; obliquity={}",
+            self.instant, self.observer, system, obliquity
+        )
+    }
+}
+
+impl fmt::Display for HouseRequest {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
 }
 
 /// Derived chart angles.
@@ -1316,6 +1340,45 @@ mod tests {
             observer(),
             system,
         )
+    }
+
+    #[test]
+    fn house_request_summary_line_reports_instant_observer_system_and_obliquity() {
+        let request = sample_request(HouseSystem::WholeSign);
+        assert_eq!(
+            request.summary_line(),
+            format!(
+                "instant={}; observer={}; system={}; obliquity=auto",
+                &request.instant,
+                &request.observer,
+                catalog_name(&request.system)
+            )
+        );
+        assert_eq!(request.to_string(), request.summary_line());
+
+        let request_with_obliquity = request.with_obliquity(Angle::from_degrees(23.5));
+        assert_eq!(
+            request_with_obliquity.summary_line(),
+            format!(
+                "instant={}; observer={}; system={}; obliquity=23.5°",
+                &request_with_obliquity.instant,
+                &request_with_obliquity.observer,
+                catalog_name(&request_with_obliquity.system)
+            )
+        );
+
+        let mut custom = CustomHouseSystem::new("House from custom notes");
+        custom.aliases.push("Custom alias".to_string());
+        custom.notes = Some("extra custom context".to_string());
+        let custom_request = HouseRequest::new(
+            Instant::new(
+                pleiades_types::JulianDay::from_days(2_451_545.0),
+                pleiades_types::TimeScale::Tt,
+            ),
+            observer(),
+            HouseSystem::Custom(custom.clone()),
+        );
+        assert!(custom_request.summary_line().contains(&custom.to_string()));
     }
 
     #[test]
