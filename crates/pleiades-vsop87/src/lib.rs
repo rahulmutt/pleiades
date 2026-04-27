@@ -2064,6 +2064,27 @@ fn canonical_batch_parity_counts(
     ))
 }
 
+/// Validation error for a VSOP87 canonical batch-parity summary that drifted
+/// from the current backend-derived counts.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Vsop87CanonicalBatchParitySummaryValidationError {
+    /// A rendered summary field no longer matches the current derived evidence.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for Vsop87CanonicalBatchParitySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the VSOP87 canonical batch parity summary field `{field}` is out of sync with the current canonical evidence"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for Vsop87CanonicalBatchParitySummaryValidationError {}
+
 /// Backend-owned summary for the canonical J2000 batch-path regression.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Vsop87CanonicalJ2000BatchParitySummary {
@@ -2102,6 +2123,28 @@ impl Vsop87CanonicalJ2000BatchParitySummary {
             self.unknown_count,
         )
     }
+
+    /// Returns `Ok(())` when the summary still matches the current derived counts.
+    pub fn validate(&self) -> Result<(), Vsop87CanonicalBatchParitySummaryValidationError> {
+        if self.sample_count != self.sample_bodies.len() {
+            return Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        }
+        if self.exact_count + self.interpolated_count + self.approximate_count + self.unknown_count
+            != self.sample_count
+        {
+            return Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "quality_counts",
+                },
+            );
+        }
+
+        Ok(())
+    }
 }
 
 impl fmt::Display for Vsop87CanonicalJ2000BatchParitySummary {
@@ -2133,7 +2176,10 @@ pub fn canonical_j2000_batch_parity_summary() -> Option<Vsop87CanonicalJ2000Batc
 /// Returns the release-facing canonical J2000 batch-path regression summary string.
 pub fn canonical_j2000_batch_parity_summary_for_report() -> String {
     match canonical_j2000_batch_parity_summary() {
-        Some(summary) => summary.summary_line(),
+        Some(summary) => match summary.validate() {
+            Ok(()) => summary.summary_line(),
+            Err(_) => "VSOP87 canonical J2000 batch parity: unavailable".to_string(),
+        },
         None => "VSOP87 canonical J2000 batch parity: unavailable".to_string(),
     }
 }
@@ -2176,6 +2222,28 @@ impl Vsop87CanonicalJ1900BatchParitySummary {
             self.unknown_count,
         )
     }
+
+    /// Returns `Ok(())` when the summary still matches the current derived counts.
+    pub fn validate(&self) -> Result<(), Vsop87CanonicalBatchParitySummaryValidationError> {
+        if self.sample_count != self.sample_bodies.len() {
+            return Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        }
+        if self.exact_count + self.interpolated_count + self.approximate_count + self.unknown_count
+            != self.sample_count
+        {
+            return Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "quality_counts",
+                },
+            );
+        }
+
+        Ok(())
+    }
 }
 
 impl fmt::Display for Vsop87CanonicalJ1900BatchParitySummary {
@@ -2215,7 +2283,10 @@ pub fn canonical_j1900_batch_parity_summary() -> Option<Vsop87CanonicalJ1900Batc
 /// Returns the release-facing canonical J1900 batch-path regression summary string.
 pub fn canonical_j1900_batch_parity_summary_for_report() -> String {
     match canonical_j1900_batch_parity_summary() {
-        Some(summary) => summary.summary_line(),
+        Some(summary) => match summary.validate() {
+            Ok(()) => summary.summary_line(),
+            Err(_) => "VSOP87 canonical J1900 batch parity: unavailable".to_string(),
+        },
         None => "VSOP87 canonical J1900 batch parity: unavailable".to_string(),
     }
 }
@@ -5454,6 +5525,7 @@ mod tests {
         let rendered = canonical_j2000_batch_parity_summary_for_report();
         assert_eq!(rendered, summary.summary_line());
         assert_eq!(summary.summary_line(), summary.to_string());
+        assert_eq!(summary.validate(), Ok(()));
         assert_eq!(summary.sample_count, canonical_epoch_samples().len());
         assert_eq!(
             summary.sample_bodies,
@@ -5475,6 +5547,7 @@ mod tests {
         let rendered = canonical_j1900_batch_parity_summary_for_report();
         assert_eq!(rendered, summary.summary_line());
         assert_eq!(summary.summary_line(), summary.to_string());
+        assert_eq!(summary.validate(), Ok(()));
         assert_eq!(summary.sample_count, summary.sample_bodies.len());
         assert_eq!(
             summary.sample_bodies,
@@ -5493,6 +5566,38 @@ mod tests {
         assert!(rendered.contains("JD 2415020.0 (TDB)"));
         assert!(rendered.contains("quality counts: Exact="));
         assert!(rendered.contains("batch/single parity preserved"));
+    }
+
+    #[test]
+    fn canonical_batch_parity_summary_validation_rejects_count_drift() {
+        let mut summary =
+            canonical_j2000_batch_parity_summary().expect("batch summary should exist");
+        summary.sample_count += 1;
+
+        assert_eq!(
+            summary.validate(),
+            Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "sample_count"
+                }
+            )
+        );
+    }
+
+    #[test]
+    fn canonical_batch_parity_summary_validation_rejects_quality_count_drift() {
+        let mut summary =
+            canonical_j1900_batch_parity_summary().expect("batch summary should exist");
+        summary.unknown_count += 1;
+
+        assert_eq!(
+            summary.validate(),
+            Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "quality_counts"
+                }
+            )
+        );
     }
 
     #[test]
