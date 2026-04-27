@@ -42,6 +42,8 @@ pub use houses::{
     HouseSnapshot,
 };
 
+use core::fmt;
+
 use pleiades_types::HouseSystem;
 
 /// A catalog entry for a built-in house system.
@@ -85,6 +87,28 @@ impl HouseSystemDescriptor {
                 .aliases
                 .iter()
                 .any(|alias| alias.eq_ignore_ascii_case(label))
+    }
+
+    /// Returns a compact one-line rendering of the descriptor.
+    pub fn summary_line(&self) -> String {
+        let mut text = String::from(self.canonical_name);
+        if !self.aliases.is_empty() {
+            text.push_str(" (aliases: ");
+            text.push_str(&self.aliases.join(", "));
+            text.push(')');
+        }
+        if self.latitude_sensitive {
+            text.push_str(" [latitude-sensitive]");
+        }
+        text.push_str(" — ");
+        text.push_str(self.notes);
+        text
+    }
+}
+
+impl fmt::Display for HouseSystemDescriptor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
     }
 }
 
@@ -837,6 +861,21 @@ mod tests {
         ] {
             assert!(names.contains(&expected), "missing {expected}");
         }
+    }
+
+    #[test]
+    fn descriptor_summary_line_includes_aliases_latitude_and_notes() {
+        let descriptor = HouseSystemDescriptor::new(
+            HouseSystem::Equal,
+            "Equal",
+            &["Alias One", "Alias Two"],
+            "Summary note",
+            true,
+        );
+
+        let expected = "Equal (aliases: Alias One, Alias Two) [latitude-sensitive] — Summary note";
+        assert_eq!(descriptor.summary_line(), expected);
+        assert_eq!(descriptor.to_string(), expected);
     }
 
     #[test]

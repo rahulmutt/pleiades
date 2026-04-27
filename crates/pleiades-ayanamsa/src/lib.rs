@@ -22,6 +22,8 @@
 
 #![forbid(unsafe_code)]
 
+use core::fmt;
+
 use pleiades_types::{Angle, Ayanamsa, Instant, JulianDay};
 
 /// A catalog entry for a built-in ayanamsa.
@@ -80,6 +82,35 @@ impl AyanamsaDescriptor {
     /// Returns `true` when both reference metadata fields are present.
     pub fn has_sidereal_metadata(&self) -> bool {
         self.epoch.is_some() && self.offset_degrees.is_some()
+    }
+
+    /// Returns a compact one-line rendering of the descriptor.
+    pub fn summary_line(&self) -> String {
+        let mut text = String::from(self.canonical_name);
+        if !self.aliases.is_empty() {
+            text.push_str(" (aliases: ");
+            text.push_str(&self.aliases.join(", "));
+            text.push(')');
+        }
+        if let Some(epoch) = self.epoch {
+            text.push_str(" [epoch: ");
+            text.push_str(&epoch.to_string());
+            text.push(']');
+        }
+        if let Some(offset) = self.offset_degrees {
+            text.push_str(" [offset: ");
+            text.push_str(&offset.to_string());
+            text.push(']');
+        }
+        text.push_str(" — ");
+        text.push_str(self.notes);
+        text
+    }
+}
+
+impl fmt::Display for AyanamsaDescriptor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
     }
 }
 
@@ -1284,6 +1315,23 @@ mod tests {
         ] {
             assert!(names.contains(&expected), "missing {expected}");
         }
+    }
+
+    #[test]
+    fn descriptor_summary_line_includes_aliases_reference_metadata_and_notes() {
+        let descriptor = AyanamsaDescriptor::new(
+            Ayanamsa::Lahiri,
+            "Lahiri",
+            &["Alias One", "Alias Two"],
+            "Summary note",
+            Some(JulianDay::from_days(2_451_545.0)),
+            Some(Angle::from_degrees(23.5)),
+        );
+
+        let expected =
+            "Lahiri (aliases: Alias One, Alias Two) [epoch: JD 2451545] [offset: 23.5°] — Summary note";
+        assert_eq!(descriptor.summary_line(), expected);
+        assert_eq!(descriptor.to_string(), expected);
     }
 
     #[test]

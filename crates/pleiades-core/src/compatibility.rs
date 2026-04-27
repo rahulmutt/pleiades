@@ -653,17 +653,7 @@ fn write_custom_definition_section(
             .iter()
             .find(|entry| entry.canonical_name.eq_ignore_ascii_case(label))
         {
-            write!(f, "- {}", entry.canonical_name)?;
-            if !entry.aliases.is_empty() {
-                write!(f, " (aliases: {})", entry.aliases.join(", "))?;
-            }
-            if let Some(epoch) = entry.epoch {
-                write!(f, " [epoch: {}]", epoch)?;
-            }
-            if let Some(offset) = entry.offset_degrees {
-                write!(f, " [offset: {}]", offset)?;
-            }
-            writeln!(f, " — {}", entry.notes)?;
+            writeln!(f, "- {}", entry)?;
         } else {
             writeln!(f, "- {}", label)?;
         }
@@ -682,28 +672,11 @@ impl fmt::Display for CompatibilityProfile {
         writeln!(f, "Baseline compatibility milestone:")?;
         writeln!(f, "House systems:")?;
         for entry in self.baseline_house_systems {
-            write!(f, "- {}", entry.canonical_name)?;
-            if !entry.aliases.is_empty() {
-                write!(f, " (aliases: {})", entry.aliases.join(", "))?;
-            }
-            if entry.latitude_sensitive {
-                write!(f, " [latitude-sensitive]")?;
-            }
-            writeln!(f, " — {}", entry.notes)?;
+            writeln!(f, "- {}", entry)?;
         }
         writeln!(f, "Ayanamsas:")?;
         for entry in self.baseline_ayanamsas {
-            write!(f, "- {}", entry.canonical_name)?;
-            if !entry.aliases.is_empty() {
-                write!(f, " (aliases: {})", entry.aliases.join(", "))?;
-            }
-            if let Some(epoch) = entry.epoch {
-                write!(f, " [epoch: {}]", epoch)?;
-            }
-            if let Some(offset) = entry.offset_degrees {
-                write!(f, " [offset: {}]", offset)?;
-            }
-            writeln!(f, " — {}", entry.notes)?;
+            writeln!(f, "- {}", entry)?;
         }
         if !self.release_house_systems.is_empty() || !self.release_ayanamsas.is_empty() {
             writeln!(f)?;
@@ -711,27 +684,13 @@ impl fmt::Display for CompatibilityProfile {
             if !self.release_house_systems.is_empty() {
                 writeln!(f, "House systems:")?;
                 for entry in self.release_house_systems {
-                    write!(f, "- {}", entry.canonical_name)?;
-                    if !entry.aliases.is_empty() {
-                        write!(f, " (aliases: {})", entry.aliases.join(", "))?;
-                    }
-                    writeln!(f, " — {}", entry.notes)?;
+                    writeln!(f, "- {}", entry)?;
                 }
             }
             if !self.release_ayanamsas.is_empty() {
                 writeln!(f, "Ayanamsas:")?;
                 for entry in self.release_ayanamsas {
-                    write!(f, "- {}", entry.canonical_name)?;
-                    if !entry.aliases.is_empty() {
-                        write!(f, " (aliases: {})", entry.aliases.join(", "))?;
-                    }
-                    if let Some(epoch) = entry.epoch {
-                        write!(f, " [epoch: {}]", epoch)?;
-                    }
-                    if let Some(offset) = entry.offset_degrees {
-                        write!(f, " [offset: {}]", offset)?;
-                    }
-                    writeln!(f, " — {}", entry.notes)?;
+                    writeln!(f, "- {}", entry)?;
                 }
             }
         }
