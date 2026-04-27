@@ -23,7 +23,7 @@ The façade should make a clear distinction between:
 - raw backend-oriented coordinate queries
 - domain-layer transforms such as sidereal conversion, house placement, and chart assembly
 
-This keeps backend contracts simpler, avoids duplicating astrology logic across backends, and still gives end users a convenient astrology-focused API.
+This keeps backend contracts simpler, avoids duplicating astrology logic across backends, and still gives end users a convenient astrology-focused API. `ChartRequest::summary_line()` and `ChartSnapshot::summary_line()` should stay available as compact diagnostics so request shape and assembled-chart shape remain easy to compare without parsing the verbose report text.
 
 Chart-level observer locations are used for house calculations unless a chart API explicitly offers a topocentric body-position mode. Passing a house observer to geocentric-only backends must not silently imply topocentric positions; direct backend requests that include an observer against a geocentric-only backend should fail with a structured unsupported-observer error.
 

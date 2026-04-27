@@ -38,6 +38,15 @@ pub const fn default_chart_bodies() -> &'static [CelestialBody] {
     ]
 }
 
+fn render_house_system_label(house_system: &HouseSystem) -> String {
+    match house_system {
+        HouseSystem::Custom(custom) => custom.to_string(),
+        other => crate::house_system_descriptor(other)
+            .map(|descriptor| descriptor.canonical_name.to_string())
+            .unwrap_or_else(|| "Custom".to_string()),
+    }
+}
+
 /// A request for chart assembly.
 ///
 /// # Example
@@ -333,15 +342,10 @@ impl ChartRequest {
         } else {
             "geocentric"
         };
-        let house_system = self.house_system.as_ref().map_or_else(
-            || "none".to_string(),
-            |house_system| match house_system {
-                HouseSystem::Custom(custom) => custom.to_string(),
-                other => crate::house_system_descriptor(other)
-                    .map(|descriptor| descriptor.canonical_name.to_string())
-                    .unwrap_or_else(|| "Custom".to_string()),
-            },
-        );
+        let house_system = self
+            .house_system
+            .as_ref()
+            .map_or_else(|| "none".to_string(), render_house_system_label);
 
         format!(
             "instant={} ({}); bodies={}; zodiac={}; apparentness={}; observer={}; house system={}",
@@ -403,6 +407,39 @@ impl ChartSnapshot {
     /// Returns `true` if the chart contains no body placements.
     pub fn is_empty(&self) -> bool {
         self.placements.is_empty()
+    }
+
+    /// Returns a compact one-line summary of the computed chart snapshot.
+    ///
+    /// The summary is intended for diagnostics, validation reports, and
+    /// release-facing snapshot notes. It mirrors the request-shape vocabulary
+    /// used by [`ChartRequest::summary_line`] while adding the backend ID and
+    /// the computed placement count so callers can compare the assembled chart
+    /// against the original request at a glance.
+    pub fn summary_line(&self) -> String {
+        let observer_policy = if self.observer.is_some() {
+            "house-only"
+        } else {
+            "geocentric"
+        };
+        let house_system = self.houses.as_ref().map_or_else(
+            || "none".to_string(),
+            |houses| render_house_system_label(&houses.system),
+        );
+        let house_cusp_count = self.houses.as_ref().map_or(0, |houses| houses.cusps.len());
+
+        format!(
+            "backend={}; instant={} ({}); placements={}; zodiac={}; apparentness={}; observer={}; house system={}; house cusps={}",
+            self.backend_id,
+            self.instant.julian_day,
+            self.instant.scale,
+            self.placements.len(),
+            self.zodiac_mode,
+            self.apparentness,
+            observer_policy,
+            house_system,
+            house_cusp_count,
+        )
     }
 
     /// Returns the first placement for a requested body, if present.
@@ -1947,6 +1984,10 @@ mod tests {
         };
 
         let rendered = chart.to_string();
+        assert_eq!(
+            chart.summary_line(),
+            "backend=toy-chart; instant=JD 2451545 (TT); placements=0; zodiac=Tropical; apparentness=Mean; observer=geocentric; house system=none; house cusps=0"
+        );
         assert!(rendered
             .contains("Observer policy: geocentric body positions; no house observer supplied"));
         assert!(!rendered
@@ -2153,6 +2194,10 @@ mod tests {
             .iter()
             .all(|placement| placement.house.is_some()));
         let rendered = chart.to_string();
+        assert_eq!(
+            chart.summary_line(),
+            "backend=toy-chart; instant=JD 2451545 (TT); placements=2; zodiac=Tropical; apparentness=Mean; observer=house-only; house system=Whole Sign; house cusps=12"
+        );
         assert!(rendered.contains("House system: Whole Sign"));
         assert!(rendered
             .contains("Observer policy: used for houses only; body positions remain geocentric"));
