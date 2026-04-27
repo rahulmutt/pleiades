@@ -4624,6 +4624,34 @@ mod tests {
     }
 
     #[test]
+    fn published_apparent_moon_example_matches_the_shared_mean_obliquity_transform() {
+        let sample = lunar_apparent_comparison_evidence()
+            .iter()
+            .find(|sample| (sample.epoch.julian_day.days() - 2_453_100.5).abs() < f64::EPSILON)
+            .expect("NASA RP 1349 sample should exist");
+
+        let equatorial = EquatorialCoordinates::new(
+            Angle::from_degrees(sample.apparent_right_ascension_deg),
+            Latitude::from_degrees(sample.apparent_declination_deg),
+            Some(sample.apparent_distance_au),
+        );
+        let ecliptic = equatorial.to_ecliptic(sample.epoch.mean_obliquity());
+
+        assert!((ecliptic.longitude.degrees() - sample.apparent_longitude_deg).abs() < 1e-6);
+        assert!((ecliptic.latitude.degrees() - sample.apparent_latitude_deg).abs() < 1e-6);
+        assert!(
+            (ecliptic
+                .distance_au
+                .expect("apparent Moon distance should exist")
+                - sample.apparent_distance_au)
+                .abs()
+                < 1e-12
+        );
+        assert!(sample.note.contains("NASA RP 1349"));
+        assert!(sample.note.contains("shared mean-obliquity transform"));
+    }
+
+    #[test]
     fn published_true_node_example_matches_reference() {
         let backend = ElpBackend::new();
         let instant = Instant::new(
