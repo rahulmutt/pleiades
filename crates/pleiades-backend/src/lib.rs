@@ -799,7 +799,7 @@ impl fmt::Display for RequestPolicySummary {
 /// Validation error for the shared request-policy summary.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum RequestPolicySummaryValidationError {
-    /// A summary field is blank or padded with surrounding whitespace.
+    /// A summary field is out of sync with the current request-policy posture.
     FieldOutOfSync { field: &'static str },
 }
 
@@ -808,7 +808,7 @@ impl fmt::Display for RequestPolicySummaryValidationError {
         match self {
             Self::FieldOutOfSync { field } => write!(
                 f,
-                "the request-policy summary field `{field}` is blank or whitespace-padded"
+                "the request-policy summary field `{field}` is out of sync with the current posture"
             ),
         }
     }
@@ -819,13 +819,14 @@ impl std::error::Error for RequestPolicySummaryValidationError {}
 impl RequestPolicySummary {
     /// Returns `Ok(())` when the shared request-policy wording still matches the current posture.
     pub fn validate(&self) -> Result<(), RequestPolicySummaryValidationError> {
-        for (field, value) in [
-            ("time_scale", self.time_scale),
-            ("observer", self.observer),
-            ("apparentness", self.apparentness),
-            ("frame", self.frame),
+        let current = current_request_policy_summary();
+        for (field, value, expected) in [
+            ("time_scale", self.time_scale, current.time_scale),
+            ("observer", self.observer, current.observer),
+            ("apparentness", self.apparentness, current.apparentness),
+            ("frame", self.frame, current.frame),
         ] {
-            if value.trim().is_empty() || value.trim() != value {
+            if value != expected {
                 return Err(RequestPolicySummaryValidationError::FieldOutOfSync { field });
             }
         }
@@ -1491,7 +1492,7 @@ mod tests {
             .expect_err("blank policy prose should fail validation");
         assert_eq!(
             error.to_string(),
-            "the request-policy summary field `frame` is blank or whitespace-padded"
+            "the request-policy summary field `frame` is out of sync with the current posture"
         );
     }
 
@@ -1811,6 +1812,28 @@ mod tests {
         assert!(error
             .message
             .contains(&observer_request.observer.as_ref().unwrap().summary_line()));
+    }
+
+    #[test]
+    fn request_policy_summary_validation_rejects_stale_field_text() {
+        let mut summary = current_request_policy_summary();
+        summary.time_scale =
+            "direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers";
+
+        let error = summary
+            .validate()
+            .expect_err("stale request-policy wording should fail validation");
+
+        assert_eq!(
+            error,
+            RequestPolicySummaryValidationError::FieldOutOfSync {
+                field: "time_scale"
+            }
+        );
+        assert_eq!(
+            error.to_string(),
+            "the request-policy summary field `time_scale` is out of sync with the current posture"
+        );
     }
 
     #[test]
