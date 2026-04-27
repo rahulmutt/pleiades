@@ -249,8 +249,52 @@ impl PackagedArtifactRegenerationSummary {
     }
 
     /// Validates that the regeneration summary stays aligned with the bundled
-    /// body list and the checked-in reference snapshot coverage.
+    /// body list, the current checked-in artifact metadata, and the checked-in
+    /// reference snapshot coverage.
     pub fn validate(&self) -> Result<(), pleiades_compression::CompressionError> {
+        let artifact = packaged_artifact();
+
+        if self.label != ARTIFACT_LABEL {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact regeneration summary label does not match the checked-in artifact label",
+            ));
+        }
+        if self.source != ARTIFACT_SOURCE {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact regeneration summary source does not match the checked-in artifact source",
+            ));
+        }
+        if self.artifact_version != artifact.header.version {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                format!(
+                    "packaged artifact regeneration summary artifact version {} does not match the checked-in packaged artifact version {}",
+                    self.artifact_version,
+                    artifact.header.version
+                ),
+            ));
+        }
+        if self.checksum != artifact.checksum {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                format!(
+                    "packaged artifact regeneration summary checksum 0x{:016x} does not match the checked-in packaged artifact checksum 0x{:016x}",
+                    self.checksum,
+                    artifact.checksum
+                ),
+            ));
+        }
+        if self.generation_policy
+            != PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments
+        {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact regeneration summary generation policy does not match the checked-in packaged artifact generation policy",
+            ));
+        }
+
         if self.reference_snapshot.is_none() {
             return Err(pleiades_compression::CompressionError::new(
                 pleiades_compression::CompressionErrorKind::InvalidFormat,
@@ -2186,6 +2230,69 @@ mod tests {
             .contains("packaged artifact regeneration summary body list does not match the checked-in packaged body set"));
         assert!(error.message.contains("expected [Sun, Moon"));
         assert!(error.message.contains("got [Moon, Sun"));
+    }
+
+    #[test]
+    fn packaged_artifact_regeneration_summary_validation_rejects_metadata_drift() {
+        let expected_artifact = packaged_artifact();
+        let mut summary = packaged_artifact_regeneration_summary_details();
+
+        summary.label = "drifted label";
+        let error = summary
+            .validate()
+            .expect_err("label drift should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error
+            .message
+            .contains("packaged artifact regeneration summary label does not match the checked-in artifact label"));
+
+        let mut summary = packaged_artifact_regeneration_summary_details();
+        summary.source = "drifted source";
+        let error = summary
+            .validate()
+            .expect_err("source drift should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error
+            .message
+            .contains("packaged artifact regeneration summary source does not match the checked-in artifact source"));
+
+        let mut summary = packaged_artifact_regeneration_summary_details();
+        summary.artifact_version = expected_artifact.header.version + 1;
+        let error = summary
+            .validate()
+            .expect_err("artifact version drift should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error
+            .message
+            .contains("packaged artifact regeneration summary artifact version"));
+        assert!(error
+            .message
+            .contains("does not match the checked-in packaged artifact version"));
+
+        let mut summary = packaged_artifact_regeneration_summary_details();
+        summary.checksum ^= 0x1;
+        let error = summary
+            .validate()
+            .expect_err("checksum drift should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error
+            .message
+            .contains("packaged artifact regeneration summary checksum 0x"));
+        assert!(error
+            .message
+            .contains("does not match the checked-in packaged artifact checksum 0x"));
     }
 
     #[test]
