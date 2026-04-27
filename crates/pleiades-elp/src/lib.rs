@@ -404,7 +404,7 @@ const LUNAR_THEORY_SPECIFICATION: LunarTheorySpecification = LunarTheorySpecific
     unit_note:
         "Angular outputs are reported in degrees and distance outputs, when present, are reported in astronomical units",
     date_range_note:
-        "Validated against the published 1992-04-12 geocentric Moon example, the published 1992-04-12 geocentric Moon RA/Dec example used for the mean-obliquity equatorial transform, J2000 lunar-point anchors including the mean apogee and mean perigee references, published 1913-05-27 true-node and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example; no full ELP coefficient range has been published yet",
+        "Validated against the published 1992-04-12 geocentric Moon example, the published 1992-04-12 geocentric Moon RA/Dec example used for the mean-obliquity equatorial transform, the reference-only published 1968-12-24 apparent geocentric Moon comparison datum, J2000 lunar-point anchors including the mean apogee and mean perigee references, published 1913-05-27 true-node and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example; no full ELP coefficient range has been published yet",
     frame_note:
         "Geocentric ecliptic coordinates are produced directly from the truncated lunar series; equatorial coordinates are derived with a mean-obliquity transform",
     validation_window: LUNAR_THEORY_VALIDATION_WINDOW,
@@ -3800,6 +3800,9 @@ mod tests {
         assert!(theory.truncation_note.contains("truncated"));
         assert!(theory.unit_note.contains("astronomical units"));
         assert!(theory.date_range_note.contains("1992-04-12"));
+        assert!(theory
+            .date_range_note
+            .contains("1968-12-24 apparent geocentric Moon comparison datum"));
         assert!(theory.date_range_note.contains("J2000 lunar-point anchors"));
         assert!(theory
             .date_range_note
