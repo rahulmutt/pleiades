@@ -436,6 +436,20 @@ impl ArtifactProfileCoverageSummary {
         }
     }
 
+    /// Validates that the summary's body count matches the bundled body list and
+    /// that the embedded artifact profile is internally consistent.
+    pub fn validate(&self) -> Result<(), CompressionError> {
+        self.profile.validate()?;
+        if self.body_count != self.bodies.len() {
+            return Err(CompressionError::new(
+                CompressionErrorKind::InvalidFormat,
+                "artifact profile coverage body count does not match bundled body list",
+            ));
+        }
+
+        Ok(())
+    }
+
     /// Returns the capability summary annotated with how many bodies share it.
     pub fn summary_line(&self) -> String {
         self.profile.summary_for_body_count(self.body_count)
@@ -2025,6 +2039,9 @@ mod tests {
             coverage.to_string(),
             "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 2 bundled bodies"
         );
+        coverage
+            .validate()
+            .expect("coverage summary should validate");
 
         let header = ArtifactHeader::with_profile_and_endian(
             "demo",
@@ -2048,6 +2065,23 @@ mod tests {
             header.to_string(),
             "byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported"
         );
+    }
+
+    #[test]
+    fn artifact_profile_coverage_validation_rejects_body_count_drift() {
+        let mut coverage = ArtifactProfileCoverageSummary::new(
+            ArtifactProfile::ecliptic_longitude_latitude_distance(),
+            vec![CelestialBody::Sun, CelestialBody::Moon],
+        );
+        coverage.body_count += 1;
+
+        let error = coverage
+            .validate()
+            .expect_err("body-count drift should be rejected");
+        assert_eq!(error.kind, CompressionErrorKind::InvalidFormat);
+        assert!(error
+            .message
+            .contains("artifact profile coverage body count does not match bundled body list"));
     }
 
     #[test]

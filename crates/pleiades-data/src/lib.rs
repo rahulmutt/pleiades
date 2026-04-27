@@ -257,6 +257,21 @@ impl PackagedArtifactProfileSummary {
         ArtifactProfileCoverageSummary::new(self.profile.clone(), self.bodies.clone())
     }
 
+    /// Validates that the packaged artifact profile summary is internally
+    /// consistent with its bundled body list and embedded capability profile.
+    pub fn validate(&self) -> Result<(), pleiades_compression::CompressionError> {
+        let coverage = self.profile_coverage_summary();
+        coverage.validate()?;
+        if self.body_count != self.bodies.len() {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact profile body count does not match bundled body list",
+            ));
+        }
+
+        Ok(())
+    }
+
     /// Renders the packaged artifact profile into a release-facing summary line.
     pub fn summary_line(&self) -> String {
         format!(
@@ -285,7 +300,7 @@ impl fmt::Display for PackagedArtifactProfileSummary {
 /// Returns the current packaged-artifact profile summary record.
 pub fn packaged_artifact_profile_summary_details() -> PackagedArtifactProfileSummary {
     let artifact = packaged_artifact();
-    PackagedArtifactProfileSummary {
+    let summary = PackagedArtifactProfileSummary {
         body_count: artifact.bodies.len(),
         bodies: artifact
             .bodies
@@ -294,7 +309,9 @@ pub fn packaged_artifact_profile_summary_details() -> PackagedArtifactProfileSum
             .collect(),
         endian_policy: artifact.header.endian_policy,
         profile: artifact.header.profile.clone(),
-    }
+    };
+    debug_assert!(summary.validate().is_ok());
+    summary
 }
 
 /// Returns the current packaged-artifact profile summary.
@@ -1448,7 +1465,13 @@ mod tests {
             )
         );
         assert_eq!(coverage.to_string(), coverage.summary_line());
+        coverage
+            .validate()
+            .expect("packaged profile coverage summary should validate");
         assert_eq!(summary.to_string(), summary.summary_line());
+        summary
+            .validate()
+            .expect("packaged artifact profile summary should validate");
         assert_eq!(
             summary.summary_line_with_bodies(),
             format!(
@@ -1473,6 +1496,23 @@ mod tests {
                     .summary_for_body_count(artifact.bodies.len())
             )
         );
+    }
+
+    #[test]
+    fn packaged_artifact_profile_summary_validation_rejects_body_count_drift() {
+        let mut summary = packaged_artifact_profile_summary_details();
+        summary.body_count += 1;
+
+        let error = summary
+            .validate()
+            .expect_err("body-count drift should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error
+            .message
+            .contains("packaged artifact profile body count does not match bundled body list"));
     }
 
     #[test]
