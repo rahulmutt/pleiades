@@ -318,6 +318,11 @@ impl LunarTheorySpecification {
         }
     }
 
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format_lunar_theory_specification(self)
+    }
+
     /// Returns `true` when the provided label matches one of the documented aliases.
     pub fn matches_alias(self, label: &str) -> bool {
         self.source_aliases
@@ -1086,13 +1091,19 @@ pub fn format_lunar_theory_specification(theory: &LunarTheorySpecification) -> S
     )
 }
 
+impl fmt::Display for LunarTheorySpecification {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Returns the release-facing one-line summary for the current lunar-theory selection.
 ///
 /// The validation and release tooling uses this helper so the lunar provenance
 /// summary is defined in the backend crate rather than duplicated in reporting
 /// layers.
 pub fn lunar_theory_summary() -> String {
-    format_lunar_theory_specification(&lunar_theory_specification())
+    lunar_theory_specification().summary_line()
 }
 
 impl LunarTheorySourceSummary {
@@ -3238,6 +3249,8 @@ mod tests {
         let formatted = format_lunar_theory_specification(&theory);
 
         assert_eq!(summary, formatted);
+        assert_eq!(theory.summary_line(), summary);
+        assert_eq!(theory.to_string(), summary);
         let source = theory.source_selection();
         let source_selection = lunar_theory_source_selection();
         assert_eq!(source_selection, source);
