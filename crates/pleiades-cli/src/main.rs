@@ -661,6 +661,7 @@ mod tests {
         assert!(rendered.contains("Aries houses"));
         assert!(rendered.contains("Fagan/Bradley"));
         assert!(rendered.contains("Usha Shashi"));
+        assert!(rendered.contains("JN Bhasin"));
         assert!(rendered.contains("X, Meridian houses, Meridian table of houses, Meridian house system, ARMC, Axial Rotation, Axial rotation system, Zariel, X axial rotation system/ Meridian houses -> Meridian"));
         assert!(rendered.contains("Target ayanamsa catalog:"));
         assert!(rendered.contains("Alias mappings for built-in house systems:"));
@@ -740,6 +741,7 @@ mod tests {
         assert!(compatibility.contains("Babylonian (Eta Piscium)"));
         assert!(compatibility.contains("Galactic Equator (Mula)"));
         assert!(compatibility.contains("Galactic Equator (Fiorenza)"));
+        assert!(compatibility.contains("JN Bhasin"));
 
         let verification = render_cli(&["verify-compatibility-profile"])
             .expect("compatibility profile verification should render");
@@ -793,6 +795,7 @@ mod tests {
         assert!(release_notes.contains("Babylonian (Eta Piscium)"));
         assert!(release_notes.contains("Galactic Equator (Mula)"));
         assert!(release_notes.contains("Galactic Equator (Fiorenza)"));
+        assert!(release_notes.contains("JN Bhasin"));
         assert!(release_notes.contains("Galactic Equator (True)"));
         assert!(release_notes.contains("Galactic Center (Rgilbrand)"));
         assert!(release_notes.contains("Babylonian (True Geoc)"));
