@@ -9607,6 +9607,10 @@ mod tests {
         assert!(rendered.contains("Suryasiddhanta (499 CE)"));
         assert!(rendered.contains("Aryabhata (499 CE)"));
         assert!(rendered.contains("Sassanian"));
+        assert!(rendered.contains("Sasanian"));
+        assert!(rendered.contains("Zij al-Shah"));
+        assert!(rendered.contains("DeLuce"));
+        assert!(rendered.contains("Aryabhata (522 CE)"));
         assert!(rendered.contains("PVR Pushya-paksha"));
         assert!(rendered.contains("Galactic Center (Rgilbrand)"));
         assert!(rendered.contains("Galactic Center (Mardyks)"));
