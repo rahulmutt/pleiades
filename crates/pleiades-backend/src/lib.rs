@@ -933,9 +933,11 @@ pub fn validate_request_policy(
 /// Validates a direct backend request against the published backend metadata.
 ///
 /// This convenience helper combines the shared request-shape checks with body
-/// coverage and topocentric capability validation. It intentionally leaves
-/// zodiac-mode routing to the caller or backend-specific logic because the
-/// shared metadata model does not yet capture per-ayanamsa sidereal support.
+/// coverage, tropical-only zodiac routing for backends that do not advertise
+/// native sidereal support, and topocentric capability validation. The shared
+/// metadata model still does not capture per-ayanamsa sidereal catalog breadth,
+/// so callers that need finer-grained sidereal routing must keep that logic at
+/// the backend or façade layer.
 pub fn validate_request_against_metadata(
     req: &EphemerisRequest,
     metadata: &BackendMetadata,
@@ -947,6 +949,11 @@ pub fn validate_request_against_metadata(
         &metadata.supported_frames,
         metadata.capabilities.apparent,
     )?;
+
+    if !metadata.capabilities.native_sidereal {
+        validate_zodiac_policy(req, metadata.id.as_str(), &[ZodiacMode::Tropical])?;
+    }
+
     validate_observer_policy(req, metadata.id.as_str(), metadata.capabilities.topocentric)?;
 
     if !metadata.body_coverage.contains(&req.body) {
@@ -1913,8 +1920,25 @@ mod tests {
             zodiac_mode: ZodiacMode::Sidereal {
                 ayanamsa: pleiades_types::Ayanamsa::FaganBradley,
             },
-            ..apparent_request.clone()
+            frame: CoordinateFrame::Ecliptic,
+            apparent: Apparentness::Mean,
+            observer: None,
+            ..frame_request.clone()
         };
+        let error = validate_request_against_metadata(&sidereal_request, &metadata)
+            .expect_err("sidereal requests should be rejected when metadata stays tropical-only");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error.message.contains("tropical coordinates only"));
+
+        let sidereal_metadata = BackendMetadata {
+            capabilities: BackendCapabilities {
+                native_sidereal: true,
+                ..metadata.capabilities.clone()
+            },
+            ..metadata.clone()
+        };
+        assert!(validate_request_against_metadata(&sidereal_request, &sidereal_metadata).is_ok());
+
         let error =
             validate_zodiac_policy(&sidereal_request, "toy backend", &[ZodiacMode::Tropical])
                 .expect_err(
