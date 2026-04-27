@@ -56,6 +56,29 @@ pub struct LunarTheoryRequestPolicy {
     pub supports_topocentric_observer: bool,
 }
 
+/// Validation error for a lunar-theory request policy that drifted from the current selection.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LunarTheoryRequestPolicyValidationError {
+    /// A rendered policy field no longer matches the current lunar-theory selection.
+    FieldOutOfSync {
+        /// Field that drifted out of sync.
+        field: &'static str,
+    },
+}
+
+impl fmt::Display for LunarTheoryRequestPolicyValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the lunar theory request policy field `{field}` is out of sync with the current selection"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for LunarTheoryRequestPolicyValidationError {}
+
 impl LunarTheoryRequestPolicy {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
@@ -67,6 +90,40 @@ impl LunarTheoryRequestPolicy {
             format_apparentness_modes(self.supported_apparentness),
             self.supports_topocentric_observer,
         )
+    }
+
+    /// Returns `Ok(())` when the policy still matches the current lunar-theory selection.
+    pub fn validate(&self) -> Result<(), LunarTheoryRequestPolicyValidationError> {
+        let theory = lunar_theory_specification();
+
+        if self.supported_frames != theory.request_policy.supported_frames {
+            return Err(LunarTheoryRequestPolicyValidationError::FieldOutOfSync {
+                field: "supported_frames",
+            });
+        }
+        if self.supported_time_scales != theory.request_policy.supported_time_scales {
+            return Err(LunarTheoryRequestPolicyValidationError::FieldOutOfSync {
+                field: "supported_time_scales",
+            });
+        }
+        if self.supported_zodiac_modes != theory.request_policy.supported_zodiac_modes {
+            return Err(LunarTheoryRequestPolicyValidationError::FieldOutOfSync {
+                field: "supported_zodiac_modes",
+            });
+        }
+        if self.supported_apparentness != theory.request_policy.supported_apparentness {
+            return Err(LunarTheoryRequestPolicyValidationError::FieldOutOfSync {
+                field: "supported_apparentness",
+            });
+        }
+        if self.supports_topocentric_observer != theory.request_policy.supports_topocentric_observer
+        {
+            return Err(LunarTheoryRequestPolicyValidationError::FieldOutOfSync {
+                field: "supports_topocentric_observer",
+            });
+        }
+
+        Ok(())
     }
 }
 
@@ -1466,9 +1523,23 @@ pub fn lunar_theory_source_summary_for_report() -> String {
     format_validated_lunar_theory_source_summary_for_report(&lunar_theory_source_summary())
 }
 
+fn format_validated_lunar_theory_request_policy_for_report(
+    policy: &LunarTheoryRequestPolicy,
+) -> String {
+    match policy.validate() {
+        Ok(()) => policy.summary_line(),
+        Err(error) => format!("lunar theory request policy: unavailable ({error})"),
+    }
+}
+
 /// Returns the current lunar-theory request policy summary.
+///
+/// The report helper validates the backend-owned request-policy summary first so
+/// any future drift in the supported frames, time scales, zodiac modes,
+/// apparentness, or topocentric-observer posture shows up as an unavailable
+/// report line instead of a silently stale summary.
 pub fn lunar_theory_request_policy_summary() -> String {
-    lunar_theory_request_policy().to_string()
+    format_validated_lunar_theory_request_policy_for_report(&lunar_theory_request_policy())
 }
 
 /// Returns the structured lunar-theory frame-treatment summary.
@@ -3876,6 +3947,25 @@ mod tests {
         assert_eq!(
             theory.request_policy.to_string(),
             theory.request_policy.summary_line()
+        );
+        assert!(theory.request_policy.validate().is_ok());
+        assert_eq!(
+            format_validated_lunar_theory_request_policy_for_report(&theory.request_policy),
+            theory.request_policy.summary_line()
+        );
+
+        let mut drifted_request_policy = theory.request_policy;
+        drifted_request_policy.supported_time_scales = &[TimeScale::Tt];
+        let error = drifted_request_policy
+            .validate()
+            .expect_err("drifted request policy should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "the lunar theory request policy field `supported_time_scales` is out of sync with the current selection"
+        );
+        assert_eq!(
+            format_validated_lunar_theory_request_policy_for_report(&drifted_request_policy),
+            "lunar theory request policy: unavailable (the lunar theory request policy field `supported_time_scales` is out of sync with the current selection)"
         );
         assert_eq!(lunar_theory_summary_for_report(), theory.summary_line());
         assert!(summary.contains("frames=Ecliptic, Equatorial"));
