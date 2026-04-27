@@ -235,6 +235,23 @@ impl ChartRequest {
         self.instant.validate_time_scale_conversion(conversion)
     }
 
+    /// Validates the chart-level observer contract used for house calculations.
+    ///
+    /// House requests require an observer location so the façade can keep the
+    /// observer used for houses separate from the geocentric body-position
+    /// backend requests. This preflight returns the same structured request
+    /// error that chart assembly uses if the observer is missing.
+    pub fn validate_house_observer_policy(&self) -> Result<(), EphemerisError> {
+        if self.house_system.is_some() && self.observer.is_none() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "house placement requires an observer location",
+            ));
+        }
+
+        Ok(())
+    }
+
     /// Converts the chart instant from UT1 to TT using caller-supplied Delta T.
     ///
     /// This convenience method mirrors [`Instant::tt_from_ut1`] so chart callers
@@ -1813,6 +1830,8 @@ impl<B: EphemerisBackend> ChartEngine<B> {
     /// assert_eq!(snapshot.placements.len(), 1);
     /// ```
     pub fn chart(&self, request: &ChartRequest) -> Result<ChartSnapshot, EphemerisError> {
+        request.validate_house_observer_policy()?;
+
         let metadata = self.backend.metadata();
         let backend_id = metadata.id.clone();
         let native_sidereal = matches!(request.zodiac_mode, ZodiacMode::Sidereal { .. })
@@ -2896,6 +2915,40 @@ mod tests {
             request.validate_time_scale_conversion(non_finite),
             Err(TimeScaleConversionError::NonFiniteOffset)
         ));
+    }
+
+    #[test]
+    fn chart_request_validate_house_observer_policy_requires_an_observer_for_house_requests() {
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Tt,
+        ))
+        .with_house_system(crate::HouseSystem::WholeSign);
+
+        let error = request
+            .validate_house_observer_policy()
+            .expect_err("house requests should require an observer location");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert_eq!(
+            error.message,
+            "house placement requires an observer location"
+        );
+    }
+
+    #[test]
+    fn chart_request_validate_house_observer_policy_allows_house_requests_with_observers() {
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Tt,
+        ))
+        .with_observer(ObserverLocation::new(
+            Latitude::from_degrees(12.5),
+            Longitude::from_degrees(45.0),
+            Some(100.0),
+        ))
+        .with_house_system(crate::HouseSystem::WholeSign);
+
+        assert!(request.validate_house_observer_policy().is_ok());
     }
 
     #[test]
