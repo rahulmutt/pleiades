@@ -813,6 +813,26 @@ impl ComparisonTolerancePolicySummary {
             ));
         }
 
+        self.comparison_window.validate().map_err(|error| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "comparison tolerance policy summary has invalid comparison window: {error}"
+                ),
+            )
+        })?;
+
+        for (index, frame) in self.coordinate_frames.iter().enumerate() {
+            if self.coordinate_frames[..index].contains(frame) {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "comparison tolerance policy summary has duplicate coordinate frame '{frame}'"
+                    ),
+                ));
+            }
+        }
+
         Ok(())
     }
 
@@ -10101,6 +10121,98 @@ mod tests {
             .validate()
             .expect_err("summary should reject body-count drift");
         assert!(error.to_string().contains("body-count mismatch"));
+    }
+
+    #[test]
+    fn comparison_tolerance_policy_summary_validation_rejects_invalid_comparison_window() {
+        let summary = ComparisonTolerancePolicySummary {
+            backend_family: BackendFamily::Algorithmic,
+            entries: vec![ComparisonToleranceEntry {
+                scope: ComparisonToleranceScope::Luminary,
+                tolerance: ComparisonTolerance {
+                    backend_family: BackendFamily::Algorithmic,
+                    profile: "test tolerance",
+                    max_longitude_delta_deg: 0.1,
+                    max_latitude_delta_deg: 0.2,
+                    max_distance_delta_au: Some(0.3),
+                },
+            }],
+            coverage: vec![ComparisonToleranceScopeCoverageSummary {
+                entry: ComparisonToleranceEntry {
+                    scope: ComparisonToleranceScope::Luminary,
+                    tolerance: ComparisonTolerance {
+                        backend_family: BackendFamily::Algorithmic,
+                        profile: "test tolerance",
+                        max_longitude_delta_deg: 0.1,
+                        max_latitude_delta_deg: 0.2,
+                        max_distance_delta_au: Some(0.3),
+                    },
+                },
+                bodies: vec![CelestialBody::Sun],
+                body_count: 1,
+                sample_count: 1,
+            }],
+            comparison_body_count: 1,
+            comparison_sample_count: 1,
+            comparison_window: TimeRange::new(
+                Some(Instant::new(
+                    JulianDay::from_days(2_451_546.0),
+                    TimeScale::Tt,
+                )),
+                Some(Instant::new(
+                    JulianDay::from_days(2_451_545.0),
+                    TimeScale::Tt,
+                )),
+            ),
+            coordinate_frames: vec![CoordinateFrame::Ecliptic],
+        };
+
+        let error = summary
+            .validate()
+            .expect_err("summary should reject an invalid comparison window");
+        assert!(error.to_string().contains("invalid comparison window"));
+        assert!(error.to_string().contains("must not precede the start"));
+    }
+
+    #[test]
+    fn comparison_tolerance_policy_summary_validation_rejects_duplicate_coordinate_frames() {
+        let summary = ComparisonTolerancePolicySummary {
+            backend_family: BackendFamily::Algorithmic,
+            entries: vec![ComparisonToleranceEntry {
+                scope: ComparisonToleranceScope::Luminary,
+                tolerance: ComparisonTolerance {
+                    backend_family: BackendFamily::Algorithmic,
+                    profile: "test tolerance",
+                    max_longitude_delta_deg: 0.1,
+                    max_latitude_delta_deg: 0.2,
+                    max_distance_delta_au: Some(0.3),
+                },
+            }],
+            coverage: vec![ComparisonToleranceScopeCoverageSummary {
+                entry: ComparisonToleranceEntry {
+                    scope: ComparisonToleranceScope::Luminary,
+                    tolerance: ComparisonTolerance {
+                        backend_family: BackendFamily::Algorithmic,
+                        profile: "test tolerance",
+                        max_longitude_delta_deg: 0.1,
+                        max_latitude_delta_deg: 0.2,
+                        max_distance_delta_au: Some(0.3),
+                    },
+                },
+                bodies: vec![CelestialBody::Sun],
+                body_count: 1,
+                sample_count: 1,
+            }],
+            comparison_body_count: 1,
+            comparison_sample_count: 1,
+            comparison_window: TimeRange::new(None, None),
+            coordinate_frames: vec![CoordinateFrame::Ecliptic, CoordinateFrame::Ecliptic],
+        };
+
+        let error = summary
+            .validate()
+            .expect_err("summary should reject duplicate coordinate frames");
+        assert!(error.to_string().contains("duplicate coordinate frame"));
     }
 
     #[test]

@@ -256,6 +256,74 @@ impl fmt::Display for TimeScaleConversionError {
 
 impl std::error::Error for TimeScaleConversionError {}
 
+/// Shared validation errors for [`TimeRange`].
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum TimeRangeValidationError {
+    /// A required bound contains a non-finite Julian day.
+    NonFiniteBound {
+        /// Which bound failed validation.
+        bound: &'static str,
+        /// The offending instant.
+        instant: Instant,
+    },
+    /// The lower and upper bounds use different time scales.
+    ScaleMismatch {
+        /// The lower bound.
+        start: Instant,
+        /// The upper bound.
+        end: Instant,
+    },
+    /// The upper bound precedes the lower bound.
+    OutOfOrder {
+        /// The lower bound.
+        start: Instant,
+        /// The upper bound.
+        end: Instant,
+    },
+}
+
+impl TimeRangeValidationError {
+    const fn non_finite_bound(bound: &'static str, instant: Instant) -> Self {
+        Self::NonFiniteBound { bound, instant }
+    }
+
+    const fn scale_mismatch(start: Instant, end: Instant) -> Self {
+        Self::ScaleMismatch { start, end }
+    }
+
+    const fn out_of_order(start: Instant, end: Instant) -> Self {
+        Self::OutOfOrder { start, end }
+    }
+
+    /// Returns a compact one-line rendering of the range validation failure.
+    pub fn summary_line(&self) -> String {
+        match self {
+            Self::NonFiniteBound { bound, instant } => format!(
+                "time range bound `{bound}` must be finite: {}",
+                format_time_range_instant(*instant)
+            ),
+            Self::ScaleMismatch { start, end } => format!(
+                "time range bounds must use the same time scale: start={}; end={}",
+                format_time_range_instant(*start),
+                format_time_range_instant(*end)
+            ),
+            Self::OutOfOrder { start, end } => format!(
+                "time range end must not precede the start: start={}; end={}",
+                format_time_range_instant(*start),
+                format_time_range_instant(*end)
+            ),
+        }
+    }
+}
+
+impl fmt::Display for TimeRangeValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+impl std::error::Error for TimeRangeValidationError {}
+
 /// A caller-supplied time-scale conversion policy.
 ///
 /// The conversion stores the source and target time scales plus the explicit
@@ -1842,6 +1910,35 @@ impl TimeRange {
         after_start && before_end
     }
 
+    /// Validates the range bounds and ordering.
+    ///
+    /// Unbounded ranges are valid. When one or both bounds are present, the
+    /// finite Julian-day requirement applies to each bound, the two bounds must
+    /// use the same time scale, and the upper bound must not precede the lower
+    /// bound.
+    pub fn validate(self) -> Result<(), TimeRangeValidationError> {
+        if let Some(start) = self.start {
+            if !start.julian_day.days().is_finite() {
+                return Err(TimeRangeValidationError::non_finite_bound("start", start));
+            }
+        }
+        if let Some(end) = self.end {
+            if !end.julian_day.days().is_finite() {
+                return Err(TimeRangeValidationError::non_finite_bound("end", end));
+            }
+        }
+        if let (Some(start), Some(end)) = (self.start, self.end) {
+            if start.scale != end.scale {
+                return Err(TimeRangeValidationError::scale_mismatch(start, end));
+            }
+            if start.julian_day.days() > end.julian_day.days() {
+                return Err(TimeRangeValidationError::out_of_order(start, end));
+            }
+        }
+
+        Ok(())
+    }
+
     /// Returns a compact one-line rendering of the range.
     pub fn summary_line(&self) -> String {
         match (self.start, self.end) {
@@ -2264,6 +2361,8 @@ mod tests {
             "JD 2451545.0 (TT) → JD 2451546.0 (TT)"
         );
         assert_eq!(range.to_string(), range.summary_line());
+        assert!(range.validate().is_ok());
+        assert_eq!(TimeRange::new(Some(start), None).validate(), Ok(()));
         assert_eq!(
             TimeRange::new(Some(start), None).to_string(),
             "from JD 2451545.0 (TT)"
@@ -2273,6 +2372,66 @@ mod tests {
             "through JD 2451546.0 (TT)"
         );
         assert_eq!(TimeRange::new(None, None).to_string(), "unbounded");
+    }
+
+    #[test]
+    fn time_range_validation_rejects_non_finite_bounds_and_invalid_order() {
+        let finite_start = Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt);
+        let finite_end = Instant::new(JulianDay::from_days(2451546.0), TimeScale::Tt);
+
+        let error = TimeRange::new(
+            Some(Instant::new(
+                JulianDay::from_days(f64::INFINITY),
+                TimeScale::Tt,
+            )),
+            Some(finite_end),
+        )
+        .validate()
+        .expect_err("non-finite start bounds should fail validation");
+        assert_eq!(
+            error.summary_line(),
+            "time range bound `start` must be finite: JD inf (TT)"
+        );
+        assert_eq!(error.to_string(), error.summary_line());
+
+        let error = TimeRange::new(
+            Some(finite_start),
+            Some(Instant::new(
+                JulianDay::from_days(f64::NEG_INFINITY),
+                TimeScale::Tt,
+            )),
+        )
+        .validate()
+        .expect_err("non-finite end bounds should fail validation");
+        assert_eq!(
+            error.summary_line(),
+            "time range bound `end` must be finite: JD -inf (TT)"
+        );
+        assert_eq!(error.to_string(), error.summary_line());
+
+        let error = TimeRange::new(
+            Some(Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt)),
+            Some(Instant::new(
+                JulianDay::from_days(2451546.0),
+                TimeScale::Tdb,
+            )),
+        )
+        .validate()
+        .expect_err("mixed time-scale bounds should fail validation");
+        assert_eq!(
+            error.summary_line(),
+            "time range bounds must use the same time scale: start=JD 2451545.0 (TT); end=JD 2451546.0 (TDB)"
+        );
+        assert_eq!(error.to_string(), error.summary_line());
+
+        let error = TimeRange::new(Some(finite_end), Some(finite_start))
+            .validate()
+            .expect_err("out-of-order ranges should fail validation");
+        assert_eq!(
+            error.summary_line(),
+            "time range end must not precede the start: start=JD 2451546.0 (TT); end=JD 2451545.0 (TT)"
+        );
+        assert_eq!(error.to_string(), error.summary_line());
     }
 
     #[test]

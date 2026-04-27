@@ -65,8 +65,8 @@ use std::borrow::Cow;
 pub use pleiades_types::{
     Angle, Apparentness, Ayanamsa, CelestialBody, CoordinateFrame, CustomAyanamsa, CustomBodyId,
     CustomHouseSystem, EclipticCoordinates, EquatorialCoordinates, HouseSystem, Instant, JulianDay,
-    Latitude, Longitude, Motion, ObserverLocation, TimeRange, TimeScale, TimeScaleConversion,
-    TimeScaleConversionError, ZodiacMode,
+    Latitude, Longitude, Motion, ObserverLocation, TimeRange, TimeRangeValidationError, TimeScale,
+    TimeScaleConversion, TimeScaleConversionError, ZodiacMode,
 };
 
 /// Stable identifier for a backend implementation.
@@ -445,32 +445,18 @@ impl BackendMetadata {
     }
 
     fn validate_nominal_range(&self) -> Result<(), BackendMetadataValidationError> {
-        match (self.nominal_range.start, self.nominal_range.end) {
-            (Some(start), Some(end)) => {
-                if !start.julian_day.days().is_finite() || !end.julian_day.days().is_finite() {
-                    return Err(BackendMetadataValidationError::NominalRangeNotFinite);
-                }
-                if start.scale != end.scale {
-                    return Err(BackendMetadataValidationError::NominalRangeScaleMismatch);
-                }
-                if start.julian_day.days() > end.julian_day.days() {
-                    return Err(BackendMetadataValidationError::NominalRangeOutOfOrder);
-                }
+        match self.nominal_range.validate() {
+            Ok(()) => Ok(()),
+            Err(TimeRangeValidationError::NonFiniteBound { .. }) => {
+                Err(BackendMetadataValidationError::NominalRangeNotFinite)
             }
-            (Some(start), None) => {
-                if !start.julian_day.days().is_finite() {
-                    return Err(BackendMetadataValidationError::NominalRangeNotFinite);
-                }
+            Err(TimeRangeValidationError::ScaleMismatch { .. }) => {
+                Err(BackendMetadataValidationError::NominalRangeScaleMismatch)
             }
-            (None, Some(end)) => {
-                if !end.julian_day.days().is_finite() {
-                    return Err(BackendMetadataValidationError::NominalRangeNotFinite);
-                }
+            Err(TimeRangeValidationError::OutOfOrder { .. }) => {
+                Err(BackendMetadataValidationError::NominalRangeOutOfOrder)
             }
-            (None, None) => {}
         }
-
-        Ok(())
     }
 }
 
@@ -1813,6 +1799,26 @@ mod tests {
         assert_eq!(
             error.summary_line(),
             "backend metadata nominal range bounds must use the same time scale"
+        );
+        assert_eq!(error.to_string(), error.summary_line());
+
+        metadata.nominal_range = TimeRange::new(
+            Some(Instant::new(
+                JulianDay::from_days(f64::INFINITY),
+                TimeScale::Tt,
+            )),
+            Some(Instant::new(
+                JulianDay::from_days(2_451_546.0),
+                TimeScale::Tt,
+            )),
+        );
+
+        let error = metadata
+            .validate()
+            .expect_err("non-finite nominal-range bounds should fail validation");
+        assert_eq!(
+            error.summary_line(),
+            "backend metadata nominal range must use finite Julian-day bounds"
         );
         assert_eq!(error.to_string(), error.summary_line());
     }
