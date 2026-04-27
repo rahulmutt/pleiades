@@ -2486,6 +2486,92 @@ pub fn lunar_equatorial_reference_evidence_envelope_for_report() -> String {
     }
 }
 
+/// Validation error for a lunar high-curvature continuity evidence slice.
+#[derive(Clone, Debug, PartialEq)]
+enum LunarHighCurvatureEvidenceValidationError {
+    /// The regression slice does not include enough samples to justify a continuity envelope.
+    SampleCountTooSmall { sample_count: usize },
+    /// The regression slice unexpectedly lost all bodies.
+    BodyCountTooSmall { body_count: usize },
+    /// The stored epoch bounds no longer describe a monotonic range.
+    InvalidEpochRange {
+        earliest_julian_day: f64,
+        latest_julian_day: f64,
+    },
+    /// A stored step metric is not finite.
+    NonFiniteMeasure { field: &'static str },
+    /// A stored step window is reversed.
+    ReversedStepWindow { field: &'static str },
+}
+
+impl fmt::Display for LunarHighCurvatureEvidenceValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::SampleCountTooSmall { sample_count } => write!(
+                f,
+                "the lunar high-curvature continuity evidence has too few samples ({sample_count})"
+            ),
+            Self::BodyCountTooSmall { body_count } => write!(
+                f,
+                "the lunar high-curvature continuity evidence has no bodies ({body_count})"
+            ),
+            Self::InvalidEpochRange {
+                earliest_julian_day,
+                latest_julian_day,
+            } => write!(
+                f,
+                "the lunar high-curvature continuity evidence has an invalid epoch range JD {earliest_julian_day:.1}..{latest_julian_day:.1}"
+            ),
+            Self::NonFiniteMeasure { field } => write!(
+                f,
+                "the lunar high-curvature continuity evidence field `{field}` is not finite"
+            ),
+            Self::ReversedStepWindow { field } => write!(
+                f,
+                "the lunar high-curvature continuity evidence field `{field}` has a reversed step window"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for LunarHighCurvatureEvidenceValidationError {}
+
+fn validate_high_curvature_continuity_window(
+    sample_count: usize,
+    body_count: usize,
+    earliest_epoch: Instant,
+    latest_epoch: Instant,
+    step_fields: [(&'static str, Instant, Instant, f64); 3],
+) -> Result<(), LunarHighCurvatureEvidenceValidationError> {
+    if sample_count < 2 {
+        return Err(
+            LunarHighCurvatureEvidenceValidationError::SampleCountTooSmall { sample_count },
+        );
+    }
+    if body_count == 0 {
+        return Err(LunarHighCurvatureEvidenceValidationError::BodyCountTooSmall { body_count });
+    }
+    if earliest_epoch.julian_day.days() > latest_epoch.julian_day.days() {
+        return Err(
+            LunarHighCurvatureEvidenceValidationError::InvalidEpochRange {
+                earliest_julian_day: earliest_epoch.julian_day.days(),
+                latest_julian_day: latest_epoch.julian_day.days(),
+            },
+        );
+    }
+
+    for (field, start_epoch, end_epoch, measure) in step_fields {
+        if !measure.is_finite() {
+            return Err(LunarHighCurvatureEvidenceValidationError::NonFiniteMeasure { field });
+        }
+        if start_epoch.julian_day.days() > end_epoch.julian_day.days() {
+            return Err(LunarHighCurvatureEvidenceValidationError::ReversedStepWindow { field });
+        }
+    }
+
+    Ok(())
+}
+
 /// A compact summary of the lunar high-curvature continuity evidence slice.
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct LunarHighCurvatureContinuityEnvelope {
@@ -2541,6 +2627,35 @@ impl LunarHighCurvatureContinuityEnvelope {
             LUNAR_HIGH_CURVATURE_LATITUDE_LIMIT_DEG,
             LUNAR_HIGH_CURVATURE_DISTANCE_LIMIT_AU,
             self.within_regression_limits,
+        )
+    }
+
+    fn validate(&self) -> Result<(), LunarHighCurvatureEvidenceValidationError> {
+        validate_high_curvature_continuity_window(
+            self.sample_count,
+            self.body_count,
+            self.earliest_epoch,
+            self.latest_epoch,
+            [
+                (
+                    "max_longitude_step_deg",
+                    self.max_longitude_step_start_epoch,
+                    self.max_longitude_step_end_epoch,
+                    self.max_longitude_step_deg,
+                ),
+                (
+                    "max_latitude_step_deg",
+                    self.max_latitude_step_start_epoch,
+                    self.max_latitude_step_end_epoch,
+                    self.max_latitude_step_deg,
+                ),
+                (
+                    "max_distance_step_au",
+                    self.max_distance_step_start_epoch,
+                    self.max_distance_step_end_epoch,
+                    self.max_distance_step_au,
+                ),
+            ],
         )
     }
 }
@@ -2648,8 +2763,10 @@ fn format_lunar_high_curvature_continuity_evidence_envelope(
 /// Returns the release-facing lunar high-curvature continuity evidence string.
 pub fn lunar_high_curvature_continuity_evidence_for_report() -> String {
     match lunar_high_curvature_continuity_envelope() {
-        Some(envelope) => format_lunar_high_curvature_continuity_evidence_envelope(&envelope),
-        None => "lunar high-curvature continuity evidence: unavailable".to_string(),
+        Some(envelope) if envelope.validate().is_ok() => {
+            format_lunar_high_curvature_continuity_evidence_envelope(&envelope)
+        }
+        _ => "lunar high-curvature continuity evidence: unavailable".to_string(),
     }
 }
 
@@ -2711,6 +2828,35 @@ impl LunarHighCurvatureEquatorialContinuityEnvelope {
             LUNAR_HIGH_CURVATURE_DECLINATION_LIMIT_DEG,
             LUNAR_HIGH_CURVATURE_DISTANCE_LIMIT_AU,
             self.within_regression_limits,
+        )
+    }
+
+    fn validate(&self) -> Result<(), LunarHighCurvatureEvidenceValidationError> {
+        validate_high_curvature_continuity_window(
+            self.sample_count,
+            self.body_count,
+            self.earliest_epoch,
+            self.latest_epoch,
+            [
+                (
+                    "max_right_ascension_step_deg",
+                    self.max_right_ascension_step_start_epoch,
+                    self.max_right_ascension_step_end_epoch,
+                    self.max_right_ascension_step_deg,
+                ),
+                (
+                    "max_declination_step_deg",
+                    self.max_declination_step_start_epoch,
+                    self.max_declination_step_end_epoch,
+                    self.max_declination_step_deg,
+                ),
+                (
+                    "max_distance_step_au",
+                    self.max_distance_step_start_epoch,
+                    self.max_distance_step_end_epoch,
+                    self.max_distance_step_au,
+                ),
+            ],
         )
     }
 }
@@ -2824,10 +2970,10 @@ fn format_lunar_high_curvature_equatorial_continuity_evidence_envelope(
 /// Returns the release-facing lunar high-curvature equatorial continuity evidence string.
 pub fn lunar_high_curvature_equatorial_continuity_evidence_for_report() -> String {
     match lunar_high_curvature_equatorial_continuity_envelope() {
-        Some(envelope) => {
+        Some(envelope) if envelope.validate().is_ok() => {
             format_lunar_high_curvature_equatorial_continuity_evidence_envelope(&envelope)
         }
-        None => "lunar high-curvature equatorial continuity evidence: unavailable".to_string(),
+        _ => "lunar high-curvature equatorial continuity evidence: unavailable".to_string(),
     }
 }
 
@@ -4145,6 +4291,7 @@ mod tests {
         let report = lunar_high_curvature_continuity_evidence_for_report();
 
         assert_eq!(report, envelope.summary_line());
+        assert!(envelope.validate().is_ok());
         assert!(
             report.contains("lunar high-curvature continuity evidence: 4 samples across 1 bodies")
         );
@@ -4159,12 +4306,25 @@ mod tests {
     }
 
     #[test]
+    fn lunar_high_curvature_continuity_validation_rejects_stale_counts() {
+        let mut envelope =
+            lunar_high_curvature_continuity_envelope().expect("envelope should exist");
+        envelope.sample_count = 1;
+
+        assert!(matches!(
+            envelope.validate(),
+            Err(LunarHighCurvatureEvidenceValidationError::SampleCountTooSmall { sample_count: 1 })
+        ));
+    }
+
+    #[test]
     fn lunar_high_curvature_equatorial_continuity_evidence_is_rendered() {
         let envelope = lunar_high_curvature_equatorial_continuity_envelope()
             .expect("equatorial envelope should exist");
         let report = lunar_high_curvature_equatorial_continuity_evidence_for_report();
 
         assert_eq!(report, envelope.summary_line());
+        assert!(envelope.validate().is_ok());
         assert!(report.contains(
             "lunar high-curvature equatorial continuity evidence: 4 samples across 1 bodies"
         ));
@@ -4176,6 +4336,18 @@ mod tests {
         assert!(report.contains("ΔRA≤20.0°"));
         assert!(report.contains("ΔDec≤10.0°"));
         assert!(report.contains("Δdist≤0.02 AU"));
+    }
+
+    #[test]
+    fn lunar_high_curvature_equatorial_continuity_validation_rejects_stale_counts() {
+        let mut envelope = lunar_high_curvature_equatorial_continuity_envelope()
+            .expect("equatorial envelope should exist");
+        envelope.sample_count = 1;
+
+        assert!(matches!(
+            envelope.validate(),
+            Err(LunarHighCurvatureEvidenceValidationError::SampleCountTooSmall { sample_count: 1 })
+        ));
     }
 
     #[test]
