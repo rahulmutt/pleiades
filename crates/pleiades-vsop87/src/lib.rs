@@ -1820,7 +1820,65 @@ impl Vsop87SourceBodyEvidenceSummary {
     pub fn summary_line(&self) -> String {
         format_source_body_evidence_summary(self)
     }
+
+    /// Returns `Ok(())` when the summary still matches the current derived counts.
+    pub fn validate(&self) -> Result<(), Vsop87SourceBodyEvidenceSummaryValidationError> {
+        if self.sample_count != self.sample_bodies.len() {
+            return Err(
+                Vsop87SourceBodyEvidenceSummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        }
+        if self.within_interim_limits_count + self.outside_interim_limit_count != self.sample_count
+        {
+            return Err(
+                Vsop87SourceBodyEvidenceSummaryValidationError::FieldOutOfSync {
+                    field: "interim_limit_counts",
+                },
+            );
+        }
+        if self.outside_interim_limit_count != self.outside_interim_limit_bodies.len() {
+            return Err(
+                Vsop87SourceBodyEvidenceSummaryValidationError::FieldOutOfSync {
+                    field: "outside_interim_limit_bodies",
+                },
+            );
+        }
+        if self.vendored_full_file_count + self.generated_binary_count + self.truncated_count
+            != self.sample_count
+        {
+            return Err(
+                Vsop87SourceBodyEvidenceSummaryValidationError::FieldOutOfSync {
+                    field: "source_kind_counts",
+                },
+            );
+        }
+
+        Ok(())
+    }
 }
+
+/// Validation error for a VSOP87 source-backed body-evidence summary that drifted
+/// from the current canonical evidence.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Vsop87SourceBodyEvidenceSummaryValidationError {
+    /// A rendered summary field no longer matches the current derived evidence.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for Vsop87SourceBodyEvidenceSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the VSOP87 source-backed body evidence summary field `{field}` is out of sync with the current canonical evidence"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for Vsop87SourceBodyEvidenceSummaryValidationError {}
 
 impl fmt::Display for Vsop87SourceBodyEvidenceSummary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -2229,9 +2287,19 @@ pub fn format_source_body_evidence_summary(summary: &Vsop87SourceBodyEvidenceSum
 }
 
 /// Returns the release-facing source-body evidence summary string.
+fn format_validated_source_body_evidence_summary_for_report(
+    summary: &Vsop87SourceBodyEvidenceSummary,
+) -> String {
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("VSOP87 source-backed body evidence: unavailable ({error})"),
+    }
+}
+
+/// Returns the release-facing source-body evidence summary string.
 pub fn source_body_evidence_summary_for_report() -> String {
     match source_body_evidence_summary() {
-        Some(summary) => summary.summary_line(),
+        Some(summary) => format_validated_source_body_evidence_summary_for_report(&summary),
         None => "VSOP87 source-backed body evidence: unavailable".to_string(),
     }
 }
@@ -2346,7 +2414,56 @@ impl Vsop87SourceBodyClassEvidenceSummary {
     pub fn summary_line(&self) -> String {
         format_source_body_class_evidence_entry(self)
     }
+
+    /// Returns `Ok(())` when the summary still matches the current derived counts.
+    pub fn validate(&self) -> Result<(), Vsop87SourceBodyClassEvidenceSummaryValidationError> {
+        if self.sample_count != self.sample_bodies.len() {
+            return Err(
+                Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        }
+        if self.within_interim_limits_count + self.outside_interim_limit_count != self.sample_count
+        {
+            return Err(
+                Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync {
+                    field: "interim_limit_counts",
+                },
+            );
+        }
+        if self.outside_interim_limit_count != self.outside_interim_limit_bodies.len() {
+            return Err(
+                Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync {
+                    field: "outside_interim_limit_bodies",
+                },
+            );
+        }
+
+        Ok(())
+    }
 }
+
+/// Validation error for a VSOP87 source-backed body-class evidence summary that drifted
+/// from the current canonical evidence.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Vsop87SourceBodyClassEvidenceSummaryValidationError {
+    /// A rendered summary field no longer matches the current derived evidence.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for Vsop87SourceBodyClassEvidenceSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the VSOP87 source-backed body-class evidence summary field `{field}` is out of sync with the current canonical evidence"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for Vsop87SourceBodyClassEvidenceSummaryValidationError {}
 
 impl fmt::Display for Vsop87SourceBodyClassEvidenceSummary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -2551,9 +2668,27 @@ pub fn format_source_body_class_evidence_summary(
 }
 
 /// Returns the release-facing source-body-class evidence summary string.
+fn format_validated_source_body_class_evidence_summary_for_report(
+    summaries: &[Vsop87SourceBodyClassEvidenceSummary],
+) -> String {
+    if summaries.is_empty() {
+        return "VSOP87 source-backed body-class envelopes: unavailable".to_string();
+    }
+
+    if let Some(error) = summaries
+        .iter()
+        .find_map(|summary| summary.validate().err())
+    {
+        return format!("VSOP87 source-backed body-class envelopes: unavailable ({error})");
+    }
+
+    format_source_body_class_evidence_summary(summaries)
+}
+
+/// Returns the release-facing source-body-class evidence summary string.
 pub fn source_body_class_evidence_summary_for_report() -> String {
     match source_body_class_evidence_summary() {
-        Some(summary) => format_source_body_class_evidence_summary(&summary),
+        Some(summary) => format_validated_source_body_class_evidence_summary_for_report(&summary),
         None => "VSOP87 source-backed body-class envelopes: unavailable".to_string(),
     }
 }
@@ -5160,6 +5295,7 @@ mod tests {
     #[test]
     fn source_body_evidence_report_matches_the_backend_formatter() {
         let summary = source_body_evidence_summary().expect("summary should exist");
+        assert_eq!(summary.validate(), Ok(()));
         assert_eq!(
             source_body_evidence_summary_for_report(),
             format_source_body_evidence_summary(&summary)
@@ -5181,6 +5317,7 @@ mod tests {
         assert_eq!(summary[0].class, Vsop87SourceBodyClass::Luminary);
         assert_eq!(summary[0].sample_count, 1);
         assert_eq!(summary[0].sample_bodies, vec![CelestialBody::Sun]);
+        assert_eq!(summary[0].validate(), Ok(()));
         assert_eq!(summary[1].class, Vsop87SourceBodyClass::MajorPlanet);
         assert_eq!(summary[1].sample_count, 7);
         assert_eq!(
@@ -5195,6 +5332,7 @@ mod tests {
                 CelestialBody::Neptune,
             ]
         );
+        assert_eq!(summary[1].validate(), Ok(()));
         let rendered = source_body_class_evidence_summary_for_report();
         assert_eq!(
             rendered,
@@ -5210,6 +5348,38 @@ mod tests {
         assert!(rendered.contains("median Δdist="));
         assert!(rendered.contains("p95 Δdist="));
         assert!(rendered.contains("Major planets: samples=7, bodies: Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune"));
+    }
+
+    #[test]
+    fn source_body_evidence_summary_validation_rejects_count_drift() {
+        let mut summary = source_body_evidence_summary().expect("summary should exist");
+        summary.sample_count += 1;
+
+        let error = summary
+            .validate()
+            .expect_err("count drift should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "the VSOP87 source-backed body evidence summary field `sample_count` is out of sync with the current canonical evidence"
+        );
+    }
+
+    #[test]
+    fn source_body_class_evidence_summary_validation_rejects_count_drift() {
+        let mut summary = source_body_class_evidence_summary()
+            .expect("summary should exist")
+            .into_iter()
+            .next()
+            .expect("at least one class summary should exist");
+        summary.sample_count += 1;
+
+        let error = summary
+            .validate()
+            .expect_err("count drift should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "the VSOP87 source-backed body-class evidence summary field `sample_count` is out of sync with the current canonical evidence"
+        );
     }
 
     #[test]
