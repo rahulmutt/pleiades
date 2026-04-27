@@ -683,9 +683,158 @@ pub fn packaged_artifact_storage_summary() -> &'static str {
     packaged_artifact_storage_summary_details().summary_line()
 }
 
-/// Structured mixed TT/TDB batch-parity summary for the packaged artifact.
+/// Structured mixed batch-parity summary for the packaged artifact.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PackagedBatchParitySummary {
+    /// Number of requests in the batch regression.
+    pub request_count: usize,
+    /// Number of bodies covered by the batch regression.
+    pub body_count: usize,
+    /// Number of requests using the ecliptic frame.
+    pub ecliptic_request_count: usize,
+    /// Number of requests using the equatorial frame.
+    pub equatorial_request_count: usize,
+    /// Number of exact-quality results observed in the batch regression.
+    pub exact_count: usize,
+    /// Number of interpolated-quality results observed in the batch regression.
+    pub interpolated_count: usize,
+    /// Number of approximate-quality results observed in the batch regression.
+    pub approximate_count: usize,
+    /// Number of unknown-quality results observed in the batch regression.
+    pub unknown_count: usize,
+    /// Whether the batch regression preserved request order.
+    pub order_preserved: bool,
+    /// Whether the batch regression preserved batch/single parity.
+    pub single_query_parity_preserved: bool,
+}
+
+/// Returns a compact mixed-frame batch-parity summary for the packaged artifact.
+pub fn packaged_mixed_frame_batch_parity_summary() -> Option<PackagedBatchParitySummary> {
+    let backend = packaged_backend();
+    let snapshot = reference_snapshot();
+    let mut requests = Vec::with_capacity(packaged_bodies().len());
+    let mut entries = Vec::with_capacity(packaged_bodies().len());
+
+    for (index, body) in packaged_bodies().iter().cloned().enumerate() {
+        let entry = snapshot.iter().find(|entry| entry.body == body)?;
+        entries.push(entry);
+        requests.push(EphemerisRequest {
+            body,
+            instant: Instant::new(entry.epoch.julian_day, TimeScale::Tt),
+            observer: None,
+            frame: if index % 2 == 0 {
+                CoordinateFrame::Ecliptic
+            } else {
+                CoordinateFrame::Equatorial
+            },
+            zodiac_mode: ZodiacMode::Tropical,
+            apparent: Apparentness::Mean,
+        });
+    }
+
+    let results = backend.positions(&requests).ok()?;
+    if results.len() != requests.len() {
+        return None;
+    }
+
+    let mut ecliptic_request_count = 0usize;
+    let mut equatorial_request_count = 0usize;
+    let mut exact_count = 0usize;
+    let mut interpolated_count = 0usize;
+    let mut approximate_count = 0usize;
+    let mut unknown_count = 0usize;
+    let mut order_preserved = true;
+    let mut single_query_parity = true;
+
+    for ((request, result), entry) in requests.iter().zip(results.iter()).zip(entries.iter()) {
+        let single = backend.position(request).ok();
+        single_query_parity &= single.as_ref().is_some_and(|single| single == result);
+
+        order_preserved &= result.body == entry.body
+            && result.instant == request.instant
+            && result.frame == request.frame
+            && result.zodiac_mode == request.zodiac_mode
+            && result.apparent == request.apparent;
+
+        match request.frame {
+            CoordinateFrame::Ecliptic => ecliptic_request_count += 1,
+            CoordinateFrame::Equatorial => equatorial_request_count += 1,
+            _ => return None,
+        }
+
+        match result.quality {
+            QualityAnnotation::Exact => exact_count += 1,
+            QualityAnnotation::Interpolated => interpolated_count += 1,
+            QualityAnnotation::Approximate => approximate_count += 1,
+            QualityAnnotation::Unknown => unknown_count += 1,
+            _ => unknown_count += 1,
+        }
+    }
+
+    Some(PackagedBatchParitySummary {
+        request_count: requests.len(),
+        body_count: entries.len(),
+        ecliptic_request_count,
+        equatorial_request_count,
+        exact_count,
+        interpolated_count,
+        approximate_count,
+        unknown_count,
+        order_preserved,
+        single_query_parity_preserved: single_query_parity,
+    })
+}
+
+impl PackagedBatchParitySummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let order = if self.order_preserved {
+            "preserved"
+        } else {
+            "needs attention"
+        };
+        let parity = if self.single_query_parity_preserved {
+            "preserved"
+        } else {
+            "needs attention"
+        };
+        format!(
+            "Packaged mixed frame batch parity: {} requests across {} bodies, ecliptic requests={}, equatorial requests={}; quality counts: Exact={}, Interpolated={}, Approximate={}, Unknown={}; order={}, single-query parity={}",
+            self.request_count,
+            self.body_count,
+            self.ecliptic_request_count,
+            self.equatorial_request_count,
+            self.exact_count,
+            self.interpolated_count,
+            self.approximate_count,
+            self.unknown_count,
+            order,
+            parity,
+        )
+    }
+}
+
+impl fmt::Display for PackagedBatchParitySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns the packaged mixed-frame batch-parity summary.
+pub fn packaged_mixed_frame_batch_parity_summary_for_report() -> String {
+    packaged_mixed_frame_batch_parity_summary()
+        .map(|summary| summary.to_string())
+        .unwrap_or_else(|| "Packaged mixed frame batch parity: unavailable".to_string())
+}
+
+/// Returns the packaged frame-parity summary.
+pub fn packaged_frame_parity_summary_for_report() -> String {
+    packaged_mixed_frame_batch_parity_summary_for_report()
+}
+
+/// Structured mixed TT/TDB batch-parity summary for the packaged artifact.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PackagedTimeScaleBatchParitySummary {
     /// Number of requests in the mixed-scale batch regression.
     pub request_count: usize,
     /// Number of bodies covered by the batch regression.
@@ -709,7 +858,7 @@ pub struct PackagedBatchParitySummary {
 }
 
 /// Returns a compact mixed TT/TDB batch-parity summary for the packaged artifact.
-pub fn packaged_mixed_tt_tdb_batch_parity_summary() -> Option<PackagedBatchParitySummary> {
+pub fn packaged_mixed_tt_tdb_batch_parity_summary() -> Option<PackagedTimeScaleBatchParitySummary> {
     let backend = packaged_backend();
     let snapshot = reference_snapshot();
     let mut requests = Vec::with_capacity(packaged_bodies().len());
@@ -774,7 +923,7 @@ pub fn packaged_mixed_tt_tdb_batch_parity_summary() -> Option<PackagedBatchParit
         }
     }
 
-    Some(PackagedBatchParitySummary {
+    Some(PackagedTimeScaleBatchParitySummary {
         request_count: requests.len(),
         body_count: entries.len(),
         tt_request_count,
@@ -788,7 +937,7 @@ pub fn packaged_mixed_tt_tdb_batch_parity_summary() -> Option<PackagedBatchParit
     })
 }
 
-impl PackagedBatchParitySummary {
+impl PackagedTimeScaleBatchParitySummary {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         let order = if self.order_preserved {
@@ -817,7 +966,7 @@ impl PackagedBatchParitySummary {
     }
 }
 
-impl fmt::Display for PackagedBatchParitySummary {
+impl fmt::Display for PackagedTimeScaleBatchParitySummary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.summary_line())
     }
@@ -1908,6 +2057,73 @@ mod tests {
         assert_eq!(tdb_result.body, tdb_single_result.body);
         assert_eq!(tt_result.apparent, tt_single_result.apparent);
         assert_eq!(tdb_result.apparent, tdb_single_result.apparent);
+    }
+
+    #[test]
+    fn packaged_mixed_frame_batch_requests_preserve_request_frames() {
+        let backend = packaged_backend();
+        let reference = reference_snapshot()
+            .iter()
+            .find(|entry| {
+                entry.body == CelestialBody::Sun
+                    && (entry.epoch.julian_day.days() - 2_451_545.0).abs() < f64::EPSILON
+            })
+            .expect("reference snapshot should include the Sun at J2000");
+        let ecliptic_request = EphemerisRequest {
+            body: CelestialBody::Sun,
+            instant: reference.epoch,
+            observer: None,
+            frame: CoordinateFrame::Ecliptic,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparent: pleiades_backend::Apparentness::Mean,
+        };
+        let equatorial_request = EphemerisRequest {
+            frame: CoordinateFrame::Equatorial,
+            ..ecliptic_request.clone()
+        };
+
+        let batch_results = backend
+            .positions(&[ecliptic_request.clone(), equatorial_request.clone()])
+            .expect("mixed frame requests should succeed through the batch path");
+        assert_eq!(batch_results.len(), 2);
+
+        let ecliptic_single = backend
+            .position(&ecliptic_request)
+            .expect("ecliptic requests should succeed through the single-request path");
+        let equatorial_single = backend
+            .position(&equatorial_request)
+            .expect("equatorial requests should succeed through the single-request path");
+
+        let ecliptic_result = &batch_results[0];
+        let equatorial_result = &batch_results[1];
+
+        assert_eq!(ecliptic_result.frame, CoordinateFrame::Ecliptic);
+        assert_eq!(equatorial_result.frame, CoordinateFrame::Equatorial);
+        assert_eq!(ecliptic_result.quality, QualityAnnotation::Interpolated);
+        assert_eq!(equatorial_result.quality, QualityAnnotation::Interpolated);
+        assert_eq!(ecliptic_result, &ecliptic_single);
+        assert_eq!(equatorial_result, &equatorial_single);
+    }
+
+    #[test]
+    fn packaged_mixed_frame_batch_parity_summary_is_release_facing() {
+        let summary = packaged_mixed_frame_batch_parity_summary()
+            .expect("packaged mixed frame batch parity should be available");
+
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.request_count, packaged_bodies().len());
+        assert_eq!(summary.body_count, packaged_bodies().len());
+        assert_eq!(
+            summary.ecliptic_request_count + summary.equatorial_request_count,
+            summary.request_count
+        );
+        assert!(summary.order_preserved);
+        assert!(summary.single_query_parity_preserved);
+        assert!(summary
+            .summary_line()
+            .contains("Packaged mixed frame batch parity:"));
+        assert!(packaged_mixed_frame_batch_parity_summary_for_report()
+            .contains("Packaged mixed frame batch parity:"));
     }
 
     #[test]

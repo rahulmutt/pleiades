@@ -47,7 +47,8 @@ use pleiades_core::{
 };
 use pleiades_data::{
     packaged_artifact_profile_summary_with_body_coverage,
-    packaged_artifact_regeneration_summary_for_report, packaged_frame_treatment_summary_details,
+    packaged_artifact_regeneration_summary_for_report, packaged_frame_parity_summary_for_report,
+    packaged_frame_treatment_summary_details,
     packaged_mixed_tt_tdb_batch_parity_summary_for_report,
     packaged_request_policy_summary_for_report, PackagedDataBackend,
 };
@@ -4172,6 +4173,9 @@ fn render_release_summary_text() -> String {
     text.push_str("Packaged batch parity: ");
     text.push_str(&packaged_mixed_tt_tdb_batch_parity_summary_for_report());
     text.push('\n');
+    text.push_str("Packaged frame parity: ");
+    text.push_str(&format_packaged_frame_parity_summary());
+    text.push('\n');
     text.push_str("Packaged frame treatment: ");
     text.push_str(&format_packaged_frame_treatment_summary());
     text.push('\n');
@@ -6262,6 +6266,10 @@ fn format_packaged_artifact_profile_summary() -> String {
     packaged_artifact_profile_summary_with_body_coverage()
 }
 
+fn format_packaged_frame_parity_summary() -> String {
+    packaged_frame_parity_summary_for_report()
+}
+
 fn format_packaged_frame_treatment_summary() -> String {
     packaged_frame_treatment_summary_details().to_string()
 }
@@ -6904,6 +6912,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         text,
         "  Packaged batch parity: {}",
         packaged_mixed_tt_tdb_batch_parity_summary_for_report()
+    );
+    let _ = writeln!(
+        text,
+        "  Packaged frame parity: {}",
+        format_packaged_frame_parity_summary()
     );
     let _ = writeln!(
         text,
@@ -10068,6 +10081,7 @@ mod tests {
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
         assert!(rendered.contains("Packaged-artifact profile"));
         assert!(rendered.contains("Packaged batch parity:"));
+        assert!(rendered.contains("Packaged frame parity:"));
         assert!(rendered.contains("Benchmark provenance"));
         assert!(rendered.contains("source revision:"));
         assert!(rendered.contains("workspace status:"));
@@ -10097,6 +10111,7 @@ mod tests {
         assert!(validation_report_summary.contains("Release notes summary: release-notes-summary"));
         assert!(validation_report_summary.contains("Packaged-artifact profile"));
         assert!(validation_report_summary.contains("Packaged request policy"));
+        assert!(validation_report_summary.contains("Packaged frame parity"));
         assert!(validation_report_summary.contains("Packaged frame treatment"));
         assert!(validation_report_summary.contains("Time-scale policy:"));
         assert!(validation_report_summary.contains("Observer policy:"));
@@ -12233,6 +12248,7 @@ version = "0.9.0"
         assert!(release_summary.contains("|ΔDec| mean/median/p95="));
         assert!(release_summary.contains("Packaged request policy"));
         assert!(release_summary.contains("Packaged batch parity:"));
+        assert!(release_summary.contains("Packaged frame parity:"));
         assert!(release_summary.contains("applies to 11 bundled bodies"));
         assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_summary.contains("Release notes summary: release-notes-summary"));
