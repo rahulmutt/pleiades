@@ -2548,6 +2548,10 @@ pub struct CompatibilityProfileVerificationSummary {
     pub release_house_canonical_names: String,
     /// Release-specific ayanamsa canonical names.
     pub release_ayanamsa_canonical_names: String,
+    /// Number of release notes documented in the profile.
+    pub release_note_count: usize,
+    /// Number of validation reference points documented in the profile.
+    pub validation_reference_point_count: usize,
     /// Number of custom-definition labels checked.
     pub custom_definition_label_count: usize,
     /// Number of documented compatibility caveats.
@@ -2602,6 +2606,12 @@ impl CompatibilityProfileVerificationSummary {
         text.push_str(&self.release_ayanamsa_canonical_names);
         text.push('\n');
         text.push_str("Release posture: baseline milestone preserved, release additions explicit, custom definitions tracked, caveats documented\n");
+        text.push_str("Release notes documented: ");
+        text.push_str(&self.release_note_count.to_string());
+        text.push_str(" entries\n");
+        text.push_str("Validation reference points documented: ");
+        text.push_str(&self.validation_reference_point_count.to_string());
+        text.push_str(" entries\n");
         text.push_str("Custom-definition labels verified: ");
         text.push_str(&self.custom_definition_label_count.to_string());
         text.push_str(" labels, all remain custom-definition territory\n");
@@ -2703,6 +2713,8 @@ pub fn compatibility_profile_verification_summary(
             profile.release_ayanamsas,
             |entry| entry.canonical_name,
         ),
+        release_note_count: profile.release_notes.len(),
+        validation_reference_point_count: profile.validation_reference_points.len(),
         custom_definition_label_count: custom_definition_labels_checked,
         compatibility_caveat_count: profile.known_gaps.len(),
     })
@@ -10324,6 +10336,14 @@ mod tests {
         assert!(rendered.contains("Release-specific ayanamsa canonical names verified:"));
         assert!(rendered.contains("Release posture: baseline milestone preserved, release additions explicit, custom definitions tracked, caveats documented"));
         assert!(rendered.contains(&format!(
+            "Release notes documented: {} entries",
+            profile.release_notes.len()
+        )));
+        assert!(rendered.contains(&format!(
+            "Validation reference points documented: {} entries",
+            profile.validation_reference_points.len()
+        )));
+        assert!(rendered.contains(&format!(
             "Custom-definition labels verified: {} labels, all remain custom-definition territory",
             profile.custom_definition_labels.len()
         )));
@@ -10364,6 +10384,11 @@ mod tests {
         assert_eq!(
             summary.release_ayanamsa_count,
             profile.release_ayanamsas.len()
+        );
+        assert_eq!(summary.release_note_count, profile.release_notes.len());
+        assert_eq!(
+            summary.validation_reference_point_count,
+            profile.validation_reference_points.len()
         );
         assert_eq!(
             summary.custom_definition_label_count,
