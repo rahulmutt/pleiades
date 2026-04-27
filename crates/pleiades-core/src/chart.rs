@@ -325,6 +325,8 @@ impl ChartRequest {
     /// - geocentric requests are described explicitly when no observer is set,
     /// - the current zodiac mode, apparentness, body count, and house-system
     ///   selection stay visible in a single line.
+    ///
+    /// [`fmt::Display`] renders the same text as this helper.
     pub fn summary_line(&self) -> String {
         let observer_policy = if self.observer.is_some() {
             "house-only"
@@ -350,6 +352,12 @@ impl ChartRequest {
             observer_policy,
             house_system,
         )
+    }
+}
+
+impl fmt::Display for ChartRequest {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
     }
 }
 
@@ -2198,6 +2206,7 @@ mod tests {
             request.summary_line(),
             "instant=JD 2451545 (TT); bodies=10; zodiac=Tropical; apparentness=Mean; observer=geocentric; house system=none"
         );
+        assert_eq!(request.to_string(), request.summary_line());
     }
 
     #[test]
