@@ -1452,6 +1452,118 @@ impl fmt::Display for JplInterpolationQualitySummary {
     }
 }
 
+/// Structured validation errors for the interpolation-quality summary.
+#[derive(Clone, Debug, PartialEq)]
+pub enum JplInterpolationQualitySummaryValidationError {
+    /// The summary did not expose any samples.
+    MissingSamples,
+    /// The summary did not expose any bodies.
+    MissingBodies,
+    /// The summary body count did not match the body list length.
+    BodyCountMismatch {
+        body_count: usize,
+        bodies_len: usize,
+    },
+    /// The summary did not expose any epochs.
+    MissingEpochs,
+    /// The summary reported an invalid earliest/latest epoch range.
+    InvalidEpochRange {
+        earliest_epoch: Instant,
+        latest_epoch: Instant,
+    },
+    /// The interpolation-kind counts did not add up to the total sample count.
+    InterpolationKindCountMismatch {
+        sample_count: usize,
+        kind_count: usize,
+    },
+}
+
+impl JplInterpolationQualitySummaryValidationError {
+    /// Returns the compact label used in release-facing summaries and tests.
+    pub const fn label(&self) -> &'static str {
+        match self {
+            Self::MissingSamples => "missing samples",
+            Self::MissingBodies => "missing bodies",
+            Self::BodyCountMismatch { .. } => "body count mismatch",
+            Self::MissingEpochs => "missing epochs",
+            Self::InvalidEpochRange { .. } => "invalid epoch range",
+            Self::InterpolationKindCountMismatch { .. } => "interpolation-kind count mismatch",
+        }
+    }
+}
+
+impl fmt::Display for JplInterpolationQualitySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::MissingSamples | Self::MissingBodies | Self::MissingEpochs => {
+                f.write_str(self.label())
+            }
+            Self::BodyCountMismatch {
+                body_count,
+                bodies_len,
+            } => write!(
+                f,
+                "body count {body_count} does not match body list length {bodies_len}"
+            ),
+            Self::InvalidEpochRange {
+                earliest_epoch,
+                latest_epoch,
+            } => write!(
+                f,
+                "invalid epoch range: earliest {} is after latest {}",
+                format_instant(*earliest_epoch),
+                format_instant(*latest_epoch),
+            ),
+            Self::InterpolationKindCountMismatch {
+                sample_count,
+                kind_count,
+            } => write!(
+                f,
+                "interpolation-kind count {kind_count} does not match sample count {sample_count}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for JplInterpolationQualitySummaryValidationError {}
+
+impl JplInterpolationQualitySummary {
+    /// Validates that the summary remains internally consistent.
+    pub fn validate(&self) -> Result<(), JplInterpolationQualitySummaryValidationError> {
+        if self.sample_count == 0 {
+            return Err(JplInterpolationQualitySummaryValidationError::MissingSamples);
+        }
+        if self.body_count == 0 {
+            return Err(JplInterpolationQualitySummaryValidationError::MissingBodies);
+        }
+        if self.epoch_count == 0 {
+            return Err(JplInterpolationQualitySummaryValidationError::MissingEpochs);
+        }
+        if self.earliest_epoch.julian_day.days() > self.latest_epoch.julian_day.days() {
+            return Err(
+                JplInterpolationQualitySummaryValidationError::InvalidEpochRange {
+                    earliest_epoch: self.earliest_epoch,
+                    latest_epoch: self.latest_epoch,
+                },
+            );
+        }
+        if self.sample_count
+            != self.cubic_sample_count + self.quadratic_sample_count + self.linear_sample_count
+        {
+            return Err(
+                JplInterpolationQualitySummaryValidationError::InterpolationKindCountMismatch {
+                    sample_count: self.sample_count,
+                    kind_count: self.cubic_sample_count
+                        + self.quadratic_sample_count
+                        + self.linear_sample_count,
+                },
+            );
+        }
+
+        Ok(())
+    }
+}
+
 /// Distinct-body coverage for the interpolation-quality hold-out samples.
 #[derive(Clone, Debug, PartialEq)]
 pub struct JplInterpolationQualityKindCoverage {
@@ -1662,6 +1774,28 @@ impl JplInterpolationQualityKindCoverage {
 impl fmt::Display for JplInterpolationQualityKindCoverage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.summary_line())
+    }
+}
+
+impl JplInterpolationQualityKindCoverage {
+    /// Validates that the coverage summary remains internally consistent.
+    pub fn validate(&self) -> Result<(), JplInterpolationQualitySummaryValidationError> {
+        if self.sample_count == 0 {
+            return Err(JplInterpolationQualitySummaryValidationError::MissingSamples);
+        }
+        if self.body_count == 0 {
+            return Err(JplInterpolationQualitySummaryValidationError::MissingBodies);
+        }
+        if self.body_count != self.bodies.len() {
+            return Err(
+                JplInterpolationQualitySummaryValidationError::BodyCountMismatch {
+                    body_count: self.body_count,
+                    bodies_len: self.bodies.len(),
+                },
+            );
+        }
+
+        Ok(())
     }
 }
 
@@ -1892,6 +2026,39 @@ impl fmt::Display for JplIndependentHoldoutSummary {
     }
 }
 
+impl JplIndependentHoldoutSummary {
+    /// Validates that the hold-out summary remains internally consistent.
+    pub fn validate(&self) -> Result<(), JplInterpolationQualitySummaryValidationError> {
+        if self.sample_count == 0 {
+            return Err(JplInterpolationQualitySummaryValidationError::MissingSamples);
+        }
+        if self.body_count == 0 {
+            return Err(JplInterpolationQualitySummaryValidationError::MissingBodies);
+        }
+        if self.body_count != self.bodies.len() {
+            return Err(
+                JplInterpolationQualitySummaryValidationError::BodyCountMismatch {
+                    body_count: self.body_count,
+                    bodies_len: self.bodies.len(),
+                },
+            );
+        }
+        if self.epoch_count == 0 {
+            return Err(JplInterpolationQualitySummaryValidationError::MissingEpochs);
+        }
+        if self.earliest_epoch.julian_day.days() > self.latest_epoch.julian_day.days() {
+            return Err(
+                JplInterpolationQualitySummaryValidationError::InvalidEpochRange {
+                    earliest_epoch: self.earliest_epoch,
+                    latest_epoch: self.latest_epoch,
+                },
+            );
+        }
+
+        Ok(())
+    }
+}
+
 /// Formats the independent hold-out summary for release-facing reporting.
 pub fn format_jpl_independent_holdout_summary(summary: &JplIndependentHoldoutSummary) -> String {
     summary.summary_line()
@@ -1900,7 +2067,8 @@ pub fn format_jpl_independent_holdout_summary(summary: &JplIndependentHoldoutSum
 /// Returns the release-facing independent hold-out interpolation summary string.
 pub fn jpl_independent_holdout_summary_for_report() -> String {
     match jpl_independent_holdout_summary() {
-        Some(summary) => summary.to_string(),
+        Some(summary) if summary.validate().is_ok() => summary.to_string(),
+        Some(_) => "JPL independent hold-out: unavailable".to_string(),
         None => match independent_holdout_snapshot_error() {
             Some(error) => format!("JPL independent hold-out: unavailable ({error})"),
             None => "JPL independent hold-out: unavailable".to_string(),
@@ -1956,18 +2124,22 @@ pub fn format_jpl_interpolation_quality_summary_for_report() -> String {
         jpl_interpolation_quality_summary(),
         jpl_interpolation_quality_kind_coverage(),
     ) {
-        (Some(summary), Some(coverage)) => {
+        (Some(summary), Some(coverage))
+            if summary.validate().is_ok() && coverage.validate().is_ok() =>
+        {
             let mut rendered = summary.to_string();
             rendered.push('\n');
             rendered.push_str(&coverage.to_string());
             rendered
         }
-        (Some(summary), None) => {
+        (Some(_), Some(_)) => "JPL interpolation quality: unavailable".to_string(),
+        (Some(summary), None) if summary.validate().is_ok() => {
             let mut rendered = summary.to_string();
             rendered.push('\n');
             rendered.push_str("JPL interpolation quality kind coverage: unavailable");
             rendered
         }
+        (Some(_), None) => "JPL interpolation quality: unavailable".to_string(),
         (None, _) => "JPL interpolation quality: unavailable".to_string(),
     }
 }
@@ -4669,6 +4841,70 @@ mod tests {
 
         assert!(rendered.contains(&format_jpl_interpolation_quality_summary(&summary)));
         assert!(rendered.contains(&format_jpl_interpolation_quality_kind_coverage(&coverage)));
+    }
+
+    #[test]
+    fn interpolation_quality_summary_validation_rejects_inconsistent_counts() {
+        let mut summary = jpl_interpolation_quality_summary().expect("summary should exist");
+        summary.sample_count = 0;
+        assert_eq!(
+            summary.validate(),
+            Err(JplInterpolationQualitySummaryValidationError::MissingSamples)
+        );
+
+        let mut summary = jpl_interpolation_quality_summary().expect("summary should exist");
+        summary.cubic_sample_count += 1;
+        let kind_count = summary.cubic_sample_count
+            + summary.quadratic_sample_count
+            + summary.linear_sample_count;
+        assert_eq!(
+            summary.validate(),
+            Err(
+                JplInterpolationQualitySummaryValidationError::InterpolationKindCountMismatch {
+                    sample_count: summary.sample_count,
+                    kind_count,
+                }
+            )
+        );
+    }
+
+    #[test]
+    fn interpolation_quality_coverage_validation_rejects_inconsistent_bodies() {
+        let mut coverage =
+            jpl_interpolation_quality_kind_coverage().expect("coverage should exist");
+        coverage.body_count += 1;
+        assert_eq!(
+            coverage.validate(),
+            Err(
+                JplInterpolationQualitySummaryValidationError::BodyCountMismatch {
+                    body_count: coverage.body_count,
+                    bodies_len: coverage.bodies.len(),
+                }
+            )
+        );
+    }
+
+    #[test]
+    fn independent_holdout_summary_validation_rejects_inconsistent_ranges() {
+        let mut summary = jpl_independent_holdout_summary().expect("summary should exist");
+        summary.epoch_count = 0;
+        assert_eq!(
+            summary.validate(),
+            Err(JplInterpolationQualitySummaryValidationError::MissingEpochs)
+        );
+
+        let mut summary = jpl_independent_holdout_summary().expect("summary should exist");
+        summary.earliest_epoch = Instant::new(JulianDay::from_days(2_600_000.0), TimeScale::Tdb);
+        summary.latest_epoch = Instant::new(JulianDay::from_days(2_500_000.0), TimeScale::Tdb);
+        assert_eq!(
+            summary.validate(),
+            Err(
+                JplInterpolationQualitySummaryValidationError::InvalidEpochRange {
+                    earliest_epoch: summary.earliest_epoch,
+                    latest_epoch: summary.latest_epoch,
+                }
+            )
+        );
     }
 
     #[test]
