@@ -256,6 +256,78 @@ impl fmt::Display for TimeScaleConversionError {
 
 impl std::error::Error for TimeScaleConversionError {}
 
+/// A caller-supplied time-scale conversion policy.
+///
+/// The conversion stores the source and target time scales plus the explicit
+/// `target - source` offset in SI seconds. It does not model Delta T,
+/// leap seconds, DUT1, or relativistic TDB terms itself; it only packages the
+/// caller's chosen rule so an instant can be retagged explicitly and
+/// reproducibly.
+///
+/// # Example
+///
+/// ```
+/// use pleiades_types::{Instant, JulianDay, TimeScale, TimeScaleConversion};
+///
+/// let policy = TimeScaleConversion::new(TimeScale::Ut1, TimeScale::Tt, 64.184);
+/// let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Ut1);
+/// let converted = policy.apply(instant).expect("UT1-tagged instant");
+///
+/// assert_eq!(converted.scale, TimeScale::Tt);
+/// ```
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct TimeScaleConversion {
+    /// The source time scale expected by the policy.
+    pub source: TimeScale,
+    /// The target time scale produced by the policy.
+    pub target: TimeScale,
+    /// The explicit `target - source` offset in SI seconds.
+    pub offset_seconds: f64,
+}
+
+impl TimeScaleConversion {
+    /// Creates a new caller-supplied time-scale conversion policy.
+    pub const fn new(source: TimeScale, target: TimeScale, offset_seconds: f64) -> Self {
+        Self {
+            source,
+            target,
+            offset_seconds,
+        }
+    }
+
+    /// Returns a compact one-line rendering of the caller-supplied policy.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "{} -> {}; offset_seconds={} s",
+            self.source, self.target, self.offset_seconds
+        )
+    }
+
+    /// Applies the policy to an instant.
+    ///
+    /// The source scale must match the instant's current scale, and the offset
+    /// must be finite. Otherwise the conversion fails with the same structured
+    /// time-scale error used by the lower-level helpers.
+    pub fn apply(self, instant: Instant) -> Result<Instant, TimeScaleConversionError> {
+        if instant.scale != self.source {
+            return Err(TimeScaleConversionError::expected(
+                self.source,
+                instant.scale,
+            ));
+        }
+
+        let offset_seconds = checked_time_scale_offset(self.offset_seconds)?;
+        Ok(instant.with_time_scale_offset(self.target, offset_seconds))
+    }
+}
+
+impl fmt::Display for TimeScaleConversion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 fn checked_time_scale_offset(offset_seconds: f64) -> Result<f64, TimeScaleConversionError> {
     if offset_seconds.is_finite() {
         Ok(offset_seconds)
@@ -283,6 +355,19 @@ impl Instant {
     /// Returns a compact one-line rendering of the instant.
     pub fn summary_line(&self) -> String {
         format!("{} {}", self.julian_day, self.scale)
+    }
+
+    /// Applies a caller-supplied time-scale conversion policy.
+    ///
+    /// This helper is the generic counterpart to the source-specific
+    /// `tt_from_*` / `tdb_from_*` methods. It lets callers package the explicit
+    /// source, target, and offset choice into one typed record when they want
+    /// to keep the conversion contract alongside the instant.
+    pub fn with_time_scale_conversion(
+        self,
+        conversion: TimeScaleConversion,
+    ) -> Result<Self, TimeScaleConversionError> {
+        conversion.apply(self)
     }
 
     /// Returns this instant with a caller-supplied offset applied and a new time
@@ -2050,6 +2135,44 @@ mod tests {
             "time-scale conversion offset must be finite"
         );
         assert_eq!(non_finite.to_string(), non_finite.summary_line());
+    }
+
+    #[test]
+    fn time_scale_conversion_policy_can_apply_a_caller_supplied_rule() {
+        let policy = TimeScaleConversion::new(TimeScale::Ut1, TimeScale::Tt, 64.184);
+        let ut1 = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Ut1);
+        let converted = policy
+            .apply(ut1)
+            .expect("caller-supplied policy should convert the source instant");
+
+        assert_eq!(converted.scale, TimeScale::Tt);
+        assert!((converted.julian_day.days() - 2_451_545.000_742_870_4).abs() < 1e-12);
+        assert_eq!(policy.summary_line(), "UT1 -> TT; offset_seconds=64.184 s");
+        assert_eq!(policy.to_string(), policy.summary_line());
+    }
+
+    #[test]
+    fn time_scale_conversion_policy_rejects_mismatched_scales_and_non_finite_offsets() {
+        let policy = TimeScaleConversion::new(TimeScale::Ut1, TimeScale::Tt, 64.184);
+        let tt = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+        let error = policy
+            .apply(tt)
+            .expect_err("policy should reject the wrong source scale");
+
+        assert!(matches!(
+            error,
+            TimeScaleConversionError::Expected {
+                expected: TimeScale::Ut1,
+                actual: TimeScale::Tt,
+            }
+        ));
+
+        let non_finite = TimeScaleConversion::new(TimeScale::Tt, TimeScale::Tdb, f64::NAN);
+        let error = non_finite
+            .apply(tt)
+            .expect_err("policy should reject non-finite offsets");
+
+        assert!(matches!(error, TimeScaleConversionError::NonFiniteOffset));
     }
 
     #[test]

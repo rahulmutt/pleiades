@@ -17,7 +17,8 @@ use pleiades_backend::{
 use pleiades_houses::{calculate_houses, house_for_longitude, HouseRequest, HouseSnapshot};
 use pleiades_types::{
     Angle, CelestialBody, HouseSystem, Instant, Longitude, Motion, MotionDirection,
-    ObserverLocation, TimeScale, TimeScaleConversionError, ZodiacMode, ZodiacSign,
+    ObserverLocation, TimeScale, TimeScaleConversion, TimeScaleConversionError, ZodiacMode,
+    ZodiacSign,
 };
 
 use crate::ChartEngine;
@@ -171,6 +172,38 @@ impl ChartRequest {
             .instant
             .with_time_scale_offset(target_scale, offset_seconds);
         self
+    }
+
+    /// Applies a caller-supplied time-scale conversion policy to the chart
+    /// instant.
+    ///
+    /// This is the generic counterpart to the source-specific conversion
+    /// conveniences below. It keeps the explicit source, target, and offset
+    /// choice available as a typed policy object while preserving the rest of
+    /// the chart request shape.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use pleiades_core::ChartRequest;
+    /// use pleiades_types::{Instant, JulianDay, TimeScale, TimeScaleConversion};
+    ///
+    /// let policy = TimeScaleConversion::new(TimeScale::Ut1, TimeScale::Tdb, 64.184);
+    /// let request = ChartRequest::new(Instant::new(
+    ///     JulianDay::from_days(2_451_545.0),
+    ///     TimeScale::Ut1,
+    /// ))
+    /// .with_time_scale_conversion(policy)
+    /// .expect("explicit time-scale policy");
+    ///
+    /// assert_eq!(request.instant.scale, TimeScale::Tdb);
+    /// ```
+    pub fn with_time_scale_conversion(
+        mut self,
+        conversion: TimeScaleConversion,
+    ) -> Result<Self, TimeScaleConversionError> {
+        self.instant = conversion.apply(self.instant)?;
+        Ok(self)
     }
 
     /// Converts the chart instant from UT1 to TT using caller-supplied Delta T.
@@ -2458,6 +2491,22 @@ mod tests {
         assert_eq!(request.instant.scale, TimeScale::Tt);
         let expected = 2_451_545.0 + 64.184 / 86_400.0;
         assert!((request.instant.julian_day.days() - expected).abs() < 1e-9);
+    }
+
+    #[test]
+    fn chart_request_can_apply_a_caller_supplied_time_scale_conversion_policy() {
+        let policy = TimeScaleConversion::new(TimeScale::Ut1, TimeScale::Tdb, 64.184);
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Ut1,
+        ))
+        .with_time_scale_conversion(policy)
+        .expect("UT1 chart request should accept a caller-supplied policy");
+
+        assert_eq!(request.instant.scale, TimeScale::Tdb);
+        let expected = 2_451_545.0 + 64.184 / 86_400.0;
+        assert!((request.instant.julian_day.days() - expected).abs() < 1e-9);
+        assert_eq!(policy.summary_line(), "UT1 -> TDB; offset_seconds=64.184 s");
     }
 
     #[test]
