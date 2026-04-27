@@ -2626,6 +2626,12 @@ pub fn compatibility_profile_verification_summary(
     let ayanamsa_labels_checked = verify_ayanamsa_aliases(profile.ayanamsas)?;
     let custom_definition_labels_checked =
         verify_custom_definition_labels(profile.custom_definition_labels)?;
+    verify_profile_text_section("release-note", profile.release_notes)?;
+    verify_profile_text_section(
+        "validation-reference-point",
+        profile.validation_reference_points,
+    )?;
+    verify_profile_text_section("compatibility-caveat", profile.known_gaps)?;
 
     Ok(CompatibilityProfileVerificationSummary {
         profile_id: release_profiles.compatibility_profile_id.to_string(),
@@ -2833,6 +2839,44 @@ fn verify_custom_definition_labels(labels: &[&'static str]) -> Result<usize, Eph
 
 fn has_surrounding_whitespace(value: &str) -> bool {
     !value.is_empty() && value.trim() != value
+}
+
+fn verify_profile_text_section(
+    section_label: &str,
+    entries: &[&str],
+) -> Result<usize, EphemerisError> {
+    let mut entries_checked = 0usize;
+    let mut seen_entries = BTreeSet::new();
+
+    for entry in entries {
+        entries_checked += 1;
+        if entry.trim().is_empty() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!("compatibility profile {section_label} entry is blank"),
+            ));
+        }
+
+        if has_surrounding_whitespace(entry) {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile {section_label} entry '{}' contains surrounding whitespace",
+                    entry
+                ),
+            ));
+        }
+
+        let normalized_entry = entry.trim().to_string();
+        if !seen_entries.insert(normalized_entry) {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!("compatibility profile {section_label} entries are not unique: duplicate entry '{}'", entry),
+            ));
+        }
+    }
+
+    Ok(entries_checked)
 }
 
 fn ensure_profile_descriptor_metadata(
@@ -10287,6 +10331,26 @@ mod tests {
         assert!(error
             .message
             .contains("labels are not unique ignoring case"));
+    }
+
+    #[test]
+    fn compatibility_profile_verification_rejects_blank_release_note_entries() {
+        let entries = ["release note", "   "];
+
+        let error = verify_profile_text_section("release-note", &entries)
+            .expect_err("blank release-note entries should fail verification");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error.message.contains("entry is blank"));
+    }
+
+    #[test]
+    fn compatibility_profile_verification_rejects_duplicate_compatibility_caveats() {
+        let entries = ["known gap", "known gap"];
+
+        let error = verify_profile_text_section("compatibility-caveat", &entries)
+            .expect_err("duplicate caveat entries should fail verification");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error.message.contains("entries are not unique"));
     }
 
     #[test]
