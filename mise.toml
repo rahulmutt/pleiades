@@ -10,6 +10,9 @@ run = "cargo clippy --workspace --all-targets --all-features -- -D warnings"
 [tasks.test]
 run = "cargo test --workspace"
 
+[tasks.docs]
+run = "RUSTDOCFLAGS=\"-D warnings\" cargo doc --workspace --no-deps --all-features"
+
 [tasks.audit]
 run = "cargo run -q -p pleiades-validate -- workspace-audit"
 
@@ -28,4 +31,4 @@ test -s "$tmpdir/bundle-manifest.txt"
 """
 
 [tasks.ci]
-depends = ["fmt", "lint", "test", "audit", "release-smoke"]
+depends = ["fmt", "lint", "test", "docs", "audit", "release-smoke"]
