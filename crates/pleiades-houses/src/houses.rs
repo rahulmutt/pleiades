@@ -1505,6 +1505,36 @@ mod tests {
     }
 
     #[test]
+    fn topocentric_houses_follow_the_geocentric_latitude_correction() {
+        let mut topocentric_request = sample_request(HouseSystem::Topocentric);
+        topocentric_request.observer.latitude = Latitude::from_degrees(45.0);
+        topocentric_request.observer.longitude = Longitude::from_degrees(10.0);
+        topocentric_request.observer.elevation_m = Some(2_000.0);
+
+        let topocentric =
+            calculate_houses(&topocentric_request).expect("topocentric houses should work");
+        assert_eq!(topocentric.cusps.len(), 12);
+
+        let corrected_latitude =
+            topocentric_latitude(45.0, Some(2_000.0)).expect("topocentric latitude should convert");
+        let mut placidus_request = topocentric_request.clone();
+        placidus_request.system = HouseSystem::Placidus;
+        placidus_request.observer.latitude = Latitude::from_degrees(corrected_latitude.degrees());
+
+        let placidus = calculate_houses(&placidus_request)
+            .expect("placidus houses should match the corrected latitude");
+
+        let mut geodetic_placidus_request = topocentric_request.clone();
+        geodetic_placidus_request.system = HouseSystem::Placidus;
+        let geodetic_placidus =
+            calculate_houses(&geodetic_placidus_request).expect("placidus houses should work");
+
+        assert_ne!(topocentric.cusps[1], geodetic_placidus.cusps[1]);
+        assert_eq!(topocentric.angles, geodetic_placidus.angles);
+        assert_eq!(topocentric.cusps, placidus.cusps);
+    }
+
+    #[test]
     fn observer_latitudes_outside_the_valid_range_are_rejected() {
         let mut request = sample_request(HouseSystem::Equal);
         request.observer.latitude = Latitude::from_degrees(90.000_1);

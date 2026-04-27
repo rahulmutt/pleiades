@@ -64,6 +64,7 @@ The repository already exposes baseline house systems and ayanamsas, a larger re
    - Progress note: the compatibility-profile smoke tests now also pin `Hipparchus`, `Djwhal Khul`, `Udayagiri`, and `True Mula`, keeping a few more release-profile ayanamsa labels explicitly covered in the CLI and validation audit paths as the catalog breadth pass continues.
    - Progress note: the compatibility-profile smoke tests now also pin the Raman appendix spellings `Raman Ayanamsha` and `Raman ayanamsa`, keeping that baseline ayanamsa alias group visible in the CLI and validation audit paths alongside the existing `B. V. Raman` coverage.
    - Progress note: the validation and release summary views now also surface the compact house-validation corpus line from the representative baseline scenarios, so the formula-validation slice is visible in the short release-facing reports instead of only in the detailed house report. The built-in house and ayanamsa descriptor records now also expose compact summary-line/Display helpers, and the compatibility-profile formatter reuses those typed records directly so the release-facing catalog sections stay co-located with the descriptor definitions.
+   - Progress note: topocentric house calculations now have a regression that checks the geocentric latitude correction path against a matching Placidus reference, while keeping the returned snapshot angles tied to the original observer request; that makes the topocentric house wrapper's observer-correction contract explicit in the derived-domain test surface.
 
 ## Done criteria
 
