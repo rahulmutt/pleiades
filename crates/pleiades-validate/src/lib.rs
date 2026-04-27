@@ -2773,6 +2773,15 @@ fn verify_house_system_aliases(
 
         for alias in entry.aliases {
             labels_checked += 1;
+            if has_surrounding_whitespace(alias) {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "compatibility profile house-system descriptor '{}' contains surrounding whitespace in its label",
+                        alias
+                    ),
+                ));
+            }
             ensure_unique_profile_label(
                 "house-system",
                 alias,
@@ -2832,6 +2841,15 @@ fn verify_ayanamsa_aliases(
 
         for alias in entry.aliases {
             labels_checked += 1;
+            if has_surrounding_whitespace(alias) {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "compatibility profile ayanamsa descriptor '{}' contains surrounding whitespace in its label",
+                        alias
+                    ),
+                ));
+            }
             ensure_unique_profile_label(
                 "ayanamsa",
                 alias,
@@ -10415,6 +10433,45 @@ mod tests {
         assert!(error
             .message
             .contains("contains surrounding whitespace in its notes metadata"));
+    }
+
+    #[test]
+    fn compatibility_profile_verification_rejects_whitespace_padded_house_aliases() {
+        let descriptors = [pleiades_houses::HouseSystemDescriptor::new(
+            HouseSystem::Placidus,
+            "Placidus",
+            &[" Placidus alias "],
+            "Quadrant system used for whitespace-padded alias coverage.",
+            true,
+        )];
+
+        let error = verify_house_system_aliases(&descriptors)
+            .expect_err("whitespace-padded house aliases should fail profile verification");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("contains surrounding whitespace in its label"));
+        assert!(error.message.contains(" Placidus alias "));
+    }
+
+    #[test]
+    fn compatibility_profile_verification_rejects_whitespace_padded_ayanamsa_aliases() {
+        let descriptors = [pleiades_ayanamsa::AyanamsaDescriptor::new(
+            Ayanamsa::Lahiri,
+            "Lahiri",
+            &[" Lahiri alias "],
+            "Ayanamsa used for whitespace-padded alias coverage.",
+            Some(JulianDay::from_days(2_435_553.5)),
+            Some(pleiades_core::Angle::from_degrees(23.245_524_743)),
+        )];
+
+        let error = verify_ayanamsa_aliases(&descriptors)
+            .expect_err("whitespace-padded ayanamsa aliases should fail profile verification");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("contains surrounding whitespace in its label"));
+        assert!(error.message.contains(" Lahiri alias "));
     }
 
     #[test]
