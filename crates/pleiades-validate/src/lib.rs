@@ -7222,6 +7222,7 @@ pub fn render_backend_matrix_report() -> Result<String, EphemerisError> {
     })?;
 
     for entry in implemented_backend_catalog() {
+        validate_backend_matrix_entry(&entry)?;
         fmt::write(&mut rendered, format_args!("{}\n", entry.label)).map_err(|_| {
             EphemerisError::new(
                 EphemerisErrorKind::NumericalFailure,
@@ -7241,6 +7242,18 @@ pub fn render_backend_matrix_report() -> Result<String, EphemerisError> {
     }
 
     Ok(rendered)
+}
+
+fn validate_backend_matrix_entry(entry: &BackendMatrixEntry) -> Result<(), EphemerisError> {
+    entry.metadata.validate().map_err(|error| {
+        EphemerisError::new(
+            EphemerisErrorKind::InvalidRequest,
+            format!(
+                "backend matrix entry `{}` has invalid metadata: {error}",
+                entry.label
+            ),
+        )
+    })
 }
 
 struct BackendMatrixDisplay<'a>(&'a BackendMatrixEntry);
@@ -11467,6 +11480,42 @@ mod tests {
         assert!(rendered.contains("unsupported bodies: True Apogee, True Perigee"));
         assert!(rendered.contains("Packaged data backend"));
         assert!(rendered.contains("Composite routed backend"));
+    }
+
+    #[test]
+    fn backend_matrix_report_rejects_invalid_backend_metadata() {
+        let entry = BackendMatrixEntry {
+            label: "broken backend",
+            metadata: BackendMetadata {
+                id: pleiades_core::BackendId::new("broken"),
+                version: "0.1.0".to_string(),
+                family: BackendFamily::Algorithmic,
+                provenance: pleiades_core::BackendProvenance {
+                    summary: "  ".to_string(),
+                    data_sources: vec![],
+                },
+                nominal_range: TimeRange::new(None, None),
+                supported_time_scales: vec![TimeScale::Tt],
+                body_coverage: vec![CelestialBody::Sun],
+                supported_frames: vec![CoordinateFrame::Ecliptic],
+                capabilities: BackendCapabilities::default(),
+                accuracy: AccuracyClass::Approximate,
+                deterministic: true,
+                offline: true,
+            },
+            implementation_status: BackendImplementationStatus::PreliminaryAlgorithm,
+            status_note: "broken for testing",
+            expected_error_kinds: &[],
+            required_data_files: &[],
+        };
+
+        let error = validate_backend_matrix_entry(&entry)
+            .expect_err("invalid backend metadata should be rejected");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .to_string()
+            .contains("backend matrix entry `broken backend` has invalid metadata"));
+        assert!(error.to_string().contains("provenance summary"));
     }
 
     #[test]
