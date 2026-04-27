@@ -1987,6 +1987,42 @@ pub struct SnapshotManifest {
     pub columns: Vec<String>,
 }
 
+/// Structured validation errors for a parsed JPL snapshot manifest.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum SnapshotManifestValidationError {
+    /// The manifest did not include a human-readable title comment.
+    MissingTitle,
+    /// The manifest did not include a source provenance comment.
+    MissingSource,
+    /// The manifest did not include any column names.
+    MissingColumns,
+    /// A parsed column name was blank after trimming.
+    BlankColumn { index: usize },
+}
+
+impl SnapshotManifestValidationError {
+    /// Returns the compact label used in release-facing summaries and tests.
+    pub const fn label(&self) -> &'static str {
+        match self {
+            Self::MissingTitle => "missing title",
+            Self::MissingSource => "missing source",
+            Self::MissingColumns => "missing columns",
+            Self::BlankColumn { .. } => "blank column",
+        }
+    }
+}
+
+impl fmt::Display for SnapshotManifestValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BlankColumn { index } => write!(f, "blank column at index {index}"),
+            _ => f.write_str(self.label()),
+        }
+    }
+}
+
+impl std::error::Error for SnapshotManifestValidationError {}
+
 impl SnapshotManifest {
     /// Returns the source label, or the provided fallback when the manifest omits it.
     pub fn source_or(&self, fallback: &'static str) -> Cow<'_, str> {
@@ -2010,6 +2046,41 @@ impl SnapshotManifest {
         } else {
             self.columns.join(", ")
         }
+    }
+
+    /// Validates that the parsed manifest still exposes the expected title,
+    /// source, and column metadata.
+    pub fn validate(&self) -> Result<(), SnapshotManifestValidationError> {
+        if self
+            .title
+            .as_deref()
+            .map(str::trim)
+            .filter(|title| !title.is_empty())
+            .is_none()
+        {
+            return Err(SnapshotManifestValidationError::MissingTitle);
+        }
+        if self
+            .source
+            .as_deref()
+            .map(str::trim)
+            .filter(|source| !source.is_empty())
+            .is_none()
+        {
+            return Err(SnapshotManifestValidationError::MissingSource);
+        }
+        if self.columns.is_empty() {
+            return Err(SnapshotManifestValidationError::MissingColumns);
+        }
+        if let Some((index, _)) = self
+            .columns
+            .iter()
+            .enumerate()
+            .find(|(_, column)| column.trim().is_empty())
+        {
+            return Err(SnapshotManifestValidationError::BlankColumn { index });
+        }
+        Ok(())
     }
 
     /// Formats the parsed manifest into the compact release-facing summary line.
@@ -3020,6 +3091,7 @@ mod tests {
         );
         assert_eq!(manifest.coverage, None);
         assert_eq!(manifest.columns, ["body", "x_km", "y_km", "z_km"]);
+        assert_eq!(manifest.validate(), Ok(()));
         assert_eq!(
             source_summary.summary_line(),
             "Comparison snapshot source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.; coverage=Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.; columns=body, x_km, y_km, z_km"
@@ -3040,6 +3112,61 @@ mod tests {
         assert_eq!(
             manifest.to_string(),
             "Snapshot manifest: JPL Horizons reference snapshot.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.; coverage=unknown; columns=body, x_km, y_km, z_km"
+        );
+    }
+
+    #[test]
+    fn snapshot_manifest_validation_reports_missing_required_metadata() {
+        let manifest = SnapshotManifest {
+            title: Some(" ".to_string()),
+            source: None,
+            coverage: Some("ignored".to_string()),
+            columns: vec!["body".to_string(), "".to_string()],
+        };
+
+        assert_eq!(
+            manifest.validate(),
+            Err(SnapshotManifestValidationError::MissingTitle)
+        );
+
+        let manifest = SnapshotManifest {
+            title: Some("Example snapshot.".to_string()),
+            source: Some(" ".to_string()),
+            coverage: None,
+            columns: vec!["body".to_string()],
+        };
+
+        assert_eq!(
+            manifest.validate(),
+            Err(SnapshotManifestValidationError::MissingSource)
+        );
+
+        let manifest = SnapshotManifest {
+            title: Some("Example snapshot.".to_string()),
+            source: Some("Example source".to_string()),
+            coverage: None,
+            columns: Vec::new(),
+        };
+
+        assert_eq!(
+            manifest.validate(),
+            Err(SnapshotManifestValidationError::MissingColumns)
+        );
+
+        let manifest = SnapshotManifest {
+            title: Some("Example snapshot.".to_string()),
+            source: Some("Example source".to_string()),
+            coverage: None,
+            columns: vec!["body".to_string(), "".to_string()],
+        };
+
+        assert_eq!(
+            manifest.validate(),
+            Err(SnapshotManifestValidationError::BlankColumn { index: 1 })
+        );
+        assert_eq!(
+            SnapshotManifestValidationError::BlankColumn { index: 1 }.to_string(),
+            "blank column at index 1"
         );
     }
 
@@ -3474,6 +3601,7 @@ mod tests {
             manifest.columns,
             ["epoch_jd", "body", "x_km", "y_km", "z_km"]
         );
+        assert_eq!(manifest.validate(), Ok(()));
         assert_eq!(
             manifest.summary_line("Reference snapshot manifest"),
             "Reference snapshot manifest: JPL Horizons reference snapshot.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; outer planets and Pluto sampled at J2000 and 2132.; columns=epoch_jd, body, x_km, y_km, z_km"
@@ -3496,6 +3624,7 @@ mod tests {
             manifest.columns,
             ["epoch_jd", "body", "x_km", "y_km", "z_km"]
         );
+        assert_eq!(manifest.validate(), Ok(()));
         assert_eq!(
             manifest.summary_line("Independent hold-out manifest"),
             "Independent hold-out manifest: Independent JPL Horizons hold-out snapshot used only for interpolation validation.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Saturn at 2400000, 2451545, and 2500000.; columns=epoch_jd, body, x_km, y_km, z_km"
