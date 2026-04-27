@@ -1365,7 +1365,13 @@ pub fn format_source_documentation_health_summary(
     )
 }
 
-fn source_documentation_partition_bodies(
+/// Returns the source-backed partition order used by the VSOP87 source
+/// documentation health check.
+///
+/// The generated-binary, vendored full-file, and truncated slices are kept in
+/// this order so regeneration tooling and release reports can reuse the same
+/// backend-owned partitioning without reconstructing it locally.
+pub fn source_documentation_partition_bodies(
     summary: &Vsop87SourceDocumentationSummary,
 ) -> Vec<CelestialBody> {
     summary
