@@ -694,6 +694,12 @@ mod tests {
         assert!(rendered.contains("Babylonian (True Geoc)"));
         assert!(rendered.contains("Lahiri (VP285)"));
         assert!(rendered.contains("Krishnamurti (VP291)"));
+        assert!(rendered.contains("Lahiri (ICRC)"));
+        assert!(rendered.contains("Udayagiri"));
+        assert!(rendered.contains("Valens Moon"));
+        assert!(rendered.contains("Babylonian (House Obs)"));
+        assert!(rendered.contains("B. V. Raman"));
+        assert!(rendered.contains("Raman Ayanamsha"));
     }
 
     #[test]
@@ -744,6 +750,10 @@ mod tests {
         assert!(compatibility.contains("Galactic Equator (Mula)"));
         assert!(compatibility.contains("Galactic Equator (Fiorenza)"));
         assert!(compatibility.contains("JN Bhasin"));
+        assert!(compatibility.contains("Lahiri (ICRC)"));
+        assert!(compatibility.contains("Udayagiri"));
+        assert!(compatibility.contains("Valens Moon"));
+        assert!(compatibility.contains("Babylonian (House Obs)"));
 
         let verification = render_cli(&["verify-compatibility-profile"])
             .expect("compatibility profile verification should render");
