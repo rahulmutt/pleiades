@@ -313,6 +313,44 @@ impl ChartRequest {
         self.house_system = Some(house_system);
         self
     }
+
+    /// Returns a compact one-line summary of the request shape.
+    ///
+    /// The summary is intended for diagnostics, validation reports, and
+    /// release-facing policy notes. It uses the same compact terminology as
+    /// `docs/time-observer-policy.md`:
+    ///
+    /// - the instant's explicit time scale is rendered directly,
+    /// - observer-bearing chart requests are described as house-only,
+    /// - geocentric requests are described explicitly when no observer is set,
+    /// - the current zodiac mode, apparentness, body count, and house-system
+    ///   selection stay visible in a single line.
+    pub fn summary_line(&self) -> String {
+        let observer_policy = if self.observer.is_some() {
+            "house-only"
+        } else {
+            "geocentric"
+        };
+        let house_system = self.house_system.as_ref().map_or_else(
+            || "none".to_string(),
+            |house_system| {
+                crate::house_system_descriptor(house_system)
+                    .map(|descriptor| descriptor.canonical_name.to_string())
+                    .unwrap_or_else(|| "Custom".to_string())
+            },
+        );
+
+        format!(
+            "instant={} ({}); bodies={}; zodiac={}; apparentness={}; observer={}; house system={}",
+            self.instant.julian_day,
+            self.instant.scale,
+            self.bodies.len(),
+            self.zodiac_mode,
+            self.apparentness,
+            observer_policy,
+            house_system,
+        )
+    }
 }
 
 /// A single body placement within a chart.
@@ -2147,6 +2185,43 @@ mod tests {
             .contains("observer elevation must be finite when provided"));
         let observers = observers.lock().expect("observer log should be lockable");
         assert!(observers.is_empty());
+    }
+
+    #[test]
+    fn chart_request_summary_line_reflects_the_default_request_shape() {
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Tt,
+        ));
+
+        assert_eq!(
+            request.summary_line(),
+            "instant=JD 2451545 (TT); bodies=10; zodiac=Tropical; apparentness=Mean; observer=geocentric; house system=none"
+        );
+    }
+
+    #[test]
+    fn chart_request_summary_line_reflects_observer_and_house_system_policy() {
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Utc,
+        ))
+        .with_observer(ObserverLocation::new(
+            Latitude::from_degrees(12.5),
+            Longitude::from_degrees(45.0),
+            Some(100.0),
+        ))
+        .with_house_system(crate::HouseSystem::WholeSign)
+        .with_bodies(vec![CelestialBody::Sun, CelestialBody::Moon])
+        .with_zodiac_mode(ZodiacMode::Sidereal {
+            ayanamsa: crate::Ayanamsa::Lahiri,
+        })
+        .with_apparentness(Apparentness::Apparent);
+
+        assert_eq!(
+            request.summary_line(),
+            "instant=JD 2451545 (UTC); bodies=2; zodiac=Sidereal (Lahiri); apparentness=Apparent; observer=house-only; house system=Whole Sign"
+        );
     }
 
     #[test]
