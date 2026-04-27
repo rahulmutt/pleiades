@@ -602,6 +602,17 @@ fn format_display_list<T: fmt::Display>(values: &[T]) -> String {
 }
 
 /// Compact summary of the current shared request-policy posture.
+///
+/// # Example
+///
+/// ```
+/// use pleiades_backend::RequestPolicySummary;
+///
+/// let summary = RequestPolicySummary::current();
+/// assert_eq!(summary.to_string(), summary.summary_line());
+/// assert!(summary.summary_line().contains("time-scale="));
+/// assert!(summary.summary_line().contains("observer="));
+/// ```
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct RequestPolicySummary {
     /// Time-scale policy wording.
