@@ -84,7 +84,8 @@ use pleiades_jpl::{
     reference_asteroid_equatorial_evidence_summary_for_report, reference_asteroid_evidence,
     reference_asteroid_evidence_summary_for_report, reference_asteroids,
     reference_snapshot_batch_parity_summary_for_report,
-    reference_snapshot_equatorial_parity_summary_for_report, reference_snapshot_summary_for_report,
+    reference_snapshot_equatorial_parity_summary_for_report,
+    reference_snapshot_source_summary_for_report, reference_snapshot_summary_for_report,
     JplSnapshotBackend,
 };
 use pleiades_vsop87::{
@@ -3368,6 +3369,8 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_source_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_batch_parity_summary_for_report());
     text.push('\n');
     text.push_str(&comparison_snapshot_summary_for_report());
@@ -3437,6 +3440,8 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&reference_asteroid_equatorial_evidence_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_source_summary_for_report());
     text.push('\n');
     text.push_str(&comparison_snapshot_summary_for_report());
     text.push('\n');
@@ -6859,6 +6864,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&reference_asteroid_evidence_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_source_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_equatorial_parity_summary_for_report());
     text.push('\n');
@@ -10318,6 +10325,7 @@ mod tests {
         assert!(rendered.contains("WvA"));
         assert!(rendered.contains("Selected asteroid evidence: 5 exact J2000 samples"));
         assert!(rendered.contains("Reference snapshot coverage: 46 rows across 15 bodies and 6 epochs (5 asteroid rows; JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies:"));
+        assert!(rendered.contains(&reference_snapshot_source_summary_for_report()));
         assert!(rendered.contains("Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Mercury, Moon, Sun, Venus, Jupiter, Saturn, Uranus, Neptune, Pluto"));
         assert!(rendered.contains("asteroid:433-Eros"));
         assert!(rendered.contains("Validation reference points:"));
@@ -11266,6 +11274,7 @@ mod tests {
         assert!(rendered.contains("API stability summary: api-stability-summary"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
         assert!(rendered.contains("Reference snapshot coverage: 46 rows across 15 bodies and 6 epochs (5 asteroid rows; JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies:"));
+        assert!(rendered.contains(&reference_snapshot_source_summary_for_report()));
         assert!(rendered.contains("Comparison audit: compare-backends-audit; status="));
         assert!(rendered.contains("within tolerance bodies="));
         assert!(rendered.contains("outside tolerance bodies="));
@@ -11626,6 +11635,7 @@ version = "0.9.0"
         ));
         assert!(release_summary.contains("Source-backed backend evidence:"));
         assert!(release_summary.contains("Reference snapshot coverage:"));
+        assert!(release_summary.contains(&reference_snapshot_source_summary_for_report()));
         assert!(release_summary.contains("Selected asteroid evidence:"));
         assert!(release_summary.contains("Selected asteroid equatorial evidence:"));
         assert!(release_summary.contains("Comparison snapshot coverage:"));
