@@ -16,8 +16,8 @@ use pleiades_core::{
     Longitude, ObserverLocation, RoutingBackend, TimeScale, ZodiacMode,
 };
 use pleiades_data::{
-    packaged_artifact_regeneration_summary_for_report, regenerate_packaged_artifact,
-    PackagedDataBackend,
+    packaged_artifact, packaged_artifact_regeneration_summary_for_report,
+    regenerate_packaged_artifact, PackagedDataBackend,
 };
 use pleiades_elp::ElpBackend;
 use pleiades_jpl::JplSnapshotBackend;
@@ -89,8 +89,12 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             if args[1..].iter().any(|arg| *arg == "--help" || *arg == "-h") {
                 return Ok(help_text());
             }
-            let output_path = parse_packaged_artifact_output_path(&args[1..])?;
-            render_packaged_artifact_regeneration(output_path)
+            match parse_packaged_artifact_command(&args[1..])? {
+                PackagedArtifactCommand::Write { output_path } => {
+                    render_packaged_artifact_regeneration(output_path)
+                }
+                PackagedArtifactCommand::Check => render_packaged_artifact_regeneration_check(),
+            }
         }
         Some("workspace-audit") | Some("audit") => validate_render_cli(&["workspace-audit"]),
         Some("report") | Some("generate-report") => validate_render_cli(args),
@@ -106,7 +110,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
 
 fn help_text() -> String {
     format!(
-        "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary        Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  bundle-release         Write the staged release bundle and manifest files\n  verify-release-bundle  Read a staged release bundle back and verify its manifest checksums\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  api-stability-summary  Print the compact API stability summary\n  api-posture-summary    Alias for api-stability-summary\n  compare-backends       Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix         Print the implemented backend capability matrices\n  capability-matrix      Alias for backend-matrix\n  backend-matrix-summary Print the compact backend capability matrix summary\n  matrix-summary         Alias for backend-matrix-summary\n  release-notes          Print the release compatibility notes\n  release-notes-summary   Print the compact release notes summary\n  release-checklist      Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary      Alias for release-checklist-summary\n  release-summary        Print the compact release summary\n  artifact-summary       Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  validate-artifact      Inspect and validate the bundled compressed artifact\n  regenerate-packaged-artifact  Rebuild the packaged artifact fixture from the checked-in reference snapshot; pass a file path or --out FILE\n  workspace-audit        Check the workspace for mandatory native build hooks\n  audit                  Alias for workspace-audit\n  report                 Print the full validation report\n  generate-report        Alias for report\n  validation-report-summary  Print the compact validation report summary\n  validation-summary     Alias for validation-report-summary\n  report-summary         Alias for validation-report-summary\n  chart                  Render a basic chart report\n    --tt|--tdb|--utc|--ut1  Tag the chart instant with a time scale
+        "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary        Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  bundle-release         Write the staged release bundle and manifest files\n  verify-release-bundle  Read a staged release bundle back and verify its manifest checksums\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  api-stability-summary  Print the compact API stability summary\n  api-posture-summary    Alias for api-stability-summary\n  compare-backends       Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix         Print the implemented backend capability matrices\n  capability-matrix      Alias for backend-matrix\n  backend-matrix-summary Print the compact backend capability matrix summary\n  matrix-summary         Alias for backend-matrix-summary\n  release-notes          Print the release compatibility notes\n  release-notes-summary   Print the compact release notes summary\n  release-checklist      Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary      Alias for release-checklist-summary\n  release-summary        Print the compact release summary\n  artifact-summary       Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  validate-artifact      Inspect and validate the bundled compressed artifact\n  regenerate-packaged-artifact  Rebuild or verify the packaged artifact fixture from the checked-in reference snapshot; pass a file path, --out FILE, or --check\n  workspace-audit        Check the workspace for mandatory native build hooks\n  audit                  Alias for workspace-audit\n  report                 Print the full validation report\n  generate-report        Alias for report\n  validation-report-summary  Print the compact validation report summary\n  validation-summary     Alias for validation-report-summary\n  report-summary         Alias for validation-report-summary\n  chart                  Render a basic chart report\n    --tt|--tdb|--utc|--ut1  Tag the chart instant with a time scale
     --tt-offset-seconds <seconds>  Caller-supplied TT offset for UTC/UT1-tagged instants
     --tdb-offset-seconds <seconds> Caller-supplied signed TDB-TT offset for TT/UTC/UT1-tagged instants
     --tt-from-tdb-offset-seconds <seconds> Caller-supplied signed TT-TDB offset for TDB-tagged instants
@@ -291,29 +295,40 @@ fn parse_release_bundle_output_dir<'a>(args: &'a [&'a str]) -> Result<&'a str, S
     output_dir.ok_or_else(|| "missing required --out <dir> argument".to_string())
 }
 
-fn parse_packaged_artifact_output_path<'a>(args: &'a [&'a str]) -> Result<&'a str, String> {
+enum PackagedArtifactCommand {
+    Write { output_path: String },
+    Check,
+}
+
+fn parse_packaged_artifact_command(args: &[&str]) -> Result<PackagedArtifactCommand, String> {
     match args {
         [] => Err(
-            "missing required output path argument; pass a file path or --out <file>".to_string(),
+            "missing required output path argument; pass a file path, --out <file>, or --check"
+                .to_string(),
         ),
+        ["--check"] => Ok(PackagedArtifactCommand::Check),
         ["--out"] => Err("missing value for --out".to_string()),
-        ["--out", path] => Ok(path),
+        ["--out", path] => Ok(PackagedArtifactCommand::Write {
+            output_path: (*path).to_string(),
+        }),
         ["--out", _, extra, ..] => Err(format!("unknown argument: {extra}")),
-        [path] if !path.starts_with('-') => Ok(path),
+        [path] if !path.starts_with('-') => Ok(PackagedArtifactCommand::Write {
+            output_path: (*path).to_string(),
+        }),
         [other, ..] => Err(format!("unknown argument: {other}")),
     }
 }
 
-fn render_packaged_artifact_regeneration(output_path: &str) -> Result<String, String> {
+fn render_packaged_artifact_regeneration(output_path: String) -> Result<String, String> {
     let artifact = regenerate_packaged_artifact();
     let encoded = artifact.encode().map_err(|error| error.to_string())?;
-    if let Some(parent) = std::path::Path::new(output_path).parent() {
+    if let Some(parent) = std::path::Path::new(&output_path).parent() {
         if !parent.as_os_str().is_empty() {
             std::fs::create_dir_all(parent)
                 .map_err(|error| format!("failed to create {}: {error}", parent.display()))?;
         }
     }
-    std::fs::write(output_path, &encoded)
+    std::fs::write(&output_path, &encoded)
         .map_err(|error| format!("failed to write {}: {error}", output_path))?;
 
     Ok(format!(
@@ -323,6 +338,31 @@ fn render_packaged_artifact_regeneration(output_path: &str) -> Result<String, St
         artifact.header.source,
         artifact.checksum,
         encoded.len(),
+        packaged_artifact_regeneration_summary_for_report(),
+    ))
+}
+
+fn render_packaged_artifact_regeneration_check() -> Result<String, String> {
+    let artifact = regenerate_packaged_artifact();
+    let regenerated = artifact.encode().map_err(|error| error.to_string())?;
+    let committed = packaged_artifact()
+        .encode()
+        .map_err(|error| error.to_string())?;
+
+    if regenerated != committed {
+        return Err(format!(
+            "packaged artifact regeneration check failed: regenerated {} bytes did not match the checked-in fixture {} bytes",
+            regenerated.len(),
+            committed.len()
+        ));
+    }
+
+    Ok(format!(
+        "Packaged artifact regeneration check passed\n  label: {}\n  source: {}\n  checksum: 0x{:016x}\n  bytes: {}\n  {}",
+        artifact.header.generation_label,
+        artifact.header.source,
+        artifact.checksum,
+        regenerated.len(),
         packaged_artifact_regeneration_summary_for_report(),
     ))
 }
@@ -982,6 +1022,15 @@ mod tests {
         let positional_written = std::fs::read(&positional_fixture_path)
             .expect("packaged artifact regeneration should write the positional path");
         assert_eq!(positional_written, expected);
+
+        let regeneration_check = render_cli(&["regenerate-packaged-artifact", "--check"])
+            .expect("packaged artifact check mode should render");
+        assert!(regeneration_check.contains("Packaged artifact regeneration check passed"));
+        assert!(regeneration_check.contains("checksum=0x"));
+        assert!(!regeneration_check.contains("path:"));
+        assert!(regeneration_check.contains(
+            "11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"
+        ));
 
         let artifact_report =
             render_cli(&["validate-artifact"]).expect("validate-artifact should render");
