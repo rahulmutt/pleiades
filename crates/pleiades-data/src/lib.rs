@@ -92,6 +92,26 @@ pub struct PackagedBodyCoverageSummary {
     pub bodies: Vec<CelestialBody>,
 }
 
+/// Validation error for a packaged-body coverage summary that drifted from the bundled body set.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PackagedBodyCoverageSummaryValidationError {
+    /// A rendered summary field no longer matches the current packaged body set.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for PackagedBodyCoverageSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the packaged body coverage summary field `{field}` is out of sync with the current bundled body set"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for PackagedBodyCoverageSummaryValidationError {}
+
 impl PackagedBodyCoverageSummary {
     /// Returns the bundled body set as a compact human-readable line.
     pub fn summary_line(&self) -> String {
@@ -100,6 +120,24 @@ impl PackagedBodyCoverageSummary {
             self.body_count,
             join_display(&self.bodies)
         )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the bundled body set.
+    pub fn validate(&self) -> Result<(), PackagedBodyCoverageSummaryValidationError> {
+        let expected_bodies = packaged_bodies();
+
+        if self.body_count != expected_bodies.len() {
+            return Err(PackagedBodyCoverageSummaryValidationError::FieldOutOfSync {
+                field: "body_count",
+            });
+        }
+        if self.bodies.as_slice() != expected_bodies {
+            return Err(PackagedBodyCoverageSummaryValidationError::FieldOutOfSync {
+                field: "bodies",
+            });
+        }
+
+        Ok(())
     }
 }
 
@@ -118,9 +156,20 @@ pub fn packaged_body_coverage_summary_details() -> PackagedBodyCoverageSummary {
     }
 }
 
+fn format_validated_packaged_body_coverage_summary_for_report(
+    summary: &PackagedBodyCoverageSummary,
+) -> String {
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("Packaged body set: unavailable ({error})"),
+    }
+}
+
 /// Returns the packaged body set as a human-readable provenance summary.
 pub fn packaged_body_coverage_summary() -> String {
-    packaged_body_coverage_summary_details().summary_line()
+    format_validated_packaged_body_coverage_summary_for_report(
+        &packaged_body_coverage_summary_details(),
+    )
 }
 
 /// Structured generation policy for the packaged artifact.
@@ -884,7 +933,7 @@ impl EphemerisBackend for PackagedDataBackend {
             provenance: BackendProvenance {
                 summary: artifact.header.source.clone(),
                 data_sources: vec![
-                    packaged_body_coverage_summary_details().summary_line(),
+                    packaged_body_coverage_summary(),
                     packaged_request_policy_summary_details().to_string(),
                     packaged_frame_treatment_summary_details().to_string(),
                     packaged_artifact_storage_summary_details()
@@ -1874,5 +1923,36 @@ mod tests {
             "Packaged body set: 11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"
         );
         assert_eq!(packaged_body_coverage_summary(), summary.to_string());
+    }
+
+    #[test]
+    fn packaged_body_coverage_summary_validation_rejects_body_count_drift() {
+        let mut summary = packaged_body_coverage_summary_details();
+        summary.body_count += 1;
+
+        let error = summary
+            .validate()
+            .expect_err("body-count drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedBodyCoverageSummaryValidationError::FieldOutOfSync {
+                field: "body_count",
+            }
+        );
+        assert_eq!(
+            error.to_string(),
+            "the packaged body coverage summary field `body_count` is out of sync with the current bundled body set"
+        );
+    }
+
+    #[test]
+    fn packaged_body_coverage_summary_report_marks_drift_as_unavailable() {
+        let mut summary = packaged_body_coverage_summary_details();
+        summary.bodies.swap(0, 1);
+
+        assert_eq!(
+            format_validated_packaged_body_coverage_summary_for_report(&summary),
+            "Packaged body set: unavailable (the packaged body coverage summary field `bodies` is out of sync with the current bundled body set)"
+        );
     }
 }
