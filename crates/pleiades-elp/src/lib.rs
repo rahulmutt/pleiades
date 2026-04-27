@@ -423,7 +423,108 @@ impl LunarTheorySpecification {
             || self.source_family.label().eq_ignore_ascii_case(label)
             || self.matches_alias(label)
     }
+
+    /// Returns `Ok(())` when the specification still matches the current selection.
+    pub fn validate(&self) -> Result<(), LunarTheorySpecificationValidationError> {
+        let source = self.source_selection();
+
+        if self.source_family != source.family {
+            return Err(LunarTheorySpecificationValidationError::FieldOutOfSync {
+                field: "source_family",
+            });
+        }
+        if self.source_aliases != source.source_aliases {
+            return Err(LunarTheorySpecificationValidationError::FieldOutOfSync {
+                field: "source_aliases",
+            });
+        }
+        if self.source_identifier != source.identifier {
+            return Err(LunarTheorySpecificationValidationError::FieldOutOfSync {
+                field: "source_identifier",
+            });
+        }
+        if self.source_citation != source.citation {
+            return Err(LunarTheorySpecificationValidationError::FieldOutOfSync {
+                field: "source_citation",
+            });
+        }
+        if self.source_material != source.material {
+            return Err(LunarTheorySpecificationValidationError::FieldOutOfSync {
+                field: "source_material",
+            });
+        }
+        if self.redistribution_note != source.redistribution_note {
+            return Err(LunarTheorySpecificationValidationError::FieldOutOfSync {
+                field: "redistribution_note",
+            });
+        }
+        if self.license_note != source.license_note {
+            return Err(LunarTheorySpecificationValidationError::FieldOutOfSync {
+                field: "license_note",
+            });
+        }
+        if self.request_policy.supported_frames != self.supported_frames {
+            return Err(LunarTheorySpecificationValidationError::FieldOutOfSync {
+                field: "request_policy.supported_frames",
+            });
+        }
+        if self.request_policy.supported_time_scales != self.supported_time_scales {
+            return Err(LunarTheorySpecificationValidationError::FieldOutOfSync {
+                field: "request_policy.supported_time_scales",
+            });
+        }
+        if self.request_policy.supported_zodiac_modes != self.supported_zodiac_modes {
+            return Err(LunarTheorySpecificationValidationError::FieldOutOfSync {
+                field: "request_policy.supported_zodiac_modes",
+            });
+        }
+        if self.request_policy.supported_apparentness != self.supported_apparentness {
+            return Err(LunarTheorySpecificationValidationError::FieldOutOfSync {
+                field: "request_policy.supported_apparentness",
+            });
+        }
+        if self.request_policy.supports_topocentric_observer != self.supports_topocentric_observer {
+            return Err(LunarTheorySpecificationValidationError::FieldOutOfSync {
+                field: "request_policy.supports_topocentric_observer",
+            });
+        }
+        if self.supported_bodies != SUPPORTED_LUNAR_BODIES {
+            return Err(LunarTheorySpecificationValidationError::FieldOutOfSync {
+                field: "supported_bodies",
+            });
+        }
+        if self.unsupported_bodies != UNSUPPORTED_LUNAR_BODIES {
+            return Err(LunarTheorySpecificationValidationError::FieldOutOfSync {
+                field: "unsupported_bodies",
+            });
+        }
+
+        Ok(())
+    }
 }
+
+/// Validation errors for the structured lunar-theory specification.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LunarTheorySpecificationValidationError {
+    /// A rendered specification field no longer matches the current selection.
+    FieldOutOfSync {
+        /// Field that drifted out of sync.
+        field: &'static str,
+    },
+}
+
+impl fmt::Display for LunarTheorySpecificationValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the lunar theory specification field `{field}` is out of sync with the current selection"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for LunarTheorySpecificationValidationError {}
 
 const SUPPORTED_LUNAR_BODIES: &[CelestialBody] = &[
     CelestialBody::Moon,
@@ -1270,17 +1371,35 @@ pub fn format_lunar_theory_specification(theory: &LunarTheorySpecification) -> S
     )
 }
 
+fn format_validated_lunar_theory_specification_for_report(
+    theory: &LunarTheorySpecification,
+) -> String {
+    match theory.validate() {
+        Ok(()) => theory.summary_line(),
+        Err(error) => format!("ELP lunar theory specification: unavailable ({error})"),
+    }
+}
+
+/// Returns the release-facing one-line summary for the current lunar-theory selection.
+///
+/// The validation helper checks the backend-owned specification first so any
+/// future drift in the rendered provenance fields shows up as an unavailable
+/// report line instead of a silently stale summary.
+pub fn lunar_theory_summary_for_report() -> String {
+    format_validated_lunar_theory_specification_for_report(&lunar_theory_specification())
+}
+
 impl fmt::Display for LunarTheorySpecification {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.summary_line())
     }
 }
 
-/// Returns the release-facing one-line summary for the current lunar-theory selection.
+/// Returns the raw one-line summary for the current lunar-theory selection.
 ///
-/// The validation and release tooling uses this helper so the lunar provenance
-/// summary is defined in the backend crate rather than duplicated in reporting
-/// layers.
+/// Validation and release tooling should prefer
+/// [`lunar_theory_summary_for_report()`] so the backend-owned specification is
+/// validated before the compact provenance line is rendered.
 pub fn lunar_theory_summary() -> String {
     lunar_theory_specification().summary_line()
 }
@@ -3725,11 +3844,29 @@ mod tests {
             theory.request_policy.to_string(),
             theory.request_policy.summary_line()
         );
+        assert_eq!(lunar_theory_summary_for_report(), theory.summary_line());
         assert!(summary.contains("frames=Ecliptic, Equatorial"));
         assert!(summary.contains("time scales=TT, TDB"));
         assert!(summary.contains("zodiac modes=Tropical"));
         assert!(summary.contains("apparentness=Mean"));
         assert!(summary.contains("topocentric observer=false"));
+
+        let mut drifted_spec = theory;
+        drifted_spec.request_policy = LunarTheoryRequestPolicy {
+            supported_time_scales: &[TimeScale::Tt],
+            ..drifted_spec.request_policy
+        };
+        let error = drifted_spec
+            .validate()
+            .expect_err("drifted specification should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "the lunar theory specification field `request_policy.supported_time_scales` is out of sync with the current selection"
+        );
+        assert_eq!(
+            format_validated_lunar_theory_specification_for_report(&drifted_spec),
+            "ELP lunar theory specification: unavailable (the lunar theory specification field `request_policy.supported_time_scales` is out of sync with the current selection)"
+        );
 
         let catalog_summary = lunar_theory_catalog_summary();
         assert_eq!(catalog.len(), 1);

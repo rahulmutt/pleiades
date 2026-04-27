@@ -64,8 +64,8 @@ use pleiades_elp::{
     lunar_reference_evidence_summary_for_report, lunar_theory_capability_summary,
     lunar_theory_catalog_summary_for_report, lunar_theory_catalog_validation_summary_for_report,
     lunar_theory_frame_treatment_summary_details, lunar_theory_request_policy_summary,
-    lunar_theory_source_summary_for_report, lunar_theory_specification, lunar_theory_summary,
-    ElpBackend,
+    lunar_theory_source_summary_for_report, lunar_theory_specification,
+    lunar_theory_summary_for_report, ElpBackend,
 };
 use pleiades_houses::{
     baseline_house_systems, built_in_house_systems, release_house_systems, resolve_house_system,
@@ -6706,7 +6706,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         lunar_theory_catalog_validation_summary_for_report()
     );
     let _ = writeln!(text, "  {}", lunar_theory_source_summary_for_report());
-    let _ = writeln!(text, "  {}", lunar_theory_summary());
+    let _ = writeln!(text, "  {}", lunar_theory_summary_for_report());
     let _ = writeln!(text);
     let _ = writeln!(text, "Packaged-artifact profile");
     let _ = writeln!(text, "  {}", format_packaged_artifact_profile_summary());
@@ -7090,7 +7090,7 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str(&lunar_theory_source_summary_for_report());
     text.push('\n');
-    text.push_str(&lunar_theory_summary());
+    text.push_str(&lunar_theory_summary_for_report());
     text.push('\n');
     text.push_str(&lunar_reference_evidence_summary_for_report());
     text.push('\n');
