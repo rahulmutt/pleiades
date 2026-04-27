@@ -417,7 +417,7 @@ impl ChartSnapshot {
     /// the computed placement count so callers can compare the assembled chart
     /// against the original request at a glance.
     pub fn summary_line(&self) -> String {
-        let observer_policy = if self.observer.is_some() {
+        let observer_policy = if self.observer.is_some() && self.houses.is_some() {
             "house-only"
         } else {
             "geocentric"
@@ -1334,10 +1334,17 @@ impl fmt::Display for ChartSnapshot {
                 "Observer: {} / {}",
                 observer.latitude, observer.longitude
             )?;
-            writeln!(
-                f,
-                "Observer policy: used for houses only; body positions remain geocentric"
-            )?;
+            if self.houses.is_some() {
+                writeln!(
+                    f,
+                    "Observer policy: used for houses only; body positions remain geocentric"
+                )?;
+            } else {
+                writeln!(
+                    f,
+                    "Observer policy: geocentric body positions; no house observer supplied"
+                )?;
+            }
         } else {
             writeln!(
                 f,
@@ -2227,6 +2234,41 @@ mod tests {
 
         assert!(chart.houses.is_some());
         assert_eq!(chart.observer, request.observer);
+        let observers = observers.lock().expect("observer log should be lockable");
+        assert_eq!(observers.len(), 1);
+        assert!(observers.iter().all(Option::is_none));
+    }
+
+    #[test]
+    fn chart_snapshot_with_observer_but_without_houses_stays_geocentric() {
+        let observers = Arc::new(Mutex::new(Vec::new()));
+        let engine = ChartEngine::new(RecordingChartBackend {
+            observers: Arc::clone(&observers),
+        });
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2451545.0),
+            TimeScale::Tt,
+        ))
+        .with_observer(ObserverLocation::new(
+            Latitude::from_degrees(51.5),
+            Longitude::from_degrees(-0.1),
+            None,
+        ))
+        .with_bodies(vec![CelestialBody::Sun]);
+
+        let chart = engine
+            .chart(&request)
+            .expect("chart should render without house calculations");
+
+        assert!(chart.houses.is_none());
+        assert_eq!(chart.observer, request.observer);
+        assert_eq!(
+            chart.summary_line(),
+            "backend=recording-chart; instant=JD 2451545 (TT); placements=1; zodiac=Tropical; apparentness=Mean; observer=geocentric; house system=none; house cusps=0"
+        );
+        assert!(chart
+            .to_string()
+            .contains("Observer policy: geocentric body positions; no house observer supplied"));
         let observers = observers.lock().expect("observer log should be lockable");
         assert_eq!(observers.len(), 1);
         assert!(observers.iter().all(Option::is_none));
