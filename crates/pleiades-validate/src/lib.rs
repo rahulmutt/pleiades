@@ -10814,6 +10814,8 @@ mod tests {
         assert!(rendered.contains("Carter's poli-equatorial"));
         assert!(rendered.contains("Krusinski/Pisa/Goelzer house system"));
         assert!(rendered.contains("Babylonian Huber"));
+        assert!(rendered.contains("Babylonian (House)"));
+        assert!(rendered.contains("Babylonian (Sissy)"));
         assert!(rendered.contains("Babylonian (True Topc)"));
         assert!(rendered.contains("Babylonian (True Obs)"));
         assert!(rendered.contains("Galactic Center (Mula/Wilhelm)"));
@@ -11640,11 +11642,11 @@ mod tests {
 
     #[test]
     fn compatibility_profile_verification_allows_intentional_ayanamsa_homographs() {
-        let labels = ["Babylonian (House)"];
+        let labels = INTENTIONAL_CUSTOM_DEFINITION_AYANAMSA_HOMOGRAPHS;
 
-        let checked = verify_custom_definition_labels(&labels)
+        let checked = verify_custom_definition_labels(labels)
             .expect("intentional custom-definition homographs should remain allowed");
-        assert_eq!(checked, 1);
+        assert_eq!(checked, labels.len());
     }
 
     #[test]
