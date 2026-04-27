@@ -646,6 +646,44 @@ impl fmt::Display for RequestPolicySummary {
     }
 }
 
+/// Validation error for the shared request-policy summary.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum RequestPolicySummaryValidationError {
+    /// A summary field is blank or padded with surrounding whitespace.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for RequestPolicySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the request-policy summary field `{field}` is blank or whitespace-padded"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for RequestPolicySummaryValidationError {}
+
+impl RequestPolicySummary {
+    /// Returns `Ok(())` when the shared request-policy wording still matches the current posture.
+    pub fn validate(&self) -> Result<(), RequestPolicySummaryValidationError> {
+        for (field, value) in [
+            ("time_scale", self.time_scale),
+            ("observer", self.observer),
+            ("apparentness", self.apparentness),
+            ("frame", self.frame),
+        ] {
+            if value.trim().is_empty() || value.trim() != value {
+                return Err(RequestPolicySummaryValidationError::FieldOutOfSync { field });
+            }
+        }
+
+        Ok(())
+    }
+}
+
 /// Compact summary of a backend's frame-treatment posture.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct FrameTreatmentSummary {
@@ -1289,6 +1327,21 @@ mod tests {
         assert!(summary.summary_line().contains("observer="));
         assert!(summary.summary_line().contains("apparentness="));
         assert!(summary.summary_line().contains("frame="));
+        assert!(summary.validate().is_ok());
+    }
+
+    #[test]
+    fn request_policy_summary_validate_rejects_blank_fields() {
+        let mut summary = RequestPolicySummary::current();
+        summary.frame = " ";
+
+        let error = summary
+            .validate()
+            .expect_err("blank policy prose should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "the request-policy summary field `frame` is blank or whitespace-padded"
+        );
     }
 
     #[test]

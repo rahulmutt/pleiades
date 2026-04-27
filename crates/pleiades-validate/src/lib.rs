@@ -3658,7 +3658,7 @@ fn render_release_summary_text() -> String {
     text.push_str(request_policy.frame);
     text.push('\n');
     text.push_str("Request policy: ");
-    text.push_str(&request_policy.summary_line());
+    text.push_str(&format_request_policy_summary_for_report(&request_policy));
     text.push('\n');
     text.push_str("Zodiac policy: ");
     text.push_str(&zodiac_policy_summary_for_report(&[ZodiacMode::Tropical]));
@@ -5977,6 +5977,15 @@ fn format_jpl_frame_treatment_summary() -> String {
     jpl_frame_treatment_summary_details().to_string()
 }
 
+fn format_request_policy_summary_for_report(
+    summary: &pleiades_backend::RequestPolicySummary,
+) -> String {
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("request policy unavailable ({error})"),
+    }
+}
+
 fn format_vsop87_request_policy_summary() -> String {
     vsop87_request_policy_summary_for_report()
 }
@@ -6018,7 +6027,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text, "Observer policy: {}", request_policy.observer);
     let _ = writeln!(text, "Apparentness policy: {}", request_policy.apparentness);
     let _ = writeln!(text, "Frame policy: {}", request_policy.frame);
-    let _ = writeln!(text, "Request policy: {}", request_policy.summary_line());
+    let _ = writeln!(
+        text,
+        "Request policy: {}",
+        format_request_policy_summary_for_report(&request_policy)
+    );
     let _ = writeln!(
         text,
         "Zodiac policy: {}",
@@ -6960,7 +6973,7 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(request_policy.apparentness);
     text.push('\n');
     text.push_str("Request policy: ");
-    text.push_str(&request_policy.summary_line());
+    text.push_str(&format_request_policy_summary_for_report(&request_policy));
     text.push('\n');
     text.push_str("Frame policy: ");
     text.push_str(frame_policy_summary_for_report());
