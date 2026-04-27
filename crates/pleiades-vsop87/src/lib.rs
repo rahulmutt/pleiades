@@ -368,6 +368,33 @@ impl fmt::Display for Vsop87SourceDocumentationHealthIssue {
     }
 }
 
+/// Validation error returned when the VSOP87 source-documentation health summary
+/// reports an inconsistent catalog state.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Vsop87SourceDocumentationHealthError {
+    summary: Vsop87SourceDocumentationHealthSummary,
+}
+
+impl Vsop87SourceDocumentationHealthError {
+    /// Returns the inconsistent summary that triggered the validation failure.
+    pub fn summary(&self) -> &Vsop87SourceDocumentationHealthSummary {
+        &self.summary
+    }
+
+    /// Returns the release-facing summary line for the inconsistent catalog state.
+    pub fn summary_line(&self) -> String {
+        self.summary.summary_line()
+    }
+}
+
+impl fmt::Display for Vsop87SourceDocumentationHealthError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+impl std::error::Error for Vsop87SourceDocumentationHealthError {}
+
 /// Consistency check for the current VSOP87 source-documentation catalog.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Vsop87SourceDocumentationHealthSummary {
@@ -414,6 +441,18 @@ impl Vsop87SourceDocumentationHealthSummary {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         format_source_documentation_health_summary(self)
+    }
+
+    /// Validates that the summary represents a healthy, internally consistent
+    /// VSOP87 source-documentation catalog.
+    pub fn validate(&self) -> Result<(), Box<Vsop87SourceDocumentationHealthError>> {
+        if self.consistent && self.documentation_consistent && self.issues.is_empty() {
+            Ok(())
+        } else {
+            Err(Box::new(Vsop87SourceDocumentationHealthError {
+                summary: self.clone(),
+            }))
+        }
     }
 }
 
@@ -4691,6 +4730,7 @@ mod tests {
         assert_eq!(summary.vendored_full_file_profile_count, 0);
         assert_eq!(summary.truncated_profile_count, 0);
         assert_eq!(summary.fallback_profile_count, 1);
+        assert!(summary.validate().is_ok());
         assert_eq!(summary.summary_line(), summary.to_string());
         assert_eq!(
             source_documentation_health_summary_for_report(),
@@ -4758,6 +4798,12 @@ mod tests {
             format_source_documentation_health_summary(&summary),
             "VSOP87 source documentation health: needs attention (1 source specs, 2 source files, 1 source-backed profiles, 2 body profiles; 1 generated binary profiles (Sun), 0 vendored full-file profiles (none), 0 truncated profiles (none), 1 fallback profiles (Pluto); source files: VSOP87B.ear; source-backed order: Sun; source-backed partition order: Sun; fallback order: Pluto; documented fields: needs attention); issues: source specification/file count mismatch, documented field mismatch"
         );
+        let error = summary
+            .validate()
+            .expect_err("inconsistent summary should fail validation");
+        assert_eq!(error.summary(), &summary);
+        assert_eq!(error.summary_line(), summary.summary_line());
+        assert_eq!(error.to_string(), summary.summary_line());
     }
 
     #[test]
