@@ -256,6 +256,10 @@ fn has_surrounding_whitespace(value: &str) -> bool {
     !value.is_empty() && value.trim() != value
 }
 
+fn normalized_profile_text_entry(value: &str) -> String {
+    value.trim().to_ascii_lowercase()
+}
+
 fn validate_profile_text_section(
     section_label: &'static str,
     entries: &[&'static str],
@@ -281,7 +285,7 @@ fn validate_profile_text_section(
             );
         }
 
-        if !seen_entries.insert(*entry) {
+        if !seen_entries.insert(normalized_profile_text_entry(entry)) {
             return Err(
                 CompatibilityProfileValidationError::DuplicateTextSectionEntry {
                     section_label,
@@ -297,10 +301,11 @@ fn validate_profile_text_section(
 fn validate_profile_text_sections_are_disjoint(
     sections: &[(&'static str, &'static [&'static str])],
 ) -> Result<(), CompatibilityProfileValidationError> {
-    let mut seen_entries = BTreeMap::<&'static str, &'static str>::new();
+    let mut seen_entries = BTreeMap::<String, &'static str>::new();
     for (section_label, entries) in sections {
         for entry in *entries {
-            if let Some(existing_section) = seen_entries.get(entry) {
+            let normalized_entry = normalized_profile_text_entry(entry);
+            if let Some(existing_section) = seen_entries.get(&normalized_entry) {
                 if *existing_section != *section_label {
                     return Err(
                         CompatibilityProfileValidationError::DuplicateTextSectionEntryAcrossSections {
@@ -311,7 +316,7 @@ fn validate_profile_text_sections_are_disjoint(
                     );
                 }
             } else {
-                seen_entries.insert(entry, section_label);
+                seen_entries.insert(normalized_entry, section_label);
             }
         }
     }
@@ -1458,6 +1463,44 @@ mod tests {
             CompatibilityProfileValidationError::WhitespaceTextSectionEntry {
                 section_label: "target-house-scope",
                 entry: "Target house scope: example "
+            }
+        ));
+    }
+
+    #[test]
+    fn compatibility_profile_validate_rejects_case_insensitive_duplicate_within_section() {
+        let mut profile = current_compatibility_profile();
+        profile.release_notes = &["Release note entry", "release note entry"];
+
+        let error = profile
+            .validate()
+            .expect_err("case-insensitive duplicates within a section should fail validation");
+
+        assert!(matches!(
+            error,
+            CompatibilityProfileValidationError::DuplicateTextSectionEntry {
+                section_label: "release-note",
+                entry: "release note entry"
+            }
+        ));
+    }
+
+    #[test]
+    fn compatibility_profile_validate_rejects_case_insensitive_duplicates_across_sections() {
+        let mut profile = current_compatibility_profile();
+        profile.validation_reference_points = &["Release note entry"];
+        profile.known_gaps = &["release note entry"];
+
+        let error = profile
+            .validate()
+            .expect_err("case-insensitive duplicates across sections should fail validation");
+
+        assert!(matches!(
+            error,
+            CompatibilityProfileValidationError::DuplicateTextSectionEntryAcrossSections {
+                entry: "release note entry",
+                first_section: "validation-reference-point",
+                second_section: "compatibility-caveat"
             }
         ));
     }
