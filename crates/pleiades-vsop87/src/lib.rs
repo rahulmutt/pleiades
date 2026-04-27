@@ -4963,6 +4963,32 @@ mod tests {
     }
 
     #[test]
+    fn canonical_j1900_batch_parity_report_matches_the_backend_formatter() {
+        let summary = canonical_j1900_batch_parity_summary().expect("batch summary should exist");
+        let rendered = canonical_j1900_batch_parity_summary_for_report();
+        assert_eq!(rendered, summary.summary_line());
+        assert_eq!(summary.summary_line(), summary.to_string());
+        assert_eq!(summary.sample_count, summary.sample_bodies.len());
+        assert_eq!(
+            summary.sample_bodies,
+            Vsop87Backend::supported_bodies().to_vec()
+        );
+        assert_eq!(summary.frame, CoordinateFrame::Equatorial);
+        assert_eq!(summary.reference_epoch.julian_day.days(), J1900);
+        assert_eq!(summary.reference_epoch.scale, TimeScale::Tdb);
+        assert_eq!(
+            summary.sample_count,
+            summary.exact_count
+                + summary.interpolated_count
+                + summary.approximate_count
+                + summary.unknown_count
+        );
+        assert!(rendered.contains("JD 2415020.0 (TDB)"));
+        assert!(rendered.contains("quality counts: Exact="));
+        assert!(rendered.contains("batch/single parity preserved"));
+    }
+
+    #[test]
     fn canonical_evidence_outlier_note_reports_the_current_interim_status() {
         assert_eq!(
             canonical_epoch_outlier_note_for_report(),
