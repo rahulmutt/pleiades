@@ -238,6 +238,8 @@ Progress note (2026-04-26): the compatibility-profile smoke tests now also pin `
 Progress note (2026-04-26): the compatibility-profile smoke tests now also pin `Skydram/Galactic Alignment` and `Skydram (Mardyks)`, keeping the Galactic Center (Mardyks) alias spellings explicitly covered in the CLI compatibility-profile output as the breadth audit continues.
 Progress note (2026-04-27): the compatibility-profile command now also pins DeLuce, Zij al-Shah, Sasanian, and Aryabhata (522 CE) release-profile spellings, extending the historical/reference-frame alias audit a little further without changing the published catalog shape.
 
+Progress note (2026-04-27): the standalone prose-section disjointness helper now also rejects blank and whitespace-padded entries directly, and the regression suite now exercises a whitespace-padded cross-section case explicitly, which keeps the profile-prose drift guard robust even when the helper is reused outside the main profile verification path.
+
 Progress note (2026-04-26): the same compatibility-profile slice now also pins the remaining Equal/MC and Equal/1=Aries table-and-system spellings, including the `Equal/MC table of houses`, `Equal/MC house system`, `Equal/1=Aries table of houses`, `Equal/1=Aries house system`, `Equal/1=0 Aries`, `Equal (cusp 1 = 0° Aries)`, and `Whole Sign (house 1 = Aries) table of houses` forms, so the release-facing equal-house appendix stays anchored as the catalog grows.
 Progress note (2026-04-26): the release-notes regression now also anchors `Krusinski/Pisa/Goelzer` and `Equal/MC = 10th`, keeping a couple of still-visible release-profile house spellings exercised in the compact maintainer-facing summary while the broader catalog audit continues.
 

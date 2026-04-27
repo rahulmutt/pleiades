@@ -3068,6 +3068,23 @@ fn verify_profile_text_sections_are_disjoint(
 
     for (section_label, entries) in sections {
         for entry in *entries {
+            if entry.trim().is_empty() {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!("compatibility profile {section_label} entry is blank"),
+                ));
+            }
+
+            if has_surrounding_whitespace(entry) {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "compatibility profile {section_label} entry '{}' contains surrounding whitespace",
+                        entry
+                    ),
+                ));
+            }
+
             let normalized_entry = entry.trim().to_string();
             if let Some(existing_section) = seen_entries.get(&normalized_entry) {
                 return Err(EphemerisError::new(
@@ -10943,6 +10960,18 @@ mod tests {
         assert!(error.message.contains("not unique ignoring case"));
         assert!(error.message.contains("release-note"));
         assert!(error.message.contains("compatibility-caveat"));
+    }
+
+    #[test]
+    fn compatibility_profile_verification_rejects_whitespace_padded_text_across_sections() {
+        let error = verify_profile_text_sections_are_disjoint(&[
+            ("release-note", &["shared release text "]),
+            ("compatibility-caveat", &["shared release text"]),
+        ])
+        .expect_err("whitespace-padded prose across sections should fail verification");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error.message.contains("contains surrounding whitespace"));
+        assert!(error.message.contains("release-note"));
     }
 
     #[test]
