@@ -228,6 +228,21 @@ impl ChartRequest {
     /// This mirrors [`TimeScaleConversion::validate`] at the chart façade so
     /// callers can preflight the explicit source/target/offset contract against
     /// the request instant before choosing whether to apply it.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use pleiades_core::ChartRequest;
+    /// use pleiades_types::{Instant, JulianDay, TimeScale, TimeScaleConversion};
+    ///
+    /// let request = ChartRequest::new(Instant::new(
+    ///     JulianDay::from_days(2_451_545.0),
+    ///     TimeScale::Ut1,
+    /// ));
+    /// let policy = TimeScaleConversion::new(TimeScale::Ut1, TimeScale::Tdb, 64.184);
+    ///
+    /// assert!(request.validate_time_scale_conversion(policy).is_ok());
+    /// ```
     pub fn validate_time_scale_conversion(
         &self,
         conversion: TimeScaleConversion,

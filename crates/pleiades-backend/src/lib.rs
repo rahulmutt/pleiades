@@ -642,6 +642,21 @@ impl EphemerisRequest {
     /// This mirrors [`TimeScaleConversion::validate`] at the backend-request
     /// layer so direct backend callers can preflight the explicit source/target/
     /// offset contract before choosing whether to apply it.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use pleiades_backend::EphemerisRequest;
+    /// use pleiades_types::{CelestialBody, Instant, JulianDay, TimeScale, TimeScaleConversion};
+    ///
+    /// let request = EphemerisRequest::new(
+    ///     CelestialBody::Sun,
+    ///     Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Utc),
+    /// );
+    /// let policy = TimeScaleConversion::new(TimeScale::Utc, TimeScale::Tt, 64.184);
+    ///
+    /// assert!(request.validate_time_scale_conversion(policy).is_ok());
+    /// ```
     pub fn validate_time_scale_conversion(
         &self,
         conversion: TimeScaleConversion,
