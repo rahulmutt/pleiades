@@ -48,7 +48,8 @@ use pleiades_core::{
 use pleiades_data::{
     packaged_artifact_profile_summary_with_body_coverage,
     packaged_artifact_regeneration_summary_details, packaged_frame_treatment_summary_details,
-    packaged_request_policy_summary_details, PackagedDataBackend,
+    packaged_mixed_tt_tdb_batch_parity_summary_for_report, packaged_request_policy_summary_details,
+    PackagedDataBackend,
 };
 use pleiades_elp::{
     format_lunar_theory_capability_summary, lunar_apparent_comparison_evidence,
@@ -76,17 +77,18 @@ use pleiades_jpl::{
     format_jpl_interpolation_quality_kind_coverage,
     format_jpl_interpolation_quality_summary_for_report,
     frame_treatment_summary_details as jpl_frame_treatment_summary_details,
+    independent_holdout_manifest_summary_for_report,
     independent_holdout_snapshot_batch_parity_summary_for_report as jpl_independent_holdout_snapshot_batch_parity_summary_for_report,
     independent_holdout_snapshot_equatorial_parity_summary_for_report as jpl_independent_holdout_snapshot_equatorial_parity_summary_for_report,
-    interpolation_quality_samples, jpl_independent_holdout_summary_for_report,
-    jpl_interpolation_quality_kind_coverage, jpl_snapshot_evidence_summary_for_report,
-    jpl_snapshot_request_policy_summary_for_report,
+    independent_holdout_source_summary_for_report, interpolation_quality_samples,
+    jpl_independent_holdout_summary_for_report, jpl_interpolation_quality_kind_coverage,
+    jpl_snapshot_evidence_summary_for_report, jpl_snapshot_request_policy_summary_for_report,
     reference_asteroid_equatorial_evidence_summary_for_report, reference_asteroid_evidence,
     reference_asteroid_evidence_summary_for_report, reference_asteroids,
     reference_snapshot_batch_parity_summary_for_report,
     reference_snapshot_equatorial_parity_summary_for_report,
-    reference_snapshot_source_summary_for_report, reference_snapshot_summary_for_report,
-    JplSnapshotBackend,
+    reference_snapshot_manifest_summary_for_report, reference_snapshot_source_summary_for_report,
+    reference_snapshot_summary_for_report, JplSnapshotBackend,
 };
 use pleiades_vsop87::{
     body_source_profiles, canonical_epoch_equatorial_evidence_summary_for_report,
@@ -3393,6 +3395,8 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_source_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_manifest_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_batch_parity_summary_for_report());
     text.push('\n');
     text.push_str(&comparison_snapshot_summary_for_report());
@@ -3464,6 +3468,8 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&reference_snapshot_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_source_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_manifest_summary_for_report());
     text.push('\n');
     text.push_str(&comparison_snapshot_summary_for_report());
     text.push('\n');
@@ -3789,6 +3795,10 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str(&jpl_independent_holdout_summary_for_report());
     text.push('\n');
+    text.push_str(&independent_holdout_source_summary_for_report());
+    text.push('\n');
+    text.push_str(&independent_holdout_manifest_summary_for_report());
+    text.push('\n');
     text.push_str(&jpl_independent_holdout_snapshot_batch_parity_summary_for_report());
     text.push('\n');
     text.push_str(&jpl_independent_holdout_snapshot_equatorial_parity_summary_for_report());
@@ -3880,6 +3890,9 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str("Packaged request policy: ");
     text.push_str(&packaged_request_policy_summary_details().to_string());
+    text.push('\n');
+    text.push_str("Packaged batch parity: ");
+    text.push_str(&packaged_mixed_tt_tdb_batch_parity_summary_for_report());
     text.push('\n');
     text.push_str("Packaged frame treatment: ");
     text.push_str(&format_packaged_frame_treatment_summary());
@@ -6587,6 +6600,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text, "  {}", packaged_request_policy_summary_details());
     let _ = writeln!(
         text,
+        "  Packaged batch parity: {}",
+        packaged_mixed_tt_tdb_batch_parity_summary_for_report()
+    );
+    let _ = writeln!(
+        text,
         "  Packaged frame treatment: {}",
         format_packaged_frame_treatment_summary()
     );
@@ -6888,6 +6906,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&reference_snapshot_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_source_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_manifest_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_equatorial_parity_summary_for_report());
     text.push('\n');
@@ -9722,6 +9742,7 @@ mod tests {
         assert!(rendered.contains("Body comparison summaries"));
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
         assert!(rendered.contains("Packaged-artifact profile"));
+        assert!(rendered.contains("Packaged batch parity:"));
         assert!(rendered.contains("Benchmark provenance"));
         assert!(rendered.contains("source revision:"));
         assert!(rendered.contains("workspace status:"));
@@ -10361,6 +10382,7 @@ mod tests {
         assert!(rendered.contains("Selected asteroid evidence: 5 exact J2000 samples"));
         assert!(rendered.contains("Reference snapshot coverage: 46 rows across 15 bodies and 6 epochs (5 asteroid rows; JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies:"));
         assert!(rendered.contains(&reference_snapshot_source_summary_for_report()));
+        assert!(rendered.contains(&reference_snapshot_manifest_summary_for_report()));
         assert!(rendered.contains("Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Mercury, Moon, Sun, Venus, Jupiter, Saturn, Uranus, Neptune, Pluto"));
         assert!(rendered.contains("asteroid:433-Eros"));
         assert!(rendered.contains("Validation reference points:"));
@@ -11312,6 +11334,7 @@ mod tests {
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
         assert!(rendered.contains("Reference snapshot coverage: 46 rows across 15 bodies and 6 epochs (5 asteroid rows; JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies:"));
         assert!(rendered.contains(&reference_snapshot_source_summary_for_report()));
+        assert!(rendered.contains(&reference_snapshot_manifest_summary_for_report()));
         assert!(rendered.contains("Comparison audit: compare-backends-audit; status="));
         assert!(rendered.contains("within tolerance bodies="));
         assert!(rendered.contains("outside tolerance bodies="));
@@ -11658,9 +11681,10 @@ version = "0.9.0"
             "lunar reference mixed TT/TDB batch parity: 9 requests across 5 bodies, TT requests=5, TDB requests=4, order=preserved, single-query parity=preserved"
         ));
         assert!(release_summary.contains("JPL independent hold-out:"));
+        assert!(release_summary.contains(&independent_holdout_source_summary_for_report()));
+        assert!(release_summary.contains(&independent_holdout_manifest_summary_for_report()));
         assert!(release_summary.contains("JPL independent hold-out equatorial parity:"));
         assert!(release_summary.contains("JPL independent hold-out batch parity:"));
-        assert!(release_summary.contains("Independent hold-out manifest:"));
         assert!(release_summary.contains("JPL request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
         assert!(release_summary.contains("Request policy: time-scale="));
         assert!(release_summary.contains("JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"));
@@ -11708,6 +11732,7 @@ version = "0.9.0"
         assert!(release_summary.contains("|Δlon| mean/median/p95="));
         assert!(release_summary.contains("|ΔDec| mean/median/p95="));
         assert!(release_summary.contains("Packaged request policy"));
+        assert!(release_summary.contains("Packaged batch parity:"));
         assert!(release_summary.contains("applies to 11 bundled bodies"));
         assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_summary.contains("Release notes summary: release-notes-summary"));
