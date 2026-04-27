@@ -4005,6 +4005,21 @@ struct WorkspaceProvenance {
     rustc_version: String,
 }
 
+impl WorkspaceProvenance {
+    fn summary_line(&self) -> String {
+        format!(
+            "Benchmark provenance\n  source revision: {}\n  workspace status: {}\n  rustc version: {}",
+            self.source_revision, self.workspace_status, self.rustc_version
+        )
+    }
+}
+
+impl fmt::Display for WorkspaceProvenance {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 fn workspace_provenance() -> WorkspaceProvenance {
     let source_revision = Command::new("git")
         .args(["rev-parse", "--short=12", "HEAD"])
@@ -4047,11 +4062,7 @@ fn workspace_provenance() -> WorkspaceProvenance {
 }
 
 fn benchmark_provenance_text() -> String {
-    let provenance = workspace_provenance();
-    format!(
-        "Benchmark provenance\n  source revision: {}\n  workspace status: {}\n  rustc version: {}",
-        provenance.source_revision, provenance.workspace_status, provenance.rustc_version
-    )
+    workspace_provenance().summary_line()
 }
 
 /// Writes a release bundle containing the compatibility profile, release-profile
@@ -9411,6 +9422,16 @@ mod tests {
         assert!(report.contains("Chart elapsed:"));
         assert!(report.contains("Nanoseconds per chart:"));
         assert!(report.contains("Charts per second:"));
+    }
+
+    #[test]
+    fn benchmark_workspace_provenance_display_matches_the_summary_helper() {
+        let provenance = workspace_provenance();
+
+        assert_eq!(provenance.summary_line(), provenance.to_string());
+        assert!(provenance
+            .summary_line()
+            .starts_with("Benchmark provenance\n  source revision: "));
     }
 
     #[test]
