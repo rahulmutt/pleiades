@@ -4916,6 +4916,29 @@ fn manifest_dependency_rule(line: &str, forbidden: &str) -> bool {
     line.contains(&format!("package = \"{forbidden}\""))
 }
 
+fn manifest_dependency_name(line: &str) -> Option<&str> {
+    let (name, _) = line.split_once('=')?;
+    let name = name.trim().trim_matches('"');
+    if name.is_empty() {
+        None
+    } else {
+        Some(name)
+    }
+}
+
+fn manifest_dependency_package_name(line: &str) -> Option<&str> {
+    let needle = "package = \"";
+    let start = line.find(needle)? + needle.len();
+    let rest = &line[start..];
+    let end = rest.find('"')?;
+    let package_name = &rest[..end];
+    if package_name.is_empty() {
+        None
+    } else {
+        Some(package_name)
+    }
+}
+
 fn audit_manifest_text(path: &Path, text: &str) -> Vec<WorkspaceAuditViolation> {
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     enum Section {
@@ -4964,6 +4987,21 @@ fn audit_manifest_text(path: &Path, text: &str) -> Vec<WorkspaceAuditViolation> 
                 }
             }
             Section::Dependencies => {
+                if let Some(native_package_name) = manifest_dependency_name(line)
+                    .filter(|name| name.ends_with("-sys"))
+                    .or_else(|| {
+                        manifest_dependency_package_name(line).filter(|name| name.ends_with("-sys"))
+                    })
+                {
+                    violations.push(WorkspaceAuditViolation {
+                        path: path.to_path_buf(),
+                        rule: "dependency.native-package",
+                        detail: format!(
+                            "dependency table references `{native_package_name}`, which suggests a native build dependency"
+                        ),
+                    });
+                }
+
                 for forbidden in FORBIDDEN_DEPENDENCIES {
                     if manifest_dependency_rule(line, forbidden) {
                         violations.push(WorkspaceAuditViolation {
@@ -11053,8 +11091,10 @@ links = "example-native"
 
 [dependencies]
 cc = "1"
+openssl-sys = "0.9"
 [target.'cfg(unix)'.dependencies]
 bindgen = { version = "0.69" }
+renamed-native = { package = "zstd-sys", version = "2" }
 "#;
         let manifest_violations = audit_manifest_text(Path::new("/tmp/Cargo.toml"), manifest);
         assert!(manifest_violations
@@ -11069,6 +11109,14 @@ bindgen = { version = "0.69" }
         assert!(manifest_violations
             .iter()
             .any(|violation| violation.detail.contains("bindgen")));
+        assert!(manifest_violations
+            .iter()
+            .any(|violation| violation.rule == "dependency.native-package"
+                && violation.detail.contains("openssl-sys")));
+        assert!(manifest_violations
+            .iter()
+            .any(|violation| violation.rule == "dependency.native-package"
+                && violation.detail.contains("zstd-sys")));
 
         let build_script_dir = unique_temp_dir("pleiades-workspace-audit-build-script");
         let build_script_manifest = build_script_dir.join("Cargo.toml");
