@@ -9320,7 +9320,7 @@ mod tests {
         assert!(validation_report_summary.contains("Frame policy:"));
         assert!(validation_report_summary.contains("Zodiac policy:"));
         assert!(validation_report_summary.contains(
-            "Release profile identifiers: compatibility=pleiades-compatibility-profile/0.6.122, api-stability=pleiades-api-stability/0.1.0"
+            "Release profile identifiers: compatibility=pleiades-compatibility-profile/0.6.123, api-stability=pleiades-api-stability/0.1.0"
         ));
         assert!(validation_report_summary
             .contains("lookup epoch policy=TT-grid retag without relativistic correction"));
@@ -9729,6 +9729,8 @@ mod tests {
         assert!(rendered.contains("Krishnamurti (VP291)"));
         assert!(rendered.contains("P.V.R. Narasimha Rao"));
         assert!(rendered.contains("B. V. Raman"));
+        assert!(rendered.contains("Raman Ayanamsha"));
+        assert!(rendered.contains("Raman ayanamsa"));
         assert!(rendered.contains("Polich-Page \"topocentric\" table of houses"));
         assert!(rendered.contains("Polich/Page"));
         assert!(rendered.contains("T Polich/Page (\"topocentric\")"));
