@@ -1065,6 +1065,20 @@ impl MotionSummary {
     pub fn has_known_motion(self) -> bool {
         self.direct + self.stationary + self.retrograde > 0
     }
+
+    /// Returns a compact one-line summary of the motion classifications in the snapshot.
+    pub fn summary_line(self) -> String {
+        format!(
+            "{} direct, {} stationary, {} retrograde, {} unknown",
+            self.direct, self.stationary, self.retrograde, self.unknown
+        )
+    }
+}
+
+impl fmt::Display for MotionSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
 }
 
 /// A summary of major aspect matches in a chart snapshot.
@@ -1324,14 +1338,7 @@ impl fmt::Display for ChartSnapshot {
 
         let motion_summary = self.motion_summary();
         if motion_summary.has_known_motion() || motion_summary.unknown > 0 {
-            writeln!(
-                f,
-                "Motion summary: {} direct, {} stationary, {} retrograde, {} unknown",
-                motion_summary.direct,
-                motion_summary.stationary,
-                motion_summary.retrograde,
-                motion_summary.unknown,
-            )?;
+            writeln!(f, "Motion summary: {}", motion_summary)?;
         }
 
         let stationary_bodies: Vec<String> = self
@@ -2560,6 +2567,10 @@ mod tests {
                 retrograde: 1,
                 unknown: 1,
             }
+        );
+        assert_eq!(
+            chart.motion_summary().summary_line(),
+            chart.motion_summary().to_string()
         );
         assert_eq!(
             chart
