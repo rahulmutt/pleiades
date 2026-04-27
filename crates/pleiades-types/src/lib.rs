@@ -215,33 +215,50 @@ impl fmt::Display for TimeScale {
 /// Number of SI seconds in one Julian day.
 pub const SECONDS_PER_DAY: f64 = 86_400.0;
 
-/// Error returned when a caller-provided time-scale conversion is requested
-/// from an instant tagged with the wrong source scale.
+/// Error returned when a caller-provided time-scale conversion fails.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct TimeScaleConversionError {
+pub enum TimeScaleConversionError {
     /// Time scale required by the conversion helper.
-    pub expected: TimeScale,
-    /// Time scale carried by the supplied instant.
-    pub actual: TimeScale,
+    Expected {
+        expected: TimeScale,
+        actual: TimeScale,
+    },
+    /// The supplied offset was not a finite number of seconds.
+    NonFiniteOffset,
 }
 
 impl TimeScaleConversionError {
     const fn expected(expected: TimeScale, actual: TimeScale) -> Self {
-        Self { expected, actual }
+        Self::Expected { expected, actual }
+    }
+
+    const fn non_finite_offset() -> Self {
+        Self::NonFiniteOffset
     }
 }
 
 impl fmt::Display for TimeScaleConversionError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "time-scale conversion expected {}, got {}",
-            self.expected, self.actual
-        )
+        match self {
+            Self::Expected { expected, actual } => write!(
+                f,
+                "time-scale conversion expected {}, got {}",
+                expected, actual
+            ),
+            Self::NonFiniteOffset => f.write_str("time-scale conversion offset must be finite"),
+        }
     }
 }
 
 impl std::error::Error for TimeScaleConversionError {}
+
+fn checked_time_scale_offset(offset_seconds: f64) -> Result<f64, TimeScaleConversionError> {
+    if offset_seconds.is_finite() {
+        Ok(offset_seconds)
+    } else {
+        Err(TimeScaleConversionError::non_finite_offset())
+    }
+}
 
 /// A Julian day tagged with a time scale.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -271,7 +288,9 @@ impl Instant {
     /// callers converting UT1 to TT can pass Delta T (`TT - UT1`) and set
     /// `target_scale` to [`TimeScale::Tt`]. This helper intentionally performs
     /// no leap-second, DUT1, Delta T, or relativistic modeling; it only makes the
-    /// caller-provided policy explicit and reproducible.
+    /// caller-provided policy explicit and reproducible. Callers should pass a
+    /// finite offset; the validated signed helpers reject non-finite values
+    /// before reaching this low-level retagging step.
     pub fn with_time_scale_offset(self, target_scale: TimeScale, offset_seconds: f64) -> Self {
         Self {
             julian_day: self.julian_day.add_seconds(offset_seconds),
@@ -329,6 +348,8 @@ impl Instant {
             ));
         }
 
+        let offset_seconds = checked_time_scale_offset(offset_seconds)?;
+
         Ok(self.with_time_scale_offset(TimeScale::Tt, offset_seconds))
     }
 
@@ -377,6 +398,8 @@ impl Instant {
             ));
         }
 
+        let offset_seconds = checked_time_scale_offset(offset_seconds)?;
+
         Ok(self.with_time_scale_offset(TimeScale::Tt, offset_seconds))
     }
 
@@ -412,6 +435,8 @@ impl Instant {
             ));
         }
 
+        let offset_seconds = checked_time_scale_offset(offset_seconds)?;
+
         Ok(self.with_time_scale_offset(TimeScale::Tdb, offset_seconds))
     }
 
@@ -428,6 +453,8 @@ impl Instant {
                 self.scale,
             ));
         }
+
+        let offset_seconds = checked_time_scale_offset(offset_seconds)?;
 
         Ok(self.with_time_scale_offset(TimeScale::Tt, offset_seconds))
     }
@@ -1849,58 +1876,131 @@ mod tests {
             .tt_from_ut1(Duration::from_secs(64))
             .expect_err("UTC is not UT1");
 
-        assert_eq!(ut1_error.expected, TimeScale::Ut1);
-        assert_eq!(ut1_error.actual, TimeScale::Utc);
+        assert!(matches!(
+            ut1_error,
+            TimeScaleConversionError::Expected {
+                expected: TimeScale::Ut1,
+                actual: TimeScale::Utc,
+            }
+        ));
 
         let tdb_ut1_error = utc
             .tdb_from_ut1(Duration::from_secs(64), Duration::from_secs(1))
             .expect_err("UTC is not UT1 for UT1-to-TDB conversion");
 
-        assert_eq!(tdb_ut1_error.expected, TimeScale::Ut1);
-        assert_eq!(tdb_ut1_error.actual, TimeScale::Utc);
+        assert!(matches!(
+            tdb_ut1_error,
+            TimeScaleConversionError::Expected {
+                expected: TimeScale::Ut1,
+                actual: TimeScale::Utc,
+            }
+        ));
 
         let tt = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
         let utc_error = tt
             .tt_from_utc(Duration::from_secs(64))
             .expect_err("TT is not UTC");
 
-        assert_eq!(utc_error.expected, TimeScale::Utc);
-        assert_eq!(utc_error.actual, TimeScale::Tt);
+        assert!(matches!(
+            utc_error,
+            TimeScaleConversionError::Expected {
+                expected: TimeScale::Utc,
+                actual: TimeScale::Tt,
+            }
+        ));
 
         let utc_signed_error = tt
             .tt_from_utc_signed(64.0)
             .expect_err("TT is not UTC for signed UTC-to-TT conversion");
 
-        assert_eq!(utc_signed_error.expected, TimeScale::Utc);
-        assert_eq!(utc_signed_error.actual, TimeScale::Tt);
+        assert!(matches!(
+            utc_signed_error,
+            TimeScaleConversionError::Expected {
+                expected: TimeScale::Utc,
+                actual: TimeScale::Tt,
+            }
+        ));
 
         let tdb_error = tt
             .tdb_from_utc(Duration::from_secs(64), Duration::from_secs(1))
             .expect_err("TT is not UTC for UTC-to-TDB conversion");
 
-        assert_eq!(tdb_error.expected, TimeScale::Utc);
-        assert_eq!(tdb_error.actual, TimeScale::Tt);
+        assert!(matches!(
+            tdb_error,
+            TimeScaleConversionError::Expected {
+                expected: TimeScale::Utc,
+                actual: TimeScale::Tt,
+            }
+        ));
 
         let tt_error = utc
             .tt_from_tdb(-0.001_657)
             .expect_err("UTC is not TDB for TDB-to-TT conversion");
 
-        assert_eq!(tt_error.expected, TimeScale::Tdb);
-        assert_eq!(tt_error.actual, TimeScale::Utc);
+        assert!(matches!(
+            tt_error,
+            TimeScaleConversionError::Expected {
+                expected: TimeScale::Tdb,
+                actual: TimeScale::Utc,
+            }
+        ));
 
         let ut1_signed_error = utc
             .tt_from_ut1_signed(64.0)
             .expect_err("UTC is not UT1 for signed UT1-to-TT conversion");
 
-        assert_eq!(ut1_signed_error.expected, TimeScale::Ut1);
-        assert_eq!(ut1_signed_error.actual, TimeScale::Utc);
+        assert!(matches!(
+            ut1_signed_error,
+            TimeScaleConversionError::Expected {
+                expected: TimeScale::Ut1,
+                actual: TimeScale::Utc,
+            }
+        ));
 
         let wrong_scale_error = tt
             .tt_from_tdb(-0.001_657)
             .expect_err("TT is not TDB for TDB-to-TT conversion");
 
-        assert_eq!(wrong_scale_error.expected, TimeScale::Tdb);
-        assert_eq!(wrong_scale_error.actual, TimeScale::Tt);
+        assert!(matches!(
+            wrong_scale_error,
+            TimeScaleConversionError::Expected {
+                expected: TimeScale::Tdb,
+                actual: TimeScale::Tt,
+            }
+        ));
+    }
+
+    #[test]
+    fn signed_time_scale_helpers_reject_non_finite_offsets() {
+        let ut1 = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Ut1);
+        let tt_nan_error = ut1
+            .tt_from_ut1_signed(f64::NAN)
+            .expect_err("non-finite UT1 offsets should be rejected");
+
+        assert!(matches!(
+            tt_nan_error,
+            TimeScaleConversionError::NonFiniteOffset
+        ));
+
+        let tt = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+        let tdb_inf_error = tt
+            .tdb_from_tt_signed(f64::INFINITY)
+            .expect_err("non-finite TDB offsets should be rejected");
+
+        assert!(matches!(
+            tdb_inf_error,
+            TimeScaleConversionError::NonFiniteOffset
+        ));
+
+        let tdb = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb);
+        let tt_negative_inf_error = tdb
+            .tt_from_tdb(f64::NEG_INFINITY)
+            .expect_err("non-finite TDB-to-TT offsets should be rejected");
+
+        assert!(matches!(
+            tt_negative_inf_error,
+            TimeScaleConversionError::NonFiniteOffset
+        ));
     }
 
     #[test]
