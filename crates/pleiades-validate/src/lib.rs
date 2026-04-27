@@ -3345,6 +3345,13 @@ fn render_compatibility_profile_summary_text() -> String {
     text.push_str("Custom-definition labels: ");
     text.push_str(&profile.custom_definition_labels.len().to_string());
     text.push('\n');
+    text.push_str("Custom-definition label names: ");
+    if profile.custom_definition_labels.is_empty() {
+        text.push_str("none");
+    } else {
+        text.push_str(&profile.custom_definition_labels.join(", "));
+    }
+    text.push('\n');
     text.push_str("Validation reference points: ");
     text.push_str(&summarize_validation_reference_points(
         profile.validation_reference_points,
@@ -3504,6 +3511,13 @@ fn render_release_notes_summary_text() -> String {
     text.push('\n');
     text.push_str("Custom-definition labels: ");
     text.push_str(&profile.custom_definition_labels.len().to_string());
+    text.push('\n');
+    text.push_str("Custom-definition label names: ");
+    if profile.custom_definition_labels.is_empty() {
+        text.push_str("none");
+    } else {
+        text.push_str(&profile.custom_definition_labels.join(", "));
+    }
     text.push('\n');
     text.push_str("Validation reference points: ");
     text.push_str(&summarize_validation_reference_points(
@@ -10479,6 +10493,7 @@ mod tests {
         let rendered = render_cli(&["compatibility-profile-summary"])
             .expect("compatibility profile summary should render");
         let release_profiles = current_release_profile_identifiers();
+        let profile = current_compatibility_profile();
         assert!(rendered.contains("Compatibility profile summary"));
         assert!(rendered.contains(&format!(
             "Profile: {}",
@@ -10497,6 +10512,10 @@ mod tests {
         assert!(rendered.contains("Release-specific ayanamsa canonical names:"));
         assert!(rendered.contains("Release-specific ayanamsa canonical names: 54 (True Citra, J2000, J1900, B1950, True Revati, True Mula, Suryasiddhanta (Revati), Suryasiddhanta (Citra), Lahiri (ICRC), Lahiri (1940), Usha Shashi, Suryasiddhanta (499 CE), Aryabhata (499 CE), Sassanian, DeLuce, Yukteshwar, PVR Pushya-paksha, Sheoran, Hipparchus, Babylonian (Kugler 1), Babylonian (Kugler 2), Babylonian (Kugler 3), Babylonian (Huber), Babylonian (Eta Piscium), Babylonian (Aldebaran), Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs), Galactic Center, Galactic Equator, True Pushya, Udayagiri, Djwhal Khul, JN Bhasin, Suryasiddhanta (Mean Sun), Aryabhata (Mean Sun), Babylonian (Britton), Aryabhata (522 CE), Lahiri (VP285), Krishnamurti (VP291), True Sheoran, Galactic Center (Rgilbrand), Galactic Center (Mardyks), Galactic Center (Mula/Wilhelm), Dhruva Galactic Center (Middle Mula), Galactic Center (Cochrane), Galactic Equator (IAU 1958), Galactic Equator (True), Galactic Equator (Mula), Galactic Equator (Fiorenza), Valens Moon)"));
         assert!(rendered.contains("Custom-definition labels: 9"));
+        assert!(rendered.contains(&format!(
+            "Custom-definition label names: {}",
+            profile.custom_definition_labels.join(", ")
+        )));
         assert!(rendered.contains("Validation reference points: 1 (stage-4 validation corpus)"));
         assert!(rendered.contains("Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(rendered.contains("Compatibility caveats: 2"));
@@ -11084,6 +11103,10 @@ mod tests {
         assert!(rendered.contains(&format!(
             "Custom-definition labels: {}",
             profile.custom_definition_labels.len()
+        )));
+        assert!(rendered.contains(&format!(
+            "Custom-definition label names: {}",
+            profile.custom_definition_labels.join(", ")
         )));
         assert!(rendered.contains(&format!(
             "Compatibility caveats: {}",
