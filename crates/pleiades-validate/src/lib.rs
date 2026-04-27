@@ -2674,6 +2674,10 @@ fn verify_custom_definition_labels(labels: &[&'static str]) -> Result<usize, Eph
     Ok(labels_checked)
 }
 
+fn has_surrounding_whitespace(value: &str) -> bool {
+    !value.is_empty() && value.trim() != value
+}
+
 fn ensure_profile_descriptor_metadata(
     catalog_label: &str,
     canonical_name: &str,
@@ -2686,11 +2690,30 @@ fn ensure_profile_descriptor_metadata(
         ));
     }
 
+    if has_surrounding_whitespace(canonical_name) {
+        return Err(EphemerisError::new(
+            EphemerisErrorKind::InvalidRequest,
+            format!(
+                "compatibility profile {catalog_label} descriptor '{canonical_name}' contains surrounding whitespace in its canonical name",
+            ),
+        ));
+    }
+
     if notes.trim().is_empty() {
         return Err(EphemerisError::new(
             EphemerisErrorKind::InvalidRequest,
             format!(
                 "compatibility profile {catalog_label} descriptor '{}' is missing notes metadata",
+                canonical_name
+            ),
+        ));
+    }
+
+    if has_surrounding_whitespace(notes) {
+        return Err(EphemerisError::new(
+            EphemerisErrorKind::InvalidRequest,
+            format!(
+                "compatibility profile {catalog_label} descriptor '{}' contains surrounding whitespace in its notes metadata",
                 canonical_name
             ),
         ));
@@ -2710,6 +2733,16 @@ fn ensure_unique_profile_label(
         return Err(EphemerisError::new(
             EphemerisErrorKind::InvalidRequest,
             format!("compatibility profile {catalog_label} descriptor contains a blank label"),
+        ));
+    }
+
+    if has_surrounding_whitespace(label) {
+        return Err(EphemerisError::new(
+            EphemerisErrorKind::InvalidRequest,
+            format!(
+                "compatibility profile {catalog_label} descriptor '{}' contains surrounding whitespace in its label",
+                item_identity
+            ),
         ));
     }
 
@@ -9906,6 +9939,55 @@ mod tests {
             .expect_err("missing descriptor notes should fail profile verification");
         assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
         assert!(error.message.contains("missing notes metadata"));
+    }
+
+    #[test]
+    fn compatibility_profile_verification_rejects_whitespace_padded_canonical_names() {
+        let error = ensure_profile_descriptor_metadata(
+            "house-system",
+            " Placidus ",
+            "Quadrant system used for whitespace-padded metadata coverage.",
+        )
+        .expect_err("whitespace-padded canonical names should fail profile verification");
+
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("contains surrounding whitespace in its canonical name"));
+    }
+
+    #[test]
+    fn compatibility_profile_verification_rejects_whitespace_padded_notes() {
+        let error = ensure_profile_descriptor_metadata(
+            "ayanamsa",
+            "Lahiri",
+            " whitespace-padded notes metadata ",
+        )
+        .expect_err("whitespace-padded notes should fail profile verification");
+
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("contains surrounding whitespace in its notes metadata"));
+    }
+
+    #[test]
+    fn compatibility_profile_verification_rejects_whitespace_padded_labels() {
+        let mut seen_labels = BTreeSet::new();
+        let mut seen_labels_case_insensitive = BTreeMap::new();
+        let error = ensure_unique_profile_label(
+            "custom-definition",
+            "  custom delta  ",
+            "custom delta",
+            &mut seen_labels,
+            &mut seen_labels_case_insensitive,
+        )
+        .expect_err("whitespace-padded labels should fail profile verification");
+
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("contains surrounding whitespace in its label"));
     }
 
     #[test]
