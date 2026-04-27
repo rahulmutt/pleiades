@@ -144,8 +144,7 @@ impl fmt::Display for HouseCatalogValidationError {
                 expected_system,
             } => write!(
                 f,
-                "the house catalog label `{label}` does not round-trip to {:?}",
-                expected_system
+                "the house catalog label `{label}` does not round-trip to {expected_system}"
             ),
         }
     }
@@ -1035,6 +1034,19 @@ mod tests {
         let expected = "Equal (aliases: Alias One, Alias Two) [latitude-sensitive] — Summary note";
         assert_eq!(descriptor.summary_line(), expected);
         assert_eq!(descriptor.to_string(), expected);
+    }
+
+    #[test]
+    fn validation_errors_use_stable_house_system_display_names() {
+        let error = HouseCatalogValidationError::LabelDoesNotRoundTrip {
+            label: "Equal (MC) table of houses",
+            expected_system: HouseSystem::EqualMidheaven,
+        };
+
+        assert_eq!(
+            error.to_string(),
+            "the house catalog label `Equal (MC) table of houses` does not round-trip to Equal (MC)"
+        );
     }
 
     #[test]

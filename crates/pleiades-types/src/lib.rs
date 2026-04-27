@@ -928,6 +928,39 @@ pub enum HouseSystem {
     Custom(CustomHouseSystem),
 }
 
+impl fmt::Display for HouseSystem {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Placidus => f.write_str("Placidus"),
+            Self::Koch => f.write_str("Koch"),
+            Self::Porphyry => f.write_str("Porphyry"),
+            Self::Regiomontanus => f.write_str("Regiomontanus"),
+            Self::Campanus => f.write_str("Campanus"),
+            Self::Carter => f.write_str("Carter (poli-equatorial)"),
+            Self::Horizon => f.write_str("Horizon/Azimuth"),
+            Self::Apc => f.write_str("APC"),
+            Self::KrusinskiPisaGoelzer => f.write_str("Krusinski-Pisa-Goelzer"),
+            Self::Equal => f.write_str("Equal"),
+            Self::EqualMidheaven => f.write_str("Equal (MC)"),
+            Self::EqualAries => f.write_str("Equal (1=Aries)"),
+            Self::Vehlow => f.write_str("Vehlow Equal"),
+            Self::Sripati => f.write_str("Sripati"),
+            Self::WholeSign => f.write_str("Whole Sign"),
+            Self::Alcabitius => f.write_str("Alcabitius"),
+            Self::Albategnius => f.write_str("Albategnius"),
+            Self::PullenSd => f.write_str("Pullen SD"),
+            Self::PullenSr => f.write_str("Pullen SR"),
+            Self::Meridian => f.write_str("Meridian"),
+            Self::Axial => f.write_str("Axial"),
+            Self::Topocentric => f.write_str("Topocentric"),
+            Self::Morinus => f.write_str("Morinus"),
+            Self::Sunshine => f.write_str("Sunshine"),
+            Self::Gauquelin => f.write_str("Gauquelin sectors"),
+            Self::Custom(custom) => fmt::Display::fmt(custom, f),
+        }
+    }
+}
+
 /// A structured custom house-system definition.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -1549,6 +1582,20 @@ mod tests {
         assert_eq!(
             custom.to_string(),
             "My Custom Houses [aliases: MCH, Test Houses] (based on a user-defined formula)"
+        );
+    }
+
+    #[test]
+    fn house_systems_have_stable_display_names() {
+        assert_eq!(HouseSystem::Placidus.to_string(), "Placidus");
+        assert_eq!(HouseSystem::EqualMidheaven.to_string(), "Equal (MC)");
+        assert_eq!(HouseSystem::Carter.to_string(), "Carter (poli-equatorial)");
+        assert_eq!(HouseSystem::Gauquelin.to_string(), "Gauquelin sectors");
+
+        let custom = CustomHouseSystem::new("My Custom Houses");
+        assert_eq!(
+            HouseSystem::Custom(custom.clone()).to_string(),
+            custom.to_string()
         );
     }
 

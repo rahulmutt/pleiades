@@ -55,10 +55,7 @@ impl HouseRequest {
             .map(|value| value.to_string())
             .unwrap_or_else(|| "auto".to_string());
 
-        let system = match &self.system {
-            HouseSystem::Custom(custom) => custom.to_string(),
-            other => catalog_name(other).to_string(),
-        };
+        let system = self.system.to_string();
 
         format!(
             "instant={}; observer={}; system={}; obliquity={}",
@@ -154,6 +151,19 @@ pub enum HouseErrorKind {
     NumericalFailure,
 }
 
+impl fmt::Display for HouseErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let label = match self {
+            Self::UnsupportedHouseSystem => "UnsupportedHouseSystem",
+            Self::InvalidLatitude => "InvalidLatitude",
+            Self::InvalidElevation => "InvalidElevation",
+            Self::InvalidObliquity => "InvalidObliquity",
+            Self::NumericalFailure => "NumericalFailure",
+        };
+        f.write_str(label)
+    }
+}
+
 /// A structured house-calculation error.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct HouseError {
@@ -175,7 +185,7 @@ impl HouseError {
 
 impl fmt::Display for HouseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}: {}", self.kind, self.message)
+        write!(f, "{}: {}", self.kind, self.message)
     }
 }
 
@@ -1349,9 +1359,7 @@ mod tests {
             request.summary_line(),
             format!(
                 "instant={}; observer={}; system={}; obliquity=auto",
-                &request.instant,
-                &request.observer,
-                catalog_name(&request.system)
+                &request.instant, &request.observer, &request.system
             )
         );
         assert_eq!(request.to_string(), request.summary_line());
@@ -1363,7 +1371,7 @@ mod tests {
                 "instant={}; observer={}; system={}; obliquity=23.5°",
                 &request_with_obliquity.instant,
                 &request_with_obliquity.observer,
-                catalog_name(&request_with_obliquity.system)
+                &request_with_obliquity.system
             )
         );
 
@@ -1599,9 +1607,10 @@ mod tests {
         let error = calculate_houses(&sample_request(HouseSystem::Custom(custom)))
             .expect_err("custom house systems should still be rejected");
         assert_eq!(error.kind, HouseErrorKind::UnsupportedHouseSystem);
-        assert!(error
-            .message
-            .contains("house placement for custom house system My Custom Houses [aliases: MCH] (user-defined formula) is not implemented yet"));
+        assert_eq!(
+            error.to_string(),
+            "UnsupportedHouseSystem: house placement for custom house system My Custom Houses [aliases: MCH] (user-defined formula) is not implemented yet"
+        );
     }
 
     #[test]
