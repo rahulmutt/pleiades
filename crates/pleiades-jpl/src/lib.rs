@@ -86,6 +86,12 @@ pub enum ReferenceSnapshotSummaryValidationError {
         body_count: usize,
         bodies_len: usize,
     },
+    /// The summary reused a body after trimming its display form.
+    DuplicateBody {
+        first_index: usize,
+        second_index: usize,
+        body: String,
+    },
     /// The summary did not expose any epochs.
     MissingEpochs,
     /// The summary reported an invalid earliest/latest epoch range.
@@ -106,6 +112,7 @@ impl ReferenceSnapshotSummaryValidationError {
         match self {
             Self::MissingBodies => "missing bodies",
             Self::BodyCountMismatch { .. } => "body count mismatch",
+            Self::DuplicateBody { .. } => "duplicate body",
             Self::MissingEpochs => "missing epochs",
             Self::InvalidEpochRange { .. } => "invalid epoch range",
             Self::AsteroidRowCountExceedsRowCount { .. } => "asteroid row count exceeds row count",
@@ -123,6 +130,14 @@ impl fmt::Display for ReferenceSnapshotSummaryValidationError {
             } => write!(
                 f,
                 "body count {body_count} does not match body list length {bodies_len}"
+            ),
+            Self::DuplicateBody {
+                first_index,
+                second_index,
+                body,
+            } => write!(
+                f,
+                "duplicate body '{body}' at index {second_index} (first seen at index {first_index})"
             ),
             Self::MissingEpochs => f.write_str(self.label()),
             Self::InvalidEpochRange {
@@ -207,14 +222,16 @@ pub struct ReferenceSnapshotEquatorialParitySummary {
 /// Returns a compact equatorial parity summary for the checked-in reference snapshot.
 pub fn reference_snapshot_equatorial_parity_summary(
 ) -> Option<ReferenceSnapshotEquatorialParitySummary> {
-    reference_snapshot_summary().map(|summary| ReferenceSnapshotEquatorialParitySummary {
-        row_count: summary.row_count,
-        body_count: summary.body_count,
-        bodies: summary.bodies,
-        epoch_count: summary.epoch_count,
-        earliest_epoch: summary.earliest_epoch,
-        latest_epoch: summary.latest_epoch,
-    })
+    reference_snapshot_summary()
+        .filter(|summary| summary.validate().is_ok())
+        .map(|summary| ReferenceSnapshotEquatorialParitySummary {
+            row_count: summary.row_count,
+            body_count: summary.body_count,
+            bodies: summary.bodies,
+            epoch_count: summary.epoch_count,
+            earliest_epoch: summary.earliest_epoch,
+            latest_epoch: summary.latest_epoch,
+        })
 }
 
 impl ReferenceSnapshotEquatorialParitySummary {
@@ -508,6 +525,17 @@ impl ReferenceSnapshotSummary {
                 body_count: self.body_count,
                 bodies_len: self.bodies.len(),
             });
+        }
+        let mut seen_bodies = BTreeMap::new();
+        for (index, body) in self.bodies.iter().enumerate() {
+            let body_label = body.to_string();
+            if let Some(first_index) = seen_bodies.insert(body_label.clone(), index) {
+                return Err(ReferenceSnapshotSummaryValidationError::DuplicateBody {
+                    first_index,
+                    second_index: index,
+                    body: body_label,
+                });
+            }
         }
         if self.epoch_count == 0 {
             return Err(ReferenceSnapshotSummaryValidationError::MissingEpochs);
@@ -4710,6 +4738,31 @@ mod tests {
             manifest.coverage_or("fallback coverage"),
             "fallback coverage"
         );
+    }
+
+    #[test]
+    fn reference_snapshot_summary_validation_rejects_duplicate_bodies() {
+        let summary = ReferenceSnapshotSummary {
+            row_count: 2,
+            body_count: 2,
+            bodies: &[
+                pleiades_backend::CelestialBody::Sun,
+                pleiades_backend::CelestialBody::Sun,
+            ],
+            epoch_count: 1,
+            asteroid_row_count: 0,
+            earliest_epoch: reference_instant(),
+            latest_epoch: reference_instant(),
+        };
+
+        assert!(matches!(
+            summary.validate(),
+            Err(ReferenceSnapshotSummaryValidationError::DuplicateBody {
+                first_index: 0,
+                second_index: 1,
+                body,
+            }) if body == "Sun"
+        ));
     }
 
     #[test]
