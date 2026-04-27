@@ -254,6 +254,26 @@ pub struct Vsop87SourceAuditSummary {
     pub max_byte_length: usize,
 }
 
+/// Validation error for a VSOP87 source-audit summary that drifted from the current manifest.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Vsop87SourceAuditSummaryValidationError {
+    /// A rendered summary field no longer matches the current source-audit manifest.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for Vsop87SourceAuditSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the VSOP87 source audit summary field `{field}` is out of sync with the current manifest"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for Vsop87SourceAuditSummaryValidationError {}
+
 impl Vsop87SourceAuditSummary {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
@@ -269,6 +289,76 @@ impl Vsop87SourceAuditSummary {
             self.max_line_count,
             self.fingerprint_count
         )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current source-audit manifest.
+    pub fn validate(&self) -> Result<(), Vsop87SourceAuditSummaryValidationError> {
+        let audits = source_audits();
+        let source_specs = source_specifications();
+        let expected_source_files = source_specs
+            .iter()
+            .map(|spec| spec.source_file)
+            .collect::<Vec<_>>();
+
+        if self.source_count != audits.len() {
+            return Err(Vsop87SourceAuditSummaryValidationError::FieldOutOfSync {
+                field: "source_count",
+            });
+        }
+        if self.source_bodies != source_backed_body_order() {
+            return Err(Vsop87SourceAuditSummaryValidationError::FieldOutOfSync {
+                field: "source_bodies",
+            });
+        }
+        if self.source_files != expected_source_files {
+            return Err(Vsop87SourceAuditSummaryValidationError::FieldOutOfSync {
+                field: "source_files",
+            });
+        }
+        if self.vendored_full_file_count
+            != audits
+                .iter()
+                .filter(|audit| audit.source_file.starts_with("VSOP87B."))
+                .count()
+        {
+            return Err(Vsop87SourceAuditSummaryValidationError::FieldOutOfSync {
+                field: "vendored_full_file_count",
+            });
+        }
+        if self.fingerprint_count != audits.len() {
+            return Err(Vsop87SourceAuditSummaryValidationError::FieldOutOfSync {
+                field: "fingerprint_count",
+            });
+        }
+        if self.total_term_count != audits.iter().map(|audit| audit.term_count).sum::<usize>() {
+            return Err(Vsop87SourceAuditSummaryValidationError::FieldOutOfSync {
+                field: "total_term_count",
+            });
+        }
+        if self.max_line_count
+            != audits
+                .iter()
+                .map(|audit| audit.line_count)
+                .max()
+                .unwrap_or(0)
+        {
+            return Err(Vsop87SourceAuditSummaryValidationError::FieldOutOfSync {
+                field: "max_line_count",
+            });
+        }
+        if self.max_byte_length
+            != audits
+                .iter()
+                .map(|audit| audit.byte_length)
+                .max()
+                .unwrap_or(0)
+        {
+            return Err(Vsop87SourceAuditSummaryValidationError::FieldOutOfSync {
+                field: "max_byte_length",
+            });
+        }
+
+        Ok(())
     }
 }
 
@@ -1163,9 +1253,16 @@ pub fn format_source_audit_summary(summary: &Vsop87SourceAuditSummary) -> String
     summary.summary_line()
 }
 
+fn format_validated_source_audit_summary_for_report(summary: &Vsop87SourceAuditSummary) -> String {
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("VSOP87 source audit: unavailable ({error})"),
+    }
+}
+
 /// Returns the release-facing reproducibility audit summary string.
 pub fn source_audit_summary_for_report() -> String {
-    source_audit_summary().to_string()
+    format_validated_source_audit_summary_for_report(&source_audit_summary())
 }
 
 /// A reproducibility audit record for one checked-in generated VSOP87B blob.
@@ -1200,6 +1297,26 @@ pub struct Vsop87GeneratedBlobAuditSummary {
     pub fingerprint_count: usize,
 }
 
+/// Validation error for a VSOP87 generated-blob summary that drifted from the current manifest.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Vsop87GeneratedBlobAuditSummaryValidationError {
+    /// A rendered summary field no longer matches the current generated-blob manifest.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for Vsop87GeneratedBlobAuditSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the VSOP87 generated binary audit summary field `{field}` is out of sync with the current manifest"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for Vsop87GeneratedBlobAuditSummaryValidationError {}
+
 impl Vsop87GeneratedBlobAuditSummary {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
@@ -1213,6 +1330,74 @@ impl Vsop87GeneratedBlobAuditSummary {
             self.max_byte_length,
             self.fingerprint_count
         )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current generated-blob manifest.
+    pub fn validate(&self) -> Result<(), Vsop87GeneratedBlobAuditSummaryValidationError> {
+        let audits = generated_binary_audits();
+        let source_specs = source_specifications();
+        let expected_source_files = source_specs
+            .iter()
+            .map(|spec| spec.source_file)
+            .collect::<Vec<_>>();
+
+        if self.blob_count != audits.len() {
+            return Err(
+                Vsop87GeneratedBlobAuditSummaryValidationError::FieldOutOfSync {
+                    field: "blob_count",
+                },
+            );
+        }
+        if self.source_bodies != source_backed_body_order() {
+            return Err(
+                Vsop87GeneratedBlobAuditSummaryValidationError::FieldOutOfSync {
+                    field: "source_bodies",
+                },
+            );
+        }
+        if self.source_files != expected_source_files {
+            return Err(
+                Vsop87GeneratedBlobAuditSummaryValidationError::FieldOutOfSync {
+                    field: "source_files",
+                },
+            );
+        }
+        if self.source_file_count != audits.len() {
+            return Err(
+                Vsop87GeneratedBlobAuditSummaryValidationError::FieldOutOfSync {
+                    field: "source_file_count",
+                },
+            );
+        }
+        if self.total_byte_length != audits.iter().map(|audit| audit.byte_length).sum::<usize>() {
+            return Err(
+                Vsop87GeneratedBlobAuditSummaryValidationError::FieldOutOfSync {
+                    field: "total_byte_length",
+                },
+            );
+        }
+        if self.max_byte_length
+            != audits
+                .iter()
+                .map(|audit| audit.byte_length)
+                .max()
+                .unwrap_or(0)
+        {
+            return Err(
+                Vsop87GeneratedBlobAuditSummaryValidationError::FieldOutOfSync {
+                    field: "max_byte_length",
+                },
+            );
+        }
+        if self.fingerprint_count != audits.len() {
+            return Err(
+                Vsop87GeneratedBlobAuditSummaryValidationError::FieldOutOfSync {
+                    field: "fingerprint_count",
+                },
+            );
+        }
+
+        Ok(())
     }
 }
 
@@ -1267,9 +1452,18 @@ pub fn format_generated_binary_audit_summary(summary: &Vsop87GeneratedBlobAuditS
     summary.summary_line()
 }
 
+fn format_validated_generated_binary_audit_summary_for_report(
+    summary: &Vsop87GeneratedBlobAuditSummary,
+) -> String {
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("VSOP87 generated binary audit: unavailable ({error})"),
+    }
+}
+
 /// Returns the release-facing generated binary audit summary string.
 pub fn generated_binary_audit_summary_for_report() -> String {
-    generated_binary_audit_summary().to_string()
+    format_validated_generated_binary_audit_summary_for_report(&generated_binary_audit_summary())
 }
 
 /// Returns a summary of the current VSOP87 source-documentation catalog.
@@ -4541,9 +4735,28 @@ mod tests {
             "VSOP87 source audit: 8 source-backed bodies (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune) across 8 source files (VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep); 8 vendored full-file inputs, 35080 total terms, max source size 949753 bytes / 7141 lines, 8 deterministic fingerprints"
         );
         assert_eq!(summary.summary_line(), summary.to_string());
+        assert_eq!(summary.validate(), Ok(()));
         assert_eq!(
             source_audit_summary_for_report(),
             format_source_audit_summary(&summary)
+        );
+    }
+
+    #[test]
+    fn source_audit_summary_validate_rejects_drifted_fields() {
+        let mut summary = source_audit_summary();
+        summary.fingerprint_count += 1;
+
+        let error = summary
+            .validate()
+            .expect_err("drifted source audit summaries should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "the VSOP87 source audit summary field `fingerprint_count` is out of sync with the current manifest"
+        );
+        assert_eq!(
+            format_validated_source_audit_summary_for_report(&summary),
+            "VSOP87 source audit: unavailable (the VSOP87 source audit summary field `fingerprint_count` is out of sync with the current manifest)"
         );
     }
 
@@ -4583,6 +4796,7 @@ mod tests {
         assert_eq!(fingerprints.len(), audits.len());
 
         assert_eq!(summary.summary_line(), summary.to_string());
+        assert_eq!(summary.validate(), Ok(()));
         assert_eq!(
             generated_binary_audit_summary_for_report(),
             format_generated_binary_audit_summary(&summary)
@@ -4590,6 +4804,24 @@ mod tests {
         assert!(generated_binary_audit_summary_for_report().contains(
             "VSOP87 generated binary audit: 8 checked-in blobs across 8 source files (bodies: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; files: VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep)"
         ));
+    }
+
+    #[test]
+    fn generated_binary_audit_summary_validate_rejects_drifted_fields() {
+        let mut summary = generated_binary_audit_summary();
+        summary.source_file_count += 1;
+
+        let error = summary
+            .validate()
+            .expect_err("drifted generated blob summaries should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "the VSOP87 generated binary audit summary field `source_file_count` is out of sync with the current manifest"
+        );
+        assert_eq!(
+            format_validated_generated_binary_audit_summary_for_report(&summary),
+            "VSOP87 generated binary audit: unavailable (the VSOP87 generated binary audit summary field `source_file_count` is out of sync with the current manifest)"
+        );
     }
 
     #[test]
