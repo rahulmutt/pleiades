@@ -66,7 +66,8 @@ pub enum Vsop87BodySourceKind {
     /// source file.
     GeneratedBinaryVsop87b,
     /// Coordinates are produced from compact mean orbital elements while the
-    /// remaining Pluto-specific source path is modeled separately.
+    /// remaining Pluto-specific source path is modeled separately as an
+    /// explicit special case.
     MeanOrbitalElements,
 }
 
@@ -968,7 +969,7 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
                 source_profile: source_profile(
                     CelestialBody::Pluto,
                     Vsop87BodySourceKind::MeanOrbitalElements,
-                    "current mean-element fallback body until a Pluto-specific source path is selected",
+                    "current mean-element fallback special case until a Pluto-specific source path is selected",
                     AccuracyClass::Approximate,
                 ),
                 source_specification: None,

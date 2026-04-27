@@ -65,6 +65,7 @@ Latest progress (2026-04-26): backend provenance now has a typed `BackendProvena
 - Latest progress (2026-04-27): the body-class comparison envelope now follows the same typed-summary pattern, so the coarse class report path reuses the backend-owned summary helper instead of reconstructing the release-facing wording inline.
 - tests and doctests for current behavior.
 - Latest progress (2026-04-27): the VSOP87 crate-level docs now describe the explicit topocentric-observer and apparent-request rejection posture that the runtime already enforces, keeping the public crate narrative aligned with the current geocentric-only request policy.
+- Latest progress (2026-04-27): the Pluto VSOP87 source-profile provenance now explicitly calls the body a mean-element fallback special case, which keeps the non-VSOP87 outlier note visible in the backend matrix and source-profile summaries.
 - Latest progress (2026-04-27): the VSOP87 source-documentation partition order is now available through a public helper too, so regeneration tooling can reuse the backend-owned generated-binary/vendored/truncated partitioning without reconstructing it locally.
 - Latest progress (2026-04-26): the house-validation corpus summary is now pinned through the typed `HouseValidationReport::summary_line()` helper and an exact release-summary regression, so the representative baseline scenarios, sample count, and latitude-sensitive system list stay visible as a stable release-facing string instead of only a scenario count.
 
