@@ -184,6 +184,31 @@ pub struct Vsop87SourceSpecification {
     pub date_range: &'static str,
 }
 
+impl Vsop87SourceSpecification {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "VSOP87 source spec: body={}, file={}, variant={}, family={}, frame={}, units={}, reduction={}, transform={}, truncation={}, date range={}",
+            self.body,
+            self.source_file,
+            self.variant,
+            self.coordinate_family,
+            self.frame,
+            self.units,
+            self.reduction,
+            self.transform_note,
+            self.truncation_policy,
+            self.date_range,
+        )
+    }
+}
+
+impl fmt::Display for Vsop87SourceSpecification {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Reproducibility audit details for a vendored VSOP87B source file.
 ///
 /// These records give the generated-table work a stable, deterministic
@@ -913,6 +938,21 @@ pub fn source_specifications() -> Vec<Vsop87SourceSpecification> {
         .iter()
         .filter_map(|entry| entry.source_specification.clone())
         .collect()
+}
+
+/// Formats a single VSOP87 source specification for reporting.
+pub fn format_source_specification(spec: &Vsop87SourceSpecification) -> String {
+    spec.summary_line()
+}
+
+/// Formats the current VSOP87 source-specification catalog for reporting.
+pub fn format_source_specifications(specs: &[Vsop87SourceSpecification]) -> String {
+    join_display(specs)
+}
+
+/// Returns the release-facing source-specification catalog string.
+pub fn source_specifications_for_report() -> String {
+    format_source_specifications(&source_specifications())
 }
 
 /// Returns the structured frame-treatment summary for VSOP87-backed results.
@@ -4424,6 +4464,29 @@ mod tests {
             summary.date_ranges,
             vec!["full public source file; J2000 canonical reference sample"]
         );
+    }
+
+    #[test]
+    fn source_specification_summary_is_typed_and_reusable() {
+        let specs = source_specifications();
+        let first = &specs[0];
+        let expected_joined = specs
+            .iter()
+            .map(format_source_specification)
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        assert_eq!(first.summary_line(), first.to_string());
+        assert_eq!(format_source_specification(first), first.summary_line());
+        assert!(first.summary_line().contains("body=Sun"));
+        assert!(first.summary_line().contains("file=VSOP87B.ear"));
+        assert!(first.summary_line().contains("variant=VSOP87B"));
+        assert!(first
+            .summary_line()
+            .contains("date range=full public source file; J2000 canonical reference sample"));
+        assert_eq!(format_source_specifications(&specs), expected_joined);
+        assert_eq!(source_specifications_for_report(), expected_joined);
+        assert!(source_specifications_for_report().contains("body=Neptune"));
     }
 
     #[test]

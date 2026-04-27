@@ -44,6 +44,7 @@ Implemented foundations include backend traits, metadata, composite routing, maj
    - Progress note: the VSOP87 canonical J2000 evidence now also carries a concise interim-outlier note in the validation, backend-matrix, and release summaries, so any future envelope regression can name the affected bodies without leaving the compact report readers to infer that from the aggregate count alone.
 
 Progress note: the compact validation report summary now also surfaces the VSOP87 source-backed body-class envelopes alongside the existing source documentation and body evidence lines, keeping the coarse class rollup visible in the shorter release-facing validation view too.
+Progress note: the VSOP87 source-specification records now have typed `summary_line()`/`Display` helpers plus reusable single-catalog formatting helpers, so the documented variant, frame, unit, and date-range fields can travel through typed report code instead of being rebuilt ad hoc.
 
 2. Implement production `pleiades-elp` lunar calculations.
    - Select and document a pure-Rust lunar theory source.
