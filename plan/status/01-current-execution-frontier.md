@@ -14,6 +14,7 @@ Several downstream requirements depend on trusted ephemeris outputs:
 - release compatibility profiles must not imply unsupported accuracy;
 - chart APIs need deterministic body positions across supported bodies and time ranges;
 - validation reports need real error envelopes rather than placeholder comparisons.
+- Latest progress (2026-04-27): the shared comparison-audit summary now validates its derived body-count totals before validation, release, and backend-matrix formatting, so the compact `compare-backends-audit` line now fails closed if the audit counts ever drift out of coherence.
 
 ## Current repo state summary
 

@@ -407,6 +407,27 @@ impl ComparisonAuditSummary {
         }
     }
 
+    fn validate(&self) -> Result<(), EphemerisError> {
+        let within_and_outside = self
+            .within_tolerance_body_count
+            .saturating_add(self.outside_tolerance_body_count);
+
+        if within_and_outside != self.body_count {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "comparison audit summary body-count mismatch: expected {}, found within tolerance {} + outside tolerance {} = {}",
+                    self.body_count,
+                    self.within_tolerance_body_count,
+                    self.outside_tolerance_body_count,
+                    within_and_outside
+                ),
+            ));
+        }
+
+        Ok(())
+    }
+
     fn summary_line(self) -> String {
         format!(
             "status={}, bodies checked={}, within tolerance bodies={}, outside tolerance bodies={}, notable regressions={}",
@@ -4012,7 +4033,6 @@ fn render_release_summary_text() -> String {
             .iter()
             .filter(|summary| summary.outside_tolerance_body_count > 0)
             .count();
-        let comparison_audit = comparison_audit_summary(&report.comparison);
         text.push_str("Comparison envelope: ");
         text.push_str(&format_comparison_envelope_for_report(
             &report.comparison.summary,
@@ -4062,7 +4082,7 @@ fn render_release_summary_text() -> String {
         text.push_str(" outside-tolerance bodies");
         text.push('\n');
         text.push_str("Comparison audit: ");
-        text.push_str(&comparison_audit.summary_line());
+        text.push_str(&comparison_audit_summary_for_report(&report.comparison));
         text.push('\n');
         text.push_str("House validation corpus: ");
         text.push_str(&report.house_validation.summary_line());
@@ -5623,6 +5643,15 @@ fn comparison_audit_summary(report: &ComparisonReport) -> ComparisonAuditSummary
     }
 }
 
+fn comparison_audit_summary_for_report(report: &ComparisonReport) -> String {
+    let summary = comparison_audit_summary(report);
+
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("comparison audit unavailable ({error})"),
+    }
+}
+
 fn comparison_audit_totals(report: &ComparisonReport) -> (usize, usize, usize, usize) {
     let summary = comparison_audit_summary(report);
 
@@ -6291,8 +6320,6 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let request_policy = request_policy_summary_for_report();
     let comparison_regressions = report.comparison.notable_regressions().len();
     let mut text = String::new();
-    let comparison_audit = comparison_audit_summary(&report.comparison);
-
     let _ = writeln!(text, "Validation report summary");
     let _ = writeln!(
         text,
@@ -6437,7 +6464,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(
         text,
         "Comparison audit: {}",
-        comparison_audit.summary_line()
+        comparison_audit_summary_for_report(&report.comparison)
     );
     let _ = writeln!(text);
     let _ = writeln!(text, "JPL interpolation quality");
@@ -7245,9 +7272,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&comparison_snapshot_manifest_summary_for_report());
     text.push('\n');
     if let Ok(report) = build_validation_report(0) {
-        let comparison_audit = comparison_audit_summary(&report.comparison);
         text.push_str("Comparison audit: compare-backends-audit; ");
-        text.push_str(&comparison_audit.summary_line());
+        text.push_str(&comparison_audit_summary_for_report(&report.comparison));
         text.push('\n');
     }
     text.push_str("Time-scale policy: ");
@@ -9662,6 +9688,24 @@ mod tests {
             summary.summary_line(),
             "status=regressions found, bodies checked=10, within tolerance bodies=4, outside tolerance bodies=6, notable regressions=12"
         );
+        assert_eq!(summary.validate(), Ok(()));
+    }
+
+    #[test]
+    fn comparison_audit_summary_validate_rejects_body_count_mismatch() {
+        let summary = ComparisonAuditSummary {
+            body_count: 10,
+            within_tolerance_body_count: 4,
+            outside_tolerance_body_count: 5,
+            regression_count: 0,
+        };
+
+        let error = summary
+            .validate()
+            .expect_err("mismatched audit counts should fail validation");
+        assert!(error
+            .to_string()
+            .contains("comparison audit summary body-count mismatch"));
     }
 
     #[test]
