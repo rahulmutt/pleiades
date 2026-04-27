@@ -392,6 +392,26 @@ impl EphemerisRequest {
             apparent: Apparentness::Mean,
         }
     }
+
+    /// Returns a compact one-line rendering of the request shape.
+    pub fn summary_line(&self) -> String {
+        let observer = self
+            .observer
+            .as_ref()
+            .map(ToString::to_string)
+            .unwrap_or_else(|| "geocentric".to_string());
+
+        format!(
+            "body={}; instant={}; frame={}; zodiac={}; apparent={}; observer={}",
+            self.body, self.instant, self.frame, self.zodiac_mode, self.apparent, observer
+        )
+    }
+}
+
+impl fmt::Display for EphemerisRequest {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
 }
 
 /// Quality annotation for a backend result.
@@ -1222,6 +1242,28 @@ mod tests {
         assert!(summary.summary_line().contains("observer="));
         assert!(summary.summary_line().contains("apparentness="));
         assert!(summary.summary_line().contains("frame="));
+    }
+
+    #[test]
+    fn ephemeris_request_has_a_compact_display() {
+        let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+        let request = EphemerisRequest::new(CelestialBody::Mars, instant);
+        let request = EphemerisRequest {
+            observer: Some(ObserverLocation::new(
+                Latitude::from_degrees(51.5),
+                Longitude::from_degrees(-0.1),
+                None,
+            )),
+            ..request
+        };
+
+        assert_eq!(request.to_string(), request.summary_line());
+        assert_eq!(
+            request.summary_line(),
+            "body=Mars; instant=JD 2451545 TT; frame=Ecliptic; zodiac=Tropical; apparent=Mean; observer=latitude=51.5°, longitude=359.9°, elevation=n/a"
+        );
+        assert!(request.summary_line().contains("body=Mars"));
+        assert!(request.summary_line().contains("observer="));
     }
 
     #[test]

@@ -259,6 +259,11 @@ impl Instant {
         Self { julian_day, scale }
     }
 
+    /// Returns a compact one-line rendering of the instant.
+    pub fn summary_line(&self) -> String {
+        format!("{} {}", self.julian_day, self.scale)
+    }
+
     /// Returns this instant with a caller-supplied offset applied and a new time
     /// scale tag.
     ///
@@ -505,6 +510,12 @@ impl Instant {
     }
 }
 
+impl fmt::Display for Instant {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// A geographic observer location.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
@@ -525,6 +536,25 @@ impl ObserverLocation {
             longitude,
             elevation_m,
         }
+    }
+
+    /// Returns a compact one-line rendering of the observer location.
+    pub fn summary_line(&self) -> String {
+        let elevation = self
+            .elevation_m
+            .map(|value| format!("{value:.3} m"))
+            .unwrap_or_else(|| "n/a".to_string());
+
+        format!(
+            "latitude={}, longitude={}, elevation={}",
+            self.latitude, self.longitude, elevation
+        )
+    }
+}
+
+impl fmt::Display for ObserverLocation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
     }
 }
 
@@ -1351,6 +1381,29 @@ mod tests {
         let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
 
         assert_eq!(instant.mean_obliquity().degrees(), 23.439_291_111_111_11);
+    }
+
+    #[test]
+    fn instant_has_a_compact_display() {
+        let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb);
+
+        assert_eq!(instant.summary_line(), "JD 2451545 TDB");
+        assert_eq!(instant.to_string(), "JD 2451545 TDB");
+    }
+
+    #[test]
+    fn observer_location_has_a_compact_display() {
+        let observer = ObserverLocation::new(
+            Latitude::from_degrees(51.5),
+            Longitude::from_degrees(-0.1),
+            Some(35.75),
+        );
+
+        assert_eq!(
+            observer.summary_line(),
+            "latitude=51.5°, longitude=359.9°, elevation=35.750 m"
+        );
+        assert_eq!(observer.to_string(), observer.summary_line());
     }
 
     #[test]
