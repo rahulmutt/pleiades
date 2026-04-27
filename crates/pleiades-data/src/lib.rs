@@ -655,10 +655,36 @@ pub fn packaged_request_policy_summary() -> &'static str {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct PackagedFrameTreatmentSummary;
 
+/// Validation error for a packaged frame-treatment summary that drifted away from the compact posture line.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PackagedFrameTreatmentSummaryValidationError {
+    /// The summary text is blank or whitespace-only.
+    BlankSummary,
+}
+
+impl fmt::Display for PackagedFrameTreatmentSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BlankSummary => f.write_str("packaged frame-treatment summary is blank"),
+        }
+    }
+}
+
+impl std::error::Error for PackagedFrameTreatmentSummaryValidationError {}
+
 impl PackagedFrameTreatmentSummary {
     /// Returns the frame-treatment posture as a compact human-readable line.
     pub const fn summary_line(self) -> &'static str {
         "checked-in compressed artifact stores ecliptic coordinates directly; equatorial coordinates are reconstructed from the stored channels and mean-obliquity transform"
+    }
+
+    /// Returns `Ok(())` when the summary still contains a compact non-blank line.
+    pub fn validate(&self) -> Result<(), PackagedFrameTreatmentSummaryValidationError> {
+        if self.summary_line().trim().is_empty() {
+            Err(PackagedFrameTreatmentSummaryValidationError::BlankSummary)
+        } else {
+            Ok(())
+        }
     }
 }
 

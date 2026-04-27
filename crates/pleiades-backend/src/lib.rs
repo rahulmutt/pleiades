@@ -937,6 +937,23 @@ pub struct FrameTreatmentSummary {
     summary: &'static str,
 }
 
+/// Validation error for a frame-treatment summary that drifted away from a compact release-facing line.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum FrameTreatmentSummaryValidationError {
+    /// The summary text is blank or whitespace-only.
+    BlankSummary,
+}
+
+impl fmt::Display for FrameTreatmentSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BlankSummary => f.write_str("frame-treatment summary is blank"),
+        }
+    }
+}
+
+impl std::error::Error for FrameTreatmentSummaryValidationError {}
+
 impl FrameTreatmentSummary {
     /// Creates a new frame-treatment summary from a backend-owned note.
     pub const fn new(summary: &'static str) -> Self {
@@ -946,6 +963,15 @@ impl FrameTreatmentSummary {
     /// Returns the compact one-line rendering of the frame-treatment posture.
     pub const fn summary_line(self) -> &'static str {
         self.summary
+    }
+
+    /// Returns `Ok(())` when the summary still contains a compact non-blank line.
+    pub fn validate(&self) -> Result<(), FrameTreatmentSummaryValidationError> {
+        if self.summary.trim().is_empty() {
+            Err(FrameTreatmentSummaryValidationError::BlankSummary)
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -1848,7 +1874,18 @@ mod tests {
 
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.summary_line(), "geocentric ecliptic inputs; equatorial coordinates are derived with a mean-obliquity transform");
+        assert_eq!(summary.validate(), Ok(()));
         assert!(summary.summary_line().contains("mean-obliquity"));
+    }
+
+    #[test]
+    fn frame_treatment_summary_rejects_blank_summary_text() {
+        let summary = FrameTreatmentSummary::new("   ");
+
+        assert_eq!(
+            summary.validate(),
+            Err(FrameTreatmentSummaryValidationError::BlankSummary)
+        );
     }
 
     struct ToyBackend;

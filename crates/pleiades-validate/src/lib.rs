@@ -4342,7 +4342,7 @@ fn render_release_summary_text() -> String {
     text.push_str(&lunar_theory_request_policy_summary());
     text.push('\n');
     text.push_str("ELP frame treatment: ");
-    text.push_str(&lunar_theory_frame_treatment_summary_details().to_string());
+    text.push_str(&format_lunar_frame_treatment_summary());
     text.push('\n');
     text.push_str("Lunar reference: ");
     text.push_str(&lunar_reference_evidence_summary_for_report());
@@ -6496,11 +6496,19 @@ fn format_vsop87_source_documentation_health_summary() -> String {
 }
 
 fn format_vsop87_frame_treatment_summary() -> String {
-    frame_treatment_summary_details().to_string()
+    let summary = frame_treatment_summary_details();
+    match summary.validate() {
+        Ok(()) => summary.to_string(),
+        Err(error) => format!("VSOP87 frame treatment unavailable ({error})"),
+    }
 }
 
 fn format_jpl_frame_treatment_summary() -> String {
-    jpl_frame_treatment_summary_details().to_string()
+    let summary = jpl_frame_treatment_summary_details();
+    match summary.validate() {
+        Ok(()) => summary.to_string(),
+        Err(error) => format!("JPL frame treatment unavailable ({error})"),
+    }
 }
 
 fn format_request_policy_summary_for_report(
@@ -6528,8 +6536,20 @@ fn format_packaged_frame_parity_summary() -> String {
     packaged_frame_parity_summary_for_report()
 }
 
+fn format_lunar_frame_treatment_summary() -> String {
+    let summary = lunar_theory_frame_treatment_summary_details();
+    match summary.validate() {
+        Ok(()) => summary.to_string(),
+        Err(error) => format!("ELP frame treatment unavailable ({error})"),
+    }
+}
+
 fn format_packaged_frame_treatment_summary() -> String {
-    packaged_frame_treatment_summary_details().to_string()
+    let summary = packaged_frame_treatment_summary_details();
+    match summary.validate() {
+        Ok(()) => summary.to_string(),
+        Err(error) => format!("Packaged frame treatment unavailable ({error})"),
+    }
 }
 
 fn render_validation_report_summary_text(report: &ValidationReport) -> String {
@@ -6878,7 +6898,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(
         text,
         "ELP frame treatment: {}",
-        lunar_theory_frame_treatment_summary_details()
+        format_lunar_frame_treatment_summary()
     );
     let _ = writeln!(text, "  {}", lunar_theory_source_summary_for_report());
     let _ = writeln!(text);
