@@ -1304,18 +1304,7 @@ impl fmt::Display for ArtifactInspectionReport {
             writeln!(f, "    none")?;
         } else {
             for finding in notable_regressions {
-                writeln!(
-                    f,
-                    "    {}: Δlon={:.12}°, Δlat={:.12}°, Δdist={}, {}",
-                    finding.body,
-                    finding.longitude_delta_deg,
-                    finding.latitude_delta_deg,
-                    finding
-                        .distance_delta_au
-                        .map(|value| format!("{value:.12} AU"))
-                        .unwrap_or_else(|| "n/a".to_string()),
-                    finding.note
-                )?;
+                writeln!(f, "    {}", finding.summary_line())?;
             }
         }
 

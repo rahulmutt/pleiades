@@ -1260,6 +1260,28 @@ pub struct RegressionFinding {
     pub note: String,
 }
 
+impl RegressionFinding {
+    /// Returns the compact release-facing summary line for the regression case.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "{}: Δlon={:.12}°, Δlat={:.12}°, Δdist={}, {}",
+            self.body,
+            self.longitude_delta_deg,
+            self.latitude_delta_deg,
+            self.distance_delta_au
+                .map(|value| format!("{value:.12} AU"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            self.note,
+        )
+    }
+}
+
+impl fmt::Display for RegressionFinding {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Benchmark summary for a backend.
 #[derive(Clone, Debug)]
 pub struct BenchmarkReport {
@@ -8006,18 +8028,7 @@ fn write_regression_section(
     }
 
     for finding in findings {
-        writeln!(
-            f,
-            "  {}: Δlon={:.12}°, Δlat={:.12}°, Δdist={}, {}",
-            finding.body,
-            finding.longitude_delta_deg,
-            finding.latitude_delta_deg,
-            finding
-                .distance_delta_au
-                .map(|value| format!("{value:.12} AU"))
-                .unwrap_or_else(|| "n/a".to_string()),
-            finding.note
-        )?;
+        writeln!(f, "  {}", finding.summary_line())?;
     }
     Ok(())
 }
@@ -8034,18 +8045,7 @@ fn write_regression_archive_section(
     }
 
     for finding in &archive.cases {
-        writeln!(
-            f,
-            "  {}: Δlon={:.12}°, Δlat={:.12}°, Δdist={}, {}",
-            finding.body,
-            finding.longitude_delta_deg,
-            finding.latitude_delta_deg,
-            finding
-                .distance_delta_au
-                .map(|value| format!("{value:.12} AU"))
-                .unwrap_or_else(|| "n/a".to_string()),
-            finding.note
-        )?;
+        writeln!(f, "  {}", finding.summary_line())?;
     }
     Ok(())
 }
@@ -8870,6 +8870,24 @@ mod tests {
             .contains("95th percentile absolute deltas:"));
         assert!(envelope.summary_line().contains("longitude"));
         assert!(envelope.summary_line().contains("latitude"));
+    }
+
+    #[test]
+    fn regression_finding_has_a_displayable_summary_line() {
+        let corpus = default_corpus();
+        let reference = default_reference_backend();
+        let candidate = default_candidate_backend();
+        let report =
+            compare_backends(&reference, &candidate, &corpus).expect("comparison should build");
+        let notable_regressions = report.notable_regressions();
+        let finding = notable_regressions
+            .first()
+            .expect("comparison should include at least one notable regression");
+
+        assert_eq!(finding.summary_line(), finding.to_string());
+        assert!(finding.summary_line().contains("Δlon="));
+        assert!(finding.summary_line().contains("Δlat="));
+        assert!(finding.summary_line().contains("Δdist="));
     }
 
     #[test]
