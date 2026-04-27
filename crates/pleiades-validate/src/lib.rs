@@ -8870,7 +8870,7 @@ fn parse_release_bundle_args(
 }
 
 fn render_error(error: EphemerisError) -> String {
-    error.to_string()
+    error.summary_line()
 }
 
 fn render_artifact_error(error: crate::artifact::ArtifactInspectionError) -> String {

@@ -564,7 +564,7 @@ fn parse_house_system(value: &str) -> Result<HouseSystem, String> {
 }
 
 fn render_error(error: EphemerisError) -> String {
-    format!("{}", error)
+    error.summary_line()
 }
 
 fn main() {

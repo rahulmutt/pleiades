@@ -583,11 +583,16 @@ impl EphemerisError {
             message: message.into(),
         }
     }
+
+    /// Returns a compact one-line rendering of the backend error.
+    pub fn summary_line(&self) -> String {
+        format!("{}: {}", self.kind, self.message)
+    }
 }
 
 impl fmt::Display for EphemerisError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}: {}", self.kind, self.message)
+        f.write_str(&self.summary_line())
     }
 }
 
@@ -1311,7 +1316,8 @@ mod tests {
         );
 
         let error = EphemerisError::new(EphemerisErrorKind::InvalidRequest, "example failure");
-        assert_eq!(error.to_string(), "InvalidRequest: example failure");
+        assert_eq!(error.summary_line(), "InvalidRequest: example failure");
+        assert_eq!(error.to_string(), error.summary_line());
     }
 
     #[test]
