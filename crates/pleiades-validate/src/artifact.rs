@@ -153,8 +153,8 @@ impl ArtifactBodyInspection {
             "{}: {} segments, {} → {}, {} samples, {} boundary checks, mean boundary Δlon={:.12}°, rms boundary Δlon={:.12}°, mean boundary Δlat={:.12}°, rms boundary Δlat={:.12}°, mean boundary Δdist={}, rms boundary Δdist={}, max boundary Δlon={:.12}°, Δlat={:.12}°, Δdist={}",
             self.body,
             self.segment_count,
-            self.earliest.julian_day,
-            self.latest.julian_day,
+            self.earliest,
+            self.latest,
             self.sample_count,
             self.boundary_checks,
             self.mean_boundary_longitude_delta_deg(),
@@ -1426,6 +1426,7 @@ mod tests {
 
         let summary = inspection.summary_line();
         assert!(summary.contains("Sun: 2 segments,"));
+        assert!(summary.contains("JD 1 TT → JD 2 TT"));
         assert!(summary.contains("6 samples, 2 boundary checks"));
         assert!(summary.contains("mean boundary Δlon=0.100000000000°"));
         assert!(summary.contains("rms boundary Δlon=0.158113883008°"));
