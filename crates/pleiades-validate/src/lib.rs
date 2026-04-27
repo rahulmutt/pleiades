@@ -6024,6 +6024,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text, "  {}", format_vsop87_canonical_outlier_note_summary());
     let _ = writeln!(text, "  {}", format_vsop87_equatorial_evidence_summary());
     let _ = writeln!(text, "  {}", format_vsop87_body_evidence_summary());
+    let _ = writeln!(
+        text,
+        "  {}",
+        format_vsop87_source_body_class_evidence_summary()
+    );
     let _ = writeln!(text);
     let _ = writeln!(text, "ELP lunar theory specification");
     let _ = writeln!(text, "  {}", lunar_theory_catalog_summary_for_report());
@@ -10802,6 +10807,7 @@ version = "0.9.0"
         assert!(validation_report_summary.contains("Tolerance policy catalog"));
         assert!(validation_report_summary.contains("Expected tolerance status"));
         assert!(validation_report_summary.contains("VSOP87 source-backed evidence"));
+        assert!(validation_report_summary.contains("VSOP87 source-backed body-class envelopes:"));
         assert!(workspace_audit_summary.contains("Workspace audit summary"));
         assert!(
             workspace_audit_summary.contains("Result: no mandatory native build hooks detected")
