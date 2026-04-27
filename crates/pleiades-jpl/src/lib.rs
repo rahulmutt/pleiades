@@ -1996,6 +1996,8 @@ pub enum SnapshotManifestValidationError {
     MissingSource,
     /// The manifest did not include any column names.
     MissingColumns,
+    /// The manifest included a blank coverage comment after trimming.
+    BlankCoverage,
     /// A parsed column name was blank after trimming.
     BlankColumn { index: usize },
 }
@@ -2007,6 +2009,7 @@ impl SnapshotManifestValidationError {
             Self::MissingTitle => "missing title",
             Self::MissingSource => "missing source",
             Self::MissingColumns => "missing columns",
+            Self::BlankCoverage => "blank coverage",
             Self::BlankColumn { .. } => "blank column",
         }
     }
@@ -2024,20 +2027,21 @@ impl fmt::Display for SnapshotManifestValidationError {
 impl std::error::Error for SnapshotManifestValidationError {}
 
 impl SnapshotManifest {
+    fn trimmed_or<'a>(value: Option<&'a str>, fallback: &'static str) -> Cow<'a, str> {
+        match value.map(str::trim).filter(|value| !value.is_empty()) {
+            Some(value) => Cow::Borrowed(value),
+            None => Cow::Borrowed(fallback),
+        }
+    }
+
     /// Returns the source label, or the provided fallback when the manifest omits it.
     pub fn source_or(&self, fallback: &'static str) -> Cow<'_, str> {
-        self.source
-            .as_deref()
-            .map(Cow::Borrowed)
-            .unwrap_or(Cow::Borrowed(fallback))
+        Self::trimmed_or(self.source.as_deref(), fallback)
     }
 
     /// Returns the coverage label, or the provided fallback when the manifest omits it.
     pub fn coverage_or(&self, fallback: &'static str) -> Cow<'_, str> {
-        self.coverage
-            .as_deref()
-            .map(Cow::Borrowed)
-            .unwrap_or(Cow::Borrowed(fallback))
+        Self::trimmed_or(self.coverage.as_deref(), fallback)
     }
 
     fn columns_summary(&self) -> String {
@@ -2049,7 +2053,7 @@ impl SnapshotManifest {
     }
 
     /// Validates that the parsed manifest still exposes the expected title,
-    /// source, and column metadata.
+    /// source, optional coverage, and column metadata.
     pub fn validate(&self) -> Result<(), SnapshotManifestValidationError> {
         if self
             .title
@@ -2068,6 +2072,9 @@ impl SnapshotManifest {
             .is_none()
         {
             return Err(SnapshotManifestValidationError::MissingSource);
+        }
+        if matches!(self.coverage.as_deref(), Some(coverage) if coverage.trim().is_empty()) {
+            return Err(SnapshotManifestValidationError::BlankCoverage);
         }
         if self.columns.is_empty() {
             return Err(SnapshotManifestValidationError::MissingColumns);
@@ -2095,7 +2102,12 @@ impl SnapshotManifest {
         source_fallback: &'static str,
         coverage_fallback: &'static str,
     ) -> String {
-        let title = self.title.as_deref().unwrap_or("unknown");
+        let title = self
+            .title
+            .as_deref()
+            .map(str::trim)
+            .filter(|title| !title.is_empty())
+            .unwrap_or("unknown");
         let source = self.source_or(source_fallback);
         let coverage = self.coverage_or(coverage_fallback);
         let columns = self.columns_summary();
@@ -3154,6 +3166,26 @@ mod tests {
         let manifest = SnapshotManifest {
             title: Some("Example snapshot.".to_string()),
             source: Some("Example source".to_string()),
+            coverage: Some(" ".to_string()),
+            columns: vec!["body".to_string()],
+        };
+
+        assert_eq!(
+            manifest.validate(),
+            Err(SnapshotManifestValidationError::BlankCoverage)
+        );
+        assert_eq!(
+            SnapshotManifestValidationError::BlankCoverage.to_string(),
+            "blank coverage"
+        );
+        assert_eq!(
+            manifest.summary_line("Example manifest"),
+            "Example manifest: Example snapshot.; source=Example source; coverage=unknown; columns=body"
+        );
+
+        let manifest = SnapshotManifest {
+            title: Some("Example snapshot.".to_string()),
+            source: Some("Example source".to_string()),
             coverage: None,
             columns: vec!["body".to_string(), "".to_string()],
         };
@@ -3165,6 +3197,26 @@ mod tests {
         assert_eq!(
             SnapshotManifestValidationError::BlankColumn { index: 1 }.to_string(),
             "blank column at index 1"
+        );
+    }
+
+    #[test]
+    fn parsed_manifest_preserves_blank_coverage_for_validation() {
+        let manifest = parse_snapshot_manifest(
+            "# Example snapshot.\n# Source: Example source\n# Coverage:   \n# Columns: body\n",
+        );
+
+        assert_eq!(manifest.title.as_deref(), Some("Example snapshot."));
+        assert_eq!(manifest.source.as_deref(), Some("Example source"));
+        assert_eq!(manifest.coverage.as_deref(), Some(""));
+        assert_eq!(manifest.columns, ["body"]);
+        assert_eq!(
+            manifest.validate(),
+            Err(SnapshotManifestValidationError::BlankCoverage)
+        );
+        assert_eq!(
+            manifest.summary_line("Example manifest"),
+            "Example manifest: Example snapshot.; source=Example source; coverage=unknown; columns=body"
         );
     }
 
