@@ -536,16 +536,11 @@ fn parse_custom_body(value: &str) -> Result<CelestialBody, String> {
     let (catalog, designation) = value
         .split_once(':')
         .ok_or_else(|| format!("unsupported body name: {value}"))?;
-    let catalog = catalog.trim();
-    let designation = designation.trim();
-    if catalog.is_empty() || designation.is_empty() {
-        return Err(format!("unsupported body name: {value}"));
-    }
 
-    Ok(CelestialBody::Custom(CustomBodyId::new(
-        catalog,
-        designation,
-    )))
+    let custom = CustomBodyId::new(catalog, designation);
+    custom.validate().map_err(|error| error.to_string())?;
+
+    Ok(CelestialBody::Custom(custom))
 }
 
 fn parse_ayanamsa(value: &str) -> Result<Ayanamsa, String> {
@@ -566,7 +561,7 @@ fn parse_custom_ayanamsa(value: &str) -> Result<Option<Ayanamsa>, String> {
         None => return Ok(None),
     };
 
-    let mut parts = value.split('|').map(str::trim);
+    let mut parts = value.split('|');
     let name = parts.next().unwrap_or("");
     let epoch_text = parts.next().ok_or_else(|| {
         format!(
@@ -594,12 +589,15 @@ fn parse_custom_ayanamsa(value: &str) -> Result<Option<Ayanamsa>, String> {
         .parse::<f64>()
         .map_err(|error| format!("invalid custom ayanamsa offset in {value}: {error}"))?;
 
-    Ok(Some(Ayanamsa::Custom(CustomAyanamsa {
+    let custom = CustomAyanamsa {
         name: name.to_owned(),
         description: Some("Custom ayanamsa definition supplied via the CLI".to_owned()),
         epoch: Some(JulianDay::from_days(epoch)),
         offset_degrees: Some(Angle::from_degrees(offset)),
-    })))
+    };
+    custom.validate().map_err(|error| error.to_string())?;
+
+    Ok(Some(Ayanamsa::Custom(custom)))
 }
 
 fn strip_custom_ayanamsa_prefix(value: &str) -> Option<&str> {
@@ -1404,6 +1402,16 @@ mod tests {
     }
 
     #[test]
+    fn parse_ayanamsa_rejects_padded_custom_definition_names() {
+        let error = parse_ayanamsa("custom: True Balarama|2451545.0|12.5")
+            .expect_err("padding should fail");
+        assert_eq!(
+            error,
+            "custom ayanamsa name must not have leading or trailing whitespace"
+        );
+    }
+
+    #[test]
     fn chart_command_routes_selected_asteroids_via_jpl_fallback() {
         let rendered = render_chart(&["--jd", "2451545.0", "--body", "Ceres"])
             .expect("asteroid chart should render");
@@ -1439,6 +1447,15 @@ mod tests {
             CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros"))
         );
         assert_eq!(body.to_string(), "asteroid:433-Eros");
+    }
+
+    #[test]
+    fn parse_body_rejects_padded_custom_catalog_designations() {
+        let error = parse_body(Some("asteroid: 433-Eros")).expect_err("padding should fail");
+        assert_eq!(
+            error,
+            "custom body id designation must not have leading or trailing whitespace"
+        );
     }
 
     #[test]
