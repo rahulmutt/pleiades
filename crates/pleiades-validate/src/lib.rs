@@ -56,7 +56,8 @@ use pleiades_elp::{
     lunar_equatorial_reference_evidence_summary,
     lunar_equatorial_reference_evidence_summary_for_report,
     lunar_high_curvature_continuity_evidence_for_report,
-    lunar_high_curvature_equatorial_continuity_evidence_for_report, lunar_reference_evidence,
+    lunar_high_curvature_equatorial_continuity_evidence_for_report,
+    lunar_reference_batch_parity_summary_for_report, lunar_reference_evidence,
     lunar_reference_evidence_envelope_for_report, lunar_reference_evidence_summary,
     lunar_reference_evidence_summary_for_report, lunar_theory_capability_summary,
     lunar_theory_catalog_summary_for_report, lunar_theory_catalog_validation_summary_for_report,
@@ -3524,6 +3525,9 @@ fn render_release_summary_text() -> String {
     text.push_str("Lunar reference: ");
     text.push_str(&lunar_reference_evidence_summary_for_report());
     text.push('\n');
+    text.push_str("Lunar reference batch parity: ");
+    text.push_str(&lunar_reference_batch_parity_summary_for_report());
+    text.push('\n');
     text.push_str("Lunar reference envelope: ");
     text.push_str(&lunar_reference_evidence_envelope_for_report());
     text.push('\n');
@@ -5882,6 +5886,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text);
     let _ = writeln!(text, "Lunar reference");
     let _ = writeln!(text, "  {}", lunar_reference_evidence_summary_for_report());
+    let _ = writeln!(
+        text,
+        "  {}",
+        lunar_reference_batch_parity_summary_for_report()
+    );
     let _ = writeln!(text, "  {}", lunar_reference_evidence_envelope_for_report());
     let _ = writeln!(text);
     let _ = writeln!(text, "Lunar equatorial reference");
@@ -6535,6 +6544,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&lunar_theory_summary());
     text.push('\n');
     text.push_str(&lunar_reference_evidence_summary_for_report());
+    text.push('\n');
+    text.push_str(&lunar_reference_batch_parity_summary_for_report());
     text.push('\n');
     text.push_str(&lunar_reference_evidence_envelope_for_report());
     text.push('\n');
@@ -7742,6 +7753,11 @@ fn write_lunar_reference_evidence(f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f,
         "    {}",
         pleiades_elp::format_lunar_reference_evidence_summary(&summary)
+    )?;
+    writeln!(
+        f,
+        "    {}",
+        pleiades_elp::lunar_reference_batch_parity_summary_for_report()
     )?;
     writeln!(f, "    {}", lunar_reference_evidence_envelope_for_report())?;
     for sample in lunar_reference_evidence() {
@@ -9053,6 +9069,9 @@ mod tests {
         assert!(report.contains("Lunar reference"));
         assert!(report.contains(
             "lunar reference evidence: 9 samples across 5 bodies, epoch range JD 2419914.5..2459278.5"
+        ));
+        assert!(report.contains(
+            "lunar reference mixed TT/TDB batch parity: 9 requests across 5 bodies, TT requests=5, TDB requests=4, order=preserved, single-query parity=preserved"
         ));
         assert!(report.contains("exact J2000 evidence: 5 bodies at JD 2451545.0"));
         assert!(report.contains("Body comparison summaries"));
@@ -10923,6 +10942,9 @@ version = "0.9.0"
         assert!(release_summary.contains(
             "lunar source selection: Compact Meeus-style truncated lunar baseline [meeus-style-truncated-lunar-baseline; selected key: source identifier=meeus-style-truncated-lunar-baseline; family: Meeus-style truncated analytical baseline]; aliases: Meeus-style truncated lunar baseline"
         ));
+        assert!(release_summary.contains(
+            "lunar reference mixed TT/TDB batch parity: 9 requests across 5 bodies, TT requests=5, TDB requests=4, order=preserved, single-query parity=preserved"
+        ));
         assert!(release_summary.contains("JPL independent hold-out:"));
         assert!(release_summary.contains("JPL independent hold-out equatorial parity:"));
         assert!(release_summary.contains("Independent hold-out manifest:"));
@@ -11127,6 +11149,9 @@ version = "0.9.0"
         ));
         assert!(validation_report_summary.contains(
             "lunar source selection: Compact Meeus-style truncated lunar baseline [meeus-style-truncated-lunar-baseline; selected key: source identifier=meeus-style-truncated-lunar-baseline; family: Meeus-style truncated analytical baseline]; aliases: Meeus-style truncated lunar baseline"
+        ));
+        assert!(validation_report_summary.contains(
+            "lunar reference mixed TT/TDB batch parity: 9 requests across 5 bodies, TT requests=5, TDB requests=4, order=preserved, single-query parity=preserved"
         ));
         assert!(
             validation_report_summary.contains("ELP lunar capability: lunar capability summary:")

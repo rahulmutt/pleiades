@@ -1307,6 +1307,124 @@ pub fn lunar_reference_evidence_summary_for_report() -> String {
     }
 }
 
+/// A compact summary of the mixed TT/TDB lunar reference batch-parity evidence.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct LunarReferenceBatchParitySummary {
+    /// Number of batch requests in the mixed-scale regression slice.
+    pub sample_count: usize,
+    /// Number of distinct bodies covered by the mixed-scale regression slice.
+    pub body_count: usize,
+    /// Number of TT-tagged requests in the mixed-scale regression slice.
+    pub tt_request_count: usize,
+    /// Number of TDB-tagged requests in the mixed-scale regression slice.
+    pub tdb_request_count: usize,
+    /// Whether the batch results preserved request order.
+    pub order_preserved: bool,
+    /// Whether batch results matched the corresponding single-query lookups.
+    pub single_query_parity: bool,
+}
+
+/// Returns a compact summary of the mixed TT/TDB lunar reference batch parity slice.
+pub fn lunar_reference_batch_parity_summary() -> Option<LunarReferenceBatchParitySummary> {
+    let samples = lunar_reference_evidence();
+    if samples.is_empty() {
+        return None;
+    }
+
+    let backend = ElpBackend::new();
+    let mut bodies = std::collections::BTreeSet::new();
+    let mut requests = Vec::with_capacity(samples.len());
+    let mut tt_request_count = 0usize;
+    let mut tdb_request_count = 0usize;
+
+    for (index, sample) in samples.iter().enumerate() {
+        bodies.insert(sample.body.to_string());
+
+        let mut request = EphemerisRequest::new(sample.body.clone(), sample.epoch);
+        if index % 2 == 0 {
+            request.instant.scale = TimeScale::Tt;
+            tt_request_count += 1;
+        } else {
+            request.instant.scale = TimeScale::Tdb;
+            tdb_request_count += 1;
+        }
+        requests.push(request);
+    }
+
+    let results = backend.positions(&requests).ok()?;
+    let mut order_preserved = true;
+    let mut single_query_parity = true;
+
+    for (request, result) in requests.iter().zip(results.iter()) {
+        order_preserved &= result.body == request.body;
+
+        let single = backend.position(request).ok()?;
+        single_query_parity &= result.body == single.body
+            && result.instant == single.instant
+            && result.frame == single.frame
+            && result.quality == single.quality
+            && result.ecliptic == single.ecliptic
+            && result.equatorial == single.equatorial
+            && result.motion == single.motion;
+    }
+
+    Some(LunarReferenceBatchParitySummary {
+        sample_count: requests.len(),
+        body_count: bodies.len(),
+        tt_request_count,
+        tdb_request_count,
+        order_preserved,
+        single_query_parity,
+    })
+}
+
+impl LunarReferenceBatchParitySummary {
+    /// Returns the release-facing one-line lunar mixed-scale batch parity summary.
+    pub fn summary_line(&self) -> String {
+        let order = if self.order_preserved {
+            "preserved"
+        } else {
+            "needs attention"
+        };
+        let parity = if self.single_query_parity {
+            "preserved"
+        } else {
+            "needs attention"
+        };
+
+        format!(
+            "lunar reference mixed TT/TDB batch parity: {} requests across {} bodies, TT requests={}, TDB requests={}, order={}, single-query parity={}",
+            self.sample_count,
+            self.body_count,
+            self.tt_request_count,
+            self.tdb_request_count,
+            order,
+            parity,
+        )
+    }
+}
+
+impl fmt::Display for LunarReferenceBatchParitySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Formats the lunar mixed TT/TDB batch-parity evidence for release-facing reporting.
+pub fn format_lunar_reference_batch_parity_summary(
+    summary: &LunarReferenceBatchParitySummary,
+) -> String {
+    summary.summary_line()
+}
+
+/// Returns the release-facing lunar mixed TT/TDB batch-parity summary string.
+pub fn lunar_reference_batch_parity_summary_for_report() -> String {
+    match lunar_reference_batch_parity_summary() {
+        Some(summary) => format_lunar_reference_batch_parity_summary(&summary),
+        None => "lunar reference mixed TT/TDB batch parity: unavailable".to_string(),
+    }
+}
+
 /// A compact summary of the canonical lunar equatorial reference evidence slice.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct LunarEquatorialReferenceEvidenceSummary {
@@ -4037,6 +4155,27 @@ mod tests {
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_459_278.5);
         assert!(lunar_reference_evidence_summary_for_report().contains("9 samples across 5 bodies"));
         assert!(lunar_reference_evidence_summary_for_report().contains("JD 2419914.5..2459278.5"));
+
+        let parity = lunar_reference_batch_parity_summary()
+            .expect("mixed-scale batch parity evidence should exist");
+        assert_eq!(parity.sample_count, 9);
+        assert_eq!(parity.body_count, 5);
+        assert_eq!(parity.tt_request_count, 5);
+        assert_eq!(parity.tdb_request_count, 4);
+        assert!(parity.order_preserved);
+        assert!(parity.single_query_parity);
+        assert_eq!(parity.summary_line(), parity.to_string());
+        assert_eq!(
+            format_lunar_reference_batch_parity_summary(&parity),
+            parity.summary_line()
+        );
+        assert!(lunar_reference_batch_parity_summary_for_report()
+            .contains("lunar reference mixed TT/TDB batch parity: 9 requests across 5 bodies"));
+        assert!(lunar_reference_batch_parity_summary_for_report().contains("TT requests=5"));
+        assert!(lunar_reference_batch_parity_summary_for_report().contains("TDB requests=4"));
+        assert!(lunar_reference_batch_parity_summary_for_report().contains("order=preserved"));
+        assert!(lunar_reference_batch_parity_summary_for_report()
+            .contains("single-query parity=preserved"));
 
         let envelope = lunar_reference_evidence_envelope().expect("error envelope should exist");
         assert_eq!(envelope.sample_count, summary.sample_count);
