@@ -472,7 +472,10 @@ pub fn format_reference_snapshot_summary(summary: &ReferenceSnapshotSummary) -> 
 /// Returns the release-facing reference snapshot coverage summary string.
 pub fn reference_snapshot_summary_for_report() -> String {
     match reference_snapshot_summary() {
-        Some(summary) => format_reference_snapshot_summary(&summary),
+        Some(summary) => match summary.validate() {
+            Ok(()) => format_reference_snapshot_summary(&summary),
+            Err(error) => format!("Reference snapshot coverage: unavailable ({error})"),
+        },
         None => "Reference snapshot coverage: unavailable".to_string(),
     }
 }
@@ -493,6 +496,150 @@ pub struct ComparisonSnapshotSummary {
     /// Latest epoch represented in the comparison corpus.
     pub latest_epoch: Instant,
 }
+
+/// Structured validation errors for a comparison snapshot summary.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ComparisonSnapshotSummaryValidationError {
+    /// The summary did not include any rows.
+    MissingRows,
+    /// The summary did not include any bodies.
+    MissingBodies,
+    /// The declared body count did not match the number of listed bodies.
+    BodyCountMismatch {
+        body_count: usize,
+        bodies_len: usize,
+    },
+    /// The summary reused a body after trimming its display form.
+    DuplicateBody {
+        first_index: usize,
+        second_index: usize,
+        body: String,
+    },
+    /// The summary did not include any epochs.
+    MissingEpochs,
+    /// The summary reported an invalid epoch range.
+    InvalidEpochRange {
+        earliest_epoch: Instant,
+        latest_epoch: Instant,
+    },
+}
+
+impl ComparisonSnapshotSummaryValidationError {
+    /// Returns the compact label used in release-facing summaries and tests.
+    pub const fn label(&self) -> &'static str {
+        match self {
+            Self::MissingRows => "missing rows",
+            Self::MissingBodies => "missing bodies",
+            Self::BodyCountMismatch { .. } => "body count mismatch",
+            Self::DuplicateBody { .. } => "duplicate body",
+            Self::MissingEpochs => "missing epochs",
+            Self::InvalidEpochRange { .. } => "invalid epoch range",
+        }
+    }
+}
+
+impl fmt::Display for ComparisonSnapshotSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BodyCountMismatch {
+                body_count,
+                bodies_len,
+            } => write!(f, "body count {body_count} does not match listed bodies {bodies_len}"),
+            Self::DuplicateBody {
+                first_index,
+                second_index,
+                body,
+            } => write!(
+                f,
+                "duplicate body '{body}' at index {second_index} (first seen at index {first_index})"
+            ),
+            Self::InvalidEpochRange {
+                earliest_epoch,
+                latest_epoch,
+            } => write!(
+                f,
+                "invalid epoch range {}..{}",
+                format_instant(*earliest_epoch),
+                format_instant(*latest_epoch)
+            ),
+            _ => f.write_str(self.label()),
+        }
+    }
+}
+
+impl std::error::Error for ComparisonSnapshotSummaryValidationError {}
+
+/// Structured validation errors for an independent hold-out snapshot summary.
+#[derive(Clone, Debug, PartialEq)]
+pub enum IndependentHoldoutSnapshotSummaryValidationError {
+    /// The summary did not include any rows.
+    MissingRows,
+    /// The summary did not include any bodies.
+    MissingBodies,
+    /// The declared body count did not match the number of listed bodies.
+    BodyCountMismatch {
+        body_count: usize,
+        bodies_len: usize,
+    },
+    /// The summary reused a body after trimming its display form.
+    DuplicateBody {
+        first_index: usize,
+        second_index: usize,
+        body: String,
+    },
+    /// The summary did not include any epochs.
+    MissingEpochs,
+    /// The summary reported an invalid epoch range.
+    InvalidEpochRange {
+        earliest_epoch: Instant,
+        latest_epoch: Instant,
+    },
+}
+
+impl IndependentHoldoutSnapshotSummaryValidationError {
+    /// Returns the compact label used in release-facing summaries and tests.
+    pub const fn label(&self) -> &'static str {
+        match self {
+            Self::MissingRows => "missing rows",
+            Self::MissingBodies => "missing bodies",
+            Self::BodyCountMismatch { .. } => "body count mismatch",
+            Self::DuplicateBody { .. } => "duplicate body",
+            Self::MissingEpochs => "missing epochs",
+            Self::InvalidEpochRange { .. } => "invalid epoch range",
+        }
+    }
+}
+
+impl fmt::Display for IndependentHoldoutSnapshotSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BodyCountMismatch {
+                body_count,
+                bodies_len,
+            } => write!(f, "body count {body_count} does not match listed bodies {bodies_len}"),
+            Self::DuplicateBody {
+                first_index,
+                second_index,
+                body,
+            } => write!(
+                f,
+                "duplicate body '{body}' at index {second_index} (first seen at index {first_index})"
+            ),
+            Self::InvalidEpochRange {
+                earliest_epoch,
+                latest_epoch,
+            } => write!(
+                f,
+                "invalid epoch range {}..{}",
+                format_instant(*earliest_epoch),
+                format_instant(*latest_epoch)
+            ),
+            _ => f.write_str(self.label()),
+        }
+    }
+}
+
+impl std::error::Error for IndependentHoldoutSnapshotSummaryValidationError {}
 
 /// A compact coverage summary for the independent hold-out corpus used to
 /// validate interpolation against rows that are not part of the main snapshot.
@@ -547,6 +694,53 @@ pub fn independent_holdout_snapshot_summary() -> Option<IndependentHoldoutSnapsh
 }
 
 impl IndependentHoldoutSnapshotSummary {
+    /// Validates that the summary remains internally consistent.
+    pub fn validate(&self) -> Result<(), IndependentHoldoutSnapshotSummaryValidationError> {
+        if self.row_count == 0 {
+            return Err(IndependentHoldoutSnapshotSummaryValidationError::MissingRows);
+        }
+        if self.bodies.is_empty() {
+            return Err(IndependentHoldoutSnapshotSummaryValidationError::MissingBodies);
+        }
+        if self.body_count != self.bodies.len() {
+            return Err(
+                IndependentHoldoutSnapshotSummaryValidationError::BodyCountMismatch {
+                    body_count: self.body_count,
+                    bodies_len: self.bodies.len(),
+                },
+            );
+        }
+
+        for (index, body) in self.bodies.iter().enumerate() {
+            if self.bodies[..index].iter().any(|other| other == body) {
+                return Err(
+                    IndependentHoldoutSnapshotSummaryValidationError::DuplicateBody {
+                        first_index: self.bodies[..index]
+                            .iter()
+                            .position(|other| other == body)
+                            .unwrap(),
+                        second_index: index,
+                        body: body.clone(),
+                    },
+                );
+            }
+        }
+
+        if self.epoch_count == 0 {
+            return Err(IndependentHoldoutSnapshotSummaryValidationError::MissingEpochs);
+        }
+        if self.earliest_epoch.julian_day.days() > self.latest_epoch.julian_day.days() {
+            return Err(
+                IndependentHoldoutSnapshotSummaryValidationError::InvalidEpochRange {
+                    earliest_epoch: self.earliest_epoch,
+                    latest_epoch: self.latest_epoch,
+                },
+            );
+        }
+
+        Ok(())
+    }
+
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         let bodies = if self.bodies.is_empty() {
@@ -582,7 +776,10 @@ pub fn format_independent_holdout_snapshot_summary(
 /// Returns the release-facing independent hold-out coverage summary string.
 pub fn independent_holdout_snapshot_summary_for_report() -> String {
     match independent_holdout_snapshot_summary() {
-        Some(summary) => format_independent_holdout_snapshot_summary(&summary),
+        Some(summary) => match summary.validate() {
+            Ok(()) => format_independent_holdout_snapshot_summary(&summary),
+            Err(error) => format!("Independent hold-out coverage: unavailable ({error})"),
+        },
         None => match independent_holdout_snapshot_error() {
             Some(error) => format!("Independent hold-out coverage: unavailable ({error})"),
             None => "Independent hold-out coverage: unavailable".to_string(),
@@ -931,6 +1128,51 @@ pub fn comparison_snapshot_manifest_summary_for_report() -> String {
 }
 
 impl ComparisonSnapshotSummary {
+    /// Validates that the summary remains internally consistent.
+    pub fn validate(&self) -> Result<(), ComparisonSnapshotSummaryValidationError> {
+        if self.row_count == 0 {
+            return Err(ComparisonSnapshotSummaryValidationError::MissingRows);
+        }
+        if self.bodies.is_empty() {
+            return Err(ComparisonSnapshotSummaryValidationError::MissingBodies);
+        }
+        if self.body_count != self.bodies.len() {
+            return Err(
+                ComparisonSnapshotSummaryValidationError::BodyCountMismatch {
+                    body_count: self.body_count,
+                    bodies_len: self.bodies.len(),
+                },
+            );
+        }
+
+        for (index, body) in self.bodies.iter().enumerate() {
+            if self.bodies[..index].iter().any(|other| other == body) {
+                return Err(ComparisonSnapshotSummaryValidationError::DuplicateBody {
+                    first_index: self.bodies[..index]
+                        .iter()
+                        .position(|other| other == body)
+                        .unwrap(),
+                    second_index: index,
+                    body: body.to_string(),
+                });
+            }
+        }
+
+        if self.epoch_count == 0 {
+            return Err(ComparisonSnapshotSummaryValidationError::MissingEpochs);
+        }
+        if self.earliest_epoch.julian_day.days() > self.latest_epoch.julian_day.days() {
+            return Err(
+                ComparisonSnapshotSummaryValidationError::InvalidEpochRange {
+                    earliest_epoch: self.earliest_epoch,
+                    latest_epoch: self.latest_epoch,
+                },
+            );
+        }
+
+        Ok(())
+    }
+
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         format!(
@@ -959,7 +1201,10 @@ pub fn format_comparison_snapshot_summary(summary: &ComparisonSnapshotSummary) -
 /// Returns the release-facing comparison snapshot coverage summary string.
 pub fn comparison_snapshot_summary_for_report() -> String {
     match comparison_snapshot_summary() {
-        Some(summary) => format_comparison_snapshot_summary(&summary),
+        Some(summary) => match summary.validate() {
+            Ok(()) => format_comparison_snapshot_summary(&summary),
+            Err(error) => format!("Comparison snapshot coverage: unavailable ({error})"),
+        },
         None => "Comparison snapshot coverage: unavailable".to_string(),
     }
 }
@@ -3477,6 +3722,7 @@ mod tests {
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_499.0);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(summary.bodies.as_slice(), comparison_bodies());
+        assert_eq!(summary.validate(), Ok(()));
         assert_eq!(
             summary.summary_line(),
             "Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Mercury, Moon, Sun, Venus, Jupiter, Saturn, Uranus, Neptune, Pluto"
@@ -3486,6 +3732,29 @@ mod tests {
             comparison_snapshot_summary_for_report(),
             summary.summary_line()
         );
+    }
+
+    #[test]
+    fn comparison_snapshot_summary_validation_rejects_duplicate_bodies() {
+        let summary = ComparisonSnapshotSummary {
+            row_count: 2,
+            body_count: 2,
+            bodies: vec![
+                pleiades_backend::CelestialBody::Moon,
+                pleiades_backend::CelestialBody::Moon,
+            ],
+            epoch_count: 1,
+            earliest_epoch: reference_instant(),
+            latest_epoch: reference_instant(),
+        };
+        assert!(matches!(
+            summary.validate(),
+            Err(ComparisonSnapshotSummaryValidationError::DuplicateBody {
+                first_index: 0,
+                second_index: 1,
+                body,
+            }) if body == "Moon"
+        ));
     }
 
     #[test]
@@ -3882,6 +4151,7 @@ mod tests {
         assert_eq!(summary.epoch_count, 6);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_400_000.0);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_500_000.0);
+        assert_eq!(summary.validate(), Ok(()));
         assert_eq!(
             summary.summary_line(),
             "Independent hold-out coverage: 9 rows across 3 bodies and 6 epochs (JD 2400000.0 (TDB)..JD 2500000.0 (TDB)); bodies: Mars, Jupiter, Saturn"
@@ -3891,6 +4161,26 @@ mod tests {
             independent_holdout_snapshot_summary_for_report(),
             summary.summary_line()
         );
+    }
+
+    #[test]
+    fn independent_holdout_snapshot_summary_validation_rejects_duplicate_bodies() {
+        let summary = IndependentHoldoutSnapshotSummary {
+            row_count: 2,
+            body_count: 2,
+            bodies: vec!["Mars".to_string(), "Mars".to_string()],
+            epoch_count: 1,
+            earliest_epoch: reference_instant(),
+            latest_epoch: reference_instant(),
+        };
+        assert!(matches!(
+            summary.validate(),
+            Err(IndependentHoldoutSnapshotSummaryValidationError::DuplicateBody {
+                first_index: 0,
+                second_index: 1,
+                body,
+            }) if body == "Mars"
+        ));
     }
 
     #[test]
