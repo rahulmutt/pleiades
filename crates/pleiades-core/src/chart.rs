@@ -206,6 +206,18 @@ impl ChartRequest {
         Ok(self)
     }
 
+    /// Validates a caller-supplied time-scale conversion policy without mutating the request.
+    ///
+    /// This mirrors [`TimeScaleConversion::validate`] at the chart façade so
+    /// callers can preflight the explicit source/target/offset contract against
+    /// the request instant before choosing whether to apply it.
+    pub fn validate_time_scale_conversion(
+        &self,
+        conversion: TimeScaleConversion,
+    ) -> Result<(), TimeScaleConversionError> {
+        conversion.validate(self.instant)
+    }
+
     /// Converts the chart instant from UT1 to TT using caller-supplied Delta T.
     ///
     /// This convenience method mirrors [`Instant::tt_from_ut1`] so chart callers
@@ -2811,6 +2823,35 @@ mod tests {
         assert!(summary.contains("observer=house-only;"));
         assert!(summary.contains(
             "house system=My UT1 Custom Houses [aliases: My UT1 Alias] (uses a local UT1 calibration)"
+        ));
+    }
+
+    #[test]
+    fn chart_request_validate_time_scale_conversion_matches_the_policy_helper() {
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Ut1,
+        ));
+        let policy = TimeScaleConversion::new(TimeScale::Ut1, TimeScale::Tdb, 64.184);
+
+        assert!(request.validate_time_scale_conversion(policy).is_ok());
+
+        let mismatched = TimeScaleConversion::new(TimeScale::Tt, TimeScale::Tdb, 64.184);
+        let error = request
+            .validate_time_scale_conversion(mismatched)
+            .expect_err("chart request should reject the wrong source scale");
+        assert!(matches!(
+            error,
+            TimeScaleConversionError::Expected {
+                expected: TimeScale::Tt,
+                actual: TimeScale::Ut1,
+            }
+        ));
+
+        let non_finite = TimeScaleConversion::new(TimeScale::Ut1, TimeScale::Tt, f64::NAN);
+        assert!(matches!(
+            request.validate_time_scale_conversion(non_finite),
+            Err(TimeScaleConversionError::NonFiniteOffset)
         ));
     }
 
