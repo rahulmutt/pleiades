@@ -1470,7 +1470,8 @@ pub struct ValidationReport {
 
 /// A generated release bundle containing the compatibility profile, release-profile
 /// identifiers, release notes, release checklist, backend matrix, API posture,
-/// API stability summary, validation report summary, validation report, and manifest.
+/// API stability summary, validation report summary, benchmark report, validation report,
+/// and manifest.
 #[derive(Clone, Debug)]
 pub struct ReleaseBundle {
     /// Source revision recorded when the bundle was generated.
@@ -1511,6 +1512,8 @@ pub struct ReleaseBundle {
     pub workspace_audit_summary_path: PathBuf,
     /// Path to the generated artifact summary file.
     pub artifact_summary_path: PathBuf,
+    /// Path to the generated benchmark report file.
+    pub benchmark_report_path: PathBuf,
     /// Path to the generated validation report file.
     pub validation_report_path: PathBuf,
     /// Path to the generated bundle manifest.
@@ -1547,6 +1550,8 @@ pub struct ReleaseBundle {
     pub workspace_audit_summary_bytes: usize,
     /// Number of bytes written for the artifact summary.
     pub artifact_summary_bytes: usize,
+    /// Number of bytes written for the benchmark report.
+    pub benchmark_report_bytes: usize,
     /// Number of bytes written for the validation report.
     pub validation_report_bytes: usize,
     /// Number of bytes written for the manifest checksum sidecar.
@@ -1581,6 +1586,8 @@ pub struct ReleaseBundle {
     pub workspace_audit_summary_checksum: u64,
     /// Deterministic checksum for the artifact summary contents.
     pub artifact_summary_checksum: u64,
+    /// Deterministic checksum for the benchmark report contents.
+    pub benchmark_report_checksum: u64,
     /// Deterministic checksum for the validation report contents.
     pub validation_report_checksum: u64,
     /// Deterministic checksum recorded in the manifest checksum sidecar.
@@ -2096,6 +2103,11 @@ impl fmt::Display for ReleaseBundle {
         )?;
         writeln!(
             f,
+            "  benchmark report: {}",
+            self.benchmark_report_path.display()
+        )?;
+        writeln!(
+            f,
             "  validation report: {}",
             self.validation_report_path.display()
         )?;
@@ -2234,6 +2246,11 @@ impl fmt::Display for ReleaseBundle {
         )?;
         writeln!(
             f,
+            "  benchmark report bytes: {}",
+            self.benchmark_report_bytes
+        )?;
+        writeln!(
+            f,
             "  validation report bytes: {}",
             self.validation_report_bytes
         )?;
@@ -2256,6 +2273,11 @@ impl fmt::Display for ReleaseBundle {
             f,
             "  artifact summary checksum: 0x{:016x}",
             self.artifact_summary_checksum
+        )?;
+        writeln!(
+            f,
+            "  benchmark report checksum: 0x{:016x}",
+            self.benchmark_report_checksum
         )?;
         writeln!(
             f,
@@ -4355,7 +4377,8 @@ fn benchmark_provenance_text() -> String {
 /// Writes a release bundle containing the compatibility profile, release-profile
 /// identifiers, release notes, release notes summary, release summary, release checklist,
 /// release checklist summary, backend matrix, API posture, API stability summary,
-/// validation report summary, artifact summary, validation report, and a manifest.
+/// validation report summary, artifact summary, benchmark report, validation report,
+/// and a manifest.
 pub fn render_release_bundle(
     rounds: usize,
     output_dir: impl AsRef<Path>,
@@ -4380,6 +4403,7 @@ pub fn render_release_bundle(
     let validation_report = build_validation_report(rounds)?;
     let validation_report_text = validation_report.to_string();
     let validation_report_summary_text = render_validation_report_summary_text(&validation_report);
+    let benchmark_report_text = render_benchmark_report(rounds)?;
     let workspace_audit_summary_text = render_workspace_audit_summary()
         .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
     let artifact_summary_text = render_artifact_summary()
@@ -4400,6 +4424,7 @@ pub fn render_release_bundle(
     let validation_report_summary_path = output_dir.join("validation-report-summary.txt");
     let workspace_audit_summary_path = output_dir.join("workspace-audit-summary.txt");
     let artifact_summary_path = output_dir.join("artifact-summary.txt");
+    let benchmark_report_path = output_dir.join("benchmark-report.txt");
     let report_path = output_dir.join("validation-report.txt");
     let manifest_path = output_dir.join("bundle-manifest.txt");
     let manifest_checksum_path = output_dir.join("bundle-manifest.checksum.txt");
@@ -4419,9 +4444,10 @@ pub fn render_release_bundle(
     let validation_report_summary_checksum = checksum64(&validation_report_summary_text);
     let workspace_audit_summary_checksum = checksum64(&workspace_audit_summary_text);
     let artifact_summary_checksum = checksum64(&artifact_summary_text);
+    let benchmark_report_checksum = checksum64(&benchmark_report_text);
     let validation_report_checksum = checksum64(&validation_report_text);
     let manifest_text = format!(
-        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease notes summary: release-notes-summary.txt\nrelease notes summary checksum (fnv1a-64): 0x{release_notes_summary_checksum:016x}\nrelease summary: release-summary.txt\nrelease summary checksum (fnv1a-64): 0x{release_summary_checksum:016x}\nrelease-profile identifiers: release-profile-identifiers.txt\nrelease-profile identifiers checksum (fnv1a-64): 0x{release_profile_identifiers_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nrelease checklist summary: release-checklist-summary.txt\nrelease checklist summary checksum (fnv1a-64): 0x{release_checklist_summary_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\nbackend matrix summary: backend-matrix-summary.txt\nbackend matrix summary checksum (fnv1a-64): 0x{backend_matrix_summary_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\napi stability summary: api-stability-summary.txt\napi stability summary checksum (fnv1a-64): 0x{api_stability_summary_checksum:016x}\nvalidation report summary: validation-report-summary.txt\nvalidation report summary checksum (fnv1a-64): 0x{validation_report_summary_checksum:016x}\nworkspace audit summary: workspace-audit-summary.txt\nworkspace audit summary checksum (fnv1a-64): 0x{workspace_audit_summary_checksum:016x}\nartifact summary: artifact-summary.txt\nartifact summary checksum (fnv1a-64): 0x{artifact_summary_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
+        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease notes summary: release-notes-summary.txt\nrelease notes summary checksum (fnv1a-64): 0x{release_notes_summary_checksum:016x}\nrelease summary: release-summary.txt\nrelease summary checksum (fnv1a-64): 0x{release_summary_checksum:016x}\nrelease-profile identifiers: release-profile-identifiers.txt\nrelease-profile identifiers checksum (fnv1a-64): 0x{release_profile_identifiers_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nrelease checklist summary: release-checklist-summary.txt\nrelease checklist summary checksum (fnv1a-64): 0x{release_checklist_summary_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\nbackend matrix summary: backend-matrix-summary.txt\nbackend matrix summary checksum (fnv1a-64): 0x{backend_matrix_summary_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\napi stability summary: api-stability-summary.txt\napi stability summary checksum (fnv1a-64): 0x{api_stability_summary_checksum:016x}\nvalidation report summary: validation-report-summary.txt\nvalidation report summary checksum (fnv1a-64): 0x{validation_report_summary_checksum:016x}\nworkspace audit summary: workspace-audit-summary.txt\nworkspace audit summary checksum (fnv1a-64): 0x{workspace_audit_summary_checksum:016x}\nartifact summary: artifact-summary.txt\nartifact summary checksum (fnv1a-64): 0x{artifact_summary_checksum:016x}\nbenchmark report: benchmark-report.txt\nbenchmark report checksum (fnv1a-64): 0x{benchmark_report_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
         provenance.source_revision,
         provenance.workspace_status,
         provenance.rustc_version,
@@ -4468,6 +4494,7 @@ pub fn render_release_bundle(
     let manifest_checksum = checksum64(&manifest_text);
     let manifest_checksum_text = format!("0x{manifest_checksum:016x}\n");
     fs::write(&artifact_summary_path, artifact_summary_text.as_bytes())?;
+    fs::write(&benchmark_report_path, benchmark_report_text.as_bytes())?;
     fs::write(&report_path, validation_report_text.as_bytes())?;
     fs::write(&manifest_path, manifest_text.as_bytes())?;
     fs::write(&manifest_checksum_path, manifest_checksum_text.as_bytes())?;
@@ -4507,6 +4534,8 @@ struct ParsedReleaseBundleManifest {
     workspace_audit_summary_checksum: u64,
     artifact_summary_path: String,
     artifact_summary_checksum: u64,
+    benchmark_report_path: String,
+    benchmark_report_checksum: u64,
     validation_report_path: String,
     validation_report_checksum: u64,
     source_revision: String,
@@ -4601,6 +4630,11 @@ impl ParsedReleaseBundleManifest {
                 text,
                 "artifact summary checksum (fnv1a-64):",
             )?,
+            benchmark_report_path: parse_manifest_string(text, "benchmark report:")?,
+            benchmark_report_checksum: parse_manifest_checksum(
+                text,
+                "benchmark report checksum (fnv1a-64):",
+            )?,
             validation_report_path: parse_manifest_string(text, "validation report:")?,
             validation_report_checksum: parse_manifest_checksum(
                 text,
@@ -4637,6 +4671,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
         "validation-report-summary.txt",
         "workspace-audit-summary.txt",
         "artifact-summary.txt",
+        "benchmark-report.txt",
         "validation-report.txt",
         "bundle-manifest.txt",
         "bundle-manifest.checksum.txt",
@@ -4672,7 +4707,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
 fn ensure_release_bundle_manifest_is_canonical(
     manifest_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    const EXPECTED_MANIFEST_LINES: [&str; 39] = [
+    const EXPECTED_MANIFEST_LINES: [&str; 41] = [
         "Release bundle manifest",
         "profile:",
         "profile checksum (fnv1a-64):",
@@ -4704,6 +4739,8 @@ fn ensure_release_bundle_manifest_is_canonical(
         "workspace audit summary checksum (fnv1a-64):",
         "artifact summary:",
         "artifact summary checksum (fnv1a-64):",
+        "benchmark report:",
+        "benchmark report checksum (fnv1a-64):",
         "validation report:",
         "validation report checksum (fnv1a-64):",
         "source revision:",
@@ -4778,6 +4815,7 @@ fn verify_release_bundle(
     let validation_report_summary_path = output_dir.join("validation-report-summary.txt");
     let workspace_audit_summary_path = output_dir.join("workspace-audit-summary.txt");
     let artifact_summary_path = output_dir.join("artifact-summary.txt");
+    let benchmark_report_path = output_dir.join("benchmark-report.txt");
     let validation_report_path = output_dir.join("validation-report.txt");
     let manifest_path = output_dir.join("bundle-manifest.txt");
     let manifest_checksum_path = output_dir.join("bundle-manifest.checksum.txt");
@@ -4801,6 +4839,7 @@ fn verify_release_bundle(
         (&validation_report_summary_path, "validation report summary"),
         (&workspace_audit_summary_path, "workspace audit summary"),
         (&artifact_summary_path, "artifact summary"),
+        (&benchmark_report_path, "benchmark report"),
         (&validation_report_path, "validation report"),
         (&manifest_path, "bundle manifest"),
         (&manifest_checksum_path, "bundle manifest checksum sidecar"),
@@ -4835,6 +4874,8 @@ fn verify_release_bundle(
         read_required_bundle_text(&workspace_audit_summary_path, "workspace audit summary")?;
     let artifact_summary_text =
         read_required_bundle_text(&artifact_summary_path, "artifact summary")?;
+    let benchmark_report_text =
+        read_required_bundle_text(&benchmark_report_path, "benchmark report")?;
     let validation_report_text =
         read_required_bundle_text(&validation_report_path, "validation report")?;
     let manifest_text = read_required_bundle_text(&manifest_path, "bundle manifest")?;
@@ -4942,6 +4983,12 @@ fn verify_release_bundle(
             manifest.artifact_summary_path
         )));
     }
+    if manifest.benchmark_report_path != "benchmark-report.txt" {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected benchmark report file entry: {}",
+            manifest.benchmark_report_path
+        )));
+    }
     if manifest.validation_report_path != "validation-report.txt" {
         return Err(ReleaseBundleError::Verification(format!(
             "unexpected validation report file entry: {}",
@@ -4963,6 +5010,7 @@ fn verify_release_bundle(
     let validation_report_summary_checksum = checksum64(&validation_report_summary_text);
     let workspace_audit_summary_checksum = checksum64(&workspace_audit_summary_text);
     let artifact_summary_checksum = checksum64(&artifact_summary_text);
+    let benchmark_report_checksum = checksum64(&benchmark_report_text);
     let validation_report_checksum = checksum64(&validation_report_text);
     let manifest_checksum = checksum64(&manifest_text);
     let manifest_checksum_value =
@@ -5100,6 +5148,12 @@ fn verify_release_bundle(
             manifest.artifact_summary_checksum, artifact_summary_checksum
         )));
     }
+    if manifest.benchmark_report_checksum != benchmark_report_checksum {
+        return Err(ReleaseBundleError::Verification(format!(
+            "benchmark report checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.benchmark_report_checksum, benchmark_report_checksum
+        )));
+    }
     if manifest.validation_report_checksum != validation_report_checksum {
         return Err(ReleaseBundleError::Verification(format!(
             "validation report checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
@@ -5133,6 +5187,7 @@ fn verify_release_bundle(
         validation_report_summary_path,
         workspace_audit_summary_path,
         artifact_summary_path,
+        benchmark_report_path,
         validation_report_path,
         manifest_path,
         manifest_checksum_path,
@@ -5151,6 +5206,7 @@ fn verify_release_bundle(
         validation_report_summary_bytes: validation_report_summary_text.len(),
         workspace_audit_summary_bytes: workspace_audit_summary_text.len(),
         artifact_summary_bytes: artifact_summary_text.len(),
+        benchmark_report_bytes: benchmark_report_text.len(),
         validation_report_bytes: validation_report_text.len(),
         manifest_checksum_bytes: manifest_checksum_text.len(),
         compatibility_profile_checksum,
@@ -5168,6 +5224,7 @@ fn verify_release_bundle(
         validation_report_summary_checksum,
         workspace_audit_summary_checksum,
         artifact_summary_checksum,
+        benchmark_report_checksum,
         validation_report_checksum,
         manifest_checksum: manifest_checksum_value,
         validation_rounds: manifest.validation_rounds,
@@ -12111,6 +12168,7 @@ version = "0.9.0"
         assert!(rendered.contains("validation-report-summary.txt"));
         assert!(rendered.contains("workspace-audit-summary.txt"));
         assert!(rendered.contains("artifact-summary.txt"));
+        assert!(rendered.contains("benchmark-report.txt"));
         assert!(rendered.contains("validation-report.txt"));
         assert!(rendered.contains("release-profile-identifiers.txt"));
         assert!(rendered.contains("bundle-manifest.checksum.txt"));
@@ -12157,8 +12215,11 @@ version = "0.9.0"
                 .expect("workspace audit summary should be written");
         let artifact_summary = std::fs::read_to_string(bundle_dir.join("artifact-summary.txt"))
             .expect("artifact summary should be written");
+        let benchmark_report = std::fs::read_to_string(bundle_dir.join("benchmark-report.txt"))
+            .expect("benchmark report should be written");
         let report = std::fs::read_to_string(bundle_dir.join("validation-report.txt"))
             .expect("validation report should be written");
+        assert!(benchmark_report.contains("Benchmark report"));
         let manifest = std::fs::read_to_string(bundle_dir.join("bundle-manifest.txt"))
             .expect("manifest should be written");
         let manifest_checksum =
@@ -12556,6 +12617,7 @@ version = "0.9.0"
         assert!(manifest.contains("api-stability-summary.txt"));
         assert!(manifest.contains("validation-report-summary.txt"));
         assert!(manifest.contains("artifact-summary.txt"));
+        assert!(manifest.contains("benchmark-report.txt"));
         assert!(manifest.contains("validation-report.txt"));
         assert!(!manifest.contains("bundle-manifest.checksum.txt"));
         assert!(manifest.contains("source revision:"));
@@ -12574,6 +12636,7 @@ version = "0.9.0"
         assert!(manifest.contains("validation report summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("workspace audit summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("artifact summary checksum (fnv1a-64): 0x"));
+        assert!(manifest.contains("benchmark report checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("validation report checksum (fnv1a-64): 0x"));
         assert!(manifest_checksum.trim().starts_with("0x"));
 
@@ -12588,6 +12651,7 @@ version = "0.9.0"
         assert!(verified.contains("release-checklist-summary.txt"));
         assert!(verified.contains("validation-report-summary.txt"));
         assert!(verified.contains("artifact-summary.txt"));
+        assert!(verified.contains("benchmark-report.txt"));
         assert!(verified.contains("source revision:"));
         assert!(verified.contains("workspace status:"));
         assert!(verified.contains("rustc version:"));
