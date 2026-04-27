@@ -1918,7 +1918,9 @@ impl<B: EphemerisBackend> ChartEngine<B> {
     /// ```
     ///
     /// The engine validates the backend metadata first so malformed backend
-    /// inventory fails closed before the request shape is assembled.
+    /// inventory fails closed before the request shape is assembled. It then
+    /// batches the body-position requests through the backend's `positions()`
+    /// path so batch-aware backends can service the whole chart efficiently.
     pub fn chart(&self, request: &ChartRequest) -> Result<ChartSnapshot, EphemerisError> {
         let metadata = self.validated_metadata().map_err(|error| {
             EphemerisError::new(
@@ -1979,19 +1981,37 @@ impl<B: EphemerisBackend> ChartEngine<B> {
             None
         };
 
+        let body_requests: Vec<_> = request
+            .bodies
+            .iter()
+            .map(|body| EphemerisRequest {
+                body: body.clone(),
+                instant: request.instant,
+                observer: None,
+                frame: pleiades_types::CoordinateFrame::Ecliptic,
+                zodiac_mode: backend_zodiac_mode.clone(),
+                apparent: request.apparentness,
+            })
+            .collect();
+        let positions = self.backend.positions(&body_requests)?;
+        if positions.len() != body_requests.len() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "{} returned {} result(s) for {} chart body request(s)",
+                    backend_id,
+                    positions.len(),
+                    body_requests.len()
+                ),
+            ));
+        }
+
         let placements = request
             .bodies
             .iter()
-            .map(|body| {
-                let body_request = EphemerisRequest {
-                    body: body.clone(),
-                    instant: request.instant,
-                    observer: None,
-                    frame: pleiades_types::CoordinateFrame::Ecliptic,
-                    zodiac_mode: backend_zodiac_mode.clone(),
-                    apparent: request.apparentness,
-                };
-                let mut position = self.backend.position(&body_request)?;
+            .cloned()
+            .zip(positions.into_iter())
+            .map(|(body, mut position)| {
                 let sign = if matches!(request.zodiac_mode, ZodiacMode::Sidereal { .. })
                     && !native_sidereal
                 {
@@ -2021,7 +2041,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                         .map(|coords| house_for_longitude(coords.longitude, &snapshot.cusps))
                 });
                 Ok(BodyPlacement {
-                    body: body.clone(),
+                    body,
                     position,
                     sign,
                     house,
@@ -2158,6 +2178,81 @@ mod tests {
                 Some(1.0),
             ));
             Ok(result)
+        }
+    }
+
+    #[derive(Clone)]
+    struct BatchRecordingChartBackend {
+        observers: Arc<Mutex<Vec<Option<ObserverLocation>>>>,
+        batch_calls: Arc<Mutex<usize>>,
+    }
+
+    impl EphemerisBackend for BatchRecordingChartBackend {
+        fn metadata(&self) -> BackendMetadata {
+            BackendMetadata {
+                id: BackendId::new("batch-recording-chart"),
+                version: "0.1.0".to_string(),
+                family: BackendFamily::Algorithmic,
+                provenance: BackendProvenance::new("batch recording chart backend"),
+                nominal_range: pleiades_types::TimeRange::new(None, None),
+                supported_time_scales: vec![TimeScale::Tt],
+                body_coverage: vec![CelestialBody::Sun, CelestialBody::Moon],
+                supported_frames: vec![pleiades_types::CoordinateFrame::Ecliptic],
+                capabilities: BackendCapabilities {
+                    batch: true,
+                    ..BackendCapabilities::default()
+                },
+                accuracy: AccuracyClass::Approximate,
+                deterministic: true,
+                offline: true,
+            }
+        }
+
+        fn supports_body(&self, body: CelestialBody) -> bool {
+            matches!(body, CelestialBody::Sun | CelestialBody::Moon)
+        }
+
+        fn position(&self, request: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+            self.observers
+                .lock()
+                .expect("observer log should be lockable")
+                .push(request.observer.clone());
+            let longitude = match request.body {
+                CelestialBody::Sun => Longitude::from_degrees(15.0),
+                CelestialBody::Moon => Longitude::from_degrees(45.0),
+                _ => {
+                    return Err(EphemerisError::new(
+                        EphemerisErrorKind::UnsupportedBody,
+                        "unsupported",
+                    ))
+                }
+            };
+            let mut result = EphemerisResult::new(
+                BackendId::new("batch-recording-chart"),
+                request.body.clone(),
+                request.instant,
+                request.frame,
+                request.zodiac_mode.clone(),
+                request.apparent,
+            );
+            result.quality = QualityAnnotation::Approximate;
+            result.ecliptic = Some(EclipticCoordinates::new(
+                longitude,
+                Latitude::from_degrees(0.0),
+                Some(1.0),
+            ));
+            Ok(result)
+        }
+
+        fn positions(
+            &self,
+            reqs: &[EphemerisRequest],
+        ) -> Result<Vec<EphemerisResult>, EphemerisError> {
+            *self
+                .batch_calls
+                .lock()
+                .expect("batch call log should be lockable") += 1;
+            reqs.iter().map(|req| self.position(req)).collect()
         }
     }
 
@@ -2566,6 +2661,40 @@ mod tests {
             .contains("observer elevation must be finite when provided"));
         let observers = observers.lock().expect("observer log should be lockable");
         assert!(observers.is_empty());
+    }
+
+    #[test]
+    fn chart_snapshot_uses_backend_batch_queries_for_body_positions() {
+        let observers = Arc::new(Mutex::new(Vec::new()));
+        let batch_calls = Arc::new(Mutex::new(0));
+        let engine = ChartEngine::new(BatchRecordingChartBackend {
+            observers: Arc::clone(&observers),
+            batch_calls: Arc::clone(&batch_calls),
+        });
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2451545.0),
+            TimeScale::Tt,
+        ))
+        .with_bodies(vec![CelestialBody::Sun, CelestialBody::Moon]);
+
+        let chart = engine
+            .chart(&request)
+            .expect("chart should render through the backend batch path");
+
+        assert_eq!(chart.placements.len(), 2);
+        assert_eq!(chart.placements[0].body, CelestialBody::Sun);
+        assert_eq!(chart.placements[1].body, CelestialBody::Moon);
+        assert_eq!(chart.placements[0].sign, Some(ZodiacSign::Aries));
+        assert_eq!(chart.placements[1].sign, Some(ZodiacSign::Taurus));
+        assert_eq!(
+            *batch_calls
+                .lock()
+                .expect("batch call log should be lockable"),
+            1
+        );
+        let observers = observers.lock().expect("observer log should be lockable");
+        assert_eq!(observers.len(), 2);
+        assert!(observers.iter().all(Option::is_none));
     }
 
     #[test]

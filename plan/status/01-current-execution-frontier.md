@@ -20,6 +20,7 @@ Several downstream requirements depend on trusted ephemeris outputs:
 - Latest progress (2026-04-27): the JPL reference and independent hold-out provenance summaries now also validate their own blank-field labels before formatting release-facing source lines, so the compact snapshot provenance now fails closed if future fallback text ever drifts to an empty source, coverage, or column label.
 - Latest progress (2026-04-27): the typed `TimeScaleConversion` summary now renders explicit `source=...; target=...; offset_seconds=...` field labels, and the related docs plus `pleiades-types` / `pleiades-core` regression checks were updated to match that structured conversion wording, so the caller-supplied Delta T contract is a little easier to scan in diagnostics.
 - Latest progress (2026-04-27): the house lookup docs now include doctested wraparound and exact-boundary examples for the shared cusp helper plus a chart-facing `house_for_body` example, so the release-facing API documentation for house workflows is a little less abstract.
+- Latest progress (2026-04-27): `pleiades-core::ChartEngine::chart()` now batches body-position dispatch through the backend `positions()` path after metadata validation, so batch-aware backends can service whole charts efficiently without changing the chart request shape or the geocentric-vs-house observer split.
 
 ## Current repo state summary
 
