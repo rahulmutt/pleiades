@@ -2632,6 +2632,57 @@ mod tests {
     }
 
     #[test]
+    fn chart_request_caller_supplied_conversion_preserves_custom_house_metadata() {
+        let mut custom = pleiades_types::CustomHouseSystem::new("My UTC Custom Houses");
+        custom.aliases.push("My UTC Alias".to_string());
+        custom.notes = Some("uses a local UTC calibration".to_string());
+
+        let observer = ObserverLocation::new(
+            Latitude::from_degrees(34.5),
+            Longitude::from_degrees(-118.25),
+            Some(75.0),
+        );
+
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Utc,
+        ))
+        .with_observer(observer)
+        .with_house_system(HouseSystem::Custom(custom))
+        .with_bodies(vec![CelestialBody::Sun, CelestialBody::Moon])
+        .with_zodiac_mode(ZodiacMode::Sidereal {
+            ayanamsa: crate::Ayanamsa::Lahiri,
+        })
+        .with_apparentness(Apparentness::Apparent);
+
+        let converted = request
+            .clone()
+            .with_time_scale_conversion(TimeScaleConversion::new(
+                TimeScale::Utc,
+                TimeScale::Tdb,
+                64.184,
+            ))
+            .expect("UTC chart request should accept a caller-supplied policy");
+
+        assert_eq!(converted.instant.scale, TimeScale::Tdb);
+        assert_eq!(converted.observer, request.observer);
+        assert_eq!(converted.bodies, request.bodies);
+        assert_eq!(converted.zodiac_mode, request.zodiac_mode);
+        assert_eq!(converted.apparentness, request.apparentness);
+        assert_eq!(converted.house_system, request.house_system);
+
+        let summary = converted.summary_line();
+        assert!(summary.contains("(TDB);"));
+        assert!(summary.contains("bodies=2;"));
+        assert!(summary.contains("zodiac=Sidereal (Lahiri);"));
+        assert!(summary.contains("apparentness=Apparent;"));
+        assert!(summary.contains("observer=house-only;"));
+        assert!(summary.contains(
+            "house system=My UTC Custom Houses [aliases: My UTC Alias] (uses a local UTC calibration)"
+        ));
+    }
+
+    #[test]
     fn chart_request_can_convert_ut1_to_tt() {
         let request = ChartRequest::new(Instant::new(
             pleiades_types::JulianDay::from_days(2_451_545.0),
