@@ -62,6 +62,17 @@ impl HouseRequest {
             self.instant, self.observer, system, obliquity
         )
     }
+
+    /// Validates the request's observer latitude and obliquity override.
+    ///
+    /// This is a lightweight preflight for callers that want to check the
+    /// house-observer contract before invoking the full house calculation.
+    /// The helper does not retag the instant or infer any time-scale policy;
+    /// it only checks the same observer, obliquity, and topocentric elevation
+    /// constraints enforced by [`calculate_houses`].
+    pub fn validate(&self) -> Result<(), HouseError> {
+        validated_obliquity(self).map(|_| ())
+    }
 }
 
 impl fmt::Display for HouseRequest {
@@ -196,13 +207,7 @@ impl std::error::Error for HouseError {}
 
 /// Computes the house cusps and derived angles for a request.
 pub fn calculate_houses(request: &HouseRequest) -> Result<HouseSnapshot, HouseError> {
-    validate_observer(&request.observer)?;
-
-    let obliquity = validate_obliquity(
-        request
-            .obliquity
-            .unwrap_or_else(|| mean_obliquity(request.instant)),
-    )?;
+    let obliquity = validated_obliquity(request)?;
     let angles = derive_angles(request.instant, &request.observer, obliquity);
     let cusps = match &request.system {
         HouseSystem::Equal => equal_houses(angles.ascendant).into(),
@@ -337,6 +342,27 @@ fn validate_observer(observer: &ObserverLocation) -> Result<(), HouseError> {
             HouseErrorKind::InvalidLatitude,
             format!("observer latitude {latitude}° is outside the valid range"),
         ));
+    }
+
+    Ok(())
+}
+
+fn validated_obliquity(request: &HouseRequest) -> Result<Angle, HouseError> {
+    validate_observer(&request.observer)?;
+    validate_topocentric_observer(request)?;
+    validate_obliquity(
+        request
+            .obliquity
+            .unwrap_or_else(|| mean_obliquity(request.instant)),
+    )
+}
+
+fn validate_topocentric_observer(request: &HouseRequest) -> Result<(), HouseError> {
+    if matches!(request.system, HouseSystem::Topocentric) {
+        topocentric_latitude(
+            request.observer.latitude.degrees(),
+            request.observer.elevation_m,
+        )?;
     }
 
     Ok(())
@@ -1432,6 +1458,40 @@ mod tests {
             HouseSystem::Custom(custom.clone()),
         );
         assert!(custom_request.summary_line().contains(&custom.to_string()));
+    }
+
+    #[test]
+    fn house_request_validate_accepts_the_baseline_request() {
+        let request = sample_request(HouseSystem::WholeSign);
+        assert!(request.validate().is_ok());
+    }
+
+    #[test]
+    fn house_request_validate_rejects_non_finite_obliquity_overrides() {
+        let request =
+            sample_request(HouseSystem::WholeSign).with_obliquity(Angle::from_degrees(f64::NAN));
+
+        let error = request
+            .validate()
+            .expect_err("non-finite obliquity should fail fast");
+        assert_eq!(error.kind, HouseErrorKind::InvalidObliquity);
+        assert!(error
+            .message
+            .contains("house obliquity override must be finite"));
+    }
+
+    #[test]
+    fn house_request_validate_rejects_non_finite_topocentric_elevation() {
+        let mut request = sample_request(HouseSystem::Topocentric);
+        request.observer.elevation_m = Some(f64::NAN);
+
+        let error = request
+            .validate()
+            .expect_err("non-finite elevation should fail fast");
+        assert_eq!(error.kind, HouseErrorKind::InvalidElevation);
+        assert!(error
+            .message
+            .contains("observer elevation must be finite when provided"));
     }
 
     #[test]
