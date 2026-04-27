@@ -11255,6 +11255,22 @@ mod tests {
     }
 
     #[test]
+    fn compatibility_profile_verification_summary_validation_rejects_stale_latitude_sensitive_house_systems(
+    ) {
+        let mut summary = compatibility_profile_verification_summary()
+            .expect("compatibility profile verification summary should render");
+        summary.latitude_sensitive_house_systems.reverse();
+
+        let error = summary
+            .validate()
+            .expect_err("stale latitude-sensitive house systems should fail validation");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("latitude-sensitive house systems mismatch"));
+    }
+
+    #[test]
     fn descriptor_names_summary_validation_rejects_blank_entries() {
         let summary = DescriptorNamesSummary {
             names: vec!["Equal (MC)", "   "],
