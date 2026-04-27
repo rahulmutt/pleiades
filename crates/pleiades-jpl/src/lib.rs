@@ -2312,11 +2312,22 @@ impl fmt::Display for SnapshotLoadError {
 
 #[derive(Clone, Debug, PartialEq)]
 enum SnapshotLoadErrorKind {
-    MissingColumn { column: &'static str },
+    MissingColumn {
+        column: &'static str,
+    },
     UnexpectedExtraColumns,
-    UnsupportedBody { body: String },
-    InvalidNumber { column: &'static str, value: String },
-    DuplicateEntry { body: String, epoch: Instant },
+    UnsupportedBody {
+        body: String,
+    },
+    InvalidNumber {
+        column: &'static str,
+        value: String,
+    },
+    DuplicateEntry {
+        body: String,
+        epoch: Instant,
+        first_line: usize,
+    },
 }
 
 impl fmt::Display for SnapshotLoadErrorKind {
@@ -2328,10 +2339,14 @@ impl fmt::Display for SnapshotLoadErrorKind {
             Self::InvalidNumber { column, value } => {
                 write!(f, "invalid {column} value '{value}'")
             }
-            Self::DuplicateEntry { body, epoch } => {
+            Self::DuplicateEntry {
+                body,
+                epoch,
+                first_line,
+            } => {
                 write!(
                     f,
-                    "duplicate row for body '{body}' at {}",
+                    "duplicate row for body '{body}' at {} (first seen at line {first_line})",
                     format_instant(*epoch)
                 )
             }
@@ -2787,7 +2802,7 @@ fn load_snapshot() -> Result<Vec<SnapshotEntry>, SnapshotLoadError> {
 }
 
 fn load_snapshot_from_str(source: &str) -> Result<Vec<SnapshotEntry>, SnapshotLoadError> {
-    let mut seen_entries = BTreeSet::new();
+    let mut seen_entries = BTreeMap::new();
 
     source
         .lines()
@@ -2801,15 +2816,17 @@ fn load_snapshot_from_str(source: &str) -> Result<Vec<SnapshotEntry>, SnapshotLo
                     entry.body.to_string(),
                     entry.epoch.julian_day.days().to_bits(),
                 );
-                if !seen_entries.insert(entry_key.clone()) {
+                if let Some(first_line) = seen_entries.get(&entry_key).copied() {
                     return Err(SnapshotLoadError::new(
                         line_number,
                         SnapshotLoadErrorKind::DuplicateEntry {
                             body: entry_key.0,
                             epoch: entry.epoch,
+                            first_line,
                         },
                     ));
                 }
+                seen_entries.insert(entry_key, line_number);
                 entries.push(entry);
             }
             Ok(entries)
@@ -3840,6 +3857,7 @@ mod tests {
                 .expect_err("duplicate body/epoch pairs should be reported");
         assert!(format!("{error}").contains("line 2"));
         assert!(format!("{error}").contains("duplicate row for body 'Sun'"));
+        assert!(format!("{error}").contains("first seen at line 1"));
         assert!(format!("{error}").contains("JD 2451545.0 (TDB)"));
     }
 
