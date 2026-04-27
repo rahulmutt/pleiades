@@ -370,6 +370,151 @@ impl fmt::Display for BackendMetadata {
     }
 }
 
+/// Errors returned when backend metadata fails the shared consistency checks.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum BackendMetadataValidationError {
+    /// A required metadata field is blank or whitespace-padded.
+    BlankField { field: &'static str },
+    /// A required list field is empty.
+    EmptyField { field: &'static str },
+    /// A catalog-style list field contains a duplicate entry.
+    DuplicateEntry { field: &'static str, value: String },
+    /// The nominal range contains a non-finite Julian-day bound.
+    NominalRangeNotFinite,
+    /// The nominal range bounds use different time scales.
+    NominalRangeScaleMismatch,
+    /// The nominal range end precedes the start.
+    NominalRangeOutOfOrder,
+}
+
+impl fmt::Display for BackendMetadataValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BlankField { field } => write!(
+                f,
+                "backend metadata field `{field}` is blank or whitespace-padded"
+            ),
+            Self::EmptyField { field } => {
+                write!(f, "backend metadata field `{field}` must not be empty")
+            }
+            Self::DuplicateEntry { field, value } => write!(
+                f,
+                "backend metadata field `{field}` contains duplicate entry `{value}`"
+            ),
+            Self::NominalRangeNotFinite => write!(
+                f,
+                "backend metadata nominal range must use finite Julian-day bounds"
+            ),
+            Self::NominalRangeScaleMismatch => write!(
+                f,
+                "backend metadata nominal range bounds must use the same time scale"
+            ),
+            Self::NominalRangeOutOfOrder => write!(
+                f,
+                "backend metadata nominal range end must not precede the start"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for BackendMetadataValidationError {}
+
+impl BackendMetadata {
+    /// Returns `Ok(())` when the metadata is internally consistent.
+    ///
+    /// The shared check keeps the release-facing backend inventory from
+    /// silently advertising blank identifiers, duplicate coverage entries, or
+    /// an invalid nominal range. It does not attempt to validate source-specific
+    /// accuracy claims; those still belong to the backend crate that owns the
+    /// data.
+    pub fn validate(&self) -> Result<(), BackendMetadataValidationError> {
+        validate_non_blank("id", self.id.as_str())?;
+        validate_non_blank("version", &self.version)?;
+        validate_non_blank("provenance summary", &self.provenance.summary)?;
+        validate_non_blank_entries("provenance data sources", &self.provenance.data_sources)?;
+        validate_non_empty_unique("supported time scales", &self.supported_time_scales)?;
+        validate_non_empty_unique("body coverage", &self.body_coverage)?;
+        validate_non_empty_unique("supported frames", &self.supported_frames)?;
+        self.validate_nominal_range()?;
+        Ok(())
+    }
+
+    fn validate_nominal_range(&self) -> Result<(), BackendMetadataValidationError> {
+        match (self.nominal_range.start, self.nominal_range.end) {
+            (Some(start), Some(end)) => {
+                if !start.julian_day.days().is_finite() || !end.julian_day.days().is_finite() {
+                    return Err(BackendMetadataValidationError::NominalRangeNotFinite);
+                }
+                if start.scale != end.scale {
+                    return Err(BackendMetadataValidationError::NominalRangeScaleMismatch);
+                }
+                if start.julian_day.days() > end.julian_day.days() {
+                    return Err(BackendMetadataValidationError::NominalRangeOutOfOrder);
+                }
+            }
+            (Some(start), None) => {
+                if !start.julian_day.days().is_finite() {
+                    return Err(BackendMetadataValidationError::NominalRangeNotFinite);
+                }
+            }
+            (None, Some(end)) => {
+                if !end.julian_day.days().is_finite() {
+                    return Err(BackendMetadataValidationError::NominalRangeNotFinite);
+                }
+            }
+            (None, None) => {}
+        }
+
+        Ok(())
+    }
+}
+
+fn validate_non_blank(
+    field: &'static str,
+    value: &str,
+) -> Result<(), BackendMetadataValidationError> {
+    if value.trim().is_empty() || value.trim() != value {
+        Err(BackendMetadataValidationError::BlankField { field })
+    } else {
+        Ok(())
+    }
+}
+
+fn validate_non_blank_entries<T: AsRef<str>>(
+    field: &'static str,
+    values: &[T],
+) -> Result<(), BackendMetadataValidationError> {
+    for value in values {
+        let value = value.as_ref();
+        if value.trim().is_empty() || value.trim() != value {
+            return Err(BackendMetadataValidationError::BlankField { field });
+        }
+    }
+
+    Ok(())
+}
+
+fn validate_non_empty_unique<T: fmt::Display + PartialEq>(
+    field: &'static str,
+    values: &[T],
+) -> Result<(), BackendMetadataValidationError> {
+    if values.is_empty() {
+        return Err(BackendMetadataValidationError::EmptyField { field });
+    }
+
+    for (index, value) in values.iter().enumerate() {
+        if values[..index].iter().any(|prior| prior == value) {
+            return Err(BackendMetadataValidationError::DuplicateEntry {
+                field,
+                value: value.to_string(),
+            });
+        }
+    }
+
+    Ok(())
+}
+
 /// A backend request.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
@@ -1386,6 +1531,46 @@ mod tests {
         assert!(metadata
             .summary_line()
             .contains("provenance=example backend"));
+        assert!(metadata.validate().is_ok());
+    }
+
+    #[test]
+    fn backend_metadata_validation_rejects_blank_and_duplicate_fields() {
+        let mut metadata = BackendMetadata {
+            id: BackendId::new(" "),
+            version: "0.1.0".to_string(),
+            family: BackendFamily::Algorithmic,
+            provenance: BackendProvenance::new("example backend"),
+            nominal_range: TimeRange::new(None, None),
+            supported_time_scales: vec![TimeScale::Tt, TimeScale::Tt],
+            body_coverage: vec![CelestialBody::Sun, CelestialBody::Sun],
+            supported_frames: vec![CoordinateFrame::Ecliptic],
+            capabilities: BackendCapabilities::default(),
+            accuracy: AccuracyClass::Approximate,
+            deterministic: true,
+            offline: true,
+        };
+
+        let error = metadata
+            .validate()
+            .expect_err("blank backend ids should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "backend metadata field `id` is blank or whitespace-padded"
+        );
+
+        metadata.id = BackendId::new("toy");
+        metadata.supported_time_scales = vec![TimeScale::Tt];
+        metadata.body_coverage = vec![CelestialBody::Sun];
+        metadata.supported_frames = vec![CoordinateFrame::Ecliptic, CoordinateFrame::Ecliptic];
+
+        let error = metadata
+            .validate()
+            .expect_err("duplicate supported frames should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "backend metadata field `supported frames` contains duplicate entry `Ecliptic`"
+        );
     }
 
     #[test]

@@ -132,8 +132,22 @@ impl<B> ChartEngine<B> {
 
 impl<B: EphemerisBackend> ChartEngine<B> {
     /// Returns the backend metadata.
+    ///
+    /// Call [`validated_metadata`](Self::validated_metadata) when you need the
+    /// shared consistency checks that confirm the metadata is not advertising
+    /// blank identifiers, duplicate catalog entries, or an invalid nominal
+    /// range.
     pub fn metadata(&self) -> BackendMetadata {
         self.backend.metadata()
+    }
+
+    /// Returns backend metadata after applying the shared consistency checks.
+    pub fn validated_metadata(
+        &self,
+    ) -> Result<BackendMetadata, pleiades_backend::BackendMetadataValidationError> {
+        let metadata = self.backend.metadata();
+        metadata.validate()?;
+        Ok(metadata)
     }
 
     /// Returns whether the backend supports a body.
@@ -211,6 +225,7 @@ mod tests {
 
         assert!(engine.supports_body(CelestialBody::Sun));
         assert_eq!(engine.metadata().id.as_str(), "simple");
+        assert_eq!(engine.validated_metadata().unwrap().id.as_str(), "simple");
         assert_eq!(
             engine.position(&request).unwrap().backend_id.as_str(),
             "simple"

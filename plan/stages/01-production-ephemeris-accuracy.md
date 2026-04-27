@@ -51,6 +51,8 @@ Progress note: the compact validation report summary now also surfaces the VSOP8
 Progress note: the VSOP87 source-specification records now have typed `summary_line()`/`Display` helpers plus reusable single-catalog formatting helpers, so the documented variant, frame, unit, and date-range fields can travel through typed report code instead of being rebuilt ad hoc.
 Progress note: `pleiades-vsop87` now also exposes a reusable batch-request corpus helper for arbitrary body iterators, instant tags, and coordinate frames, and the canonical J2000/J1900 batch-path regressions reuse that helper directly so validation tools can share the same request-shape construction instead of rebuilding it at each call site. The J1900 helper now also has a direct crate-level regression that checks the release-facing summary line and the supported-body order against the backend metadata. The canonical J2000/J1900 batch-parity summaries now also validate their derived counts before the compact report wrappers render them, so future drift in the sample/body or quality-count totals fails closed at the report boundary instead of formatting stale batch evidence.
 
+- Progress note (2026-04-27): `pleiades-backend::BackendMetadata` now also exposes a shared validation helper that catches blank identifiers, duplicate coverage entries, and inverted nominal ranges before release-facing metadata is reused, and `pleiades-core::ChartEngine` now forwards that check through `validated_metadata()` for callers that want a preflighted metadata snapshot.
+
 2. Implement production `pleiades-elp` lunar calculations.
    - Select and document a pure-Rust lunar theory source.
    - Support Moon longitude, latitude, distance, and useful speed outputs.
