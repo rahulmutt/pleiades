@@ -65,7 +65,8 @@ use std::borrow::Cow;
 pub use pleiades_types::{
     Angle, Apparentness, Ayanamsa, CelestialBody, CoordinateFrame, CustomAyanamsa, CustomBodyId,
     CustomHouseSystem, EclipticCoordinates, EquatorialCoordinates, HouseSystem, Instant, JulianDay,
-    Latitude, Longitude, Motion, ObserverLocation, TimeRange, TimeScale, ZodiacMode,
+    Latitude, Longitude, Motion, ObserverLocation, TimeRange, TimeScale, TimeScaleConversion,
+    TimeScaleConversionError, ZodiacMode,
 };
 
 /// Stable identifier for a backend implementation.
@@ -588,6 +589,64 @@ impl EphemerisRequest {
             "body={}; instant={}; frame={}; zodiac={}; apparent={}; observer={}",
             self.body, self.instant, self.frame, self.zodiac_mode, self.apparent, observer
         )
+    }
+
+    /// Replaces the request instant with a caller-supplied offset.
+    ///
+    /// This is the backend-level counterpart to [`Instant::with_time_scale_offset`].
+    /// It preserves the rest of the request shape while letting direct backend
+    /// callers stage explicit Delta T or TDB offsets before dispatch.
+    pub fn with_instant_time_scale_offset(
+        mut self,
+        target_scale: TimeScale,
+        offset_seconds: f64,
+    ) -> Self {
+        self.instant = self
+            .instant
+            .with_time_scale_offset(target_scale, offset_seconds);
+        self
+    }
+
+    /// Replaces the request instant with a caller-supplied offset after validation.
+    ///
+    /// This is the checked counterpart to [`EphemerisRequest::with_instant_time_scale_offset`].
+    /// It rejects non-finite offsets and mismatched source scales before the
+    /// request is retagged, which keeps the backend-level convenience available
+    /// in a release-grade form.
+    pub fn with_instant_time_scale_offset_checked(
+        mut self,
+        target_scale: TimeScale,
+        offset_seconds: f64,
+    ) -> Result<Self, TimeScaleConversionError> {
+        self.instant = self
+            .instant
+            .with_time_scale_offset_checked(target_scale, offset_seconds)?;
+        Ok(self)
+    }
+
+    /// Applies a caller-supplied time-scale conversion policy to the request instant.
+    ///
+    /// This is the generic counterpart to the source-specific offset helpers.
+    /// It keeps the explicit source, target, and offset choice available as a
+    /// typed policy object while preserving the rest of the request shape.
+    pub fn with_time_scale_conversion(
+        mut self,
+        conversion: TimeScaleConversion,
+    ) -> Result<Self, TimeScaleConversionError> {
+        self.instant = conversion.apply(self.instant)?;
+        Ok(self)
+    }
+
+    /// Validates a caller-supplied time-scale conversion policy without mutating the request.
+    ///
+    /// This mirrors [`TimeScaleConversion::validate`] at the backend-request
+    /// layer so direct backend callers can preflight the explicit source/target/
+    /// offset contract before choosing whether to apply it.
+    pub fn validate_time_scale_conversion(
+        &self,
+        conversion: TimeScaleConversion,
+    ) -> Result<(), TimeScaleConversionError> {
+        self.instant.validate_time_scale_conversion(conversion)
     }
 
     /// Validates this request against backend metadata.
@@ -1834,6 +1893,52 @@ mod tests {
             zodiac_mode: ZodiacMode::Tropical,
             apparent: Apparentness::Apparent,
         };
+        let conversion = TimeScaleConversion::new(TimeScale::Utc, TimeScale::Tt, 64.184);
+        assert!(time_scale_request
+            .validate_time_scale_conversion(conversion)
+            .is_ok());
+        let converted = time_scale_request
+            .clone()
+            .with_time_scale_conversion(conversion)
+            .expect("UTC request should convert with the caller-supplied policy");
+        assert_eq!(converted.instant.scale, TimeScale::Tt);
+        assert_eq!(converted.body, time_scale_request.body);
+        assert_eq!(converted.observer, time_scale_request.observer);
+        assert_eq!(converted.frame, time_scale_request.frame);
+        assert_eq!(converted.zodiac_mode, time_scale_request.zodiac_mode);
+        assert_eq!(converted.apparent, time_scale_request.apparent);
+
+        let checked_offset = time_scale_request
+            .clone()
+            .with_instant_time_scale_offset_checked(TimeScale::Tt, 64.184)
+            .expect("UTC request should accept the checked offset helper");
+        assert_eq!(checked_offset.instant.scale, TimeScale::Tt);
+        assert_eq!(checked_offset.body, time_scale_request.body);
+        assert_eq!(checked_offset.observer, time_scale_request.observer);
+        assert_eq!(checked_offset.frame, time_scale_request.frame);
+        assert_eq!(checked_offset.zodiac_mode, time_scale_request.zodiac_mode);
+        assert_eq!(checked_offset.apparent, time_scale_request.apparent);
+
+        let error = time_scale_request
+            .clone()
+            .with_instant_time_scale_offset_checked(TimeScale::Tt, f64::NAN)
+            .expect_err("non-finite offsets should be rejected at the request layer");
+        assert_eq!(error, TimeScaleConversionError::NonFiniteOffset);
+
+        let error = time_scale_request
+            .validate_time_scale_conversion(TimeScaleConversion::new(
+                TimeScale::Tt,
+                TimeScale::Tt,
+                64.184,
+            ))
+            .expect_err("mismatched source scales should fail validation before retagging");
+        assert_eq!(
+            error,
+            TimeScaleConversionError::Expected {
+                expected: TimeScale::Tt,
+                actual: TimeScale::Utc
+            }
+        );
         let error = validate_request_policy(
             &time_scale_request,
             "toy backend",
