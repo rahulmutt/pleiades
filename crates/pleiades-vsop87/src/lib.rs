@@ -2804,6 +2804,13 @@ impl Vsop87SourceBodyClassEvidenceSummary {
                 },
             );
         }
+        if !body_labels_are_unique(&self.sample_bodies) {
+            return Err(
+                Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync {
+                    field: "sample_bodies",
+                },
+            );
+        }
         if self.within_interim_limits_count + self.outside_interim_limit_count != self.sample_count
         {
             return Err(
@@ -2816,6 +2823,55 @@ impl Vsop87SourceBodyClassEvidenceSummary {
             return Err(
                 Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync {
                     field: "outside_interim_limit_bodies",
+                },
+            );
+        }
+        if !body_labels_are_unique(&self.outside_interim_limit_bodies) {
+            return Err(
+                Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync {
+                    field: "outside_interim_limit_bodies",
+                },
+            );
+        }
+        if !self.sample_bodies.contains(&self.max_longitude_delta_body) {
+            return Err(
+                Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync {
+                    field: "max_longitude_delta_body",
+                },
+            );
+        }
+        if !self.sample_bodies.contains(&self.max_latitude_delta_body) {
+            return Err(
+                Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync {
+                    field: "max_latitude_delta_body",
+                },
+            );
+        }
+        if !self.sample_bodies.contains(&self.max_distance_delta_body) {
+            return Err(
+                Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync {
+                    field: "max_distance_delta_body",
+                },
+            );
+        }
+        if self.max_longitude_delta_source_file.trim().is_empty() {
+            return Err(
+                Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync {
+                    field: "max_longitude_delta_source_file",
+                },
+            );
+        }
+        if self.max_latitude_delta_source_file.trim().is_empty() {
+            return Err(
+                Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync {
+                    field: "max_latitude_delta_source_file",
+                },
+            );
+        }
+        if self.max_distance_delta_source_file.trim().is_empty() {
+            return Err(
+                Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync {
+                    field: "max_distance_delta_source_file",
                 },
             );
         }
@@ -5878,6 +5934,42 @@ mod tests {
         assert_eq!(
             error.to_string(),
             "the VSOP87 source-backed body-class evidence summary field `sample_count` is out of sync with the current canonical evidence"
+        );
+    }
+
+    #[test]
+    fn source_body_class_evidence_summary_validation_rejects_duplicate_sample_bodies() {
+        let mut summary = source_body_class_evidence_summary()
+            .expect("summary should exist")
+            .into_iter()
+            .find(|summary| summary.class == Vsop87SourceBodyClass::MajorPlanet)
+            .expect("major-planet summary should exist");
+        summary.sample_bodies[1] = summary.sample_bodies[0].clone();
+
+        let error = summary
+            .validate()
+            .expect_err("duplicate sample bodies should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "the VSOP87 source-backed body-class evidence summary field `sample_bodies` is out of sync with the current canonical evidence"
+        );
+    }
+
+    #[test]
+    fn source_body_class_evidence_summary_validation_rejects_blank_peak_source_file() {
+        let mut summary = source_body_class_evidence_summary()
+            .expect("summary should exist")
+            .into_iter()
+            .find(|summary| summary.class == Vsop87SourceBodyClass::MajorPlanet)
+            .expect("major-planet summary should exist");
+        summary.max_longitude_delta_source_file = "";
+
+        let error = summary
+            .validate()
+            .expect_err("blank peak source file should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "the VSOP87 source-backed body-class evidence summary field `max_longitude_delta_source_file` is out of sync with the current canonical evidence"
         );
     }
 
