@@ -702,6 +702,8 @@ mod tests {
         assert!(rendered.contains("True Mula (Chandra Hari)"));
         assert!(rendered.contains("Galactic Equator (Fiorenza)"));
         assert!(rendered.contains("Galactic Equator (True)"));
+        assert!(rendered.contains("True galactic equator"));
+        assert!(rendered.contains("Galactic equator true"));
         assert!(rendered.contains("Galactic Equator (IAU 1958)"));
         assert!(rendered.contains("Dhruva Galactic Center (Middle Mula)"));
         assert!(rendered.contains("Nick Anthony Fiorenza"));
@@ -833,6 +835,8 @@ mod tests {
         assert!(release_notes.contains("Galactic Equator (Fiorenza)"));
         assert!(release_notes.contains("JN Bhasin"));
         assert!(release_notes.contains("Galactic Equator (True)"));
+        assert!(release_notes.contains("True galactic equator"));
+        assert!(release_notes.contains("Galactic equator true"));
         assert!(release_notes.contains("Galactic Center (Mardyks)"));
         assert!(release_notes.contains("Skydram (Mardyks)"));
         assert!(release_notes.contains("Galactic Center (Rgilbrand)"));
