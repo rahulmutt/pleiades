@@ -387,6 +387,8 @@ Latest progress (2026-04-25): the compact validation and release summaries now a
 Latest progress (2026-04-26): the comparison-tolerance policy summaries now also carry the comparison window and candidate coordinate-frame coverage alongside the scope catalog, so the release-facing tolerance view ties the scope table to the evidence range more explicitly.
 Latest progress (2026-04-26): chart snapshots now also render an explicit ecliptic frame policy line, so the chart-facing report makes the geocentric ecliptic body-position request shape visible alongside the existing time-scale, observer, and apparentness notes.
 
+Latest progress (2026-04-27): the release-summary and validation-summary CLI paths now use a minimal nonzero validation-report sample, and the bundle-release wrapper now does the same, so the compact comparison-tolerance policy and release-bundle outputs render again instead of failing on zero-round benchmark datasets.
+
 Active gaps:
 
 - broader release-grade error envelopes and tolerance tables beyond the comparison-audit gate and new class-level mean/median/p95/RMS posture;

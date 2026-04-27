@@ -51,7 +51,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
                 return Ok(help_text());
             }
             let output_dir = parse_release_bundle_output_dir(&args[1..])?;
-            render_release_bundle(0, output_dir)
+            render_release_bundle(1, output_dir)
                 .map(|bundle| bundle.to_string())
                 .map_err(|error| error.to_string())
         }
@@ -99,7 +99,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("workspace-audit") | Some("audit") => validate_render_cli(&["workspace-audit"]),
         Some("report") | Some("generate-report") => validate_render_cli(args),
         Some("validation-report-summary") | Some("validation-summary") | Some("report-summary") => {
-            render_validation_report_summary(0).map_err(render_error)
+            render_validation_report_summary(1).map_err(render_error)
         }
         Some("chart") => render_chart(&args[1..]),
         Some("help") | Some("--help") | Some("-h") => Ok(help_text()),

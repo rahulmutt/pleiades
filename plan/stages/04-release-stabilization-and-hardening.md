@@ -46,6 +46,7 @@ The workspace already has CLI/report commands, compatibility-profile summaries, 
    - Generate signed or checksummed bundles containing source revision, profile identifiers, validation reports, backend matrix, artifact summaries, and release notes.
    - Verify bundles from a clean checkout.
    - Document how downstream users reproduce environment, tests, validation, and artifact generation.
+   - Progress note: the release-summary, validation-summary, and bundle-release CLI paths now use a minimal nonzero validation-report sample instead of a zero-round placeholder, so the compact comparison-tolerance policy and release-bundle outputs render again instead of failing on empty benchmark datasets.
 
 ## Done criteria
 

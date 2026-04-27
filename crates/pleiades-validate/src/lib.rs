@@ -104,6 +104,7 @@ use pleiades_vsop87::{
 };
 
 const DEFAULT_BENCHMARK_ROUNDS: usize = 10_000;
+const SUMMARY_BENCHMARK_ROUNDS: usize = 1;
 const BANNER: &str = "pleiades-validate stage 4 tool";
 const REGRESSION_LONGITUDE_THRESHOLD_DEG: f64 = 45.0;
 const REGRESSION_LATITUDE_THRESHOLD_DEG: f64 = 1.0;
@@ -4408,7 +4409,7 @@ fn render_release_summary_text() -> String {
     text.push_str("Compatibility caveats: ");
     text.push_str(&profile.known_gaps.len().to_string());
     text.push('\n');
-    if let Ok(report) = build_validation_report(0) {
+    if let Ok(report) = build_validation_report(SUMMARY_BENCHMARK_ROUNDS) {
         let tolerance_summaries = report.comparison.tolerance_summaries();
         let body_class_tolerance_summaries = report.comparison.body_class_tolerance_summaries();
         let tolerance_outside_bodies: usize = body_class_tolerance_summaries
@@ -7867,7 +7868,7 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str(&comparison_snapshot_manifest_summary_for_report());
     text.push('\n');
-    if let Ok(report) = build_validation_report(0) {
+    if let Ok(report) = build_validation_report(SUMMARY_BENCHMARK_ROUNDS) {
         text.push_str("Comparison audit: compare-backends-audit; ");
         text.push_str(&comparison_audit_summary_for_report(&report.comparison));
         text.push('\n');
