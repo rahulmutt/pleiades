@@ -388,33 +388,35 @@ pub enum BackendMetadataValidationError {
     NominalRangeOutOfOrder,
 }
 
+impl BackendMetadataValidationError {
+    /// Returns a compact validation summary string.
+    pub fn summary_line(&self) -> String {
+        match self {
+            Self::BlankField { field } => {
+                format!("backend metadata field `{field}` is blank or whitespace-padded")
+            }
+            Self::EmptyField { field } => {
+                format!("backend metadata field `{field}` must not be empty")
+            }
+            Self::DuplicateEntry { field, value } => {
+                format!("backend metadata field `{field}` contains duplicate entry `{value}`")
+            }
+            Self::NominalRangeNotFinite => {
+                "backend metadata nominal range must use finite Julian-day bounds".to_owned()
+            }
+            Self::NominalRangeScaleMismatch => {
+                "backend metadata nominal range bounds must use the same time scale".to_owned()
+            }
+            Self::NominalRangeOutOfOrder => {
+                "backend metadata nominal range end must not precede the start".to_owned()
+            }
+        }
+    }
+}
+
 impl fmt::Display for BackendMetadataValidationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::BlankField { field } => write!(
-                f,
-                "backend metadata field `{field}` is blank or whitespace-padded"
-            ),
-            Self::EmptyField { field } => {
-                write!(f, "backend metadata field `{field}` must not be empty")
-            }
-            Self::DuplicateEntry { field, value } => write!(
-                f,
-                "backend metadata field `{field}` contains duplicate entry `{value}`"
-            ),
-            Self::NominalRangeNotFinite => write!(
-                f,
-                "backend metadata nominal range must use finite Julian-day bounds"
-            ),
-            Self::NominalRangeScaleMismatch => write!(
-                f,
-                "backend metadata nominal range bounds must use the same time scale"
-            ),
-            Self::NominalRangeOutOfOrder => write!(
-                f,
-                "backend metadata nominal range end must not precede the start"
-            ),
-        }
+        f.write_str(&self.summary_line())
     }
 }
 
@@ -1556,9 +1558,10 @@ mod tests {
             .validate()
             .expect_err("blank backend ids should fail validation");
         assert_eq!(
-            error.to_string(),
+            error.summary_line(),
             "backend metadata field `id` is blank or whitespace-padded"
         );
+        assert_eq!(error.to_string(), error.summary_line());
 
         metadata.id = BackendId::new("toy");
         metadata.supported_time_scales = vec![TimeScale::Tt];
@@ -1569,9 +1572,10 @@ mod tests {
             .validate()
             .expect_err("duplicate supported frames should fail validation");
         assert_eq!(
-            error.to_string(),
+            error.summary_line(),
             "backend metadata field `supported frames` contains duplicate entry `Ecliptic`"
         );
+        assert_eq!(error.to_string(), error.summary_line());
     }
 
     #[test]
