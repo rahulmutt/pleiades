@@ -254,6 +254,7 @@ Progress note (2026-04-26): the CLI compatibility-profile smoke test now also pi
 Progress note (2026-04-26): the CLI and validation compatibility-profile smoke tests now also pin the long-form Sunshine alias `Sunshine table of houses, by Bob Makransky`, keeping that release-facing house-system spelling visible alongside the shorter Makransky and Treindl variants in the catalog audit.
 Progress note (2026-04-26): the validation and release summary views now also surface the compact house-validation corpus line from the representative baseline scenarios, so the formula-validation slice is visible in the short release-facing reports instead of only in the detailed house report.
 Progress note (2026-04-27): the release-notes smoke coverage now also pins the Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), and Babylonian (House Obs) labels, keeping the remaining Babylonian true-topocentric and observer spellings visible in the compact release-facing audit.
+Progress note (2026-04-27): the CLI profile and release-notes smoke coverage now also pin `Babylonian (True Geoc)`, `Pullen SR (Sinusoidal Ratio) table of houses`, and `Galactic Center (Rgilbrand)`, which extends the current release-profile spelling audit a little further without changing the catalog model.
 
 Remaining suggested scope:
 
