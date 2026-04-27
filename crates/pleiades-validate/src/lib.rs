@@ -12747,9 +12747,9 @@ mod tests {
         assert!(rendered.contains("request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
         assert!(rendered.contains("validation window: JD 2448724.5 (TT) → JD 2459278.5 (TT)"));
         assert!(rendered.contains("date-range note: Validated against the published 1992-04-12 geocentric Moon example, the published 1992-04-12 geocentric Moon RA/Dec example used for the mean-obliquity equatorial transform, the reference-only published 1968-12-24 apparent geocentric Moon comparison datum, J2000 lunar-point anchors including the mean apogee and mean perigee references, published 1913-05-27 true-node and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example"));
-        assert!(rendered.contains("lunar equatorial reference evidence: 1 samples across 1 bodies"));
+        assert!(rendered.contains("lunar equatorial reference evidence: 2 samples across 1 bodies"));
         assert!(rendered
-            .contains("lunar equatorial reference error envelope: 1 samples across 1 bodies"));
+            .contains("lunar equatorial reference error envelope: 2 samples across 1 bodies"));
         assert!(rendered.contains("mean ΔRA="));
         assert!(rendered.contains("median ΔRA="));
         assert!(rendered.contains("p95 ΔRA="));
@@ -13388,7 +13388,7 @@ version = "0.9.0"
             .contains("validation window: JD 2448724.5 (TT) → JD 2459278.5 (TT)"));
         assert!(validation_report_summary.contains("date-range note: Validated against the published 1992-04-12 geocentric Moon example, the published 1992-04-12 geocentric Moon RA/Dec example used for the mean-obliquity equatorial transform, the reference-only published 1968-12-24 apparent geocentric Moon comparison datum, J2000 lunar-point anchors including the mean apogee and mean perigee references, published 1913-05-27 true-node and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example"));
         assert!(validation_report_summary
-            .contains("lunar equatorial reference error envelope: 1 samples across 1 bodies"));
+            .contains("lunar equatorial reference error envelope: 2 samples across 1 bodies"));
         assert!(validation_report_summary.contains("mean ΔRA="));
         assert!(validation_report_summary.contains("median ΔRA="));
         assert!(validation_report_summary.contains("p95 ΔRA="));
