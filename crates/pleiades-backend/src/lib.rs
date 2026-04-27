@@ -342,6 +342,34 @@ pub struct BackendMetadata {
     pub offline: bool,
 }
 
+impl BackendMetadata {
+    /// Returns a compact one-line rendering of the backend metadata posture.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "id={}; version={}; family={}; family posture={}; accuracy={}; deterministic={}; offline={}; nominal range={}; time scales=[{}]; bodies=[{}]; frames=[{}]; capabilities=[{}]; provenance={}",
+            self.id,
+            self.version,
+            self.family,
+            self.family.posture_label(),
+            self.accuracy,
+            self.deterministic,
+            self.offline,
+            self.nominal_range,
+            format_display_list(&self.supported_time_scales),
+            format_display_list(&self.body_coverage),
+            format_display_list(&self.supported_frames),
+            self.capabilities.summary_line(),
+            self.provenance.summary_line(),
+        )
+    }
+}
+
+impl fmt::Display for BackendMetadata {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// A backend request.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
@@ -1247,6 +1275,44 @@ mod tests {
         assert!(summary.summary_line().contains("observer="));
         assert!(summary.summary_line().contains("apparentness="));
         assert!(summary.summary_line().contains("frame="));
+    }
+
+    #[test]
+    fn backend_metadata_has_a_compact_display() {
+        let metadata = BackendMetadata {
+            id: BackendId::new("toy"),
+            version: "0.1.0".to_string(),
+            family: BackendFamily::Algorithmic,
+            provenance: BackendProvenance::new("example backend"),
+            nominal_range: TimeRange::new(None, None),
+            supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
+            body_coverage: vec![CelestialBody::Sun, CelestialBody::Moon],
+            supported_frames: vec![CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
+            capabilities: BackendCapabilities::default(),
+            accuracy: AccuracyClass::Approximate,
+            deterministic: true,
+            offline: true,
+        };
+
+        assert_eq!(metadata.to_string(), metadata.summary_line());
+        assert!(metadata.summary_line().contains("id=toy"));
+        assert!(metadata.summary_line().contains("version=0.1.0"));
+        assert!(metadata.summary_line().contains("family=Algorithmic"));
+        assert!(metadata
+            .summary_line()
+            .contains("family posture=algorithmic"));
+        assert!(metadata.summary_line().contains("accuracy=Approximate"));
+        assert!(metadata.summary_line().contains("deterministic=true"));
+        assert!(metadata.summary_line().contains("offline=true"));
+        assert!(metadata.summary_line().contains("time scales=[TT, TDB]"));
+        assert!(metadata.summary_line().contains("bodies=[Sun, Moon]"));
+        assert!(metadata
+            .summary_line()
+            .contains("frames=[Ecliptic, Equatorial]"));
+        assert!(metadata.summary_line().contains("capabilities=["));
+        assert!(metadata
+            .summary_line()
+            .contains("provenance=example backend"));
     }
 
     #[test]

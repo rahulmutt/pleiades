@@ -7848,6 +7848,7 @@ fn write_corpus_summary_text(text: &mut String, corpus: &CorpusSummary) {
 }
 
 fn write_backend_matrix(f: &mut fmt::Formatter<'_>, backend: &BackendMetadata) -> fmt::Result {
+    writeln!(f, "  summary: {}", backend.summary_line())?;
     writeln!(f, "  id: {}", backend.id)?;
     writeln!(f, "  version: {}", backend.version)?;
     writeln!(f, "  family: {}", backend.family)?;
@@ -11112,6 +11113,7 @@ mod tests {
     fn backend_matrix_command_renders_the_implemented_catalog() {
         let rendered = render_cli(&["backend-matrix"]).expect("backend matrix should render");
         assert!(rendered.contains("Implemented backend matrices"));
+        assert!(rendered.contains("summary: id=jpl-snapshot; version="));
         assert!(rendered.contains("JPL snapshot reference backend"));
         assert!(rendered.contains(
             "selected asteroid coverage: 5 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"
