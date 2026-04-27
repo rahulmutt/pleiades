@@ -333,6 +333,22 @@ fn validate_house_snapshot(snapshot: &HouseSnapshot) -> Result<(), HouseError> {
     check_finite("midheaven", snapshot.angles.midheaven.degrees())?;
     check_finite("imum coeli", snapshot.angles.imum_coeli.degrees())?;
 
+    let expected_cusp_count = match snapshot.system {
+        HouseSystem::Gauquelin => 36,
+        _ => 12,
+    };
+    if snapshot.cusps.len() != expected_cusp_count {
+        return Err(HouseError::new(
+            HouseErrorKind::NumericalFailure,
+            format!(
+                "house calculation for {} produced {} cusps (expected {})",
+                snapshot.system,
+                snapshot.cusps.len(),
+                expected_cusp_count
+            ),
+        ));
+    }
+
     for (index, cusp) in snapshot.cusps.iter().enumerate() {
         check_finite(format!("cusp {}", index + 1), cusp.degrees())?;
     }
@@ -1738,6 +1754,31 @@ mod tests {
             (snapshot.cusps[35].degrees() - snapshot.cusps[34].degrees()).rem_euclid(360.0),
             350.0
         );
+    }
+
+    #[test]
+    fn house_snapshots_reject_wrong_cusp_counts() {
+        let snapshot = HouseSnapshot {
+            system: HouseSystem::Gauquelin,
+            instant: sample_request(HouseSystem::Gauquelin).instant,
+            observer: observer(),
+            obliquity: Angle::from_degrees(23.4),
+            angles: HouseAngles {
+                ascendant: Longitude::from_degrees(15.0),
+                descendant: Longitude::from_degrees(195.0),
+                midheaven: Longitude::from_degrees(45.0),
+                imum_coeli: Longitude::from_degrees(225.0),
+            },
+            cusps: vec![Longitude::from_degrees(0.0); 12],
+        };
+
+        let error = snapshot
+            .validate()
+            .expect_err("wrong cusp count should fail");
+        assert_eq!(error.kind, HouseErrorKind::NumericalFailure);
+        assert!(error
+            .message
+            .contains("house calculation for Gauquelin sectors produced 12 cusps (expected 36)"));
     }
 
     #[test]
