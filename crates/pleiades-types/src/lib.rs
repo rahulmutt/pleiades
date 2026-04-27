@@ -1356,6 +1356,37 @@ mod tests {
     }
 
     #[test]
+    fn mean_obliquity_round_trip_stays_stable_across_quadrants() {
+        let cases = [
+            (
+                EclipticCoordinates::new(
+                    Longitude::from_degrees(359.2),
+                    Latitude::from_degrees(11.75),
+                    None,
+                ),
+                Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+            ),
+            (
+                EclipticCoordinates::new(
+                    Longitude::from_degrees(27.5),
+                    Latitude::from_degrees(-33.25),
+                    Some(2.5),
+                ),
+                Instant::new(JulianDay::from_days(2_459_000.5), TimeScale::Tt),
+            ),
+        ];
+
+        for (ecliptic, instant) in cases {
+            let obliquity = instant.mean_obliquity();
+            let round_trip = ecliptic.to_equatorial(obliquity).to_ecliptic(obliquity);
+
+            assert!((round_trip.longitude.degrees() - ecliptic.longitude.degrees()).abs() < 1e-10);
+            assert!((round_trip.latitude.degrees() - ecliptic.latitude.degrees()).abs() < 1e-10);
+            assert_eq!(round_trip.distance_au, ecliptic.distance_au);
+        }
+    }
+
+    #[test]
     fn built_in_body_names_are_stable() {
         assert_eq!(CelestialBody::Sun.built_in_name(), Some("Sun"));
         assert_eq!(CelestialBody::Sun.to_string(), "Sun");
