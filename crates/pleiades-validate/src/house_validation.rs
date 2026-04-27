@@ -297,13 +297,9 @@ mod tests {
             ]
         );
 
-        let summary = report.summary_line();
-        assert!(summary.contains("House validation corpus: 4 scenarios"));
-        assert!(summary.contains("Mid-latitude reference chart"));
-        assert!(summary.contains("Equatorial reference chart"));
-        assert!(summary.contains("Polar stress chart"));
-        assert!(summary.contains("Southern hemisphere reference chart"));
-        assert!(summary.contains("samples"));
-        assert!(summary.contains("latitude-sensitive systems: Koch, Placidus, Topocentric"));
+        assert_eq!(
+            report.summary_line(),
+            "House validation corpus: 4 scenarios (Mid-latitude reference chart, Equatorial reference chart, Polar stress chart, Southern hemisphere reference chart), 48 samples, 48 successes, 0 failures; latitude-sensitive systems: Koch, Placidus, Topocentric"
+        );
     }
 }

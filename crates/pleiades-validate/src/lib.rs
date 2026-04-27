@@ -5995,11 +5995,14 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text, "  outside tolerance bodies: {}", audit_outside_count);
     let _ = writeln!(text, "  notable regressions: {}", audit_regression_count);
     let _ = writeln!(text);
-    let _ = writeln!(text, "House validation corpus");
+    let house_validation_summary = report.house_validation.summary_line();
+    let house_validation_summary = house_validation_summary
+        .strip_prefix("House validation corpus: ")
+        .unwrap_or(&house_validation_summary);
     let _ = writeln!(
         text,
-        "  scenarios: {}",
-        report.house_validation.scenarios.len()
+        "House validation corpus: {}",
+        house_validation_summary
     );
     let _ = writeln!(text);
     let _ = writeln!(text, "VSOP87 source-backed evidence");
@@ -10107,7 +10110,7 @@ mod tests {
         assert!(rendered.contains("95th percentile latitude delta:"));
         assert!(rendered.contains("rms latitude delta:"));
         assert!(rendered.contains("Validation evidence:"));
-        assert!(rendered.contains("House validation corpus: 4 scenarios"));
+        assert!(rendered.contains("House validation corpus: 4 scenarios (Mid-latitude reference chart, Equatorial reference chart, Polar stress chart, Southern hemisphere reference chart), 48 samples, 48 successes, 0 failures; latitude-sensitive systems: Koch, Placidus, Topocentric"));
         assert!(rendered.contains("comparison samples"));
         assert!(rendered.contains("Time-scale policy:"));
         assert!(rendered.contains("Observer policy:"));
