@@ -11807,9 +11807,9 @@ mod tests {
         assert!(rendered.contains("Lunar high-curvature continuity evidence"));
         assert!(rendered.contains("Lunar high-curvature equatorial continuity evidence"));
         assert!(rendered
-            .contains("lunar high-curvature continuity evidence: 4 samples across 1 bodies"));
+            .contains("lunar high-curvature continuity evidence: 6 samples across 1 bodies"));
         assert!(rendered.contains(
-            "lunar high-curvature equatorial continuity evidence: 4 samples across 1 bodies"
+            "lunar high-curvature equatorial continuity evidence: 6 samples across 1 bodies"
         ));
         assert!(rendered.contains("within regression limits=true"));
         assert!(rendered.contains("citation: Jean Meeus"));

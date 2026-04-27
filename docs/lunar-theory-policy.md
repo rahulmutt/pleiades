@@ -79,7 +79,7 @@ The current regression posture is intentionally small and deterministic:
 - published 1913-05-27 true-ascending-node and mean-ascending-node examples
 - a published 1959-12-07 mean-ascending-node example
 - a published 2021-03-05 mean-perigee example
-- nearby high-curvature lunar-interval regression coverage, now surfaced as a dedicated continuity evidence slice in validation and backend-matrix reports
+- nearby high-curvature lunar-interval regression coverage, now surfaced as a dedicated continuity evidence slice in validation and backend-matrix reports, using a denser six-sample half-day window around J2000 for a slightly tighter continuity check
 - explicit unsupported-body and unsupported-mode errors
 - a structured validation window exposed as `LunarTheorySpecification.validation_window` alongside the prose range note
 - a compact capability summary helper exposed as `lunar_theory_capability_summary()` for report generators that want structured counts and policy flags without parsing prose

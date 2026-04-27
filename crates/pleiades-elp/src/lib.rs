@@ -560,12 +560,20 @@ const LUNAR_THEORY_VALIDATION_WINDOW: TimeRange = TimeRange::new(
     )),
 );
 
-const LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS: [Instant; 4] = [
+const LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS: [Instant; 6] = [
     Instant::new(
         pleiades_types::JulianDay::from_days(J2000 - 1.0),
         TimeScale::Tt,
     ),
+    Instant::new(
+        pleiades_types::JulianDay::from_days(J2000 - 0.5),
+        TimeScale::Tt,
+    ),
     Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt),
+    Instant::new(
+        pleiades_types::JulianDay::from_days(J2000 + 0.5),
+        TimeScale::Tt,
+    ),
     Instant::new(
         pleiades_types::JulianDay::from_days(J2000 + 1.0),
         TimeScale::Tt,
@@ -4455,7 +4463,7 @@ mod tests {
         assert_eq!(report, envelope.summary_line());
         assert!(envelope.validate().is_ok());
         assert!(
-            report.contains("lunar high-curvature continuity evidence: 4 samples across 1 bodies")
+            report.contains("lunar high-curvature continuity evidence: 6 samples across 1 bodies")
         );
         assert!(report.contains("epoch range JD 2451544.0..2451547.0"));
         assert!(report.contains("max adjacent Δlon="));
@@ -4488,7 +4496,7 @@ mod tests {
         assert_eq!(report, envelope.summary_line());
         assert!(envelope.validate().is_ok());
         assert!(report.contains(
-            "lunar high-curvature equatorial continuity evidence: 4 samples across 1 bodies"
+            "lunar high-curvature equatorial continuity evidence: 6 samples across 1 bodies"
         ));
         assert!(report.contains("epoch range JD 2451544.0..2451547.0"));
         assert!(report.contains("max adjacent ΔRA="));
