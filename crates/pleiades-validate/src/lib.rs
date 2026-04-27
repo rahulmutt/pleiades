@@ -4782,6 +4782,26 @@ struct ComparisonMedianEnvelope {
     distance_delta_au: Option<f64>,
 }
 
+impl ComparisonMedianEnvelope {
+    fn summary_line(&self) -> String {
+        let distance = self
+            .distance_delta_au
+            .map(|value| format!("{value:.12} AU"))
+            .unwrap_or_else(|| "n/a".to_string());
+
+        format!(
+            "median longitude delta: {:.12}°, median latitude delta: {:.12}°, median distance delta: {}",
+            self.longitude_delta_deg, self.latitude_delta_deg, distance,
+        )
+    }
+}
+
+impl fmt::Display for ComparisonMedianEnvelope {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct ComparisonPercentileEnvelope {
     longitude_delta_deg: f64,
@@ -4896,18 +4916,8 @@ fn format_comparison_envelope_for_report(
     samples: &[ComparisonSample],
 ) -> String {
     let median = comparison_median_envelope(samples);
-    let median_distance = median
-        .distance_delta_au
-        .map(|value| format!("{value:.12} AU"))
-        .unwrap_or_else(|| "n/a".to_string());
 
-    format!(
-        "{}; median longitude delta: {:.12}°, median latitude delta: {:.12}°, median distance delta: {}",
-        summary,
-        median.longitude_delta_deg,
-        median.latitude_delta_deg,
-        median_distance,
-    )
+    format!("{}; {}", summary, median.summary_line())
 }
 
 fn format_body_class_comparison_envelope_for_report(summary: &BodyClassSummary) -> String {
