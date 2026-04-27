@@ -235,18 +235,22 @@ impl TimeScaleConversionError {
     const fn non_finite_offset() -> Self {
         Self::NonFiniteOffset
     }
+
+    /// Returns a compact one-line rendering of the conversion failure.
+    pub fn summary_line(&self) -> String {
+        match self {
+            Self::Expected { expected, actual } => format!(
+                "time-scale conversion expected {}, got {}",
+                expected, actual
+            ),
+            Self::NonFiniteOffset => "time-scale conversion offset must be finite".to_string(),
+        }
+    }
 }
 
 impl fmt::Display for TimeScaleConversionError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Expected { expected, actual } => write!(
-                f,
-                "time-scale conversion expected {}, got {}",
-                expected, actual
-            ),
-            Self::NonFiniteOffset => f.write_str("time-scale conversion offset must be finite"),
-        }
+        f.write_str(&self.summary_line())
     }
 }
 
@@ -2001,6 +2005,26 @@ mod tests {
             tt_negative_inf_error,
             TimeScaleConversionError::NonFiniteOffset
         ));
+    }
+
+    #[test]
+    fn time_scale_conversion_errors_render_stable_summary_lines() {
+        let expected = TimeScaleConversionError::Expected {
+            expected: TimeScale::Tt,
+            actual: TimeScale::Utc,
+        };
+        assert_eq!(
+            expected.summary_line(),
+            "time-scale conversion expected TT, got UTC"
+        );
+        assert_eq!(expected.to_string(), expected.summary_line());
+
+        let non_finite = TimeScaleConversionError::NonFiniteOffset;
+        assert_eq!(
+            non_finite.summary_line(),
+            "time-scale conversion offset must be finite"
+        );
+        assert_eq!(non_finite.to_string(), non_finite.summary_line());
     }
 
     #[test]
