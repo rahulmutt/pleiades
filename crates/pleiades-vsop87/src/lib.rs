@@ -49,7 +49,6 @@ use std::fmt;
 
 const PACKAGE_NAME: &str = "pleiades-vsop87";
 const BACKEND_LABEL: &str = "the VSOP87 backend";
-#[cfg(test)]
 const J1900: f64 = 2_415_020.0;
 const J2000: f64 = 2_451_545.0;
 
@@ -1607,6 +1606,113 @@ pub fn canonical_epoch_outlier_note_for_report() -> String {
             }
         }
         None => "VSOP87 canonical J2000 interim outliers: unavailable".to_string(),
+    }
+}
+
+/// Backend-owned summary for the canonical J1900 batch-path regression.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Vsop87CanonicalJ1900BatchParitySummary {
+    /// Number of requests exercised through the batch regression.
+    pub sample_count: usize,
+    /// Bodies exercised through the batch regression in release-facing order.
+    pub sample_bodies: Vec<CelestialBody>,
+    /// Reference epoch used by the batch regression.
+    pub reference_epoch: Instant,
+    /// Coordinate frame used by the batch regression.
+    pub frame: CoordinateFrame,
+    /// Number of exact-quality results observed in the batch regression.
+    pub exact_count: usize,
+    /// Number of interpolated-quality results observed in the batch regression.
+    pub interpolated_count: usize,
+    /// Number of approximate-quality results observed in the batch regression.
+    pub approximate_count: usize,
+    /// Number of unknown-quality results observed in the batch regression.
+    pub unknown_count: usize,
+}
+
+impl Vsop87CanonicalJ1900BatchParitySummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "VSOP87 canonical J1900 batch parity: {} requests across {} bodies ({}) at JD {:.1} ({}) in {} frame; quality counts: Exact={}, Interpolated={}, Approximate={}, Unknown={}; batch/single parity preserved",
+            self.sample_count,
+            self.sample_bodies.len(),
+            format_celestial_bodies(&self.sample_bodies),
+            self.reference_epoch.julian_day.days(),
+            self.reference_epoch.scale,
+            self.frame,
+            self.exact_count,
+            self.interpolated_count,
+            self.approximate_count,
+            self.unknown_count,
+        )
+    }
+}
+
+impl fmt::Display for Vsop87CanonicalJ1900BatchParitySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns the backend-owned canonical J1900 batch-path regression summary.
+pub fn canonical_j1900_batch_parity_summary() -> Option<Vsop87CanonicalJ1900BatchParitySummary> {
+    let backend = Vsop87Backend::new();
+    let reference_epoch = Instant::new(pleiades_types::JulianDay::from_days(J1900), TimeScale::Tdb);
+    let requests = Vsop87Backend::supported_bodies()
+        .iter()
+        .cloned()
+        .map(|body| {
+            let mut request = EphemerisRequest::new(body, reference_epoch);
+            request.frame = CoordinateFrame::Equatorial;
+            request
+        })
+        .collect::<Vec<_>>();
+    let results = backend.positions(&requests).ok()?;
+
+    if results.len() != requests.len() {
+        return None;
+    }
+
+    let mut sample_bodies = Vec::with_capacity(results.len());
+    let mut exact_count = 0usize;
+    let mut interpolated_count = 0usize;
+    let mut approximate_count = 0usize;
+    let mut unknown_count = 0usize;
+
+    for (request, result) in requests.iter().zip(results.iter()) {
+        let single = backend.position(request).ok()?;
+        if single != *result {
+            return None;
+        }
+
+        sample_bodies.push(result.body.clone());
+        match result.quality {
+            QualityAnnotation::Exact => exact_count += 1,
+            QualityAnnotation::Interpolated => interpolated_count += 1,
+            QualityAnnotation::Approximate => approximate_count += 1,
+            QualityAnnotation::Unknown => unknown_count += 1,
+            _ => unknown_count += 1,
+        }
+    }
+
+    Some(Vsop87CanonicalJ1900BatchParitySummary {
+        sample_count: results.len(),
+        sample_bodies,
+        reference_epoch,
+        frame: CoordinateFrame::Equatorial,
+        exact_count,
+        interpolated_count,
+        approximate_count,
+        unknown_count,
+    })
+}
+
+/// Returns the release-facing canonical J1900 batch-path regression summary string.
+pub fn canonical_j1900_batch_parity_summary_for_report() -> String {
+    match canonical_j1900_batch_parity_summary() {
+        Some(summary) => summary.summary_line(),
+        None => "VSOP87 canonical J1900 batch parity: unavailable".to_string(),
     }
 }
 
