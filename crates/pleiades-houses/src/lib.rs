@@ -43,6 +43,7 @@ pub use houses::{
 };
 
 use core::fmt;
+use std::collections::BTreeSet;
 
 use pleiades_types::HouseSystem;
 
@@ -109,6 +110,164 @@ impl HouseSystemDescriptor {
 impl fmt::Display for HouseSystemDescriptor {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.summary_line())
+    }
+}
+
+/// Errors emitted when validating the built-in house-system catalog.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum HouseCatalogValidationError {
+    /// The built-in house catalog unexpectedly contains no entries.
+    EmptyCatalog,
+    /// Two catalog labels resolve to the same case-insensitive spelling.
+    DuplicateLabel {
+        /// Label that collided.
+        label: &'static str,
+    },
+    /// A canonical name or alias does not round-trip to its typed house system.
+    LabelDoesNotRoundTrip {
+        /// Label that failed to resolve.
+        label: &'static str,
+        /// Typed system that the label was expected to resolve to.
+        expected_system: HouseSystem,
+    },
+}
+
+impl fmt::Display for HouseCatalogValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::EmptyCatalog => f.write_str("the house catalog is empty"),
+            Self::DuplicateLabel { label } => {
+                write!(f, "the house catalog contains duplicate label `{label}`")
+            }
+            Self::LabelDoesNotRoundTrip {
+                label,
+                expected_system,
+            } => write!(
+                f,
+                "the house catalog label `{label}` does not round-trip to {:?}",
+                expected_system
+            ),
+        }
+    }
+}
+
+impl std::error::Error for HouseCatalogValidationError {}
+
+/// A compact validation summary for the built-in house-system catalog.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct HouseCatalogValidationSummary {
+    /// Total number of built-in house-system entries.
+    pub entry_count: usize,
+    /// Number of baseline entries.
+    pub baseline_entry_count: usize,
+    /// Number of release-specific entries.
+    pub release_entry_count: usize,
+    /// Number of canonical labels plus aliases checked.
+    pub label_count: usize,
+    /// Result of validating the built-in house-system catalog.
+    pub validation_result: Result<(), HouseCatalogValidationError>,
+}
+
+impl HouseCatalogValidationSummary {
+    /// Returns the compact release-facing summary line for the house catalog validation state.
+    pub fn summary_line(&self) -> String {
+        match &self.validation_result {
+            Ok(()) => format!(
+                "house catalog validation: ok ({} entries, {} labels checked; baseline={}, release={}; round-trip and alias uniqueness verified)",
+                self.entry_count,
+                self.label_count,
+                self.baseline_entry_count,
+                self.release_entry_count,
+            ),
+            Err(error) => format!(
+                "house catalog validation: error: {} ({} entries; baseline={}, release={})",
+                error,
+                self.entry_count,
+                self.baseline_entry_count,
+                self.release_entry_count,
+            ),
+        }
+    }
+}
+
+impl fmt::Display for HouseCatalogValidationSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn validate_house_catalog_entries(
+    entries: &[HouseSystemDescriptor],
+) -> Result<usize, HouseCatalogValidationError> {
+    if entries.is_empty() {
+        return Err(HouseCatalogValidationError::EmptyCatalog);
+    }
+
+    let mut labels_checked = 0usize;
+    let mut seen_labels = BTreeSet::new();
+
+    for entry in entries {
+        labels_checked += 1;
+        if resolve_house_system(entry.canonical_name) != Some(entry.system.clone()) {
+            return Err(HouseCatalogValidationError::LabelDoesNotRoundTrip {
+                label: entry.canonical_name,
+                expected_system: entry.system.clone(),
+            });
+        }
+        if !seen_labels.insert(entry.canonical_name.to_ascii_lowercase()) {
+            return Err(HouseCatalogValidationError::DuplicateLabel {
+                label: entry.canonical_name,
+            });
+        }
+
+        for alias in entry.aliases {
+            labels_checked += 1;
+            if resolve_house_system(alias) != Some(entry.system.clone()) {
+                return Err(HouseCatalogValidationError::LabelDoesNotRoundTrip {
+                    label: alias,
+                    expected_system: entry.system.clone(),
+                });
+            }
+
+            if alias.eq_ignore_ascii_case(entry.canonical_name) {
+                if alias != &entry.canonical_name {
+                    continue;
+                }
+
+                return Err(HouseCatalogValidationError::DuplicateLabel { label: alias });
+            }
+
+            if !seen_labels.insert(alias.to_ascii_lowercase()) {
+                return Err(HouseCatalogValidationError::DuplicateLabel { label: alias });
+            }
+        }
+    }
+
+    Ok(labels_checked)
+}
+
+/// Validates the built-in house-system catalog for label uniqueness and round-trips.
+pub fn validate_house_catalog() -> Result<(), HouseCatalogValidationError> {
+    validate_house_catalog_entries(built_in_house_systems()).map(|_| ())
+}
+
+/// Returns a compact validation summary for the built-in house-system catalog.
+pub fn house_catalog_validation_summary() -> HouseCatalogValidationSummary {
+    let entry_count = built_in_house_systems().len();
+    let baseline_entry_count = baseline_house_systems().len();
+    let release_entry_count = release_house_systems().len();
+    let (label_count, validation_result) =
+        match validate_house_catalog_entries(built_in_house_systems()) {
+            Ok(label_count) => (label_count, Ok(())),
+            Err(error) => (0, Err(error)),
+        };
+
+    HouseCatalogValidationSummary {
+        entry_count,
+        baseline_entry_count,
+        release_entry_count,
+        label_count,
+        validation_result,
     }
 }
 
@@ -1440,5 +1599,53 @@ mod tests {
             resolve_house_system("Whole-sign"),
             Some(HouseSystem::WholeSign)
         );
+    }
+
+    #[test]
+    fn house_catalog_validation_summary_reports_catalog_health() {
+        let summary = house_catalog_validation_summary();
+
+        assert_eq!(summary.entry_count, built_in_house_systems().len());
+        assert_eq!(summary.baseline_entry_count, baseline_house_systems().len());
+        assert_eq!(summary.release_entry_count, release_house_systems().len());
+        assert!(summary.validation_result.is_ok());
+        assert!(summary
+            .summary_line()
+            .contains("house catalog validation: ok"));
+        assert!(summary
+            .summary_line()
+            .contains("round-trip and alias uniqueness verified"));
+    }
+
+    #[test]
+    fn house_catalog_validation_rejects_duplicate_labels_and_round_trip_mismatches() {
+        let duplicate_alias_entries = [HouseSystemDescriptor::new(
+            HouseSystem::Equal,
+            "Equal",
+            &["Wang", "wang"],
+            "notes",
+            false,
+        )];
+
+        assert!(matches!(
+            validate_house_catalog_entries(&duplicate_alias_entries),
+            Err(HouseCatalogValidationError::DuplicateLabel { label: "wang" })
+        ));
+
+        let mismatched_entry = [HouseSystemDescriptor::new(
+            HouseSystem::Equal,
+            "Not Equal",
+            &[],
+            "notes",
+            false,
+        )];
+
+        assert!(matches!(
+            validate_house_catalog_entries(&mismatched_entry),
+            Err(HouseCatalogValidationError::LabelDoesNotRoundTrip {
+                label: "Not Equal",
+                expected_system: HouseSystem::Equal,
+            })
+        ));
     }
 }

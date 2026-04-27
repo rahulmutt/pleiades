@@ -67,6 +67,7 @@ use pleiades_elp::{
 };
 use pleiades_houses::{
     baseline_house_systems, built_in_house_systems, release_house_systems, resolve_house_system,
+    validate_house_catalog,
 };
 use pleiades_jpl::{
     comparison_snapshot, comparison_snapshot_manifest_summary_for_report,
@@ -2692,6 +2693,13 @@ where
 fn verify_house_system_aliases(
     entries: &[pleiades_houses::HouseSystemDescriptor],
 ) -> Result<usize, EphemerisError> {
+    if let Err(error) = validate_house_catalog() {
+        return Err(EphemerisError::new(
+            EphemerisErrorKind::InvalidRequest,
+            format!("house catalog validation failed: {error}"),
+        ));
+    }
+
     let mut labels_checked = 0usize;
     let mut seen_labels = BTreeSet::new();
     let mut seen_labels_case_insensitive = BTreeMap::new();
