@@ -1870,7 +1870,7 @@ pub fn lunar_equatorial_reference_evidence() -> &'static [LunarEquatorialReferen
             epoch: Instant::new(pleiades_types::JulianDay::from_days(2_448_724.5), TimeScale::Tt),
             equatorial: EquatorialCoordinates::new(
                 Angle::from_degrees(134.683_861_811_039_18),
-                Latitude::from_degrees(13.769_414_994_266_761),
+                Latitude::from_degrees(13.769_414_994_266_76),
                 Some(368_409.7 / 149_597_870.700),
             ),
             note: "Derived equatorial companion from the published 1992-04-12 geocentric Moon example using the shared mean-obliquity transform",

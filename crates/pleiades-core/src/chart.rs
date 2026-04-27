@@ -16,9 +16,9 @@ use pleiades_backend::{
 };
 use pleiades_houses::{calculate_houses, house_for_longitude, HouseRequest, HouseSnapshot};
 use pleiades_types::{
-    Angle, CelestialBody, CoordinateFrame, HouseSystem, Instant, Longitude, Motion,
-    MotionDirection, ObserverLocation, TimeScale, TimeScaleConversion, TimeScaleConversionError,
-    ZodiacMode, ZodiacSign,
+    Angle, CelestialBody, CoordinateFrame, CustomDefinitionValidationError, HouseSystem, Instant,
+    Longitude, Motion, MotionDirection, ObserverLocation, TimeScale, TimeScaleConversion,
+    TimeScaleConversionError, ZodiacMode, ZodiacSign,
 };
 
 use crate::ChartEngine;
@@ -250,6 +250,33 @@ impl ChartRequest {
         self.instant.validate_time_scale_conversion(conversion)
     }
 
+    /// Validates any custom identifiers embedded in the chart request.
+    ///
+    /// Built-in bodies, house systems, and ayanamsas are always accepted. When
+    /// a custom body, custom house system, or custom ayanamsa is present, the
+    /// structured descriptor is validated before chart assembly or backend
+    /// metadata checks can proceed.
+    pub fn validate_custom_definitions(&self) -> Result<(), EphemerisError> {
+        for body in &self.bodies {
+            body.validate()
+                .map_err(|error| map_custom_definition_error("chart body", error))?;
+        }
+
+        if let Some(house_system) = &self.house_system {
+            house_system
+                .validate()
+                .map_err(|error| map_custom_definition_error("chart house system", error))?;
+        }
+
+        if let ZodiacMode::Sidereal { ayanamsa } = &self.zodiac_mode {
+            ayanamsa
+                .validate()
+                .map_err(|error| map_custom_definition_error("sidereal ayanamsa", error))?;
+        }
+
+        Ok(())
+    }
+
     /// Validates the chart-level observer contract used for house calculations.
     ///
     /// House requests require an observer location so the façade can keep the
@@ -270,14 +297,16 @@ impl ChartRequest {
     /// Validates the chart request against backend metadata before chart assembly.
     ///
     /// This preflight keeps the chart façade aligned with the backend request
-    /// contract: house requests still require an observer location, and each
-    /// body request is checked against the backend's supported time scales,
+    /// contract: custom bodies, custom house systems, and custom ayanamsas are
+    /// validated first; house requests still require an observer location; and
+    /// each body request is checked against the backend's supported time scales,
     /// frames, apparentness mode, zodiac routing, and body coverage before the
     /// backend is asked to compute positions.
     pub fn validate_against_metadata(
         &self,
         metadata: &BackendMetadata,
     ) -> Result<(), EphemerisError> {
+        self.validate_custom_definitions()?;
         self.validate_house_observer_policy()?;
 
         let backend_zodiac_mode = if matches!(self.zodiac_mode, ZodiacMode::Sidereal { .. })
@@ -1828,6 +1857,16 @@ fn map_house_error(error: pleiades_houses::HouseError) -> EphemerisError {
     EphemerisError::new(kind, error.message)
 }
 
+fn map_custom_definition_error(
+    subject: &'static str,
+    error: CustomDefinitionValidationError,
+) -> EphemerisError {
+    EphemerisError::new(
+        EphemerisErrorKind::InvalidRequest,
+        format!("{subject} is invalid: {error}"),
+    )
+}
+
 impl<B: EphemerisBackend> ChartEngine<B> {
     /// Assembles a basic chart snapshot from the backend.
     ///
@@ -1922,6 +1961,8 @@ impl<B: EphemerisBackend> ChartEngine<B> {
     /// batches the body-position requests through the backend's `positions()`
     /// path so batch-aware backends can service the whole chart efficiently.
     pub fn chart(&self, request: &ChartRequest) -> Result<ChartSnapshot, EphemerisError> {
+        request.validate_custom_definitions()?;
+
         let metadata = self.validated_metadata().map_err(|error| {
             EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,
@@ -2774,6 +2815,47 @@ mod tests {
             request.summary_line(),
             "instant=JD 2451545 (TT); bodies=10; zodiac=Tropical; apparentness=Mean; observer=geocentric; house system=My Custom Houses [aliases: My Alias] (uses a local calibration)"
         );
+    }
+
+    #[test]
+    fn chart_request_validation_rejects_invalid_custom_definitions_before_backend_dispatch() {
+        let observers = Arc::new(Mutex::new(Vec::new()));
+        let engine = ChartEngine::new(RecordingChartBackend {
+            observers: Arc::clone(&observers),
+        });
+        let mut custom = pleiades_types::CustomHouseSystem::new("   ");
+        custom.aliases.push("MCH".to_string());
+
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Tt,
+        ))
+        .with_observer(ObserverLocation::new(
+            Latitude::from_degrees(12.5),
+            Longitude::from_degrees(45.0),
+            None,
+        ))
+        .with_house_system(crate::HouseSystem::Custom(custom));
+
+        let validation_error = engine
+            .validate_chart_request(&request)
+            .expect_err("blank custom house systems should be rejected before metadata checks");
+        assert_eq!(validation_error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(validation_error
+            .message
+            .contains("chart house system is invalid: custom house system name must not be blank"));
+
+        let chart_error = engine
+            .chart(&request)
+            .expect_err("blank custom house systems should be rejected before backend dispatch");
+        assert_eq!(chart_error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(chart_error
+            .message
+            .contains("chart house system is invalid: custom house system name must not be blank"));
+        assert!(observers
+            .lock()
+            .expect("observer log should be lockable")
+            .is_empty());
     }
 
     #[test]

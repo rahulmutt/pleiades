@@ -64,9 +64,9 @@ use std::borrow::Cow;
 
 pub use pleiades_types::{
     Angle, Apparentness, Ayanamsa, CelestialBody, CoordinateFrame, CustomAyanamsa, CustomBodyId,
-    CustomHouseSystem, EclipticCoordinates, EquatorialCoordinates, HouseSystem, Instant, JulianDay,
-    Latitude, Longitude, Motion, ObserverLocation, TimeRange, TimeRangeValidationError, TimeScale,
-    TimeScaleConversion, TimeScaleConversionError, ZodiacMode,
+    CustomDefinitionValidationError, CustomHouseSystem, EclipticCoordinates, EquatorialCoordinates,
+    HouseSystem, Instant, JulianDay, Latitude, Longitude, Motion, ObserverLocation, TimeRange,
+    TimeRangeValidationError, TimeScale, TimeScaleConversion, TimeScaleConversionError, ZodiacMode,
 };
 
 /// Stable identifier for a backend implementation.
@@ -645,6 +645,25 @@ impl EphemerisRequest {
         )
     }
 
+    /// Validates any custom request identifiers embedded in this request.
+    ///
+    /// Built-in bodies and sidereal labels are always accepted. Custom bodies
+    /// and custom ayanamsas are validated through their structured descriptor
+    /// records so malformed user-defined entries fail before request dispatch.
+    pub fn validate_custom_definitions(&self) -> Result<(), EphemerisError> {
+        self.body
+            .validate()
+            .map_err(|error| map_custom_definition_error("request body", error))?;
+
+        if let ZodiacMode::Sidereal { ayanamsa } = &self.zodiac_mode {
+            ayanamsa
+                .validate()
+                .map_err(|error| map_custom_definition_error("sidereal ayanamsa", error))?;
+        }
+
+        Ok(())
+    }
+
     /// Replaces the request instant with a caller-supplied offset.
     ///
     /// This is the backend-level counterpart to [`Instant::with_time_scale_offset`].
@@ -901,6 +920,16 @@ fn format_display_list<T: fmt::Display>(values: &[T]) -> String {
         .join(", ")
 }
 
+fn map_custom_definition_error(
+    subject: &'static str,
+    error: CustomDefinitionValidationError,
+) -> EphemerisError {
+    EphemerisError::new(
+        EphemerisErrorKind::InvalidRequest,
+        format!("{subject} is invalid: {error}"),
+    )
+}
+
 /// Compact summary of the current shared request-policy posture.
 ///
 /// # Example
@@ -1098,16 +1127,19 @@ pub fn validate_request_policy(
 
 /// Validates a direct backend request against the published backend metadata.
 ///
-/// This convenience helper combines the shared request-shape checks with body
-/// coverage, tropical-only zodiac routing for backends that do not advertise
-/// native sidereal support, and topocentric capability validation. The shared
-/// metadata model still does not capture per-ayanamsa sidereal catalog breadth,
-/// so callers that need finer-grained sidereal routing must keep that logic at
-/// the backend or façade layer.
+/// This convenience helper combines the shared request-shape checks with custom
+/// body and sidereal descriptor validation, body coverage, tropical-only zodiac
+/// routing for backends that do not advertise native sidereal support, and
+/// topocentric capability validation. The shared metadata model still does not
+/// capture per-ayanamsa sidereal catalog breadth, so callers that need
+/// finer-grained sidereal routing must keep that logic at the backend or façade
+/// layer.
 pub fn validate_request_against_metadata(
     req: &EphemerisRequest,
     metadata: &BackendMetadata,
 ) -> Result<(), EphemerisError> {
+    req.validate_custom_definitions()?;
+
     validate_request_policy(
         req,
         metadata.id.as_str(),
@@ -2270,6 +2302,54 @@ mod tests {
             ..metadata.clone()
         };
         assert!(validate_request_against_metadata(&sidereal_request, &sidereal_metadata).is_ok());
+
+        let invalid_custom_body_request = EphemerisRequest {
+            body: CelestialBody::Custom(pleiades_types::CustomBodyId::new(
+                "asteroid",
+                " 433-Eros ",
+            )),
+            ..frame_request.clone()
+        };
+        let invalid_custom_body_error = validate_request_against_metadata(
+            &invalid_custom_body_request,
+            &BackendMetadata {
+                body_coverage: vec![CelestialBody::Custom(pleiades_types::CustomBodyId::new(
+                    "asteroid",
+                    " 433-Eros ",
+                ))],
+                ..metadata.clone()
+            },
+        )
+        .expect_err("custom body identifiers should validate before metadata dispatch");
+        assert_eq!(
+            invalid_custom_body_error.kind,
+            EphemerisErrorKind::InvalidRequest
+        );
+        assert!(invalid_custom_body_error
+            .message
+            .contains("request body is invalid: custom body id designation must not have leading or trailing whitespace"));
+
+        let invalid_custom_ayanamsa_request = EphemerisRequest {
+            zodiac_mode: ZodiacMode::Sidereal {
+                ayanamsa: pleiades_types::Ayanamsa::Custom(pleiades_types::CustomAyanamsa {
+                    name: "  ".to_string(),
+                    description: Some("local calibration".to_string()),
+                    epoch: Some(pleiades_types::JulianDay::from_days(2451545.0)),
+                    offset_degrees: Some(pleiades_types::Angle::from_degrees(24.0)),
+                }),
+            },
+            ..frame_request.clone()
+        };
+        let invalid_custom_ayanamsa_error =
+            validate_request_against_metadata(&invalid_custom_ayanamsa_request, &sidereal_metadata)
+                .expect_err("custom ayanamsas should validate before sidereal request dispatch");
+        assert_eq!(
+            invalid_custom_ayanamsa_error.kind,
+            EphemerisErrorKind::InvalidRequest
+        );
+        assert!(invalid_custom_ayanamsa_error
+            .message
+            .contains("sidereal ayanamsa is invalid: custom ayanamsa name must not be blank"));
 
         let error =
             validate_zodiac_policy(&sidereal_request, "toy backend", &[ZodiacMode::Tropical])

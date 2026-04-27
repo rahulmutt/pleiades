@@ -168,6 +168,8 @@ impl<B: EphemerisBackend> ChartEngine<B> {
     /// the request preflight fails closed if the backend inventory itself drifts
     /// out of consistency.
     pub fn validate_chart_request(&self, request: &ChartRequest) -> Result<(), EphemerisError> {
+        request.validate_custom_definitions()?;
+
         let metadata = self.validated_metadata().map_err(|error| {
             EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,

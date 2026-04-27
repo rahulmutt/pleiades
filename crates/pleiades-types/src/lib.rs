@@ -1304,6 +1304,20 @@ impl fmt::Display for CelestialBody {
     }
 }
 
+impl CelestialBody {
+    /// Validates the custom body identifier when this is a custom body.
+    ///
+    /// Built-in bodies are always valid; only the structured custom body
+    /// identifier is checked. This keeps user-defined catalog entries from
+    /// drifting into request or profile surfaces with blank or padded fields.
+    pub fn validate(&self) -> Result<(), CustomDefinitionValidationError> {
+        match self {
+            Self::Custom(custom) => custom.validate(),
+            _ => Ok(()),
+        }
+    }
+}
+
 /// A built-in or custom house system selection.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -1392,6 +1406,20 @@ impl fmt::Display for HouseSystem {
             Self::Sunshine => f.write_str("Sunshine"),
             Self::Gauquelin => f.write_str("Gauquelin sectors"),
             Self::Custom(custom) => fmt::Display::fmt(custom, f),
+        }
+    }
+}
+
+impl HouseSystem {
+    /// Validates the custom house-system definition when this is a custom variant.
+    ///
+    /// Built-in house systems are always valid; only structured custom labels,
+    /// aliases, and notes are checked. This keeps malformed catalog entries
+    /// from leaking into request summaries or release profiles.
+    pub fn validate(&self) -> Result<(), CustomDefinitionValidationError> {
+        match self {
+            Self::Custom(custom) => custom.validate(),
+            _ => Ok(()),
         }
     }
 }
@@ -1602,6 +1630,20 @@ impl fmt::Display for Ayanamsa {
         match self {
             Self::Custom(custom) => write!(f, "{custom}"),
             _ => write!(f, "{self:?}"),
+        }
+    }
+}
+
+impl Ayanamsa {
+    /// Validates the custom ayanamsa definition when this is a custom variant.
+    ///
+    /// Built-in ayanamsas are always valid; only structured custom labels and
+    /// offset metadata are checked. This keeps malformed sidereal definitions
+    /// from leaking into request validation or release-facing text.
+    pub fn validate(&self) -> Result<(), CustomDefinitionValidationError> {
+        match self {
+            Self::Custom(custom) => custom.validate(),
+            _ => Ok(()),
         }
     }
 }
@@ -2149,6 +2191,19 @@ mod tests {
     }
 
     #[test]
+    fn celestial_body_validate_reuses_custom_body_checks() {
+        assert!(CelestialBody::Sun.validate().is_ok());
+
+        assert_eq!(
+            CelestialBody::Custom(CustomBodyId::new("asteroid", " 433-Eros "))
+                .validate()
+                .expect_err("custom body identifiers should be validated")
+                .to_string(),
+            "custom body id designation must not have leading or trailing whitespace"
+        );
+    }
+
+    #[test]
     fn custom_house_system_display_includes_aliases_and_notes() {
         let mut custom = CustomHouseSystem::new("My Custom Houses");
         custom.aliases.push("MCH".to_string());
@@ -2233,6 +2288,23 @@ mod tests {
     }
 
     #[test]
+    fn house_system_validate_reuses_the_structured_validator() {
+        assert!(HouseSystem::WholeSign.validate().is_ok());
+
+        let mut custom = CustomHouseSystem::new("My Custom Houses");
+        custom.aliases.push("MCH".to_string());
+        custom.aliases.push("mch".to_string());
+
+        assert_eq!(
+            HouseSystem::Custom(custom)
+                .validate()
+                .expect_err("custom house systems should validate their aliases")
+                .to_string(),
+            "custom house system aliases must be unique: duplicate mch"
+        );
+    }
+
+    #[test]
     fn time_scales_have_stable_display_names() {
         assert_eq!(TimeScale::Utc.to_string(), "UTC");
         assert_eq!(TimeScale::Ut1.to_string(), "UT1");
@@ -2271,6 +2343,26 @@ mod tests {
 
         assert_eq!(custom.to_string(), "My Custom Sidereal");
         assert_eq!(Ayanamsa::Custom(custom).to_string(), "My Custom Sidereal");
+    }
+
+    #[test]
+    fn custom_ayanamsa_enum_validate_reuses_the_structured_validator() {
+        assert!(Ayanamsa::Lahiri.validate().is_ok());
+
+        let custom = CustomAyanamsa {
+            name: "My Custom Sidereal".to_string(),
+            description: Some("local calibration".to_string()),
+            epoch: Some(JulianDay::from_days(2_451_545.0)),
+            offset_degrees: None,
+        };
+
+        assert_eq!(
+            Ayanamsa::Custom(custom)
+                .validate()
+                .expect_err("custom ayanamsas should validate their descriptor")
+                .to_string(),
+            "custom ayanamsa requires both epoch and offset_degrees when one is present"
+        );
     }
 
     #[test]
