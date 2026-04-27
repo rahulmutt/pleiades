@@ -34,6 +34,7 @@ Several downstream requirements depend on trusted ephemeris outputs:
 - Latest progress (2026-04-27): the VSOP87 source-specification catalog validation now also rejects duplicate public source-file labels before report formatting, so the reproducibility line fails closed if two catalog entries ever point at the same public input file.
 - Latest progress (2026-04-27): the validation report's comparison envelope now also preflights the aggregate summary plus the sampled deltas before rendering, so empty or non-finite comparison slices fail closed instead of formatting a stale envelope line.
 - Latest progress (2026-04-27): backend capability metadata now fails closed when it advertises neither geocentric nor topocentric positions, or neither mean nor apparent values, and `BackendMetadata::validate()` now reuses that guard so malformed capability combinations cannot reach release-facing inventory reports.
+- Latest progress (2026-04-27): body-specific comparison summaries now validate their finite, zero-sample, and per-body extrema invariants before the validation report renders them, so a malformed per-body envelope now fails closed instead of emitting stale body-level delta text.
 
 ## Current repo state summary
 

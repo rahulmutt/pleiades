@@ -53,6 +53,7 @@ Progress note: `pleiades-vsop87` now also exposes a reusable batch-request corpu
 
 - Progress note (2026-04-27): `pleiades-backend::BackendMetadata` now also exposes a shared validation helper that catches blank identifiers, duplicate provenance sources, duplicate coverage entries, and inverted nominal ranges before release-facing metadata is reused, and `pleiades-core::ChartEngine` now forwards that check through `validated_metadata()` for callers that want a preflighted metadata snapshot.
 - Progress note (2026-04-27): backend capability metadata now also validates that each backend declares at least one usable position mode and one usable value mode, so malformed capability combinations fail closed before they can leak into the shared backend inventory or release summaries.
+- Progress note (2026-04-27): the validation report's per-body comparison summaries now also have a typed finite/extrema validator and a report preflight path, so malformed body-level error envelopes fail closed before the compact body-comparison lines render.
 
 2. Implement production `pleiades-elp` lunar calculations.
    - Select and document a pure-Rust lunar theory source.

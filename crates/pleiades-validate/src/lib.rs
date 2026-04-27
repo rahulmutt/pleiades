@@ -604,6 +604,108 @@ impl BodyComparisonSummary {
                 .unwrap_or_else(|| "n/a".to_string())
         )
     }
+
+    /// Returns `Ok(())` when the body-specific envelope is finite and self-consistent.
+    pub fn validate(&self) -> Result<(), EphemerisError> {
+        for (label, value) in [
+            ("max_longitude_delta_deg", self.max_longitude_delta_deg),
+            ("mean_longitude_delta_deg", self.mean_longitude_delta_deg),
+            ("rms_longitude_delta_deg", self.rms_longitude_delta_deg),
+            ("max_latitude_delta_deg", self.max_latitude_delta_deg),
+            ("mean_latitude_delta_deg", self.mean_latitude_delta_deg),
+            ("rms_latitude_delta_deg", self.rms_latitude_delta_deg),
+        ] {
+            if !value.is_finite() || value.is_sign_negative() {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "body comparison summary for {} field `{label}` must be a finite non-negative value",
+                        self.body
+                    ),
+                ));
+            }
+        }
+
+        match self.sample_count {
+            0 => {
+                if self.max_longitude_delta_body.is_some()
+                    || self.max_latitude_delta_body.is_some()
+                    || self.max_distance_delta_body.is_some()
+                    || self.max_distance_delta_au.is_some()
+                    || self.mean_distance_delta_au.is_some()
+                    || self.rms_distance_delta_au.is_some()
+                {
+                    return Err(EphemerisError::new(
+                        EphemerisErrorKind::InvalidRequest,
+                        format!(
+                            "body comparison summary for {} with zero samples must not carry per-body or distance extrema",
+                            self.body
+                        ),
+                    ));
+                }
+            }
+            _ => {
+                if self.max_longitude_delta_body.as_ref() != Some(&self.body)
+                    || self.max_latitude_delta_body.as_ref() != Some(&self.body)
+                {
+                    return Err(EphemerisError::new(
+                        EphemerisErrorKind::InvalidRequest,
+                        format!(
+                            "body comparison summary for {} must name that body as the longitude and latitude extrema driver",
+                            self.body
+                        ),
+                    ));
+                }
+
+                match (
+                    self.max_distance_delta_body.as_ref(),
+                    self.max_distance_delta_au,
+                    self.mean_distance_delta_au,
+                    self.rms_distance_delta_au,
+                ) {
+                    (None, None, None, None) => {}
+                    (Some(body), Some(max), Some(mean), Some(rms)) => {
+                        if body != &self.body {
+                            return Err(EphemerisError::new(
+                                EphemerisErrorKind::InvalidRequest,
+                                format!(
+                                    "body comparison summary for {} must name that body as the distance extrema driver",
+                                    self.body
+                                ),
+                            ));
+                        }
+
+                        for (label, value) in [
+                            ("max_distance_delta_au", max),
+                            ("mean_distance_delta_au", mean),
+                            ("rms_distance_delta_au", rms),
+                        ] {
+                            if !value.is_finite() || value.is_sign_negative() {
+                                return Err(EphemerisError::new(
+                                    EphemerisErrorKind::InvalidRequest,
+                                    format!(
+                                        "body comparison summary for {} field `{label}` must be a finite non-negative value",
+                                        self.body
+                                    ),
+                                ));
+                            }
+                        }
+                    }
+                    _ => {
+                        return Err(EphemerisError::new(
+                            EphemerisErrorKind::InvalidRequest,
+                            format!(
+                                "body comparison summary for {} distance metrics must either all be present or all be absent",
+                                self.body
+                            ),
+                        ));
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl fmt::Display for BodyComparisonSummary {
@@ -9204,6 +9306,16 @@ fn write_comparison_summary(f: &mut fmt::Formatter<'_>, report: &ComparisonRepor
     Ok(())
 }
 
+fn format_body_comparison_summary_for_report(summary: &BodyComparisonSummary) -> String {
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!(
+            "body comparison summary for {} unavailable ({error})",
+            summary.body
+        ),
+    }
+}
+
 fn write_body_comparison_summaries(
     f: &mut fmt::Formatter<'_>,
     summaries: &[BodyComparisonSummary],
@@ -9215,7 +9327,11 @@ fn write_body_comparison_summaries(
     }
 
     for summary in summaries {
-        writeln!(f, "  {}", summary.summary_line())?;
+        writeln!(
+            f,
+            "  {}",
+            format_body_comparison_summary_for_report(summary)
+        )?;
     }
     Ok(())
 }
@@ -10268,6 +10384,50 @@ mod tests {
         assert_eq!(summary.summary_line(), summary.to_string());
         assert!(summary.summary_line().contains("samples="));
         assert!(summary.summary_line().contains("max Δlon="));
+    }
+
+    #[test]
+    fn body_comparison_summary_validate_accepts_the_reported_body_summary() {
+        let corpus = default_corpus();
+        let reference = default_reference_backend();
+        let candidate = default_candidate_backend();
+        let report =
+            compare_backends(&reference, &candidate, &corpus).expect("comparison should build");
+        let body_summaries = report.body_summaries();
+        let summary = body_summaries
+            .first()
+            .expect("comparison should include at least one body summary");
+
+        summary
+            .validate()
+            .expect("reported body summary should validate");
+    }
+
+    #[test]
+    fn body_comparison_summary_validate_rejects_inconsistent_distance_fields() {
+        let summary = BodyComparisonSummary {
+            body: CelestialBody::Sun,
+            sample_count: 1,
+            max_longitude_delta_body: Some(CelestialBody::Sun),
+            max_longitude_delta_deg: 0.1,
+            mean_longitude_delta_deg: 0.1,
+            rms_longitude_delta_deg: 0.1,
+            max_latitude_delta_body: Some(CelestialBody::Sun),
+            max_latitude_delta_deg: 0.1,
+            mean_latitude_delta_deg: 0.1,
+            rms_latitude_delta_deg: 0.1,
+            max_distance_delta_body: Some(CelestialBody::Sun),
+            max_distance_delta_au: None,
+            mean_distance_delta_au: None,
+            rms_distance_delta_au: None,
+        };
+
+        let error = summary
+            .validate()
+            .expect_err("mismatched distance fields should fail");
+        assert!(error
+            .to_string()
+            .contains("distance metrics must either all be present or all be absent"));
     }
 
     #[test]
