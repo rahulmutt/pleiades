@@ -11,14 +11,14 @@ use core::{fmt, time::Duration};
 
 use pleiades_ayanamsa::sidereal_offset;
 use pleiades_backend::{
-    Apparentness, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
-    EphemerisResult,
+    validate_request_against_metadata, Apparentness, BackendMetadata, EphemerisBackend,
+    EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
 };
 use pleiades_houses::{calculate_houses, house_for_longitude, HouseRequest, HouseSnapshot};
 use pleiades_types::{
-    Angle, CelestialBody, HouseSystem, Instant, Longitude, Motion, MotionDirection,
-    ObserverLocation, TimeScale, TimeScaleConversion, TimeScaleConversionError, ZodiacMode,
-    ZodiacSign,
+    Angle, CelestialBody, CoordinateFrame, HouseSystem, Instant, Longitude, Motion,
+    MotionDirection, ObserverLocation, TimeScale, TimeScaleConversion, TimeScaleConversionError,
+    ZodiacMode, ZodiacSign,
 };
 
 use crate::ChartEngine;
@@ -247,6 +247,42 @@ impl ChartRequest {
                 EphemerisErrorKind::InvalidRequest,
                 "house placement requires an observer location",
             ));
+        }
+
+        Ok(())
+    }
+
+    /// Validates the chart request against backend metadata before chart assembly.
+    ///
+    /// This preflight keeps the chart façade aligned with the backend request
+    /// contract: house requests still require an observer location, and each
+    /// body request is checked against the backend's supported time scales,
+    /// frames, apparentness mode, zodiac routing, and body coverage before the
+    /// backend is asked to compute positions.
+    pub fn validate_against_metadata(
+        &self,
+        metadata: &BackendMetadata,
+    ) -> Result<(), EphemerisError> {
+        self.validate_house_observer_policy()?;
+
+        let backend_zodiac_mode = if matches!(self.zodiac_mode, ZodiacMode::Sidereal { .. })
+            && metadata.capabilities.native_sidereal
+        {
+            self.zodiac_mode.clone()
+        } else {
+            ZodiacMode::Tropical
+        };
+
+        for body in &self.bodies {
+            let body_request = EphemerisRequest {
+                body: body.clone(),
+                instant: self.instant,
+                observer: None,
+                frame: CoordinateFrame::Ecliptic,
+                zodiac_mode: backend_zodiac_mode.clone(),
+                apparent: self.apparentness,
+            };
+            validate_request_against_metadata(&body_request, metadata)?;
         }
 
         Ok(())
@@ -1830,9 +1866,9 @@ impl<B: EphemerisBackend> ChartEngine<B> {
     /// assert_eq!(snapshot.placements.len(), 1);
     /// ```
     pub fn chart(&self, request: &ChartRequest) -> Result<ChartSnapshot, EphemerisError> {
-        request.validate_house_observer_policy()?;
-
         let metadata = self.backend.metadata();
+        request.validate_against_metadata(&metadata)?;
+
         let backend_id = metadata.id.clone();
         let native_sidereal = matches!(request.zodiac_mode, ZodiacMode::Sidereal { .. })
             && metadata.capabilities.native_sidereal;
@@ -2382,6 +2418,30 @@ mod tests {
         let observers = observers.lock().expect("observer log should be lockable");
         assert_eq!(observers.len(), 1);
         assert!(observers.iter().all(Option::is_none));
+    }
+
+    #[test]
+    fn chart_snapshot_rejects_unsupported_body_before_backend_position() {
+        let observers = Arc::new(Mutex::new(Vec::new()));
+        let engine = ChartEngine::new(RecordingChartBackend {
+            observers: Arc::clone(&observers),
+        });
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2451545.0),
+            TimeScale::Tt,
+        ))
+        .with_bodies(vec![CelestialBody::Moon]);
+
+        let error = engine
+            .chart(&request)
+            .expect_err("chart should reject unsupported body coverage before dispatch");
+
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedBody);
+        assert!(error
+            .message
+            .contains("recording-chart does not support Moon"));
+        let observers = observers.lock().expect("observer log should be lockable");
+        assert!(observers.is_empty());
     }
 
     #[test]
