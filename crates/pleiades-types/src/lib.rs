@@ -381,6 +381,19 @@ impl Instant {
         conversion.apply(self)
     }
 
+    /// Validates a caller-supplied time-scale conversion policy without retagging the instant.
+    ///
+    /// This is the foundation-layer counterpart to
+    /// [`TimeScaleConversion::validate`], which lets callers preflight the same
+    /// explicit source/target/offset contract directly from an instant when
+    /// they do not yet want to mutate it.
+    pub fn validate_time_scale_conversion(
+        self,
+        conversion: TimeScaleConversion,
+    ) -> Result<(), TimeScaleConversionError> {
+        conversion.validate(self)
+    }
+
     /// Returns this instant with a caller-supplied offset applied and a new time
     /// scale tag.
     ///
@@ -2169,6 +2182,7 @@ mod tests {
         let ut1 = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Ut1);
 
         assert!(policy.validate(ut1).is_ok());
+        assert!(ut1.validate_time_scale_conversion(policy).is_ok());
 
         let converted = policy
             .apply(ut1)
@@ -2178,6 +2192,31 @@ mod tests {
         assert!((converted.julian_day.days() - 2_451_545.000_742_870_4).abs() < 1e-12);
         assert_eq!(policy.summary_line(), "UT1 -> TT; offset_seconds=64.184 s");
         assert_eq!(policy.to_string(), policy.summary_line());
+    }
+
+    #[test]
+    fn instant_validate_time_scale_conversion_rejects_mismatched_scales_and_non_finite_offsets() {
+        let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+        let policy = TimeScaleConversion::new(TimeScale::Ut1, TimeScale::Tt, 64.184);
+
+        let error = instant
+            .validate_time_scale_conversion(policy)
+            .expect_err("policy should reject the wrong source scale");
+
+        assert!(matches!(
+            error,
+            TimeScaleConversionError::Expected {
+                expected: TimeScale::Ut1,
+                actual: TimeScale::Tt,
+            }
+        ));
+
+        let non_finite = TimeScaleConversion::new(TimeScale::Tt, TimeScale::Tdb, f64::NAN);
+        let error = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt)
+            .validate_time_scale_conversion(non_finite)
+            .expect_err("policy should reject non-finite offsets");
+
+        assert!(matches!(error, TimeScaleConversionError::NonFiniteOffset));
     }
 
     #[test]

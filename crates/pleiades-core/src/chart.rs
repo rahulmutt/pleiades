@@ -232,7 +232,7 @@ impl ChartRequest {
         &self,
         conversion: TimeScaleConversion,
     ) -> Result<(), TimeScaleConversionError> {
-        conversion.validate(self.instant)
+        self.instant.validate_time_scale_conversion(conversion)
     }
 
     /// Converts the chart instant from UT1 to TT using caller-supplied Delta T.
