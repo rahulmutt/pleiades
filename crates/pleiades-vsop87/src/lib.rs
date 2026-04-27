@@ -321,6 +321,52 @@ impl fmt::Display for Vsop87SourceDocumentationSummary {
     }
 }
 
+/// Structured issue labels used by the VSOP87 source-documentation health check.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum Vsop87SourceDocumentationHealthIssue {
+    /// The number of source specifications does not match the number of public source files.
+    SourceSpecificationFileCountMismatch,
+    /// The documented source file order does not match the release-facing catalog order.
+    SourceFileOrderMismatch,
+    /// The source-backed body order does not match the current generated/vendored/truncated partition order.
+    SourceBackedBodyOrderMismatch,
+    /// The source-backed profile partition counts do not add up to the total source-backed profile count.
+    SourceBackedProfilePartitionMismatch,
+    /// The source-backed and fallback body profiles do not cover the full body catalog.
+    BodyProfileCoverageMismatch,
+    /// The source specification catalog count does not match the parsed source specification list.
+    SourceSpecificationCatalogCountMismatch,
+    /// The documented variant, coordinate family, frame, units, reduction, transform note, truncation policy, or date range drifted.
+    DocumentedFieldMismatch,
+}
+
+impl Vsop87SourceDocumentationHealthIssue {
+    /// Returns the compact label used in release-facing summaries.
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::SourceSpecificationFileCountMismatch => {
+                "source specification/file count mismatch"
+            }
+            Self::SourceFileOrderMismatch => "source file order mismatch",
+            Self::SourceBackedBodyOrderMismatch => "source-backed body order mismatch",
+            Self::SourceBackedProfilePartitionMismatch => {
+                "source-backed profile partition mismatch"
+            }
+            Self::BodyProfileCoverageMismatch => "body profile coverage mismatch",
+            Self::SourceSpecificationCatalogCountMismatch => {
+                "source specification catalog count mismatch"
+            }
+            Self::DocumentedFieldMismatch => "documented field mismatch",
+        }
+    }
+}
+
+impl fmt::Display for Vsop87SourceDocumentationHealthIssue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.label())
+    }
+}
+
 /// Consistency check for the current VSOP87 source-documentation catalog.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Vsop87SourceDocumentationHealthSummary {
@@ -330,7 +376,7 @@ pub struct Vsop87SourceDocumentationHealthSummary {
     /// VSOP87B policy for variant, frame, units, truncation, and date range.
     pub documentation_consistent: bool,
     /// Structured labels describing any catalog inconsistencies.
-    pub issues: Vec<&'static str>,
+    pub issues: Vec<Vsop87SourceDocumentationHealthIssue>,
     /// Number of source specifications described by the catalog.
     pub source_specification_count: usize,
     /// Number of public source files represented by the catalog.
@@ -1440,7 +1486,7 @@ fn source_documentation_health_issues(
     source_specs: &[Vsop87SourceSpecification],
     body_profile_count: usize,
     source_file_count: usize,
-) -> Vec<&'static str> {
+) -> Vec<Vsop87SourceDocumentationHealthIssue> {
     let expected_source_files = source_specs
         .iter()
         .map(|spec| spec.source_file)
@@ -1449,29 +1495,29 @@ fn source_documentation_health_issues(
     let mut issues = Vec::new();
 
     if summary.source_specification_count != source_file_count {
-        issues.push("source specification/file count mismatch");
+        issues.push(Vsop87SourceDocumentationHealthIssue::SourceSpecificationFileCountMismatch);
     }
     if summary.source_files != expected_source_files {
-        issues.push("source file order mismatch");
+        issues.push(Vsop87SourceDocumentationHealthIssue::SourceFileOrderMismatch);
     }
     if summary.source_backed_bodies != expected_source_backed_bodies {
-        issues.push("source-backed body order mismatch");
+        issues.push(Vsop87SourceDocumentationHealthIssue::SourceBackedBodyOrderMismatch);
     }
     if summary.source_backed_profile_count
         != summary.generated_binary_profile_count
             + summary.vendored_full_file_profile_count
             + summary.truncated_profile_count
     {
-        issues.push("source-backed profile partition mismatch");
+        issues.push(Vsop87SourceDocumentationHealthIssue::SourceBackedProfilePartitionMismatch);
     }
     if summary.source_backed_profile_count + summary.fallback_profile_count != body_profile_count {
-        issues.push("body profile coverage mismatch");
+        issues.push(Vsop87SourceDocumentationHealthIssue::BodyProfileCoverageMismatch);
     }
     if summary.source_specification_count != source_specs.len() {
-        issues.push("source specification catalog count mismatch");
+        issues.push(Vsop87SourceDocumentationHealthIssue::SourceSpecificationCatalogCountMismatch);
     }
     if !source_documentation_fields_are_consistent(source_specs) {
-        issues.push("documented field mismatch");
+        issues.push(Vsop87SourceDocumentationHealthIssue::DocumentedFieldMismatch);
     }
 
     issues
@@ -1489,11 +1535,11 @@ fn format_bodies(bodies: &[CelestialBody]) -> String {
     }
 }
 
-fn format_issue_labels(issues: &[&'static str]) -> String {
+fn format_issue_labels<T: fmt::Display>(issues: &[T]) -> String {
     if issues.is_empty() {
         "none".to_string()
     } else {
-        issues.join(", ")
+        join_display(issues)
     }
 }
 
@@ -4687,8 +4733,8 @@ mod tests {
             consistent: false,
             documentation_consistent: false,
             issues: vec![
-                "source specification/file count mismatch",
-                "documented field mismatch",
+                Vsop87SourceDocumentationHealthIssue::SourceSpecificationFileCountMismatch,
+                Vsop87SourceDocumentationHealthIssue::DocumentedFieldMismatch,
             ],
             source_specification_count: 1,
             source_file_count: 2,
@@ -4714,6 +4760,18 @@ mod tests {
     }
 
     #[test]
+    fn source_documentation_health_issue_labels_are_stable() {
+        assert_eq!(
+            Vsop87SourceDocumentationHealthIssue::SourceSpecificationFileCountMismatch.to_string(),
+            "source specification/file count mismatch"
+        );
+        assert_eq!(
+            Vsop87SourceDocumentationHealthIssue::DocumentedFieldMismatch.to_string(),
+            "documented field mismatch"
+        );
+    }
+
+    #[test]
     fn source_documentation_health_issues_detect_partition_order_drift() {
         let mut summary = source_documentation_summary();
         summary.source_backed_bodies.reverse();
@@ -4726,7 +4784,9 @@ mod tests {
             summary.source_files.len(),
         );
 
-        assert!(issues.contains(&"source-backed body order mismatch"));
+        assert!(
+            issues.contains(&Vsop87SourceDocumentationHealthIssue::SourceBackedBodyOrderMismatch)
+        );
     }
 
     #[test]
