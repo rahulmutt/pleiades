@@ -2180,6 +2180,19 @@ pub fn lunar_apparent_comparison_evidence() -> &'static [LunarApparentComparison
             apparent_declination_deg: -14.412_95,
             note: "Published 1968-12-24 low-accuracy Meeus-style geocentric Moon example at 10:00 UT used as a second reference-only mean/apparent comparison datum",
         },
+        LunarApparentComparisonSample {
+            body: CelestialBody::Moon,
+            epoch: Instant::new(
+                pleiades_types::JulianDay::from_days(2_453_100.5),
+                TimeScale::Tt,
+            ),
+            apparent_longitude_deg: 135.576_300,
+            apparent_latitude_deg: 5.203_935,
+            apparent_distance_au: 391_200.0 / 149_597_870.700,
+            apparent_right_ascension_deg: 139.685_833_333_333_33,
+            apparent_declination_deg: 21.130_333_333_333_333,
+            note: "Published 2004-04-01 geocentric Moon table row from NASA RP 1349; apparent equatorial coordinates are published directly and the ecliptic row is derived from them using the shared mean-obliquity transform",
+        },
     ];
 
     SAMPLES
@@ -5457,10 +5470,10 @@ mod tests {
         let summary =
             lunar_apparent_comparison_summary().expect("apparent comparison evidence should exist");
 
-        assert_eq!(summary.sample_count, 2);
+        assert_eq!(summary.sample_count, 3);
         assert_eq!(summary.body_count, 1);
         assert!((summary.earliest_epoch.julian_day.days() - 2_440_214.916_7).abs() < 1e-9);
-        assert_eq!(summary.latest_epoch.julian_day.days(), 2_448_724.5);
+        assert_eq!(summary.latest_epoch.julian_day.days(), 2_453_100.5);
         assert!(summary.max_ecliptic_longitude_delta_deg.is_finite());
         assert!(summary.mean_ecliptic_longitude_delta_deg.is_finite());
         assert!(summary.median_ecliptic_longitude_delta_deg.is_finite());
@@ -5481,14 +5494,14 @@ mod tests {
         assert!(summary.mean_declination_delta_deg.is_finite());
         assert!(summary.median_declination_delta_deg.is_finite());
         assert!(summary.percentile_declination_delta_deg.is_finite());
-        let known_epochs = [2_440_214.916_7, 2_448_724.5];
+        let known_epochs = [2_440_214.916_7, 2_448_724.5, 2_453_100.5];
         assert!(known_epochs.contains(&summary.max_ecliptic_longitude_epoch.julian_day.days()));
         assert!(known_epochs.contains(&summary.max_ecliptic_latitude_epoch.julian_day.days()));
         assert!(known_epochs.contains(&summary.max_ecliptic_distance_epoch.julian_day.days()));
         assert!(known_epochs.contains(&summary.max_right_ascension_epoch.julian_day.days()));
         assert!(known_epochs.contains(&summary.max_declination_epoch.julian_day.days()));
         assert!(lunar_apparent_comparison_summary_for_report().contains(
-            "lunar apparent comparison evidence: 2 reference-only samples across 1 bodies"
+            "lunar apparent comparison evidence: 3 reference-only samples across 1 bodies"
         ));
         assert!(lunar_apparent_comparison_summary_for_report()
             .contains("mean-only gap against the published apparent Moon examples"));
@@ -5500,7 +5513,7 @@ mod tests {
         assert_eq!(summary.summary_line(), summary.to_string());
 
         let samples = lunar_apparent_comparison_evidence();
-        assert_eq!(samples.len(), 2);
+        assert_eq!(samples.len(), 3);
         assert_eq!(samples[0].body, CelestialBody::Moon);
         assert_eq!(samples[0].epoch.julian_day.days(), 2_448_724.5);
         assert!(samples[0]
@@ -5511,6 +5524,10 @@ mod tests {
         assert!(samples[1]
             .note
             .contains("second reference-only mean/apparent comparison datum"));
+        assert_eq!(samples[2].body, CelestialBody::Moon);
+        assert_eq!(samples[2].epoch.julian_day.days(), 2_453_100.5);
+        assert!(samples[2].note.contains("NASA RP 1349"));
+        assert!(samples[2].note.contains("shared mean-obliquity transform"));
     }
 
     #[test]

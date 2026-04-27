@@ -2010,7 +2010,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
             .bodies
             .iter()
             .cloned()
-            .zip(positions.into_iter())
+            .zip(positions)
             .map(|(body, mut position)| {
                 let sign = if matches!(request.zodiac_mode, ZodiacMode::Sidereal { .. })
                     && !native_sidereal
