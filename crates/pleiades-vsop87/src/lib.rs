@@ -1593,7 +1593,11 @@ fn format_source_files(source_files: &[&'static str]) -> String {
 
 /// Returns the release-facing source-documentation health string.
 pub fn source_documentation_health_summary_for_report() -> String {
-    source_documentation_health_summary().summary_line()
+    let summary = source_documentation_health_summary();
+    summary
+        .validate()
+        .expect("VSOP87 source documentation health should remain internally consistent");
+    summary.summary_line()
 }
 
 /// Backend-owned summary of the canonical VSOP87 body evidence envelope.
