@@ -2926,6 +2926,7 @@ fn verify_profile_text_section(
 ) -> Result<usize, EphemerisError> {
     let mut entries_checked = 0usize;
     let mut seen_entries = BTreeSet::new();
+    let mut seen_entries_case_insensitive = BTreeMap::new();
 
     for entry in entries {
         entries_checked += 1;
@@ -2947,12 +2948,26 @@ fn verify_profile_text_section(
         }
 
         let normalized_entry = entry.trim().to_string();
-        if !seen_entries.insert(normalized_entry) {
+        if !seen_entries.insert(normalized_entry.clone()) {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,
                 format!("compatibility profile {section_label} entries are not unique: duplicate entry '{}'", entry),
             ));
         }
+
+        let normalized_case_insensitive = normalized_entry.to_ascii_lowercase();
+        if let Some(existing_entry) =
+            seen_entries_case_insensitive.get(&normalized_case_insensitive)
+        {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile {section_label} entries are not unique ignoring case: duplicate entry '{}' conflicts with '{}'",
+                    entry, existing_entry
+                ),
+            ));
+        }
+        seen_entries_case_insensitive.insert(normalized_case_insensitive, normalized_entry);
     }
 
     Ok(entries_checked)
@@ -2962,6 +2977,7 @@ fn verify_profile_text_sections_are_disjoint(
     sections: &[(&'static str, &'static [&'static str])],
 ) -> Result<(), EphemerisError> {
     let mut seen_entries = BTreeMap::<String, &'static str>::new();
+    let mut seen_entries_case_insensitive = BTreeMap::<String, (&'static str, String)>::new();
 
     for (section_label, entries) in sections {
         for entry in *entries {
@@ -2976,7 +2992,24 @@ fn verify_profile_text_sections_are_disjoint(
                 ));
             }
 
-            seen_entries.insert(normalized_entry, section_label);
+            let normalized_case_insensitive = normalized_entry.to_ascii_lowercase();
+            if let Some((existing_section, existing_entry)) =
+                seen_entries_case_insensitive.get(&normalized_case_insensitive)
+            {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "compatibility profile text sections are not unique ignoring case: duplicate entry '{}' appears in both {} and {} (conflicts with '{}')",
+                        entry, existing_section, section_label, existing_entry
+                    ),
+                ));
+            }
+
+            seen_entries.insert(normalized_entry.clone(), section_label);
+            seen_entries_case_insensitive.insert(
+                normalized_case_insensitive,
+                (section_label, normalized_entry),
+            );
         }
     }
 
@@ -10614,6 +10647,19 @@ mod tests {
     }
 
     #[test]
+    fn compatibility_profile_verification_rejects_case_insensitive_duplicate_release_notes() {
+        let entries = ["shared release text", "Shared Release Text"];
+
+        let error = verify_profile_text_section("release-note", &entries)
+            .expect_err("case-insensitive duplicate release notes should fail verification");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("entries are not unique ignoring case"));
+        assert!(error.message.contains("Shared Release Text"));
+    }
+
+    #[test]
     fn compatibility_profile_verification_rejects_duplicate_text_across_sections() {
         let error = verify_profile_text_sections_are_disjoint(&[
             ("release-note", &["shared release text"]),
@@ -10624,6 +10670,20 @@ mod tests {
         assert!(error.message.contains(
             "duplicate entry 'shared release text' appears in both release-note and compatibility-caveat"
         ));
+    }
+
+    #[test]
+    fn compatibility_profile_verification_rejects_case_insensitive_duplicate_text_across_sections()
+    {
+        let error = verify_profile_text_sections_are_disjoint(&[
+            ("release-note", &["shared release text"]),
+            ("compatibility-caveat", &["Shared Release Text"]),
+        ])
+        .expect_err("case-insensitive duplicate prose across sections should fail verification");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error.message.contains("not unique ignoring case"));
+        assert!(error.message.contains("release-note"));
+        assert!(error.message.contains("compatibility-caveat"));
     }
 
     #[test]
