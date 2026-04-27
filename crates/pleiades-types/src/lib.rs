@@ -1354,16 +1354,21 @@ impl CustomHouseSystem {
     ///
     /// The canonical name must be non-empty and free of leading or trailing
     /// whitespace. Aliases and notes, when present, must follow the same
-    /// canonical-text rule, and aliases must be unique after normalization.
+    /// canonical-text rule, and aliases must be unique after ASCII
+    /// case-normalization, including against the canonical name.
     pub fn validate(&self) -> Result<(), CustomDefinitionValidationError> {
         validate_canonical_text("custom house system", "name", &self.name)?;
 
-        let mut aliases = Vec::with_capacity(self.aliases.len());
+        let mut aliases: Vec<&str> = Vec::with_capacity(self.aliases.len());
         for (index, alias) in self.aliases.iter().enumerate() {
             let field = format!("alias[{index}]");
             validate_canonical_text("custom house system", field, alias)?;
 
-            if aliases.contains(&alias) {
+            if self.name.eq_ignore_ascii_case(alias)
+                || aliases
+                    .iter()
+                    .any(|existing| existing.eq_ignore_ascii_case(alias))
+            {
                 return Err(CustomDefinitionValidationError::duplicate_alias(
                     "custom house system",
                     alias,
@@ -2079,6 +2084,29 @@ mod tests {
                 .expect_err("duplicate aliases should be rejected")
                 .to_string(),
             "custom house system aliases must be unique: duplicate MCH"
+        );
+
+        let mut custom = CustomHouseSystem::new("My Custom Houses");
+        custom.aliases.push("MCH".to_string());
+        custom.aliases.push("mch".to_string());
+
+        assert_eq!(
+            custom
+                .validate()
+                .expect_err("case-normalized aliases should be rejected")
+                .to_string(),
+            "custom house system aliases must be unique: duplicate mch"
+        );
+
+        let mut custom = CustomHouseSystem::new("My Custom Houses");
+        custom.aliases.push("my custom houses".to_string());
+
+        assert_eq!(
+            custom
+                .validate()
+                .expect_err("aliases should not duplicate the canonical name")
+                .to_string(),
+            "custom house system aliases must be unique: duplicate my custom houses"
         );
 
         let mut custom = CustomHouseSystem::new("My Custom Houses");
