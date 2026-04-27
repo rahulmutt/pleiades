@@ -1262,7 +1262,51 @@ pub struct ComparisonSnapshotSourceSummary {
     pub columns: String,
 }
 
+/// Structured validation errors for a comparison snapshot provenance summary.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ComparisonSnapshotSourceSummaryValidationError {
+    /// The summary did not include a non-empty source label.
+    BlankSource,
+    /// The summary did not include a non-empty coverage label.
+    BlankCoverage,
+    /// The summary did not include a non-empty columns label.
+    BlankColumns,
+}
+
+impl ComparisonSnapshotSourceSummaryValidationError {
+    /// Returns the compact label used in release-facing summaries and tests.
+    pub const fn label(&self) -> &'static str {
+        match self {
+            Self::BlankSource => "blank source",
+            Self::BlankCoverage => "blank coverage",
+            Self::BlankColumns => "blank columns",
+        }
+    }
+}
+
+impl fmt::Display for ComparisonSnapshotSourceSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.label())
+    }
+}
+
+impl std::error::Error for ComparisonSnapshotSourceSummaryValidationError {}
+
 impl ComparisonSnapshotSourceSummary {
+    /// Validates that the summary remains internally consistent.
+    pub fn validate(&self) -> Result<(), ComparisonSnapshotSourceSummaryValidationError> {
+        if self.source.trim().is_empty() {
+            return Err(ComparisonSnapshotSourceSummaryValidationError::BlankSource);
+        }
+        if self.coverage.trim().is_empty() {
+            return Err(ComparisonSnapshotSourceSummaryValidationError::BlankCoverage);
+        }
+        if self.columns.trim().is_empty() {
+            return Err(ComparisonSnapshotSourceSummaryValidationError::BlankColumns);
+        }
+        Ok(())
+    }
+
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         format!(
@@ -1307,11 +1351,11 @@ pub fn format_comparison_snapshot_source_summary(
 
 /// Returns the source/material summary for the comparison snapshot used by validation.
 pub fn comparison_snapshot_source_summary_for_report() -> String {
-    format_validated_source_summary_for_report(
-        "Comparison snapshot source",
-        comparison_snapshot_manifest(),
-        || comparison_snapshot_source_summary().summary_line(),
-    )
+    let summary = comparison_snapshot_source_summary();
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("Comparison snapshot source: unavailable ({error})"),
+    }
 }
 
 fn format_validated_source_summary_for_report(
@@ -4009,6 +4053,7 @@ mod tests {
             "Comparison snapshot source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.; coverage=Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.; columns=body, x_km, y_km, z_km"
         );
         assert_eq!(source_summary.to_string(), source_summary.summary_line());
+        assert_eq!(source_summary.validate(), Ok(()));
         assert_eq!(
             format_comparison_snapshot_source_summary(&source_summary),
             source_summary.summary_line()
@@ -4024,6 +4069,39 @@ mod tests {
         assert_eq!(
             manifest.to_string(),
             "Snapshot manifest: JPL Horizons reference snapshot.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.; coverage=unknown; columns=body, x_km, y_km, z_km"
+        );
+    }
+
+    #[test]
+    fn comparison_snapshot_source_summary_validation_reports_blank_fields() {
+        let blank_source = ComparisonSnapshotSourceSummary {
+            source: " ".to_string(),
+            coverage: "coverage".to_string(),
+            columns: "body, x_km, y_km, z_km".to_string(),
+        };
+        assert_eq!(
+            blank_source.validate(),
+            Err(ComparisonSnapshotSourceSummaryValidationError::BlankSource)
+        );
+
+        let blank_coverage = ComparisonSnapshotSourceSummary {
+            source: "source".to_string(),
+            coverage: "\t".to_string(),
+            columns: "body, x_km, y_km, z_km".to_string(),
+        };
+        assert_eq!(
+            blank_coverage.validate(),
+            Err(ComparisonSnapshotSourceSummaryValidationError::BlankCoverage)
+        );
+
+        let blank_columns = ComparisonSnapshotSourceSummary {
+            source: "source".to_string(),
+            coverage: "coverage".to_string(),
+            columns: "  ".to_string(),
+        };
+        assert_eq!(
+            blank_columns.validate(),
+            Err(ComparisonSnapshotSourceSummaryValidationError::BlankColumns)
         );
     }
 
