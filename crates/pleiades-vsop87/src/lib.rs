@@ -1655,6 +1655,121 @@ pub fn canonical_epoch_outlier_note_for_report() -> String {
     }
 }
 
+fn canonical_batch_parity_counts(
+    backend: &Vsop87Backend,
+    requests: &[EphemerisRequest],
+) -> Option<(Vec<CelestialBody>, usize, usize, usize, usize)> {
+    let results = backend.positions(requests).ok()?;
+
+    if results.len() != requests.len() {
+        return None;
+    }
+
+    let mut sample_bodies = Vec::with_capacity(results.len());
+    let mut exact_count = 0usize;
+    let mut interpolated_count = 0usize;
+    let mut approximate_count = 0usize;
+    let mut unknown_count = 0usize;
+
+    for (request, result) in requests.iter().zip(results.iter()) {
+        let single = backend.position(request).ok()?;
+        if single != *result {
+            return None;
+        }
+
+        sample_bodies.push(result.body.clone());
+        match result.quality {
+            QualityAnnotation::Exact => exact_count += 1,
+            QualityAnnotation::Interpolated => interpolated_count += 1,
+            QualityAnnotation::Approximate => approximate_count += 1,
+            QualityAnnotation::Unknown => unknown_count += 1,
+            _ => unknown_count += 1,
+        }
+    }
+
+    Some((
+        sample_bodies,
+        exact_count,
+        interpolated_count,
+        approximate_count,
+        unknown_count,
+    ))
+}
+
+/// Backend-owned summary for the canonical J2000 batch-path regression.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Vsop87CanonicalJ2000BatchParitySummary {
+    /// Number of requests exercised through the batch regression.
+    pub sample_count: usize,
+    /// Bodies exercised through the batch regression in release-facing order.
+    pub sample_bodies: Vec<CelestialBody>,
+    /// Reference epoch used by the batch regression.
+    pub reference_epoch: Instant,
+    /// Coordinate frame used by the batch regression.
+    pub frame: CoordinateFrame,
+    /// Number of exact-quality results observed in the batch regression.
+    pub exact_count: usize,
+    /// Number of interpolated-quality results observed in the batch regression.
+    pub interpolated_count: usize,
+    /// Number of approximate-quality results observed in the batch regression.
+    pub approximate_count: usize,
+    /// Number of unknown-quality results observed in the batch regression.
+    pub unknown_count: usize,
+}
+
+impl Vsop87CanonicalJ2000BatchParitySummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "VSOP87 canonical J2000 batch parity: {} requests across {} bodies ({}) at JD {:.1} ({}) in {} frame; quality counts: Exact={}, Interpolated={}, Approximate={}, Unknown={}; batch/single parity preserved",
+            self.sample_count,
+            self.sample_bodies.len(),
+            format_celestial_bodies(&self.sample_bodies),
+            self.reference_epoch.julian_day.days(),
+            self.reference_epoch.scale,
+            self.frame,
+            self.exact_count,
+            self.interpolated_count,
+            self.approximate_count,
+            self.unknown_count,
+        )
+    }
+}
+
+impl fmt::Display for Vsop87CanonicalJ2000BatchParitySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns the backend-owned canonical J2000 batch-path regression summary.
+pub fn canonical_j2000_batch_parity_summary() -> Option<Vsop87CanonicalJ2000BatchParitySummary> {
+    let backend = Vsop87Backend::new();
+    let reference_epoch = Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt);
+    let requests = canonical_epoch_requests();
+    let (sample_bodies, exact_count, interpolated_count, approximate_count, unknown_count) =
+        canonical_batch_parity_counts(&backend, &requests)?;
+
+    Some(Vsop87CanonicalJ2000BatchParitySummary {
+        sample_count: requests.len(),
+        sample_bodies,
+        reference_epoch,
+        frame: CoordinateFrame::Ecliptic,
+        exact_count,
+        interpolated_count,
+        approximate_count,
+        unknown_count,
+    })
+}
+
+/// Returns the release-facing canonical J2000 batch-path regression summary string.
+pub fn canonical_j2000_batch_parity_summary_for_report() -> String {
+    match canonical_j2000_batch_parity_summary() {
+        Some(summary) => summary.summary_line(),
+        None => "VSOP87 canonical J2000 batch parity: unavailable".to_string(),
+    }
+}
+
 /// Backend-owned summary for the canonical J1900 batch-path regression.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Vsop87CanonicalJ1900BatchParitySummary {
@@ -1714,36 +1829,11 @@ pub fn canonical_j1900_batch_parity_summary() -> Option<Vsop87CanonicalJ1900Batc
             request
         })
         .collect::<Vec<_>>();
-    let results = backend.positions(&requests).ok()?;
-
-    if results.len() != requests.len() {
-        return None;
-    }
-
-    let mut sample_bodies = Vec::with_capacity(results.len());
-    let mut exact_count = 0usize;
-    let mut interpolated_count = 0usize;
-    let mut approximate_count = 0usize;
-    let mut unknown_count = 0usize;
-
-    for (request, result) in requests.iter().zip(results.iter()) {
-        let single = backend.position(request).ok()?;
-        if single != *result {
-            return None;
-        }
-
-        sample_bodies.push(result.body.clone());
-        match result.quality {
-            QualityAnnotation::Exact => exact_count += 1,
-            QualityAnnotation::Interpolated => interpolated_count += 1,
-            QualityAnnotation::Approximate => approximate_count += 1,
-            QualityAnnotation::Unknown => unknown_count += 1,
-            _ => unknown_count += 1,
-        }
-    }
+    let (sample_bodies, exact_count, interpolated_count, approximate_count, unknown_count) =
+        canonical_batch_parity_counts(&backend, &requests)?;
 
     Some(Vsop87CanonicalJ1900BatchParitySummary {
-        sample_count: results.len(),
+        sample_count: requests.len(),
         sample_bodies,
         reference_epoch,
         frame: CoordinateFrame::Equatorial,
@@ -4789,6 +4879,27 @@ mod tests {
         assert!(rendered.contains("p95 Δlon="));
         assert!(rendered.contains("p95 Δlat="));
         assert!(rendered.contains("p95 Δdist="));
+    }
+
+    #[test]
+    fn canonical_j2000_batch_parity_report_matches_the_backend_formatter() {
+        let summary = canonical_j2000_batch_parity_summary().expect("batch summary should exist");
+        let rendered = canonical_j2000_batch_parity_summary_for_report();
+        assert_eq!(rendered, summary.summary_line());
+        assert_eq!(summary.summary_line(), summary.to_string());
+        assert_eq!(summary.sample_count, canonical_epoch_samples().len());
+        assert_eq!(
+            summary.sample_bodies,
+            canonical_epoch_samples()
+                .iter()
+                .map(|sample| sample.body.clone())
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(summary.frame, CoordinateFrame::Ecliptic);
+        assert_eq!(summary.reference_epoch.julian_day.days(), J2000);
+        assert_eq!(summary.reference_epoch.scale, TimeScale::Tt);
+        assert!(rendered.contains("quality counts: Exact="));
+        assert!(rendered.contains("batch/single parity preserved"));
     }
 
     #[test]
