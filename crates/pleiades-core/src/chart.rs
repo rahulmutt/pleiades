@@ -1495,6 +1495,26 @@ fn best_aspect_definition(
 ///
 /// Tropical mode returns the input unchanged. Sidereal mode subtracts the
 /// resolved ayanamsa for the provided instant.
+///
+/// # Example
+///
+/// ```
+/// use pleiades_core::sidereal_longitude;
+/// use pleiades_types::{Ayanamsa, Instant, JulianDay, Longitude, TimeScale, ZodiacMode, ZodiacSign};
+///
+/// let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+/// let tropical = Longitude::from_degrees(15.0);
+/// let sidereal = sidereal_longitude(
+///     tropical,
+///     instant,
+///     &ZodiacMode::Sidereal {
+///         ayanamsa: Ayanamsa::Lahiri,
+///     },
+/// )
+/// .expect("Lahiri sidereal conversion should work");
+///
+/// assert_eq!(ZodiacSign::from_longitude(sidereal), ZodiacSign::Pisces);
+/// ```
 pub fn sidereal_longitude(
     longitude: Longitude,
     instant: Instant,

@@ -495,6 +495,21 @@ pub fn packaged_lookup(
 }
 
 /// Returns a packaged-data backend instance.
+///
+/// # Examples
+///
+/// ```
+/// use pleiades_backend::{CoordinateFrame, EphemerisBackend};
+/// use pleiades_data::packaged_backend;
+///
+/// let backend = packaged_backend();
+/// let metadata = backend.metadata();
+///
+/// assert_eq!(metadata.id.as_str(), "pleiades-data");
+/// assert!(metadata.offline);
+/// assert!(metadata.deterministic);
+/// assert!(metadata.supported_frames.contains(&CoordinateFrame::Equatorial));
+/// ```
 pub fn packaged_backend() -> PackagedDataBackend {
     PackagedDataBackend::new()
 }
