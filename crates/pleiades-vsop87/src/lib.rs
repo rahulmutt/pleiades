@@ -42,6 +42,7 @@ use pleiades_types::{
     CelestialBody, CoordinateFrame, EclipticCoordinates, EquatorialCoordinates, Instant, Latitude,
     Longitude, Motion, TimeRange, TimeScale, ZodiacMode,
 };
+use std::collections::BTreeSet;
 use std::sync::OnceLock;
 
 use crate::vsop87b_earth::{generated_vsop87b_table_bytes, parse_vsop87b_tables};
@@ -423,6 +424,12 @@ pub enum Vsop87SourceDocumentationHealthIssue {
     SourceBackedBodyOrderMismatch,
     /// The source-backed profile partition counts do not add up to the total source-backed profile count.
     SourceBackedProfilePartitionMismatch,
+    /// The source-backed body list contains a duplicate body entry.
+    SourceBackedBodyDuplicate,
+    /// The fallback body list contains a duplicate body entry.
+    FallbackBodyDuplicate,
+    /// A source-backed body also appears in the fallback body list.
+    SourceBackedFallbackBodyOverlap,
     /// The source-backed and fallback body profiles do not cover the full body catalog.
     BodyProfileCoverageMismatch,
     /// The source specification catalog count does not match the parsed source specification list.
@@ -443,6 +450,9 @@ impl Vsop87SourceDocumentationHealthIssue {
             Self::SourceBackedProfilePartitionMismatch => {
                 "source-backed profile partition mismatch"
             }
+            Self::SourceBackedBodyDuplicate => "source-backed body duplicate",
+            Self::FallbackBodyDuplicate => "fallback body duplicate",
+            Self::SourceBackedFallbackBodyOverlap => "source-backed/fallback body overlap",
             Self::BodyProfileCoverageMismatch => "body profile coverage mismatch",
             Self::SourceSpecificationCatalogCountMismatch => {
                 "source specification catalog count mismatch"
@@ -556,7 +566,10 @@ impl Vsop87SourceDocumentationHealthSummary {
             && self.vendored_full_file_profile_count == self.vendored_full_file_bodies.len()
             && self.truncated_profile_count == self.truncated_bodies.len()
             && self.fallback_profile_count == self.fallback_bodies.len()
-            && self.source_backed_bodies == self.source_backed_partition_bodies;
+            && self.source_backed_bodies == self.source_backed_partition_bodies
+            && body_labels_are_unique(&self.source_backed_bodies)
+            && body_labels_are_unique(&self.fallback_bodies)
+            && body_lists_are_disjoint(&self.source_backed_bodies, &self.fallback_bodies);
 
         if self.consistent
             && self.documentation_consistent
@@ -1993,6 +2006,15 @@ fn source_documentation_health_issues(
     if summary.source_backed_bodies != expected_source_backed_bodies {
         issues.push(Vsop87SourceDocumentationHealthIssue::SourceBackedBodyOrderMismatch);
     }
+    if !body_labels_are_unique(&summary.source_backed_bodies) {
+        issues.push(Vsop87SourceDocumentationHealthIssue::SourceBackedBodyDuplicate);
+    }
+    if !body_labels_are_unique(&summary.fallback_bodies) {
+        issues.push(Vsop87SourceDocumentationHealthIssue::FallbackBodyDuplicate);
+    }
+    if !body_lists_are_disjoint(&summary.source_backed_bodies, &summary.fallback_bodies) {
+        issues.push(Vsop87SourceDocumentationHealthIssue::SourceBackedFallbackBodyOverlap);
+    }
     if summary.source_backed_profile_count
         != summary.generated_binary_profile_count
             + summary.vendored_full_file_profile_count
@@ -2031,6 +2053,28 @@ fn format_issue_labels<T: fmt::Display>(issues: &[T]) -> String {
     } else {
         join_display(issues)
     }
+}
+
+fn body_labels_are_unique(bodies: &[CelestialBody]) -> bool {
+    let mut seen = BTreeSet::new();
+
+    for body in bodies {
+        if !seen.insert(body.to_string()) {
+            return false;
+        }
+    }
+
+    true
+}
+
+fn body_lists_are_disjoint(left: &[CelestialBody], right: &[CelestialBody]) -> bool {
+    let mut seen = BTreeSet::new();
+
+    for body in left {
+        seen.insert(body.to_string());
+    }
+
+    right.iter().all(|body| !seen.contains(&body.to_string()))
 }
 
 fn format_source_files(source_files: &[&'static str]) -> String {
@@ -5556,10 +5600,87 @@ mod tests {
     }
 
     #[test]
+    fn source_documentation_health_summary_rejects_source_backed_body_duplicates() {
+        let mut summary = source_documentation_health_summary();
+        assert!(summary.validate().is_ok());
+
+        summary.generated_binary_bodies[1] = CelestialBody::Sun;
+        summary.source_backed_partition_bodies = summary
+            .generated_binary_bodies
+            .iter()
+            .chain(summary.vendored_full_file_bodies.iter())
+            .chain(summary.truncated_bodies.iter())
+            .cloned()
+            .collect();
+        summary.source_backed_bodies = summary.source_backed_partition_bodies.clone();
+        summary.consistent = false;
+        summary.issues = vec![Vsop87SourceDocumentationHealthIssue::SourceBackedBodyDuplicate];
+
+        let error = summary
+            .validate()
+            .expect_err("duplicate source-backed bodies should fail validation");
+        assert_eq!(error.summary(), &summary);
+        assert_eq!(error.summary_line(), summary.summary_line());
+        assert!(error.to_string().contains("source-backed body duplicate"));
+    }
+
+    #[test]
+    fn source_documentation_health_summary_rejects_source_backed_fallback_overlap() {
+        let mut summary = source_documentation_health_summary();
+        assert!(summary.validate().is_ok());
+
+        summary.fallback_bodies = vec![CelestialBody::Sun];
+        summary.consistent = false;
+        summary.issues =
+            vec![Vsop87SourceDocumentationHealthIssue::SourceBackedFallbackBodyOverlap];
+
+        let error = summary
+            .validate()
+            .expect_err("source-backed/fallback overlap should fail validation");
+        assert_eq!(error.summary(), &summary);
+        assert_eq!(error.summary_line(), summary.summary_line());
+        assert!(error
+            .to_string()
+            .contains("source-backed/fallback body overlap"));
+    }
+
+    #[test]
+    fn source_documentation_health_summary_rejects_fallback_body_duplicates() {
+        let mut summary = source_documentation_health_summary();
+        assert!(summary.validate().is_ok());
+
+        summary.fallback_bodies = vec![CelestialBody::Pluto, CelestialBody::Pluto];
+        summary.fallback_profile_count = summary.fallback_bodies.len();
+        summary.body_profile_count =
+            summary.source_backed_profile_count + summary.fallback_profile_count;
+        summary.consistent = false;
+        summary.issues = vec![Vsop87SourceDocumentationHealthIssue::FallbackBodyDuplicate];
+
+        let error = summary
+            .validate()
+            .expect_err("duplicate fallback bodies should fail validation");
+        assert_eq!(error.summary(), &summary);
+        assert_eq!(error.summary_line(), summary.summary_line());
+        assert!(error.to_string().contains("fallback body duplicate"));
+    }
+
+    #[test]
     fn source_documentation_health_issue_labels_are_stable() {
         assert_eq!(
             Vsop87SourceDocumentationHealthIssue::SourceSpecificationFileCountMismatch.to_string(),
             "source specification/file count mismatch"
+        );
+        assert_eq!(
+            Vsop87SourceDocumentationHealthIssue::SourceBackedBodyDuplicate.to_string(),
+            "source-backed body duplicate"
+        );
+        assert_eq!(
+            Vsop87SourceDocumentationHealthIssue::FallbackBodyDuplicate.to_string(),
+            "fallback body duplicate"
+        );
+        assert_eq!(
+            Vsop87SourceDocumentationHealthIssue::SourceBackedFallbackBodyOverlap.to_string(),
+            "source-backed/fallback body overlap"
         );
         assert_eq!(
             Vsop87SourceDocumentationHealthIssue::DocumentedFieldMismatch.to_string(),
