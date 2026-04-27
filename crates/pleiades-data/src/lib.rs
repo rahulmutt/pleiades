@@ -563,8 +563,12 @@ impl EphemerisBackend for PackagedDataBackend {
 }
 
 fn build_packaged_artifact() -> CompressedArtifact {
-    CompressedArtifact::decode(PACKAGED_ARTIFACT_FIXTURE)
-        .expect("packaged artifact fixture should decode")
+    let artifact = CompressedArtifact::decode(PACKAGED_ARTIFACT_FIXTURE)
+        .expect("packaged artifact fixture should decode");
+    artifact
+        .validate()
+        .expect("packaged artifact fixture should validate");
+    artifact
 }
 
 /// Rebuilds the packaged artifact from the checked-in JPL reference snapshot.
@@ -579,6 +583,9 @@ pub fn regenerate_packaged_artifact() -> CompressedArtifact {
     artifact.checksum = artifact
         .checksum()
         .expect("packaged artifact checksum should be reproducible");
+    artifact
+        .validate()
+        .expect("packaged artifact should validate before encoding");
     artifact
 }
 
@@ -765,6 +772,9 @@ mod tests {
     #[test]
     fn packaged_artifact_fixture_matches_reference_snapshot_generation() {
         let generated = regenerate_packaged_artifact();
+        generated
+            .validate()
+            .expect("generated packaged artifact should validate");
         let encoded = generated
             .encode()
             .expect("generated packaged artifact should encode");
