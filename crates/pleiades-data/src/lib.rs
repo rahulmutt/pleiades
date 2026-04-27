@@ -429,13 +429,33 @@ pub fn packaged_artifact_profile_summary_details() -> PackagedArtifactProfileSum
 }
 
 /// Returns the current packaged-artifact profile summary.
+///
+/// The summary is validated before it is rendered so release-facing callers
+/// see an explicit unavailable marker if the bundled profile metadata drifts.
 pub fn packaged_artifact_profile_summary() -> String {
-    packaged_artifact_profile_summary_details().to_string()
+    render_packaged_artifact_profile_summary(&packaged_artifact_profile_summary_details(), false)
 }
 
 /// Returns the current packaged-artifact profile summary with bundled body coverage.
+///
+/// The summary is validated before it is rendered so release-facing callers
+/// see an explicit unavailable marker if the bundled profile metadata drifts.
 pub fn packaged_artifact_profile_summary_with_body_coverage() -> String {
-    packaged_artifact_profile_summary_details().summary_line_with_bodies()
+    render_packaged_artifact_profile_summary(&packaged_artifact_profile_summary_details(), true)
+}
+
+fn render_packaged_artifact_profile_summary(
+    summary: &PackagedArtifactProfileSummary,
+    with_bodies: bool,
+) -> String {
+    match summary.validate() {
+        Ok(()) if with_bodies => summary.summary_line_with_bodies(),
+        Ok(()) => summary.summary_line(),
+        Err(error) if with_bodies => {
+            format!("Packaged artifact profile with bundled bodies: unavailable ({error})")
+        }
+        Err(error) => format!("Packaged artifact profile: unavailable ({error})"),
+    }
 }
 
 /// Structured policy for how packaged-data lookup epochs are handled.
@@ -1880,6 +1900,21 @@ mod tests {
         assert!(error
             .message
             .contains("packaged artifact profile body count does not match bundled body list"));
+    }
+
+    #[test]
+    fn packaged_artifact_profile_summary_report_marks_drift_as_unavailable() {
+        let mut summary = packaged_artifact_profile_summary_details();
+        summary.body_count += 1;
+
+        assert_eq!(
+            render_packaged_artifact_profile_summary(&summary, false),
+            "Packaged artifact profile: unavailable (InvalidFormat: packaged artifact profile body count does not match bundled body list)"
+        );
+        assert_eq!(
+            render_packaged_artifact_profile_summary(&summary, true),
+            "Packaged artifact profile with bundled bodies: unavailable (InvalidFormat: packaged artifact profile body count does not match bundled body list)"
+        );
     }
 
     #[test]
