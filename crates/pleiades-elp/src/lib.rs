@@ -1738,6 +1738,10 @@ fn format_instant(instant: Instant) -> String {
     format!("JD {:.1} ({})", instant.julian_day.days(), instant.scale)
 }
 
+fn format_epoch_range(start: Instant, end: Instant) -> String {
+    TimeRange::new(Some(start), Some(end)).summary_line()
+}
+
 /// A single canonical lunar evidence sample used by validation and reporting.
 #[derive(Clone, Debug, PartialEq)]
 pub struct LunarReferenceSample {
@@ -1910,11 +1914,10 @@ impl LunarReferenceEvidenceSummary {
     /// Returns the release-facing one-line lunar reference evidence summary.
     pub fn summary_line(&self) -> String {
         format!(
-            "lunar reference evidence: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, validated against the published 1992-04-12 Moon example plus J2000 lunar-point anchors, including the mean apogee and mean perigee references, published 1913-05-27 true-node and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example",
+            "lunar reference evidence: {} samples across {} bodies, epoch range {}, validated against the published 1992-04-12 Moon example plus J2000 lunar-point anchors, including the mean apogee and mean perigee references, published 1913-05-27 true-node and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example",
             self.sample_count,
             self.body_count,
-            self.earliest_epoch.julian_day.days(),
-            self.latest_epoch.julian_day.days(),
+            format_epoch_range(self.earliest_epoch, self.latest_epoch),
         )
     }
 }
@@ -2103,11 +2106,10 @@ impl LunarEquatorialReferenceEvidenceSummary {
     /// Returns the release-facing one-line lunar equatorial reference evidence summary.
     pub fn summary_line(&self) -> String {
         format!(
-            "lunar equatorial reference evidence: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, validated against the published 1992-04-12 geocentric Moon RA/Dec example",
+            "lunar equatorial reference evidence: {} samples across {} bodies, epoch range {}, validated against the published 1992-04-12 geocentric Moon RA/Dec example",
             self.sample_count,
             self.body_count,
-            self.earliest_epoch.julian_day.days(),
-            self.latest_epoch.julian_day.days(),
+            format_epoch_range(self.earliest_epoch, self.latest_epoch),
         )
     }
 }
@@ -2288,33 +2290,32 @@ impl LunarApparentComparisonSummary {
     /// Returns the release-facing one-line apparent comparison summary.
     pub fn summary_line(&self) -> String {
         format!(
-            "lunar apparent comparison evidence: {} reference-only samples across {} bodies, epoch range JD {:.1}..{:.1}, mean-only gap against the published apparent Moon examples: Δlon={:+.6}° @ JD {:.1}; |Δlon| mean/median/p95={:.6}/{:.6}/{:.6}°; Δlat={:+.6}° @ JD {:.1}; |Δlat| mean/median/p95={:.6}/{:.6}/{:.6}°; Δdist={:+.12} AU @ JD {:.1}; |Δdist| mean/median/p95={:.12}/{:.12}/{:.12} AU; ΔRA={:+.6}° @ JD {:.1}; |ΔRA| mean/median/p95={:.6}/{:.6}/{:.6}°; ΔDec={:+.6}° @ JD {:.1}; |ΔDec| mean/median/p95={:.6}/{:.6}/{:.6}°; apparent requests remain unsupported",
+            "lunar apparent comparison evidence: {} reference-only samples across {} bodies, epoch range {}, mean-only gap against the published apparent Moon examples: Δlon={:+.6}° @ {}; |Δlon| mean/median/p95={:.6}/{:.6}/{:.6}°; Δlat={:+.6}° @ {}; |Δlat| mean/median/p95={:.6}/{:.6}/{:.6}°; Δdist={:+.12} AU @ {}; |Δdist| mean/median/p95={:.12}/{:.12}/{:.12} AU; ΔRA={:+.6}° @ {}; |ΔRA| mean/median/p95={:.6}/{:.6}/{:.6}°; ΔDec={:+.6}° @ {}; |ΔDec| mean/median/p95={:.6}/{:.6}/{:.6}°; apparent requests remain unsupported",
             self.sample_count,
             self.body_count,
-            self.earliest_epoch.julian_day.days(),
-            self.latest_epoch.julian_day.days(),
+            format_epoch_range(self.earliest_epoch, self.latest_epoch),
             self.max_ecliptic_longitude_delta_deg,
-            self.max_ecliptic_longitude_epoch.julian_day.days(),
+            format_instant(self.max_ecliptic_longitude_epoch),
             self.mean_ecliptic_longitude_delta_deg,
             self.median_ecliptic_longitude_delta_deg,
             self.percentile_ecliptic_longitude_delta_deg,
             self.max_ecliptic_latitude_delta_deg,
-            self.max_ecliptic_latitude_epoch.julian_day.days(),
+            format_instant(self.max_ecliptic_latitude_epoch),
             self.mean_ecliptic_latitude_delta_deg,
             self.median_ecliptic_latitude_delta_deg,
             self.percentile_ecliptic_latitude_delta_deg,
             self.max_ecliptic_distance_delta_au,
-            self.max_ecliptic_distance_epoch.julian_day.days(),
+            format_instant(self.max_ecliptic_distance_epoch),
             self.mean_ecliptic_distance_delta_au,
             self.median_ecliptic_distance_delta_au,
             self.percentile_ecliptic_distance_delta_au,
             self.max_right_ascension_delta_deg,
-            self.max_right_ascension_epoch.julian_day.days(),
+            format_instant(self.max_right_ascension_epoch),
             self.mean_right_ascension_delta_deg,
             self.median_right_ascension_delta_deg,
             self.percentile_right_ascension_delta_deg,
             self.max_declination_delta_deg,
-            self.max_declination_epoch.julian_day.days(),
+            format_instant(self.max_declination_epoch),
             self.mean_declination_delta_deg,
             self.median_declination_delta_deg,
             self.percentile_declination_delta_deg,
@@ -2828,11 +2829,10 @@ impl LunarEquatorialReferenceEvidenceEnvelope {
         };
 
         format!(
-            "lunar equatorial reference error envelope: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, max ΔRA={:.12}° ({}), mean ΔRA={:.12}°, median ΔRA={:.12}°, p95 ΔRA={:.12}°, max ΔDec={:.12}° ({}), mean ΔDec={:.12}°, median ΔDec={:.12}°, p95 ΔDec={:.12}°{}{}{}{}{}{}; outside current limits={}; within current limits={}",
+            "lunar equatorial reference error envelope: {} samples across {} bodies, epoch range {}, max ΔRA={:.12}° ({}), mean ΔRA={:.12}°, median ΔRA={:.12}°, p95 ΔRA={:.12}°, max ΔDec={:.12}° ({}), mean ΔDec={:.12}°, median ΔDec={:.12}°, p95 ΔDec={:.12}°{}{}{}{}{}{}; outside current limits={}; within current limits={}",
             self.sample_count,
             self.body_count,
-            self.earliest_epoch.julian_day.days(),
-            self.latest_epoch.julian_day.days(),
+            format_epoch_range(self.earliest_epoch, self.latest_epoch),
             self.max_right_ascension_delta_deg,
             format_body_epoch(&self.max_right_ascension_delta_body, self.max_right_ascension_delta_epoch),
             self.mean_right_ascension_delta_deg,
@@ -2885,8 +2885,8 @@ enum LunarHighCurvatureEvidenceValidationError {
     BodyCountTooSmall { body_count: usize },
     /// The stored epoch bounds no longer describe a monotonic range.
     InvalidEpochRange {
-        earliest_julian_day: f64,
-        latest_julian_day: f64,
+        earliest_epoch: Instant,
+        latest_epoch: Instant,
     },
     /// A stored step metric is not finite.
     NonFiniteMeasure { field: &'static str },
@@ -2906,11 +2906,12 @@ impl fmt::Display for LunarHighCurvatureEvidenceValidationError {
                 "the lunar high-curvature continuity evidence has no bodies ({body_count})"
             ),
             Self::InvalidEpochRange {
-                earliest_julian_day,
-                latest_julian_day,
+                earliest_epoch,
+                latest_epoch,
             } => write!(
                 f,
-                "the lunar high-curvature continuity evidence has an invalid epoch range JD {earliest_julian_day:.1}..{latest_julian_day:.1}"
+                "the lunar high-curvature continuity evidence has an invalid epoch range {}",
+                TimeRange::new(Some(*earliest_epoch), Some(*latest_epoch)).summary_line()
             ),
             Self::NonFiniteMeasure { field } => write!(
                 f,
@@ -2944,8 +2945,8 @@ fn validate_high_curvature_continuity_window(
     if earliest_epoch.julian_day.days() > latest_epoch.julian_day.days() {
         return Err(
             LunarHighCurvatureEvidenceValidationError::InvalidEpochRange {
-                earliest_julian_day: earliest_epoch.julian_day.days(),
-                latest_julian_day: latest_epoch.julian_day.days(),
+                earliest_epoch,
+                latest_epoch,
             },
         );
     }
@@ -2999,11 +3000,10 @@ impl LunarHighCurvatureContinuityEnvelope {
     /// Returns the compact release-facing summary line for this continuity evidence slice.
     fn summary_line(&self) -> String {
         format!(
-            "lunar high-curvature continuity evidence: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, max adjacent Δlon={:.12}° ({} → {}), max adjacent Δlat={:.12}° ({} → {}), max adjacent Δdist={:.12} AU ({} → {}), regression limits: Δlon≤{:.1}°, Δlat≤{:.1}°, Δdist≤{:.2} AU; within regression limits={}",
+            "lunar high-curvature continuity evidence: {} samples across {} bodies, epoch range {}, max adjacent Δlon={:.12}° ({} → {}), max adjacent Δlat={:.12}° ({} → {}), max adjacent Δdist={:.12} AU ({} → {}), regression limits: Δlon≤{:.1}°, Δlat≤{:.1}°, Δdist≤{:.2} AU; within regression limits={}",
             self.sample_count,
             self.body_count,
-            self.earliest_epoch.julian_day.days(),
-            self.latest_epoch.julian_day.days(),
+            format_epoch_range(self.earliest_epoch, self.latest_epoch),
             self.max_longitude_step_deg,
             format_instant(self.max_longitude_step_start_epoch),
             format_instant(self.max_longitude_step_end_epoch),
@@ -3200,11 +3200,10 @@ impl LunarHighCurvatureEquatorialContinuityEnvelope {
     /// Returns the compact release-facing summary line for this equatorial evidence slice.
     fn summary_line(&self) -> String {
         format!(
-            "lunar high-curvature equatorial continuity evidence: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, max adjacent ΔRA={:.12}° ({} → {}), max adjacent ΔDec={:.12}° ({} → {}), max adjacent Δdist={:.12} AU ({} → {}), regression limits: ΔRA≤{:.1}°, ΔDec≤{:.1}°, Δdist≤{:.2} AU; within regression limits={}",
+            "lunar high-curvature equatorial continuity evidence: {} samples across {} bodies, epoch range {}, max adjacent ΔRA={:.12}° ({} → {}), max adjacent ΔDec={:.12}° ({} → {}), max adjacent Δdist={:.12} AU ({} → {}), regression limits: ΔRA≤{:.1}°, ΔDec≤{:.1}°, Δdist≤{:.2} AU; within regression limits={}",
             self.sample_count,
             self.body_count,
-            self.earliest_epoch.julian_day.days(),
-            self.latest_epoch.julian_day.days(),
+            format_epoch_range(self.earliest_epoch, self.latest_epoch),
             self.max_right_ascension_step_deg,
             format_instant(self.max_right_ascension_step_start_epoch),
             format_instant(self.max_right_ascension_step_end_epoch),
@@ -3616,11 +3615,10 @@ impl LunarReferenceEvidenceEnvelope {
         };
 
         format!(
-            "lunar reference error envelope: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, max Δlon={:.12}° ({}), mean Δlon={:.12}°, median Δlon={:.12}°, p95 Δlon={:.12}°, max Δlat={:.12}° ({}), mean Δlat={:.12}°, median Δlat={:.12}°, p95 Δlat={:.12}°{}{}{}{}{}{}; outside current limits={}; within current limits={}",
+            "lunar reference error envelope: {} samples across {} bodies, epoch range {}, max Δlon={:.12}° ({}), mean Δlon={:.12}°, median Δlon={:.12}°, p95 Δlon={:.12}°, max Δlat={:.12}° ({}), mean Δlat={:.12}°, median Δlat={:.12}°, p95 Δlat={:.12}°{}{}{}{}{}{}; outside current limits={}; within current limits={}",
             self.sample_count,
             self.body_count,
-            self.earliest_epoch.julian_day.days(),
-            self.latest_epoch.julian_day.days(),
+            format_epoch_range(self.earliest_epoch, self.latest_epoch),
             self.max_longitude_delta_deg,
             format_body_epoch(&self.max_longitude_delta_body, self.max_longitude_delta_epoch),
             self.mean_longitude_delta_deg,
@@ -4722,7 +4720,7 @@ mod tests {
         assert!(
             report.contains("lunar high-curvature continuity evidence: 6 samples across 1 bodies")
         );
-        assert!(report.contains("epoch range JD 2451544.0..2451547.0"));
+        assert!(report.contains("epoch range JD 2451544.0 (TT) → JD 2451547.0 (TT)"));
         assert!(report.contains("max adjacent Δlon="));
         assert!(report.contains("max adjacent Δlat="));
         assert!(report.contains("max adjacent Δdist="));
@@ -4755,7 +4753,7 @@ mod tests {
         assert!(report.contains(
             "lunar high-curvature equatorial continuity evidence: 6 samples across 1 bodies"
         ));
-        assert!(report.contains("epoch range JD 2451544.0..2451547.0"));
+        assert!(report.contains("epoch range JD 2451544.0 (TT) → JD 2451547.0 (TT)"));
         assert!(report.contains("max adjacent ΔRA="));
         assert!(report.contains("max adjacent ΔDec="));
         assert!(report.contains("max adjacent Δdist="));
@@ -5317,7 +5315,8 @@ mod tests {
             summary.summary_line()
         );
         assert!(lunar_reference_evidence_summary_for_report().contains("9 samples across 5 bodies"));
-        assert!(lunar_reference_evidence_summary_for_report().contains("JD 2419914.5..2459278.5"));
+        assert!(lunar_reference_evidence_summary_for_report()
+            .contains("JD 2419914.5 (TT) → JD 2459278.5 (TT)"));
 
         let parity = lunar_reference_batch_parity_summary()
             .expect("mixed-scale batch parity evidence should exist");
@@ -5395,7 +5394,7 @@ mod tests {
         assert!(lunar_equatorial_reference_evidence_summary_for_report()
             .contains("1 samples across 1 bodies"));
         assert!(lunar_equatorial_reference_evidence_summary_for_report()
-            .contains("JD 2448724.5..2448724.5"));
+            .contains("JD 2448724.5 (TT) → JD 2448724.5 (TT)"));
 
         let envelope = lunar_equatorial_reference_evidence_envelope()
             .expect("equatorial error envelope should exist");

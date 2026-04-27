@@ -10567,7 +10567,7 @@ mod tests {
         assert!(report.contains("transparency evidence only, not a production tolerance envelope"));
         assert!(report.contains("Lunar reference"));
         assert!(report.contains(
-            "lunar reference evidence: 9 samples across 5 bodies, epoch range JD 2419914.5..2459278.5"
+            "lunar reference evidence: 9 samples across 5 bodies, epoch range JD 2419914.5 (TT) → JD 2459278.5 (TT)"
         ));
         assert!(report.contains(
             "lunar reference mixed TT/TDB batch parity: 9 requests across 5 bodies, TT requests=5, TDB requests=4, order=preserved, single-query parity=preserved"
@@ -10687,7 +10687,7 @@ mod tests {
         ));
         assert!(report.contains("Lunar reference"));
         assert!(report.contains(
-            "lunar reference evidence: 9 samples across 5 bodies, epoch range JD 2419914.5..2459278.5"
+            "lunar reference evidence: 9 samples across 5 bodies, epoch range JD 2419914.5 (TT) → JD 2459278.5 (TT)"
         ));
         assert!(report.contains("Lunar high-curvature continuity evidence"));
         assert!(report.contains("Lunar high-curvature equatorial continuity evidence"));
