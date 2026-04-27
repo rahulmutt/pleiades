@@ -2588,6 +2588,12 @@ impl CompatibilityProfileVerificationSummary {
     /// Validates that the summary still matches the current release profile.
     pub fn validate(&self) -> Result<(), EphemerisError> {
         let profile = current_compatibility_profile();
+        profile.validate().map_err(|error| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!("compatibility profile validation failed: {error}"),
+            )
+        })?;
         let release_profiles = current_release_profile_identifiers();
 
         if self.profile_id != release_profiles.compatibility_profile_id {

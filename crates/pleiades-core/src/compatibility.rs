@@ -8,6 +8,7 @@
 #![forbid(unsafe_code)]
 
 use core::fmt;
+use std::collections::{BTreeMap, BTreeSet};
 
 use pleiades_ayanamsa::{
     baseline_ayanamsas, built_in_ayanamsas, metadata_coverage, release_ayanamsas,
@@ -74,6 +75,346 @@ impl CompatibilityProfile {
             .map(|entry| entry.canonical_name)
             .collect()
     }
+}
+
+impl CompatibilityProfile {
+    /// Validates the profile's internal release-facing metadata.
+    pub fn validate(&self) -> Result<(), CompatibilityProfileValidationError> {
+        validate_profile_identifier(self.profile_id)?;
+        validate_profile_summary(self.summary)?;
+        validate_profile_text_section("target-house-scope", self.target_house_scope)?;
+        validate_profile_text_section("target-ayanamsa-scope", self.target_ayanamsa_scope)?;
+        validate_profile_text_section("release-note", self.release_notes)?;
+        validate_profile_text_section(
+            "validation-reference-point",
+            self.validation_reference_points,
+        )?;
+        validate_profile_text_section("custom-definition", self.custom_definition_labels)?;
+        validate_profile_text_section("compatibility-caveat", self.known_gaps)?;
+        validate_profile_text_sections_are_disjoint(&[
+            ("target-house-scope", self.target_house_scope),
+            ("target-ayanamsa-scope", self.target_ayanamsa_scope),
+            ("release-note", self.release_notes),
+            (
+                "validation-reference-point",
+                self.validation_reference_points,
+            ),
+            ("custom-definition", self.custom_definition_labels),
+            ("compatibility-caveat", self.known_gaps),
+        ])?;
+        validate_catalog_partitions_are_disjoint(
+            "house-system",
+            self.baseline_house_systems,
+            self.release_house_systems,
+        )?;
+        validate_catalog_partitions_are_disjoint_ayanamsa(
+            "ayanamsa",
+            self.baseline_ayanamsas,
+            self.release_ayanamsas,
+        )?;
+        validate_catalog_coverage(
+            "house-system",
+            self.house_systems,
+            self.baseline_house_systems,
+            self.release_house_systems,
+        )?;
+        validate_catalog_coverage_ayanamsa(
+            "ayanamsa",
+            self.ayanamsas,
+            self.baseline_ayanamsas,
+            self.release_ayanamsas,
+        )?;
+        Ok(())
+    }
+}
+
+/// A validation error emitted when the compatibility profile's internal
+/// release-facing metadata drifts.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CompatibilityProfileValidationError {
+    /// The profile identifier is blank.
+    BlankProfileIdentifier,
+    /// The summary is blank.
+    BlankSummary,
+    /// A text section is empty or contains a blank entry.
+    BlankTextSectionEntry {
+        /// Section that failed validation.
+        section_label: &'static str,
+    },
+    /// A text section contains an entry with surrounding whitespace.
+    WhitespaceTextSectionEntry {
+        /// Section that failed validation.
+        section_label: &'static str,
+        /// Entry that contained surrounding whitespace.
+        entry: &'static str,
+    },
+    /// A text section contains a duplicate entry.
+    DuplicateTextSectionEntry {
+        /// Section that failed validation.
+        section_label: &'static str,
+        /// Duplicate entry.
+        entry: &'static str,
+    },
+    /// Two different text sections contain the same entry.
+    DuplicateTextSectionEntryAcrossSections {
+        /// Duplicate entry.
+        entry: &'static str,
+        /// First section that contained the entry.
+        first_section: &'static str,
+        /// Second section that contained the entry.
+        second_section: &'static str,
+    },
+    /// Baseline and release partitions overlap on a catalog label.
+    CatalogPartitionOverlap {
+        /// Catalog that drifted.
+        catalog_label: &'static str,
+        /// Label that appears in both partitions.
+        label: &'static str,
+    },
+    /// The total catalog coverage does not equal the baseline plus release partitions.
+    CatalogCoverageMismatch {
+        /// Catalog that drifted.
+        catalog_label: &'static str,
+        /// Total entries in the catalog.
+        total_count: usize,
+        /// Entries in the baseline partition.
+        baseline_count: usize,
+        /// Entries in the release partition.
+        release_count: usize,
+    },
+}
+
+impl fmt::Display for CompatibilityProfileValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BlankProfileIdentifier => {
+                f.write_str("compatibility profile identifier is blank")
+            }
+            Self::BlankSummary => f.write_str("compatibility profile summary is blank"),
+            Self::BlankTextSectionEntry { section_label } => {
+                write!(f, "compatibility profile {section_label} entry is blank")
+            }
+            Self::WhitespaceTextSectionEntry { section_label, entry } => write!(
+                f,
+                "compatibility profile {section_label} entry '{}' contains surrounding whitespace",
+                entry
+            ),
+            Self::DuplicateTextSectionEntry { section_label, entry } => write!(
+                f,
+                "compatibility profile {section_label} entries are not unique: duplicate entry '{}'",
+                entry
+            ),
+            Self::DuplicateTextSectionEntryAcrossSections {
+                entry,
+                first_section,
+                second_section,
+            } => write!(
+                f,
+                "compatibility profile text sections are not unique: duplicate entry '{}' appears in both {} and {}",
+                entry, first_section, second_section
+            ),
+            Self::CatalogPartitionOverlap { catalog_label, label } => write!(
+                f,
+                "compatibility profile {catalog_label} baseline and release slices overlap on label '{}'",
+                label
+            ),
+            Self::CatalogCoverageMismatch {
+                catalog_label,
+                total_count,
+                baseline_count,
+                release_count,
+            } => write!(
+                f,
+                "compatibility profile {catalog_label} catalog coverage mismatch: total={}, baseline={}, release={}",
+                total_count, baseline_count, release_count
+            ),
+        }
+    }
+}
+
+impl std::error::Error for CompatibilityProfileValidationError {}
+
+fn validate_profile_identifier(
+    profile_id: &str,
+) -> Result<(), CompatibilityProfileValidationError> {
+    if profile_id.trim().is_empty() {
+        return Err(CompatibilityProfileValidationError::BlankProfileIdentifier);
+    }
+
+    Ok(())
+}
+
+fn validate_profile_summary(summary: &str) -> Result<(), CompatibilityProfileValidationError> {
+    if summary.trim().is_empty() {
+        return Err(CompatibilityProfileValidationError::BlankSummary);
+    }
+
+    Ok(())
+}
+
+fn has_surrounding_whitespace(value: &str) -> bool {
+    !value.is_empty() && value.trim() != value
+}
+
+fn validate_profile_text_section(
+    section_label: &'static str,
+    entries: &[&'static str],
+) -> Result<(), CompatibilityProfileValidationError> {
+    if entries.is_empty() {
+        return Err(CompatibilityProfileValidationError::BlankTextSectionEntry { section_label });
+    }
+
+    let mut seen_entries = BTreeSet::new();
+    for entry in entries {
+        if entry.trim().is_empty() {
+            return Err(CompatibilityProfileValidationError::BlankTextSectionEntry {
+                section_label,
+            });
+        }
+
+        if has_surrounding_whitespace(entry) {
+            return Err(
+                CompatibilityProfileValidationError::WhitespaceTextSectionEntry {
+                    section_label,
+                    entry,
+                },
+            );
+        }
+
+        if !seen_entries.insert(*entry) {
+            return Err(
+                CompatibilityProfileValidationError::DuplicateTextSectionEntry {
+                    section_label,
+                    entry,
+                },
+            );
+        }
+    }
+
+    Ok(())
+}
+
+fn validate_profile_text_sections_are_disjoint(
+    sections: &[(&'static str, &'static [&'static str])],
+) -> Result<(), CompatibilityProfileValidationError> {
+    let mut seen_entries = BTreeMap::<&'static str, &'static str>::new();
+    for (section_label, entries) in sections {
+        for entry in *entries {
+            if let Some(existing_section) = seen_entries.get(entry) {
+                if *existing_section != *section_label {
+                    return Err(
+                        CompatibilityProfileValidationError::DuplicateTextSectionEntryAcrossSections {
+                            entry,
+                            first_section: existing_section,
+                            second_section: section_label,
+                        },
+                    );
+                }
+            } else {
+                seen_entries.insert(entry, section_label);
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn validate_catalog_partitions_are_disjoint(
+    catalog_label: &'static str,
+    baseline_entries: &[HouseSystemDescriptor],
+    release_entries: &[HouseSystemDescriptor],
+) -> Result<(), CompatibilityProfileValidationError> {
+    let mut baseline_labels = BTreeSet::new();
+    for entry in baseline_entries {
+        baseline_labels.insert(entry.canonical_name.trim().to_ascii_lowercase());
+        for alias in entry.aliases {
+            baseline_labels.insert(alias.trim().to_ascii_lowercase());
+        }
+    }
+
+    for entry in release_entries {
+        for label in std::iter::once(entry.canonical_name).chain(entry.aliases.iter().copied()) {
+            if baseline_labels.contains(&label.trim().to_ascii_lowercase()) {
+                return Err(
+                    CompatibilityProfileValidationError::CatalogPartitionOverlap {
+                        catalog_label,
+                        label,
+                    },
+                );
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn validate_catalog_partitions_are_disjoint_ayanamsa(
+    catalog_label: &'static str,
+    baseline_entries: &[AyanamsaDescriptor],
+    release_entries: &[AyanamsaDescriptor],
+) -> Result<(), CompatibilityProfileValidationError> {
+    let mut baseline_labels = BTreeSet::new();
+    for entry in baseline_entries {
+        baseline_labels.insert(entry.canonical_name.trim().to_ascii_lowercase());
+        for alias in entry.aliases {
+            baseline_labels.insert(alias.trim().to_ascii_lowercase());
+        }
+    }
+
+    for entry in release_entries {
+        for label in std::iter::once(entry.canonical_name).chain(entry.aliases.iter().copied()) {
+            if baseline_labels.contains(&label.trim().to_ascii_lowercase()) {
+                return Err(
+                    CompatibilityProfileValidationError::CatalogPartitionOverlap {
+                        catalog_label,
+                        label,
+                    },
+                );
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn validate_catalog_coverage(
+    catalog_label: &'static str,
+    total_entries: &[HouseSystemDescriptor],
+    baseline_entries: &[HouseSystemDescriptor],
+    release_entries: &[HouseSystemDescriptor],
+) -> Result<(), CompatibilityProfileValidationError> {
+    if total_entries.len() != baseline_entries.len() + release_entries.len() {
+        return Err(
+            CompatibilityProfileValidationError::CatalogCoverageMismatch {
+                catalog_label,
+                total_count: total_entries.len(),
+                baseline_count: baseline_entries.len(),
+                release_count: release_entries.len(),
+            },
+        );
+    }
+
+    Ok(())
+}
+
+fn validate_catalog_coverage_ayanamsa(
+    catalog_label: &'static str,
+    total_entries: &[AyanamsaDescriptor],
+    baseline_entries: &[AyanamsaDescriptor],
+    release_entries: &[AyanamsaDescriptor],
+) -> Result<(), CompatibilityProfileValidationError> {
+    if total_entries.len() != baseline_entries.len() + release_entries.len() {
+        return Err(
+            CompatibilityProfileValidationError::CatalogCoverageMismatch {
+                catalog_label,
+                total_count: total_entries.len(),
+                baseline_count: baseline_entries.len(),
+                release_count: release_entries.len(),
+            },
+        );
+    }
+
+    Ok(())
 }
 
 /// Returns the current compatibility profile.
@@ -1094,6 +1435,49 @@ mod tests {
             .known_gaps
             .iter()
             .all(|gap| !gap.contains("House Obs")));
+    }
+
+    #[test]
+    fn compatibility_profile_validate_accepts_the_current_profile() {
+        current_compatibility_profile()
+            .validate()
+            .expect("current compatibility profile should validate");
+    }
+
+    #[test]
+    fn compatibility_profile_validate_rejects_whitespace_padded_scope_entries() {
+        let mut profile = current_compatibility_profile();
+        profile.target_house_scope = &["Target house scope: example "];
+
+        let error = profile
+            .validate()
+            .expect_err("whitespace-padded scope entry should fail validation");
+
+        assert!(matches!(
+            error,
+            CompatibilityProfileValidationError::WhitespaceTextSectionEntry {
+                section_label: "target-house-scope",
+                entry: "Target house scope: example "
+            }
+        ));
+    }
+
+    #[test]
+    fn compatibility_profile_validate_rejects_overlapping_catalog_partitions() {
+        let mut profile = current_compatibility_profile();
+        profile.release_house_systems = profile.baseline_house_systems;
+
+        let error = profile
+            .validate()
+            .expect_err("overlapping catalog partitions should fail validation");
+
+        assert!(matches!(
+            error,
+            CompatibilityProfileValidationError::CatalogPartitionOverlap {
+                catalog_label: "house-system",
+                label: _
+            }
+        ));
     }
 
     #[test]
