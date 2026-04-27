@@ -18,4 +18,5 @@ Protect the typed, backend-agnostic public API while remaining implementation ph
 - Ensure topocentric support is either implemented consistently or rejected explicitly.
 - Validate every shipped house and ayanamsa formula/alias against references.
 - Keep custom body, house, and ayanamsa identifiers distinguishable from built-ins in profiles and serialization.
+- `pleiades-types` now provides typed validation helpers for custom body, house-system, and ayanamsa definitions; higher-level catalog and profile ingestion should reuse those checks whenever user-defined identifiers are accepted.
 - Ensure release profiles truthfully separate baseline guarantees, release additions, known gaps, and unsupported modes.

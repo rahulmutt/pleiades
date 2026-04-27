@@ -1015,12 +1015,197 @@ impl CustomBodyId {
             designation: designation.into(),
         }
     }
+
+    /// Validates the custom body identifier fields.
+    ///
+    /// The catalog and designation must both be non-empty, must not contain
+    /// leading or trailing whitespace, and must not contain the `:` separator
+    /// used by the display representation.
+    pub fn validate(&self) -> Result<(), CustomDefinitionValidationError> {
+        validate_canonical_text("custom body id", "catalog", &self.catalog)?;
+        validate_canonical_text("custom body id", "designation", &self.designation)?;
+
+        if self.catalog.contains(':') {
+            return Err(CustomDefinitionValidationError::contains_separator(
+                "custom body id",
+                "catalog",
+                ':',
+            ));
+        }
+
+        if self.designation.contains(':') {
+            return Err(CustomDefinitionValidationError::contains_separator(
+                "custom body id",
+                "designation",
+                ':',
+            ));
+        }
+
+        Ok(())
+    }
 }
 
 impl fmt::Display for CustomBodyId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}:{}", self.catalog, self.designation)
     }
+}
+
+/// Validation failure for a custom body, house system, or ayanamsa definition.
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum CustomDefinitionValidationError {
+    /// A required field was blank.
+    Blank {
+        /// The type of custom definition being validated.
+        subject: &'static str,
+        /// The invalid field name.
+        field: String,
+    },
+    /// A field carried leading or trailing whitespace.
+    Padded {
+        /// The type of custom definition being validated.
+        subject: &'static str,
+        /// The invalid field name.
+        field: String,
+    },
+    /// A field contained the `:` separator used by custom body identifiers.
+    ContainsSeparator {
+        /// The type of custom definition being validated.
+        subject: &'static str,
+        /// The invalid field name.
+        field: String,
+        /// The separator that was rejected.
+        separator: char,
+    },
+    /// A list of aliases contained a duplicate value.
+    DuplicateAlias {
+        /// The type of custom definition being validated.
+        subject: &'static str,
+        /// The duplicated alias.
+        alias: String,
+    },
+    /// A numeric field was not finite.
+    NonFinite {
+        /// The type of custom definition being validated.
+        subject: &'static str,
+        /// The invalid field name.
+        field: String,
+    },
+    /// Two optional fields must be supplied together.
+    IncompletePair {
+        /// The type of custom definition being validated.
+        subject: &'static str,
+        /// The first required field.
+        first: String,
+        /// The second required field.
+        second: String,
+    },
+}
+
+impl CustomDefinitionValidationError {
+    fn blank(subject: &'static str, field: impl Into<String>) -> Self {
+        Self::Blank {
+            subject,
+            field: field.into(),
+        }
+    }
+
+    fn padded(subject: &'static str, field: impl Into<String>) -> Self {
+        Self::Padded {
+            subject,
+            field: field.into(),
+        }
+    }
+
+    fn contains_separator(
+        subject: &'static str,
+        field: impl Into<String>,
+        separator: char,
+    ) -> Self {
+        Self::ContainsSeparator {
+            subject,
+            field: field.into(),
+            separator,
+        }
+    }
+
+    fn duplicate_alias(subject: &'static str, alias: impl Into<String>) -> Self {
+        Self::DuplicateAlias {
+            subject,
+            alias: alias.into(),
+        }
+    }
+
+    fn non_finite(subject: &'static str, field: impl Into<String>) -> Self {
+        Self::NonFinite {
+            subject,
+            field: field.into(),
+        }
+    }
+
+    fn incomplete_pair(
+        subject: &'static str,
+        first: impl Into<String>,
+        second: impl Into<String>,
+    ) -> Self {
+        Self::IncompletePair {
+            subject,
+            first: first.into(),
+            second: second.into(),
+        }
+    }
+
+    /// Returns a compact one-line rendering of the validation failure.
+    pub fn summary_line(&self) -> String {
+        match self {
+            Self::Blank { subject, field } => format!("{subject} {field} must not be blank"),
+            Self::Padded { subject, field } => {
+                format!("{subject} {field} must not have leading or trailing whitespace")
+            }
+            Self::ContainsSeparator {
+                subject,
+                field,
+                separator,
+            } => format!("{subject} {field} must not contain '{separator}'"),
+            Self::DuplicateAlias { subject, alias } => {
+                format!("{subject} aliases must be unique: duplicate {alias}")
+            }
+            Self::NonFinite { subject, field } => format!("{subject} {field} must be finite"),
+            Self::IncompletePair {
+                subject,
+                first,
+                second,
+            } => format!("{subject} requires both {first} and {second} when one is present"),
+        }
+    }
+}
+
+impl fmt::Display for CustomDefinitionValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+impl std::error::Error for CustomDefinitionValidationError {}
+
+fn validate_canonical_text(
+    subject: &'static str,
+    field: impl Into<String>,
+    value: &str,
+) -> Result<(), CustomDefinitionValidationError> {
+    let field = field.into();
+    let trimmed = value.trim();
+
+    if trimmed.is_empty() {
+        return Err(CustomDefinitionValidationError::blank(subject, field));
+    }
+
+    if trimmed != value {
+        return Err(CustomDefinitionValidationError::padded(subject, field));
+    }
+
+    Ok(())
 }
 
 impl fmt::Display for CelestialBody {
@@ -1163,6 +1348,36 @@ impl CustomHouseSystem {
             aliases: Vec::new(),
             notes: None,
         }
+    }
+
+    /// Validates the custom house-system definition.
+    ///
+    /// The canonical name must be non-empty and free of leading or trailing
+    /// whitespace. Aliases and notes, when present, must follow the same
+    /// canonical-text rule, and aliases must be unique after normalization.
+    pub fn validate(&self) -> Result<(), CustomDefinitionValidationError> {
+        validate_canonical_text("custom house system", "name", &self.name)?;
+
+        let mut aliases = Vec::with_capacity(self.aliases.len());
+        for (index, alias) in self.aliases.iter().enumerate() {
+            let field = format!("alias[{index}]");
+            validate_canonical_text("custom house system", field, alias)?;
+
+            if aliases.contains(&alias) {
+                return Err(CustomDefinitionValidationError::duplicate_alias(
+                    "custom house system",
+                    alias,
+                ));
+            }
+
+            aliases.push(alias);
+        }
+
+        if let Some(notes) = &self.notes {
+            validate_canonical_text("custom house system", "notes", notes)?;
+        }
+
+        Ok(())
     }
 }
 
@@ -1341,6 +1556,56 @@ impl CustomAyanamsa {
             epoch: None,
             offset_degrees: None,
         }
+    }
+
+    /// Validates the custom ayanamsa definition.
+    ///
+    /// The canonical name and optional description must be non-empty and free
+    /// of leading or trailing whitespace. If one of `epoch` or
+    /// `offset_degrees` is supplied, the other must be supplied too so the
+    /// sidereal offset can be reconstructed deterministically. Any supplied
+    /// numeric values must also be finite.
+    pub fn validate(&self) -> Result<(), CustomDefinitionValidationError> {
+        validate_canonical_text("custom ayanamsa", "name", &self.name)?;
+
+        if let Some(description) = &self.description {
+            validate_canonical_text("custom ayanamsa", "description", description)?;
+        }
+
+        match (self.epoch, self.offset_degrees) {
+            (Some(epoch), Some(offset_degrees)) => {
+                if !epoch.days().is_finite() {
+                    return Err(CustomDefinitionValidationError::non_finite(
+                        "custom ayanamsa",
+                        "epoch",
+                    ));
+                }
+
+                if !offset_degrees.is_finite() {
+                    return Err(CustomDefinitionValidationError::non_finite(
+                        "custom ayanamsa",
+                        "offset_degrees",
+                    ));
+                }
+            }
+            (None, None) => {}
+            (Some(_), None) => {
+                return Err(CustomDefinitionValidationError::incomplete_pair(
+                    "custom ayanamsa",
+                    "epoch",
+                    "offset_degrees",
+                ));
+            }
+            (None, Some(_)) => {
+                return Err(CustomDefinitionValidationError::incomplete_pair(
+                    "custom ayanamsa",
+                    "offset_degrees",
+                    "epoch",
+                ));
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -1755,6 +2020,33 @@ mod tests {
     }
 
     #[test]
+    fn custom_body_id_validate_rejects_blank_padding_and_separators() {
+        assert_eq!(
+            CustomBodyId::new("", "433-Eros")
+                .validate()
+                .expect_err("blank catalogs should be rejected")
+                .to_string(),
+            "custom body id catalog must not be blank"
+        );
+
+        assert_eq!(
+            CustomBodyId::new("asteroid", " 433-Eros ")
+                .validate()
+                .expect_err("padded designations should be rejected")
+                .to_string(),
+            "custom body id designation must not have leading or trailing whitespace"
+        );
+
+        assert_eq!(
+            CustomBodyId::new("asteroid:catalog", "433-Eros")
+                .validate()
+                .expect_err("separator characters should be rejected")
+                .to_string(),
+            "custom body id catalog must not contain ':'"
+        );
+    }
+
+    #[test]
     fn custom_house_system_display_includes_aliases_and_notes() {
         let mut custom = CustomHouseSystem::new("My Custom Houses");
         custom.aliases.push("MCH".to_string());
@@ -1764,6 +2056,40 @@ mod tests {
         assert_eq!(
             custom.to_string(),
             "My Custom Houses [aliases: MCH, Test Houses] (based on a user-defined formula)"
+        );
+    }
+
+    #[test]
+    fn custom_house_system_validate_rejects_whitespace_and_duplicate_aliases() {
+        assert_eq!(
+            CustomHouseSystem::new("   ")
+                .validate()
+                .expect_err("blank house system names should be rejected")
+                .to_string(),
+            "custom house system name must not be blank"
+        );
+
+        let mut custom = CustomHouseSystem::new("My Custom Houses");
+        custom.aliases.push("MCH".to_string());
+        custom.aliases.push("MCH".to_string());
+
+        assert_eq!(
+            custom
+                .validate()
+                .expect_err("duplicate aliases should be rejected")
+                .to_string(),
+            "custom house system aliases must be unique: duplicate MCH"
+        );
+
+        let mut custom = CustomHouseSystem::new("My Custom Houses");
+        custom.notes = Some("  ".to_string());
+
+        assert_eq!(
+            custom
+                .validate()
+                .expect_err("blank notes should be rejected")
+                .to_string(),
+            "custom house system notes must not be blank"
         );
     }
 
@@ -1820,6 +2146,50 @@ mod tests {
 
         assert_eq!(custom.to_string(), "My Custom Sidereal");
         assert_eq!(Ayanamsa::Custom(custom).to_string(), "My Custom Sidereal");
+    }
+
+    #[test]
+    fn custom_ayanamsa_validate_rejects_padded_or_incomplete_definitions() {
+        let mut custom = CustomAyanamsa::new("My Custom Sidereal");
+        custom.description = Some("  ".to_string());
+
+        assert_eq!(
+            custom
+                .validate()
+                .expect_err("blank descriptions should be rejected")
+                .to_string(),
+            "custom ayanamsa description must not be blank"
+        );
+
+        let custom = CustomAyanamsa {
+            name: "My Custom Sidereal".to_string(),
+            description: Some("local calibration".to_string()),
+            epoch: Some(JulianDay::from_days(2_451_545.0)),
+            offset_degrees: None,
+        };
+
+        assert_eq!(
+            custom
+                .validate()
+                .expect_err("partial offset definitions should be rejected")
+                .to_string(),
+            "custom ayanamsa requires both epoch and offset_degrees when one is present"
+        );
+
+        let custom = CustomAyanamsa {
+            name: "My Custom Sidereal".to_string(),
+            description: Some("local calibration".to_string()),
+            epoch: Some(JulianDay::from_days(f64::INFINITY)),
+            offset_degrees: Some(Angle::from_degrees(24.0)),
+        };
+
+        assert_eq!(
+            custom
+                .validate()
+                .expect_err("non-finite epochs should be rejected")
+                .to_string(),
+            "custom ayanamsa epoch must be finite"
+        );
     }
 
     #[test]
