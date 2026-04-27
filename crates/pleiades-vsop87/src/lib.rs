@@ -996,6 +996,12 @@ impl Vsop87RequestPolicy {
     }
 }
 
+impl fmt::Display for Vsop87RequestPolicy {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 const VSOP87_REQUEST_POLICY: Vsop87RequestPolicy = Vsop87RequestPolicy {
     supported_frames: &[CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
     supported_time_scales: &[TimeScale::Tt, TimeScale::Tdb],
@@ -1011,7 +1017,7 @@ pub const fn vsop87_request_policy() -> Vsop87RequestPolicy {
 
 /// Returns the release-facing VSOP87 request policy summary string.
 pub fn vsop87_request_policy_summary_for_report() -> String {
-    vsop87_request_policy().summary_line()
+    vsop87_request_policy().to_string()
 }
 
 /// Returns the reproducibility audit records for the current VSOP87-backed bodies.
@@ -4622,6 +4628,7 @@ mod tests {
     fn request_policy_summary_tracks_the_public_backend_posture() {
         let policy = vsop87_request_policy();
 
+        assert_eq!(policy.to_string(), policy.summary_line());
         assert_eq!(
             policy.summary_line(),
             "frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"

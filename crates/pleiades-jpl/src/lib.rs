@@ -962,6 +962,12 @@ impl JplSnapshotRequestPolicy {
     }
 }
 
+impl fmt::Display for JplSnapshotRequestPolicy {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 const JPL_SNAPSHOT_REQUEST_POLICY: JplSnapshotRequestPolicy = JplSnapshotRequestPolicy {
     supported_frames: &[CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
     supported_time_scales: &[TimeScale::Tt, TimeScale::Tdb],
@@ -977,7 +983,7 @@ pub const fn jpl_snapshot_request_policy() -> JplSnapshotRequestPolicy {
 
 /// Returns the release-facing JPL snapshot request policy summary string.
 pub fn jpl_snapshot_request_policy_summary_for_report() -> String {
-    jpl_snapshot_request_policy().summary_line()
+    jpl_snapshot_request_policy().to_string()
 }
 
 /// Returns the structured JPL snapshot frame-treatment summary.
@@ -3955,6 +3961,20 @@ mod tests {
         );
         assert_eq!(frame_treatment_summary(), summary.summary_line());
         assert!(summary.summary_line().contains("mean-obliquity transform"));
+    }
+
+    #[test]
+    fn request_policy_summary_is_displayable() {
+        let policy = jpl_snapshot_request_policy();
+
+        assert_eq!(policy.to_string(), policy.summary_line());
+        assert_eq!(
+            jpl_snapshot_request_policy_summary_for_report(),
+            policy.summary_line()
+        );
+        assert!(policy
+            .summary_line()
+            .contains("frames=Ecliptic, Equatorial"));
     }
 
     #[test]

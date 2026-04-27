@@ -70,6 +70,12 @@ impl LunarTheoryRequestPolicy {
     }
 }
 
+impl fmt::Display for LunarTheoryRequestPolicy {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Structured source family for the current lunar-theory selection.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LunarTheorySourceFamily {
@@ -1066,7 +1072,7 @@ pub fn lunar_theory_source_summary_for_report() -> String {
 
 /// Returns the current lunar-theory request policy summary.
 pub fn lunar_theory_request_policy_summary() -> String {
-    lunar_theory_request_policy().summary_line()
+    lunar_theory_request_policy().to_string()
 }
 
 /// Returns the structured lunar-theory frame-treatment summary.
@@ -3291,6 +3297,10 @@ mod tests {
         assert!(summary.contains("mean apogee"));
         assert_eq!(
             lunar_theory_request_policy_summary(),
+            theory.request_policy.summary_line()
+        );
+        assert_eq!(
+            theory.request_policy.to_string(),
             theory.request_policy.summary_line()
         );
         assert!(summary.contains("frames=Ecliptic, Equatorial"));
