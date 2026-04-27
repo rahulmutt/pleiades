@@ -1105,80 +1105,71 @@ impl BodyClassSummary {
         }
     }
 
+    fn summary_line(&self) -> String {
+        if self.sample_count == 0 {
+            return String::new();
+        }
+
+        let max_distance = self
+            .max_distance_delta_au
+            .map(|value| format!("{value:.12} AU"))
+            .unwrap_or_else(|| "n/a".to_string());
+        let mean_distance = self
+            .mean_distance_delta_au()
+            .map(|value| format!("{value:.12} AU"))
+            .unwrap_or_else(|| "n/a".to_string());
+        let median_distance = self
+            .median_distance_delta_au
+            .map(|value| format!("{value:.12} AU"))
+            .unwrap_or_else(|| "n/a".to_string());
+        let percentile_distance = self
+            .percentile_distance_delta_au
+            .map(|value| format!("{value:.12} AU"))
+            .unwrap_or_else(|| "n/a".to_string());
+        let rms_distance = self
+            .rms_distance_delta_au()
+            .map(|value| format!("{value:.12} AU"))
+            .unwrap_or_else(|| "n/a".to_string());
+
+        format!(
+            "samples={}, max Δlon={:.12}°{}, mean Δlon={:.12}°, median Δlon={:.12}°, 95th percentile longitude delta: {:.12}°, rms Δlon={:.12}°, max Δlat={:.12}°{}, mean Δlat={:.12}°, median Δlat={:.12}°, 95th percentile latitude delta: {:.12}°, rms Δlat={:.12}°, max Δdist={}{}, mean Δdist={}, median Δdist={}, 95th percentile distance delta: {}, rms Δdist={}",
+            self.sample_count,
+            self.max_longitude_delta_deg,
+            format_summary_body(&self.max_longitude_delta_body),
+            self.mean_longitude_delta_deg(),
+            self.median_longitude_delta_deg,
+            self.percentile_longitude_delta_deg,
+            self.rms_longitude_delta_deg(),
+            self.max_latitude_delta_deg,
+            format_summary_body(&self.max_latitude_delta_body),
+            self.mean_latitude_delta_deg(),
+            self.median_latitude_delta_deg,
+            self.percentile_latitude_delta_deg,
+            self.rms_latitude_delta_deg(),
+            max_distance,
+            format_summary_body(&self.max_distance_delta_body),
+            mean_distance,
+            median_distance,
+            percentile_distance,
+            rms_distance,
+        )
+    }
+
     fn render(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.sample_count == 0 {
             return Ok(());
         }
 
         writeln!(f, "  {}", self.class.label())?;
-        writeln!(f, "    samples: {}", self.sample_count)?;
-        writeln!(
-            f,
-            "    max longitude delta: {:.12}°",
-            self.max_longitude_delta_deg
-        )?;
-        writeln!(
-            f,
-            "    mean longitude delta: {:.12}°",
-            self.mean_longitude_delta_deg()
-        )?;
-        writeln!(
-            f,
-            "    median longitude delta: {:.12}°",
-            self.median_longitude_delta_deg
-        )?;
-        writeln!(
-            f,
-            "    95th percentile longitude delta: {:.12}°",
-            self.percentile_longitude_delta_deg
-        )?;
-        writeln!(
-            f,
-            "    rms longitude delta: {:.12}°",
-            self.rms_longitude_delta_deg()
-        )?;
-        writeln!(
-            f,
-            "    max latitude delta: {:.12}°",
-            self.max_latitude_delta_deg
-        )?;
-        writeln!(
-            f,
-            "    mean latitude delta: {:.12}°",
-            self.mean_latitude_delta_deg()
-        )?;
-        writeln!(
-            f,
-            "    median latitude delta: {:.12}°",
-            self.median_latitude_delta_deg
-        )?;
-        writeln!(
-            f,
-            "    95th percentile latitude delta: {:.12}°",
-            self.percentile_latitude_delta_deg
-        )?;
-        writeln!(
-            f,
-            "    rms latitude delta: {:.12}°",
-            self.rms_latitude_delta_deg()
-        )?;
-        if let Some(value) = self.max_distance_delta_au {
-            writeln!(f, "    max distance delta: {:.12} AU", value)?;
-        }
-        if let Some(value) = self.mean_distance_delta_au() {
-            writeln!(f, "    mean distance delta: {:.12} AU", value)?;
-        }
-        if let Some(value) = self.median_distance_delta_au {
-            writeln!(f, "    median distance delta: {:.12} AU", value)?;
-        }
-        if let Some(value) = self.percentile_distance_delta_au {
-            writeln!(f, "    95th percentile distance delta: {:.12} AU", value)?;
-        }
-        if let Some(value) = self.rms_distance_delta_au() {
-            writeln!(f, "    rms distance delta: {:.12} AU", value)?;
-        }
+        writeln!(f, "    {}", self.summary_line())?;
 
         Ok(())
+    }
+}
+
+impl fmt::Display for BodyClassSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
     }
 }
 
@@ -4968,47 +4959,7 @@ fn format_comparison_envelope_for_report(
 }
 
 fn format_body_class_comparison_envelope_for_report(summary: &BodyClassSummary) -> String {
-    let max_distance = summary
-        .max_distance_delta_au
-        .map(|value| format!("{value:.12} AU"))
-        .unwrap_or_else(|| "n/a".to_string());
-    let mean_distance = summary
-        .mean_distance_delta_au()
-        .map(|value| format!("{value:.12} AU"))
-        .unwrap_or_else(|| "n/a".to_string());
-    let rms_distance = summary
-        .rms_distance_delta_au()
-        .map(|value| format!("{value:.12} AU"))
-        .unwrap_or_else(|| "n/a".to_string());
-
-    format!(
-        "samples={}, max Δlon={:.12}°{}, mean Δlon={:.12}°, median Δlon={:.12}°, 95th percentile longitude delta: {:.12}°, rms Δlon={:.12}°, max Δlat={:.12}°{}, mean Δlat={:.12}°, median Δlat={:.12}°, 95th percentile latitude delta: {:.12}°, rms Δlat={:.12}°, max Δdist={}{}, mean Δdist={}, median Δdist={}, 95th percentile distance delta: {}, rms Δdist={}",
-        summary.sample_count,
-        summary.max_longitude_delta_deg,
-        format_summary_body(&summary.max_longitude_delta_body),
-        summary.mean_longitude_delta_deg(),
-        summary.median_longitude_delta_deg,
-        summary.percentile_longitude_delta_deg,
-        summary.rms_longitude_delta_deg(),
-        summary.max_latitude_delta_deg,
-        format_summary_body(&summary.max_latitude_delta_body),
-        summary.mean_latitude_delta_deg(),
-        summary.median_latitude_delta_deg,
-        summary.percentile_latitude_delta_deg,
-        summary.rms_latitude_delta_deg(),
-        max_distance,
-        format_summary_body(&summary.max_distance_delta_body),
-        mean_distance,
-        summary
-            .median_distance_delta_au
-            .map(|value| format!("{value:.12} AU"))
-            .unwrap_or_else(|| "n/a".to_string()),
-        summary
-            .percentile_distance_delta_au
-            .map(|value| format!("{value:.12} AU"))
-            .unwrap_or_else(|| "n/a".to_string()),
-        rms_distance,
-    )
+    summary.summary_line()
 }
 
 fn comparison_tolerance_policy_summary_details(
@@ -9382,6 +9333,42 @@ mod tests {
         assert!(rendered.contains("Expected tolerance status"));
         assert!(rendered.contains("phase-1 full-file VSOP87B planetary evidence"));
         assert!(rendered.contains("Notable regressions"));
+    }
+
+    #[test]
+    fn body_class_summary_line_reuses_the_typed_formatter() {
+        let summary = BodyClassSummary {
+            class: BodyClass::MajorPlanet,
+            sample_count: 1,
+            max_longitude_delta_body: Some(CelestialBody::Mars),
+            max_longitude_delta_deg: 1.234,
+            sum_longitude_delta_deg: 1.0,
+            sum_longitude_delta_sq_deg: 1.0,
+            median_longitude_delta_deg: 1.0,
+            percentile_longitude_delta_deg: 1.0,
+            max_latitude_delta_body: Some(CelestialBody::Mars),
+            max_latitude_delta_deg: 0.5,
+            sum_latitude_delta_deg: 0.5,
+            sum_latitude_delta_sq_deg: 0.25,
+            median_latitude_delta_deg: 0.5,
+            percentile_latitude_delta_deg: 0.5,
+            max_distance_delta_body: Some(CelestialBody::Mars),
+            max_distance_delta_au: Some(2.5),
+            sum_distance_delta_au: 2.5,
+            sum_distance_delta_sq_au: 6.25,
+            distance_count: 1,
+            median_distance_delta_au: Some(2.5),
+            percentile_distance_delta_au: Some(2.5),
+        };
+
+        let expected = "samples=1, max Δlon=1.234000000000° (Mars), mean Δlon=1.000000000000°, median Δlon=1.000000000000°, 95th percentile longitude delta: 1.000000000000°, rms Δlon=1.000000000000°, max Δlat=0.500000000000° (Mars), mean Δlat=0.500000000000°, median Δlat=0.500000000000°, 95th percentile latitude delta: 0.500000000000°, rms Δlat=0.500000000000°, max Δdist=2.500000000000 AU (Mars), mean Δdist=2.500000000000 AU, median Δdist=2.500000000000 AU, 95th percentile distance delta: 2.500000000000 AU, rms Δdist=2.500000000000 AU";
+
+        assert_eq!(summary.summary_line(), expected);
+        assert_eq!(summary.to_string(), expected);
+        assert_eq!(
+            format_body_class_comparison_envelope_for_report(&summary),
+            expected
+        );
     }
 
     #[test]
