@@ -140,6 +140,39 @@ impl ArtifactHeader {
         format!("byte order: {}; {}", self.endian_policy, self.profile)
     }
 
+    /// Validates that the header's version and provenance fields are populated.
+    ///
+    /// The codec already enforces these checks at encode/decode time, but
+    /// exposing the validation step directly lets artifact generators and
+    /// release tooling fail before writing or reusing an invalid header.
+    pub fn validate(&self) -> Result<(), CompressionError> {
+        if self.version != ARTIFACT_VERSION {
+            return Err(CompressionError::new(
+                CompressionErrorKind::InvalidFormat,
+                format!(
+                    "artifact header version {} does not match the current format version {}",
+                    self.version, ARTIFACT_VERSION
+                ),
+            ));
+        }
+
+        if self.generation_label.trim().is_empty() {
+            return Err(CompressionError::new(
+                CompressionErrorKind::InvalidFormat,
+                "artifact header generation label must not be blank",
+            ));
+        }
+
+        if self.source.trim().is_empty() {
+            return Err(CompressionError::new(
+                CompressionErrorKind::InvalidFormat,
+                "artifact header source must not be blank",
+            ));
+        }
+
+        self.profile.validate()
+    }
+
     /// Returns the header summary annotated with how many bodies share it.
     pub fn summary_for_body_count(&self, body_count: usize) -> String {
         format!(
@@ -687,11 +720,11 @@ impl CompressedArtifact {
 
     /// Validates the in-memory artifact before encoding or regeneration.
     ///
-    /// This checks the header profile, duplicate body entries, and every body
-    /// segment's metadata. It is useful for generators that want to fail fast
-    /// before writing a deterministic binary payload.
+    /// This checks the header metadata, header profile, duplicate body entries,
+    /// and every body segment's metadata. It is useful for generators that want
+    /// to fail fast before writing a deterministic binary payload.
     pub fn validate(&self) -> Result<(), CompressionError> {
-        self.header.profile.validate()?;
+        self.header.validate()?;
         validate_body_artifacts(&self.bodies)?;
         for body in &self.bodies {
             body.validate()?;
@@ -797,13 +830,14 @@ impl CompressedArtifact {
             ));
         }
 
-        validate_body_artifacts(&bodies)?;
-
-        Ok(Self {
+        let artifact = Self {
             header,
             checksum,
             bodies,
-        })
+        };
+        artifact.validate()?;
+
+        Ok(artifact)
     }
 
     /// Returns the ecliptic coordinates for a body at a given instant.
@@ -856,7 +890,7 @@ impl CompressedArtifact {
     }
 
     fn encode_payload(&self) -> Result<Vec<u8>, CompressionError> {
-        validate_body_artifacts(&self.bodies)?;
+        self.validate()?;
 
         let mut bytes = Vec::new();
         write_string(&mut bytes, &self.header.generation_label);
@@ -1779,6 +1813,57 @@ mod tests {
             .validate()
             .expect_err("duplicate bodies should be rejected");
         assert_eq!(artifact_error.kind, CompressionErrorKind::InvalidFormat);
+
+        let blank_header = ArtifactHeader::with_profile(
+            "  ",
+            "unit test blank header",
+            ArtifactProfile::ecliptic_longitude_latitude_distance(),
+        );
+        let blank_header_error = blank_header
+            .validate()
+            .expect_err("blank generation labels should be rejected");
+        assert_eq!(blank_header_error.kind, CompressionErrorKind::InvalidFormat);
+
+        let blank_source_header = ArtifactHeader::with_profile(
+            "blank source demo",
+            "",
+            ArtifactProfile::ecliptic_longitude_latitude_distance(),
+        );
+        let blank_source_error = blank_source_header
+            .validate()
+            .expect_err("blank sources should be rejected");
+        assert_eq!(blank_source_error.kind, CompressionErrorKind::InvalidFormat);
+
+        let blank_header_artifact = CompressedArtifact::new(
+            ArtifactHeader::with_profile(
+                " ",
+                "unit test blank header artifact",
+                ArtifactProfile::ecliptic_longitude_latitude_distance(),
+            ),
+            Vec::new(),
+        );
+        let blank_header_artifact_error = blank_header_artifact
+            .validate()
+            .expect_err("artifact validation should reject blank header metadata");
+        assert_eq!(
+            blank_header_artifact_error.kind,
+            CompressionErrorKind::InvalidFormat
+        );
+
+        let blank_header_encode_error = CompressedArtifact::new(
+            ArtifactHeader::with_profile(
+                " ",
+                "unit test blank header encode",
+                ArtifactProfile::ecliptic_longitude_latitude_distance(),
+            ),
+            Vec::new(),
+        )
+        .encode()
+        .expect_err("artifact encoding should reject blank header metadata");
+        assert_eq!(
+            blank_header_encode_error.kind,
+            CompressionErrorKind::InvalidFormat
+        );
     }
 
     #[test]
