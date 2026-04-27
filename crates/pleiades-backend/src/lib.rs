@@ -589,6 +589,18 @@ impl EphemerisRequest {
             self.body, self.instant, self.frame, self.zodiac_mode, self.apparent, observer
         )
     }
+
+    /// Validates this request against backend metadata.
+    ///
+    /// This is the method-form counterpart to [`validate_request_against_metadata`].
+    /// It keeps direct backend callers from having to import the free helper when
+    /// they want to preflight a request before dispatch.
+    pub fn validate_against_metadata(
+        &self,
+        metadata: &BackendMetadata,
+    ) -> Result<(), EphemerisError> {
+        validate_request_against_metadata(self, metadata)
+    }
 }
 
 impl fmt::Display for EphemerisRequest {
@@ -961,6 +973,29 @@ pub fn validate_request_against_metadata(
             EphemerisErrorKind::UnsupportedBody,
             format!("{} does not support {}", metadata.id, req.body),
         ));
+    }
+
+    Ok(())
+}
+
+/// Validates a batch of direct backend requests against backend metadata.
+///
+/// The helper first checks whether the backend advertises batch support and then
+/// validates each request with [`validate_request_against_metadata`], failing
+/// fast on the first unsupported request shape.
+pub fn validate_requests_against_metadata(
+    reqs: &[EphemerisRequest],
+    metadata: &BackendMetadata,
+) -> Result<(), EphemerisError> {
+    if !metadata.capabilities.batch {
+        return Err(EphemerisError::new(
+            EphemerisErrorKind::InvalidRequest,
+            format!("{} does not support batch requests", metadata.id),
+        ));
+    }
+
+    for req in reqs {
+        validate_request_against_metadata(req, metadata)?;
     }
 
     Ok(())
@@ -2018,6 +2053,69 @@ mod tests {
             error.to_string(),
             "the request-policy summary field `time_scale` is out of sync with the current posture"
         );
+    }
+
+    #[test]
+    fn validate_requests_against_metadata_rejects_unsupported_batch_backends() {
+        let metadata = BackendMetadata {
+            id: BackendId::new("toy backend"),
+            version: "0.1.0".to_string(),
+            family: BackendFamily::Algorithmic,
+            provenance: BackendProvenance::new("toy backend"),
+            nominal_range: TimeRange::new(None, None),
+            supported_time_scales: vec![TimeScale::Tt],
+            body_coverage: vec![CelestialBody::Sun],
+            supported_frames: vec![CoordinateFrame::Ecliptic],
+            capabilities: BackendCapabilities {
+                batch: false,
+                ..BackendCapabilities::default()
+            },
+            accuracy: AccuracyClass::Approximate,
+            deterministic: true,
+            offline: true,
+        };
+        let request = EphemerisRequest::new(
+            CelestialBody::Sun,
+            Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+        );
+
+        let error = validate_requests_against_metadata(&[request], &metadata).expect_err(
+            "batch requests should be rejected when the backend does not advertise batch support",
+        );
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert_eq!(error.message, "toy backend does not support batch requests");
+    }
+
+    #[test]
+    fn validate_requests_against_metadata_fails_fast_on_the_first_invalid_request() {
+        let metadata = BackendMetadata {
+            id: BackendId::new("toy backend"),
+            version: "0.1.0".to_string(),
+            family: BackendFamily::Algorithmic,
+            provenance: BackendProvenance::new("toy backend"),
+            nominal_range: TimeRange::new(None, None),
+            supported_time_scales: vec![TimeScale::Tt],
+            body_coverage: vec![CelestialBody::Sun],
+            supported_frames: vec![CoordinateFrame::Ecliptic],
+            capabilities: BackendCapabilities::default(),
+            accuracy: AccuracyClass::Approximate,
+            deterministic: true,
+            offline: true,
+        };
+        let valid_request = EphemerisRequest::new(
+            CelestialBody::Sun,
+            Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+        );
+        let invalid_request = EphemerisRequest {
+            body: CelestialBody::Mars,
+            ..valid_request.clone()
+        };
+
+        let error =
+            validate_requests_against_metadata(&[valid_request, invalid_request], &metadata)
+                .expect_err("the batch helper should stop at the first unsupported body");
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedBody);
+        assert_eq!(error.message, "toy backend does not support Mars");
     }
 
     #[test]
