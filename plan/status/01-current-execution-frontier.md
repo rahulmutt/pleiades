@@ -17,6 +17,7 @@ Several downstream requirements depend on trusted ephemeris outputs:
 - Latest progress (2026-04-27): the shared comparison-audit summary now validates its derived body-count totals before validation, release, and backend-matrix formatting, so the compact `compare-backends-audit` line now fails closed if the audit counts ever drift out of coherence.
 - Latest progress (2026-04-27): the comparison-tolerance policy summary now also validates its scope rows, per-row body counts, per-row tolerance limits, and aggregate coverage totals before the compact report formatter renders it, so the release-facing tolerance policy line now fails closed if the derived policy inventory ever drifts.
 - Latest progress (2026-04-27): the VSOP87 regeneration helper now also has a `--check` mode that regenerates the checked-in binary blobs in memory and compares them against the committed artifacts without writing to disk, which makes the reproducibility workflow a little easier to script alongside the existing rewrite path.
+- Latest progress (2026-04-27): the JPL reference and independent hold-out provenance summaries now also validate their own blank-field labels before formatting release-facing source lines, so the compact snapshot provenance now fails closed if future fallback text ever drifts to an empty source, coverage, or column label.
 
 ## Current repo state summary
 

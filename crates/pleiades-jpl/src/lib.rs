@@ -1543,6 +1543,7 @@ pub fn comparison_snapshot_source_summary_for_report() -> String {
     }
 }
 
+#[cfg(test)]
 fn format_validated_source_summary_for_report(
     label: &'static str,
     manifest: &SnapshotManifest,
@@ -1803,6 +1804,17 @@ pub struct ReferenceSnapshotSourceSummary {
 }
 
 impl ReferenceSnapshotSourceSummary {
+    /// Validates that the summary remains internally consistent.
+    pub fn validate(&self) -> Result<(), ReferenceSnapshotSourceSummaryValidationError> {
+        if self.source.trim().is_empty() {
+            return Err(ReferenceSnapshotSourceSummaryValidationError::BlankSource);
+        }
+        if self.frame_treatment.trim().is_empty() {
+            return Err(ReferenceSnapshotSourceSummaryValidationError::BlankFrameTreatment);
+        }
+        Ok(())
+    }
+
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         format!(
@@ -1813,6 +1825,33 @@ impl ReferenceSnapshotSourceSummary {
         )
     }
 }
+
+/// Structured validation errors for a reference snapshot provenance summary.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ReferenceSnapshotSourceSummaryValidationError {
+    /// The summary did not include a non-empty source label.
+    BlankSource,
+    /// The summary did not include a non-empty frame-treatment label.
+    BlankFrameTreatment,
+}
+
+impl ReferenceSnapshotSourceSummaryValidationError {
+    /// Returns the compact label used in release-facing summaries and tests.
+    pub const fn label(&self) -> &'static str {
+        match self {
+            Self::BlankSource => "blank source",
+            Self::BlankFrameTreatment => "blank frame treatment",
+        }
+    }
+}
+
+impl fmt::Display for ReferenceSnapshotSourceSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.label())
+    }
+}
+
+impl std::error::Error for ReferenceSnapshotSourceSummaryValidationError {}
 
 impl fmt::Display for ReferenceSnapshotSourceSummary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -1838,11 +1877,15 @@ pub fn reference_snapshot_source_summary() -> ReferenceSnapshotSourceSummary {
 
 /// Returns the source-material summary for the checked-in reference snapshot.
 pub fn reference_snapshot_source_summary_for_report() -> String {
-    format_validated_source_summary_for_report(
-        "Reference snapshot source",
-        reference_snapshot_manifest(),
-        || reference_snapshot_source_summary().summary_line(),
-    )
+    if let Err(error) = reference_snapshot_manifest().validate() {
+        return format!("Reference snapshot source: unavailable ({error})");
+    }
+
+    let summary = reference_snapshot_source_summary();
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("Reference snapshot source: unavailable ({error})"),
+    }
 }
 
 /// Returns the manifest summary for the checked-in reference snapshot.
@@ -1862,6 +1905,20 @@ pub struct IndependentHoldoutSourceSummary {
 }
 
 impl IndependentHoldoutSourceSummary {
+    /// Validates that the summary remains internally consistent.
+    pub fn validate(&self) -> Result<(), IndependentHoldoutSourceSummaryValidationError> {
+        if self.source.trim().is_empty() {
+            return Err(IndependentHoldoutSourceSummaryValidationError::BlankSource);
+        }
+        if self.coverage.trim().is_empty() {
+            return Err(IndependentHoldoutSourceSummaryValidationError::BlankCoverage);
+        }
+        if self.columns.trim().is_empty() {
+            return Err(IndependentHoldoutSourceSummaryValidationError::BlankColumns);
+        }
+        Ok(())
+    }
+
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         format!(
@@ -1870,6 +1927,36 @@ impl IndependentHoldoutSourceSummary {
         )
     }
 }
+
+/// Structured validation errors for a hold-out snapshot provenance summary.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum IndependentHoldoutSourceSummaryValidationError {
+    /// The summary did not include a non-empty source label.
+    BlankSource,
+    /// The summary did not include a non-empty coverage label.
+    BlankCoverage,
+    /// The summary did not include a non-empty columns label.
+    BlankColumns,
+}
+
+impl IndependentHoldoutSourceSummaryValidationError {
+    /// Returns the compact label used in release-facing summaries and tests.
+    pub const fn label(&self) -> &'static str {
+        match self {
+            Self::BlankSource => "blank source",
+            Self::BlankCoverage => "blank coverage",
+            Self::BlankColumns => "blank columns",
+        }
+    }
+}
+
+impl fmt::Display for IndependentHoldoutSourceSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.label())
+    }
+}
+
+impl std::error::Error for IndependentHoldoutSourceSummaryValidationError {}
 
 impl fmt::Display for IndependentHoldoutSourceSummary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -1898,11 +1985,15 @@ pub fn independent_holdout_source_summary() -> IndependentHoldoutSourceSummary {
 
 /// Returns the source-material summary for the checked-in hold-out snapshot.
 pub fn independent_holdout_source_summary_for_report() -> String {
-    format_validated_source_summary_for_report(
-        "Independent hold-out source",
-        independent_holdout_snapshot_manifest(),
-        || independent_holdout_source_summary().summary_line(),
-    )
+    if let Err(error) = independent_holdout_snapshot_manifest().validate() {
+        return format!("Independent hold-out source: unavailable ({error})");
+    }
+
+    let summary = independent_holdout_source_summary();
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("Independent hold-out source: unavailable ({error})"),
+    }
 }
 
 /// Returns the manifest summary for the checked-in hold-out snapshot.
@@ -4820,9 +4911,33 @@ mod tests {
             )
         );
         assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validate(), Ok(()));
         assert_eq!(
             reference_snapshot_source_summary_for_report(),
             summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn reference_snapshot_source_summary_validation_reports_blank_fields() {
+        let blank_source = ReferenceSnapshotSourceSummary {
+            source: " ".to_string(),
+            frame_treatment: "geocentric ecliptic J2000".to_string(),
+            reference_epoch: reference_instant(),
+        };
+        assert_eq!(
+            blank_source.validate(),
+            Err(ReferenceSnapshotSourceSummaryValidationError::BlankSource)
+        );
+
+        let blank_frame_treatment = ReferenceSnapshotSourceSummary {
+            source: "source".to_string(),
+            frame_treatment: "\n".to_string(),
+            reference_epoch: reference_instant(),
+        };
+        assert_eq!(
+            blank_frame_treatment.validate(),
+            Err(ReferenceSnapshotSourceSummaryValidationError::BlankFrameTreatment)
         );
     }
 
@@ -4844,9 +4959,43 @@ mod tests {
             "Independent hold-out source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Saturn at 2400000, 2451545, and 2500000.; columns=epoch_jd, body, x_km, y_km, z_km"
         );
         assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validate(), Ok(()));
         assert_eq!(
             independent_holdout_source_summary_for_report(),
             summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn independent_holdout_source_summary_validation_reports_blank_fields() {
+        let blank_source = IndependentHoldoutSourceSummary {
+            source: " ".to_string(),
+            coverage: "coverage".to_string(),
+            columns: "epoch_jd, body, x_km, y_km, z_km".to_string(),
+        };
+        assert_eq!(
+            blank_source.validate(),
+            Err(IndependentHoldoutSourceSummaryValidationError::BlankSource)
+        );
+
+        let blank_coverage = IndependentHoldoutSourceSummary {
+            source: "source".to_string(),
+            coverage: "\t".to_string(),
+            columns: "epoch_jd, body, x_km, y_km, z_km".to_string(),
+        };
+        assert_eq!(
+            blank_coverage.validate(),
+            Err(IndependentHoldoutSourceSummaryValidationError::BlankCoverage)
+        );
+
+        let blank_columns = IndependentHoldoutSourceSummary {
+            source: "source".to_string(),
+            coverage: "coverage".to_string(),
+            columns: "  ".to_string(),
+        };
+        assert_eq!(
+            blank_columns.validate(),
+            Err(IndependentHoldoutSourceSummaryValidationError::BlankColumns)
         );
     }
 
