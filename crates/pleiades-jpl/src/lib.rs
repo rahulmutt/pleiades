@@ -797,9 +797,19 @@ pub fn comparison_snapshot_source_summary_for_report() -> String {
     comparison_snapshot_source_summary().summary_line()
 }
 
+fn format_manifest_summary_for_report(label: &str, manifest: &SnapshotManifest) -> String {
+    match manifest.validate() {
+        Ok(()) => manifest.summary_line(label),
+        Err(error) => format!("{label}: unavailable ({error})"),
+    }
+}
+
 /// Returns the manifest summary for the comparison snapshot used by validation.
 pub fn comparison_snapshot_manifest_summary_for_report() -> String {
-    comparison_snapshot_manifest().summary_line("Comparison snapshot manifest")
+    format_manifest_summary_for_report(
+        "Comparison snapshot manifest",
+        comparison_snapshot_manifest(),
+    )
 }
 
 impl ComparisonSnapshotSummary {
@@ -1004,7 +1014,7 @@ pub fn reference_snapshot_source_summary_for_report() -> String {
 
 /// Returns the manifest summary for the checked-in reference snapshot.
 pub fn reference_snapshot_manifest_summary_for_report() -> String {
-    reference_snapshot_manifest().summary_line("Reference snapshot manifest")
+    format_manifest_summary_for_report("Reference snapshot manifest", reference_snapshot_manifest())
 }
 
 /// Backend-owned provenance summary for the checked-in hold-out snapshot source material.
@@ -1060,7 +1070,10 @@ pub fn independent_holdout_source_summary_for_report() -> String {
 
 /// Returns the manifest summary for the checked-in hold-out snapshot.
 pub fn independent_holdout_manifest_summary_for_report() -> String {
-    independent_holdout_snapshot_manifest().summary_line("Independent hold-out manifest")
+    format_manifest_summary_for_report(
+        "Independent hold-out manifest",
+        independent_holdout_snapshot_manifest(),
+    )
 }
 
 /// Returns the combined snapshot evidence summary used by validation and release reports.
@@ -3353,6 +3366,21 @@ mod tests {
         assert_eq!(
             manifest.summary_line("Example manifest"),
             "Example manifest: Example snapshot.; source=Example source; coverage=unknown; columns=body, x_km, body"
+        );
+    }
+
+    #[test]
+    fn manifest_summary_for_report_reports_validation_errors() {
+        let manifest = SnapshotManifest {
+            title: Some("Example snapshot.".to_string()),
+            source: Some("Example source".to_string()),
+            coverage: Some("".to_string()),
+            columns: vec!["body".to_string()],
+        };
+
+        assert_eq!(
+            format_manifest_summary_for_report("Example manifest", &manifest),
+            "Example manifest: unavailable (blank coverage)"
         );
     }
 
