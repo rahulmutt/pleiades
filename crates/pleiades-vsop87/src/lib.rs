@@ -413,6 +413,162 @@ impl fmt::Display for Vsop87SourceDocumentationSummary {
     }
 }
 
+/// Validation error returned when the VSOP87 source-documentation summary drifts from the current
+/// catalog.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Vsop87SourceDocumentationSummaryValidationError {
+    /// A rendered summary field no longer matches the current source-documentation catalog.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for Vsop87SourceDocumentationSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the VSOP87 source documentation summary field `{field}` is out of sync with the current source catalog"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for Vsop87SourceDocumentationSummaryValidationError {}
+
+impl Vsop87SourceDocumentationSummary {
+    /// Returns `Ok(())` when the summary still matches the current source-documentation catalog.
+    pub fn validate(&self) -> Result<(), Vsop87SourceDocumentationSummaryValidationError> {
+        let source_specs = source_specifications();
+        let source_backed_profiles = source_backed_body_profiles();
+        let fallback_profiles = fallback_body_profiles();
+        let expected_source_files = source_specs
+            .iter()
+            .map(|spec| spec.source_file)
+            .collect::<Vec<_>>();
+        let expected_date_ranges = {
+            let mut date_ranges = source_specs
+                .iter()
+                .map(|spec| spec.date_range)
+                .collect::<Vec<_>>();
+            date_ranges.sort_unstable();
+            date_ranges.dedup();
+            date_ranges
+        };
+        let expected_generated_binary_bodies = source_backed_profiles
+            .iter()
+            .filter(|profile| profile.kind == Vsop87BodySourceKind::GeneratedBinaryVsop87b)
+            .map(|profile| profile.body.clone())
+            .collect::<Vec<_>>();
+        let expected_vendored_full_file_bodies = source_backed_profiles
+            .iter()
+            .filter(|profile| profile.kind == Vsop87BodySourceKind::VendoredVsop87b)
+            .map(|profile| profile.body.clone())
+            .collect::<Vec<_>>();
+        let expected_truncated_bodies = source_backed_profiles
+            .iter()
+            .filter(|profile| profile.kind == Vsop87BodySourceKind::TruncatedVsop87b)
+            .map(|profile| profile.body.clone())
+            .collect::<Vec<_>>();
+        let expected_fallback_bodies = fallback_profiles
+            .iter()
+            .map(|profile| profile.body.clone())
+            .collect::<Vec<_>>();
+
+        if self.source_specification_count != source_specs.len() {
+            return Err(
+                Vsop87SourceDocumentationSummaryValidationError::FieldOutOfSync {
+                    field: "source_specification_count",
+                },
+            );
+        }
+        if self.source_backed_profile_count != source_backed_profiles.len() {
+            return Err(
+                Vsop87SourceDocumentationSummaryValidationError::FieldOutOfSync {
+                    field: "source_backed_profile_count",
+                },
+            );
+        }
+        if self.source_backed_bodies != source_backed_body_order() {
+            return Err(
+                Vsop87SourceDocumentationSummaryValidationError::FieldOutOfSync {
+                    field: "source_backed_bodies",
+                },
+            );
+        }
+        if self.source_files != expected_source_files {
+            return Err(
+                Vsop87SourceDocumentationSummaryValidationError::FieldOutOfSync {
+                    field: "source_files",
+                },
+            );
+        }
+        if self.generated_binary_bodies != expected_generated_binary_bodies {
+            return Err(
+                Vsop87SourceDocumentationSummaryValidationError::FieldOutOfSync {
+                    field: "generated_binary_bodies",
+                },
+            );
+        }
+        if self.vendored_full_file_bodies != expected_vendored_full_file_bodies {
+            return Err(
+                Vsop87SourceDocumentationSummaryValidationError::FieldOutOfSync {
+                    field: "vendored_full_file_bodies",
+                },
+            );
+        }
+        if self.truncated_bodies != expected_truncated_bodies {
+            return Err(
+                Vsop87SourceDocumentationSummaryValidationError::FieldOutOfSync {
+                    field: "truncated_bodies",
+                },
+            );
+        }
+        if self.vendored_full_file_profile_count != expected_vendored_full_file_bodies.len() {
+            return Err(
+                Vsop87SourceDocumentationSummaryValidationError::FieldOutOfSync {
+                    field: "vendored_full_file_profile_count",
+                },
+            );
+        }
+        if self.generated_binary_profile_count != expected_generated_binary_bodies.len() {
+            return Err(
+                Vsop87SourceDocumentationSummaryValidationError::FieldOutOfSync {
+                    field: "generated_binary_profile_count",
+                },
+            );
+        }
+        if self.truncated_profile_count != expected_truncated_bodies.len() {
+            return Err(
+                Vsop87SourceDocumentationSummaryValidationError::FieldOutOfSync {
+                    field: "truncated_profile_count",
+                },
+            );
+        }
+        if self.fallback_profile_count != fallback_profiles.len() {
+            return Err(
+                Vsop87SourceDocumentationSummaryValidationError::FieldOutOfSync {
+                    field: "fallback_profile_count",
+                },
+            );
+        }
+        if self.fallback_bodies != expected_fallback_bodies {
+            return Err(
+                Vsop87SourceDocumentationSummaryValidationError::FieldOutOfSync {
+                    field: "fallback_bodies",
+                },
+            );
+        }
+        if self.date_ranges != expected_date_ranges {
+            return Err(
+                Vsop87SourceDocumentationSummaryValidationError::FieldOutOfSync {
+                    field: "date_ranges",
+                },
+            );
+        }
+
+        Ok(())
+    }
+}
+
 /// Structured issue labels used by the VSOP87 source-documentation health check.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum Vsop87SourceDocumentationHealthIssue {
@@ -1930,6 +2086,10 @@ pub fn format_source_documentation_summary(summary: &Vsop87SourceDocumentationSu
 /// canonical VSOP87 inputs.
 pub fn source_documentation_summary_for_report() -> String {
     let summary = source_documentation_summary();
+    if let Err(error) = summary.validate() {
+        return format!("VSOP87 source documentation: unavailable ({error})");
+    }
+
     match source_documentation_health_summary().validate() {
         Ok(()) => summary.summary_line(),
         Err(error) => format!("VSOP87 source documentation: unavailable ({error})"),
@@ -5904,12 +6064,27 @@ mod tests {
     fn source_documentation_report_matches_the_backend_formatter() {
         let summary = source_documentation_summary();
         let rendered = source_documentation_summary_for_report();
+        assert_eq!(summary.validate(), Ok(()));
         assert!(source_documentation_health_summary().validate().is_ok());
         assert_eq!(rendered, format_source_documentation_summary(&summary));
         assert_eq!(summary.summary_line(), rendered);
         assert_eq!(summary.to_string(), rendered);
         assert!(rendered.contains("source files: VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep"));
         assert!(rendered.contains("source-backed breakdown: 8 generated binary bodies (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune), 0 vendored full-file bodies (none), 0 truncated slice bodies (none)"));
+    }
+
+    #[test]
+    fn source_documentation_summary_validation_rejects_source_file_drift() {
+        let mut summary = source_documentation_summary();
+        summary.source_specification_count += 1;
+
+        let error = summary
+            .validate()
+            .expect_err("source specification count drift should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "the VSOP87 source documentation summary field `source_specification_count` is out of sync with the current source catalog"
+        );
     }
 
     #[test]
