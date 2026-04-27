@@ -3548,9 +3548,10 @@ impl Vsop87Backend {
 
     fn motion(body: CelestialBody, days: f64) -> Option<Motion> {
         // A symmetric one-day span gives stable chart-facing daily rates while
-        // keeping the preliminary element model simple and deterministic. These
-        // are finite-difference estimates of the same mean geocentric model, not
-        // apparent velocities from a full VSOP87/light-time reduction.
+        // keeping the finite-difference mean geocentric model simple and
+        // deterministic. These are finite-difference estimates of the same mean
+        // geocentric model, not apparent velocities from a full VSOP87/light-time
+        // reduction.
         const HALF_SPAN_DAYS: f64 = 0.5;
         const FULL_SPAN_DAYS: f64 = HALF_SPAN_DAYS * 2.0;
 
