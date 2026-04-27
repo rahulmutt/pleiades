@@ -27,7 +27,7 @@ use pleiades_backend::{
     validate_observer_policy, validate_request_policy, validate_zodiac_policy, AccuracyClass,
     BackendCapabilities, BackendFamily, BackendId, BackendMetadata, BackendProvenance,
     EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
-    QualityAnnotation,
+    FrameTreatmentSummary, QualityAnnotation,
 };
 use pleiades_types::{
     Apparentness, CoordinateFrame, CustomBodyId, EclipticCoordinates, Instant, JulianDay, Latitude,
@@ -823,9 +823,16 @@ pub fn jpl_snapshot_request_policy_summary_for_report() -> String {
     jpl_snapshot_request_policy().summary_line()
 }
 
+/// Returns the structured JPL snapshot frame-treatment summary.
+pub const fn frame_treatment_summary_details() -> FrameTreatmentSummary {
+    FrameTreatmentSummary::new(
+        "checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform",
+    )
+}
+
 /// Returns the current JPL snapshot frame-treatment summary.
 pub fn frame_treatment_summary() -> &'static str {
-    "checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"
+    frame_treatment_summary_details().summary_line()
 }
 
 /// Returns the comparison-only subset used by the stage-4 validation corpus.
@@ -3746,10 +3753,15 @@ mod tests {
 
     #[test]
     fn frame_treatment_summary_documents_the_shared_mean_obliquity_transform() {
+        let summary = frame_treatment_summary_details();
+
+        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
-            frame_treatment_summary(),
+            summary.summary_line(),
             "checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"
         );
+        assert_eq!(frame_treatment_summary(), summary.summary_line());
+        assert!(summary.summary_line().contains("mean-obliquity transform"));
     }
 
     #[test]

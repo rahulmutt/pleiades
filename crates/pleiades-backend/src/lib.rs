@@ -587,6 +587,30 @@ impl fmt::Display for RequestPolicySummary {
     }
 }
 
+/// Compact summary of a backend's frame-treatment posture.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct FrameTreatmentSummary {
+    summary: &'static str,
+}
+
+impl FrameTreatmentSummary {
+    /// Creates a new frame-treatment summary from a backend-owned note.
+    pub const fn new(summary: &'static str) -> Self {
+        Self { summary }
+    }
+
+    /// Returns the compact one-line rendering of the frame-treatment posture.
+    pub const fn summary_line(self) -> &'static str {
+        self.summary
+    }
+}
+
+impl fmt::Display for FrameTreatmentSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.summary_line())
+    }
+}
+
 /// Returns the current shared request-policy posture used by validation and reports.
 pub const fn current_request_policy_summary() -> RequestPolicySummary {
     RequestPolicySummary {
@@ -1225,6 +1249,17 @@ mod tests {
         assert!(capabilities.summary_line().contains("topocentric="));
         assert!(capabilities.summary_line().contains("apparent="));
         assert!(capabilities.summary_line().contains("native_sidereal="));
+    }
+
+    #[test]
+    fn frame_treatment_summary_has_a_compact_display() {
+        let summary = FrameTreatmentSummary::new(
+            "geocentric ecliptic inputs; equatorial coordinates are derived with a mean-obliquity transform",
+        );
+
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.summary_line(), "geocentric ecliptic inputs; equatorial coordinates are derived with a mean-obliquity transform");
+        assert!(summary.summary_line().contains("mean-obliquity"));
     }
 
     struct ToyBackend;

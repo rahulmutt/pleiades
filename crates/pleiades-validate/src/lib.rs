@@ -60,7 +60,7 @@ use pleiades_elp::{
     lunar_reference_evidence_envelope_for_report, lunar_reference_evidence_summary,
     lunar_reference_evidence_summary_for_report, lunar_theory_capability_summary,
     lunar_theory_catalog_summary_for_report, lunar_theory_catalog_validation_summary_for_report,
-    lunar_theory_frame_treatment_summary, lunar_theory_request_policy_summary,
+    lunar_theory_frame_treatment_summary_details, lunar_theory_request_policy_summary,
     lunar_theory_source_summary_for_report, lunar_theory_specification, lunar_theory_summary,
     ElpBackend,
 };
@@ -72,7 +72,7 @@ use pleiades_jpl::{
     comparison_snapshot_source_summary, comparison_snapshot_summary_for_report,
     format_jpl_interpolation_quality_kind_coverage,
     format_jpl_interpolation_quality_summary_for_report,
-    frame_treatment_summary as jpl_frame_treatment_summary,
+    frame_treatment_summary_details as jpl_frame_treatment_summary_details,
     independent_holdout_snapshot_equatorial_parity_summary_for_report as jpl_independent_holdout_snapshot_equatorial_parity_summary_for_report,
     interpolation_quality_samples, jpl_independent_holdout_summary_for_report,
     jpl_interpolation_quality_kind_coverage, jpl_snapshot_evidence_summary_for_report,
@@ -85,7 +85,7 @@ use pleiades_jpl::{
 use pleiades_vsop87::{
     body_source_profiles, canonical_epoch_equatorial_evidence_summary_for_report,
     canonical_epoch_evidence_summary_for_report, canonical_epoch_outlier_note_for_report,
-    frame_treatment_summary, generated_binary_audit_summary_for_report,
+    frame_treatment_summary_details, generated_binary_audit_summary_for_report,
     source_audit_summary_for_report, source_audits, source_body_class_evidence_summary_for_report,
     source_body_evidence_summary_for_report, source_documentation_health_summary_for_report,
     source_documentation_summary_for_report, source_specifications,
@@ -3439,7 +3439,7 @@ fn render_release_summary_text() -> String {
     text.push_str(&lunar_theory_request_policy_summary());
     text.push('\n');
     text.push_str("ELP frame treatment: ");
-    text.push_str(lunar_theory_frame_treatment_summary());
+    text.push_str(&lunar_theory_frame_treatment_summary_details().to_string());
     text.push('\n');
     text.push_str("Lunar reference: ");
     text.push_str(&lunar_reference_evidence_summary_for_report());
@@ -5436,11 +5436,11 @@ fn format_vsop87_source_documentation_health_summary() -> String {
 }
 
 fn format_vsop87_frame_treatment_summary() -> String {
-    frame_treatment_summary().to_string()
+    frame_treatment_summary_details().to_string()
 }
 
 fn format_jpl_frame_treatment_summary() -> String {
-    jpl_frame_treatment_summary().to_string()
+    jpl_frame_treatment_summary_details().to_string()
 }
 
 fn format_vsop87_request_policy_summary() -> String {
@@ -5792,7 +5792,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(
         text,
         "ELP frame treatment: {}",
-        lunar_theory_frame_treatment_summary()
+        lunar_theory_frame_treatment_summary_details()
     );
     let _ = writeln!(text, "  {}", lunar_theory_source_summary_for_report());
     let _ = writeln!(text);

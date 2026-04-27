@@ -29,7 +29,7 @@ use pleiades_backend::{
     validate_observer_policy, validate_request_policy, validate_zodiac_policy, AccuracyClass,
     Apparentness, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
     BackendProvenance, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
-    EphemerisResult, QualityAnnotation,
+    EphemerisResult, FrameTreatmentSummary, QualityAnnotation,
 };
 use pleiades_types::{
     Angle, CelestialBody, CoordinateFrame, EclipticCoordinates, EquatorialCoordinates, Instant,
@@ -1069,9 +1069,14 @@ pub fn lunar_theory_request_policy_summary() -> String {
     lunar_theory_request_policy().summary_line()
 }
 
+/// Returns the structured lunar-theory frame-treatment summary.
+pub fn lunar_theory_frame_treatment_summary_details() -> FrameTreatmentSummary {
+    FrameTreatmentSummary::new(lunar_theory_specification().frame_note)
+}
+
 /// Returns the current lunar-theory frame-treatment summary.
 pub fn lunar_theory_frame_treatment_summary() -> &'static str {
-    lunar_theory_specification().frame_note
+    lunar_theory_frame_treatment_summary_details().summary_line()
 }
 
 fn join_display<T: fmt::Display>(values: &[T]) -> String {
@@ -3835,6 +3840,13 @@ mod tests {
             .contains("2021-03-05 mean-perigee example"));
         assert!(theory.date_range_note.contains("1913-05-27 true-node"));
         assert!(theory.frame_note.contains("mean-obliquity"));
+        let frame_summary = lunar_theory_frame_treatment_summary_details();
+        assert_eq!(frame_summary.to_string(), frame_summary.summary_line());
+        assert_eq!(frame_summary.summary_line(), theory.frame_note);
+        assert_eq!(
+            lunar_theory_frame_treatment_summary(),
+            frame_summary.summary_line()
+        );
         assert_eq!(
             theory.validation_window,
             TimeRange::new(

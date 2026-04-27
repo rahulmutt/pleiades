@@ -36,7 +36,7 @@ use pleiades_backend::{
     validate_observer_policy, validate_request_policy, validate_zodiac_policy, AccuracyClass,
     Apparentness, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
     BackendProvenance, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
-    EphemerisResult, QualityAnnotation,
+    EphemerisResult, FrameTreatmentSummary, QualityAnnotation,
 };
 use pleiades_types::{
     CelestialBody, CoordinateFrame, EclipticCoordinates, EquatorialCoordinates, Instant, Latitude,
@@ -916,9 +916,16 @@ pub fn source_specifications() -> Vec<Vsop87SourceSpecification> {
         .collect()
 }
 
+/// Returns the structured frame-treatment summary for VSOP87-backed results.
+pub const fn frame_treatment_summary_details() -> FrameTreatmentSummary {
+    FrameTreatmentSummary::new(
+        "VSOP87 frame treatment: J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a mean-obliquity transform",
+    )
+}
+
 /// Returns the current frame-treatment summary for VSOP87-backed results.
 pub fn frame_treatment_summary() -> &'static str {
-    "VSOP87 frame treatment: J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a mean-obliquity transform"
+    frame_treatment_summary_details().summary_line()
 }
 
 /// Structured request policy for the current VSOP87 backend.
@@ -4599,6 +4606,19 @@ mod tests {
             canonical_epoch_outlier_note_for_report(),
             "VSOP87 canonical J2000 interim outliers: none"
         );
+    }
+
+    #[test]
+    fn frame_treatment_summary_has_a_displayable_summary_line() {
+        let summary = frame_treatment_summary_details();
+
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            summary.summary_line(),
+            "VSOP87 frame treatment: J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a mean-obliquity transform"
+        );
+        assert_eq!(frame_treatment_summary(), summary.summary_line());
+        assert!(summary.summary_line().contains("mean-obliquity transform"));
     }
 
     #[test]
