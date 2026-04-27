@@ -435,6 +435,7 @@ impl BackendMetadata {
         validate_non_blank("version", &self.version)?;
         validate_non_blank("provenance summary", &self.provenance.summary)?;
         validate_non_blank_entries("provenance data sources", &self.provenance.data_sources)?;
+        validate_unique_entries("provenance data sources", &self.provenance.data_sources)?;
         validate_non_empty_unique("supported time scales", &self.supported_time_scales)?;
         validate_non_empty_unique("body coverage", &self.body_coverage)?;
         validate_non_empty_unique("supported frames", &self.supported_frames)?;
@@ -497,14 +498,10 @@ fn validate_non_blank_entries<T: AsRef<str>>(
     Ok(())
 }
 
-fn validate_non_empty_unique<T: fmt::Display + PartialEq>(
+fn validate_unique_entries<T: fmt::Display + PartialEq>(
     field: &'static str,
     values: &[T],
 ) -> Result<(), BackendMetadataValidationError> {
-    if values.is_empty() {
-        return Err(BackendMetadataValidationError::EmptyField { field });
-    }
-
     for (index, value) in values.iter().enumerate() {
         if values[..index].iter().any(|prior| prior == value) {
             return Err(BackendMetadataValidationError::DuplicateEntry {
@@ -515,6 +512,17 @@ fn validate_non_empty_unique<T: fmt::Display + PartialEq>(
     }
 
     Ok(())
+}
+
+fn validate_non_empty_unique<T: fmt::Display + PartialEq>(
+    field: &'static str,
+    values: &[T],
+) -> Result<(), BackendMetadataValidationError> {
+    if values.is_empty() {
+        return Err(BackendMetadataValidationError::EmptyField { field });
+    }
+
+    validate_unique_entries(field, values)
 }
 
 /// A backend request.
@@ -1578,6 +1586,18 @@ mod tests {
         assert_eq!(error.to_string(), error.summary_line());
 
         metadata.supported_frames = vec![CoordinateFrame::Ecliptic];
+        metadata.provenance.data_sources = vec!["source A".to_string(), "source A".to_string()];
+
+        let error = metadata
+            .validate()
+            .expect_err("duplicate provenance sources should fail validation");
+        assert_eq!(
+            error.summary_line(),
+            "backend metadata field `provenance data sources` contains duplicate entry `source A`"
+        );
+        assert_eq!(error.to_string(), error.summary_line());
+
+        metadata.provenance.data_sources = vec!["source A".to_string()];
         metadata.nominal_range = TimeRange::new(
             Some(Instant::new(
                 JulianDay::from_days(2_451_546.0),
