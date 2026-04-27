@@ -12,8 +12,8 @@
 //! `regenerate-vsop87b-tables` binary keep those checked-in blobs reproducible
 //! from the public source text. The backend accepts both TT and TDB requests as
 //! dynamical-time inputs and still rejects UT-based requests explicitly. It
-//! exposes mean-only tropical geocentric ecliptic/equatorial results and does
-//! not accept topocentric observer or apparent-place requests yet. The source-backed
+//! exposes mean-only tropical geocentric ecliptic/equatorial results and rejects
+//! topocentric observer or apparent-place requests with structured errors. The source-backed
 //! and fallback body-profile helpers are public so reproducibility tooling can reuse
 //! the backend-owned catalog partition directly. Pluto still uses compact
 //! Keplerian orbital elements,
