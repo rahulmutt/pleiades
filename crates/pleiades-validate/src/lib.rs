@@ -381,6 +381,95 @@ impl ComparisonSummary {
                 .unwrap_or_else(|| "n/a".to_string()),
         )
     }
+
+    /// Returns `Ok(())` when the aggregate envelope is finite and self-consistent.
+    pub fn validate(&self) -> Result<(), EphemerisError> {
+        if self.sample_count == 0 {
+            if self.max_longitude_delta_body.is_some()
+                || self.max_latitude_delta_body.is_some()
+                || self.max_distance_delta_body.is_some()
+                || self.max_distance_delta_au.is_some()
+                || self.mean_distance_delta_au.is_some()
+                || self.rms_distance_delta_au.is_some()
+            {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    "comparison summary with zero samples must not carry per-body or distance extrema",
+                ));
+            }
+
+            for (label, value) in [
+                ("max_longitude_delta_deg", self.max_longitude_delta_deg),
+                ("mean_longitude_delta_deg", self.mean_longitude_delta_deg),
+                ("rms_longitude_delta_deg", self.rms_longitude_delta_deg),
+                ("max_latitude_delta_deg", self.max_latitude_delta_deg),
+                ("mean_latitude_delta_deg", self.mean_latitude_delta_deg),
+                ("rms_latitude_delta_deg", self.rms_latitude_delta_deg),
+            ] {
+                if value != 0.0 {
+                    return Err(EphemerisError::new(
+                        EphemerisErrorKind::InvalidRequest,
+                        format!("comparison summary field `{label}` must be zero when there are no samples"),
+                    ));
+                }
+            }
+        } else if self.max_longitude_delta_body.is_none() || self.max_latitude_delta_body.is_none()
+        {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "comparison summary with samples must name the bodies that drive the longitude and latitude maxima",
+            ));
+        }
+
+        for (label, value) in [
+            ("max_longitude_delta_deg", self.max_longitude_delta_deg),
+            ("mean_longitude_delta_deg", self.mean_longitude_delta_deg),
+            ("rms_longitude_delta_deg", self.rms_longitude_delta_deg),
+            ("max_latitude_delta_deg", self.max_latitude_delta_deg),
+            ("mean_latitude_delta_deg", self.mean_latitude_delta_deg),
+            ("rms_latitude_delta_deg", self.rms_latitude_delta_deg),
+        ] {
+            if !value.is_finite() || value.is_sign_negative() {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "comparison summary field `{label}` must be a finite non-negative value"
+                    ),
+                ));
+            }
+        }
+
+        match (
+            self.max_distance_delta_body.as_ref(),
+            self.max_distance_delta_au,
+            self.mean_distance_delta_au,
+            self.rms_distance_delta_au,
+        ) {
+            (None, None, None, None) => {}
+            (Some(_), Some(max), Some(mean), Some(rms)) => {
+                for (label, value) in [
+                    ("max_distance_delta_au", max),
+                    ("mean_distance_delta_au", mean),
+                    ("rms_distance_delta_au", rms),
+                ] {
+                    if !value.is_finite() || value.is_sign_negative() {
+                        return Err(EphemerisError::new(
+                            EphemerisErrorKind::InvalidRequest,
+                            format!("comparison summary field `{label}` must be a finite non-negative value"),
+                        ));
+                    }
+                }
+            }
+            _ => {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    "comparison summary distance metrics must either all be present or all be absent",
+                ));
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl fmt::Display for ComparisonSummary {
@@ -5968,6 +6057,101 @@ impl ComparisonEnvelopeSummary {
     fn percentile_line(&self) -> String {
         self.percentile.summary_line()
     }
+
+    fn validate_against_samples(&self, samples: &[ComparisonSample]) -> Result<(), EphemerisError> {
+        self.summary.validate()?;
+
+        if self.summary.sample_count != samples.len() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "comparison envelope summary sample-count mismatch: expected {}, found {}",
+                    self.summary.sample_count,
+                    samples.len()
+                ),
+            ));
+        }
+
+        if samples.is_empty() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "comparison envelope summary has no samples",
+            ));
+        }
+
+        for (index, sample) in samples.iter().enumerate() {
+            for (label, value) in [
+                ("longitude_delta_deg", sample.longitude_delta_deg),
+                ("latitude_delta_deg", sample.latitude_delta_deg),
+            ] {
+                if !value.is_finite() || value.is_sign_negative() {
+                    return Err(EphemerisError::new(
+                        EphemerisErrorKind::InvalidRequest,
+                        format!(
+                            "comparison sample {} field `{label}` must be a finite non-negative value",
+                            index + 1
+                        ),
+                    ));
+                }
+            }
+
+            if let Some(distance_delta_au) = sample.distance_delta_au {
+                if !distance_delta_au.is_finite() || distance_delta_au.is_sign_negative() {
+                    return Err(EphemerisError::new(
+                        EphemerisErrorKind::InvalidRequest,
+                        format!(
+                            "comparison sample {} field `distance_delta_au` must be a finite non-negative value",
+                            index + 1
+                        ),
+                    ));
+                }
+            }
+        }
+
+        for (label, value) in [
+            (
+                "median_longitude_delta_deg",
+                self.median.longitude_delta_deg,
+            ),
+            ("median_latitude_delta_deg", self.median.latitude_delta_deg),
+            (
+                "percentile_longitude_delta_deg",
+                self.percentile.longitude_delta_deg,
+            ),
+            (
+                "percentile_latitude_delta_deg",
+                self.percentile.latitude_delta_deg,
+            ),
+        ] {
+            if !value.is_finite() || value.is_sign_negative() {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "comparison envelope field `{label}` must be a finite non-negative value"
+                    ),
+                ));
+            }
+        }
+
+        for (label, value) in [
+            ("median_distance_delta_au", self.median.distance_delta_au),
+            (
+                "percentile_distance_delta_au",
+                self.percentile.distance_delta_au,
+            ),
+        ] {
+            if let Some(value) = value {
+                if !value.is_finite() || value.is_sign_negative() {
+                    return Err(EphemerisError::new(
+                        EphemerisErrorKind::InvalidRequest,
+                        format!("comparison envelope field `{label}` must be a finite non-negative value"),
+                    ));
+                }
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl fmt::Display for ComparisonEnvelopeSummary {
@@ -6066,6 +6250,10 @@ fn comparison_percentile_envelope(
 }
 
 fn format_comparison_percentile_envelope_for_report(samples: &[ComparisonSample]) -> String {
+    if let Err(error) = validate_comparison_samples_for_report(samples) {
+        return format!("comparison percentile envelope unavailable ({error})");
+    }
+
     comparison_percentile_envelope(samples, 0.95).summary_line()
 }
 
@@ -6073,7 +6261,11 @@ fn format_comparison_envelope_for_report(
     summary: &ComparisonSummary,
     samples: &[ComparisonSample],
 ) -> String {
-    comparison_envelope_summary(summary, samples).summary_line()
+    let envelope = comparison_envelope_summary(summary, samples);
+    match envelope.validate_against_samples(samples) {
+        Ok(()) => envelope.summary_line(),
+        Err(error) => format!("comparison envelope unavailable ({error})"),
+    }
 }
 
 fn format_body_class_comparison_envelope_for_report(summary: &BodyClassSummary) -> String {
@@ -6082,6 +6274,48 @@ fn format_body_class_comparison_envelope_for_report(summary: &BodyClassSummary) 
 
 fn format_body_class_tolerance_envelope_for_report(summary: &BodyClassToleranceSummary) -> String {
     summary.summary_line()
+}
+
+fn validate_comparison_samples_for_report(
+    samples: &[ComparisonSample],
+) -> Result<(), EphemerisError> {
+    if samples.is_empty() {
+        return Err(EphemerisError::new(
+            EphemerisErrorKind::InvalidRequest,
+            "comparison sample slice is empty",
+        ));
+    }
+
+    for (index, sample) in samples.iter().enumerate() {
+        for (label, value) in [
+            ("longitude_delta_deg", sample.longitude_delta_deg),
+            ("latitude_delta_deg", sample.latitude_delta_deg),
+        ] {
+            if !value.is_finite() || value.is_sign_negative() {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "comparison sample {} field `{label}` must be a finite non-negative value",
+                        index + 1
+                    ),
+                ));
+            }
+        }
+
+        if let Some(distance_delta_au) = sample.distance_delta_au {
+            if !distance_delta_au.is_finite() || distance_delta_au.is_sign_negative() {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "comparison sample {} field `distance_delta_au` must be a finite non-negative value",
+                        index + 1
+                    ),
+                ));
+            }
+        }
+    }
+
+    Ok(())
 }
 
 fn comparison_tolerance_policy_summary_details(
@@ -14048,6 +14282,34 @@ version = "0.9.0"
         assert!(rendered.contains("max latitude delta: 0.223456789012° (Moon)"));
         assert!(rendered.contains("max distance delta: 0.001234567890 AU (Mars)"));
         assert_eq!(rendered, format!("{summary}"));
+        assert!(summary.validate().is_ok());
+    }
+
+    #[test]
+    fn comparison_envelope_formatter_rejects_empty_sample_slices() {
+        let summary = ComparisonSummary {
+            sample_count: 1,
+            max_longitude_delta_body: Some(CelestialBody::Sun),
+            max_longitude_delta_deg: 0.123_456_789_012,
+            mean_longitude_delta_deg: 0.012_345_678_901,
+            rms_longitude_delta_deg: 0.023_456_789_012,
+            max_latitude_delta_body: Some(CelestialBody::Moon),
+            max_latitude_delta_deg: 0.223_456_789_012,
+            mean_latitude_delta_deg: 0.032_345_678_901,
+            rms_latitude_delta_deg: 0.043_456_789_012,
+            max_distance_delta_body: Some(CelestialBody::Mars),
+            max_distance_delta_au: Some(0.001_234_567_89),
+            mean_distance_delta_au: Some(0.000_234_567_89),
+            rms_distance_delta_au: Some(0.000_334_567_89),
+        };
+
+        let envelope = format_comparison_envelope_for_report(&summary, &[]);
+        assert!(envelope.contains("comparison envelope unavailable"));
+        assert!(envelope.contains("sample-count mismatch") || envelope.contains("no samples"));
+
+        let percentile = format_comparison_percentile_envelope_for_report(&[]);
+        assert!(percentile.contains("comparison percentile envelope unavailable"));
+        assert!(percentile.contains("comparison sample slice is empty"));
     }
 
     #[test]
