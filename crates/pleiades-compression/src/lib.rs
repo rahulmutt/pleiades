@@ -481,6 +481,12 @@ impl ArtifactProfileCoverageSummary {
     /// that the embedded artifact profile is internally consistent.
     pub fn validate(&self) -> Result<(), CompressionError> {
         self.profile.validate()?;
+        if self.bodies.is_empty() {
+            return Err(CompressionError::new(
+                CompressionErrorKind::InvalidFormat,
+                "artifact profile coverage bundled body list must not be empty",
+            ));
+        }
         validate_unique_values("artifact profile coverage bundled bodies", &self.bodies)?;
         if self.body_count != self.bodies.len() {
             return Err(CompressionError::new(
@@ -2202,6 +2208,22 @@ mod tests {
         assert!(error
             .message
             .contains("artifact profile coverage body count does not match bundled body list"));
+    }
+
+    #[test]
+    fn artifact_profile_coverage_validation_rejects_empty_bodies() {
+        let coverage = ArtifactProfileCoverageSummary::new(
+            ArtifactProfile::ecliptic_longitude_latitude_distance(),
+            Vec::new(),
+        );
+
+        let error = coverage
+            .validate()
+            .expect_err("empty bundled-body lists should be rejected");
+        assert_eq!(error.kind, CompressionErrorKind::InvalidFormat);
+        assert!(error
+            .message
+            .contains("artifact profile coverage bundled body list must not be empty"));
     }
 
     #[test]
