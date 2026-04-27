@@ -682,6 +682,8 @@ mod tests {
         assert!(rendered.contains("Dhruva Galactic Center (Middle Mula)"));
         assert!(rendered.contains("Nick Anthony Fiorenza"));
         assert!(rendered.contains("Galactic Center (Cochrane)"));
+        assert!(rendered.contains("Galactic Center (Mardyks)"));
+        assert!(rendered.contains("Skydram (Mardyks)"));
         assert!(rendered.contains("Galactic Center (Mula/Wilhelm)"));
         assert!(rendered.contains("Galactic Center (Rgilbrand)"));
         assert!(rendered.contains("P.V.R. Narasimha Rao"));
@@ -797,6 +799,8 @@ mod tests {
         assert!(release_notes.contains("Galactic Equator (Fiorenza)"));
         assert!(release_notes.contains("JN Bhasin"));
         assert!(release_notes.contains("Galactic Equator (True)"));
+        assert!(release_notes.contains("Galactic Center (Mardyks)"));
+        assert!(release_notes.contains("Skydram (Mardyks)"));
         assert!(release_notes.contains("Galactic Center (Rgilbrand)"));
         assert!(release_notes.contains("Babylonian (True Geoc)"));
         assert!(release_notes.contains("Pullen SD (Sinusoidal Delta)"));

@@ -256,6 +256,7 @@ Progress note (2026-04-26): the CLI and validation compatibility-profile smoke t
 Progress note (2026-04-26): the validation and release summary views now also surface the compact house-validation corpus line from the representative baseline scenarios, so the formula-validation slice is visible in the short release-facing reports instead of only in the detailed house report.
 Progress note (2026-04-27): the release-notes smoke coverage now also pins the Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), and Babylonian (House Obs) labels, keeping the remaining Babylonian true-topocentric and observer spellings visible in the compact release-facing audit.
 Progress note (2026-04-27): the CLI profile and release-notes smoke coverage now also pin `Babylonian (True Geoc)`, `Pullen SR (Sinusoidal Ratio) table of houses`, and `Galactic Center (Rgilbrand)`, which extends the current release-profile spelling audit a little further without changing the catalog model.
+Progress note (2026-04-27): the CLI-facing smoke coverage now also pins the `Galactic Center (Mardyks)` / `Skydram (Mardyks)` release-profile spelling pair in both the full profile and release-notes commands, which keeps another currently visible galactic-reference batch anchored in the user-facing audit path.
 
 Remaining suggested scope:
 
