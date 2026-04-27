@@ -388,19 +388,21 @@ impl PackagedArtifactProfileSummary {
 
     /// Renders the packaged artifact profile into a release-facing summary line.
     pub fn summary_line(&self) -> String {
+        let coverage = self.profile_coverage_summary();
         format!(
             "byte order: {}; {}",
             self.endian_policy,
-            self.profile_coverage_summary().summary_line(),
+            coverage.summary_line()
         )
     }
 
     /// Renders the packaged artifact profile with its bundled body list.
     pub fn summary_line_with_bodies(&self) -> String {
+        let coverage = self.profile_coverage_summary();
         format!(
             "byte order: {}; {}",
             self.endian_policy,
-            self.profile_coverage_summary().summary_line_with_bodies(),
+            coverage.summary_line_with_bodies(),
         )
     }
 }
@@ -2018,6 +2020,48 @@ mod tests {
         assert!(error
             .message
             .contains("packaged artifact profile body count does not match bundled body list"));
+    }
+
+    #[test]
+    fn packaged_artifact_profile_summary_validation_rejects_empty_bodies() {
+        let summary = PackagedArtifactProfileSummary {
+            body_count: 0,
+            bodies: Vec::new(),
+            endian_policy: EndianPolicy::LittleEndian,
+            profile: ArtifactProfile::ecliptic_longitude_latitude_distance(),
+        };
+
+        let error = summary
+            .validate()
+            .expect_err("empty packaged body lists should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error
+            .message
+            .contains("artifact profile coverage bundled body list must not be empty"));
+    }
+
+    #[test]
+    fn packaged_artifact_profile_summary_validation_rejects_duplicate_bodies() {
+        let summary = PackagedArtifactProfileSummary {
+            body_count: 3,
+            bodies: vec![CelestialBody::Sun, CelestialBody::Moon, CelestialBody::Sun],
+            endian_policy: EndianPolicy::LittleEndian,
+            profile: ArtifactProfile::ecliptic_longitude_latitude_distance(),
+        };
+
+        let error = summary
+            .validate()
+            .expect_err("duplicate packaged body lists should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error
+            .message
+            .contains("artifact profile coverage bundled bodies contains duplicate Sun entry"));
     }
 
     #[test]
