@@ -1288,15 +1288,28 @@ pub fn lunar_reference_evidence_summary() -> Option<LunarReferenceEvidenceSummar
     })
 }
 
+impl LunarReferenceEvidenceSummary {
+    /// Returns the release-facing one-line lunar reference evidence summary.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "lunar reference evidence: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, validated against the published 1992-04-12 Moon example plus J2000 lunar-point anchors, including the mean apogee and mean perigee references, published 1913-05-27 true-node and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example",
+            self.sample_count,
+            self.body_count,
+            self.earliest_epoch.julian_day.days(),
+            self.latest_epoch.julian_day.days(),
+        )
+    }
+}
+
+impl fmt::Display for LunarReferenceEvidenceSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Formats the lunar reference evidence summary for release-facing reporting.
 pub fn format_lunar_reference_evidence_summary(summary: &LunarReferenceEvidenceSummary) -> String {
-    format!(
-        "lunar reference evidence: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, validated against the published 1992-04-12 Moon example plus J2000 lunar-point anchors, including the mean apogee and mean perigee references, published 1913-05-27 true-node and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example",
-        summary.sample_count,
-        summary.body_count,
-        summary.earliest_epoch.julian_day.days(),
-        summary.latest_epoch.julian_day.days(),
-    )
+    summary.summary_line()
 }
 
 /// Returns the release-facing lunar reference evidence summary string.
@@ -1468,17 +1481,30 @@ pub fn lunar_equatorial_reference_evidence_summary(
     })
 }
 
+impl LunarEquatorialReferenceEvidenceSummary {
+    /// Returns the release-facing one-line lunar equatorial reference evidence summary.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "lunar equatorial reference evidence: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, validated against the published 1992-04-12 geocentric Moon RA/Dec example",
+            self.sample_count,
+            self.body_count,
+            self.earliest_epoch.julian_day.days(),
+            self.latest_epoch.julian_day.days(),
+        )
+    }
+}
+
+impl fmt::Display for LunarEquatorialReferenceEvidenceSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Formats the lunar equatorial reference evidence summary for release-facing reporting.
 pub fn format_lunar_equatorial_reference_evidence_summary(
     summary: &LunarEquatorialReferenceEvidenceSummary,
 ) -> String {
-    format!(
-        "lunar equatorial reference evidence: {} samples across {} bodies, epoch range JD {:.1}..{:.1}, validated against the published 1992-04-12 geocentric Moon RA/Dec example",
-        summary.sample_count,
-        summary.body_count,
-        summary.earliest_epoch.julian_day.days(),
-        summary.latest_epoch.julian_day.days(),
-    )
+    summary.summary_line()
 }
 
 /// Returns the release-facing lunar equatorial reference evidence summary string.
@@ -4298,6 +4324,11 @@ mod tests {
         assert_eq!(summary.body_count, 5);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_419_914.5);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_459_278.5);
+        assert_eq!(summary.summary_line(), summary.to_string());
+        assert_eq!(
+            format_lunar_reference_evidence_summary(&summary),
+            summary.summary_line()
+        );
         assert!(lunar_reference_evidence_summary_for_report().contains("9 samples across 5 bodies"));
         assert!(lunar_reference_evidence_summary_for_report().contains("JD 2419914.5..2459278.5"));
 
@@ -4369,6 +4400,11 @@ mod tests {
         assert_eq!(summary.body_count, 1);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_448_724.5);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_448_724.5);
+        assert_eq!(summary.summary_line(), summary.to_string());
+        assert_eq!(
+            format_lunar_equatorial_reference_evidence_summary(&summary),
+            summary.summary_line()
+        );
         assert!(lunar_equatorial_reference_evidence_summary_for_report()
             .contains("1 samples across 1 bodies"));
         assert!(lunar_equatorial_reference_evidence_summary_for_report()
