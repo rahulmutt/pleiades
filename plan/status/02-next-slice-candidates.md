@@ -271,6 +271,7 @@ Progress note (2026-04-26): the validation and release summary views now also su
 Progress note (2026-04-27): the release-notes smoke coverage now also pins the Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), and Babylonian (House Obs) labels, keeping the remaining Babylonian true-topocentric and observer spellings visible in the compact release-facing audit.
 Progress note (2026-04-27): the CLI profile and release-notes smoke coverage now also pin `Babylonian (True Geoc)`, `Pullen SR (Sinusoidal Ratio) table of houses`, and `Galactic Center (Rgilbrand)`, which extends the current release-profile spelling audit a little further without changing the catalog model.
 Progress note (2026-04-27): the CLI-facing smoke coverage now also pins the `Galactic Center (Mardyks)` / `Skydram (Mardyks)` release-profile spelling pair in both the full profile and release-notes commands, which keeps another currently visible galactic-reference batch anchored in the user-facing audit path.
+Progress note (2026-04-27): the CLI compatibility-profile smoke coverage now also pins the `Gal. Center = 0 Cap` / `Cochrane (Gal.Center = 0 Cap)` spellings, and the release-notes smoke coverage now also pins the shorter `Gal. Center = 0 Cap` form, which keeps one more currently visible galactic-reference label family anchored in the user-facing audit path alongside the existing `Gal. Center = 0 Sag` / `Galactic Center` checks.
 
 Remaining suggested scope:
 

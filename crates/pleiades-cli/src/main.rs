@@ -748,6 +748,8 @@ mod tests {
         assert!(rendered.contains("Dhruva Galactic Center (Middle Mula)"));
         assert!(rendered.contains("Nick Anthony Fiorenza"));
         assert!(rendered.contains("Galactic Center (Cochrane)"));
+        assert!(rendered.contains("Gal. Center = 0 Cap"));
+        assert!(rendered.contains("Cochrane (Gal.Center = 0 Cap)"));
         assert!(rendered.contains("Galactic Center (Mardyks)"));
         assert!(rendered.contains("Skydram (Mardyks)"));
         assert!(rendered.contains("Galactic Center (Mula/Wilhelm)"));
@@ -878,6 +880,7 @@ mod tests {
         assert!(release_notes.contains("True galactic equator"));
         assert!(release_notes.contains("Galactic equator true"));
         assert!(release_notes.contains("Galactic Center (Mardyks)"));
+        assert!(release_notes.contains("Gal. Center = 0 Cap"));
         assert!(release_notes.contains("Skydram (Mardyks)"));
         assert!(release_notes.contains("Galactic Center (Rgilbrand)"));
         assert!(release_notes.contains("Babylonian (True Geoc)"));
