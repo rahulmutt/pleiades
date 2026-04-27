@@ -1548,6 +1548,73 @@ impl WorkspaceAuditReport {
     }
 }
 
+/// A compact workspace-audit summary derived from the detailed report.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct WorkspaceAuditSummary {
+    /// Workspace root used for the scan.
+    pub workspace_root: PathBuf,
+    /// Number of manifests that were checked.
+    pub manifest_count: usize,
+    /// Workspace lockfile path that was checked.
+    pub lockfile_path: PathBuf,
+    /// Number of detected policy violations.
+    pub violation_count: usize,
+    /// Policy-violation counts grouped by rule in stable order.
+    pub rule_counts: Vec<(&'static str, usize)>,
+    /// Whether the workspace passed the audit cleanly.
+    pub clean: bool,
+}
+
+impl WorkspaceAuditSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let mut text = format!(
+            "workspace root: {}; manifests checked: {}; lockfile: {}; violations: {}; result: {}",
+            self.workspace_root.display(),
+            self.manifest_count,
+            self.lockfile_path.display(),
+            self.violation_count,
+            if self.clean {
+                "no mandatory native build hooks detected"
+            } else {
+                "violations found"
+            }
+        );
+        if !self.rule_counts.is_empty() {
+            text.push_str("; rule counts: ");
+            text.push_str(
+                &self
+                    .rule_counts
+                    .iter()
+                    .map(|(rule, count)| format!("{}: {}", rule, count))
+                    .collect::<Vec<_>>()
+                    .join(", "),
+            );
+        }
+        text
+    }
+}
+
+impl fmt::Display for WorkspaceAuditSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns the compact workspace-audit summary derived from the detailed report.
+pub fn workspace_audit_summary(report: &WorkspaceAuditReport) -> WorkspaceAuditSummary {
+    WorkspaceAuditSummary {
+        workspace_root: report.workspace_root.clone(),
+        manifest_count: report.manifest_paths.len(),
+        lockfile_path: report.lockfile_path.clone(),
+        violation_count: report.violations.len(),
+        rule_counts: workspace_audit_rule_counts(&report.violations)
+            .into_iter()
+            .collect(),
+        clean: report.is_clean(),
+    }
+}
+
 fn workspace_audit_rule_counts(
     violations: &[WorkspaceAuditViolation],
 ) -> BTreeMap<&'static str, usize> {
@@ -1588,23 +1655,27 @@ impl fmt::Display for WorkspaceAuditReport {
 }
 
 fn render_workspace_audit_summary_text(report: &WorkspaceAuditReport) -> String {
+    let summary = workspace_audit_summary(report);
     let mut text = String::new();
     text.push_str("Workspace audit summary\n");
     text.push_str("Workspace root: ");
-    text.push_str(&report.workspace_root.display().to_string());
+    text.push_str(&summary.workspace_root.display().to_string());
     text.push('\n');
     text.push_str("Checked manifests: ");
-    text.push_str(&report.manifest_paths.len().to_string());
+    text.push_str(&summary.manifest_count.to_string());
     text.push('\n');
     text.push_str("Checked lockfile: ");
-    text.push_str(&report.lockfile_path.display().to_string());
+    text.push_str(&summary.lockfile_path.display().to_string());
+    text.push('\n');
+    text.push_str("Summary: ");
+    text.push_str(&summary.summary_line());
     text.push('\n');
     text.push_str("Violations: ");
-    text.push_str(&report.violations.len().to_string());
+    text.push_str(&summary.violation_count.to_string());
     text.push('\n');
-    if !report.is_clean() {
+    if !summary.clean {
         text.push_str("Rule counts:\n");
-        for (rule, count) in workspace_audit_rule_counts(&report.violations) {
+        for (rule, count) in &summary.rule_counts {
             text.push_str("  ");
             text.push_str(rule);
             text.push_str(": ");
@@ -1613,7 +1684,7 @@ fn render_workspace_audit_summary_text(report: &WorkspaceAuditReport) -> String 
         }
     }
     text.push_str("Result: ");
-    text.push_str(if report.is_clean() {
+    text.push_str(if summary.clean {
         "no mandatory native build hooks detected"
     } else {
         "violations found"
@@ -10558,9 +10629,17 @@ mod tests {
 
     #[test]
     fn workspace_audit_summary_reports_a_clean_workspace() {
+        let report = workspace_audit_report().expect("workspace audit should render");
+        let summary = workspace_audit_summary(&report);
+        assert!(summary.summary_line().contains("violations: 0"));
+        assert!(summary
+            .summary_line()
+            .contains("no mandatory native build hooks detected"));
+
         let rendered = render_cli(&["workspace-audit-summary"])
             .expect("workspace audit summary should render");
         assert!(rendered.contains("Workspace audit summary"));
+        assert!(rendered.contains("Summary: workspace root:"));
         assert!(rendered.contains("Checked manifests:"));
         assert!(rendered.contains("Checked lockfile:"));
         assert!(rendered.contains("Result: no mandatory native build hooks detected"));
@@ -10642,7 +10721,15 @@ version = "0.9.0"
             ],
         };
 
+        let summary = workspace_audit_summary(&report);
+        assert!(summary.summary_line().contains("violations: 3"));
+        assert_eq!(
+            summary.rule_counts,
+            vec![("lockfile.native-package", 1), ("package.build", 2)]
+        );
+
         let rendered = render_workspace_audit_summary_text(&report);
+        assert!(rendered.contains("Summary: workspace root:"));
         assert!(rendered.contains("Violations: 3"));
         assert!(rendered.contains("Rule counts:"));
         assert!(rendered.contains("package.build: 2"));

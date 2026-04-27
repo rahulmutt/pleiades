@@ -40,6 +40,7 @@ The workspace already has CLI/report commands, compatibility-profile summaries, 
    - Run formatting, clippy, tests, doc tests, compatibility-profile verification, artifact validation, release-bundle verification, and native-dependency audits.
    - Reject mandatory C/C++ build hooks or FFI dependencies in first-party crates.
    - Keep tools declared in `mise.toml` unless they genuinely require `devenv.nix`.
+   - Progress note: the compact workspace-audit summary now also reuses a typed summary record with rule counts and clean/dirty status, which keeps the pure-Rust release gate's compact output aligned with the detailed audit report instead of reconstructing the summary text ad hoc.
 
 5. Finalize release artifacts.
    - Generate signed or checksummed bundles containing source revision, profile identifiers, validation reports, backend matrix, artifact summaries, and release notes.
