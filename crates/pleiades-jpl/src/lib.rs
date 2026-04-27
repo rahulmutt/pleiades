@@ -249,6 +249,44 @@ impl ReferenceSnapshotEquatorialParitySummary {
     }
 }
 
+/// Structured validation errors for a reference snapshot equatorial parity summary.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ReferenceSnapshotEquatorialParitySummaryValidationError {
+    /// The nested reference snapshot summary failed validation.
+    Snapshot(ReferenceSnapshotSummaryValidationError),
+}
+
+impl fmt::Display for ReferenceSnapshotEquatorialParitySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Snapshot(error) => {
+                write!(f, "reference snapshot validation failed: {error}")
+            }
+        }
+    }
+}
+
+impl std::error::Error for ReferenceSnapshotEquatorialParitySummaryValidationError {}
+
+impl ReferenceSnapshotEquatorialParitySummary {
+    /// Validates that the equatorial parity summary remains internally consistent.
+    pub fn validate(&self) -> Result<(), ReferenceSnapshotEquatorialParitySummaryValidationError> {
+        let snapshot = ReferenceSnapshotSummary {
+            row_count: self.row_count,
+            body_count: self.body_count,
+            bodies: self.bodies,
+            epoch_count: self.epoch_count,
+            asteroid_row_count: 0,
+            earliest_epoch: self.earliest_epoch,
+            latest_epoch: self.latest_epoch,
+        };
+
+        snapshot
+            .validate()
+            .map_err(ReferenceSnapshotEquatorialParitySummaryValidationError::Snapshot)
+    }
+}
+
 impl fmt::Display for ReferenceSnapshotEquatorialParitySummary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.summary_line())
@@ -266,7 +304,12 @@ pub fn format_reference_snapshot_equatorial_parity_summary(
 /// Returns the release-facing reference snapshot equatorial parity summary string.
 pub fn reference_snapshot_equatorial_parity_summary_for_report() -> String {
     match reference_snapshot_equatorial_parity_summary() {
-        Some(summary) => format_reference_snapshot_equatorial_parity_summary(&summary),
+        Some(summary) => match summary.validate() {
+            Ok(()) => format_reference_snapshot_equatorial_parity_summary(&summary),
+            Err(error) => {
+                format!("JPL reference snapshot equatorial parity: unavailable ({error})")
+            }
+        },
         None => "JPL reference snapshot equatorial parity: unavailable".to_string(),
     }
 }
@@ -1196,6 +1239,90 @@ impl IndependentHoldoutSnapshotEquatorialParitySummary {
     }
 }
 
+/// Structured validation errors for an independent hold-out equatorial parity summary.
+#[derive(Clone, Debug, PartialEq)]
+pub enum IndependentHoldoutSnapshotEquatorialParitySummaryValidationError {
+    /// The summary did not include any rows.
+    MissingRows,
+    /// The summary did not include any bodies.
+    MissingBodies,
+    /// The body count exceeds the row count.
+    BodyCountExceedsRowCount { body_count: usize, row_count: usize },
+    /// The summary did not include any epochs.
+    MissingEpochs,
+    /// The summary reported an invalid epoch range.
+    InvalidEpochRange {
+        earliest_epoch: Instant,
+        latest_epoch: Instant,
+    },
+}
+
+impl fmt::Display for IndependentHoldoutSnapshotEquatorialParitySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::MissingRows => f.write_str("missing rows"),
+            Self::MissingBodies => f.write_str("missing bodies"),
+            Self::BodyCountExceedsRowCount {
+                body_count,
+                row_count,
+            } => write!(f, "body count {body_count} exceeds row count {row_count}"),
+            Self::MissingEpochs => f.write_str("missing epochs"),
+            Self::InvalidEpochRange {
+                earliest_epoch,
+                latest_epoch,
+            } => write!(
+                f,
+                "invalid epoch range {}..{}",
+                format_instant(*earliest_epoch),
+                format_instant(*latest_epoch)
+            ),
+        }
+    }
+}
+
+impl std::error::Error for IndependentHoldoutSnapshotEquatorialParitySummaryValidationError {}
+
+impl IndependentHoldoutSnapshotEquatorialParitySummary {
+    /// Validates that the equatorial parity summary remains internally consistent.
+    pub fn validate(
+        &self,
+    ) -> Result<(), IndependentHoldoutSnapshotEquatorialParitySummaryValidationError> {
+        if self.row_count == 0 {
+            return Err(
+                IndependentHoldoutSnapshotEquatorialParitySummaryValidationError::MissingRows,
+            );
+        }
+        if self.body_count == 0 {
+            return Err(
+                IndependentHoldoutSnapshotEquatorialParitySummaryValidationError::MissingBodies,
+            );
+        }
+        if self.body_count > self.row_count {
+            return Err(
+                IndependentHoldoutSnapshotEquatorialParitySummaryValidationError::BodyCountExceedsRowCount {
+                    body_count: self.body_count,
+                    row_count: self.row_count,
+                },
+            );
+        }
+        if self.epoch_count == 0 {
+            return Err(
+                IndependentHoldoutSnapshotEquatorialParitySummaryValidationError::MissingEpochs,
+            );
+        }
+        if self.earliest_epoch.julian_day.days() > self.latest_epoch.julian_day.days() {
+            return Err(
+                IndependentHoldoutSnapshotEquatorialParitySummaryValidationError::InvalidEpochRange {
+                    earliest_epoch: self.earliest_epoch,
+                    latest_epoch: self.latest_epoch,
+                },
+            );
+        }
+
+        Ok(())
+    }
+}
+
 impl fmt::Display for IndependentHoldoutSnapshotEquatorialParitySummary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.summary_line())
@@ -1213,7 +1340,12 @@ pub fn format_independent_holdout_snapshot_equatorial_parity_summary(
 /// Returns the release-facing independent hold-out equatorial parity summary string.
 pub fn independent_holdout_snapshot_equatorial_parity_summary_for_report() -> String {
     match independent_holdout_snapshot_equatorial_parity_summary() {
-        Some(summary) => format_independent_holdout_snapshot_equatorial_parity_summary(&summary),
+        Some(summary) => match summary.validate() {
+            Ok(()) => format_independent_holdout_snapshot_equatorial_parity_summary(&summary),
+            Err(error) => {
+                format!("JPL independent hold-out equatorial parity: unavailable ({error})")
+            }
+        },
         None => "JPL independent hold-out equatorial parity: unavailable".to_string(),
     }
 }
@@ -3926,11 +4058,36 @@ mod tests {
                 format_bodies(reference_bodies())
             )
         );
+        assert_eq!(summary.validate(), Ok(()));
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             reference_snapshot_equatorial_parity_summary_for_report(),
             summary.summary_line()
         );
+    }
+
+    #[test]
+    fn reference_snapshot_equatorial_parity_summary_validation_rejects_body_count_drift() {
+        let summary = ReferenceSnapshotEquatorialParitySummary {
+            row_count: 2,
+            body_count: 3,
+            bodies: reference_bodies(),
+            epoch_count: 1,
+            earliest_epoch: reference_instant(),
+            latest_epoch: reference_instant(),
+        };
+
+        assert!(matches!(
+            summary.validate(),
+            Err(
+                ReferenceSnapshotEquatorialParitySummaryValidationError::Snapshot(
+                    ReferenceSnapshotSummaryValidationError::BodyCountMismatch {
+                        body_count: 3,
+                        bodies_len: 15,
+                    }
+                )
+            )
+        ));
     }
 
     #[test]
@@ -4500,10 +4657,30 @@ mod tests {
             summary.summary_line(),
             "JPL independent hold-out equatorial parity: 9 rows across 3 bodies and 6 epochs (JD 2400000.0 (TDB)..JD 2500000.0 (TDB)); mean-obliquity transform against the checked-in ecliptic fixture"
         );
+        assert_eq!(summary.validate(), Ok(()));
         assert_eq!(
             independent_holdout_snapshot_equatorial_parity_summary_for_report(),
             summary.summary_line()
         );
+    }
+
+    #[test]
+    fn independent_holdout_snapshot_equatorial_parity_summary_validation_rejects_row_count_drift() {
+        let summary = IndependentHoldoutSnapshotEquatorialParitySummary {
+            row_count: 1,
+            body_count: 2,
+            epoch_count: 1,
+            earliest_epoch: reference_instant(),
+            latest_epoch: reference_instant(),
+        };
+
+        assert!(matches!(
+            summary.validate(),
+            Err(IndependentHoldoutSnapshotEquatorialParitySummaryValidationError::BodyCountExceedsRowCount {
+                body_count: 2,
+                row_count: 1,
+            })
+        ));
     }
 
     #[test]
