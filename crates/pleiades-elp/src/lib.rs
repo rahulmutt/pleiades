@@ -2016,6 +2016,29 @@ pub struct LunarApparentComparisonSummary {
 }
 
 impl LunarApparentComparisonSummary {
+    /// Validates that the summary still matches the checked-in apparent evidence slice.
+    pub fn validate(&self) -> Result<(), EphemerisError> {
+        let Some(expected) = lunar_apparent_comparison_summary() else {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "lunar apparent comparison evidence is unavailable",
+            ));
+        };
+
+        if self != &expected {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "lunar apparent comparison evidence summary mismatch: expected {}, found {}",
+                    expected.summary_line(),
+                    self.summary_line()
+                ),
+            ));
+        }
+
+        Ok(())
+    }
+
     /// Returns the release-facing one-line apparent comparison summary.
     pub fn summary_line(&self) -> String {
         format!(
@@ -2260,8 +2283,10 @@ pub fn format_lunar_apparent_comparison_summary(
 /// Returns the release-facing one-line apparent comparison summary.
 pub fn lunar_apparent_comparison_summary_for_report() -> String {
     match lunar_apparent_comparison_summary() {
-        Some(summary) => format_lunar_apparent_comparison_summary(&summary),
-        None => "lunar apparent comparison evidence: unavailable".to_string(),
+        Some(summary) if summary.validate().is_ok() => {
+            format_lunar_apparent_comparison_summary(&summary)
+        }
+        Some(_) | None => "lunar apparent comparison evidence: unavailable".to_string(),
     }
 }
 
@@ -5219,6 +5244,30 @@ mod tests {
         assert!(samples[1]
             .note
             .contains("second reference-only mean/apparent comparison datum"));
+    }
+
+    #[test]
+    fn lunar_apparent_comparison_summary_validates_against_the_checked_in_slice() {
+        let summary =
+            lunar_apparent_comparison_summary().expect("apparent comparison evidence should exist");
+
+        assert!(summary.validate().is_ok());
+        assert_eq!(
+            lunar_apparent_comparison_summary_for_report(),
+            summary.summary_line()
+        );
+
+        let mut mutated = summary;
+        mutated.sample_count += 1;
+        let error = mutated
+            .validate()
+            .expect_err("mutated apparent comparison summaries should fail validation");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("lunar apparent comparison evidence summary mismatch"));
+        assert!(error.message.contains("expected"));
+        assert!(error.message.contains("found"));
     }
 
     #[test]
