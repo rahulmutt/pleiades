@@ -538,6 +538,37 @@ pub struct ComparisonTolerance {
     pub max_distance_delta_au: Option<f64>,
 }
 
+fn validate_comparison_tolerance(tolerance: &ComparisonTolerance) -> Result<(), EphemerisError> {
+    for (label, value) in [
+        ("longitude", tolerance.max_longitude_delta_deg),
+        ("latitude", tolerance.max_latitude_delta_deg),
+    ] {
+        if !value.is_finite() || value < 0.0 {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "comparison tolerance '{}' has invalid {} limit {}",
+                    tolerance.profile, label, value
+                ),
+            ));
+        }
+    }
+
+    if let Some(value) = tolerance.max_distance_delta_au {
+        if !value.is_finite() || value < 0.0 {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "comparison tolerance '{}' has invalid distance limit {}",
+                    tolerance.profile, value
+                ),
+            ));
+        }
+    }
+
+    Ok(())
+}
+
 /// Expected tolerance scope used by the validation catalog.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[non_exhaustive]
@@ -598,6 +629,104 @@ pub struct ComparisonTolerancePolicySummary {
 }
 
 impl ComparisonTolerancePolicySummary {
+    /// Validates the policy summary before it is rendered.
+    pub fn validate(&self) -> Result<(), EphemerisError> {
+        if self.entries.len() != self.coverage.len() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "comparison tolerance policy summary entry/coverage mismatch: expected {} coverage rows for {} entries, found {}",
+                    self.entries.len(),
+                    self.entries.len(),
+                    self.coverage.len()
+                ),
+            ));
+        }
+
+        for (index, entry) in self.entries.iter().enumerate() {
+            if self.entries[..index]
+                .iter()
+                .any(|prior| prior.scope == entry.scope)
+            {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "comparison tolerance policy summary has duplicate scope '{}'",
+                        entry.scope.label()
+                    ),
+                ));
+            }
+
+            validate_comparison_tolerance(&entry.tolerance)?;
+
+            let coverage = &self.coverage[index];
+            if coverage.entry.scope != entry.scope {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "comparison tolerance policy summary scope mismatch at index {}: expected {}, found {}",
+                        index + 1,
+                        entry.scope.label(),
+                        coverage.entry.scope.label()
+                    ),
+                ));
+            }
+
+            if coverage.entry.tolerance.backend_family != self.backend_family {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "comparison tolerance policy summary backend family mismatch at index {}: expected {}, found {}",
+                        index + 1,
+                        backend_family_label(&self.backend_family),
+                        backend_family_label(&coverage.entry.tolerance.backend_family)
+                    ),
+                ));
+            }
+
+            coverage.validate()?;
+        }
+
+        let comparison_body_count = self
+            .coverage
+            .iter()
+            .map(|coverage| coverage.body_count)
+            .sum::<usize>();
+        if comparison_body_count != self.comparison_body_count {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "comparison tolerance policy summary body-count mismatch: expected {}, found {}",
+                    self.comparison_body_count, comparison_body_count
+                ),
+            ));
+        }
+
+        let comparison_sample_count = self
+            .coverage
+            .iter()
+            .map(|coverage| coverage.sample_count)
+            .sum::<usize>();
+        if comparison_sample_count != self.comparison_sample_count {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "comparison tolerance policy summary sample-count mismatch: expected {}, found {}",
+                    self.comparison_sample_count, comparison_sample_count
+                ),
+            ));
+        }
+
+        if self.coordinate_frames.is_empty() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "comparison tolerance policy summary has no coordinate frames",
+            ));
+        }
+
+        Ok(())
+    }
+
     /// Renders the compact report wording for this tolerance policy.
     pub fn summary_line(&self) -> String {
         let scopes = self
@@ -655,6 +784,37 @@ pub struct ComparisonToleranceScopeCoverageSummary {
 }
 
 impl ComparisonToleranceScopeCoverageSummary {
+    /// Validates the coverage row before it is rendered.
+    pub fn validate(&self) -> Result<(), EphemerisError> {
+        if self.body_count != self.bodies.len() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "comparison tolerance coverage row '{}' body-count mismatch: expected {}, found {}",
+                    self.entry.scope.label(),
+                    self.body_count,
+                    self.bodies.len()
+                ),
+            ));
+        }
+
+        for (index, body) in self.bodies.iter().enumerate() {
+            if self.bodies[..index].contains(body) {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "comparison tolerance coverage row '{}' has duplicate body '{}': first-seen order must be unique",
+                        self.entry.scope.label(),
+                        body
+                    ),
+                ));
+            }
+        }
+
+        validate_comparison_tolerance(&self.entry.tolerance)?;
+        Ok(())
+    }
+
     /// Renders the compact report wording for this tolerance coverage row.
     pub fn summary_line(&self) -> String {
         let bodies = if self.bodies.is_empty() {
@@ -5946,7 +6106,11 @@ fn comparison_tolerance_policy_summary_details(
 }
 
 fn format_comparison_tolerance_policy_for_report(comparison: &ComparisonReport) -> String {
-    comparison_tolerance_policy_summary_details(comparison).summary_line()
+    let summary = comparison_tolerance_policy_summary_details(comparison);
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("comparison tolerance policy unavailable ({error})"),
+    }
 }
 
 fn format_comparison_tolerance_limits_for_report(entries: &[ComparisonToleranceEntry]) -> String {
@@ -9601,6 +9765,7 @@ mod tests {
             compare_backends(&reference, &candidate, &corpus).expect("comparison should build");
         let summary = report.tolerance_policy_summary();
 
+        assert_eq!(summary.validate(), Ok(()));
         assert_eq!(
             summary.summary_line(),
             format_comparison_tolerance_policy_for_report(&report)
@@ -9617,6 +9782,71 @@ mod tests {
             summary.comparison_window.end,
             corpus.summary().epochs.last().copied()
         );
+    }
+
+    #[test]
+    fn comparison_tolerance_scope_coverage_summary_rejects_body_count_drift() {
+        let summary = ComparisonToleranceScopeCoverageSummary {
+            entry: ComparisonToleranceEntry {
+                scope: ComparisonToleranceScope::Luminary,
+                tolerance: ComparisonTolerance {
+                    backend_family: BackendFamily::Algorithmic,
+                    profile: "test tolerance",
+                    max_longitude_delta_deg: 0.1,
+                    max_latitude_delta_deg: 0.2,
+                    max_distance_delta_au: Some(0.3),
+                },
+            },
+            bodies: vec![CelestialBody::Sun],
+            body_count: 2,
+            sample_count: 1,
+        };
+
+        let error = summary
+            .validate()
+            .expect_err("summary should reject body-count drift");
+        assert!(error.to_string().contains("body-count mismatch"));
+    }
+
+    #[test]
+    fn comparison_tolerance_policy_summary_validation_rejects_drift() {
+        let summary = ComparisonTolerancePolicySummary {
+            backend_family: BackendFamily::Algorithmic,
+            entries: vec![ComparisonToleranceEntry {
+                scope: ComparisonToleranceScope::Luminary,
+                tolerance: ComparisonTolerance {
+                    backend_family: BackendFamily::Algorithmic,
+                    profile: "test tolerance",
+                    max_longitude_delta_deg: 0.1,
+                    max_latitude_delta_deg: 0.2,
+                    max_distance_delta_au: Some(0.3),
+                },
+            }],
+            coverage: vec![ComparisonToleranceScopeCoverageSummary {
+                entry: ComparisonToleranceEntry {
+                    scope: ComparisonToleranceScope::Luminary,
+                    tolerance: ComparisonTolerance {
+                        backend_family: BackendFamily::Algorithmic,
+                        profile: "test tolerance",
+                        max_longitude_delta_deg: 0.1,
+                        max_latitude_delta_deg: 0.2,
+                        max_distance_delta_au: Some(0.3),
+                    },
+                },
+                bodies: vec![CelestialBody::Sun],
+                body_count: 1,
+                sample_count: 1,
+            }],
+            comparison_body_count: 2,
+            comparison_sample_count: 1,
+            comparison_window: TimeRange::new(None, None),
+            coordinate_frames: vec![CoordinateFrame::Ecliptic],
+        };
+
+        let error = summary
+            .validate()
+            .expect_err("summary should reject body-count drift");
+        assert!(error.to_string().contains("body-count mismatch"));
     }
 
     #[test]
