@@ -218,6 +218,18 @@ impl PackagedArtifactRegenerationSummary {
             }
         }
 
+        let expected_bodies = packaged_bodies();
+        if self.bodies.as_slice() != expected_bodies {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                format!(
+                    "packaged artifact regeneration summary body list does not match the checked-in packaged body set: expected [{}]; got [{}]",
+                    join_display(expected_bodies),
+                    join_display(&self.bodies)
+                ),
+            ));
+        }
+
         if let Some(reference_snapshot) = self.reference_snapshot {
             reference_snapshot.validate().map_err(|error| {
                 pleiades_compression::CompressionError::new(
@@ -1630,6 +1642,25 @@ mod tests {
         assert!(error
             .message
             .contains("packaged artifact regeneration summary contains duplicate body entry"));
+    }
+
+    #[test]
+    fn packaged_artifact_regeneration_summary_validation_rejects_body_list_drift() {
+        let mut summary = packaged_artifact_regeneration_summary_details();
+        summary.bodies.swap(0, 1);
+
+        let error = summary
+            .validate()
+            .expect_err("body order drift should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error
+            .message
+            .contains("packaged artifact regeneration summary body list does not match the checked-in packaged body set"));
+        assert!(error.message.contains("expected [Sun, Moon"));
+        assert!(error.message.contains("got [Moon, Sun"));
     }
 
     #[test]
