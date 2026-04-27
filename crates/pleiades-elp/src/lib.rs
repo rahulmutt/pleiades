@@ -921,36 +921,49 @@ pub fn lunar_theory_catalog_summary() -> LunarTheoryCatalogSummary {
     }
 }
 
+impl LunarTheoryCatalogSummary {
+    /// Returns the compact release-facing summary line for the current lunar catalog.
+    pub fn summary_line(&self) -> String {
+        let entry_label = if self.entry_count == 1 {
+            "entry"
+        } else {
+            "entries"
+        };
+        let selected_label = if self.selected_count == 1 {
+            "selected entry"
+        } else {
+            "selected entries"
+        };
+
+        format!(
+            "lunar theory catalog: {} {}, {} {}; selected source: {} [{}]; aliases={}; supported bodies={}; unsupported bodies={}",
+            self.entry_count,
+            entry_label,
+            self.selected_count,
+            selected_label,
+            self.selected_source_identifier,
+            self.selected_source_family_label,
+            self.selected_alias_count,
+            self.selected_supported_body_count,
+            self.selected_unsupported_body_count,
+        )
+    }
+}
+
+impl fmt::Display for LunarTheoryCatalogSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Formats the catalog summary for release-facing reporting.
 pub fn format_lunar_theory_catalog_summary(summary: &LunarTheoryCatalogSummary) -> String {
-    let entry_label = if summary.entry_count == 1 {
-        "entry"
-    } else {
-        "entries"
-    };
-    let selected_label = if summary.selected_count == 1 {
-        "selected entry"
-    } else {
-        "selected entries"
-    };
-
-    format!(
-        "lunar theory catalog: {} {}, {} {}; selected source: {} [{}]; aliases={}; supported bodies={}; unsupported bodies={}",
-        summary.entry_count,
-        entry_label,
-        summary.selected_count,
-        selected_label,
-        summary.selected_source_identifier,
-        summary.selected_source_family_label,
-        summary.selected_alias_count,
-        summary.selected_supported_body_count,
-        summary.selected_unsupported_body_count,
-    )
+    summary.summary_line()
 }
 
 /// Returns the release-facing catalog summary string for the current lunar-theory selection.
 pub fn lunar_theory_catalog_summary_for_report() -> String {
-    format_lunar_theory_catalog_summary(&lunar_theory_catalog_summary())
+    lunar_theory_catalog_summary().summary_line()
 }
 
 /// A compact capability summary for the current lunar-theory selection.
@@ -3389,9 +3402,14 @@ mod tests {
             catalog_summary.selected_unsupported_body_count,
             theory.unsupported_bodies.len()
         );
+        assert_eq!(catalog_summary.summary_line(), catalog_summary.to_string());
         assert_eq!(
             format_lunar_theory_catalog_summary(&catalog_summary),
-            lunar_theory_catalog_summary_for_report()
+            catalog_summary.summary_line()
+        );
+        assert_eq!(
+            lunar_theory_catalog_summary_for_report(),
+            catalog_summary.summary_line()
         );
         assert!(lunar_theory_catalog_summary_for_report()
             .contains("lunar theory catalog: 1 entry, 1 selected entry"));
