@@ -1427,6 +1427,26 @@ pub struct Vsop87RequestPolicy {
     pub supports_topocentric_observer: bool,
 }
 
+/// Validation error for a VSOP87 request-policy summary that drifted from the current backend posture.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Vsop87RequestPolicyValidationError {
+    /// One of the request-policy fields differs from the current backend posture.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for Vsop87RequestPolicyValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the VSOP87 request-policy summary field `{field}` is out of sync with the current posture"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for Vsop87RequestPolicyValidationError {}
+
 impl Vsop87RequestPolicy {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
@@ -1438,6 +1458,37 @@ impl Vsop87RequestPolicy {
             format_apparentness_modes(self.supported_apparentness),
             self.supports_topocentric_observer,
         )
+    }
+
+    /// Validates the summary against the current VSOP87 backend posture.
+    pub fn validate(&self) -> Result<(), Vsop87RequestPolicyValidationError> {
+        if self.supported_frames != VSOP87_REQUEST_POLICY.supported_frames {
+            return Err(Vsop87RequestPolicyValidationError::FieldOutOfSync {
+                field: "supported_frames",
+            });
+        }
+        if self.supported_time_scales != VSOP87_REQUEST_POLICY.supported_time_scales {
+            return Err(Vsop87RequestPolicyValidationError::FieldOutOfSync {
+                field: "supported_time_scales",
+            });
+        }
+        if self.supported_zodiac_modes != VSOP87_REQUEST_POLICY.supported_zodiac_modes {
+            return Err(Vsop87RequestPolicyValidationError::FieldOutOfSync {
+                field: "supported_zodiac_modes",
+            });
+        }
+        if self.supported_apparentness != VSOP87_REQUEST_POLICY.supported_apparentness {
+            return Err(Vsop87RequestPolicyValidationError::FieldOutOfSync {
+                field: "supported_apparentness",
+            });
+        }
+        if self.supports_topocentric_observer != VSOP87_REQUEST_POLICY.supports_topocentric_observer
+        {
+            return Err(Vsop87RequestPolicyValidationError::FieldOutOfSync {
+                field: "supports_topocentric_observer",
+            });
+        }
+        Ok(())
     }
 }
 
@@ -1462,7 +1513,11 @@ pub const fn vsop87_request_policy() -> Vsop87RequestPolicy {
 
 /// Returns the release-facing VSOP87 request policy summary string.
 pub fn vsop87_request_policy_summary_for_report() -> String {
-    vsop87_request_policy().to_string()
+    let policy = vsop87_request_policy();
+    match policy.validate() {
+        Ok(()) => policy.to_string(),
+        Err(error) => format!("VSOP87 request policy: unavailable ({error})"),
+    }
 }
 
 /// Returns the reproducibility audit records for the current VSOP87-backed bodies.
@@ -5790,6 +5845,32 @@ mod tests {
         assert_eq!(policy.supported_zodiac_modes, &[ZodiacMode::Tropical]);
         assert_eq!(policy.supported_apparentness, &[Apparentness::Mean]);
         assert!(!policy.supports_topocentric_observer);
+        assert!(policy.validate().is_ok());
+        assert_eq!(
+            vsop87_request_policy_summary_for_report(),
+            policy.summary_line()
+        );
+    }
+
+    #[test]
+    fn request_policy_summary_validation_rejects_stale_posture() {
+        let mut policy = vsop87_request_policy();
+        policy.supports_topocentric_observer = true;
+
+        let error = policy
+            .validate()
+            .expect_err("drifted VSOP87 request-policy summaries should fail validation");
+
+        assert_eq!(
+            error,
+            Vsop87RequestPolicyValidationError::FieldOutOfSync {
+                field: "supports_topocentric_observer"
+            }
+        );
+        assert_eq!(
+            error.to_string(),
+            "the VSOP87 request-policy summary field `supports_topocentric_observer` is out of sync with the current posture"
+        );
     }
 
     #[test]

@@ -2042,6 +2042,26 @@ pub struct JplSnapshotRequestPolicy {
     pub supports_topocentric_observer: bool,
 }
 
+/// Validation error for a JPL request-policy summary that drifted from the current backend posture.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum JplSnapshotRequestPolicyValidationError {
+    /// One of the request-policy fields differs from the current backend posture.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for JplSnapshotRequestPolicyValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the JPL snapshot request-policy summary field `{field}` is out of sync with the current posture"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for JplSnapshotRequestPolicyValidationError {}
+
 impl JplSnapshotRequestPolicy {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
@@ -2053,6 +2073,38 @@ impl JplSnapshotRequestPolicy {
             format_apparentness_modes(self.supported_apparentness),
             self.supports_topocentric_observer,
         )
+    }
+
+    /// Validates the summary against the current JPL snapshot backend posture.
+    pub fn validate(&self) -> Result<(), JplSnapshotRequestPolicyValidationError> {
+        if self.supported_frames != JPL_SNAPSHOT_REQUEST_POLICY.supported_frames {
+            return Err(JplSnapshotRequestPolicyValidationError::FieldOutOfSync {
+                field: "supported_frames",
+            });
+        }
+        if self.supported_time_scales != JPL_SNAPSHOT_REQUEST_POLICY.supported_time_scales {
+            return Err(JplSnapshotRequestPolicyValidationError::FieldOutOfSync {
+                field: "supported_time_scales",
+            });
+        }
+        if self.supported_zodiac_modes != JPL_SNAPSHOT_REQUEST_POLICY.supported_zodiac_modes {
+            return Err(JplSnapshotRequestPolicyValidationError::FieldOutOfSync {
+                field: "supported_zodiac_modes",
+            });
+        }
+        if self.supported_apparentness != JPL_SNAPSHOT_REQUEST_POLICY.supported_apparentness {
+            return Err(JplSnapshotRequestPolicyValidationError::FieldOutOfSync {
+                field: "supported_apparentness",
+            });
+        }
+        if self.supports_topocentric_observer
+            != JPL_SNAPSHOT_REQUEST_POLICY.supports_topocentric_observer
+        {
+            return Err(JplSnapshotRequestPolicyValidationError::FieldOutOfSync {
+                field: "supports_topocentric_observer",
+            });
+        }
+        Ok(())
     }
 }
 
@@ -2077,7 +2129,11 @@ pub const fn jpl_snapshot_request_policy() -> JplSnapshotRequestPolicy {
 
 /// Returns the release-facing JPL snapshot request policy summary string.
 pub fn jpl_snapshot_request_policy_summary_for_report() -> String {
-    jpl_snapshot_request_policy().to_string()
+    let policy = jpl_snapshot_request_policy();
+    match policy.validate() {
+        Ok(()) => policy.to_string(),
+        Err(error) => format!("JPL snapshot request policy: unavailable ({error})"),
+    }
 }
 
 /// Returns the structured JPL snapshot frame-treatment summary.
@@ -6259,6 +6315,28 @@ mod tests {
         assert!(policy
             .summary_line()
             .contains("frames=Ecliptic, Equatorial"));
+        assert!(policy.validate().is_ok());
+    }
+
+    #[test]
+    fn request_policy_summary_validation_rejects_stale_posture() {
+        let mut policy = jpl_snapshot_request_policy();
+        policy.supports_topocentric_observer = true;
+
+        let error = policy
+            .validate()
+            .expect_err("drifted JPL request-policy summaries should fail validation");
+
+        assert_eq!(
+            error,
+            JplSnapshotRequestPolicyValidationError::FieldOutOfSync {
+                field: "supports_topocentric_observer"
+            }
+        );
+        assert_eq!(
+            error.to_string(),
+            "the JPL snapshot request-policy summary field `supports_topocentric_observer` is out of sync with the current posture"
+        );
     }
 
     #[test]
