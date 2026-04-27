@@ -20,7 +20,7 @@
 
 use core::fmt;
 use std::borrow::Cow;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::OnceLock;
 
 use pleiades_backend::{
@@ -2000,6 +2000,12 @@ pub enum SnapshotManifestValidationError {
     BlankCoverage,
     /// A parsed column name was blank after trimming.
     BlankColumn { index: usize },
+    /// The manifest reused a column name after trimming.
+    DuplicateColumn {
+        first_index: usize,
+        second_index: usize,
+        name: String,
+    },
 }
 
 impl SnapshotManifestValidationError {
@@ -2011,6 +2017,7 @@ impl SnapshotManifestValidationError {
             Self::MissingColumns => "missing columns",
             Self::BlankCoverage => "blank coverage",
             Self::BlankColumn { .. } => "blank column",
+            Self::DuplicateColumn { .. } => "duplicate column",
         }
     }
 }
@@ -2019,6 +2026,14 @@ impl fmt::Display for SnapshotManifestValidationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::BlankColumn { index } => write!(f, "blank column at index {index}"),
+            Self::DuplicateColumn {
+                first_index,
+                second_index,
+                name,
+            } => write!(
+                f,
+                "duplicate column '{name}' at index {second_index} (first seen at index {first_index})"
+            ),
             _ => f.write_str(self.label()),
         }
     }
@@ -2086,6 +2101,18 @@ impl SnapshotManifest {
             .find(|(_, column)| column.trim().is_empty())
         {
             return Err(SnapshotManifestValidationError::BlankColumn { index });
+        }
+
+        let mut first_seen_columns = BTreeMap::new();
+        for (index, column) in self.columns.iter().enumerate() {
+            let name = column.trim();
+            if let Some(first_index) = first_seen_columns.insert(name, index) {
+                return Err(SnapshotManifestValidationError::DuplicateColumn {
+                    first_index,
+                    second_index: index,
+                    name: name.to_string(),
+                });
+            }
         }
         Ok(())
     }
@@ -3198,6 +3225,31 @@ mod tests {
             SnapshotManifestValidationError::BlankColumn { index: 1 }.to_string(),
             "blank column at index 1"
         );
+
+        let manifest = SnapshotManifest {
+            title: Some("Example snapshot.".to_string()),
+            source: Some("Example source".to_string()),
+            coverage: None,
+            columns: vec!["body".to_string(), "body".to_string()],
+        };
+
+        assert_eq!(
+            manifest.validate(),
+            Err(SnapshotManifestValidationError::DuplicateColumn {
+                first_index: 0,
+                second_index: 1,
+                name: "body".to_string(),
+            })
+        );
+        assert_eq!(
+            SnapshotManifestValidationError::DuplicateColumn {
+                first_index: 0,
+                second_index: 1,
+                name: "body".to_string(),
+            }
+            .to_string(),
+            "duplicate column 'body' at index 1 (first seen at index 0)"
+        );
     }
 
     #[test]
@@ -3236,6 +3288,29 @@ mod tests {
         assert_eq!(
             manifest.summary_line("Example manifest"),
             "Example manifest: Example snapshot.; source=Example source; coverage=unknown; columns=body, , x_km"
+        );
+    }
+
+    #[test]
+    fn parsed_manifest_preserves_duplicate_columns_for_validation() {
+        let manifest = parse_snapshot_manifest(
+            "# Example snapshot.\n# Source: Example source\n# Columns: body, x_km, body\n",
+        );
+
+        assert_eq!(manifest.title.as_deref(), Some("Example snapshot."));
+        assert_eq!(manifest.source.as_deref(), Some("Example source"));
+        assert_eq!(manifest.columns, ["body", "x_km", "body"]);
+        assert_eq!(
+            manifest.validate(),
+            Err(SnapshotManifestValidationError::DuplicateColumn {
+                first_index: 0,
+                second_index: 2,
+                name: "body".to_string(),
+            })
+        );
+        assert_eq!(
+            manifest.summary_line("Example manifest"),
+            "Example manifest: Example snapshot.; source=Example source; coverage=unknown; columns=body, x_km, body"
         );
     }
 
