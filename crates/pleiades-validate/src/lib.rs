@@ -11365,6 +11365,37 @@ mod tests {
     }
 
     #[test]
+    fn compatibility_profile_partition_checks_reject_case_normalized_alias_overlaps() {
+        #[derive(Clone, Copy)]
+        struct Entry {
+            canonical_name: &'static str,
+            aliases: &'static [&'static str],
+        }
+
+        let baseline = [Entry {
+            canonical_name: "Lahiri",
+            aliases: &["Lahiri ayanamsa"],
+        }];
+        let release = [Entry {
+            canonical_name: "Raman",
+            aliases: &["lahiri"],
+        }];
+
+        let error = verify_profile_catalog_partitions_are_disjoint(
+            "ayanamsa",
+            &baseline,
+            &release,
+            |entry| entry.canonical_name,
+            |entry| entry.aliases,
+        )
+        .expect_err("case-normalized overlapping alias labels should fail profile verification");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("baseline and release slices overlap on label 'lahiri'"));
+    }
+
+    #[test]
     fn descriptor_names_summary_formats_empty_single_and_multiple_entries() {
         #[derive(Clone, Copy)]
         struct Item(&'static str);
