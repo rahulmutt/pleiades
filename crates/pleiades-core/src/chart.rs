@@ -700,6 +700,39 @@ impl BodyPlacement {
     pub fn distance_speed(&self) -> Option<f64> {
         self.motion()?.distance_speed()
     }
+
+    /// Returns a compact one-line summary of the placement row used in chart reports.
+    pub fn summary_line(&self) -> String {
+        let longitude = self
+            .position
+            .ecliptic
+            .as_ref()
+            .map(|coords| format!("{}", coords.longitude))
+            .unwrap_or_else(|| "n/a".to_string());
+        let sign = self
+            .sign
+            .map(|sign| sign.to_string())
+            .unwrap_or_else(|| "n/a".to_string());
+        let house = self
+            .house
+            .map(|house| house.to_string())
+            .unwrap_or_else(|| "n/a".to_string());
+        let motion = self
+            .motion_direction()
+            .map(|direction| direction.to_string())
+            .unwrap_or_else(|| "n/a".to_string());
+
+        format!(
+            "{:<12} {:>9}  {:<10}  {:>3}  {:<10}  {}",
+            self.body, longitude, sign, house, motion, self.position.quality,
+        )
+    }
+}
+
+impl fmt::Display for BodyPlacement {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
 }
 
 /// A summary of zodiac-sign placements in a chart snapshot.
@@ -1384,29 +1417,7 @@ impl fmt::Display for ChartSnapshot {
         }
         writeln!(f, "Bodies:")?;
         for placement in &self.placements {
-            let longitude = placement
-                .position
-                .ecliptic
-                .as_ref()
-                .map(|coords| format!("{}", coords.longitude))
-                .unwrap_or_else(|| "n/a".to_string());
-            let sign = placement
-                .sign
-                .map(|sign| sign.to_string())
-                .unwrap_or_else(|| "n/a".to_string());
-            let house = placement
-                .house
-                .map(|house| house.to_string())
-                .unwrap_or_else(|| "n/a".to_string());
-            let motion = placement
-                .motion_direction()
-                .map(|direction| direction.to_string())
-                .unwrap_or_else(|| "n/a".to_string());
-            writeln!(
-                f,
-                "  - {:<12} {:>9}  {:<10}  {:>3}  {:<10}  {}",
-                placement.body, longitude, sign, house, motion, placement.position.quality,
-            )?;
+            writeln!(f, "  - {}", placement.summary_line())?;
         }
 
         let sign_summary = self.sign_summary();
@@ -2744,6 +2755,47 @@ mod tests {
                 .and_then(|motion| motion.longitude_deg_per_day),
             Some(-0.012)
         );
+    }
+
+    #[test]
+    fn body_placement_summary_line_matches_display() {
+        let mut result = EphemerisResult::new(
+            BackendId::new("toy-chart"),
+            CelestialBody::Venus,
+            Instant::new(
+                pleiades_types::JulianDay::from_days(2451545.0),
+                TimeScale::Tt,
+            ),
+            pleiades_types::CoordinateFrame::Ecliptic,
+            ZodiacMode::Tropical,
+            Apparentness::Apparent,
+        );
+        result.ecliptic = Some(EclipticCoordinates::new(
+            Longitude::from_degrees(123.25),
+            Latitude::from_degrees(-5.5),
+            Some(0.987),
+        ));
+        result.motion = Some(pleiades_types::Motion::new(
+            Some(-0.012),
+            Some(0.004),
+            Some(0.0012),
+        ));
+
+        let placement = BodyPlacement {
+            body: CelestialBody::Venus,
+            position: result,
+            sign: Some(ZodiacSign::Leo),
+            house: Some(7),
+        };
+
+        let summary = placement.summary_line();
+        assert_eq!(summary, placement.to_string());
+        assert!(summary.contains("Venus"));
+        assert!(summary.contains("123.25°"));
+        assert!(summary.contains("Leo"));
+        assert!(summary.contains("7"));
+        assert!(summary.contains("Retrograde"));
+        assert!(summary.contains(&placement.position.quality.to_string()));
     }
 
     #[test]
