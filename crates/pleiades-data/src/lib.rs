@@ -1669,7 +1669,9 @@ mod tests {
         assert!(error
             .message
             .contains("packaged artifact regeneration reference snapshot is invalid"));
-        assert!(error.message.contains("body count mismatch"));
+        assert!(error
+            .message
+            .contains("body count 16 does not match body list length 15"));
     }
 
     #[test]
