@@ -68,10 +68,16 @@ pub struct ArtifactBodyInspection {
     pub boundary_checks: usize,
     /// Sum of longitude deltas across all checked boundaries.
     pub sum_boundary_longitude_delta_deg: f64,
+    /// Sum of squared longitude deltas across all checked boundaries.
+    pub sum_boundary_longitude_delta_deg_sq: f64,
     /// Sum of latitude deltas across all checked boundaries.
     pub sum_boundary_latitude_delta_deg: f64,
+    /// Sum of squared latitude deltas across all checked boundaries.
+    pub sum_boundary_latitude_delta_deg_sq: f64,
     /// Sum of distance deltas across all checked boundaries that had distances.
     pub sum_boundary_distance_delta_au: Option<f64>,
+    /// Sum of squared distance deltas across all checked boundaries that had distances.
+    pub sum_boundary_distance_delta_au_sq: Option<f64>,
     /// Number of checked boundaries that had a distance delta.
     pub boundary_distance_checks: usize,
     /// Maximum longitude delta observed at any checked boundary.
@@ -92,12 +98,30 @@ impl ArtifactBodyInspection {
         }
     }
 
+    /// Returns the root-mean-square longitude delta across the checked boundaries.
+    pub fn rms_boundary_longitude_delta_deg(&self) -> f64 {
+        if self.boundary_checks == 0 {
+            0.0
+        } else {
+            (self.sum_boundary_longitude_delta_deg_sq / self.boundary_checks as f64).sqrt()
+        }
+    }
+
     /// Returns the mean latitude delta across the checked boundaries.
     pub fn mean_boundary_latitude_delta_deg(&self) -> f64 {
         if self.boundary_checks == 0 {
             0.0
         } else {
             self.sum_boundary_latitude_delta_deg / self.boundary_checks as f64
+        }
+    }
+
+    /// Returns the root-mean-square latitude delta across the checked boundaries.
+    pub fn rms_boundary_latitude_delta_deg(&self) -> f64 {
+        if self.boundary_checks == 0 {
+            0.0
+        } else {
+            (self.sum_boundary_latitude_delta_deg_sq / self.boundary_checks as f64).sqrt()
         }
     }
 
@@ -112,10 +136,21 @@ impl ArtifactBodyInspection {
         })
     }
 
+    /// Returns the root-mean-square distance delta across the checked boundaries that had distances.
+    pub fn rms_boundary_distance_delta_au(&self) -> Option<f64> {
+        self.sum_boundary_distance_delta_au_sq.map(|sum| {
+            if self.boundary_distance_checks == 0 {
+                0.0
+            } else {
+                (sum / self.boundary_distance_checks as f64).sqrt()
+            }
+        })
+    }
+
     /// Returns a compact one-line summary of the body inspection envelope.
     pub fn summary_line(&self) -> String {
         format!(
-            "{}: {} segments, {} → {}, {} samples, {} boundary checks, mean boundary Δlon={:.12}°, mean boundary Δlat={:.12}°, mean boundary Δdist={}, max boundary Δlon={:.12}°, Δlat={:.12}°, Δdist={}",
+            "{}: {} segments, {} → {}, {} samples, {} boundary checks, mean boundary Δlon={:.12}°, rms boundary Δlon={:.12}°, mean boundary Δlat={:.12}°, rms boundary Δlat={:.12}°, mean boundary Δdist={}, rms boundary Δdist={}, max boundary Δlon={:.12}°, Δlat={:.12}°, Δdist={}",
             self.body,
             self.segment_count,
             self.earliest.julian_day,
@@ -123,8 +158,13 @@ impl ArtifactBodyInspection {
             self.sample_count,
             self.boundary_checks,
             self.mean_boundary_longitude_delta_deg(),
+            self.rms_boundary_longitude_delta_deg(),
             self.mean_boundary_latitude_delta_deg(),
+            self.rms_boundary_latitude_delta_deg(),
             self.mean_boundary_distance_delta_au()
+                .map(|value| format!("{value:.12} AU"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            self.rms_boundary_distance_delta_au()
                 .map(|value| format!("{value:.12} AU"))
                 .unwrap_or_else(|| "n/a".to_string()),
             self.max_boundary_longitude_delta_deg,
@@ -151,10 +191,16 @@ pub struct ArtifactBoundaryEnvelopeSummary {
     pub boundary_check_count: usize,
     /// Sum of longitude deltas across all boundary checks.
     pub sum_boundary_longitude_delta_deg: f64,
+    /// Sum of squared longitude deltas across all boundary checks.
+    pub sum_boundary_longitude_delta_deg_sq: f64,
     /// Sum of latitude deltas across all boundary checks.
     pub sum_boundary_latitude_delta_deg: f64,
+    /// Sum of squared latitude deltas across all boundary checks.
+    pub sum_boundary_latitude_delta_deg_sq: f64,
     /// Sum of distance deltas across all boundary checks that had distances.
     pub sum_boundary_distance_delta_au: Option<f64>,
+    /// Sum of squared distance deltas across all boundary checks that had distances.
+    pub sum_boundary_distance_delta_au_sq: Option<f64>,
     /// Number of boundary checks that had a distance delta.
     pub boundary_distance_check_count: usize,
     /// Body that produced the largest longitude delta.
@@ -181,12 +227,30 @@ impl ArtifactBoundaryEnvelopeSummary {
         }
     }
 
+    /// Returns the root-mean-square longitude delta across all checked boundaries.
+    pub fn rms_boundary_longitude_delta_deg(&self) -> f64 {
+        if self.boundary_check_count == 0 {
+            0.0
+        } else {
+            (self.sum_boundary_longitude_delta_deg_sq / self.boundary_check_count as f64).sqrt()
+        }
+    }
+
     /// Returns the mean latitude delta across all checked boundaries.
     pub fn mean_boundary_latitude_delta_deg(&self) -> f64 {
         if self.boundary_check_count == 0 {
             0.0
         } else {
             self.sum_boundary_latitude_delta_deg / self.boundary_check_count as f64
+        }
+    }
+
+    /// Returns the root-mean-square latitude delta across all checked boundaries.
+    pub fn rms_boundary_latitude_delta_deg(&self) -> f64 {
+        if self.boundary_check_count == 0 {
+            0.0
+        } else {
+            (self.sum_boundary_latitude_delta_deg_sq / self.boundary_check_count as f64).sqrt()
         }
     }
 
@@ -201,6 +265,17 @@ impl ArtifactBoundaryEnvelopeSummary {
         })
     }
 
+    /// Returns the root-mean-square distance delta across all checked boundaries with a distance channel.
+    pub fn rms_boundary_distance_delta_au(&self) -> Option<f64> {
+        self.sum_boundary_distance_delta_au_sq.map(|sum| {
+            if self.boundary_distance_check_count == 0 {
+                0.0
+            } else {
+                (sum / self.boundary_distance_check_count as f64).sqrt()
+            }
+        })
+    }
+
     /// Returns the aggregate boundary envelope as a compact human-readable line.
     pub fn summary_line(&self) -> String {
         if self.boundary_check_count == 0 {
@@ -211,12 +286,22 @@ impl ArtifactBoundaryEnvelopeSummary {
         }
 
         format!(
-            "Artifact boundary envelope: {} checks across {} bundled bodies, mean boundary Δlon={:.12}°, mean boundary Δlat={:.12}°, mean boundary Δdist={}{}, max boundary Δlon={:.12}°{}, max boundary Δlat={:.12}°{}, max boundary Δdist={}{}",
+            "Artifact boundary envelope: {} checks across {} bundled bodies, mean boundary Δlon={:.12}°, rms boundary Δlon={:.12}°, mean boundary Δlat={:.12}°, rms boundary Δlat={:.12}°, mean boundary Δdist={}{}, rms boundary Δdist={}{}, max boundary Δlon={:.12}°{}, max boundary Δlat={:.12}°{}, max boundary Δdist={}{}",
             self.boundary_check_count,
             self.body_count,
             self.mean_boundary_longitude_delta_deg(),
+            self.rms_boundary_longitude_delta_deg(),
             self.mean_boundary_latitude_delta_deg(),
+            self.rms_boundary_latitude_delta_deg(),
             self.mean_boundary_distance_delta_au()
+                .map(|value| format!("{value:.12} AU"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            if self.boundary_distance_check_count > 0 {
+                format!(" ({} distance checks)", self.boundary_distance_check_count)
+            } else {
+                String::new()
+            },
+            self.rms_boundary_distance_delta_au()
                 .map(|value| format!("{value:.12} AU"))
                 .unwrap_or_else(|| "n/a".to_string()),
             if self.boundary_distance_check_count > 0 {
@@ -477,8 +562,11 @@ fn inspect_body(
     let mut sample_count = 0usize;
     let mut boundary_checks = 0usize;
     let mut sum_boundary_longitude_delta_deg = 0.0;
+    let mut sum_boundary_longitude_delta_deg_sq = 0.0;
     let mut sum_boundary_latitude_delta_deg = 0.0;
+    let mut sum_boundary_latitude_delta_deg_sq = 0.0;
     let mut sum_boundary_distance_delta_au: Option<f64> = None;
+    let mut sum_boundary_distance_delta_au_sq: Option<f64> = None;
     let mut boundary_distance_checks = 0usize;
     let mut max_boundary_longitude_delta_deg: f64 = 0.0;
     let mut max_boundary_latitude_delta_deg: f64 = 0.0;
@@ -498,7 +586,9 @@ fn inspect_body(
         let delta = boundary_delta(&left, &right);
         boundary_checks += 1;
         sum_boundary_longitude_delta_deg += delta.longitude_delta_deg;
+        sum_boundary_longitude_delta_deg_sq += delta.longitude_delta_deg.powi(2);
         sum_boundary_latitude_delta_deg += delta.latitude_delta_deg;
+        sum_boundary_latitude_delta_deg_sq += delta.latitude_delta_deg.powi(2);
         max_boundary_longitude_delta_deg =
             max_boundary_longitude_delta_deg.max(delta.longitude_delta_deg);
         max_boundary_latitude_delta_deg =
@@ -513,6 +603,8 @@ fn inspect_body(
             boundary_distance_checks += 1;
             sum_boundary_distance_delta_au =
                 Some(sum_boundary_distance_delta_au.unwrap_or(0.0) + distance_delta_au);
+            sum_boundary_distance_delta_au_sq =
+                Some(sum_boundary_distance_delta_au_sq.unwrap_or(0.0) + distance_delta_au.powi(2));
         }
     }
 
@@ -535,8 +627,11 @@ fn inspect_body(
         sample_count,
         boundary_checks,
         sum_boundary_longitude_delta_deg,
+        sum_boundary_longitude_delta_deg_sq,
         sum_boundary_latitude_delta_deg,
+        sum_boundary_latitude_delta_deg_sq,
         sum_boundary_distance_delta_au,
+        sum_boundary_distance_delta_au_sq,
         boundary_distance_checks,
         max_boundary_longitude_delta_deg,
         max_boundary_latitude_delta_deg,
@@ -822,8 +917,11 @@ fn artifact_boundary_envelope_summary(
         body_count: report.bodies.len(),
         boundary_check_count: 0,
         sum_boundary_longitude_delta_deg: 0.0,
+        sum_boundary_longitude_delta_deg_sq: 0.0,
         sum_boundary_latitude_delta_deg: 0.0,
+        sum_boundary_latitude_delta_deg_sq: 0.0,
         sum_boundary_distance_delta_au: None,
+        sum_boundary_distance_delta_au_sq: None,
         boundary_distance_check_count: 0,
         max_boundary_longitude_delta_body: None,
         max_boundary_longitude_delta_deg: 0.0,
@@ -836,10 +934,16 @@ fn artifact_boundary_envelope_summary(
     for body in &report.bodies {
         summary.boundary_check_count += body.boundary_checks;
         summary.sum_boundary_longitude_delta_deg += body.sum_boundary_longitude_delta_deg;
+        summary.sum_boundary_longitude_delta_deg_sq += body.sum_boundary_longitude_delta_deg_sq;
         summary.sum_boundary_latitude_delta_deg += body.sum_boundary_latitude_delta_deg;
+        summary.sum_boundary_latitude_delta_deg_sq += body.sum_boundary_latitude_delta_deg_sq;
         if let Some(sum) = body.sum_boundary_distance_delta_au {
             summary.sum_boundary_distance_delta_au =
                 Some(summary.sum_boundary_distance_delta_au.unwrap_or(0.0) + sum);
+            summary.sum_boundary_distance_delta_au_sq = Some(
+                summary.sum_boundary_distance_delta_au_sq.unwrap_or(0.0)
+                    + body.sum_boundary_distance_delta_au_sq.unwrap_or(0.0),
+            );
             summary.boundary_distance_check_count += body.boundary_distance_checks;
         }
         if body.boundary_checks == 0 {
@@ -1320,8 +1424,11 @@ mod tests {
             sample_count: 6,
             boundary_checks: 2,
             sum_boundary_longitude_delta_deg: 0.20,
+            sum_boundary_longitude_delta_deg_sq: 0.05,
             sum_boundary_latitude_delta_deg: 0.40,
+            sum_boundary_latitude_delta_deg_sq: 0.20,
             sum_boundary_distance_delta_au: Some(0.60),
+            sum_boundary_distance_delta_au_sq: Some(0.45),
             boundary_distance_checks: 2,
             max_boundary_longitude_delta_deg: 0.15,
             max_boundary_latitude_delta_deg: 0.30,
@@ -1332,8 +1439,11 @@ mod tests {
         assert!(summary.contains("Sun: 2 segments,"));
         assert!(summary.contains("6 samples, 2 boundary checks"));
         assert!(summary.contains("mean boundary Δlon=0.100000000000°"));
+        assert!(summary.contains("rms boundary Δlon=0.158113883008°"));
         assert!(summary.contains("mean boundary Δlat=0.200000000000°"));
+        assert!(summary.contains("rms boundary Δlat=0.316227766017°"));
         assert!(summary.contains("mean boundary Δdist=0.300000000000 AU"));
+        assert!(summary.contains("rms boundary Δdist=0.474341649025 AU"));
         assert!(summary.contains("max boundary Δlon=0.150000000000°"));
         assert!(summary.contains("Δlat=0.300000000000°"));
         assert!(summary.contains("Δdist=0.450000000000 AU"));
@@ -1345,8 +1455,11 @@ mod tests {
             body_count: 2,
             boundary_check_count: 3,
             sum_boundary_longitude_delta_deg: 0.30,
+            sum_boundary_longitude_delta_deg_sq: 0.07,
             sum_boundary_latitude_delta_deg: 0.60,
+            sum_boundary_latitude_delta_deg_sq: 0.29,
             sum_boundary_distance_delta_au: Some(0.90),
+            sum_boundary_distance_delta_au_sq: Some(0.63),
             boundary_distance_check_count: 3,
             max_boundary_longitude_delta_body: Some(CelestialBody::Moon),
             max_boundary_longitude_delta_deg: 0.18,
@@ -1359,8 +1472,11 @@ mod tests {
         let rendered = summary.summary_line();
         assert!(rendered.contains("Artifact boundary envelope: 3 checks across 2 bundled bodies"));
         assert!(rendered.contains("mean boundary Δlon=0.100000000000°"));
+        assert!(rendered.contains("rms boundary Δlon=0.152752523165°"));
         assert!(rendered.contains("mean boundary Δlat=0.200000000000°"));
+        assert!(rendered.contains("rms boundary Δlat=0.310912635103°"));
         assert!(rendered.contains("mean boundary Δdist=0.300000000000 AU (3 distance checks)"));
+        assert!(rendered.contains("rms boundary Δdist=0.458257569496 AU (3 distance checks)"));
         assert!(rendered.contains("max boundary Δlon=0.180000000000° (Moon)"));
         assert!(rendered.contains("max boundary Δlat=0.270000000000° (Sun)"));
         assert!(rendered.contains("max boundary Δdist=0.330000000000 AU (Moon)"));
