@@ -490,6 +490,26 @@ pub struct PackagedRequestPolicySummary {
     pub lookup_epoch_policy: PackagedLookupEpochPolicy,
 }
 
+/// Validation error for the packaged-data request-policy summary.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PackagedRequestPolicySummaryValidationError {
+    /// A summary field is out of sync with the current packaged-data posture.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for PackagedRequestPolicySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the packaged request-policy summary field `{field}` is out of sync with the current posture"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for PackagedRequestPolicySummaryValidationError {}
+
 impl PackagedRequestPolicySummary {
     /// Renders the packaged request policy into a release-facing summary line.
     pub fn summary_line(&self) -> String {
@@ -508,6 +528,63 @@ impl PackagedRequestPolicySummary {
             self.lookup_epoch_policy,
             self.lookup_epoch_policy.note(),
         )
+    }
+
+    /// Returns `Ok(())` when the packaged request-policy posture still matches the current backend metadata.
+    pub fn validate(&self) -> Result<(), PackagedRequestPolicySummaryValidationError> {
+        if !self.geocentric_only {
+            return Err(
+                PackagedRequestPolicySummaryValidationError::FieldOutOfSync {
+                    field: "geocentric_only",
+                },
+            );
+        }
+        if self.supported_frames != [CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial] {
+            return Err(
+                PackagedRequestPolicySummaryValidationError::FieldOutOfSync {
+                    field: "supported_frames",
+                },
+            );
+        }
+        if self.supported_time_scales != [TimeScale::Tt, TimeScale::Tdb] {
+            return Err(
+                PackagedRequestPolicySummaryValidationError::FieldOutOfSync {
+                    field: "supported_time_scales",
+                },
+            );
+        }
+        if self.supported_zodiac_modes != [ZodiacMode::Tropical] {
+            return Err(
+                PackagedRequestPolicySummaryValidationError::FieldOutOfSync {
+                    field: "supported_zodiac_modes",
+                },
+            );
+        }
+        if self.supported_apparentness != [Apparentness::Mean] {
+            return Err(
+                PackagedRequestPolicySummaryValidationError::FieldOutOfSync {
+                    field: "supported_apparentness",
+                },
+            );
+        }
+        if self.supports_topocentric_observer {
+            return Err(
+                PackagedRequestPolicySummaryValidationError::FieldOutOfSync {
+                    field: "supports_topocentric_observer",
+                },
+            );
+        }
+        if self.lookup_epoch_policy
+            != PackagedLookupEpochPolicy::RetagToTtGridWithoutRelativisticCorrection
+        {
+            return Err(
+                PackagedRequestPolicySummaryValidationError::FieldOutOfSync {
+                    field: "lookup_epoch_policy",
+                },
+            );
+        }
+
+        Ok(())
     }
 }
 
@@ -530,7 +607,18 @@ const PACKAGED_REQUEST_POLICY_SUMMARY: PackagedRequestPolicySummary =
 
 /// Returns the current packaged-data request-policy summary record.
 pub fn packaged_request_policy_summary_details() -> PackagedRequestPolicySummary {
-    PACKAGED_REQUEST_POLICY_SUMMARY
+    let summary = PACKAGED_REQUEST_POLICY_SUMMARY;
+    debug_assert!(summary.validate().is_ok());
+    summary
+}
+
+/// Returns the current packaged-data request policy summary after validating the structured posture.
+pub fn packaged_request_policy_summary_for_report() -> String {
+    let summary = packaged_request_policy_summary_details();
+    match summary.validate() {
+        Ok(()) => summary.to_string(),
+        Err(error) => format!("Packaged request policy: unavailable ({error})"),
+    }
 }
 
 /// Returns the current packaged-data request policy summary.
@@ -1485,6 +1573,7 @@ mod tests {
             metadata.provenance.data_sources[0]
         );
         let request_policy = packaged_request_policy_summary_details();
+        assert!(request_policy.validate().is_ok());
         assert!(request_policy.geocentric_only);
         assert_eq!(
             request_policy.supported_frames,
@@ -1506,7 +1595,11 @@ mod tests {
         );
         assert_eq!(
             request_policy.summary_line(),
-            packaged_request_policy_summary().to_string()
+            packaged_request_policy_summary_for_report()
+        );
+        assert_eq!(
+            request_policy.summary_line(),
+            packaged_request_policy_summary()
         );
         assert_eq!(request_policy.to_string(), request_policy.summary_line());
         assert_eq!(
@@ -1535,6 +1628,17 @@ mod tests {
         assert!(metadata.provenance.data_sources[3].contains("Quantized linear segments"));
         assert!(metadata.provenance.data_sources[3]
             .contains("equatorial coordinates are reconstructed at runtime"));
+    }
+
+    #[test]
+    fn packaged_request_policy_summary_validation_rejects_drift() {
+        let mut summary = packaged_request_policy_summary_details();
+        summary.supported_frames = &[CoordinateFrame::Ecliptic];
+
+        let error = summary
+            .validate()
+            .expect_err("drifted packaged request-policy summary should be rejected");
+        assert!(format!("{error}").contains("supported_frames"));
     }
 
     #[test]
