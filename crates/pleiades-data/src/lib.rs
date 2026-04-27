@@ -728,6 +728,53 @@ pub struct PackagedBatchParitySummary {
     pub single_query_parity_preserved: bool,
 }
 
+/// Validation error for a packaged mixed-frame batch-parity summary.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PackagedBatchParitySummaryValidationError {
+    /// A summary field is out of sync with the current packaged batch-parity posture.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for PackagedBatchParitySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the packaged mixed-frame batch-parity summary field `{field}` is out of sync with the current packaged posture"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for PackagedBatchParitySummaryValidationError {}
+
+impl PackagedBatchParitySummary {
+    /// Returns `Ok(())` when the summary still matches the current packaged batch-parity posture.
+    pub fn validate(&self) -> Result<(), PackagedBatchParitySummaryValidationError> {
+        if self.request_count != self.body_count {
+            return Err(PackagedBatchParitySummaryValidationError::FieldOutOfSync {
+                field: "request_count/body_count",
+            });
+        }
+
+        if self.ecliptic_request_count + self.equatorial_request_count != self.request_count {
+            return Err(PackagedBatchParitySummaryValidationError::FieldOutOfSync {
+                field: "frame_counts",
+            });
+        }
+
+        if self.exact_count + self.interpolated_count + self.approximate_count + self.unknown_count
+            != self.request_count
+        {
+            return Err(PackagedBatchParitySummaryValidationError::FieldOutOfSync {
+                field: "quality_counts",
+            });
+        }
+
+        Ok(())
+    }
+}
+
 /// Returns a compact mixed-frame batch-parity summary for the packaged artifact.
 pub fn packaged_mixed_frame_batch_parity_summary() -> Option<PackagedBatchParitySummary> {
     let backend = packaged_backend();
@@ -840,10 +887,20 @@ impl fmt::Display for PackagedBatchParitySummary {
     }
 }
 
+fn format_validated_packaged_mixed_frame_batch_parity_summary_for_report(
+    summary: &PackagedBatchParitySummary,
+) -> String {
+    match summary.validate() {
+        Ok(()) => summary.to_string(),
+        Err(error) => format!("Packaged mixed frame batch parity: unavailable ({error})"),
+    }
+}
+
 /// Returns the packaged mixed-frame batch-parity summary.
 pub fn packaged_mixed_frame_batch_parity_summary_for_report() -> String {
     packaged_mixed_frame_batch_parity_summary()
-        .map(|summary| summary.to_string())
+        .as_ref()
+        .map(format_validated_packaged_mixed_frame_batch_parity_summary_for_report)
         .unwrap_or_else(|| "Packaged mixed frame batch parity: unavailable".to_string())
 }
 
@@ -876,6 +933,26 @@ pub struct PackagedTimeScaleBatchParitySummary {
     /// Whether the batch regression preserved batch/single parity.
     pub single_query_parity_preserved: bool,
 }
+
+/// Validation error for a packaged mixed TT/TDB batch-parity summary.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PackagedTimeScaleBatchParitySummaryValidationError {
+    /// A summary field is out of sync with the current packaged batch-parity posture.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for PackagedTimeScaleBatchParitySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the packaged mixed TT/TDB batch-parity summary field `{field}` is out of sync with the current packaged posture"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for PackagedTimeScaleBatchParitySummaryValidationError {}
 
 /// Returns a compact mixed TT/TDB batch-parity summary for the packaged artifact.
 pub fn packaged_mixed_tt_tdb_batch_parity_summary() -> Option<PackagedTimeScaleBatchParitySummary> {
@@ -958,6 +1035,37 @@ pub fn packaged_mixed_tt_tdb_batch_parity_summary() -> Option<PackagedTimeScaleB
 }
 
 impl PackagedTimeScaleBatchParitySummary {
+    /// Returns `Ok(())` when the summary still matches the current packaged batch-parity posture.
+    pub fn validate(&self) -> Result<(), PackagedTimeScaleBatchParitySummaryValidationError> {
+        if self.request_count != self.body_count {
+            return Err(
+                PackagedTimeScaleBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "request_count/body_count",
+                },
+            );
+        }
+
+        if self.tt_request_count + self.tdb_request_count != self.request_count {
+            return Err(
+                PackagedTimeScaleBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "time_scale_counts",
+                },
+            );
+        }
+
+        if self.exact_count + self.interpolated_count + self.approximate_count + self.unknown_count
+            != self.request_count
+        {
+            return Err(
+                PackagedTimeScaleBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "quality_counts",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         let order = if self.order_preserved {
@@ -992,10 +1100,20 @@ impl fmt::Display for PackagedTimeScaleBatchParitySummary {
     }
 }
 
+fn format_validated_packaged_mixed_tt_tdb_batch_parity_summary_for_report(
+    summary: &PackagedTimeScaleBatchParitySummary,
+) -> String {
+    match summary.validate() {
+        Ok(()) => summary.to_string(),
+        Err(error) => format!("Packaged mixed TT/TDB batch parity: unavailable ({error})"),
+    }
+}
+
 /// Returns the packaged mixed TT/TDB batch-parity summary.
 pub fn packaged_mixed_tt_tdb_batch_parity_summary_for_report() -> String {
     packaged_mixed_tt_tdb_batch_parity_summary()
-        .map(|summary| summary.to_string())
+        .as_ref()
+        .map(format_validated_packaged_mixed_tt_tdb_batch_parity_summary_for_report)
         .unwrap_or_else(|| "Packaged mixed TT/TDB batch parity: unavailable".to_string())
 }
 
@@ -2146,6 +2264,7 @@ mod tests {
             .expect("packaged mixed frame batch parity should be available");
 
         assert_eq!(summary.to_string(), summary.summary_line());
+        assert!(summary.validate().is_ok());
         assert_eq!(summary.request_count, packaged_bodies().len());
         assert_eq!(summary.body_count, packaged_bodies().len());
         assert_eq!(
@@ -2159,6 +2278,18 @@ mod tests {
             .contains("Packaged mixed frame batch parity:"));
         assert!(packaged_mixed_frame_batch_parity_summary_for_report()
             .contains("Packaged mixed frame batch parity:"));
+    }
+
+    #[test]
+    fn packaged_mixed_frame_batch_parity_summary_report_marks_drift_as_unavailable() {
+        let mut summary = packaged_mixed_frame_batch_parity_summary()
+            .expect("packaged mixed frame batch parity should be available");
+        summary.request_count += 1;
+
+        assert_eq!(
+            format_validated_packaged_mixed_frame_batch_parity_summary_for_report(&summary),
+            "Packaged mixed frame batch parity: unavailable (the packaged mixed-frame batch-parity summary field `request_count/body_count` is out of sync with the current packaged posture)"
+        );
     }
 
     #[test]
@@ -2217,6 +2348,7 @@ mod tests {
             .expect("packaged mixed TT/TDB batch parity should be available");
 
         assert_eq!(summary.to_string(), summary.summary_line());
+        assert!(summary.validate().is_ok());
         assert_eq!(summary.request_count, packaged_bodies().len());
         assert_eq!(summary.body_count, packaged_bodies().len());
         assert_eq!(
@@ -2230,6 +2362,18 @@ mod tests {
             .contains("Packaged mixed TT/TDB batch parity:"));
         assert!(packaged_mixed_tt_tdb_batch_parity_summary_for_report()
             .contains("Packaged mixed TT/TDB batch parity:"));
+    }
+
+    #[test]
+    fn packaged_mixed_tt_tdb_batch_parity_summary_report_marks_drift_as_unavailable() {
+        let mut summary = packaged_mixed_tt_tdb_batch_parity_summary()
+            .expect("packaged mixed TT/TDB batch parity should be available");
+        summary.request_count += 1;
+
+        assert_eq!(
+            format_validated_packaged_mixed_tt_tdb_batch_parity_summary_for_report(&summary),
+            "Packaged mixed TT/TDB batch parity: unavailable (the packaged mixed TT/TDB batch-parity summary field `request_count/body_count` is out of sync with the current packaged posture)"
+        );
     }
 
     #[test]
