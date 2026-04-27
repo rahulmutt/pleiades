@@ -652,6 +652,7 @@ mod tests {
         assert!(rendered.contains("WvA"));
         assert!(rendered.contains("Gauquelin table of sectors"));
         assert!(rendered.contains("Pullen SD (Neo-Porphyry) table of houses"));
+        assert!(rendered.contains("Pullen SD (Sinusoidal Delta)"));
         assert!(rendered.contains("Makransky Sunshine"));
         assert!(rendered.contains("Sunshine table of houses, by Bob Makransky"));
         assert!(rendered.contains("Treindl Sunshine"));
@@ -795,6 +796,7 @@ mod tests {
         assert!(release_notes.contains("Galactic Equator (True)"));
         assert!(release_notes.contains("Galactic Center (Rgilbrand)"));
         assert!(release_notes.contains("Babylonian (True Geoc)"));
+        assert!(release_notes.contains("Pullen SD (Sinusoidal Delta)"));
 
         let release_notes_summary =
             render_cli(&["release-notes-summary"]).expect("release notes summary should render");
