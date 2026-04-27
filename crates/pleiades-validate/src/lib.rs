@@ -2584,6 +2584,193 @@ pub struct CompatibilityProfileVerificationSummary {
 }
 
 impl CompatibilityProfileVerificationSummary {
+    /// Validates that the summary still matches the current release profile.
+    pub fn validate(&self) -> Result<(), EphemerisError> {
+        let profile = current_compatibility_profile();
+        let release_profiles = current_release_profile_identifiers();
+
+        if self.profile_id != release_profiles.compatibility_profile_id {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile verification summary profile id mismatch: expected {}, found {}",
+                    release_profiles.compatibility_profile_id, self.profile_id
+                ),
+            ));
+        }
+
+        let house_labels_checked = verify_house_system_aliases(profile.house_systems)?;
+        if self.house_system_descriptor_count != profile.house_systems.len() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile verification summary house-system descriptor count mismatch: expected {}, found {}",
+                    profile.house_systems.len(), self.house_system_descriptor_count
+                ),
+            ));
+        }
+        if self.house_system_label_count != house_labels_checked {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile verification summary house-system label count mismatch: expected {}, found {}",
+                    house_labels_checked, self.house_system_label_count
+                ),
+            ));
+        }
+
+        let expected_latitude_sensitive = profile.latitude_sensitive_house_systems();
+        if self.latitude_sensitive_house_systems != expected_latitude_sensitive {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile verification summary latitude-sensitive house systems mismatch: expected [{}], found [{}]",
+                    expected_latitude_sensitive.join(", "),
+                    self.latitude_sensitive_house_systems.join(", ")
+                ),
+            ));
+        }
+
+        let ayanamsa_labels_checked = verify_ayanamsa_aliases(profile.ayanamsas)?;
+        if self.ayanamsa_descriptor_count != profile.ayanamsas.len() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile verification summary ayanamsa descriptor count mismatch: expected {}, found {}",
+                    profile.ayanamsas.len(), self.ayanamsa_descriptor_count
+                ),
+            ));
+        }
+        if self.ayanamsa_label_count != ayanamsa_labels_checked {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile verification summary ayanamsa label count mismatch: expected {}, found {}",
+                    ayanamsa_labels_checked, self.ayanamsa_label_count
+                ),
+            ));
+        }
+
+        if self.baseline_house_system_count != profile.baseline_house_systems.len() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile verification summary baseline house-system count mismatch: expected {}, found {}",
+                    profile.baseline_house_systems.len(), self.baseline_house_system_count
+                ),
+            ));
+        }
+        if self.release_house_system_count != profile.release_house_systems.len() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile verification summary release house-system count mismatch: expected {}, found {}",
+                    profile.release_house_systems.len(), self.release_house_system_count
+                ),
+            ));
+        }
+        if self.baseline_ayanamsa_count != profile.baseline_ayanamsas.len() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile verification summary baseline ayanamsa count mismatch: expected {}, found {}",
+                    profile.baseline_ayanamsas.len(), self.baseline_ayanamsa_count
+                ),
+            ));
+        }
+        if self.release_ayanamsa_count != profile.release_ayanamsas.len() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile verification summary release ayanamsa count mismatch: expected {}, found {}",
+                    profile.release_ayanamsas.len(), self.release_ayanamsa_count
+                ),
+            ));
+        }
+
+        let expected_release_house_names =
+            summarize_descriptor_names(profile.release_house_systems, |entry| entry.canonical_name);
+        expected_release_house_names.validate()?;
+        if self.release_house_canonical_names != expected_release_house_names.summary_line() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile verification summary release house-system canonical names mismatch: expected {}, found {}",
+                    expected_release_house_names.summary_line(), self.release_house_canonical_names
+                ),
+            ));
+        }
+
+        let expected_release_ayanamsa_names =
+            summarize_descriptor_names(profile.release_ayanamsas, |entry| entry.canonical_name);
+        expected_release_ayanamsa_names.validate()?;
+        if self.release_ayanamsa_canonical_names != expected_release_ayanamsa_names.summary_line() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile verification summary release ayanamsa canonical names mismatch: expected {}, found {}",
+                    expected_release_ayanamsa_names.summary_line(), self.release_ayanamsa_canonical_names
+                ),
+            ));
+        }
+
+        if self.release_note_count != profile.release_notes.len() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile verification summary release note count mismatch: expected {}, found {}",
+                    profile.release_notes.len(), self.release_note_count
+                ),
+            ));
+        }
+        if self.validation_reference_point_count != profile.validation_reference_points.len() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile verification summary validation reference point count mismatch: expected {}, found {}",
+                    profile.validation_reference_points.len(), self.validation_reference_point_count
+                ),
+            ));
+        }
+        let custom_definition_labels_checked =
+            verify_custom_definition_labels(profile.custom_definition_labels)?;
+        if self.custom_definition_label_count != custom_definition_labels_checked {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile verification summary custom-definition label count mismatch: expected {}, found {}",
+                    custom_definition_labels_checked, self.custom_definition_label_count
+                ),
+            ));
+        }
+        if self.compatibility_caveat_count != profile.known_gaps.len() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile verification summary compatibility caveat count mismatch: expected {}, found {}",
+                    profile.known_gaps.len(), self.compatibility_caveat_count
+                ),
+            ));
+        }
+
+        verify_profile_text_section("release-note", profile.release_notes)?;
+        verify_profile_text_section(
+            "validation-reference-point",
+            profile.validation_reference_points,
+        )?;
+        verify_profile_text_section("compatibility-caveat", profile.known_gaps)?;
+        verify_profile_text_sections_are_disjoint(&[
+            ("release-note", profile.release_notes),
+            (
+                "validation-reference-point",
+                profile.validation_reference_points,
+            ),
+            ("compatibility-caveat", profile.known_gaps),
+        ])?;
+
+        Ok(())
+    }
+
     /// Renders the verification summary as compact release-facing text.
     pub fn summary_line(&self) -> String {
         let mut text = String::new();
@@ -2764,7 +2951,9 @@ pub fn compatibility_profile_verification_summary(
 /// Verifies that the release compatibility profile stays synchronized with the
 /// canonical house-system and ayanamsa catalogs.
 pub fn verify_compatibility_profile() -> Result<String, EphemerisError> {
-    Ok(compatibility_profile_verification_summary()?.summary_line())
+    let summary = compatibility_profile_verification_summary()?;
+    summary.validate()?;
+    Ok(summary.summary_line())
 }
 
 fn ensure_profile_slice_matches<T>(
@@ -10678,6 +10867,9 @@ mod tests {
             profile.custom_definition_labels.len()
         );
         assert_eq!(summary.compatibility_caveat_count, profile.known_gaps.len());
+        summary
+            .validate()
+            .expect("fresh compatibility profile verification summary should validate");
         assert_eq!(summary.summary_line(), summary.to_string());
         assert_eq!(
             verify_compatibility_profile().unwrap(),
@@ -10689,6 +10881,21 @@ mod tests {
         assert!(summary
             .summary_line()
             .contains("Release posture: baseline milestone preserved, release additions explicit, custom definitions tracked, caveats documented"));
+    }
+
+    #[test]
+    fn compatibility_profile_verification_summary_validation_rejects_stale_fields() {
+        let mut summary = compatibility_profile_verification_summary()
+            .expect("compatibility profile verification summary should render");
+        summary.release_ayanamsa_canonical_names = "stale summary".to_string();
+
+        let error = summary
+            .validate()
+            .expect_err("stale compatibility profile verification summary should fail validation");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("release ayanamsa canonical names mismatch"));
     }
 
     #[test]
