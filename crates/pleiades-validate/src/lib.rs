@@ -10486,6 +10486,7 @@ mod tests {
         )));
         let coverage = metadata_coverage();
         assert!(rendered.contains("House systems:"));
+        assert!(rendered.contains("House systems: 25 total (12 baseline, 13 release-specific)"));
         assert!(rendered.contains("Ayanamsas:"));
         assert!(rendered.contains(&format!(
             "Ayanamsa sidereal metadata: {}/{} entries with both a reference epoch and offset",
@@ -11210,6 +11211,7 @@ mod tests {
         assert!(rendered.contains("Zodiac policy: tropical only"));
         assert!(rendered.contains("ayanamsa catalog validation: ok"));
         assert!(rendered.contains("House systems:"));
+        assert!(rendered.contains("House systems: 25 total (12 baseline, 13 release-specific)"));
         assert!(rendered.contains("Release-specific house-system canonical names: 13 (Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter (poli-equatorial), Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen SD, Pullen SR, Sunshine, Gauquelin sectors)"));
         assert!(rendered.contains("Wang"));
         assert!(rendered.contains("Aries houses"));
