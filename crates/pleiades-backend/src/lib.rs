@@ -253,7 +253,78 @@ impl BackendProvenance {
     pub fn summary_line(&self) -> String {
         self.summary.clone()
     }
+
+    /// Returns `Ok(())` when the provenance summary is internally consistent.
+    ///
+    /// The shared check keeps backend provenance metadata from silently
+    /// carrying blank summary text or duplicate/whitespace-padded source
+    /// labels. Empty source lists are allowed for synthesized or routing
+    /// backends that do not have external data provenance to list.
+    pub fn validate(&self) -> Result<(), BackendProvenanceValidationError> {
+        validate_non_blank("provenance summary", &self.summary)
+            .map_err(|_| BackendProvenanceValidationError::BlankSummary)?;
+
+        for (index, source) in self.data_sources.iter().enumerate() {
+            if source.trim().is_empty() || source.trim() != source {
+                return Err(BackendProvenanceValidationError::BlankDataSource { index });
+            }
+        }
+
+        validate_unique_entries("provenance data sources", &self.data_sources).map_err(|error| {
+            match error {
+                BackendMetadataValidationError::DuplicateEntry { value, .. } => {
+                    BackendProvenanceValidationError::DuplicateDataSource { value }
+                }
+                _ => {
+                    unreachable!("duplicate provenance sources should only fail via DuplicateEntry")
+                }
+            }
+        })
+    }
 }
+
+/// Errors returned when backend provenance metadata fails the shared consistency checks.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum BackendProvenanceValidationError {
+    /// The summary text was blank or whitespace-padded.
+    BlankSummary,
+    /// A provenance source entry was blank or whitespace-padded.
+    BlankDataSource {
+        /// Zero-based position of the invalid source entry.
+        index: usize,
+    },
+    /// A provenance source entry appeared more than once.
+    DuplicateDataSource {
+        /// The duplicated source label.
+        value: String,
+    },
+}
+
+impl BackendProvenanceValidationError {
+    /// Returns a compact validation summary string.
+    pub fn summary_line(&self) -> String {
+        match self {
+            Self::BlankSummary => {
+                "backend provenance summary must not be blank or whitespace-padded".to_owned()
+            }
+            Self::BlankDataSource { index } => format!(
+                "backend provenance data source at index {index} must not be blank or whitespace-padded"
+            ),
+            Self::DuplicateDataSource { value } => {
+                format!("backend provenance data sources contain duplicate entry `{value}`")
+            }
+        }
+    }
+}
+
+impl fmt::Display for BackendProvenanceValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+impl std::error::Error for BackendProvenanceValidationError {}
 
 impl fmt::Display for BackendProvenance {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -488,9 +559,24 @@ impl BackendMetadata {
     pub fn validate(&self) -> Result<(), BackendMetadataValidationError> {
         validate_non_blank("id", self.id.as_str())?;
         validate_non_blank("version", &self.version)?;
-        validate_non_blank("provenance summary", &self.provenance.summary)?;
-        validate_non_blank_entries("provenance data sources", &self.provenance.data_sources)?;
-        validate_unique_entries("provenance data sources", &self.provenance.data_sources)?;
+        self.provenance.validate().map_err(|error| match error {
+            BackendProvenanceValidationError::BlankSummary => {
+                BackendMetadataValidationError::BlankField {
+                    field: "provenance summary",
+                }
+            }
+            BackendProvenanceValidationError::BlankDataSource { .. } => {
+                BackendMetadataValidationError::BlankField {
+                    field: "provenance data sources",
+                }
+            }
+            BackendProvenanceValidationError::DuplicateDataSource { value } => {
+                BackendMetadataValidationError::DuplicateEntry {
+                    field: "provenance data sources",
+                    value,
+                }
+            }
+        })?;
         validate_non_empty_unique("supported time scales", &self.supported_time_scales)?;
         validate_non_empty_unique("body coverage", &self.body_coverage)?;
         validate_non_empty_unique("supported frames", &self.supported_frames)?;
@@ -537,20 +623,6 @@ fn validate_non_blank(
     } else {
         Ok(())
     }
-}
-
-fn validate_non_blank_entries<T: AsRef<str>>(
-    field: &'static str,
-    values: &[T],
-) -> Result<(), BackendMetadataValidationError> {
-    for value in values {
-        let value = value.as_ref();
-        if value.trim().is_empty() || value.trim() != value {
-            return Err(BackendMetadataValidationError::BlankField { field });
-        }
-    }
-
-    Ok(())
 }
 
 fn validate_unique_entries<T: fmt::Display + PartialEq>(
@@ -1836,6 +1908,30 @@ mod tests {
         assert_eq!(error.to_string(), error.summary_line());
 
         metadata.id = BackendId::new("toy");
+        metadata.provenance.summary = " ".to_string();
+
+        let error = metadata
+            .validate()
+            .expect_err("blank provenance summaries should fail validation");
+        assert_eq!(
+            error.summary_line(),
+            "backend metadata field `provenance summary` is blank or whitespace-padded"
+        );
+        assert_eq!(error.to_string(), error.summary_line());
+
+        metadata.provenance.summary = "example backend".to_string();
+        metadata.provenance.data_sources = vec![" source A".to_string()];
+
+        let error = metadata
+            .validate()
+            .expect_err("whitespace-padded provenance sources should fail validation");
+        assert_eq!(
+            error.summary_line(),
+            "backend metadata field `provenance data sources` is blank or whitespace-padded"
+        );
+        assert_eq!(error.to_string(), error.summary_line());
+
+        metadata.provenance.data_sources = vec!["source A".to_string()];
         metadata.supported_time_scales = vec![TimeScale::Tt];
         metadata.body_coverage = vec![CelestialBody::Sun];
         metadata.supported_frames = vec![CoordinateFrame::Ecliptic, CoordinateFrame::Ecliptic];
@@ -2014,6 +2110,47 @@ mod tests {
         assert_eq!(provenance.to_string(), provenance.summary_line());
         assert_eq!(provenance.summary_line(), "toy backend for tests");
         assert!(provenance.summary_line().contains("toy backend for tests"));
+        assert!(provenance.validate().is_ok());
+    }
+
+    #[test]
+    fn backend_provenance_validation_rejects_blank_summary_and_duplicate_sources() {
+        let mut provenance = BackendProvenance {
+            summary: " ".to_string(),
+            data_sources: vec!["source A".to_string(), "source A".to_string()],
+        };
+
+        let error = provenance
+            .validate()
+            .expect_err("blank provenance summaries should fail validation");
+        assert_eq!(
+            error.summary_line(),
+            "backend provenance summary must not be blank or whitespace-padded"
+        );
+        assert_eq!(error.to_string(), error.summary_line());
+
+        provenance.summary = "toy backend".to_string();
+        provenance.data_sources = vec![" source A".to_string()];
+
+        let error = provenance
+            .validate()
+            .expect_err("whitespace-padded provenance sources should fail validation");
+        assert_eq!(
+            error.summary_line(),
+            "backend provenance data source at index 0 must not be blank or whitespace-padded"
+        );
+        assert_eq!(error.to_string(), error.summary_line());
+
+        provenance.data_sources = vec!["source A".to_string(), "source A".to_string()];
+
+        let error = provenance
+            .validate()
+            .expect_err("duplicate provenance sources should fail validation");
+        assert_eq!(
+            error.summary_line(),
+            "backend provenance data sources contain duplicate entry `source A`"
+        );
+        assert_eq!(error.to_string(), error.summary_line());
     }
 
     #[test]
