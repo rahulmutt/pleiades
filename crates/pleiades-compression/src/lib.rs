@@ -256,6 +256,16 @@ impl SpeedPolicy {
             Self::NumericalDifference => "NumericalDifference",
         }
     }
+
+    /// Returns how motion/speed output is represented when this policy is used.
+    pub const fn motion_output_support(self) -> ArtifactOutputSupport {
+        match self {
+            Self::Unsupported => ArtifactOutputSupport::Unsupported,
+            Self::Stored | Self::FittedDerivative | Self::NumericalDifference => {
+                ArtifactOutputSupport::Derived
+            }
+        }
+    }
 }
 
 impl fmt::Display for SpeedPolicy {
@@ -988,6 +998,43 @@ fn validate_artifact_profile(profile: &ArtifactProfile) -> Result<(), Compressio
         "artifact profile unsupported outputs",
         &profile.unsupported_outputs,
     )?;
+    validate_motion_policy(profile)?;
+    Ok(())
+}
+
+fn validate_motion_policy(profile: &ArtifactProfile) -> Result<(), CompressionError> {
+    let motion_support = profile.speed_policy.motion_output_support();
+    match motion_support {
+        ArtifactOutputSupport::Derived => {
+            if !profile.derived_outputs.contains(&ArtifactOutput::Motion) {
+                return Err(CompressionError::new(
+                    CompressionErrorKind::InvalidFormat,
+                    format!(
+                        "artifact profile speed policy {} requires Motion to be listed in derived outputs",
+                        profile.speed_policy
+                    ),
+                ));
+            }
+        }
+        ArtifactOutputSupport::Unsupported => {
+            if !profile
+                .unsupported_outputs
+                .contains(&ArtifactOutput::Motion)
+            {
+                return Err(CompressionError::new(
+                    CompressionErrorKind::InvalidFormat,
+                    format!(
+                        "artifact profile speed policy {} requires Motion to be listed in unsupported outputs",
+                        profile.speed_policy
+                    ),
+                ));
+            }
+        }
+        ArtifactOutputSupport::Unlisted => {
+            unreachable!("motion support is always derived or unsupported")
+        }
+    }
+
     Ok(())
 }
 
@@ -1589,10 +1636,27 @@ mod tests {
             profile.output_support(ArtifactOutput::SiderealCoordinates),
             ArtifactOutputSupport::Unsupported
         );
+        assert_eq!(
+            profile.speed_policy.motion_output_support(),
+            ArtifactOutputSupport::Unsupported
+        );
         assert!(profile.supports_output(ArtifactOutput::EclipticCoordinates));
         assert!(profile.supports_output(ArtifactOutput::EquatorialCoordinates));
         assert!(!profile.is_unsupported_output(ArtifactOutput::EquatorialCoordinates));
         assert!(profile.is_unsupported_output(ArtifactOutput::SiderealCoordinates));
+
+        assert_eq!(
+            SpeedPolicy::Stored.motion_output_support(),
+            ArtifactOutputSupport::Derived
+        );
+        assert_eq!(
+            SpeedPolicy::FittedDerivative.motion_output_support(),
+            ArtifactOutputSupport::Derived
+        );
+        assert_eq!(
+            SpeedPolicy::NumericalDifference.motion_output_support(),
+            ArtifactOutputSupport::Derived
+        );
 
         let unlisted_profile = ArtifactProfile::new(
             vec![ChannelKind::Longitude],
@@ -1620,6 +1684,34 @@ mod tests {
             .validate()
             .expect_err("duplicate profile entries should be rejected");
         assert_eq!(profile_error.kind, CompressionErrorKind::InvalidFormat);
+
+        let motion_policy_mismatch = ArtifactProfile::new(
+            vec![ChannelKind::Longitude],
+            vec![ArtifactOutput::EclipticCoordinates],
+            vec![ArtifactOutput::Motion],
+            SpeedPolicy::Stored,
+        );
+        let motion_policy_error = motion_policy_mismatch
+            .validate()
+            .expect_err("stored motion support should require Motion in derived outputs");
+        assert_eq!(
+            motion_policy_error.kind,
+            CompressionErrorKind::InvalidFormat
+        );
+
+        let unsupported_motion_mismatch = ArtifactProfile::new(
+            vec![ChannelKind::Longitude],
+            vec![ArtifactOutput::EclipticCoordinates],
+            Vec::new(),
+            SpeedPolicy::Unsupported,
+        );
+        let unsupported_motion_error = unsupported_motion_mismatch
+            .validate()
+            .expect_err("unsupported motion policy should require Motion in unsupported outputs");
+        assert_eq!(
+            unsupported_motion_error.kind,
+            CompressionErrorKind::InvalidFormat
+        );
 
         let invalid_segment_body = BodyArtifact::new(
             CelestialBody::Moon,
