@@ -930,6 +930,35 @@ pub fn validate_request_policy(
     Ok(())
 }
 
+/// Validates a direct backend request against the published backend metadata.
+///
+/// This convenience helper combines the shared request-shape checks with body
+/// coverage and topocentric capability validation. It intentionally leaves
+/// zodiac-mode routing to the caller or backend-specific logic because the
+/// shared metadata model does not yet capture per-ayanamsa sidereal support.
+pub fn validate_request_against_metadata(
+    req: &EphemerisRequest,
+    metadata: &BackendMetadata,
+) -> Result<(), EphemerisError> {
+    validate_request_policy(
+        req,
+        metadata.id.as_str(),
+        &metadata.supported_time_scales,
+        &metadata.supported_frames,
+        metadata.capabilities.apparent,
+    )?;
+    validate_observer_policy(req, metadata.id.as_str(), metadata.capabilities.topocentric)?;
+
+    if !metadata.body_coverage.contains(&req.body) {
+        return Err(EphemerisError::new(
+            EphemerisErrorKind::UnsupportedBody,
+            format!("{} does not support {}", metadata.id, req.body),
+        ));
+    }
+
+    Ok(())
+}
+
 /// Validates the zodiac-mode policy shared by the current first-party backends.
 ///
 /// Current first-party backends that do not advertise native sidereal support
@@ -1813,6 +1842,72 @@ mod tests {
         )
         .expect_err("apparent requests should be rejected when only mean output is supported");
         assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+
+        let metadata = BackendMetadata {
+            id: BackendId::new("toy backend"),
+            version: "0.1.0".to_string(),
+            family: BackendFamily::Algorithmic,
+            provenance: BackendProvenance::new("toy backend"),
+            nominal_range: TimeRange::new(None, None),
+            supported_time_scales: vec![TimeScale::Tt],
+            body_coverage: vec![CelestialBody::Sun],
+            supported_frames: vec![CoordinateFrame::Ecliptic],
+            capabilities: BackendCapabilities {
+                geocentric: true,
+                topocentric: false,
+                apparent: false,
+                mean: true,
+                batch: true,
+                native_sidereal: false,
+            },
+            accuracy: AccuracyClass::Approximate,
+            deterministic: true,
+            offline: true,
+        };
+
+        let frame_error = validate_request_against_metadata(&frame_request, &metadata)
+            .expect_err("equatorial requests should still be rejected through metadata preflight");
+        assert_eq!(
+            frame_error.kind,
+            EphemerisErrorKind::UnsupportedCoordinateFrame
+        );
+        assert_eq!(
+            frame_error.message,
+            "toy backend only returns [Ecliptic] coordinates"
+        );
+
+        let topocentric_request = EphemerisRequest {
+            observer: Some(ObserverLocation::new(
+                Latitude::from_degrees(51.5),
+                Longitude::from_degrees(-0.1),
+                Some(45.0),
+            )),
+            apparent: Apparentness::Mean,
+            ..apparent_request.clone()
+        };
+        let error = validate_request_against_metadata(&topocentric_request, &metadata)
+            .expect_err("metadata preflight should reject observer-bearing geocentric requests");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
+        assert!(error.message.contains("toy backend is geocentric only"));
+        assert!(error.message.contains(
+            &topocentric_request
+                .observer
+                .as_ref()
+                .unwrap()
+                .summary_line()
+        ));
+
+        let unsupported_body_request = EphemerisRequest {
+            body: CelestialBody::Mars,
+            frame: CoordinateFrame::Ecliptic,
+            apparent: Apparentness::Mean,
+            observer: None,
+            ..frame_request.clone()
+        };
+        let error = validate_request_against_metadata(&unsupported_body_request, &metadata)
+            .expect_err("metadata preflight should reject bodies outside the declared coverage");
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedBody);
+        assert_eq!(error.message, "toy backend does not support Mars");
 
         let sidereal_request = EphemerisRequest {
             zodiac_mode: ZodiacMode::Sidereal {
