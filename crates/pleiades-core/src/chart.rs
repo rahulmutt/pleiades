@@ -16,8 +16,8 @@ use pleiades_backend::{
 };
 use pleiades_houses::{calculate_houses, house_for_longitude, HouseRequest, HouseSnapshot};
 use pleiades_types::{
-    Angle, CelestialBody, HouseSystem, Instant, Longitude, MotionDirection, ObserverLocation,
-    TimeScale, TimeScaleConversionError, ZodiacMode, ZodiacSign,
+    Angle, CelestialBody, HouseSystem, Instant, Longitude, Motion, MotionDirection,
+    ObserverLocation, TimeScale, TimeScaleConversionError, ZodiacMode, ZodiacSign,
 };
 
 use crate::ChartEngine;
@@ -370,6 +370,26 @@ impl ChartSnapshot {
         self.placement_for(body)?.motion_direction()
     }
 
+    /// Returns the backend motion sample for a requested body, if it is available.
+    pub fn motion_for_body(&self, body: &CelestialBody) -> Option<&Motion> {
+        self.placement_for(body)?.motion()
+    }
+
+    /// Returns the longitudinal motion speed for a requested body, if it is available.
+    pub fn longitude_speed_for(&self, body: &CelestialBody) -> Option<f64> {
+        self.placement_for(body)?.longitude_speed()
+    }
+
+    /// Returns the latitudinal motion speed for a requested body, if it is available.
+    pub fn latitude_speed_for(&self, body: &CelestialBody) -> Option<f64> {
+        self.placement_for(body)?.latitude_speed()
+    }
+
+    /// Returns the radial motion speed for a requested body, if it is available.
+    pub fn distance_speed_for(&self, body: &CelestialBody) -> Option<f64> {
+        self.placement_for(body)?.distance_speed()
+    }
+
     /// Returns the sign for a requested body, if sign placement was computed.
     pub fn sign_for_body(&self, body: &CelestialBody) -> Option<ZodiacSign> {
         self.placement_for(body)?.sign
@@ -570,9 +590,29 @@ impl ChartSnapshot {
 }
 
 impl BodyPlacement {
+    /// Returns the backend motion sample when the backend supplied motion data.
+    pub fn motion(&self) -> Option<&Motion> {
+        self.position.motion.as_ref()
+    }
+
     /// Returns the coarse direction of longitudinal motion when the backend supplied motion data.
     pub fn motion_direction(&self) -> Option<MotionDirection> {
-        self.position.motion.as_ref()?.longitude_direction()
+        self.motion()?.longitude_direction()
+    }
+
+    /// Returns the longitudinal motion speed when the backend supplied motion data.
+    pub fn longitude_speed(&self) -> Option<f64> {
+        self.motion()?.longitude_deg_per_day
+    }
+
+    /// Returns the latitudinal motion speed when the backend supplied motion data.
+    pub fn latitude_speed(&self) -> Option<f64> {
+        self.motion()?.latitude_deg_per_day
+    }
+
+    /// Returns the radial motion speed when the backend supplied motion data.
+    pub fn distance_speed(&self) -> Option<f64> {
+        self.motion()?.distance_au_per_day
     }
 }
 
@@ -2272,7 +2312,11 @@ mod tests {
             ZodiacMode::Tropical,
             Apparentness::Apparent,
         );
-        result.motion = Some(pleiades_types::Motion::new(Some(-0.012), None, None));
+        result.motion = Some(pleiades_types::Motion::new(
+            Some(-0.012),
+            Some(0.004),
+            Some(0.0012),
+        ));
 
         let placement = BodyPlacement {
             body: CelestialBody::Mars,
@@ -2284,6 +2328,15 @@ mod tests {
         assert_eq!(
             placement.motion_direction(),
             Some(MotionDirection::Retrograde)
+        );
+        assert_eq!(placement.longitude_speed(), Some(-0.012));
+        assert_eq!(placement.latitude_speed(), Some(0.004));
+        assert_eq!(placement.distance_speed(), Some(0.0012));
+        assert_eq!(
+            placement
+                .motion()
+                .and_then(|motion| motion.longitude_deg_per_day),
+            Some(-0.012)
         );
     }
 
@@ -2412,6 +2465,15 @@ mod tests {
         assert_eq!(
             chart.motion_direction_for(&CelestialBody::Mars),
             Some(MotionDirection::Retrograde)
+        );
+        assert_eq!(chart.longitude_speed_for(&CelestialBody::Sun), Some(0.01));
+        assert_eq!(chart.latitude_speed_for(&CelestialBody::Sun), None);
+        assert_eq!(chart.distance_speed_for(&CelestialBody::Sun), None);
+        assert_eq!(
+            chart
+                .motion_for_body(&CelestialBody::Mars)
+                .and_then(|motion| motion.longitude_deg_per_day),
+            Some(-0.01)
         );
         assert_eq!(
             chart
