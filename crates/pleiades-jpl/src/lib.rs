@@ -711,6 +711,12 @@ pub enum ComparisonSnapshotSummaryValidationError {
         second_index: usize,
         body: String,
     },
+    /// The summary body order diverged from the checked-in comparison corpus.
+    BodyOrderMismatch {
+        index: usize,
+        expected: String,
+        found: String,
+    },
     /// The summary did not include any epochs.
     MissingEpochs,
     /// The summary reported an invalid epoch range.
@@ -728,6 +734,7 @@ impl ComparisonSnapshotSummaryValidationError {
             Self::MissingBodies => "missing bodies",
             Self::BodyCountMismatch { .. } => "body count mismatch",
             Self::DuplicateBody { .. } => "duplicate body",
+            Self::BodyOrderMismatch { .. } => "body order mismatch",
             Self::MissingEpochs => "missing epochs",
             Self::InvalidEpochRange { .. } => "invalid epoch range",
         }
@@ -748,6 +755,14 @@ impl fmt::Display for ComparisonSnapshotSummaryValidationError {
             } => write!(
                 f,
                 "duplicate body '{body}' at index {second_index} (first seen at index {first_index})"
+            ),
+            Self::BodyOrderMismatch {
+                index,
+                expected,
+                found,
+            } => write!(
+                f,
+                "body order mismatch at index {index}: expected '{expected}', found '{found}'"
             ),
             Self::InvalidEpochRange {
                 earliest_epoch,
@@ -1583,6 +1598,30 @@ impl ComparisonSnapshotSummary {
                     body: body.to_string(),
                 });
             }
+        }
+
+        let expected_bodies = comparison_body_list();
+        if self.bodies != expected_bodies {
+            let mismatch_index = self
+                .bodies
+                .iter()
+                .zip(expected_bodies.iter())
+                .position(|(actual, expected)| actual != expected)
+                .unwrap_or_else(|| self.bodies.len().min(expected_bodies.len()));
+            return Err(
+                ComparisonSnapshotSummaryValidationError::BodyOrderMismatch {
+                    index: mismatch_index,
+                    expected: expected_bodies
+                        .get(mismatch_index)
+                        .map(ToString::to_string)
+                        .unwrap_or_else(|| "<end of comparison body list>".to_string()),
+                    found: self
+                        .bodies
+                        .get(mismatch_index)
+                        .map(ToString::to_string)
+                        .unwrap_or_else(|| "<end of summary body list>".to_string()),
+                },
+            );
         }
 
         if self.epoch_count == 0 {
@@ -4373,6 +4412,23 @@ mod tests {
                 second_index: 1,
                 body,
             }) if body == "Moon"
+        ));
+    }
+
+    #[test]
+    fn comparison_snapshot_summary_validation_rejects_body_order_mismatch() {
+        let mut summary = comparison_snapshot_summary().expect("comparison summary should exist");
+        summary.bodies.swap(0, 1);
+        let expected = comparison_body_list()[0].to_string();
+        let found = comparison_body_list()[1].to_string();
+
+        assert!(matches!(
+            summary.validate(),
+            Err(ComparisonSnapshotSummaryValidationError::BodyOrderMismatch {
+                index: 0,
+                expected: actual_expected,
+                found: actual_found,
+            }) if actual_expected == expected && actual_found == found
         ));
     }
 
