@@ -120,6 +120,7 @@ Rough command overview:
 - `api-stability`, `api-stability-summary`, `release-notes`, `release-notes-summary`, `release-checklist`, `release-checklist-summary`, `release-summary`: release-facing report helpers
 - `bundle-release --out DIR`: write a staged release bundle to a directory
 - `verify-release-bundle --out DIR`: verify a previously staged release bundle
+- `regenerate-packaged-artifact FILE` or `regenerate-packaged-artifact --out FILE`: rebuild the checked-in packaged artifact fixture from the reference snapshot
 
 Example usage:
 
@@ -142,6 +143,9 @@ cargo run -q -p pleiades-validate -- verify-compatibility-profile
 # Generate and then verify a release bundle
 cargo run -q -p pleiades-validate -- bundle-release --out /tmp/pleiades-release
 cargo run -q -p pleiades-validate -- verify-release-bundle --out /tmp/pleiades-release
+
+# Regenerate the packaged artifact fixture
+cargo run -q -p pleiades-cli -- regenerate-packaged-artifact /tmp/pleiades-packaged.bin
 ```
 
 These tools are primarily contributor-facing today: they help exercise the chart stack, inspect release metadata, validate the packaged data backend, and rehearse the release workflow described in [docs/release-reproducibility.md](docs/release-reproducibility.md).
