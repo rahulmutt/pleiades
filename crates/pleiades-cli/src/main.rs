@@ -674,6 +674,8 @@ mod tests {
         assert!(rendered.contains("True Mula (Chandra Hari)"));
         assert!(rendered.contains("Galactic Equator (Fiorenza)"));
         assert!(rendered.contains("Galactic Equator (True)"));
+        assert!(rendered.contains("Galactic Equator (IAU 1958)"));
+        assert!(rendered.contains("Dhruva Galactic Center (Middle Mula)"));
         assert!(rendered.contains("Nick Anthony Fiorenza"));
         assert!(rendered.contains("Galactic Center (Cochrane)"));
         assert!(rendered.contains("Galactic Center (Mula/Wilhelm)"));
