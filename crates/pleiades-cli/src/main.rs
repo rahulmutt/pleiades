@@ -673,8 +673,10 @@ mod tests {
         assert!(rendered.contains("True Revati"));
         assert!(rendered.contains("True Mula (Chandra Hari)"));
         assert!(rendered.contains("Galactic Equator (Fiorenza)"));
+        assert!(rendered.contains("Galactic Equator (True)"));
         assert!(rendered.contains("Nick Anthony Fiorenza"));
         assert!(rendered.contains("Galactic Center (Cochrane)"));
+        assert!(rendered.contains("Galactic Center (Mula/Wilhelm)"));
         assert!(rendered.contains("P.V.R. Narasimha Rao"));
         assert!(rendered.contains("True Citra Paksha"));
         assert!(rendered.contains("True Chitra Paksha"));
@@ -779,6 +781,7 @@ mod tests {
         assert!(release_notes.contains("Bundle provenance:"));
         assert!(release_notes.contains("True Mula (Chandra Hari)"));
         assert!(release_notes.contains("Galactic Equator (Fiorenza)"));
+        assert!(release_notes.contains("Galactic Equator (True)"));
 
         let release_notes_summary =
             render_cli(&["release-notes-summary"]).expect("release notes summary should render");

@@ -9939,6 +9939,7 @@ mod tests {
         assert!(rendered.contains("Babylonian Huber"));
         assert!(rendered.contains("Babylonian (True Topc)"));
         assert!(rendered.contains("Babylonian (True Obs)"));
+        assert!(rendered.contains("Galactic Center (Mula/Wilhelm)"));
         assert!(rendered.contains("True Balarama"));
         assert!(rendered.contains("Aphoric"));
         assert!(rendered.contains("Takra"));
