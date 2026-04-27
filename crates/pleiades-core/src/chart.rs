@@ -2486,6 +2486,52 @@ mod tests {
     }
 
     #[test]
+    fn chart_request_time_scale_conversions_preserve_the_rest_of_the_request_shape_for_ut1() {
+        let mut custom = pleiades_types::CustomHouseSystem::new("My UT1 Custom Houses");
+        custom.aliases.push("My UT1 Alias".to_string());
+        custom.notes = Some("uses a local UT1 calibration".to_string());
+
+        let observer = ObserverLocation::new(
+            Latitude::from_degrees(-22.75),
+            Longitude::from_degrees(135.5),
+            Some(250.0),
+        );
+
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Ut1,
+        ))
+        .with_observer(observer)
+        .with_house_system(HouseSystem::Custom(custom))
+        .with_bodies(vec![CelestialBody::Mars, CelestialBody::Saturn])
+        .with_zodiac_mode(ZodiacMode::Sidereal {
+            ayanamsa: crate::Ayanamsa::Lahiri,
+        })
+        .with_apparentness(Apparentness::Apparent);
+
+        let converted = request
+            .clone()
+            .with_tdb_from_ut1_signed(Duration::from_secs_f64(64.184), -0.001_657)
+            .expect("UT1 chart request should accept signed TDB offsets");
+
+        assert_eq!(converted.instant.scale, TimeScale::Tdb);
+        assert_eq!(converted.observer, request.observer);
+        assert_eq!(converted.bodies, request.bodies);
+        assert_eq!(converted.zodiac_mode, request.zodiac_mode);
+        assert_eq!(converted.apparentness, request.apparentness);
+        assert_eq!(converted.house_system, request.house_system);
+        let summary = converted.summary_line();
+        assert!(summary.contains("(TDB);"));
+        assert!(summary.contains("bodies=2;"));
+        assert!(summary.contains("zodiac=Sidereal (Lahiri);"));
+        assert!(summary.contains("apparentness=Apparent;"));
+        assert!(summary.contains("observer=house-only;"));
+        assert!(summary.contains(
+            "house system=My UT1 Custom Houses [aliases: My UT1 Alias] (uses a local UT1 calibration)"
+        ));
+    }
+
+    #[test]
     fn body_placement_exposes_motion_direction() {
         let mut result = EphemerisResult::new(
             BackendId::new("toy-chart"),
