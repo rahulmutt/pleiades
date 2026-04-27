@@ -140,7 +140,8 @@ impl ArtifactHeader {
         format!("byte order: {}; {}", self.endian_policy, self.profile)
     }
 
-    /// Validates that the header's version and provenance fields are populated.
+    /// Validates that the header's version and provenance fields are populated
+    /// with canonical, non-whitespace-padded text.
     ///
     /// The codec already enforces these checks at encode/decode time, but
     /// exposing the validation step directly lets artifact generators and
@@ -156,19 +157,8 @@ impl ArtifactHeader {
             ));
         }
 
-        if self.generation_label.trim().is_empty() {
-            return Err(CompressionError::new(
-                CompressionErrorKind::InvalidFormat,
-                "artifact header generation label must not be blank",
-            ));
-        }
-
-        if self.source.trim().is_empty() {
-            return Err(CompressionError::new(
-                CompressionErrorKind::InvalidFormat,
-                "artifact header source must not be blank",
-            ));
-        }
+        validate_canonical_header_text("artifact header generation label", &self.generation_label)?;
+        validate_canonical_header_text("artifact header source", &self.source)?;
 
         self.profile.validate()
     }
@@ -262,6 +252,24 @@ impl fmt::Display for ArtifactHeader {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.summary_line())
     }
+}
+
+fn validate_canonical_header_text(field: &str, value: &str) -> Result<(), CompressionError> {
+    if value.trim().is_empty() {
+        return Err(CompressionError::new(
+            CompressionErrorKind::InvalidFormat,
+            format!("{field} must not be blank"),
+        ));
+    }
+
+    if value != value.trim() {
+        return Err(CompressionError::new(
+            CompressionErrorKind::InvalidFormat,
+            format!("{field} must not include surrounding whitespace"),
+        ));
+    }
+
+    Ok(())
 }
 
 /// Declares how motion/speed values are represented by an artifact.
@@ -1834,6 +1842,32 @@ mod tests {
             .validate()
             .expect_err("blank sources should be rejected");
         assert_eq!(blank_source_error.kind, CompressionErrorKind::InvalidFormat);
+
+        let padded_header = ArtifactHeader::with_profile(
+            " padded demo ",
+            "unit test padded header",
+            ArtifactProfile::ecliptic_longitude_latitude_distance(),
+        );
+        let padded_header_error = padded_header
+            .validate()
+            .expect_err("padded generation labels should be rejected");
+        assert_eq!(
+            padded_header_error.kind,
+            CompressionErrorKind::InvalidFormat
+        );
+
+        let padded_source_header = ArtifactHeader::with_profile(
+            "padded source demo",
+            " unit test padded source ",
+            ArtifactProfile::ecliptic_longitude_latitude_distance(),
+        );
+        let padded_source_error = padded_source_header
+            .validate()
+            .expect_err("padded sources should be rejected");
+        assert_eq!(
+            padded_source_error.kind,
+            CompressionErrorKind::InvalidFormat
+        );
 
         let blank_header_artifact = CompressedArtifact::new(
             ArtifactHeader::with_profile(
