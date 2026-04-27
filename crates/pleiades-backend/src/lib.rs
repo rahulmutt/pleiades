@@ -805,13 +805,16 @@ pub fn validate_observer_policy(
     backend_label: &str,
     supports_topocentric: bool,
 ) -> Result<(), EphemerisError> {
-    if req.observer.is_some() && !supports_topocentric {
-        return Err(EphemerisError::new(
-            EphemerisErrorKind::InvalidObserver,
-            format!(
-                "{backend_label} is geocentric only; topocentric positions are not implemented"
-            ),
-        ));
+    if !supports_topocentric {
+        if let Some(observer) = req.observer.as_ref() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidObserver,
+                format!(
+                    "{backend_label} is geocentric only; topocentric positions are not implemented for {}",
+                    observer.summary_line()
+                ),
+            ));
+        }
     }
 
     Ok(())
@@ -1560,6 +1563,10 @@ mod tests {
         let error = validate_observer_policy(&observer_request, "toy backend", false)
             .expect_err("topocentric requests should be rejected when unsupported");
         assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
+        assert!(error.message.contains("toy backend is geocentric only"));
+        assert!(error
+            .message
+            .contains(&observer_request.observer.as_ref().unwrap().summary_line()));
     }
 
     #[test]
