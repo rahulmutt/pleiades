@@ -10154,6 +10154,7 @@ mod tests {
         assert!(rendered.contains("VSOP87 frame treatment:"));
         assert!(rendered.contains("VSOP87 request policy:"));
         assert!(rendered.contains("VSOP87 source audit:"));
+        assert!(rendered.contains("VSOP87 source documentation health: ok (8 source specs, 8 source files, 8 source-backed profiles, 9 body profiles; 8 generated binary profiles (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune), 0 vendored full-file profiles (none), 0 truncated profiles (none), 1 fallback profiles (Pluto); source files: VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep; source-backed order: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; fallback order: Pluto; documented fields: variant, coordinate family, frame, units, reduction, transform note, truncation policy, and date range)"));
         assert!(rendered.contains("VSOP87 canonical J2000 source-backed evidence:"));
         assert!(rendered.contains("VSOP87 canonical J2000 equatorial companion evidence:"));
         assert!(rendered.contains("VSOP87 source-backed body evidence:"));
@@ -10671,6 +10672,7 @@ version = "0.9.0"
         assert!(release_summary.contains("VSOP87 frame treatment:"));
         assert!(release_summary.contains("VSOP87 request policy:"));
         assert!(release_summary.contains("VSOP87 source audit:"));
+        assert!(release_summary.contains("VSOP87 source documentation health: ok (8 source specs, 8 source files, 8 source-backed profiles, 9 body profiles; 8 generated binary profiles (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune), 0 vendored full-file profiles (none), 0 truncated profiles (none), 1 fallback profiles (Pluto); source files: VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep; source-backed order: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; fallback order: Pluto; documented fields: variant, coordinate family, frame, units, reduction, transform note, truncation policy, and date range)"));
         assert!(release_summary.contains("VSOP87 generated binary audit:"));
         assert!(release_summary.contains("VSOP87 canonical J2000 source-backed evidence:"));
         assert!(release_summary.contains("VSOP87 canonical J2000 interim outliers: none"));
