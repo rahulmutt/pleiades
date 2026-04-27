@@ -327,6 +327,19 @@ impl Instant {
     /// DUT1 handling outside the current type layer.
     ///
     /// For signed `TT - UT1` policies, use [`Instant::tt_from_ut1_signed`].
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use std::time::Duration;
+    /// use pleiades_types::{Instant, JulianDay, TimeScale};
+    ///
+    /// let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Ut1);
+    /// let converted = instant.tt_from_ut1(Duration::from_secs_f64(64.184)).expect("UT1-tagged instant");
+    ///
+    /// assert_eq!(converted.scale, TimeScale::Tt);
+    /// assert!(converted.julian_day.days() > instant.julian_day.days());
+    /// ```
     pub fn tt_from_ut1(self, delta_t: Duration) -> Result<Self, TimeScaleConversionError> {
         if self.scale != TimeScale::Ut1 {
             return Err(TimeScaleConversionError::expected(
@@ -344,6 +357,18 @@ impl Instant {
     /// SI seconds. The helper intentionally does not model leap seconds or
     /// DUT1 by itself; it only makes a caller-supplied UT1-to-TT policy explicit
     /// and reproducible for applications that need a TT-tagged request surface.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use pleiades_types::{Instant, JulianDay, TimeScale};
+    ///
+    /// let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Ut1);
+    /// let converted = instant.tt_from_ut1_signed(64.184).expect("UT1-tagged instant");
+    ///
+    /// assert_eq!(converted.scale, TimeScale::Tt);
+    /// assert!(converted.julian_day.days() > instant.julian_day.days());
+    /// ```
     pub fn tt_from_ut1_signed(self, offset_seconds: f64) -> Result<Self, TimeScaleConversionError> {
         if self.scale != TimeScale::Ut1 {
             return Err(TimeScaleConversionError::expected(
