@@ -174,6 +174,23 @@ impl ChartRequest {
         self
     }
 
+    /// Replaces the chart instant with a caller-supplied time-scale offset after validation.
+    ///
+    /// This is the checked counterpart to [`ChartRequest::with_instant_time_scale_offset`].
+    /// It validates the source scale and rejects non-finite offsets before the
+    /// instant is retagged, which makes the raw offset convenience available in
+    /// a release-grade form when the caller wants to stay at the chart façade.
+    pub fn with_instant_time_scale_offset_checked(
+        mut self,
+        target_scale: TimeScale,
+        offset_seconds: f64,
+    ) -> Result<Self, TimeScaleConversionError> {
+        self.instant = self
+            .instant
+            .with_time_scale_offset_checked(target_scale, offset_seconds)?;
+        Ok(self)
+    }
+
     /// Applies a caller-supplied time-scale conversion policy to the chart
     /// instant.
     ///
@@ -2506,6 +2523,20 @@ mod tests {
     }
 
     #[test]
+    fn chart_request_can_apply_a_checked_caller_supplied_time_scale_offset() {
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Ut1,
+        ))
+        .with_instant_time_scale_offset_checked(TimeScale::Tt, 64.184)
+        .expect("UT1 chart request should accept a checked caller-supplied offset");
+
+        assert_eq!(request.instant.scale, TimeScale::Tt);
+        let expected = 2_451_545.0 + 64.184 / 86_400.0;
+        assert!((request.instant.julian_day.days() - expected).abs() < 1e-9);
+    }
+
+    #[test]
     fn chart_request_can_apply_a_caller_supplied_time_scale_conversion_policy() {
         let policy = TimeScaleConversion::new(TimeScale::Ut1, TimeScale::Tdb, 64.184);
         let request = ChartRequest::new(Instant::new(
@@ -2697,6 +2728,18 @@ mod tests {
 
     #[test]
     fn chart_request_signed_time_scale_helpers_reject_non_finite_offsets() {
+        let checked_request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Ut1,
+        ));
+        let checked_error = checked_request
+            .with_instant_time_scale_offset_checked(TimeScale::Tt, f64::NAN)
+            .expect_err("UT1 chart request should reject non-finite checked offsets");
+        assert!(matches!(
+            checked_error,
+            TimeScaleConversionError::NonFiniteOffset
+        ));
+
         let tt_request = ChartRequest::new(Instant::new(
             pleiades_types::JulianDay::from_days(2_451_545.0),
             TimeScale::Tt,

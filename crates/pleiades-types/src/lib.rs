@@ -398,6 +398,21 @@ impl Instant {
         }
     }
 
+    /// Returns this instant with a caller-supplied offset applied and a new time
+    /// scale tag after validating the source scale and offset.
+    ///
+    /// This is the checked counterpart to [`Instant::with_time_scale_offset`].
+    /// It keeps the same explicit `target - source` interpretation while
+    /// rejecting non-finite offsets and mismatched source scales before the
+    /// instant is retagged.
+    pub fn with_time_scale_offset_checked(
+        self,
+        target_scale: TimeScale,
+        offset_seconds: f64,
+    ) -> Result<Self, TimeScaleConversionError> {
+        TimeScaleConversion::new(self.scale, target_scale, offset_seconds).apply(self)
+    }
+
     /// Returns the mean obliquity of the ecliptic for this instant.
     ///
     /// The value uses the shared cubic approximation currently used throughout
@@ -2197,6 +2212,23 @@ mod tests {
             )),
             Err(TimeScaleConversionError::NonFiniteOffset)
         ));
+    }
+
+    #[test]
+    fn instant_with_time_scale_offset_checked_rejects_non_finite_offsets() {
+        let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+        let error = instant
+            .with_time_scale_offset_checked(TimeScale::Tdb, f64::NEG_INFINITY)
+            .expect_err("checked offset conversion should reject non-finite offsets");
+
+        assert!(matches!(error, TimeScaleConversionError::NonFiniteOffset));
+
+        let converted = instant
+            .with_time_scale_offset_checked(TimeScale::Tdb, 0.001_657)
+            .expect("checked offset conversion should accept finite offsets");
+
+        assert_eq!(converted.scale, TimeScale::Tdb);
+        assert!((converted.julian_day.days() - 2_451_545.000_000_019).abs() < 1e-12);
     }
 
     #[test]
