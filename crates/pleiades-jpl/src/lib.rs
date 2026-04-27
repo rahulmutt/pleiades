@@ -76,6 +76,77 @@ pub struct ReferenceSnapshotSummary {
     pub latest_epoch: Instant,
 }
 
+/// Structured validation errors for a reference snapshot coverage summary.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ReferenceSnapshotSummaryValidationError {
+    /// The summary did not expose any bodies.
+    MissingBodies,
+    /// The summary body count did not match the body list length.
+    BodyCountMismatch {
+        body_count: usize,
+        bodies_len: usize,
+    },
+    /// The summary did not expose any epochs.
+    MissingEpochs,
+    /// The summary reported an invalid earliest/latest epoch range.
+    InvalidEpochRange {
+        earliest_epoch: Instant,
+        latest_epoch: Instant,
+    },
+    /// The asteroid row count exceeded the total row count.
+    AsteroidRowCountExceedsRowCount {
+        asteroid_row_count: usize,
+        row_count: usize,
+    },
+}
+
+impl ReferenceSnapshotSummaryValidationError {
+    /// Returns the compact label used in release-facing summaries and tests.
+    pub const fn label(&self) -> &'static str {
+        match self {
+            Self::MissingBodies => "missing bodies",
+            Self::BodyCountMismatch { .. } => "body count mismatch",
+            Self::MissingEpochs => "missing epochs",
+            Self::InvalidEpochRange { .. } => "invalid epoch range",
+            Self::AsteroidRowCountExceedsRowCount { .. } => "asteroid row count exceeds row count",
+        }
+    }
+}
+
+impl fmt::Display for ReferenceSnapshotSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::MissingBodies => f.write_str(self.label()),
+            Self::BodyCountMismatch {
+                body_count,
+                bodies_len,
+            } => write!(
+                f,
+                "body count {body_count} does not match body list length {bodies_len}"
+            ),
+            Self::MissingEpochs => f.write_str(self.label()),
+            Self::InvalidEpochRange {
+                earliest_epoch,
+                latest_epoch,
+            } => write!(
+                f,
+                "invalid epoch range: earliest {} is after latest {}",
+                format_instant(*earliest_epoch),
+                format_instant(*latest_epoch),
+            ),
+            Self::AsteroidRowCountExceedsRowCount {
+                asteroid_row_count,
+                row_count,
+            } => write!(
+                f,
+                "asteroid row count {asteroid_row_count} exceeds row count {row_count}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ReferenceSnapshotSummaryValidationError {}
+
 /// Returns a compact coverage summary for the checked-in reference snapshot.
 pub fn reference_snapshot_summary() -> Option<ReferenceSnapshotSummary> {
     let entries = reference_snapshot();
@@ -340,6 +411,38 @@ pub fn reference_snapshot_batch_parity_summary_for_report() -> String {
 }
 
 impl ReferenceSnapshotSummary {
+    /// Validates that the summary remains internally consistent.
+    pub fn validate(&self) -> Result<(), ReferenceSnapshotSummaryValidationError> {
+        if self.bodies.is_empty() {
+            return Err(ReferenceSnapshotSummaryValidationError::MissingBodies);
+        }
+        if self.body_count != self.bodies.len() {
+            return Err(ReferenceSnapshotSummaryValidationError::BodyCountMismatch {
+                body_count: self.body_count,
+                bodies_len: self.bodies.len(),
+            });
+        }
+        if self.epoch_count == 0 {
+            return Err(ReferenceSnapshotSummaryValidationError::MissingEpochs);
+        }
+        if self.earliest_epoch.julian_day.days() > self.latest_epoch.julian_day.days() {
+            return Err(ReferenceSnapshotSummaryValidationError::InvalidEpochRange {
+                earliest_epoch: self.earliest_epoch,
+                latest_epoch: self.latest_epoch,
+            });
+        }
+        if self.asteroid_row_count > self.row_count {
+            return Err(
+                ReferenceSnapshotSummaryValidationError::AsteroidRowCountExceedsRowCount {
+                    asteroid_row_count: self.asteroid_row_count,
+                    row_count: self.row_count,
+                },
+            );
+        }
+
+        Ok(())
+    }
+
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         format!(
@@ -794,7 +897,22 @@ pub fn format_comparison_snapshot_source_summary(
 
 /// Returns the source/material summary for the comparison snapshot used by validation.
 pub fn comparison_snapshot_source_summary_for_report() -> String {
-    comparison_snapshot_source_summary().summary_line()
+    format_validated_source_summary_for_report(
+        "Comparison snapshot source",
+        comparison_snapshot_manifest(),
+        || comparison_snapshot_source_summary().summary_line(),
+    )
+}
+
+fn format_validated_source_summary_for_report(
+    label: &'static str,
+    manifest: &SnapshotManifest,
+    render: impl FnOnce() -> String,
+) -> String {
+    match manifest.validate() {
+        Ok(()) => render(),
+        Err(error) => format!("{label}: unavailable ({error})"),
+    }
 }
 
 fn format_manifest_summary_for_report(label: &str, manifest: &SnapshotManifest) -> String {
@@ -1009,7 +1127,11 @@ pub fn reference_snapshot_source_summary() -> ReferenceSnapshotSourceSummary {
 
 /// Returns the source-material summary for the checked-in reference snapshot.
 pub fn reference_snapshot_source_summary_for_report() -> String {
-    reference_snapshot_source_summary().summary_line()
+    format_validated_source_summary_for_report(
+        "Reference snapshot source",
+        reference_snapshot_manifest(),
+        || reference_snapshot_source_summary().summary_line(),
+    )
 }
 
 /// Returns the manifest summary for the checked-in reference snapshot.
@@ -1065,7 +1187,11 @@ pub fn independent_holdout_source_summary() -> IndependentHoldoutSourceSummary {
 
 /// Returns the source-material summary for the checked-in hold-out snapshot.
 pub fn independent_holdout_source_summary_for_report() -> String {
-    independent_holdout_source_summary().summary_line()
+    format_validated_source_summary_for_report(
+        "Independent hold-out source",
+        independent_holdout_snapshot_manifest(),
+        || independent_holdout_source_summary().summary_line(),
+    )
 }
 
 /// Returns the manifest summary for the checked-in hold-out snapshot.
@@ -3061,6 +3187,9 @@ mod tests {
     fn reference_snapshot_summary_reports_the_expected_coverage() {
         let summary =
             reference_snapshot_summary().expect("reference snapshot summary should exist");
+        summary
+            .validate()
+            .expect("reference snapshot summary should validate");
         assert_eq!(summary.row_count, 46);
         assert_eq!(summary.body_count, 15);
         assert_eq!(summary.bodies, reference_bodies());
@@ -3080,6 +3209,21 @@ mod tests {
             reference_snapshot_summary_for_report(),
             summary.summary_line()
         );
+    }
+
+    #[test]
+    fn reference_snapshot_summary_validation_rejects_body_count_drift() {
+        let mut summary =
+            reference_snapshot_summary().expect("reference snapshot summary should exist");
+        summary.body_count += 1;
+
+        let error = summary
+            .validate()
+            .expect_err("body-count drift should be rejected");
+        assert_eq!(error.label(), "body count mismatch");
+        assert!(error
+            .to_string()
+            .contains("body count 16 does not match body list length 15"));
     }
 
     #[test]
@@ -3381,6 +3525,25 @@ mod tests {
         assert_eq!(
             format_manifest_summary_for_report("Example manifest", &manifest),
             "Example manifest: unavailable (blank coverage)"
+        );
+    }
+
+    #[test]
+    fn validated_source_summary_for_report_reports_validation_errors() {
+        let manifest = SnapshotManifest {
+            title: Some("Example snapshot.".to_string()),
+            source: None,
+            coverage: Some("Example coverage".to_string()),
+            columns: vec!["body".to_string()],
+        };
+
+        assert_eq!(
+            format_validated_source_summary_for_report(
+                "Example snapshot source",
+                &manifest,
+                || "should not render".to_string(),
+            ),
+            "Example snapshot source: unavailable (missing source)"
         );
     }
 

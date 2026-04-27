@@ -219,6 +219,14 @@ impl PackagedArtifactRegenerationSummary {
         }
 
         if let Some(reference_snapshot) = self.reference_snapshot {
+            reference_snapshot.validate().map_err(|error| {
+                pleiades_compression::CompressionError::new(
+                    pleiades_compression::CompressionErrorKind::InvalidFormat,
+                    format!(
+                        "packaged artifact regeneration reference snapshot is invalid: {error}"
+                    ),
+                )
+            })?;
             for body in &self.bodies {
                 if !reference_snapshot.bodies.contains(body) {
                     return Err(pleiades_compression::CompressionError::new(
@@ -1639,6 +1647,29 @@ mod tests {
         assert!(error.message.contains(
             "packaged artifact regeneration summary is missing reference snapshot coverage"
         ));
+    }
+
+    #[test]
+    fn packaged_artifact_regeneration_summary_validation_rejects_invalid_reference_snapshot_coverage(
+    ) {
+        let mut summary = packaged_artifact_regeneration_summary_details();
+        let mut reference_snapshot = summary
+            .reference_snapshot
+            .expect("packaged regeneration summary should include reference snapshot coverage");
+        reference_snapshot.body_count += 1;
+        summary.reference_snapshot = Some(reference_snapshot);
+
+        let error = summary
+            .validate()
+            .expect_err("invalid reference snapshot coverage should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error
+            .message
+            .contains("packaged artifact regeneration reference snapshot is invalid"));
+        assert!(error.message.contains("body count mismatch"));
     }
 
     #[test]
