@@ -42,8 +42,8 @@ use pleiades_backend::{
 };
 use pleiades_compression::CompressedArtifact;
 use pleiades_compression::{
-    join_display, ArtifactHeader, ArtifactProfile, BodyArtifact, ChannelKind, EndianPolicy,
-    PolynomialChannel, Segment,
+    join_display, ArtifactHeader, ArtifactProfile, ArtifactProfileCoverageSummary, BodyArtifact,
+    ChannelKind, EndianPolicy, PolynomialChannel, Segment,
 };
 use pleiades_jpl::{
     format_reference_snapshot_summary, reference_snapshot, reference_snapshot_summary,
@@ -241,22 +241,26 @@ pub struct PackagedArtifactProfileSummary {
 }
 
 impl PackagedArtifactProfileSummary {
+    /// Returns the packaged artifact profile coverage as a typed summary.
+    pub fn profile_coverage_summary(&self) -> ArtifactProfileCoverageSummary {
+        ArtifactProfileCoverageSummary::new(self.profile.clone(), self.bodies.clone())
+    }
+
     /// Renders the packaged artifact profile into a release-facing summary line.
     pub fn summary_line(&self) -> String {
         format!(
             "byte order: {}; {}",
             self.endian_policy,
-            self.profile.summary_for_body_count(self.body_count),
+            self.profile_coverage_summary().summary_line(),
         )
     }
 
     /// Renders the packaged artifact profile with its bundled body list.
     pub fn summary_line_with_bodies(&self) -> String {
         format!(
-            "byte order: {}; {}; bundled bodies: {}",
+            "byte order: {}; {}",
             self.endian_policy,
-            self.profile.summary_for_body_count(self.body_count),
-            join_display(&self.bodies),
+            self.profile_coverage_summary().summary_line_with_bodies(),
         )
     }
 }
@@ -1069,6 +1073,22 @@ mod tests {
             summary.profile.summary_line(),
             "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported"
         );
+        let coverage = summary.profile_coverage_summary();
+        assert_eq!(coverage.body_count, artifact.bodies.len());
+        assert_eq!(coverage.bodies, summary.bodies);
+        assert_eq!(coverage.profile, summary.profile);
+        assert_eq!(
+            coverage.summary_line(),
+            summary.profile.summary_for_body_count(summary.body_count)
+        );
+        assert_eq!(
+            coverage.summary_line_with_bodies(),
+            format!(
+                "{}; bundled bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros",
+                summary.profile.summary_for_body_count(summary.body_count)
+            )
+        );
+        assert_eq!(coverage.to_string(), coverage.summary_line());
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             summary.summary_line_with_bodies(),

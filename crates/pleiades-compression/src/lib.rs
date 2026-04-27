@@ -403,6 +403,51 @@ impl ArtifactProfile {
     }
 }
 
+/// Structured body coverage attached to an artifact capability profile.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ArtifactProfileCoverageSummary {
+    /// Number of bundled bodies that share the profile.
+    pub body_count: usize,
+    /// Bodies bundled under the profile.
+    pub bodies: Vec<CelestialBody>,
+    /// Capability profile encoded by the artifact.
+    pub profile: ArtifactProfile,
+}
+
+impl ArtifactProfileCoverageSummary {
+    /// Creates a profile coverage summary from the profile and bundled bodies.
+    pub fn new(profile: ArtifactProfile, bodies: Vec<CelestialBody>) -> Self {
+        let body_count = bodies.len();
+        Self {
+            body_count,
+            bodies,
+            profile,
+        }
+    }
+
+    /// Returns the capability summary annotated with how many bodies share it.
+    pub fn summary_line(&self) -> String {
+        self.profile.summary_for_body_count(self.body_count)
+    }
+
+    /// Returns the capability summary annotated with how many bodies share it
+    /// and lists the bundled bodies explicitly.
+    pub fn summary_line_with_bodies(&self) -> String {
+        format!(
+            "{}; bundled bodies: {}",
+            self.summary_line(),
+            join_display(&self.bodies)
+        )
+    }
+}
+
+impl fmt::Display for ArtifactProfileCoverageSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// The kind of ecliptic channel carried by a segment.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -1845,6 +1890,10 @@ mod tests {
             ],
             SpeedPolicy::Unsupported,
         );
+        let coverage = ArtifactProfileCoverageSummary::new(
+            profile.clone(),
+            vec![CelestialBody::Sun, CelestialBody::Moon],
+        );
 
         assert_eq!(
             profile.summary(),
@@ -1865,6 +1914,24 @@ mod tests {
         assert_eq!(
             profile.to_string(),
             "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported"
+        );
+        assert_eq!(coverage.body_count, 2);
+        assert_eq!(
+            coverage.bodies,
+            vec![CelestialBody::Sun, CelestialBody::Moon]
+        );
+        assert_eq!(coverage.profile, profile);
+        assert_eq!(
+            coverage.summary_line(),
+            "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 2 bundled bodies"
+        );
+        assert_eq!(
+            coverage.summary_line_with_bodies(),
+            "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 2 bundled bodies; bundled bodies: Sun, Moon"
+        );
+        assert_eq!(
+            coverage.to_string(),
+            "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 2 bundled bodies"
         );
 
         let header = ArtifactHeader::with_profile_and_endian(
