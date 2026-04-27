@@ -163,6 +163,92 @@ pub struct LunarTheorySourceSummary {
     pub license_note: &'static str,
 }
 
+/// Validation error for a lunar-theory source summary that drifted from the current selection.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LunarTheorySourceSummaryValidationError {
+    /// A rendered summary field no longer matches the current lunar-theory selection.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for LunarTheorySourceSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the lunar source summary field `{field}` is out of sync with the current selection"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for LunarTheorySourceSummaryValidationError {}
+
+impl LunarTheorySourceSummary {
+    /// Returns `Ok(())` when the summary still matches the current lunar-theory selection.
+    pub fn validate(&self) -> Result<(), LunarTheorySourceSummaryValidationError> {
+        let theory = lunar_theory_specification();
+        let source = lunar_theory_source_selection();
+
+        if self.model_name != theory.model_name {
+            return Err(LunarTheorySourceSummaryValidationError::FieldOutOfSync {
+                field: "model_name",
+            });
+        }
+        if self.source_identifier != source.identifier {
+            return Err(LunarTheorySourceSummaryValidationError::FieldOutOfSync {
+                field: "source_identifier",
+            });
+        }
+        if self.catalog_key != source.catalog_key() {
+            return Err(LunarTheorySourceSummaryValidationError::FieldOutOfSync {
+                field: "catalog_key",
+            });
+        }
+        if self.source_family != source.family {
+            return Err(LunarTheorySourceSummaryValidationError::FieldOutOfSync {
+                field: "source_family",
+            });
+        }
+        if self.source_family_label != source.family_label() {
+            return Err(LunarTheorySourceSummaryValidationError::FieldOutOfSync {
+                field: "source_family_label",
+            });
+        }
+        if self.source_aliases != source.source_aliases {
+            return Err(LunarTheorySourceSummaryValidationError::FieldOutOfSync {
+                field: "source_aliases",
+            });
+        }
+        if self.citation != source.citation {
+            return Err(LunarTheorySourceSummaryValidationError::FieldOutOfSync {
+                field: "citation",
+            });
+        }
+        if self.provenance != source.material {
+            return Err(LunarTheorySourceSummaryValidationError::FieldOutOfSync {
+                field: "provenance",
+            });
+        }
+        if self.validation_window != theory.validation_window {
+            return Err(LunarTheorySourceSummaryValidationError::FieldOutOfSync {
+                field: "validation_window",
+            });
+        }
+        if self.redistribution_note != source.redistribution_note {
+            return Err(LunarTheorySourceSummaryValidationError::FieldOutOfSync {
+                field: "redistribution_note",
+            });
+        }
+        if self.license_note != source.license_note {
+            return Err(LunarTheorySourceSummaryValidationError::FieldOutOfSync {
+                field: "license_note",
+            });
+        }
+
+        Ok(())
+    }
+}
+
 /// Returns the current lunar-theory source family.
 pub const fn lunar_theory_source_family() -> LunarTheorySourceFamily {
     LunarTheorySourceFamily::MeeusStyleTruncatedAnalyticalBaseline
@@ -1142,9 +1228,22 @@ pub fn format_lunar_theory_source_summary(summary: &LunarTheorySourceSummary) ->
     summary.summary_line()
 }
 
+fn format_validated_lunar_theory_source_summary_for_report(
+    summary: &LunarTheorySourceSummary,
+) -> String {
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("lunar source selection: unavailable ({error})"),
+    }
+}
+
 /// Returns the release-facing one-line summary for the current lunar source selection.
+///
+/// The report helper validates the backend-owned source summary first so any
+/// future drift in the rendered provenance fields shows up as an unavailable
+/// report line instead of a silently stale summary.
 pub fn lunar_theory_source_summary_for_report() -> String {
-    lunar_theory_source_summary().summary_line()
+    format_validated_lunar_theory_source_summary_for_report(&lunar_theory_source_summary())
 }
 
 /// Returns the current lunar-theory request policy summary.
@@ -3344,9 +3443,23 @@ mod tests {
             format_lunar_theory_source_summary(&source_summary)
         );
         assert_eq!(source_summary.to_string(), source_summary.summary_line());
+        assert!(source_summary.validate().is_ok());
         assert_eq!(
             format_lunar_theory_source_summary(&source_summary),
             lunar_theory_source_summary_for_report()
+        );
+        let mut drifted_source_summary = source_summary;
+        drifted_source_summary.source_identifier = "not-the-current-selection";
+        let error = drifted_source_summary
+            .validate()
+            .expect_err("drifted summary should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "the lunar source summary field `source_identifier` is out of sync with the current selection"
+        );
+        assert_eq!(
+            format_validated_lunar_theory_source_summary_for_report(&drifted_source_summary),
+            "lunar source selection: unavailable (the lunar source summary field `source_identifier` is out of sync with the current selection)"
         );
         assert!(lunar_theory_source_summary_for_report().contains("lunar source selection: "));
         assert!(lunar_theory_source_summary_for_report()
