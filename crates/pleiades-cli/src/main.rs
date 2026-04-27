@@ -16,7 +16,7 @@ use pleiades_core::{
     Longitude, ObserverLocation, RoutingBackend, TimeScale, ZodiacMode,
 };
 use pleiades_data::{
-    packaged_artifact_regeneration_summary_details, regenerate_packaged_artifact,
+    packaged_artifact_regeneration_summary_for_report, regenerate_packaged_artifact,
     PackagedDataBackend,
 };
 use pleiades_elp::ElpBackend;
@@ -309,7 +309,7 @@ fn render_packaged_artifact_regeneration(output_path: &str) -> Result<String, St
         artifact.header.source,
         artifact.checksum,
         encoded.len(),
-        packaged_artifact_regeneration_summary_details(),
+        packaged_artifact_regeneration_summary_for_report(),
     ))
 }
 

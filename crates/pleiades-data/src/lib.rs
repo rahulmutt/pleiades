@@ -199,6 +199,39 @@ impl PackagedArtifactRegenerationSummary {
         )
     }
 
+    /// Validates that the regeneration summary stays aligned with the bundled
+    /// body list and the checked-in reference snapshot coverage.
+    pub fn validate(&self) -> Result<(), pleiades_compression::CompressionError> {
+        if self.reference_snapshot.is_none() {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact regeneration summary is missing reference snapshot coverage",
+            ));
+        }
+
+        for (index, body) in self.bodies.iter().enumerate() {
+            if self.bodies[..index].iter().any(|other| other == body) {
+                return Err(pleiades_compression::CompressionError::new(
+                    pleiades_compression::CompressionErrorKind::InvalidFormat,
+                    format!("packaged artifact regeneration summary contains duplicate body entry {body}"),
+                ));
+            }
+        }
+
+        if let Some(reference_snapshot) = self.reference_snapshot {
+            for body in &self.bodies {
+                if !reference_snapshot.bodies.contains(body) {
+                    return Err(pleiades_compression::CompressionError::new(
+                        pleiades_compression::CompressionErrorKind::InvalidFormat,
+                        format!("packaged artifact regeneration body {body} is not covered by the reference snapshot"),
+                    ));
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     /// Returns the full packaged-artifact regeneration provenance summary.
     pub fn summary_line(&self) -> String {
         format!(
@@ -223,7 +256,7 @@ impl fmt::Display for PackagedArtifactRegenerationSummary {
 /// Returns the structured packaged-artifact regeneration provenance.
 pub fn packaged_artifact_regeneration_summary_details() -> PackagedArtifactRegenerationSummary {
     let artifact = packaged_artifact();
-    PackagedArtifactRegenerationSummary {
+    let summary = PackagedArtifactRegenerationSummary {
         label: ARTIFACT_LABEL,
         artifact_version: artifact.header.version,
         source: ARTIFACT_SOURCE,
@@ -231,12 +264,24 @@ pub fn packaged_artifact_regeneration_summary_details() -> PackagedArtifactRegen
         generation_policy: PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments,
         bodies: packaged_bodies().to_vec(),
         reference_snapshot: reference_snapshot_summary(),
-    }
+    };
+    debug_assert!(summary.validate().is_ok());
+    summary
 }
 
 /// Returns the packaged-artifact regeneration provenance summary.
 pub fn packaged_artifact_regeneration_summary() -> String {
-    packaged_artifact_regeneration_summary_details().to_string()
+    packaged_artifact_regeneration_summary_for_report()
+}
+
+/// Returns the packaged-artifact regeneration provenance summary after validating
+/// the structured source and coverage metadata.
+pub fn packaged_artifact_regeneration_summary_for_report() -> String {
+    let summary = packaged_artifact_regeneration_summary_details();
+    match summary.validate() {
+        Ok(()) => summary.to_string(),
+        Err(error) => format!("Packaged artifact regeneration source: unavailable ({error})"),
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -1547,6 +1592,9 @@ mod tests {
 
         let provenance = summary.summary_line();
         assert_eq!(summary.to_string(), provenance);
+        summary
+            .validate()
+            .expect("packaged regeneration summary should validate");
         assert!(provenance.contains(
             "Packaged artifact regeneration source: label=stage-5 packaged-data prototype"
         ));
@@ -1557,6 +1605,40 @@ mod tests {
         assert!(provenance.contains("Reference snapshot coverage:"));
         assert!(provenance.contains("rows across"));
         assert!(provenance.contains("asteroid rows"));
+    }
+
+    #[test]
+    fn packaged_artifact_regeneration_summary_validation_rejects_duplicate_bodies() {
+        let mut summary = packaged_artifact_regeneration_summary_details();
+        summary.bodies[1] = summary.bodies[0].clone();
+
+        let error = summary
+            .validate()
+            .expect_err("duplicate regeneration bodies should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error
+            .message
+            .contains("packaged artifact regeneration summary contains duplicate body entry"));
+    }
+
+    #[test]
+    fn packaged_artifact_regeneration_summary_validation_rejects_missing_reference_snapshot() {
+        let mut summary = packaged_artifact_regeneration_summary_details();
+        summary.reference_snapshot = None;
+
+        let error = summary
+            .validate()
+            .expect_err("missing reference snapshot should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error.message.contains(
+            "packaged artifact regeneration summary is missing reference snapshot coverage"
+        ));
     }
 
     #[test]

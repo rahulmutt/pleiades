@@ -47,7 +47,7 @@ use pleiades_core::{
 };
 use pleiades_data::{
     packaged_artifact_profile_summary_with_body_coverage,
-    packaged_artifact_regeneration_summary_details, packaged_frame_treatment_summary_details,
+    packaged_artifact_regeneration_summary_for_report, packaged_frame_treatment_summary_details,
     packaged_mixed_tt_tdb_batch_parity_summary_for_report, packaged_request_policy_summary_details,
     PackagedDataBackend,
 };
@@ -3903,7 +3903,7 @@ fn render_release_summary_text() -> String {
     text.push_str(&format_packaged_artifact_profile_summary());
     text.push('\n');
     text.push_str("Packaged-artifact regeneration: ");
-    text.push_str(&packaged_artifact_regeneration_summary_details().to_string());
+    text.push_str(&packaged_artifact_regeneration_summary_for_report());
     text.push('\n');
     text.push_str("Packaged request policy: ");
     text.push_str(&packaged_request_policy_summary_details().to_string());
@@ -11676,7 +11676,7 @@ version = "0.9.0"
         assert!(release_summary.contains("generation policy: adjacent same-body linear segments"));
         assert!(release_summary.contains(&format!(
             "artifact version={}",
-            packaged_artifact_regeneration_summary_details().artifact_version
+            pleiades_data::packaged_artifact_regeneration_summary_details().artifact_version
         )));
         assert!(release_profile_identifiers.contains(&format!(
             "Release profile identifiers: {}",
@@ -11777,7 +11777,7 @@ version = "0.9.0"
         assert!(artifact_summary.contains("generation policy: adjacent same-body linear segments"));
         assert!(artifact_summary.contains(&format!(
             "artifact version={}",
-            packaged_artifact_regeneration_summary_details().artifact_version
+            pleiades_data::packaged_artifact_regeneration_summary_details().artifact_version
         )));
         assert!(artifact_summary.contains("Packaged frame treatment"));
         assert!(artifact_summary.contains("applies to 11 bundled bodies"));

@@ -12,7 +12,7 @@ use pleiades_core::{
 };
 use pleiades_data::{
     packaged_artifact, packaged_artifact_profile_summary_with_body_coverage,
-    packaged_artifact_regeneration_summary_details, packaged_backend,
+    packaged_artifact_regeneration_summary_for_report, packaged_backend,
     packaged_frame_treatment_summary_details, packaged_request_policy_summary_details,
 };
 
@@ -650,7 +650,7 @@ fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
     text.push_str(&report.source);
     text.push('\n');
     text.push_str("  regeneration provenance: ");
-    text.push_str(&packaged_artifact_regeneration_summary_details().to_string());
+    text.push_str(&packaged_artifact_regeneration_summary_for_report());
     text.push('\n');
     text.push_str("  version: ");
     text.push_str(&report.version.to_string());
