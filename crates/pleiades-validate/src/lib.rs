@@ -2708,11 +2708,13 @@ pub fn compatibility_profile_verification_summary(
         release_house_canonical_names: summarize_descriptor_names(
             profile.release_house_systems,
             |entry| entry.canonical_name,
-        ),
+        )
+        .summary_line(),
         release_ayanamsa_canonical_names: summarize_descriptor_names(
             profile.release_ayanamsas,
             |entry| entry.canonical_name,
-        ),
+        )
+        .summary_line(),
         release_note_count: profile.release_notes.len(),
         validation_reference_point_count: profile.validation_reference_points.len(),
         custom_definition_label_count: custom_definition_labels_checked,
@@ -3166,16 +3168,33 @@ fn summarize_latitude_sensitive_house_systems(profile: &CompatibilityProfile) ->
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct DescriptorNamesSummary {
+    names: Vec<&'static str>,
+}
+
+impl DescriptorNamesSummary {
+    fn summary_line(&self) -> String {
+        match self.names.as_slice() {
+            [] => "0 (none)".to_string(),
+            [single] => format!("1 ({single})"),
+            _ => format!("{} ({})", self.names.len(), self.names.join(", ")),
+        }
+    }
+}
+
+impl fmt::Display for DescriptorNamesSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 fn summarize_descriptor_names<T>(
     entries: &[T],
     canonical_name: impl Fn(&T) -> &'static str,
-) -> String {
-    let names = entries.iter().map(canonical_name).collect::<Vec<_>>();
-
-    match names.as_slice() {
-        [] => "0 (none)".to_string(),
-        [single] => format!("1 ({single})"),
-        _ => format!("{} ({})", names.len(), names.join(", ")),
+) -> DescriptorNamesSummary {
+    DescriptorNamesSummary {
+        names: entries.iter().map(canonical_name).collect::<Vec<_>>(),
     }
 }
 
@@ -3214,16 +3233,16 @@ fn render_compatibility_profile_summary_text() -> String {
     text.push_str(&ayanamsa_catalog_validation_summary().summary_line());
     text.push('\n');
     text.push_str("Release-specific house-system canonical names: ");
-    text.push_str(&summarize_descriptor_names(
-        profile.release_house_systems,
-        |entry| entry.canonical_name,
-    ));
+    text.push_str(
+        &summarize_descriptor_names(profile.release_house_systems, |entry| entry.canonical_name)
+            .summary_line(),
+    );
     text.push('\n');
     text.push_str("Release-specific ayanamsa canonical names: ");
-    text.push_str(&summarize_descriptor_names(
-        profile.release_ayanamsas,
-        |entry| entry.canonical_name,
-    ));
+    text.push_str(
+        &summarize_descriptor_names(profile.release_ayanamsas, |entry| entry.canonical_name)
+            .summary_line(),
+    );
     text.push('\n');
     text.push_str("Custom-definition labels: ");
     text.push_str(&profile.custom_definition_labels.len().to_string());
@@ -3558,10 +3577,10 @@ fn render_release_summary_text() -> String {
     text.push_str(&profile.release_house_systems.len().to_string());
     text.push_str(" release-specific)\n");
     text.push_str("Release-specific house-system canonical names: ");
-    text.push_str(&summarize_descriptor_names(
-        profile.release_house_systems,
-        |entry| entry.canonical_name,
-    ));
+    text.push_str(
+        &summarize_descriptor_names(profile.release_house_systems, |entry| entry.canonical_name)
+            .summary_line(),
+    );
     text.push('\n');
     text.push_str("Ayanamsas: ");
     text.push_str(&profile.ayanamsas.len().to_string());
@@ -3571,10 +3590,10 @@ fn render_release_summary_text() -> String {
     text.push_str(&profile.release_ayanamsas.len().to_string());
     text.push_str(" release-specific)\n");
     text.push_str("Release-specific ayanamsa canonical names: ");
-    text.push_str(&summarize_descriptor_names(
-        profile.release_ayanamsas,
-        |entry| entry.canonical_name,
-    ));
+    text.push_str(
+        &summarize_descriptor_names(profile.release_ayanamsas, |entry| entry.canonical_name)
+            .summary_line(),
+    );
     text.push('\n');
     text.push_str("Validation reference points: ");
     text.push_str(&summarize_validation_reference_points(
@@ -10406,6 +10425,24 @@ mod tests {
         assert!(summary
             .summary_line()
             .contains("Release posture: baseline milestone preserved, release additions explicit, custom definitions tracked, caveats documented"));
+    }
+
+    #[test]
+    fn descriptor_names_summary_formats_empty_single_and_multiple_entries() {
+        #[derive(Clone, Copy)]
+        struct Item(&'static str);
+
+        let empty = summarize_descriptor_names(&[] as &[Item], |item| item.0);
+        assert_eq!(empty.summary_line(), "0 (none)");
+        assert_eq!(empty.to_string(), "0 (none)");
+
+        let single = summarize_descriptor_names(&[Item("Alpha")], |item| item.0);
+        assert_eq!(single.summary_line(), "1 (Alpha)");
+        assert_eq!(single.to_string(), "1 (Alpha)");
+
+        let multiple = summarize_descriptor_names(&[Item("Alpha"), Item("Beta")], |item| item.0);
+        assert_eq!(multiple.summary_line(), "2 (Alpha, Beta)");
+        assert_eq!(multiple.to_string(), "2 (Alpha, Beta)");
     }
 
     #[test]
