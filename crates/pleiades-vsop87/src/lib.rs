@@ -317,6 +317,8 @@ pub struct Vsop87SourceDocumentationHealthSummary {
     pub source_backed_profile_count: usize,
     /// Bodies that still use a source-backed planetary path rather than the fallback mean-element path.
     pub source_backed_bodies: Vec<CelestialBody>,
+    /// Bodies in the current source-backed partition order.
+    pub source_backed_partition_bodies: Vec<CelestialBody>,
     /// Bodies currently served by generated-binary VSOP87B tables.
     pub generated_binary_bodies: Vec<CelestialBody>,
     /// Bodies currently served by vendored full-file source paths.
@@ -1301,6 +1303,8 @@ pub fn source_documentation_health_summary() -> Vsop87SourceDocumentationHealthS
     let documentation_consistent = summary.source_specification_count == source_specs.len()
         && source_documentation_fields_are_consistent(&source_specs);
 
+    let source_backed_partition_bodies = source_documentation_partition_bodies(&summary);
+
     Vsop87SourceDocumentationHealthSummary {
         consistent,
         documentation_consistent,
@@ -1310,6 +1314,7 @@ pub fn source_documentation_health_summary() -> Vsop87SourceDocumentationHealthS
         source_files: summary.source_files,
         source_backed_profile_count: summary.source_backed_profile_count,
         source_backed_bodies: summary.source_backed_bodies,
+        source_backed_partition_bodies,
         generated_binary_bodies: summary.generated_binary_bodies,
         vendored_full_file_bodies: summary.vendored_full_file_bodies,
         truncated_bodies: summary.truncated_bodies,
@@ -1333,7 +1338,7 @@ pub fn format_source_documentation_health_summary(
     };
 
     format!(
-        "VSOP87 source documentation health: {} ({} source specs, {} source files, {} source-backed profiles, {} body profiles; {} generated binary profiles ({}), {} vendored full-file profiles ({}), {} truncated profiles ({}), {} fallback profiles ({}); source files: {}; source-backed order: {}; fallback order: {}; documented fields: {}){}",
+        "VSOP87 source documentation health: {} ({} source specs, {} source files, {} source-backed profiles, {} body profiles; {} generated binary profiles ({}), {} vendored full-file profiles ({}), {} truncated profiles ({}), {} fallback profiles ({}); source files: {}; source-backed order: {}; source-backed partition order: {}; fallback order: {}; documented fields: {}){}",
         if summary.consistent { "ok" } else { "needs attention" },
         summary.source_specification_count,
         summary.source_file_count,
@@ -1349,6 +1354,7 @@ pub fn format_source_documentation_health_summary(
         format_bodies(&summary.fallback_bodies),
         format_source_files(&summary.source_files),
         format_bodies(&summary.source_backed_bodies),
+        format_bodies(&summary.source_backed_partition_bodies),
         format_bodies(&summary.fallback_bodies),
         if summary.documentation_consistent {
             "variant, coordinate family, frame, units, reduction, transform note, truncation policy, and date range"
@@ -4364,13 +4370,17 @@ mod tests {
             ]
         );
         assert_eq!(
+            summary.source_backed_partition_bodies,
+            summary.source_backed_bodies
+        );
+        assert_eq!(
             source_documentation_partition_bodies(&documentation_summary),
             documentation_summary.source_backed_bodies
         );
         assert_eq!(summary.fallback_bodies, vec![CelestialBody::Pluto]);
         assert_eq!(
             format_source_documentation_health_summary(&summary),
-            "VSOP87 source documentation health: ok (8 source specs, 8 source files, 8 source-backed profiles, 9 body profiles; 8 generated binary profiles (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune), 0 vendored full-file profiles (none), 0 truncated profiles (none), 1 fallback profiles (Pluto); source files: VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep; source-backed order: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; fallback order: Pluto; documented fields: variant, coordinate family, frame, units, reduction, transform note, truncation policy, and date range)"
+            "VSOP87 source documentation health: ok (8 source specs, 8 source files, 8 source-backed profiles, 9 body profiles; 8 generated binary profiles (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune), 0 vendored full-file profiles (none), 0 truncated profiles (none), 1 fallback profiles (Pluto); source files: VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep; source-backed order: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; source-backed partition order: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; fallback order: Pluto; documented fields: variant, coordinate family, frame, units, reduction, transform note, truncation policy, and date range)"
         );
         assert_eq!(
             source_documentation_health_summary_for_report(),
@@ -4392,6 +4402,7 @@ mod tests {
             source_files: vec!["VSOP87B.ear"],
             source_backed_profile_count: 1,
             source_backed_bodies: vec![CelestialBody::Sun],
+            source_backed_partition_bodies: vec![CelestialBody::Sun],
             generated_binary_bodies: vec![CelestialBody::Sun],
             vendored_full_file_bodies: vec![],
             truncated_bodies: vec![],
@@ -4405,7 +4416,7 @@ mod tests {
 
         assert_eq!(
             format_source_documentation_health_summary(&summary),
-            "VSOP87 source documentation health: needs attention (1 source specs, 2 source files, 1 source-backed profiles, 2 body profiles; 1 generated binary profiles (Sun), 0 vendored full-file profiles (none), 0 truncated profiles (none), 1 fallback profiles (Pluto); source files: VSOP87B.ear; source-backed order: Sun; fallback order: Pluto; documented fields: needs attention); issues: source specification/file count mismatch, documented field mismatch"
+            "VSOP87 source documentation health: needs attention (1 source specs, 2 source files, 1 source-backed profiles, 2 body profiles; 1 generated binary profiles (Sun), 0 vendored full-file profiles (none), 0 truncated profiles (none), 1 fallback profiles (Pluto); source files: VSOP87B.ear; source-backed order: Sun; source-backed partition order: Sun; fallback order: Pluto; documented fields: needs attention); issues: source specification/file count mismatch, documented field mismatch"
         );
     }
 
