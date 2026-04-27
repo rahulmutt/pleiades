@@ -702,6 +702,67 @@ impl Vsop87CanonicalEvidenceSummary {
     pub fn summary_line(&self) -> String {
         format_canonical_epoch_evidence_summary(self)
     }
+
+    /// Returns `Ok(())` when the summary still matches the current derived evidence.
+    pub fn validate(&self) -> Result<(), Vsop87CanonicalEvidenceSummaryValidationError> {
+        validate_canonical_evidence_summary_bodies(
+            CANONICAL_EVIDENCE_SUMMARY_LABEL,
+            self.sample_count,
+            &self.sample_bodies,
+        )?;
+        validate_canonical_evidence_summary_peak_body(
+            CANONICAL_EVIDENCE_SUMMARY_LABEL,
+            "max_longitude_delta_body",
+            &self.max_longitude_delta_body,
+            &self.sample_bodies,
+        )?;
+        validate_canonical_evidence_summary_peak_body(
+            CANONICAL_EVIDENCE_SUMMARY_LABEL,
+            "max_latitude_delta_body",
+            &self.max_latitude_delta_body,
+            &self.sample_bodies,
+        )?;
+        validate_canonical_evidence_summary_peak_body(
+            CANONICAL_EVIDENCE_SUMMARY_LABEL,
+            "max_distance_delta_body",
+            &self.max_distance_delta_body,
+            &self.sample_bodies,
+        )?;
+        validate_non_empty_source_file(
+            CANONICAL_EVIDENCE_SUMMARY_LABEL,
+            "max_longitude_delta_source_file",
+            self.max_longitude_delta_source_file,
+        )?;
+        validate_non_empty_source_file(
+            CANONICAL_EVIDENCE_SUMMARY_LABEL,
+            "max_latitude_delta_source_file",
+            self.max_latitude_delta_source_file,
+        )?;
+        validate_non_empty_source_file(
+            CANONICAL_EVIDENCE_SUMMARY_LABEL,
+            "max_distance_delta_source_file",
+            self.max_distance_delta_source_file,
+        )?;
+
+        if self.out_of_limit_count > self.sample_count {
+            return Err(
+                Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
+                    summary: CANONICAL_EVIDENCE_SUMMARY_LABEL,
+                    field: "out_of_limit_count",
+                },
+            );
+        }
+        if self.within_interim_limits != (self.out_of_limit_count == 0) {
+            return Err(
+                Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
+                    summary: CANONICAL_EVIDENCE_SUMMARY_LABEL,
+                    field: "within_interim_limits",
+                },
+            );
+        }
+
+        Ok(())
+    }
 }
 
 impl fmt::Display for Vsop87CanonicalEvidenceSummary {
@@ -791,11 +852,180 @@ impl Vsop87CanonicalEquatorialEvidenceSummary {
     pub fn summary_line(&self) -> String {
         format_canonical_equatorial_evidence_summary(self)
     }
+
+    /// Returns `Ok(())` when the summary still matches the current derived evidence.
+    pub fn validate(&self) -> Result<(), Vsop87CanonicalEvidenceSummaryValidationError> {
+        validate_canonical_evidence_summary_bodies(
+            CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL,
+            self.sample_count,
+            &self.sample_bodies,
+        )?;
+        validate_canonical_evidence_summary_peak_body(
+            CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL,
+            "max_right_ascension_delta_body",
+            &self.max_right_ascension_delta_body,
+            &self.sample_bodies,
+        )?;
+        validate_canonical_evidence_summary_peak_body(
+            CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL,
+            "max_declination_delta_body",
+            &self.max_declination_delta_body,
+            &self.sample_bodies,
+        )?;
+        validate_canonical_evidence_summary_peak_body(
+            CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL,
+            "max_distance_delta_body",
+            &self.max_distance_delta_body,
+            &self.sample_bodies,
+        )?;
+        validate_non_empty_source_file(
+            CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL,
+            "max_right_ascension_delta_source_file",
+            self.max_right_ascension_delta_source_file,
+        )?;
+        validate_non_empty_source_file(
+            CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL,
+            "max_declination_delta_source_file",
+            self.max_declination_delta_source_file,
+        )?;
+        validate_non_empty_source_file(
+            CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL,
+            "max_distance_delta_source_file",
+            self.max_distance_delta_source_file,
+        )?;
+
+        Ok(())
+    }
 }
 
 impl fmt::Display for Vsop87CanonicalEquatorialEvidenceSummary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.summary_line())
+    }
+}
+
+const CANONICAL_EVIDENCE_SUMMARY_LABEL: &str = "VSOP87 canonical J2000 source-backed evidence";
+const CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL: &str =
+    "VSOP87 canonical J2000 equatorial companion evidence";
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Vsop87CanonicalEvidenceSummaryValidationError {
+    /// A rendered summary field no longer matches the current derived evidence.
+    FieldOutOfSync {
+        summary: &'static str,
+        field: &'static str,
+    },
+    /// The sample body list now contains a duplicate entry.
+    DuplicateBody {
+        summary: &'static str,
+        body: CelestialBody,
+    },
+    /// A reported peak body is absent from the sample body list.
+    PeakBodyNotInSamples {
+        summary: &'static str,
+        field: &'static str,
+        body: CelestialBody,
+    },
+    /// A reported source file is blank or whitespace only.
+    BlankSourceFile {
+        summary: &'static str,
+        field: &'static str,
+    },
+}
+
+impl fmt::Display for Vsop87CanonicalEvidenceSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { summary, field } => write!(
+                f,
+                "the {summary} summary field `{field}` is out of sync with the current canonical evidence"
+            ),
+            Self::DuplicateBody { summary, body } => write!(
+                f,
+                "the {summary} summary lists body `{body}` more than once"
+            ),
+            Self::PeakBodyNotInSamples {
+                summary,
+                field,
+                body,
+            } => write!(
+                f,
+                "the {summary} summary field `{field}` points at body `{body}` which is absent from the sample body list"
+            ),
+            Self::BlankSourceFile { summary, field } => write!(
+                f,
+                "the {summary} summary field `{field}` is blank"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for Vsop87CanonicalEvidenceSummaryValidationError {}
+
+fn validate_canonical_evidence_summary_bodies(
+    summary: &'static str,
+    sample_count: usize,
+    sample_bodies: &[CelestialBody],
+) -> Result<(), Vsop87CanonicalEvidenceSummaryValidationError> {
+    if sample_count == 0 {
+        return Err(
+            Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
+                summary,
+                field: "sample_count",
+            },
+        );
+    }
+    if sample_count != sample_bodies.len() {
+        return Err(
+            Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
+                summary,
+                field: "sample_count",
+            },
+        );
+    }
+
+    for (index, body) in sample_bodies.iter().enumerate() {
+        if sample_bodies[..index].contains(body) {
+            return Err(
+                Vsop87CanonicalEvidenceSummaryValidationError::DuplicateBody {
+                    summary,
+                    body: body.clone(),
+                },
+            );
+        }
+    }
+
+    Ok(())
+}
+
+fn validate_canonical_evidence_summary_peak_body(
+    summary: &'static str,
+    field: &'static str,
+    body: &CelestialBody,
+    sample_bodies: &[CelestialBody],
+) -> Result<(), Vsop87CanonicalEvidenceSummaryValidationError> {
+    if sample_bodies.contains(body) {
+        Ok(())
+    } else {
+        Err(
+            Vsop87CanonicalEvidenceSummaryValidationError::PeakBodyNotInSamples {
+                summary,
+                field,
+                body: body.clone(),
+            },
+        )
+    }
+}
+
+fn validate_non_empty_source_file(
+    summary: &'static str,
+    field: &'static str,
+    source_file: &'static str,
+) -> Result<(), Vsop87CanonicalEvidenceSummaryValidationError> {
+    if source_file.trim().is_empty() {
+        Err(Vsop87CanonicalEvidenceSummaryValidationError::BlankSourceFile { summary, field })
+    } else {
+        Ok(())
     }
 }
 
@@ -1991,11 +2221,20 @@ pub fn format_canonical_epoch_evidence_summary(summary: &Vsop87CanonicalEvidence
     )
 }
 
+fn format_validated_canonical_epoch_evidence_summary_for_report(
+    summary: &Vsop87CanonicalEvidenceSummary,
+) -> String {
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("{CANONICAL_EVIDENCE_SUMMARY_LABEL}: unavailable ({error})"),
+    }
+}
+
 /// Returns the release-facing canonical VSOP87 J2000 evidence summary string.
 pub fn canonical_epoch_evidence_summary_for_report() -> String {
     match canonical_epoch_evidence_summary() {
-        Some(summary) => summary.summary_line(),
-        None => "VSOP87 canonical J2000 source-backed evidence: unavailable".to_string(),
+        Some(summary) => format_validated_canonical_epoch_evidence_summary_for_report(&summary),
+        None => format!("{CANONICAL_EVIDENCE_SUMMARY_LABEL}: unavailable"),
     }
 }
 
@@ -3247,12 +3486,25 @@ pub fn canonical_epoch_equatorial_evidence_summary(
     })
 }
 
+fn format_validated_canonical_epoch_equatorial_evidence_summary_for_report(
+    summary: &Vsop87CanonicalEquatorialEvidenceSummary,
+) -> String {
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => {
+            format!("{CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL}: unavailable ({error})")
+        }
+    }
+}
+
 /// Returns the release-facing canonical VSOP87 equatorial companion evidence
 /// summary string.
 pub fn canonical_epoch_equatorial_evidence_summary_for_report() -> String {
     match canonical_epoch_equatorial_evidence_summary() {
-        Some(summary) => summary.summary_line(),
-        None => "VSOP87 canonical J2000 equatorial companion evidence: unavailable".to_string(),
+        Some(summary) => {
+            format_validated_canonical_epoch_equatorial_evidence_summary_for_report(&summary)
+        }
+        None => format!("{CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL}: unavailable"),
     }
 }
 
@@ -5521,6 +5773,28 @@ mod tests {
     }
 
     #[test]
+    fn canonical_evidence_summary_validation_rejects_duplicate_bodies() {
+        let mut summary = canonical_epoch_evidence_summary().expect("summary should exist");
+        let duplicated_body = summary.sample_bodies[0].clone();
+        summary.sample_bodies[1] = duplicated_body.clone();
+
+        let error = summary
+            .validate()
+            .expect_err("duplicate bodies should fail validation");
+        assert_eq!(
+            error,
+            Vsop87CanonicalEvidenceSummaryValidationError::DuplicateBody {
+                summary: CANONICAL_EVIDENCE_SUMMARY_LABEL,
+                body: duplicated_body,
+            }
+        );
+        assert_eq!(
+            error.to_string(),
+            "the VSOP87 canonical J2000 source-backed evidence summary lists body `Sun` more than once"
+        );
+    }
+
+    #[test]
     fn canonical_j2000_batch_parity_report_matches_the_backend_formatter() {
         let summary = canonical_j2000_batch_parity_summary().expect("batch summary should exist");
         let rendered = canonical_j2000_batch_parity_summary_for_report();
@@ -5636,6 +5910,29 @@ mod tests {
         assert!(rendered.contains("p95 Δra="));
         assert!(rendered.contains("p95 Δdec="));
         assert!(rendered.contains("p95 Δdist="));
+    }
+
+    #[test]
+    fn canonical_equatorial_evidence_summary_validation_rejects_peak_body_drift() {
+        let mut summary =
+            canonical_epoch_equatorial_evidence_summary().expect("equatorial summary should exist");
+        summary.max_distance_delta_body = CelestialBody::Pluto;
+
+        let error = summary
+            .validate()
+            .expect_err("peak body drift should fail validation");
+        assert_eq!(
+            error,
+            Vsop87CanonicalEvidenceSummaryValidationError::PeakBodyNotInSamples {
+                summary: CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL,
+                field: "max_distance_delta_body",
+                body: CelestialBody::Pluto,
+            }
+        );
+        assert_eq!(
+            error.to_string(),
+            "the VSOP87 canonical J2000 equatorial companion evidence summary field `max_distance_delta_body` points at body `Pluto` which is absent from the sample body list"
+        );
     }
 
     #[test]
