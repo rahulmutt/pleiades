@@ -211,6 +211,57 @@ impl fmt::Display for Vsop87SourceSpecification {
     }
 }
 
+/// Validation error for a VSOP87 source specification that contains blank metadata.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Vsop87SourceSpecificationValidationError {
+    /// The rendered field is blank or whitespace-only for the named body.
+    BlankField {
+        body: CelestialBody,
+        field: &'static str,
+    },
+}
+
+impl fmt::Display for Vsop87SourceSpecificationValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BlankField { body, field } => {
+                write!(
+                    f,
+                    "the VSOP87 source specification for {body} has a blank `{field}` field"
+                )
+            }
+        }
+    }
+}
+
+impl std::error::Error for Vsop87SourceSpecificationValidationError {}
+
+impl Vsop87SourceSpecification {
+    /// Returns `Ok(())` when the specification still carries non-blank public metadata.
+    pub fn validate(&self) -> Result<(), Vsop87SourceSpecificationValidationError> {
+        for (field, value) in [
+            ("source_file", self.source_file),
+            ("variant", self.variant),
+            ("coordinate_family", self.coordinate_family),
+            ("frame", self.frame),
+            ("units", self.units),
+            ("reduction", self.reduction),
+            ("transform_note", self.transform_note),
+            ("truncation_policy", self.truncation_policy),
+            ("date_range", self.date_range),
+        ] {
+            if value.trim().is_empty() {
+                return Err(Vsop87SourceSpecificationValidationError::BlankField {
+                    body: self.body.clone(),
+                    field,
+                });
+            }
+        }
+
+        Ok(())
+    }
+}
+
 /// Reproducibility audit details for a vendored VSOP87B source file.
 ///
 /// These records give the generated-table work a stable, deterministic
@@ -1551,9 +1602,24 @@ pub fn format_source_specifications(specs: &[Vsop87SourceSpecification]) -> Stri
     join_display(specs)
 }
 
+/// Validates that the supplied VSOP87 source-specification catalog carries non-blank metadata.
+pub fn validate_source_specifications(
+    specs: &[Vsop87SourceSpecification],
+) -> Result<(), Vsop87SourceSpecificationValidationError> {
+    for spec in specs {
+        spec.validate()?;
+    }
+
+    Ok(())
+}
+
 /// Returns the release-facing source-specification catalog string.
 pub fn source_specifications_for_report() -> String {
-    format_source_specifications(&source_specifications())
+    let specs = source_specifications();
+    match validate_source_specifications(&specs) {
+        Ok(()) => format_source_specifications(&specs),
+        Err(error) => format!("VSOP87 source specifications: unavailable ({error})"),
+    }
 }
 
 /// Returns the structured frame-treatment summary for VSOP87-backed results.
@@ -5469,6 +5535,7 @@ mod tests {
     fn source_specifications_document_variant_frames_units_and_range() {
         let specs = source_specifications();
         assert_eq!(specs.len(), 8);
+        assert!(validate_source_specifications(&specs).is_ok());
         assert!(specs.iter().all(|spec| spec.variant == "VSOP87B"));
         assert!(specs
             .iter()
@@ -5496,6 +5563,27 @@ mod tests {
             .iter()
             .all(|spec| spec.transform_note.contains("mean-obliquity transform")));
         assert!(specs.iter().any(|spec| spec.source_file == "VSOP87B.nep"));
+    }
+
+    #[test]
+    fn source_specification_validation_rejects_blank_metadata() {
+        let mut spec = source_specifications()
+            .into_iter()
+            .next()
+            .expect("expected at least one VSOP87 source specification");
+        spec.frame = "   ";
+
+        let error = spec
+            .validate()
+            .expect_err("blank source-specification fields should fail validation");
+
+        assert_eq!(
+            error.to_string(),
+            format!(
+                "the VSOP87 source specification for {} has a blank `frame` field",
+                spec.body
+            )
+        );
     }
 
     #[test]

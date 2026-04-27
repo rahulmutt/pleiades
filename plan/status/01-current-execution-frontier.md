@@ -23,6 +23,7 @@ Several downstream requirements depend on trusted ephemeris outputs:
 - Latest progress (2026-04-27): `pleiades-core::ChartEngine::chart()` now batches body-position dispatch through the backend `positions()` path after metadata validation, so batch-aware backends can service whole charts efficiently without changing the chart request shape or the geocentric-vs-house observer split.
 - Latest progress (2026-04-27): the compatibility-profile partition audit now also has a regression that rejects case-normalized alias overlaps between the baseline and release slices, so release-catalog drift now fails closed even when a conflicting label only differs by casing in a visible alias.
 - Latest progress (2026-04-27): the compatibility-profile verification summary now also has a regression that reverses the latitude-sensitive house-system list and confirms the stale summary fails closed, so the order-sensitive cached release profile line stays covered alongside the broader compatibility-profile summary fields.
+- Latest progress (2026-04-27): `pleiades-vsop87::Vsop87SourceSpecification` now exposes a reusable `validate()` helper and the release-facing source-specification report preflights it, so blank source metadata now fails closed before the compact source-specification catalog is rendered.
 
 ## Current repo state summary
 
