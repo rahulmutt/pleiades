@@ -35,7 +35,7 @@ use std::{cmp::Ordering, fmt};
 
 use pleiades_backend::{
     validate_observer_policy, validate_request_policy, validate_zodiac_policy, AccuracyClass,
-    Angle, Apparentness, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
+    Apparentness, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
     BackendProvenance, CelestialBody, CoordinateFrame, CustomBodyId, EclipticCoordinates,
     EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
     Instant, QualityAnnotation, TimeRange, TimeScale, ZodiacMode,
@@ -544,8 +544,7 @@ impl EphemerisBackend for PackagedDataBackend {
         let ecliptic = packaged_artifact()
             .lookup_ecliptic(&req.body, lookup_instant)
             .map_err(map_artifact_error)?;
-        let equatorial =
-            ecliptic.to_equatorial(Angle::from_degrees(mean_obliquity_degrees(req.instant)));
+        let equatorial = ecliptic.to_equatorial(req.instant.mean_obliquity());
 
         let mut result = EphemerisResult::new(
             BackendId::new(PACKAGE_NAME),
@@ -705,12 +704,6 @@ fn normalize_lookup_instant(instant: Instant) -> Instant {
     }
 }
 
-fn mean_obliquity_degrees(instant: Instant) -> f64 {
-    let t = (instant.julian_day.days() - 2_451_545.0) / 36_525.0;
-    23.439_291_111_111_11 - 0.013_004_166_666_666_667 * t - 0.000_000_163_888_888_888_888_88 * t * t
-        + 0.000_000_503_611_111_111_111_1 * t * t * t
-}
-
 fn map_artifact_error(error: pleiades_compression::CompressionError) -> EphemerisError {
     let kind = match error.kind {
         pleiades_compression::CompressionErrorKind::MissingBody => {
@@ -821,9 +814,7 @@ mod tests {
         let result = backend
             .position(&request)
             .expect("packaged equatorial request should succeed");
-        let expected = coordinates(reference).to_equatorial(pleiades_backend::Angle::from_degrees(
-            mean_obliquity_degrees(reference.epoch),
-        ));
+        let expected = coordinates(reference).to_equatorial(reference.epoch.mean_obliquity());
 
         assert_eq!(result.frame, CoordinateFrame::Equatorial);
         let actual_ecliptic = result

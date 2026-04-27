@@ -274,6 +274,22 @@ impl Instant {
         }
     }
 
+    /// Returns the mean obliquity of the ecliptic for this instant.
+    ///
+    /// The value uses the shared cubic approximation currently used throughout
+    /// the workspace for mean-obliquity equatorial transforms. It is expressed
+    /// as a typed angle so callers can pass it directly into coordinate
+    /// conversion helpers.
+    pub fn mean_obliquity(self) -> Angle {
+        let t = (self.julian_day.days() - 2_451_545.0) / 36_525.0;
+        Angle::from_degrees(
+            23.439_291_111_111_11
+                - 0.013_004_166_666_666_667 * t
+                - 0.000_000_163_888_888_888_888_88 * t * t
+                + 0.000_000_503_611_111_111_111_1 * t * t * t,
+        )
+    }
+
     /// Converts a UT1-tagged instant to TT using caller-supplied Delta T.
     ///
     /// `delta_t` must be the value `TT - UT1`. Use this when validation data or
@@ -1313,6 +1329,13 @@ mod tests {
         assert_eq!(equatorial.right_ascension.degrees(), 90.0);
         assert!((equatorial.declination.degrees() - 23.439_291_11).abs() < 1e-10);
         assert_eq!(equatorial.distance_au, Some(1.0));
+    }
+
+    #[test]
+    fn instant_mean_obliquity_matches_the_shared_cubic_approximation() {
+        let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+
+        assert_eq!(instant.mean_obliquity().degrees(), 23.439_291_111_111_11);
     }
 
     #[test]

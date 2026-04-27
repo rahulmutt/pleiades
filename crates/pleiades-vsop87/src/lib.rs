@@ -39,8 +39,8 @@ use pleiades_backend::{
     EphemerisResult, QualityAnnotation,
 };
 use pleiades_types::{
-    Angle, CelestialBody, CoordinateFrame, EclipticCoordinates, EquatorialCoordinates, Instant,
-    Latitude, Longitude, Motion, TimeRange, TimeScale, ZodiacMode,
+    CelestialBody, CoordinateFrame, EclipticCoordinates, EquatorialCoordinates, Instant, Latitude,
+    Longitude, Motion, TimeRange, TimeScale, ZodiacMode,
 };
 use std::sync::OnceLock;
 
@@ -2315,9 +2315,8 @@ pub fn canonical_epoch_equatorial_body_evidence(
         })
         .collect::<Vec<_>>();
     let results = backend.positions(&requests).ok()?;
-    let reference_obliquity = Angle::from_degrees(Vsop87Backend::mean_obliquity_degrees(
-        Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt),
-    ));
+    let reference_obliquity =
+        Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt).mean_obliquity();
 
     if results.len() != samples.len() {
         return None;
@@ -2511,18 +2510,6 @@ impl Vsop87Backend {
 
     fn days_since_j2000(instant: Instant) -> f64 {
         instant.julian_day.days() - J2000
-    }
-
-    fn julian_centuries(instant: Instant) -> f64 {
-        Self::days_since_j2000(instant) / 36_525.0
-    }
-
-    fn mean_obliquity_degrees(instant: Instant) -> f64 {
-        let t = Self::julian_centuries(instant);
-        23.439_291_111_111_11
-            - 0.013_004_166_666_666_667 * t
-            - 0.000_000_163_888_888_888_888_88 * t * t
-            + 0.000_000_503_611_111_111_111_1 * t * t * t
     }
 
     fn supported_bodies() -> &'static [CelestialBody] {
@@ -2759,8 +2746,7 @@ impl Vsop87Backend {
     }
 
     fn to_equatorial(coords: HeliocentricCoordinates, instant: Instant) -> EquatorialCoordinates {
-        Self::to_ecliptic(coords)
-            .to_equatorial(Angle::from_degrees(Self::mean_obliquity_degrees(instant)))
+        Self::to_ecliptic(coords).to_equatorial(instant.mean_obliquity())
     }
 
     fn motion(body: CelestialBody, days: f64) -> Option<Motion> {
@@ -3580,9 +3566,7 @@ mod tests {
                 sample.max_distance_delta_au,
             );
 
-            let expected = ecliptic.to_equatorial(Angle::from_degrees(
-                Vsop87Backend::mean_obliquity_degrees(result.instant),
-            ));
+            let expected = ecliptic.to_equatorial(result.instant.mean_obliquity());
             let equatorial = result
                 .equatorial
                 .as_ref()
@@ -3648,9 +3632,7 @@ mod tests {
                 .expect("distance should exist")
                 .is_finite());
 
-            let expected = ecliptic.to_equatorial(Angle::from_degrees(
-                Vsop87Backend::mean_obliquity_degrees(result.instant),
-            ));
+            let expected = ecliptic.to_equatorial(result.instant.mean_obliquity());
             let equatorial = result
                 .equatorial
                 .as_ref()
@@ -3709,9 +3691,7 @@ mod tests {
                 sample.max_distance_delta_au,
             );
 
-            let expected = ecliptic.to_equatorial(Angle::from_degrees(
-                Vsop87Backend::mean_obliquity_degrees(result.instant),
-            ));
+            let expected = ecliptic.to_equatorial(result.instant.mean_obliquity());
             let equatorial = result
                 .equatorial
                 .as_ref()

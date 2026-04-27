@@ -30,8 +30,8 @@ use pleiades_backend::{
     QualityAnnotation,
 };
 use pleiades_types::{
-    Angle, Apparentness, CoordinateFrame, CustomBodyId, EclipticCoordinates, Instant, JulianDay,
-    Latitude, Longitude, Motion, TimeRange, TimeScale, ZodiacMode,
+    Apparentness, CoordinateFrame, CustomBodyId, EclipticCoordinates, Instant, JulianDay, Latitude,
+    Longitude, Motion, TimeRange, TimeScale, ZodiacMode,
 };
 
 const REFERENCE_EPOCH_JD: f64 = 2_451_545.0;
@@ -1638,18 +1638,11 @@ impl EphemerisBackend for JplSnapshotBackend {
         );
         let ecliptic = resolved.entry.ecliptic();
         result.ecliptic = Some(ecliptic);
-        result.equatorial =
-            Some(ecliptic.to_equatorial(Angle::from_degrees(mean_obliquity_degrees(req.instant))));
+        result.equatorial = Some(ecliptic.to_equatorial(req.instant.mean_obliquity()));
         result.motion = None::<Motion>;
         result.quality = resolved.quality;
         Ok(result)
     }
-}
-
-fn mean_obliquity_degrees(instant: Instant) -> f64 {
-    let t = (instant.julian_day.days() - REFERENCE_EPOCH_JD) / 36_525.0;
-    23.439_291_111_111_11 - 0.013_004_166_666_666_667 * t - 0.000_000_163_888_888_888_888_88 * t * t
-        + 0.000_000_503_611_111_111_111_1 * t * t * t
 }
 
 /// File-level metadata parsed from a checked-in JPL-style snapshot.
@@ -2159,9 +2152,7 @@ fn reference_asteroid_equatorial_evidence_list() -> &'static [ReferenceAsteroidE
                     ReferenceAsteroidEquatorialEvidence {
                         body: sample.body.clone(),
                         epoch: sample.epoch,
-                        equatorial: ecliptic.to_equatorial(Angle::from_degrees(
-                            mean_obliquity_degrees(sample.epoch),
-                        )),
+                        equatorial: ecliptic.to_equatorial(sample.epoch.mean_obliquity()),
                     }
                 })
                 .collect()
@@ -2724,8 +2715,7 @@ mod tests {
                 .expect("reference snapshot entries should include ecliptic coordinates");
             assert_eq!(ecliptic, entry.ecliptic());
 
-            let expected_equatorial =
-                ecliptic.to_equatorial(Angle::from_degrees(mean_obliquity_degrees(result.instant)));
+            let expected_equatorial = ecliptic.to_equatorial(result.instant.mean_obliquity());
             let equatorial = result
                 .equatorial
                 .expect("equatorial coordinates should be present for equatorial batch requests");
@@ -2774,8 +2764,7 @@ mod tests {
                 .expect("reference snapshot entries should include ecliptic coordinates");
             assert_eq!(ecliptic, entry.ecliptic());
 
-            let expected_equatorial =
-                ecliptic.to_equatorial(Angle::from_degrees(mean_obliquity_degrees(result.instant)));
+            let expected_equatorial = ecliptic.to_equatorial(result.instant.mean_obliquity());
             let equatorial = result
                 .equatorial
                 .expect("equatorial coordinates should be present for mixed frame batch requests");
@@ -3040,9 +3029,7 @@ mod tests {
             let expected_equatorial = batch_result
                 .ecliptic
                 .expect("equatorial requests should still populate ecliptic coordinates")
-                .to_equatorial(Angle::from_degrees(mean_obliquity_degrees(
-                    batch_result.instant,
-                )));
+                .to_equatorial(batch_result.instant.mean_obliquity());
             let equatorial = batch_result
                 .equatorial
                 .expect("equatorial coordinates should be present for the hold-out rows");
@@ -3322,8 +3309,7 @@ mod tests {
         let ecliptic = result
             .ecliptic
             .expect("equatorial requests should still populate ecliptic coordinates");
-        let expected =
-            ecliptic.to_equatorial(Angle::from_degrees(mean_obliquity_degrees(request.instant)));
+        let expected = ecliptic.to_equatorial(request.instant.mean_obliquity());
         let equatorial = result
             .equatorial
             .expect("equatorial coordinates should be present");

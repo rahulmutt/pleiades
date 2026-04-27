@@ -2561,18 +2561,6 @@ impl ElpBackend {
         instant.julian_day.days() - J2000
     }
 
-    fn julian_centuries(instant: Instant) -> f64 {
-        Self::days_since_j2000(instant) / 36_525.0
-    }
-
-    fn mean_obliquity_degrees(instant: Instant) -> f64 {
-        let t = Self::julian_centuries(instant);
-        23.439_291_111_111_11
-            - 0.013_004_166_666_666_667 * t
-            - 0.000_000_163_888_888_888_888_88 * t * t
-            + 0.000_000_503_611_111_111_111_1 * t * t * t
-    }
-
     fn moon_ecliptic_coordinates(days: f64) -> EclipticCoordinates {
         let (longitude, latitude, distance_au) = moonposition::position(J2000 + days);
         EclipticCoordinates::new(longitude, latitude, Some(distance_au))
@@ -2699,7 +2687,7 @@ impl ElpBackend {
         distance_au: Option<f64>,
     ) -> EquatorialCoordinates {
         EclipticCoordinates::new(longitude, latitude, distance_au)
-            .to_equatorial(Angle::from_degrees(Self::mean_obliquity_degrees(instant)))
+            .to_equatorial(instant.mean_obliquity())
     }
 }
 
@@ -3734,9 +3722,7 @@ mod tests {
             assert_eq!(result.frame, CoordinateFrame::Equatorial);
 
             let ecliptic = result.ecliptic.expect("ecliptic result should exist");
-            let expected = ecliptic.to_equatorial(Angle::from_degrees(
-                ElpBackend::mean_obliquity_degrees(sample.epoch),
-            ));
+            let expected = ecliptic.to_equatorial(sample.epoch.mean_obliquity());
             let equatorial = result.equatorial.expect("equatorial result should exist");
 
             assert_eq!(equatorial, expected);
@@ -3775,9 +3761,7 @@ mod tests {
             assert_eq!(result.frame, request.frame);
 
             let ecliptic = result.ecliptic.expect("ecliptic result should exist");
-            let expected = ecliptic.to_equatorial(Angle::from_degrees(
-                ElpBackend::mean_obliquity_degrees(sample.epoch),
-            ));
+            let expected = ecliptic.to_equatorial(sample.epoch.mean_obliquity());
             let equatorial = result.equatorial.expect("equatorial result should exist");
 
             assert_eq!(equatorial, expected);
