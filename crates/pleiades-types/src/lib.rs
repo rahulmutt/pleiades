@@ -304,12 +304,12 @@ impl TimeScaleConversion {
         )
     }
 
-    /// Applies the policy to an instant.
+    /// Validates the policy against a specific instant without retagging it.
     ///
-    /// The source scale must match the instant's current scale, and the offset
-    /// must be finite. Otherwise the conversion fails with the same structured
-    /// time-scale error used by the lower-level helpers.
-    pub fn apply(self, instant: Instant) -> Result<Instant, TimeScaleConversionError> {
+    /// This is useful when a caller wants to preflight the explicit conversion
+    /// contract before mutating the instant itself. The source scale must match
+    /// the instant's current scale, and the offset must be finite.
+    pub fn validate(self, instant: Instant) -> Result<(), TimeScaleConversionError> {
         if instant.scale != self.source {
             return Err(TimeScaleConversionError::expected(
                 self.source,
@@ -317,8 +317,19 @@ impl TimeScaleConversion {
             ));
         }
 
-        let offset_seconds = checked_time_scale_offset(self.offset_seconds)?;
-        Ok(instant.with_time_scale_offset(self.target, offset_seconds))
+        checked_time_scale_offset(self.offset_seconds)?;
+        Ok(())
+    }
+
+    /// Applies the policy to an instant.
+    ///
+    /// This is the mutating counterpart to [`TimeScaleConversion::validate`].
+    /// The source scale must match the instant's current scale, and the offset
+    /// must be finite. Otherwise the conversion fails with the same structured
+    /// time-scale error used by the lower-level helpers.
+    pub fn apply(self, instant: Instant) -> Result<Instant, TimeScaleConversionError> {
+        self.validate(instant)?;
+        Ok(instant.with_time_scale_offset(self.target, self.offset_seconds))
     }
 }
 
@@ -2138,9 +2149,12 @@ mod tests {
     }
 
     #[test]
-    fn time_scale_conversion_policy_can_apply_a_caller_supplied_rule() {
+    fn time_scale_conversion_policy_can_validate_and_apply_a_caller_supplied_rule() {
         let policy = TimeScaleConversion::new(TimeScale::Ut1, TimeScale::Tt, 64.184);
         let ut1 = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Ut1);
+
+        assert!(policy.validate(ut1).is_ok());
+
         let converted = policy
             .apply(ut1)
             .expect("caller-supplied policy should convert the source instant");
@@ -2156,7 +2170,7 @@ mod tests {
         let policy = TimeScaleConversion::new(TimeScale::Ut1, TimeScale::Tt, 64.184);
         let tt = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
         let error = policy
-            .apply(tt)
+            .validate(tt)
             .expect_err("policy should reject the wrong source scale");
 
         assert!(matches!(
@@ -2169,10 +2183,20 @@ mod tests {
 
         let non_finite = TimeScaleConversion::new(TimeScale::Tt, TimeScale::Tdb, f64::NAN);
         let error = non_finite
-            .apply(tt)
+            .validate(Instant::new(
+                JulianDay::from_days(2_451_545.0),
+                TimeScale::Tt,
+            ))
             .expect_err("policy should reject non-finite offsets");
 
         assert!(matches!(error, TimeScaleConversionError::NonFiniteOffset));
+        assert!(matches!(
+            non_finite.apply(Instant::new(
+                JulianDay::from_days(2_451_545.0),
+                TimeScale::Tt
+            )),
+            Err(TimeScaleConversionError::NonFiniteOffset)
+        ));
     }
 
     #[test]
