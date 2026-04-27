@@ -2136,6 +2136,10 @@ pub enum JplInterpolationQualitySummaryValidationError {
         body_count: usize,
         bodies_len: usize,
     },
+    /// The summary body list contained a duplicate body label.
+    DuplicateBody { body: String },
+    /// The summary body list contained a blank entry.
+    BlankBody { index: usize },
     /// The summary did not expose any epochs.
     MissingEpochs,
     /// The summary reported an invalid earliest/latest epoch range.
@@ -2143,6 +2147,8 @@ pub enum JplInterpolationQualitySummaryValidationError {
         earliest_epoch: Instant,
         latest_epoch: Instant,
     },
+    /// A summary metric was not finite and non-negative.
+    MetricOutOfRange { field: &'static str },
     /// The interpolation-kind counts did not add up to the total sample count.
     InterpolationKindCountMismatch {
         sample_count: usize,
@@ -2157,8 +2163,11 @@ impl JplInterpolationQualitySummaryValidationError {
             Self::MissingSamples => "missing samples",
             Self::MissingBodies => "missing bodies",
             Self::BodyCountMismatch { .. } => "body count mismatch",
+            Self::DuplicateBody { .. } => "duplicate body",
+            Self::BlankBody { .. } => "blank body",
             Self::MissingEpochs => "missing epochs",
             Self::InvalidEpochRange { .. } => "invalid epoch range",
+            Self::MetricOutOfRange { .. } => "metric out of range",
             Self::InterpolationKindCountMismatch { .. } => "interpolation-kind count mismatch",
         }
     }
@@ -2177,6 +2186,12 @@ impl fmt::Display for JplInterpolationQualitySummaryValidationError {
                 f,
                 "body count {body_count} does not match body list length {bodies_len}"
             ),
+            Self::DuplicateBody { body } => {
+                write!(f, "body list contains duplicate body label `{body}`")
+            }
+            Self::BlankBody { index } => {
+                write!(f, "body list entry {index} is blank")
+            }
             Self::InvalidEpochRange {
                 earliest_epoch,
                 latest_epoch,
@@ -2185,6 +2200,10 @@ impl fmt::Display for JplInterpolationQualitySummaryValidationError {
                 "invalid epoch range: earliest {} is after latest {}",
                 format_instant(*earliest_epoch),
                 format_instant(*latest_epoch),
+            ),
+            Self::MetricOutOfRange { field } => write!(
+                f,
+                "summary metric `{field}` is not a finite non-negative value"
             ),
             Self::InterpolationKindCountMismatch {
                 sample_count,
@@ -2198,6 +2217,17 @@ impl fmt::Display for JplInterpolationQualitySummaryValidationError {
 }
 
 impl std::error::Error for JplInterpolationQualitySummaryValidationError {}
+
+fn validate_non_negative_metric(
+    field: &'static str,
+    value: f64,
+) -> Result<(), JplInterpolationQualitySummaryValidationError> {
+    if value.is_finite() && value >= 0.0 {
+        Ok(())
+    } else {
+        Err(JplInterpolationQualitySummaryValidationError::MetricOutOfRange { field })
+    }
+}
 
 impl JplInterpolationQualitySummary {
     /// Validates that the summary remains internally consistent.
@@ -2218,6 +2248,44 @@ impl JplInterpolationQualitySummary {
                     latest_epoch: self.latest_epoch,
                 },
             );
+        }
+        for (field, value) in [
+            ("max_bracket_span_days", self.max_bracket_span_days),
+            ("mean_bracket_span_days", self.mean_bracket_span_days),
+            ("median_bracket_span_days", self.median_bracket_span_days),
+            (
+                "percentile_bracket_span_days",
+                self.percentile_bracket_span_days,
+            ),
+            ("max_longitude_error_deg", self.max_longitude_error_deg),
+            ("mean_longitude_error_deg", self.mean_longitude_error_deg),
+            (
+                "median_longitude_error_deg",
+                self.median_longitude_error_deg,
+            ),
+            (
+                "percentile_longitude_error_deg",
+                self.percentile_longitude_error_deg,
+            ),
+            ("rms_longitude_error_deg", self.rms_longitude_error_deg),
+            ("max_latitude_error_deg", self.max_latitude_error_deg),
+            ("mean_latitude_error_deg", self.mean_latitude_error_deg),
+            ("median_latitude_error_deg", self.median_latitude_error_deg),
+            (
+                "percentile_latitude_error_deg",
+                self.percentile_latitude_error_deg,
+            ),
+            ("rms_latitude_error_deg", self.rms_latitude_error_deg),
+            ("max_distance_error_au", self.max_distance_error_au),
+            ("mean_distance_error_au", self.mean_distance_error_au),
+            ("median_distance_error_au", self.median_distance_error_au),
+            (
+                "percentile_distance_error_au",
+                self.percentile_distance_error_au,
+            ),
+            ("rms_distance_error_au", self.rms_distance_error_au),
+        ] {
+            validate_non_negative_metric(field, value)?;
         }
         if self.sample_count
             != self.cubic_sample_count + self.quadratic_sample_count + self.linear_sample_count
@@ -2465,6 +2533,20 @@ impl JplInterpolationQualityKindCoverage {
                     bodies_len: self.bodies.len(),
                 },
             );
+        }
+
+        let mut seen_bodies = BTreeSet::new();
+        for (index, body) in self.bodies.iter().enumerate() {
+            if body.trim().is_empty() {
+                return Err(JplInterpolationQualitySummaryValidationError::BlankBody { index });
+            }
+            if !seen_bodies.insert(body) {
+                return Err(
+                    JplInterpolationQualitySummaryValidationError::DuplicateBody {
+                        body: body.clone(),
+                    },
+                );
+            }
         }
 
         Ok(())
@@ -2715,6 +2797,21 @@ impl JplIndependentHoldoutSummary {
                 },
             );
         }
+
+        let mut seen_bodies = BTreeSet::new();
+        for (index, body) in self.bodies.iter().enumerate() {
+            if body.trim().is_empty() {
+                return Err(JplInterpolationQualitySummaryValidationError::BlankBody { index });
+            }
+            if !seen_bodies.insert(body) {
+                return Err(
+                    JplInterpolationQualitySummaryValidationError::DuplicateBody {
+                        body: body.clone(),
+                    },
+                );
+            }
+        }
+
         if self.epoch_count == 0 {
             return Err(JplInterpolationQualitySummaryValidationError::MissingEpochs);
         }
@@ -2725,6 +2822,37 @@ impl JplIndependentHoldoutSummary {
                     latest_epoch: self.latest_epoch,
                 },
             );
+        }
+        for (field, value) in [
+            ("max_longitude_error_deg", self.max_longitude_error_deg),
+            ("mean_longitude_error_deg", self.mean_longitude_error_deg),
+            (
+                "median_longitude_error_deg",
+                self.median_longitude_error_deg,
+            ),
+            (
+                "percentile_longitude_error_deg",
+                self.percentile_longitude_error_deg,
+            ),
+            ("rms_longitude_error_deg", self.rms_longitude_error_deg),
+            ("max_latitude_error_deg", self.max_latitude_error_deg),
+            ("mean_latitude_error_deg", self.mean_latitude_error_deg),
+            ("median_latitude_error_deg", self.median_latitude_error_deg),
+            (
+                "percentile_latitude_error_deg",
+                self.percentile_latitude_error_deg,
+            ),
+            ("rms_latitude_error_deg", self.rms_latitude_error_deg),
+            ("max_distance_error_au", self.max_distance_error_au),
+            ("mean_distance_error_au", self.mean_distance_error_au),
+            ("median_distance_error_au", self.median_distance_error_au),
+            (
+                "percentile_distance_error_au",
+                self.percentile_distance_error_au,
+            ),
+            ("rms_distance_error_au", self.rms_distance_error_au),
+        ] {
+            validate_non_negative_metric(field, value)?;
         }
 
         Ok(())
@@ -5742,6 +5870,20 @@ mod tests {
     }
 
     #[test]
+    fn interpolation_quality_summary_validation_rejects_non_finite_metrics() {
+        let mut summary = jpl_interpolation_quality_summary().expect("summary should exist");
+        summary.max_longitude_error_deg = f64::INFINITY;
+        assert_eq!(
+            summary.validate(),
+            Err(
+                JplInterpolationQualitySummaryValidationError::MetricOutOfRange {
+                    field: "max_longitude_error_deg",
+                }
+            )
+        );
+    }
+
+    #[test]
     fn interpolation_quality_coverage_validation_rejects_inconsistent_bodies() {
         let mut coverage =
             jpl_interpolation_quality_kind_coverage().expect("coverage should exist");
@@ -5754,6 +5896,19 @@ mod tests {
                     bodies_len: coverage.bodies.len(),
                 }
             )
+        );
+    }
+
+    #[test]
+    fn interpolation_quality_coverage_validation_rejects_duplicate_bodies() {
+        let mut coverage =
+            jpl_interpolation_quality_kind_coverage().expect("coverage should exist");
+        let duplicate = coverage.bodies[0].clone();
+        coverage.bodies[1] = duplicate.clone();
+        coverage.body_count = coverage.bodies.len();
+        assert_eq!(
+            coverage.validate(),
+            Err(JplInterpolationQualitySummaryValidationError::DuplicateBody { body: duplicate })
         );
     }
 
@@ -5777,6 +5932,16 @@ mod tests {
                     latest_epoch: summary.latest_epoch,
                 }
             )
+        );
+    }
+
+    #[test]
+    fn independent_holdout_summary_validation_rejects_blank_bodies() {
+        let mut summary = jpl_independent_holdout_summary().expect("summary should exist");
+        summary.bodies[1].clear();
+        assert_eq!(
+            summary.validate(),
+            Err(JplInterpolationQualitySummaryValidationError::BlankBody { index: 1 })
         );
     }
 
