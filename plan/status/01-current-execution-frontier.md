@@ -27,6 +27,7 @@ Several downstream requirements depend on trusted ephemeris outputs:
 - Latest progress (2026-04-27): the compatibility-profile partition audit now also has a regression that rejects case-normalized alias overlaps between the baseline and release slices, so release-catalog drift now fails closed even when a conflicting label only differs by casing in a visible alias.
 - Latest progress (2026-04-27): the compatibility-profile verification summary now also has a regression that reverses the latitude-sensitive house-system list and confirms the stale summary fails closed, so the order-sensitive cached release profile line stays covered alongside the broader compatibility-profile summary fields.
 - Latest progress (2026-04-27): `pleiades-vsop87::Vsop87SourceSpecification` now exposes a reusable `validate()` helper and the release-facing source-specification report preflights it, so blank source metadata now fails closed before the compact source-specification catalog is rendered.
+- Latest progress (2026-04-27): the VSOP87 source-specification catalog validation now also rejects duplicate public source-file labels before report formatting, so the reproducibility line fails closed if two catalog entries ever point at the same public input file.
 
 ## Current repo state summary
 

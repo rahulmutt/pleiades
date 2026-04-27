@@ -219,6 +219,8 @@ pub enum Vsop87SourceSpecificationValidationError {
         body: CelestialBody,
         field: &'static str,
     },
+    /// The public source file label appears more than once in the catalog.
+    DuplicateSourceFile { source_file: &'static str },
 }
 
 impl fmt::Display for Vsop87SourceSpecificationValidationError {
@@ -230,6 +232,10 @@ impl fmt::Display for Vsop87SourceSpecificationValidationError {
                     "the VSOP87 source specification for {body} has a blank `{field}` field"
                 )
             }
+            Self::DuplicateSourceFile { source_file } => write!(
+                f,
+                "the VSOP87 source specification catalog lists public source file `{source_file}` more than once"
+            ),
         }
     }
 }
@@ -1602,12 +1608,23 @@ pub fn format_source_specifications(specs: &[Vsop87SourceSpecification]) -> Stri
     join_display(specs)
 }
 
-/// Validates that the supplied VSOP87 source-specification catalog carries non-blank metadata.
+/// Validates that the supplied VSOP87 source-specification catalog carries non-blank metadata
+/// and unique public source-file labels.
 pub fn validate_source_specifications(
     specs: &[Vsop87SourceSpecification],
 ) -> Result<(), Vsop87SourceSpecificationValidationError> {
+    let mut seen_source_files = BTreeSet::new();
+
     for spec in specs {
         spec.validate()?;
+        let source_file = spec.source_file.trim();
+        if !seen_source_files.insert(source_file.to_string()) {
+            return Err(
+                Vsop87SourceSpecificationValidationError::DuplicateSourceFile {
+                    source_file: spec.source_file,
+                },
+            );
+        }
     }
 
     Ok(())
@@ -5582,6 +5599,29 @@ mod tests {
             format!(
                 "the VSOP87 source specification for {} has a blank `frame` field",
                 spec.body
+            )
+        );
+    }
+
+    #[test]
+    fn source_specification_catalog_rejects_duplicate_public_source_files() {
+        let mut specs = source_specifications();
+        let duplicated_source_file = specs[0].source_file;
+        specs[1].source_file = duplicated_source_file;
+
+        let error = validate_source_specifications(&specs)
+            .expect_err("duplicate public source files should fail validation");
+
+        assert_eq!(
+            error,
+            Vsop87SourceSpecificationValidationError::DuplicateSourceFile {
+                source_file: duplicated_source_file,
+            }
+        );
+        assert_eq!(
+            error.to_string(),
+            format!(
+                "the VSOP87 source specification catalog lists public source file `{duplicated_source_file}` more than once"
             )
         );
     }
