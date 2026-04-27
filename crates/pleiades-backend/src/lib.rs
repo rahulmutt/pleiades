@@ -305,7 +305,51 @@ impl BackendCapabilities {
             self.native_sidereal
         )
     }
+
+    /// Returns `Ok(())` when the capability flags describe at least one usable
+    /// position mode and one usable value mode.
+    pub fn validate(&self) -> Result<(), BackendCapabilitiesValidationError> {
+        if !self.geocentric && !self.topocentric {
+            return Err(BackendCapabilitiesValidationError::MissingPositionMode);
+        }
+
+        if !self.apparent && !self.mean {
+            return Err(BackendCapabilitiesValidationError::MissingValueMode);
+        }
+
+        Ok(())
+    }
 }
+
+/// Errors returned when the declared backend capabilities cannot describe a usable request shape.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum BackendCapabilitiesValidationError {
+    /// Neither geocentric nor topocentric position support was declared.
+    MissingPositionMode,
+    /// Neither apparent nor mean output support was declared.
+    MissingValueMode,
+}
+
+impl BackendCapabilitiesValidationError {
+    /// Returns a compact validation summary string.
+    pub fn summary_line(&self) -> &'static str {
+        match self {
+            Self::MissingPositionMode => {
+                "backend capabilities must support geocentric or topocentric positions"
+            }
+            Self::MissingValueMode => "backend capabilities must support mean or apparent output",
+        }
+    }
+}
+
+impl fmt::Display for BackendCapabilitiesValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.summary_line())
+    }
+}
+
+impl std::error::Error for BackendCapabilitiesValidationError {}
 
 impl fmt::Display for BackendCapabilities {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -387,6 +431,13 @@ pub enum BackendMetadataValidationError {
     NominalRangeScaleMismatch,
     /// The nominal range end precedes the start.
     NominalRangeOutOfOrder,
+    /// The declared capability flags are internally inconsistent.
+    InvalidCapabilities {
+        /// The invalid field name.
+        field: &'static str,
+        /// A short description of the capability mismatch.
+        message: &'static str,
+    },
 }
 
 impl BackendMetadataValidationError {
@@ -410,6 +461,9 @@ impl BackendMetadataValidationError {
             }
             Self::NominalRangeOutOfOrder => {
                 "backend metadata nominal range end must not precede the start".to_owned()
+            }
+            Self::InvalidCapabilities { field, message } => {
+                format!("backend metadata field `{field}` is invalid: {message}")
             }
         }
     }
@@ -440,6 +494,20 @@ impl BackendMetadata {
         validate_non_empty_unique("supported time scales", &self.supported_time_scales)?;
         validate_non_empty_unique("body coverage", &self.body_coverage)?;
         validate_non_empty_unique("supported frames", &self.supported_frames)?;
+        self.capabilities.validate().map_err(|error| match error {
+            BackendCapabilitiesValidationError::MissingPositionMode => {
+                BackendMetadataValidationError::InvalidCapabilities {
+                    field: "capabilities",
+                    message: error.summary_line(),
+                }
+            }
+            BackendCapabilitiesValidationError::MissingValueMode => {
+                BackendMetadataValidationError::InvalidCapabilities {
+                    field: "capabilities",
+                    message: error.summary_line(),
+                }
+            }
+        })?;
         self.validate_nominal_range()?;
         Ok(())
     }
@@ -1804,6 +1872,35 @@ mod tests {
 
         metadata.nominal_range = TimeRange::new(
             Some(Instant::new(
+                JulianDay::from_days(2_451_545.0),
+                TimeScale::Tt,
+            )),
+            Some(Instant::new(
+                JulianDay::from_days(2_451_546.0),
+                TimeScale::Tt,
+            )),
+        );
+        metadata.capabilities = BackendCapabilities {
+            geocentric: false,
+            topocentric: false,
+            apparent: false,
+            mean: false,
+            batch: true,
+            native_sidereal: false,
+        };
+
+        let error = metadata
+            .validate()
+            .expect_err("capability flags without a position or value mode should fail validation");
+        assert_eq!(
+            error.summary_line(),
+            "backend metadata field `capabilities` is invalid: backend capabilities must support geocentric or topocentric positions"
+        );
+        assert_eq!(error.to_string(), error.summary_line());
+
+        metadata.capabilities = BackendCapabilities::default();
+        metadata.nominal_range = TimeRange::new(
+            Some(Instant::new(
                 JulianDay::from_days(f64::INFINITY),
                 TimeScale::Tt,
             )),
@@ -1819,6 +1916,36 @@ mod tests {
         assert_eq!(
             error.summary_line(),
             "backend metadata nominal range must use finite Julian-day bounds"
+        );
+        assert_eq!(error.to_string(), error.summary_line());
+    }
+
+    #[test]
+    fn backend_capabilities_validation_rejects_missing_position_or_value_modes() {
+        let mut capabilities = BackendCapabilities::default();
+        assert!(capabilities.validate().is_ok());
+
+        capabilities.geocentric = false;
+        capabilities.topocentric = false;
+        let error = capabilities
+            .validate()
+            .expect_err("capabilities without a position mode should fail validation");
+        assert_eq!(
+            error.summary_line(),
+            "backend capabilities must support geocentric or topocentric positions"
+        );
+        assert_eq!(error.to_string(), error.summary_line());
+
+        capabilities.geocentric = true;
+        capabilities.topocentric = false;
+        capabilities.apparent = false;
+        capabilities.mean = false;
+        let error = capabilities
+            .validate()
+            .expect_err("capabilities without a value mode should fail validation");
+        assert_eq!(
+            error.summary_line(),
+            "backend capabilities must support mean or apparent output"
         );
         assert_eq!(error.to_string(), error.summary_line());
     }
