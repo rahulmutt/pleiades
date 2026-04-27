@@ -50,7 +50,7 @@ Turn the current compressed-artifact scaffolding into a reproducible packaged-da
    - Bundle or fixture a small deterministic artifact for tests.
    - Provide feature-gated paths for larger distributable artifacts when appropriate.
    - Report packaged-data capabilities honestly through backend metadata and release profiles.
-   - Progress note: the packaged backend now loads a checked-in binary artifact fixture and the tests compare it against a deterministic regeneration helper from the JPL reference snapshot, so the bundled artifact path is no longer a hand-authored segment chain. The compression crate now also exposes explicit body and segment random-access helpers, which makes the lookup path easier to reuse in future artifact validation and generation work.
+   - Progress note: the packaged backend now loads a checked-in binary artifact fixture and the tests compare it against a deterministic regeneration helper from the JPL reference snapshot, so the bundled artifact path is no longer a hand-authored segment chain. The compression crate now also exposes explicit body and segment random-access helpers, which makes the lookup path easier to reuse in future artifact validation and generation work. The compression artifact, body, and profile types now also expose public `validate()` helpers that mirror the codec's encode/decode checks, giving artifact generators a fail-fast path before serialization.
 
 ## Done criteria
 

@@ -311,6 +311,15 @@ impl ArtifactProfile {
         }
     }
 
+    /// Validates that the profile does not contain duplicate or conflicting entries.
+    ///
+    /// The codec performs the same checks when encoding or decoding artifacts,
+    /// but exposing the validation step directly lets artifact generators fail
+    /// before serialization if they assemble an invalid capability profile.
+    pub fn validate(&self) -> Result<(), CompressionError> {
+        validate_artifact_profile(self)
+    }
+
     /// Returns a compact one-line summary of the stored, derived, unsupported,
     /// and speed-policy capabilities encoded by this profile.
     pub fn summary(&self) -> String {
@@ -560,6 +569,18 @@ impl BodyArtifact {
         Self { body, segments }
     }
 
+    /// Validates the body's segment metadata.
+    ///
+    /// This checks each segment's internal invariants, including ordering,
+    /// matching time scales, and duplicate stored or residual channels.
+    pub fn validate(&self) -> Result<(), CompressionError> {
+        for segment in &self.segments {
+            validate_segment(segment)?;
+        }
+
+        Ok(())
+    }
+
     /// Returns the segment covering the requested instant, if any.
     ///
     /// When two adjacent segments both include the same boundary instant, the
@@ -593,6 +614,21 @@ impl CompressedArtifact {
             checksum: 0,
             bodies,
         }
+    }
+
+    /// Validates the in-memory artifact before encoding or regeneration.
+    ///
+    /// This checks the header profile, duplicate body entries, and every body
+    /// segment's metadata. It is useful for generators that want to fail fast
+    /// before writing a deterministic binary payload.
+    pub fn validate(&self) -> Result<(), CompressionError> {
+        self.header.profile.validate()?;
+        validate_body_artifacts(&self.bodies)?;
+        for body in &self.bodies {
+            body.validate()?;
+        }
+
+        Ok(())
     }
 
     /// Returns the body artifact for the requested body, if present.
@@ -843,7 +879,7 @@ fn encode_artifact_profile(
     bytes: &mut Vec<u8>,
     profile: &ArtifactProfile,
 ) -> Result<(), CompressionError> {
-    validate_artifact_profile(profile)?;
+    profile.validate()?;
 
     write_u8(bytes, profile.stored_channels.len() as u8);
     for channel in &profile.stored_channels {
@@ -890,7 +926,7 @@ fn decode_artifact_profile(cursor: &mut Cursor<'_>) -> Result<ArtifactProfile, C
         unsupported_outputs,
         speed_policy,
     );
-    validate_artifact_profile(&profile)?;
+    profile.validate()?;
     Ok(profile)
 }
 
@@ -1525,6 +1561,73 @@ mod tests {
         );
         assert!(!unlisted_profile.supports_output(ArtifactOutput::Motion));
         assert!(!unlisted_profile.is_unsupported_output(ArtifactOutput::Motion));
+    }
+
+    #[test]
+    fn artifact_validation_helpers_reject_invalid_profiles_and_segments() {
+        let invalid_profile = ArtifactProfile::new(
+            vec![ChannelKind::Longitude, ChannelKind::Longitude],
+            vec![ArtifactOutput::EclipticCoordinates],
+            vec![ArtifactOutput::EquatorialCoordinates],
+            SpeedPolicy::Unsupported,
+        );
+        let profile_error = invalid_profile
+            .validate()
+            .expect_err("duplicate profile entries should be rejected");
+        assert_eq!(profile_error.kind, CompressionErrorKind::InvalidFormat);
+
+        let invalid_segment_body = BodyArtifact::new(
+            CelestialBody::Moon,
+            vec![Segment::new(
+                Instant::new(pleiades_types::JulianDay::from_days(0.0), TimeScale::Tt),
+                Instant::new(pleiades_types::JulianDay::from_days(1.0), TimeScale::Tt),
+                vec![
+                    PolynomialChannel::linear(ChannelKind::Longitude, 9, 0.0, 1.0),
+                    PolynomialChannel::linear(ChannelKind::Longitude, 9, 2.0, 3.0),
+                    PolynomialChannel::linear(ChannelKind::Latitude, 9, 4.0, 5.0),
+                ],
+            )],
+        );
+        let segment_error = invalid_segment_body
+            .validate()
+            .expect_err("duplicate segment channels should be rejected");
+        assert_eq!(segment_error.kind, CompressionErrorKind::InvalidFormat);
+
+        let invalid_artifact = CompressedArtifact::new(
+            ArtifactHeader::new("duplicate body demo", "unit test duplicate body validation"),
+            vec![
+                BodyArtifact::new(
+                    CelestialBody::Sun,
+                    vec![Segment::new(
+                        Instant::new(pleiades_types::JulianDay::from_days(0.0), TimeScale::Tt),
+                        Instant::new(pleiades_types::JulianDay::from_days(1.0), TimeScale::Tt),
+                        vec![PolynomialChannel::linear(
+                            ChannelKind::Longitude,
+                            9,
+                            10.0,
+                            11.0,
+                        )],
+                    )],
+                ),
+                BodyArtifact::new(
+                    CelestialBody::Sun,
+                    vec![Segment::new(
+                        Instant::new(pleiades_types::JulianDay::from_days(1.0), TimeScale::Tt),
+                        Instant::new(pleiades_types::JulianDay::from_days(2.0), TimeScale::Tt),
+                        vec![PolynomialChannel::linear(
+                            ChannelKind::Longitude,
+                            9,
+                            12.0,
+                            13.0,
+                        )],
+                    )],
+                ),
+            ],
+        );
+        let artifact_error = invalid_artifact
+            .validate()
+            .expect_err("duplicate bodies should be rejected");
+        assert_eq!(artifact_error.kind, CompressionErrorKind::InvalidFormat);
     }
 
     #[test]
