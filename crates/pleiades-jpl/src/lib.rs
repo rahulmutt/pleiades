@@ -2809,6 +2809,9 @@ mod tests {
             reference_snapshot_batch_parity_summary_for_report(),
             summary.summary_line()
         );
+        assert!(jpl_snapshot_evidence_summary_for_report().contains(
+            "JPL reference snapshot batch parity: 46 rows across 15 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies:"
+        ));
     }
 
     #[test]

@@ -3408,6 +3408,8 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_equatorial_parity_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_batch_parity_summary_for_report());
+    text.push('\n');
     text.push_str("Source-backed backend evidence: ");
     text.push_str(&jpl_snapshot_evidence_summary_for_report());
     text.push('\n');
@@ -10839,6 +10841,9 @@ version = "0.9.0"
         assert!(release_summary.contains("JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"));
         assert!(release_summary.contains(
             "JPL reference snapshot equatorial parity: 46 rows across 15 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies:"
+        ));
+        assert!(release_summary.contains(
+            "JPL reference snapshot batch parity: 46 rows across 15 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies:"
         ));
         assert!(release_summary.contains("Source-backed backend evidence:"));
         assert!(release_summary.contains("Reference snapshot coverage:"));
