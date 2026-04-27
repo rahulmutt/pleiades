@@ -2651,7 +2651,10 @@ mod tests {
         assert_eq!(request.instant.scale, TimeScale::Tdb);
         let expected = 2_451_545.0 + 64.184 / 86_400.0;
         assert!((request.instant.julian_day.days() - expected).abs() < 1e-9);
-        assert_eq!(policy.summary_line(), "UT1 -> TDB; offset_seconds=64.184 s");
+        assert_eq!(
+            policy.summary_line(),
+            "source=UT1; target=TDB; offset_seconds=64.184 s"
+        );
     }
 
     #[test]

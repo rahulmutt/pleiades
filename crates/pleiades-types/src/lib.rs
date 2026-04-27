@@ -262,7 +262,9 @@ impl std::error::Error for TimeScaleConversionError {}
 /// `target - source` offset in SI seconds. It does not model Delta T,
 /// leap seconds, DUT1, or relativistic TDB terms itself; it only packages the
 /// caller's chosen rule so an instant can be retagged explicitly and
-/// reproducibly.
+/// reproducibly. Its compact summary renders the structured field names
+/// explicitly so release-facing diagnostics do not have to infer which side of
+/// the conversion the offset applies to.
 ///
 /// # Example
 ///
@@ -299,7 +301,7 @@ impl TimeScaleConversion {
     /// Returns a compact one-line rendering of the caller-supplied policy.
     pub fn summary_line(&self) -> String {
         format!(
-            "{} -> {}; offset_seconds={} s",
+            "source={}; target={}; offset_seconds={} s",
             self.source, self.target, self.offset_seconds
         )
     }
@@ -2190,7 +2192,10 @@ mod tests {
 
         assert_eq!(converted.scale, TimeScale::Tt);
         assert!((converted.julian_day.days() - 2_451_545.000_742_870_4).abs() < 1e-12);
-        assert_eq!(policy.summary_line(), "UT1 -> TT; offset_seconds=64.184 s");
+        assert_eq!(
+            policy.summary_line(),
+            "source=UT1; target=TT; offset_seconds=64.184 s"
+        );
         assert_eq!(policy.to_string(), policy.summary_line());
     }
 

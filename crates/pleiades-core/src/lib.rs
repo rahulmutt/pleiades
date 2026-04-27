@@ -56,7 +56,7 @@
 //!
 //! let engine = ChartEngine::new(DemoBackend);
 //! let policy = TimeScaleConversion::new(TimeScale::Ut1, TimeScale::Tt, 64.184);
-//! assert_eq!(policy.summary_line(), "UT1 -> TT; offset_seconds=64.184 s");
+//! assert_eq!(policy.summary_line(), "source=UT1; target=TT; offset_seconds=64.184 s");
 //!
 //! let request = EphemerisRequest::new(
 //!     CelestialBody::Sun,
@@ -473,7 +473,10 @@ mod tests {
     fn time_scale_conversion_is_re_exported_from_the_facade() {
         let policy = TimeScaleConversion::new(TimeScale::Ut1, TimeScale::Tt, 64.184);
 
-        assert_eq!(policy.summary_line(), "UT1 -> TT; offset_seconds=64.184 s");
+        assert_eq!(
+            policy.summary_line(),
+            "source=UT1; target=TT; offset_seconds=64.184 s"
+        );
         assert_eq!(policy.to_string(), policy.summary_line());
     }
 }
