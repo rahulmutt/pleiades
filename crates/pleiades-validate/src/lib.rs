@@ -10992,6 +10992,8 @@ version = "0.9.0"
         assert!(release_summary.contains("Lunar equatorial reference envelope:"));
         assert!(release_summary
             .contains("Lunar apparent comparison: lunar apparent comparison evidence:"));
+        assert!(release_summary.contains("|Δlon| mean/median/p95="));
+        assert!(release_summary.contains("|ΔDec| mean/median/p95="));
         assert!(release_summary.contains("Packaged request policy"));
         assert!(release_summary.contains("applies to 11 bundled bodies"));
         assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
