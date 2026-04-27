@@ -2754,6 +2754,8 @@ impl CompatibilityProfileVerificationSummary {
             ));
         }
 
+        verify_profile_text_section("target-house-scope", profile.target_house_scope)?;
+        verify_profile_text_section("target-ayanamsa-scope", profile.target_ayanamsa_scope)?;
         verify_profile_text_section("release-note", profile.release_notes)?;
         verify_profile_text_section(
             "validation-reference-point",
@@ -2761,6 +2763,8 @@ impl CompatibilityProfileVerificationSummary {
         )?;
         verify_profile_text_section("compatibility-caveat", profile.known_gaps)?;
         verify_profile_text_sections_are_disjoint(&[
+            ("target-house-scope", profile.target_house_scope),
+            ("target-ayanamsa-scope", profile.target_ayanamsa_scope),
             ("release-note", profile.release_notes),
             (
                 "validation-reference-point",
@@ -11392,6 +11396,27 @@ mod tests {
         assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
         assert!(error.message.contains("contains surrounding whitespace"));
         assert!(error.message.contains("release-note"));
+    }
+
+    #[test]
+    fn compatibility_profile_verification_validates_target_scope_sections() {
+        let profile = current_compatibility_profile();
+
+        verify_profile_text_section("target-house-scope", profile.target_house_scope)
+            .expect("target house scope should validate");
+        verify_profile_text_section("target-ayanamsa-scope", profile.target_ayanamsa_scope)
+            .expect("target ayanamsa scope should validate");
+        verify_profile_text_sections_are_disjoint(&[
+            ("target-house-scope", profile.target_house_scope),
+            ("target-ayanamsa-scope", profile.target_ayanamsa_scope),
+            ("release-note", profile.release_notes),
+            (
+                "validation-reference-point",
+                profile.validation_reference_points,
+            ),
+            ("compatibility-caveat", profile.known_gaps),
+        ])
+        .expect("target scope prose should remain disjoint from release prose");
     }
 
     #[test]
