@@ -11,8 +11,8 @@
 //! ```
 //! use pleiades_core::{ChartEngine, EphemerisBackend, EphemerisRequest, EphemerisResult, BackendMetadata,
 //!     BackendId, BackendFamily, BackendProvenance, BackendCapabilities, AccuracyClass, TimeRange,
-//!     CelestialBody, CoordinateFrame, Instant, JulianDay, TimeScale, EphemerisError,
-//!     EphemerisErrorKind, current_api_stability_profile};
+//!     CelestialBody, CoordinateFrame, Instant, JulianDay, TimeScale, TimeScaleConversion,
+//!     EphemerisError, EphemerisErrorKind, current_api_stability_profile};
 //!
 //! struct DemoBackend;
 //!
@@ -55,6 +55,9 @@
 //! }
 //!
 //! let engine = ChartEngine::new(DemoBackend);
+//! let policy = TimeScaleConversion::new(TimeScale::Ut1, TimeScale::Tt, 64.184);
+//! assert_eq!(policy.summary_line(), "UT1 -> TT; offset_seconds=64.184 s");
+//!
 //! let request = EphemerisRequest::new(
 //!     CelestialBody::Sun,
 //!     Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt),
@@ -107,7 +110,7 @@ pub use pleiades_types::{
     Angle, Ayanamsa, CelestialBody, CoordinateFrame, CustomAyanamsa, CustomBodyId,
     CustomHouseSystem, EclipticCoordinates, EquatorialCoordinates, HouseSystem, Instant, JulianDay,
     Latitude, Longitude, Motion, MotionDirection, ObserverLocation, TimeRange, TimeScale,
-    TimeScaleConversionError, ZodiacMode, ZodiacSign, SECONDS_PER_DAY,
+    TimeScaleConversion, TimeScaleConversionError, ZodiacMode, ZodiacSign, SECONDS_PER_DAY,
 };
 pub use release_profiles::{current_release_profile_identifiers, ReleaseProfileIdentifiers};
 
@@ -435,5 +438,13 @@ mod tests {
             current_api_stability_profile_id(),
             current_api_stability_profile().profile_id
         );
+    }
+
+    #[test]
+    fn time_scale_conversion_is_re_exported_from_the_facade() {
+        let policy = TimeScaleConversion::new(TimeScale::Ut1, TimeScale::Tt, 64.184);
+
+        assert_eq!(policy.summary_line(), "UT1 -> TT; offset_seconds=64.184 s");
+        assert_eq!(policy.to_string(), policy.summary_line());
     }
 }
