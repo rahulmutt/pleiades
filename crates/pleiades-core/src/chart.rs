@@ -335,10 +335,11 @@ impl ChartRequest {
         };
         let house_system = self.house_system.as_ref().map_or_else(
             || "none".to_string(),
-            |house_system| {
-                crate::house_system_descriptor(house_system)
+            |house_system| match house_system {
+                HouseSystem::Custom(custom) => custom.to_string(),
+                other => crate::house_system_descriptor(other)
                     .map(|descriptor| descriptor.canonical_name.to_string())
-                    .unwrap_or_else(|| "Custom".to_string())
+                    .unwrap_or_else(|| "Custom".to_string()),
             },
         );
 
@@ -2230,6 +2231,24 @@ mod tests {
         assert_eq!(
             request.summary_line(),
             "instant=JD 2451545 (UTC); bodies=2; zodiac=Sidereal (Lahiri); apparentness=Apparent; observer=house-only; house system=Whole Sign"
+        );
+    }
+
+    #[test]
+    fn chart_request_summary_line_preserves_custom_house_system_details() {
+        let mut custom = pleiades_types::CustomHouseSystem::new("My Custom Houses");
+        custom.aliases.push("My Alias".to_string());
+        custom.notes = Some("uses a local calibration".to_string());
+
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Tt,
+        ))
+        .with_house_system(crate::HouseSystem::Custom(custom));
+
+        assert_eq!(
+            request.summary_line(),
+            "instant=JD 2451545 (TT); bodies=10; zodiac=Tropical; apparentness=Mean; observer=geocentric; house system=My Custom Houses [aliases: My Alias] (uses a local calibration)"
         );
     }
 
