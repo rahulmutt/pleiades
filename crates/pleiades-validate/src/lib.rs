@@ -33,8 +33,8 @@ use pleiades_ayanamsa::{
     release_ayanamsas, resolve_ayanamsa, validate_ayanamsa_catalog,
 };
 use pleiades_backend::{
-    apparentness_policy_summary_for_report, current_request_policy_summary,
-    frame_policy_summary_for_report, observer_policy_summary_for_report,
+    apparentness_policy_summary_for_report, frame_policy_summary_for_report,
+    observer_policy_summary_for_report, request_policy_summary_for_report,
     time_scale_policy_summary_for_report, zodiac_policy_summary_for_report,
 };
 use pleiades_core::{
@@ -3526,7 +3526,7 @@ fn render_release_summary_text() -> String {
     let profile = current_compatibility_profile();
     let release_profiles = current_release_profile_identifiers();
     let api_stability = current_api_stability_profile();
-    let request_policy = current_request_policy_summary();
+    let request_policy = request_policy_summary_for_report();
     let mut text = String::new();
 
     text.push_str("Release summary\n");
@@ -5884,7 +5884,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     use std::fmt::Write as _;
 
     let release_profiles = current_release_profile_identifiers();
-    let request_policy = current_request_policy_summary();
+    let request_policy = request_policy_summary_for_report();
     let comparison_regressions = report.comparison.notable_regressions().len();
     let mut text = String::new();
     let comparison_audit = comparison_audit_summary(&report.comparison);
@@ -6686,7 +6686,7 @@ pub fn render_backend_matrix_summary() -> String {
 
 fn render_backend_matrix_summary_text() -> String {
     let release_profiles = current_release_profile_identifiers();
-    let request_policy = current_request_policy_summary();
+    let request_policy = request_policy_summary_for_report();
     let catalog = implemented_backend_catalog();
     let mut family_counts: BTreeMap<String, usize> = BTreeMap::new();
     let mut bodies: Vec<String> = Vec::new();

@@ -641,6 +641,11 @@ pub const fn current_request_policy_summary() -> RequestPolicySummary {
     }
 }
 
+/// Returns the request-policy posture used by validation and release reporting.
+pub const fn request_policy_summary_for_report() -> RequestPolicySummary {
+    current_request_policy_summary()
+}
+
 /// Validates the request-shape policy shared by the current first-party backends.
 ///
 /// This helper checks the request against the backend's published time-scale,
