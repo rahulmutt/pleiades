@@ -10115,6 +10115,23 @@ mod tests {
     }
 
     #[test]
+    fn compatibility_profile_verification_allows_case_insensitive_duplicate_house_aliases_within_entry(
+    ) {
+        let descriptors = [pleiades_houses::HouseSystemDescriptor::new(
+            HouseSystem::Placidus,
+            "Placidus",
+            &["placidus"],
+            "Quadrant system used for intra-entry duplicate-label coverage.",
+            true,
+        )];
+
+        let checked = verify_house_system_aliases(&descriptors).expect(
+            "case-insensitive duplicate aliases within one descriptor should remain allowed",
+        );
+        assert_eq!(checked, 2);
+    }
+
+    #[test]
     fn compatibility_profile_verification_rejects_missing_descriptor_notes() {
         let descriptors = [pleiades_ayanamsa::AyanamsaDescriptor::new(
             Ayanamsa::Lahiri,

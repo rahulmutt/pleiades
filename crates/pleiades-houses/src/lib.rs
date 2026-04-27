@@ -949,6 +949,10 @@ mod tests {
             Some(HouseSystem::Vehlow)
         );
         assert_eq!(
+            resolve_house_system("Vehlow equal"),
+            Some(HouseSystem::Vehlow)
+        );
+        assert_eq!(
             resolve_house_system("Carter's poli-equatorial table of houses"),
             Some(HouseSystem::Carter)
         );

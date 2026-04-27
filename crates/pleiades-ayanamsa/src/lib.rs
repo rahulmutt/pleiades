@@ -1560,6 +1560,26 @@ mod tests {
             Some(Ayanamsa::GalacticCenterRgilbrand)
         );
         assert_eq!(
+            resolve_ayanamsa("Galactic center"),
+            Some(Ayanamsa::GalacticCenter)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Galactic center Rgilbrand"),
+            Some(Ayanamsa::GalacticCenterRgilbrand)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Galactic center Mardyks"),
+            Some(Ayanamsa::GalacticCenterMardyks)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Galactic center Mula/Wilhelm"),
+            Some(Ayanamsa::GalacticCenterMulaWilhelm)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Galactic center Cochrane"),
+            Some(Ayanamsa::GalacticCenterCochrane)
+        );
+        assert_eq!(
             resolve_ayanamsa("Skydram"),
             Some(Ayanamsa::GalacticCenterMardyks)
         );
