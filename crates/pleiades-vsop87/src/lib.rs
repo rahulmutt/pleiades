@@ -1869,8 +1869,16 @@ pub fn format_source_documentation_summary(summary: &Vsop87SourceDocumentationSu
 }
 
 /// Returns the release-facing summary string for the current VSOP87 source-documentation catalog.
+///
+/// The compact provenance line is rendered only after the catalog-health gate
+/// confirms that the source/file/body partitioning still matches the current
+/// canonical VSOP87 inputs.
 pub fn source_documentation_summary_for_report() -> String {
-    source_documentation_summary().summary_line()
+    let summary = source_documentation_summary();
+    match source_documentation_health_summary().validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("VSOP87 source documentation: unavailable ({error})"),
+    }
 }
 
 /// Returns a consistency check for the current VSOP87 source-documentation catalog.
@@ -5815,6 +5823,7 @@ mod tests {
     fn source_documentation_report_matches_the_backend_formatter() {
         let summary = source_documentation_summary();
         let rendered = source_documentation_summary_for_report();
+        assert!(source_documentation_health_summary().validate().is_ok());
         assert_eq!(rendered, format_source_documentation_summary(&summary));
         assert_eq!(summary.summary_line(), rendered);
         assert_eq!(summary.to_string(), rendered);
