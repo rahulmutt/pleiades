@@ -368,7 +368,91 @@ pub fn reference_snapshot_batch_parity_summary() -> Option<ReferenceSnapshotBatc
     })
 }
 
+/// Structured validation errors for a reference snapshot batch parity summary.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ReferenceSnapshotBatchParitySummaryValidationError {
+    /// The nested reference snapshot summary failed validation.
+    Snapshot(ReferenceSnapshotSummaryValidationError),
+    /// The number of mixed-frame requests does not match the row count.
+    RequestCountMismatch {
+        ecliptic_request_count: usize,
+        equatorial_request_count: usize,
+        row_count: usize,
+    },
+    /// The quality counts do not match the row count.
+    QualityCountMismatch {
+        exact_count: usize,
+        interpolated_count: usize,
+        approximate_count: usize,
+        unknown_count: usize,
+        row_count: usize,
+    },
+}
+
+impl fmt::Display for ReferenceSnapshotBatchParitySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Snapshot(error) => write!(f, "reference snapshot validation failed: {error}"),
+            Self::RequestCountMismatch {
+                ecliptic_request_count,
+                equatorial_request_count,
+                row_count,
+            } => write!(
+                f,
+                "request count {}+{} does not match row count {}",
+                ecliptic_request_count, equatorial_request_count, row_count,
+            ),
+            Self::QualityCountMismatch {
+                exact_count,
+                interpolated_count,
+                approximate_count,
+                unknown_count,
+                row_count,
+            } => write!(
+                f,
+                "quality counts {}+{}+{}+{} do not match row count {}",
+                exact_count, interpolated_count, approximate_count, unknown_count, row_count,
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ReferenceSnapshotBatchParitySummaryValidationError {}
+
 impl ReferenceSnapshotBatchParitySummary {
+    /// Validates that the batch parity summary remains internally consistent.
+    pub fn validate(&self) -> Result<(), ReferenceSnapshotBatchParitySummaryValidationError> {
+        self.snapshot
+            .validate()
+            .map_err(ReferenceSnapshotBatchParitySummaryValidationError::Snapshot)?;
+
+        if self.ecliptic_request_count + self.equatorial_request_count != self.snapshot.row_count {
+            return Err(
+                ReferenceSnapshotBatchParitySummaryValidationError::RequestCountMismatch {
+                    ecliptic_request_count: self.ecliptic_request_count,
+                    equatorial_request_count: self.equatorial_request_count,
+                    row_count: self.snapshot.row_count,
+                },
+            );
+        }
+
+        if self.exact_count + self.interpolated_count + self.approximate_count + self.unknown_count
+            != self.snapshot.row_count
+        {
+            return Err(
+                ReferenceSnapshotBatchParitySummaryValidationError::QualityCountMismatch {
+                    exact_count: self.exact_count,
+                    interpolated_count: self.interpolated_count,
+                    approximate_count: self.approximate_count,
+                    unknown_count: self.unknown_count,
+                    row_count: self.snapshot.row_count,
+                },
+            );
+        }
+
+        Ok(())
+    }
+
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         format!(
@@ -405,7 +489,10 @@ pub fn format_reference_snapshot_batch_parity_summary(
 /// Returns the release-facing reference snapshot batch parity summary string.
 pub fn reference_snapshot_batch_parity_summary_for_report() -> String {
     match reference_snapshot_batch_parity_summary() {
-        Some(summary) => format_reference_snapshot_batch_parity_summary(&summary),
+        Some(summary) => match summary.validate() {
+            Ok(()) => format_reference_snapshot_batch_parity_summary(&summary),
+            Err(error) => format!("JPL reference snapshot batch parity: unavailable ({error})"),
+        },
         None => "JPL reference snapshot batch parity: unavailable".to_string(),
     }
 }
@@ -886,7 +973,102 @@ pub fn independent_holdout_snapshot_batch_parity_summary(
     })
 }
 
+/// Structured validation errors for an independent hold-out batch parity summary.
+#[derive(Clone, Debug, PartialEq)]
+pub enum IndependentHoldoutSnapshotBatchParitySummaryValidationError {
+    /// The nested hold-out coverage summary failed validation.
+    Snapshot(IndependentHoldoutSnapshotSummaryValidationError),
+    /// The number of mixed-scale requests does not match the row count.
+    RequestCountMismatch {
+        tt_request_count: usize,
+        tdb_request_count: usize,
+        row_count: usize,
+    },
+    /// The quality counts do not match the row count.
+    QualityCountMismatch {
+        exact_count: usize,
+        interpolated_count: usize,
+        approximate_count: usize,
+        unknown_count: usize,
+        row_count: usize,
+    },
+    /// The batch regression did not preserve request order and single-query parity.
+    ParityNotPreserved,
+}
+
+impl fmt::Display for IndependentHoldoutSnapshotBatchParitySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Snapshot(error) => write!(f, "independent hold-out validation failed: {error}"),
+            Self::RequestCountMismatch {
+                tt_request_count,
+                tdb_request_count,
+                row_count,
+            } => write!(
+                f,
+                "request count {}+{} does not match row count {}",
+                tt_request_count, tdb_request_count, row_count,
+            ),
+            Self::QualityCountMismatch {
+                exact_count,
+                interpolated_count,
+                approximate_count,
+                unknown_count,
+                row_count,
+            } => write!(
+                f,
+                "quality counts {}+{}+{}+{} do not match row count {}",
+                exact_count, interpolated_count, approximate_count, unknown_count, row_count,
+            ),
+            Self::ParityNotPreserved => f.write_str("batch/single parity was not preserved"),
+        }
+    }
+}
+
+impl std::error::Error for IndependentHoldoutSnapshotBatchParitySummaryValidationError {}
+
 impl IndependentHoldoutSnapshotBatchParitySummary {
+    /// Validates that the batch parity summary remains internally consistent.
+    pub fn validate(
+        &self,
+    ) -> Result<(), IndependentHoldoutSnapshotBatchParitySummaryValidationError> {
+        self.snapshot
+            .validate()
+            .map_err(IndependentHoldoutSnapshotBatchParitySummaryValidationError::Snapshot)?;
+
+        if self.tt_request_count + self.tdb_request_count != self.snapshot.row_count {
+            return Err(
+                IndependentHoldoutSnapshotBatchParitySummaryValidationError::RequestCountMismatch {
+                    tt_request_count: self.tt_request_count,
+                    tdb_request_count: self.tdb_request_count,
+                    row_count: self.snapshot.row_count,
+                },
+            );
+        }
+
+        if self.exact_count + self.interpolated_count + self.approximate_count + self.unknown_count
+            != self.snapshot.row_count
+        {
+            return Err(
+                IndependentHoldoutSnapshotBatchParitySummaryValidationError::QualityCountMismatch {
+                    exact_count: self.exact_count,
+                    interpolated_count: self.interpolated_count,
+                    approximate_count: self.approximate_count,
+                    unknown_count: self.unknown_count,
+                    row_count: self.snapshot.row_count,
+                },
+            );
+        }
+
+        if !self.parity_preserved {
+            return Err(
+                IndependentHoldoutSnapshotBatchParitySummaryValidationError::ParityNotPreserved,
+            );
+        }
+
+        Ok(())
+    }
+
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         let order = if self.parity_preserved {
@@ -934,7 +1116,10 @@ pub fn format_independent_holdout_snapshot_batch_parity_summary(
 /// Returns the release-facing independent hold-out mixed-scale batch parity summary string.
 pub fn independent_holdout_snapshot_batch_parity_summary_for_report() -> String {
     match independent_holdout_snapshot_batch_parity_summary() {
-        Some(summary) => format_independent_holdout_snapshot_batch_parity_summary(&summary),
+        Some(summary) => match summary.validate() {
+            Ok(()) => format_independent_holdout_snapshot_batch_parity_summary(&summary),
+            Err(error) => format!("JPL independent hold-out batch parity: unavailable ({error})"),
+        },
         None => "JPL independent hold-out batch parity: unavailable".to_string(),
     }
 }
@@ -3695,6 +3880,7 @@ mod tests {
         assert_eq!(summary.interpolated_count, 0);
         assert_eq!(summary.approximate_count, 0);
         assert_eq!(summary.unknown_count, 0);
+        assert_eq!(summary.validate(), Ok(()));
         assert_eq!(
             summary.summary_line(),
             format!(
@@ -3709,6 +3895,18 @@ mod tests {
         );
         assert!(jpl_snapshot_evidence_summary_for_report().contains(
             "JPL reference snapshot batch parity: 46 rows across 15 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies:"
+        ));
+    }
+
+    #[test]
+    fn reference_snapshot_batch_parity_summary_validation_rejects_request_count_mismatches() {
+        let mut summary = reference_snapshot_batch_parity_summary()
+            .expect("reference snapshot batch parity summary should exist");
+        summary.equatorial_request_count += 1;
+
+        assert!(matches!(
+            summary.validate(),
+            Err(ReferenceSnapshotBatchParitySummaryValidationError::RequestCountMismatch { .. })
         ));
     }
 
@@ -4400,6 +4598,7 @@ mod tests {
                 + summary.unknown_count,
             summary.snapshot.row_count,
         );
+        assert_eq!(summary.validate(), Ok(()));
 
         let rendered = format_independent_holdout_snapshot_batch_parity_summary(&summary);
         assert!(rendered.contains("JPL independent hold-out batch parity:"));
@@ -4409,6 +4608,18 @@ mod tests {
         assert!(rendered.contains("TT requests=5, TDB requests=4"));
         assert!(rendered.contains("quality counts:"));
         assert!(rendered.contains("order=preserved, single-query parity=preserved"));
+    }
+
+    #[test]
+    fn independent_holdout_snapshot_batch_parity_summary_validation_rejects_parity_loss() {
+        let mut summary = independent_holdout_snapshot_batch_parity_summary()
+            .expect("independent hold-out batch parity summary should exist");
+        summary.parity_preserved = false;
+
+        assert!(matches!(
+            summary.validate(),
+            Err(IndependentHoldoutSnapshotBatchParitySummaryValidationError::ParityNotPreserved)
+        ));
     }
 
     #[test]
