@@ -125,6 +125,9 @@ impl HouseSnapshot {
     }
 
     /// Returns the one-based house number for a longitude using this snapshot's cusps.
+    ///
+    /// See [`crate::house_for_longitude`] for wraparound semantics and
+    /// exact-boundary examples.
     pub fn house_for_longitude(&self, longitude: Longitude) -> usize {
         house_for_longitude(longitude, &self.cusps)
     }
@@ -284,6 +287,32 @@ pub fn calculate_houses(request: &HouseRequest) -> Result<HouseSnapshot, HouseEr
 ///
 /// Cusps are treated as the start of each house, and wraparound at 360° is
 /// handled explicitly.
+///
+/// # Example
+///
+/// ```
+/// use pleiades_houses::house_for_longitude;
+/// use pleiades_types::Longitude;
+///
+/// let cusps = vec![
+///     Longitude::from_degrees(0.0),
+///     Longitude::from_degrees(30.0),
+///     Longitude::from_degrees(60.0),
+///     Longitude::from_degrees(90.0),
+///     Longitude::from_degrees(120.0),
+///     Longitude::from_degrees(150.0),
+///     Longitude::from_degrees(180.0),
+///     Longitude::from_degrees(210.0),
+///     Longitude::from_degrees(240.0),
+///     Longitude::from_degrees(270.0),
+///     Longitude::from_degrees(300.0),
+///     Longitude::from_degrees(330.0),
+/// ];
+///
+/// assert_eq!(house_for_longitude(Longitude::from_degrees(359.0), &cusps), 12);
+/// assert_eq!(house_for_longitude(Longitude::from_degrees(0.0), &cusps), 1);
+/// assert_eq!(house_for_longitude(Longitude::from_degrees(30.0), &cusps), 2);
+/// ```
 pub fn house_for_longitude(longitude: Longitude, cusps: &[Longitude]) -> usize {
     if cusps.is_empty() {
         return 1;

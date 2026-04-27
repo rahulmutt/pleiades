@@ -662,6 +662,42 @@ impl ChartSnapshot {
     }
 
     /// Returns the house number for a requested body, if house placement was computed.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use pleiades_backend::{Apparentness, BackendId, EphemerisResult};
+    /// use pleiades_core::{BodyPlacement, ChartSnapshot};
+    /// use pleiades_types::{CelestialBody, CoordinateFrame, Instant, JulianDay, TimeScale, ZodiacMode, ZodiacSign};
+    ///
+    /// let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+    /// let position = EphemerisResult::new(
+    ///     BackendId::new("demo"),
+    ///     CelestialBody::Sun,
+    ///     instant,
+    ///     CoordinateFrame::Ecliptic,
+    ///     ZodiacMode::Tropical,
+    ///     Apparentness::Mean,
+    /// );
+    ///
+    /// let chart = ChartSnapshot {
+    ///     backend_id: BackendId::new("demo"),
+    ///     instant,
+    ///     observer: None,
+    ///     zodiac_mode: ZodiacMode::Tropical,
+    ///     apparentness: Apparentness::Mean,
+    ///     houses: None,
+    ///     placements: vec![BodyPlacement {
+    ///         body: CelestialBody::Sun,
+    ///         position,
+    ///         sign: Some(ZodiacSign::Aries),
+    ///         house: Some(1),
+    ///     }],
+    /// };
+    ///
+    /// assert_eq!(chart.house_for_body(&CelestialBody::Sun), Some(1));
+    /// assert_eq!(chart.house_for_body(&CelestialBody::Moon), None);
+    /// ```
     pub fn house_for_body(&self, body: &CelestialBody) -> Option<usize> {
         self.placement_for(body)?.house
     }
