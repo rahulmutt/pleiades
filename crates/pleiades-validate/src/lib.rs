@@ -2730,6 +2730,13 @@ pub fn compatibility_profile_verification_summary(
         ("compatibility-caveat", profile.known_gaps),
     ])?;
 
+    let release_house_names =
+        summarize_descriptor_names(profile.release_house_systems, |entry| entry.canonical_name);
+    release_house_names.validate()?;
+    let release_ayanamsa_names =
+        summarize_descriptor_names(profile.release_ayanamsas, |entry| entry.canonical_name);
+    release_ayanamsa_names.validate()?;
+
     Ok(CompatibilityProfileVerificationSummary {
         profile_id: release_profiles.compatibility_profile_id.to_string(),
         house_system_descriptor_count: profile.house_systems.len(),
@@ -2745,16 +2752,8 @@ pub fn compatibility_profile_verification_summary(
         release_house_system_count: profile.release_house_systems.len(),
         baseline_ayanamsa_count: profile.baseline_ayanamsas.len(),
         release_ayanamsa_count: profile.release_ayanamsas.len(),
-        release_house_canonical_names: summarize_descriptor_names(
-            profile.release_house_systems,
-            |entry| entry.canonical_name,
-        )
-        .summary_line(),
-        release_ayanamsa_canonical_names: summarize_descriptor_names(
-            profile.release_ayanamsas,
-            |entry| entry.canonical_name,
-        )
-        .summary_line(),
+        release_house_canonical_names: release_house_names.summary_line(),
+        release_ayanamsa_canonical_names: release_ayanamsa_names.summary_line(),
         release_note_count: profile.release_notes.len(),
         validation_reference_point_count: profile.validation_reference_points.len(),
         custom_definition_label_count: custom_definition_labels_checked,
@@ -3272,6 +3271,52 @@ struct DescriptorNamesSummary {
 }
 
 impl DescriptorNamesSummary {
+    fn validate(&self) -> Result<(), EphemerisError> {
+        let mut seen_names = BTreeSet::new();
+        let mut seen_names_case_insensitive = BTreeMap::new();
+
+        for name in &self.names {
+            if name.trim().is_empty() {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    "descriptor-name summary contains a blank name",
+                ));
+            }
+
+            if has_surrounding_whitespace(name) {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "descriptor-name summary entry '{name}' contains surrounding whitespace",
+                    ),
+                ));
+            }
+
+            let normalized_name = name.trim().to_string();
+            if !seen_names.insert(normalized_name.clone()) {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!("descriptor-name summary contains a duplicate name '{name}'"),
+                ));
+            }
+
+            let normalized_name_case_insensitive = normalized_name.to_ascii_lowercase();
+            if let Some(existing_name) =
+                seen_names_case_insensitive.get(&normalized_name_case_insensitive)
+            {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "descriptor-name summary contains a case-insensitive duplicate name '{name}' that conflicts with '{existing_name}'"
+                    ),
+                ));
+            }
+            seen_names_case_insensitive.insert(normalized_name_case_insensitive, normalized_name);
+        }
+
+        Ok(())
+    }
+
     fn summary_line(&self) -> String {
         match self.names.as_slice() {
             [] => "0 (none)".to_string(),
@@ -3293,6 +3338,13 @@ fn summarize_descriptor_names<T>(
 ) -> DescriptorNamesSummary {
     DescriptorNamesSummary {
         names: entries.iter().map(canonical_name).collect::<Vec<_>>(),
+    }
+}
+
+fn format_descriptor_names_summary(summary: &DescriptorNamesSummary) -> String {
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("unavailable ({error})"),
     }
 }
 
@@ -3331,16 +3383,14 @@ fn render_compatibility_profile_summary_text() -> String {
     text.push_str(&ayanamsa_catalog_validation_summary().summary_line());
     text.push('\n');
     text.push_str("Release-specific house-system canonical names: ");
-    text.push_str(
-        &summarize_descriptor_names(profile.release_house_systems, |entry| entry.canonical_name)
-            .summary_line(),
-    );
+    text.push_str(&format_descriptor_names_summary(
+        &summarize_descriptor_names(profile.release_house_systems, |entry| entry.canonical_name),
+    ));
     text.push('\n');
     text.push_str("Release-specific ayanamsa canonical names: ");
-    text.push_str(
-        &summarize_descriptor_names(profile.release_ayanamsas, |entry| entry.canonical_name)
-            .summary_line(),
-    );
+    text.push_str(&format_descriptor_names_summary(
+        &summarize_descriptor_names(profile.release_ayanamsas, |entry| entry.canonical_name),
+    ));
     text.push('\n');
     text.push_str("Custom-definition labels: ");
     text.push_str(&profile.custom_definition_labels.len().to_string());
@@ -10624,6 +10674,32 @@ mod tests {
         assert!(summary
             .summary_line()
             .contains("Release posture: baseline milestone preserved, release additions explicit, custom definitions tracked, caveats documented"));
+    }
+
+    #[test]
+    fn descriptor_names_summary_validation_rejects_blank_entries() {
+        let summary = DescriptorNamesSummary {
+            names: vec!["Equal (MC)", "   "],
+        };
+
+        let error = summary
+            .validate()
+            .expect_err("blank descriptor names should fail validation");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error.message.contains("blank name"));
+    }
+
+    #[test]
+    fn descriptor_names_summary_validation_rejects_case_insensitive_duplicates() {
+        let summary = DescriptorNamesSummary {
+            names: vec!["Equal (MC)", "equal (mc)"],
+        };
+
+        let error = summary
+            .validate()
+            .expect_err("case-insensitive duplicate descriptor names should fail validation");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error.message.contains("case-insensitive duplicate name"));
     }
 
     #[test]
