@@ -153,6 +153,8 @@ impl fmt::Display for PackagedArtifactGenerationPolicy {
 pub struct PackagedArtifactRegenerationSummary {
     /// Human-readable generation label.
     pub label: &'static str,
+    /// Version of the packaged artifact format.
+    pub artifact_version: u16,
     /// Human-readable provenance/source summary.
     pub source: &'static str,
     /// Checksum of the checked-in packaged artifact.
@@ -194,13 +196,14 @@ impl PackagedArtifactRegenerationSummary {
     /// Returns the full packaged-artifact regeneration provenance summary.
     pub fn summary_line(&self) -> String {
         format!(
-            "Packaged artifact regeneration source: label={}; source={}; checksum=0x{:016x}; {}; bundled bodies: {}; {}",
+            "Packaged artifact regeneration source: label={}; source={}; checksum=0x{:016x}; {}; bundled bodies: {}; {}; artifact version={}",
             self.label,
             self.source,
             self.checksum,
             self.generation_policy_line(),
             self.body_coverage_line(),
             self.reference_snapshot_line(),
+            self.artifact_version,
         )
     }
 }
@@ -213,10 +216,12 @@ impl fmt::Display for PackagedArtifactRegenerationSummary {
 
 /// Returns the structured packaged-artifact regeneration provenance.
 pub fn packaged_artifact_regeneration_summary_details() -> PackagedArtifactRegenerationSummary {
+    let artifact = packaged_artifact();
     PackagedArtifactRegenerationSummary {
         label: ARTIFACT_LABEL,
+        artifact_version: artifact.header.version,
         source: ARTIFACT_SOURCE,
-        checksum: packaged_artifact().checksum,
+        checksum: artifact.checksum,
         generation_policy: PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments,
         bodies: packaged_bodies().to_vec(),
         reference_snapshot: reference_snapshot_summary(),
@@ -1167,6 +1172,7 @@ mod tests {
         let summary = packaged_artifact_regeneration_summary_details();
         let artifact = packaged_artifact();
         assert_eq!(summary.label, ARTIFACT_LABEL);
+        assert_eq!(summary.artifact_version, artifact.header.version);
         assert_eq!(summary.source, ARTIFACT_SOURCE);
         assert_eq!(summary.checksum, artifact.checksum);
         assert_eq!(
@@ -1198,6 +1204,7 @@ mod tests {
         ));
         assert!(provenance.contains("checksum=0x"));
         assert!(provenance.contains("generation policy: adjacent same-body linear segments"));
+        assert!(provenance.contains(&format!("artifact version={}", artifact.header.version)));
         assert!(provenance.contains("11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"));
         assert!(provenance.contains("Reference snapshot coverage:"));
         assert!(provenance.contains("rows across"));

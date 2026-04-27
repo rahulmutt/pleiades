@@ -11339,6 +11339,10 @@ version = "0.9.0"
         ));
         assert!(release_summary.contains("checksum=0x"));
         assert!(release_summary.contains("generation policy: adjacent same-body linear segments"));
+        assert!(release_summary.contains(&format!(
+            "artifact version={}",
+            packaged_artifact_regeneration_summary_details().artifact_version
+        )));
         assert!(release_profile_identifiers.contains(&format!(
             "Release profile identifiers: {}",
             release_profiles
@@ -11433,6 +11437,10 @@ version = "0.9.0"
         ));
         assert!(artifact_summary.contains("checksum=0x"));
         assert!(artifact_summary.contains("generation policy: adjacent same-body linear segments"));
+        assert!(artifact_summary.contains(&format!(
+            "artifact version={}",
+            packaged_artifact_regeneration_summary_details().artifact_version
+        )));
         assert!(artifact_summary.contains("Packaged frame treatment"));
         assert!(artifact_summary.contains("applies to 11 bundled bodies"));
         assert!(artifact_summary.contains("Model error envelope"));
