@@ -10172,6 +10172,11 @@ mod tests {
         assert!(rendered.contains("Equal (from MC) table of houses"));
         assert!(rendered.contains("Equal (1=Aries) table of houses"));
         assert!(rendered.contains("Equal (1=Aries) house system"));
+        assert!(rendered.contains("Equal MC"));
+        assert!(rendered.contains("Equal Midheaven"));
+        assert!(rendered.contains("Babylonian 1"));
+        assert!(rendered.contains("Babylonian 2"));
+        assert!(rendered.contains("Babylonian 3"));
         assert!(rendered.contains("Vehlow Equal table of houses"));
         assert!(rendered.contains("Vehlow Equal house system"));
         assert!(rendered.contains("Topocentric house system"));
@@ -10417,6 +10422,9 @@ mod tests {
         assert!(rendered.contains("Babylonian (True Topc)"));
         assert!(rendered.contains("Babylonian (True Obs)"));
         assert!(rendered.contains("Babylonian (House Obs)"));
+        assert!(rendered.contains("Equal MC"));
+        assert!(rendered.contains("Equal Midheaven"));
+        assert!(rendered.contains("Babylonian (Kugler 1)"));
         assert!(rendered.contains("Krusinski/Pisa/Goelzer"));
         assert!(rendered.contains("Equal/MC = 10th"));
         assert!(rendered.contains("Galactic Equator (True)"));
