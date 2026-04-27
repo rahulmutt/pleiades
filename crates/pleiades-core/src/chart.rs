@@ -1471,7 +1471,8 @@ fn map_house_error(error: pleiades_houses::HouseError) -> EphemerisError {
         pleiades_houses::HouseErrorKind::UnsupportedHouseSystem => {
             EphemerisErrorKind::InvalidRequest
         }
-        pleiades_houses::HouseErrorKind::InvalidLatitude => EphemerisErrorKind::InvalidObserver,
+        pleiades_houses::HouseErrorKind::InvalidLatitude
+        | pleiades_houses::HouseErrorKind::InvalidElevation => EphemerisErrorKind::InvalidObserver,
         pleiades_houses::HouseErrorKind::InvalidObliquity => EphemerisErrorKind::InvalidRequest,
         pleiades_houses::HouseErrorKind::NumericalFailure => EphemerisErrorKind::NumericalFailure,
         _ => EphemerisErrorKind::InvalidRequest,
@@ -2110,6 +2111,35 @@ mod tests {
         let observers = observers.lock().expect("observer log should be lockable");
         assert_eq!(observers.len(), 1);
         assert!(observers.iter().all(Option::is_none));
+    }
+
+    #[test]
+    fn chart_snapshot_rejects_non_finite_house_observer_elevation() {
+        let observers = Arc::new(Mutex::new(Vec::new()));
+        let engine = ChartEngine::new(RecordingChartBackend {
+            observers: Arc::clone(&observers),
+        });
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2451545.0),
+            TimeScale::Tt,
+        ))
+        .with_observer(ObserverLocation::new(
+            Latitude::from_degrees(12.5),
+            Longitude::from_degrees(45.0),
+            Some(f64::NAN),
+        ))
+        .with_house_system(crate::HouseSystem::Topocentric)
+        .with_bodies(vec![CelestialBody::Sun]);
+
+        let error = engine
+            .chart(&request)
+            .expect_err("chart should reject non-finite house observer elevation");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
+        assert!(error
+            .message
+            .contains("observer elevation must be finite when provided"));
+        let observers = observers.lock().expect("observer log should be lockable");
+        assert!(observers.is_empty());
     }
 
     #[test]

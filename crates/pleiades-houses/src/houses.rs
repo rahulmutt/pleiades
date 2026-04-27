@@ -122,6 +122,8 @@ pub enum HouseErrorKind {
     UnsupportedHouseSystem,
     /// The observer latitude is outside the mathematically valid range.
     InvalidLatitude,
+    /// The observer elevation was not finite when a topocentric correction was requested.
+    InvalidElevation,
     /// The supplied obliquity override was not finite.
     InvalidObliquity,
     /// The calculation failed for a numerical reason.
@@ -1078,7 +1080,7 @@ fn topocentric_latitude(latitude_deg: f64, elevation_m: Option<f64>) -> Result<A
         Some(elevation) if elevation.is_finite() => elevation,
         Some(_) => {
             return Err(HouseError::new(
-                HouseErrorKind::InvalidLatitude,
+                HouseErrorKind::InvalidElevation,
                 "observer elevation must be finite when provided",
             ))
         }
@@ -1427,6 +1429,16 @@ mod tests {
 
         assert!((sea_level.degrees() - 44.807_576).abs() < 1.0e-6);
         assert!(mountain.degrees() > sea_level.degrees());
+    }
+
+    #[test]
+    fn topocentric_latitude_rejects_non_finite_elevation() {
+        let error = topocentric_latitude(45.0, Some(f64::NAN))
+            .expect_err("non-finite elevation should fail");
+        assert_eq!(error.kind, HouseErrorKind::InvalidElevation);
+        assert!(error
+            .message
+            .contains("observer elevation must be finite when provided"));
     }
 
     #[test]
