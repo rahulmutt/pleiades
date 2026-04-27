@@ -1721,6 +1721,14 @@ mod tests {
             longitude_opposite(snapshot.angles.midheaven)
         );
         assert_eq!(snapshot.cusp(36), Some(snapshot.cusps[35]));
+        assert_eq!(
+            (snapshot.cusps[1].degrees() - snapshot.cusps[0].degrees()).rem_euclid(360.0),
+            350.0
+        );
+        assert_eq!(
+            (snapshot.cusps[35].degrees() - snapshot.cusps[34].degrees()).rem_euclid(360.0),
+            350.0
+        );
     }
 
     #[test]
