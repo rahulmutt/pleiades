@@ -62,6 +62,9 @@
 //! let result = engine.position(&request).expect("demo backend should succeed");
 //! assert_eq!(result.backend_id.as_str(), "demo");
 //!
+//! let metadata = engine.validated_metadata().expect("demo metadata should be valid");
+//! assert_eq!(metadata.id.as_str(), "demo");
+//!
 //! let posture = current_api_stability_profile();
 //! assert!(posture.summary.contains("stable consumer surface"));
 //! ```
@@ -231,6 +234,64 @@ mod tests {
             engine.position(&request).unwrap().backend_id.as_str(),
             "simple"
         );
+    }
+
+    #[test]
+    fn validated_metadata_rejects_duplicate_body_coverage() {
+        struct InvalidMetadataBackend;
+
+        impl EphemerisBackend for InvalidMetadataBackend {
+            fn metadata(&self) -> BackendMetadata {
+                BackendMetadata {
+                    id: BackendId::new("invalid-metadata"),
+                    version: "0.1.0".to_string(),
+                    family: BackendFamily::Algorithmic,
+                    provenance: BackendProvenance::new("invalid metadata test backend"),
+                    nominal_range: TimeRange::new(None, None),
+                    supported_time_scales: vec![TimeScale::Tt],
+                    body_coverage: vec![CelestialBody::Sun, CelestialBody::Sun],
+                    supported_frames: vec![CoordinateFrame::Ecliptic],
+                    capabilities: BackendCapabilities::default(),
+                    accuracy: AccuracyClass::Approximate,
+                    deterministic: true,
+                    offline: true,
+                }
+            }
+
+            fn supports_body(&self, body: CelestialBody) -> bool {
+                body == CelestialBody::Sun
+            }
+
+            fn position(
+                &self,
+                request: &EphemerisRequest,
+            ) -> Result<EphemerisResult, EphemerisError> {
+                Ok(EphemerisResult::new(
+                    BackendId::new("invalid-metadata"),
+                    request.body.clone(),
+                    request.instant,
+                    request.frame,
+                    request.zodiac_mode.clone(),
+                    request.apparent,
+                ))
+            }
+        }
+
+        let engine = ChartEngine::new(InvalidMetadataBackend);
+        let error = engine
+            .validated_metadata()
+            .expect_err("duplicate metadata coverage should be rejected");
+
+        assert!(matches!(
+            error,
+            pleiades_backend::BackendMetadataValidationError::DuplicateEntry {
+                field: "body coverage",
+                ref value,
+            } if value == "Sun"
+        ));
+        let error_text = error.to_string();
+        assert!(error_text
+            .contains("backend metadata field `body coverage` contains duplicate entry `Sun`"));
     }
 
     #[test]
