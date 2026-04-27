@@ -487,6 +487,158 @@ pub fn independent_holdout_snapshot_summary_for_report() -> String {
     }
 }
 
+/// A compact coverage summary for the independent hold-out corpus in mixed-scale
+/// batch parity mode.
+#[derive(Clone, Debug, PartialEq)]
+pub struct IndependentHoldoutSnapshotBatchParitySummary {
+    /// Coverage summary for the checked-in hold-out corpus.
+    pub snapshot: IndependentHoldoutSnapshotSummary,
+    /// Number of TT requests in the batch regression.
+    pub tt_request_count: usize,
+    /// Number of TDB requests in the batch regression.
+    pub tdb_request_count: usize,
+    /// Number of exact-quality results observed in the batch regression.
+    pub exact_count: usize,
+    /// Number of interpolated-quality results observed in the batch regression.
+    pub interpolated_count: usize,
+    /// Number of approximate-quality results observed in the batch regression.
+    pub approximate_count: usize,
+    /// Number of unknown-quality results observed in the batch regression.
+    pub unknown_count: usize,
+    /// Whether the batch regression preserved request order and batch/single parity.
+    pub parity_preserved: bool,
+}
+
+/// Returns a compact mixed-scale batch parity summary for the checked-in hold-out corpus.
+pub fn independent_holdout_snapshot_batch_parity_summary(
+) -> Option<IndependentHoldoutSnapshotBatchParitySummary> {
+    let snapshot = independent_holdout_snapshot_summary()?;
+    let entries = independent_holdout_snapshot_entries()?;
+    let backend = JplSnapshotBackend;
+    let requests = entries
+        .iter()
+        .enumerate()
+        .map(|(index, entry)| EphemerisRequest {
+            body: entry.body.clone(),
+            instant: Instant::new(
+                entry.epoch.julian_day,
+                if index % 2 == 0 {
+                    TimeScale::Tt
+                } else {
+                    TimeScale::Tdb
+                },
+            ),
+            observer: None,
+            frame: CoordinateFrame::Ecliptic,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparent: Apparentness::Mean,
+        })
+        .collect::<Vec<_>>();
+    let results = backend.positions(&requests).ok()?;
+
+    if results.len() != requests.len() {
+        return None;
+    }
+
+    let mut tt_request_count = 0usize;
+    let mut tdb_request_count = 0usize;
+    let mut exact_count = 0usize;
+    let mut interpolated_count = 0usize;
+    let mut approximate_count = 0usize;
+    let mut unknown_count = 0usize;
+    let mut order_preserved = true;
+    let mut single_query_parity = true;
+
+    for ((request, result), entry) in requests.iter().zip(results.iter()).zip(entries) {
+        let single = backend.position(request).ok();
+        single_query_parity &= single.as_ref().is_some_and(|single| single == result);
+
+        order_preserved &= result.body == entry.body
+            && result.instant == request.instant
+            && result.frame == request.frame
+            && result.zodiac_mode == request.zodiac_mode
+            && result.apparent == request.apparent;
+
+        match request.instant.scale {
+            TimeScale::Tt => tt_request_count += 1,
+            TimeScale::Tdb => tdb_request_count += 1,
+            _ => return None,
+        }
+
+        match result.quality {
+            QualityAnnotation::Exact => exact_count += 1,
+            QualityAnnotation::Interpolated => interpolated_count += 1,
+            QualityAnnotation::Approximate => approximate_count += 1,
+            QualityAnnotation::Unknown => unknown_count += 1,
+            _ => unknown_count += 1,
+        }
+    }
+
+    Some(IndependentHoldoutSnapshotBatchParitySummary {
+        snapshot,
+        tt_request_count,
+        tdb_request_count,
+        exact_count,
+        interpolated_count,
+        approximate_count,
+        unknown_count,
+        parity_preserved: order_preserved && single_query_parity,
+    })
+}
+
+impl IndependentHoldoutSnapshotBatchParitySummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let order = if self.parity_preserved {
+            "preserved"
+        } else {
+            "needs attention"
+        };
+        format!(
+            "JPL independent hold-out batch parity: {} requests across {} bodies ({}) and {} epochs ({}..{}); TT requests={}, TDB requests={}; quality counts: Exact={}, Interpolated={}, Approximate={}, Unknown={}; order={}, single-query parity={}",
+            self.snapshot.row_count,
+            self.snapshot.body_count,
+            if self.snapshot.bodies.is_empty() {
+                "none".to_string()
+            } else {
+                self.snapshot.bodies.join(", ")
+            },
+            self.snapshot.epoch_count,
+            format_instant(self.snapshot.earliest_epoch),
+            format_instant(self.snapshot.latest_epoch),
+            self.tt_request_count,
+            self.tdb_request_count,
+            self.exact_count,
+            self.interpolated_count,
+            self.approximate_count,
+            self.unknown_count,
+            order,
+            order,
+        )
+    }
+}
+
+impl fmt::Display for IndependentHoldoutSnapshotBatchParitySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Formats the independent hold-out mixed-scale batch parity summary for release-facing reporting.
+pub fn format_independent_holdout_snapshot_batch_parity_summary(
+    summary: &IndependentHoldoutSnapshotBatchParitySummary,
+) -> String {
+    summary.summary_line()
+}
+
+/// Returns the release-facing independent hold-out mixed-scale batch parity summary string.
+pub fn independent_holdout_snapshot_batch_parity_summary_for_report() -> String {
+    match independent_holdout_snapshot_batch_parity_summary() {
+        Some(summary) => format_independent_holdout_snapshot_batch_parity_summary(&summary),
+        None => "JPL independent hold-out batch parity: unavailable".to_string(),
+    }
+}
+
 /// A compact coverage summary for the independent hold-out corpus in
 /// equatorial-frame batch parity mode.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -914,7 +1066,7 @@ pub fn independent_holdout_manifest_summary_for_report() -> String {
 /// Returns the combined snapshot evidence summary used by validation and release reports.
 pub fn jpl_snapshot_evidence_summary_for_report() -> String {
     format!(
-        "{} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {}",
+        "{} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {}",
         reference_snapshot_summary_for_report(),
         reference_snapshot_equatorial_parity_summary_for_report(),
         reference_snapshot_batch_parity_summary_for_report(),
@@ -927,6 +1079,7 @@ pub fn jpl_snapshot_evidence_summary_for_report() -> String {
         comparison_snapshot_manifest_summary_for_report(),
         independent_holdout_snapshot_summary_for_report(),
         independent_holdout_snapshot_equatorial_parity_summary_for_report(),
+        independent_holdout_snapshot_batch_parity_summary_for_report(),
         independent_holdout_source_summary_for_report(),
         independent_holdout_manifest_summary_for_report(),
         jpl_independent_holdout_summary_for_report(),
@@ -3250,6 +3403,34 @@ mod tests {
     }
 
     #[test]
+    fn batch_query_preserves_independent_holdout_mixed_scale_order_and_single_query_parity() {
+        let summary = independent_holdout_snapshot_batch_parity_summary()
+            .expect("independent hold-out batch parity summary should exist");
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.snapshot.row_count, 9);
+        assert_eq!(summary.snapshot.body_count, 3);
+        assert_eq!(summary.tt_request_count, 5);
+        assert_eq!(summary.tdb_request_count, 4);
+        assert!(summary.parity_preserved);
+        assert_eq!(
+            summary.exact_count
+                + summary.interpolated_count
+                + summary.approximate_count
+                + summary.unknown_count,
+            summary.snapshot.row_count,
+        );
+
+        let rendered = format_independent_holdout_snapshot_batch_parity_summary(&summary);
+        assert!(rendered.contains("JPL independent hold-out batch parity:"));
+        assert!(
+            rendered.contains("9 requests across 3 bodies (Mars, Jupiter, Saturn) and 6 epochs")
+        );
+        assert!(rendered.contains("TT requests=5, TDB requests=4"));
+        assert!(rendered.contains("quality counts:"));
+        assert!(rendered.contains("order=preserved, single-query parity=preserved"));
+    }
+
+    #[test]
     fn jpl_snapshot_evidence_summary_combines_the_backend_reports() {
         let report = jpl_snapshot_evidence_summary_for_report();
         assert!(report.contains(&reference_snapshot_summary_for_report()));
@@ -3265,6 +3446,7 @@ mod tests {
         assert!(
             report.contains(&independent_holdout_snapshot_equatorial_parity_summary_for_report())
         );
+        assert!(report.contains(&independent_holdout_snapshot_batch_parity_summary_for_report()));
         assert!(report.contains(&independent_holdout_source_summary_for_report()));
         assert!(report.contains(&independent_holdout_manifest_summary_for_report()));
         assert!(report.contains(&jpl_independent_holdout_summary_for_report()));

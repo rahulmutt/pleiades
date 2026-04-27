@@ -74,6 +74,7 @@ use pleiades_jpl::{
     format_jpl_interpolation_quality_kind_coverage,
     format_jpl_interpolation_quality_summary_for_report,
     frame_treatment_summary_details as jpl_frame_treatment_summary_details,
+    independent_holdout_snapshot_batch_parity_summary_for_report as jpl_independent_holdout_snapshot_batch_parity_summary_for_report,
     independent_holdout_snapshot_equatorial_parity_summary_for_report as jpl_independent_holdout_snapshot_equatorial_parity_summary_for_report,
     interpolation_quality_samples, jpl_independent_holdout_summary_for_report,
     jpl_interpolation_quality_kind_coverage, jpl_snapshot_evidence_summary_for_report,
@@ -3495,6 +3496,8 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str(&jpl_independent_holdout_summary_for_report());
     text.push('\n');
+    text.push_str(&jpl_independent_holdout_snapshot_batch_parity_summary_for_report());
+    text.push('\n');
     text.push_str(&jpl_independent_holdout_snapshot_equatorial_parity_summary_for_report());
     text.push('\n');
     text.push_str("JPL request policy: ");
@@ -5728,6 +5731,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(
         text,
         "  {}",
+        jpl_independent_holdout_snapshot_batch_parity_summary_for_report()
+    );
+    let _ = writeln!(
+        text,
+        "  {}",
         jpl_independent_holdout_snapshot_equatorial_parity_summary_for_report()
     );
     let _ = writeln!(
@@ -7735,6 +7743,11 @@ fn write_jpl_interpolation_quality(f: &mut fmt::Formatter<'_>) -> fmt::Result {
     writeln!(
         f,
         "    {}",
+        jpl_independent_holdout_snapshot_batch_parity_summary_for_report()
+    )?;
+    writeln!(
+        f,
+        "    {}",
         jpl_independent_holdout_snapshot_equatorial_parity_summary_for_report()
     )?;
     for sample in interpolation_quality_samples() {
@@ -9083,6 +9096,7 @@ mod tests {
         assert!(report.contains("JPL interpolation quality kind coverage:"));
         assert!(report.contains("JPL independent hold-out:"));
         assert!(report.contains("JPL independent hold-out equatorial parity:"));
+        assert!(report.contains("JPL independent hold-out batch parity:"));
         assert!(report.contains("transparency evidence only, not a production tolerance envelope"));
         assert!(report.contains("Lunar reference"));
         assert!(report.contains(
@@ -9196,6 +9210,7 @@ mod tests {
         assert!(report.contains("JPL interpolation quality: 21 samples across 10 bodies"));
         assert!(report.contains("JPL independent hold-out:"));
         assert!(report.contains("JPL independent hold-out equatorial parity:"));
+        assert!(report.contains("JPL independent hold-out batch parity:"));
         assert!(report.contains("leave-one-out runtime interpolation evidence"));
         assert!(report.contains("transparency evidence only, not a production tolerance envelope"));
         assert!(report.contains("@ JD"));
@@ -10454,6 +10469,7 @@ mod tests {
         assert!(rendered.contains("JPL interpolation evidence:"));
         assert!(rendered.contains("JPL independent hold-out:"));
         assert!(rendered.contains("JPL independent hold-out equatorial parity:"));
+        assert!(rendered.contains("JPL independent hold-out batch parity:"));
         assert!(rendered.contains("JPL request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
         assert!(rendered.contains("JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"));
         assert!(rendered.contains("Reference snapshot coverage:"));
@@ -10989,6 +11005,7 @@ version = "0.9.0"
         ));
         assert!(release_summary.contains("JPL independent hold-out:"));
         assert!(release_summary.contains("JPL independent hold-out equatorial parity:"));
+        assert!(release_summary.contains("JPL independent hold-out batch parity:"));
         assert!(release_summary.contains("Independent hold-out manifest:"));
         assert!(release_summary.contains("JPL request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
         assert!(release_summary.contains("Request policy: time-scale="));
