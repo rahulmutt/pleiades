@@ -924,6 +924,70 @@ impl BodyClassToleranceSummary {
         }
     }
 
+    fn summary_line(&self) -> String {
+        let tolerance = &self.tolerance;
+        let max_longitude_body = self
+            .max_longitude_delta_body
+            .as_ref()
+            .map(|body| format!(" ({body})"))
+            .unwrap_or_default();
+        let max_latitude_body = self
+            .max_latitude_delta_body
+            .as_ref()
+            .map(|body| format!(" ({body})"))
+            .unwrap_or_default();
+        let max_distance_body = self
+            .max_distance_delta_body
+            .as_ref()
+            .map(|body| format!(" ({body})"))
+            .unwrap_or_default();
+        let longitude_margin = self
+            .max_longitude_delta_deg
+            .map(|value| format!("{:+.12}°", tolerance.max_longitude_delta_deg - value))
+            .unwrap_or_else(|| "n/a".to_string());
+        let latitude_margin = self
+            .max_latitude_delta_deg
+            .map(|value| format!("{:+.12}°", tolerance.max_latitude_delta_deg - value))
+            .unwrap_or_else(|| "n/a".to_string());
+        let distance_margin = self
+            .max_distance_delta_au
+            .zip(tolerance.max_distance_delta_au)
+            .map(|(value, limit)| format!("{:+.12} AU", limit - value))
+            .unwrap_or_else(|| "n/a".to_string());
+
+        format!(
+            "{}: backend family={}, profile={}, bodies={}, samples={}, within tolerance bodies={}, outside tolerance bodies={}, limit Δlon≤{:.6}°, margin Δlon={}, limit Δlat≤{:.6}°, margin Δlat={}, limit Δdist={}, margin Δdist={}, max Δlon={}{}, max Δlat={}{}, max Δdist={}{}",
+            self.class.label(),
+            tolerance_backend_family_label(&tolerance.backend_family),
+            tolerance.profile,
+            self.body_count,
+            self.sample_count,
+            self.within_tolerance_body_count,
+            self.outside_tolerance_body_count,
+            tolerance.max_longitude_delta_deg,
+            longitude_margin,
+            tolerance.max_latitude_delta_deg,
+            latitude_margin,
+            tolerance
+                .max_distance_delta_au
+                .map(|value| format!("{value:.6} AU"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            distance_margin,
+            self.max_longitude_delta_deg
+                .map(|value| format!("{value:.12}°"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            max_longitude_body,
+            self.max_latitude_delta_deg
+                .map(|value| format!("{value:.12}°"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            max_latitude_body,
+            self.max_distance_delta_au
+                .map(|value| format!("{value:.12} AU"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            max_distance_body
+        )
+    }
+
     fn render(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "  {}", self.class.label())?;
         writeln!(
@@ -1053,6 +1117,12 @@ impl BodyClassToleranceSummary {
         }
 
         Ok(())
+    }
+}
+
+impl fmt::Display for BodyClassToleranceSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
     }
 }
 
@@ -4962,6 +5032,10 @@ fn format_body_class_comparison_envelope_for_report(summary: &BodyClassSummary) 
     summary.summary_line()
 }
 
+fn format_body_class_tolerance_envelope_for_report(summary: &BodyClassToleranceSummary) -> String {
+    summary.summary_line()
+}
+
 fn comparison_tolerance_policy_summary_details(
     comparison: &ComparisonReport,
 ) -> ComparisonTolerancePolicySummary {
@@ -5857,69 +5931,10 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text);
     let _ = writeln!(text, "Body-class tolerance posture");
     for summary in report.comparison.body_class_tolerance_summaries() {
-        let tolerance = &summary.tolerance;
-        let max_longitude_body = summary
-            .max_longitude_delta_body
-            .as_ref()
-            .map(|body| format!(" ({body})"))
-            .unwrap_or_default();
-        let max_latitude_body = summary
-            .max_latitude_delta_body
-            .as_ref()
-            .map(|body| format!(" ({body})"))
-            .unwrap_or_default();
-        let max_distance_body = summary
-            .max_distance_delta_body
-            .as_ref()
-            .map(|body| format!(" ({body})"))
-            .unwrap_or_default();
-        let longitude_margin = summary
-            .max_longitude_delta_deg
-            .map(|value| format!("{:+.12}°", tolerance.max_longitude_delta_deg - value))
-            .unwrap_or_else(|| "n/a".to_string());
-        let latitude_margin = summary
-            .max_latitude_delta_deg
-            .map(|value| format!("{:+.12}°", tolerance.max_latitude_delta_deg - value))
-            .unwrap_or_else(|| "n/a".to_string());
-        let distance_margin = summary
-            .max_distance_delta_au
-            .zip(tolerance.max_distance_delta_au)
-            .map(|(value, limit)| format!("{:+.12} AU", limit - value))
-            .unwrap_or_else(|| "n/a".to_string());
         let _ = writeln!(
             text,
-            "  {}: backend family={}, profile={}, bodies={}, samples={}, within tolerance bodies={}, outside tolerance bodies={}, limit Δlon≤{:.6}°, margin Δlon={}, limit Δlat≤{:.6}°, margin Δlat={}, limit Δdist={}, margin Δdist={}, max Δlon={}{}, max Δlat={}{}, max Δdist={}{}",
-            summary.class.label(),
-            tolerance_backend_family_label(&tolerance.backend_family),
-            tolerance.profile,
-            summary.body_count,
-            summary.sample_count,
-            summary.within_tolerance_body_count,
-            summary.outside_tolerance_body_count,
-            tolerance.max_longitude_delta_deg,
-            longitude_margin,
-            tolerance.max_latitude_delta_deg,
-            latitude_margin,
-            tolerance
-                .max_distance_delta_au
-                .map(|value| format!("{value:.6} AU"))
-                .unwrap_or_else(|| "n/a".to_string()),
-            distance_margin,
-            summary
-                .max_longitude_delta_deg
-                .map(|value| format!("{value:.12}°"))
-                .unwrap_or_else(|| "n/a".to_string()),
-            max_longitude_body,
-            summary
-                .max_latitude_delta_deg
-                .map(|value| format!("{value:.12}°"))
-                .unwrap_or_else(|| "n/a".to_string()),
-            max_latitude_body,
-            summary
-                .max_distance_delta_au
-                .map(|value| format!("{value:.12} AU"))
-                .unwrap_or_else(|| "n/a".to_string()),
-            max_distance_body
+            "  {}",
+            format_body_class_tolerance_envelope_for_report(&summary)
         );
         if !summary.outside_bodies.is_empty() {
             let _ = writeln!(
@@ -9367,6 +9382,54 @@ mod tests {
         assert_eq!(summary.to_string(), expected);
         assert_eq!(
             format_body_class_comparison_envelope_for_report(&summary),
+            expected
+        );
+    }
+
+    #[test]
+    fn body_class_tolerance_summary_reuses_the_typed_formatter() {
+        let summary = BodyClassToleranceSummary {
+            class: BodyClass::MajorPlanet,
+            tolerance: ComparisonTolerance {
+                backend_family: BackendFamily::ReferenceData,
+                profile: "phase-1 body-class tolerance",
+                max_longitude_delta_deg: 1.5,
+                max_latitude_delta_deg: 0.5,
+                max_distance_delta_au: Some(3.0),
+            },
+            body_count: 2,
+            sample_count: 2,
+            within_tolerance_body_count: 1,
+            outside_tolerance_body_count: 1,
+            outside_tolerance_sample_count: 1,
+            max_longitude_delta_body: Some(CelestialBody::Mars),
+            max_longitude_delta_deg: Some(1.0),
+            max_latitude_delta_body: Some(CelestialBody::Jupiter),
+            max_latitude_delta_deg: Some(0.25),
+            max_distance_delta_body: Some(CelestialBody::Saturn),
+            max_distance_delta_au: Some(2.5),
+            sum_longitude_delta_deg: 2.0,
+            sum_longitude_delta_sq_deg: 2.0,
+            sum_latitude_delta_deg: 0.5,
+            sum_latitude_delta_sq_deg: 0.125,
+            sum_distance_delta_au: 3.0,
+            sum_distance_delta_sq_au: 4.5,
+            distance_count: 2,
+            median_longitude_delta_deg: 1.0,
+            percentile_longitude_delta_deg: 1.0,
+            median_latitude_delta_deg: 0.25,
+            percentile_latitude_delta_deg: 0.25,
+            median_distance_delta_au: Some(1.5),
+            percentile_distance_delta_au: Some(1.5),
+            outside_bodies: vec![CelestialBody::Mars],
+        };
+
+        let expected = "Major planets: backend family=reference data, profile=phase-1 body-class tolerance, bodies=2, samples=2, within tolerance bodies=1, outside tolerance bodies=1, limit Δlon≤1.500000°, margin Δlon=+0.500000000000°, limit Δlat≤0.500000°, margin Δlat=+0.250000000000°, limit Δdist=3.000000 AU, margin Δdist=+0.500000000000 AU, max Δlon=1.000000000000° (Mars), max Δlat=0.250000000000° (Jupiter), max Δdist=2.500000000000 AU (Saturn)";
+
+        assert_eq!(summary.summary_line(), expected);
+        assert_eq!(summary.to_string(), expected);
+        assert_eq!(
+            format_body_class_tolerance_envelope_for_report(&summary),
             expected
         );
     }
