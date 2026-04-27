@@ -141,6 +141,28 @@ pub struct CorpusSummary {
     pub latest_julian_day: f64,
 }
 
+impl CorpusSummary {
+    /// Returns a compact one-line summary used by release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "corpus name={} apparentness={} requests={} epochs={} bodies={} julian day span={:.1} → {:.1}",
+            self.name,
+            self.apparentness,
+            self.request_count,
+            self.epoch_count,
+            self.body_count,
+            self.earliest_julian_day,
+            self.latest_julian_day,
+        )
+    }
+}
+
+impl fmt::Display for CorpusSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 impl ValidationCorpus {
     /// Creates the default JPL snapshot corpus.
     pub fn jpl_snapshot() -> Self {
@@ -9774,6 +9796,18 @@ mod tests {
         assert_eq!(summary.request_count, 110);
         assert_eq!(summary.apparentness, Apparentness::Mean);
         assert!(summary.earliest_julian_day < summary.latest_julian_day);
+    }
+
+    #[test]
+    fn corpus_summary_has_a_displayable_summary_line() {
+        let summary = benchmark_corpus().summary();
+        assert_eq!(summary.summary_line(), summary.to_string());
+        assert!(summary
+            .summary_line()
+            .contains("corpus name=Representative 1500-2500 window"));
+        assert!(summary.summary_line().contains("requests=110"));
+        assert!(summary.summary_line().contains("epochs=11"));
+        assert!(summary.summary_line().contains("bodies="));
     }
 
     #[test]
