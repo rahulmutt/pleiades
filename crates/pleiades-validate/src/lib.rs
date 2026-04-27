@@ -29,7 +29,8 @@ pub use house_validation::{
 };
 
 use pleiades_ayanamsa::{
-    baseline_ayanamsas, built_in_ayanamsas, metadata_coverage, release_ayanamsas, resolve_ayanamsa,
+    ayanamsa_catalog_validation_summary, baseline_ayanamsas, built_in_ayanamsas, metadata_coverage,
+    release_ayanamsas, resolve_ayanamsa, validate_ayanamsa_catalog,
 };
 use pleiades_backend::{
     apparentness_policy_summary_for_report, current_request_policy_summary,
@@ -2789,6 +2790,13 @@ fn verify_house_system_aliases(
 fn verify_ayanamsa_aliases(
     entries: &[pleiades_ayanamsa::AyanamsaDescriptor],
 ) -> Result<usize, EphemerisError> {
+    if let Err(error) = validate_ayanamsa_catalog() {
+        return Err(EphemerisError::new(
+            EphemerisErrorKind::InvalidRequest,
+            format!("ayanamsa catalog validation failed: {error}"),
+        ));
+    }
+
     let mut labels_checked = 0usize;
     let mut seen_labels = BTreeSet::new();
     let mut seen_labels_case_insensitive = BTreeMap::new();
@@ -3107,6 +3115,8 @@ fn render_compatibility_profile_summary_text() -> String {
     text.push('/');
     text.push_str(&coverage.total.to_string());
     text.push_str(" entries with both a reference epoch and offset\n");
+    text.push_str(&ayanamsa_catalog_validation_summary().summary_line());
+    text.push('\n');
     text.push_str("Release-specific house-system canonical names: ");
     text.push_str(&summarize_descriptor_names(
         profile.release_house_systems,
@@ -3571,6 +3581,8 @@ fn render_release_summary_text() -> String {
         text.push('\n');
         text.push_str("House validation corpus: ");
         text.push_str(&report.house_validation.summary_line());
+        text.push('\n');
+        text.push_str(&ayanamsa_catalog_validation_summary().summary_line());
         text.push('\n');
         text.push_str("Comparison tolerance policy: ");
         text.push_str(&format_comparison_tolerance_policy_for_report(
@@ -6266,6 +6278,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         text,
         "House validation corpus: {}",
         house_validation_summary
+    );
+    let _ = writeln!(
+        text,
+        "{}",
+        ayanamsa_catalog_validation_summary().summary_line()
     );
     let _ = writeln!(text);
     let _ = writeln!(text, "VSOP87 source-backed evidence");
@@ -9467,6 +9484,7 @@ mod tests {
         assert!(validation_report_summary.contains("regression bodies: Pluto"));
         assert!(validation_report_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
+        assert!(validation_report_summary.contains("ayanamsa catalog validation: ok"));
         assert!(validation_report_summary.contains("Release notes summary: release-notes-summary"));
         assert!(validation_report_summary.contains("Packaged-artifact profile"));
         assert!(validation_report_summary.contains("Packaged request policy"));
@@ -10107,6 +10125,7 @@ mod tests {
             "Ayanamsa sidereal metadata: {}/{} entries with both a reference epoch and offset",
             coverage.with_sidereal_metadata, coverage.total
         )));
+        assert!(rendered.contains("ayanamsa catalog validation: ok"));
         assert!(rendered.contains("Release-specific house-system canonical names:"));
         assert!(rendered.contains("Equal (MC), Equal (1=Aries), Vehlow Equal"));
         assert!(rendered.contains("Release-specific ayanamsa canonical names:"));
@@ -10561,6 +10580,7 @@ mod tests {
         assert!(rendered.contains("Backend matrix summary: backend-matrix-summary"));
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
         assert!(rendered.contains("Workspace audit: workspace-audit / audit"));
+        assert!(rendered.contains("ayanamsa catalog validation: ok"));
         assert!(rendered.contains("House systems:"));
         assert!(rendered.contains("Release-specific house-system canonical names: 13 (Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter (poli-equatorial), Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen SD, Pullen SR, Sunshine, Gauquelin sectors)"));
         assert!(rendered.contains("Wang"));

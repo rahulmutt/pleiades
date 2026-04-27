@@ -23,6 +23,7 @@
 #![forbid(unsafe_code)]
 
 use core::fmt;
+use std::collections::BTreeSet;
 
 use pleiades_types::{Angle, Ayanamsa, Instant, JulianDay};
 
@@ -1237,6 +1238,167 @@ pub fn metadata_coverage() -> AyanamsaMetadataCoverage {
     }
 }
 
+/// Errors returned when validating the built-in ayanamsa catalog.
+#[derive(Clone, Debug, PartialEq)]
+pub enum AyanamsaCatalogValidationError {
+    /// The catalog did not contain any entries.
+    EmptyCatalog,
+    /// A canonical label or alias was repeated.
+    DuplicateLabel {
+        /// Repeated label.
+        label: &'static str,
+    },
+    /// A canonical label or alias did not resolve back to the expected entry.
+    LabelDoesNotRoundTrip {
+        /// Label that failed to resolve.
+        label: &'static str,
+        /// Expected typed ayanamsa.
+        expected_ayanamsa: Ayanamsa,
+    },
+}
+
+impl fmt::Display for AyanamsaCatalogValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::EmptyCatalog => f.write_str("catalog is empty"),
+            Self::DuplicateLabel { label } => {
+                write!(f, "duplicate label '{label}'")
+            }
+            Self::LabelDoesNotRoundTrip {
+                label,
+                expected_ayanamsa,
+            } => write!(f, "label '{label}' should resolve to {expected_ayanamsa}",),
+        }
+    }
+}
+
+impl std::error::Error for AyanamsaCatalogValidationError {}
+
+/// A compact validation summary for the built-in ayanamsa catalog.
+#[derive(Clone, Debug, PartialEq)]
+pub struct AyanamsaCatalogValidationSummary {
+    /// Total number of built-in ayanamsa entries.
+    pub entry_count: usize,
+    /// Number of baseline entries.
+    pub baseline_entry_count: usize,
+    /// Number of release-specific entries.
+    pub release_entry_count: usize,
+    /// Number of canonical labels plus aliases checked.
+    pub label_count: usize,
+    /// Metadata coverage for the current built-in catalog.
+    pub metadata_coverage: AyanamsaMetadataCoverage,
+    /// Result of validating the built-in ayanamsa catalog.
+    pub validation_result: Result<(), AyanamsaCatalogValidationError>,
+}
+
+impl AyanamsaCatalogValidationSummary {
+    /// Returns the compact release-facing summary line for the ayanamsa catalog validation state.
+    pub fn summary_line(&self) -> String {
+        match &self.validation_result {
+            Ok(()) => format!(
+                "ayanamsa catalog validation: ok ({} entries, {} labels checked; baseline={}, release={}; sidereal metadata={}/{} entries with both a reference epoch and offset; custom-definition-only={}; round-trip and alias uniqueness verified)",
+                self.entry_count,
+                self.label_count,
+                self.baseline_entry_count,
+                self.release_entry_count,
+                self.metadata_coverage.with_sidereal_metadata,
+                self.metadata_coverage.total,
+                self.metadata_coverage.custom_definition_only.len(),
+            ),
+            Err(error) => format!(
+                "ayanamsa catalog validation: error: {} ({} entries; baseline={}, release={})",
+                error,
+                self.entry_count,
+                self.baseline_entry_count,
+                self.release_entry_count,
+            ),
+        }
+    }
+}
+
+impl fmt::Display for AyanamsaCatalogValidationSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn validate_ayanamsa_catalog_entries(
+    entries: &[AyanamsaDescriptor],
+) -> Result<usize, AyanamsaCatalogValidationError> {
+    if entries.is_empty() {
+        return Err(AyanamsaCatalogValidationError::EmptyCatalog);
+    }
+
+    let mut labels_checked = 0usize;
+    let mut seen_labels = BTreeSet::new();
+
+    for entry in entries {
+        labels_checked += 1;
+        if resolve_ayanamsa(entry.canonical_name) != Some(entry.ayanamsa.clone()) {
+            return Err(AyanamsaCatalogValidationError::LabelDoesNotRoundTrip {
+                label: entry.canonical_name,
+                expected_ayanamsa: entry.ayanamsa.clone(),
+            });
+        }
+        if !seen_labels.insert(entry.canonical_name.to_ascii_lowercase()) {
+            return Err(AyanamsaCatalogValidationError::DuplicateLabel {
+                label: entry.canonical_name,
+            });
+        }
+
+        for alias in entry.aliases.iter().copied() {
+            labels_checked += 1;
+            if resolve_ayanamsa(alias) != Some(entry.ayanamsa.clone()) {
+                return Err(AyanamsaCatalogValidationError::LabelDoesNotRoundTrip {
+                    label: alias,
+                    expected_ayanamsa: entry.ayanamsa.clone(),
+                });
+            }
+
+            if alias.eq_ignore_ascii_case(entry.canonical_name) {
+                if alias != entry.canonical_name {
+                    continue;
+                }
+
+                return Err(AyanamsaCatalogValidationError::DuplicateLabel { label: alias });
+            }
+
+            if !seen_labels.insert(alias.to_ascii_lowercase()) {
+                return Err(AyanamsaCatalogValidationError::DuplicateLabel { label: alias });
+            }
+        }
+    }
+
+    Ok(labels_checked)
+}
+
+/// Validates the built-in ayanamsa catalog for label uniqueness and round-trips.
+pub fn validate_ayanamsa_catalog() -> Result<(), AyanamsaCatalogValidationError> {
+    validate_ayanamsa_catalog_entries(built_in_ayanamsas()).map(|_| ())
+}
+
+/// Returns a compact validation summary for the built-in ayanamsa catalog.
+pub fn ayanamsa_catalog_validation_summary() -> AyanamsaCatalogValidationSummary {
+    let entry_count = built_in_ayanamsas().len();
+    let baseline_entry_count = baseline_ayanamsas().len();
+    let release_entry_count = release_ayanamsas().len();
+    let metadata_coverage = metadata_coverage();
+    let (label_count, validation_result) =
+        match validate_ayanamsa_catalog_entries(built_in_ayanamsas()) {
+            Ok(label_count) => (label_count, Ok(())),
+            Err(error) => (0, Err(error)),
+        };
+
+    AyanamsaCatalogValidationSummary {
+        entry_count,
+        baseline_entry_count,
+        release_entry_count,
+        label_count,
+        metadata_coverage,
+        validation_result,
+    }
+}
+
 /// Finds the descriptor for a typed ayanamsa selection.
 pub fn descriptor(ayanamsa: &Ayanamsa) -> Option<&'static AyanamsaDescriptor> {
     built_in_ayanamsas()
@@ -1332,6 +1494,46 @@ mod tests {
             "Lahiri (aliases: Alias One, Alias Two) [epoch: JD 2451545] [offset: 23.5°] — Summary note";
         assert_eq!(descriptor.summary_line(), expected);
         assert_eq!(descriptor.to_string(), expected);
+    }
+
+    #[test]
+    fn catalog_validation_summary_reports_catalog_health() {
+        let summary = ayanamsa_catalog_validation_summary();
+        assert_eq!(summary.entry_count, built_in_ayanamsas().len());
+        assert_eq!(summary.baseline_entry_count, baseline_ayanamsas().len());
+        assert_eq!(summary.release_entry_count, release_ayanamsas().len());
+        assert!(matches!(summary.validation_result, Ok(())));
+        assert!(summary
+            .summary_line()
+            .contains("ayanamsa catalog validation: ok"));
+        assert_eq!(validate_ayanamsa_catalog(), Ok(()));
+    }
+
+    #[test]
+    fn catalog_validation_entries_reject_duplicate_labels() {
+        let duplicate_entries = [
+            AyanamsaDescriptor::new(
+                Ayanamsa::Lahiri,
+                "Lahiri",
+                &[],
+                "Summary note",
+                Some(JulianDay::from_days(2_451_545.0)),
+                Some(Angle::from_degrees(23.5)),
+            ),
+            AyanamsaDescriptor::new(
+                Ayanamsa::Lahiri,
+                "Lahiri",
+                &[],
+                "Summary note",
+                Some(JulianDay::from_days(2_451_545.0)),
+                Some(Angle::from_degrees(23.5)),
+            ),
+        ];
+
+        assert!(matches!(
+            validate_ayanamsa_catalog_entries(&duplicate_entries),
+            Err(AyanamsaCatalogValidationError::DuplicateLabel { label: "Lahiri" })
+        ));
     }
 
     #[test]
