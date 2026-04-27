@@ -53,16 +53,16 @@ use pleiades_data::{
     packaged_request_policy_summary_for_report, PackagedDataBackend,
 };
 use pleiades_elp::{
-    format_lunar_theory_capability_summary, lunar_apparent_comparison_evidence,
-    lunar_apparent_comparison_summary, lunar_apparent_comparison_summary_for_report,
-    lunar_equatorial_reference_evidence, lunar_equatorial_reference_evidence_envelope_for_report,
+    lunar_apparent_comparison_evidence, lunar_apparent_comparison_summary,
+    lunar_apparent_comparison_summary_for_report, lunar_equatorial_reference_evidence,
+    lunar_equatorial_reference_evidence_envelope_for_report,
     lunar_equatorial_reference_evidence_summary,
     lunar_equatorial_reference_evidence_summary_for_report,
     lunar_high_curvature_continuity_evidence_for_report,
     lunar_high_curvature_equatorial_continuity_evidence_for_report,
     lunar_reference_batch_parity_summary_for_report, lunar_reference_evidence,
     lunar_reference_evidence_envelope_for_report, lunar_reference_evidence_summary,
-    lunar_reference_evidence_summary_for_report, lunar_theory_capability_summary,
+    lunar_reference_evidence_summary_for_report, lunar_theory_capability_summary_for_report,
     lunar_theory_catalog_summary_for_report, lunar_theory_catalog_validation_summary_for_report,
     lunar_theory_frame_treatment_summary_details, lunar_theory_request_policy_summary,
     lunar_theory_source_summary_for_report, lunar_theory_specification,
@@ -4176,9 +4176,7 @@ fn render_release_summary_text() -> String {
     text.push_str(&format_vsop87_source_body_class_evidence_summary());
     text.push('\n');
     text.push_str("ELP lunar capability: ");
-    text.push_str(&format_lunar_theory_capability_summary(
-        &lunar_theory_capability_summary(),
-    ));
+    text.push_str(&lunar_theory_capability_summary_for_report());
     text.push('\n');
     text.push_str("ELP lunar request policy: ");
     text.push_str(&lunar_theory_request_policy_summary());
@@ -6706,7 +6704,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(
         text,
         "ELP lunar capability: {}",
-        format_lunar_theory_capability_summary(&lunar_theory_capability_summary())
+        lunar_theory_capability_summary_for_report()
     );
     let _ = writeln!(
         text,
@@ -8482,7 +8480,7 @@ fn write_backend_catalog_entry(
         writeln!(
             f,
             "    capability summary: {}",
-            format_lunar_theory_capability_summary(&lunar_theory_capability_summary())
+            lunar_theory_capability_summary_for_report()
         )?;
         writeln!(f, "    source identifier: {}", theory.source_identifier)?;
         writeln!(f, "    source citation: {}", theory.source_citation)?;

@@ -1351,6 +1351,26 @@ pub struct LunarTheoryCapabilitySummary {
     pub catalog_validation_ok: bool,
 }
 
+/// Validation error for a lunar-theory capability summary that drifted from the current selection.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LunarTheoryCapabilitySummaryValidationError {
+    /// A rendered summary field no longer matches the current lunar-theory selection.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for LunarTheoryCapabilitySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the lunar capability summary field `{field}` is out of sync with the current selection"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for LunarTheoryCapabilitySummaryValidationError {}
+
 /// Returns the compact capability summary for the current lunar-theory selection.
 pub fn lunar_theory_capability_summary() -> LunarTheoryCapabilitySummary {
     let theory = lunar_theory_specification();
@@ -1402,9 +1422,143 @@ impl fmt::Display for LunarTheoryCapabilitySummary {
     }
 }
 
+impl LunarTheoryCapabilitySummary {
+    /// Returns `Ok(())` when the summary still matches the current lunar-theory selection.
+    pub fn validate(&self) -> Result<(), LunarTheoryCapabilitySummaryValidationError> {
+        let theory = lunar_theory_specification();
+
+        if self.model_name != theory.model_name {
+            return Err(
+                LunarTheoryCapabilitySummaryValidationError::FieldOutOfSync {
+                    field: "model_name",
+                },
+            );
+        }
+        if self.source_identifier != theory.source_identifier {
+            return Err(
+                LunarTheoryCapabilitySummaryValidationError::FieldOutOfSync {
+                    field: "source_identifier",
+                },
+            );
+        }
+        if self.source_family != theory.source_family {
+            return Err(
+                LunarTheoryCapabilitySummaryValidationError::FieldOutOfSync {
+                    field: "source_family",
+                },
+            );
+        }
+        if self.source_family_label != theory.source_family.label() {
+            return Err(
+                LunarTheoryCapabilitySummaryValidationError::FieldOutOfSync {
+                    field: "source_family_label",
+                },
+            );
+        }
+        if self.supported_bodies != theory.supported_bodies {
+            return Err(
+                LunarTheoryCapabilitySummaryValidationError::FieldOutOfSync {
+                    field: "supported_bodies",
+                },
+            );
+        }
+        if self.unsupported_bodies != theory.unsupported_bodies {
+            return Err(
+                LunarTheoryCapabilitySummaryValidationError::FieldOutOfSync {
+                    field: "unsupported_bodies",
+                },
+            );
+        }
+        if self.supported_body_count != theory.supported_bodies.len() {
+            return Err(
+                LunarTheoryCapabilitySummaryValidationError::FieldOutOfSync {
+                    field: "supported_body_count",
+                },
+            );
+        }
+        if self.unsupported_body_count != theory.unsupported_bodies.len() {
+            return Err(
+                LunarTheoryCapabilitySummaryValidationError::FieldOutOfSync {
+                    field: "unsupported_body_count",
+                },
+            );
+        }
+        if self.supported_frame_count != theory.supported_frames.len() {
+            return Err(
+                LunarTheoryCapabilitySummaryValidationError::FieldOutOfSync {
+                    field: "supported_frame_count",
+                },
+            );
+        }
+        if self.supported_time_scale_count != theory.supported_time_scales.len() {
+            return Err(
+                LunarTheoryCapabilitySummaryValidationError::FieldOutOfSync {
+                    field: "supported_time_scale_count",
+                },
+            );
+        }
+        if self.supported_zodiac_mode_count != theory.supported_zodiac_modes.len() {
+            return Err(
+                LunarTheoryCapabilitySummaryValidationError::FieldOutOfSync {
+                    field: "supported_zodiac_mode_count",
+                },
+            );
+        }
+        if self.supported_apparentness_count != theory.supported_apparentness.len() {
+            return Err(
+                LunarTheoryCapabilitySummaryValidationError::FieldOutOfSync {
+                    field: "supported_apparentness_count",
+                },
+            );
+        }
+        if self.supports_topocentric_observer != theory.request_policy.supports_topocentric_observer
+        {
+            return Err(
+                LunarTheoryCapabilitySummaryValidationError::FieldOutOfSync {
+                    field: "supports_topocentric_observer",
+                },
+            );
+        }
+        if self.validation_window != theory.validation_window {
+            return Err(
+                LunarTheoryCapabilitySummaryValidationError::FieldOutOfSync {
+                    field: "validation_window",
+                },
+            );
+        }
+        if self.catalog_validation_ok != validate_lunar_theory_catalog().is_ok() {
+            return Err(
+                LunarTheoryCapabilitySummaryValidationError::FieldOutOfSync {
+                    field: "catalog_validation_ok",
+                },
+            );
+        }
+
+        Ok(())
+    }
+}
+
 /// Formats the capability summary for release-facing reporting.
 pub fn format_lunar_theory_capability_summary(summary: &LunarTheoryCapabilitySummary) -> String {
     summary.summary_line()
+}
+
+fn format_validated_lunar_theory_capability_summary_for_report(
+    summary: &LunarTheoryCapabilitySummary,
+) -> String {
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("lunar capability summary: unavailable ({error})"),
+    }
+}
+
+/// Returns the release-facing capability summary string for the current lunar-theory selection.
+///
+/// The report helper validates the backend-owned capability summary first so any
+/// future drift in the rendered selection fields shows up as an unavailable
+/// report line instead of a silently stale summary.
+pub fn lunar_theory_capability_summary_for_report() -> String {
+    format_validated_lunar_theory_capability_summary_for_report(&lunar_theory_capability_summary())
 }
 
 /// Formats the release-facing one-line summary for a lunar-theory specification.
@@ -4998,6 +5152,21 @@ mod tests {
             format_lunar_theory_capability_summary(&capability)
         );
         assert_eq!(capability.to_string(), capability.summary_line());
+        assert_eq!(
+            lunar_theory_capability_summary_for_report(),
+            capability.summary_line()
+        );
+        assert_eq!(capability.validate(), Ok(()));
+        let mut drifted = capability;
+        drifted.catalog_validation_ok = !drifted.catalog_validation_ok;
+        assert_eq!(
+            drifted.validate(),
+            Err(
+                LunarTheoryCapabilitySummaryValidationError::FieldOutOfSync {
+                    field: "catalog_validation_ok",
+                }
+            )
+        );
         assert!(format_lunar_theory_capability_summary(&capability).contains("bodies=5"));
         assert!(format_lunar_theory_capability_summary(&capability)
             .contains("Moon, Mean Node, True Node, Mean Perigee, Mean Apogee"));
