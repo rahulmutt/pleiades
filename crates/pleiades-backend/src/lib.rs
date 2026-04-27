@@ -1576,6 +1576,47 @@ mod tests {
             "backend metadata field `supported frames` contains duplicate entry `Ecliptic`"
         );
         assert_eq!(error.to_string(), error.summary_line());
+
+        metadata.supported_frames = vec![CoordinateFrame::Ecliptic];
+        metadata.nominal_range = TimeRange::new(
+            Some(Instant::new(
+                JulianDay::from_days(2_451_546.0),
+                TimeScale::Tt,
+            )),
+            Some(Instant::new(
+                JulianDay::from_days(2_451_545.0),
+                TimeScale::Tt,
+            )),
+        );
+
+        let error = metadata
+            .validate()
+            .expect_err("out-of-order nominal ranges should fail validation");
+        assert_eq!(
+            error.summary_line(),
+            "backend metadata nominal range end must not precede the start"
+        );
+        assert_eq!(error.to_string(), error.summary_line());
+
+        metadata.nominal_range = TimeRange::new(
+            Some(Instant::new(
+                JulianDay::from_days(2_451_545.0),
+                TimeScale::Tt,
+            )),
+            Some(Instant::new(
+                JulianDay::from_days(2_451_546.0),
+                TimeScale::Tdb,
+            )),
+        );
+
+        let error = metadata
+            .validate()
+            .expect_err("mixed nominal-range scales should fail validation");
+        assert_eq!(
+            error.summary_line(),
+            "backend metadata nominal range bounds must use the same time scale"
+        );
+        assert_eq!(error.to_string(), error.summary_line());
     }
 
     #[test]
