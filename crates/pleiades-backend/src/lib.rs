@@ -1041,7 +1041,9 @@ pub fn validate_request_against_metadata(
 ///
 /// The helper first checks whether the backend advertises batch support and then
 /// validates each request with [`validate_request_against_metadata`], failing
-/// fast on the first unsupported request shape.
+/// fast on the first unsupported request shape. The returned error message
+/// prefixes the failing request's 1-based batch index so callers can correlate
+/// the structured error with the slice position that triggered it.
 pub fn validate_requests_against_metadata(
     reqs: &[EphemerisRequest],
     metadata: &BackendMetadata,
@@ -1053,8 +1055,13 @@ pub fn validate_requests_against_metadata(
         ));
     }
 
-    for req in reqs {
-        validate_request_against_metadata(req, metadata)?;
+    for (index, req) in reqs.iter().enumerate() {
+        if let Err(error) = validate_request_against_metadata(req, metadata) {
+            return Err(EphemerisError::new(
+                error.kind,
+                format!("batch request {}: {}", index + 1, error.message),
+            ));
+        }
     }
 
     Ok(())
@@ -2220,7 +2227,10 @@ mod tests {
             validate_requests_against_metadata(&[valid_request, invalid_request], &metadata)
                 .expect_err("the batch helper should stop at the first unsupported body");
         assert_eq!(error.kind, EphemerisErrorKind::UnsupportedBody);
-        assert_eq!(error.message, "toy backend does not support Mars");
+        assert_eq!(
+            error.message,
+            "batch request 2: toy backend does not support Mars"
+        );
     }
 
     #[test]
