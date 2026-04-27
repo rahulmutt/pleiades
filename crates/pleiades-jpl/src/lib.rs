@@ -2279,6 +2279,8 @@ pub enum JplInterpolationQualitySummaryValidationError {
     },
     /// A summary metric was not finite and non-negative.
     MetricOutOfRange { field: &'static str },
+    /// A peak-body label was blank despite the corresponding metric being populated.
+    BlankPeakBody { field: &'static str },
     /// The interpolation-kind counts did not add up to the total sample count.
     InterpolationKindCountMismatch {
         sample_count: usize,
@@ -2298,6 +2300,7 @@ impl JplInterpolationQualitySummaryValidationError {
             Self::MissingEpochs => "missing epochs",
             Self::InvalidEpochRange { .. } => "invalid epoch range",
             Self::MetricOutOfRange { .. } => "metric out of range",
+            Self::BlankPeakBody { .. } => "blank peak body",
             Self::InterpolationKindCountMismatch { .. } => "interpolation-kind count mismatch",
         }
     }
@@ -2335,6 +2338,9 @@ impl fmt::Display for JplInterpolationQualitySummaryValidationError {
                 f,
                 "summary metric `{field}` is not a finite non-negative value"
             ),
+            Self::BlankPeakBody { field } => {
+                write!(f, "summary peak body label `{field}` is blank")
+            }
             Self::InterpolationKindCountMismatch {
                 sample_count,
                 kind_count,
@@ -2417,6 +2423,35 @@ impl JplInterpolationQualitySummary {
         ] {
             validate_non_negative_metric(field, value)?;
         }
+        if self.max_bracket_span_days > 0.0 && self.max_bracket_span_body.trim().is_empty() {
+            return Err(
+                JplInterpolationQualitySummaryValidationError::BlankPeakBody {
+                    field: "max_bracket_span_body",
+                },
+            );
+        }
+        if self.max_longitude_error_deg > 0.0 && self.max_longitude_error_body.trim().is_empty() {
+            return Err(
+                JplInterpolationQualitySummaryValidationError::BlankPeakBody {
+                    field: "max_longitude_error_body",
+                },
+            );
+        }
+        if self.max_latitude_error_deg > 0.0 && self.max_latitude_error_body.trim().is_empty() {
+            return Err(
+                JplInterpolationQualitySummaryValidationError::BlankPeakBody {
+                    field: "max_latitude_error_body",
+                },
+            );
+        }
+        if self.max_distance_error_au > 0.0 && self.max_distance_error_body.trim().is_empty() {
+            return Err(
+                JplInterpolationQualitySummaryValidationError::BlankPeakBody {
+                    field: "max_distance_error_body",
+                },
+            );
+        }
+
         if self.sample_count
             != self.cubic_sample_count + self.quadratic_sample_count + self.linear_sample_count
         {
@@ -2983,6 +3018,27 @@ impl JplIndependentHoldoutSummary {
             ("rms_distance_error_au", self.rms_distance_error_au),
         ] {
             validate_non_negative_metric(field, value)?;
+        }
+        if self.max_longitude_error_deg > 0.0 && self.max_longitude_error_body.trim().is_empty() {
+            return Err(
+                JplInterpolationQualitySummaryValidationError::BlankPeakBody {
+                    field: "max_longitude_error_body",
+                },
+            );
+        }
+        if self.max_latitude_error_deg > 0.0 && self.max_latitude_error_body.trim().is_empty() {
+            return Err(
+                JplInterpolationQualitySummaryValidationError::BlankPeakBody {
+                    field: "max_latitude_error_body",
+                },
+            );
+        }
+        if self.max_distance_error_au > 0.0 && self.max_distance_error_body.trim().is_empty() {
+            return Err(
+                JplInterpolationQualitySummaryValidationError::BlankPeakBody {
+                    field: "max_distance_error_body",
+                },
+            );
         }
 
         Ok(())
@@ -6089,6 +6145,20 @@ mod tests {
     }
 
     #[test]
+    fn interpolation_quality_summary_validation_rejects_blank_peak_bodies() {
+        let mut summary = jpl_interpolation_quality_summary().expect("summary should exist");
+        summary.max_latitude_error_body.clear();
+        assert_eq!(
+            summary.validate(),
+            Err(
+                JplInterpolationQualitySummaryValidationError::BlankPeakBody {
+                    field: "max_latitude_error_body",
+                }
+            )
+        );
+    }
+
+    #[test]
     fn interpolation_quality_coverage_validation_rejects_inconsistent_bodies() {
         let mut coverage =
             jpl_interpolation_quality_kind_coverage().expect("coverage should exist");
@@ -6147,6 +6217,20 @@ mod tests {
         assert_eq!(
             summary.validate(),
             Err(JplInterpolationQualitySummaryValidationError::BlankBody { index: 1 })
+        );
+    }
+
+    #[test]
+    fn independent_holdout_summary_validation_rejects_blank_peak_bodies() {
+        let mut summary = jpl_independent_holdout_summary().expect("summary should exist");
+        summary.max_distance_error_body.clear();
+        assert_eq!(
+            summary.validate(),
+            Err(
+                JplInterpolationQualitySummaryValidationError::BlankPeakBody {
+                    field: "max_distance_error_body",
+                }
+            )
         );
     }
 
