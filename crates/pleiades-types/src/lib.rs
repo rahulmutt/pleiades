@@ -1356,6 +1356,30 @@ impl TimeRange {
         });
         after_start && before_end
     }
+
+    /// Returns a compact one-line rendering of the range.
+    pub fn summary_line(&self) -> String {
+        match (self.start, self.end) {
+            (Some(start), Some(end)) => format!(
+                "{} → {}",
+                format_time_range_instant(start),
+                format_time_range_instant(end)
+            ),
+            (Some(start), None) => format!("from {}", format_time_range_instant(start)),
+            (None, Some(end)) => format!("through {}", format_time_range_instant(end)),
+            (None, None) => "unbounded".to_string(),
+        }
+    }
+}
+
+impl fmt::Display for TimeRange {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn format_time_range_instant(instant: Instant) -> String {
+    format!("JD {:.1} ({})", instant.julian_day.days(), instant.scale)
 }
 
 fn same_scale_and_jd(a: Instant, b: Instant) -> bool {
@@ -1608,6 +1632,20 @@ mod tests {
             JulianDay::from_days(2451545.5),
             TimeScale::Utc
         )));
+        assert_eq!(
+            range.summary_line(),
+            "JD 2451545.0 (TT) → JD 2451546.0 (TT)"
+        );
+        assert_eq!(range.to_string(), range.summary_line());
+        assert_eq!(
+            TimeRange::new(Some(start), None).to_string(),
+            "from JD 2451545.0 (TT)"
+        );
+        assert_eq!(
+            TimeRange::new(None, Some(end)).to_string(),
+            "through JD 2451546.0 (TT)"
+        );
+        assert_eq!(TimeRange::new(None, None).to_string(), "unbounded");
     }
 
     #[test]

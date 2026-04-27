@@ -1040,7 +1040,7 @@ impl LunarTheoryCapabilitySummary {
             self.supported_zodiac_mode_count,
             self.supported_apparentness_count,
             self.supports_topocentric_observer,
-            format_time_range(&self.validation_window),
+            self.validation_window,
             if self.catalog_validation_ok { "ok" } else { "error" },
         )
     }
@@ -1079,7 +1079,7 @@ pub fn format_lunar_theory_specification(theory: &LunarTheorySpecification) -> S
         source.redistribution_note,
         theory.truncation_note,
         theory.unit_note,
-        format_time_range(&theory.validation_window),
+        theory.validation_window,
         theory.date_range_note,
         theory.frame_note,
         source.license_note,
@@ -1113,7 +1113,7 @@ impl LunarTheorySourceSummary {
             aliases,
             self.citation,
             self.provenance,
-            format_time_range(&self.validation_window),
+            self.validation_window,
             self.redistribution_note,
             self.license_note,
         )
@@ -1177,15 +1177,6 @@ fn format_zodiac_modes(modes: &[ZodiacMode]) -> String {
 
 fn format_apparentness_modes(modes: &[Apparentness]) -> String {
     join_display(modes)
-}
-
-fn format_time_range(range: &TimeRange) -> String {
-    match (range.start, range.end) {
-        (Some(start), Some(end)) => format!("{} → {}", format_instant(start), format_instant(end)),
-        (Some(start), None) => format!("from {}", format_instant(start)),
-        (None, Some(end)) => format!("through {}", format_instant(end)),
-        (None, None) => "unbounded".to_string(),
-    }
 }
 
 fn format_instant(instant: Instant) -> String {

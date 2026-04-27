@@ -7736,11 +7736,7 @@ fn write_backend_matrix(f: &mut fmt::Formatter<'_>, backend: &BackendMetadata) -
     writeln!(f, "  accuracy: {}", backend.accuracy)?;
     writeln!(f, "  deterministic: {}", backend.deterministic)?;
     writeln!(f, "  offline: {}", backend.offline)?;
-    writeln!(
-        f,
-        "  nominal range: {}",
-        format_time_range(&backend.nominal_range)
-    )?;
+    writeln!(f, "  nominal range: {}", backend.nominal_range)?;
     writeln!(
         f,
         "  time scales: {}",
@@ -7925,11 +7921,7 @@ fn write_backend_catalog_entry(
             "    request policy: {}",
             lunar_theory_request_policy_summary()
         )?;
-        writeln!(
-            f,
-            "    validation window: {}",
-            format_time_range(&theory.validation_window)
-        )?;
+        writeln!(f, "    validation window: {}", theory.validation_window)?;
         writeln!(f, "    date-range note: {}", theory.date_range_note)?;
         writeln!(f, "    frame note: {}", theory.frame_note)?;
         write_lunar_reference_evidence(f)?;
@@ -8571,15 +8563,6 @@ fn format_error_kinds(kinds: &[EphemerisErrorKind]) -> String {
 
 fn format_data_files(files: &[&str]) -> String {
     files.join("; ")
-}
-
-fn format_time_range(range: &TimeRange) -> String {
-    match (range.start, range.end) {
-        (Some(start), Some(end)) => format!("{} → {}", format_instant(start), format_instant(end)),
-        (Some(start), None) => format!("from {}", format_instant(start)),
-        (None, Some(end)) => format!("through {}", format_instant(end)),
-        (None, None) => "unbounded".to_string(),
-    }
 }
 
 fn format_instant(instant: Instant) -> String {
