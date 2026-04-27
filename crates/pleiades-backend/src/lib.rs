@@ -1905,6 +1905,73 @@ mod tests {
         assert_eq!(backend.calls.load(Ordering::SeqCst), 2);
     }
 
+    #[test]
+    fn batch_query_preserves_observer_request_rejection() {
+        struct GeocentricOnlyBackend {
+            calls: AtomicUsize,
+        }
+
+        impl EphemerisBackend for GeocentricOnlyBackend {
+            fn metadata(&self) -> BackendMetadata {
+                BackendMetadata {
+                    id: BackendId::new("geocentric-only"),
+                    version: "0.1.0".to_string(),
+                    family: BackendFamily::Algorithmic,
+                    provenance: BackendProvenance::new("geocentric-only test backend"),
+                    nominal_range: TimeRange::new(None, None),
+                    supported_time_scales: vec![TimeScale::Tt],
+                    body_coverage: vec![CelestialBody::Sun],
+                    supported_frames: vec![CoordinateFrame::Ecliptic],
+                    capabilities: BackendCapabilities::default(),
+                    accuracy: AccuracyClass::Approximate,
+                    deterministic: true,
+                    offline: true,
+                }
+            }
+
+            fn supports_body(&self, body: CelestialBody) -> bool {
+                body == CelestialBody::Sun
+            }
+
+            fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+                self.calls.fetch_add(1, Ordering::SeqCst);
+
+                validate_observer_policy(req, "geocentric-only test backend", false)?;
+
+                Ok(EphemerisResult::new(
+                    BackendId::new("geocentric-only"),
+                    req.body.clone(),
+                    req.instant,
+                    req.frame,
+                    req.zodiac_mode.clone(),
+                    req.apparent,
+                ))
+            }
+        }
+
+        let backend = GeocentricOnlyBackend {
+            calls: AtomicUsize::new(0),
+        };
+        let geocentric_request = EphemerisRequest::new(
+            CelestialBody::Sun,
+            Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt),
+        );
+        let topocentric_request = EphemerisRequest {
+            observer: Some(ObserverLocation::new(
+                Latitude::from_degrees(51.5),
+                Longitude::from_degrees(-0.1),
+                Some(45.0),
+            )),
+            ..geocentric_request.clone()
+        };
+
+        let error = backend
+            .positions(&[geocentric_request, topocentric_request])
+            .expect_err("batch requests should preserve observer rejections");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
+        assert_eq!(backend.calls.load(Ordering::SeqCst), 2);
+    }
+
     #[cfg(feature = "serde")]
     #[test]
     fn serde_roundtrip_preserves_requests_and_results() {
