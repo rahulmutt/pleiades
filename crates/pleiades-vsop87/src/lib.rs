@@ -3845,6 +3845,65 @@ mod tests {
     }
 
     #[test]
+    fn batch_query_preserves_mixed_time_scales_and_values() {
+        let backend = Vsop87Backend::new();
+        let requests = canonical_epoch_requests()
+            .into_iter()
+            .enumerate()
+            .map(|(index, mut request)| {
+                request.instant.scale = if index % 2 == 0 {
+                    TimeScale::Tt
+                } else {
+                    TimeScale::Tdb
+                };
+                request
+            })
+            .collect::<Vec<_>>();
+        let samples = canonical_epoch_samples();
+
+        let results = backend
+            .positions(&requests)
+            .expect("mixed-scale batch query should preserve the canonical sample order");
+
+        assert_eq!(results.len(), samples.len());
+        for ((request, result), sample) in requests.iter().zip(results.iter()).zip(samples.iter()) {
+            assert_eq!(result.body, sample.body);
+            assert_eq!(result.body, request.body);
+            assert_eq!(result.instant, request.instant);
+            assert_eq!(result.instant.scale, request.instant.scale);
+
+            let single = backend
+                .position(request)
+                .expect("single mixed-scale query should preserve the canonical sample order");
+            assert_eq!(single.body, result.body);
+            assert_eq!(single.instant, result.instant);
+            assert_eq!(single.ecliptic, result.ecliptic);
+            assert_eq!(single.equatorial, result.equatorial);
+            assert_eq!(single.motion, result.motion);
+
+            let ecliptic = result
+                .ecliptic
+                .as_ref()
+                .expect("ecliptic result should exist");
+            assert_degrees_close(
+                ecliptic.longitude.degrees(),
+                sample.expected_longitude_deg,
+                sample.max_longitude_delta_deg,
+            );
+            assert_degrees_close(
+                ecliptic.latitude.degrees(),
+                sample.expected_latitude_deg,
+                sample.max_latitude_delta_deg,
+            );
+            assert_close(
+                ecliptic.distance_au.expect("distance should exist"),
+                sample.expected_distance_au,
+                sample.max_distance_delta_au,
+            );
+        }
+    }
+
+    #[test]
     fn metadata_identifies_source_backed_planet_vsop87b_paths() {
         let metadata = Vsop87Backend::new().metadata();
         assert!(metadata
