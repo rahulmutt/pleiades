@@ -79,6 +79,7 @@ use pleiades_jpl::{
     jpl_snapshot_request_policy_summary_for_report,
     reference_asteroid_equatorial_evidence_summary_for_report, reference_asteroid_evidence,
     reference_asteroid_evidence_summary_for_report, reference_asteroids,
+    reference_snapshot_batch_parity_summary_for_report,
     reference_snapshot_equatorial_parity_summary_for_report, reference_snapshot_summary_for_report,
     JplSnapshotBackend,
 };
@@ -3010,6 +3011,8 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_batch_parity_summary_for_report());
+    text.push('\n');
     text.push_str(&comparison_snapshot_summary_for_report());
     text.push('\n');
     text.push_str(&comparison_snapshot_source_summary().summary_line());
@@ -3386,6 +3389,8 @@ fn render_release_summary_text() -> String {
         ));
         text.push('\n');
         text.push_str(&comparison_snapshot_summary_for_report());
+        text.push('\n');
+        text.push_str(&reference_snapshot_batch_parity_summary_for_report());
         text.push('\n');
     }
     text.push_str("JPL interpolation evidence: ");
@@ -6380,6 +6385,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&reference_snapshot_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_equatorial_parity_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_batch_parity_summary_for_report());
     text.push('\n');
     text.push_str(&comparison_snapshot_summary_for_report());
     text.push('\n');

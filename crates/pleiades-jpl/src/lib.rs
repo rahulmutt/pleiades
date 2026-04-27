@@ -183,6 +183,162 @@ pub fn reference_snapshot_equatorial_parity_summary_for_report() -> String {
     }
 }
 
+/// A compact coverage summary for the checked-in reference snapshot in mixed-frame batch parity mode.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ReferenceSnapshotBatchParitySummary {
+    /// Reference snapshot coverage exercised through the batch regression.
+    pub snapshot: ReferenceSnapshotSummary,
+    /// Number of ecliptic requests in the mixed-frame batch regression.
+    pub ecliptic_request_count: usize,
+    /// Number of equatorial requests in the mixed-frame batch regression.
+    pub equatorial_request_count: usize,
+    /// Number of exact-quality results observed in the batch regression.
+    pub exact_count: usize,
+    /// Number of interpolated-quality results observed in the batch regression.
+    pub interpolated_count: usize,
+    /// Number of approximate-quality results observed in the batch regression.
+    pub approximate_count: usize,
+    /// Number of unknown-quality results observed in the batch regression.
+    pub unknown_count: usize,
+}
+
+/// Returns a compact mixed-frame batch parity summary for the checked-in reference snapshot.
+pub fn reference_snapshot_batch_parity_summary() -> Option<ReferenceSnapshotBatchParitySummary> {
+    let snapshot = reference_snapshot_summary()?;
+    let backend = JplSnapshotBackend;
+    let requests = reference_snapshot()
+        .iter()
+        .enumerate()
+        .map(|(index, entry)| EphemerisRequest {
+            body: entry.body.clone(),
+            instant: entry.epoch,
+            observer: None,
+            frame: if index % 2 == 0 {
+                CoordinateFrame::Ecliptic
+            } else {
+                CoordinateFrame::Equatorial
+            },
+            zodiac_mode: ZodiacMode::Tropical,
+            apparent: Apparentness::Mean,
+        })
+        .collect::<Vec<_>>();
+    let results = backend.positions(&requests).ok()?;
+
+    if results.len() != requests.len() {
+        return None;
+    }
+
+    let mut ecliptic_request_count = 0usize;
+    let mut equatorial_request_count = 0usize;
+    let mut exact_count = 0usize;
+    let mut interpolated_count = 0usize;
+    let mut approximate_count = 0usize;
+    let mut unknown_count = 0usize;
+
+    for ((request, result), entry) in requests
+        .iter()
+        .zip(results.iter())
+        .zip(reference_snapshot())
+    {
+        let single = backend.position(request).ok()?;
+        if single != *result {
+            return None;
+        }
+
+        if result.body != entry.body
+            || result.instant != entry.epoch
+            || result.frame != request.frame
+        {
+            return None;
+        }
+
+        let ecliptic = result
+            .ecliptic
+            .as_ref()
+            .expect("reference snapshot batch parity rows should include ecliptic coordinates");
+        if *ecliptic != entry.ecliptic() {
+            return None;
+        }
+
+        if request.frame == CoordinateFrame::Equatorial {
+            let expected_equatorial = ecliptic.to_equatorial(result.instant.mean_obliquity());
+            let equatorial = result
+                .equatorial
+                .as_ref()
+                .expect("equatorial batch parity rows should include equatorial coordinates");
+            if *equatorial != expected_equatorial {
+                return None;
+            }
+        }
+
+        match request.frame {
+            CoordinateFrame::Ecliptic => ecliptic_request_count += 1,
+            CoordinateFrame::Equatorial => equatorial_request_count += 1,
+            _ => return None,
+        }
+
+        match result.quality {
+            QualityAnnotation::Exact => exact_count += 1,
+            QualityAnnotation::Interpolated => interpolated_count += 1,
+            QualityAnnotation::Approximate => approximate_count += 1,
+            QualityAnnotation::Unknown => unknown_count += 1,
+            _ => unknown_count += 1,
+        }
+    }
+
+    Some(ReferenceSnapshotBatchParitySummary {
+        snapshot,
+        ecliptic_request_count,
+        equatorial_request_count,
+        exact_count,
+        interpolated_count,
+        approximate_count,
+        unknown_count,
+    })
+}
+
+impl ReferenceSnapshotBatchParitySummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "JPL reference snapshot batch parity: {} rows across {} bodies and {} epochs ({}..{}); bodies: {}; frame mix: {} ecliptic, {} equatorial; quality counts: Exact={}, Interpolated={}, Approximate={}, Unknown={}; batch/single parity preserved",
+            self.snapshot.row_count,
+            self.snapshot.body_count,
+            self.snapshot.epoch_count,
+            format_instant(self.snapshot.earliest_epoch),
+            format_instant(self.snapshot.latest_epoch),
+            format_bodies(self.snapshot.bodies),
+            self.ecliptic_request_count,
+            self.equatorial_request_count,
+            self.exact_count,
+            self.interpolated_count,
+            self.approximate_count,
+            self.unknown_count,
+        )
+    }
+}
+
+impl fmt::Display for ReferenceSnapshotBatchParitySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Formats the checked-in reference snapshot batch parity summary for release-facing reporting.
+pub fn format_reference_snapshot_batch_parity_summary(
+    summary: &ReferenceSnapshotBatchParitySummary,
+) -> String {
+    summary.summary_line()
+}
+
+/// Returns the release-facing reference snapshot batch parity summary string.
+pub fn reference_snapshot_batch_parity_summary_for_report() -> String {
+    match reference_snapshot_batch_parity_summary() {
+        Some(summary) => format_reference_snapshot_batch_parity_summary(&summary),
+        None => "JPL reference snapshot batch parity: unavailable".to_string(),
+    }
+}
+
 impl ReferenceSnapshotSummary {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
@@ -758,9 +914,10 @@ pub fn independent_holdout_manifest_summary_for_report() -> String {
 /// Returns the combined snapshot evidence summary used by validation and release reports.
 pub fn jpl_snapshot_evidence_summary_for_report() -> String {
     format!(
-        "{} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {}",
+        "{} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {}",
         reference_snapshot_summary_for_report(),
         reference_snapshot_equatorial_parity_summary_for_report(),
+        reference_snapshot_batch_parity_summary_for_report(),
         reference_snapshot_source_summary_for_report(),
         reference_snapshot_manifest_summary_for_report(),
         reference_asteroid_evidence_summary_for_report(),
@@ -2617,6 +2774,39 @@ mod tests {
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             reference_snapshot_equatorial_parity_summary_for_report(),
+            summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn reference_snapshot_batch_parity_summary_reports_the_expected_coverage() {
+        let summary = reference_snapshot_batch_parity_summary()
+            .expect("reference snapshot batch parity summary should exist");
+        assert_eq!(summary.snapshot.row_count, 46);
+        assert_eq!(summary.snapshot.body_count, 15);
+        assert_eq!(summary.snapshot.bodies, reference_bodies());
+        assert_eq!(summary.snapshot.epoch_count, 6);
+        assert_eq!(
+            summary.snapshot.earliest_epoch.julian_day.days(),
+            2_378_499.0
+        );
+        assert_eq!(summary.snapshot.latest_epoch.julian_day.days(), 2_634_167.0);
+        assert_eq!(summary.ecliptic_request_count, 23);
+        assert_eq!(summary.equatorial_request_count, 23);
+        assert_eq!(summary.exact_count, 46);
+        assert_eq!(summary.interpolated_count, 0);
+        assert_eq!(summary.approximate_count, 0);
+        assert_eq!(summary.unknown_count, 0);
+        assert_eq!(
+            summary.summary_line(),
+            format!(
+                "JPL reference snapshot batch parity: 46 rows across 15 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: {}; frame mix: 23 ecliptic, 23 equatorial; quality counts: Exact=46, Interpolated=0, Approximate=0, Unknown=0; batch/single parity preserved",
+                format_bodies(reference_bodies())
+            )
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            reference_snapshot_batch_parity_summary_for_report(),
             summary.summary_line()
         );
     }
