@@ -601,10 +601,47 @@ pub struct ArtifactDecodeBenchmarkReport {
     pub elapsed: std::time::Duration,
 }
 
+/// Errors returned when a packaged-artifact decode benchmark report is
+/// internally inconsistent.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ArtifactDecodeBenchmarkReportValidationError {
+    /// The artifact label was blank.
+    BlankArtifactLabel,
+    /// The source/provenance summary was blank.
+    BlankSource,
+    /// The benchmark was configured with zero rounds.
+    ZeroRounds,
+    /// The benchmark was configured with zero decodes per round.
+    ZeroSampleCount,
+    /// The encoded artifact size was zero bytes.
+    ZeroEncodedBytes,
+}
+
+impl ArtifactDecodeBenchmarkReportValidationError {
+    /// Returns the stable summary label for the validation failure.
+    pub const fn label(&self) -> &'static str {
+        match self {
+            Self::BlankArtifactLabel => "blank artifact label",
+            Self::BlankSource => "blank source",
+            Self::ZeroRounds => "zero rounds",
+            Self::ZeroSampleCount => "zero decodes per round",
+            Self::ZeroEncodedBytes => "zero encoded bytes",
+        }
+    }
+}
+
+impl fmt::Display for ArtifactDecodeBenchmarkReportValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.label())
+    }
+}
+
+impl std::error::Error for ArtifactDecodeBenchmarkReportValidationError {}
+
 impl ArtifactDecodeBenchmarkReport {
     /// Returns the average number of nanoseconds per artifact decode.
     pub fn nanoseconds_per_decode(&self) -> f64 {
-        let total_decodes = (self.rounds * self.sample_count) as f64;
+        let total_decodes = self.rounds as f64 * self.sample_count as f64;
         if total_decodes == 0.0 {
             return 0.0;
         }
@@ -614,12 +651,33 @@ impl ArtifactDecodeBenchmarkReport {
 
     /// Returns the average throughput in artifact decodes per second.
     pub fn decodes_per_second(&self) -> f64 {
-        let total_decodes = (self.rounds * self.sample_count) as f64;
+        let total_decodes = self.rounds as f64 * self.sample_count as f64;
         if self.elapsed.is_zero() || total_decodes == 0.0 {
             return 0.0;
         }
 
         total_decodes / self.elapsed.as_secs_f64()
+    }
+
+    /// Validates the decoded benchmark metadata before the report is formatted.
+    pub fn validate(&self) -> Result<(), ArtifactDecodeBenchmarkReportValidationError> {
+        if self.artifact_label.trim().is_empty() {
+            return Err(ArtifactDecodeBenchmarkReportValidationError::BlankArtifactLabel);
+        }
+        if self.source.trim().is_empty() {
+            return Err(ArtifactDecodeBenchmarkReportValidationError::BlankSource);
+        }
+        if self.rounds == 0 {
+            return Err(ArtifactDecodeBenchmarkReportValidationError::ZeroRounds);
+        }
+        if self.sample_count == 0 {
+            return Err(ArtifactDecodeBenchmarkReportValidationError::ZeroSampleCount);
+        }
+        if self.encoded_bytes == 0 {
+            return Err(ArtifactDecodeBenchmarkReportValidationError::ZeroEncodedBytes);
+        }
+
+        Ok(())
     }
 }
 
@@ -752,14 +810,17 @@ pub(crate) fn benchmark_packaged_artifact_decode(
     }
     let elapsed = start.elapsed();
 
-    Ok(ArtifactDecodeBenchmarkReport {
+    let report = ArtifactDecodeBenchmarkReport {
         artifact_label: artifact.header.generation_label.clone(),
         source: artifact.header.source.clone(),
         rounds,
         sample_count: 1,
         encoded_bytes: encoded.len(),
         elapsed,
-    })
+    };
+    report.validate()?;
+
+    Ok(report)
 }
 
 pub(crate) fn packaged_artifact_corpus() -> ValidationCorpus {
@@ -1627,6 +1688,8 @@ pub enum ArtifactInspectionError {
     Validation(pleiades_core::EphemerisError),
     /// Validation failure while checking the aggregated artifact boundary envelope.
     BoundaryEnvelope(ArtifactBoundaryEnvelopeSummaryValidationError),
+    /// Validation failure while checking the packaged-artifact decode benchmark summary.
+    DecodeBenchmark(ArtifactDecodeBenchmarkReportValidationError),
 }
 
 impl core::fmt::Display for ArtifactInspectionError {
@@ -1635,6 +1698,7 @@ impl core::fmt::Display for ArtifactInspectionError {
             Self::Compression(error) => write!(f, "{error}"),
             Self::Validation(error) => write!(f, "{error}"),
             Self::BoundaryEnvelope(error) => write!(f, "{error}"),
+            Self::DecodeBenchmark(error) => write!(f, "{error}"),
         }
     }
 }
@@ -1653,16 +1717,35 @@ impl From<pleiades_core::EphemerisError> for ArtifactInspectionError {
     }
 }
 
+impl From<ArtifactDecodeBenchmarkReportValidationError> for ArtifactInspectionError {
+    fn from(error: ArtifactDecodeBenchmarkReportValidationError) -> Self {
+        Self::DecodeBenchmark(error)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
         ArtifactBodyInspection, ArtifactBoundaryEnvelopeSummary,
-        ArtifactBoundaryEnvelopeSummaryValidationError,
+        ArtifactBoundaryEnvelopeSummaryValidationError, ArtifactDecodeBenchmarkReport,
+        ArtifactDecodeBenchmarkReportValidationError,
     };
     use pleiades_core::{CelestialBody, Instant, JulianDay, TimeScale};
+    use std::time::Duration;
 
     fn instant(days: f64) -> Instant {
         Instant::new(JulianDay::from_days(days), TimeScale::Tt)
+    }
+
+    fn decode_benchmark_report() -> ArtifactDecodeBenchmarkReport {
+        ArtifactDecodeBenchmarkReport {
+            artifact_label: "packaged artifact".to_string(),
+            source: "public reference snapshot".to_string(),
+            rounds: 2,
+            sample_count: 3,
+            encoded_bytes: 128,
+            elapsed: Duration::from_millis(5),
+        }
     }
 
     #[test]
@@ -1766,6 +1849,54 @@ mod tests {
                 has_sum_sq: false,
                 has_max: false,
             }
+        ));
+    }
+
+    #[test]
+    fn decode_benchmark_report_validate_accepts_compact_metadata() {
+        let report = decode_benchmark_report();
+
+        assert!(report.validate().is_ok());
+        assert!((report.nanoseconds_per_decode() - 833_333.3333333334).abs() < 1e-9);
+        assert!((report.decodes_per_second() - 1_200.0).abs() < 1e-9);
+        assert!(report.to_string().contains("Artifact: packaged artifact"));
+    }
+
+    #[test]
+    fn decode_benchmark_report_validate_rejects_invalid_metadata() {
+        let mut report = decode_benchmark_report();
+        report.artifact_label = "   ".to_string();
+        assert!(matches!(
+            report.validate(),
+            Err(ArtifactDecodeBenchmarkReportValidationError::BlankArtifactLabel)
+        ));
+
+        let mut report = decode_benchmark_report();
+        report.source = "\t".to_string();
+        assert!(matches!(
+            report.validate(),
+            Err(ArtifactDecodeBenchmarkReportValidationError::BlankSource)
+        ));
+
+        let mut report = decode_benchmark_report();
+        report.rounds = 0;
+        assert!(matches!(
+            report.validate(),
+            Err(ArtifactDecodeBenchmarkReportValidationError::ZeroRounds)
+        ));
+
+        let mut report = decode_benchmark_report();
+        report.sample_count = 0;
+        assert!(matches!(
+            report.validate(),
+            Err(ArtifactDecodeBenchmarkReportValidationError::ZeroSampleCount)
+        ));
+
+        let mut report = decode_benchmark_report();
+        report.encoded_bytes = 0;
+        assert!(matches!(
+            report.validate(),
+            Err(ArtifactDecodeBenchmarkReportValidationError::ZeroEncodedBytes)
         ));
     }
 }

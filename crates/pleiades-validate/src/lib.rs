@@ -19,7 +19,8 @@ mod house_validation;
 
 pub use artifact::{
     artifact_boundary_envelope_summary_for_report, render_artifact_report, render_artifact_summary,
-    ArtifactBodyInspection, ArtifactDecodeBenchmarkReport, ArtifactInspectionReport,
+    ArtifactBodyInspection, ArtifactDecodeBenchmarkReport,
+    ArtifactDecodeBenchmarkReportValidationError, ArtifactInspectionReport,
 };
 pub use chart_benchmark::{
     benchmark_chart_backend, chart_benchmark_corpus_summary, ChartBenchmarkReport,

@@ -44,7 +44,7 @@ Turn the current compressed-artifact scaffolding into a reproducible packaged-da
    - Compare decoded positions and speeds against generation sources.
    - Benchmark artifact size, lookup latency, batch throughput, and memory footprint.
    - Include measured limits in artifact metadata and validation reports.
-   - Progress note: the artifact inspection report now also renders a packaged-artifact decode benchmark slice alongside the existing comparison envelope and boundary checks, so the compact validation path surfaces a concrete decode-cost measurement without waiting for a separate benchmark command. The same artifact inspection path now also surfaces an aggregate packaged-artifact boundary envelope across all bundled bodies, which makes segment-edge continuity easier to audit in the compact and detailed validation views.
+   - Progress note: the artifact inspection report now also renders a packaged-artifact decode benchmark slice alongside the existing comparison envelope and boundary checks, so the compact validation path surfaces a concrete decode-cost measurement without waiting for a separate benchmark command. The same artifact inspection path now also surfaces an aggregate packaged-artifact boundary envelope across all bundled bodies, which makes segment-edge continuity easier to audit in the compact and detailed validation views. The packaged-artifact decode benchmark metadata now also validates its label, source, round, sample-count, and encoded-size fields before the report path formats it, which keeps the release-facing benchmark line from admitting malformed provenance or zero-sized coverage.
 
 5. Upgrade `pleiades-data` to consume generated artifacts.
    - Bundle or fixture a small deterministic artifact for tests.
