@@ -10239,6 +10239,8 @@ mod tests {
         assert!(rendered.contains("Target compatibility catalog:"));
         assert!(rendered.contains("Release-specific coverage beyond baseline:"));
         assert!(rendered.contains("Alias mappings for built-in house systems:"));
+        assert!(rendered.contains("Source-label aliases for built-in house systems:"));
+        assert!(rendered.contains("Source-label aliases for built-in ayanamsas:"));
         assert!(rendered.contains("Polich-Page \"topocentric\" table of houses"));
         assert!(rendered.contains("Polich Page"));
         assert!(rendered.contains("T Polich/Page (\"topocentric\")"));
