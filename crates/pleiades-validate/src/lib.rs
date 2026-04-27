@@ -361,6 +361,42 @@ impl fmt::Display for ComparisonSummary {
     }
 }
 
+/// Summary statistics for the comparison-audit gate over a comparison run.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct ComparisonAuditSummary {
+    body_count: usize,
+    within_tolerance_body_count: usize,
+    outside_tolerance_body_count: usize,
+    regression_count: usize,
+}
+
+impl ComparisonAuditSummary {
+    fn status_label(self) -> &'static str {
+        if self.regression_count == 0 {
+            "clean"
+        } else {
+            "regressions found"
+        }
+    }
+
+    fn summary_line(self) -> String {
+        format!(
+            "status={}, bodies checked={}, within tolerance bodies={}, outside tolerance bodies={}, notable regressions={}",
+            self.status_label(),
+            self.body_count,
+            self.within_tolerance_body_count,
+            self.outside_tolerance_body_count,
+            self.regression_count,
+        )
+    }
+}
+
+impl fmt::Display for ComparisonAuditSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Summary statistics for a single body within a comparison run.
 #[derive(Clone, Debug, PartialEq)]
 pub struct BodyComparisonSummary {
@@ -3480,7 +3516,7 @@ fn render_release_summary_text() -> String {
             .iter()
             .filter(|summary| summary.outside_tolerance_body_count > 0)
             .count();
-        let (_, _, _, audit_regression_count) = comparison_audit_totals(&report.comparison);
+        let comparison_audit = comparison_audit_summary(&report.comparison);
         text.push_str("Comparison envelope: ");
         text.push_str(&format_comparison_envelope_for_report(
             &report.comparison.summary,
@@ -3527,8 +3563,10 @@ fn render_release_summary_text() -> String {
         text.push_str(&report.comparison.notable_regressions().len().to_string());
         text.push_str(" notable regressions, ");
         text.push_str(&tolerance_outside_bodies.to_string());
-        text.push_str(" outside-tolerance bodies, comparison audit ");
-        text.push_str(comparison_audit_result_label(audit_regression_count));
+        text.push_str(" outside-tolerance bodies");
+        text.push('\n');
+        text.push_str("Comparison audit: ");
+        text.push_str(&comparison_audit.summary_line());
         text.push('\n');
         text.push_str("House validation corpus: ");
         text.push_str(&report.house_validation.summary_line());
@@ -5008,7 +5046,7 @@ pub fn render_comparison_report() -> Result<String, EphemerisError> {
     Ok(compare_backends(&reference, &candidate, &corpus)?.to_string())
 }
 
-fn comparison_audit_totals(report: &ComparisonReport) -> (usize, usize, usize, usize) {
+fn comparison_audit_summary(report: &ComparisonReport) -> ComparisonAuditSummary {
     let tolerance_summaries = report.tolerance_summaries();
     let body_count = tolerance_summaries.len();
     let within_tolerance_body_count = tolerance_summaries
@@ -5018,11 +5056,22 @@ fn comparison_audit_totals(report: &ComparisonReport) -> (usize, usize, usize, u
     let outside_tolerance_body_count = body_count.saturating_sub(within_tolerance_body_count);
     let regression_count = report.notable_regressions().len();
 
-    (
+    ComparisonAuditSummary {
         body_count,
         within_tolerance_body_count,
         outside_tolerance_body_count,
         regression_count,
+    }
+}
+
+fn comparison_audit_totals(report: &ComparisonReport) -> (usize, usize, usize, usize) {
+    let summary = comparison_audit_summary(report);
+
+    (
+        summary.body_count,
+        summary.within_tolerance_body_count,
+        summary.outside_tolerance_body_count,
+        summary.regression_count,
     )
 }
 
@@ -5634,6 +5683,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let request_policy = current_request_policy_summary();
     let comparison_regressions = report.comparison.notable_regressions().len();
     let mut text = String::new();
+    let comparison_audit = comparison_audit_summary(&report.comparison);
 
     let _ = writeln!(text, "Validation report summary");
     let _ = writeln!(
@@ -5771,6 +5821,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         text,
         "  regression bodies: {}",
         format_regression_bodies(&report.comparison.notable_regressions())
+    );
+    let _ = writeln!(
+        text,
+        "Comparison audit: {}",
+        comparison_audit.summary_line()
     );
     let _ = writeln!(text);
     let _ = writeln!(text, "JPL interpolation quality");
@@ -6558,18 +6613,9 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&comparison_snapshot_manifest_summary_for_report());
     text.push('\n');
     if let Ok(report) = build_validation_report(0) {
-        let (_, within_tolerance_body_count, outside_tolerance_body_count, regression_count) =
-            comparison_audit_totals(&report.comparison);
-        text.push_str("Comparison audit: compare-backends-audit; status=");
-        text.push_str(comparison_audit_result_label(regression_count));
-        text.push_str(", bodies checked=");
-        text.push_str(&report.comparison.body_summaries().len().to_string());
-        text.push_str(", within tolerance bodies=");
-        text.push_str(&within_tolerance_body_count.to_string());
-        text.push_str(", outside tolerance bodies=");
-        text.push_str(&outside_tolerance_body_count.to_string());
-        text.push_str(", notable regressions=");
-        text.push_str(&regression_count.to_string());
+        let comparison_audit = comparison_audit_summary(&report.comparison);
+        text.push_str("Comparison audit: compare-backends-audit; ");
+        text.push_str(&comparison_audit.summary_line());
         text.push('\n');
     }
     text.push_str("Time-scale policy: ");
@@ -8955,6 +9001,22 @@ mod tests {
     }
 
     #[test]
+    fn comparison_audit_summary_has_a_displayable_summary_line() {
+        let summary = ComparisonAuditSummary {
+            body_count: 10,
+            within_tolerance_body_count: 4,
+            outside_tolerance_body_count: 6,
+            regression_count: 12,
+        };
+
+        assert_eq!(summary.summary_line(), summary.to_string());
+        assert_eq!(
+            summary.summary_line(),
+            "status=regressions found, bodies checked=10, within tolerance bodies=4, outside tolerance bodies=6, notable regressions=12"
+        );
+    }
+
+    #[test]
     fn comparison_audit_command_reports_regressions() {
         let error = render_cli(&["compare-backends-audit"])
             .expect_err("comparison audit should fail while regressions remain");
@@ -10537,7 +10599,7 @@ mod tests {
         assert!(rendered.contains("evidence=10 bodies, 41 samples"));
         assert!(rendered.contains("Body-class tolerance posture:"));
         assert!(rendered.contains("Expected tolerance status:"));
-        assert!(rendered.contains("comparison audit regressions found"));
+        assert!(rendered.contains("Comparison audit: status=regressions found, bodies checked="));
         assert!(rendered.contains("JPL interpolation evidence:"));
         assert!(rendered.contains("JPL independent hold-out:"));
         assert!(rendered.contains("JPL independent hold-out equatorial parity:"));
