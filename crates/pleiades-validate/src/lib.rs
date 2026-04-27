@@ -2852,7 +2852,7 @@ fn verify_house_system_aliases(
             return Err(EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,
                 format!(
-                    "compatibility profile house-system alias mismatch: canonical label '{}' should resolve to {:?}",
+                    "compatibility profile house-system alias mismatch: canonical label '{}' should resolve to {}",
                     entry.canonical_name, entry.system
                 ),
             ));
@@ -2880,7 +2880,7 @@ fn verify_house_system_aliases(
                 return Err(EphemerisError::new(
                     EphemerisErrorKind::InvalidRequest,
                     format!(
-                        "compatibility profile house-system alias mismatch: alias '{}' should resolve to {:?}",
+                        "compatibility profile house-system alias mismatch: alias '{}' should resolve to {}",
                         alias, entry.system
                     ),
                 ));
@@ -2889,6 +2889,12 @@ fn verify_house_system_aliases(
     }
 
     Ok(labels_checked)
+}
+
+fn format_ayanamsa_label(ayanamsa: &pleiades_core::Ayanamsa) -> String {
+    pleiades_ayanamsa::descriptor(ayanamsa)
+        .map(|descriptor| descriptor.canonical_name.to_owned())
+        .unwrap_or_else(|| ayanamsa.to_string())
 }
 
 fn verify_ayanamsa_aliases(
@@ -2920,8 +2926,9 @@ fn verify_ayanamsa_aliases(
             return Err(EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,
                 format!(
-                    "compatibility profile ayanamsa alias mismatch: canonical label '{}' should resolve to {:?}",
-                    entry.canonical_name, entry.ayanamsa
+                    "compatibility profile ayanamsa alias mismatch: canonical label '{}' should resolve to {}",
+                    entry.canonical_name,
+                    format_ayanamsa_label(&entry.ayanamsa)
                 ),
             ));
         }
@@ -2948,8 +2955,9 @@ fn verify_ayanamsa_aliases(
                 return Err(EphemerisError::new(
                     EphemerisErrorKind::InvalidRequest,
                     format!(
-                        "compatibility profile ayanamsa alias mismatch: alias '{}' should resolve to {:?}",
-                        alias, entry.ayanamsa
+                        "compatibility profile ayanamsa alias mismatch: alias '{}' should resolve to {}",
+                        alias,
+                        format_ayanamsa_label(&entry.ayanamsa)
                     ),
                 ));
             }
@@ -10724,6 +10732,44 @@ mod tests {
             "case-insensitive duplicate aliases within one descriptor should remain allowed",
         );
         assert_eq!(checked, 2);
+    }
+
+    #[test]
+    fn compatibility_profile_verification_uses_display_labels_for_alias_mismatches() {
+        let house_descriptors = [pleiades_houses::HouseSystemDescriptor::new(
+            HouseSystem::EqualAries,
+            "Equal (MC)",
+            &[],
+            "Quadrant system used for display-label mismatch coverage.",
+            false,
+        )];
+
+        let error = verify_house_system_aliases(&house_descriptors)
+            .expect_err("mismatched house labels should fail profile verification");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("canonical label 'Equal (MC)' should resolve to Equal (1=Aries)"));
+        assert!(!error.message.contains("EqualMidheaven"));
+        assert!(!error.message.contains("EqualAries"));
+
+        let ayanamsa_descriptors = [pleiades_ayanamsa::AyanamsaDescriptor::new(
+            Ayanamsa::TrueCitra,
+            "True Chitra",
+            &[],
+            "Sidereal mode used for display-label mismatch coverage.",
+            Some(JulianDay::from_days(2_451_545.0)),
+            Some(pleiades_core::Angle::from_degrees(23.0)),
+        )];
+
+        let error = verify_ayanamsa_aliases(&ayanamsa_descriptors)
+            .expect_err("mismatched ayanamsa labels should fail profile verification");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("canonical label 'True Chitra' should resolve to True Citra"));
+        assert!(!error.message.contains("TrueChitra"));
+        assert!(!error.message.contains("TrueCitra"));
     }
 
     #[test]
