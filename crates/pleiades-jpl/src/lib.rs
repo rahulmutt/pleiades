@@ -2292,7 +2292,7 @@ impl SnapshotState {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 struct SnapshotLoadError {
     line_number: usize,
     kind: SnapshotLoadErrorKind,
@@ -2310,12 +2310,13 @@ impl fmt::Display for SnapshotLoadError {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 enum SnapshotLoadErrorKind {
     MissingColumn { column: &'static str },
     UnexpectedExtraColumns,
     UnsupportedBody { body: String },
     InvalidNumber { column: &'static str, value: String },
+    DuplicateEntry { body: String, epoch: Instant },
 }
 
 impl fmt::Display for SnapshotLoadErrorKind {
@@ -2326,6 +2327,13 @@ impl fmt::Display for SnapshotLoadErrorKind {
             Self::UnsupportedBody { body } => write!(f, "unsupported body '{body}'"),
             Self::InvalidNumber { column, value } => {
                 write!(f, "invalid {column} value '{value}'")
+            }
+            Self::DuplicateEntry { body, epoch } => {
+                write!(
+                    f,
+                    "duplicate row for body '{body}' at {}",
+                    format_instant(*epoch)
+                )
             }
         }
     }
@@ -2779,12 +2787,29 @@ fn load_snapshot() -> Result<Vec<SnapshotEntry>, SnapshotLoadError> {
 }
 
 fn load_snapshot_from_str(source: &str) -> Result<Vec<SnapshotEntry>, SnapshotLoadError> {
+    let mut seen_entries = BTreeSet::new();
+
     source
         .lines()
         .enumerate()
-        .map(|(index, line)| parse_snapshot_line(index + 1, line))
+        .map(|(index, line)| {
+            parse_snapshot_line(index + 1, line).map(|entry| entry.map(|entry| (index + 1, entry)))
+        })
         .try_fold(Vec::new(), |mut entries, record| {
-            if let Some(entry) = record? {
+            if let Some((line_number, entry)) = record? {
+                let entry_key = (
+                    entry.body.to_string(),
+                    entry.epoch.julian_day.days().to_bits(),
+                );
+                if !seen_entries.insert(entry_key.clone()) {
+                    return Err(SnapshotLoadError::new(
+                        line_number,
+                        SnapshotLoadErrorKind::DuplicateEntry {
+                            body: entry_key.0,
+                            epoch: entry.epoch,
+                        },
+                    ));
+                }
                 entries.push(entry);
             }
             Ok(entries)
@@ -3806,6 +3831,16 @@ mod tests {
         let error = load_snapshot_from_str("2451545.0,Comet,1.0,2.0,3.0\n")
             .expect_err("unsupported bodies should be reported");
         assert!(format!("{error}").contains("unsupported body 'Comet'"));
+    }
+
+    #[test]
+    fn parser_rejects_duplicate_body_epoch_rows() {
+        let error =
+            load_snapshot_from_str("2451545.0,Sun,1.0,2.0,3.0\n2451545.0,Sun,4.0,5.0,6.0\n")
+                .expect_err("duplicate body/epoch pairs should be reported");
+        assert!(format!("{error}").contains("line 2"));
+        assert!(format!("{error}").contains("duplicate row for body 'Sun'"));
+        assert!(format!("{error}").contains("JD 2451545.0 (TDB)"));
     }
 
     #[test]
