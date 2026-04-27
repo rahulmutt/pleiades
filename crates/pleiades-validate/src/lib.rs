@@ -18,8 +18,8 @@ mod chart_benchmark;
 mod house_validation;
 
 pub use artifact::{
-    render_artifact_report, render_artifact_summary, ArtifactBodyInspection,
-    ArtifactDecodeBenchmarkReport, ArtifactInspectionReport,
+    artifact_boundary_envelope_summary_for_report, render_artifact_report, render_artifact_summary,
+    ArtifactBodyInspection, ArtifactDecodeBenchmarkReport, ArtifactInspectionReport,
 };
 pub use chart_benchmark::{
     benchmark_chart_backend, chart_benchmark_corpus_summary, ChartBenchmarkReport,
@@ -3007,6 +3007,13 @@ fn render_release_notes_summary_text() -> String {
     text.push_str("Release notes: release-notes\n");
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
+    text.push_str("Artifact boundary envelope: ");
+    text.push_str(
+        &artifact_boundary_envelope_summary_for_report()
+            .map(|summary| summary.summary_line())
+            .unwrap_or_else(|_| "unavailable".to_string()),
+    );
+    text.push('\n');
     text.push_str("Artifact summary: artifact-summary / artifact-posture-summary\n");
     text.push_str("Workspace audit summary: workspace-audit-summary\n");
     text.push_str("Artifact validation: validate-artifact\n");
@@ -3375,6 +3382,13 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str("Packaged frame treatment: ");
     text.push_str(&format_packaged_frame_treatment_summary());
+    text.push('\n');
+    text.push_str("Artifact boundary envelope: ");
+    text.push_str(
+        &artifact_boundary_envelope_summary_for_report()
+            .map(|summary| summary.summary_line())
+            .unwrap_or_else(|_| "unavailable".to_string()),
+    );
     text.push('\n');
     text.push_str("Release bundle verification: verify-release-bundle\n");
     text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
@@ -9993,6 +10007,7 @@ mod tests {
         assert!(rendered.contains("Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Mercury, Moon, Sun, Venus, Jupiter, Saturn, Uranus, Neptune, Pluto"));
         assert!(rendered
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
+        assert!(rendered.contains("Artifact boundary envelope:"));
         assert!(rendered.contains("Release checklist summary: release-checklist-summary"));
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
         assert!(
@@ -10175,6 +10190,7 @@ mod tests {
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
         assert!(rendered
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
+        assert!(rendered.contains("Artifact boundary envelope:"));
         assert!(rendered.contains("Release checklist summary: release-checklist-summary"));
         assert!(rendered.contains("Release gate reminders:"));
         assert!(rendered.contains("verify-compatibility-profile"));

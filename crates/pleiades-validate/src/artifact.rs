@@ -268,6 +268,15 @@ pub fn render_artifact_report() -> Result<String, ArtifactInspectionError> {
     Ok(report.to_string())
 }
 
+/// Returns the aggregate packaged-artifact boundary envelope used by reports.
+pub fn artifact_boundary_envelope_summary_for_report(
+) -> Result<ArtifactBoundaryEnvelopeSummary, ArtifactInspectionError> {
+    let artifact = packaged_artifact();
+    let encoded = artifact.encode()?;
+    let report = ArtifactInspectionReport::from_artifact(artifact, encoded.len())?;
+    Ok(artifact_boundary_envelope_summary(&report))
+}
+
 /// Renders a compact summary of the bundled artifact validation report.
 pub fn render_artifact_summary() -> Result<String, ArtifactInspectionError> {
     let artifact = packaged_artifact();
