@@ -9471,6 +9471,8 @@ mod tests {
         assert!(rendered.contains("Carter's poli-equatorial"));
         assert!(rendered.contains("Krusinski/Pisa/Goelzer house system"));
         assert!(rendered.contains("Babylonian Huber"));
+        assert!(rendered.contains("Babylonian (True Topc)"));
+        assert!(rendered.contains("Babylonian (True Obs)"));
         assert!(rendered.contains("Galactic Equator (True)"));
         assert!(rendered.contains("Valens Moon ayanamsa"));
     }
@@ -9545,6 +9547,8 @@ mod tests {
         assert!(rendered.contains("X axial rotation system/ Meridian houses"));
         assert!(rendered.contains("Zariel"));
         assert!(rendered.contains("Babylonian Huber"));
+        assert!(rendered.contains("Babylonian (True Topc)"));
+        assert!(rendered.contains("Babylonian (True Obs)"));
         assert!(rendered.contains("Galactic Equator (True)"));
         assert!(rendered.contains("True galactic equator"));
         assert!(rendered.contains("Galactic equator true"));
