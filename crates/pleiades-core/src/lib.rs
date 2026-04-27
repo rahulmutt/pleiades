@@ -154,6 +154,17 @@ impl<B: EphemerisBackend> ChartEngine<B> {
         Ok(metadata)
     }
 
+    /// Validates a chart request against the backend metadata without querying positions.
+    ///
+    /// This is the façade-level counterpart to
+    /// [`ChartRequest::validate_against_metadata`], which lets callers preflight
+    /// chart shape, house-observer policy, zodiac routing, frame support, and
+    /// body coverage directly from the engine when they want to separate
+    /// validation from chart assembly.
+    pub fn validate_chart_request(&self, request: &ChartRequest) -> Result<(), EphemerisError> {
+        request.validate_against_metadata(&self.backend.metadata())
+    }
+
     /// Returns whether the backend supports a body.
     pub fn supports_body(&self, body: CelestialBody) -> bool {
         self.backend.supports_body(body)
@@ -233,6 +244,33 @@ mod tests {
         assert_eq!(
             engine.position(&request).unwrap().backend_id.as_str(),
             "simple"
+        );
+    }
+
+    #[test]
+    fn validate_chart_request_reuses_backend_metadata_guardrails() {
+        let engine = ChartEngine::new(SimpleBackend);
+        let instant = Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt);
+
+        let supported = ChartRequest::new(instant).with_bodies(vec![CelestialBody::Sun]);
+        assert!(engine.validate_chart_request(&supported).is_ok());
+
+        let unsupported = ChartRequest::new(instant);
+        let error = engine
+            .validate_chart_request(&unsupported)
+            .expect_err("chart request should reject unsupported bodies before assembly");
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedBody);
+        assert!(error.message.contains("simple does not support Moon"));
+
+        let house_request =
+            ChartRequest::new(instant).with_house_system(crate::HouseSystem::WholeSign);
+        let error = engine
+            .validate_chart_request(&house_request)
+            .expect_err("house requests should require an observer location");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert_eq!(
+            error.message,
+            "house placement requires an observer location"
         );
     }
 
