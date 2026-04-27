@@ -429,7 +429,7 @@ pub fn lunar_theory_catalog() -> &'static [LunarTheoryCatalogEntry] {
 }
 
 /// Validation errors for the structured lunar-theory catalog.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LunarTheoryCatalogValidationError {
     /// The catalog unexpectedly contains no entries.
     EmptyCatalog,
@@ -454,6 +454,21 @@ pub enum LunarTheoryCatalogValidationError {
     DuplicateFamilyLabel {
         /// Family label that collided.
         family_label: &'static str,
+    },
+    /// A supported body appears more than once in the same catalog entry.
+    DuplicateSupportedBody {
+        /// Supported body that collided.
+        body: CelestialBody,
+    },
+    /// An unsupported body appears more than once in the same catalog entry.
+    DuplicateUnsupportedBody {
+        /// Unsupported body that collided.
+        body: CelestialBody,
+    },
+    /// A body appears in both the supported and unsupported lists.
+    OverlappingSupportedAndUnsupportedBody {
+        /// Body that was listed in both coverage sets.
+        body: CelestialBody,
     },
     /// Two catalog entries share the same documented alias.
     DuplicateAlias {
@@ -488,6 +503,18 @@ impl fmt::Display for LunarTheoryCatalogValidationError {
                 f,
                 "the lunar-theory catalog contains duplicate family label `{family_label}`"
             ),
+            Self::DuplicateSupportedBody { body } => write!(
+                f,
+                "the lunar-theory catalog contains duplicate supported body `{body}`"
+            ),
+            Self::DuplicateUnsupportedBody { body } => write!(
+                f,
+                "the lunar-theory catalog contains duplicate unsupported body `{body}`"
+            ),
+            Self::OverlappingSupportedAndUnsupportedBody { body } => write!(
+                f,
+                "the lunar-theory catalog lists body `{body}` in both the supported and unsupported sets"
+            ),
             Self::DuplicateAlias { alias } => write!(
                 f,
                 "the lunar-theory catalog contains duplicate alias `{alias}`"
@@ -521,6 +548,31 @@ fn validate_lunar_theory_catalog_entries(
     }
 
     for (index, entry) in catalog.iter().enumerate() {
+        for (body_index, body) in entry.specification.supported_bodies.iter().enumerate() {
+            if entry.specification.supported_bodies[..body_index].contains(body) {
+                return Err(LunarTheoryCatalogValidationError::DuplicateSupportedBody {
+                    body: body.clone(),
+                });
+            }
+            if entry.specification.unsupported_bodies.contains(body) {
+                return Err(
+                    LunarTheoryCatalogValidationError::OverlappingSupportedAndUnsupportedBody {
+                        body: body.clone(),
+                    },
+                );
+            }
+        }
+
+        for (body_index, body) in entry.specification.unsupported_bodies.iter().enumerate() {
+            if entry.specification.unsupported_bodies[..body_index].contains(body) {
+                return Err(
+                    LunarTheoryCatalogValidationError::DuplicateUnsupportedBody {
+                        body: body.clone(),
+                    },
+                );
+            }
+        }
+
         for (alias_index, alias) in entry.specification.source_aliases.iter().enumerate() {
             if alias.eq_ignore_ascii_case(entry.specification.source_identifier)
                 || alias.eq_ignore_ascii_case(entry.specification.model_name)
@@ -623,13 +675,14 @@ fn validate_lunar_theory_catalog_entries(
     Ok(())
 }
 
-/// Validates the structured lunar-theory catalog for round-trip and alias/core-label uniqueness.
+/// Validates the structured lunar-theory catalog for round-trip, alias/core-label uniqueness,
+/// and disjoint supported/unsupported body coverage.
 pub fn validate_lunar_theory_catalog() -> Result<(), LunarTheoryCatalogValidationError> {
     validate_lunar_theory_catalog_entries(lunar_theory_catalog())
 }
 
 /// A compact validation summary for the current lunar-theory catalog.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct LunarTheoryCatalogValidationSummary {
     /// Number of catalog entries.
     pub entry_count: usize,
@@ -674,9 +727,9 @@ impl LunarTheoryCatalogValidationSummary {
             .map(|source| source.source_aliases.len())
             .unwrap_or(0);
 
-        match self.validation_result {
+        match &self.validation_result {
             Ok(()) => format!(
-                "lunar theory catalog validation: ok ({} entries, {} selected; selected source: {}; selected key: {}; aliases={}; round-trip, alias uniqueness, and case-insensitive key matching verified)",
+                "lunar theory catalog validation: ok ({} entries, {} selected; selected source: {}; selected key: {}; aliases={}; round-trip, alias uniqueness, body coverage disjointness, and case-insensitive key matching verified)",
                 self.entry_count,
                 self.selected_count,
                 selected_source_summary,
@@ -3360,7 +3413,7 @@ mod tests {
             lunar_theory_catalog_validation_summary_for_report()
         );
         assert!(lunar_theory_catalog_validation_summary_for_report()
-            .contains("lunar theory catalog validation: ok (1 entries, 1 selected; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]; selected key: source identifier=meeus-style-truncated-lunar-baseline; aliases=1; round-trip, alias uniqueness, and case-insensitive key matching verified)"));
+            .contains("lunar theory catalog validation: ok (1 entries, 1 selected; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]; selected key: source identifier=meeus-style-truncated-lunar-baseline; aliases=1; round-trip, alias uniqueness, body coverage disjointness, and case-insensitive key matching verified)"));
         assert!(lunar_theory_catalog_summary_for_report()
             .contains("selected source: meeus-style-truncated-lunar-baseline"));
         assert!(lunar_theory_catalog_summary_for_report()
@@ -3565,6 +3618,74 @@ mod tests {
             Err(LunarTheoryCatalogValidationError::DuplicateAlias {
                 alias: "meeus-style-truncated-lunar-baseline"
             })
+        ));
+    }
+
+    #[test]
+    fn lunar_theory_catalog_validation_rejects_duplicate_supported_bodies() {
+        const DUPLICATE_SUPPORTED_BODIES: &[CelestialBody] =
+            &[CelestialBody::Moon, CelestialBody::Moon];
+
+        let duplicate_supported_catalog = [LunarTheoryCatalogEntry {
+            selected: true,
+            specification: LunarTheorySpecification {
+                supported_bodies: DUPLICATE_SUPPORTED_BODIES,
+                ..LUNAR_THEORY_SPECIFICATION
+            },
+        }];
+
+        assert!(matches!(
+            validate_lunar_theory_catalog_entries(&duplicate_supported_catalog),
+            Err(LunarTheoryCatalogValidationError::DuplicateSupportedBody {
+                body: CelestialBody::Moon
+            })
+        ));
+    }
+
+    #[test]
+    fn lunar_theory_catalog_validation_rejects_duplicate_unsupported_bodies() {
+        const DUPLICATE_UNSUPPORTED_BODIES: &[CelestialBody] =
+            &[CelestialBody::TrueApogee, CelestialBody::TrueApogee];
+
+        let duplicate_unsupported_catalog = [LunarTheoryCatalogEntry {
+            selected: true,
+            specification: LunarTheorySpecification {
+                unsupported_bodies: DUPLICATE_UNSUPPORTED_BODIES,
+                ..LUNAR_THEORY_SPECIFICATION
+            },
+        }];
+
+        assert!(matches!(
+            validate_lunar_theory_catalog_entries(&duplicate_unsupported_catalog),
+            Err(
+                LunarTheoryCatalogValidationError::DuplicateUnsupportedBody {
+                    body: CelestialBody::TrueApogee
+                }
+            )
+        ));
+    }
+
+    #[test]
+    fn lunar_theory_catalog_validation_rejects_supported_and_unsupported_overlaps() {
+        const OVERLAPPING_SUPPORTED_BODIES: &[CelestialBody] = &[CelestialBody::Moon];
+        const OVERLAPPING_UNSUPPORTED_BODIES: &[CelestialBody] = &[CelestialBody::Moon];
+
+        let overlapping_catalog = [LunarTheoryCatalogEntry {
+            selected: true,
+            specification: LunarTheorySpecification {
+                supported_bodies: OVERLAPPING_SUPPORTED_BODIES,
+                unsupported_bodies: OVERLAPPING_UNSUPPORTED_BODIES,
+                ..LUNAR_THEORY_SPECIFICATION
+            },
+        }];
+
+        assert!(matches!(
+            validate_lunar_theory_catalog_entries(&overlapping_catalog),
+            Err(
+                LunarTheoryCatalogValidationError::OverlappingSupportedAndUnsupportedBody {
+                    body: CelestialBody::Moon
+                }
+            )
         ));
     }
 
