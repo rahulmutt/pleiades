@@ -66,12 +66,80 @@ pub struct ArtifactBodyInspection {
     pub sample_count: usize,
     /// Number of shared segment boundaries checked for continuity.
     pub boundary_checks: usize,
+    /// Sum of longitude deltas across all checked boundaries.
+    pub sum_boundary_longitude_delta_deg: f64,
+    /// Sum of latitude deltas across all checked boundaries.
+    pub sum_boundary_latitude_delta_deg: f64,
+    /// Sum of distance deltas across all checked boundaries that had distances.
+    pub sum_boundary_distance_delta_au: Option<f64>,
+    /// Number of checked boundaries that had a distance delta.
+    pub boundary_distance_checks: usize,
     /// Maximum longitude delta observed at any checked boundary.
     pub max_boundary_longitude_delta_deg: f64,
     /// Maximum latitude delta observed at any checked boundary.
     pub max_boundary_latitude_delta_deg: f64,
     /// Maximum distance delta observed at any checked boundary.
     pub max_boundary_distance_delta_au: Option<f64>,
+}
+
+impl ArtifactBodyInspection {
+    /// Returns the mean longitude delta across the checked boundaries.
+    pub fn mean_boundary_longitude_delta_deg(&self) -> f64 {
+        if self.boundary_checks == 0 {
+            0.0
+        } else {
+            self.sum_boundary_longitude_delta_deg / self.boundary_checks as f64
+        }
+    }
+
+    /// Returns the mean latitude delta across the checked boundaries.
+    pub fn mean_boundary_latitude_delta_deg(&self) -> f64 {
+        if self.boundary_checks == 0 {
+            0.0
+        } else {
+            self.sum_boundary_latitude_delta_deg / self.boundary_checks as f64
+        }
+    }
+
+    /// Returns the mean distance delta across the checked boundaries that had distances.
+    pub fn mean_boundary_distance_delta_au(&self) -> Option<f64> {
+        self.sum_boundary_distance_delta_au.map(|sum| {
+            if self.boundary_distance_checks == 0 {
+                0.0
+            } else {
+                sum / self.boundary_distance_checks as f64
+            }
+        })
+    }
+
+    /// Returns a compact one-line summary of the body inspection envelope.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "{}: {} segments, {} → {}, {} samples, {} boundary checks, mean boundary Δlon={:.12}°, mean boundary Δlat={:.12}°, mean boundary Δdist={}, max boundary Δlon={:.12}°, Δlat={:.12}°, Δdist={}",
+            self.body,
+            self.segment_count,
+            self.earliest.julian_day,
+            self.latest.julian_day,
+            self.sample_count,
+            self.boundary_checks,
+            self.mean_boundary_longitude_delta_deg(),
+            self.mean_boundary_latitude_delta_deg(),
+            self.mean_boundary_distance_delta_au()
+                .map(|value| format!("{value:.12} AU"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            self.max_boundary_longitude_delta_deg,
+            self.max_boundary_latitude_delta_deg,
+            self.max_boundary_distance_delta_au
+                .map(|value| format!("{value:.12} AU"))
+                .unwrap_or_else(|| "n/a".to_string()),
+        )
+    }
+}
+
+impl fmt::Display for ArtifactBodyInspection {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
 }
 
 /// Aggregate boundary continuity envelope for the packaged artifact.
@@ -81,6 +149,14 @@ pub struct ArtifactBoundaryEnvelopeSummary {
     pub body_count: usize,
     /// Total number of boundary checks across all bundled bodies.
     pub boundary_check_count: usize,
+    /// Sum of longitude deltas across all boundary checks.
+    pub sum_boundary_longitude_delta_deg: f64,
+    /// Sum of latitude deltas across all boundary checks.
+    pub sum_boundary_latitude_delta_deg: f64,
+    /// Sum of distance deltas across all boundary checks that had distances.
+    pub sum_boundary_distance_delta_au: Option<f64>,
+    /// Number of boundary checks that had a distance delta.
+    pub boundary_distance_check_count: usize,
     /// Body that produced the largest longitude delta.
     pub max_boundary_longitude_delta_body: Option<CelestialBody>,
     /// Maximum longitude delta observed at a shared boundary.
@@ -96,6 +172,35 @@ pub struct ArtifactBoundaryEnvelopeSummary {
 }
 
 impl ArtifactBoundaryEnvelopeSummary {
+    /// Returns the mean longitude delta across all checked boundaries.
+    pub fn mean_boundary_longitude_delta_deg(&self) -> f64 {
+        if self.boundary_check_count == 0 {
+            0.0
+        } else {
+            self.sum_boundary_longitude_delta_deg / self.boundary_check_count as f64
+        }
+    }
+
+    /// Returns the mean latitude delta across all checked boundaries.
+    pub fn mean_boundary_latitude_delta_deg(&self) -> f64 {
+        if self.boundary_check_count == 0 {
+            0.0
+        } else {
+            self.sum_boundary_latitude_delta_deg / self.boundary_check_count as f64
+        }
+    }
+
+    /// Returns the mean distance delta across all checked boundaries with a distance channel.
+    pub fn mean_boundary_distance_delta_au(&self) -> Option<f64> {
+        self.sum_boundary_distance_delta_au.map(|sum| {
+            if self.boundary_distance_check_count == 0 {
+                0.0
+            } else {
+                sum / self.boundary_distance_check_count as f64
+            }
+        })
+    }
+
     /// Returns the aggregate boundary envelope as a compact human-readable line.
     pub fn summary_line(&self) -> String {
         if self.boundary_check_count == 0 {
@@ -106,9 +211,19 @@ impl ArtifactBoundaryEnvelopeSummary {
         }
 
         format!(
-            "Artifact boundary envelope: {} checks across {} bundled bodies, max boundary Δlon={:.12}°{}, max boundary Δlat={:.12}°{}, max boundary Δdist={}{}",
+            "Artifact boundary envelope: {} checks across {} bundled bodies, mean boundary Δlon={:.12}°, mean boundary Δlat={:.12}°, mean boundary Δdist={}{}, max boundary Δlon={:.12}°{}, max boundary Δlat={:.12}°{}, max boundary Δdist={}{}",
             self.boundary_check_count,
             self.body_count,
+            self.mean_boundary_longitude_delta_deg(),
+            self.mean_boundary_latitude_delta_deg(),
+            self.mean_boundary_distance_delta_au()
+                .map(|value| format!("{value:.12} AU"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            if self.boundary_distance_check_count > 0 {
+                format!(" ({} distance checks)", self.boundary_distance_check_count)
+            } else {
+                String::new()
+            },
             self.max_boundary_longitude_delta_deg,
             self.max_boundary_longitude_delta_body
                 .as_ref()
@@ -361,6 +476,10 @@ fn inspect_body(
 ) -> Result<ArtifactBodyInspection, ArtifactInspectionError> {
     let mut sample_count = 0usize;
     let mut boundary_checks = 0usize;
+    let mut sum_boundary_longitude_delta_deg = 0.0;
+    let mut sum_boundary_latitude_delta_deg = 0.0;
+    let mut sum_boundary_distance_delta_au: Option<f64> = None;
+    let mut boundary_distance_checks = 0usize;
     let mut max_boundary_longitude_delta_deg: f64 = 0.0;
     let mut max_boundary_latitude_delta_deg: f64 = 0.0;
     let mut max_boundary_distance_delta_au: Option<f64> = None;
@@ -378,6 +497,8 @@ fn inspect_body(
         let right = artifact.lookup_ecliptic(&body.body, pair[1].start)?;
         let delta = boundary_delta(&left, &right);
         boundary_checks += 1;
+        sum_boundary_longitude_delta_deg += delta.longitude_delta_deg;
+        sum_boundary_latitude_delta_deg += delta.latitude_delta_deg;
         max_boundary_longitude_delta_deg =
             max_boundary_longitude_delta_deg.max(delta.longitude_delta_deg);
         max_boundary_latitude_delta_deg =
@@ -388,6 +509,11 @@ fn inspect_body(
                 (None, Some(next)) => Some(next),
                 (current, None) => current,
             };
+        if let Some(distance_delta_au) = delta.distance_delta_au {
+            boundary_distance_checks += 1;
+            sum_boundary_distance_delta_au =
+                Some(sum_boundary_distance_delta_au.unwrap_or(0.0) + distance_delta_au);
+        }
     }
 
     let earliest = body
@@ -408,6 +534,10 @@ fn inspect_body(
         latest,
         sample_count,
         boundary_checks,
+        sum_boundary_longitude_delta_deg,
+        sum_boundary_latitude_delta_deg,
+        sum_boundary_distance_delta_au,
+        boundary_distance_checks,
         max_boundary_longitude_delta_deg,
         max_boundary_latitude_delta_deg,
         max_boundary_distance_delta_au,
@@ -691,6 +821,10 @@ fn artifact_boundary_envelope_summary(
     let mut summary = ArtifactBoundaryEnvelopeSummary {
         body_count: report.bodies.len(),
         boundary_check_count: 0,
+        sum_boundary_longitude_delta_deg: 0.0,
+        sum_boundary_latitude_delta_deg: 0.0,
+        sum_boundary_distance_delta_au: None,
+        boundary_distance_check_count: 0,
         max_boundary_longitude_delta_body: None,
         max_boundary_longitude_delta_deg: 0.0,
         max_boundary_latitude_delta_body: None,
@@ -701,6 +835,13 @@ fn artifact_boundary_envelope_summary(
 
     for body in &report.bodies {
         summary.boundary_check_count += body.boundary_checks;
+        summary.sum_boundary_longitude_delta_deg += body.sum_boundary_longitude_delta_deg;
+        summary.sum_boundary_latitude_delta_deg += body.sum_boundary_latitude_delta_deg;
+        if let Some(sum) = body.sum_boundary_distance_delta_au {
+            summary.sum_boundary_distance_delta_au =
+                Some(summary.sum_boundary_distance_delta_au.unwrap_or(0.0) + sum);
+            summary.boundary_distance_check_count += body.boundary_distance_checks;
+        }
         if body.boundary_checks == 0 {
             continue;
         }
@@ -993,21 +1134,7 @@ impl fmt::Display for ArtifactInspectionReport {
         writeln!(f)?;
         writeln!(f, "Bodies")?;
         for body in &self.bodies {
-            writeln!(
-                f,
-                "  {}: {} segments, {} → {}, {} samples, {} boundary checks, max boundary Δlon={:.12}°, Δlat={:.12}°, Δdist={}",
-                body.body,
-                body.segment_count,
-                body.earliest.julian_day,
-                body.latest.julian_day,
-                body.sample_count,
-                body.boundary_checks,
-                body.max_boundary_longitude_delta_deg,
-                body.max_boundary_latitude_delta_deg,
-                body.max_boundary_distance_delta_au
-                    .map(|value| format!("{value:.12} AU"))
-                    .unwrap_or_else(|| "n/a".to_string())
-            )?;
+            writeln!(f, "  {}", body)?;
         }
 
         writeln!(f)?;
@@ -1171,5 +1298,71 @@ impl From<CompressionError> for ArtifactInspectionError {
 impl From<pleiades_core::EphemerisError> for ArtifactInspectionError {
     fn from(error: pleiades_core::EphemerisError) -> Self {
         Self::Validation(error)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ArtifactBodyInspection, ArtifactBoundaryEnvelopeSummary};
+    use pleiades_core::{CelestialBody, Instant, JulianDay, TimeScale};
+
+    fn instant(days: f64) -> Instant {
+        Instant::new(JulianDay::from_days(days), TimeScale::Tt)
+    }
+
+    #[test]
+    fn body_inspection_summary_includes_mean_boundary_deltas() {
+        let inspection = ArtifactBodyInspection {
+            body: CelestialBody::Sun,
+            segment_count: 2,
+            earliest: instant(1.0),
+            latest: instant(2.0),
+            sample_count: 6,
+            boundary_checks: 2,
+            sum_boundary_longitude_delta_deg: 0.20,
+            sum_boundary_latitude_delta_deg: 0.40,
+            sum_boundary_distance_delta_au: Some(0.60),
+            boundary_distance_checks: 2,
+            max_boundary_longitude_delta_deg: 0.15,
+            max_boundary_latitude_delta_deg: 0.30,
+            max_boundary_distance_delta_au: Some(0.45),
+        };
+
+        let summary = inspection.summary_line();
+        assert!(summary.contains("Sun: 2 segments,"));
+        assert!(summary.contains("6 samples, 2 boundary checks"));
+        assert!(summary.contains("mean boundary Δlon=0.100000000000°"));
+        assert!(summary.contains("mean boundary Δlat=0.200000000000°"));
+        assert!(summary.contains("mean boundary Δdist=0.300000000000 AU"));
+        assert!(summary.contains("max boundary Δlon=0.150000000000°"));
+        assert!(summary.contains("Δlat=0.300000000000°"));
+        assert!(summary.contains("Δdist=0.450000000000 AU"));
+    }
+
+    #[test]
+    fn boundary_envelope_summary_includes_mean_boundary_deltas() {
+        let summary = ArtifactBoundaryEnvelopeSummary {
+            body_count: 2,
+            boundary_check_count: 3,
+            sum_boundary_longitude_delta_deg: 0.30,
+            sum_boundary_latitude_delta_deg: 0.60,
+            sum_boundary_distance_delta_au: Some(0.90),
+            boundary_distance_check_count: 3,
+            max_boundary_longitude_delta_body: Some(CelestialBody::Moon),
+            max_boundary_longitude_delta_deg: 0.18,
+            max_boundary_latitude_delta_body: Some(CelestialBody::Sun),
+            max_boundary_latitude_delta_deg: 0.27,
+            max_boundary_distance_delta_body: Some(CelestialBody::Moon),
+            max_boundary_distance_delta_au: Some(0.33),
+        };
+
+        let rendered = summary.summary_line();
+        assert!(rendered.contains("Artifact boundary envelope: 3 checks across 2 bundled bodies"));
+        assert!(rendered.contains("mean boundary Δlon=0.100000000000°"));
+        assert!(rendered.contains("mean boundary Δlat=0.200000000000°"));
+        assert!(rendered.contains("mean boundary Δdist=0.300000000000 AU (3 distance checks)"));
+        assert!(rendered.contains("max boundary Δlon=0.180000000000° (Moon)"));
+        assert!(rendered.contains("max boundary Δlat=0.270000000000° (Sun)"));
+        assert!(rendered.contains("max boundary Δdist=0.330000000000 AU (Moon)"));
     }
 }
