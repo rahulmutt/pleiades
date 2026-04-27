@@ -9922,6 +9922,10 @@ mod tests {
         assert!(rendered.contains("Babylonian (Britton)"));
         assert!(rendered.contains("Babylonian (Aldebaran)"));
         assert!(rendered.contains("Babylonian (Eta Piscium)"));
+        assert!(rendered.contains("Babylonian (True Geoc)"));
+        assert!(rendered.contains("Babylonian (True Topc)"));
+        assert!(rendered.contains("Babylonian (True Obs)"));
+        assert!(rendered.contains("Babylonian (House Obs)"));
         assert!(rendered.contains("Krusinski/Pisa/Goelzer"));
         assert!(rendered.contains("Equal/MC = 10th"));
         assert!(rendered.contains("Galactic Equator (True)"));
