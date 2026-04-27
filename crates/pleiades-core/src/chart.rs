@@ -47,6 +47,31 @@ fn render_house_system_label(house_system: &HouseSystem) -> String {
     }
 }
 
+/// Observer-policy summary for chart assembly and chart snapshots.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ObserverPolicy {
+    /// Body positions are queried geocentrically.
+    Geocentric,
+    /// The observer is used for house calculations only.
+    HouseOnly,
+}
+
+impl ObserverPolicy {
+    /// Returns the stable display label for the observer policy.
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Geocentric => "geocentric",
+            Self::HouseOnly => "house-only",
+        }
+    }
+}
+
+impl fmt::Display for ObserverPolicy {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 /// A request for chart assembly.
 ///
 /// # Example
@@ -323,6 +348,15 @@ impl ChartRequest {
         self
     }
 
+    /// Returns the observer policy implied by the current request shape.
+    pub fn observer_policy(&self) -> ObserverPolicy {
+        if self.observer.is_some() && self.house_system.is_some() {
+            ObserverPolicy::HouseOnly
+        } else {
+            ObserverPolicy::Geocentric
+        }
+    }
+
     /// Returns a compact one-line summary of the request shape.
     ///
     /// The summary is intended for diagnostics, validation reports, and
@@ -339,11 +373,6 @@ impl ChartRequest {
     ///
     /// [`fmt::Display`] renders the same text as this helper.
     pub fn summary_line(&self) -> String {
-        let observer_policy = if self.observer.is_some() && self.house_system.is_some() {
-            "house-only"
-        } else {
-            "geocentric"
-        };
         let house_system = self
             .house_system
             .as_ref()
@@ -356,7 +385,7 @@ impl ChartRequest {
             self.bodies.len(),
             self.zodiac_mode,
             self.apparentness,
-            observer_policy,
+            self.observer_policy(),
             house_system,
         )
     }
@@ -411,6 +440,15 @@ impl ChartSnapshot {
         self.placements.is_empty()
     }
 
+    /// Returns the observer policy implied by the computed chart snapshot.
+    pub fn observer_policy(&self) -> ObserverPolicy {
+        if self.observer.is_some() && self.houses.is_some() {
+            ObserverPolicy::HouseOnly
+        } else {
+            ObserverPolicy::Geocentric
+        }
+    }
+
     /// Returns a compact one-line summary of the computed chart snapshot.
     ///
     /// The summary is intended for diagnostics, validation reports, and
@@ -419,11 +457,6 @@ impl ChartSnapshot {
     /// the computed placement count so callers can compare the assembled chart
     /// against the original request at a glance.
     pub fn summary_line(&self) -> String {
-        let observer_policy = if self.observer.is_some() && self.houses.is_some() {
-            "house-only"
-        } else {
-            "geocentric"
-        };
         let house_system = self.houses.as_ref().map_or_else(
             || "none".to_string(),
             |houses| render_house_system_label(&houses.system),
@@ -438,7 +471,7 @@ impl ChartSnapshot {
             self.placements.len(),
             self.zodiac_mode,
             self.apparentness,
-            observer_policy,
+            self.observer_policy(),
             house_system,
             house_cusp_count,
         )
@@ -2214,6 +2247,7 @@ mod tests {
             .iter()
             .all(|placement| placement.house.is_some()));
         let rendered = chart.to_string();
+        assert_eq!(chart.observer_policy(), ObserverPolicy::HouseOnly);
         assert_eq!(
             chart.summary_line(),
             "backend=toy-chart; instant=JD 2451545 (TT); placements=2; zodiac=Tropical; apparentness=Mean; observer=house-only; house system=Whole Sign; house cusps=12"
@@ -2275,6 +2309,7 @@ mod tests {
 
         assert!(chart.houses.is_none());
         assert_eq!(chart.observer, request.observer);
+        assert_eq!(chart.observer_policy(), ObserverPolicy::Geocentric);
         assert_eq!(
             chart.summary_line(),
             "backend=recording-chart; instant=JD 2451545 (TT); placements=1; zodiac=Tropical; apparentness=Mean; observer=geocentric; house system=none; house cusps=0"
@@ -2323,6 +2358,7 @@ mod tests {
             TimeScale::Tt,
         ));
 
+        assert_eq!(request.observer_policy(), ObserverPolicy::Geocentric);
         assert_eq!(
             request.summary_line(),
             "instant=JD 2451545 (TT); bodies=10; zodiac=Tropical; apparentness=Mean; observer=geocentric; house system=none"
@@ -2348,6 +2384,7 @@ mod tests {
         })
         .with_apparentness(Apparentness::Apparent);
 
+        assert_eq!(request.observer_policy(), ObserverPolicy::HouseOnly);
         assert_eq!(
             request.summary_line(),
             "instant=JD 2451545 (UTC); bodies=2; zodiac=Sidereal (Lahiri); apparentness=Apparent; observer=house-only; house system=Whole Sign"
@@ -2367,6 +2404,7 @@ mod tests {
         ))
         .with_bodies(vec![CelestialBody::Sun, CelestialBody::Moon]);
 
+        assert_eq!(request.observer_policy(), ObserverPolicy::Geocentric);
         assert_eq!(
             request.summary_line(),
             "instant=JD 2451545 (TT); bodies=2; zodiac=Tropical; apparentness=Mean; observer=geocentric; house system=none"

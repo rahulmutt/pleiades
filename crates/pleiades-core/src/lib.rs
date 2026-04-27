@@ -79,7 +79,8 @@ pub use api_stability::{
 };
 pub use chart::{
     default_chart_bodies, sidereal_longitude, AspectDefinition, AspectKind, AspectMatch,
-    BodyPlacement, ChartRequest, ChartSnapshot, HouseSummary, MotionSummary, SignSummary,
+    BodyPlacement, ChartRequest, ChartSnapshot, HouseSummary, MotionSummary, ObserverPolicy,
+    SignSummary,
 };
 pub use compatibility::{
     current_compatibility_profile, current_compatibility_profile_id, CompatibilityProfile,
