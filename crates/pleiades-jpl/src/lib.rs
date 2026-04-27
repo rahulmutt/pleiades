@@ -92,6 +92,12 @@ pub enum ReferenceSnapshotSummaryValidationError {
         second_index: usize,
         body: String,
     },
+    /// The summary body order drifted from the checked-in reference snapshot.
+    BodyOrderMismatch {
+        index: usize,
+        expected: String,
+        found: String,
+    },
     /// The summary did not expose any epochs.
     MissingEpochs,
     /// The summary reported an invalid earliest/latest epoch range.
@@ -113,6 +119,7 @@ impl ReferenceSnapshotSummaryValidationError {
             Self::MissingBodies => "missing bodies",
             Self::BodyCountMismatch { .. } => "body count mismatch",
             Self::DuplicateBody { .. } => "duplicate body",
+            Self::BodyOrderMismatch { .. } => "body order mismatch",
             Self::MissingEpochs => "missing epochs",
             Self::InvalidEpochRange { .. } => "invalid epoch range",
             Self::AsteroidRowCountExceedsRowCount { .. } => "asteroid row count exceeds row count",
@@ -138,6 +145,14 @@ impl fmt::Display for ReferenceSnapshotSummaryValidationError {
             } => write!(
                 f,
                 "duplicate body '{body}' at index {second_index} (first seen at index {first_index})"
+            ),
+            Self::BodyOrderMismatch {
+                index,
+                expected,
+                found,
+            } => write!(
+                f,
+                "body order mismatch at index {index}: expected '{expected}' but found '{found}'"
             ),
             Self::MissingEpochs => f.write_str(self.label()),
             Self::InvalidEpochRange {
@@ -580,6 +595,29 @@ impl ReferenceSnapshotSummary {
                 });
             }
         }
+
+        let expected_bodies = reference_bodies();
+        if self.bodies != expected_bodies {
+            let mismatch_index = self
+                .bodies
+                .iter()
+                .zip(expected_bodies.iter())
+                .position(|(actual, expected)| actual != expected)
+                .unwrap_or_else(|| self.bodies.len().min(expected_bodies.len()));
+            return Err(ReferenceSnapshotSummaryValidationError::BodyOrderMismatch {
+                index: mismatch_index,
+                expected: expected_bodies
+                    .get(mismatch_index)
+                    .map(ToString::to_string)
+                    .unwrap_or_else(|| "<end of reference body list>".to_string()),
+                found: self
+                    .bodies
+                    .get(mismatch_index)
+                    .map(ToString::to_string)
+                    .unwrap_or_else(|| "<end of summary body list>".to_string()),
+            });
+        }
+
         if self.epoch_count == 0 {
             return Err(ReferenceSnapshotSummaryValidationError::MissingEpochs);
         }
@@ -4039,6 +4077,32 @@ mod tests {
         assert!(error
             .to_string()
             .contains("body count 16 does not match body list length 15"));
+    }
+
+    #[test]
+    fn reference_snapshot_summary_validation_rejects_body_order_drift() {
+        let summary =
+            reference_snapshot_summary().expect("reference snapshot summary should exist");
+        let mut bodies = reference_bodies().to_vec();
+        bodies.swap(0, 1);
+        let leaked_bodies: &'static [pleiades_backend::CelestialBody] =
+            Box::leak(bodies.into_boxed_slice());
+        let summary = ReferenceSnapshotSummary {
+            bodies: leaked_bodies,
+            ..summary
+        };
+
+        let error = summary
+            .validate()
+            .expect_err("body-order drift should be rejected");
+        assert_eq!(error.label(), "body order mismatch");
+        assert!(error.to_string().contains("index 0"));
+        assert!(error
+            .to_string()
+            .contains(&reference_bodies()[0].to_string()));
+        assert!(error
+            .to_string()
+            .contains(&reference_bodies()[1].to_string()));
     }
 
     #[test]
