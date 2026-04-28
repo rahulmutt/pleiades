@@ -2428,7 +2428,7 @@ fn validate_non_negative_metric(
 }
 
 impl JplInterpolationQualitySummary {
-    /// Validates that the summary remains internally consistent.
+    /// Validates that the summary remains internally consistent and still matches the derived evidence.
     pub fn validate(&self) -> Result<(), JplInterpolationQualitySummaryValidationError> {
         if self.sample_count == 0 {
             return Err(JplInterpolationQualitySummaryValidationError::MissingSamples);
@@ -3011,7 +3011,7 @@ impl fmt::Display for JplIndependentHoldoutSummary {
 }
 
 impl JplIndependentHoldoutSummary {
-    /// Validates that the hold-out summary remains internally consistent.
+    /// Validates that the hold-out summary remains internally consistent and still matches the derived evidence.
     pub fn validate(&self) -> Result<(), JplInterpolationQualitySummaryValidationError> {
         if self.sample_count == 0 {
             return Err(JplInterpolationQualitySummaryValidationError::MissingSamples);
