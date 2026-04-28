@@ -2973,6 +2973,20 @@ impl Vsop87SourceBodyEvidenceSummary {
                 },
             );
         }
+        if self.sample_count == 0 {
+            return Err(
+                Vsop87SourceBodyEvidenceSummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        }
+        if !body_labels_are_unique(&self.sample_bodies) {
+            return Err(
+                Vsop87SourceBodyEvidenceSummaryValidationError::FieldOutOfSync {
+                    field: "sample_bodies",
+                },
+            );
+        }
         if self.within_interim_limits_count + self.outside_interim_limit_count != self.sample_count
         {
             return Err(
@@ -2982,6 +2996,13 @@ impl Vsop87SourceBodyEvidenceSummary {
             );
         }
         if self.outside_interim_limit_count != self.outside_interim_limit_bodies.len() {
+            return Err(
+                Vsop87SourceBodyEvidenceSummaryValidationError::FieldOutOfSync {
+                    field: "outside_interim_limit_bodies",
+                },
+            );
+        }
+        if !body_labels_are_unique(&self.outside_interim_limit_bodies) {
             return Err(
                 Vsop87SourceBodyEvidenceSummaryValidationError::FieldOutOfSync {
                     field: "outside_interim_limit_bodies",
@@ -7200,6 +7221,46 @@ mod tests {
         let error = summary
             .validate()
             .expect_err("count drift should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "the VSOP87 source-backed body evidence summary field `sample_count` is out of sync with the current canonical evidence"
+        );
+    }
+
+    #[test]
+    fn source_body_evidence_summary_validation_rejects_duplicate_sample_bodies() {
+        let mut summary = source_body_evidence_summary().expect("summary should exist");
+        let duplicated_body = summary.sample_bodies[0].clone();
+        summary.sample_bodies.push(duplicated_body);
+        summary.sample_count += 1;
+        summary.within_interim_limits_count += 1;
+        summary.generated_binary_count += 1;
+
+        let error = summary
+            .validate()
+            .expect_err("duplicate sample bodies should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "the VSOP87 source-backed body evidence summary field `sample_bodies` is out of sync with the current canonical evidence"
+        );
+    }
+
+    #[test]
+    fn source_body_evidence_summary_validation_rejects_empty_summary() {
+        let summary = Vsop87SourceBodyEvidenceSummary {
+            sample_count: 0,
+            sample_bodies: Vec::new(),
+            within_interim_limits_count: 0,
+            vendored_full_file_count: 0,
+            generated_binary_count: 0,
+            truncated_count: 0,
+            outside_interim_limit_count: 0,
+            outside_interim_limit_bodies: Vec::new(),
+        };
+
+        let error = summary
+            .validate()
+            .expect_err("empty evidence summaries should fail validation");
         assert_eq!(
             error.to_string(),
             "the VSOP87 source-backed body evidence summary field `sample_count` is out of sync with the current canonical evidence"
