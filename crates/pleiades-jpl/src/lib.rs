@@ -2342,6 +2342,8 @@ pub enum JplInterpolationQualitySummaryValidationError {
         sample_count: usize,
         kind_count: usize,
     },
+    /// The summary no longer matches the derived interpolation evidence.
+    DerivedSummaryMismatch,
 }
 
 impl JplInterpolationQualitySummaryValidationError {
@@ -2358,6 +2360,7 @@ impl JplInterpolationQualitySummaryValidationError {
             Self::MetricOutOfRange { .. } => "metric out of range",
             Self::BlankPeakBody { .. } => "blank peak body",
             Self::InterpolationKindCountMismatch { .. } => "interpolation-kind count mismatch",
+            Self::DerivedSummaryMismatch => "derived summary mismatch",
         }
     }
 }
@@ -2404,6 +2407,9 @@ impl fmt::Display for JplInterpolationQualitySummaryValidationError {
                 f,
                 "interpolation-kind count {kind_count} does not match sample count {sample_count}"
             ),
+            Self::DerivedSummaryMismatch => {
+                f.write_str("summary no longer matches the derived interpolation evidence")
+            }
         }
     }
 }
@@ -2519,6 +2525,9 @@ impl JplInterpolationQualitySummary {
                         + self.linear_sample_count,
                 },
             );
+        }
+        if jpl_interpolation_quality_summary().as_ref() != Some(self) {
+            return Err(JplInterpolationQualitySummaryValidationError::DerivedSummaryMismatch);
         }
 
         Ok(())
@@ -3095,6 +3104,9 @@ impl JplIndependentHoldoutSummary {
                     field: "max_distance_error_body",
                 },
             );
+        }
+        if jpl_independent_holdout_summary().as_ref() != Some(self) {
+            return Err(JplInterpolationQualitySummaryValidationError::DerivedSummaryMismatch);
         }
 
         Ok(())
@@ -6215,6 +6227,16 @@ mod tests {
     }
 
     #[test]
+    fn interpolation_quality_summary_validation_rejects_derived_summary_drift() {
+        let mut summary = jpl_interpolation_quality_summary().expect("summary should exist");
+        summary.mean_longitude_error_deg += 1e-12;
+        assert_eq!(
+            summary.validate(),
+            Err(JplInterpolationQualitySummaryValidationError::DerivedSummaryMismatch)
+        );
+    }
+
+    #[test]
     fn interpolation_quality_coverage_validation_rejects_inconsistent_bodies() {
         let mut coverage =
             jpl_interpolation_quality_kind_coverage().expect("coverage should exist");
@@ -6287,6 +6309,16 @@ mod tests {
                     field: "max_distance_error_body",
                 }
             )
+        );
+    }
+
+    #[test]
+    fn independent_holdout_summary_validation_rejects_derived_summary_drift() {
+        let mut summary = jpl_independent_holdout_summary().expect("summary should exist");
+        summary.max_distance_error_au += 1e-12;
+        assert_eq!(
+            summary.validate(),
+            Err(JplInterpolationQualitySummaryValidationError::DerivedSummaryMismatch)
         );
     }
 
