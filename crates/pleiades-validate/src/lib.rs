@@ -3545,14 +3545,7 @@ impl CompatibilityProfileVerificationSummary {
             ));
         }
 
-        let expected_house_formula_family_names = profile
-            .house_systems
-            .iter()
-            .map(|entry| entry.formula_family().to_string())
-            .collect::<BTreeSet<_>>()
-            .into_iter()
-            .collect::<Vec<_>>()
-            .join(", ");
+        let expected_house_formula_family_names = profile.house_formula_family_names().join(", ");
         if self.house_formula_family_names != expected_house_formula_family_names {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,
@@ -3831,14 +3824,7 @@ pub fn compatibility_profile_verification_summary(
     let release_ayanamsa_names =
         summarize_descriptor_names(profile.release_ayanamsas, |entry| entry.canonical_name);
     release_ayanamsa_names.validate()?;
-    let house_formula_family_names = profile
-        .house_systems
-        .iter()
-        .map(|entry| entry.formula_family().to_string())
-        .collect::<BTreeSet<_>>()
-        .into_iter()
-        .collect::<Vec<_>>()
-        .join(", ");
+    let house_formula_family_names = profile.house_formula_family_names().join(", ");
     let ayanamsa_metadata_count = profile
         .ayanamsas
         .iter()
@@ -4356,13 +4342,7 @@ fn summarize_latitude_sensitive_house_systems(profile: &CompatibilityProfile) ->
 }
 
 fn summarize_house_formula_families(profile: &CompatibilityProfile) -> String {
-    let families = profile
-        .house_systems
-        .iter()
-        .map(|entry| entry.formula_family().to_string())
-        .collect::<BTreeSet<_>>()
-        .into_iter()
-        .collect::<Vec<_>>();
+    let families = profile.house_formula_family_names();
 
     match families.as_slice() {
         [] => "0 (none)".to_string(),
@@ -12807,14 +12787,7 @@ mod tests {
         );
         assert_eq!(
             summary.house_formula_family_names,
-            profile
-                .house_systems
-                .iter()
-                .map(|entry| entry.formula_family().to_string())
-                .collect::<BTreeSet<_>>()
-                .into_iter()
-                .collect::<Vec<_>>()
-                .join(", ")
+            profile.house_formula_family_names().join(", ")
         );
         assert_eq!(
             summary.ayanamsa_metadata_count,

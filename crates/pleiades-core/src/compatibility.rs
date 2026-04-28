@@ -76,6 +76,17 @@ impl CompatibilityProfile {
             .map(|entry| entry.canonical_name)
             .collect()
     }
+
+    /// Returns the unique house formula families represented in the profile,
+    /// sorted by their release-facing labels.
+    pub fn house_formula_family_names(&self) -> Vec<String> {
+        self.house_systems
+            .iter()
+            .map(|entry| entry.formula_family().to_string())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect()
+    }
 }
 
 impl CompatibilityProfile {
@@ -1646,6 +1657,18 @@ mod tests {
             .release_ayanamsas
             .iter()
             .any(|entry| entry.canonical_name == "Valens Moon"));
+        assert_eq!(
+            profile.house_formula_family_names(),
+            vec![
+                "Equal".to_string(),
+                "Equatorial projection".to_string(),
+                "Great-circle".to_string(),
+                "Quadrant".to_string(),
+                "Sector".to_string(),
+                "Solar arc".to_string(),
+                "Whole Sign".to_string(),
+            ]
+        );
         assert_eq!(profile.house_systems, built_in_house_systems());
         assert_eq!(profile.baseline_house_systems, baseline_house_systems());
         assert_eq!(profile.release_house_systems, release_house_systems());
