@@ -2670,24 +2670,44 @@ mod tests {
 
     #[test]
     fn request_policy_summary_validation_rejects_stale_field_text() {
-        let mut summary = current_request_policy_summary();
-        summary.time_scale =
-            "direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers";
+        fn assert_field_out_of_sync(
+            mut summary: RequestPolicySummary,
+            field: &'static str,
+            mutate: impl FnOnce(&mut RequestPolicySummary),
+        ) {
+            mutate(&mut summary);
 
-        let error = summary
-            .validate()
-            .expect_err("stale request-policy wording should fail validation");
+            let error = summary
+                .validate()
+                .expect_err("stale request-policy wording should fail validation");
 
-        assert_eq!(
-            error,
-            RequestPolicySummaryValidationError::FieldOutOfSync {
-                field: "time_scale"
-            }
-        );
-        assert_eq!(
-            error.to_string(),
-            "the request-policy summary field `time_scale` is out of sync with the current posture"
-        );
+            assert_eq!(
+                error,
+                RequestPolicySummaryValidationError::FieldOutOfSync { field }
+            );
+            assert_eq!(
+                error.to_string(),
+                format!(
+                    "the request-policy summary field `{field}` is out of sync with the current posture"
+                )
+            );
+        }
+
+        let current = current_request_policy_summary();
+
+        assert_field_out_of_sync(current, "time_scale", |summary| {
+            summary.time_scale =
+                "direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers";
+        });
+        assert_field_out_of_sync(current, "observer", |summary| {
+            summary.observer = "chart houses use observer locations; body requests stay geocentric";
+        });
+        assert_field_out_of_sync(current, "apparentness", |summary| {
+            summary.apparentness = "current first-party backends accept mean geometric output only";
+        });
+        assert_field_out_of_sync(current, "frame", |summary| {
+            summary.frame = "ecliptic body positions are the default request shape";
+        });
     }
 
     #[test]
