@@ -743,6 +743,7 @@ mod tests {
         assert!(rendered.contains("True Mula (Chandra Hari)"));
         assert!(rendered.contains("Galactic Equator (Fiorenza)"));
         assert!(rendered.contains("Galactic Equator (True)"));
+        assert!(rendered.contains("Galactic Equator mid-Mula, Mula galactic equator, Galactic equator Mula -> Galactic Equator (Mula)"));
         assert!(rendered.contains("True galactic equator"));
         assert!(rendered.contains("Galactic equator true"));
         assert!(rendered.contains("Galactic Equator (IAU 1958)"));
