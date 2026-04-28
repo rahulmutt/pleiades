@@ -2921,7 +2921,231 @@ pub fn lunar_equatorial_reference_evidence_envelope(
     })
 }
 
+#[derive(Clone, Debug, PartialEq)]
+enum LunarEvidenceEnvelopeValidationError {
+    SampleCountTooSmall {
+        envelope: &'static str,
+        sample_count: usize,
+    },
+    BodyCountTooSmall {
+        envelope: &'static str,
+        body_count: usize,
+    },
+    InvalidEpochRange {
+        envelope: &'static str,
+        earliest_epoch: Instant,
+        latest_epoch: Instant,
+    },
+    NonFiniteMeasure {
+        envelope: &'static str,
+        field: &'static str,
+    },
+    DuplicateOutlierBody {
+        envelope: &'static str,
+        body: CelestialBody,
+    },
+    OutlierCountMismatch {
+        envelope: &'static str,
+        outside_current_limits_count: usize,
+        sample_count: usize,
+        outlier_bodies_len: usize,
+    },
+    WithinCurrentLimitsMismatch {
+        envelope: &'static str,
+        outside_current_limits_count: usize,
+        within_current_limits: bool,
+    },
+}
+
+impl fmt::Display for LunarEvidenceEnvelopeValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::SampleCountTooSmall {
+                envelope,
+                sample_count,
+            } => write!(f, "{envelope} has no samples ({sample_count})"),
+            Self::BodyCountTooSmall {
+                envelope,
+                body_count,
+            } => write!(f, "{envelope} has no bodies ({body_count})"),
+            Self::InvalidEpochRange {
+                envelope,
+                earliest_epoch,
+                latest_epoch,
+            } => write!(
+                f,
+                "{envelope} has an invalid epoch range {}",
+                TimeRange::new(Some(*earliest_epoch), Some(*latest_epoch)).summary_line()
+            ),
+            Self::NonFiniteMeasure { envelope, field } => {
+                write!(f, "{envelope} field `{field}` is not finite")
+            }
+            Self::DuplicateOutlierBody { envelope, body } => {
+                write!(f, "{envelope} has duplicate outlier body {body}")
+            }
+            Self::OutlierCountMismatch {
+                envelope,
+                outside_current_limits_count,
+                sample_count,
+                outlier_bodies_len,
+            } => write!(
+                f,
+                "{envelope} reports {outside_current_limits_count} samples outside the limits across {sample_count} samples with {outlier_bodies_len} unique outlier bodies"
+            ),
+            Self::WithinCurrentLimitsMismatch {
+                envelope,
+                outside_current_limits_count,
+                within_current_limits,
+            } => write!(
+                f,
+                "{envelope} reports within_current_limits={within_current_limits} but outside_current_limits_count={outside_current_limits_count}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for LunarEvidenceEnvelopeValidationError {}
+
+#[allow(clippy::too_many_arguments)]
+fn validate_lunar_evidence_envelope(
+    envelope: &'static str,
+    sample_count: usize,
+    body_count: usize,
+    earliest_epoch: Instant,
+    latest_epoch: Instant,
+    numeric_fields: &[(&'static str, f64)],
+    distance_fields: &[(&'static str, Option<f64>)],
+    outlier_bodies: &[CelestialBody],
+    outside_current_limits_count: usize,
+    within_current_limits: bool,
+) -> Result<(), LunarEvidenceEnvelopeValidationError> {
+    if sample_count == 0 {
+        return Err(LunarEvidenceEnvelopeValidationError::SampleCountTooSmall {
+            envelope,
+            sample_count,
+        });
+    }
+    if body_count == 0 {
+        return Err(LunarEvidenceEnvelopeValidationError::BodyCountTooSmall {
+            envelope,
+            body_count,
+        });
+    }
+    if earliest_epoch.julian_day.days() > latest_epoch.julian_day.days() {
+        return Err(LunarEvidenceEnvelopeValidationError::InvalidEpochRange {
+            envelope,
+            earliest_epoch,
+            latest_epoch,
+        });
+    }
+
+    for (field, value) in numeric_fields {
+        if !value.is_finite() {
+            return Err(LunarEvidenceEnvelopeValidationError::NonFiniteMeasure { envelope, field });
+        }
+    }
+
+    for (field, value) in distance_fields {
+        if let Some(value) = value {
+            if !value.is_finite() {
+                return Err(LunarEvidenceEnvelopeValidationError::NonFiniteMeasure {
+                    envelope,
+                    field,
+                });
+            }
+        }
+    }
+
+    let has_outlier_samples = outside_current_limits_count > 0;
+    if outside_current_limits_count > sample_count
+        || outlier_bodies.is_empty() == has_outlier_samples
+    {
+        return Err(LunarEvidenceEnvelopeValidationError::OutlierCountMismatch {
+            envelope,
+            outside_current_limits_count,
+            sample_count,
+            outlier_bodies_len: outlier_bodies.len(),
+        });
+    }
+    if within_current_limits == has_outlier_samples {
+        return Err(
+            LunarEvidenceEnvelopeValidationError::WithinCurrentLimitsMismatch {
+                envelope,
+                outside_current_limits_count,
+                within_current_limits,
+            },
+        );
+    }
+
+    let mut seen_outlier_bodies = Vec::with_capacity(outlier_bodies.len());
+    for body in outlier_bodies {
+        if seen_outlier_bodies.iter().any(|seen| seen == body) {
+            return Err(LunarEvidenceEnvelopeValidationError::DuplicateOutlierBody {
+                envelope,
+                body: body.clone(),
+            });
+        }
+        seen_outlier_bodies.push(body.clone());
+    }
+
+    Ok(())
+}
+
 impl LunarEquatorialReferenceEvidenceEnvelope {
+    /// Returns `Ok(())` when the equatorial reference envelope remains internally consistent.
+    pub(crate) fn validate(&self) -> Result<(), LunarEvidenceEnvelopeValidationError> {
+        validate_lunar_evidence_envelope(
+            "lunar equatorial reference error envelope",
+            self.sample_count,
+            self.body_count,
+            self.earliest_epoch,
+            self.latest_epoch,
+            &[
+                (
+                    "max_right_ascension_delta_deg",
+                    self.max_right_ascension_delta_deg,
+                ),
+                (
+                    "mean_right_ascension_delta_deg",
+                    self.mean_right_ascension_delta_deg,
+                ),
+                (
+                    "median_right_ascension_delta_deg",
+                    self.median_right_ascension_delta_deg,
+                ),
+                (
+                    "percentile_right_ascension_delta_deg",
+                    self.percentile_right_ascension_delta_deg,
+                ),
+                ("max_declination_delta_deg", self.max_declination_delta_deg),
+                (
+                    "mean_declination_delta_deg",
+                    self.mean_declination_delta_deg,
+                ),
+                (
+                    "median_declination_delta_deg",
+                    self.median_declination_delta_deg,
+                ),
+                (
+                    "percentile_declination_delta_deg",
+                    self.percentile_declination_delta_deg,
+                ),
+            ],
+            &[
+                ("max_distance_delta_au", self.max_distance_delta_au),
+                ("mean_distance_delta_au", self.mean_distance_delta_au),
+                ("median_distance_delta_au", self.median_distance_delta_au),
+                (
+                    "percentile_distance_delta_au",
+                    self.percentile_distance_delta_au,
+                ),
+            ],
+            &self.outlier_bodies,
+            self.outside_current_limits_count,
+            self.within_current_limits,
+        )
+    }
+
     /// Returns the release-facing one-line lunar equatorial reference error envelope.
     pub fn summary_line(&self) -> String {
         fn format_body_epoch(body: &CelestialBody, epoch: Instant) -> String {
@@ -3003,7 +3227,12 @@ pub fn format_lunar_equatorial_reference_evidence_envelope(
 /// Returns the release-facing lunar equatorial reference error envelope string.
 pub fn lunar_equatorial_reference_evidence_envelope_for_report() -> String {
     match lunar_equatorial_reference_evidence_envelope() {
-        Some(envelope) => format_lunar_equatorial_reference_evidence_envelope(&envelope),
+        Some(envelope) => match envelope.validate() {
+            Ok(()) => format_lunar_equatorial_reference_evidence_envelope(&envelope),
+            Err(error) => {
+                format!("lunar equatorial reference error envelope: unavailable ({error})")
+            }
+        },
         None => "lunar equatorial reference error envelope: unavailable".to_string(),
     }
 }
@@ -3708,6 +3937,48 @@ pub fn lunar_reference_evidence_envelope() -> Option<LunarReferenceEvidenceEnvel
 }
 
 impl LunarReferenceEvidenceEnvelope {
+    /// Returns `Ok(())` when the reference envelope remains internally consistent.
+    pub(crate) fn validate(&self) -> Result<(), LunarEvidenceEnvelopeValidationError> {
+        validate_lunar_evidence_envelope(
+            "lunar reference error envelope",
+            self.sample_count,
+            self.body_count,
+            self.earliest_epoch,
+            self.latest_epoch,
+            &[
+                ("max_longitude_delta_deg", self.max_longitude_delta_deg),
+                ("mean_longitude_delta_deg", self.mean_longitude_delta_deg),
+                (
+                    "median_longitude_delta_deg",
+                    self.median_longitude_delta_deg,
+                ),
+                (
+                    "percentile_longitude_delta_deg",
+                    self.percentile_longitude_delta_deg,
+                ),
+                ("max_latitude_delta_deg", self.max_latitude_delta_deg),
+                ("mean_latitude_delta_deg", self.mean_latitude_delta_deg),
+                ("median_latitude_delta_deg", self.median_latitude_delta_deg),
+                (
+                    "percentile_latitude_delta_deg",
+                    self.percentile_latitude_delta_deg,
+                ),
+            ],
+            &[
+                ("max_distance_delta_au", self.max_distance_delta_au),
+                ("mean_distance_delta_au", self.mean_distance_delta_au),
+                ("median_distance_delta_au", self.median_distance_delta_au),
+                (
+                    "percentile_distance_delta_au",
+                    self.percentile_distance_delta_au,
+                ),
+            ],
+            &self.outlier_bodies,
+            self.outside_current_limits_count,
+            self.within_current_limits,
+        )
+    }
+
     /// Returns the release-facing one-line lunar reference error envelope.
     pub fn summary_line(&self) -> String {
         fn format_body_epoch(body: &CelestialBody, epoch: Instant) -> String {
@@ -3789,7 +4060,12 @@ pub fn format_lunar_reference_evidence_envelope(
 /// Returns the release-facing lunar reference error envelope string.
 pub fn lunar_reference_evidence_envelope_for_report() -> String {
     match lunar_reference_evidence_envelope() {
-        Some(envelope) => format_lunar_reference_evidence_envelope(&envelope),
+        Some(envelope) => match envelope.validate() {
+            Ok(()) => format_lunar_reference_evidence_envelope(&envelope),
+            Err(error) => {
+                format!("lunar reference error envelope: unavailable ({error})")
+            }
+        },
         None => "lunar reference error envelope: unavailable".to_string(),
     }
 }
@@ -5553,6 +5829,25 @@ mod tests {
     }
 
     #[test]
+    fn lunar_reference_evidence_envelope_validation_rejects_non_finite_metrics() {
+        let mut envelope =
+            lunar_reference_evidence_envelope().expect("reference error envelope should exist");
+        envelope.mean_longitude_delta_deg = f64::NAN;
+
+        let error = envelope
+            .validate()
+            .expect_err("mutated reference envelopes should fail validation");
+
+        assert_eq!(
+            error,
+            LunarEvidenceEnvelopeValidationError::NonFiniteMeasure {
+                envelope: "lunar reference error envelope",
+                field: "mean_longitude_delta_deg",
+            }
+        );
+    }
+
+    #[test]
     fn lunar_reference_batch_parity_summary_validation_rejects_count_drift() {
         let mut parity = lunar_reference_batch_parity_summary()
             .expect("mixed-scale batch parity evidence should exist");
@@ -5656,6 +5951,29 @@ mod tests {
                 assert!((actual - expected).abs() < 1e-8);
             }
         }
+    }
+
+    #[test]
+    fn lunar_equatorial_reference_evidence_envelope_validation_rejects_outlier_drift() {
+        let mut envelope = lunar_equatorial_reference_evidence_envelope()
+            .expect("equatorial error envelope should exist");
+        envelope.outside_current_limits_count = 1;
+        envelope.within_current_limits = false;
+        envelope.outlier_bodies.clear();
+
+        let error = envelope
+            .validate()
+            .expect_err("mutated equatorial envelopes should fail validation");
+
+        assert_eq!(
+            error,
+            LunarEvidenceEnvelopeValidationError::OutlierCountMismatch {
+                envelope: "lunar equatorial reference error envelope",
+                outside_current_limits_count: 1,
+                sample_count: envelope.sample_count,
+                outlier_bodies_len: 0,
+            }
+        );
     }
 
     #[test]
