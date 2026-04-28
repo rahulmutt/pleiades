@@ -490,15 +490,48 @@ pub fn packaged_artifact_profile_summary_with_body_coverage() -> String {
     render_packaged_artifact_profile_summary(&packaged_artifact_profile_summary_details(), true)
 }
 
-/// Returns the output-support semantics of the packaged artifact profile for reporting.
-pub fn packaged_artifact_output_support_summary_for_report() -> String {
-    let summary = packaged_artifact_profile_summary_details();
-    match summary.validate() {
-        Ok(()) => summary
-            .profile
+/// Structured output-support semantics for the packaged artifact profile.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PackagedArtifactOutputSupportSummary {
+    /// Capability profile encoded by the packaged artifact.
+    pub profile: ArtifactProfile,
+}
+
+impl PackagedArtifactOutputSupportSummary {
+    /// Validates that the embedded artifact profile is internally consistent.
+    pub fn validate(&self) -> Result<(), pleiades_compression::CompressionError> {
+        self.profile.validate()
+    }
+
+    /// Renders the packaged artifact profile's output-support semantics.
+    pub fn summary_line(&self) -> String {
+        self.profile
             .output_support_summary_line()
             .trim_start_matches("output support: ")
-            .to_string(),
+            .to_string()
+    }
+}
+
+impl fmt::Display for PackagedArtifactOutputSupportSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns the current packaged-artifact output-support summary record.
+pub fn packaged_artifact_output_support_summary_details() -> PackagedArtifactOutputSupportSummary {
+    let summary = PackagedArtifactOutputSupportSummary {
+        profile: packaged_artifact_profile_summary_details().profile,
+    };
+    debug_assert!(summary.validate().is_ok());
+    summary
+}
+
+/// Returns the output-support semantics of the packaged artifact profile for reporting.
+pub fn packaged_artifact_output_support_summary_for_report() -> String {
+    let summary = packaged_artifact_output_support_summary_details();
+    match summary.validate() {
+        Ok(()) => summary.to_string(),
         Err(error) => format!("unavailable ({error})"),
     }
 }
@@ -2302,6 +2335,19 @@ mod tests {
                 .header
                 .summary_for_body_count(artifact.bodies.len())
         );
+        let output_support_summary = packaged_artifact_output_support_summary_details();
+        assert_eq!(output_support_summary.profile, summary.profile);
+        assert_eq!(
+            output_support_summary.summary_line(),
+            "EclipticCoordinates=derived, EquatorialCoordinates=derived, ApparentCorrections=unsupported, TopocentricCoordinates=unsupported, SiderealCoordinates=unsupported, Motion=unsupported"
+        );
+        output_support_summary
+            .validate()
+            .expect("packaged artifact output-support summary should validate");
+        assert_eq!(
+            output_support_summary.to_string(),
+            output_support_summary.summary_line()
+        );
         assert_eq!(
             packaged_artifact_output_support_summary_for_report(),
             "EclipticCoordinates=derived, EquatorialCoordinates=derived, ApparentCorrections=unsupported, TopocentricCoordinates=unsupported, SiderealCoordinates=unsupported, Motion=unsupported"
@@ -2374,6 +2420,38 @@ mod tests {
         assert!(error
             .message
             .contains("artifact profile coverage bundled bodies contains duplicate Sun entry"));
+    }
+
+    #[test]
+    fn packaged_artifact_output_support_summary_validation_rejects_profile_drift() {
+        let summary = PackagedArtifactOutputSupportSummary {
+            profile: ArtifactProfile::new(
+                vec![
+                    ChannelKind::Longitude,
+                    ChannelKind::Latitude,
+                    ChannelKind::DistanceAu,
+                ],
+                vec![
+                    pleiades_compression::ArtifactOutput::EclipticCoordinates,
+                    pleiades_compression::ArtifactOutput::EquatorialCoordinates,
+                ],
+                vec![
+                    pleiades_compression::ArtifactOutput::ApparentCorrections,
+                    pleiades_compression::ArtifactOutput::TopocentricCoordinates,
+                    pleiades_compression::ArtifactOutput::SiderealCoordinates,
+                ],
+                pleiades_compression::SpeedPolicy::Unsupported,
+            ),
+        };
+
+        let error = summary
+            .validate()
+            .expect_err("profile drift should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error.message.contains("Motion"));
     }
 
     #[test]
