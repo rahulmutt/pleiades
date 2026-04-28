@@ -4532,6 +4532,8 @@ fn render_release_notes_text() -> String {
     text.push_str(profile.summary);
     text.push('\n');
     text.push('\n');
+    text.push_str(&profile.catalog_inventory_summary_line());
+    text.push('\n');
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("Backend matrix summary: backend-matrix-summary\n");
     text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
@@ -4849,6 +4851,8 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str("Release summary line: ");
     text.push_str(profile.summary);
+    text.push('\n');
+    text.push_str(&profile.catalog_inventory_summary_line());
     text.push('\n');
     text.push_str("Latitude-sensitive house systems: ");
     text.push_str(&summarize_latitude_sensitive_house_systems(&profile));
@@ -13720,6 +13724,7 @@ mod tests {
             release_profiles.compatibility_profile_id, release_profiles.api_stability_profile_id
         )));
         assert!(rendered.contains("Release summary line:"));
+        assert!(rendered.contains(&profile.catalog_inventory_summary_line()));
         assert!(rendered.contains("House formula families: 7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign)"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
         assert!(rendered.contains("Backend matrix summary: backend-matrix-summary"));

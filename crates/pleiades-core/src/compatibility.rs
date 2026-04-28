@@ -68,6 +68,39 @@ impl CompatibilityProfile {
         self.summary
     }
 
+    /// Returns a compact inventory line for the current compatibility catalog.
+    pub fn catalog_inventory_summary_line(&self) -> String {
+        fn alias_count<T>(entries: &[T], aliases: impl Fn(&T) -> &'static [&'static str]) -> usize {
+            entries.iter().map(|entry| aliases(entry).len()).sum()
+        }
+
+        let house_alias_count = alias_count(self.house_systems, |entry| entry.aliases);
+        let ayanamsa_alias_count = alias_count(self.ayanamsas, |entry| entry.aliases);
+
+        let mut text = String::from("Compatibility catalog inventory: ");
+        text.push_str("house systems=");
+        text.push_str(&self.house_systems.len().to_string());
+        text.push_str(" (");
+        text.push_str(&self.baseline_house_systems.len().to_string());
+        text.push_str(" baseline, ");
+        text.push_str(&self.release_house_systems.len().to_string());
+        text.push_str(" release-specific, ");
+        text.push_str(&house_alias_count.to_string());
+        text.push_str(" aliases); ayanamsas=");
+        text.push_str(&self.ayanamsas.len().to_string());
+        text.push_str(" (");
+        text.push_str(&self.baseline_ayanamsas.len().to_string());
+        text.push_str(" baseline, ");
+        text.push_str(&self.release_ayanamsas.len().to_string());
+        text.push_str(" release-specific, ");
+        text.push_str(&ayanamsa_alias_count.to_string());
+        text.push_str(" aliases); custom-definition labels=");
+        text.push_str(&self.custom_definition_labels.len().to_string());
+        text.push_str("; known gaps=");
+        text.push_str(&self.known_gaps.len().to_string());
+        text
+    }
+
     /// Returns the built-in house systems that are latitude-sensitive.
     pub fn latitude_sensitive_house_systems(&self) -> Vec<&'static str> {
         self.house_systems
@@ -1404,6 +1437,7 @@ impl fmt::Display for CompatibilityProfile {
                 coverage.without_sidereal_metadata.join(", ")
             )?;
         }
+        writeln!(f, "{}", self.catalog_inventory_summary_line())?;
         if !self.custom_definition_labels.is_empty() {
             writeln!(
                 f,
@@ -2643,6 +2677,29 @@ mod tests {
         assert!(rendered.contains("- Aphoric"));
         assert!(rendered.contains("- Takra"));
         assert!(rendered.contains("custom definitions"));
+        let house_alias_count: usize = profile
+            .house_systems
+            .iter()
+            .map(|entry| entry.aliases.len())
+            .sum();
+        let ayanamsa_alias_count: usize = profile
+            .ayanamsas
+            .iter()
+            .map(|entry| entry.aliases.len())
+            .sum();
+        assert!(rendered.contains(&format!(
+            "Compatibility catalog inventory: house systems={} ({} baseline, {} release-specific, {} aliases); ayanamsas={} ({} baseline, {} release-specific, {} aliases); custom-definition labels={}; known gaps={}",
+            profile.house_systems.len(),
+            profile.baseline_house_systems.len(),
+            profile.release_house_systems.len(),
+            house_alias_count,
+            profile.ayanamsas.len(),
+            profile.baseline_ayanamsas.len(),
+            profile.release_ayanamsas.len(),
+            ayanamsa_alias_count,
+            profile.custom_definition_labels.len(),
+            profile.known_gaps.len()
+        )));
         assert!(rendered.contains("house systems: 25 total"));
         assert!(rendered.contains("ayanamsas: 59 total"));
     }
