@@ -2056,6 +2056,72 @@ pub struct WorkspaceAuditSummary {
 }
 
 impl WorkspaceAuditSummary {
+    /// Validates the compact summary before it is rendered.
+    pub fn validate(&self) -> Result<(), EphemerisError> {
+        let mut counted_violations = 0usize;
+        let mut seen_rules = BTreeSet::new();
+
+        for (rule, count) in &self.rule_counts {
+            if rule.trim().is_empty() {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    "workspace audit summary contains a blank rule label".to_string(),
+                ));
+            }
+            if *count == 0 {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!("workspace audit summary rule '{}' has a zero count", rule),
+                ));
+            }
+            if !seen_rules.insert(*rule) {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "workspace audit summary contains a duplicate rule count for '{}'",
+                        rule
+                    ),
+                ));
+            }
+            counted_violations = counted_violations.checked_add(*count).ok_or_else(|| {
+                EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    "workspace audit summary rule counts overflowed the aggregate violation count"
+                        .to_string(),
+                )
+            })?;
+        }
+
+        if counted_violations != self.violation_count {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "workspace audit summary violation count mismatch: expected {}, found {}",
+                    counted_violations, self.violation_count
+                ),
+            ));
+        }
+
+        if self.clean != (self.violation_count == 0) {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "workspace audit summary clean flag mismatch: clean={}, violations={}",
+                    self.clean, self.violation_count
+                ),
+            ));
+        }
+
+        if self.clean && !self.rule_counts.is_empty() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "workspace audit summary marked clean but still carries rule counts".to_string(),
+            ));
+        }
+
+        Ok(())
+    }
+
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         let mut text = format!(
@@ -2146,41 +2212,46 @@ impl fmt::Display for WorkspaceAuditReport {
 
 fn render_workspace_audit_summary_text(report: &WorkspaceAuditReport) -> String {
     let summary = workspace_audit_summary(report);
-    let mut text = String::new();
-    text.push_str("Workspace audit summary\n");
-    text.push_str("Workspace root: ");
-    text.push_str(&summary.workspace_root.display().to_string());
-    text.push('\n');
-    text.push_str("Checked manifests: ");
-    text.push_str(&summary.manifest_count.to_string());
-    text.push('\n');
-    text.push_str("Checked lockfile: ");
-    text.push_str(&summary.lockfile_path.display().to_string());
-    text.push('\n');
-    text.push_str("Summary: ");
-    text.push_str(&summary.summary_line());
-    text.push('\n');
-    text.push_str("Violations: ");
-    text.push_str(&summary.violation_count.to_string());
-    text.push('\n');
-    if !summary.clean {
-        text.push_str("Rule counts:\n");
-        for (rule, count) in &summary.rule_counts {
-            text.push_str("  ");
-            text.push_str(rule);
-            text.push_str(": ");
-            text.push_str(&count.to_string());
+    match summary.validate() {
+        Ok(()) => {
+            let mut text = String::new();
+            text.push_str("Workspace audit summary\n");
+            text.push_str("Workspace root: ");
+            text.push_str(&summary.workspace_root.display().to_string());
             text.push('\n');
+            text.push_str("Checked manifests: ");
+            text.push_str(&summary.manifest_count.to_string());
+            text.push('\n');
+            text.push_str("Checked lockfile: ");
+            text.push_str(&summary.lockfile_path.display().to_string());
+            text.push('\n');
+            text.push_str("Summary: ");
+            text.push_str(&summary.summary_line());
+            text.push('\n');
+            text.push_str("Violations: ");
+            text.push_str(&summary.violation_count.to_string());
+            text.push('\n');
+            if !summary.clean {
+                text.push_str("Rule counts:\n");
+                for (rule, count) in &summary.rule_counts {
+                    text.push_str("  ");
+                    text.push_str(rule);
+                    text.push_str(": ");
+                    text.push_str(&count.to_string());
+                    text.push('\n');
+                }
+            }
+            text.push_str("Result: ");
+            text.push_str(if summary.clean {
+                "no mandatory native build hooks detected"
+            } else {
+                "violations found"
+            });
+            text.push('\n');
+            text
         }
+        Err(error) => format!("Workspace audit summary unavailable ({error})"),
     }
-    text.push_str("Result: ");
-    text.push_str(if summary.clean {
-        "no mandatory native build hooks detected"
-    } else {
-        "violations found"
-    });
-    text.push('\n');
-    text
 }
 
 /// Renders a compact workspace audit summary used by the CLI and release bundle.
@@ -13065,6 +13136,9 @@ version = "0.9.0"
             summary.rule_counts,
             vec![("lockfile.native-package", 1), ("package.build", 2)]
         );
+        summary
+            .validate()
+            .expect("workspace audit summary should validate");
 
         let rendered = render_workspace_audit_summary_text(&report);
         assert!(rendered.contains("Summary: workspace root:"));
@@ -13078,6 +13152,25 @@ version = "0.9.0"
         assert!(display.contains("Rule counts:"));
         assert!(display.contains("package.build: 2"));
         assert!(display.contains("lockfile.native-package: 1"));
+    }
+
+    #[test]
+    fn workspace_audit_summary_validate_rejects_incoherent_counts() {
+        let summary = WorkspaceAuditSummary {
+            workspace_root: PathBuf::from("/workspace"),
+            manifest_count: 1,
+            lockfile_path: PathBuf::from("/workspace/Cargo.lock"),
+            violation_count: 2,
+            rule_counts: vec![("package.build", 1)],
+            clean: false,
+        };
+
+        let error = summary
+            .validate()
+            .expect_err("incoherent workspace audit summary should fail validation");
+        assert!(error
+            .to_string()
+            .contains("workspace audit summary violation count mismatch"));
     }
 
     #[test]
