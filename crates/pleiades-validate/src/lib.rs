@@ -6806,6 +6806,7 @@ impl ComparisonEnvelopeSummary {
             }
         }
 
+        validate_comparison_sample_distance_channels(samples)?;
         self.median.validate()?;
         self.percentile.validate()?;
 
@@ -6940,6 +6941,26 @@ fn format_body_class_tolerance_envelope_for_report(summary: &BodyClassToleranceS
     summary.summary_line()
 }
 
+fn validate_comparison_sample_distance_channels(
+    samples: &[ComparisonSample],
+) -> Result<(), EphemerisError> {
+    let has_distance = samples
+        .iter()
+        .any(|sample| sample.distance_delta_au.is_some());
+    let has_missing_distance = samples
+        .iter()
+        .any(|sample| sample.distance_delta_au.is_none());
+
+    if has_distance && has_missing_distance {
+        return Err(EphemerisError::new(
+            EphemerisErrorKind::InvalidRequest,
+            "comparison sample slice must either provide distance deltas for every sample or for none of them",
+        ));
+    }
+
+    Ok(())
+}
+
 fn validate_comparison_samples_for_report(
     samples: &[ComparisonSample],
 ) -> Result<(), EphemerisError> {
@@ -6979,7 +7000,7 @@ fn validate_comparison_samples_for_report(
         }
     }
 
-    Ok(())
+    validate_comparison_sample_distance_channels(samples)
 }
 
 fn comparison_tolerance_policy_summary_details(
@@ -10558,7 +10579,7 @@ fn render_release_bundle_error(error: ReleaseBundleError) -> String {
 mod tests {
     use pleiades_core::{
         current_release_profile_identifiers, sidereal_longitude, Apparentness, Ayanamsa,
-        CoordinateFrame, HouseSystem, JulianDay, TimeScale, ZodiacMode,
+        CoordinateFrame, HouseSystem, JulianDay, Latitude, TimeScale, ZodiacMode,
     };
 
     use super::*;
@@ -15823,6 +15844,65 @@ version = "0.9.0"
         let percentile = format_comparison_percentile_envelope_for_report(&[]);
         assert!(percentile.contains("comparison percentile envelope unavailable"));
         assert!(percentile.contains("comparison sample slice is empty"));
+    }
+
+    #[test]
+    fn comparison_envelope_formatter_rejects_mixed_distance_channels() {
+        let summary = ComparisonSummary {
+            sample_count: 2,
+            max_longitude_delta_body: Some(CelestialBody::Sun),
+            max_longitude_delta_deg: 0.123_456_789_012,
+            mean_longitude_delta_deg: 0.012_345_678_901,
+            rms_longitude_delta_deg: 0.023_456_789_012,
+            max_latitude_delta_body: Some(CelestialBody::Moon),
+            max_latitude_delta_deg: 0.223_456_789_012,
+            mean_latitude_delta_deg: 0.032_345_678_901,
+            rms_latitude_delta_deg: 0.043_456_789_012,
+            max_distance_delta_body: Some(CelestialBody::Mars),
+            max_distance_delta_au: Some(0.001_234_567_89),
+            mean_distance_delta_au: Some(0.000_234_567_89),
+            rms_distance_delta_au: Some(0.000_334_567_89),
+        };
+        let samples = vec![
+            ComparisonSample {
+                body: CelestialBody::Sun,
+                reference: EclipticCoordinates::new(
+                    Longitude::from_degrees(10.0),
+                    Latitude::from_degrees(1.0),
+                    Some(1.0),
+                ),
+                candidate: EclipticCoordinates::new(
+                    Longitude::from_degrees(10.1),
+                    Latitude::from_degrees(1.1),
+                    Some(1.1),
+                ),
+                longitude_delta_deg: 0.1,
+                latitude_delta_deg: 0.1,
+                distance_delta_au: Some(0.1),
+            },
+            ComparisonSample {
+                body: CelestialBody::Moon,
+                reference: EclipticCoordinates::new(
+                    Longitude::from_degrees(20.0),
+                    Latitude::from_degrees(2.0),
+                    None,
+                ),
+                candidate: EclipticCoordinates::new(
+                    Longitude::from_degrees(20.2),
+                    Latitude::from_degrees(2.2),
+                    None,
+                ),
+                longitude_delta_deg: 0.2,
+                latitude_delta_deg: 0.2,
+                distance_delta_au: None,
+            },
+        ];
+
+        let envelope = format_comparison_envelope_for_report(&summary, &samples);
+        assert!(
+            envelope.contains("comparison envelope unavailable")
+                || envelope.contains("distance deltas must either all be present or all be absent")
+        );
     }
 
     #[test]
