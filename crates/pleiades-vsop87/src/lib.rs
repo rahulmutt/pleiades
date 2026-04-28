@@ -4944,7 +4944,12 @@ pub fn source_manifest_summary_for_report() -> String {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Vsop87SourceManifestValidationError {
     /// The manifest length differs from the current source-specification list.
-    LengthMismatch { expected: usize, actual: usize },
+    LengthMismatch {
+        expected: usize,
+        actual: usize,
+        expected_manifest: Vec<(CelestialBody, &'static str)>,
+        actual_manifest: Vec<(CelestialBody, &'static str)>,
+    },
     /// One manifest entry differs from the current source-specification catalog.
     EntryMismatch {
         index: usize,
@@ -4958,9 +4963,16 @@ pub enum Vsop87SourceManifestValidationError {
 impl fmt::Display for Vsop87SourceManifestValidationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::LengthMismatch { expected, actual } => write!(
+            Self::LengthMismatch {
+                expected,
+                actual,
+                expected_manifest,
+                actual_manifest,
+            } => write!(
                 f,
-                "the VSOP87 source manifest length is out of sync with the current source catalog (expected {expected}, got {actual})"
+                "the VSOP87 source manifest length is out of sync with the current source catalog (expected {expected} entries [{}], got {actual} entries [{}])",
+                format_source_manifest_pairs(expected_manifest),
+                format_source_manifest_pairs(actual_manifest)
             ),
             Self::EntryMismatch {
                 index,
@@ -4984,11 +4996,17 @@ pub fn validate_source_manifest(
     manifest: &[(CelestialBody, &'static str)],
 ) -> Result<(), Vsop87SourceManifestValidationError> {
     let expected_manifest = source_specifications();
+    let expected_manifest_pairs = expected_manifest
+        .iter()
+        .map(|spec| (spec.body.clone(), spec.source_file))
+        .collect::<Vec<_>>();
 
     if manifest.len() != expected_manifest.len() {
         return Err(Vsop87SourceManifestValidationError::LengthMismatch {
             expected: expected_manifest.len(),
             actual: manifest.len(),
+            expected_manifest: expected_manifest_pairs,
+            actual_manifest: manifest.to_vec(),
         });
     }
 
@@ -5007,6 +5025,14 @@ pub fn validate_source_manifest(
     }
 
     Ok(())
+}
+
+fn format_source_manifest_pairs(manifest: &[(CelestialBody, &'static str)]) -> String {
+    manifest
+        .iter()
+        .map(|(body, source_file)| format!("{body} / {source_file}"))
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 /// Returns the supported vendored VSOP87B source files in source-spec order.
@@ -9374,6 +9400,20 @@ mod tests {
         assert_eq!(
             error.to_string(),
             "the VSOP87 source manifest entry 0 is out of sync with the current source catalog (expected Sun / VSOP87B.ear, got Mercury / VSOP87B.mer)"
+        );
+    }
+
+    #[test]
+    fn source_manifest_validation_rejects_length_drift_with_manifest_details() {
+        let mut manifest = source_manifest();
+        manifest.pop();
+
+        let error = validate_source_manifest(&manifest)
+            .expect_err("truncated source manifests should fail validation");
+
+        assert_eq!(
+            error.to_string(),
+            "the VSOP87 source manifest length is out of sync with the current source catalog (expected 8 entries [Sun / VSOP87B.ear, Mercury / VSOP87B.mer, Venus / VSOP87B.ven, Mars / VSOP87B.mar, Jupiter / VSOP87B.jup, Saturn / VSOP87B.sat, Uranus / VSOP87B.ura, Neptune / VSOP87B.nep], got 7 entries [Sun / VSOP87B.ear, Mercury / VSOP87B.mer, Venus / VSOP87B.ven, Mars / VSOP87B.mar, Jupiter / VSOP87B.jup, Saturn / VSOP87B.sat, Uranus / VSOP87B.ura])"
         );
     }
 
