@@ -1522,6 +1522,22 @@ pub fn validate_request_against_metadata(
 ///
 /// assert!(validate_requests_against_metadata(&requests, &metadata).is_ok());
 ///
+/// let mixed_scale_metadata = BackendMetadata {
+///     supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
+///     ..metadata.clone()
+/// };
+/// let mixed_scale_requests = [
+///     EphemerisRequest::new(
+///         CelestialBody::Sun,
+///         Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+///     ),
+///     EphemerisRequest::new(
+///         CelestialBody::Moon,
+///         Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb),
+///     ),
+/// ];
+/// assert!(validate_requests_against_metadata(&mixed_scale_requests, &mixed_scale_metadata).is_ok());
+///
 /// let mut batchless_metadata = metadata.clone();
 /// batchless_metadata.capabilities.batch = false;
 /// let error = validate_requests_against_metadata(&requests, &batchless_metadata)
