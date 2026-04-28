@@ -704,17 +704,34 @@ pub struct PackagedFrameTreatmentSummary;
 pub enum PackagedFrameTreatmentSummaryValidationError {
     /// The summary text is blank or whitespace-only.
     BlankSummary,
+    /// The summary text has surrounding whitespace.
+    WhitespacePaddedSummary,
 }
 
 impl fmt::Display for PackagedFrameTreatmentSummaryValidationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::BlankSummary => f.write_str("packaged frame-treatment summary is blank"),
+            Self::WhitespacePaddedSummary => {
+                f.write_str("packaged frame-treatment summary has surrounding whitespace")
+            }
         }
     }
 }
 
 impl std::error::Error for PackagedFrameTreatmentSummaryValidationError {}
+
+fn validate_packaged_frame_treatment_summary_line(
+    summary: &str,
+) -> Result<(), PackagedFrameTreatmentSummaryValidationError> {
+    if summary.trim().is_empty() {
+        Err(PackagedFrameTreatmentSummaryValidationError::BlankSummary)
+    } else if summary.trim() != summary {
+        Err(PackagedFrameTreatmentSummaryValidationError::WhitespacePaddedSummary)
+    } else {
+        Ok(())
+    }
+}
 
 impl PackagedFrameTreatmentSummary {
     /// Returns the frame-treatment posture as a compact human-readable line.
@@ -722,13 +739,9 @@ impl PackagedFrameTreatmentSummary {
         "checked-in compressed artifact stores ecliptic coordinates directly; equatorial coordinates are reconstructed from the stored channels and mean-obliquity transform"
     }
 
-    /// Returns `Ok(())` when the summary still contains a compact non-blank line.
+    /// Returns `Ok(())` when the summary still contains a compact canonical line.
     pub fn validate(&self) -> Result<(), PackagedFrameTreatmentSummaryValidationError> {
-        if self.summary_line().trim().is_empty() {
-            Err(PackagedFrameTreatmentSummaryValidationError::BlankSummary)
-        } else {
-            Ok(())
-        }
+        validate_packaged_frame_treatment_summary_line(self.summary_line())
     }
 }
 
@@ -2002,6 +2015,10 @@ mod tests {
             packaged_frame_treatment_summary()
         );
         assert!(metadata.provenance.data_sources[2].contains("ecliptic coordinates directly"));
+        assert_eq!(
+            packaged_frame_treatment_summary_details().validate(),
+            Ok(())
+        );
         assert!(metadata.provenance.data_sources[2]
             .contains("equatorial coordinates are reconstructed"));
         assert_eq!(
@@ -2222,6 +2239,16 @@ mod tests {
         assert!(provenance.contains("Reference snapshot coverage:"));
         assert!(provenance.contains("rows across"));
         assert!(provenance.contains("asteroid rows"));
+    }
+
+    #[test]
+    fn packaged_frame_treatment_summary_rejects_whitespace_padded_summary_text() {
+        let summary = format!(" {} ", PackagedFrameTreatmentSummary.summary_line());
+
+        assert_eq!(
+            validate_packaged_frame_treatment_summary_line(&summary),
+            Err(PackagedFrameTreatmentSummaryValidationError::WhitespacePaddedSummary)
+        );
     }
 
     #[test]

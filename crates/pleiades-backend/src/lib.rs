@@ -1316,12 +1316,17 @@ pub struct FrameTreatmentSummary {
 pub enum FrameTreatmentSummaryValidationError {
     /// The summary text is blank or whitespace-only.
     BlankSummary,
+    /// The summary text has surrounding whitespace.
+    WhitespacePaddedSummary,
 }
 
 impl fmt::Display for FrameTreatmentSummaryValidationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::BlankSummary => f.write_str("frame-treatment summary is blank"),
+            Self::WhitespacePaddedSummary => {
+                f.write_str("frame-treatment summary has surrounding whitespace")
+            }
         }
     }
 }
@@ -1339,10 +1344,12 @@ impl FrameTreatmentSummary {
         self.summary
     }
 
-    /// Returns `Ok(())` when the summary still contains a compact non-blank line.
+    /// Returns `Ok(())` when the summary still contains a compact canonical line.
     pub fn validate(&self) -> Result<(), FrameTreatmentSummaryValidationError> {
         if self.summary.trim().is_empty() {
             Err(FrameTreatmentSummaryValidationError::BlankSummary)
+        } else if self.summary.trim() != self.summary {
+            Err(FrameTreatmentSummaryValidationError::WhitespacePaddedSummary)
         } else {
             Ok(())
         }
@@ -2446,6 +2453,18 @@ mod tests {
         assert_eq!(
             summary.validate(),
             Err(FrameTreatmentSummaryValidationError::BlankSummary)
+        );
+    }
+
+    #[test]
+    fn frame_treatment_summary_rejects_whitespace_padded_summary_text() {
+        let summary = FrameTreatmentSummary::new(
+            " geocentric ecliptic inputs; equatorial coordinates are derived with a mean-obliquity transform ",
+        );
+
+        assert_eq!(
+            summary.validate(),
+            Err(FrameTreatmentSummaryValidationError::WhitespacePaddedSummary)
         );
     }
 
