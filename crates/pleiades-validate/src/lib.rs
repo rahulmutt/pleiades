@@ -3452,6 +3452,10 @@ impl CompatibilityProfileVerificationSummary {
         }
 
         let expected_latitude_sensitive = profile.latitude_sensitive_house_systems();
+        validate_name_sequence(
+            "compatibility profile latitude-sensitive house systems",
+            expected_latitude_sensitive.iter().copied(),
+        )?;
         if self.latitude_sensitive_house_systems != expected_latitude_sensitive {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,
@@ -3548,7 +3552,14 @@ impl CompatibilityProfileVerificationSummary {
             ));
         }
 
-        let expected_house_formula_family_names = profile.house_formula_family_names().join(", ");
+        let expected_house_formula_family_names = profile.house_formula_family_names();
+        validate_name_sequence(
+            "compatibility profile house formula families",
+            expected_house_formula_family_names
+                .iter()
+                .map(String::as_str),
+        )?;
+        let expected_house_formula_family_names = expected_house_formula_family_names.join(", ");
         if self.house_formula_family_names != expected_house_formula_family_names {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,
@@ -4354,6 +4365,56 @@ fn summarize_house_formula_families(profile: &CompatibilityProfile) -> String {
     }
 }
 
+fn validate_name_sequence<'a, I>(
+    section_label: &'static str,
+    names: I,
+) -> Result<(), EphemerisError>
+where
+    I: IntoIterator<Item = &'a str>,
+{
+    let mut seen_names = BTreeSet::new();
+    let mut seen_names_case_insensitive = BTreeMap::new();
+
+    for name in names {
+        if name.trim().is_empty() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!("{section_label} contains a blank name"),
+            ));
+        }
+
+        if has_surrounding_whitespace(name) {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!("{section_label} entry '{name}' contains surrounding whitespace"),
+            ));
+        }
+
+        let normalized_name = name.trim().to_string();
+        if !seen_names.insert(normalized_name.clone()) {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!("{section_label} contains a duplicate name '{name}'"),
+            ));
+        }
+
+        let normalized_name_case_insensitive = normalized_name.to_ascii_lowercase();
+        if let Some(existing_name) =
+            seen_names_case_insensitive.get(&normalized_name_case_insensitive)
+        {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "{section_label} contains a case-insensitive duplicate name '{name}' that conflicts with '{existing_name}'"
+                ),
+            ));
+        }
+        seen_names_case_insensitive.insert(normalized_name_case_insensitive, normalized_name);
+    }
+
+    Ok(())
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct DescriptorNamesSummary {
     names: Vec<&'static str>,
@@ -4361,49 +4422,7 @@ struct DescriptorNamesSummary {
 
 impl DescriptorNamesSummary {
     fn validate(&self) -> Result<(), EphemerisError> {
-        let mut seen_names = BTreeSet::new();
-        let mut seen_names_case_insensitive = BTreeMap::new();
-
-        for name in &self.names {
-            if name.trim().is_empty() {
-                return Err(EphemerisError::new(
-                    EphemerisErrorKind::InvalidRequest,
-                    "descriptor-name summary contains a blank name",
-                ));
-            }
-
-            if has_surrounding_whitespace(name) {
-                return Err(EphemerisError::new(
-                    EphemerisErrorKind::InvalidRequest,
-                    format!(
-                        "descriptor-name summary entry '{name}' contains surrounding whitespace",
-                    ),
-                ));
-            }
-
-            let normalized_name = name.trim().to_string();
-            if !seen_names.insert(normalized_name.clone()) {
-                return Err(EphemerisError::new(
-                    EphemerisErrorKind::InvalidRequest,
-                    format!("descriptor-name summary contains a duplicate name '{name}'"),
-                ));
-            }
-
-            let normalized_name_case_insensitive = normalized_name.to_ascii_lowercase();
-            if let Some(existing_name) =
-                seen_names_case_insensitive.get(&normalized_name_case_insensitive)
-            {
-                return Err(EphemerisError::new(
-                    EphemerisErrorKind::InvalidRequest,
-                    format!(
-                        "descriptor-name summary contains a case-insensitive duplicate name '{name}' that conflicts with '{existing_name}'"
-                    ),
-                ));
-            }
-            seen_names_case_insensitive.insert(normalized_name_case_insensitive, normalized_name);
-        }
-
-        Ok(())
+        validate_name_sequence("descriptor-name summary", self.names.iter().copied())
     }
 
     fn summary_line(&self) -> String {
@@ -13069,6 +13088,19 @@ mod tests {
             .expect_err("case-insensitive duplicate descriptor names should fail validation");
         assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
         assert!(error.message.contains("case-insensitive duplicate name"));
+    }
+
+    #[test]
+    fn validate_name_sequence_rejects_whitespace_padded_owned_names() {
+        let names = [String::from("Equal (MC)"), String::from(" release family ")];
+
+        let error = validate_name_sequence(
+            "compatibility profile house formula families",
+            names.iter().map(String::as_str),
+        )
+        .expect_err("whitespace-padded owned names should fail validation");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error.message.contains("surrounding whitespace"));
     }
 
     #[test]
