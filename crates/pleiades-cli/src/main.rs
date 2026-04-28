@@ -777,6 +777,12 @@ mod tests {
         assert!(rendered.contains("Djwhal Khul"));
         assert!(rendered.contains("True Revati"));
         assert!(rendered.contains("Babylonian (Eta Piscium)"));
+        assert!(rendered.contains(
+            "Babylonian/Kugler 2, Babylonian Kugler 2, Babylonian 2 -> Babylonian (Kugler 2)"
+        ));
+        assert!(rendered.contains(
+            "Babylonian/Kugler 3, Babylonian Kugler 3, Babylonian 3 -> Babylonian (Kugler 3)"
+        ));
         assert!(rendered.contains("Galactic Equator (Mula)"));
         assert!(rendered.contains("True Mula (Chandra Hari)"));
         assert!(rendered.contains("Galactic Equator (Fiorenza)"));
@@ -930,6 +936,8 @@ mod tests {
         assert!(release_notes.contains("Bundle provenance:"));
         assert!(release_notes.contains("True Mula (Chandra Hari)"));
         assert!(release_notes.contains("Babylonian (Eta Piscium)"));
+        assert!(release_notes.contains("Babylonian (Kugler 2)"));
+        assert!(release_notes.contains("Babylonian (Kugler 3)"));
         assert!(release_notes.contains("Galactic Equator (Mula)"));
         assert!(release_notes.contains("Galactic Equator (Fiorenza)"));
         assert!(release_notes.contains("JN Bhasin"));
