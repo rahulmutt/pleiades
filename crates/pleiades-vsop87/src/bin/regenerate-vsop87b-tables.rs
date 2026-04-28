@@ -1,8 +1,8 @@
 use std::{env, fs, path::PathBuf, process::ExitCode};
 
 use pleiades_vsop87::{
-    checked_in_generated_vsop87b_table_bytes_for_source_file, source_manifest,
-    try_generated_vsop87b_table_bytes_for_source_file, validate_source_manifest,
+    checked_in_generated_vsop87b_table_bytes_for_source_file, format_source_manifest_summary,
+    source_manifest, source_manifest_summary, try_generated_vsop87b_table_bytes_for_source_file,
 };
 
 fn main() -> ExitCode {
@@ -27,7 +27,9 @@ fn write_regenerated_tables(output_dir: PathBuf) -> Result<(), String> {
         .map_err(|error| format!("failed to create {}: {error}", output_dir.display()))?;
 
     let manifest = source_manifest();
-    validate_source_manifest(&manifest).map_err(|error| error.to_string())?;
+    let summary = source_manifest_summary(&manifest);
+    summary.validate().map_err(|error| error.to_string())?;
+    println!("{}", format_source_manifest_summary(&summary));
 
     for (body, source_file) in manifest {
         let bytes = try_generated_vsop87b_table_bytes_for_source_file(source_file)
@@ -49,7 +51,9 @@ fn write_regenerated_tables(output_dir: PathBuf) -> Result<(), String> {
 fn check_regenerated_tables() -> Result<(), String> {
     let mut mismatches = Vec::new();
     let manifest = source_manifest();
-    validate_source_manifest(&manifest).map_err(|error| error.to_string())?;
+    let summary = source_manifest_summary(&manifest);
+    summary.validate().map_err(|error| error.to_string())?;
+    println!("{}", format_source_manifest_summary(&summary));
     let manifest_len = manifest.len();
     let supported_source_files = manifest
         .iter()
@@ -139,8 +143,10 @@ fn usage() -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::{
-        check_regenerated_tables, parse_command, source_manifest, validate_source_manifest, Command,
+        check_regenerated_tables, format_source_manifest_summary, parse_command, source_manifest,
+        source_manifest_summary, Command,
     };
+    use pleiades_vsop87::validate_source_manifest;
 
     #[test]
     fn parse_command_accepts_check_mode() {
@@ -209,6 +215,22 @@ mod tests {
                 "VSOP87B.ura",
                 "VSOP87B.nep",
             ]
+        );
+    }
+
+    #[test]
+    fn source_manifest_summary_reports_the_release_order() {
+        let manifest = source_manifest();
+        let summary = source_manifest_summary(&manifest);
+
+        summary
+            .validate()
+            .expect("source manifest summary should match the catalog");
+        let rendered = format_source_manifest_summary(&summary);
+        assert_eq!(rendered, summary.to_string());
+        assert_eq!(
+            rendered,
+            "VSOP87 source manifest: 8 entries (Sun / VSOP87B.ear, Mercury / VSOP87B.mer, Venus / VSOP87B.ven, Mars / VSOP87B.mar, Jupiter / VSOP87B.jup, Saturn / VSOP87B.sat, Uranus / VSOP87B.ura, Neptune / VSOP87B.nep)"
         );
     }
 

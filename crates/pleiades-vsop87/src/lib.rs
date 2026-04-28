@@ -4756,6 +4756,64 @@ pub fn source_manifest() -> Vec<(CelestialBody, &'static str)> {
         .collect()
 }
 
+/// Borrowed summary of a VSOP87 source manifest.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Vsop87SourceManifestSummary<'a> {
+    /// Source/body pairs in source-spec order.
+    pub manifest: &'a [(CelestialBody, &'static str)],
+}
+
+impl Vsop87SourceManifestSummary<'_> {
+    /// Returns `Ok(())` when the manifest still matches the current source catalog.
+    pub fn validate(&self) -> Result<(), Vsop87SourceManifestValidationError> {
+        validate_source_manifest(self.manifest)
+    }
+
+    /// Returns a compact one-line rendering of the current source manifest.
+    pub fn summary_line(&self) -> String {
+        let entries = self
+            .manifest
+            .iter()
+            .map(|(body, source_file)| format!("{body} / {source_file}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        format!(
+            "VSOP87 source manifest: {} entries ({entries})",
+            self.manifest.len()
+        )
+    }
+}
+
+impl fmt::Display for Vsop87SourceManifestSummary<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns a borrowed summary for the source/body manifest in source-spec order.
+pub fn source_manifest_summary<'a>(
+    manifest: &'a [(CelestialBody, &'static str)],
+) -> Vsop87SourceManifestSummary<'a> {
+    Vsop87SourceManifestSummary { manifest }
+}
+
+/// Formats a VSOP87 source-manifest summary for release-facing reporting.
+pub fn format_source_manifest_summary(summary: &Vsop87SourceManifestSummary<'_>) -> String {
+    summary.summary_line()
+}
+
+/// Returns the release-facing source-manifest summary for the current source catalog.
+pub fn source_manifest_summary_for_report() -> String {
+    let manifest = source_manifest();
+    let summary = source_manifest_summary(&manifest);
+
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("VSOP87 source manifest: unavailable ({error})"),
+    }
+}
+
 /// Validation errors for a VSOP87 source manifest that drifted from the
 /// current source-specification catalog.
 #[derive(Clone, Debug, PartialEq, Eq)]
