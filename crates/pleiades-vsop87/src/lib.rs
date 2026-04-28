@@ -1472,6 +1472,8 @@ impl fmt::Display for Vsop87CanonicalEquatorialEvidenceSummary {
 const CANONICAL_EVIDENCE_SUMMARY_LABEL: &str = "VSOP87 canonical J2000 source-backed evidence";
 const CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL: &str =
     "VSOP87 canonical J2000 equatorial companion evidence";
+const CANONICAL_EQUATORIAL_BODY_CLASS_EVIDENCE_SUMMARY_LABEL: &str =
+    "VSOP87 canonical J2000 equatorial body-class evidence";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Vsop87CanonicalEvidenceSummaryValidationError {
@@ -4537,6 +4539,386 @@ pub fn canonical_epoch_equatorial_evidence_summary_for_report() -> String {
     }
 }
 
+/// Backend-owned summary for the canonical J2000 equatorial body classes.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Vsop87CanonicalEquatorialBodyClassEvidenceSummary {
+    /// Body class covered by this summary.
+    pub class: Vsop87SourceBodyClass,
+    /// Number of canonical samples measured for the class.
+    pub sample_count: usize,
+    /// Canonical bodies measured in source-backed order for the class.
+    pub sample_bodies: Vec<CelestialBody>,
+    /// Body with the maximum absolute right ascension delta.
+    pub max_right_ascension_delta_body: CelestialBody,
+    /// Calculation family behind the maximum right ascension delta body.
+    pub max_right_ascension_delta_source_kind: Vsop87BodySourceKind,
+    /// Public source file behind the maximum right ascension delta body.
+    pub max_right_ascension_delta_source_file: &'static str,
+    /// Maximum absolute right ascension delta in degrees.
+    pub max_right_ascension_delta_deg: f64,
+    /// Body with the maximum absolute declination delta.
+    pub max_declination_delta_body: CelestialBody,
+    /// Calculation family behind the maximum declination delta body.
+    pub max_declination_delta_source_kind: Vsop87BodySourceKind,
+    /// Public source file behind the maximum declination delta body.
+    pub max_declination_delta_source_file: &'static str,
+    /// Maximum absolute declination delta in degrees.
+    pub max_declination_delta_deg: f64,
+    /// Body with the maximum absolute distance delta.
+    pub max_distance_delta_body: CelestialBody,
+    /// Calculation family behind the maximum distance delta body.
+    pub max_distance_delta_source_kind: Vsop87BodySourceKind,
+    /// Public source file behind the maximum distance delta body.
+    pub max_distance_delta_source_file: &'static str,
+    /// Maximum absolute distance delta in astronomical units.
+    pub max_distance_delta_au: f64,
+    /// Mean absolute right ascension delta in degrees.
+    pub mean_right_ascension_delta_deg: f64,
+    /// Median absolute right ascension delta in degrees.
+    pub median_right_ascension_delta_deg: f64,
+    /// 95th percentile absolute right ascension delta in degrees.
+    pub percentile_right_ascension_delta_deg: f64,
+    /// Root-mean-square right ascension delta in degrees.
+    pub rms_right_ascension_delta_deg: f64,
+    /// Mean absolute declination delta in degrees.
+    pub mean_declination_delta_deg: f64,
+    /// Median absolute declination delta in degrees.
+    pub median_declination_delta_deg: f64,
+    /// 95th percentile absolute declination delta in degrees.
+    pub percentile_declination_delta_deg: f64,
+    /// Root-mean-square declination delta in degrees.
+    pub rms_declination_delta_deg: f64,
+    /// Mean absolute distance delta in astronomical units.
+    pub mean_distance_delta_au: f64,
+    /// Median absolute distance delta in astronomical units.
+    pub median_distance_delta_au: f64,
+    /// 95th percentile absolute distance delta in astronomical units.
+    pub percentile_distance_delta_au: f64,
+    /// Root-mean-square distance delta in astronomical units.
+    pub rms_distance_delta_au: f64,
+}
+
+impl Vsop87CanonicalEquatorialBodyClassEvidenceSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format_canonical_equatorial_body_class_evidence_entry(self)
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current derived evidence.
+    pub fn validate(&self) -> Result<(), Vsop87CanonicalEvidenceSummaryValidationError> {
+        validate_canonical_evidence_summary_bodies(
+            CANONICAL_EQUATORIAL_BODY_CLASS_EVIDENCE_SUMMARY_LABEL,
+            self.sample_count,
+            &self.sample_bodies,
+        )?;
+        validate_canonical_evidence_summary_peak_body(
+            CANONICAL_EQUATORIAL_BODY_CLASS_EVIDENCE_SUMMARY_LABEL,
+            "max_right_ascension_delta_body",
+            &self.max_right_ascension_delta_body,
+            &self.sample_bodies,
+        )?;
+        validate_canonical_evidence_summary_peak_body(
+            CANONICAL_EQUATORIAL_BODY_CLASS_EVIDENCE_SUMMARY_LABEL,
+            "max_declination_delta_body",
+            &self.max_declination_delta_body,
+            &self.sample_bodies,
+        )?;
+        validate_canonical_evidence_summary_peak_body(
+            CANONICAL_EQUATORIAL_BODY_CLASS_EVIDENCE_SUMMARY_LABEL,
+            "max_distance_delta_body",
+            &self.max_distance_delta_body,
+            &self.sample_bodies,
+        )?;
+        validate_non_empty_source_file(
+            CANONICAL_EQUATORIAL_BODY_CLASS_EVIDENCE_SUMMARY_LABEL,
+            "max_right_ascension_delta_source_file",
+            self.max_right_ascension_delta_source_file,
+        )?;
+        validate_non_empty_source_file(
+            CANONICAL_EQUATORIAL_BODY_CLASS_EVIDENCE_SUMMARY_LABEL,
+            "max_declination_delta_source_file",
+            self.max_declination_delta_source_file,
+        )?;
+        validate_non_empty_source_file(
+            CANONICAL_EQUATORIAL_BODY_CLASS_EVIDENCE_SUMMARY_LABEL,
+            "max_distance_delta_source_file",
+            self.max_distance_delta_source_file,
+        )?;
+        validate_canonical_evidence_summary_peak_source_metadata(
+            CANONICAL_EQUATORIAL_BODY_CLASS_EVIDENCE_SUMMARY_LABEL,
+            "max_right_ascension_delta_source_kind",
+            "max_right_ascension_delta_source_file",
+            &self.max_right_ascension_delta_body,
+            self.max_right_ascension_delta_source_kind,
+            self.max_right_ascension_delta_source_file,
+        )?;
+        validate_canonical_evidence_summary_peak_source_metadata(
+            CANONICAL_EQUATORIAL_BODY_CLASS_EVIDENCE_SUMMARY_LABEL,
+            "max_declination_delta_source_kind",
+            "max_declination_delta_source_file",
+            &self.max_declination_delta_body,
+            self.max_declination_delta_source_kind,
+            self.max_declination_delta_source_file,
+        )?;
+        validate_canonical_evidence_summary_peak_source_metadata(
+            CANONICAL_EQUATORIAL_BODY_CLASS_EVIDENCE_SUMMARY_LABEL,
+            "max_distance_delta_source_kind",
+            "max_distance_delta_source_file",
+            &self.max_distance_delta_body,
+            self.max_distance_delta_source_kind,
+            self.max_distance_delta_source_file,
+        )?;
+        for (field, value) in [
+            (
+                "max_right_ascension_delta_deg",
+                self.max_right_ascension_delta_deg,
+            ),
+            ("max_declination_delta_deg", self.max_declination_delta_deg),
+            ("max_distance_delta_au", self.max_distance_delta_au),
+            (
+                "mean_right_ascension_delta_deg",
+                self.mean_right_ascension_delta_deg,
+            ),
+            (
+                "median_right_ascension_delta_deg",
+                self.median_right_ascension_delta_deg,
+            ),
+            (
+                "percentile_right_ascension_delta_deg",
+                self.percentile_right_ascension_delta_deg,
+            ),
+            (
+                "rms_right_ascension_delta_deg",
+                self.rms_right_ascension_delta_deg,
+            ),
+            (
+                "mean_declination_delta_deg",
+                self.mean_declination_delta_deg,
+            ),
+            (
+                "median_declination_delta_deg",
+                self.median_declination_delta_deg,
+            ),
+            (
+                "percentile_declination_delta_deg",
+                self.percentile_declination_delta_deg,
+            ),
+            ("rms_declination_delta_deg", self.rms_declination_delta_deg),
+            ("mean_distance_delta_au", self.mean_distance_delta_au),
+            ("median_distance_delta_au", self.median_distance_delta_au),
+            (
+                "percentile_distance_delta_au",
+                self.percentile_distance_delta_au,
+            ),
+            ("rms_distance_delta_au", self.rms_distance_delta_au),
+        ] {
+            validate_finite_non_negative_measure(
+                CANONICAL_EQUATORIAL_BODY_CLASS_EVIDENCE_SUMMARY_LABEL,
+                field,
+                value,
+            )?;
+        }
+
+        Ok(())
+    }
+}
+
+impl fmt::Display for Vsop87CanonicalEquatorialBodyClassEvidenceSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns the backend-owned canonical J2000 equatorial body-class evidence.
+pub fn canonical_epoch_equatorial_body_class_evidence_summary(
+) -> Option<Vec<Vsop87CanonicalEquatorialBodyClassEvidenceSummary>> {
+    let evidence = canonical_epoch_equatorial_body_evidence()?;
+    let mut summaries = Vec::new();
+
+    for class in Vsop87SourceBodyClass::ALL {
+        let class_rows: Vec<_> = evidence
+            .iter()
+            .filter(|row| source_body_class(&row.body) == class)
+            .collect();
+        if class_rows.is_empty() {
+            continue;
+        }
+
+        let sample_bodies = class_rows
+            .iter()
+            .map(|row| row.body.clone())
+            .collect::<Vec<_>>();
+        let mut right_ascension_values = Vec::with_capacity(class_rows.len());
+        let mut declination_values = Vec::with_capacity(class_rows.len());
+        let mut distance_values = Vec::with_capacity(class_rows.len());
+        let mut max_right_ascension_delta_body = class_rows[0].body.clone();
+        let mut max_right_ascension_delta_source_kind = class_rows[0].source_kind;
+        let mut max_right_ascension_delta_source_file = class_rows[0].source_file;
+        let mut max_right_ascension_delta_deg = class_rows[0].right_ascension_delta_deg;
+        let mut max_declination_delta_body = class_rows[0].body.clone();
+        let mut max_declination_delta_source_kind = class_rows[0].source_kind;
+        let mut max_declination_delta_source_file = class_rows[0].source_file;
+        let mut max_declination_delta_deg = class_rows[0].declination_delta_deg;
+        let mut max_distance_delta_body = class_rows[0].body.clone();
+        let mut max_distance_delta_source_kind = class_rows[0].source_kind;
+        let mut max_distance_delta_source_file = class_rows[0].source_file;
+        let mut max_distance_delta_au = class_rows[0].distance_delta_au;
+
+        for row in &class_rows {
+            right_ascension_values.push(row.right_ascension_delta_deg);
+            declination_values.push(row.declination_delta_deg);
+            distance_values.push(row.distance_delta_au);
+
+            if row.right_ascension_delta_deg > max_right_ascension_delta_deg {
+                max_right_ascension_delta_body = row.body.clone();
+                max_right_ascension_delta_source_kind = row.source_kind;
+                max_right_ascension_delta_source_file = row.source_file;
+                max_right_ascension_delta_deg = row.right_ascension_delta_deg;
+            }
+            if row.declination_delta_deg > max_declination_delta_deg {
+                max_declination_delta_body = row.body.clone();
+                max_declination_delta_source_kind = row.source_kind;
+                max_declination_delta_source_file = row.source_file;
+                max_declination_delta_deg = row.declination_delta_deg;
+            }
+            if row.distance_delta_au > max_distance_delta_au {
+                max_distance_delta_body = row.body.clone();
+                max_distance_delta_source_kind = row.source_kind;
+                max_distance_delta_source_file = row.source_file;
+                max_distance_delta_au = row.distance_delta_au;
+            }
+        }
+
+        let sample_count = class_rows.len();
+        let mut right_ascension_values_for_median = right_ascension_values.clone();
+        let mut right_ascension_values_for_percentile = right_ascension_values;
+        let mut declination_values_for_median = declination_values.clone();
+        let mut declination_values_for_percentile = declination_values;
+        let mut distance_values_for_median = distance_values.clone();
+        let mut distance_values_for_percentile = distance_values;
+        summaries.push(Vsop87CanonicalEquatorialBodyClassEvidenceSummary {
+            class,
+            sample_count,
+            sample_bodies,
+            max_right_ascension_delta_body,
+            max_right_ascension_delta_source_kind,
+            max_right_ascension_delta_source_file,
+            max_right_ascension_delta_deg,
+            max_declination_delta_body,
+            max_declination_delta_source_kind,
+            max_declination_delta_source_file,
+            max_declination_delta_deg,
+            max_distance_delta_body,
+            max_distance_delta_source_kind,
+            max_distance_delta_source_file,
+            max_distance_delta_au,
+            mean_right_ascension_delta_deg: right_ascension_values_for_median.iter().sum::<f64>()
+                / sample_count as f64,
+            median_right_ascension_delta_deg: median_f64(&mut right_ascension_values_for_median),
+            percentile_right_ascension_delta_deg: percentile_f64(
+                &mut right_ascension_values_for_percentile,
+                0.95,
+            ),
+            rms_right_ascension_delta_deg: rms_f64(&right_ascension_values_for_percentile),
+            mean_declination_delta_deg: declination_values_for_median.iter().sum::<f64>()
+                / sample_count as f64,
+            median_declination_delta_deg: median_f64(&mut declination_values_for_median),
+            percentile_declination_delta_deg: percentile_f64(
+                &mut declination_values_for_percentile,
+                0.95,
+            ),
+            rms_declination_delta_deg: rms_f64(&declination_values_for_percentile),
+            mean_distance_delta_au: distance_values_for_median.iter().sum::<f64>()
+                / sample_count as f64,
+            median_distance_delta_au: median_f64(&mut distance_values_for_median),
+            percentile_distance_delta_au: percentile_f64(&mut distance_values_for_percentile, 0.95),
+            rms_distance_delta_au: rms_f64(&distance_values_for_percentile),
+        });
+    }
+
+    Some(summaries)
+}
+
+/// Formats a single canonical VSOP87 equatorial body-class evidence envelope.
+fn format_canonical_equatorial_body_class_evidence_entry(
+    summary: &Vsop87CanonicalEquatorialBodyClassEvidenceSummary,
+) -> String {
+    format!(
+        "{}: samples={}, bodies: {}, mean Δra={:.12}°, median Δra={:.12}°, p95 Δra={:.12}°, rms Δra={:.12}°, mean Δdec={:.12}°, median Δdec={:.12}°, p95 Δdec={:.12}°, rms Δdec={:.12}°, mean Δdist={:.12} AU, median Δdist={:.12} AU, p95 Δdist={:.12} AU, rms Δdist={:.12} AU, max Δra={:.12}° ({}; {}), max Δdec={:.12}° ({}; {}), max Δdist={:.12} AU ({}; {})",
+        summary.class,
+        summary.sample_count,
+        format_celestial_bodies(&summary.sample_bodies),
+        summary.mean_right_ascension_delta_deg,
+        summary.median_right_ascension_delta_deg,
+        summary.percentile_right_ascension_delta_deg,
+        summary.rms_right_ascension_delta_deg,
+        summary.mean_declination_delta_deg,
+        summary.median_declination_delta_deg,
+        summary.percentile_declination_delta_deg,
+        summary.rms_declination_delta_deg,
+        summary.mean_distance_delta_au,
+        summary.median_distance_delta_au,
+        summary.percentile_distance_delta_au,
+        summary.rms_distance_delta_au,
+        summary.max_right_ascension_delta_deg,
+        summary.max_right_ascension_delta_source_kind,
+        summary.max_right_ascension_delta_source_file,
+        summary.max_declination_delta_deg,
+        summary.max_declination_delta_source_kind,
+        summary.max_declination_delta_source_file,
+        summary.max_distance_delta_au,
+        summary.max_distance_delta_source_kind,
+        summary.max_distance_delta_source_file,
+    )
+}
+
+/// Formats the canonical VSOP87 equatorial body-class evidence for reporting.
+pub fn format_canonical_equatorial_body_class_evidence_summary(
+    summaries: &[Vsop87CanonicalEquatorialBodyClassEvidenceSummary],
+) -> String {
+    if summaries.is_empty() {
+        return "VSOP87 canonical J2000 equatorial body-class envelopes: unavailable".to_string();
+    }
+
+    let rendered = summaries
+        .iter()
+        .map(format_canonical_equatorial_body_class_evidence_entry)
+        .collect::<Vec<_>>()
+        .join(" | ");
+
+    format!("VSOP87 canonical J2000 equatorial body-class envelopes: {rendered}")
+}
+
+/// Returns the release-facing equatorial body-class evidence summary string.
+fn format_validated_canonical_equatorial_body_class_evidence_summary_for_report(
+    summaries: &[Vsop87CanonicalEquatorialBodyClassEvidenceSummary],
+) -> String {
+    if summaries.is_empty() {
+        return "VSOP87 canonical J2000 equatorial body-class envelopes: unavailable".to_string();
+    }
+
+    if let Some(error) = summaries
+        .iter()
+        .find_map(|summary| summary.validate().err())
+    {
+        return format!(
+            "VSOP87 canonical J2000 equatorial body-class envelopes: unavailable ({error})"
+        );
+    }
+
+    format_canonical_equatorial_body_class_evidence_summary(summaries)
+}
+
+/// Returns the release-facing equatorial body-class evidence summary string.
+pub fn canonical_epoch_equatorial_body_class_evidence_summary_for_report() -> String {
+    match canonical_epoch_equatorial_body_class_evidence_summary() {
+        Some(summary) => {
+            format_validated_canonical_equatorial_body_class_evidence_summary_for_report(&summary)
+        }
+        None => "VSOP87 canonical J2000 equatorial body-class envelopes: unavailable".to_string(),
+    }
+}
+
 fn source_kind_for_body(body: CelestialBody) -> Option<Vsop87BodySourceKind> {
     body_catalog_entries()
         .iter()
@@ -7330,6 +7712,86 @@ mod tests {
         assert_eq!(
             error.to_string(),
             "the VSOP87 source-backed body-class evidence summary field `max_longitude_delta_source_file` is out of sync with the current canonical evidence"
+        );
+    }
+
+    #[test]
+    fn canonical_equatorial_body_class_evidence_report_matches_the_backend_formatter() {
+        let summary =
+            canonical_epoch_equatorial_body_class_evidence_summary().expect("summary should exist");
+        assert_eq!(summary.len(), 2);
+        assert_eq!(summary[0].class, Vsop87SourceBodyClass::Luminary);
+        assert_eq!(summary[0].sample_count, 1);
+        assert_eq!(summary[0].sample_bodies, vec![CelestialBody::Sun]);
+        assert_eq!(summary[0].validate(), Ok(()));
+        assert_eq!(summary[1].class, Vsop87SourceBodyClass::MajorPlanet);
+        assert_eq!(summary[1].sample_count, 7);
+        assert_eq!(
+            summary[1].sample_bodies,
+            vec![
+                CelestialBody::Mercury,
+                CelestialBody::Venus,
+                CelestialBody::Mars,
+                CelestialBody::Jupiter,
+                CelestialBody::Saturn,
+                CelestialBody::Uranus,
+                CelestialBody::Neptune,
+            ]
+        );
+        assert_eq!(summary[1].validate(), Ok(()));
+        let rendered = canonical_epoch_equatorial_body_class_evidence_summary_for_report();
+        assert_eq!(
+            rendered,
+            format_canonical_equatorial_body_class_evidence_summary(&summary)
+        );
+        assert_eq!(summary[0].summary_line(), summary[0].to_string());
+        assert_eq!(summary[1].summary_line(), summary[1].to_string());
+        assert!(rendered.contains("Luminary: samples=1, bodies: Sun"));
+        assert!(rendered.contains("median Δra="));
+        assert!(rendered.contains("p95 Δra="));
+        assert!(rendered.contains("median Δdec="));
+        assert!(rendered.contains("p95 Δdec="));
+        assert!(rendered.contains("median Δdist="));
+        assert!(rendered.contains("p95 Δdist="));
+        assert!(rendered.contains(
+            "Major planets: samples=7, bodies: Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune"
+        ));
+    }
+
+    #[test]
+    fn canonical_equatorial_body_class_evidence_summary_validation_rejects_count_drift() {
+        let mut summary = canonical_epoch_equatorial_body_class_evidence_summary()
+            .expect("summary should exist")
+            .into_iter()
+            .next()
+            .expect("at least one class summary should exist");
+        summary.sample_count += 1;
+
+        let error = summary
+            .validate()
+            .expect_err("count drift should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "the VSOP87 canonical J2000 equatorial body-class evidence summary field `sample_count` is out of sync with the current canonical evidence"
+        );
+    }
+
+    #[test]
+    fn canonical_equatorial_body_class_evidence_summary_validation_rejects_blank_peak_source_file()
+    {
+        let mut summary = canonical_epoch_equatorial_body_class_evidence_summary()
+            .expect("summary should exist")
+            .into_iter()
+            .find(|summary| summary.class == Vsop87SourceBodyClass::MajorPlanet)
+            .expect("major-planet summary should exist");
+        summary.max_distance_delta_source_file = "";
+
+        let error = summary
+            .validate()
+            .expect_err("blank peak source file should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "the VSOP87 canonical J2000 equatorial body-class evidence summary field `max_distance_delta_source_file` is blank"
         );
     }
 

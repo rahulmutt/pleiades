@@ -94,7 +94,8 @@ use pleiades_jpl::{
     reference_snapshot_summary_for_report, JplSnapshotBackend,
 };
 use pleiades_vsop87::{
-    body_source_profiles, canonical_epoch_equatorial_evidence_summary_for_report,
+    body_source_profiles, canonical_epoch_equatorial_body_class_evidence_summary_for_report,
+    canonical_epoch_equatorial_evidence_summary_for_report,
     canonical_epoch_evidence_summary_for_report, canonical_epoch_outlier_note_for_report,
     canonical_j1900_batch_parity_summary_for_report,
     canonical_j2000_batch_parity_summary_for_report, frame_treatment_summary_details,
@@ -5052,6 +5053,8 @@ fn render_release_summary_text() -> String {
     text.push_str(&format_vsop87_body_evidence_summary());
     text.push_str(" | ");
     text.push_str(&format_vsop87_source_body_class_evidence_summary());
+    text.push_str(" | ");
+    text.push_str(&format_vsop87_equatorial_body_class_evidence_summary());
     text.push('\n');
     text.push_str("ELP lunar capability: ");
     text.push_str(&lunar_theory_capability_summary_for_report());
@@ -7356,6 +7359,10 @@ fn format_vsop87_source_body_class_evidence_summary() -> String {
     source_body_class_evidence_summary_for_report()
 }
 
+fn format_vsop87_equatorial_body_class_evidence_summary() -> String {
+    canonical_epoch_equatorial_body_class_evidence_summary_for_report()
+}
+
 fn format_vsop87_canonical_outlier_note_summary() -> String {
     canonical_epoch_outlier_note_for_report()
 }
@@ -8179,6 +8186,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         text,
         "  {}",
         format_vsop87_source_body_class_evidence_summary()
+    );
+    let _ = writeln!(
+        text,
+        "  {}",
+        format_vsop87_equatorial_body_class_evidence_summary()
     );
     let _ = writeln!(text);
     let _ = writeln!(text, "ELP lunar theory specification");
@@ -13609,6 +13621,7 @@ mod tests {
         assert!(rendered.contains("Selected asteroid evidence:"));
         assert!(rendered.contains("VSOP87 evidence:"));
         assert!(rendered.contains("VSOP87 source-backed body-class envelopes:"));
+        assert!(rendered.contains("VSOP87 canonical J2000 equatorial body-class envelopes:"));
         assert!(rendered.contains("Luminary: samples=1, bodies: Sun"));
         assert!(rendered.contains("median Δlon="));
         assert!(rendered.contains("p95 Δlon="));
@@ -14253,6 +14266,7 @@ version = "0.9.0"
         assert!(release_summary.contains("Comparison snapshot coverage:"));
         assert!(release_summary.contains("VSOP87 evidence:"));
         assert!(release_summary.contains("VSOP87 source-backed body-class envelopes:"));
+        assert!(release_summary.contains("VSOP87 canonical J2000 equatorial body-class envelopes:"));
         assert!(release_summary.contains("Luminary: samples=1, bodies: Sun"));
         assert!(release_summary.contains("median Δlon="));
         assert!(release_summary.contains("p95 Δlon="));
@@ -14424,6 +14438,8 @@ version = "0.9.0"
         assert!(validation_report_summary.contains("Expected tolerance status"));
         assert!(validation_report_summary.contains("VSOP87 source-backed evidence"));
         assert!(validation_report_summary.contains("VSOP87 source-backed body-class envelopes:"));
+        assert!(validation_report_summary
+            .contains("VSOP87 canonical J2000 equatorial body-class envelopes:"));
         assert!(workspace_audit_summary.contains("Workspace audit summary"));
         assert!(
             workspace_audit_summary.contains("Result: no mandatory native build hooks detected")
