@@ -43,6 +43,63 @@ pub struct HouseValidationReport {
     pub scenarios: Vec<HouseValidationScenario>,
 }
 
+/// Errors produced while validating a house-validation report.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum HouseValidationReportValidationError {
+    /// The report does not contain any scenarios.
+    EmptyScenarioList,
+    /// A scenario label was blank or whitespace only.
+    BlankScenarioLabel { scenario_index: usize },
+    /// A scenario label was duplicated.
+    DuplicateScenarioLabel { label: &'static str },
+    /// A scenario does not contain any samples.
+    EmptyScenarioSamples {
+        scenario_index: usize,
+        label: &'static str,
+    },
+    /// A scenario does not match the baseline house-system coverage.
+    ScenarioSampleCountMismatch {
+        scenario_index: usize,
+        label: &'static str,
+        expected: usize,
+        actual: usize,
+    },
+}
+
+impl fmt::Display for HouseValidationReportValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::EmptyScenarioList => {
+                f.write_str("house validation report does not contain any scenarios")
+            }
+            Self::BlankScenarioLabel { scenario_index } => {
+                write!(f, "house validation scenario #{scenario_index} has a blank label")
+            }
+            Self::DuplicateScenarioLabel { label } => {
+                write!(f, "house validation scenario label '{label}' is duplicated")
+            }
+            Self::EmptyScenarioSamples {
+                scenario_index,
+                label,
+            } => write!(
+                f,
+                "house validation scenario #{scenario_index} ('{label}') does not contain any samples"
+            ),
+            Self::ScenarioSampleCountMismatch {
+                scenario_index,
+                label,
+                expected,
+                actual,
+            } => write!(
+                f,
+                "house validation scenario #{scenario_index} ('{label}') has {actual} samples but expected {expected}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for HouseValidationReportValidationError {}
+
 impl HouseValidationReport {
     /// Creates the default house-validation corpus.
     pub fn new() -> Self {
@@ -169,6 +226,55 @@ impl HouseValidationReport {
         )
     }
 
+    /// Validates that the report still reflects the expected baseline corpus shape.
+    pub fn validate(&self) -> Result<(), HouseValidationReportValidationError> {
+        if self.scenarios.is_empty() {
+            return Err(HouseValidationReportValidationError::EmptyScenarioList);
+        }
+
+        let expected_sample_count = baseline_house_systems().len();
+        let mut scenario_labels = BTreeSet::new();
+
+        for (index, scenario) in self.scenarios.iter().enumerate() {
+            let label = scenario.label.trim();
+            if label.is_empty() {
+                return Err(HouseValidationReportValidationError::BlankScenarioLabel {
+                    scenario_index: index + 1,
+                });
+            }
+            if label != scenario.label {
+                return Err(HouseValidationReportValidationError::BlankScenarioLabel {
+                    scenario_index: index + 1,
+                });
+            }
+            if !scenario_labels.insert(scenario.label) {
+                return Err(
+                    HouseValidationReportValidationError::DuplicateScenarioLabel {
+                        label: scenario.label,
+                    },
+                );
+            }
+            if scenario.samples.is_empty() {
+                return Err(HouseValidationReportValidationError::EmptyScenarioSamples {
+                    scenario_index: index + 1,
+                    label: scenario.label,
+                });
+            }
+            if scenario.samples.len() != expected_sample_count {
+                return Err(
+                    HouseValidationReportValidationError::ScenarioSampleCountMismatch {
+                        scenario_index: index + 1,
+                        label: scenario.label,
+                        expected: expected_sample_count,
+                        actual: scenario.samples.len(),
+                    },
+                );
+            }
+        }
+
+        Ok(())
+    }
+
     fn success_count_for(samples: &[HouseValidationSample]) -> usize {
         samples
             .iter()
@@ -277,6 +383,14 @@ pub fn house_validation_report() -> HouseValidationReport {
     HouseValidationReport::new()
 }
 
+/// Returns the compact report-facing summary line, or an unavailable message if validation fails.
+pub fn house_validation_summary_line_for_report(report: &HouseValidationReport) -> String {
+    match report.validate() {
+        Ok(()) => report.summary_line(),
+        Err(error) => format!("House validation corpus unavailable: {error}"),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -307,6 +421,36 @@ mod tests {
         assert_eq!(
             report.summary_line(),
             "House validation corpus: 4 scenarios (Mid-latitude reference chart, Equatorial reference chart, Polar stress chart, Southern hemisphere reference chart), 48 samples, 48 successes, 0 failures; latitude-sensitive systems: Koch, Placidus, Topocentric"
+        );
+        assert_eq!(
+            house_validation_summary_line_for_report(&report),
+            report.summary_line()
+        );
+        assert_eq!(report.validate(), Ok(()));
+    }
+
+    #[test]
+    fn validate_rejects_drifted_corpus_shapes() {
+        let report = HouseValidationReport {
+            scenarios: vec![HouseValidationScenario {
+                label: "",
+                instant: Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+                observer: ObserverLocation::new(
+                    Latitude::from_degrees(0.0),
+                    Longitude::from_degrees(0.0),
+                    None,
+                ),
+                samples: Vec::new(),
+            }],
+        };
+
+        assert!(matches!(
+            report.validate(),
+            Err(HouseValidationReportValidationError::BlankScenarioLabel { .. })
+        ));
+        assert_eq!(
+            house_validation_summary_line_for_report(&report),
+            "House validation corpus unavailable: house validation scenario #1 has a blank label"
         );
     }
 }

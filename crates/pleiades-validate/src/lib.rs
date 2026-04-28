@@ -26,7 +26,8 @@ pub use chart_benchmark::{
     benchmark_chart_backend, chart_benchmark_corpus_summary, ChartBenchmarkReport,
 };
 pub use house_validation::{
-    house_validation_report, HouseValidationReport, HouseValidationSample, HouseValidationScenario,
+    house_validation_report, house_validation_summary_line_for_report, HouseValidationReport,
+    HouseValidationReportValidationError, HouseValidationSample, HouseValidationScenario,
 };
 
 use pleiades_ayanamsa::{
@@ -5002,7 +5003,9 @@ fn render_release_summary_text() -> String {
         text.push_str(&comparison_audit_summary_for_report(&report.comparison));
         text.push('\n');
         text.push_str("House validation corpus: ");
-        text.push_str(&report.house_validation.summary_line());
+        text.push_str(&house_validation_summary_line_for_report(
+            &report.house_validation,
+        ));
         text.push('\n');
         text.push_str(&ayanamsa_catalog_validation_summary().summary_line());
         text.push('\n');
@@ -7651,7 +7654,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     );
     let _ = writeln!(text);
     let _ = writeln!(text, "House validation corpus");
-    let _ = writeln!(text, "  {}", report.house_validation.summary_line());
+    let _ = writeln!(
+        text,
+        "  {}",
+        house_validation_summary_line_for_report(&report.house_validation)
+    );
     let _ = writeln!(text);
     let _ = writeln!(text, "Comparison summary");
     let _ = writeln!(
@@ -8162,7 +8169,8 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text, "  outside tolerance bodies: {}", audit_outside_count);
     let _ = writeln!(text, "  notable regressions: {}", audit_regression_count);
     let _ = writeln!(text);
-    let house_validation_summary = report.house_validation.summary_line();
+    let house_validation_summary =
+        house_validation_summary_line_for_report(&report.house_validation);
     let house_validation_summary = house_validation_summary
         .strip_prefix("House validation corpus: ")
         .unwrap_or(&house_validation_summary);
