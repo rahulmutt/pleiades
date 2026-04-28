@@ -63,13 +63,13 @@ impl HouseRequest {
         )
     }
 
-    /// Validates the request's observer latitude and obliquity override.
+    /// Validates the request's observer location and obliquity override.
     ///
     /// This is a lightweight preflight for callers that want to check the
     /// house-observer contract before invoking the full house calculation.
     /// The helper does not retag the instant or infer any time-scale policy;
-    /// it only checks the same observer, obliquity, and topocentric elevation
-    /// constraints enforced by [`calculate_houses`].
+    /// it only checks the same observer-location, obliquity, and topocentric
+    /// elevation constraints enforced by [`calculate_houses`].
     pub fn validate(&self) -> Result<(), HouseError> {
         validated_obliquity(self).map(|_| ())
     }
@@ -157,6 +157,8 @@ pub enum HouseErrorKind {
     UnsupportedHouseSystem,
     /// The observer latitude is outside the mathematically valid range.
     InvalidLatitude,
+    /// The observer longitude was not finite.
+    InvalidLongitude,
     /// The observer elevation was not finite when a topocentric correction was requested.
     InvalidElevation,
     /// The supplied obliquity override was not finite.
@@ -170,6 +172,7 @@ impl fmt::Display for HouseErrorKind {
         let label = match self {
             Self::UnsupportedHouseSystem => "UnsupportedHouseSystem",
             Self::InvalidLatitude => "InvalidLatitude",
+            Self::InvalidLongitude => "InvalidLongitude",
             Self::InvalidElevation => "InvalidElevation",
             Self::InvalidObliquity => "InvalidObliquity",
             Self::NumericalFailure => "NumericalFailure",
@@ -341,6 +344,14 @@ fn validate_observer(observer: &ObserverLocation) -> Result<(), HouseError> {
         return Err(HouseError::new(
             HouseErrorKind::InvalidLatitude,
             format!("observer latitude {latitude}° is outside the valid range"),
+        ));
+    }
+
+    let longitude = observer.longitude.degrees();
+    if !longitude.is_finite() {
+        return Err(HouseError::new(
+            HouseErrorKind::InvalidLongitude,
+            "observer longitude must be finite",
         ));
     }
 
@@ -1492,6 +1503,18 @@ mod tests {
         assert!(error
             .message
             .contains("observer elevation must be finite when provided"));
+    }
+
+    #[test]
+    fn house_request_validate_rejects_non_finite_observer_longitude() {
+        let mut request = sample_request(HouseSystem::Equal);
+        request.observer.longitude = Longitude::from_degrees(f64::NAN);
+
+        let error = request
+            .validate()
+            .expect_err("non-finite longitude should fail fast");
+        assert_eq!(error.kind, HouseErrorKind::InvalidLongitude);
+        assert!(error.message.contains("observer longitude must be finite"));
     }
 
     #[test]

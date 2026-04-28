@@ -286,13 +286,20 @@ impl ChartRequest {
     /// House requests require an observer location so the façade can keep the
     /// observer used for houses separate from the geocentric body-position
     /// backend requests. This preflight returns the same structured request
-    /// error that chart assembly uses if the observer is missing.
+    /// error that chart assembly uses if the observer is missing, and it also
+    /// reuses the house-layer validation so malformed observer locations fail
+    /// before the façade gets to house derivation.
     pub fn validate_house_observer_policy(&self) -> Result<(), EphemerisError> {
-        if self.house_system.is_some() && self.observer.is_none() {
-            return Err(EphemerisError::new(
-                EphemerisErrorKind::InvalidRequest,
-                "house placement requires an observer location",
-            ));
+        if let Some(system) = &self.house_system {
+            let observer = self.observer.clone().ok_or_else(|| {
+                EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    "house placement requires an observer location",
+                )
+            })?;
+
+            let house_request = HouseRequest::new(self.instant, observer, system.clone());
+            house_request.validate().map_err(map_house_error)?;
         }
 
         Ok(())
@@ -1852,6 +1859,7 @@ fn map_house_error(error: pleiades_houses::HouseError) -> EphemerisError {
             EphemerisErrorKind::InvalidRequest
         }
         pleiades_houses::HouseErrorKind::InvalidLatitude
+        | pleiades_houses::HouseErrorKind::InvalidLongitude
         | pleiades_houses::HouseErrorKind::InvalidElevation => EphemerisErrorKind::InvalidObserver,
         pleiades_houses::HouseErrorKind::InvalidObliquity => EphemerisErrorKind::InvalidRequest,
         pleiades_houses::HouseErrorKind::NumericalFailure => EphemerisErrorKind::NumericalFailure,
@@ -2704,6 +2712,33 @@ mod tests {
         assert!(error
             .message
             .contains("observer elevation must be finite when provided"));
+        let observers = observers.lock().expect("observer log should be lockable");
+        assert!(observers.is_empty());
+    }
+
+    #[test]
+    fn chart_snapshot_rejects_non_finite_house_observer_longitude() {
+        let observers = Arc::new(Mutex::new(Vec::new()));
+        let engine = ChartEngine::new(RecordingChartBackend {
+            observers: Arc::clone(&observers),
+        });
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2451545.0),
+            TimeScale::Tt,
+        ))
+        .with_observer(ObserverLocation::new(
+            Latitude::from_degrees(12.5),
+            Longitude::from_degrees(f64::NAN),
+            None,
+        ))
+        .with_house_system(crate::HouseSystem::Equal)
+        .with_bodies(vec![CelestialBody::Sun]);
+
+        let error = engine
+            .chart(&request)
+            .expect_err("chart should reject non-finite house observer longitude");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
+        assert!(error.message.contains("observer longitude must be finite"));
         let observers = observers.lock().expect("observer log should be lockable");
         assert!(observers.is_empty());
     }
