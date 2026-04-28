@@ -1557,13 +1557,26 @@ pub fn format_comparison_snapshot_source_summary(
     summary.summary_line()
 }
 
-/// Returns the source/material summary for the comparison snapshot used by validation.
-pub fn comparison_snapshot_source_summary_for_report() -> String {
-    let summary = comparison_snapshot_source_summary();
+fn format_validated_comparison_snapshot_source_summary_for_report(
+    summary: &ComparisonSnapshotSourceSummary,
+    manifest: &SnapshotManifest,
+) -> String {
+    if let Err(error) = manifest.validate() {
+        return format!("Comparison snapshot source: unavailable ({error})");
+    }
+
     match summary.validate() {
         Ok(()) => summary.summary_line(),
         Err(error) => format!("Comparison snapshot source: unavailable ({error})"),
     }
+}
+
+/// Returns the source/material summary for the comparison snapshot used by validation.
+pub fn comparison_snapshot_source_summary_for_report() -> String {
+    format_validated_comparison_snapshot_source_summary_for_report(
+        &comparison_snapshot_source_summary(),
+        comparison_snapshot_manifest(),
+    )
 }
 
 #[cfg(test)]
@@ -5097,6 +5110,26 @@ mod tests {
         assert_eq!(
             comparison_snapshot_source_summary_for_report(),
             source_summary.summary_line()
+        );
+        assert_eq!(
+            format_validated_comparison_snapshot_source_summary_for_report(
+                &source_summary,
+                manifest,
+            ),
+            source_summary.summary_line()
+        );
+        let invalid_manifest = SnapshotManifest {
+            title: Some("Example snapshot.".to_string()),
+            source: Some(" ".to_string()),
+            coverage: Some("coverage".to_string()),
+            columns: vec!["body".to_string()],
+        };
+        assert_eq!(
+            format_validated_comparison_snapshot_source_summary_for_report(
+                &source_summary,
+                &invalid_manifest,
+            ),
+            "Comparison snapshot source: unavailable (missing source)"
         );
         assert_eq!(
             manifest.summary_line("Comparison snapshot manifest"),
