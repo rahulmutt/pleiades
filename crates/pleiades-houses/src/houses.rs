@@ -1897,7 +1897,29 @@ mod tests {
 
     #[test]
     fn house_snapshots_reject_wrong_cusp_counts() {
-        let snapshot = HouseSnapshot {
+        let equal_snapshot = HouseSnapshot {
+            system: HouseSystem::Equal,
+            instant: sample_request(HouseSystem::Equal).instant,
+            observer: observer(),
+            obliquity: Angle::from_degrees(23.4),
+            angles: HouseAngles {
+                ascendant: Longitude::from_degrees(15.0),
+                descendant: Longitude::from_degrees(195.0),
+                midheaven: Longitude::from_degrees(45.0),
+                imum_coeli: Longitude::from_degrees(225.0),
+            },
+            cusps: vec![Longitude::from_degrees(0.0); 36],
+        };
+
+        let equal_error = equal_snapshot
+            .validate()
+            .expect_err("wrong cusp count should fail for 12-cusp systems");
+        assert_eq!(equal_error.kind, HouseErrorKind::NumericalFailure);
+        assert!(equal_error
+            .message
+            .contains("house calculation for Equal produced 36 cusps (expected 12)"));
+
+        let gauquelin_snapshot = HouseSnapshot {
             system: HouseSystem::Gauquelin,
             instant: sample_request(HouseSystem::Gauquelin).instant,
             observer: observer(),
@@ -1911,11 +1933,11 @@ mod tests {
             cusps: vec![Longitude::from_degrees(0.0); 12],
         };
 
-        let error = snapshot
+        let gauquelin_error = gauquelin_snapshot
             .validate()
-            .expect_err("wrong cusp count should fail");
-        assert_eq!(error.kind, HouseErrorKind::NumericalFailure);
-        assert!(error
+            .expect_err("wrong cusp count should fail for Gauquelin sectors");
+        assert_eq!(gauquelin_error.kind, HouseErrorKind::NumericalFailure);
+        assert!(gauquelin_error
             .message
             .contains("house calculation for Gauquelin sectors produced 12 cusps (expected 36)"));
     }

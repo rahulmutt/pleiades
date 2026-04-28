@@ -28,6 +28,7 @@ The repository already exposes baseline house systems and ayanamsas, a larger re
    - Return explicit errors for polar/high-latitude or numerical failure cases.
    - Verify special shapes such as Gauquelin sectors and equal/MC/Aries variants.
    - Progress note: the house-formula regression slice now also covers both invalid-latitude rejection and a Placidus polar numerical-failure path, so the current house-system implementation explicitly exercises representative invalid-input and numerical-failure reporting for the compatibility catalog.
+   - Progress note: the house-snapshot validation regression now also covers both a standard 12-cusp system and Gauquelin's 36-cusp layout, so the structure guard now fails closed for the ordinary house-count branch as well as the special-sector branch.
    - Progress note: the Sunshine release-system regression now also checks the documented axis anchors explicitly, keeping the release-specific Sunshine house formula covered as more formula-validation slices land.
    - Progress note: the Meridian, Axial, and Morinus regression now also pins their shared equatorial-projection layout, so the documented axial variants stay anchored to the same release-facing geometry as Meridian instead of relying only on the baseline availability check.
 
