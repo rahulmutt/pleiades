@@ -191,6 +191,32 @@ impl LunarTheorySourceSelection {
     pub const fn family_key(self) -> LunarTheoryCatalogKey<'static> {
         LunarTheoryCatalogKey::SourceFamily(self.family)
     }
+
+    /// Returns a compact summary line for the current source selection.
+    pub fn summary_line(&self) -> String {
+        let aliases = if self.source_aliases.is_empty() {
+            "none".to_string()
+        } else {
+            self.source_aliases.join(", ")
+        };
+
+        format!(
+            "lunar source selection: {} [family: {}]; aliases: {}; citation: {}; provenance: {}; redistribution: {}; license: {}",
+            self.identifier,
+            self.family_label(),
+            aliases,
+            self.citation,
+            self.material,
+            self.redistribution_note,
+            self.license_note,
+        )
+    }
+}
+
+impl fmt::Display for LunarTheorySourceSelection {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
 }
 
 /// Compact source-selection summary for the current lunar-theory baseline.
@@ -1125,6 +1151,16 @@ pub fn lunar_theory_specification() -> LunarTheorySpecification {
 /// Returns the structured source selection for the current lunar-theory baseline.
 pub fn lunar_theory_source_selection() -> LunarTheorySourceSelection {
     lunar_theory_specification().source_selection()
+}
+
+/// Returns the compact source-selection summary for the current lunar baseline.
+pub fn lunar_theory_source_selection_summary() -> String {
+    lunar_theory_source_selection().summary_line()
+}
+
+/// Formats a structured lunar source selection for reporting.
+pub fn format_lunar_theory_source_selection(selection: &LunarTheorySourceSelection) -> String {
+    selection.summary_line()
 }
 
 /// Returns the bodies/channels the current lunar-theory baseline explicitly supports.
@@ -4590,6 +4626,20 @@ mod tests {
             .data_sources
             .iter()
             .any(|source| source.contains("2021-03-05 mean-perigee example")));
+    }
+
+    #[test]
+    fn lunar_theory_source_selection_has_a_stable_summary_line() {
+        let selection = lunar_theory_source_selection();
+        let summary = selection.summary_line();
+
+        assert_eq!(selection.to_string(), summary);
+        assert_eq!(format_lunar_theory_source_selection(&selection), summary);
+        assert_eq!(lunar_theory_source_selection_summary(), summary);
+        assert!(summary.contains(selection.identifier));
+        assert!(summary.contains(selection.family_label()));
+        assert!(summary.contains(selection.citation));
+        assert!(summary.contains(selection.license_note));
     }
 
     #[test]
