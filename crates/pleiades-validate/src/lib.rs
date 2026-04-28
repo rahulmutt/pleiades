@@ -11630,6 +11630,7 @@ mod tests {
         assert!(rendered.contains("Aphoric"));
         assert!(rendered.contains("Takra"));
         assert!(rendered.contains("Galactic Equator (True)"));
+        assert!(rendered.contains("Galactic Equator mid-Mula, Mula galactic equator, Galactic equator Mula -> Galactic Equator (Mula)"));
         assert!(rendered.contains("Valens Moon ayanamsa"));
     }
 
