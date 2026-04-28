@@ -1153,6 +1153,15 @@ pub enum CustomDefinitionValidationError {
         /// The duplicated alias.
         alias: String,
     },
+    /// A label collides with a built-in descriptor or alias.
+    ReservedLabel {
+        /// The type of custom definition being validated.
+        subject: &'static str,
+        /// The invalid field name.
+        field: String,
+        /// The reserved built-in label.
+        label: String,
+    },
     /// A numeric field was not finite.
     NonFinite {
         /// The type of custom definition being validated.
@@ -1205,6 +1214,18 @@ impl CustomDefinitionValidationError {
         }
     }
 
+    fn reserved_label(
+        subject: &'static str,
+        field: impl Into<String>,
+        label: impl Into<String>,
+    ) -> Self {
+        Self::ReservedLabel {
+            subject,
+            field: field.into(),
+            label: label.into(),
+        }
+    }
+
     fn non_finite(subject: &'static str, field: impl Into<String>) -> Self {
         Self::NonFinite {
             subject,
@@ -1238,6 +1259,13 @@ impl CustomDefinitionValidationError {
             } => format!("{subject} {field} must not contain '{separator}'"),
             Self::DuplicateAlias { subject, alias } => {
                 format!("{subject} aliases must be unique: duplicate {alias}")
+            }
+            Self::ReservedLabel {
+                subject,
+                field,
+                label,
+            } => {
+                format!("{subject} {field} must not match a built-in label: {label}")
             }
             Self::NonFinite { subject, field } => format!("{subject} {field} must be finite"),
             Self::IncompletePair {
@@ -1422,6 +1450,21 @@ impl HouseSystem {
             _ => Ok(()),
         }
     }
+
+    /// Validates the custom house-system definition against reserved built-in labels.
+    ///
+    /// Built-in house systems are always valid; custom entries are checked with
+    /// the same structural rules as [`validate`](Self::validate) and are then
+    /// compared against a caller-supplied built-in label resolver.
+    pub fn validate_against_reserved_labels(
+        &self,
+        is_reserved_label: impl Fn(&str) -> bool,
+    ) -> Result<(), CustomDefinitionValidationError> {
+        match self {
+            Self::Custom(custom) => custom.validate_against_reserved_labels(is_reserved_label),
+            _ => Ok(()),
+        }
+    }
 }
 
 /// A structured custom house-system definition.
@@ -1476,6 +1519,40 @@ impl CustomHouseSystem {
 
         if let Some(notes) = &self.notes {
             validate_canonical_text("custom house system", "notes", notes)?;
+        }
+
+        Ok(())
+    }
+
+    /// Validates the custom house-system definition against reserved built-in labels.
+    ///
+    /// This is a stricter form of [`validate`](Self::validate) that also rejects
+    /// a canonical name or alias that collides with a published built-in house-system
+    /// label. That keeps user-defined catalog entries distinguishable from the
+    /// built-in compatibility catalog when request validation or release profiles
+    /// surface them.
+    pub fn validate_against_reserved_labels(
+        &self,
+        is_reserved_label: impl Fn(&str) -> bool,
+    ) -> Result<(), CustomDefinitionValidationError> {
+        self.validate()?;
+
+        if is_reserved_label(&self.name) {
+            return Err(CustomDefinitionValidationError::reserved_label(
+                "custom house system",
+                "name",
+                &self.name,
+            ));
+        }
+
+        for (index, alias) in self.aliases.iter().enumerate() {
+            if is_reserved_label(alias) {
+                return Err(CustomDefinitionValidationError::reserved_label(
+                    "custom house system",
+                    format!("alias[{index}]"),
+                    alias,
+                ));
+            }
         }
 
         Ok(())
@@ -1646,6 +1723,21 @@ impl Ayanamsa {
             _ => Ok(()),
         }
     }
+
+    /// Validates the custom ayanamsa definition against reserved built-in labels.
+    ///
+    /// Built-in ayanamsas are always valid; custom entries are checked with the
+    /// same structural rules as [`validate`](Self::validate) and are then compared
+    /// against a caller-supplied built-in label resolver.
+    pub fn validate_against_reserved_labels(
+        &self,
+        is_reserved_label: impl Fn(&str) -> bool,
+    ) -> Result<(), CustomDefinitionValidationError> {
+        match self {
+            Self::Custom(custom) => custom.validate_against_reserved_labels(is_reserved_label),
+            _ => Ok(()),
+        }
+    }
 }
 
 /// A structured custom ayanamsa definition.
@@ -1718,6 +1810,30 @@ impl CustomAyanamsa {
                     "epoch",
                 ));
             }
+        }
+
+        Ok(())
+    }
+
+    /// Validates the custom ayanamsa definition against reserved built-in labels.
+    ///
+    /// This is a stricter form of [`validate`](Self::validate) that also rejects
+    /// a canonical name that collides with a published built-in ayanamsa label.
+    /// That keeps user-defined sidereal definitions distinguishable from the
+    /// built-in compatibility catalog when request validation or release profiles
+    /// surface them.
+    pub fn validate_against_reserved_labels(
+        &self,
+        is_reserved_label: impl Fn(&str) -> bool,
+    ) -> Result<(), CustomDefinitionValidationError> {
+        self.validate()?;
+
+        if is_reserved_label(&self.name) {
+            return Err(CustomDefinitionValidationError::reserved_label(
+                "custom ayanamsa",
+                "name",
+                &self.name,
+            ));
         }
 
         Ok(())
@@ -2274,6 +2390,29 @@ mod tests {
     }
 
     #[test]
+    fn custom_house_system_validate_against_reserved_labels_rejects_builtin_collisions() {
+        let custom = CustomHouseSystem::new("Equal");
+        assert_eq!(
+            custom
+                .validate_against_reserved_labels(|label| label.eq_ignore_ascii_case("Equal"))
+                .expect_err("built-in labels should be rejected")
+                .to_string(),
+            "custom house system name must not match a built-in label: Equal"
+        );
+
+        let mut custom = CustomHouseSystem::new("My Custom Houses");
+        custom.aliases.push("Whole Sign".to_string());
+
+        assert_eq!(
+            custom
+                .validate_against_reserved_labels(|label| label.eq_ignore_ascii_case("Whole Sign"))
+                .expect_err("built-in aliases should be rejected")
+                .to_string(),
+            "custom house system alias[0] must not match a built-in label: Whole Sign"
+        );
+    }
+
+    #[test]
     fn house_systems_have_stable_display_names() {
         assert_eq!(HouseSystem::Placidus.to_string(), "Placidus");
         assert_eq!(HouseSystem::EqualMidheaven.to_string(), "Equal (MC)");
@@ -2406,6 +2545,19 @@ mod tests {
                 .expect_err("non-finite epochs should be rejected")
                 .to_string(),
             "custom ayanamsa epoch must be finite"
+        );
+    }
+
+    #[test]
+    fn custom_ayanamsa_validate_against_reserved_labels_rejects_builtin_collisions() {
+        let custom = CustomAyanamsa::new("Lahiri");
+
+        assert_eq!(
+            custom
+                .validate_against_reserved_labels(|label| label.eq_ignore_ascii_case("Lahiri"))
+                .expect_err("built-in labels should be rejected")
+                .to_string(),
+            "custom ayanamsa name must not match a built-in label: Lahiri"
         );
     }
 

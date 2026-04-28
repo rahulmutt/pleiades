@@ -9,12 +9,14 @@
 
 use core::{fmt, time::Duration};
 
-use pleiades_ayanamsa::sidereal_offset;
+use pleiades_ayanamsa::{resolve_ayanamsa, sidereal_offset};
 use pleiades_backend::{
     validate_request_against_metadata, Apparentness, BackendMetadata, EphemerisBackend,
     EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
 };
-use pleiades_houses::{calculate_houses, house_for_longitude, HouseRequest, HouseSnapshot};
+use pleiades_houses::{
+    calculate_houses, house_for_longitude, resolve_house_system, HouseRequest, HouseSnapshot,
+};
 use pleiades_types::{
     Angle, CelestialBody, CoordinateFrame, CustomDefinitionValidationError, HouseSystem, Instant,
     Longitude, Motion, MotionDirection, ObserverLocation, TimeScale, TimeScaleConversion,
@@ -255,7 +257,9 @@ impl ChartRequest {
     /// Built-in bodies, house systems, and ayanamsas are always accepted. When
     /// a custom body, custom house system, or custom ayanamsa is present, the
     /// structured descriptor is validated before chart assembly or backend
-    /// metadata checks can proceed.
+    /// metadata checks can proceed. Custom house-system and ayanamsa names are
+    /// also checked against the built-in catalogs so user-defined labels stay
+    /// distinguishable from the shipped compatibility profile.
     pub fn validate_custom_definitions(&self) -> Result<(), EphemerisError> {
         for body in &self.bodies {
             body.validate()
@@ -264,13 +268,13 @@ impl ChartRequest {
 
         if let Some(house_system) = &self.house_system {
             house_system
-                .validate()
+                .validate_against_reserved_labels(|label| resolve_house_system(label).is_some())
                 .map_err(|error| map_custom_definition_error("chart house system", error))?;
         }
 
         if let ZodiacMode::Sidereal { ayanamsa } = &self.zodiac_mode {
             ayanamsa
-                .validate()
+                .validate_against_reserved_labels(|label| resolve_ayanamsa(label).is_some())
                 .map_err(|error| map_custom_definition_error("sidereal ayanamsa", error))?;
         }
 
@@ -2856,6 +2860,55 @@ mod tests {
             .lock()
             .expect("observer log should be lockable")
             .is_empty());
+    }
+
+    #[test]
+    fn chart_request_validation_rejects_custom_definitions_that_collide_with_builtins() {
+        let engine = ChartEngine::new(RecordingChartBackend {
+            observers: Arc::new(Mutex::new(Vec::new())),
+        });
+
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Tt,
+        ))
+        .with_observer(ObserverLocation::new(
+            Latitude::from_degrees(12.5),
+            Longitude::from_degrees(45.0),
+            None,
+        ))
+        .with_house_system(crate::HouseSystem::Custom(
+            pleiades_types::CustomHouseSystem::new("Equal"),
+        ));
+
+        let validation_error = engine
+            .validate_chart_request(&request)
+            .expect_err("built-in house names should be rejected for custom house systems");
+        assert_eq!(validation_error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(validation_error
+            .message
+            .contains("chart house system is invalid: custom house system name must not match a built-in label: Equal"));
+
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Tt,
+        ))
+        .with_observer(ObserverLocation::new(
+            Latitude::from_degrees(12.5),
+            Longitude::from_degrees(45.0),
+            None,
+        ))
+        .with_zodiac_mode(ZodiacMode::Sidereal {
+            ayanamsa: crate::Ayanamsa::Custom(pleiades_types::CustomAyanamsa::new("Lahiri")),
+        });
+
+        let validation_error = engine
+            .validate_chart_request(&request)
+            .expect_err("built-in ayanamsa names should be rejected for custom ayanamsas");
+        assert_eq!(validation_error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(validation_error
+            .message
+            .contains("sidereal ayanamsa is invalid: custom ayanamsa name must not match a built-in label: Lahiri"));
     }
 
     #[test]
