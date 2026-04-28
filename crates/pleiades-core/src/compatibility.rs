@@ -118,11 +118,25 @@ impl CompatibilityProfile {
             self.baseline_house_systems,
             self.release_house_systems,
         )?;
+        validate_catalog_coverage_labels(
+            "house-system",
+            self.house_systems,
+            self.baseline_house_systems,
+            self.release_house_systems,
+            |entry| entry.canonical_name,
+        )?;
         validate_catalog_coverage_ayanamsa(
             "ayanamsa",
             self.ayanamsas,
             self.baseline_ayanamsas,
             self.release_ayanamsas,
+        )?;
+        validate_catalog_coverage_labels(
+            "ayanamsa",
+            self.ayanamsas,
+            self.baseline_ayanamsas,
+            self.release_ayanamsas,
+            |entry| entry.canonical_name,
         )?;
         Ok(())
     }
@@ -182,6 +196,15 @@ pub enum CompatibilityProfileValidationError {
         /// Entries in the release partition.
         release_count: usize,
     },
+    /// The total catalog labels do not match the baseline and release partitions exactly.
+    CatalogCoverageLabelMismatch {
+        /// Catalog that drifted.
+        catalog_label: &'static str,
+        /// Label that appears in the total catalog but not in the partitions.
+        missing_label: &'static str,
+        /// Label that appears in the partitions but not in the total catalog.
+        unexpected_label: &'static str,
+    },
 }
 
 impl fmt::Display for CompatibilityProfileValidationError {
@@ -227,6 +250,15 @@ impl fmt::Display for CompatibilityProfileValidationError {
                 f,
                 "compatibility profile {catalog_label} catalog coverage mismatch: total={}, baseline={}, release={}",
                 total_count, baseline_count, release_count
+            ),
+            Self::CatalogCoverageLabelMismatch {
+                catalog_label,
+                missing_label,
+                unexpected_label,
+            } => write!(
+                f,
+                "compatibility profile {catalog_label} catalog coverage mismatch: missing label '{}', unexpected label '{}'",
+                missing_label, unexpected_label
             ),
         }
     }
@@ -420,6 +452,63 @@ fn validate_catalog_coverage_ayanamsa(
     }
 
     Ok(())
+}
+
+fn collect_catalog_names<T>(
+    entries: &[T],
+    canonical_name: impl Fn(&T) -> &'static str,
+) -> BTreeSet<String> {
+    let mut names = BTreeSet::new();
+
+    for entry in entries {
+        names.insert(canonical_name(entry).trim().to_ascii_lowercase());
+    }
+
+    names
+}
+
+fn validate_catalog_coverage_labels<T>(
+    catalog_label: &'static str,
+    total_entries: &[T],
+    baseline_entries: &[T],
+    release_entries: &[T],
+    canonical_name: impl Fn(&T) -> &'static str,
+) -> Result<(), CompatibilityProfileValidationError> {
+    let total_names = collect_catalog_names(total_entries, &canonical_name);
+    let mut partition_names = collect_catalog_names(baseline_entries, &canonical_name);
+    partition_names.extend(collect_catalog_names(release_entries, &canonical_name));
+
+    if total_names == partition_names {
+        return Ok(());
+    }
+
+    let missing_label = total_entries
+        .iter()
+        .map(&canonical_name)
+        .find(|label| !partition_names.contains(&label.trim().to_ascii_lowercase()))
+        .unwrap_or_else(|| {
+            total_entries
+                .first()
+                .map_or("", |entry| canonical_name(entry))
+        });
+    let unexpected_label = baseline_entries
+        .iter()
+        .chain(release_entries.iter())
+        .map(&canonical_name)
+        .find(|label| !total_names.contains(&label.trim().to_ascii_lowercase()))
+        .unwrap_or_else(|| {
+            baseline_entries
+                .first()
+                .map_or("", |entry| canonical_name(entry))
+        });
+
+    Err(
+        CompatibilityProfileValidationError::CatalogCoverageLabelMismatch {
+            catalog_label,
+            missing_label,
+            unexpected_label,
+        },
+    )
 }
 
 /// Returns the current compatibility profile.
@@ -1132,6 +1221,8 @@ impl fmt::Display for CompatibilityProfile {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pleiades_ayanamsa::AyanamsaDescriptor;
+    use pleiades_types::{Ayanamsa, HouseSystem};
 
     #[test]
     fn profile_includes_baseline_and_release_catalogs() {
@@ -1519,6 +1610,112 @@ mod tests {
             CompatibilityProfileValidationError::CatalogPartitionOverlap {
                 catalog_label: "house-system",
                 label: _
+            }
+        ));
+    }
+
+    #[test]
+    fn compatibility_profile_validate_rejects_inexact_house_catalog_coverage() {
+        let mut profile = current_compatibility_profile();
+        const TOTAL_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
+            HouseSystemDescriptor::new(
+                HouseSystem::Placidus,
+                "Total Placidus",
+                &["Total Placidus alias"],
+                "Total house coverage",
+                false,
+            ),
+            HouseSystemDescriptor::new(
+                HouseSystem::Equal,
+                "Total Equal",
+                &[],
+                "Total house coverage",
+                false,
+            ),
+        ];
+        const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[HouseSystemDescriptor::new(
+            HouseSystem::Placidus,
+            "Baseline Placidus",
+            &["Baseline Placidus alias"],
+            "Baseline house coverage",
+            false,
+        )];
+        const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[HouseSystemDescriptor::new(
+            HouseSystem::Equal,
+            "Release Equal",
+            &["Release Equal alias"],
+            "Release house coverage",
+            false,
+        )];
+        profile.house_systems = TOTAL_HOUSE_SYSTEMS;
+        profile.baseline_house_systems = BASELINE_HOUSE_SYSTEMS;
+        profile.release_house_systems = RELEASE_HOUSE_SYSTEMS;
+
+        let error = profile
+            .validate()
+            .expect_err("inexact catalog coverage should fail validation");
+
+        assert!(matches!(
+            error,
+            CompatibilityProfileValidationError::CatalogCoverageLabelMismatch {
+                catalog_label: "house-system",
+                missing_label: "Total Placidus",
+                unexpected_label: "Baseline Placidus"
+            }
+        ));
+    }
+
+    #[test]
+    fn compatibility_profile_validate_rejects_inexact_ayanamsa_catalog_coverage() {
+        let mut profile = current_compatibility_profile();
+        const TOTAL_AYANAMSAS: &[AyanamsaDescriptor] = &[
+            AyanamsaDescriptor::new(
+                Ayanamsa::Lahiri,
+                "Total Lahiri",
+                &["Total Lahiri alias"],
+                "Total ayanamsa coverage",
+                None,
+                None,
+            ),
+            AyanamsaDescriptor::new(
+                Ayanamsa::Krishnamurti,
+                "Total Krishnamurti",
+                &[],
+                "Total ayanamsa coverage",
+                None,
+                None,
+            ),
+        ];
+        const BASELINE_AYANAMSAS: &[AyanamsaDescriptor] = &[AyanamsaDescriptor::new(
+            Ayanamsa::Lahiri,
+            "Baseline Lahiri",
+            &["Baseline Lahiri alias"],
+            "Baseline ayanamsa coverage",
+            None,
+            None,
+        )];
+        const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[AyanamsaDescriptor::new(
+            Ayanamsa::Krishnamurti,
+            "Release Krishnamurti",
+            &["Release Krishnamurti alias"],
+            "Release ayanamsa coverage",
+            None,
+            None,
+        )];
+        profile.ayanamsas = TOTAL_AYANAMSAS;
+        profile.baseline_ayanamsas = BASELINE_AYANAMSAS;
+        profile.release_ayanamsas = RELEASE_AYANAMSAS;
+
+        let error = profile
+            .validate()
+            .expect_err("inexact catalog coverage should fail validation");
+
+        assert!(matches!(
+            error,
+            CompatibilityProfileValidationError::CatalogCoverageLabelMismatch {
+                catalog_label: "ayanamsa",
+                missing_label: "Total Lahiri",
+                unexpected_label: "Baseline Lahiri"
             }
         ));
     }
