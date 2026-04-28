@@ -5276,6 +5276,26 @@ mod tests {
     }
 
     #[test]
+    fn published_apparent_moon_comparison_datum_matches_the_reference_slice() {
+        let sample = lunar_apparent_comparison_evidence()
+            .iter()
+            .find(|sample| (sample.epoch.julian_day.days() - 2_448_724.5).abs() < f64::EPSILON)
+            .expect("1992 apparent Moon sample should exist");
+
+        assert_eq!(sample.body, CelestialBody::Moon);
+        assert_eq!(sample.epoch.julian_day.days(), 2_448_724.5);
+        assert!((sample.apparent_longitude_deg - 133.167_264).abs() < 1e-12);
+        assert!((sample.apparent_latitude_deg - (-3.229_126)).abs() < 1e-12);
+        assert!((sample.apparent_distance_au - (368_409.7 / 149_597_870.700)).abs() < 1e-12);
+        assert!((sample.apparent_right_ascension_deg - 134.688_469).abs() < 1e-12);
+        assert!((sample.apparent_declination_deg - 13.768_367).abs() < 1e-12);
+        assert!(sample
+            .note
+            .contains("1992-04-12 apparent geocentric Moon example"));
+        assert!(sample.note.contains("mean/apparent comparison datum"));
+    }
+
+    #[test]
     fn published_true_node_example_matches_reference() {
         let backend = ElpBackend::new();
         let instant = Instant::new(
