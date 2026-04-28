@@ -4350,15 +4350,27 @@ impl core::fmt::Display for Vsop87TableGenerationError {
 
 impl std::error::Error for Vsop87TableGenerationError {}
 
+/// Returns the source/body manifest in source-spec order.
+///
+/// This list is primarily used by maintainer-facing regeneration tooling and
+/// reproducibility checks so downstream code can discover the expected public
+/// input files and their bodies without hardcoding the table-specific match block.
+pub fn source_manifest() -> Vec<(CelestialBody, &'static str)> {
+    source_specifications()
+        .into_iter()
+        .map(|spec| (spec.body, spec.source_file))
+        .collect()
+}
+
 /// Returns the supported vendored VSOP87B source files in source-spec order.
 ///
 /// This list is primarily used by maintainer-facing regeneration tooling and
 /// reproducibility checks so downstream code can discover the expected public
 /// input files without hardcoding the table-specific match block.
 pub fn supported_source_files() -> Vec<&'static str> {
-    source_specifications()
+    source_manifest()
         .into_iter()
-        .map(|spec| spec.source_file)
+        .map(|(_, source_file)| source_file)
         .collect()
 }
 

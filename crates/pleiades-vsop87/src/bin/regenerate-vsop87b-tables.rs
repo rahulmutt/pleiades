@@ -1,8 +1,7 @@
 use std::{env, fs, path::PathBuf, process::ExitCode};
 
-use pleiades_types::CelestialBody;
 use pleiades_vsop87::{
-    checked_in_generated_vsop87b_table_bytes_for_source_file, source_specifications,
+    checked_in_generated_vsop87b_table_bytes_for_source_file, source_manifest,
     try_generated_vsop87b_table_bytes_for_source_file,
 };
 
@@ -47,13 +46,14 @@ fn write_regenerated_tables(output_dir: PathBuf) -> Result<(), String> {
 fn check_regenerated_tables() -> Result<(), String> {
     let mut mismatches = Vec::new();
     let manifest = source_manifest();
+    let manifest_len = manifest.len();
     let supported_source_files = manifest
         .iter()
         .map(|(_, source_file)| *source_file)
         .collect::<Vec<_>>()
         .join(", ");
 
-    for (body, source_file) in manifest {
+    for (body, source_file) in &manifest {
         let regenerated = try_generated_vsop87b_table_bytes_for_source_file(source_file)
             .map_err(|error| error.to_string())?;
         let committed = checked_in_generated_vsop87b_table_bytes_for_source_file(source_file)
@@ -78,7 +78,7 @@ fn check_regenerated_tables() -> Result<(), String> {
     if mismatches.is_empty() {
         println!(
             "checked {} regenerated VSOP87B blobs against the committed artifacts",
-            source_manifest().len()
+            manifest_len
         );
         Ok(())
     } else {
@@ -87,13 +87,6 @@ fn check_regenerated_tables() -> Result<(), String> {
             mismatches.join(", ")
         ))
     }
-}
-
-fn source_manifest() -> Vec<(CelestialBody, &'static str)> {
-    source_specifications()
-        .into_iter()
-        .map(|spec| (spec.body, spec.source_file))
-        .collect()
 }
 
 enum Command {
