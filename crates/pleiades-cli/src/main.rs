@@ -711,6 +711,7 @@ mod tests {
         assert!(rendered.contains("Equal/MC = 10th"));
         assert!(rendered.contains("Equal Midheaven table of houses"));
         assert!(rendered.contains("Equal Midheaven house system"));
+        assert!(rendered.contains("Vehlow equal"));
         assert!(rendered.contains("Equal/1=0 Aries"));
         assert!(rendered.contains("Equal (cusp 1 = 0° Aries)"));
         assert!(rendered.contains("WvA"));

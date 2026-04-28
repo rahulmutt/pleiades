@@ -11653,6 +11653,7 @@ mod tests {
         assert!(rendered.contains("Babylonian 3"));
         assert!(rendered.contains("Vehlow Equal table of houses"));
         assert!(rendered.contains("Vehlow Equal house system"));
+        assert!(rendered.contains("Vehlow equal"));
         assert!(rendered.contains("V equal Vehlow, Vehlow, Vehlow equal, Vehlow house system, Vehlow Equal house system, Vehlow-equal, Vehlow-equal table of houses, Vehlow Equal table of houses -> Vehlow Equal"));
         assert!(rendered.contains("Topocentric house system"));
         assert!(rendered.contains("Meridian house system"));
@@ -11728,6 +11729,7 @@ mod tests {
         assert!(rendered.contains("Equal/MC = 10th"));
         assert!(rendered.contains("Equal Midheaven table of houses"));
         assert!(rendered.contains("Vehlow Equal table of houses"));
+        assert!(rendered.contains("Vehlow equal"));
         assert!(rendered.contains("Wang"));
         assert!(rendered.contains("Aries houses"));
         assert!(rendered.contains("Fagan/Bradley"));
