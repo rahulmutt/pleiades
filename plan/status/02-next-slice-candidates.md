@@ -293,6 +293,7 @@ Progress note (2026-04-28): the compatibility-profile verification smoke coverag
 Progress note (2026-04-28): the verification-command smoke coverage now also pins the exact house-system and ayanamsa verified count lines, so the short compatibility-profile audit keeps the descriptor and label totals anchored alongside the already pinned release-posture text.
 Progress note (2026-04-28): the CLI release-summary smoke coverage now also pins the house-formula-family inventory line directly, so the compact one-screen release overview keeps the Equal / Equatorial projection / Great-circle / Quadrant / Sector / Solar arc / Whole Sign posture anchored alongside the house-system inventory.
 Progress note (2026-04-28): that same release-summary smoke coverage now also pins the release-profile identifier line and the API-stability summary line, which keeps the compact one-screen release overview anchored to the current release bundle ids and posture headline instead of only the catalog counts.
+Progress note (2026-04-28): `pleiades-houses` now exposes a structured Swiss-Ephemeris house-code alias table plus a round-trip regression for every documented short label, which gives the compatibility-profile source table a reusable, typed view of the resolver spellings instead of leaving the code aliases embedded only in the match arm.
 
 Remaining suggested scope:
 

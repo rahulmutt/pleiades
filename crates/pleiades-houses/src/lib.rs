@@ -219,6 +219,111 @@ impl fmt::Display for HouseSystemDescriptor {
     }
 }
 
+/// A Swiss-Ephemeris-style short-form label accepted by the house resolver.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct HouseSystemCodeAlias {
+    /// The label accepted by the resolver.
+    pub label: &'static str,
+    /// The typed house system resolved by the label.
+    pub system: HouseSystem,
+}
+
+const SWISS_EPHEMERIS_HOUSE_SYSTEM_CODE_ALIASES: &[HouseSystemCodeAlias] = &[
+    HouseSystemCodeAlias {
+        label: "P",
+        system: HouseSystem::Placidus,
+    },
+    HouseSystemCodeAlias {
+        label: "K",
+        system: HouseSystem::Koch,
+    },
+    HouseSystemCodeAlias {
+        label: "R",
+        system: HouseSystem::Regiomontanus,
+    },
+    HouseSystemCodeAlias {
+        label: "C",
+        system: HouseSystem::Campanus,
+    },
+    HouseSystemCodeAlias {
+        label: "O",
+        system: HouseSystem::Porphyry,
+    },
+    HouseSystemCodeAlias {
+        label: "D",
+        system: HouseSystem::EqualMidheaven,
+    },
+    HouseSystemCodeAlias {
+        label: "E",
+        system: HouseSystem::Equal,
+    },
+    HouseSystemCodeAlias {
+        label: "W",
+        system: HouseSystem::WholeSign,
+    },
+    HouseSystemCodeAlias {
+        label: "V",
+        system: HouseSystem::Vehlow,
+    },
+    HouseSystemCodeAlias {
+        label: "A",
+        system: HouseSystem::Axial,
+    },
+    HouseSystemCodeAlias {
+        label: "H",
+        system: HouseSystem::Horizon,
+    },
+    HouseSystemCodeAlias {
+        label: "B",
+        system: HouseSystem::Alcabitius,
+    },
+    HouseSystemCodeAlias {
+        label: "M",
+        system: HouseSystem::Morinus,
+    },
+    HouseSystemCodeAlias {
+        label: "S",
+        system: HouseSystem::Sripati,
+    },
+    HouseSystemCodeAlias {
+        label: "I",
+        system: HouseSystem::Sunshine,
+    },
+    HouseSystemCodeAlias {
+        label: "G",
+        system: HouseSystem::Gauquelin,
+    },
+    HouseSystemCodeAlias {
+        label: "T",
+        system: HouseSystem::Topocentric,
+    },
+    HouseSystemCodeAlias {
+        label: "U",
+        system: HouseSystem::KrusinskiPisaGoelzer,
+    },
+    HouseSystemCodeAlias {
+        label: "Axial Rotation",
+        system: HouseSystem::Meridian,
+    },
+    HouseSystemCodeAlias {
+        label: "Axial rotation system",
+        system: HouseSystem::Meridian,
+    },
+    HouseSystemCodeAlias {
+        label: "X",
+        system: HouseSystem::Meridian,
+    },
+    HouseSystemCodeAlias {
+        label: "Y",
+        system: HouseSystem::Apc,
+    },
+];
+
+/// Returns the Swiss-Ephemeris-style short-form house labels accepted by the resolver.
+pub const fn house_system_code_aliases() -> &'static [HouseSystemCodeAlias] {
+    SWISS_EPHEMERIS_HOUSE_SYSTEM_CODE_ALIASES
+}
+
 /// Errors emitted when validating the built-in house-system catalog.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum HouseCatalogValidationError {
@@ -1101,32 +1206,11 @@ pub fn descriptor(system: &HouseSystem) -> Option<&'static HouseSystemDescriptor
 }
 
 fn resolve_house_system_code(label: &str) -> Option<HouseSystem> {
-    match label.trim() {
-        "P" | "p" => Some(HouseSystem::Placidus),
-        "K" | "k" => Some(HouseSystem::Koch),
-        "R" | "r" => Some(HouseSystem::Regiomontanus),
-        "C" | "c" => Some(HouseSystem::Campanus),
-        "O" | "o" => Some(HouseSystem::Porphyry),
-        "D" | "d" => Some(HouseSystem::EqualMidheaven),
-        "E" | "e" => Some(HouseSystem::Equal),
-        "W" | "w" => Some(HouseSystem::WholeSign),
-        "V" | "v" => Some(HouseSystem::Vehlow),
-        "A" | "a" => Some(HouseSystem::Axial),
-        "H" | "h" => Some(HouseSystem::Horizon),
-        "B" | "b" => Some(HouseSystem::Alcabitius),
-        "M" | "m" => Some(HouseSystem::Morinus),
-        "S" | "s" => Some(HouseSystem::Sripati),
-        "I" | "i" => Some(HouseSystem::Sunshine),
-        "G" | "g" => Some(HouseSystem::Gauquelin),
-        "T" | "t" => Some(HouseSystem::Topocentric),
-        "U" | "u" => Some(HouseSystem::KrusinskiPisaGoelzer),
-        "Axial Rotation" | "axial rotation" | "Axial rotation system" | "axial rotation system" => {
-            Some(HouseSystem::Meridian)
-        }
-        "X" | "x" => Some(HouseSystem::Meridian),
-        "Y" | "y" => Some(HouseSystem::Apc),
-        _ => None,
-    }
+    let normalized = label.trim();
+    house_system_code_aliases()
+        .iter()
+        .find(|entry| entry.label.eq_ignore_ascii_case(normalized))
+        .map(|entry| entry.system.clone())
 }
 
 /// Resolves a house-system label to a built-in type.
@@ -1876,5 +1960,31 @@ mod tests {
             validate_house_catalog_entries(&blank_notes_entry),
             Err(HouseCatalogValidationError::DescriptorNotesNotNormalized { label: "Equal" })
         ));
+    }
+
+    #[test]
+    fn swiss_ephemeris_house_system_code_aliases_are_unique_and_round_trip() {
+        let aliases = house_system_code_aliases();
+        let mut seen = std::collections::BTreeSet::new();
+
+        for alias in aliases {
+            assert!(seen.insert(alias.label.to_ascii_lowercase()));
+            assert_eq!(
+                resolve_house_system(alias.label),
+                Some(alias.system.clone())
+            );
+        }
+
+        assert_eq!(aliases.len(), 22);
+        assert_eq!(
+            resolve_house_system("axial rotation"),
+            Some(HouseSystem::Meridian)
+        );
+        assert_eq!(
+            resolve_house_system("axial rotation system"),
+            Some(HouseSystem::Meridian)
+        );
+        assert_eq!(resolve_house_system("X"), Some(HouseSystem::Meridian));
+        assert_eq!(resolve_house_system("Y"), Some(HouseSystem::Apc));
     }
 }
