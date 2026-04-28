@@ -910,6 +910,89 @@ impl EphemerisResult {
             quality: QualityAnnotation::Unknown,
         }
     }
+
+    /// Returns a compact one-line rendering of the backend result.
+    ///
+    /// The summary keeps the request-shape metadata alongside the available
+    /// coordinate, motion, and quality fields so callers can compare a backend
+    /// result without drilling into each optional channel manually.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "backend={}; body={}; instant={}; frame={}; zodiac={}; apparent={}; quality={}; ecliptic={}; equatorial={}; motion={}",
+            self.backend_id,
+            self.body,
+            self.instant,
+            self.frame,
+            self.zodiac_mode,
+            self.apparent,
+            self.quality,
+            format_optional_ecliptic_coordinates(self.ecliptic.as_ref()),
+            format_optional_equatorial_coordinates(self.equatorial.as_ref()),
+            format_optional_motion(self.motion.as_ref()),
+        )
+    }
+}
+
+impl fmt::Display for EphemerisResult {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn format_optional_ecliptic_coordinates(value: Option<&EclipticCoordinates>) -> String {
+    value
+        .map(|coordinates| {
+            let distance = coordinates
+                .distance_au
+                .map(|distance| format!("{distance} AU"))
+                .unwrap_or_else(|| "n/a".to_string());
+
+            format!(
+                "longitude={}, latitude={}, distance={}",
+                coordinates.longitude, coordinates.latitude, distance
+            )
+        })
+        .unwrap_or_else(|| "absent".to_string())
+}
+
+fn format_optional_equatorial_coordinates(value: Option<&EquatorialCoordinates>) -> String {
+    value
+        .map(|coordinates| {
+            let distance = coordinates
+                .distance_au
+                .map(|distance| format!("{distance} AU"))
+                .unwrap_or_else(|| "n/a".to_string());
+
+            format!(
+                "right_ascension={}, declination={}, distance={}",
+                coordinates.right_ascension, coordinates.declination, distance
+            )
+        })
+        .unwrap_or_else(|| "absent".to_string())
+}
+
+fn format_optional_motion(value: Option<&Motion>) -> String {
+    value
+        .map(|motion| {
+            let longitude_speed = motion
+                .longitude_deg_per_day
+                .map(|speed| format!("{speed} deg/day"))
+                .unwrap_or_else(|| "n/a".to_string());
+            let latitude_speed = motion
+                .latitude_deg_per_day
+                .map(|speed| format!("{speed} deg/day"))
+                .unwrap_or_else(|| "n/a".to_string());
+            let distance_speed = motion
+                .distance_au_per_day
+                .map(|speed| format!("{speed} AU/day"))
+                .unwrap_or_else(|| "n/a".to_string());
+
+            format!(
+                "longitude_speed={}, latitude_speed={}, distance_speed={}",
+                longitude_speed, latitude_speed, distance_speed
+            )
+        })
+        .unwrap_or_else(|| "absent".to_string())
 }
 
 /// Error categories for backend queries.
@@ -2098,6 +2181,40 @@ mod tests {
         );
         assert!(request.summary_line().contains("body=Mars"));
         assert!(request.summary_line().contains("observer="));
+    }
+
+    #[test]
+    fn ephemeris_result_has_a_compact_display() {
+        let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+        let mut result = EphemerisResult::new(
+            BackendId::new("toy"),
+            CelestialBody::Sun,
+            instant,
+            CoordinateFrame::Ecliptic,
+            ZodiacMode::Tropical,
+            Apparentness::Mean,
+        );
+        result.ecliptic = Some(EclipticCoordinates::new(
+            Longitude::from_degrees(12.5),
+            Latitude::from_degrees(-3.25),
+            Some(1.234),
+        ));
+        result.equatorial = Some(EquatorialCoordinates::new(
+            Angle::from_degrees(98.0),
+            Latitude::from_degrees(0.5),
+            None,
+        ));
+        result.motion = Some(Motion::new(Some(0.1), Some(-0.2), Some(0.003)));
+        result.quality = QualityAnnotation::Exact;
+
+        assert_eq!(result.to_string(), result.summary_line());
+        assert_eq!(
+            result.summary_line(),
+            "backend=toy; body=Sun; instant=JD 2451545 TT; frame=Ecliptic; zodiac=Tropical; apparent=Mean; quality=Exact; ecliptic=longitude=12.5°, latitude=-3.25°, distance=1.234 AU; equatorial=right_ascension=98°, declination=0.5°, distance=n/a; motion=longitude_speed=0.1 deg/day, latitude_speed=-0.2 deg/day, distance_speed=0.003 AU/day"
+        );
+        assert!(result.summary_line().contains("backend=toy"));
+        assert!(result.summary_line().contains("quality=Exact"));
+        assert!(result.summary_line().contains("ecliptic=longitude=12.5°"));
     }
 
     #[test]
