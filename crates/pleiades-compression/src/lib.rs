@@ -956,11 +956,16 @@ impl CompressedArtifact {
     }
 
     /// Returns the ecliptic coordinates for a body at a given instant.
+    ///
+    /// The artifact profile must advertise `EclipticCoordinates` as a derived
+    /// output before this helper will serve the result.
     pub fn lookup_ecliptic(
         &self,
         body: &CelestialBody,
         instant: Instant,
     ) -> Result<EclipticCoordinates, CompressionError> {
+        self.require_output_support(ArtifactOutput::EclipticCoordinates)?;
+
         if !matches!(instant.scale, TimeScale::Tt | TimeScale::Tdb) {
             return Err(CompressionError::new(
                 CompressionErrorKind::UnsupportedTimeScale,
@@ -992,16 +997,30 @@ impl CompressedArtifact {
     ///
     /// This keeps the artifact format focused on the stored channels while still allowing
     /// the runtime to reconstruct a derived coordinate family when the caller supplies the
-    /// geometric obliquity used for the mean-obliquity frame rotation.
+    /// geometric obliquity used for the mean-obliquity frame rotation. The artifact profile
+    /// must advertise `EquatorialCoordinates` as a derived output before this helper will
+    /// serve the result.
     pub fn lookup_equatorial(
         &self,
         body: &CelestialBody,
         instant: Instant,
         obliquity: Angle,
     ) -> Result<EquatorialCoordinates, CompressionError> {
+        self.require_output_support(ArtifactOutput::EquatorialCoordinates)?;
         Ok(self
             .lookup_ecliptic(body, instant)?
             .to_equatorial(obliquity))
+    }
+
+    fn require_output_support(&self, output: ArtifactOutput) -> Result<(), CompressionError> {
+        if self.header.profile.supports_output(output) {
+            Ok(())
+        } else {
+            Err(CompressionError::new(
+                CompressionErrorKind::InvalidFormat,
+                format!("artifact profile does not derive {output}"),
+            ))
+        }
     }
 
     fn encode_payload(&self) -> Result<Vec<u8>, CompressionError> {
@@ -2964,6 +2983,101 @@ mod tests {
         assert_eq!(decoded.bodies[1].body, CelestialBody::TrueApogee);
         assert_eq!(decoded.bodies[2].body, CelestialBody::MeanPerigee);
         assert_eq!(decoded.bodies[3].body, CelestialBody::TruePerigee);
+    }
+
+    #[test]
+    fn lookup_ecliptic_requires_the_profile_to_advertise_it() {
+        let artifact = CompressedArtifact::new(
+            ArtifactHeader::with_profile(
+                "demo",
+                "ecliptic lookup fixture",
+                ArtifactProfile::new(
+                    vec![
+                        ChannelKind::Longitude,
+                        ChannelKind::Latitude,
+                        ChannelKind::DistanceAu,
+                    ],
+                    vec![ArtifactOutput::EquatorialCoordinates],
+                    vec![
+                        ArtifactOutput::ApparentCorrections,
+                        ArtifactOutput::TopocentricCoordinates,
+                        ArtifactOutput::SiderealCoordinates,
+                        ArtifactOutput::Motion,
+                    ],
+                    SpeedPolicy::Unsupported,
+                ),
+            ),
+            vec![BodyArtifact::new(
+                CelestialBody::Sun,
+                vec![Segment::new(
+                    Instant::new(pleiades_types::JulianDay::from_days(0.0), TimeScale::Tt),
+                    Instant::new(pleiades_types::JulianDay::from_days(2.0), TimeScale::Tt),
+                    vec![
+                        PolynomialChannel::linear(ChannelKind::Longitude, 9, 10.0, 20.0),
+                        PolynomialChannel::linear(ChannelKind::Latitude, 9, 1.0, 3.0),
+                        PolynomialChannel::linear(ChannelKind::DistanceAu, 12, 0.5, 0.75),
+                    ],
+                )],
+            )],
+        );
+
+        let instant = Instant::new(pleiades_types::JulianDay::from_days(1.0), TimeScale::Tt);
+        let error = artifact
+            .lookup_ecliptic(&CelestialBody::Sun, instant)
+            .expect_err("ecliptic lookup should respect the advertised profile");
+
+        assert_eq!(
+            error.message,
+            "artifact profile does not derive EclipticCoordinates"
+        );
+    }
+
+    #[test]
+    fn lookup_equatorial_requires_the_profile_to_advertise_it() {
+        let artifact = CompressedArtifact::new(
+            ArtifactHeader::with_profile(
+                "demo",
+                "equatorial lookup fixture",
+                ArtifactProfile::new(
+                    vec![
+                        ChannelKind::Longitude,
+                        ChannelKind::Latitude,
+                        ChannelKind::DistanceAu,
+                    ],
+                    vec![ArtifactOutput::EclipticCoordinates],
+                    vec![
+                        ArtifactOutput::ApparentCorrections,
+                        ArtifactOutput::TopocentricCoordinates,
+                        ArtifactOutput::SiderealCoordinates,
+                        ArtifactOutput::Motion,
+                    ],
+                    SpeedPolicy::Unsupported,
+                ),
+            ),
+            vec![BodyArtifact::new(
+                CelestialBody::Sun,
+                vec![Segment::new(
+                    Instant::new(pleiades_types::JulianDay::from_days(0.0), TimeScale::Tt),
+                    Instant::new(pleiades_types::JulianDay::from_days(2.0), TimeScale::Tt),
+                    vec![
+                        PolynomialChannel::linear(ChannelKind::Longitude, 9, 10.0, 20.0),
+                        PolynomialChannel::linear(ChannelKind::Latitude, 9, 1.0, 3.0),
+                        PolynomialChannel::linear(ChannelKind::DistanceAu, 12, 0.5, 0.75),
+                    ],
+                )],
+            )],
+        );
+
+        let instant = Instant::new(pleiades_types::JulianDay::from_days(1.0), TimeScale::Tt);
+        let obliquity = Angle::from_degrees(23.439_291_11);
+        let error = artifact
+            .lookup_equatorial(&CelestialBody::Sun, instant, obliquity)
+            .expect_err("equatorial lookup should respect the advertised profile");
+
+        assert_eq!(
+            error.message,
+            "artifact profile does not derive EquatorialCoordinates"
+        );
     }
 
     #[test]
