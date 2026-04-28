@@ -278,6 +278,8 @@ Progress note (2026-04-27): the CLI profile and release-notes smoke coverage now
 Progress note (2026-04-27): the CLI-facing smoke coverage now also pins the `Galactic Center (Mardyks)` / `Skydram (Mardyks)` release-profile spelling pair in both the full profile and release-notes commands, which keeps another currently visible galactic-reference batch anchored in the user-facing audit path.
 Progress note (2026-04-27): the CLI compatibility-profile smoke coverage now also pins the `Gal. Center = 0 Cap` / `Cochrane (Gal.Center = 0 Cap)` spellings, and the release-notes smoke coverage now also pins the shorter `Gal. Center = 0 Cap` form, which keeps one more currently visible galactic-reference label family anchored in the user-facing audit path alongside the existing `Gal. Center = 0 Sag` / `Galactic Center` checks.
 
+Progress note (2026-04-28): the CLI compatibility-profile-summary, release-notes-summary, and release-summary smoke coverage now also pins the shared custom-definition label names line, including `True Balarama`, `Aphoric`, and `Takra`, so the compact release-facing catalog views keep the current custom-definition bucket anchored alongside the built-in house and ayanamsa names.
+
 Remaining suggested scope:
 
 - add broader coverage for any still-unpinned release-profile spellings or status lines that future catalog batches introduce.

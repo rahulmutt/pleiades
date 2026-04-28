@@ -826,6 +826,7 @@ mod tests {
         assert!(compatibility.contains("Udayagiri"));
         assert!(compatibility.contains("Valens Moon"));
         assert!(compatibility.contains("Babylonian (House Obs)"));
+        assert!(compatibility.contains("Custom-definition label names: Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs), True Balarama, Aphoric, Takra"));
 
         let verification = render_cli(&["verify-compatibility-profile"])
             .expect("compatibility profile verification should render");
@@ -893,6 +894,9 @@ mod tests {
         assert!(release_notes.contains("Pullen SD (Sinusoidal Delta)"));
         assert!(release_notes.contains("Equal/MC house system"));
         assert!(release_notes.contains("Equal Midheaven house system"));
+        assert!(release_notes.contains("True Balarama"));
+        assert!(release_notes.contains("Aphoric"));
+        assert!(release_notes.contains("Takra"));
 
         let release_notes_summary =
             render_cli(&["release-notes-summary"]).expect("release notes summary should render");
@@ -917,6 +921,7 @@ mod tests {
             .contains("See release-notes for the full maintainer-facing artifact."));
         assert!(release_notes_summary
             .contains("See release-summary for the compact one-screen release overview."));
+        assert!(release_notes_summary.contains("Custom-definition label names: Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs), True Balarama, Aphoric, Takra"));
 
         let release_checklist =
             render_cli(&["release-checklist"]).expect("release checklist should render");
@@ -982,6 +987,7 @@ mod tests {
             .contains("[x] cargo run -q -p pleiades-validate -- verify-compatibility-profile"));
         assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_summary.contains("Release checklist summary: release-checklist-summary"));
+        assert!(release_summary.contains("Custom-definition label names: Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs), True Balarama, Aphoric, Takra"));
         assert!(release_summary.contains("See release-notes and release-checklist"));
 
         let artifact_summary =
