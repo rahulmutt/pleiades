@@ -11,6 +11,16 @@ Pleiades keeps time-scale conversion and observer semantics explicit so backend 
 - The library does **not** currently choose a UTC/UT1-to-TT/TDB model internally for backend position requests.
 - Callers that start from civil time or UT are responsible for applying an appropriate Delta T, leap-second, DUT1, and/or relativistic policy before querying a backend that requires TT or TDB.
 
+## Primary API entry points
+
+The current policy is surfaced explicitly at the main request layers rather than hidden behind a global conversion model:
+
+- [`pleiades-types::Instant`](../crates/pleiades-types/src/lib.rs): carries the tagged instant and exposes caller-supplied retagging helpers such as `with_time_scale_offset`, `with_time_scale_conversion`, `tt_from_ut1`, `tt_from_utc`, `tt_from_tdb`, `tdb_from_tt`, `tdb_from_ut1`, and `tdb_from_utc`.
+- [`pleiades-core::ChartRequest`](../crates/pleiades-core/src/chart.rs): mirrors the same explicit conversion helpers for chart assembly and adds `validate_time_scale_conversion()` plus `validate_house_observer_policy()` so the façade can preflight request shape before dispatch.
+- [`pleiades-backend::EphemerisRequest`](../crates/pleiades-backend/src/lib.rs): exposes the direct-backend conversion helpers and `validate_time_scale_conversion()` / `validate_against_metadata()` so backend callers can check the same explicit contract before dispatch.
+- [`pleiades-houses::HouseRequest`](../crates/pleiades-houses/src/houses.rs): uses the observer for house calculations only and validates observer latitude, obliquity overrides, and topocentric elevation up front; it is not a body-position time-conversion surface.
+- [`pleiades-cli chart`](../crates/pleiades-cli/src/main.rs): provides the CLI-facing `--tt`, `--tdb`, `--utc`, `--ut1`, `--tt-offset-seconds`, `--tdb-offset-seconds`, and `--tt-from-tdb-offset-seconds` flags so the same caller-supplied policy can be exercised from the command line.
+
 The table below summarizes the current responsibility split between the typed request layers and their caller-supplied conversion helpers:
 
 | Layer | Time-scale surface | Who supplies conversion policy? | Library behavior |

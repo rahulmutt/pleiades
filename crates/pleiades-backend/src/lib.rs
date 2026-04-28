@@ -7,6 +7,10 @@
 //! Enable the optional `serde` feature to serialize the shared request,
 //! result, metadata, and error types used by backend implementations.
 //!
+//! The current time-scale, observer, apparentness, and frame policy is
+//! documented in `docs/time-observer-policy.md` so the direct backend contract
+//! and the façade-level request helpers stay in sync.
+//!
 //! # Examples
 //!
 //! ```
