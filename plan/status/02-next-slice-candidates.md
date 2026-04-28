@@ -285,6 +285,7 @@ Progress note (2026-04-28): the CLI compatibility-profile-summary, release-notes
 Progress note (2026-04-28): the CLI compatibility-profile smoke coverage now also pins the `Galactic Equator mid-Mula` / `Mula galactic equator` alias cluster, keeping the visible Galactic Equator (Mula) wording anchored in the release-facing audit path as the catalog-breadth work continues.
 Progress note (2026-04-28): the release-summary smoke coverage now also pins `Galactic Center (Mula/Wilhelm)` and `Galactic Equator (Fiorenza)` in the compact release-facing summary, so the currently visible galactic-reference batch stays anchored in the one-screen release audit too.
 Progress note (2026-04-28): the compatibility-profile verification summary now also renders a house-formula-family inventory plus ayanamsa reference-metadata coverage, so the release-facing catalog audit now carries an explicit implementation-posture line in addition to the existing descriptor, alias, and partition checks.
+Progress note (2026-04-28): the CLI compatibility-profile smoke coverage now also pins that house-formula-family inventory and release-posture line directly, which keeps the implementation-posture wording anchored in the user-facing verification command instead of only in the backend-owned summary.
 
 Remaining suggested scope:
 

@@ -839,6 +839,13 @@ mod tests {
         )));
         assert!(verification.contains("House systems verified:"));
         assert!(verification.contains("Ayanamsas verified:"));
+        assert!(verification.contains(
+            "House formula families verified: Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign"
+        ));
+        assert!(verification.contains("Ayanamsa reference metadata verified: "));
+        assert!(verification.contains(
+            "Release posture: baseline milestone preserved, release additions explicit, custom definitions tracked, caveats documented"
+        ));
 
         let backend_matrix =
             render_cli(&["backend-matrix-summary"]).expect("backend matrix summary should render");
