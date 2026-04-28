@@ -505,10 +505,7 @@ impl PackagedArtifactOutputSupportSummary {
 
     /// Renders the packaged artifact profile's output-support semantics.
     pub fn summary_line(&self) -> String {
-        self.profile
-            .output_support_summary_line()
-            .trim_start_matches("output support: ")
-            .to_string()
+        self.profile.output_support_entries_summary_line()
     }
 }
 
@@ -2339,7 +2336,7 @@ mod tests {
         assert_eq!(output_support_summary.profile, summary.profile);
         assert_eq!(
             output_support_summary.summary_line(),
-            "EclipticCoordinates=derived, EquatorialCoordinates=derived, ApparentCorrections=unsupported, TopocentricCoordinates=unsupported, SiderealCoordinates=unsupported, Motion=unsupported"
+            summary.profile.output_support_entries_summary_line()
         );
         output_support_summary
             .validate()
@@ -2350,7 +2347,7 @@ mod tests {
         );
         assert_eq!(
             packaged_artifact_output_support_summary_for_report(),
-            "EclipticCoordinates=derived, EquatorialCoordinates=derived, ApparentCorrections=unsupported, TopocentricCoordinates=unsupported, SiderealCoordinates=unsupported, Motion=unsupported"
+            summary.profile.output_support_entries_summary_line()
         );
         assert_eq!(
             packaged_artifact_profile_summary_with_body_coverage(),

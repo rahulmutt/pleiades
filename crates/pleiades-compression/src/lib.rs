@@ -416,15 +416,21 @@ impl ArtifactProfile {
         self.summary_for_body_count(body_count)
     }
 
-    /// Returns a compact one-line summary of each artifact output's support state.
-    pub fn output_support_summary_line(&self) -> String {
-        let support = ArtifactOutput::all()
+    /// Returns the compact support entries used by the output-support summary.
+    pub fn output_support_entries_summary_line(&self) -> String {
+        ArtifactOutput::all()
             .into_iter()
             .map(|output| format!("{output}={}", self.output_support(output)))
             .collect::<Vec<_>>()
-            .join(", ");
+            .join(", ")
+    }
 
-        format!("output support: {support}")
+    /// Returns a compact one-line summary of each artifact output's support state.
+    pub fn output_support_summary_line(&self) -> String {
+        format!(
+            "output support: {}",
+            self.output_support_entries_summary_line()
+        )
     }
 
     /// Returns how a high-level output is represented by this profile.
@@ -2643,6 +2649,10 @@ mod tests {
         assert_eq!(
             profile.to_string(),
             "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported"
+        );
+        assert_eq!(
+            profile.output_support_entries_summary_line(),
+            "EclipticCoordinates=derived, EquatorialCoordinates=derived, ApparentCorrections=unsupported, TopocentricCoordinates=unsupported, SiderealCoordinates=unsupported, Motion=unsupported"
         );
         assert_eq!(
             profile.output_support_summary_line(),
