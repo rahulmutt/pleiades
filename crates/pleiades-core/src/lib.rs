@@ -113,7 +113,10 @@ pub use pleiades_types::{
     TimeRangeValidationError, TimeScale, TimeScaleConversion, TimeScaleConversionError, ZodiacMode,
     ZodiacSign, SECONDS_PER_DAY,
 };
-pub use release_profiles::{current_release_profile_identifiers, ReleaseProfileIdentifiers};
+pub use release_profiles::{
+    current_release_profile_identifiers, ReleaseProfileIdentifiers,
+    ReleaseProfileIdentifiersValidationError,
+};
 
 /// A thin façade around a backend implementation.
 #[derive(Debug)]

@@ -4844,9 +4844,13 @@ pub fn render_release_bundle(
     let profile_summary_text = render_compatibility_profile_summary_text();
     let release_notes_text = render_release_notes_text();
     let release_summary_text = render_release_summary_text();
+    let release_profile_identifiers = current_release_profile_identifiers();
+    release_profile_identifiers
+        .validate()
+        .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
     let release_profile_identifiers_text = format!(
         "Release profile identifiers: {}\n",
-        current_release_profile_identifiers().summary_line()
+        release_profile_identifiers.summary_line()
     );
     let release_checklist_text = render_release_checklist_text();
     let release_checklist_summary_text = render_release_checklist_summary_text();
