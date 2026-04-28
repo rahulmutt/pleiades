@@ -1913,6 +1913,88 @@ mod tests {
     }
 
     #[test]
+    fn compatibility_profile_validate_rejects_case_insensitive_duplicate_house_labels_across_entries(
+    ) {
+        #[derive(Clone, Copy)]
+        struct Entry {
+            canonical_name: &'static str,
+            aliases: &'static [&'static str],
+        }
+
+        impl AliasProfileEntry for Entry {
+            fn canonical_name(&self) -> &'static str {
+                self.canonical_name
+            }
+
+            fn aliases(&self) -> &'static [&'static str] {
+                self.aliases
+            }
+        }
+
+        let entries = [
+            Entry {
+                canonical_name: "Placidus",
+                aliases: &["Placidus house system"],
+            },
+            Entry {
+                canonical_name: "Koch",
+                aliases: &["placidus"],
+            },
+        ];
+
+        let error = validate_catalog_label_uniqueness("house-system", &entries)
+            .expect_err("cross-entry duplicate house labels should fail validation");
+        assert!(matches!(
+            error,
+            CompatibilityProfileValidationError::CatalogLabelCollision {
+                catalog_label: "house-system",
+                label: "placidus"
+            }
+        ));
+    }
+
+    #[test]
+    fn compatibility_profile_validate_rejects_case_insensitive_duplicate_ayanamsa_labels_across_entries(
+    ) {
+        #[derive(Clone, Copy)]
+        struct Entry {
+            canonical_name: &'static str,
+            aliases: &'static [&'static str],
+        }
+
+        impl AliasProfileEntry for Entry {
+            fn canonical_name(&self) -> &'static str {
+                self.canonical_name
+            }
+
+            fn aliases(&self) -> &'static [&'static str] {
+                self.aliases
+            }
+        }
+
+        let entries = [
+            Entry {
+                canonical_name: "Lahiri",
+                aliases: &["Lahiri ayanamsa"],
+            },
+            Entry {
+                canonical_name: "Raman",
+                aliases: &["lahiri"],
+            },
+        ];
+
+        let error = validate_catalog_label_uniqueness("ayanamsa", &entries)
+            .expect_err("cross-entry duplicate ayanamsa labels should fail validation");
+        assert!(matches!(
+            error,
+            CompatibilityProfileValidationError::CatalogLabelCollision {
+                catalog_label: "ayanamsa",
+                label: "lahiri"
+            }
+        ));
+    }
+
+    #[test]
     fn compatibility_profile_validate_rejects_overlapping_catalog_partitions() {
         let mut profile = current_compatibility_profile();
         profile.release_house_systems = profile.baseline_house_systems;
