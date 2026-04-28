@@ -542,6 +542,11 @@ impl PackagedLookupEpochPolicy {
             }
         }
     }
+
+    /// Returns the compact release-facing summary for the lookup-epoch policy.
+    pub fn summary_line(self) -> String {
+        format!("{}; {}", self.label(), self.note())
+    }
 }
 
 impl fmt::Display for PackagedLookupEpochPolicy {
@@ -593,7 +598,7 @@ impl PackagedRequestPolicySummary {
     /// Renders the packaged request policy into a release-facing summary line.
     pub fn summary_line(&self) -> String {
         format!(
-            "Packaged request policy: {}frames={}; time scales={}; zodiac modes={}; apparentness={}; topocentric observer={}; lookup epoch policy={}; {}",
+            "Packaged request policy: {}frames={}; time scales={}; zodiac modes={}; apparentness={}; topocentric observer={}; lookup epoch policy={}",
             if self.geocentric_only {
                 "geocentric-only; "
             } else {
@@ -604,8 +609,7 @@ impl PackagedRequestPolicySummary {
             join_display(self.supported_zodiac_modes),
             join_display(self.supported_apparentness),
             self.supports_topocentric_observer,
-            self.lookup_epoch_policy,
-            self.lookup_epoch_policy.note(),
+            self.lookup_epoch_policy.summary_line(),
         )
     }
 
@@ -2129,6 +2133,10 @@ mod tests {
             packaged_request_policy_summary()
         );
         assert_eq!(request_policy.to_string(), request_policy.summary_line());
+        assert_eq!(
+            request_policy.lookup_epoch_policy.summary_line(),
+            "TT-grid retag without relativistic correction; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction"
+        );
         assert_eq!(
             metadata.provenance.data_sources[1],
             request_policy.to_string()
