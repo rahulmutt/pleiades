@@ -3352,13 +3352,19 @@ pub fn canonical_j2000_batch_parity_summary() -> Option<Vsop87CanonicalJ2000Batc
     })
 }
 
+fn format_validated_canonical_j2000_batch_parity_summary_for_report(
+    summary: &Vsop87CanonicalJ2000BatchParitySummary,
+) -> String {
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("VSOP87 canonical J2000 batch parity: unavailable ({error})"),
+    }
+}
+
 /// Returns the release-facing canonical J2000 batch-path regression summary string.
 pub fn canonical_j2000_batch_parity_summary_for_report() -> String {
     match canonical_j2000_batch_parity_summary() {
-        Some(summary) => match summary.validate() {
-            Ok(()) => summary.summary_line(),
-            Err(_) => "VSOP87 canonical J2000 batch parity: unavailable".to_string(),
-        },
+        Some(summary) => format_validated_canonical_j2000_batch_parity_summary_for_report(&summary),
         None => "VSOP87 canonical J2000 batch parity: unavailable".to_string(),
     }
 }
@@ -3480,13 +3486,19 @@ pub fn canonical_j1900_batch_parity_summary() -> Option<Vsop87CanonicalJ1900Batc
     })
 }
 
+fn format_validated_canonical_j1900_batch_parity_summary_for_report(
+    summary: &Vsop87CanonicalJ1900BatchParitySummary,
+) -> String {
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("VSOP87 canonical J1900 batch parity: unavailable ({error})"),
+    }
+}
+
 /// Returns the release-facing canonical J1900 batch-path regression summary string.
 pub fn canonical_j1900_batch_parity_summary_for_report() -> String {
     match canonical_j1900_batch_parity_summary() {
-        Some(summary) => match summary.validate() {
-            Ok(()) => summary.summary_line(),
-            Err(_) => "VSOP87 canonical J1900 batch parity: unavailable".to_string(),
-        },
+        Some(summary) => format_validated_canonical_j1900_batch_parity_summary_for_report(&summary),
         None => "VSOP87 canonical J1900 batch parity: unavailable".to_string(),
     }
 }
@@ -7456,6 +7468,18 @@ mod tests {
     }
 
     #[test]
+    fn canonical_j2000_batch_parity_report_surfaces_validation_errors() {
+        let mut summary =
+            canonical_j2000_batch_parity_summary().expect("batch summary should exist");
+        summary.sample_count += 1;
+
+        assert_eq!(
+            format_validated_canonical_j2000_batch_parity_summary_for_report(&summary),
+            "VSOP87 canonical J2000 batch parity: unavailable (the VSOP87 canonical batch parity summary field `sample_count` is out of sync with the current canonical evidence)"
+        );
+    }
+
+    #[test]
     fn canonical_j1900_batch_parity_report_matches_the_backend_formatter() {
         let summary = canonical_j1900_batch_parity_summary().expect("batch summary should exist");
         let rendered = canonical_j1900_batch_parity_summary_for_report();
@@ -7480,6 +7504,18 @@ mod tests {
         assert!(rendered.contains("JD 2415020.0 (TDB)"));
         assert!(rendered.contains("quality counts: Exact="));
         assert!(rendered.contains("batch/single parity preserved"));
+    }
+
+    #[test]
+    fn canonical_j1900_batch_parity_report_surfaces_validation_errors() {
+        let mut summary =
+            canonical_j1900_batch_parity_summary().expect("batch summary should exist");
+        summary.frame = CoordinateFrame::Ecliptic;
+
+        assert_eq!(
+            format_validated_canonical_j1900_batch_parity_summary_for_report(&summary),
+            "VSOP87 canonical J1900 batch parity: unavailable (the VSOP87 canonical batch parity summary field `frame` is out of sync with the current canonical evidence)"
+        );
     }
 
     #[test]
