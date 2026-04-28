@@ -843,6 +843,18 @@ impl PackagedBatchParitySummary {
             });
         }
 
+        if !self.order_preserved {
+            return Err(PackagedBatchParitySummaryValidationError::FieldOutOfSync {
+                field: "order_preserved",
+            });
+        }
+
+        if !self.single_query_parity_preserved {
+            return Err(PackagedBatchParitySummaryValidationError::FieldOutOfSync {
+                field: "single_query_parity_preserved",
+            });
+        }
+
         Ok(())
     }
 }
@@ -1131,6 +1143,22 @@ impl PackagedTimeScaleBatchParitySummary {
             return Err(
                 PackagedTimeScaleBatchParitySummaryValidationError::FieldOutOfSync {
                     field: "quality_counts",
+                },
+            );
+        }
+
+        if !self.order_preserved {
+            return Err(
+                PackagedTimeScaleBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "order_preserved",
+                },
+            );
+        }
+
+        if !self.single_query_parity_preserved {
+            return Err(
+                PackagedTimeScaleBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "single_query_parity_preserved",
                 },
             );
         }
@@ -2470,6 +2498,18 @@ mod tests {
     }
 
     #[test]
+    fn packaged_mixed_frame_batch_parity_summary_report_marks_order_drift_as_unavailable() {
+        let mut summary = packaged_mixed_frame_batch_parity_summary()
+            .expect("packaged mixed frame batch parity should be available");
+        summary.order_preserved = false;
+
+        assert_eq!(
+            format_validated_packaged_mixed_frame_batch_parity_summary_for_report(&summary),
+            "Packaged mixed frame batch parity: unavailable (the packaged mixed-frame batch-parity summary field `order_preserved` is out of sync with the current packaged posture)"
+        );
+    }
+
+    #[test]
     fn packaged_mixed_tt_tdb_batch_requests_preserve_request_scales() {
         let backend = packaged_backend();
         let tt_request = EphemerisRequest {
@@ -2550,6 +2590,18 @@ mod tests {
         assert_eq!(
             format_validated_packaged_mixed_tt_tdb_batch_parity_summary_for_report(&summary),
             "Packaged mixed TT/TDB batch parity: unavailable (the packaged mixed TT/TDB batch-parity summary field `request_count/body_count` is out of sync with the current packaged posture)"
+        );
+    }
+
+    #[test]
+    fn packaged_mixed_tt_tdb_batch_parity_summary_report_marks_parity_drift_as_unavailable() {
+        let mut summary = packaged_mixed_tt_tdb_batch_parity_summary()
+            .expect("packaged mixed TT/TDB batch parity should be available");
+        summary.single_query_parity_preserved = false;
+
+        assert_eq!(
+            format_validated_packaged_mixed_tt_tdb_batch_parity_summary_for_report(&summary),
+            "Packaged mixed TT/TDB batch parity: unavailable (the packaged mixed TT/TDB batch-parity summary field `single_query_parity_preserved` is out of sync with the current packaged posture)"
         );
     }
 
