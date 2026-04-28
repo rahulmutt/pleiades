@@ -184,9 +184,11 @@ impl<B: EphemerisBackend> ChartEngine<B> {
     /// Validates a batch of chart requests against the backend metadata without querying positions.
     ///
     /// This convenience mirrors [`validate_chart_request`](Self::validate_chart_request) while
-    /// preserving the first failing request's 1-based index in the returned error message. It is
-    /// useful for callers that want to preflight a chart corpus before dispatching a sequence of
-    /// chart assemblies or validation runs.
+    /// preserving the first failing request's 1-based index in the returned error message. It does
+    /// not normalize request instants, so a supported batch may legitimately mix TT and TDB chart
+    /// requests when the backend metadata allows both scales. It is useful for callers that want to
+    /// preflight a chart corpus before dispatching a sequence of chart assemblies or validation
+    /// runs.
     pub fn validate_chart_requests(&self, requests: &[ChartRequest]) -> Result<(), EphemerisError> {
         let metadata = self.validated_metadata().map_err(|error| {
             EphemerisError::new(
@@ -317,6 +319,42 @@ mod tests {
         }
     }
 
+    struct MixedScaleBackend;
+
+    impl EphemerisBackend for MixedScaleBackend {
+        fn metadata(&self) -> BackendMetadata {
+            BackendMetadata {
+                id: BackendId::new("mixed-scale"),
+                version: "0.1.0".to_string(),
+                family: BackendFamily::Algorithmic,
+                provenance: BackendProvenance::new("mixed-scale test backend"),
+                nominal_range: TimeRange::new(None, None),
+                supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
+                body_coverage: vec![CelestialBody::Sun, CelestialBody::Moon],
+                supported_frames: vec![CoordinateFrame::Ecliptic],
+                capabilities: BackendCapabilities::default(),
+                accuracy: AccuracyClass::Approximate,
+                deterministic: true,
+                offline: true,
+            }
+        }
+
+        fn supports_body(&self, body: CelestialBody) -> bool {
+            matches!(body, CelestialBody::Sun | CelestialBody::Moon)
+        }
+
+        fn position(&self, request: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+            Ok(EphemerisResult::new(
+                BackendId::new("mixed-scale"),
+                request.body.clone(),
+                request.instant,
+                request.frame,
+                request.zodiac_mode.clone(),
+                request.apparent,
+            ))
+        }
+    }
+
     #[test]
     fn chart_engine_delegates_to_backend() {
         let engine = ChartEngine::new(SimpleBackend);
@@ -438,6 +476,23 @@ mod tests {
             error.message,
             "chart request #2 failed validation: house placement requires an observer location"
         );
+    }
+
+    #[test]
+    fn validate_chart_requests_preserves_mixed_supported_time_scales() {
+        let engine = ChartEngine::new(MixedScaleBackend);
+        let tt = Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt);
+        let tdb = Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tdb);
+        let requests = [
+            ChartRequest::new(tt).with_bodies(vec![CelestialBody::Sun]),
+            ChartRequest::new(tdb).with_bodies(vec![CelestialBody::Moon]),
+        ];
+
+        engine
+            .validate_chart_requests(&requests)
+            .expect("batch chart validation should accept mixed TT/TDB requests when supported");
+        assert_eq!(requests[0].instant.scale, TimeScale::Tt);
+        assert_eq!(requests[1].instant.scale, TimeScale::Tdb);
     }
 
     #[test]

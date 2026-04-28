@@ -978,6 +978,7 @@ mod tests {
             render_cli(&["release-summary"]).expect("release summary should render");
         assert!(release_summary.contains("Release summary"));
         assert!(release_summary.contains("House systems:"));
+        assert!(release_summary.contains("House formula families: 7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign)"));
         assert!(release_summary
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(release_summary.contains("Packaged frame treatment"));
