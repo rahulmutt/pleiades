@@ -6640,6 +6640,33 @@ struct ComparisonMedianEnvelope {
 }
 
 impl ComparisonMedianEnvelope {
+    fn validate(&self) -> Result<(), EphemerisError> {
+        for (label, value) in [
+            ("longitude_delta_deg", self.longitude_delta_deg),
+            ("latitude_delta_deg", self.latitude_delta_deg),
+        ] {
+            if !value.is_finite() || value.is_sign_negative() {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "comparison median envelope field `{label}` must be a finite non-negative value"
+                    ),
+                ));
+            }
+        }
+
+        if let Some(distance_delta_au) = self.distance_delta_au {
+            if !distance_delta_au.is_finite() || distance_delta_au.is_sign_negative() {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    "comparison median envelope field `distance_delta_au` must be a finite non-negative value",
+                ));
+            }
+        }
+
+        Ok(())
+    }
+
     fn summary_line(&self) -> String {
         let distance = self
             .distance_delta_au
@@ -6667,6 +6694,33 @@ struct ComparisonPercentileEnvelope {
 }
 
 impl ComparisonPercentileEnvelope {
+    fn validate(&self) -> Result<(), EphemerisError> {
+        for (label, value) in [
+            ("longitude_delta_deg", self.longitude_delta_deg),
+            ("latitude_delta_deg", self.latitude_delta_deg),
+        ] {
+            if !value.is_finite() || value.is_sign_negative() {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "comparison percentile envelope field `{label}` must be a finite non-negative value"
+                    ),
+                ));
+            }
+        }
+
+        if let Some(distance_delta_au) = self.distance_delta_au {
+            if !distance_delta_au.is_finite() || distance_delta_au.is_sign_negative() {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    "comparison percentile envelope field `distance_delta_au` must be a finite non-negative value",
+                ));
+            }
+        }
+
+        Ok(())
+    }
+
     fn summary_line(&self) -> String {
         let distance = self
             .distance_delta_au
@@ -6752,47 +6806,8 @@ impl ComparisonEnvelopeSummary {
             }
         }
 
-        for (label, value) in [
-            (
-                "median_longitude_delta_deg",
-                self.median.longitude_delta_deg,
-            ),
-            ("median_latitude_delta_deg", self.median.latitude_delta_deg),
-            (
-                "percentile_longitude_delta_deg",
-                self.percentile.longitude_delta_deg,
-            ),
-            (
-                "percentile_latitude_delta_deg",
-                self.percentile.latitude_delta_deg,
-            ),
-        ] {
-            if !value.is_finite() || value.is_sign_negative() {
-                return Err(EphemerisError::new(
-                    EphemerisErrorKind::InvalidRequest,
-                    format!(
-                        "comparison envelope field `{label}` must be a finite non-negative value"
-                    ),
-                ));
-            }
-        }
-
-        for (label, value) in [
-            ("median_distance_delta_au", self.median.distance_delta_au),
-            (
-                "percentile_distance_delta_au",
-                self.percentile.distance_delta_au,
-            ),
-        ] {
-            if let Some(value) = value {
-                if !value.is_finite() || value.is_sign_negative() {
-                    return Err(EphemerisError::new(
-                        EphemerisErrorKind::InvalidRequest,
-                        format!("comparison envelope field `{label}` must be a finite non-negative value"),
-                    ));
-                }
-            }
-        }
+        self.median.validate()?;
+        self.percentile.validate()?;
 
         Ok(())
     }
@@ -6898,7 +6913,12 @@ fn format_comparison_percentile_envelope_for_report(samples: &[ComparisonSample]
         return format!("comparison percentile envelope unavailable ({error})");
     }
 
-    comparison_percentile_envelope(samples, 0.95).summary_line()
+    let envelope = comparison_percentile_envelope(samples, 0.95);
+    if let Err(error) = envelope.validate() {
+        return format!("comparison percentile envelope unavailable ({error})");
+    }
+
+    envelope.summary_line()
 }
 
 fn format_comparison_envelope_for_report(
@@ -11361,6 +11381,47 @@ mod tests {
         assert!(envelope
             .percentile_line()
             .contains("95th percentile absolute deltas:"));
+    }
+
+    #[test]
+    fn comparison_median_and_percentile_envelopes_validate_their_fields() {
+        let median = ComparisonMedianEnvelope {
+            longitude_delta_deg: 1.25,
+            latitude_delta_deg: 0.75,
+            distance_delta_au: Some(0.03125),
+        };
+        let percentile = ComparisonPercentileEnvelope {
+            longitude_delta_deg: 2.5,
+            latitude_delta_deg: 1.5,
+            distance_delta_au: Some(0.0625),
+        };
+
+        assert_eq!(median.validate(), Ok(()));
+        assert_eq!(percentile.validate(), Ok(()));
+        assert_eq!(median.summary_line(), median.to_string());
+        assert_eq!(percentile.summary_line(), percentile.to_string());
+
+        let invalid_median = ComparisonMedianEnvelope {
+            longitude_delta_deg: -1.0,
+            ..median
+        };
+        let median_error = invalid_median
+            .validate()
+            .expect_err("negative median deltas should fail validation");
+        assert!(median_error
+            .to_string()
+            .contains("comparison median envelope field `longitude_delta_deg`"));
+
+        let invalid_percentile = ComparisonPercentileEnvelope {
+            distance_delta_au: Some(-0.5),
+            ..percentile
+        };
+        let percentile_error = invalid_percentile
+            .validate()
+            .expect_err("negative percentile deltas should fail validation");
+        assert!(percentile_error
+            .to_string()
+            .contains("comparison percentile envelope field `distance_delta_au`"));
     }
 
     #[test]
