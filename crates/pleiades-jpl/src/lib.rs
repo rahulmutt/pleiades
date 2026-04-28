@@ -1479,6 +1479,8 @@ pub enum ComparisonSnapshotSourceSummaryValidationError {
     BlankCoverage,
     /// The summary did not include a non-empty columns label.
     BlankColumns,
+    /// The summary carried surrounding whitespace in one of its labels.
+    SurroundedByWhitespace { field: &'static str },
 }
 
 impl ComparisonSnapshotSourceSummaryValidationError {
@@ -1488,13 +1490,19 @@ impl ComparisonSnapshotSourceSummaryValidationError {
             Self::BlankSource => "blank source",
             Self::BlankCoverage => "blank coverage",
             Self::BlankColumns => "blank columns",
+            Self::SurroundedByWhitespace { .. } => "surrounded by whitespace",
         }
     }
 }
 
 impl fmt::Display for ComparisonSnapshotSourceSummaryValidationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.label())
+        match self {
+            Self::SurroundedByWhitespace { field } => {
+                write!(f, "{field} contains surrounding whitespace")
+            }
+            _ => f.write_str(self.label()),
+        }
     }
 }
 
@@ -1506,11 +1514,32 @@ impl ComparisonSnapshotSourceSummary {
         if self.source.trim().is_empty() {
             return Err(ComparisonSnapshotSourceSummaryValidationError::BlankSource);
         }
+        if has_surrounding_whitespace(&self.source) {
+            return Err(
+                ComparisonSnapshotSourceSummaryValidationError::SurroundedByWhitespace {
+                    field: "source",
+                },
+            );
+        }
         if self.coverage.trim().is_empty() {
             return Err(ComparisonSnapshotSourceSummaryValidationError::BlankCoverage);
         }
+        if has_surrounding_whitespace(&self.coverage) {
+            return Err(
+                ComparisonSnapshotSourceSummaryValidationError::SurroundedByWhitespace {
+                    field: "coverage",
+                },
+            );
+        }
         if self.columns.trim().is_empty() {
             return Err(ComparisonSnapshotSourceSummaryValidationError::BlankColumns);
+        }
+        if has_surrounding_whitespace(&self.columns) {
+            return Err(
+                ComparisonSnapshotSourceSummaryValidationError::SurroundedByWhitespace {
+                    field: "columns",
+                },
+            );
         }
         Ok(())
     }
@@ -2168,8 +2197,22 @@ impl ReferenceSnapshotSourceSummary {
         if self.source.trim().is_empty() {
             return Err(ReferenceSnapshotSourceSummaryValidationError::BlankSource);
         }
+        if has_surrounding_whitespace(&self.source) {
+            return Err(
+                ReferenceSnapshotSourceSummaryValidationError::SurroundedByWhitespace {
+                    field: "source",
+                },
+            );
+        }
         if self.frame_treatment.trim().is_empty() {
             return Err(ReferenceSnapshotSourceSummaryValidationError::BlankFrameTreatment);
+        }
+        if has_surrounding_whitespace(&self.frame_treatment) {
+            return Err(
+                ReferenceSnapshotSourceSummaryValidationError::SurroundedByWhitespace {
+                    field: "frame_treatment",
+                },
+            );
         }
         Ok(())
     }
@@ -2192,6 +2235,8 @@ pub enum ReferenceSnapshotSourceSummaryValidationError {
     BlankSource,
     /// The summary did not include a non-empty frame-treatment label.
     BlankFrameTreatment,
+    /// The summary carried surrounding whitespace in one of its labels.
+    SurroundedByWhitespace { field: &'static str },
 }
 
 impl ReferenceSnapshotSourceSummaryValidationError {
@@ -2200,13 +2245,19 @@ impl ReferenceSnapshotSourceSummaryValidationError {
         match self {
             Self::BlankSource => "blank source",
             Self::BlankFrameTreatment => "blank frame treatment",
+            Self::SurroundedByWhitespace { .. } => "surrounded by whitespace",
         }
     }
 }
 
 impl fmt::Display for ReferenceSnapshotSourceSummaryValidationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.label())
+        match self {
+            Self::SurroundedByWhitespace { field } => {
+                write!(f, "{field} contains surrounding whitespace")
+            }
+            _ => f.write_str(self.label()),
+        }
     }
 }
 
@@ -2269,11 +2320,32 @@ impl IndependentHoldoutSourceSummary {
         if self.source.trim().is_empty() {
             return Err(IndependentHoldoutSourceSummaryValidationError::BlankSource);
         }
+        if has_surrounding_whitespace(&self.source) {
+            return Err(
+                IndependentHoldoutSourceSummaryValidationError::SurroundedByWhitespace {
+                    field: "source",
+                },
+            );
+        }
         if self.coverage.trim().is_empty() {
             return Err(IndependentHoldoutSourceSummaryValidationError::BlankCoverage);
         }
+        if has_surrounding_whitespace(&self.coverage) {
+            return Err(
+                IndependentHoldoutSourceSummaryValidationError::SurroundedByWhitespace {
+                    field: "coverage",
+                },
+            );
+        }
         if self.columns.trim().is_empty() {
             return Err(IndependentHoldoutSourceSummaryValidationError::BlankColumns);
+        }
+        if has_surrounding_whitespace(&self.columns) {
+            return Err(
+                IndependentHoldoutSourceSummaryValidationError::SurroundedByWhitespace {
+                    field: "columns",
+                },
+            );
         }
         Ok(())
     }
@@ -2296,6 +2368,8 @@ pub enum IndependentHoldoutSourceSummaryValidationError {
     BlankCoverage,
     /// The summary did not include a non-empty columns label.
     BlankColumns,
+    /// The summary carried surrounding whitespace in one of its labels.
+    SurroundedByWhitespace { field: &'static str },
 }
 
 impl IndependentHoldoutSourceSummaryValidationError {
@@ -2305,13 +2379,19 @@ impl IndependentHoldoutSourceSummaryValidationError {
             Self::BlankSource => "blank source",
             Self::BlankCoverage => "blank coverage",
             Self::BlankColumns => "blank columns",
+            Self::SurroundedByWhitespace { .. } => "surrounded by whitespace",
         }
     }
 }
 
 impl fmt::Display for IndependentHoldoutSourceSummaryValidationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.label())
+        match self {
+            Self::SurroundedByWhitespace { field } => {
+                write!(f, "{field} contains surrounding whitespace")
+            }
+            _ => f.write_str(self.label()),
+        }
     }
 }
 
@@ -5172,6 +5252,20 @@ mod tests {
             blank_columns.validate(),
             Err(ComparisonSnapshotSourceSummaryValidationError::BlankColumns)
         );
+
+        let padded_source = ComparisonSnapshotSourceSummary {
+            source: " source".to_string(),
+            coverage: "coverage".to_string(),
+            columns: "body, x_km, y_km, z_km".to_string(),
+        };
+        assert_eq!(
+            padded_source.validate(),
+            Err(
+                ComparisonSnapshotSourceSummaryValidationError::SurroundedByWhitespace {
+                    field: "source",
+                }
+            )
+        );
     }
 
     #[test]
@@ -5614,6 +5708,20 @@ mod tests {
             blank_frame_treatment.validate(),
             Err(ReferenceSnapshotSourceSummaryValidationError::BlankFrameTreatment)
         );
+
+        let padded_frame_treatment = ReferenceSnapshotSourceSummary {
+            source: "source".to_string(),
+            frame_treatment: " geocentric ecliptic J2000 ".to_string(),
+            reference_epoch: reference_instant(),
+        };
+        assert_eq!(
+            padded_frame_treatment.validate(),
+            Err(
+                ReferenceSnapshotSourceSummaryValidationError::SurroundedByWhitespace {
+                    field: "frame_treatment",
+                }
+            )
+        );
     }
 
     #[test]
@@ -5671,6 +5779,20 @@ mod tests {
         assert_eq!(
             blank_columns.validate(),
             Err(IndependentHoldoutSourceSummaryValidationError::BlankColumns)
+        );
+
+        let padded_columns = IndependentHoldoutSourceSummary {
+            source: "source".to_string(),
+            coverage: "coverage".to_string(),
+            columns: " epoch_jd, body, x_km, y_km, z_km ".to_string(),
+        };
+        assert_eq!(
+            padded_columns.validate(),
+            Err(
+                IndependentHoldoutSourceSummaryValidationError::SurroundedByWhitespace {
+                    field: "columns",
+                }
+            )
         );
     }
 
