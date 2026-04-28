@@ -629,6 +629,11 @@ impl Segment {
         }
     }
 
+    /// Validates the segment metadata before the segment is stored or encoded.
+    pub fn validate(&self) -> Result<(), CompressionError> {
+        validate_segment(self)
+    }
+
     fn contains(&self, instant: Instant) -> bool {
         self.start.scale == instant.scale
             && self.end.scale == instant.scale
@@ -692,7 +697,7 @@ impl BodyArtifact {
     /// matching time scales, and duplicate stored or residual channels.
     pub fn validate(&self) -> Result<(), CompressionError> {
         for segment in &self.segments {
-            validate_segment(segment)?;
+            segment.validate()?;
         }
 
         Ok(())
@@ -2064,6 +2069,9 @@ mod tests {
                 PolynomialChannel::new(ChannelKind::DistanceAu, 12, vec![0.125]),
             ],
         );
+        segment
+            .validate()
+            .expect("segment metadata should validate");
         let artifact = CompressedArtifact::new(
             ArtifactHeader::new("residual roundtrip demo", "unit test residual roundtrip"),
             vec![BodyArtifact::new(CelestialBody::Sun, vec![segment.clone()])],
@@ -2077,6 +2085,30 @@ mod tests {
         .expect("artifact with residual channels should decode");
 
         assert_eq!(decoded.bodies[0].segments[0], segment);
+    }
+
+    #[test]
+    fn segment_validate_rejects_duplicate_residual_channels() {
+        let segment = Segment::with_residual_channels(
+            Instant::new(pleiades_types::JulianDay::from_days(10.0), TimeScale::Tt),
+            Instant::new(pleiades_types::JulianDay::from_days(11.0), TimeScale::Tt),
+            vec![
+                PolynomialChannel::linear(ChannelKind::Longitude, 9, 20.0, 22.0),
+                PolynomialChannel::new(ChannelKind::Latitude, 9, vec![3.0]),
+                PolynomialChannel::new(ChannelKind::DistanceAu, 12, vec![4.0]),
+            ],
+            vec![
+                PolynomialChannel::new(ChannelKind::Longitude, 9, vec![0.5]),
+                PolynomialChannel::new(ChannelKind::Longitude, 9, vec![-0.25]),
+                PolynomialChannel::new(ChannelKind::DistanceAu, 12, vec![0.125]),
+            ],
+        );
+
+        let error = segment
+            .validate()
+            .expect_err("duplicate residual channels should be rejected");
+        assert_eq!(error.kind, CompressionErrorKind::InvalidFormat);
+        assert!(error.to_string().contains("segment residual channels"));
     }
 
     #[test]
