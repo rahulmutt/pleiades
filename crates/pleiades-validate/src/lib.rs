@@ -7250,6 +7250,12 @@ impl RequestSurfaceSummary {
     }
 }
 
+impl fmt::Display for RequestSurfaceSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 fn validate_request_surface_label(
     field: &str,
     actual: &str,
@@ -7279,7 +7285,7 @@ const fn current_request_surface_summary() -> RequestSurfaceSummary {
 fn request_surface_summary_for_report() -> String {
     let summary = current_request_surface_summary();
     match summary.validate() {
-        Ok(()) => summary.summary_line(),
+        Ok(()) => summary.to_string(),
         Err(error) => format!("primary request surfaces unavailable ({error})"),
     }
 }
@@ -10602,7 +10608,8 @@ mod tests {
     fn request_surface_summary_validation_matches_the_report_line() {
         let summary = current_request_surface_summary();
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.summary_line(), request_surface_summary_for_report());
+        assert_eq!(summary.summary_line(), summary.to_string());
+        assert_eq!(summary.to_string(), request_surface_summary_for_report());
         assert!(summary
             .summary_line()
             .contains("pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags)"));
