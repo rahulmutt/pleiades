@@ -87,6 +87,33 @@ impl CompatibilityProfile {
             .into_iter()
             .collect()
     }
+
+    /// Returns the canonical names for the built-in house-system baseline.
+    pub fn baseline_house_system_canonical_names(&self) -> Vec<&'static str> {
+        Self::canonical_names(self.baseline_house_systems, |entry| entry.canonical_name)
+    }
+
+    /// Returns the canonical names for the release-specific house-system additions.
+    pub fn release_house_system_canonical_names(&self) -> Vec<&'static str> {
+        Self::canonical_names(self.release_house_systems, |entry| entry.canonical_name)
+    }
+
+    /// Returns the canonical names for the built-in ayanamsa baseline.
+    pub fn baseline_ayanamsa_canonical_names(&self) -> Vec<&'static str> {
+        Self::canonical_names(self.baseline_ayanamsas, |entry| entry.canonical_name)
+    }
+
+    /// Returns the canonical names for the release-specific ayanamsa additions.
+    pub fn release_ayanamsa_canonical_names(&self) -> Vec<&'static str> {
+        Self::canonical_names(self.release_ayanamsas, |entry| entry.canonical_name)
+    }
+
+    fn canonical_names<T>(
+        entries: &[T],
+        canonical_name: impl Fn(&T) -> &'static str,
+    ) -> Vec<&'static str> {
+        entries.iter().map(canonical_name).collect()
+    }
 }
 
 impl CompatibilityProfile {
@@ -2618,5 +2645,43 @@ mod tests {
         assert!(rendered.contains("custom definitions"));
         assert!(rendered.contains("house systems: 25 total"));
         assert!(rendered.contains("ayanamsas: 59 total"));
+    }
+
+    #[test]
+    fn canonical_name_helpers_preserve_release_and_baseline_order() {
+        let profile = current_compatibility_profile();
+
+        assert_eq!(
+            profile.baseline_house_system_canonical_names(),
+            profile
+                .baseline_house_systems
+                .iter()
+                .map(|entry| entry.canonical_name)
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(
+            profile.release_house_system_canonical_names(),
+            profile
+                .release_house_systems
+                .iter()
+                .map(|entry| entry.canonical_name)
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(
+            profile.baseline_ayanamsa_canonical_names(),
+            profile
+                .baseline_ayanamsas
+                .iter()
+                .map(|entry| entry.canonical_name)
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(
+            profile.release_ayanamsa_canonical_names(),
+            profile
+                .release_ayanamsas
+                .iter()
+                .map(|entry| entry.canonical_name)
+                .collect::<Vec<_>>()
+        );
     }
 }

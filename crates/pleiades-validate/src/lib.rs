@@ -3520,8 +3520,9 @@ impl CompatibilityProfileVerificationSummary {
             ));
         }
 
-        let expected_release_house_names =
-            summarize_descriptor_names(profile.release_house_systems, |entry| entry.canonical_name);
+        let expected_release_house_names = DescriptorNamesSummary {
+            names: profile.release_house_system_canonical_names(),
+        };
         expected_release_house_names.validate()?;
         if self.release_house_canonical_names != expected_release_house_names.summary_line() {
             return Err(EphemerisError::new(
@@ -3533,8 +3534,9 @@ impl CompatibilityProfileVerificationSummary {
             ));
         }
 
-        let expected_release_ayanamsa_names =
-            summarize_descriptor_names(profile.release_ayanamsas, |entry| entry.canonical_name);
+        let expected_release_ayanamsa_names = DescriptorNamesSummary {
+            names: profile.release_ayanamsa_canonical_names(),
+        };
         expected_release_ayanamsa_names.validate()?;
         if self.release_ayanamsa_canonical_names != expected_release_ayanamsa_names.summary_line() {
             return Err(EphemerisError::new(
@@ -3819,11 +3821,13 @@ pub fn compatibility_profile_verification_summary(
         ("compatibility-caveat", profile.known_gaps),
     ])?;
 
-    let release_house_names =
-        summarize_descriptor_names(profile.release_house_systems, |entry| entry.canonical_name);
+    let release_house_names = DescriptorNamesSummary {
+        names: profile.release_house_system_canonical_names(),
+    };
     release_house_names.validate()?;
-    let release_ayanamsa_names =
-        summarize_descriptor_names(profile.release_ayanamsas, |entry| entry.canonical_name);
+    let release_ayanamsa_names = DescriptorNamesSummary {
+        names: profile.release_ayanamsa_canonical_names(),
+    };
     release_ayanamsa_names.validate()?;
     let house_formula_family_names = profile.house_formula_family_names().join(", ");
     let ayanamsa_metadata_count = profile
@@ -4476,14 +4480,14 @@ fn render_compatibility_profile_summary_text() -> String {
     text.push_str(&ayanamsa_catalog_validation_summary().summary_line());
     text.push('\n');
     text.push_str("Release-specific house-system canonical names: ");
-    text.push_str(&format_descriptor_names_summary(
-        &summarize_descriptor_names(profile.release_house_systems, |entry| entry.canonical_name),
-    ));
+    text.push_str(&format_descriptor_names_summary(&DescriptorNamesSummary {
+        names: profile.release_house_system_canonical_names(),
+    }));
     text.push('\n');
     text.push_str("Release-specific ayanamsa canonical names: ");
-    text.push_str(&format_descriptor_names_summary(
-        &summarize_descriptor_names(profile.release_ayanamsas, |entry| entry.canonical_name),
-    ));
+    text.push_str(&format_descriptor_names_summary(&DescriptorNamesSummary {
+        names: profile.release_ayanamsa_canonical_names(),
+    }));
     text.push('\n');
     text.push_str("Custom-definition labels: ");
     text.push_str(&profile.custom_definition_labels.len().to_string());
@@ -4869,8 +4873,10 @@ fn render_release_summary_text() -> String {
     text.push_str(" release-specific)\n");
     text.push_str("Release-specific house-system canonical names: ");
     text.push_str(
-        &summarize_descriptor_names(profile.release_house_systems, |entry| entry.canonical_name)
-            .summary_line(),
+        &DescriptorNamesSummary {
+            names: profile.release_house_system_canonical_names(),
+        }
+        .summary_line(),
     );
     text.push('\n');
     text.push_str("Ayanamsas: ");
@@ -4882,8 +4888,10 @@ fn render_release_summary_text() -> String {
     text.push_str(" release-specific)\n");
     text.push_str("Release-specific ayanamsa canonical names: ");
     text.push_str(
-        &summarize_descriptor_names(profile.release_ayanamsas, |entry| entry.canonical_name)
-            .summary_line(),
+        &DescriptorNamesSummary {
+            names: profile.release_ayanamsa_canonical_names(),
+        }
+        .summary_line(),
     );
     text.push('\n');
     text.push_str("Validation reference points: ");
