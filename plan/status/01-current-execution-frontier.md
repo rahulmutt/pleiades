@@ -65,6 +65,7 @@ Several downstream requirements depend on trusted ephemeris outputs:
 - Latest progress (2026-04-28): the parsed JPL snapshot manifests now also reject surrounding whitespace in title, source, and coverage provenance fields, which keeps the checked-in fixture metadata on the same fail-closed normalization path as the existing blank-field and duplicate-column checks.
 - Latest progress (2026-04-28): the shared backend batch adapter now also has a regression that preserves mixed TT/TDB request scales through the default `positions()` path, so the batch contract now explicitly guards against silently normalizing a mixed dynamical-time slice into a batch-wide scale.
 - Latest progress (2026-04-28): the compact `Primary request surfaces:` report line now validates its typed labels before formatting and has a drift regression for blank request-surface entries, so the release-facing entry-point matrix fails closed if one of the currently documented chart/backend/house/CLI surfaces ever regresses.
+- Latest progress (2026-04-28): the canonical VSOP87 evidence summary now also re-derives its out-of-limit count from the current body-evidence slice before the compact report formatter reuses it, so the release-facing envelope now fails closed if that count ever drifts out of sync with the measured sample evidence.
 
 ## Current repo state summary
 

@@ -994,7 +994,20 @@ impl Vsop87CanonicalEvidenceSummary {
             self.max_distance_delta_source_file,
         )?;
 
-        if self.out_of_limit_count > self.sample_count {
+        let Some(body_evidence) = canonical_epoch_body_evidence() else {
+            return Err(
+                Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
+                    summary: CANONICAL_EVIDENCE_SUMMARY_LABEL,
+                    field: "sample_count",
+                },
+            );
+        };
+        let expected_out_of_limit_count = body_evidence
+            .iter()
+            .filter(|evidence| !evidence.within_interim_limits)
+            .count();
+
+        if self.out_of_limit_count != expected_out_of_limit_count {
             return Err(
                 Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
                     summary: CANONICAL_EVIDENCE_SUMMARY_LABEL,
@@ -1002,7 +1015,7 @@ impl Vsop87CanonicalEvidenceSummary {
                 },
             );
         }
-        if self.within_interim_limits != (self.out_of_limit_count == 0) {
+        if self.within_interim_limits != (expected_out_of_limit_count == 0) {
             return Err(
                 Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
                     summary: CANONICAL_EVIDENCE_SUMMARY_LABEL,
@@ -5828,6 +5841,26 @@ mod tests {
         assert_eq!(
             summary.max_distance_delta_source_file,
             max_distance.source_file
+        );
+        assert_eq!(summary.validate(), Ok(()));
+    }
+
+    #[test]
+    fn canonical_epoch_error_envelope_validation_rejects_out_of_limit_count_drift() {
+        let mut summary = canonical_epoch_evidence_summary().expect("summary should exist");
+        summary.out_of_limit_count = 1;
+
+        let error = summary
+            .validate()
+            .expect_err("drifted canonical evidence summaries should fail validation");
+
+        assert_eq!(
+            error.to_string(),
+            "the VSOP87 canonical J2000 source-backed evidence summary field `out_of_limit_count` is out of sync with the current canonical evidence"
+        );
+        assert_eq!(
+            format_validated_canonical_epoch_evidence_summary_for_report(&summary),
+            "VSOP87 canonical J2000 source-backed evidence: unavailable (the VSOP87 canonical J2000 source-backed evidence summary field `out_of_limit_count` is out of sync with the current canonical evidence)"
         );
     }
 
