@@ -307,6 +307,170 @@ pub struct Vsop87SourceAudit {
     pub fingerprint: u64,
 }
 
+/// Validation error for a VSOP87 source-audit record that drifted from the current manifest.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Vsop87SourceAuditValidationError {
+    /// The audit record does not name a source file.
+    BlankSourceFile {
+        position: usize,
+        body: CelestialBody,
+    },
+    /// The audit record references a source file that does not exist in the current source catalog.
+    UnknownSourceFile {
+        position: usize,
+        source_file: &'static str,
+    },
+    /// The audit record body/source pairing does not match the current source catalog.
+    BodySourceMismatch {
+        position: usize,
+        body: CelestialBody,
+        source_file: &'static str,
+        expected_body: CelestialBody,
+    },
+    /// A rendered audit field no longer matches the current source text.
+    FieldOutOfSync {
+        position: usize,
+        body: CelestialBody,
+        source_file: &'static str,
+        field: &'static str,
+    },
+}
+
+impl fmt::Display for Vsop87SourceAuditValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BlankSourceFile { position, body } => write!(
+                f,
+                "source audit record #{position} has a blank source file for {body}"
+            ),
+            Self::UnknownSourceFile { position, source_file } => write!(
+                f,
+                "source audit record #{position} references unknown source file `{source_file}`"
+            ),
+            Self::BodySourceMismatch {
+                position,
+                body,
+                source_file,
+                expected_body,
+            } => write!(
+                f,
+                "source audit record #{position} uses source file `{source_file}`, which belongs to {expected_body} rather than {body}"
+            ),
+            Self::FieldOutOfSync {
+                position,
+                body,
+                source_file,
+                field,
+            } => write!(
+                f,
+                "source audit record #{position} for {body} and source file `{source_file}` has a stale `{field}` field"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for Vsop87SourceAuditValidationError {}
+
+impl Vsop87SourceAudit {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "VSOP87 source audit record: body={}, file={}, bytes={}, lines={}, terms={}, fingerprint=0x{:016x}",
+            self.body,
+            self.source_file,
+            self.byte_length,
+            self.line_count,
+            self.term_count,
+            self.fingerprint
+        )
+    }
+
+    fn validate_at_position(
+        &self,
+        position: usize,
+    ) -> Result<(), Vsop87SourceAuditValidationError> {
+        if self.source_file.trim().is_empty() {
+            return Err(Vsop87SourceAuditValidationError::BlankSourceFile {
+                position,
+                body: self.body.clone(),
+            });
+        }
+
+        let Some(source) = source_text_for_file(self.source_file) else {
+            return Err(Vsop87SourceAuditValidationError::UnknownSourceFile {
+                position,
+                source_file: self.source_file,
+            });
+        };
+
+        let Some(expected_body) = source_specifications()
+            .into_iter()
+            .find(|spec| spec.source_file == self.source_file)
+            .map(|spec| spec.body)
+        else {
+            return Err(Vsop87SourceAuditValidationError::UnknownSourceFile {
+                position,
+                source_file: self.source_file,
+            });
+        };
+
+        if expected_body != self.body {
+            return Err(Vsop87SourceAuditValidationError::BodySourceMismatch {
+                position,
+                body: self.body.clone(),
+                source_file: self.source_file,
+                expected_body,
+            });
+        }
+
+        if self.byte_length != source.len() {
+            return Err(Vsop87SourceAuditValidationError::FieldOutOfSync {
+                position,
+                body: self.body.clone(),
+                source_file: self.source_file,
+                field: "byte_length",
+            });
+        }
+        if self.line_count != source.lines().count() {
+            return Err(Vsop87SourceAuditValidationError::FieldOutOfSync {
+                position,
+                body: self.body.clone(),
+                source_file: self.source_file,
+                field: "line_count",
+            });
+        }
+        if self.term_count != count_vsop87_terms(source) {
+            return Err(Vsop87SourceAuditValidationError::FieldOutOfSync {
+                position,
+                body: self.body.clone(),
+                source_file: self.source_file,
+                field: "term_count",
+            });
+        }
+        if self.fingerprint != fnv1a_64(source.as_bytes()) {
+            return Err(Vsop87SourceAuditValidationError::FieldOutOfSync {
+                position,
+                body: self.body.clone(),
+                source_file: self.source_file,
+                field: "fingerprint",
+            });
+        }
+
+        Ok(())
+    }
+
+    /// Returns `Ok(())` when the record still matches the current source text.
+    pub fn validate(&self) -> Result<(), Vsop87SourceAuditValidationError> {
+        self.validate_at_position(1)
+    }
+}
+
+impl fmt::Display for Vsop87SourceAudit {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Summary metrics for the current VSOP87 source audit manifest.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Vsop87SourceAuditSummary {
@@ -368,6 +532,11 @@ impl Vsop87SourceAuditSummary {
     /// Returns `Ok(())` when the summary still matches the current source-audit manifest.
     pub fn validate(&self) -> Result<(), Vsop87SourceAuditSummaryValidationError> {
         let audits = source_audits();
+        validate_source_audits(&audits).map_err(|_| {
+            Vsop87SourceAuditSummaryValidationError::FieldOutOfSync {
+                field: "audit_records",
+            }
+        })?;
         let source_specs = source_specifications();
         let expected_source_files = source_specs
             .iter()
@@ -2005,6 +2174,17 @@ pub fn source_audits() -> Vec<Vsop87SourceAudit> {
                 .collect()
         })
         .clone()
+}
+
+/// Validates the reproducibility audit records for the current VSOP87-backed bodies.
+pub fn validate_source_audits(
+    audits: &[Vsop87SourceAudit],
+) -> Result<(), Vsop87SourceAuditValidationError> {
+    for (position, audit) in audits.iter().enumerate() {
+        audit.validate_at_position(position + 1)?;
+    }
+
+    Ok(())
 }
 
 /// Returns a small reproducibility summary for the current VSOP87-backed bodies.
@@ -6257,6 +6437,8 @@ mod tests {
         let summary = source_audit_summary();
 
         assert_eq!(audits.len(), 8);
+        assert!(audits.iter().all(|audit| audit.validate().is_ok()));
+        assert_eq!(audits[0].summary_line(), audits[0].to_string());
         assert_eq!(summary.source_count, 8);
         assert_eq!(summary.source_bodies, source_backed_body_order());
         assert_eq!(
@@ -6286,6 +6468,29 @@ mod tests {
             .expect("Sun audit should exist");
         assert_eq!(earth.source_file, "VSOP87B.ear");
         assert_eq!(earth.term_count, 2_564);
+    }
+
+    #[test]
+    fn source_audit_validation_rejects_drifted_fields() {
+        let mut audit = source_audits()[0].clone();
+        audit.term_count += 1;
+
+        let error = audit
+            .validate()
+            .expect_err("drifted source audit records should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "source audit record #1 for Sun and source file `VSOP87B.ear` has a stale `term_count` field"
+        );
+        assert_eq!(
+            validate_source_audits(&[audit]),
+            Err(Vsop87SourceAuditValidationError::FieldOutOfSync {
+                position: 1,
+                body: CelestialBody::Sun,
+                source_file: "VSOP87B.ear",
+                field: "term_count",
+            })
+        );
     }
 
     #[test]
