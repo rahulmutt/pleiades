@@ -102,6 +102,8 @@ impl CompatibilityProfile {
             ("custom-definition", self.custom_definition_labels),
             ("compatibility-caveat", self.known_gaps),
         ])?;
+        validate_catalog_label_uniqueness("house-system", self.house_systems)?;
+        validate_catalog_label_uniqueness("ayanamsa", self.ayanamsas)?;
         validate_catalog_partitions_are_disjoint(
             "house-system",
             self.baseline_house_systems,
@@ -185,6 +187,13 @@ pub enum CompatibilityProfileValidationError {
         /// Label that appears in both partitions.
         label: &'static str,
     },
+    /// The published catalog contains a duplicate canonical name or alias.
+    CatalogLabelCollision {
+        /// Catalog that drifted.
+        catalog_label: &'static str,
+        /// Duplicate label that appeared more than once.
+        label: &'static str,
+    },
     /// The total catalog coverage does not equal the baseline plus release partitions.
     CatalogCoverageMismatch {
         /// Catalog that drifted.
@@ -239,6 +248,11 @@ impl fmt::Display for CompatibilityProfileValidationError {
             Self::CatalogPartitionOverlap { catalog_label, label } => write!(
                 f,
                 "compatibility profile {catalog_label} baseline and release slices overlap on label '{}'",
+                label
+            ),
+            Self::CatalogLabelCollision { catalog_label, label } => write!(
+                f,
+                "compatibility profile {catalog_label} catalog contains duplicate label '{}'",
                 label
             ),
             Self::CatalogCoverageMismatch {
@@ -407,6 +421,33 @@ fn validate_catalog_partitions_are_disjoint_ayanamsa(
                         label,
                     },
                 );
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn validate_catalog_label_uniqueness<T: AliasProfileEntry>(
+    catalog_label: &'static str,
+    entries: &[T],
+) -> Result<(), CompatibilityProfileValidationError> {
+    let mut seen_labels = BTreeSet::new();
+
+    for entry in entries {
+        for label in std::iter::once(entry.canonical_name()).chain(entry.aliases().iter().copied())
+        {
+            if label.eq_ignore_ascii_case(entry.canonical_name()) && label != entry.canonical_name()
+            {
+                continue;
+            }
+
+            let normalized_label = label.trim().to_ascii_lowercase();
+            if !seen_labels.insert(normalized_label) {
+                return Err(CompatibilityProfileValidationError::CatalogLabelCollision {
+                    catalog_label,
+                    label,
+                });
             }
         }
     }
@@ -748,7 +789,6 @@ fn house_source_label_aliases(canonical_name: &str) -> &'static [&'static str] {
             "Vehlow Equal table of houses",
             "Vehlow-equal",
             "Vehlow",
-            "Vehlow equal",
         ],
         "Sripati" => &[
             "S",
@@ -1597,6 +1637,114 @@ mod tests {
     }
 
     #[test]
+    fn compatibility_profile_validate_rejects_case_insensitive_duplicate_house_labels_within_catalog(
+    ) {
+        let mut profile = current_compatibility_profile();
+        const TOTAL_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
+            HouseSystemDescriptor::new(
+                HouseSystem::Placidus,
+                "Total Placidus",
+                &["Total Placidus alias"],
+                "Total house coverage",
+                false,
+            ),
+            HouseSystemDescriptor::new(
+                HouseSystem::Equal,
+                "Total Equal",
+                &["Total Equal alias", "total equal alias"],
+                "Total house coverage",
+                false,
+            ),
+        ];
+        const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[HouseSystemDescriptor::new(
+            HouseSystem::Placidus,
+            "Total Placidus",
+            &["Total Placidus alias"],
+            "Baseline house coverage",
+            false,
+        )];
+        const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[HouseSystemDescriptor::new(
+            HouseSystem::Equal,
+            "Total Equal",
+            &["Total Equal alias"],
+            "Release house coverage",
+            false,
+        )];
+        profile.house_systems = TOTAL_HOUSE_SYSTEMS;
+        profile.baseline_house_systems = BASELINE_HOUSE_SYSTEMS;
+        profile.release_house_systems = RELEASE_HOUSE_SYSTEMS;
+
+        let error = profile
+            .validate()
+            .expect_err("duplicate house labels should fail validation");
+
+        assert!(matches!(
+            error,
+            CompatibilityProfileValidationError::CatalogLabelCollision {
+                catalog_label: "house-system",
+                ..
+            }
+        ));
+        assert!(error.to_string().contains("duplicate label"));
+    }
+
+    #[test]
+    fn compatibility_profile_validate_rejects_case_insensitive_duplicate_ayanamsa_labels_within_catalog(
+    ) {
+        let mut profile = current_compatibility_profile();
+        const TOTAL_AYANAMSAS: &[AyanamsaDescriptor] = &[
+            AyanamsaDescriptor::new(
+                Ayanamsa::Lahiri,
+                "Total Lahiri",
+                &["Total Lahiri alias"],
+                "Total ayanamsa coverage",
+                None,
+                None,
+            ),
+            AyanamsaDescriptor::new(
+                Ayanamsa::Krishnamurti,
+                "Total Krishnamurti",
+                &["Total Krishnamurti alias", "total krishnamurti alias"],
+                "Total ayanamsa coverage",
+                None,
+                None,
+            ),
+        ];
+        const BASELINE_AYANAMSAS: &[AyanamsaDescriptor] = &[AyanamsaDescriptor::new(
+            Ayanamsa::Lahiri,
+            "Total Lahiri",
+            &["Total Lahiri alias"],
+            "Baseline ayanamsa coverage",
+            None,
+            None,
+        )];
+        const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[AyanamsaDescriptor::new(
+            Ayanamsa::Krishnamurti,
+            "Total Krishnamurti",
+            &["Total Krishnamurti alias"],
+            "Release ayanamsa coverage",
+            None,
+            None,
+        )];
+        profile.ayanamsas = TOTAL_AYANAMSAS;
+        profile.baseline_ayanamsas = BASELINE_AYANAMSAS;
+        profile.release_ayanamsas = RELEASE_AYANAMSAS;
+
+        let error = profile
+            .validate()
+            .expect_err("duplicate ayanamsa labels should fail validation");
+
+        assert!(matches!(
+            error,
+            CompatibilityProfileValidationError::CatalogLabelCollision {
+                catalog_label: "ayanamsa",
+                ..
+            }
+        ));
+        assert!(error.to_string().contains("duplicate label"));
+    }
+
+    #[test]
     fn compatibility_profile_validate_rejects_overlapping_catalog_partitions() {
         let mut profile = current_compatibility_profile();
         profile.release_house_systems = profile.baseline_house_systems;
@@ -1968,11 +2116,10 @@ mod tests {
         assert!(rendered.contains("N, N whole sign houses, 1. house = Aries, Equal/1=Aries, Equal Aries, Aries houses, Whole Sign (house 1 = Aries), Whole Sign (house 1 = Aries) table of houses, Equal (1=Aries) table of houses, Equal/1=Aries table of houses, Equal (1=Aries) house system, Equal/1=Aries house system, Whole sign houses, 1. house = Aries, Equal/1=0 Aries, Equal (cusp 1 = 0° Aries) -> Equal (1=Aries)"));
         assert!(rendered.contains("Equal (1=Aries) table of houses"));
         assert!(
-            rendered.contains("V equal Vehlow, Vehlow, Vehlow equal, Vehlow house system, Vehlow Equal house system, Vehlow-equal, Vehlow-equal table of houses, Vehlow Equal table of houses -> Vehlow Equal")
+            rendered.contains("V equal Vehlow, Vehlow, Vehlow house system, Vehlow Equal house system, Vehlow-equal, Vehlow-equal table of houses, Vehlow Equal table of houses -> Vehlow Equal")
         );
-        assert!(rendered.contains(
-            "Vehlow-equal table of houses, Vehlow Equal table of houses, Vehlow-equal, Vehlow, Vehlow equal -> Vehlow Equal"
-        ));
+        assert!(rendered.contains("Vehlow-equal table of houses, Vehlow Equal table of houses"));
+        assert!(rendered.contains("Vehlow-equal, Vehlow -> Vehlow Equal"));
         assert!(rendered.contains(
             "S, S sripati, Śrīpati, Sripati house system, Sripati table of houses -> Sripati"
         ));
@@ -2032,7 +2179,7 @@ mod tests {
             "W equal, whole sign, Whole Sign houses, Whole Sign table of houses, Whole-sign, Whole Sign system, Whole Sign house system -> Whole Sign"
         ));
         assert!(
-            rendered.contains("V equal Vehlow, Vehlow, Vehlow equal, Vehlow house system, Vehlow Equal house system, Vehlow-equal, Vehlow-equal table of houses, Vehlow Equal table of houses -> Vehlow Equal")
+            rendered.contains("V equal Vehlow, Vehlow, Vehlow house system, Vehlow Equal house system, Vehlow-equal, Vehlow-equal table of houses, Vehlow Equal table of houses -> Vehlow Equal")
         );
         assert!(rendered.contains(
             "X, Meridian houses, Meridian table of houses, Meridian house system, ARMC, Axial Rotation, Axial rotation system, Zariel, X axial rotation system/ Meridian houses -> Meridian"
