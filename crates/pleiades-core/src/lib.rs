@@ -496,6 +496,31 @@ mod tests {
     }
 
     #[test]
+    fn validate_chart_requests_preserves_mixed_supported_time_scales_with_house_observers() {
+        let engine = ChartEngine::new(MixedScaleBackend);
+        let tt = Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt);
+        let tdb = Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tdb);
+        let requests = [
+            ChartRequest::new(tt).with_bodies(vec![CelestialBody::Sun]),
+            ChartRequest::new(tdb)
+                .with_observer(ObserverLocation::new(
+                    Latitude::from_degrees(12.5),
+                    Longitude::from_degrees(45.0),
+                    Some(100.0),
+                ))
+                .with_house_system(crate::HouseSystem::WholeSign)
+                .with_bodies(vec![CelestialBody::Moon]),
+        ];
+
+        engine
+            .validate_chart_requests(&requests)
+            .expect("batch chart validation should accept mixed TT/TDB requests with independent house observers when supported");
+        assert_eq!(requests[0].instant.scale, TimeScale::Tt);
+        assert_eq!(requests[1].instant.scale, TimeScale::Tdb);
+        assert_eq!(requests[1].observer_policy(), ObserverPolicy::HouseOnly);
+    }
+
+    #[test]
     fn validated_metadata_rejects_duplicate_body_coverage() {
         struct InvalidMetadataBackend;
 
