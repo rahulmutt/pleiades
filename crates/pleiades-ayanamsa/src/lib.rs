@@ -76,6 +76,12 @@ impl AyanamsaDescriptor {
             );
         }
 
+        if self.epoch.is_some() ^ self.offset_degrees.is_some() {
+            return Err(AyanamsaCatalogValidationError::PartialSiderealMetadata {
+                label: self.canonical_name,
+            });
+        }
+
         Ok(())
     }
 
@@ -1275,6 +1281,11 @@ pub enum AyanamsaCatalogValidationError {
         /// Label whose descriptor note drifted.
         label: &'static str,
     },
+    /// Exactly one of the reference epoch or offset fields was populated.
+    PartialSiderealMetadata {
+        /// Label whose metadata was incomplete.
+        label: &'static str,
+    },
 }
 
 impl fmt::Display for AyanamsaCatalogValidationError {
@@ -1291,6 +1302,10 @@ impl fmt::Display for AyanamsaCatalogValidationError {
             Self::DescriptorNotesNotNormalized { label } => write!(
                 f,
                 "the ayanamsa catalog descriptor note for `{label}` is blank or contains surrounding whitespace"
+            ),
+            Self::PartialSiderealMetadata { label } => write!(
+                f,
+                "the ayanamsa catalog descriptor for `{label}` has only one of the reference epoch or offset fields populated"
             ),
         }
     }
@@ -1593,6 +1608,43 @@ mod tests {
         assert!(matches!(
             validate_ayanamsa_catalog_entries(&blank_notes_entry),
             Err(AyanamsaCatalogValidationError::DescriptorNotesNotNormalized { label: "Lahiri" })
+        ));
+    }
+
+    #[test]
+    fn catalog_validation_entries_reject_partial_sidereal_metadata() {
+        let epoch_only_descriptor = AyanamsaDescriptor::new(
+            Ayanamsa::Lahiri,
+            "Lahiri",
+            &[],
+            "Summary note",
+            Some(JulianDay::from_days(2_451_545.0)),
+            None,
+        );
+        assert!(matches!(
+            epoch_only_descriptor.validate(),
+            Err(AyanamsaCatalogValidationError::PartialSiderealMetadata { label: "Lahiri" })
+        ));
+        assert!(matches!(
+            validate_ayanamsa_catalog_entries(&[epoch_only_descriptor]),
+            Err(AyanamsaCatalogValidationError::PartialSiderealMetadata { label: "Lahiri" })
+        ));
+
+        let offset_only_descriptor = AyanamsaDescriptor::new(
+            Ayanamsa::Lahiri,
+            "Lahiri",
+            &[],
+            "Summary note",
+            None,
+            Some(Angle::from_degrees(23.5)),
+        );
+        assert!(matches!(
+            offset_only_descriptor.validate(),
+            Err(AyanamsaCatalogValidationError::PartialSiderealMetadata { label: "Lahiri" })
+        ));
+        assert!(matches!(
+            validate_ayanamsa_catalog_entries(&[offset_only_descriptor]),
+            Err(AyanamsaCatalogValidationError::PartialSiderealMetadata { label: "Lahiri" })
         ));
     }
 

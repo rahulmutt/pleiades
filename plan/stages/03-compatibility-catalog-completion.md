@@ -37,6 +37,7 @@ The repository already exposes baseline house systems and ayanamsas, a larger re
    - Fill remaining reference epochs, offsets, drift/precession assumptions, and provenance notes.
    - Ensure aliases resolve without ambiguity and do not overclaim equivalence.
    - Validate sidereal offsets at canonical epochs.
+   - Progress note: `pleiades-ayanamsa::AyanamsaDescriptor::validate()` now also rejects descriptors that populate only one of the reference epoch or offset fields, so the catalog cannot drift into a half-specified sidereal metadata state even if the label still round-trips.
    - Preserve custom ayanamsa support for user-defined formulas or offset tables.
 
 4. Strengthen derived domain helpers.
