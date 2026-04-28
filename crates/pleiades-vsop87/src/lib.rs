@@ -104,6 +104,54 @@ pub struct Vsop87BodySource {
     pub accuracy: AccuracyClass,
 }
 
+/// Validation errors for a VSOP87 body source profile that drifted from the
+/// current catalog.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Vsop87BodySourceValidationError {
+    /// The catalog no longer contains the body.
+    UnknownBody { body: CelestialBody },
+    /// The provenance text is blank.
+    BlankProvenance { body: CelestialBody },
+    /// The provenance text carries surrounding whitespace.
+    WhitespacePaddedProvenance { body: CelestialBody },
+    /// The declared source family no longer matches the catalog.
+    SourceKindMismatch {
+        body: CelestialBody,
+        expected: Vsop87BodySourceKind,
+        found: Vsop87BodySourceKind,
+    },
+}
+
+impl fmt::Display for Vsop87BodySourceValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::UnknownBody { body } => {
+                write!(
+                    f,
+                    "the VSOP87 body source for {body} is no longer present in the catalog"
+                )
+            }
+            Self::BlankProvenance { body } => {
+                write!(f, "the VSOP87 body source for {body} has blank provenance")
+            }
+            Self::WhitespacePaddedProvenance { body } => write!(
+                f,
+                "the VSOP87 body source for {body} has surrounding whitespace in its provenance"
+            ),
+            Self::SourceKindMismatch {
+                body,
+                expected,
+                found,
+            } => write!(
+                f,
+                "the VSOP87 body source for {body} expects kind {expected} but found {found}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for Vsop87BodySourceValidationError {}
+
 impl Vsop87BodySource {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
@@ -111,6 +159,38 @@ impl Vsop87BodySource {
             "{}: kind={}, accuracy={}, {}",
             self.body, self.kind, self.accuracy, self.provenance
         )
+    }
+
+    /// Returns `Ok(())` when the source profile still matches the current
+    /// catalog.
+    pub fn validate(&self) -> Result<(), Vsop87BodySourceValidationError> {
+        if self.provenance.trim().is_empty() {
+            return Err(Vsop87BodySourceValidationError::BlankProvenance {
+                body: self.body.clone(),
+            });
+        }
+        if self.provenance.trim() != self.provenance {
+            return Err(
+                Vsop87BodySourceValidationError::WhitespacePaddedProvenance {
+                    body: self.body.clone(),
+                },
+            );
+        }
+
+        let expected = source_kind_for_body(self.body.clone()).ok_or(
+            Vsop87BodySourceValidationError::UnknownBody {
+                body: self.body.clone(),
+            },
+        )?;
+        if expected != self.kind {
+            return Err(Vsop87BodySourceValidationError::SourceKindMismatch {
+                body: self.body.clone(),
+                expected,
+                found: self.kind,
+            });
+        }
+
+        Ok(())
     }
 }
 
@@ -5025,6 +5105,7 @@ pub fn canonical_epoch_body_evidence() -> Option<Vec<Vsop87CanonicalBodyEvidence
         let profile = profiles
             .iter()
             .find(|profile| profile.body == sample.body)?;
+        profile.validate().ok()?;
         let spec = specs.iter().find(|spec| spec.body == sample.body)?;
         let ecliptic = result.ecliptic?;
         let distance = ecliptic.distance_au?;
@@ -5195,6 +5276,7 @@ pub fn canonical_epoch_equatorial_body_evidence(
         let profile = profiles
             .iter()
             .find(|profile| profile.body == sample.body)?;
+        profile.validate().ok()?;
         let spec = specs.iter().find(|spec| spec.body == sample.body)?;
         let expected_ecliptic = EclipticCoordinates::new(
             Longitude::from_degrees(sample.expected_longitude_deg),
@@ -7308,6 +7390,36 @@ mod tests {
                 sample.max_distance_delta_au,
             );
         }
+    }
+
+    #[test]
+    fn body_source_profiles_validate_the_current_catalog_pairings() {
+        let profiles = body_source_profiles();
+        assert!(profiles.iter().all(|profile| profile.validate().is_ok()));
+
+        let profile = profiles
+            .iter()
+            .find(|profile| profile.body == CelestialBody::Pluto)
+            .expect("Pluto profile should exist");
+
+        let mut kind_drift = profile.clone();
+        kind_drift.kind = match kind_drift.kind {
+            Vsop87BodySourceKind::MeanOrbitalElements => {
+                Vsop87BodySourceKind::GeneratedBinaryVsop87b
+            }
+            _ => Vsop87BodySourceKind::MeanOrbitalElements,
+        };
+        assert!(matches!(
+            kind_drift.validate(),
+            Err(Vsop87BodySourceValidationError::SourceKindMismatch { .. })
+        ));
+
+        let mut provenance_drift = profile.clone();
+        provenance_drift.provenance = " drifted provenance ";
+        assert!(matches!(
+            provenance_drift.validate(),
+            Err(Vsop87BodySourceValidationError::WhitespacePaddedProvenance { .. })
+        ));
     }
 
     #[test]
