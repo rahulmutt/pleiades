@@ -220,6 +220,8 @@ Progress note: `pleiades-vsop87` now also exposes a reusable batch-request corpu
 - Validation reports include measured errors and are consumable by release tooling.
 - `cargo test --workspace` passes after the backend upgrades.
 
+- Progress note (2026-04-28): the compatibility-profile verification smoke coverage now also pins the custom-definition label names line directly, which keeps the explicit `Custom-definition label names verified:` release posture visible in both the CLI and validation audit paths alongside the house-formula-family and release-posture checks.
+
 ## Work that belongs in later phases
 
 - Generating compressed 1500-2500 artifacts from these outputs belongs to Phase 2.

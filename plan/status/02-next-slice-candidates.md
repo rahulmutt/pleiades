@@ -287,6 +287,7 @@ Progress note (2026-04-28): the CLI compatibility-profile smoke coverage now als
 Progress note (2026-04-28): the release-summary smoke coverage now also pins `Galactic Center (Mula/Wilhelm)` and `Galactic Equator (Fiorenza)` in the compact release-facing summary, so the currently visible galactic-reference batch stays anchored in the one-screen release audit too.
 Progress note (2026-04-28): the compatibility-profile verification summary now also renders a house-formula-family inventory plus ayanamsa reference-metadata coverage, so the release-facing catalog audit now carries an explicit implementation-posture line in addition to the existing descriptor, alias, and partition checks.
 Progress note (2026-04-28): the CLI compatibility-profile smoke coverage now also pins that house-formula-family inventory and release-posture line directly, which keeps the implementation-posture wording anchored in the user-facing verification command instead of only in the backend-owned summary.
+Progress note (2026-04-28): the compatibility-profile verification smoke coverage now also pins the custom-definition label names line directly, which keeps the explicit `Custom-definition label names verified:` release posture visible in both the CLI and validation audit paths alongside the house-formula-family and release-posture checks.
 
 Remaining suggested scope:
 

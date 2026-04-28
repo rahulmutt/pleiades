@@ -633,7 +633,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use pleiades_core::current_release_profile_identifiers;
+    use pleiades_core::{current_compatibility_profile, current_release_profile_identifiers};
 
     use super::{
         banner, parse_ayanamsa, parse_body, regenerate_packaged_artifact, render_chart, render_cli,
@@ -830,6 +830,7 @@ mod tests {
         assert!(compatibility.contains("Babylonian (House Obs)"));
         assert!(compatibility.contains("Custom-definition label names: Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs), True Balarama, Aphoric, Takra"));
 
+        let profile = current_compatibility_profile();
         let verification = render_cli(&["verify-compatibility-profile"])
             .expect("compatibility profile verification should render");
         assert!(verification.contains("Compatibility profile verification"));
@@ -842,6 +843,10 @@ mod tests {
         assert!(verification.contains(
             "House formula families verified: Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign"
         ));
+        assert!(verification.contains(&format!(
+            "Custom-definition label names verified: {}",
+            profile.custom_definition_labels.join(", ")
+        )));
         assert!(verification.contains("Ayanamsa reference metadata verified: "));
         assert!(verification.contains(
             "Release posture: baseline milestone preserved, release additions explicit, custom definitions tracked, caveats documented"
