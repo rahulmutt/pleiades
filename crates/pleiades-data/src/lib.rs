@@ -691,7 +691,13 @@ pub fn packaged_request_policy_summary_for_report() -> String {
 pub fn packaged_request_policy_summary() -> &'static str {
     static SUMMARY: OnceLock<String> = OnceLock::new();
     SUMMARY
-        .get_or_init(|| packaged_request_policy_summary_details().to_string())
+        .get_or_init(|| {
+            let summary = packaged_request_policy_summary_details();
+            match summary.validate() {
+                Ok(()) => summary.to_string(),
+                Err(error) => format!("Packaged request policy: unavailable ({error})"),
+            }
+        })
         .as_str()
 }
 
@@ -758,7 +764,16 @@ pub const fn packaged_frame_treatment_summary_details() -> PackagedFrameTreatmen
 
 /// Returns the packaged-artifact frame-treatment summary.
 pub fn packaged_frame_treatment_summary() -> &'static str {
-    packaged_frame_treatment_summary_details().summary_line()
+    static SUMMARY: OnceLock<String> = OnceLock::new();
+    SUMMARY
+        .get_or_init(|| {
+            let summary = packaged_frame_treatment_summary_details();
+            match summary.validate() {
+                Ok(()) => summary.to_string(),
+                Err(error) => format!("Packaged frame treatment unavailable ({error})"),
+            }
+        })
+        .as_str()
 }
 
 /// Structured storage/reconstruction summary for the packaged artifact.
@@ -824,7 +839,16 @@ pub const fn packaged_artifact_storage_summary_details() -> PackagedArtifactStor
 
 /// Returns the packaged-artifact storage/reconstruction summary.
 pub fn packaged_artifact_storage_summary() -> &'static str {
-    packaged_artifact_storage_summary_details().summary_line()
+    static SUMMARY: OnceLock<String> = OnceLock::new();
+    SUMMARY
+        .get_or_init(|| {
+            let summary = packaged_artifact_storage_summary_details();
+            match summary.validate() {
+                Ok(()) => summary.to_string(),
+                Err(error) => format!("Packaged artifact storage unavailable ({error})"),
+            }
+        })
+        .as_str()
 }
 
 /// Returns the packaged-artifact storage/reconstruction summary for reporting.
