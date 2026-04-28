@@ -490,6 +490,19 @@ pub fn packaged_artifact_profile_summary_with_body_coverage() -> String {
     render_packaged_artifact_profile_summary(&packaged_artifact_profile_summary_details(), true)
 }
 
+/// Returns the output-support semantics of the packaged artifact profile for reporting.
+pub fn packaged_artifact_output_support_summary_for_report() -> String {
+    let summary = packaged_artifact_profile_summary_details();
+    match summary.validate() {
+        Ok(()) => summary
+            .profile
+            .output_support_summary_line()
+            .trim_start_matches("output support: ")
+            .to_string(),
+        Err(error) => format!("unavailable ({error})"),
+    }
+}
+
 fn render_packaged_artifact_profile_summary(
     summary: &PackagedArtifactProfileSummary,
     with_bodies: bool,
@@ -2226,6 +2239,10 @@ mod tests {
             artifact
                 .header
                 .summary_for_body_count(artifact.bodies.len())
+        );
+        assert_eq!(
+            packaged_artifact_output_support_summary_for_report(),
+            "EclipticCoordinates=derived, EquatorialCoordinates=derived, ApparentCorrections=unsupported, TopocentricCoordinates=unsupported, SiderealCoordinates=unsupported, Motion=unsupported"
         );
         assert_eq!(
             packaged_artifact_profile_summary_with_body_coverage(),

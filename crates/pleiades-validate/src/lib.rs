@@ -47,6 +47,7 @@ use pleiades_core::{
     Instant, JulianDay, Longitude, ReleaseProfileIdentifiers, TimeRange, TimeScale, ZodiacMode,
 };
 use pleiades_data::{
+    packaged_artifact_output_support_summary_for_report,
     packaged_artifact_profile_summary_with_body_coverage,
     packaged_artifact_regeneration_summary_for_report, packaged_frame_parity_summary_for_report,
     packaged_frame_treatment_summary_details,
@@ -5041,6 +5042,9 @@ fn render_release_summary_text() -> String {
     text.push_str("Packaged-artifact profile: ");
     text.push_str(&format_packaged_artifact_profile_summary());
     text.push('\n');
+    text.push_str("Packaged-artifact output support: ");
+    text.push_str(&format_packaged_artifact_output_support_summary());
+    text.push('\n');
     text.push_str("Packaged-artifact regeneration: ");
     text.push_str(&packaged_artifact_regeneration_summary_for_report());
     text.push('\n');
@@ -7476,6 +7480,10 @@ fn format_packaged_artifact_profile_summary() -> String {
     packaged_artifact_profile_summary_with_body_coverage()
 }
 
+fn format_packaged_artifact_output_support_summary() -> String {
+    packaged_artifact_output_support_summary_for_report()
+}
+
 fn format_packaged_frame_parity_summary() -> String {
     packaged_frame_parity_summary_for_report()
 }
@@ -8135,6 +8143,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text);
     let _ = writeln!(text, "Packaged-artifact profile");
     let _ = writeln!(text, "  {}", format_packaged_artifact_profile_summary());
+    let _ = writeln!(
+        text,
+        "  Packaged-artifact output support: {}",
+        format_packaged_artifact_output_support_summary()
+    );
     let _ = writeln!(text, "  {}", packaged_request_policy_summary_for_report());
     let _ = writeln!(
         text,
@@ -11736,6 +11749,9 @@ mod tests {
         assert!(rendered.contains("Body comparison summaries"));
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
         assert!(rendered.contains("Packaged-artifact profile"));
+        assert!(rendered.contains(
+            "Packaged-artifact output support: EclipticCoordinates=derived, EquatorialCoordinates=derived, ApparentCorrections=unsupported, TopocentricCoordinates=unsupported, SiderealCoordinates=unsupported, Motion=unsupported"
+        ));
         assert!(rendered.contains("Packaged batch parity:"));
         assert!(rendered.contains("Packaged frame parity:"));
         assert!(rendered.contains("Benchmark provenance"));
@@ -11766,6 +11782,9 @@ mod tests {
         assert!(validation_report_summary.contains("ayanamsa catalog validation: ok"));
         assert!(validation_report_summary.contains("Release notes summary: release-notes-summary"));
         assert!(validation_report_summary.contains("Packaged-artifact profile"));
+        assert!(validation_report_summary.contains(
+            "Packaged-artifact output support: EclipticCoordinates=derived, EquatorialCoordinates=derived, ApparentCorrections=unsupported, TopocentricCoordinates=unsupported, SiderealCoordinates=unsupported, Motion=unsupported"
+        ));
         assert!(validation_report_summary.contains("Packaged request policy"));
         assert!(validation_report_summary.contains("Packaged frame parity"));
         assert!(validation_report_summary.contains("Packaged frame treatment"));
@@ -14044,6 +14063,9 @@ version = "0.9.0"
         assert!(release_summary.contains("Artifact validation: validate-artifact"));
         assert!(release_summary.contains(
             "Packaged-artifact profile: byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]"
+        ));
+        assert!(release_summary.contains(
+            "Packaged-artifact output support: EclipticCoordinates=derived, EquatorialCoordinates=derived, ApparentCorrections=unsupported, TopocentricCoordinates=unsupported, SiderealCoordinates=unsupported, Motion=unsupported"
         ));
         assert!(release_summary.contains(
             "Packaged-artifact regeneration: Packaged artifact regeneration source: label=stage-5 packaged-data prototype"

@@ -194,6 +194,18 @@ pub enum ArtifactOutput {
 }
 
 impl ArtifactOutput {
+    /// Returns all built-in artifact outputs in a stable declaration order.
+    pub const fn all() -> [Self; 6] {
+        [
+            Self::EclipticCoordinates,
+            Self::EquatorialCoordinates,
+            Self::ApparentCorrections,
+            Self::TopocentricCoordinates,
+            Self::SiderealCoordinates,
+            Self::Motion,
+        ]
+    }
+
     /// Returns the compact label used in release-facing summaries.
     pub const fn label(self) -> &'static str {
         match self {
@@ -402,6 +414,17 @@ impl ArtifactProfile {
     /// Returns the capability summary annotated with how many bodies share it.
     pub fn summary_line_with_body_count(&self, body_count: usize) -> String {
         self.summary_for_body_count(body_count)
+    }
+
+    /// Returns a compact one-line summary of each artifact output's support state.
+    pub fn output_support_summary_line(&self) -> String {
+        let support = ArtifactOutput::all()
+            .into_iter()
+            .map(|output| format!("{output}={}", self.output_support(output)))
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        format!("output support: {support}")
     }
 
     /// Returns how a high-level output is represented by this profile.
@@ -2455,6 +2478,10 @@ mod tests {
         assert_eq!(
             profile.to_string(),
             "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported"
+        );
+        assert_eq!(
+            profile.output_support_summary_line(),
+            "output support: EclipticCoordinates=derived, EquatorialCoordinates=derived, ApparentCorrections=unsupported, TopocentricCoordinates=unsupported, SiderealCoordinates=unsupported, Motion=unsupported"
         );
         assert_eq!(coverage.body_count, 2);
         assert_eq!(
