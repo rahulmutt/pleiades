@@ -2,8 +2,8 @@
 //!
 //! This crate focuses on the catalog layer and the baseline chart house-
 //! placement helpers: it enumerates the built-in house systems, their common
-//! aliases, latitude-sensitive notes, and the Stage 3 baseline house formulas
-//! that power the chart workflow. It also carries the first Stage 6
+//! aliases, formula-family tags, latitude-sensitive notes, and the Stage 3
+//! baseline house formulas that power the chart workflow. It also carries the first Stage 6
 //! compatibility-expansion additions so release profiles can distinguish the
 //! baseline milestone from newer catalog breadth. The resolver additionally
 //! accepts the common Swiss Ephemeris house-system letter codes used by
@@ -62,6 +62,46 @@ pub struct HouseSystemDescriptor {
     pub latitude_sensitive: bool,
 }
 
+/// Coarse formula-family tags for the built-in house catalog.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum HouseFormulaFamily {
+    /// Equal-house variants anchored to different reference points.
+    Equal,
+    /// Whole-sign house placement.
+    WholeSign,
+    /// Quadrant-style house placement with intermediate cusps.
+    Quadrant,
+    /// Equatorial-projection variants.
+    EquatorialProjection,
+    /// Great-circle or horizon-style variants.
+    GreatCircle,
+    /// Solar-arc or Sun-centered variants.
+    SolarArc,
+    /// Sector-based variants.
+    Sector,
+    /// Custom, user-defined house systems.
+    Custom,
+    /// A future built-in family that is not modeled yet.
+    Unknown,
+}
+
+impl fmt::Display for HouseFormulaFamily {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let label = match self {
+            Self::Equal => "Equal",
+            Self::WholeSign => "Whole Sign",
+            Self::Quadrant => "Quadrant",
+            Self::EquatorialProjection => "Equatorial projection",
+            Self::GreatCircle => "Great-circle",
+            Self::SolarArc => "Solar arc",
+            Self::Sector => "Sector",
+            Self::Custom => "Custom",
+            Self::Unknown => "Unknown",
+        };
+        f.write_str(label)
+    }
+}
+
 impl HouseSystemDescriptor {
     /// Creates a new descriptor.
     pub const fn new(
@@ -90,6 +130,39 @@ impl HouseSystemDescriptor {
                 .any(|alias| alias.eq_ignore_ascii_case(label))
     }
 
+    /// Returns the coarse formula family used by this built-in system.
+    pub fn formula_family(&self) -> HouseFormulaFamily {
+        match self.system {
+            HouseSystem::Equal
+            | HouseSystem::EqualMidheaven
+            | HouseSystem::EqualAries
+            | HouseSystem::Vehlow => HouseFormulaFamily::Equal,
+            HouseSystem::WholeSign => HouseFormulaFamily::WholeSign,
+            HouseSystem::Placidus
+            | HouseSystem::Koch
+            | HouseSystem::Porphyry
+            | HouseSystem::Sripati
+            | HouseSystem::Alcabitius
+            | HouseSystem::Topocentric => HouseFormulaFamily::Quadrant,
+            HouseSystem::Regiomontanus
+            | HouseSystem::Campanus
+            | HouseSystem::Carter
+            | HouseSystem::Meridian
+            | HouseSystem::Axial
+            | HouseSystem::Morinus => HouseFormulaFamily::EquatorialProjection,
+            HouseSystem::Horizon | HouseSystem::Apc | HouseSystem::KrusinskiPisaGoelzer => {
+                HouseFormulaFamily::GreatCircle
+            }
+            HouseSystem::Sunshine => HouseFormulaFamily::SolarArc,
+            HouseSystem::Albategnius
+            | HouseSystem::PullenSd
+            | HouseSystem::PullenSr
+            | HouseSystem::Gauquelin => HouseFormulaFamily::Sector,
+            HouseSystem::Custom(_) => HouseFormulaFamily::Custom,
+            _ => HouseFormulaFamily::Unknown,
+        }
+    }
+
     /// Returns a compact one-line rendering of the descriptor.
     pub fn summary_line(&self) -> String {
         let mut text = String::from(self.canonical_name);
@@ -98,6 +171,9 @@ impl HouseSystemDescriptor {
             text.push_str(&self.aliases.join(", "));
             text.push(')');
         }
+        text.push_str(" [formula: ");
+        text.push_str(&self.formula_family().to_string());
+        text.push(']');
         if self.latitude_sensitive {
             text.push_str(" [latitude-sensitive]");
         }
@@ -1022,7 +1098,7 @@ mod tests {
     }
 
     #[test]
-    fn descriptor_summary_line_includes_aliases_latitude_and_notes() {
+    fn descriptor_summary_line_includes_aliases_formula_family_latitude_and_notes() {
         let descriptor = HouseSystemDescriptor::new(
             HouseSystem::Equal,
             "Equal",
@@ -1031,9 +1107,36 @@ mod tests {
             true,
         );
 
-        let expected = "Equal (aliases: Alias One, Alias Two) [latitude-sensitive] — Summary note";
+        let expected =
+            "Equal (aliases: Alias One, Alias Two) [formula: Equal] [latitude-sensitive] — Summary note";
         assert_eq!(descriptor.summary_line(), expected);
         assert_eq!(descriptor.to_string(), expected);
+    }
+
+    #[test]
+    fn formula_family_groups_the_built_in_house_systems_by_shape() {
+        let equal = descriptor(&HouseSystem::Equal).expect("equal should be catalogued");
+        let whole_sign =
+            descriptor(&HouseSystem::WholeSign).expect("whole sign should be catalogued");
+        let quadrant = descriptor(&HouseSystem::Placidus).expect("placidus should be catalogued");
+        let equatorial = descriptor(&HouseSystem::Meridian).expect("meridian should be catalogued");
+        let great_circle = descriptor(&HouseSystem::Horizon).expect("horizon should be catalogued");
+        let solar_arc = descriptor(&HouseSystem::Sunshine).expect("sunshine should be catalogued");
+        let sector = descriptor(&HouseSystem::Gauquelin).expect("gauquelin should be catalogued");
+
+        assert_eq!(equal.formula_family(), HouseFormulaFamily::Equal);
+        assert_eq!(whole_sign.formula_family(), HouseFormulaFamily::WholeSign);
+        assert_eq!(quadrant.formula_family(), HouseFormulaFamily::Quadrant);
+        assert_eq!(
+            equatorial.formula_family(),
+            HouseFormulaFamily::EquatorialProjection
+        );
+        assert_eq!(
+            great_circle.formula_family(),
+            HouseFormulaFamily::GreatCircle
+        );
+        assert_eq!(solar_arc.formula_family(), HouseFormulaFamily::SolarArc);
+        assert_eq!(sector.formula_family(), HouseFormulaFamily::Sector);
     }
 
     #[test]

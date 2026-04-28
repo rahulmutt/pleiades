@@ -31,6 +31,7 @@ The repository already exposes baseline house systems and ayanamsas, a larger re
    - Progress note: the house-snapshot validation regression now also covers both a standard 12-cusp system and Gauquelin's 36-cusp layout, so the structure guard now fails closed for the ordinary house-count branch as well as the special-sector branch.
    - Progress note: the Sunshine release-system regression now also checks the documented axis anchors explicitly, keeping the release-specific Sunshine house formula covered as more formula-validation slices land.
    - Progress note: the Meridian, Axial, and Morinus regression now also pins their shared equatorial-projection layout, so the documented axial variants stay anchored to the same release-facing geometry as Meridian instead of relying only on the baseline availability check.
+   - Progress note: the built-in house-system descriptors now also expose coarse formula-family tags in their summary lines, which makes the catalog's equal, quadrant, equatorial-projection, great-circle, solar-arc, and sector groupings explicit in the compatibility metadata instead of leaving them implied only by the freeform notes.
 
 3. Complete ayanamsa metadata and formula coverage.
    - Fill remaining reference epochs, offsets, drift/precession assumptions, and provenance notes.
