@@ -4011,4 +4011,146 @@ mod tests {
             "moon"
         );
     }
+
+    #[test]
+    fn routing_backend_batch_positions_preserve_mixed_time_scales_after_fallback() {
+        struct FailingSunBackend;
+
+        impl EphemerisBackend for FailingSunBackend {
+            fn metadata(&self) -> BackendMetadata {
+                BackendMetadata {
+                    id: BackendId::new("fail-sun-batch"),
+                    version: "0.1.0".to_string(),
+                    family: BackendFamily::Algorithmic,
+                    provenance: BackendProvenance::new("failing Sun batch backend"),
+                    nominal_range: TimeRange::new(None, None),
+                    supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
+                    body_coverage: vec![CelestialBody::Sun],
+                    supported_frames: vec![CoordinateFrame::Ecliptic],
+                    capabilities: BackendCapabilities::default(),
+                    accuracy: AccuracyClass::Approximate,
+                    deterministic: true,
+                    offline: true,
+                }
+            }
+
+            fn supports_body(&self, body: CelestialBody) -> bool {
+                body == CelestialBody::Sun
+            }
+
+            fn position(&self, _req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+                Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    "retry with the next provider",
+                ))
+            }
+        }
+
+        struct RecoverySunBackend {
+            calls: AtomicUsize,
+        }
+
+        impl EphemerisBackend for RecoverySunBackend {
+            fn metadata(&self) -> BackendMetadata {
+                BackendMetadata {
+                    id: BackendId::new("recovery-sun-batch"),
+                    version: "0.1.0".to_string(),
+                    family: BackendFamily::Algorithmic,
+                    provenance: BackendProvenance::new("recovery Sun batch backend"),
+                    nominal_range: TimeRange::new(None, None),
+                    supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
+                    body_coverage: vec![CelestialBody::Sun],
+                    supported_frames: vec![CoordinateFrame::Ecliptic],
+                    capabilities: BackendCapabilities::default(),
+                    accuracy: AccuracyClass::Approximate,
+                    deterministic: true,
+                    offline: true,
+                }
+            }
+
+            fn supports_body(&self, body: CelestialBody) -> bool {
+                body == CelestialBody::Sun
+            }
+
+            fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+                self.calls.fetch_add(1, Ordering::SeqCst);
+                Ok(EphemerisResult::new(
+                    BackendId::new("recovery-sun-batch"),
+                    req.body.clone(),
+                    req.instant,
+                    req.frame,
+                    req.zodiac_mode.clone(),
+                    req.apparent,
+                ))
+            }
+        }
+
+        struct MoonBackend;
+
+        impl EphemerisBackend for MoonBackend {
+            fn metadata(&self) -> BackendMetadata {
+                BackendMetadata {
+                    id: BackendId::new("moon-batch"),
+                    version: "0.1.0".to_string(),
+                    family: BackendFamily::Algorithmic,
+                    provenance: BackendProvenance::new("moon batch backend"),
+                    nominal_range: TimeRange::new(None, None),
+                    supported_time_scales: vec![TimeScale::Tt],
+                    body_coverage: vec![CelestialBody::Moon],
+                    supported_frames: vec![CoordinateFrame::Ecliptic],
+                    capabilities: BackendCapabilities::default(),
+                    accuracy: AccuracyClass::Approximate,
+                    deterministic: true,
+                    offline: true,
+                }
+            }
+
+            fn supports_body(&self, body: CelestialBody) -> bool {
+                body == CelestialBody::Moon
+            }
+
+            fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+                Ok(EphemerisResult::new(
+                    BackendId::new("moon-batch"),
+                    req.body.clone(),
+                    req.instant,
+                    req.frame,
+                    req.zodiac_mode.clone(),
+                    req.apparent,
+                ))
+            }
+        }
+
+        let routing = RoutingBackend::new(vec![
+            Box::new(FailingSunBackend),
+            Box::new(RecoverySunBackend {
+                calls: AtomicUsize::new(0),
+            }),
+            Box::new(MoonBackend),
+        ]);
+        let tt_request = EphemerisRequest::new(
+            CelestialBody::Sun,
+            Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt),
+        );
+        let tdb_request = EphemerisRequest::new(
+            CelestialBody::Sun,
+            Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tdb),
+        );
+        let moon_request = EphemerisRequest::new(
+            CelestialBody::Moon,
+            Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt),
+        );
+
+        let results = routing
+            .positions(&[tt_request.clone(), tdb_request.clone(), moon_request.clone()])
+            .expect("routing should preserve mixed batch scales while falling back to the secondary provider");
+
+        assert_eq!(results.len(), 3);
+        assert_eq!(results[0].backend_id.as_str(), "recovery-sun-batch");
+        assert_eq!(results[1].backend_id.as_str(), "recovery-sun-batch");
+        assert_eq!(results[2].backend_id.as_str(), "moon-batch");
+        assert_eq!(results[0].instant.scale, TimeScale::Tt);
+        assert_eq!(results[1].instant.scale, TimeScale::Tdb);
+        assert_eq!(results[2].instant.scale, TimeScale::Tt);
+    }
 }
