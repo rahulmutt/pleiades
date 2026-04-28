@@ -13781,7 +13781,11 @@ version = "0.9.0"
             .contains("Lunar apparent comparison: lunar apparent comparison evidence:"));
         assert!(release_summary.contains("|Δlon| mean/median/p95="));
         assert!(release_summary.contains("|ΔDec| mean/median/p95="));
-        assert!(release_summary.contains("Packaged request policy"));
+        assert!(release_summary.contains(&packaged_request_policy_summary_for_report()));
+        assert!(release_summary.contains(&format!(
+            "Packaged frame treatment: {}",
+            packaged_frame_treatment_summary_details().summary_line()
+        )));
         assert!(release_summary.contains("Packaged batch parity:"));
         assert!(release_summary.contains("Packaged frame parity:"));
         assert!(release_summary.contains("applies to 11 bundled bodies"));
