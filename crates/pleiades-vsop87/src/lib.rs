@@ -5497,6 +5497,67 @@ mod tests {
     }
 
     #[test]
+    fn batch_query_preserves_supported_vsop87_paths_at_the_j2000_reference_epoch() {
+        let backend = Vsop87Backend::new();
+        let requests = requests_for_bodies_at(
+            Vsop87Backend::supported_bodies().iter().cloned(),
+            Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tdb),
+            CoordinateFrame::Equatorial,
+        );
+
+        let results = backend
+            .positions(&requests)
+            .expect("batch query should preserve the supported planetary set at J2000");
+
+        assert_eq!(results.len(), requests.len());
+        for (request, result) in requests.iter().zip(results.iter()) {
+            assert_eq!(result.body, request.body);
+            assert_eq!(result.instant, request.instant);
+            assert_eq!(result.frame, CoordinateFrame::Equatorial);
+            match result.body {
+                CelestialBody::Pluto => {
+                    assert_eq!(result.quality, QualityAnnotation::Approximate);
+                }
+                _ => {
+                    assert_eq!(result.quality, QualityAnnotation::Exact);
+                }
+            }
+
+            let single = backend
+                .position(request)
+                .expect("single query should match the J2000 batch path");
+            assert_eq!(single.body, result.body);
+            assert_eq!(single.instant, result.instant);
+            assert_eq!(single.frame, result.frame);
+            assert_eq!(single.quality, result.quality);
+            assert_eq!(single.ecliptic, result.ecliptic);
+            assert_eq!(single.equatorial, result.equatorial);
+            assert_eq!(single.motion, result.motion);
+
+            let ecliptic = result
+                .ecliptic
+                .as_ref()
+                .expect("ecliptic result should exist");
+            assert!(ecliptic.longitude.degrees().is_finite());
+            assert!(ecliptic.latitude.degrees().is_finite());
+            assert!(ecliptic
+                .distance_au
+                .expect("distance should exist")
+                .is_finite());
+
+            let expected = ecliptic.to_equatorial(result.instant.mean_obliquity());
+            let equatorial = result
+                .equatorial
+                .as_ref()
+                .expect("equatorial result should exist");
+
+            assert_eq!(equatorial, &expected);
+            assert!(equatorial.right_ascension.degrees().is_finite());
+            assert!(equatorial.declination.degrees().is_finite());
+        }
+    }
+
+    #[test]
     fn batch_query_preserves_mixed_frame_requests_and_values() {
         let backend = Vsop87Backend::new();
         let requests = canonical_epoch_requests()
