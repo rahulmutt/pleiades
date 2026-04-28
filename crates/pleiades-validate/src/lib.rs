@@ -3065,6 +3065,8 @@ pub struct CompatibilityProfileVerificationSummary {
     pub release_house_canonical_names: String,
     /// Release-specific ayanamsa canonical names.
     pub release_ayanamsa_canonical_names: String,
+    /// Release-specific custom-definition label names.
+    pub custom_definition_label_names: String,
     /// Number of release notes documented in the profile.
     pub release_note_count: usize,
     /// Number of validation reference points documented in the profile.
@@ -3212,6 +3214,17 @@ impl CompatibilityProfileVerificationSummary {
             ));
         }
 
+        let expected_custom_definition_label_names = profile.custom_definition_labels.join(", ");
+        if self.custom_definition_label_names != expected_custom_definition_label_names {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile verification summary custom-definition label names mismatch: expected {}, found {}",
+                    expected_custom_definition_label_names, self.custom_definition_label_names
+                ),
+            ));
+        }
+
         if self.release_note_count != profile.release_notes.len() {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,
@@ -3329,6 +3342,9 @@ impl CompatibilityProfileVerificationSummary {
         text.push_str("Custom-definition labels verified: ");
         text.push_str(&self.custom_definition_label_count.to_string());
         text.push_str(" labels, all remain custom-definition territory\n");
+        text.push_str("Custom-definition label names verified: ");
+        text.push_str(&self.custom_definition_label_names);
+        text.push('\n');
         text.push_str("Compatibility caveats documented: ");
         text.push_str(&self.compatibility_caveat_count.to_string());
         text.push('\n');
@@ -3446,6 +3462,7 @@ pub fn compatibility_profile_verification_summary(
         release_note_count: profile.release_notes.len(),
         validation_reference_point_count: profile.validation_reference_points.len(),
         custom_definition_label_count: custom_definition_labels_checked,
+        custom_definition_label_names: profile.custom_definition_labels.join(", "),
         compatibility_caveat_count: profile.known_gaps.len(),
     })
 }
@@ -11939,6 +11956,10 @@ mod tests {
             profile.custom_definition_labels.len()
         )));
         assert!(rendered.contains(&format!(
+            "Custom-definition label names verified: {}",
+            profile.custom_definition_labels.join(", ")
+        )));
+        assert!(rendered.contains(&format!(
             "Compatibility caveats documented: {}",
             profile.known_gaps.len()
         )));
@@ -11985,6 +12006,10 @@ mod tests {
             summary.custom_definition_label_count,
             profile.custom_definition_labels.len()
         );
+        assert_eq!(
+            summary.custom_definition_label_names,
+            profile.custom_definition_labels.join(", ")
+        );
         assert_eq!(summary.compatibility_caveat_count, profile.known_gaps.len());
         summary
             .validate()
@@ -12015,6 +12040,18 @@ mod tests {
         assert!(error
             .message
             .contains("release ayanamsa canonical names mismatch"));
+
+        let mut summary = compatibility_profile_verification_summary()
+            .expect("compatibility profile verification summary should render");
+        summary.custom_definition_label_names = "stale summary".to_string();
+
+        let error = summary
+            .validate()
+            .expect_err("stale custom-definition label names should fail validation");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("custom-definition label names mismatch"));
     }
 
     #[test]
