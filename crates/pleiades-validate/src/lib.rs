@@ -12716,6 +12716,10 @@ mod tests {
                 .filter(|entry| entry.has_sidereal_metadata())
                 .count()
         )));
+        assert!(rendered.contains(&format!(
+            "Custom-definition labels verified: {} labels, all remain custom-definition territory",
+            profile.custom_definition_labels.len()
+        )));
         assert!(rendered.contains("Baseline/release slices:"));
         assert!(rendered.contains("Release-specific house-system canonical names verified: 13 (Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter (poli-equatorial), Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen SD, Pullen SR, Sunshine, Gauquelin sectors)"));
         assert!(rendered.contains("Release-specific ayanamsa canonical names verified: 54 (True Citra, J2000, J1900, B1950, True Revati, True Mula, Suryasiddhanta (Revati), Suryasiddhanta (Citra), Lahiri (ICRC), Lahiri (1940), Usha Shashi, Suryasiddhanta (499 CE), Aryabhata (499 CE), Sassanian, DeLuce, Yukteshwar, PVR Pushya-paksha, Sheoran, Hipparchus, Babylonian (Kugler 1), Babylonian (Kugler 2), Babylonian (Kugler 3), Babylonian (Huber), Babylonian (Eta Piscium), Babylonian (Aldebaran), Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs), Galactic Center, Galactic Equator, True Pushya, Udayagiri, Djwhal Khul, JN Bhasin, Suryasiddhanta (Mean Sun), Aryabhata (Mean Sun), Babylonian (Britton), Aryabhata (522 CE), Lahiri (VP285), Krishnamurti (VP291), True Sheoran, Galactic Center (Rgilbrand), Galactic Center (Mardyks), Galactic Center (Mula/Wilhelm), Dhruva Galactic Center (Middle Mula), Galactic Center (Cochrane), Galactic Equator (IAU 1958), Galactic Equator (True), Galactic Equator (Mula), Galactic Equator (Fiorenza), Valens Moon)"));
@@ -12841,6 +12845,10 @@ mod tests {
                 .iter()
                 .filter(|entry| entry.has_sidereal_metadata())
                 .count()
+        )));
+        assert!(summary.summary_line().contains(&format!(
+            "Custom-definition labels verified: {} labels, all remain custom-definition territory",
+            profile.custom_definition_labels.len()
         )));
         assert!(summary
             .summary_line()
