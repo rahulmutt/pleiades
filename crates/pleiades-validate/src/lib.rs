@@ -1973,6 +1973,39 @@ impl BenchmarkReport {
             self.rounds, self.sample_count, self.corpus_name, self.apparentness
         )
     }
+
+    /// Validates the benchmark metadata before the report is returned or formatted.
+    pub fn validate(&self) -> Result<(), EphemerisError> {
+        self.backend.validate().map_err(|error| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!("benchmark backend metadata is invalid: {error}"),
+            )
+        })?;
+
+        if self.corpus_name.trim().is_empty() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "benchmark corpus name must not be blank",
+            ));
+        }
+
+        if self.rounds == 0 {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "benchmark rounds must be greater than zero",
+            ));
+        }
+
+        if self.sample_count == 0 {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "benchmark sample count must be greater than zero",
+            ));
+        }
+
+        Ok(())
+    }
 }
 
 /// A preserved archive of regression cases from a comparison run.
@@ -3155,7 +3188,7 @@ pub fn benchmark_backend(
     }
     let batch_elapsed = batch_start.elapsed();
 
-    Ok(BenchmarkReport {
+    let report = BenchmarkReport {
         backend: backend.metadata(),
         corpus_name: corpus.name.clone(),
         apparentness: corpus.apparentness,
@@ -3164,7 +3197,9 @@ pub fn benchmark_backend(
         elapsed,
         batch_elapsed,
         estimated_corpus_heap_bytes: corpus.estimated_heap_bytes(),
-    })
+    };
+    report.validate()?;
+    Ok(report)
 }
 
 /// Computes a deterministic 64-bit checksum for bundle text.
@@ -11090,6 +11125,29 @@ mod tests {
         assert!(report.contains("Chart elapsed:"));
         assert!(report.contains("Nanoseconds per chart:"));
         assert!(report.contains("Charts per second:"));
+    }
+
+    #[test]
+    fn benchmark_backend_rejects_zero_rounds() {
+        let corpus = benchmark_corpus();
+        let backend = default_candidate_backend();
+
+        let error = benchmark_backend(&backend, &corpus, 0)
+            .expect_err("zero-round benchmarks should be rejected");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("benchmark rounds must be greater than zero"));
+    }
+
+    #[test]
+    fn benchmark_chart_backend_rejects_zero_rounds() {
+        let error = benchmark_chart_backend(default_candidate_backend(), 0)
+            .expect_err("zero-round chart benchmarks should be rejected");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("chart benchmark rounds must be greater than zero"));
     }
 
     #[test]

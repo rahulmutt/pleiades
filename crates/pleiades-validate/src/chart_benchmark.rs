@@ -12,7 +12,7 @@ use std::time::Instant as StdInstant;
 
 use pleiades_core::{
     default_chart_bodies, Apparentness, BackendMetadata, ChartEngine, ChartRequest,
-    EphemerisBackend, EphemerisError, HouseSystem,
+    EphemerisBackend, EphemerisError, EphemerisErrorKind, HouseSystem,
 };
 
 use crate::{house_validation_report, CorpusSummary};
@@ -64,6 +64,39 @@ impl ChartBenchmarkReport {
             self.rounds, self.sample_count, self.corpus_name, self.apparentness
         )
     }
+
+    /// Validates the benchmark metadata before the report is returned or formatted.
+    pub fn validate(&self) -> Result<(), EphemerisError> {
+        self.backend.validate().map_err(|error| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!("chart benchmark backend metadata is invalid: {error}"),
+            )
+        })?;
+
+        if self.corpus_name.trim().is_empty() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "chart benchmark corpus name must not be blank",
+            ));
+        }
+
+        if self.rounds == 0 {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "chart benchmark rounds must be greater than zero",
+            ));
+        }
+
+        if self.sample_count == 0 {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "chart benchmark sample count must be greater than zero",
+            ));
+        }
+
+        Ok(())
+    }
 }
 
 impl fmt::Display for ChartBenchmarkReport {
@@ -112,7 +145,7 @@ pub fn benchmark_chart_backend<B: EphemerisBackend>(
     }
     let elapsed = start.elapsed();
 
-    Ok(ChartBenchmarkReport {
+    let report = ChartBenchmarkReport {
         backend: backend_metadata,
         corpus_name: corpus.name.clone(),
         apparentness: corpus.apparentness,
@@ -120,7 +153,9 @@ pub fn benchmark_chart_backend<B: EphemerisBackend>(
         sample_count: corpus.requests.len(),
         elapsed,
         estimated_corpus_heap_bytes: corpus.estimated_heap_bytes(),
-    })
+    };
+    report.validate()?;
+    Ok(report)
 }
 
 #[derive(Clone, Debug)]
