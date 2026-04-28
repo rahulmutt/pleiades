@@ -35,6 +35,7 @@
 #![forbid(unsafe_code)]
 
 use core::fmt;
+use std::collections::HashMap;
 
 use pleiades_types::{
     Angle, CelestialBody, CustomBodyId, EclipticCoordinates, EquatorialCoordinates, Instant,
@@ -693,14 +694,15 @@ impl BodyArtifact {
 
     /// Validates the body's segment metadata.
     ///
-    /// This checks each segment's internal invariants, including ordering,
-    /// matching time scales, and duplicate stored or residual channels.
+    /// This checks each segment's internal invariants, ensures that segments
+    /// using the same time scale are ordered and non-overlapping, and rejects
+    /// duplicate stored or residual channels before lookup or encoding.
     pub fn validate(&self) -> Result<(), CompressionError> {
         for segment in &self.segments {
             segment.validate()?;
         }
 
-        Ok(())
+        validate_body_segments(&self.segments)
     }
 
     /// Returns the segment covering the requested instant, if any.
@@ -1207,6 +1209,20 @@ fn decode_segment(cursor: &mut Cursor<'_>) -> Result<Segment, CompressionError> 
 }
 
 fn validate_segment(segment: &Segment) -> Result<(), CompressionError> {
+    if !segment.start.julian_day.days().is_finite() {
+        return Err(CompressionError::new(
+            CompressionErrorKind::InvalidFormat,
+            "segment start must be finite",
+        ));
+    }
+
+    if !segment.end.julian_day.days().is_finite() {
+        return Err(CompressionError::new(
+            CompressionErrorKind::InvalidFormat,
+            "segment end must be finite",
+        ));
+    }
+
     if segment.end.julian_day.days() < segment.start.julian_day.days() {
         return Err(CompressionError::new(
             CompressionErrorKind::InvalidFormat,
@@ -1237,6 +1253,31 @@ fn validate_segment(segment: &Segment) -> Result<(), CompressionError> {
             .map(|channel| channel.kind)
             .collect::<Vec<_>>(),
     )?;
+
+    Ok(())
+}
+
+fn validate_body_segments(segments: &[Segment]) -> Result<(), CompressionError> {
+    let mut last_segment_end_by_scale: HashMap<TimeScale, f64> = HashMap::new();
+
+    for segment in segments {
+        let scale = segment.start.scale;
+        let start = segment.start.julian_day.days();
+        let end = segment.end.julian_day.days();
+
+        if let Some(previous_end) = last_segment_end_by_scale.get(&scale) {
+            if start < *previous_end {
+                return Err(CompressionError::new(
+                    CompressionErrorKind::InvalidFormat,
+                    format!(
+                        "body segments for {scale} must be ordered and non-overlapping; segment starting at {start} precedes the previous segment end {previous_end}"
+                    ),
+                ));
+            }
+        }
+
+        last_segment_end_by_scale.insert(scale, end);
+    }
 
     Ok(())
 }
@@ -2109,6 +2150,90 @@ mod tests {
             .expect_err("duplicate residual channels should be rejected");
         assert_eq!(error.kind, CompressionErrorKind::InvalidFormat);
         assert!(error.to_string().contains("segment residual channels"));
+    }
+
+    #[test]
+    fn segment_validate_rejects_non_finite_bounds() {
+        let segment = Segment::new(
+            Instant::new(
+                pleiades_types::JulianDay::from_days(f64::INFINITY),
+                TimeScale::Tt,
+            ),
+            Instant::new(pleiades_types::JulianDay::from_days(11.0), TimeScale::Tt),
+            vec![
+                PolynomialChannel::linear(ChannelKind::Longitude, 9, 20.0, 22.0),
+                PolynomialChannel::new(ChannelKind::Latitude, 9, vec![3.0]),
+                PolynomialChannel::new(ChannelKind::DistanceAu, 12, vec![4.0]),
+            ],
+        );
+
+        let error = segment
+            .validate()
+            .expect_err("non-finite segment bounds should be rejected");
+        assert_eq!(error.kind, CompressionErrorKind::InvalidFormat);
+        assert!(error.message.contains("segment start must be finite"));
+    }
+
+    #[test]
+    fn body_validate_rejects_overlapping_segments_for_the_same_scale() {
+        let body = BodyArtifact::new(
+            CelestialBody::Moon,
+            vec![
+                Segment::new(
+                    Instant::new(pleiades_types::JulianDay::from_days(0.0), TimeScale::Tt),
+                    Instant::new(pleiades_types::JulianDay::from_days(2.0), TimeScale::Tt),
+                    vec![
+                        PolynomialChannel::linear(ChannelKind::Longitude, 9, 0.0, 20.0),
+                        PolynomialChannel::linear(ChannelKind::Latitude, 9, 1.0, 2.0),
+                        PolynomialChannel::linear(ChannelKind::DistanceAu, 12, 0.1, 0.2),
+                    ],
+                ),
+                Segment::new(
+                    Instant::new(pleiades_types::JulianDay::from_days(1.5), TimeScale::Tt),
+                    Instant::new(pleiades_types::JulianDay::from_days(3.0), TimeScale::Tt),
+                    vec![
+                        PolynomialChannel::linear(ChannelKind::Longitude, 9, 20.0, 30.0),
+                        PolynomialChannel::linear(ChannelKind::Latitude, 9, 3.0, 4.0),
+                        PolynomialChannel::linear(ChannelKind::DistanceAu, 12, 0.3, 0.4),
+                    ],
+                ),
+            ],
+        );
+
+        let error = body
+            .validate()
+            .expect_err("overlapping same-scale segments should be rejected");
+        assert_eq!(error.kind, CompressionErrorKind::InvalidFormat);
+        assert!(error.message.contains("ordered and non-overlapping"));
+    }
+
+    #[test]
+    fn body_validate_allows_shared_boundary_segments_for_the_same_scale() {
+        let body = BodyArtifact::new(
+            CelestialBody::Moon,
+            vec![
+                Segment::new(
+                    Instant::new(pleiades_types::JulianDay::from_days(0.0), TimeScale::Tt),
+                    Instant::new(pleiades_types::JulianDay::from_days(1.0), TimeScale::Tt),
+                    vec![
+                        PolynomialChannel::linear(ChannelKind::Longitude, 9, 0.0, 10.0),
+                        PolynomialChannel::linear(ChannelKind::Latitude, 9, 1.0, 2.0),
+                        PolynomialChannel::linear(ChannelKind::DistanceAu, 12, 0.1, 0.2),
+                    ],
+                ),
+                Segment::new(
+                    Instant::new(pleiades_types::JulianDay::from_days(1.0), TimeScale::Tt),
+                    Instant::new(pleiades_types::JulianDay::from_days(2.0), TimeScale::Tt),
+                    vec![
+                        PolynomialChannel::linear(ChannelKind::Longitude, 9, 20.0, 30.0),
+                        PolynomialChannel::linear(ChannelKind::Latitude, 9, 3.0, 4.0),
+                        PolynomialChannel::linear(ChannelKind::DistanceAu, 12, 0.3, 0.4),
+                    ],
+                ),
+            ],
+        );
+
+        assert!(body.validate().is_ok());
     }
 
     #[test]
