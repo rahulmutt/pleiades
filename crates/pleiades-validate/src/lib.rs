@@ -3821,13 +3821,11 @@ pub fn compatibility_profile_verification_summary(
         ("compatibility-caveat", profile.known_gaps),
     ])?;
 
-    let release_house_names = DescriptorNamesSummary {
-        names: profile.release_house_system_canonical_names(),
-    };
+    let release_house_names =
+        summarize_descriptor_names(profile.release_house_systems, |entry| entry.canonical_name);
     release_house_names.validate()?;
-    let release_ayanamsa_names = DescriptorNamesSummary {
-        names: profile.release_ayanamsa_canonical_names(),
-    };
+    let release_ayanamsa_names =
+        summarize_descriptor_names(profile.release_ayanamsas, |entry| entry.canonical_name);
     release_ayanamsa_names.validate()?;
     let house_formula_family_names = profile.house_formula_family_names().join(", ");
     let ayanamsa_metadata_count = profile
@@ -4873,10 +4871,8 @@ fn render_release_summary_text() -> String {
     text.push_str(" release-specific)\n");
     text.push_str("Release-specific house-system canonical names: ");
     text.push_str(
-        &DescriptorNamesSummary {
-            names: profile.release_house_system_canonical_names(),
-        }
-        .summary_line(),
+        &summarize_descriptor_names(profile.release_house_systems, |entry| entry.canonical_name)
+            .summary_line(),
     );
     text.push('\n');
     text.push_str("Ayanamsas: ");
@@ -4888,10 +4884,8 @@ fn render_release_summary_text() -> String {
     text.push_str(" release-specific)\n");
     text.push_str("Release-specific ayanamsa canonical names: ");
     text.push_str(
-        &DescriptorNamesSummary {
-            names: profile.release_ayanamsa_canonical_names(),
-        }
-        .summary_line(),
+        &summarize_descriptor_names(profile.release_ayanamsas, |entry| entry.canonical_name)
+            .summary_line(),
     );
     text.push('\n');
     text.push_str("Validation reference points: ");
