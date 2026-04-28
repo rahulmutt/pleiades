@@ -63,6 +63,8 @@ Progress note: `pleiades-vsop87` now also exposes a reusable batch-request corpu
 - Progress note (2026-04-28): `pleiades-validate::BodyToleranceSummary::validate()` now rejects zero-sample summaries and non-finite tolerance metrics before the compact body-tolerance report formatter reuses them, so the release-facing per-body tolerance rows now fail closed instead of carrying an invalid comparison envelope.
 - Progress note (2026-04-27): the validation report's per-body comparison summaries now also have a typed finite/extrema validator and a report preflight path, so malformed body-level error envelopes fail closed before the compact body-comparison lines render.
 
+   - Progress note: the VSOP87 canonical ecliptic and equatorial evidence summaries now also validate their internal mean/median/percentile/RMS ordering before release-facing formatting, so the compact planetary error envelopes fail closed if a future field swap ever makes the derived shape incoherent even when all values remain finite.
+
 2. Implement production `pleiades-elp` lunar calculations.
    - Select and document a pure-Rust lunar theory source.
    - Support Moon longitude, latitude, distance, and useful speed outputs.

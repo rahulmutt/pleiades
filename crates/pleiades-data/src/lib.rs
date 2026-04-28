@@ -804,6 +804,8 @@ pub enum PackagedArtifactStorageSummaryValidationError {
     BlankSummary,
     /// The summary text has surrounding whitespace.
     WhitespacePaddedSummary,
+    /// The summary text no longer matches the current packaged-artifact profile posture.
+    ProfileOutOfSync { field: &'static str },
 }
 
 impl fmt::Display for PackagedArtifactStorageSummaryValidationError {
@@ -813,6 +815,10 @@ impl fmt::Display for PackagedArtifactStorageSummaryValidationError {
             Self::WhitespacePaddedSummary => {
                 f.write_str("packaged artifact storage summary has surrounding whitespace")
             }
+            Self::ProfileOutOfSync { field } => write!(
+                f,
+                "packaged artifact storage summary is out of sync with the bundled artifact profile field `{field}`"
+            ),
         }
     }
 }
@@ -831,6 +837,37 @@ fn validate_packaged_artifact_storage_summary_line(
     }
 }
 
+fn validate_packaged_artifact_storage_profile(
+    profile: &ArtifactProfile,
+) -> Result<(), PackagedArtifactStorageSummaryValidationError> {
+    const EXPECTED_STORED_CHANNELS: [ChannelKind; 3] = [
+        ChannelKind::Longitude,
+        ChannelKind::Latitude,
+        ChannelKind::DistanceAu,
+    ];
+
+    if profile.stored_channels != EXPECTED_STORED_CHANNELS {
+        return Err(
+            PackagedArtifactStorageSummaryValidationError::ProfileOutOfSync {
+                field: "stored_channels",
+            },
+        );
+    }
+
+    if !profile
+        .derived_outputs
+        .contains(&pleiades_compression::ArtifactOutput::EquatorialCoordinates)
+    {
+        return Err(
+            PackagedArtifactStorageSummaryValidationError::ProfileOutOfSync {
+                field: "derived_outputs",
+            },
+        );
+    }
+
+    Ok(())
+}
+
 impl PackagedArtifactStorageSummary {
     /// Returns the storage and reconstruction posture as a compact human-readable line.
     pub const fn summary_line(self) -> &'static str {
@@ -839,7 +876,10 @@ impl PackagedArtifactStorageSummary {
 
     /// Returns `Ok(())` when the summary still contains a compact canonical line.
     pub fn validate(&self) -> Result<(), PackagedArtifactStorageSummaryValidationError> {
-        validate_packaged_artifact_storage_summary_line(self.summary_line())
+        validate_packaged_artifact_storage_summary_line(self.summary_line())?;
+        validate_packaged_artifact_storage_profile(
+            &packaged_artifact_profile_summary_details().profile,
+        )
     }
 }
 
@@ -2334,6 +2374,37 @@ mod tests {
         assert!(error
             .message
             .contains("artifact profile coverage bundled bodies contains duplicate Sun entry"));
+    }
+
+    #[test]
+    fn packaged_artifact_storage_summary_validation_rejects_profile_drift() {
+        let mut profile = packaged_artifact_profile_summary_details().profile.clone();
+        profile
+            .stored_channels
+            .retain(|channel| *channel != ChannelKind::DistanceAu);
+
+        let error = validate_packaged_artifact_storage_profile(&profile)
+            .expect_err("drifted packaged storage profile should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactStorageSummaryValidationError::ProfileOutOfSync {
+                field: "stored_channels"
+            }
+        );
+
+        let mut profile = packaged_artifact_profile_summary_details().profile.clone();
+        profile.derived_outputs.retain(|output| {
+            *output != pleiades_compression::ArtifactOutput::EquatorialCoordinates
+        });
+
+        let error = validate_packaged_artifact_storage_profile(&profile)
+            .expect_err("drifted packaged storage profile should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactStorageSummaryValidationError::ProfileOutOfSync {
+                field: "derived_outputs"
+            }
+        );
     }
 
     #[test]
