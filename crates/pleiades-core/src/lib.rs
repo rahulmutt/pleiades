@@ -171,8 +171,6 @@ impl<B: EphemerisBackend> ChartEngine<B> {
     /// the request preflight fails closed if the backend inventory itself drifts
     /// out of consistency.
     pub fn validate_chart_request(&self, request: &ChartRequest) -> Result<(), EphemerisError> {
-        request.validate_custom_definitions()?;
-
         let metadata = self.validated_metadata().map_err(|error| {
             EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,
@@ -181,6 +179,38 @@ impl<B: EphemerisBackend> ChartEngine<B> {
         })?;
 
         request.validate_against_metadata(&metadata)
+    }
+
+    /// Validates a batch of chart requests against the backend metadata without querying positions.
+    ///
+    /// This convenience mirrors [`validate_chart_request`](Self::validate_chart_request) while
+    /// preserving the first failing request's 1-based index in the returned error message. It is
+    /// useful for callers that want to preflight a chart corpus before dispatching a sequence of
+    /// chart assemblies or validation runs.
+    pub fn validate_chart_requests(&self, requests: &[ChartRequest]) -> Result<(), EphemerisError> {
+        let metadata = self.validated_metadata().map_err(|error| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!("backend metadata failed validation: {error}"),
+            )
+        })?;
+
+        for (index, request) in requests.iter().enumerate() {
+            request
+                .validate_against_metadata(&metadata)
+                .map_err(|error| {
+                    EphemerisError::new(
+                        error.kind,
+                        format!(
+                            "chart request #{} failed validation: {}",
+                            index + 1,
+                            error.message
+                        ),
+                    )
+                })?;
+        }
+
+        Ok(())
     }
 
     /// Returns whether the backend supports a body.
@@ -289,6 +319,25 @@ mod tests {
         assert_eq!(
             error.message,
             "house placement requires an observer location"
+        );
+    }
+
+    #[test]
+    fn validate_chart_requests_prefixes_batch_failures() {
+        let engine = ChartEngine::new(SimpleBackend);
+        let instant = Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt);
+        let requests = [
+            ChartRequest::new(instant).with_bodies(vec![CelestialBody::Sun]),
+            ChartRequest::new(instant).with_house_system(crate::HouseSystem::WholeSign),
+        ];
+
+        let error = engine
+            .validate_chart_requests(&requests)
+            .expect_err("batch chart validation should reject missing observers");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert_eq!(
+            error.message,
+            "chart request #2 failed validation: house placement requires an observer location"
         );
     }
 
