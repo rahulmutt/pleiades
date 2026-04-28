@@ -13851,6 +13851,7 @@ version = "0.9.0"
         )));
         assert!(release_summary.contains("Packaged batch parity:"));
         assert!(release_summary.contains("Packaged frame parity:"));
+        assert!(release_summary.contains("Artifact boundary envelope:"));
         assert!(release_summary.contains("applies to 11 bundled bodies"));
         assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_summary.contains("Release notes summary: release-notes-summary"));
