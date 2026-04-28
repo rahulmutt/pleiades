@@ -3159,27 +3159,98 @@ pub fn canonical_epoch_evidence_summary_for_report() -> String {
     }
 }
 
+const CANONICAL_OUTLIER_NOTE_LABEL: &str = "VSOP87 canonical J2000 interim outliers";
+
+/// Public summary of the canonical J2000 interim-outlier note.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Vsop87CanonicalOutlierSummary {
+    /// Bodies outside the current interim limits.
+    pub outlier_bodies: Vec<CelestialBody>,
+}
+
+/// Structured validation errors for a canonical J2000 interim-outlier summary.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Vsop87CanonicalOutlierSummaryValidationError {
+    /// The summary drifted away from the current derived evidence.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for Vsop87CanonicalOutlierSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the VSOP87 canonical outlier summary field `{field}` is out of sync with the current canonical evidence"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for Vsop87CanonicalOutlierSummaryValidationError {}
+
+impl Vsop87CanonicalOutlierSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        if self.outlier_bodies.is_empty() {
+            format!("{CANONICAL_OUTLIER_NOTE_LABEL}: none")
+        } else {
+            format!(
+                "{CANONICAL_OUTLIER_NOTE_LABEL}: {}",
+                format_celestial_bodies(&self.outlier_bodies)
+            )
+        }
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current derived evidence.
+    pub fn validate(&self) -> Result<(), Vsop87CanonicalOutlierSummaryValidationError> {
+        let Some(expected) = canonical_epoch_outlier_summary() else {
+            return Err(
+                Vsop87CanonicalOutlierSummaryValidationError::FieldOutOfSync {
+                    field: "outlier_bodies",
+                },
+            );
+        };
+
+        if self.outlier_bodies != expected.outlier_bodies {
+            return Err(
+                Vsop87CanonicalOutlierSummaryValidationError::FieldOutOfSync {
+                    field: "outlier_bodies",
+                },
+            );
+        }
+
+        Ok(())
+    }
+}
+
+impl fmt::Display for Vsop87CanonicalOutlierSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns the release-facing canonical VSOP87 J2000 interim-outlier summary.
+pub fn canonical_epoch_outlier_summary() -> Option<Vsop87CanonicalOutlierSummary> {
+    let outlier_bodies = canonical_epoch_body_evidence().map(|evidence| {
+        evidence
+            .into_iter()
+            .filter(|row| !row.within_interim_limits)
+            .map(|row| row.body)
+            .collect::<Vec<_>>()
+    })?;
+
+    Some(Vsop87CanonicalOutlierSummary { outlier_bodies })
+}
+
 /// Returns a concise note describing any canonical J2000 bodies outside the
 /// current interim limits.
 pub fn canonical_epoch_outlier_note_for_report() -> String {
-    match canonical_epoch_body_evidence() {
-        Some(evidence) => {
-            let outliers = evidence
-                .into_iter()
-                .filter(|row| !row.within_interim_limits)
-                .map(|row| row.body)
-                .collect::<Vec<_>>();
-
-            if outliers.is_empty() {
-                "VSOP87 canonical J2000 interim outliers: none".to_string()
-            } else {
-                format!(
-                    "VSOP87 canonical J2000 interim outliers: {}",
-                    format_celestial_bodies(&outliers)
-                )
-            }
-        }
-        None => "VSOP87 canonical J2000 interim outliers: unavailable".to_string(),
+    match canonical_epoch_outlier_summary() {
+        Some(summary) => match summary.validate() {
+            Ok(()) => summary.summary_line(),
+            Err(error) => format!("{CANONICAL_OUTLIER_NOTE_LABEL}: unavailable ({error})"),
+        },
+        None => format!("{CANONICAL_OUTLIER_NOTE_LABEL}: unavailable"),
     }
 }
 
@@ -8328,9 +8399,32 @@ mod tests {
 
     #[test]
     fn canonical_evidence_outlier_note_reports_the_current_interim_status() {
+        let summary = canonical_epoch_outlier_summary().expect("outlier summary should exist");
+
+        assert_eq!(
+            summary.summary_line(),
+            "VSOP87 canonical J2000 interim outliers: none"
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validate(), Ok(()));
         assert_eq!(
             canonical_epoch_outlier_note_for_report(),
-            "VSOP87 canonical J2000 interim outliers: none"
+            summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn canonical_evidence_outlier_summary_validation_rejects_drift() {
+        let mut summary = canonical_epoch_outlier_summary().expect("outlier summary should exist");
+        summary.outlier_bodies.push(CelestialBody::Sun);
+
+        assert_eq!(
+            summary.validate(),
+            Err(
+                Vsop87CanonicalOutlierSummaryValidationError::FieldOutOfSync {
+                    field: "outlier_bodies"
+                }
+            )
         );
     }
 
