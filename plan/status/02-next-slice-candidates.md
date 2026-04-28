@@ -290,6 +290,7 @@ Progress note (2026-04-28): the compatibility-profile verification summary now a
 Progress note (2026-04-28): the CLI compatibility-profile smoke coverage now also pins that house-formula-family inventory and release-posture line directly, which keeps the implementation-posture wording anchored in the user-facing verification command instead of only in the backend-owned summary.
 Progress note (2026-04-28): the compatibility-profile verification smoke coverage now also pins the custom-definition label names line directly, which keeps the explicit `Custom-definition label names verified:` release posture visible in both the CLI and validation audit paths alongside the house-formula-family and release-posture checks.
 Progress note (2026-04-28): the CLI release-summary smoke coverage now also pins the house-formula-family inventory line directly, so the compact one-screen release overview keeps the Equal / Equatorial projection / Great-circle / Quadrant / Sector / Solar arc / Whole Sign posture anchored alongside the house-system inventory.
+Progress note (2026-04-28): that same release-summary smoke coverage now also pins the release-profile identifier line and the API-stability summary line, which keeps the compact one-screen release overview anchored to the current release bundle ids and posture headline instead of only the catalog counts.
 
 Remaining suggested scope:
 

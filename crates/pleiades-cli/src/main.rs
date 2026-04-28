@@ -979,6 +979,8 @@ mod tests {
         assert!(release_summary.contains("Release summary"));
         assert!(release_summary.contains("House systems:"));
         assert!(release_summary.contains("House formula families: 7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign)"));
+        assert!(release_summary.contains("Release profile identifiers: compatibility=pleiades-compatibility-profile/0.6.123, api-stability=pleiades-api-stability/0.1.0"));
+        assert!(release_summary.contains("API stability summary line: API stability posture: pleiades-api-stability/0.1.0; stable surfaces: 6; experimental surfaces: 3; deprecation policy items: 4; intentional limits: 3"));
         assert!(release_summary
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(release_summary.contains("Packaged frame treatment"));
