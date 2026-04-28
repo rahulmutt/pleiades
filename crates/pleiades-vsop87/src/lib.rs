@@ -3382,6 +3382,163 @@ pub fn canonical_j2000_batch_parity_summary_for_report() -> String {
     }
 }
 
+/// Backend-owned summary for the canonical mixed TT/TDB batch-path regression.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Vsop87CanonicalMixedTimeScaleBatchParitySummary {
+    /// Number of requests exercised through the batch regression.
+    pub sample_count: usize,
+    /// Bodies exercised through the batch regression in release-facing order.
+    pub sample_bodies: Vec<CelestialBody>,
+    /// Reference epoch used by the batch regression.
+    pub reference_epoch: Instant,
+    /// Coordinate frame used by the batch regression.
+    pub frame: CoordinateFrame,
+    /// Number of TT-tagged results observed in the batch regression.
+    pub tt_request_count: usize,
+    /// Number of TDB-tagged results observed in the batch regression.
+    pub tdb_request_count: usize,
+    /// Number of exact-quality results observed in the batch regression.
+    pub exact_count: usize,
+    /// Number of interpolated-quality results observed in the batch regression.
+    pub interpolated_count: usize,
+    /// Number of approximate-quality results observed in the batch regression.
+    pub approximate_count: usize,
+    /// Number of unknown-quality results observed in the batch regression.
+    pub unknown_count: usize,
+}
+
+impl Vsop87CanonicalMixedTimeScaleBatchParitySummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "VSOP87 canonical mixed TT/TDB batch parity: {} requests across {} bodies ({}) at JD {:.1} (TT/TDB mix) in {} frame; TT requests={}, TDB requests={}, quality counts: Exact={}, Interpolated={}, Approximate={}, Unknown={}; batch/single parity preserved",
+            self.sample_count,
+            self.sample_bodies.len(),
+            format_celestial_bodies(&self.sample_bodies),
+            self.reference_epoch.julian_day.days(),
+            self.frame,
+            self.tt_request_count,
+            self.tdb_request_count,
+            self.exact_count,
+            self.interpolated_count,
+            self.approximate_count,
+            self.unknown_count,
+        )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current derived batch evidence.
+    pub fn validate(&self) -> Result<(), Vsop87CanonicalBatchParitySummaryValidationError> {
+        if self.sample_count != self.sample_bodies.len() {
+            return Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        }
+        if self.sample_bodies != canonical_j2000_batch_parity_expected_bodies() {
+            return Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "sample_bodies",
+                },
+            );
+        }
+        if self.reference_epoch
+            != Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt)
+        {
+            return Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "reference_epoch",
+                },
+            );
+        }
+        if self.frame != CoordinateFrame::Ecliptic {
+            return Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync { field: "frame" },
+            );
+        }
+        let expected_tt_request_count = self.sample_count.div_ceil(2);
+        let expected_tdb_request_count = self.sample_count / 2;
+        if self.tt_request_count != expected_tt_request_count {
+            return Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "tt_request_count",
+                },
+            );
+        }
+        if self.tdb_request_count != expected_tdb_request_count {
+            return Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "tdb_request_count",
+                },
+            );
+        }
+        if self.exact_count + self.interpolated_count + self.approximate_count + self.unknown_count
+            != self.sample_count
+        {
+            return Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "quality_counts",
+                },
+            );
+        }
+
+        Ok(())
+    }
+}
+
+impl fmt::Display for Vsop87CanonicalMixedTimeScaleBatchParitySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns the backend-owned canonical mixed TT/TDB batch-path regression summary.
+pub fn canonical_mixed_time_scale_batch_parity_summary(
+) -> Option<Vsop87CanonicalMixedTimeScaleBatchParitySummary> {
+    let backend = Vsop87Backend::new();
+    let reference_epoch = Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt);
+    let requests = canonical_mixed_time_scale_batch_parity_requests();
+    let (sample_bodies, exact_count, interpolated_count, approximate_count, unknown_count) =
+        canonical_batch_parity_counts(&backend, &requests)?;
+    let tt_request_count = requests
+        .iter()
+        .filter(|request| request.instant.scale == TimeScale::Tt)
+        .count();
+    let tdb_request_count = requests.len() - tt_request_count;
+
+    Some(Vsop87CanonicalMixedTimeScaleBatchParitySummary {
+        sample_count: requests.len(),
+        sample_bodies,
+        reference_epoch,
+        frame: CoordinateFrame::Ecliptic,
+        tt_request_count,
+        tdb_request_count,
+        exact_count,
+        interpolated_count,
+        approximate_count,
+        unknown_count,
+    })
+}
+
+fn format_validated_canonical_mixed_time_scale_batch_parity_summary_for_report(
+    summary: &Vsop87CanonicalMixedTimeScaleBatchParitySummary,
+) -> String {
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("VSOP87 canonical mixed TT/TDB batch parity: unavailable ({error})"),
+    }
+}
+
+/// Returns the release-facing canonical mixed TT/TDB batch-path regression summary string.
+pub fn canonical_mixed_time_scale_batch_parity_summary_for_report() -> String {
+    match canonical_mixed_time_scale_batch_parity_summary() {
+        Some(summary) => {
+            format_validated_canonical_mixed_time_scale_batch_parity_summary_for_report(&summary)
+        }
+        None => "VSOP87 canonical mixed TT/TDB batch parity: unavailable".to_string(),
+    }
+}
+
 /// Backend-owned summary for the canonical J1900 batch-path regression.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Vsop87CanonicalJ1900BatchParitySummary {
@@ -4221,6 +4378,18 @@ fn canonical_epoch_requests() -> Vec<EphemerisRequest> {
         Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt),
         CoordinateFrame::Ecliptic,
     )
+}
+
+fn canonical_mixed_time_scale_batch_parity_requests() -> Vec<EphemerisRequest> {
+    let mut requests = canonical_epoch_requests();
+    for (index, request) in requests.iter_mut().enumerate() {
+        request.instant.scale = if index % 2 == 0 {
+            TimeScale::Tt
+        } else {
+            TimeScale::Tdb
+        };
+    }
+    requests
 }
 
 /// Returns the canonical per-body error envelope used by release-facing
@@ -7985,6 +8154,44 @@ mod tests {
         assert_eq!(summary.reference_epoch.scale, TimeScale::Tt);
         assert!(rendered.contains("quality counts: Exact="));
         assert!(rendered.contains("batch/single parity preserved"));
+    }
+
+    #[test]
+    fn canonical_mixed_tt_tdb_batch_parity_report_matches_the_backend_formatter() {
+        let summary = canonical_mixed_time_scale_batch_parity_summary()
+            .expect("mixed batch summary should exist");
+        let rendered = canonical_mixed_time_scale_batch_parity_summary_for_report();
+        assert_eq!(rendered, summary.summary_line());
+        assert_eq!(summary.summary_line(), summary.to_string());
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.sample_count, canonical_epoch_samples().len());
+        assert_eq!(
+            summary.sample_bodies,
+            canonical_epoch_samples()
+                .iter()
+                .map(|sample| sample.body.clone())
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(summary.frame, CoordinateFrame::Ecliptic);
+        assert_eq!(summary.reference_epoch.julian_day.days(), J2000);
+        assert_eq!(summary.reference_epoch.scale, TimeScale::Tt);
+        assert_eq!(summary.tt_request_count, summary.sample_count.div_ceil(2));
+        assert_eq!(summary.tdb_request_count, summary.sample_count / 2);
+        assert!(rendered.contains("TT/TDB mix"));
+        assert!(rendered.contains("TT requests="));
+        assert!(rendered.contains("TDB requests="));
+    }
+
+    #[test]
+    fn canonical_mixed_tt_tdb_batch_parity_report_surfaces_validation_errors() {
+        let mut summary = canonical_mixed_time_scale_batch_parity_summary()
+            .expect("mixed batch summary should exist");
+        summary.tt_request_count += 1;
+
+        assert_eq!(
+            format_validated_canonical_mixed_time_scale_batch_parity_summary_for_report(&summary),
+            "VSOP87 canonical mixed TT/TDB batch parity: unavailable (the VSOP87 canonical batch parity summary field `tt_request_count` is out of sync with the current canonical evidence)"
+        );
     }
 
     #[test]
