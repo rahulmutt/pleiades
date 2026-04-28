@@ -6894,6 +6894,38 @@ struct RequestSurfaceSummary {
 }
 
 impl RequestSurfaceSummary {
+    fn validate(&self) -> Result<(), EphemerisError> {
+        const EXPECTED_INSTANT: &str =
+            "pleiades-types::Instant (tagged instant plus caller-supplied retagging)";
+        const EXPECTED_CHART_REQUEST: &str =
+            "pleiades-core::ChartRequest (chart assembly plus house-observer preflight)";
+        const EXPECTED_BACKEND_REQUEST: &str =
+            "pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight)";
+        const EXPECTED_HOUSE_REQUEST: &str =
+            "pleiades-houses::HouseRequest (house-only observer calculations)";
+        const EXPECTED_CLI_CHART: &str = "pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags)";
+
+        validate_request_surface_label("instant", self.instant, EXPECTED_INSTANT)?;
+        validate_request_surface_label(
+            "chart request",
+            self.chart_request,
+            EXPECTED_CHART_REQUEST,
+        )?;
+        validate_request_surface_label(
+            "backend request",
+            self.backend_request,
+            EXPECTED_BACKEND_REQUEST,
+        )?;
+        validate_request_surface_label(
+            "house request",
+            self.house_request,
+            EXPECTED_HOUSE_REQUEST,
+        )?;
+        validate_request_surface_label("CLI chart", self.cli_chart, EXPECTED_CLI_CHART)?;
+
+        Ok(())
+    }
+
     fn summary_line(self) -> String {
         format!(
             "Primary request surfaces: {}; {}; {}; {}; {}",
@@ -6904,6 +6936,21 @@ impl RequestSurfaceSummary {
             self.cli_chart,
         )
     }
+}
+
+fn validate_request_surface_label(
+    field: &str,
+    actual: &str,
+    expected: &str,
+) -> Result<(), EphemerisError> {
+    if actual == expected {
+        return Ok(());
+    }
+
+    Err(EphemerisError::new(
+        EphemerisErrorKind::InvalidRequest,
+        format!("primary request surface {field} mismatch: expected {expected}, found {actual}"),
+    ))
 }
 
 const fn current_request_surface_summary() -> RequestSurfaceSummary {
@@ -6918,7 +6965,11 @@ const fn current_request_surface_summary() -> RequestSurfaceSummary {
 }
 
 fn request_surface_summary_for_report() -> String {
-    current_request_surface_summary().summary_line()
+    let summary = current_request_surface_summary();
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("primary request surfaces unavailable ({error})"),
+    }
 }
 
 fn format_vsop87_request_policy_summary() -> String {
@@ -10196,6 +10247,34 @@ mod tests {
         assert!(report.contains("julian day span:"));
         assert!(report.contains("Reference backend:"));
         assert!(report.contains("Candidate backend:"));
+    }
+
+    #[test]
+    fn request_surface_summary_validation_matches_the_report_line() {
+        let summary = current_request_surface_summary();
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.summary_line(), request_surface_summary_for_report());
+        assert!(summary
+            .summary_line()
+            .contains("pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags)"));
+    }
+
+    #[test]
+    fn request_surface_summary_validation_rejects_drift() {
+        let summary = RequestSurfaceSummary {
+            instant: "",
+            chart_request: "",
+            backend_request: "",
+            house_request: "",
+            cli_chart: "",
+        };
+
+        let error = summary
+            .validate()
+            .expect_err("summary should reject blank request-surface labels");
+        assert!(error
+            .to_string()
+            .contains("primary request surface instant mismatch"));
     }
 
     #[test]

@@ -49,6 +49,7 @@ Several downstream requirements depend on trusted ephemeris outputs:
 - Latest progress (2026-04-27): body-specific comparison summaries now validate their finite, zero-sample, and per-body extrema invariants before the validation report renders them, so a malformed per-body envelope now fails closed instead of emitting stale body-level delta text.
 - Latest progress (2026-04-28): the JPL interpolation-quality, reference snapshot, and independent hold-out summaries now also validate against the derived checked-in fixture snapshots, and the reference batch parity summary now fails closed on derived coverage drift too, so the release-facing transparency evidence now rejects cached-metric, row-count, and coverage-order drift before the compact report wrappers reuse stale snapshot state.
 - Latest progress (2026-04-28): the shared backend batch adapter now also has a regression that preserves mixed TT/TDB request scales through the default `positions()` path, so the batch contract now explicitly guards against silently normalizing a mixed dynamical-time slice into a batch-wide scale.
+- Latest progress (2026-04-28): the compact `Primary request surfaces:` report line now validates its typed labels before formatting and has a drift regression for blank request-surface entries, so the release-facing entry-point matrix fails closed if one of the currently documented chart/backend/house/CLI surfaces ever regresses.
 
 ## Current repo state summary
 
