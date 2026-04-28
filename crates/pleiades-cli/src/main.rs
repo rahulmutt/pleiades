@@ -762,6 +762,8 @@ mod tests {
         assert!(rendered.contains("True Chitra Paksha"));
         assert!(rendered.contains("True Chitrapaksha"));
         assert!(rendered.contains("Babylonian (True Geoc)"));
+        assert!(rendered.contains("Babylonian (True Topc)"));
+        assert!(rendered.contains("Babylonian (True Obs)"));
         assert!(rendered.contains("Lahiri (VP285)"));
         assert!(rendered.contains("Krishnamurti (VP291)"));
         assert!(rendered.contains("Lahiri (ICRC)"));
@@ -886,6 +888,8 @@ mod tests {
         assert!(release_notes.contains("Skydram (Mardyks)"));
         assert!(release_notes.contains("Galactic Center (Rgilbrand)"));
         assert!(release_notes.contains("Babylonian (True Geoc)"));
+        assert!(release_notes.contains("Babylonian (True Topc)"));
+        assert!(release_notes.contains("Babylonian (True Obs)"));
         assert!(release_notes.contains("Pullen SD (Sinusoidal Delta)"));
         assert!(release_notes.contains("Equal/MC house system"));
         assert!(release_notes.contains("Equal Midheaven house system"));
