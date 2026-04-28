@@ -283,6 +283,7 @@ Progress note (2026-04-27): the CLI compatibility-profile smoke coverage now als
 Progress note (2026-04-28): the CLI compatibility-profile-summary, release-notes-summary, and release-summary smoke coverage now also pins the shared custom-definition label names line, including `True Balarama`, `Aphoric`, and `Takra`, so the compact release-facing catalog views keep the current custom-definition bucket anchored alongside the built-in house and ayanamsa names.
 
 Progress note (2026-04-28): the CLI compatibility-profile smoke coverage now also pins the `Galactic Equator mid-Mula` / `Mula galactic equator` alias cluster, keeping the visible Galactic Equator (Mula) wording anchored in the release-facing audit path as the catalog-breadth work continues.
+Progress note (2026-04-28): the release-summary smoke coverage now also pins `Galactic Center (Mula/Wilhelm)` and `Galactic Equator (Fiorenza)` in the compact release-facing summary, so the currently visible galactic-reference batch stays anchored in the one-screen release audit too.
 
 Remaining suggested scope:
 
