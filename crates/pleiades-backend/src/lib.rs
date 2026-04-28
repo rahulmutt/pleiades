@@ -1591,6 +1591,11 @@ pub trait EphemerisBackend: Send + Sync {
     fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError>;
 
     /// Computes multiple ephemeris results.
+    ///
+    /// The default adapter calls [`position`] for each request in order and
+    /// preserves each request's own instant and time-scale label exactly as
+    /// supplied, so mixed TT/TDB batches remain mixed in the returned results
+    /// instead of being normalized to a batch-wide scale.
     fn positions(&self, reqs: &[EphemerisRequest]) -> Result<Vec<EphemerisResult>, EphemerisError> {
         reqs.iter().map(|req| self.position(req)).collect()
     }
@@ -3234,6 +3239,77 @@ mod tests {
             .positions(&[geocentric_request, topocentric_request])
             .expect_err("batch requests should preserve observer rejections");
         assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
+        assert_eq!(backend.calls.load(Ordering::SeqCst), 2);
+    }
+
+    #[test]
+    fn batch_query_preserves_mixed_time_scales() {
+        struct MixedScaleBackend {
+            calls: AtomicUsize,
+        }
+
+        impl EphemerisBackend for MixedScaleBackend {
+            fn metadata(&self) -> BackendMetadata {
+                BackendMetadata {
+                    id: BackendId::new("mixed-scale"),
+                    version: "0.1.0".to_string(),
+                    family: BackendFamily::Algorithmic,
+                    provenance: BackendProvenance::new("mixed-scale test backend"),
+                    nominal_range: TimeRange::new(None, None),
+                    supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
+                    body_coverage: vec![CelestialBody::Sun],
+                    supported_frames: vec![CoordinateFrame::Ecliptic],
+                    capabilities: BackendCapabilities::default(),
+                    accuracy: AccuracyClass::Approximate,
+                    deterministic: true,
+                    offline: true,
+                }
+            }
+
+            fn supports_body(&self, body: CelestialBody) -> bool {
+                body == CelestialBody::Sun
+            }
+
+            fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+                self.calls.fetch_add(1, Ordering::SeqCst);
+
+                validate_request_policy(
+                    req,
+                    "mixed-scale test backend",
+                    &[TimeScale::Tt, TimeScale::Tdb],
+                    &[CoordinateFrame::Ecliptic],
+                    false,
+                )?;
+
+                Ok(EphemerisResult::new(
+                    BackendId::new("mixed-scale"),
+                    req.body.clone(),
+                    req.instant,
+                    req.frame,
+                    req.zodiac_mode.clone(),
+                    req.apparent,
+                ))
+            }
+        }
+
+        let backend = MixedScaleBackend {
+            calls: AtomicUsize::new(0),
+        };
+        let tt_request = EphemerisRequest::new(
+            CelestialBody::Sun,
+            Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt),
+        );
+        let tdb_request = EphemerisRequest::new(
+            CelestialBody::Sun,
+            Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tdb),
+        );
+
+        let results = backend
+            .positions(&[tt_request, tdb_request])
+            .expect("batch requests should preserve mixed time-scale labels");
+        assert_eq!(results.len(), 2);
+        assert_eq!(results[0].instant.scale, TimeScale::Tt);
+        assert_eq!(results[1].instant.scale, TimeScale::Tdb);
         assert_eq!(backend.calls.load(Ordering::SeqCst), 2);
     }
 
