@@ -2050,6 +2050,29 @@ impl LunarReferenceEvidenceSummary {
             format_epoch_range(self.earliest_epoch, self.latest_epoch),
         )
     }
+
+    /// Returns `Ok(())` when the summary still matches the current reference evidence.
+    pub fn validate(&self) -> Result<(), EphemerisError> {
+        let Some(expected) = lunar_reference_evidence_summary() else {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "lunar reference evidence is unavailable",
+            ));
+        };
+
+        if self != &expected {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "lunar reference evidence summary mismatch: expected {}, found {}",
+                    expected.summary_line(),
+                    self.summary_line()
+                ),
+            ));
+        }
+
+        Ok(())
+    }
 }
 
 impl fmt::Display for LunarReferenceEvidenceSummary {
@@ -2066,7 +2089,10 @@ pub fn format_lunar_reference_evidence_summary(summary: &LunarReferenceEvidenceS
 /// Returns the release-facing lunar reference evidence summary string.
 pub fn lunar_reference_evidence_summary_for_report() -> String {
     match lunar_reference_evidence_summary() {
-        Some(summary) => format_lunar_reference_evidence_summary(&summary),
+        Some(summary) => match summary.validate() {
+            Ok(()) => format_lunar_reference_evidence_summary(&summary),
+            Err(error) => format!("lunar reference evidence: unavailable ({error})"),
+        },
         None => "lunar reference evidence: unavailable".to_string(),
     }
 }
@@ -2326,6 +2352,29 @@ impl LunarEquatorialReferenceEvidenceSummary {
             format_epoch_range(self.earliest_epoch, self.latest_epoch),
         )
     }
+
+    /// Returns `Ok(())` when the summary still matches the current reference evidence.
+    pub fn validate(&self) -> Result<(), EphemerisError> {
+        let Some(expected) = lunar_equatorial_reference_evidence_summary() else {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "lunar equatorial reference evidence is unavailable",
+            ));
+        };
+
+        if self != &expected {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "lunar equatorial reference evidence summary mismatch: expected {}, found {}",
+                    expected.summary_line(),
+                    self.summary_line()
+                ),
+            ));
+        }
+
+        Ok(())
+    }
 }
 
 impl fmt::Display for LunarEquatorialReferenceEvidenceSummary {
@@ -2344,7 +2393,10 @@ pub fn format_lunar_equatorial_reference_evidence_summary(
 /// Returns the release-facing lunar equatorial reference evidence summary string.
 pub fn lunar_equatorial_reference_evidence_summary_for_report() -> String {
     match lunar_equatorial_reference_evidence_summary() {
-        Some(summary) => format_lunar_equatorial_reference_evidence_summary(&summary),
+        Some(summary) => match summary.validate() {
+            Ok(()) => format_lunar_equatorial_reference_evidence_summary(&summary),
+            Err(error) => format!("lunar equatorial reference evidence: unavailable ({error})"),
+        },
         None => "lunar equatorial reference evidence: unavailable".to_string(),
     }
 }
@@ -5937,6 +5989,29 @@ mod tests {
     }
 
     #[test]
+    fn lunar_reference_evidence_summary_validates_against_the_checked_in_slice() {
+        let summary = lunar_reference_evidence_summary().expect("reference evidence should exist");
+
+        assert!(summary.validate().is_ok());
+        assert_eq!(
+            lunar_reference_evidence_summary_for_report(),
+            summary.summary_line()
+        );
+
+        let mut mutated = summary;
+        mutated.sample_count += 1;
+        let error = mutated
+            .validate()
+            .expect_err("mutated reference evidence summaries should fail validation");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("lunar reference evidence summary mismatch"));
+        assert!(error.message.contains("expected"));
+        assert!(error.message.contains("found"));
+    }
+
+    #[test]
     fn lunar_reference_evidence_envelope_validation_rejects_non_finite_metrics() {
         let mut envelope =
             lunar_reference_evidence_envelope().expect("reference error envelope should exist");
@@ -6059,6 +6134,30 @@ mod tests {
                 assert!((actual - expected).abs() < 1e-8);
             }
         }
+    }
+
+    #[test]
+    fn lunar_equatorial_reference_evidence_summary_validates_against_the_checked_in_slice() {
+        let summary = lunar_equatorial_reference_evidence_summary()
+            .expect("equatorial reference evidence should exist");
+
+        assert!(summary.validate().is_ok());
+        assert_eq!(
+            lunar_equatorial_reference_evidence_summary_for_report(),
+            summary.summary_line()
+        );
+
+        let mut mutated = summary;
+        mutated.body_count += 1;
+        let error = mutated
+            .validate()
+            .expect_err("mutated equatorial reference summaries should fail validation");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("lunar equatorial reference evidence summary mismatch"));
+        assert!(error.message.contains("expected"));
+        assert!(error.message.contains("found"));
     }
 
     #[test]
