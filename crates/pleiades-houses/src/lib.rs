@@ -147,6 +147,28 @@ impl HouseSystemDescriptor {
             });
         }
 
+        let mut seen_labels = BTreeSet::new();
+        let mut saw_canonical_case_variant = false;
+        for alias in self.aliases {
+            if alias.eq_ignore_ascii_case(self.canonical_name) {
+                if alias == &self.canonical_name || saw_canonical_case_variant {
+                    return Err(HouseCatalogValidationError::DescriptorLabelCollision {
+                        label: alias,
+                        canonical_name: self.canonical_name,
+                    });
+                }
+                saw_canonical_case_variant = true;
+                continue;
+            }
+
+            if !seen_labels.insert(alias.to_ascii_lowercase()) {
+                return Err(HouseCatalogValidationError::DescriptorLabelCollision {
+                    label: alias,
+                    canonical_name: self.canonical_name,
+                });
+            }
+        }
+
         Ok(())
     }
 
@@ -341,6 +363,13 @@ pub enum HouseCatalogValidationError {
         /// Typed system that the label was expected to resolve to.
         expected_system: HouseSystem,
     },
+    /// A descriptor label duplicates another label within the same entry.
+    DescriptorLabelCollision {
+        /// Colliding label.
+        label: &'static str,
+        /// Canonical name of the descriptor that owns the collision.
+        canonical_name: &'static str,
+    },
     /// A descriptor label is blank or whitespace-padded.
     DescriptorLabelNotNormalized {
         /// Label that drifted.
@@ -368,6 +397,13 @@ impl fmt::Display for HouseCatalogValidationError {
             } => write!(
                 f,
                 "the house catalog label `{label}` does not round-trip to {expected_system}"
+            ),
+            Self::DescriptorLabelCollision {
+                label,
+                canonical_name,
+            } => write!(
+                f,
+                "the house catalog descriptor label `{label}` collides with another label on `{canonical_name}`"
             ),
             Self::DescriptorLabelNotNormalized { label, field } => write!(
                 f,
@@ -1909,7 +1945,10 @@ mod tests {
 
         assert!(matches!(
             validate_house_catalog_entries(&duplicate_alias_entries),
-            Err(HouseCatalogValidationError::DuplicateLabel { label: "wang" })
+            Err(HouseCatalogValidationError::DescriptorLabelCollision {
+                label: "wang",
+                canonical_name: "Equal"
+            })
         ));
 
         let mismatched_entry = [HouseSystemDescriptor::new(
@@ -1953,6 +1992,21 @@ mod tests {
         assert!(matches!(
             blank_notes_descriptor.validate(),
             Err(HouseCatalogValidationError::DescriptorNotesNotNormalized { label: "Equal" })
+        ));
+
+        let duplicate_alias_descriptor = HouseSystemDescriptor::new(
+            HouseSystem::Equal,
+            "Equal",
+            &["Wang", "wang"],
+            "notes",
+            false,
+        );
+        assert!(matches!(
+            duplicate_alias_descriptor.validate(),
+            Err(HouseCatalogValidationError::DescriptorLabelCollision {
+                label: "wang",
+                canonical_name: "Equal"
+            })
         ));
 
         let blank_notes_entry = [blank_notes_descriptor];

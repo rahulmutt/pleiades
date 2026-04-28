@@ -97,6 +97,28 @@ impl AyanamsaDescriptor {
             );
         }
 
+        let mut seen_labels = BTreeSet::new();
+        let mut saw_canonical_case_variant = false;
+        for alias in self.aliases {
+            if alias.eq_ignore_ascii_case(self.canonical_name) {
+                if alias == &self.canonical_name || saw_canonical_case_variant {
+                    return Err(AyanamsaCatalogValidationError::DescriptorLabelCollision {
+                        label: alias,
+                        canonical_name: self.canonical_name,
+                    });
+                }
+                saw_canonical_case_variant = true;
+                continue;
+            }
+
+            if !seen_labels.insert(alias.to_ascii_lowercase()) {
+                return Err(AyanamsaCatalogValidationError::DescriptorLabelCollision {
+                    label: alias,
+                    canonical_name: self.canonical_name,
+                });
+            }
+        }
+
         if self.epoch.is_some() ^ self.offset_degrees.is_some() {
             return Err(AyanamsaCatalogValidationError::PartialSiderealMetadata {
                 label: self.canonical_name,
@@ -1297,6 +1319,13 @@ pub enum AyanamsaCatalogValidationError {
         /// Expected typed ayanamsa.
         expected_ayanamsa: Ayanamsa,
     },
+    /// A descriptor label duplicates another label within the same entry.
+    DescriptorLabelCollision {
+        /// Colliding label.
+        label: &'static str,
+        /// Canonical name of the descriptor that owns the collision.
+        canonical_name: &'static str,
+    },
     /// A descriptor label is blank or whitespace-padded.
     DescriptorLabelNotNormalized {
         /// Label that drifted.
@@ -1327,6 +1356,13 @@ impl fmt::Display for AyanamsaCatalogValidationError {
                 label,
                 expected_ayanamsa,
             } => write!(f, "label '{label}' should resolve to {expected_ayanamsa}",),
+            Self::DescriptorLabelCollision {
+                label,
+                canonical_name,
+            } => write!(
+                f,
+                "the ayanamsa catalog descriptor label `{label}` collides with another label on `{canonical_name}`"
+            ),
             Self::DescriptorLabelNotNormalized { label, field } => write!(
                 f,
                 "the ayanamsa catalog descriptor {field} for `{label}` is blank or contains surrounding whitespace"
@@ -1674,6 +1710,22 @@ mod tests {
         assert!(matches!(
             blank_notes_descriptor.validate(),
             Err(AyanamsaCatalogValidationError::DescriptorNotesNotNormalized { label: "Lahiri" })
+        ));
+
+        let duplicate_alias_descriptor = AyanamsaDescriptor::new(
+            Ayanamsa::Lahiri,
+            "Lahiri",
+            &["KP", "kp"],
+            "Summary note",
+            Some(JulianDay::from_days(2_451_545.0)),
+            Some(Angle::from_degrees(23.5)),
+        );
+        assert!(matches!(
+            duplicate_alias_descriptor.validate(),
+            Err(AyanamsaCatalogValidationError::DescriptorLabelCollision {
+                label: "kp",
+                canonical_name: "Lahiri"
+            })
         ));
 
         let blank_notes_entry = [blank_notes_descriptor];
