@@ -1222,6 +1222,43 @@ impl Vsop87CanonicalEvidenceSummary {
             validate_finite_non_negative_measure(CANONICAL_EVIDENCE_SUMMARY_LABEL, field, value)?;
         }
 
+        validate_canonical_evidence_summary_metric_order(&Vsop87MetricOrderingValidation {
+            summary: CANONICAL_EVIDENCE_SUMMARY_LABEL,
+            mean_field: "mean_longitude_delta_deg",
+            median_field: "median_longitude_delta_deg",
+            percentile_field: "percentile_longitude_delta_deg",
+            rms_field: "rms_longitude_delta_deg",
+            mean: self.mean_longitude_delta_deg,
+            median: self.median_longitude_delta_deg,
+            percentile: self.percentile_longitude_delta_deg,
+            rms: self.rms_longitude_delta_deg,
+            max: self.max_longitude_delta_deg,
+        })?;
+        validate_canonical_evidence_summary_metric_order(&Vsop87MetricOrderingValidation {
+            summary: CANONICAL_EVIDENCE_SUMMARY_LABEL,
+            mean_field: "mean_latitude_delta_deg",
+            median_field: "median_latitude_delta_deg",
+            percentile_field: "percentile_latitude_delta_deg",
+            rms_field: "rms_latitude_delta_deg",
+            mean: self.mean_latitude_delta_deg,
+            median: self.median_latitude_delta_deg,
+            percentile: self.percentile_latitude_delta_deg,
+            rms: self.rms_latitude_delta_deg,
+            max: self.max_latitude_delta_deg,
+        })?;
+        validate_canonical_evidence_summary_metric_order(&Vsop87MetricOrderingValidation {
+            summary: CANONICAL_EVIDENCE_SUMMARY_LABEL,
+            mean_field: "mean_distance_delta_au",
+            median_field: "median_distance_delta_au",
+            percentile_field: "percentile_distance_delta_au",
+            rms_field: "rms_distance_delta_au",
+            mean: self.mean_distance_delta_au,
+            median: self.median_distance_delta_au,
+            percentile: self.percentile_distance_delta_au,
+            rms: self.rms_distance_delta_au,
+            max: self.max_distance_delta_au,
+        })?;
+
         let Some(body_evidence) = canonical_epoch_body_evidence() else {
             return Err(
                 Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
@@ -1459,6 +1496,43 @@ impl Vsop87CanonicalEquatorialEvidenceSummary {
             )?;
         }
 
+        validate_canonical_evidence_summary_metric_order(&Vsop87MetricOrderingValidation {
+            summary: CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL,
+            mean_field: "mean_right_ascension_delta_deg",
+            median_field: "median_right_ascension_delta_deg",
+            percentile_field: "percentile_right_ascension_delta_deg",
+            rms_field: "rms_right_ascension_delta_deg",
+            mean: self.mean_right_ascension_delta_deg,
+            median: self.median_right_ascension_delta_deg,
+            percentile: self.percentile_right_ascension_delta_deg,
+            rms: self.rms_right_ascension_delta_deg,
+            max: self.max_right_ascension_delta_deg,
+        })?;
+        validate_canonical_evidence_summary_metric_order(&Vsop87MetricOrderingValidation {
+            summary: CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL,
+            mean_field: "mean_declination_delta_deg",
+            median_field: "median_declination_delta_deg",
+            percentile_field: "percentile_declination_delta_deg",
+            rms_field: "rms_declination_delta_deg",
+            mean: self.mean_declination_delta_deg,
+            median: self.median_declination_delta_deg,
+            percentile: self.percentile_declination_delta_deg,
+            rms: self.rms_declination_delta_deg,
+            max: self.max_declination_delta_deg,
+        })?;
+        validate_canonical_evidence_summary_metric_order(&Vsop87MetricOrderingValidation {
+            summary: CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL,
+            mean_field: "mean_distance_delta_au",
+            median_field: "median_distance_delta_au",
+            percentile_field: "percentile_distance_delta_au",
+            rms_field: "rms_distance_delta_au",
+            mean: self.mean_distance_delta_au,
+            median: self.median_distance_delta_au,
+            percentile: self.percentile_distance_delta_au,
+            rms: self.rms_distance_delta_au,
+            max: self.max_distance_delta_au,
+        })?;
+
         Ok(())
     }
 }
@@ -1606,6 +1680,58 @@ fn validate_finite_non_negative_measure(
     } else {
         Err(Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync { summary, field })
     }
+}
+
+struct Vsop87MetricOrderingValidation {
+    summary: &'static str,
+    mean_field: &'static str,
+    median_field: &'static str,
+    percentile_field: &'static str,
+    rms_field: &'static str,
+    mean: f64,
+    median: f64,
+    percentile: f64,
+    rms: f64,
+    max: f64,
+}
+
+fn validate_canonical_evidence_summary_metric_order(
+    metric: &Vsop87MetricOrderingValidation,
+) -> Result<(), Vsop87CanonicalEvidenceSummaryValidationError> {
+    if metric.mean > metric.max {
+        return Err(
+            Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
+                summary: metric.summary,
+                field: metric.mean_field,
+            },
+        );
+    }
+    if metric.median > metric.percentile {
+        return Err(
+            Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
+                summary: metric.summary,
+                field: metric.median_field,
+            },
+        );
+    }
+    if metric.percentile > metric.max {
+        return Err(
+            Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
+                summary: metric.summary,
+                field: metric.percentile_field,
+            },
+        );
+    }
+    if metric.rms > metric.max {
+        return Err(
+            Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
+                summary: metric.summary,
+                field: metric.rms_field,
+            },
+        );
+    }
+
+    Ok(())
 }
 
 fn validate_canonical_evidence_summary_peak_source_metadata(
@@ -8178,6 +8304,23 @@ mod tests {
     }
 
     #[test]
+    fn canonical_evidence_summary_validation_rejects_metric_order_drift() {
+        let mut summary = canonical_epoch_evidence_summary().expect("summary should exist");
+        summary.median_longitude_delta_deg = summary.percentile_longitude_delta_deg + 1e-9;
+
+        let error = summary
+            .validate()
+            .expect_err("metric ordering should fail validation");
+        assert_eq!(
+            error,
+            Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
+                summary: CANONICAL_EVIDENCE_SUMMARY_LABEL,
+                field: "median_longitude_delta_deg",
+            }
+        );
+    }
+
+    #[test]
     fn canonical_equatorial_evidence_summary_validation_rejects_non_finite_metric() {
         let mut summary =
             canonical_epoch_equatorial_evidence_summary().expect("summary should exist");
@@ -8191,6 +8334,24 @@ mod tests {
             Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
                 summary: CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL,
                 field: "rms_distance_delta_au",
+            }
+        );
+    }
+
+    #[test]
+    fn canonical_equatorial_evidence_summary_validation_rejects_metric_order_drift() {
+        let mut summary =
+            canonical_epoch_equatorial_evidence_summary().expect("summary should exist");
+        summary.percentile_declination_delta_deg = summary.max_declination_delta_deg + 1e-9;
+
+        let error = summary
+            .validate()
+            .expect_err("metric ordering should fail validation");
+        assert_eq!(
+            error,
+            Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
+                summary: CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL,
+                field: "percentile_declination_delta_deg",
             }
         );
     }
