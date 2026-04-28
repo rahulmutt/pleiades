@@ -2132,6 +2132,11 @@ mod tests {
         observers: Arc<Mutex<Vec<Option<ObserverLocation>>>>,
     }
 
+    #[derive(Clone)]
+    struct MeanOnlyRecordingChartBackend {
+        observers: Arc<Mutex<Vec<Option<ObserverLocation>>>>,
+    }
+
     impl EphemerisBackend for ToyChartBackend {
         fn metadata(&self) -> BackendMetadata {
             BackendMetadata {
@@ -2219,6 +2224,53 @@ mod tests {
                 .push(request.observer.clone());
             let mut result = EphemerisResult::new(
                 BackendId::new("recording-chart"),
+                request.body.clone(),
+                request.instant,
+                request.frame,
+                request.zodiac_mode.clone(),
+                request.apparent,
+            );
+            result.ecliptic = Some(EclipticCoordinates::new(
+                Longitude::from_degrees(15.0),
+                Latitude::from_degrees(0.0),
+                Some(1.0),
+            ));
+            Ok(result)
+        }
+    }
+
+    impl EphemerisBackend for MeanOnlyRecordingChartBackend {
+        fn metadata(&self) -> BackendMetadata {
+            BackendMetadata {
+                id: BackendId::new("mean-only-recording-chart"),
+                version: "0.1.0".to_string(),
+                family: BackendFamily::Algorithmic,
+                provenance: BackendProvenance::new("mean-only recording chart backend"),
+                nominal_range: pleiades_types::TimeRange::new(None, None),
+                supported_time_scales: vec![TimeScale::Tt],
+                body_coverage: vec![CelestialBody::Sun],
+                supported_frames: vec![pleiades_types::CoordinateFrame::Ecliptic],
+                capabilities: BackendCapabilities {
+                    apparent: false,
+                    ..BackendCapabilities::default()
+                },
+                accuracy: AccuracyClass::Approximate,
+                deterministic: true,
+                offline: true,
+            }
+        }
+
+        fn supports_body(&self, body: CelestialBody) -> bool {
+            matches!(body, CelestialBody::Sun)
+        }
+
+        fn position(&self, request: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+            self.observers
+                .lock()
+                .expect("observer log should be lockable")
+                .push(request.observer.clone());
+            let mut result = EphemerisResult::new(
+                BackendId::new("mean-only-recording-chart"),
                 request.body.clone(),
                 request.instant,
                 request.frame,
@@ -2944,6 +2996,76 @@ mod tests {
         assert!(validation_error
             .message
             .contains("sidereal ayanamsa is invalid: custom ayanamsa name must not match a built-in label: Lahiri"));
+    }
+
+    #[test]
+    fn chart_request_validation_rejects_apparent_requests_before_backend_dispatch() {
+        let observers = Arc::new(Mutex::new(Vec::new()));
+        let engine = ChartEngine::new(MeanOnlyRecordingChartBackend {
+            observers: Arc::clone(&observers),
+        });
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Tt,
+        ))
+        .with_bodies(vec![CelestialBody::Sun])
+        .with_apparentness(Apparentness::Apparent);
+
+        let validation_error = engine
+            .validate_chart_request(&request)
+            .expect_err("apparent chart requests should be rejected before backend dispatch");
+        assert_eq!(validation_error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(validation_error
+            .message
+            .contains("currently returns mean geometric coordinates only; apparent corrections are not implemented"));
+
+        let chart_error = engine
+            .chart(&request)
+            .expect_err("apparent chart requests should be rejected before backend dispatch");
+        assert_eq!(chart_error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(chart_error
+            .message
+            .contains("currently returns mean geometric coordinates only; apparent corrections are not implemented"));
+        assert!(observers
+            .lock()
+            .expect("observer log should be lockable")
+            .is_empty());
+    }
+
+    #[test]
+    fn chart_request_validation_rejects_house_requests_without_observers_before_backend_dispatch() {
+        let observers = Arc::new(Mutex::new(Vec::new()));
+        let engine = ChartEngine::new(RecordingChartBackend {
+            observers: Arc::clone(&observers),
+        });
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Tt,
+        ))
+        .with_bodies(vec![CelestialBody::Sun])
+        .with_house_system(crate::HouseSystem::WholeSign);
+
+        let validation_error = engine
+            .validate_chart_request(&request)
+            .expect_err("house requests should require an observer before backend dispatch");
+        assert_eq!(validation_error.kind, EphemerisErrorKind::InvalidRequest);
+        assert_eq!(
+            validation_error.message,
+            "house placement requires an observer location"
+        );
+
+        let chart_error = engine
+            .chart(&request)
+            .expect_err("house requests should require an observer before backend dispatch");
+        assert_eq!(chart_error.kind, EphemerisErrorKind::InvalidRequest);
+        assert_eq!(
+            chart_error.message,
+            "house placement requires an observer location"
+        );
+        assert!(observers
+            .lock()
+            .expect("observer log should be lockable")
+            .is_empty());
     }
 
     #[test]
