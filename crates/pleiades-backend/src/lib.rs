@@ -1470,7 +1470,10 @@ pub fn validate_request_against_metadata(
 /// validates each request with [`validate_request_against_metadata`], failing
 /// fast on the first unsupported request shape. The returned error message
 /// prefixes the failing request's 1-based batch index so callers can correlate
-/// the structured error with the slice position that triggered it.
+/// the structured error with the slice position that triggered it. Batch
+/// requests preserve sidereal, apparentness, observer, and body-coverage
+/// failures with the same index prefix so callers can pinpoint the invalid slice
+/// entry without losing the underlying request policy details.
 ///
 /// # Example
 ///
@@ -3135,6 +3138,43 @@ mod tests {
         );
         assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
         assert_eq!(error.message, "toy backend does not support batch requests");
+    }
+
+    #[test]
+    fn validate_requests_against_metadata_rejects_sidereal_requests_with_batch_index_prefix() {
+        let metadata = BackendMetadata {
+            id: BackendId::new("toy backend"),
+            version: "0.1.0".to_string(),
+            family: BackendFamily::Algorithmic,
+            provenance: BackendProvenance::new("toy backend"),
+            nominal_range: TimeRange::new(None, None),
+            supported_time_scales: vec![TimeScale::Tt],
+            body_coverage: vec![CelestialBody::Sun],
+            supported_frames: vec![CoordinateFrame::Ecliptic],
+            capabilities: BackendCapabilities::default(),
+            accuracy: AccuracyClass::Approximate,
+            deterministic: true,
+            offline: true,
+        };
+        let tropical_request = EphemerisRequest::new(
+            CelestialBody::Sun,
+            Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+        );
+        let sidereal_request = EphemerisRequest {
+            zodiac_mode: ZodiacMode::Sidereal {
+                ayanamsa: pleiades_types::Ayanamsa::FaganBradley,
+            },
+            ..tropical_request.clone()
+        };
+
+        let error =
+            validate_requests_against_metadata(&[tropical_request, sidereal_request], &metadata)
+                .expect_err("the batch helper should preserve sidereal request failures");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert_eq!(
+            error.message,
+            "batch request 2: toy backend currently exposes tropical coordinates only"
+        );
     }
 
     #[test]

@@ -174,6 +174,8 @@ Progress note: `pleiades-vsop87` now also exposes a reusable batch-request corpu
    - Progress note: the chart CLI now rejects time-scale offset flags that do not match the tagged instant, so caller-supplied TT/TT-TDB retagging helpers stay explicit instead of being silently ignored on UTC/UT1/TDB requests. TDB-tagged requests now also reject a direct `--tdb-offset-seconds` retagging flag, and the CLI regression suite covers that explicit failure path alongside the existing TT/UTC/UT1 mismatch checks.
    - Progress note: the chart façade's signed TT/TDB retagging helpers now also reject non-finite offsets with the same structured `TimeScaleConversionError` used by the lower-level `Instant` policy, so caller-supplied Delta T and TDB-TT conversions fail explicitly instead of propagating `NaN` or infinite offsets through the chart builder API.
 
+- Progress note (2026-04-28): the batch request-policy preflight now also preserves tropical-only sidereal failures with the same batch index prefix, which keeps the direct-backend sidereal guardrail explicit when callers validate slice-shaped requests instead of single requests.
+
 5. Expand validation evidence.
    - Add golden positions for major bodies, lunar points, and baseline asteroids.
    - Generate cross-backend comparison reports with body/date/error summaries. Aggregate and per-body summary sections are now implemented; future source-backed backend increments should populate them with tighter measured errors.
