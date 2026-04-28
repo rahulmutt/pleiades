@@ -40,6 +40,17 @@ impl ApiStabilityProfile {
         self.summary
     }
 
+    /// Validates the profile's internal release-facing metadata.
+    pub fn validate(&self) -> Result<(), ApiStabilityProfileValidationError> {
+        validate_profile_identifier(self.profile_id)?;
+        validate_profile_summary(self.summary)?;
+        validate_text_section("stable surfaces", self.stable_surfaces)?;
+        validate_text_section("experimental surfaces", self.experimental_surfaces)?;
+        validate_text_section("deprecation policy", self.deprecation_policy)?;
+        validate_text_section("intentional limits", self.intentional_limits)?;
+        Ok(())
+    }
+
     /// Returns a compact release-facing summary line for the stability posture.
     pub fn summary_line(&self) -> String {
         format!(
@@ -51,6 +62,108 @@ impl ApiStabilityProfile {
             self.intentional_limits.len()
         )
     }
+}
+
+/// A validation error emitted when the API stability profile's internal
+/// release-facing metadata drifts.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ApiStabilityProfileValidationError {
+    /// The profile identifier is blank or whitespace-padded.
+    BlankProfileIdentifier,
+    /// The summary is blank or whitespace-padded.
+    BlankSummary,
+    /// A text section has no entries.
+    EmptyTextSection {
+        /// Section that failed validation.
+        section_label: &'static str,
+    },
+    /// A text section contains a blank entry.
+    BlankTextSectionEntry {
+        /// Section that failed validation.
+        section_label: &'static str,
+    },
+    /// A text section contains an entry with surrounding whitespace.
+    WhitespaceTextSectionEntry {
+        /// Section that failed validation.
+        section_label: &'static str,
+    },
+}
+
+impl fmt::Display for ApiStabilityProfileValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BlankProfileIdentifier => {
+                f.write_str("API stability profile identifier is blank")
+            }
+            Self::BlankSummary => f.write_str("API stability summary is blank"),
+            Self::EmptyTextSection { section_label } => {
+                write!(f, "API stability {section_label} section is empty")
+            }
+            Self::BlankTextSectionEntry { section_label } => write!(
+                f,
+                "API stability {section_label} section contains a blank entry"
+            ),
+            Self::WhitespaceTextSectionEntry { section_label } => write!(
+                f,
+                "API stability {section_label} section contains an entry with surrounding whitespace"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ApiStabilityProfileValidationError {}
+
+fn validate_profile_identifier(
+    profile_id: &'static str,
+) -> Result<(), ApiStabilityProfileValidationError> {
+    if profile_id.trim().is_empty() {
+        return Err(ApiStabilityProfileValidationError::BlankProfileIdentifier);
+    }
+
+    if profile_id.trim() != profile_id {
+        return Err(ApiStabilityProfileValidationError::BlankProfileIdentifier);
+    }
+
+    Ok(())
+}
+
+fn validate_profile_summary(
+    summary: &'static str,
+) -> Result<(), ApiStabilityProfileValidationError> {
+    if summary.trim().is_empty() {
+        return Err(ApiStabilityProfileValidationError::BlankSummary);
+    }
+
+    if summary.trim() != summary {
+        return Err(ApiStabilityProfileValidationError::BlankSummary);
+    }
+
+    Ok(())
+}
+
+fn validate_text_section(
+    section_label: &'static str,
+    entries: &'static [&'static str],
+) -> Result<(), ApiStabilityProfileValidationError> {
+    if entries.is_empty() {
+        return Err(ApiStabilityProfileValidationError::EmptyTextSection { section_label });
+    }
+
+    for entry in entries {
+        if entry.trim().is_empty() {
+            return Err(ApiStabilityProfileValidationError::BlankTextSectionEntry {
+                section_label,
+            });
+        }
+
+        if entry.trim() != *entry {
+            return Err(
+                ApiStabilityProfileValidationError::WhitespaceTextSectionEntry { section_label },
+            );
+        }
+    }
+
+    Ok(())
 }
 
 /// Returns the current API stability posture.
@@ -206,5 +319,48 @@ mod tests {
             profile.intentional_limits.len()
         )));
         assert!(profile.to_string().contains("API stability posture:"));
+        profile.validate().expect("current profile should validate");
+    }
+
+    #[test]
+    fn profile_validation_rejects_whitespace_padded_metadata() {
+        let profile = ApiStabilityProfile {
+            profile_id: " pleiades-api-stability/0.1.0 ",
+            summary: "valid summary",
+            stable_surfaces: &["stable surface"],
+            experimental_surfaces: &["experimental surface"],
+            deprecation_policy: &["deprecation policy"],
+            intentional_limits: &["intentional limit"],
+        };
+
+        let error = profile
+            .validate()
+            .expect_err("whitespace-padded profile identifier should be rejected");
+        assert_eq!(
+            error,
+            ApiStabilityProfileValidationError::BlankProfileIdentifier
+        );
+    }
+
+    #[test]
+    fn profile_validation_rejects_empty_sections() {
+        let profile = ApiStabilityProfile {
+            profile_id: CURRENT_API_STABILITY_PROFILE_ID,
+            summary: "valid summary",
+            stable_surfaces: &[],
+            experimental_surfaces: &["experimental surface"],
+            deprecation_policy: &["deprecation policy"],
+            intentional_limits: &["intentional limit"],
+        };
+
+        let error = profile
+            .validate()
+            .expect_err("empty stable surface section should be rejected");
+        assert_eq!(
+            error,
+            ApiStabilityProfileValidationError::EmptyTextSection {
+                section_label: "stable surfaces"
+            }
+        );
     }
 }

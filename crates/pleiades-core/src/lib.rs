@@ -81,7 +81,7 @@ mod release_profiles;
 
 pub use api_stability::{
     current_api_stability_profile, current_api_stability_profile_id, ApiStabilityProfile,
-    CURRENT_API_STABILITY_PROFILE_ID,
+    ApiStabilityProfileValidationError, CURRENT_API_STABILITY_PROFILE_ID,
 };
 pub use chart::{
     default_chart_bodies, sidereal_longitude, AspectDefinition, AspectKind, AspectMatch,

@@ -4115,7 +4115,6 @@ fn render_compatibility_profile_summary_text() -> String {
 fn render_release_notes_text() -> String {
     let profile = current_compatibility_profile();
     let release_profiles = current_release_profile_identifiers();
-    let api_stability = current_api_stability_profile();
     let mut text = String::new();
 
     text.push_str("Release notes\n");
@@ -4139,17 +4138,26 @@ fn render_release_notes_text() -> String {
     text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
     text.push('\n');
 
-    text.push_str("API stability posture:\n");
-    text.push_str("- ");
-    text.push_str(api_stability.summary);
-    text.push('\n');
-    text.push_str("Deprecation policy:\n");
-    for item in api_stability.deprecation_policy {
-        text.push_str("- ");
-        text.push_str(item);
-        text.push('\n');
+    match validated_api_stability_profile_for_report() {
+        Ok(api_stability) => {
+            text.push_str("API stability posture:\n");
+            text.push_str("- ");
+            text.push_str(api_stability.summary);
+            text.push('\n');
+            text.push_str("Deprecation policy:\n");
+            for item in api_stability.deprecation_policy {
+                text.push_str("- ");
+                text.push_str(item);
+                text.push('\n');
+            }
+            text.push('\n');
+        }
+        Err(error) => {
+            text.push_str("API stability posture unavailable (");
+            text.push_str(&error);
+            text.push_str(")\n\n");
+        }
     }
-    text.push('\n');
 
     if !profile.release_notes.is_empty() {
         text.push_str("Release-specific coverage:\n");
@@ -4218,7 +4226,6 @@ fn render_release_notes_text() -> String {
 fn render_release_notes_summary_text() -> String {
     let profile = current_compatibility_profile();
     let release_profiles = current_release_profile_identifiers();
-    let api_stability = current_api_stability_profile();
     let mut text = String::new();
 
     text.push_str("Release notes summary\n");
@@ -4269,7 +4276,7 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&profile.known_gaps.len().to_string());
     text.push('\n');
     text.push_str("API stability summary line: ");
-    text.push_str(&api_stability.summary_line());
+    text.push_str(&api_stability_summary_line_for_report());
     text.push('\n');
     text.push_str("Release notes: release-notes\n");
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
@@ -4386,7 +4393,6 @@ fn render_release_checklist_text() -> String {
 fn render_release_summary_text() -> String {
     let profile = current_compatibility_profile();
     let release_profiles = current_release_profile_identifiers();
-    let api_stability = current_api_stability_profile();
     let request_policy = request_policy_summary_for_report();
     let mut text = String::new();
 
@@ -4691,7 +4697,7 @@ fn render_release_summary_text() -> String {
     text.push_str("Release checklist summary: release-checklist-summary\n");
     text.push('\n');
     text.push_str("API stability summary line: ");
-    text.push_str(&api_stability.summary_line());
+    text.push_str(&api_stability_summary_line_for_report());
     text.push('\n');
     text.push_str("Release gate reminders:\n");
     for item in [
@@ -6955,6 +6961,20 @@ fn format_request_policy_summary_for_report(
     }
 }
 
+fn validated_api_stability_profile_for_report() -> Result<pleiades_core::ApiStabilityProfile, String>
+{
+    let profile = current_api_stability_profile();
+    profile.validate().map_err(|error| error.to_string())?;
+    Ok(profile)
+}
+
+fn api_stability_summary_line_for_report() -> String {
+    match validated_api_stability_profile_for_report() {
+        Ok(profile) => profile.summary_line(),
+        Err(error) => format!("API stability summary unavailable ({error})"),
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct RequestSurfaceSummary {
     instant: &'static str,
@@ -8165,43 +8185,48 @@ pub fn render_api_stability_summary() -> String {
 }
 
 fn render_api_stability_summary_text() -> String {
-    let profile = current_api_stability_profile();
     let release_profiles = current_release_profile_identifiers();
-    let mut text = String::new();
 
-    text.push_str("API stability summary\n");
-    text.push_str("Profile: ");
-    text.push_str(profile.profile_id);
-    text.push('\n');
-    text.push_str("Summary line: ");
-    text.push_str(&profile.summary_line());
-    text.push('\n');
-    text.push_str("Compatibility profile: ");
-    text.push_str(release_profiles.compatibility_profile_id);
-    text.push('\n');
-    text.push_str("Release profile identifiers: ");
-    text.push_str(&release_profiles.summary_line());
-    text.push('\n');
-    text.push_str("Stable surfaces: ");
-    text.push_str(&profile.stable_surfaces.len().to_string());
-    text.push('\n');
-    text.push_str("Experimental surfaces: ");
-    text.push_str(&profile.experimental_surfaces.len().to_string());
-    text.push('\n');
-    text.push_str("Deprecation policy items: ");
-    text.push_str(&profile.deprecation_policy.len().to_string());
-    text.push('\n');
-    text.push_str("Intentional limits: ");
-    text.push_str(&profile.intentional_limits.len().to_string());
-    text.push('\n');
-    text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
-    text.push_str("Backend matrix summary: backend-matrix-summary\n");
-    text.push_str("Release notes summary: release-notes-summary\n");
-    text.push_str("Release checklist summary: release-checklist-summary\n");
-    text.push_str("Release bundle verification: verify-release-bundle\n");
-    text.push_str("See release-summary for the compact one-screen release overview.\n");
+    match validated_api_stability_profile_for_report() {
+        Ok(profile) => {
+            let mut text = String::new();
 
-    text
+            text.push_str("API stability summary\n");
+            text.push_str("Profile: ");
+            text.push_str(profile.profile_id);
+            text.push('\n');
+            text.push_str("Summary line: ");
+            text.push_str(&profile.summary_line());
+            text.push('\n');
+            text.push_str("Compatibility profile: ");
+            text.push_str(release_profiles.compatibility_profile_id);
+            text.push('\n');
+            text.push_str("Release profile identifiers: ");
+            text.push_str(&release_profiles.summary_line());
+            text.push('\n');
+            text.push_str("Stable surfaces: ");
+            text.push_str(&profile.stable_surfaces.len().to_string());
+            text.push('\n');
+            text.push_str("Experimental surfaces: ");
+            text.push_str(&profile.experimental_surfaces.len().to_string());
+            text.push('\n');
+            text.push_str("Deprecation policy items: ");
+            text.push_str(&profile.deprecation_policy.len().to_string());
+            text.push('\n');
+            text.push_str("Intentional limits: ");
+            text.push_str(&profile.intentional_limits.len().to_string());
+            text.push('\n');
+            text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
+            text.push_str("Backend matrix summary: backend-matrix-summary\n");
+            text.push_str("Release notes summary: release-notes-summary\n");
+            text.push_str("Release checklist summary: release-checklist-summary\n");
+            text.push_str("Release bundle verification: verify-release-bundle\n");
+            text.push_str("See release-summary for the compact one-screen release overview.\n");
+
+            text
+        }
+        Err(error) => format!("API stability summary unavailable ({error})"),
+    }
 }
 
 fn push_unique(values: &mut Vec<String>, value: String) {
