@@ -44,7 +44,7 @@ use pleiades_core::{
     AccuracyClass, Apparentness, BackendCapabilities, BackendFamily, BackendMetadata,
     CelestialBody, CompatibilityProfile, CompositeBackend, CoordinateFrame, EclipticCoordinates,
     EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
-    Instant, JulianDay, Longitude, TimeRange, TimeScale, ZodiacMode,
+    Instant, JulianDay, Longitude, ReleaseProfileIdentifiers, TimeRange, TimeScale, ZodiacMode,
 };
 use pleiades_data::{
     packaged_artifact_profile_summary_with_body_coverage,
@@ -2265,7 +2265,7 @@ impl fmt::Display for ValidationReport {
         writeln!(
             f,
             "Release profile identifiers: {}",
-            release_profiles.summary_line()
+            format_release_profile_identifiers_summary(&release_profiles)
         )?;
         writeln!(f, "{}", current_api_stability_profile())?;
         writeln!(f)?;
@@ -3078,7 +3078,15 @@ impl CompatibilityProfileVerificationSummary {
                 format!("compatibility profile validation failed: {error}"),
             )
         })?;
-        let release_profiles = current_release_profile_identifiers();
+        let release_profiles = validated_release_profile_identifiers_for_report()
+            .map_err(|error| {
+                EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "compatibility profile verification summary release profile identifiers invalid: {error}"
+                    ),
+                )
+            })?;
 
         if self.profile_id != release_profiles.compatibility_profile_id {
             return Err(EphemerisError::new(
@@ -3353,7 +3361,14 @@ impl fmt::Display for CompatibilityProfileVerificationSummary {
 pub fn compatibility_profile_verification_summary(
 ) -> Result<CompatibilityProfileVerificationSummary, EphemerisError> {
     let profile = current_compatibility_profile();
-    let release_profiles = current_release_profile_identifiers();
+    let release_profiles = validated_release_profile_identifiers_for_report().map_err(|error| {
+        EphemerisError::new(
+            EphemerisErrorKind::InvalidRequest,
+            format!(
+                "compatibility profile verification summary release profile identifiers invalid: {error}"
+            ),
+        )
+    })?;
 
     if profile.profile_id != release_profiles.compatibility_profile_id {
         return Err(EphemerisError::new(
@@ -4025,7 +4040,10 @@ fn format_descriptor_names_summary(summary: &DescriptorNamesSummary) -> String {
 
 fn render_compatibility_profile_summary_text() -> String {
     let profile = current_compatibility_profile();
-    let release_profiles = current_release_profile_identifiers();
+    let release_profiles = match validated_release_profile_identifiers_for_report() {
+        Ok(release_profiles) => release_profiles,
+        Err(error) => return format!("Compatibility profile summary unavailable ({error})"),
+    };
     let coverage = metadata_coverage();
     let mut text = String::new();
 
@@ -4098,7 +4116,10 @@ fn render_compatibility_profile_summary_text() -> String {
 
 fn render_release_notes_text() -> String {
     let profile = current_compatibility_profile();
-    let release_profiles = current_release_profile_identifiers();
+    let release_profiles = match validated_release_profile_identifiers_for_report() {
+        Ok(release_profiles) => release_profiles,
+        Err(error) => return format!("Release notes unavailable ({error})"),
+    };
     let mut text = String::new();
 
     text.push_str("Release notes\n");
@@ -4209,7 +4230,10 @@ fn render_release_notes_text() -> String {
 
 fn render_release_notes_summary_text() -> String {
     let profile = current_compatibility_profile();
-    let release_profiles = current_release_profile_identifiers();
+    let release_profiles = match validated_release_profile_identifiers_for_report() {
+        Ok(release_profiles) => release_profiles,
+        Err(error) => return format!("Release notes summary unavailable ({error})"),
+    };
     let mut text = String::new();
 
     text.push_str("Release notes summary\n");
@@ -4288,7 +4312,10 @@ fn render_release_notes_summary_text() -> String {
 }
 
 fn render_release_checklist_text() -> String {
-    let release_profiles = current_release_profile_identifiers();
+    let release_profiles = match validated_release_profile_identifiers_for_report() {
+        Ok(release_profiles) => release_profiles,
+        Err(error) => return format!("Release checklist unavailable ({error})"),
+    };
     let mut text = String::new();
 
     text.push_str("Release checklist\n");
@@ -4376,7 +4403,10 @@ fn render_release_checklist_text() -> String {
 
 fn render_release_summary_text() -> String {
     let profile = current_compatibility_profile();
-    let release_profiles = current_release_profile_identifiers();
+    let release_profiles = match validated_release_profile_identifiers_for_report() {
+        Ok(release_profiles) => release_profiles,
+        Err(error) => return format!("Release summary unavailable ({error})"),
+    };
     let request_policy = request_policy_summary_for_report();
     let mut text = String::new();
 
@@ -4388,7 +4418,9 @@ fn render_release_summary_text() -> String {
     text.push_str(release_profiles.api_stability_profile_id);
     text.push('\n');
     text.push_str("Release profile identifiers: ");
-    text.push_str(&release_profiles.summary_line());
+    text.push_str(&format_release_profile_identifiers_summary(
+        &release_profiles,
+    ));
     text.push('\n');
     text.push_str("Time-scale policy: ");
     text.push_str(request_policy.time_scale);
@@ -4708,7 +4740,10 @@ fn render_release_summary_text() -> String {
 }
 
 fn render_release_checklist_summary_text() -> String {
-    let release_profiles = current_release_profile_identifiers();
+    let release_profiles = match validated_release_profile_identifiers_for_report() {
+        Ok(release_profiles) => release_profiles,
+        Err(error) => return format!("Release checklist summary unavailable ({error})"),
+    };
     let mut text = String::new();
 
     text.push_str("Release checklist summary\n");
@@ -6956,6 +6991,23 @@ fn validated_api_stability_profile_for_report() -> Result<pleiades_core::ApiStab
     Ok(profile)
 }
 
+fn validated_release_profile_identifiers_for_report() -> Result<ReleaseProfileIdentifiers, String> {
+    let release_profiles = current_release_profile_identifiers();
+    release_profiles
+        .validate()
+        .map_err(|error| error.to_string())?;
+    Ok(release_profiles)
+}
+
+fn format_release_profile_identifiers_summary(
+    release_profiles: &ReleaseProfileIdentifiers,
+) -> String {
+    match release_profiles.validate() {
+        Ok(()) => release_profiles.summary_line(),
+        Err(error) => format!("unavailable ({error})"),
+    }
+}
+
 fn api_stability_summary_line_for_report() -> String {
     match validated_api_stability_profile_for_report() {
         Ok(profile) => profile.summary_line(),
@@ -7086,7 +7138,10 @@ fn format_packaged_frame_treatment_summary() -> String {
 fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     use std::fmt::Write as _;
 
-    let release_profiles = current_release_profile_identifiers();
+    let release_profiles = match validated_release_profile_identifiers_for_report() {
+        Ok(release_profiles) => release_profiles,
+        Err(error) => return format!("Validation report summary unavailable ({error})"),
+    };
     let request_policy = request_policy_summary_for_report();
     let comparison_regressions = report.comparison.notable_regressions().len();
     let mut text = String::new();
@@ -7104,7 +7159,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(
         text,
         "Release profile identifiers: {}",
-        release_profiles.summary_line()
+        format_release_profile_identifiers_summary(&release_profiles)
     );
     let _ = writeln!(text, "Time-scale policy: {}", request_policy.time_scale);
     let _ = writeln!(text, "Observer policy: {}", request_policy.observer);
@@ -7905,7 +7960,10 @@ pub fn render_backend_matrix_summary() -> String {
 }
 
 fn render_backend_matrix_summary_text() -> String {
-    let release_profiles = current_release_profile_identifiers();
+    let release_profiles = match validated_release_profile_identifiers_for_report() {
+        Ok(release_profiles) => release_profiles,
+        Err(error) => return format!("Backend matrix summary unavailable ({error})"),
+    };
     let request_policy = request_policy_summary_for_report();
     let catalog = implemented_backend_catalog();
     let mut family_counts: BTreeMap<String, usize> = BTreeMap::new();
@@ -8153,7 +8211,9 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("Release profile identifiers: ");
-    text.push_str(&release_profiles.summary_line());
+    text.push_str(&format_release_profile_identifiers_summary(
+        &release_profiles,
+    ));
     text.push('\n');
     text.push_str("API stability summary: api-stability-summary\n");
     text.push_str("Release notes summary: release-notes-summary\n");
@@ -8173,7 +8233,10 @@ pub fn render_api_stability_summary() -> String {
 }
 
 fn render_api_stability_summary_text() -> String {
-    let release_profiles = current_release_profile_identifiers();
+    let release_profiles = match validated_release_profile_identifiers_for_report() {
+        Ok(release_profiles) => release_profiles,
+        Err(error) => return format!("API stability summary unavailable ({error})"),
+    };
 
     match validated_api_stability_profile_for_report() {
         Ok(profile) => {
@@ -8190,7 +8253,9 @@ fn render_api_stability_summary_text() -> String {
             text.push_str(release_profiles.compatibility_profile_id);
             text.push('\n');
             text.push_str("Release profile identifiers: ");
-            text.push_str(&release_profiles.summary_line());
+            text.push_str(&format_release_profile_identifiers_summary(
+                &release_profiles,
+            ));
             text.push('\n');
             text.push_str("Stable surfaces: ");
             text.push_str(&profile.stable_surfaces.len().to_string());
@@ -14539,6 +14604,19 @@ version = "0.9.0"
         assert!(error
             .to_string()
             .contains("release-profile identifiers mismatch"));
+    }
+
+    #[test]
+    fn release_profile_identifier_summary_helper_rejects_drifted_pairs() {
+        let compatibility_profile_id = current_compatibility_profile().profile_id;
+        let release_profiles = ReleaseProfileIdentifiers {
+            compatibility_profile_id,
+            api_stability_profile_id: compatibility_profile_id,
+        };
+
+        let rendered = format_release_profile_identifiers_summary(&release_profiles);
+        assert!(rendered.contains("unavailable"));
+        assert!(rendered.contains("release-profile identifiers must be distinct"));
     }
 
     #[test]
