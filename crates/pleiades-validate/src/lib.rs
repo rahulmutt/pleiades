@@ -2021,6 +2021,22 @@ pub struct BenchmarkReport {
 }
 
 impl BenchmarkReport {
+    /// Returns a compact release-facing summary line for the benchmark.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "backend={}; corpus={}; apparentness={}; rounds={}; samples per round={}; single ns/request={}; batch ns/request={}; batch throughput={:.2} req/s; estimated corpus heap footprint={} bytes",
+            self.backend.id,
+            self.corpus_name,
+            self.apparentness,
+            self.rounds,
+            self.sample_count,
+            format_ns(self.nanoseconds_per_request()),
+            format_ns(self.batch_nanoseconds_per_request()),
+            self.batch_requests_per_second(),
+            self.estimated_corpus_heap_bytes,
+        )
+    }
+
     /// Returns the average number of nanoseconds per request for the single-request path.
     pub fn nanoseconds_per_request(&self) -> f64 {
         let total_requests = (self.rounds * self.sample_count) as f64;
@@ -8827,6 +8843,7 @@ impl fmt::Display for ComparisonReport {
 impl fmt::Display for BenchmarkReport {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Benchmark report")?;
+        writeln!(f, "Summary: {}", self.summary_line())?;
         writeln!(f, "Backend: {}", self.backend.id)?;
         writeln!(f, "Corpus: {}", self.corpus_name)?;
         writeln!(f, "Apparentness: {}", self.apparentness)?;
@@ -11444,6 +11461,7 @@ mod tests {
         assert!(report.contains("workspace status:"));
         assert!(report.contains("rustc version:"));
         assert!(report.contains("Benchmark report"));
+        assert!(report.contains("Summary: backend="));
         assert!(report.contains("Representative 1500-2500 window"));
         assert!(report.contains("Apparentness: Mean"));
         assert!(report.contains("Methodology:"));
@@ -11460,10 +11478,28 @@ mod tests {
         assert!(report.contains("Nanoseconds per decode:"));
         assert!(report.contains("Decodes per second:"));
         assert!(report.contains("Chart benchmark report"));
+        assert!(report.contains("Summary: backend="));
         assert!(report.contains("Representative chart validation scenarios"));
         assert!(report.contains("Chart elapsed:"));
         assert!(report.contains("Nanoseconds per chart:"));
         assert!(report.contains("Charts per second:"));
+    }
+
+    #[test]
+    fn benchmark_report_summary_line_mentions_the_backend_and_throughput() {
+        let corpus = benchmark_corpus();
+        let backend = default_candidate_backend();
+        let report =
+            benchmark_backend(&backend, &corpus, 1).expect("benchmark should produce a report");
+        let summary = report.summary_line();
+        assert!(summary.contains("backend="));
+        assert!(summary.contains("corpus="));
+        assert!(summary.contains("apparentness="));
+        assert!(summary.contains("samples per round="));
+        assert!(summary.contains("single ns/request="));
+        assert!(summary.contains("batch ns/request="));
+        assert!(summary.contains("batch throughput="));
+        assert!(summary.contains("estimated corpus heap footprint="));
     }
 
     #[test]

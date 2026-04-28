@@ -37,6 +37,21 @@ pub struct ChartBenchmarkReport {
 }
 
 impl ChartBenchmarkReport {
+    /// Returns a compact release-facing summary line for the benchmark.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "backend={}; corpus={}; apparentness={}; rounds={}; samples per round={}; chart ns/request={}; charts per second={:.2}; estimated corpus heap footprint={} bytes",
+            self.backend.id,
+            self.corpus_name,
+            self.apparentness,
+            self.rounds,
+            self.sample_count,
+            format_ns(self.nanoseconds_per_chart()),
+            self.charts_per_second(),
+            self.estimated_corpus_heap_bytes,
+        )
+    }
+
     /// Returns the average number of nanoseconds per chart for the benchmark.
     pub fn nanoseconds_per_chart(&self) -> f64 {
         let total_requests = (self.rounds * self.sample_count) as f64;
@@ -109,6 +124,7 @@ impl ChartBenchmarkReport {
 impl fmt::Display for ChartBenchmarkReport {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Chart benchmark report")?;
+        writeln!(f, "Summary: {}", self.summary_line())?;
         writeln!(f, "Backend: {}", self.backend.id)?;
         writeln!(f, "Corpus: {}", self.corpus_name)?;
         writeln!(f, "Apparentness: {}", self.apparentness)?;
@@ -261,6 +277,19 @@ fn format_ns(value: f64) -> String {
 mod tests {
     use super::*;
     use crate::default_candidate_backend;
+
+    #[test]
+    fn chart_benchmark_summary_line_mentions_the_backend_and_throughput() {
+        let report = benchmark_chart_backend(default_candidate_backend(), 1)
+            .expect("chart benchmark should produce a report");
+        let summary = report.summary_line();
+        assert!(summary.contains("backend="));
+        assert!(summary.contains("corpus="));
+        assert!(summary.contains("apparentness="));
+        assert!(summary.contains("chart ns/request="));
+        assert!(summary.contains("charts per second="));
+        assert!(summary.contains("estimated corpus heap footprint="));
+    }
 
     #[test]
     fn chart_benchmark_rejects_zero_heap_footprint() {
