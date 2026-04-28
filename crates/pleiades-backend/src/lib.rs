@@ -2563,6 +2563,20 @@ mod tests {
         );
         assert_eq!(tt_from_tdb_signed.apparent, tt_from_tdb_request.apparent);
 
+        let tt_from_tdb_unsigned = tt_from_tdb_request
+            .clone()
+            .with_tt_from_tdb(0.001_657)
+            .expect("TDB request should convert back to TT with a duration offset");
+        assert_eq!(tt_from_tdb_unsigned.instant.scale, TimeScale::Tt);
+        assert_eq!(tt_from_tdb_unsigned.body, tt_from_tdb_request.body);
+        assert_eq!(tt_from_tdb_unsigned.observer, tt_from_tdb_request.observer);
+        assert_eq!(tt_from_tdb_unsigned.frame, tt_from_tdb_request.frame);
+        assert_eq!(
+            tt_from_tdb_unsigned.zodiac_mode,
+            tt_from_tdb_request.zodiac_mode
+        );
+        assert_eq!(tt_from_tdb_unsigned.apparent, tt_from_tdb_request.apparent);
+
         let tt_from_ut1_request = EphemerisRequest {
             instant: Instant::new(JulianDay::from_days(2451545.0), TimeScale::Ut1),
             ..time_scale_request.clone()
@@ -2577,6 +2591,20 @@ mod tests {
         assert_eq!(tt_from_ut1.frame, tt_from_ut1_request.frame);
         assert_eq!(tt_from_ut1.zodiac_mode, tt_from_ut1_request.zodiac_mode);
         assert_eq!(tt_from_ut1.apparent, tt_from_ut1_request.apparent);
+
+        let tt_from_ut1_unsigned = tt_from_ut1_request
+            .clone()
+            .with_tt_from_ut1(Duration::from_secs_f64(64.184))
+            .expect("UT1 request should convert to TT with a duration offset");
+        assert_eq!(tt_from_ut1_unsigned.instant.scale, TimeScale::Tt);
+        assert_eq!(tt_from_ut1_unsigned.body, tt_from_ut1_request.body);
+        assert_eq!(tt_from_ut1_unsigned.observer, tt_from_ut1_request.observer);
+        assert_eq!(tt_from_ut1_unsigned.frame, tt_from_ut1_request.frame);
+        assert_eq!(
+            tt_from_ut1_unsigned.zodiac_mode,
+            tt_from_ut1_request.zodiac_mode
+        );
+        assert_eq!(tt_from_ut1_unsigned.apparent, tt_from_ut1_request.apparent);
 
         let tt_from_utc_request = EphemerisRequest {
             instant: Instant::new(JulianDay::from_days(2451545.0), TimeScale::Utc),
@@ -2608,6 +2636,20 @@ mod tests {
         assert_eq!(tdb_from_tt.zodiac_mode, tdb_from_tt_request.zodiac_mode);
         assert_eq!(tdb_from_tt.apparent, tdb_from_tt_request.apparent);
 
+        let tdb_from_tt_unsigned = tdb_from_tt_request
+            .clone()
+            .with_tdb_from_tt(Duration::from_secs_f64(0.001_657))
+            .expect("TT request should convert to TDB with a duration offset");
+        assert_eq!(tdb_from_tt_unsigned.instant.scale, TimeScale::Tdb);
+        assert_eq!(tdb_from_tt_unsigned.body, tdb_from_tt_request.body);
+        assert_eq!(tdb_from_tt_unsigned.observer, tdb_from_tt_request.observer);
+        assert_eq!(tdb_from_tt_unsigned.frame, tdb_from_tt_request.frame);
+        assert_eq!(
+            tdb_from_tt_unsigned.zodiac_mode,
+            tdb_from_tt_request.zodiac_mode
+        );
+        assert_eq!(tdb_from_tt_unsigned.apparent, tdb_from_tt_request.apparent);
+
         let tdb_from_ut1_request = EphemerisRequest {
             instant: Instant::new(JulianDay::from_days(2451545.0), TimeScale::Ut1),
             ..time_scale_request.clone()
@@ -2623,6 +2665,29 @@ mod tests {
         assert_eq!(tdb_from_ut1.zodiac_mode, tdb_from_ut1_request.zodiac_mode);
         assert_eq!(tdb_from_ut1.apparent, tdb_from_ut1_request.apparent);
 
+        let tdb_from_ut1_unsigned = tdb_from_ut1_request
+            .clone()
+            .with_tdb_from_ut1(
+                Duration::from_secs_f64(64.184),
+                Duration::from_secs_f64(0.001_657),
+            )
+            .expect("UT1 request should convert to TDB with duration offsets");
+        assert_eq!(tdb_from_ut1_unsigned.instant.scale, TimeScale::Tdb);
+        assert_eq!(tdb_from_ut1_unsigned.body, tdb_from_ut1_request.body);
+        assert_eq!(
+            tdb_from_ut1_unsigned.observer,
+            tdb_from_ut1_request.observer
+        );
+        assert_eq!(tdb_from_ut1_unsigned.frame, tdb_from_ut1_request.frame);
+        assert_eq!(
+            tdb_from_ut1_unsigned.zodiac_mode,
+            tdb_from_ut1_request.zodiac_mode
+        );
+        assert_eq!(
+            tdb_from_ut1_unsigned.apparent,
+            tdb_from_ut1_request.apparent
+        );
+
         let tdb_from_utc_request = EphemerisRequest {
             instant: Instant::new(JulianDay::from_days(2451545.0), TimeScale::Utc),
             ..time_scale_request.clone()
@@ -2637,6 +2702,29 @@ mod tests {
         assert_eq!(tdb_from_utc.frame, tdb_from_utc_request.frame);
         assert_eq!(tdb_from_utc.zodiac_mode, tdb_from_utc_request.zodiac_mode);
         assert_eq!(tdb_from_utc.apparent, tdb_from_utc_request.apparent);
+
+        let tdb_from_utc_unsigned = tdb_from_utc_request
+            .clone()
+            .with_tdb_from_utc(
+                Duration::from_secs_f64(64.184),
+                Duration::from_secs_f64(0.001_657),
+            )
+            .expect("UTC request should convert to TDB with duration offsets");
+        assert_eq!(tdb_from_utc_unsigned.instant.scale, TimeScale::Tdb);
+        assert_eq!(tdb_from_utc_unsigned.body, tdb_from_utc_request.body);
+        assert_eq!(
+            tdb_from_utc_unsigned.observer,
+            tdb_from_utc_request.observer
+        );
+        assert_eq!(tdb_from_utc_unsigned.frame, tdb_from_utc_request.frame);
+        assert_eq!(
+            tdb_from_utc_unsigned.zodiac_mode,
+            tdb_from_utc_request.zodiac_mode
+        );
+        assert_eq!(
+            tdb_from_utc_unsigned.apparent,
+            tdb_from_utc_request.apparent
+        );
 
         let error = time_scale_request
             .clone()
