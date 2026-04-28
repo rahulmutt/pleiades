@@ -4182,6 +4182,86 @@ impl Vsop87SourceBodyClassEvidenceSummary {
                 },
             );
         }
+        for (field, value) in [
+            ("max_longitude_delta_deg", self.max_longitude_delta_deg),
+            (
+                "max_longitude_delta_limit_deg",
+                self.max_longitude_delta_limit_deg,
+            ),
+            ("max_latitude_delta_deg", self.max_latitude_delta_deg),
+            (
+                "max_latitude_delta_limit_deg",
+                self.max_latitude_delta_limit_deg,
+            ),
+            ("max_distance_delta_au", self.max_distance_delta_au),
+            (
+                "max_distance_delta_limit_au",
+                self.max_distance_delta_limit_au,
+            ),
+            ("mean_longitude_delta_deg", self.mean_longitude_delta_deg),
+            (
+                "median_longitude_delta_deg",
+                self.median_longitude_delta_deg,
+            ),
+            (
+                "percentile_longitude_delta_deg",
+                self.percentile_longitude_delta_deg,
+            ),
+            ("rms_longitude_delta_deg", self.rms_longitude_delta_deg),
+            ("mean_latitude_delta_deg", self.mean_latitude_delta_deg),
+            ("median_latitude_delta_deg", self.median_latitude_delta_deg),
+            (
+                "percentile_latitude_delta_deg",
+                self.percentile_latitude_delta_deg,
+            ),
+            ("rms_latitude_delta_deg", self.rms_latitude_delta_deg),
+            ("mean_distance_delta_au", self.mean_distance_delta_au),
+            ("median_distance_delta_au", self.median_distance_delta_au),
+            (
+                "percentile_distance_delta_au",
+                self.percentile_distance_delta_au,
+            ),
+            ("rms_distance_delta_au", self.rms_distance_delta_au),
+        ] {
+            if !value.is_finite() || value < 0.0 {
+                return Err(
+                    Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync { field },
+                );
+            }
+        }
+        if self.mean_longitude_delta_deg > self.max_longitude_delta_deg
+            || self.median_longitude_delta_deg > self.percentile_longitude_delta_deg
+            || self.percentile_longitude_delta_deg > self.max_longitude_delta_deg
+            || self.rms_longitude_delta_deg > self.max_longitude_delta_deg
+        {
+            return Err(
+                Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync {
+                    field: "median_longitude_delta_deg",
+                },
+            );
+        }
+        if self.mean_latitude_delta_deg > self.max_latitude_delta_deg
+            || self.median_latitude_delta_deg > self.percentile_latitude_delta_deg
+            || self.percentile_latitude_delta_deg > self.max_latitude_delta_deg
+            || self.rms_latitude_delta_deg > self.max_latitude_delta_deg
+        {
+            return Err(
+                Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync {
+                    field: "median_latitude_delta_deg",
+                },
+            );
+        }
+        if self.mean_distance_delta_au > self.max_distance_delta_au
+            || self.median_distance_delta_au > self.percentile_distance_delta_au
+            || self.percentile_distance_delta_au > self.max_distance_delta_au
+            || self.rms_distance_delta_au > self.max_distance_delta_au
+        {
+            return Err(
+                Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync {
+                    field: "median_distance_delta_au",
+                },
+            );
+        }
 
         Ok(())
     }
@@ -8148,6 +8228,46 @@ mod tests {
         assert_eq!(
             error.to_string(),
             "the VSOP87 source-backed body-class evidence summary field `max_longitude_delta_source_file` is out of sync with the current canonical evidence"
+        );
+    }
+
+    #[test]
+    fn source_body_class_evidence_summary_validation_rejects_non_finite_metric() {
+        let mut summary = source_body_class_evidence_summary()
+            .expect("summary should exist")
+            .into_iter()
+            .find(|summary| summary.class == Vsop87SourceBodyClass::MajorPlanet)
+            .expect("major-planet summary should exist");
+        summary.mean_distance_delta_au = f64::NAN;
+
+        let error = summary
+            .validate()
+            .expect_err("non-finite metrics should fail validation");
+        assert_eq!(
+            error,
+            Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync {
+                field: "mean_distance_delta_au",
+            }
+        );
+    }
+
+    #[test]
+    fn source_body_class_evidence_summary_validation_rejects_metric_order_drift() {
+        let mut summary = source_body_class_evidence_summary()
+            .expect("summary should exist")
+            .into_iter()
+            .find(|summary| summary.class == Vsop87SourceBodyClass::MajorPlanet)
+            .expect("major-planet summary should exist");
+        summary.median_longitude_delta_deg = summary.percentile_longitude_delta_deg + 1e-9;
+
+        let error = summary
+            .validate()
+            .expect_err("metric ordering should fail validation");
+        assert_eq!(
+            error,
+            Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync {
+                field: "median_longitude_delta_deg",
+            }
         );
     }
 
