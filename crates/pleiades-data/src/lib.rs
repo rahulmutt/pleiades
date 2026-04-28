@@ -765,10 +765,49 @@ pub fn packaged_frame_treatment_summary() -> &'static str {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct PackagedArtifactStorageSummary;
 
+/// Validation error for a packaged storage/reconstruction summary that drifted away from the compact posture line.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PackagedArtifactStorageSummaryValidationError {
+    /// The summary text is blank or whitespace-only.
+    BlankSummary,
+    /// The summary text has surrounding whitespace.
+    WhitespacePaddedSummary,
+}
+
+impl fmt::Display for PackagedArtifactStorageSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BlankSummary => f.write_str("packaged artifact storage summary is blank"),
+            Self::WhitespacePaddedSummary => {
+                f.write_str("packaged artifact storage summary has surrounding whitespace")
+            }
+        }
+    }
+}
+
+impl std::error::Error for PackagedArtifactStorageSummaryValidationError {}
+
+fn validate_packaged_artifact_storage_summary_line(
+    summary: &str,
+) -> Result<(), PackagedArtifactStorageSummaryValidationError> {
+    if summary.trim().is_empty() {
+        Err(PackagedArtifactStorageSummaryValidationError::BlankSummary)
+    } else if summary.trim() != summary {
+        Err(PackagedArtifactStorageSummaryValidationError::WhitespacePaddedSummary)
+    } else {
+        Ok(())
+    }
+}
+
 impl PackagedArtifactStorageSummary {
     /// Returns the storage and reconstruction posture as a compact human-readable line.
     pub const fn summary_line(self) -> &'static str {
         "Quantized linear segments stored in pleiades-compression artifact format; equatorial coordinates are reconstructed at runtime from stored channels"
+    }
+
+    /// Returns `Ok(())` when the summary still contains a compact canonical line.
+    pub fn validate(&self) -> Result<(), PackagedArtifactStorageSummaryValidationError> {
+        validate_packaged_artifact_storage_summary_line(self.summary_line())
     }
 }
 
@@ -786,6 +825,15 @@ pub const fn packaged_artifact_storage_summary_details() -> PackagedArtifactStor
 /// Returns the packaged-artifact storage/reconstruction summary.
 pub fn packaged_artifact_storage_summary() -> &'static str {
     packaged_artifact_storage_summary_details().summary_line()
+}
+
+/// Returns the packaged-artifact storage/reconstruction summary for reporting.
+pub fn packaged_artifact_storage_summary_for_report() -> String {
+    let summary = packaged_artifact_storage_summary_details();
+    match summary.validate() {
+        Ok(()) => summary.to_string(),
+        Err(error) => format!("Packaged artifact storage/reconstruction: unavailable ({error})"),
+    }
 }
 
 /// Structured mixed batch-parity summary for the packaged artifact.
@@ -1424,9 +1472,7 @@ impl EphemerisBackend for PackagedDataBackend {
                     packaged_body_coverage_summary(),
                     packaged_request_policy_summary_details().to_string(),
                     packaged_frame_treatment_summary_details().to_string(),
-                    packaged_artifact_storage_summary_details()
-                        .summary_line()
-                        .to_string(),
+                    packaged_artifact_storage_summary_for_report(),
                 ],
             },
             nominal_range: range,
@@ -2032,6 +2078,10 @@ mod tests {
         assert!(metadata.provenance.data_sources[3].contains("Quantized linear segments"));
         assert!(metadata.provenance.data_sources[3]
             .contains("equatorial coordinates are reconstructed at runtime"));
+        assert_eq!(
+            packaged_artifact_storage_summary_details().validate(),
+            Ok(())
+        );
     }
 
     #[test]
@@ -2248,6 +2298,24 @@ mod tests {
         assert_eq!(
             validate_packaged_frame_treatment_summary_line(&summary),
             Err(PackagedFrameTreatmentSummaryValidationError::WhitespacePaddedSummary)
+        );
+    }
+
+    #[test]
+    fn packaged_artifact_storage_summary_rejects_whitespace_padded_summary_text() {
+        let summary = format!(" {} ", PackagedArtifactStorageSummary.summary_line());
+
+        assert_eq!(
+            validate_packaged_artifact_storage_summary_line(&summary),
+            Err(PackagedArtifactStorageSummaryValidationError::WhitespacePaddedSummary)
+        );
+    }
+
+    #[test]
+    fn packaged_artifact_storage_summary_rejects_blank_summary_text() {
+        assert_eq!(
+            validate_packaged_artifact_storage_summary_line(""),
+            Err(PackagedArtifactStorageSummaryValidationError::BlankSummary)
         );
     }
 
