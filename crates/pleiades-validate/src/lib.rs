@@ -4355,13 +4355,44 @@ fn summarize_latitude_sensitive_house_systems(profile: &CompatibilityProfile) ->
     }
 }
 
-fn summarize_house_formula_families(profile: &CompatibilityProfile) -> String {
-    let families = profile.house_formula_family_names();
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct HouseFormulaFamiliesSummary {
+    names: Vec<String>,
+}
 
-    match families.as_slice() {
-        [] => "0 (none)".to_string(),
-        [single] => format!("1 ({single})"),
-        _ => format!("{} ({})", families.len(), families.join(", ")),
+impl HouseFormulaFamiliesSummary {
+    fn validate(&self) -> Result<(), EphemerisError> {
+        validate_name_sequence(
+            "house formula families summary",
+            self.names.iter().map(String::as_str),
+        )
+    }
+
+    fn summary_line(&self) -> String {
+        match self.names.as_slice() {
+            [] => "0 (none)".to_string(),
+            [single] => format!("1 ({single})"),
+            _ => format!("{} ({})", self.names.len(), self.names.join(", ")),
+        }
+    }
+}
+
+impl fmt::Display for HouseFormulaFamiliesSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn summarize_house_formula_families(profile: &CompatibilityProfile) -> HouseFormulaFamiliesSummary {
+    HouseFormulaFamiliesSummary {
+        names: profile.house_formula_family_names(),
+    }
+}
+
+fn format_house_formula_families_summary(summary: &HouseFormulaFamiliesSummary) -> String {
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("unavailable ({error})"),
     }
 }
 
@@ -4480,7 +4511,9 @@ fn render_compatibility_profile_summary_text() -> String {
     text.push_str(&summarize_latitude_sensitive_house_systems(&profile));
     text.push('\n');
     text.push_str("House formula families: ");
-    text.push_str(&summarize_house_formula_families(&profile));
+    text.push_str(&format_house_formula_families_summary(
+        &summarize_house_formula_families(&profile),
+    ));
     text.push('\n');
     text.push_str("Ayanamsas: ");
     text.push_str(&profile.ayanamsas.len().to_string());
@@ -4678,7 +4711,9 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&summarize_latitude_sensitive_house_systems(&profile));
     text.push('\n');
     text.push_str("House formula families: ");
-    text.push_str(&summarize_house_formula_families(&profile));
+    text.push_str(&format_house_formula_families_summary(
+        &summarize_house_formula_families(&profile),
+    ));
     text.push('\n');
     text.push_str(&reference_asteroid_evidence_summary_for_report());
     text.push('\n');
@@ -4886,7 +4921,9 @@ fn render_release_summary_text() -> String {
     text.push_str(&summarize_latitude_sensitive_house_systems(&profile));
     text.push('\n');
     text.push_str("House formula families: ");
-    text.push_str(&summarize_house_formula_families(&profile));
+    text.push_str(&format_house_formula_families_summary(
+        &summarize_house_formula_families(&profile),
+    ));
     text.push('\n');
     text.push_str(&lunar_theory_catalog_summary_for_report());
     text.push('\n');
@@ -13099,6 +13136,33 @@ mod tests {
         let error = summary
             .validate()
             .expect_err("case-insensitive duplicate descriptor names should fail validation");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error.message.contains("case-insensitive duplicate name"));
+    }
+
+    #[test]
+    fn house_formula_families_summary_renders_and_validates() {
+        let summary = HouseFormulaFamiliesSummary {
+            names: current_compatibility_profile().house_formula_family_names(),
+        };
+        let expected = "7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign)";
+
+        summary
+            .validate()
+            .expect("current house formula families summary should validate");
+        assert_eq!(summary.summary_line(), expected);
+        assert_eq!(summary.to_string(), expected);
+    }
+
+    #[test]
+    fn house_formula_families_summary_validation_rejects_stale_names() {
+        let summary = HouseFormulaFamiliesSummary {
+            names: vec!["Equal".to_string(), "equal".to_string()],
+        };
+
+        let error = summary
+            .validate()
+            .expect_err("case-insensitive duplicate house formula families should fail validation");
         assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
         assert!(error.message.contains("case-insensitive duplicate name"));
     }
