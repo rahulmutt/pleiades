@@ -3386,6 +3386,8 @@ pub enum SnapshotManifestValidationError {
     MissingColumns,
     /// The manifest included a blank coverage comment after trimming.
     BlankCoverage,
+    /// The manifest carried surrounding whitespace in a provenance field.
+    SurroundedByWhitespace { field: &'static str },
     /// A parsed column name was blank after trimming.
     BlankColumn { index: usize },
     /// The manifest reused a column name after trimming.
@@ -3404,6 +3406,7 @@ impl SnapshotManifestValidationError {
             Self::MissingSource => "missing source",
             Self::MissingColumns => "missing columns",
             Self::BlankCoverage => "blank coverage",
+            Self::SurroundedByWhitespace { .. } => "surrounded by whitespace",
             Self::BlankColumn { .. } => "blank column",
             Self::DuplicateColumn { .. } => "duplicate column",
         }
@@ -3413,6 +3416,9 @@ impl SnapshotManifestValidationError {
 impl fmt::Display for SnapshotManifestValidationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::SurroundedByWhitespace { field } => {
+                write!(f, "{field} contains surrounding whitespace")
+            }
             Self::BlankColumn { index } => write!(f, "blank column at index {index}"),
             Self::DuplicateColumn {
                 first_index,
@@ -3468,6 +3474,13 @@ impl SnapshotManifest {
             return Err(SnapshotManifestValidationError::MissingTitle);
         }
         if self
+            .title
+            .as_deref()
+            .is_some_and(has_surrounding_whitespace)
+        {
+            return Err(SnapshotManifestValidationError::SurroundedByWhitespace { field: "title" });
+        }
+        if self
             .source
             .as_deref()
             .map(str::trim)
@@ -3476,8 +3489,26 @@ impl SnapshotManifest {
         {
             return Err(SnapshotManifestValidationError::MissingSource);
         }
+        if self
+            .source
+            .as_deref()
+            .is_some_and(has_surrounding_whitespace)
+        {
+            return Err(SnapshotManifestValidationError::SurroundedByWhitespace {
+                field: "source",
+            });
+        }
         if matches!(self.coverage.as_deref(), Some(coverage) if coverage.trim().is_empty()) {
             return Err(SnapshotManifestValidationError::BlankCoverage);
+        }
+        if self
+            .coverage
+            .as_deref()
+            .is_some_and(has_surrounding_whitespace)
+        {
+            return Err(SnapshotManifestValidationError::SurroundedByWhitespace {
+                field: "coverage",
+            });
         }
         if self.columns.is_empty() {
             return Err(SnapshotManifestValidationError::MissingColumns);
@@ -3534,6 +3565,10 @@ impl fmt::Display for SnapshotManifest {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.summary_line_with_defaults("Snapshot manifest", "unknown", "unknown"))
     }
+}
+
+fn has_surrounding_whitespace(value: &str) -> bool {
+    value.trim() != value
 }
 
 fn parse_snapshot_manifest(source: &str) -> SnapshotManifest {
@@ -4831,6 +4866,46 @@ mod tests {
         );
 
         let manifest = SnapshotManifest {
+            title: Some(" Example snapshot.".to_string()),
+            source: Some("Example source".to_string()),
+            coverage: None,
+            columns: vec!["body".to_string()],
+        };
+
+        assert_eq!(
+            manifest.validate(),
+            Err(SnapshotManifestValidationError::SurroundedByWhitespace { field: "title" })
+        );
+        assert_eq!(
+            SnapshotManifestValidationError::SurroundedByWhitespace { field: "title" }.to_string(),
+            "title contains surrounding whitespace"
+        );
+
+        let manifest = SnapshotManifest {
+            title: Some("Example snapshot.".to_string()),
+            source: Some(" Example source".to_string()),
+            coverage: None,
+            columns: vec!["body".to_string()],
+        };
+
+        assert_eq!(
+            manifest.validate(),
+            Err(SnapshotManifestValidationError::SurroundedByWhitespace { field: "source" })
+        );
+
+        let manifest = SnapshotManifest {
+            title: Some("Example snapshot.".to_string()),
+            source: Some("Example source".to_string()),
+            coverage: Some(" Coverage".to_string()),
+            columns: vec!["body".to_string()],
+        };
+
+        assert_eq!(
+            manifest.validate(),
+            Err(SnapshotManifestValidationError::SurroundedByWhitespace { field: "coverage" })
+        );
+
+        let manifest = SnapshotManifest {
             title: Some("Example snapshot.".to_string()),
             source: Some("Example source".to_string()),
             coverage: None,
@@ -4889,6 +4964,45 @@ mod tests {
         assert_eq!(
             manifest.summary_line("Example manifest"),
             "Example manifest: Example snapshot.; source=Example source; coverage=unknown; columns=body"
+        );
+    }
+
+    #[test]
+    fn parsed_manifest_rejects_surrounding_whitespace_in_provenance_fields() {
+        let manifest = SnapshotManifest {
+            title: Some(" Example snapshot.".to_string()),
+            source: Some("Example source".to_string()),
+            coverage: None,
+            columns: vec!["body".to_string()],
+        };
+
+        assert_eq!(
+            manifest.validate(),
+            Err(SnapshotManifestValidationError::SurroundedByWhitespace { field: "title" })
+        );
+
+        let manifest = SnapshotManifest {
+            title: Some("Example snapshot.".to_string()),
+            source: Some(" Example source".to_string()),
+            coverage: None,
+            columns: vec!["body".to_string()],
+        };
+
+        assert_eq!(
+            manifest.validate(),
+            Err(SnapshotManifestValidationError::SurroundedByWhitespace { field: "source" })
+        );
+
+        let manifest = SnapshotManifest {
+            title: Some("Example snapshot.".to_string()),
+            source: Some("Example source".to_string()),
+            coverage: Some(" Coverage".to_string()),
+            columns: vec!["body".to_string()],
+        };
+
+        assert_eq!(
+            manifest.validate(),
+            Err(SnapshotManifestValidationError::SurroundedByWhitespace { field: "coverage" })
         );
     }
 
