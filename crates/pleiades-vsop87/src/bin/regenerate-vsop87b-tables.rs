@@ -2,7 +2,7 @@ use std::{env, fs, path::PathBuf, process::ExitCode};
 
 use pleiades_vsop87::{
     checked_in_generated_vsop87b_table_bytes_for_source_file, source_manifest,
-    try_generated_vsop87b_table_bytes_for_source_file,
+    try_generated_vsop87b_table_bytes_for_source_file, validate_source_manifest,
 };
 
 fn main() -> ExitCode {
@@ -26,7 +26,10 @@ fn write_regenerated_tables(output_dir: PathBuf) -> Result<(), String> {
     fs::create_dir_all(&output_dir)
         .map_err(|error| format!("failed to create {}: {error}", output_dir.display()))?;
 
-    for (body, source_file) in source_manifest() {
+    let manifest = source_manifest();
+    validate_source_manifest(&manifest).map_err(|error| error.to_string())?;
+
+    for (body, source_file) in manifest {
         let bytes = try_generated_vsop87b_table_bytes_for_source_file(source_file)
             .map_err(|error| error.to_string())?;
         let output_path = output_dir.join(format!("{}.bin", source_file));
@@ -46,6 +49,7 @@ fn write_regenerated_tables(output_dir: PathBuf) -> Result<(), String> {
 fn check_regenerated_tables() -> Result<(), String> {
     let mut mismatches = Vec::new();
     let manifest = source_manifest();
+    validate_source_manifest(&manifest).map_err(|error| error.to_string())?;
     let manifest_len = manifest.len();
     let supported_source_files = manifest
         .iter()
@@ -134,7 +138,9 @@ fn usage() -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::{check_regenerated_tables, parse_command, source_manifest, Command};
+    use super::{
+        check_regenerated_tables, parse_command, source_manifest, validate_source_manifest, Command,
+    };
 
     #[test]
     fn parse_command_accepts_check_mode() {
@@ -170,6 +176,7 @@ mod tests {
     fn source_manifest_pairs_bodies_with_source_files_in_release_order() {
         let manifest = source_manifest();
 
+        validate_source_manifest(&manifest).expect("source manifest should match the catalog");
         assert_eq!(manifest.len(), 8);
         assert_eq!(
             manifest

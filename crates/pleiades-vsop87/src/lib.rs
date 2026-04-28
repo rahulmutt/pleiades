@@ -4703,6 +4703,76 @@ pub fn source_manifest() -> Vec<(CelestialBody, &'static str)> {
         .collect()
 }
 
+/// Validation errors for a VSOP87 source manifest that drifted from the
+/// current source-specification catalog.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Vsop87SourceManifestValidationError {
+    /// The manifest length differs from the current source-specification list.
+    LengthMismatch { expected: usize, actual: usize },
+    /// One manifest entry differs from the current source-specification catalog.
+    EntryMismatch {
+        index: usize,
+        expected_body: Box<CelestialBody>,
+        actual_body: Box<CelestialBody>,
+        expected_source_file: &'static str,
+        actual_source_file: &'static str,
+    },
+}
+
+impl fmt::Display for Vsop87SourceManifestValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::LengthMismatch { expected, actual } => write!(
+                f,
+                "the VSOP87 source manifest length is out of sync with the current source catalog (expected {expected}, got {actual})"
+            ),
+            Self::EntryMismatch {
+                index,
+                expected_body,
+                actual_body,
+                expected_source_file,
+                actual_source_file,
+            } => write!(
+                f,
+                "the VSOP87 source manifest entry {index} is out of sync with the current source catalog (expected {expected_body} / {expected_source_file}, got {actual_body} / {actual_source_file})"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for Vsop87SourceManifestValidationError {}
+
+/// Validates that a VSOP87 source manifest still matches the current source
+/// catalog order.
+pub fn validate_source_manifest(
+    manifest: &[(CelestialBody, &'static str)],
+) -> Result<(), Vsop87SourceManifestValidationError> {
+    let expected_manifest = source_specifications();
+
+    if manifest.len() != expected_manifest.len() {
+        return Err(Vsop87SourceManifestValidationError::LengthMismatch {
+            expected: expected_manifest.len(),
+            actual: manifest.len(),
+        });
+    }
+
+    for (index, ((actual_body, actual_source_file), expected_spec)) in
+        manifest.iter().zip(expected_manifest.iter()).enumerate()
+    {
+        if *actual_body != expected_spec.body || *actual_source_file != expected_spec.source_file {
+            return Err(Vsop87SourceManifestValidationError::EntryMismatch {
+                index,
+                expected_body: Box::new(expected_spec.body.clone()),
+                actual_body: Box::new(actual_body.clone()),
+                expected_source_file: expected_spec.source_file,
+                actual_source_file,
+            });
+        }
+    }
+
+    Ok(())
+}
+
 /// Returns the supported vendored VSOP87B source files in source-spec order.
 ///
 /// This list is primarily used by maintainer-facing regeneration tooling and
@@ -8955,12 +9025,27 @@ mod tests {
                 .map(|(_, source_file)| *source_file)
                 .collect::<Vec<_>>()
         );
+        assert_eq!(validate_source_manifest(&manifest), Ok(()));
         for (body, source_file) in &manifest {
             assert!(
                 checked_in_generated_vsop87b_table_bytes_for_source_file(source_file).is_some(),
                 "supported source file {source_file} should have a checked-in generated blob for {body}"
             );
         }
+    }
+
+    #[test]
+    fn source_manifest_validation_rejects_entry_drift() {
+        let mut manifest = source_manifest();
+        manifest.swap(0, 1);
+
+        let error = validate_source_manifest(&manifest)
+            .expect_err("drifted source manifests should fail validation");
+
+        assert_eq!(
+            error.to_string(),
+            "the VSOP87 source manifest entry 0 is out of sync with the current source catalog (expected Sun / VSOP87B.ear, got Mercury / VSOP87B.mer)"
+        );
     }
 
     #[test]
