@@ -4336,6 +4336,22 @@ fn summarize_latitude_sensitive_house_systems(profile: &CompatibilityProfile) ->
     }
 }
 
+fn summarize_house_formula_families(profile: &CompatibilityProfile) -> String {
+    let families = profile
+        .house_systems
+        .iter()
+        .map(|entry| entry.formula_family().to_string())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+
+    match families.as_slice() {
+        [] => "0 (none)".to_string(),
+        [single] => format!("1 ({single})"),
+        _ => format!("{} ({})", families.len(), families.join(", ")),
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct DescriptorNamesSummary {
     names: Vec<&'static str>,
@@ -4441,6 +4457,9 @@ fn render_compatibility_profile_summary_text() -> String {
     text.push_str(" release-specific)\n");
     text.push_str("Latitude-sensitive house systems: ");
     text.push_str(&summarize_latitude_sensitive_house_systems(&profile));
+    text.push('\n');
+    text.push_str("House formula families: ");
+    text.push_str(&summarize_house_formula_families(&profile));
     text.push('\n');
     text.push_str("Ayanamsas: ");
     text.push_str(&profile.ayanamsas.len().to_string());
@@ -4629,6 +4648,9 @@ fn render_release_notes_summary_text() -> String {
     text.push('\n');
     text.push_str("Latitude-sensitive house systems: ");
     text.push_str(&summarize_latitude_sensitive_house_systems(&profile));
+    text.push('\n');
+    text.push_str("House formula families: ");
+    text.push_str(&summarize_house_formula_families(&profile));
     text.push('\n');
     text.push_str(&reference_asteroid_evidence_summary_for_report());
     text.push('\n');
@@ -4828,6 +4850,9 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str("Latitude-sensitive house systems: ");
     text.push_str(&summarize_latitude_sensitive_house_systems(&profile));
+    text.push('\n');
+    text.push_str("House formula families: ");
+    text.push_str(&summarize_house_formula_families(&profile));
     text.push('\n');
     text.push_str(&lunar_theory_catalog_summary_for_report());
     text.push('\n');
@@ -13378,6 +13403,7 @@ mod tests {
         )));
         assert!(rendered.contains("Release-specific coverage:"));
         assert!(rendered.contains("Custom-definition labels:"));
+        assert!(rendered.contains("House formula families: 7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign)"));
         assert!(rendered.contains("Validation reference points: 1 (stage-4 validation corpus)"));
         assert!(rendered.contains("Compatibility caveats:"));
         assert!(rendered.contains(&format!(
@@ -13503,6 +13529,7 @@ mod tests {
             release_profiles.compatibility_profile_id, release_profiles.api_stability_profile_id
         )));
         assert!(rendered.contains("Release summary line:"));
+        assert!(rendered.contains("House formula families: 7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign)"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
         assert!(rendered.contains("Backend matrix summary: backend-matrix-summary"));
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
