@@ -6810,6 +6810,22 @@ impl ComparisonEnvelopeSummary {
         self.median.validate()?;
         self.percentile.validate()?;
 
+        let expected_median = comparison_median_envelope(samples);
+        if self.median != expected_median {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "comparison envelope summary median drifted from the sampled comparison values",
+            ));
+        }
+
+        let expected_percentile = comparison_percentile_envelope(samples, 0.95);
+        if self.percentile != expected_percentile {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "comparison envelope summary percentile drifted from the sampled comparison values",
+            ));
+        }
+
         Ok(())
     }
 }
@@ -11402,6 +11418,42 @@ mod tests {
         assert!(envelope
             .percentile_line()
             .contains("95th percentile absolute deltas:"));
+    }
+
+    #[test]
+    fn comparison_envelope_summary_rejects_median_drift() {
+        let corpus = default_corpus();
+        let reference = default_reference_backend();
+        let candidate = default_candidate_backend();
+        let report =
+            compare_backends(&reference, &candidate, &corpus).expect("comparison should build");
+        let mut envelope = comparison_envelope_summary(&report.summary, &report.samples);
+        envelope.median.longitude_delta_deg += 0.0001;
+
+        let error = envelope
+            .validate_against_samples(&report.samples)
+            .expect_err("drifted median should fail validation");
+        assert!(error
+            .to_string()
+            .contains("median drifted from the sampled comparison values"));
+    }
+
+    #[test]
+    fn comparison_envelope_summary_rejects_percentile_drift() {
+        let corpus = default_corpus();
+        let reference = default_reference_backend();
+        let candidate = default_candidate_backend();
+        let report =
+            compare_backends(&reference, &candidate, &corpus).expect("comparison should build");
+        let mut envelope = comparison_envelope_summary(&report.summary, &report.samples);
+        envelope.percentile.longitude_delta_deg += 0.0001;
+
+        let error = envelope
+            .validate_against_samples(&report.samples)
+            .expect_err("drifted percentile should fail validation");
+        assert!(error
+            .to_string()
+            .contains("percentile drifted from the sampled comparison values"));
     }
 
     #[test]
