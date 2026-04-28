@@ -948,6 +948,8 @@ impl ComparisonTolerancePolicySummary {
             ));
         }
 
+        let mut seen_bodies: Vec<(CelestialBody, ComparisonToleranceScope)> = Vec::new();
+
         for (index, entry) in self.entries.iter().enumerate() {
             if self.entries[..index]
                 .iter()
@@ -990,6 +992,29 @@ impl ComparisonTolerancePolicySummary {
             }
 
             coverage.validate()?;
+
+            for body in &coverage.bodies {
+                if let Some((prior_body, prior_scope)) =
+                    seen_bodies.iter().find(|(seen_body, _)| seen_body == body)
+                {
+                    return Err(EphemerisError::new(
+                        EphemerisErrorKind::InvalidRequest,
+                        format!(
+                            "comparison tolerance policy summary body '{}' appears in multiple scope rows: first seen in {}, repeated in {}",
+                            prior_body,
+                            prior_scope.label(),
+                            entry.scope.label()
+                        ),
+                    ));
+                }
+            }
+            seen_bodies.extend(
+                coverage
+                    .bodies
+                    .iter()
+                    .cloned()
+                    .map(|body| (body, entry.scope)),
+            );
         }
 
         let comparison_body_count = self
@@ -10999,6 +11024,78 @@ mod tests {
             .validate()
             .expect_err("summary should reject duplicate coordinate frames");
         assert!(error.to_string().contains("duplicate coordinate frame"));
+    }
+
+    #[test]
+    fn comparison_tolerance_policy_summary_validation_rejects_duplicate_bodies_across_scopes() {
+        let summary = ComparisonTolerancePolicySummary {
+            backend_family: BackendFamily::Algorithmic,
+            entries: vec![
+                ComparisonToleranceEntry {
+                    scope: ComparisonToleranceScope::Luminary,
+                    tolerance: ComparisonTolerance {
+                        backend_family: BackendFamily::Algorithmic,
+                        profile: "test tolerance",
+                        max_longitude_delta_deg: 0.1,
+                        max_latitude_delta_deg: 0.2,
+                        max_distance_delta_au: Some(0.3),
+                    },
+                },
+                ComparisonToleranceEntry {
+                    scope: ComparisonToleranceScope::MajorPlanet,
+                    tolerance: ComparisonTolerance {
+                        backend_family: BackendFamily::Algorithmic,
+                        profile: "test tolerance",
+                        max_longitude_delta_deg: 0.4,
+                        max_latitude_delta_deg: 0.5,
+                        max_distance_delta_au: Some(0.6),
+                    },
+                },
+            ],
+            coverage: vec![
+                ComparisonToleranceScopeCoverageSummary {
+                    entry: ComparisonToleranceEntry {
+                        scope: ComparisonToleranceScope::Luminary,
+                        tolerance: ComparisonTolerance {
+                            backend_family: BackendFamily::Algorithmic,
+                            profile: "test tolerance",
+                            max_longitude_delta_deg: 0.1,
+                            max_latitude_delta_deg: 0.2,
+                            max_distance_delta_au: Some(0.3),
+                        },
+                    },
+                    bodies: vec![CelestialBody::Sun],
+                    body_count: 1,
+                    sample_count: 1,
+                },
+                ComparisonToleranceScopeCoverageSummary {
+                    entry: ComparisonToleranceEntry {
+                        scope: ComparisonToleranceScope::MajorPlanet,
+                        tolerance: ComparisonTolerance {
+                            backend_family: BackendFamily::Algorithmic,
+                            profile: "test tolerance",
+                            max_longitude_delta_deg: 0.4,
+                            max_latitude_delta_deg: 0.5,
+                            max_distance_delta_au: Some(0.6),
+                        },
+                    },
+                    bodies: vec![CelestialBody::Sun],
+                    body_count: 1,
+                    sample_count: 1,
+                },
+            ],
+            comparison_body_count: 2,
+            comparison_sample_count: 2,
+            comparison_window: TimeRange::new(None, None),
+            coordinate_frames: vec![CoordinateFrame::Ecliptic],
+        };
+
+        let error = summary
+            .validate()
+            .expect_err("summary should reject duplicate bodies across scopes");
+        assert!(error.to_string().contains("appears in multiple scope rows"));
+        assert!(error.to_string().contains("Luminaries"));
+        assert!(error.to_string().contains("Major planets"));
     }
 
     #[test]
