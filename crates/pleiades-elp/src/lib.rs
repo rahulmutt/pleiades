@@ -219,6 +219,71 @@ impl fmt::Display for LunarTheorySourceSelection {
     }
 }
 
+/// Validation error for a lunar-theory source selection that drifted from the current baseline.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LunarTheorySourceSelectionValidationError {
+    /// A rendered source-selection field no longer matches the current lunar-theory selection.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for LunarTheorySourceSelectionValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the lunar source selection field `{field}` is out of sync with the current selection"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for LunarTheorySourceSelectionValidationError {}
+
+impl LunarTheorySourceSelection {
+    /// Returns `Ok(())` when the selection still matches the current lunar-theory baseline.
+    pub fn validate(&self) -> Result<(), LunarTheorySourceSelectionValidationError> {
+        let source = lunar_theory_source_selection();
+
+        if self.family != source.family {
+            return Err(LunarTheorySourceSelectionValidationError::FieldOutOfSync {
+                field: "family",
+            });
+        }
+        if self.source_aliases != source.source_aliases {
+            return Err(LunarTheorySourceSelectionValidationError::FieldOutOfSync {
+                field: "source_aliases",
+            });
+        }
+        if self.identifier != source.identifier {
+            return Err(LunarTheorySourceSelectionValidationError::FieldOutOfSync {
+                field: "identifier",
+            });
+        }
+        if self.citation != source.citation {
+            return Err(LunarTheorySourceSelectionValidationError::FieldOutOfSync {
+                field: "citation",
+            });
+        }
+        if self.material != source.material {
+            return Err(LunarTheorySourceSelectionValidationError::FieldOutOfSync {
+                field: "material",
+            });
+        }
+        if self.redistribution_note != source.redistribution_note {
+            return Err(LunarTheorySourceSelectionValidationError::FieldOutOfSync {
+                field: "redistribution_note",
+            });
+        }
+        if self.license_note != source.license_note {
+            return Err(LunarTheorySourceSelectionValidationError::FieldOutOfSync {
+                field: "license_note",
+            });
+        }
+
+        Ok(())
+    }
+}
+
 /// Compact source-selection summary for the current lunar-theory baseline.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct LunarTheorySourceSummary {
@@ -1153,14 +1218,31 @@ pub fn lunar_theory_source_selection() -> LunarTheorySourceSelection {
     lunar_theory_specification().source_selection()
 }
 
+fn format_validated_lunar_theory_source_selection_for_report(
+    selection: &LunarTheorySourceSelection,
+) -> String {
+    match selection.validate() {
+        Ok(()) => selection.summary_line(),
+        Err(error) => format!("lunar source selection: unavailable ({error})"),
+    }
+}
+
 /// Returns the compact source-selection summary for the current lunar baseline.
+///
+/// The helper validates the backend-owned source-selection record first so any
+/// future drift in the rendered provenance fields shows up as an unavailable
+/// report line instead of a silently stale summary.
 pub fn lunar_theory_source_selection_summary() -> String {
-    lunar_theory_source_selection().summary_line()
+    format_validated_lunar_theory_source_selection_for_report(&lunar_theory_source_selection())
 }
 
 /// Formats a structured lunar source selection for reporting.
+///
+/// The formatter validates the provided selection against the current lunar-theory
+/// baseline first so callers get the same fail-closed summary wording as the
+/// report-facing accessor when a drifted selection is reused.
 pub fn format_lunar_theory_source_selection(selection: &LunarTheorySourceSelection) -> String {
-    selection.summary_line()
+    format_validated_lunar_theory_source_selection_for_report(selection)
 }
 
 /// Returns the bodies/channels the current lunar-theory baseline explicitly supports.
@@ -5000,6 +5082,32 @@ mod tests {
         assert!(summary.contains(selection.family_label()));
         assert!(summary.contains(selection.citation));
         assert!(summary.contains(selection.license_note));
+        assert_eq!(selection.validate(), Ok(()));
+    }
+
+    #[test]
+    fn lunar_theory_source_selection_validation_fails_closed_for_drifted_fields() {
+        let selection = lunar_theory_source_selection();
+        let drifted = LunarTheorySourceSelection {
+            identifier: "not-the-current-selection",
+            ..selection
+        };
+
+        let error = drifted
+            .validate()
+            .expect_err("drifted source selection should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "the lunar source selection field `identifier` is out of sync with the current selection"
+        );
+        assert_eq!(
+            format_lunar_theory_source_selection(&drifted),
+            "lunar source selection: unavailable (the lunar source selection field `identifier` is out of sync with the current selection)"
+        );
+        assert_eq!(
+            lunar_theory_source_selection_summary(),
+            selection.summary_line()
+        );
     }
 
     #[test]
