@@ -428,6 +428,10 @@ fn validate_catalog_partitions_are_disjoint_ayanamsa(
     Ok(())
 }
 
+fn is_case_only_alias_variant(canonical_name: &str, label: &str) -> bool {
+    label != canonical_name && label.eq_ignore_ascii_case(canonical_name)
+}
+
 fn validate_catalog_label_uniqueness<T: AliasProfileEntry>(
     catalog_label: &'static str,
     entries: &[T],
@@ -437,8 +441,12 @@ fn validate_catalog_label_uniqueness<T: AliasProfileEntry>(
     for entry in entries {
         for label in std::iter::once(entry.canonical_name()).chain(entry.aliases().iter().copied())
         {
-            if label.eq_ignore_ascii_case(entry.canonical_name()) && label != entry.canonical_name()
-            {
+            // Some built-in entries intentionally retain case-only alias variants,
+            // such as Vehlow Equal / vehlow equal and the galactic-reference
+            // labels that keep both title-case and lowercase spellings visible in
+            // the release profile. Keep those forms allowed while still rejecting
+            // genuine duplicate labels.
+            if is_case_only_alias_variant(entry.canonical_name(), label) {
                 continue;
             }
 
@@ -1634,6 +1642,52 @@ mod tests {
                 second_section: "compatibility-caveat"
             }
         ));
+    }
+
+    #[test]
+    fn compatibility_profile_retains_intentional_case_only_alias_variants() {
+        let profile = current_compatibility_profile();
+
+        let vehlow_equal = profile
+            .release_house_systems
+            .iter()
+            .find(|entry| entry.canonical_name == "Vehlow Equal")
+            .expect("Vehlow Equal should be part of the release catalog");
+        assert!(vehlow_equal.aliases.contains(&"Vehlow equal"));
+
+        let galactic_center = profile
+            .release_ayanamsas
+            .iter()
+            .find(|entry| entry.canonical_name == "Galactic Center")
+            .expect("Galactic Center should be part of the release catalog");
+        assert!(galactic_center.aliases.contains(&"Galactic center"));
+
+        let galactic_equator = profile
+            .release_ayanamsas
+            .iter()
+            .find(|entry| entry.canonical_name == "Galactic Equator")
+            .expect("Galactic Equator should be part of the release catalog");
+        assert!(galactic_equator.aliases.contains(&"Galactic equator"));
+
+        let galactic_center_cochrane = profile
+            .release_ayanamsas
+            .iter()
+            .find(|entry| entry.canonical_name == "Galactic Center (Cochrane)")
+            .expect("Galactic Center (Cochrane) should be part of the release catalog");
+        assert!(galactic_center_cochrane
+            .aliases
+            .contains(&"Galactic center Cochrane"));
+
+        let galactic_equator_true = profile
+            .release_ayanamsas
+            .iter()
+            .find(|entry| entry.canonical_name == "Galactic Equator (True)")
+            .expect("Galactic Equator (True) should be part of the release catalog");
+        assert!(galactic_equator_true
+            .aliases
+            .contains(&"Galactic equator true"));
+
+        assert!(profile.validate().is_ok());
     }
 
     #[test]
