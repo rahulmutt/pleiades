@@ -1294,9 +1294,16 @@ pub struct AyanamsaCatalogValidationSummary {
 impl AyanamsaCatalogValidationSummary {
     /// Returns the compact release-facing summary line for the ayanamsa catalog validation state.
     pub fn summary_line(&self) -> String {
+        let custom_definition_only_labels =
+            if self.metadata_coverage.custom_definition_only.is_empty() {
+                "none".to_string()
+            } else {
+                self.metadata_coverage.custom_definition_only.join(", ")
+            };
+
         match &self.validation_result {
             Ok(()) => format!(
-                "ayanamsa catalog validation: ok ({} entries, {} labels checked; baseline={}, release={}; sidereal metadata={}/{} entries with both a reference epoch and offset; custom-definition-only={}; round-trip and alias uniqueness verified)",
+                "ayanamsa catalog validation: ok ({} entries, {} labels checked; baseline={}, release={}; sidereal metadata={}/{} entries with both a reference epoch and offset; custom-definition-only={} labels: {}; round-trip and alias uniqueness verified)",
                 self.entry_count,
                 self.label_count,
                 self.baseline_entry_count,
@@ -1304,6 +1311,7 @@ impl AyanamsaCatalogValidationSummary {
                 self.metadata_coverage.with_sidereal_metadata,
                 self.metadata_coverage.total,
                 self.metadata_coverage.custom_definition_only.len(),
+                custom_definition_only_labels,
             ),
             Err(error) => format!(
                 "ayanamsa catalog validation: error: {} ({} entries; baseline={}, release={})",
@@ -1499,6 +1507,9 @@ mod tests {
     #[test]
     fn catalog_validation_summary_reports_catalog_health() {
         let summary = ayanamsa_catalog_validation_summary();
+        let expected_custom_definition_only_labels =
+            metadata_coverage().custom_definition_only.join(", ");
+
         assert_eq!(summary.entry_count, built_in_ayanamsas().len());
         assert_eq!(summary.baseline_entry_count, baseline_ayanamsas().len());
         assert_eq!(summary.release_entry_count, release_ayanamsas().len());
@@ -1506,6 +1517,10 @@ mod tests {
         assert!(summary
             .summary_line()
             .contains("ayanamsa catalog validation: ok"));
+        assert!(summary.summary_line().contains("custom-definition-only="));
+        assert!(summary
+            .summary_line()
+            .contains(&expected_custom_definition_only_labels));
         assert_eq!(validate_ayanamsa_catalog(), Ok(()));
     }
 

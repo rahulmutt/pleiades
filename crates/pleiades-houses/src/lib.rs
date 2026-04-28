@@ -246,13 +246,28 @@ pub struct HouseCatalogValidationSummary {
 impl HouseCatalogValidationSummary {
     /// Returns the compact release-facing summary line for the house catalog validation state.
     pub fn summary_line(&self) -> String {
+        let latitude_sensitive_labels = built_in_house_systems()
+            .iter()
+            .filter(|entry| entry.latitude_sensitive)
+            .map(|entry| entry.canonical_name)
+            .collect::<Vec<_>>();
+        let latitude_sensitive_count = latitude_sensitive_labels.len();
+        let latitude_sensitive_labels = if latitude_sensitive_labels.is_empty() {
+            "none".to_string()
+        } else {
+            latitude_sensitive_labels.join(", ")
+        };
+
         match &self.validation_result {
             Ok(()) => format!(
-                "house catalog validation: ok ({} entries, {} labels checked; baseline={}, release={}; round-trip and alias uniqueness verified)",
+                "house catalog validation: ok ({} entries, {} labels checked; baseline={}, release={}; latitude-sensitive={}/{} entries; labels: {}; round-trip and alias uniqueness verified)",
                 self.entry_count,
                 self.label_count,
                 self.baseline_entry_count,
                 self.release_entry_count,
+                latitude_sensitive_count,
+                self.entry_count,
+                latitude_sensitive_labels,
             ),
             Err(error) => format!(
                 "house catalog validation: error: {} ({} entries; baseline={}, release={})",
@@ -1719,6 +1734,12 @@ mod tests {
     #[test]
     fn house_catalog_validation_summary_reports_catalog_health() {
         let summary = house_catalog_validation_summary();
+        let expected_latitude_sensitive_labels = built_in_house_systems()
+            .iter()
+            .filter(|entry| entry.latitude_sensitive)
+            .map(|entry| entry.canonical_name)
+            .collect::<Vec<_>>()
+            .join(", ");
 
         assert_eq!(summary.entry_count, built_in_house_systems().len());
         assert_eq!(summary.baseline_entry_count, baseline_house_systems().len());
@@ -1727,6 +1748,10 @@ mod tests {
         assert!(summary
             .summary_line()
             .contains("house catalog validation: ok"));
+        assert!(summary.summary_line().contains("latitude-sensitive="));
+        assert!(summary
+            .summary_line()
+            .contains(&expected_latitude_sensitive_labels));
         assert!(summary
             .summary_line()
             .contains("round-trip and alias uniqueness verified"));
