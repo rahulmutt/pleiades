@@ -160,6 +160,110 @@ impl CorpusSummary {
             self.latest_julian_day,
         )
     }
+
+    /// Returns `Ok(())` when the corpus summary is internally consistent.
+    pub fn validate(&self) -> Result<(), EphemerisError> {
+        if self.name.trim().is_empty() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "corpus summary name must not be blank",
+            ));
+        }
+
+        if self.description.trim().is_empty() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "corpus summary description must not be blank",
+            ));
+        }
+
+        if self.request_count == 0 {
+            if self.epoch_count != 0 || self.body_count != 0 || !self.epochs.is_empty() {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    "corpus summary with no requests must also have no epochs or bodies",
+                ));
+            }
+        } else if self.epoch_count == 0 || self.body_count == 0 || self.epochs.is_empty() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "corpus summary with requests must also have epochs and bodies",
+            ));
+        }
+
+        if self.epoch_count != self.epochs.len() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "corpus summary epoch-count mismatch: expected {}, found {}",
+                    self.epoch_count,
+                    self.epochs.len()
+                ),
+            ));
+        }
+
+        for (index, epoch) in self.epochs.iter().enumerate() {
+            if !epoch.julian_day.days().is_finite() {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "corpus summary epoch {} has a non-finite Julian day",
+                        index + 1
+                    ),
+                ));
+            }
+
+            if self.epochs[..index]
+                .iter()
+                .any(|prior| prior.julian_day.days() >= epoch.julian_day.days())
+            {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "corpus summary epochs must be strictly increasing: epoch {} is out of order",
+                        index + 1
+                    ),
+                ));
+            }
+        }
+
+        match self.epochs.first() {
+            Some(first) => {
+                if self.earliest_julian_day != first.julian_day.days() {
+                    return Err(EphemerisError::new(
+                        EphemerisErrorKind::InvalidRequest,
+                        "corpus summary earliest Julian day does not match the first epoch",
+                    ));
+                }
+            }
+            None => {
+                if self.earliest_julian_day != 0.0 || self.latest_julian_day != 0.0 {
+                    return Err(EphemerisError::new(
+                        EphemerisErrorKind::InvalidRequest,
+                        "corpus summary with no epochs must have a zero Julian day span",
+                    ));
+                }
+            }
+        }
+
+        if let Some(last) = self.epochs.last() {
+            if self.latest_julian_day != last.julian_day.days() {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    "corpus summary latest Julian day does not match the final epoch",
+                ));
+            }
+        }
+
+        if self.request_count > 0 && self.body_count == 0 {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "corpus summary with requests must cover at least one body",
+            ));
+        }
+
+        Ok(())
+    }
 }
 
 impl fmt::Display for CorpusSummary {
@@ -1158,6 +1262,83 @@ pub struct BodyToleranceSummary {
 }
 
 impl BodyToleranceSummary {
+    /// Returns `Ok(())` when the tolerance status is internally consistent.
+    pub fn validate(&self) -> Result<(), EphemerisError> {
+        validate_comparison_tolerance(&self.tolerance)?;
+
+        let tolerance = &self.tolerance;
+        let distance_margin = self.distance_margin_au;
+        let has_distance_limit = tolerance.max_distance_delta_au.is_some();
+        let has_distance_measurement = self.max_distance_delta_au.is_some();
+        if distance_margin.is_some() != (has_distance_limit && has_distance_measurement) {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "body tolerance summary for {} distance-margin presence does not match the measured values and tolerance limit",
+                    self.body
+                ),
+            ));
+        }
+
+        let expected_longitude_margin =
+            tolerance.max_longitude_delta_deg - self.max_longitude_delta_deg;
+        if self.longitude_margin_deg != expected_longitude_margin {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "body tolerance summary for {} longitude margin drifted from the declared tolerance limit",
+                    self.body
+                ),
+            ));
+        }
+
+        let expected_latitude_margin =
+            tolerance.max_latitude_delta_deg - self.max_latitude_delta_deg;
+        if self.latitude_margin_deg != expected_latitude_margin {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "body tolerance summary for {} latitude margin drifted from the declared tolerance limit",
+                    self.body
+                ),
+            ));
+        }
+
+        if let (Some(measured), Some(limit), Some(margin)) = (
+            self.max_distance_delta_au,
+            tolerance.max_distance_delta_au,
+            self.distance_margin_au,
+        ) {
+            if margin != limit - measured {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "body tolerance summary for {} distance margin drifted from the declared tolerance limit",
+                        self.body
+                    ),
+                ));
+            }
+        }
+
+        let within_tolerance = self.longitude_margin_deg >= 0.0
+            && self.latitude_margin_deg >= 0.0
+            && self
+                .distance_margin_au
+                .map(|value| value >= 0.0)
+                .unwrap_or(true);
+        if self.within_tolerance != within_tolerance {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "body tolerance summary for {} status disagrees with the measured margins",
+                    self.body
+                ),
+            ));
+        }
+
+        Ok(())
+    }
+
     /// Renders the compact report wording for this tolerance status.
     pub fn summary_line(&self) -> String {
         format!(
@@ -9065,6 +9246,11 @@ fn body_tolerance_summary(
 }
 
 fn write_corpus_summary(f: &mut fmt::Formatter<'_>, corpus: &CorpusSummary) -> fmt::Result {
+    if let Err(error) = corpus.validate() {
+        writeln!(f, "  corpus summary unavailable ({error})")?;
+        return Ok(());
+    }
+
     writeln!(f, "  name: {}", corpus.name)?;
     writeln!(f, "  description: {}", corpus.description)?;
     writeln!(f, "  Apparentness: {}", corpus.apparentness)?;
@@ -9081,6 +9267,11 @@ fn write_corpus_summary(f: &mut fmt::Formatter<'_>, corpus: &CorpusSummary) -> f
 
 fn write_corpus_summary_text(text: &mut String, corpus: &CorpusSummary) {
     use std::fmt::Write as _;
+
+    if let Err(error) = corpus.validate() {
+        let _ = writeln!(text, "  corpus summary unavailable ({error})");
+        return;
+    }
 
     let _ = writeln!(text, "  name: {}", corpus.name);
     let _ = writeln!(text, "  description: {}", corpus.description);
@@ -9645,6 +9836,15 @@ fn write_tolerance_summaries(
     }
 
     for summary in summaries {
+        if let Err(error) = summary.validate() {
+            writeln!(
+                f,
+                "  body tolerance summary for {} unavailable ({error})",
+                summary.body
+            )?;
+            continue;
+        }
+
         writeln!(f, "  {}", summary)?;
     }
     Ok(())
@@ -10650,6 +10850,43 @@ mod tests {
     }
 
     #[test]
+    fn body_tolerance_summary_validate_accepts_the_reported_summary() {
+        let corpus = default_corpus();
+        let reference = default_reference_backend();
+        let candidate = default_candidate_backend();
+        let report =
+            compare_backends(&reference, &candidate, &corpus).expect("comparison should build");
+        let tolerance_summaries = report.tolerance_summaries();
+        let summary = tolerance_summaries
+            .first()
+            .expect("comparison should include at least one tolerance summary");
+
+        summary
+            .validate()
+            .expect("reported body tolerance summary should validate");
+    }
+
+    #[test]
+    fn body_tolerance_summary_validate_rejects_margin_drift() {
+        let corpus = default_corpus();
+        let reference = default_reference_backend();
+        let candidate = default_candidate_backend();
+        let report =
+            compare_backends(&reference, &candidate, &corpus).expect("comparison should build");
+        let tolerance_summaries = report.tolerance_summaries();
+        let mut summary = tolerance_summaries
+            .first()
+            .expect("comparison should include at least one tolerance summary")
+            .clone();
+
+        summary.longitude_margin_deg += 1.0;
+        let error = summary
+            .validate()
+            .expect_err("mutated body tolerance summary should fail validation");
+        assert!(error.to_string().contains("longitude margin"));
+    }
+
+    #[test]
     fn body_comparison_summary_has_a_displayable_summary_line() {
         let corpus = default_corpus();
         let reference = default_reference_backend();
@@ -11314,6 +11551,26 @@ mod tests {
         assert!(summary.summary_line().contains("requests=110"));
         assert!(summary.summary_line().contains("epochs=11"));
         assert!(summary.summary_line().contains("bodies="));
+    }
+
+    #[test]
+    fn corpus_summary_validate_accepts_the_reported_summary() {
+        let summary = benchmark_corpus().summary();
+        summary
+            .validate()
+            .expect("reported corpus summary should validate");
+    }
+
+    #[test]
+    fn corpus_summary_validate_rejects_epoch_order_drift() {
+        let mut summary = benchmark_corpus().summary();
+        summary.epochs.reverse();
+        let error = summary
+            .validate()
+            .expect_err("mutated corpus summary should fail validation");
+        assert!(
+            error.to_string().contains("out of order") || error.to_string().contains("first epoch")
+        );
     }
 
     #[test]
