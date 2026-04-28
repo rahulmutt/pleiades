@@ -603,6 +603,13 @@ impl ComparisonAuditSummary {
     }
 
     fn validate(&self) -> Result<(), EphemerisError> {
+        if self.body_count == 0 {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "comparison audit summary must include at least one compared body",
+            ));
+        }
+
         let within_and_outside = self
             .within_tolerance_body_count
             .saturating_add(self.outside_tolerance_body_count);
@@ -11237,6 +11244,23 @@ mod tests {
         assert!(error
             .to_string()
             .contains("comparison audit summary body-count mismatch"));
+    }
+
+    #[test]
+    fn comparison_audit_summary_validate_rejects_empty_body_counts() {
+        let summary = ComparisonAuditSummary {
+            body_count: 0,
+            within_tolerance_body_count: 0,
+            outside_tolerance_body_count: 0,
+            regression_count: 0,
+        };
+
+        let error = summary
+            .validate()
+            .expect_err("an empty audit summary should fail validation");
+        assert!(error
+            .to_string()
+            .contains("must include at least one compared body"));
     }
 
     #[test]
