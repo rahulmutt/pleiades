@@ -6093,6 +6093,34 @@ mod tests {
     }
 
     #[test]
+    fn unsupported_time_scales_are_rejected_explicitly() {
+        let backend = ElpBackend::new();
+        let request = EphemerisRequest::new(
+            CelestialBody::Moon,
+            Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Utc),
+        );
+
+        let error = backend
+            .position(&request)
+            .expect_err("UTC requests should be unsupported");
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedTimeScale);
+    }
+
+    #[test]
+    fn batch_query_rejects_unsupported_time_scales_explicitly() {
+        let backend = ElpBackend::new();
+        let request = EphemerisRequest::new(
+            CelestialBody::Moon,
+            Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Utc),
+        );
+
+        let error = backend
+            .positions(&[request])
+            .expect_err("UTC batch requests should be unsupported");
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedTimeScale);
+    }
+
+    #[test]
     fn tdb_requests_are_accepted_like_tt_requests() {
         let backend = ElpBackend::new();
         let tt_request = mean_request(CelestialBody::Moon);
