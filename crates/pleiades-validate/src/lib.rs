@@ -6292,7 +6292,7 @@ fn ensure_release_profile_identifiers_alignment(
     expected_api_stability_posture_id: &str,
 ) -> Result<(), ReleaseBundleError> {
     let expected = format!(
-        "Release profile identifiers: compatibility={expected_profile_id}, api-stability={expected_api_stability_posture_id}"
+        "Release profile identifiers: v1 compatibility={expected_profile_id}, api-stability={expected_api_stability_posture_id}"
     );
     let found = text.trim_end();
     if found != expected {
@@ -11650,7 +11650,7 @@ mod tests {
             release_profiles.api_stability_profile_id
         )));
         assert!(report.contains(&format!(
-            "Release profile identifiers: compatibility={}, api-stability={}",
+            "Release profile identifiers: v1 compatibility={}, api-stability={}",
             release_profiles.compatibility_profile_id, release_profiles.api_stability_profile_id
         )));
         assert!(report.contains("Implemented backend matrices"));
@@ -12044,7 +12044,7 @@ mod tests {
         assert!(validation_report_summary.contains("Frame policy:"));
         assert!(validation_report_summary.contains("Zodiac policy:"));
         assert!(validation_report_summary.contains(
-            "Release profile identifiers: compatibility=pleiades-compatibility-profile/0.6.123, api-stability=pleiades-api-stability/0.1.0"
+            "Release profile identifiers: v1 compatibility=pleiades-compatibility-profile/0.6.123, api-stability=pleiades-api-stability/0.1.0"
         ));
         assert!(validation_report_summary
             .contains("lookup epoch policy=TT-grid retag without relativistic correction"));
@@ -12371,7 +12371,7 @@ mod tests {
             release_profiles.compatibility_profile_id
         )));
         assert!(rendered.contains(&format!(
-            "Release profile identifiers: compatibility={}, api-stability={}",
+            "Release profile identifiers: v1 compatibility={}, api-stability={}",
             release_profiles.compatibility_profile_id, release_profiles.api_stability_profile_id
         )));
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
@@ -13658,7 +13658,7 @@ mod tests {
             release_profiles.api_stability_profile_id
         )));
         assert!(rendered.contains(&format!(
-            "Release profile identifiers: compatibility={}, api-stability={}",
+            "Release profile identifiers: v1 compatibility={}, api-stability={}",
             release_profiles.compatibility_profile_id, release_profiles.api_stability_profile_id
         )));
         assert!(rendered.contains("Release summary line:"));
@@ -15447,7 +15447,7 @@ version = "0.9.0"
             "Release checklist\nProfile: {profile_id}\nAPI stability posture: {api_stability_posture_id}\n"
         );
         let release_profile_identifiers = format!(
-            "Release profile identifiers: compatibility={profile_id}, api-stability={api_stability_posture_id}\n"
+            "Release profile identifiers: v1 compatibility={profile_id}, api-stability={api_stability_posture_id}\n"
         );
 
         ensure_release_profile_line_alignment(
@@ -15506,7 +15506,7 @@ version = "0.9.0"
             .contains("release summary profile id mismatch"));
 
         let error = ensure_release_profile_identifiers_alignment(
-            "Release profile identifiers: compatibility=incorrect-profile, api-stability=incorrect-api\n",
+            "Release profile identifiers: v1 compatibility=incorrect-profile, api-stability=incorrect-api\n",
             profile_id,
             api_stability_posture_id,
         )

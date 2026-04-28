@@ -21,11 +21,18 @@ pub struct ReleaseProfileIdentifiers {
 }
 
 impl ReleaseProfileIdentifiers {
+    /// Schema version for the compact release-profile identifier payload.
+    pub const fn schema_version() -> u8 {
+        1
+    }
+
     /// Returns the compact summary used in release-facing reports.
     pub fn summary_line(&self) -> String {
         format!(
-            "compatibility={}, api-stability={}",
-            self.compatibility_profile_id, self.api_stability_profile_id
+            "v{} compatibility={}, api-stability={}",
+            Self::schema_version(),
+            self.compatibility_profile_id,
+            self.api_stability_profile_id
         )
     }
 
@@ -134,14 +141,16 @@ mod tests {
     }
 
     #[test]
-    fn identifiers_render_as_a_compact_pair_summary() {
+    fn identifiers_render_as_a_versioned_compact_pair_summary() {
         let identifiers = current_release_profile_identifiers();
         let expected = format!(
-            "compatibility={}, api-stability={}",
+            "v{} compatibility={}, api-stability={}",
+            ReleaseProfileIdentifiers::schema_version(),
             current_compatibility_profile_id(),
             current_api_stability_profile_id()
         );
 
+        assert_eq!(ReleaseProfileIdentifiers::schema_version(), 1);
         assert_eq!(identifiers.summary_line(), expected);
         assert_eq!(identifiers.to_string(), expected);
     }
