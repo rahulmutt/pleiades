@@ -1930,6 +1930,112 @@ pub struct Vsop87GeneratedBlobAudit {
     pub fingerprint: u64,
 }
 
+/// Validation errors for a checked-in generated VSOP87B blob audit record.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Vsop87GeneratedBlobAuditValidationError {
+    /// The audit record does not name a source file.
+    BlankSourceFile {
+        position: usize,
+        body: CelestialBody,
+    },
+    /// The audit record points at an empty generated blob.
+    EmptyBlob {
+        position: usize,
+        source_file: &'static str,
+    },
+    /// The audit record references a source file that does not exist in the current source catalog.
+    UnknownSourceFile {
+        position: usize,
+        source_file: &'static str,
+    },
+    /// The audit record body/source pairing does not match the current source catalog.
+    BodySourceMismatch {
+        position: usize,
+        body: CelestialBody,
+        source_file: &'static str,
+        expected_body: CelestialBody,
+    },
+}
+
+impl fmt::Display for Vsop87GeneratedBlobAuditValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BlankSourceFile { position, body } => write!(
+                f,
+                "generated binary audit record #{position} has a blank source file for {body}"
+            ),
+            Self::EmptyBlob { position, source_file } => write!(
+                f,
+                "generated binary audit record #{position} has an empty blob for source file `{source_file}`"
+            ),
+            Self::UnknownSourceFile { position, source_file } => write!(
+                f,
+                "generated binary audit record #{position} references unknown source file `{source_file}`"
+            ),
+            Self::BodySourceMismatch {
+                position,
+                body,
+                source_file,
+                expected_body,
+            } => write!(
+                f,
+                "generated binary audit record #{position} uses source file `{source_file}`, which belongs to {expected_body} rather than {body}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for Vsop87GeneratedBlobAuditValidationError {}
+
+impl Vsop87GeneratedBlobAudit {
+    fn validate_at_position(
+        &self,
+        position: usize,
+    ) -> Result<(), Vsop87GeneratedBlobAuditValidationError> {
+        if self.source_file.trim().is_empty() {
+            return Err(Vsop87GeneratedBlobAuditValidationError::BlankSourceFile {
+                position,
+                body: self.body.clone(),
+            });
+        }
+        if self.byte_length == 0 {
+            return Err(Vsop87GeneratedBlobAuditValidationError::EmptyBlob {
+                position,
+                source_file: self.source_file,
+            });
+        }
+
+        let Some(expected_body) = source_specifications()
+            .into_iter()
+            .find(|spec| spec.source_file == self.source_file)
+            .map(|spec| spec.body)
+        else {
+            return Err(Vsop87GeneratedBlobAuditValidationError::UnknownSourceFile {
+                position,
+                source_file: self.source_file,
+            });
+        };
+
+        if expected_body != self.body {
+            return Err(
+                Vsop87GeneratedBlobAuditValidationError::BodySourceMismatch {
+                    position,
+                    body: self.body.clone(),
+                    source_file: self.source_file,
+                    expected_body,
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Validates the generated blob audit record against the current source catalog.
+    pub fn validate(&self) -> Result<(), Vsop87GeneratedBlobAuditValidationError> {
+        self.validate_at_position(1)
+    }
+}
+
 /// Summary metrics for the current VSOP87 generated-blob audit manifest.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Vsop87GeneratedBlobAuditSummary {
@@ -1987,6 +2093,11 @@ impl Vsop87GeneratedBlobAuditSummary {
     /// Returns `Ok(())` when the summary still matches the current generated-blob manifest.
     pub fn validate(&self) -> Result<(), Vsop87GeneratedBlobAuditSummaryValidationError> {
         let audits = generated_binary_audits();
+        validate_generated_binary_audits(&audits).map_err(|_| {
+            Vsop87GeneratedBlobAuditSummaryValidationError::FieldOutOfSync {
+                field: "audit_records",
+            }
+        })?;
         let source_specs = source_specifications();
         let expected_source_files = source_specs
             .iter()
@@ -2099,6 +2210,17 @@ pub fn generated_binary_audit_summary() -> Vsop87GeneratedBlobAuditSummary {
     }
 }
 
+/// Validates the generated blob records against the current source catalog.
+pub fn validate_generated_binary_audits(
+    audits: &[Vsop87GeneratedBlobAudit],
+) -> Result<(), Vsop87GeneratedBlobAuditValidationError> {
+    for (index, audit) in audits.iter().enumerate() {
+        audit.validate_at_position(index + 1)?;
+    }
+
+    Ok(())
+}
+
 /// Formats the checked-in generated VSOP87B blob audit for reporting.
 pub fn format_generated_binary_audit_summary(summary: &Vsop87GeneratedBlobAuditSummary) -> String {
     summary.summary_line()
@@ -2107,6 +2229,11 @@ pub fn format_generated_binary_audit_summary(summary: &Vsop87GeneratedBlobAuditS
 fn format_validated_generated_binary_audit_summary_for_report(
     summary: &Vsop87GeneratedBlobAuditSummary,
 ) -> String {
+    let audits = generated_binary_audits();
+    if let Err(error) = validate_generated_binary_audits(&audits) {
+        return format!("VSOP87 generated binary audit: unavailable ({error})");
+    }
+
     match summary.validate() {
         Ok(()) => summary.summary_line(),
         Err(error) => format!("VSOP87 generated binary audit: unavailable ({error})"),
@@ -5878,6 +6005,13 @@ mod tests {
                 .collect::<Vec<_>>(),
             summary.source_files
         );
+        for audit in audits.iter() {
+            assert_eq!(audit.validate(), Ok(()));
+            assert_eq!(
+                validate_generated_binary_audits(std::slice::from_ref(audit)),
+                Ok(())
+            );
+        }
 
         let mut fingerprints = audits
             .iter()
@@ -5913,6 +6047,31 @@ mod tests {
         assert_eq!(
             format_validated_generated_binary_audit_summary_for_report(&summary),
             "VSOP87 generated binary audit: unavailable (the VSOP87 generated binary audit summary field `source_file_count` is out of sync with the current manifest)"
+        );
+    }
+
+    #[test]
+    fn generated_binary_audit_validation_rejects_body_source_mismatches() {
+        let mut audit = generated_binary_audits()[0].clone();
+        audit.body = CelestialBody::Mercury;
+
+        let error = audit
+            .validate()
+            .expect_err("mismatched generated blob audits should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "generated binary audit record #1 uses source file `VSOP87B.ear`, which belongs to Sun rather than Mercury"
+        );
+        assert_eq!(
+            validate_generated_binary_audits(&[audit]),
+            Err(
+                Vsop87GeneratedBlobAuditValidationError::BodySourceMismatch {
+                    position: 1,
+                    body: CelestialBody::Mercury,
+                    source_file: "VSOP87B.ear",
+                    expected_body: CelestialBody::Sun,
+                }
+            )
         );
     }
 
