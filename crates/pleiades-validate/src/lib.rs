@@ -956,19 +956,10 @@ impl ComparisonTolerancePolicySummary {
             .collect::<Vec<_>>()
             .join("; ");
         let coordinate_frames = format_frames(&self.coordinate_frames);
-        let window_start = self
-            .comparison_window
-            .start
-            .map(|instant| format!("JD {:.1}", instant.julian_day.days()))
-            .unwrap_or_else(|| "n/a".to_string());
-        let window_end = self
-            .comparison_window
-            .end
-            .map(|instant| format!("JD {:.1}", instant.julian_day.days()))
-            .unwrap_or_else(|| "n/a".to_string());
+        let window = self.comparison_window.summary_line();
 
         format!(
-            "backend family={}; scopes={} ({scopes}); limits={limits}; coverage={coverage}; window={window_start} → {window_end}; frames={coordinate_frames}; evidence={} bodies, {} samples",
+            "backend family={}; scopes={} ({scopes}); limits={limits}; coverage={coverage}; window={window}; frames={coordinate_frames}; evidence={} bodies, {} samples",
             backend_family_label(&self.backend_family),
             self.entries.len(),
             self.comparison_body_count,
@@ -12804,7 +12795,7 @@ mod tests {
         assert!(rendered.contains("outside-tolerance bodies"));
         assert!(rendered.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto override); limits="));
         assert!(rendered.contains("coverage=Luminaries: backend family=composite, profile=phase-1 full-file VSOP87B planetary evidence, bodies=2 (Moon, Sun), samples="));
-        assert!(rendered.contains("window=JD"));
+        assert!(rendered.contains("window=JD 2378499.0 (TT) → JD 2634167.0 (TT)"));
         assert!(rendered.contains("frames=Ecliptic"));
         assert!(rendered.contains("Luminaries: Δlon≤45.000°, Δlat≤1.000°, Δdist=0.250 AU"));
         assert!(rendered.contains("Pluto override: Δlon≤45.000°, Δlat≤1.000°, Δdist=0.250 AU"));
