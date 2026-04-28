@@ -1768,6 +1768,321 @@ fn format_apparentness_modes(modes: &[Apparentness]) -> String {
     join_display(modes)
 }
 
+const ASTEROID_EQUATORIAL_TOLERANCE_DEGREES: f64 = 1e-12;
+const ASTEROID_DISTANCE_TOLERANCE_AU: f64 = 1e-12;
+
+#[derive(Clone, Debug, PartialEq)]
+enum ReferenceAsteroidEvidenceValidationError {
+    Empty,
+    BodyOrderMismatch {
+        index: usize,
+        expected: pleiades_backend::CelestialBody,
+        found: pleiades_backend::CelestialBody,
+    },
+    EpochMismatch {
+        index: usize,
+        expected: Instant,
+        found: Instant,
+    },
+    NonFiniteLongitude {
+        index: usize,
+        body: pleiades_backend::CelestialBody,
+    },
+    NonFiniteLatitude {
+        index: usize,
+        body: pleiades_backend::CelestialBody,
+    },
+    NonFiniteDistance {
+        index: usize,
+        body: pleiades_backend::CelestialBody,
+    },
+}
+
+impl fmt::Display for ReferenceAsteroidEvidenceValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Empty => f.write_str("exact asteroid evidence is unavailable"),
+            Self::BodyOrderMismatch {
+                index,
+                expected,
+                found,
+            } => write!(
+                f,
+                "exact asteroid evidence body order mismatch at index {index}: expected {expected}, found {found}"
+            ),
+            Self::EpochMismatch {
+                index,
+                expected,
+                found,
+            } => write!(
+                f,
+                "exact asteroid evidence epoch mismatch at index {index}: expected {}, found {}",
+                format_instant(*expected),
+                format_instant(*found)
+            ),
+            Self::NonFiniteLongitude { index, body } => write!(
+                f,
+                "exact asteroid evidence longitude is non-finite at index {index} for body {body}"
+            ),
+            Self::NonFiniteLatitude { index, body } => write!(
+                f,
+                "exact asteroid evidence latitude is non-finite at index {index} for body {body}"
+            ),
+            Self::NonFiniteDistance { index, body } => write!(
+                f,
+                "exact asteroid evidence distance is non-finite at index {index} for body {body}"
+            ),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+enum ReferenceAsteroidEquatorialEvidenceValidationError {
+    Empty,
+    BodyOrderMismatch {
+        index: usize,
+        expected: pleiades_backend::CelestialBody,
+        found: pleiades_backend::CelestialBody,
+    },
+    EpochMismatch {
+        index: usize,
+        expected: Instant,
+        found: Instant,
+    },
+    RightAscensionMismatch {
+        index: usize,
+        body: pleiades_backend::CelestialBody,
+    },
+    DeclinationMismatch {
+        index: usize,
+        body: pleiades_backend::CelestialBody,
+    },
+    DistanceMismatch {
+        index: usize,
+        body: pleiades_backend::CelestialBody,
+    },
+}
+
+impl fmt::Display for ReferenceAsteroidEquatorialEvidenceValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Empty => f.write_str("equatorial asteroid evidence is unavailable"),
+            Self::BodyOrderMismatch {
+                index,
+                expected,
+                found,
+            } => write!(
+                f,
+                "equatorial asteroid evidence body order mismatch at index {index}: expected {expected}, found {found}"
+            ),
+            Self::EpochMismatch {
+                index,
+                expected,
+                found,
+            } => write!(
+                f,
+                "equatorial asteroid evidence epoch mismatch at index {index}: expected {}, found {}",
+                format_instant(*expected),
+                format_instant(*found)
+            ),
+            Self::RightAscensionMismatch { index, body } => write!(
+                f,
+                "equatorial asteroid evidence right ascension diverges from the derived mean-obliquity transform at index {index} for body {body}"
+            ),
+            Self::DeclinationMismatch { index, body } => write!(
+                f,
+                "equatorial asteroid evidence declination diverges from the derived mean-obliquity transform at index {index} for body {body}"
+            ),
+            Self::DistanceMismatch { index, body } => write!(
+                f,
+                "equatorial asteroid evidence distance diverges from the derived mean-obliquity transform at index {index} for body {body}"
+            ),
+        }
+    }
+}
+
+fn validate_reference_asteroid_evidence(
+    evidence: &[ReferenceAsteroidEvidence],
+) -> Result<(), ReferenceAsteroidEvidenceValidationError> {
+    if evidence.is_empty() {
+        return Err(ReferenceAsteroidEvidenceValidationError::Empty);
+    }
+
+    let expected_bodies = reference_asteroids();
+    if evidence.len() != expected_bodies.len() {
+        return Err(
+            ReferenceAsteroidEvidenceValidationError::BodyOrderMismatch {
+                index: evidence.len(),
+                expected: expected_bodies
+                    .get(evidence.len())
+                    .cloned()
+                    .unwrap_or_else(|| expected_bodies[expected_bodies.len() - 1].clone()),
+                found: evidence
+                    .last()
+                    .map(|sample| sample.body.clone())
+                    .unwrap_or_else(|| expected_bodies[0].clone()),
+            },
+        );
+    }
+
+    let expected_epoch = reference_instant();
+    for (index, (sample, expected_body)) in evidence.iter().zip(expected_bodies.iter()).enumerate()
+    {
+        if sample.body != *expected_body {
+            return Err(
+                ReferenceAsteroidEvidenceValidationError::BodyOrderMismatch {
+                    index,
+                    expected: expected_body.clone(),
+                    found: sample.body.clone(),
+                },
+            );
+        }
+        if sample.epoch != expected_epoch {
+            return Err(ReferenceAsteroidEvidenceValidationError::EpochMismatch {
+                index,
+                expected: expected_epoch,
+                found: sample.epoch,
+            });
+        }
+        if !sample.longitude_deg.is_finite() {
+            return Err(
+                ReferenceAsteroidEvidenceValidationError::NonFiniteLongitude {
+                    index,
+                    body: sample.body.clone(),
+                },
+            );
+        }
+        if !sample.latitude_deg.is_finite() {
+            return Err(
+                ReferenceAsteroidEvidenceValidationError::NonFiniteLatitude {
+                    index,
+                    body: sample.body.clone(),
+                },
+            );
+        }
+        if !sample.distance_au.is_finite() {
+            return Err(
+                ReferenceAsteroidEvidenceValidationError::NonFiniteDistance {
+                    index,
+                    body: sample.body.clone(),
+                },
+            );
+        }
+    }
+
+    Ok(())
+}
+
+fn validate_reference_asteroid_equatorial_evidence(
+    evidence: &[ReferenceAsteroidEquatorialEvidence],
+) -> Result<(), ReferenceAsteroidEquatorialEvidenceValidationError> {
+    if evidence.is_empty() {
+        return Err(ReferenceAsteroidEquatorialEvidenceValidationError::Empty);
+    }
+
+    let expected_bodies = reference_asteroids();
+    let exact_evidence = reference_asteroid_evidence();
+    if evidence.len() != expected_bodies.len() || evidence.len() != exact_evidence.len() {
+        return Err(
+            ReferenceAsteroidEquatorialEvidenceValidationError::BodyOrderMismatch {
+                index: evidence.len(),
+                expected: expected_bodies
+                    .get(evidence.len())
+                    .cloned()
+                    .unwrap_or_else(|| expected_bodies[expected_bodies.len() - 1].clone()),
+                found: evidence
+                    .last()
+                    .map(|sample| sample.body.clone())
+                    .unwrap_or_else(|| expected_bodies[0].clone()),
+            },
+        );
+    }
+
+    let expected_epoch = reference_instant();
+    for (index, ((sample, expected_body), exact_sample)) in evidence
+        .iter()
+        .zip(expected_bodies.iter())
+        .zip(exact_evidence.iter())
+        .enumerate()
+    {
+        if sample.body != *expected_body {
+            return Err(
+                ReferenceAsteroidEquatorialEvidenceValidationError::BodyOrderMismatch {
+                    index,
+                    expected: expected_body.clone(),
+                    found: sample.body.clone(),
+                },
+            );
+        }
+        if sample.epoch != expected_epoch {
+            return Err(
+                ReferenceAsteroidEquatorialEvidenceValidationError::EpochMismatch {
+                    index,
+                    expected: expected_epoch,
+                    found: sample.epoch,
+                },
+            );
+        }
+
+        let exact_ecliptic = EclipticCoordinates::new(
+            Longitude::from_degrees(exact_sample.longitude_deg),
+            Latitude::from_degrees(exact_sample.latitude_deg),
+            Some(exact_sample.distance_au),
+        );
+        let expected_equatorial = exact_ecliptic.to_equatorial(exact_sample.epoch.mean_obliquity());
+        let actual_equatorial = &sample.equatorial;
+
+        if (actual_equatorial.right_ascension.degrees()
+            - expected_equatorial.right_ascension.degrees())
+        .abs()
+            > ASTEROID_EQUATORIAL_TOLERANCE_DEGREES
+        {
+            return Err(
+                ReferenceAsteroidEquatorialEvidenceValidationError::RightAscensionMismatch {
+                    index,
+                    body: sample.body.clone(),
+                },
+            );
+        }
+        if (actual_equatorial.declination.degrees() - expected_equatorial.declination.degrees())
+            .abs()
+            > ASTEROID_EQUATORIAL_TOLERANCE_DEGREES
+        {
+            return Err(
+                ReferenceAsteroidEquatorialEvidenceValidationError::DeclinationMismatch {
+                    index,
+                    body: sample.body.clone(),
+                },
+            );
+        }
+        match (
+            actual_equatorial.distance_au,
+            expected_equatorial.distance_au,
+        ) {
+            (Some(actual), Some(expected))
+                if (actual - expected).abs() <= ASTEROID_DISTANCE_TOLERANCE_AU => {}
+            (Some(_), Some(_)) => {
+                return Err(
+                    ReferenceAsteroidEquatorialEvidenceValidationError::DistanceMismatch {
+                        index,
+                        body: sample.body.clone(),
+                    },
+                );
+            }
+            _ => {
+                return Err(
+                    ReferenceAsteroidEquatorialEvidenceValidationError::DistanceMismatch {
+                        index,
+                        body: sample.body.clone(),
+                    },
+                );
+            }
+        }
+    }
+
+    Ok(())
+}
+
 /// Formats the exact asteroid evidence slice for release-facing reporting.
 pub fn format_reference_asteroid_evidence_summary(
     evidence: &[ReferenceAsteroidEvidence],
@@ -1786,7 +2101,11 @@ pub fn format_reference_asteroid_evidence_summary(
 
 /// Returns the release-facing exact asteroid evidence summary string.
 pub fn reference_asteroid_evidence_summary_for_report() -> String {
-    format_reference_asteroid_evidence_summary(reference_asteroid_evidence())
+    let evidence = reference_asteroid_evidence();
+    match validate_reference_asteroid_evidence(evidence) {
+        Ok(()) => format_reference_asteroid_evidence_summary(evidence),
+        Err(error) => format!("Selected asteroid evidence: unavailable ({error})"),
+    }
 }
 
 /// Formats the equatorial asteroid evidence slice for release-facing reporting.
@@ -1807,7 +2126,11 @@ pub fn format_reference_asteroid_equatorial_evidence_summary(
 
 /// Returns the release-facing equatorial asteroid evidence summary string.
 pub fn reference_asteroid_equatorial_evidence_summary_for_report() -> String {
-    format_reference_asteroid_equatorial_evidence_summary(reference_asteroid_equatorial_evidence())
+    let evidence = reference_asteroid_equatorial_evidence();
+    match validate_reference_asteroid_equatorial_evidence(evidence) {
+        Ok(()) => format_reference_asteroid_equatorial_evidence_summary(evidence),
+        Err(error) => format!("Selected asteroid equatorial evidence: unavailable ({error})"),
+    }
 }
 
 const REFERENCE_SNAPSHOT_SOURCE_FALLBACK: &str = "NASA/JPL Horizons API vector tables (DE441)";
@@ -4736,6 +5059,17 @@ mod tests {
     }
 
     #[test]
+    fn reference_asteroid_evidence_validation_rejects_body_order_drift() {
+        let mut evidence = reference_asteroid_evidence().to_vec();
+        evidence.swap(0, 1);
+
+        assert!(matches!(
+            validate_reference_asteroid_evidence(&evidence),
+            Err(ReferenceAsteroidEvidenceValidationError::BodyOrderMismatch { index: 0, .. })
+        ));
+    }
+
+    #[test]
     fn comparison_snapshot_manifest_parses_the_documented_header_comments() {
         let manifest = comparison_snapshot_manifest();
         let source_summary = comparison_snapshot_source_summary();
@@ -5086,6 +5420,29 @@ mod tests {
     fn reference_asteroid_equatorial_evidence_summary_reports_the_expected_coverage() {
         let report = reference_asteroid_equatorial_evidence_summary_for_report();
         assert_eq!(report, "Selected asteroid equatorial evidence: 5 exact J2000 samples at JD 2451545.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros) using a mean-obliquity equatorial transform");
+    }
+
+    #[test]
+    fn reference_asteroid_equatorial_evidence_validation_rejects_transform_drift() {
+        let mut evidence = reference_asteroid_equatorial_evidence().to_vec();
+        let shifted_right_ascension = pleiades_types::Angle::from_degrees(
+            evidence[0].equatorial.right_ascension.degrees() + 0.01,
+        );
+        evidence[0].equatorial = pleiades_types::EquatorialCoordinates::new(
+            shifted_right_ascension,
+            evidence[0].equatorial.declination,
+            evidence[0].equatorial.distance_au,
+        );
+
+        assert!(matches!(
+            validate_reference_asteroid_equatorial_evidence(&evidence),
+            Err(
+                ReferenceAsteroidEquatorialEvidenceValidationError::RightAscensionMismatch {
+                    index: 0,
+                    ..
+                }
+            )
+        ));
     }
 
     #[test]
