@@ -278,6 +278,45 @@ mod tests {
         }
     }
 
+    struct RestrictedPolicyBackend;
+
+    impl EphemerisBackend for RestrictedPolicyBackend {
+        fn metadata(&self) -> BackendMetadata {
+            BackendMetadata {
+                id: BackendId::new("restricted"),
+                version: "0.1.0".to_string(),
+                family: BackendFamily::Algorithmic,
+                provenance: BackendProvenance::new("restricted policy test backend"),
+                nominal_range: TimeRange::new(None, None),
+                supported_time_scales: vec![TimeScale::Tt],
+                body_coverage: vec![CelestialBody::Sun],
+                supported_frames: vec![CoordinateFrame::Ecliptic],
+                capabilities: BackendCapabilities {
+                    apparent: false,
+                    ..BackendCapabilities::default()
+                },
+                accuracy: AccuracyClass::Approximate,
+                deterministic: true,
+                offline: true,
+            }
+        }
+
+        fn supports_body(&self, body: CelestialBody) -> bool {
+            body == CelestialBody::Sun
+        }
+
+        fn position(&self, request: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+            Ok(EphemerisResult::new(
+                BackendId::new("restricted"),
+                request.body.clone(),
+                request.instant,
+                request.frame,
+                request.zodiac_mode.clone(),
+                request.apparent,
+            ))
+        }
+    }
+
     #[test]
     fn chart_engine_delegates_to_backend() {
         let engine = ChartEngine::new(SimpleBackend);
@@ -338,6 +377,47 @@ mod tests {
         assert_eq!(
             error.message,
             "chart request #2 failed validation: house placement requires an observer location"
+        );
+    }
+
+    #[test]
+    fn validate_chart_requests_prefixes_unsupported_time_scale_failures() {
+        let engine = ChartEngine::new(RestrictedPolicyBackend);
+        let tt = Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt);
+        let utc = Instant::new(JulianDay::from_days(2451545.0), TimeScale::Utc);
+        let requests = [
+            ChartRequest::new(tt).with_bodies(vec![CelestialBody::Sun]),
+            ChartRequest::new(utc).with_bodies(vec![CelestialBody::Sun]),
+        ];
+
+        let error = engine
+            .validate_chart_requests(&requests)
+            .expect_err("batch chart validation should reject unsupported time scales");
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedTimeScale);
+        assert_eq!(
+            error.message,
+            "chart request #2 failed validation: restricted expects one of [TT] for request instants"
+        );
+    }
+
+    #[test]
+    fn validate_chart_requests_prefixes_apparentness_failures() {
+        let engine = ChartEngine::new(RestrictedPolicyBackend);
+        let instant = Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt);
+        let requests = [
+            ChartRequest::new(instant).with_bodies(vec![CelestialBody::Sun]),
+            ChartRequest::new(instant)
+                .with_bodies(vec![CelestialBody::Sun])
+                .with_apparentness(Apparentness::Apparent),
+        ];
+
+        let error = engine
+            .validate_chart_requests(&requests)
+            .expect_err("batch chart validation should reject unsupported apparentness");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert_eq!(
+            error.message,
+            "chart request #2 failed validation: restricted currently returns mean geometric coordinates only; apparent corrections are not implemented"
         );
     }
 
