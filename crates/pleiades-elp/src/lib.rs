@@ -1088,6 +1088,10 @@ impl LunarTheoryCatalogValidationSummary {
             .selected_source
             .map(|source| source.catalog_key().to_string())
             .unwrap_or_else(|| "none".to_string());
+        let selected_family_key = self
+            .selected_source
+            .map(|source| source.family_key().to_string())
+            .unwrap_or_else(|| "none".to_string());
         let selected_alias_count = self
             .selected_source
             .map(|source| source.source_aliases.len())
@@ -1095,20 +1099,22 @@ impl LunarTheoryCatalogValidationSummary {
 
         match &self.validation_result {
             Ok(()) => format!(
-                "lunar theory catalog validation: ok ({} entries, {} selected; selected source: {}; selected key: {}; aliases={}; round-trip, alias uniqueness, body coverage disjointness, and case-insensitive key matching verified)",
+                "lunar theory catalog validation: ok ({} entries, {} selected; selected source: {}; selected key: {}; selected family key: {}; aliases={}; round-trip, alias uniqueness, body coverage disjointness, and case-insensitive key matching verified)",
                 self.entry_count,
                 self.selected_count,
                 selected_source_summary,
                 selected_catalog_key,
+                selected_family_key,
                 selected_alias_count,
             ),
             Err(error) => format!(
-                "lunar theory catalog validation: error: {} ({} entries, {} selected; selected source: {}; selected key: {}; aliases={})",
+                "lunar theory catalog validation: error: {} ({} entries, {} selected; selected source: {}; selected key: {}; selected family key: {}; aliases={})",
                 error,
                 self.entry_count,
                 self.selected_count,
                 selected_source_summary,
                 selected_catalog_key,
+                selected_family_key,
                 selected_alias_count,
             ),
         }
@@ -4792,7 +4798,7 @@ mod tests {
             lunar_theory_catalog_validation_summary_for_report()
         );
         assert!(lunar_theory_catalog_validation_summary_for_report()
-            .contains("lunar theory catalog validation: ok (1 entries, 1 selected; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]; selected key: source identifier=meeus-style-truncated-lunar-baseline; aliases=1; round-trip, alias uniqueness, body coverage disjointness, and case-insensitive key matching verified)"));
+            .contains("lunar theory catalog validation: ok (1 entries, 1 selected; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]; selected key: source identifier=meeus-style-truncated-lunar-baseline; selected family key: source family=Meeus-style truncated analytical baseline; aliases=1; round-trip, alias uniqueness, body coverage disjointness, and case-insensitive key matching verified)"));
         assert!(lunar_theory_catalog_summary_for_report()
             .contains("selected source: meeus-style-truncated-lunar-baseline"));
         assert!(lunar_theory_catalog_summary_for_report()
