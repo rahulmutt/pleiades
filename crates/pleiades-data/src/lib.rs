@@ -48,8 +48,9 @@ use pleiades_backend::{
 };
 use pleiades_compression::CompressedArtifact;
 use pleiades_compression::{
-    join_display, ArtifactHeader, ArtifactProfile, ArtifactProfileCoverageSummary, BodyArtifact,
-    ChannelKind, EndianPolicy, PolynomialChannel, Segment,
+    join_display, ArtifactHeader, ArtifactOutput, ArtifactOutputSupport, ArtifactProfile,
+    ArtifactProfileCoverageSummary, BodyArtifact, ChannelKind, EndianPolicy, PolynomialChannel,
+    Segment,
 };
 use pleiades_jpl::{
     format_reference_snapshot_summary, reference_snapshot, reference_snapshot_summary,
@@ -497,10 +498,55 @@ pub struct PackagedArtifactOutputSupportSummary {
     pub profile: ArtifactProfile,
 }
 
+fn validate_packaged_artifact_output_support_profile(
+    profile: &ArtifactProfile,
+) -> Result<(), pleiades_compression::CompressionError> {
+    let expected_states = [
+        (
+            ArtifactOutput::EclipticCoordinates,
+            ArtifactOutputSupport::Derived,
+        ),
+        (
+            ArtifactOutput::EquatorialCoordinates,
+            ArtifactOutputSupport::Derived,
+        ),
+        (
+            ArtifactOutput::ApparentCorrections,
+            ArtifactOutputSupport::Unsupported,
+        ),
+        (
+            ArtifactOutput::TopocentricCoordinates,
+            ArtifactOutputSupport::Unsupported,
+        ),
+        (
+            ArtifactOutput::SiderealCoordinates,
+            ArtifactOutputSupport::Unsupported,
+        ),
+        (ArtifactOutput::Motion, ArtifactOutputSupport::Unsupported),
+    ];
+
+    for (output, expected_support) in expected_states {
+        let actual_support = profile.output_support(output);
+        if actual_support != expected_support {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                format!(
+                    "packaged artifact output support summary is out of sync with the bundled artifact profile field `output_support[{output}]`: expected {expected_support}, found {actual_support}"
+                ),
+            ));
+        }
+    }
+
+    Ok(())
+}
+
 impl PackagedArtifactOutputSupportSummary {
-    /// Validates that the embedded artifact profile is internally consistent.
+    /// Validates that the embedded artifact profile is internally consistent
+    /// and still advertises the packaged artifact's current built-in output
+    /// support posture.
     pub fn validate(&self) -> Result<(), pleiades_compression::CompressionError> {
-        self.profile.validate()
+        self.profile.validate()?;
+        validate_packaged_artifact_output_support_profile(&self.profile)
     }
 
     /// Renders the packaged artifact profile's output-support semantics.
@@ -2449,6 +2495,24 @@ mod tests {
             pleiades_compression::CompressionErrorKind::InvalidFormat
         );
         assert!(error.message.contains("Motion"));
+    }
+
+    #[test]
+    fn packaged_artifact_output_support_summary_validation_rejects_equatorial_support_drift() {
+        let mut profile = packaged_artifact_profile_summary_details().profile.clone();
+        profile.derived_outputs.retain(|output| {
+            *output != pleiades_compression::ArtifactOutput::EquatorialCoordinates
+        });
+
+        let summary = PackagedArtifactOutputSupportSummary { profile };
+        let error = summary
+            .validate()
+            .expect_err("equatorial output support drift should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error.message.contains("EquatorialCoordinates"));
     }
 
     #[test]
