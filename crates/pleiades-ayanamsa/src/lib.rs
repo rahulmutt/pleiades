@@ -66,6 +66,27 @@ impl AyanamsaDescriptor {
 
     /// Validates the descriptor-local metadata invariants.
     pub fn validate(&self) -> Result<(), AyanamsaCatalogValidationError> {
+        if self.canonical_name.trim().is_empty() || has_surrounding_whitespace(self.canonical_name)
+        {
+            return Err(
+                AyanamsaCatalogValidationError::DescriptorLabelNotNormalized {
+                    label: self.canonical_name,
+                    field: "canonical name",
+                },
+            );
+        }
+
+        for alias in self.aliases {
+            if alias.trim().is_empty() || has_surrounding_whitespace(alias) {
+                return Err(
+                    AyanamsaCatalogValidationError::DescriptorLabelNotNormalized {
+                        label: alias,
+                        field: "alias",
+                    },
+                );
+            }
+        }
+
         if self.notes.trim().is_empty()
             || (!self.notes.is_empty() && self.notes.trim() != self.notes)
         {
@@ -1276,6 +1297,13 @@ pub enum AyanamsaCatalogValidationError {
         /// Expected typed ayanamsa.
         expected_ayanamsa: Ayanamsa,
     },
+    /// A descriptor label is blank or whitespace-padded.
+    DescriptorLabelNotNormalized {
+        /// Label that drifted.
+        label: &'static str,
+        /// Field that drifted.
+        field: &'static str,
+    },
     /// A descriptor note is blank or whitespace-padded.
     DescriptorNotesNotNormalized {
         /// Label whose descriptor note drifted.
@@ -1299,6 +1327,10 @@ impl fmt::Display for AyanamsaCatalogValidationError {
                 label,
                 expected_ayanamsa,
             } => write!(f, "label '{label}' should resolve to {expected_ayanamsa}",),
+            Self::DescriptorLabelNotNormalized { label, field } => write!(
+                f,
+                "the ayanamsa catalog descriptor {field} for `{label}` is blank or contains surrounding whitespace"
+            ),
             Self::DescriptorNotesNotNormalized { label } => write!(
                 f,
                 "the ayanamsa catalog descriptor note for `{label}` is blank or contains surrounding whitespace"
@@ -1312,6 +1344,10 @@ impl fmt::Display for AyanamsaCatalogValidationError {
 }
 
 impl std::error::Error for AyanamsaCatalogValidationError {}
+
+fn has_surrounding_whitespace(value: &str) -> bool {
+    !value.is_empty() && value.trim() != value
+}
 
 /// A compact validation summary for the built-in ayanamsa catalog.
 #[derive(Clone, Debug, PartialEq)]
@@ -1589,6 +1625,42 @@ mod tests {
         assert!(matches!(
             validate_ayanamsa_catalog_entries(&duplicate_entries),
             Err(AyanamsaCatalogValidationError::DuplicateLabel { label: "Lahiri" })
+        ));
+
+        let blank_name_descriptor = AyanamsaDescriptor::new(
+            Ayanamsa::Lahiri,
+            " ",
+            &[],
+            "Summary note",
+            Some(JulianDay::from_days(2_451_545.0)),
+            Some(Angle::from_degrees(23.5)),
+        );
+        assert!(matches!(
+            blank_name_descriptor.validate(),
+            Err(
+                AyanamsaCatalogValidationError::DescriptorLabelNotNormalized {
+                    label: " ",
+                    field: "canonical name"
+                }
+            )
+        ));
+
+        let padded_alias_descriptor = AyanamsaDescriptor::new(
+            Ayanamsa::Lahiri,
+            "Lahiri",
+            &[" alias "],
+            "Summary note",
+            Some(JulianDay::from_days(2_451_545.0)),
+            Some(Angle::from_degrees(23.5)),
+        );
+        assert!(matches!(
+            padded_alias_descriptor.validate(),
+            Err(
+                AyanamsaCatalogValidationError::DescriptorLabelNotNormalized {
+                    label: " alias ",
+                    field: "alias"
+                }
+            )
         ));
 
         let blank_notes_descriptor = AyanamsaDescriptor::new(

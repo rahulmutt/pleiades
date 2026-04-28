@@ -122,6 +122,23 @@ impl HouseSystemDescriptor {
 
     /// Validates the descriptor-local metadata invariants.
     pub fn validate(&self) -> Result<(), HouseCatalogValidationError> {
+        if self.canonical_name.trim().is_empty() || has_surrounding_whitespace(self.canonical_name)
+        {
+            return Err(HouseCatalogValidationError::DescriptorLabelNotNormalized {
+                label: self.canonical_name,
+                field: "canonical name",
+            });
+        }
+
+        for alias in self.aliases {
+            if alias.trim().is_empty() || has_surrounding_whitespace(alias) {
+                return Err(HouseCatalogValidationError::DescriptorLabelNotNormalized {
+                    label: alias,
+                    field: "alias",
+                });
+            }
+        }
+
         if self.notes.trim().is_empty()
             || (!self.notes.is_empty() && self.notes.trim() != self.notes)
         {
@@ -219,6 +236,13 @@ pub enum HouseCatalogValidationError {
         /// Typed system that the label was expected to resolve to.
         expected_system: HouseSystem,
     },
+    /// A descriptor label is blank or whitespace-padded.
+    DescriptorLabelNotNormalized {
+        /// Label that drifted.
+        label: &'static str,
+        /// Field that drifted.
+        field: &'static str,
+    },
     /// A descriptor note is blank or whitespace-padded.
     DescriptorNotesNotNormalized {
         /// Label whose descriptor note drifted.
@@ -240,6 +264,10 @@ impl fmt::Display for HouseCatalogValidationError {
                 f,
                 "the house catalog label `{label}` does not round-trip to {expected_system}"
             ),
+            Self::DescriptorLabelNotNormalized { label, field } => write!(
+                f,
+                "the house catalog descriptor {field} for `{label}` is blank or contains surrounding whitespace"
+            ),
             Self::DescriptorNotesNotNormalized { label } => write!(
                 f,
                 "the house catalog descriptor note for `{label}` is blank or contains surrounding whitespace"
@@ -249,6 +277,10 @@ impl fmt::Display for HouseCatalogValidationError {
 }
 
 impl std::error::Error for HouseCatalogValidationError {}
+
+fn has_surrounding_whitespace(value: &str) -> bool {
+    !value.is_empty() && value.trim() != value
+}
 
 /// A compact validation summary for the built-in house-system catalog.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -1809,6 +1841,26 @@ mod tests {
             Err(HouseCatalogValidationError::LabelDoesNotRoundTrip {
                 label: "Not Equal",
                 expected_system: HouseSystem::Equal,
+            })
+        ));
+
+        let blank_name_descriptor =
+            HouseSystemDescriptor::new(HouseSystem::Equal, "   ", &[], "notes", false);
+        assert!(matches!(
+            blank_name_descriptor.validate(),
+            Err(HouseCatalogValidationError::DescriptorLabelNotNormalized {
+                label: "   ",
+                field: "canonical name"
+            })
+        ));
+
+        let padded_alias_descriptor =
+            HouseSystemDescriptor::new(HouseSystem::Equal, "Equal", &[" Alias "], "notes", false);
+        assert!(matches!(
+            padded_alias_descriptor.validate(),
+            Err(HouseCatalogValidationError::DescriptorLabelNotNormalized {
+                label: " Alias ",
+                field: "alias"
             })
         ));
 
