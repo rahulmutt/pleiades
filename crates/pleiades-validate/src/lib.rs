@@ -3272,6 +3272,12 @@ pub struct CompatibilityProfileVerificationSummary {
     pub release_house_canonical_names: String,
     /// Release-specific ayanamsa canonical names.
     pub release_ayanamsa_canonical_names: String,
+    /// Built-in house formula families surfaced by the profile.
+    pub house_formula_family_names: String,
+    /// Number of built-in ayanamsa descriptors that carry reference epoch/offset metadata.
+    pub ayanamsa_metadata_count: usize,
+    /// Number of built-in ayanamsa descriptors that still lack reference epoch/offset metadata.
+    pub ayanamsa_metadata_gap_count: usize,
     /// Release-specific custom-definition label names.
     pub custom_definition_label_names: String,
     /// Number of release notes documented in the profile.
@@ -3429,6 +3435,50 @@ impl CompatibilityProfileVerificationSummary {
             ));
         }
 
+        let expected_house_formula_family_names = profile
+            .house_systems
+            .iter()
+            .map(|entry| entry.formula_family().to_string())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect::<Vec<_>>()
+            .join(", ");
+        if self.house_formula_family_names != expected_house_formula_family_names {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile verification summary house formula families mismatch: expected {}, found {}",
+                    expected_house_formula_family_names, self.house_formula_family_names
+                ),
+            ));
+        }
+
+        let expected_ayanamsa_metadata_count = profile
+            .ayanamsas
+            .iter()
+            .filter(|entry| entry.has_sidereal_metadata())
+            .count();
+        let expected_ayanamsa_metadata_gap_count =
+            profile.ayanamsas.len() - expected_ayanamsa_metadata_count;
+        if self.ayanamsa_metadata_count != expected_ayanamsa_metadata_count {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile verification summary ayanamsa metadata count mismatch: expected {}, found {}",
+                    expected_ayanamsa_metadata_count, self.ayanamsa_metadata_count
+                ),
+            ));
+        }
+        if self.ayanamsa_metadata_gap_count != expected_ayanamsa_metadata_gap_count {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile verification summary ayanamsa metadata gap count mismatch: expected {}, found {}",
+                    expected_ayanamsa_metadata_gap_count, self.ayanamsa_metadata_gap_count
+                ),
+            ));
+        }
+
         let expected_custom_definition_label_names = profile.custom_definition_labels.join(", ");
         if self.custom_definition_label_names != expected_custom_definition_label_names {
             return Err(EphemerisError::new(
@@ -3547,6 +3597,14 @@ impl CompatibilityProfileVerificationSummary {
         text.push_str("Release-specific ayanamsa canonical names verified: ");
         text.push_str(&self.release_ayanamsa_canonical_names);
         text.push('\n');
+        text.push_str("House formula families verified: ");
+        text.push_str(&self.house_formula_family_names);
+        text.push('\n');
+        text.push_str("Ayanamsa reference metadata verified: ");
+        text.push_str(&self.ayanamsa_metadata_count.to_string());
+        text.push_str(" descriptors with epoch/offset metadata, ");
+        text.push_str(&self.ayanamsa_metadata_gap_count.to_string());
+        text.push_str(" metadata gaps\n");
         text.push_str("Release posture: baseline milestone preserved, release additions explicit, custom definitions tracked, caveats documented\n");
         text.push_str("Release notes documented: ");
         text.push_str(&self.release_note_count.to_string());
@@ -3663,6 +3721,19 @@ pub fn compatibility_profile_verification_summary(
     let release_ayanamsa_names =
         summarize_descriptor_names(profile.release_ayanamsas, |entry| entry.canonical_name);
     release_ayanamsa_names.validate()?;
+    let house_formula_family_names = profile
+        .house_systems
+        .iter()
+        .map(|entry| entry.formula_family().to_string())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>()
+        .join(", ");
+    let ayanamsa_metadata_count = profile
+        .ayanamsas
+        .iter()
+        .filter(|entry| entry.has_sidereal_metadata())
+        .count();
 
     Ok(CompatibilityProfileVerificationSummary {
         profile_id: release_profiles.compatibility_profile_id.to_string(),
@@ -3681,6 +3752,9 @@ pub fn compatibility_profile_verification_summary(
         release_ayanamsa_count: profile.release_ayanamsas.len(),
         release_house_canonical_names: release_house_names.summary_line(),
         release_ayanamsa_canonical_names: release_ayanamsa_names.summary_line(),
+        house_formula_family_names,
+        ayanamsa_metadata_count,
+        ayanamsa_metadata_gap_count: profile.ayanamsas.len() - ayanamsa_metadata_count,
         release_note_count: profile.release_notes.len(),
         validation_reference_point_count: profile.validation_reference_points.len(),
         custom_definition_label_count: custom_definition_labels_checked,
@@ -12292,6 +12366,20 @@ mod tests {
             "Latitude-sensitive house systems verified: 8 descriptors, 8 labels (Placidus, Koch, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Topocentric, Sunshine, Gauquelin sectors)"
         ));
         assert!(rendered.contains("Ayanamsas verified:"));
+        assert!(rendered.contains("House formula families verified: Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign"));
+        assert!(rendered.contains(&format!(
+            "Ayanamsa reference metadata verified: {} descriptors with epoch/offset metadata, {} metadata gaps",
+            profile
+                .ayanamsas
+                .iter()
+                .filter(|entry| entry.has_sidereal_metadata())
+                .count(),
+            profile.ayanamsas.len() - profile
+                .ayanamsas
+                .iter()
+                .filter(|entry| entry.has_sidereal_metadata())
+                .count()
+        )));
         assert!(rendered.contains("Baseline/release slices:"));
         assert!(rendered.contains("Release-specific house-system canonical names verified: 13 (Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter (poli-equatorial), Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen SD, Pullen SR, Sunshine, Gauquelin sectors)"));
         assert!(rendered.contains("Release-specific ayanamsa canonical names verified: 54 (True Citra, J2000, J1900, B1950, True Revati, True Mula, Suryasiddhanta (Revati), Suryasiddhanta (Citra), Lahiri (ICRC), Lahiri (1940), Usha Shashi, Suryasiddhanta (499 CE), Aryabhata (499 CE), Sassanian, DeLuce, Yukteshwar, PVR Pushya-paksha, Sheoran, Hipparchus, Babylonian (Kugler 1), Babylonian (Kugler 2), Babylonian (Kugler 3), Babylonian (Huber), Babylonian (Eta Piscium), Babylonian (Aldebaran), Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs), Galactic Center, Galactic Equator, True Pushya, Udayagiri, Djwhal Khul, JN Bhasin, Suryasiddhanta (Mean Sun), Aryabhata (Mean Sun), Babylonian (Britton), Aryabhata (522 CE), Lahiri (VP285), Krishnamurti (VP291), True Sheoran, Galactic Center (Rgilbrand), Galactic Center (Mardyks), Galactic Center (Mula/Wilhelm), Dhruva Galactic Center (Middle Mula), Galactic Center (Cochrane), Galactic Equator (IAU 1958), Galactic Equator (True), Galactic Equator (Mula), Galactic Equator (Fiorenza), Valens Moon)"));
@@ -12363,6 +12451,29 @@ mod tests {
             summary.custom_definition_label_names,
             profile.custom_definition_labels.join(", ")
         );
+        assert_eq!(
+            summary.house_formula_family_names,
+            profile
+                .house_systems
+                .iter()
+                .map(|entry| entry.formula_family().to_string())
+                .collect::<BTreeSet<_>>()
+                .into_iter()
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+        assert_eq!(
+            summary.ayanamsa_metadata_count,
+            profile
+                .ayanamsas
+                .iter()
+                .filter(|entry| entry.has_sidereal_metadata())
+                .count()
+        );
+        assert_eq!(
+            summary.ayanamsa_metadata_gap_count,
+            profile.ayanamsas.len() - summary.ayanamsa_metadata_count
+        );
         assert_eq!(summary.compatibility_caveat_count, profile.known_gaps.len());
         summary
             .validate()
@@ -12375,6 +12486,22 @@ mod tests {
         assert!(summary
             .summary_line()
             .contains("Compatibility profile verification"));
+        assert!(summary
+            .summary_line()
+            .contains("House formula families verified: Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign"));
+        assert!(summary.summary_line().contains(&format!(
+            "Ayanamsa reference metadata verified: {} descriptors with epoch/offset metadata, {} metadata gaps",
+            profile
+                .ayanamsas
+                .iter()
+                .filter(|entry| entry.has_sidereal_metadata())
+                .count(),
+            profile.ayanamsas.len() - profile
+                .ayanamsas
+                .iter()
+                .filter(|entry| entry.has_sidereal_metadata())
+                .count()
+        )));
         assert!(summary
             .summary_line()
             .contains("Release posture: baseline milestone preserved, release additions explicit, custom definitions tracked, caveats documented"));
@@ -12405,6 +12532,26 @@ mod tests {
         assert!(error
             .message
             .contains("custom-definition label names mismatch"));
+
+        let mut summary = compatibility_profile_verification_summary()
+            .expect("compatibility profile verification summary should render");
+        summary.house_formula_family_names = "stale summary".to_string();
+
+        let error = summary
+            .validate()
+            .expect_err("stale house formula families should fail validation");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error.message.contains("house formula families mismatch"));
+
+        let mut summary = compatibility_profile_verification_summary()
+            .expect("compatibility profile verification summary should render");
+        summary.ayanamsa_metadata_count = 0;
+
+        let error = summary
+            .validate()
+            .expect_err("stale ayanamsa metadata counts should fail validation");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error.message.contains("ayanamsa metadata count mismatch"));
     }
 
     #[test]
