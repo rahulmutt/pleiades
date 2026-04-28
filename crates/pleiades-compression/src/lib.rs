@@ -1074,7 +1074,7 @@ fn validate_artifact_profile(profile: &ArtifactProfile) -> Result<(), Compressio
 }
 
 fn validate_coordinate_output_policy(profile: &ArtifactProfile) -> Result<(), CompressionError> {
-    let needs_angular_channels = profile.derived_outputs.iter().any(|output| {
+    let needs_coordinate_channels = profile.derived_outputs.iter().any(|output| {
         matches!(
             *output,
             ArtifactOutput::EclipticCoordinates
@@ -1085,13 +1085,14 @@ fn validate_coordinate_output_policy(profile: &ArtifactProfile) -> Result<(), Co
         )
     });
 
-    if needs_angular_channels
+    if needs_coordinate_channels
         && (!profile.stored_channels.contains(&ChannelKind::Longitude)
-            || !profile.stored_channels.contains(&ChannelKind::Latitude))
+            || !profile.stored_channels.contains(&ChannelKind::Latitude)
+            || !profile.stored_channels.contains(&ChannelKind::DistanceAu))
     {
         return Err(CompressionError::new(
             CompressionErrorKind::InvalidFormat,
-            "artifact profile derived coordinate outputs require Longitude and Latitude in stored channels",
+            "artifact profile derived coordinate outputs require Longitude, Latitude, and DistanceAu in stored channels",
         ));
     }
 
@@ -1727,7 +1728,11 @@ mod tests {
     #[test]
     fn explicit_profile_roundtrip_preserves_stored_derived_and_unsupported_outputs() {
         let profile = ArtifactProfile::new(
-            vec![ChannelKind::Longitude, ChannelKind::Latitude],
+            vec![
+                ChannelKind::Longitude,
+                ChannelKind::Latitude,
+                ChannelKind::DistanceAu,
+            ],
             vec![ArtifactOutput::EclipticCoordinates, ArtifactOutput::Motion],
             vec![
                 ArtifactOutput::EquatorialCoordinates,
@@ -1849,20 +1854,40 @@ mod tests {
         );
 
         let derived_coordinate_channel_mismatch = ArtifactProfile::new(
-            vec![ChannelKind::Longitude],
+            vec![ChannelKind::Longitude, ChannelKind::Latitude],
             vec![ArtifactOutput::EquatorialCoordinates],
             vec![ArtifactOutput::Motion],
             SpeedPolicy::Unsupported,
         );
         let derived_coordinate_channel_error = derived_coordinate_channel_mismatch
             .validate()
-            .expect_err("derived coordinate outputs should require angular stored channels");
+            .expect_err(
+            "derived coordinate outputs should require longitude, latitude, and distance channels",
+        );
         assert_eq!(
             derived_coordinate_channel_error.kind,
             CompressionErrorKind::InvalidFormat
         );
         assert!(format!("{derived_coordinate_channel_error}").contains(
-            "derived coordinate outputs require Longitude and Latitude in stored channels"
+            "derived coordinate outputs require Longitude, Latitude, and DistanceAu in stored channels"
+        ));
+
+        let derived_coordinate_channel_missing_latitude = ArtifactProfile::new(
+            vec![ChannelKind::Longitude, ChannelKind::DistanceAu],
+            vec![ArtifactOutput::EquatorialCoordinates],
+            vec![ArtifactOutput::Motion],
+            SpeedPolicy::Unsupported,
+        );
+        let derived_coordinate_channel_missing_latitude_error =
+            derived_coordinate_channel_missing_latitude
+                .validate()
+                .expect_err("derived coordinate outputs should require latitude as well");
+        assert_eq!(
+            derived_coordinate_channel_missing_latitude_error.kind,
+            CompressionErrorKind::InvalidFormat
+        );
+        assert!(format!("{derived_coordinate_channel_missing_latitude_error}").contains(
+            "derived coordinate outputs require Longitude, Latitude, and DistanceAu in stored channels"
         ));
 
         let invalid_segment_body = BodyArtifact::new(
