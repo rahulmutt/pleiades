@@ -105,6 +105,12 @@ impl CompatibilityProfile {
         ])?;
         validate_catalog_label_uniqueness("house-system", self.house_systems)?;
         validate_catalog_label_uniqueness("ayanamsa", self.ayanamsas)?;
+        validate_catalogs_are_disjoint(
+            "house-system",
+            self.house_systems,
+            "ayanamsa",
+            self.ayanamsas,
+        )?;
         validate_catalog_partitions_are_disjoint(
             "house-system",
             self.baseline_house_systems,
@@ -200,6 +206,15 @@ pub enum CompatibilityProfileValidationError {
         /// Duplicate label that appeared more than once.
         label: &'static str,
     },
+    /// Two published catalogs share a canonical name or alias.
+    CrossCatalogLabelCollision {
+        /// First catalog that provided the duplicate label.
+        first_catalog_label: &'static str,
+        /// Second catalog that re-used the duplicate label.
+        second_catalog_label: &'static str,
+        /// Duplicate label that appeared in both catalogs.
+        label: &'static str,
+    },
     /// The total catalog coverage does not equal the baseline plus release partitions.
     CatalogCoverageMismatch {
         /// Catalog that drifted.
@@ -264,6 +279,15 @@ impl fmt::Display for CompatibilityProfileValidationError {
             Self::CatalogLabelCollision { catalog_label, label } => write!(
                 f,
                 "compatibility profile {catalog_label} catalog contains duplicate label '{}'",
+                label
+            ),
+            Self::CrossCatalogLabelCollision {
+                first_catalog_label,
+                second_catalog_label,
+                label,
+            } => write!(
+                f,
+                "compatibility profile {first_catalog_label} and {second_catalog_label} catalogs share duplicate label '{}'",
                 label
             ),
             Self::CatalogCoverageMismatch {
@@ -535,6 +559,46 @@ fn validate_catalog_label_uniqueness<T: AliasProfileEntry>(
                     catalog_label,
                     label,
                 });
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn collect_catalog_labels<T: AliasProfileEntry>(entries: &[T]) -> BTreeSet<String> {
+    let mut labels = BTreeSet::new();
+
+    for entry in entries {
+        labels.insert(entry.canonical_name().trim().to_ascii_lowercase());
+        for alias in entry.aliases() {
+            labels.insert(alias.trim().to_ascii_lowercase());
+        }
+    }
+
+    labels
+}
+
+fn validate_catalogs_are_disjoint<T: AliasProfileEntry, U: AliasProfileEntry>(
+    first_catalog_label: &'static str,
+    first_entries: &[T],
+    second_catalog_label: &'static str,
+    second_entries: &[U],
+) -> Result<(), CompatibilityProfileValidationError> {
+    let first_labels = collect_catalog_labels(first_entries);
+
+    for entry in second_entries {
+        for label in std::iter::once(entry.canonical_name()).chain(entry.aliases().iter().copied())
+        {
+            let normalized_label = label.trim().to_ascii_lowercase();
+            if first_labels.contains(&normalized_label) {
+                return Err(
+                    CompatibilityProfileValidationError::CrossCatalogLabelCollision {
+                        first_catalog_label,
+                        second_catalog_label,
+                        label,
+                    },
+                );
             }
         }
     }
@@ -1990,6 +2054,45 @@ mod tests {
             CompatibilityProfileValidationError::CatalogLabelCollision {
                 catalog_label: "ayanamsa",
                 label: "lahiri"
+            }
+        ));
+    }
+
+    #[test]
+    fn compatibility_profile_validate_rejects_cross_catalog_house_and_ayanamsa_label_collisions() {
+        #[derive(Clone, Copy)]
+        struct Entry {
+            canonical_name: &'static str,
+            aliases: &'static [&'static str],
+        }
+
+        impl AliasProfileEntry for Entry {
+            fn canonical_name(&self) -> &'static str {
+                self.canonical_name
+            }
+
+            fn aliases(&self) -> &'static [&'static str] {
+                self.aliases
+            }
+        }
+
+        let houses = [Entry {
+            canonical_name: "Placidus",
+            aliases: &["Equal house system"],
+        }];
+        let ayanamsas = [Entry {
+            canonical_name: "Raman",
+            aliases: &["equal house system"],
+        }];
+
+        let error = validate_catalogs_are_disjoint("house-system", &houses, "ayanamsa", &ayanamsas)
+            .expect_err("cross-catalog duplicate labels should fail validation");
+        assert!(matches!(
+            error,
+            CompatibilityProfileValidationError::CrossCatalogLabelCollision {
+                first_catalog_label: "house-system",
+                second_catalog_label: "ayanamsa",
+                label: "equal house system"
             }
         ));
     }
