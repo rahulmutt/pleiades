@@ -8668,6 +8668,30 @@ mod tests {
     }
 
     #[test]
+    fn source_manifest_pairs_bodies_with_source_files_in_release_order() {
+        let manifest = source_manifest();
+        let expected_manifest = source_specifications()
+            .into_iter()
+            .map(|spec| (spec.body, spec.source_file))
+            .collect::<Vec<_>>();
+
+        assert_eq!(manifest, expected_manifest);
+        assert_eq!(
+            supported_source_files(),
+            expected_manifest
+                .iter()
+                .map(|(_, source_file)| *source_file)
+                .collect::<Vec<_>>()
+        );
+        for (body, source_file) in &manifest {
+            assert!(
+                checked_in_generated_vsop87b_table_bytes_for_source_file(source_file).is_some(),
+                "supported source file {source_file} should have a checked-in generated blob for {body}"
+            );
+        }
+    }
+
+    #[test]
     fn regenerated_binary_tables_match_the_checked_in_artifacts() {
         for spec in source_specifications() {
             let regenerated = generated_vsop87b_table_bytes_for_source_file(spec.source_file)
