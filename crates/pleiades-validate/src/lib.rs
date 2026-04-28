@@ -4340,6 +4340,8 @@ fn render_release_summary_text() -> String {
     text.push_str("Request policy: ");
     text.push_str(&format_request_policy_summary_for_report(&request_policy));
     text.push('\n');
+    text.push_str(&request_surface_summary_for_report());
+    text.push('\n');
     text.push_str("Zodiac policy: ");
     text.push_str(&zodiac_policy_summary_for_report(&[ZodiacMode::Tropical]));
     text.push('\n');
@@ -6878,6 +6880,43 @@ fn format_request_policy_summary_for_report(
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct RequestSurfaceSummary {
+    instant: &'static str,
+    chart_request: &'static str,
+    backend_request: &'static str,
+    house_request: &'static str,
+    cli_chart: &'static str,
+}
+
+impl RequestSurfaceSummary {
+    fn summary_line(self) -> String {
+        format!(
+            "Primary request surfaces: {}; {}; {}; {}; {}",
+            self.instant,
+            self.chart_request,
+            self.backend_request,
+            self.house_request,
+            self.cli_chart,
+        )
+    }
+}
+
+const fn current_request_surface_summary() -> RequestSurfaceSummary {
+    RequestSurfaceSummary {
+        instant: "pleiades-types::Instant (tagged instant plus caller-supplied retagging)",
+        chart_request: "pleiades-core::ChartRequest (chart assembly plus house-observer preflight)",
+        backend_request:
+            "pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight)",
+        house_request: "pleiades-houses::HouseRequest (house-only observer calculations)",
+        cli_chart: "pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags)",
+    }
+}
+
+fn request_surface_summary_for_report() -> String {
+    current_request_surface_summary().summary_line()
+}
+
 fn format_vsop87_request_policy_summary() -> String {
     vsop87_request_policy_summary_for_report()
 }
@@ -6938,6 +6977,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         "Request policy: {}",
         format_request_policy_summary_for_report(&request_policy)
     );
+    let _ = writeln!(text, "{}", request_surface_summary_for_report());
     let _ = writeln!(
         text,
         "Zodiac policy: {}",
@@ -7884,6 +7924,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str("Request policy: ");
     text.push_str(&format_request_policy_summary_for_report(&request_policy));
+    text.push('\n');
+    text.push_str(&request_surface_summary_for_report());
     text.push('\n');
     text.push_str("Frame policy: ");
     text.push_str(frame_policy_summary_for_report());
@@ -12779,6 +12821,10 @@ mod tests {
         assert!(rendered.contains("Observer policy:"));
         assert!(rendered.contains("Apparentness policy:"));
         assert!(rendered.contains("Request policy: time-scale="));
+        assert!(rendered.contains("Primary request surfaces: pleiades-types::Instant"));
+        assert!(rendered.contains(
+            "pleiades-core::ChartRequest (chart assembly plus house-observer preflight)"
+        ));
         assert!(rendered.contains("Frame policy:"));
         assert!(rendered.contains("Zodiac policy:"));
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
@@ -13087,6 +13133,7 @@ version = "0.9.0"
         assert!(release_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(release_summary.contains("Backend matrix summary: backend-matrix-summary"));
+        assert!(release_summary.contains("Primary request surfaces: pleiades-types::Instant"));
         assert!(release_summary.contains(
             "Validation report summary: validation-report-summary / validation-summary / report-summary"
         ));
@@ -13274,6 +13321,9 @@ version = "0.9.0"
         assert!(backend_matrix.contains("Implemented backend matrices"));
         assert!(backend_matrix.contains("JPL snapshot reference backend"));
         assert!(backend_matrix_summary.contains("Backend matrix summary"));
+        assert!(
+            backend_matrix_summary.contains("Primary request surfaces: pleiades-types::Instant")
+        );
         assert!(backend_matrix_summary.contains(&format!(
             "Profile: {}",
             release_profiles.compatibility_profile_id
