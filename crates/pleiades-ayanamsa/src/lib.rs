@@ -1255,6 +1255,11 @@ pub enum AyanamsaCatalogValidationError {
         /// Expected typed ayanamsa.
         expected_ayanamsa: Ayanamsa,
     },
+    /// A descriptor note is blank or whitespace-padded.
+    DescriptorNotesNotNormalized {
+        /// Label whose descriptor note drifted.
+        label: &'static str,
+    },
 }
 
 impl fmt::Display for AyanamsaCatalogValidationError {
@@ -1268,6 +1273,10 @@ impl fmt::Display for AyanamsaCatalogValidationError {
                 label,
                 expected_ayanamsa,
             } => write!(f, "label '{label}' should resolve to {expected_ayanamsa}",),
+            Self::DescriptorNotesNotNormalized { label } => write!(
+                f,
+                "the ayanamsa catalog descriptor note for `{label}` is blank or contains surrounding whitespace"
+            ),
         }
     }
 }
@@ -1303,7 +1312,7 @@ impl AyanamsaCatalogValidationSummary {
 
         match &self.validation_result {
             Ok(()) => format!(
-                "ayanamsa catalog validation: ok ({} entries, {} labels checked; baseline={}, release={}; sidereal metadata={}/{} entries with both a reference epoch and offset; custom-definition-only={} labels: {}; round-trip and alias uniqueness verified)",
+                "ayanamsa catalog validation: ok ({} entries, {} labels checked; baseline={}, release={}; sidereal metadata={}/{} entries with both a reference epoch and offset; custom-definition-only={} labels: {}; round-trip, alias uniqueness, and notes verified)",
                 self.entry_count,
                 self.label_count,
                 self.baseline_entry_count,
@@ -1342,6 +1351,16 @@ fn validate_ayanamsa_catalog_entries(
 
     for entry in entries {
         labels_checked += 1;
+        if entry.notes.trim().is_empty()
+            || (!entry.notes.is_empty() && entry.notes.trim() != entry.notes)
+        {
+            return Err(
+                AyanamsaCatalogValidationError::DescriptorNotesNotNormalized {
+                    label: entry.canonical_name,
+                },
+            );
+        }
+
         if resolve_ayanamsa(entry.canonical_name) != Some(entry.ayanamsa.clone()) {
             return Err(AyanamsaCatalogValidationError::LabelDoesNotRoundTrip {
                 label: entry.canonical_name,
@@ -1548,6 +1567,20 @@ mod tests {
         assert!(matches!(
             validate_ayanamsa_catalog_entries(&duplicate_entries),
             Err(AyanamsaCatalogValidationError::DuplicateLabel { label: "Lahiri" })
+        ));
+
+        let blank_notes_entry = [AyanamsaDescriptor::new(
+            Ayanamsa::Lahiri,
+            "Lahiri",
+            &[],
+            " ",
+            Some(JulianDay::from_days(2_451_545.0)),
+            Some(Angle::from_degrees(23.5)),
+        )];
+
+        assert!(matches!(
+            validate_ayanamsa_catalog_entries(&blank_notes_entry),
+            Err(AyanamsaCatalogValidationError::DescriptorNotesNotNormalized { label: "Lahiri" })
         ));
     }
 

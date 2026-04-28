@@ -206,6 +206,11 @@ pub enum HouseCatalogValidationError {
         /// Typed system that the label was expected to resolve to.
         expected_system: HouseSystem,
     },
+    /// A descriptor note is blank or whitespace-padded.
+    DescriptorNotesNotNormalized {
+        /// Label whose descriptor note drifted.
+        label: &'static str,
+    },
 }
 
 impl fmt::Display for HouseCatalogValidationError {
@@ -221,6 +226,10 @@ impl fmt::Display for HouseCatalogValidationError {
             } => write!(
                 f,
                 "the house catalog label `{label}` does not round-trip to {expected_system}"
+            ),
+            Self::DescriptorNotesNotNormalized { label } => write!(
+                f,
+                "the house catalog descriptor note for `{label}` is blank or contains surrounding whitespace"
             ),
         }
     }
@@ -260,7 +269,7 @@ impl HouseCatalogValidationSummary {
 
         match &self.validation_result {
             Ok(()) => format!(
-                "house catalog validation: ok ({} entries, {} labels checked; baseline={}, release={}; latitude-sensitive={}/{} entries; labels: {}; round-trip and alias uniqueness verified)",
+                "house catalog validation: ok ({} entries, {} labels checked; baseline={}, release={}; latitude-sensitive={}/{} entries; labels: {}; round-trip, alias uniqueness, and notes verified)",
                 self.entry_count,
                 self.label_count,
                 self.baseline_entry_count,
@@ -298,6 +307,14 @@ fn validate_house_catalog_entries(
 
     for entry in entries {
         labels_checked += 1;
+        if entry.notes.trim().is_empty()
+            || (!entry.notes.is_empty() && entry.notes.trim() != entry.notes)
+        {
+            return Err(HouseCatalogValidationError::DescriptorNotesNotNormalized {
+                label: entry.canonical_name,
+            });
+        }
+
         if resolve_house_system(entry.canonical_name) != Some(entry.system.clone()) {
             return Err(HouseCatalogValidationError::LabelDoesNotRoundTrip {
                 label: entry.canonical_name,
@@ -1754,7 +1771,7 @@ mod tests {
             .contains(&expected_latitude_sensitive_labels));
         assert!(summary
             .summary_line()
-            .contains("round-trip and alias uniqueness verified"));
+            .contains("round-trip, alias uniqueness, and notes verified"));
     }
 
     #[test]
@@ -1786,6 +1803,19 @@ mod tests {
                 label: "Not Equal",
                 expected_system: HouseSystem::Equal,
             })
+        ));
+
+        let blank_notes_entry = [HouseSystemDescriptor::new(
+            HouseSystem::Equal,
+            "Equal",
+            &[],
+            "   ",
+            false,
+        )];
+
+        assert!(matches!(
+            validate_house_catalog_entries(&blank_notes_entry),
+            Err(HouseCatalogValidationError::DescriptorNotesNotNormalized { label: "Equal" })
         ));
     }
 }
