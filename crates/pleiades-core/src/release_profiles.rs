@@ -71,6 +71,18 @@ fn validate_release_profile_identifiers(
     compatibility_profile_id: &str,
     api_stability_profile_id: &str,
 ) -> Result<(), ReleaseProfileIdentifiersValidationError> {
+    if compatibility_profile_id.trim().is_empty()
+        || compatibility_profile_id.trim() != compatibility_profile_id
+    {
+        return Err(ReleaseProfileIdentifiersValidationError::CompatibilityProfileIdOutOfSync);
+    }
+
+    if api_stability_profile_id.trim().is_empty()
+        || api_stability_profile_id.trim() != api_stability_profile_id
+    {
+        return Err(ReleaseProfileIdentifiersValidationError::ApiStabilityProfileIdOutOfSync);
+    }
+
     if compatibility_profile_id == api_stability_profile_id {
         return Err(ReleaseProfileIdentifiersValidationError::IdentifiersAreNotDistinct);
     }
@@ -170,6 +182,27 @@ mod tests {
         assert_eq!(
             error.to_string(),
             "release-profile identifiers must be distinct"
+        );
+    }
+
+    #[test]
+    fn validation_rejects_blank_or_whitespace_padded_identifiers() {
+        let compatibility_blank = ReleaseProfileIdentifiers {
+            compatibility_profile_id: "",
+            api_stability_profile_id: current_api_stability_profile_id(),
+        };
+        assert_eq!(
+            compatibility_blank.validate().unwrap_err(),
+            ReleaseProfileIdentifiersValidationError::CompatibilityProfileIdOutOfSync
+        );
+
+        let api_stability_padded = ReleaseProfileIdentifiers {
+            compatibility_profile_id: current_compatibility_profile_id(),
+            api_stability_profile_id: " pleiades-api-stability/0.1.0 ",
+        };
+        assert_eq!(
+            api_stability_padded.validate().unwrap_err(),
+            ReleaseProfileIdentifiersValidationError::ApiStabilityProfileIdOutOfSync
         );
     }
 }
