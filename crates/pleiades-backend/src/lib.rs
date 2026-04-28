@@ -9,7 +9,9 @@
 //!
 //! The current time-scale, observer, apparentness, and frame policy is
 //! documented in `docs/time-observer-policy.md` so the direct backend contract
-//! and the façade-level request helpers stay in sync.
+//! and the façade-level request helpers stay in sync. Direct batch callers
+//! should pair that policy with `validate_requests_against_metadata()` so the
+//! same explicit contract is checked before a slice of requests is dispatched.
 //!
 //! # Examples
 //!
@@ -1507,6 +1509,12 @@ pub fn validate_request_against_metadata(
 /// ];
 ///
 /// assert!(validate_requests_against_metadata(&requests, &metadata).is_ok());
+///
+/// let mut batchless_metadata = metadata.clone();
+/// batchless_metadata.capabilities.batch = false;
+/// let error = validate_requests_against_metadata(&requests, &batchless_metadata)
+///     .expect_err("batch support should be required before dispatch");
+/// assert_eq!(error.message, "toy backend does not support batch requests");
 /// ```
 pub fn validate_requests_against_metadata(
     reqs: &[EphemerisRequest],

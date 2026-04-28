@@ -30,6 +30,8 @@ The table below summarizes the current responsibility split between the typed re
 | `pleiades-backend::EphemerisRequest` | direct-backend preflight helpers | caller supplies the offset or `TimeScaleConversion` before dispatch | validates the explicit conversion contract; backend queries still expect the request scale already chosen by the caller |
 | `pleiades-houses::HouseRequest` | house-observer requests only | not a time-scale conversion surface | uses the observer for house calculations, and `HouseRequest::validate()` preflights the observer latitude/longitude, any obliquity override, and topocentric elevation before calculation; it does not infer body-position time conversion |
 
+Batch callers should use `validate_requests_against_metadata()` on slices before dispatch so batch support and per-request policy failures surface with the same explicit contract as single-request preflight.
+
 Validation and release summaries also surface a compact `Primary request surfaces:` line that mirrors this split so the entry-point contract stays visible in report output, not just in the prose table.
 
 ## Current request-scale contract
