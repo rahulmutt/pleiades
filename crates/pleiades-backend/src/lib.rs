@@ -1638,7 +1638,7 @@ pub trait EphemerisBackend: Send + Sync {
 
     /// Computes multiple ephemeris results.
     ///
-    /// The default adapter calls [`position`] for each request in order and
+    /// The default adapter calls [`Self::position`] for each request in order and
     /// preserves each request's own instant and time-scale label exactly as
     /// supplied, so mixed TT/TDB batches remain mixed in the returned results
     /// instead of being normalized to a batch-wide scale.

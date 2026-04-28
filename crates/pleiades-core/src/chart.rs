@@ -70,7 +70,7 @@ impl ObserverPolicy {
 
     /// Returns the compact one-line rendering of the observer policy.
     ///
-    /// This mirrors [`Display`] so request and snapshot summaries can reuse a
+    /// This mirrors [`core::fmt::Display`] so request and snapshot summaries can reuse a
     /// single typed vocabulary without duplicating the policy label table.
     ///
     /// # Example
