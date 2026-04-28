@@ -1281,6 +1281,18 @@ fn validate_segment(segment: &Segment) -> Result<(), CompressionError> {
             .collect::<Vec<_>>(),
     )?;
 
+    for residual_channel in &segment.residual_channels {
+        if segment.channel(residual_channel.kind).is_none() {
+            return Err(CompressionError::new(
+                CompressionErrorKind::InvalidFormat,
+                format!(
+                    "segment residual channels require a matching stored channel for {:?}",
+                    residual_channel.kind
+                ),
+            ));
+        }
+    }
+
     Ok(())
 }
 
@@ -2218,6 +2230,30 @@ mod tests {
             .expect_err("duplicate residual channels should be rejected");
         assert_eq!(error.kind, CompressionErrorKind::InvalidFormat);
         assert!(error.to_string().contains("segment residual channels"));
+    }
+
+    #[test]
+    fn segment_validate_rejects_residual_channels_without_matching_stored_channels() {
+        let segment = Segment::with_residual_channels(
+            Instant::new(pleiades_types::JulianDay::from_days(10.0), TimeScale::Tt),
+            Instant::new(pleiades_types::JulianDay::from_days(11.0), TimeScale::Tt),
+            vec![
+                PolynomialChannel::linear(ChannelKind::Longitude, 9, 20.0, 22.0),
+                PolynomialChannel::new(ChannelKind::DistanceAu, 12, vec![4.0]),
+            ],
+            vec![
+                PolynomialChannel::new(ChannelKind::Longitude, 9, vec![0.5]),
+                PolynomialChannel::new(ChannelKind::Latitude, 9, vec![-0.25]),
+            ],
+        );
+
+        let error = segment
+            .validate()
+            .expect_err("residual channels should require matching stored channels");
+        assert_eq!(error.kind, CompressionErrorKind::InvalidFormat);
+        assert!(error
+            .to_string()
+            .contains("segment residual channels require a matching stored channel"));
     }
 
     #[test]
