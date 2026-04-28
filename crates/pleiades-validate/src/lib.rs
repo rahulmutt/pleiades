@@ -14352,7 +14352,7 @@ version = "0.9.0"
             "lunar theory catalog: 1 entry, 1 selected entry; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]"
         ));
         assert!(release_summary.contains(
-            "lunar source selection: Compact Meeus-style truncated lunar baseline [meeus-style-truncated-lunar-baseline; selected key: source identifier=meeus-style-truncated-lunar-baseline; family: Meeus-style truncated analytical baseline]; aliases: Meeus-style truncated lunar baseline"
+            "lunar source selection: Compact Meeus-style truncated lunar baseline [selected key: source identifier=meeus-style-truncated-lunar-baseline; family key: source family=Meeus-style truncated analytical baseline; family: Meeus-style truncated analytical baseline]; aliases: Meeus-style truncated lunar baseline"
         ));
         assert!(release_summary.contains(
             "lunar reference mixed TT/TDB batch parity: 9 requests across 5 bodies, TT requests=5, TDB requests=4, order=preserved, single-query parity=preserved"
@@ -14589,7 +14589,7 @@ version = "0.9.0"
             "ELP lunar theory specification: Compact Meeus-style truncated lunar baseline [meeus-style-truncated-lunar-baseline; family: Meeus-style truncated analytical baseline; selected key: source identifier=meeus-style-truncated-lunar-baseline]"
         ));
         assert!(validation_report_summary.contains(
-            "lunar source selection: Compact Meeus-style truncated lunar baseline [meeus-style-truncated-lunar-baseline; selected key: source identifier=meeus-style-truncated-lunar-baseline; family: Meeus-style truncated analytical baseline]; aliases: Meeus-style truncated lunar baseline"
+            "lunar source selection: Compact Meeus-style truncated lunar baseline [selected key: source identifier=meeus-style-truncated-lunar-baseline; family key: source family=Meeus-style truncated analytical baseline; family: Meeus-style truncated analytical baseline]; aliases: Meeus-style truncated lunar baseline"
         ));
         assert!(validation_report_summary.contains(
             "lunar reference mixed TT/TDB batch parity: 9 requests across 5 bodies, TT requests=5, TDB requests=4, order=preserved, single-query parity=preserved"

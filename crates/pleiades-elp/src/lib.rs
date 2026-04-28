@@ -303,6 +303,8 @@ pub struct LunarTheorySourceSummary {
     pub source_identifier: &'static str,
     /// Typed catalog key for the current source selection.
     pub catalog_key: LunarTheoryCatalogKey<'static>,
+    /// Typed family key for the current source selection.
+    pub source_family_key: LunarTheoryCatalogKey<'static>,
     /// Structured source family for the current source selection.
     pub source_family: LunarTheorySourceFamily,
     /// Human-readable family label for the current source selection.
@@ -367,6 +369,11 @@ impl LunarTheorySourceSummary {
                 field: "source_family",
             });
         }
+        if self.source_family_key != source.family_key() {
+            return Err(LunarTheorySourceSummaryValidationError::FieldOutOfSync {
+                field: "source_family_key",
+            });
+        }
         if self.source_family_label != source.family_label() {
             return Err(LunarTheorySourceSummaryValidationError::FieldOutOfSync {
                 field: "source_family_label",
@@ -421,6 +428,7 @@ pub fn lunar_theory_source_summary() -> LunarTheorySourceSummary {
         model_name: theory.model_name,
         source_identifier: source.identifier,
         catalog_key: source.catalog_key(),
+        source_family_key: source.family_key(),
         source_family: source.family,
         source_family_label: source.family_label(),
         source_aliases: source.source_aliases,
@@ -1761,10 +1769,10 @@ impl LunarTheorySourceSummary {
         };
 
         format!(
-            "lunar source selection: {} [{}; selected key: {}; family: {}]; aliases: {}; citation: {}; provenance: {}; validation window: {}; redistribution: {}; license: {}",
+            "lunar source selection: {} [selected key: {}; family key: {}; family: {}]; aliases: {}; citation: {}; provenance: {}; validation window: {}; redistribution: {}; license: {}",
             self.model_name,
-            self.source_identifier,
             self.catalog_key,
+            self.source_family_key,
             self.source_family_label,
             aliases,
             self.citation,
@@ -4605,6 +4613,10 @@ mod tests {
             theory.source_selection().catalog_key()
         );
         assert_eq!(
+            source_summary.source_family_key,
+            theory.source_selection().family_key()
+        );
+        assert_eq!(
             source_summary.source_family_label,
             theory.source_family.label()
         );
@@ -4643,6 +4655,8 @@ mod tests {
         assert!(lunar_theory_source_summary_for_report().contains("lunar source selection: "));
         assert!(lunar_theory_source_summary_for_report()
             .contains("selected key: source identifier=meeus-style-truncated-lunar-baseline"));
+        assert!(lunar_theory_source_summary_for_report()
+            .contains("family key: source family=Meeus-style truncated analytical baseline"));
         assert!(lunar_theory_source_summary_for_report()
             .contains("aliases: Meeus-style truncated lunar baseline"));
         assert!(lunar_theory_source_summary_for_report().contains(theory.model_name));
