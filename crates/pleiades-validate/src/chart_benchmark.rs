@@ -95,6 +95,13 @@ impl ChartBenchmarkReport {
             ));
         }
 
+        if self.estimated_corpus_heap_bytes == 0 {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "chart benchmark estimated corpus heap footprint must be greater than zero",
+            ));
+        }
+
         Ok(())
     }
 }
@@ -247,5 +254,26 @@ fn format_ns(value: f64) -> String {
         format!("{value:.2}")
     } else {
         "n/a".to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::default_candidate_backend;
+
+    #[test]
+    fn chart_benchmark_rejects_zero_heap_footprint() {
+        let mut report = benchmark_chart_backend(default_candidate_backend(), 1)
+            .expect("chart benchmark should produce a report");
+        report.estimated_corpus_heap_bytes = 0;
+
+        let error = report
+            .validate()
+            .expect_err("zero-heap chart benchmarks should be rejected");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("chart benchmark estimated corpus heap footprint must be greater than zero"));
     }
 }

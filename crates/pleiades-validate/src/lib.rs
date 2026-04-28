@@ -2062,6 +2062,13 @@ impl BenchmarkReport {
             ));
         }
 
+        if self.estimated_corpus_heap_bytes == 0 {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "benchmark estimated corpus heap footprint must be greater than zero",
+            ));
+        }
+
         Ok(())
     }
 }
@@ -11333,6 +11340,23 @@ mod tests {
         assert!(error
             .message
             .contains("chart benchmark rounds must be greater than zero"));
+    }
+
+    #[test]
+    fn benchmark_backend_rejects_zero_heap_footprint() {
+        let corpus = benchmark_corpus();
+        let backend = default_candidate_backend();
+        let mut report =
+            benchmark_backend(&backend, &corpus, 1).expect("benchmark should produce a report");
+        report.estimated_corpus_heap_bytes = 0;
+
+        let error = report
+            .validate()
+            .expect_err("zero-heap benchmarks should be rejected");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("benchmark estimated corpus heap footprint must be greater than zero"));
     }
 
     #[test]
