@@ -3870,6 +3870,141 @@ pub fn canonical_j1900_batch_parity_summary_for_report() -> String {
     }
 }
 
+/// Backend-owned summary for the supported-body J2000 ecliptic batch-path regression.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Vsop87SupportedBodyJ2000EclipticBatchParitySummary {
+    /// Number of requests exercised through the batch regression.
+    pub sample_count: usize,
+    /// Bodies exercised through the batch regression in release-facing order.
+    pub sample_bodies: Vec<CelestialBody>,
+    /// Reference epoch used by the batch regression.
+    pub reference_epoch: Instant,
+    /// Coordinate frame used by the batch regression.
+    pub frame: CoordinateFrame,
+    /// Number of exact-quality results observed in the batch regression.
+    pub exact_count: usize,
+    /// Number of interpolated-quality results observed in the batch regression.
+    pub interpolated_count: usize,
+    /// Number of approximate-quality results observed in the batch regression.
+    pub approximate_count: usize,
+    /// Number of unknown-quality results observed in the batch regression.
+    pub unknown_count: usize,
+}
+
+impl Vsop87SupportedBodyJ2000EclipticBatchParitySummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "VSOP87 supported-body J2000 ecliptic batch parity: {} requests across {} bodies ({}) at JD {:.1} ({}) in {} frame; quality counts: Exact={}, Interpolated={}, Approximate={}, Unknown={}; batch/single parity preserved",
+            self.sample_count,
+            self.sample_bodies.len(),
+            format_celestial_bodies(&self.sample_bodies),
+            self.reference_epoch.julian_day.days(),
+            self.reference_epoch.scale,
+            self.frame,
+            self.exact_count,
+            self.interpolated_count,
+            self.approximate_count,
+            self.unknown_count,
+        )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current derived batch evidence.
+    pub fn validate(&self) -> Result<(), Vsop87CanonicalBatchParitySummaryValidationError> {
+        if self.sample_count != self.sample_bodies.len() {
+            return Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        }
+        if self.sample_bodies != Vsop87Backend::supported_bodies().to_vec() {
+            return Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "sample_bodies",
+                },
+            );
+        }
+        if self.reference_epoch
+            != Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tdb)
+        {
+            return Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "reference_epoch",
+                },
+            );
+        }
+        if self.frame != CoordinateFrame::Ecliptic {
+            return Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync { field: "frame" },
+            );
+        }
+        if self.exact_count + self.interpolated_count + self.approximate_count + self.unknown_count
+            != self.sample_count
+        {
+            return Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "quality_counts",
+                },
+            );
+        }
+
+        Ok(())
+    }
+}
+
+impl fmt::Display for Vsop87SupportedBodyJ2000EclipticBatchParitySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns the backend-owned supported-body J2000 ecliptic batch-path regression summary.
+pub fn supported_body_j2000_ecliptic_batch_parity_summary(
+) -> Option<Vsop87SupportedBodyJ2000EclipticBatchParitySummary> {
+    let backend = Vsop87Backend::new();
+    let reference_epoch = Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tdb);
+    let requests = requests_for_bodies_at(
+        Vsop87Backend::supported_bodies().iter().cloned(),
+        reference_epoch,
+        CoordinateFrame::Ecliptic,
+    );
+    let (sample_bodies, exact_count, interpolated_count, approximate_count, unknown_count) =
+        canonical_batch_parity_counts(&backend, &requests)?;
+
+    Some(Vsop87SupportedBodyJ2000EclipticBatchParitySummary {
+        sample_count: requests.len(),
+        sample_bodies,
+        reference_epoch,
+        frame: CoordinateFrame::Ecliptic,
+        exact_count,
+        interpolated_count,
+        approximate_count,
+        unknown_count,
+    })
+}
+
+fn format_validated_supported_body_j2000_ecliptic_batch_parity_summary_for_report(
+    summary: &Vsop87SupportedBodyJ2000EclipticBatchParitySummary,
+) -> String {
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => {
+            format!("VSOP87 supported-body J2000 ecliptic batch parity: unavailable ({error})")
+        }
+    }
+}
+
+/// Returns the release-facing supported-body J2000 ecliptic batch-path regression summary string.
+pub fn supported_body_j2000_ecliptic_batch_parity_summary_for_report() -> String {
+    match supported_body_j2000_ecliptic_batch_parity_summary() {
+        Some(summary) => {
+            format_validated_supported_body_j2000_ecliptic_batch_parity_summary_for_report(&summary)
+        }
+        None => "VSOP87 supported-body J2000 ecliptic batch parity: unavailable".to_string(),
+    }
+}
+
 /// Formats the canonical VSOP87 J2000 equatorial companion summary for reporting.
 pub fn format_canonical_equatorial_evidence_summary(
     summary: &Vsop87CanonicalEquatorialEvidenceSummary,
@@ -6646,6 +6781,23 @@ mod tests {
             assert!(equatorial.right_ascension.degrees().is_finite());
             assert!(equatorial.declination.degrees().is_finite());
         }
+    }
+
+    #[test]
+    fn supported_body_j2000_ecliptic_batch_parity_report_matches_the_backend_formatter() {
+        let summary = supported_body_j2000_ecliptic_batch_parity_summary()
+            .expect("batch summary should exist");
+        let rendered = supported_body_j2000_ecliptic_batch_parity_summary_for_report();
+
+        assert_eq!(summary.summary_line(), rendered);
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.reference_epoch.scale, TimeScale::Tdb);
+        assert_eq!(summary.frame, CoordinateFrame::Ecliptic);
+        assert!(rendered.contains("VSOP87 supported-body J2000 ecliptic batch parity:"));
+        assert!(rendered.contains("batch/single parity preserved"));
+        assert!(
+            rendered.contains("Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto")
+        );
     }
 
     #[test]
