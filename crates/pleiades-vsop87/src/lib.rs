@@ -2470,6 +2470,12 @@ pub enum Vsop87GeneratedBlobAuditValidationError {
         position: usize,
         source_file: &'static str,
     },
+    /// The audit record references a checked-in blob that is missing from the current source catalog.
+    MissingGeneratedBlob {
+        position: usize,
+        body: CelestialBody,
+        source_file: &'static str,
+    },
     /// The audit record body/source pairing does not match the current source catalog.
     BodySourceMismatch {
         position: usize,
@@ -2493,6 +2499,14 @@ impl fmt::Display for Vsop87GeneratedBlobAuditValidationError {
             Self::UnknownSourceFile { position, source_file } => write!(
                 f,
                 "generated binary audit record #{position} references unknown source file `{source_file}`"
+            ),
+            Self::MissingGeneratedBlob {
+                position,
+                body,
+                source_file,
+            } => write!(
+                f,
+                "generated binary audit record #{position} is missing the checked-in blob for {body} at source file `{source_file}`"
             ),
             Self::BodySourceMismatch {
                 position,
@@ -2556,6 +2570,34 @@ impl Vsop87GeneratedBlobAudit {
     pub fn validate(&self) -> Result<(), Vsop87GeneratedBlobAuditValidationError> {
         self.validate_at_position(1)
     }
+}
+
+fn build_generated_binary_audits_with_lookup(
+    lookup: impl Fn(&str) -> Option<&'static [u8]>,
+) -> Result<Vec<Vsop87GeneratedBlobAudit>, Vsop87GeneratedBlobAuditValidationError> {
+    source_specifications()
+        .into_iter()
+        .enumerate()
+        .map(|(index, spec)| {
+            let position = index + 1;
+            let Some(blob) = lookup(spec.source_file) else {
+                return Err(
+                    Vsop87GeneratedBlobAuditValidationError::MissingGeneratedBlob {
+                        position,
+                        body: spec.body,
+                        source_file: spec.source_file,
+                    },
+                );
+            };
+
+            Ok(Vsop87GeneratedBlobAudit {
+                body: spec.body,
+                source_file: spec.source_file,
+                byte_length: blob.len(),
+                fingerprint: fnv1a_64(blob),
+            })
+        })
+        .collect()
 }
 
 /// Summary metrics for the current VSOP87 generated-blob audit manifest.
@@ -2696,27 +2738,17 @@ impl fmt::Display for Vsop87GeneratedBlobAuditSummary {
 pub fn generated_binary_audits() -> Vec<Vsop87GeneratedBlobAudit> {
     GENERATED_BINARY_AUDITS
         .get_or_init(|| {
-            source_specifications()
-                .into_iter()
-                .map(|spec| {
-                    let blob =
-                        checked_in_generated_vsop87b_table_bytes_for_source_file(spec.source_file)
-                            .expect("known VSOP87 generated blob");
-                    Vsop87GeneratedBlobAudit {
-                        body: spec.body,
-                        source_file: spec.source_file,
-                        byte_length: blob.len(),
-                        fingerprint: fnv1a_64(blob),
-                    }
-                })
-                .collect()
+            build_generated_binary_audits_with_lookup(
+                checked_in_generated_vsop87b_table_bytes_for_source_file,
+            )
+            .expect("known VSOP87 generated blob")
         })
         .clone()
 }
 
-/// Returns a small reproducibility summary for the current generated VSOP87B blobs.
-pub fn generated_binary_audit_summary() -> Vsop87GeneratedBlobAuditSummary {
-    let audits = generated_binary_audits();
+fn generated_binary_audit_summary_from_audits(
+    audits: &[Vsop87GeneratedBlobAudit],
+) -> Vsop87GeneratedBlobAuditSummary {
     Vsop87GeneratedBlobAuditSummary {
         blob_count: audits.len(),
         source_bodies: audits.iter().map(|audit| audit.body.clone()).collect(),
@@ -2730,6 +2762,12 @@ pub fn generated_binary_audit_summary() -> Vsop87GeneratedBlobAuditSummary {
             .unwrap_or(0),
         fingerprint_count: audits.len(),
     }
+}
+
+/// Returns a small reproducibility summary for the current generated VSOP87B blobs.
+pub fn generated_binary_audit_summary() -> Vsop87GeneratedBlobAuditSummary {
+    let audits = generated_binary_audits();
+    generated_binary_audit_summary_from_audits(&audits)
 }
 
 /// Validates the generated blob records against the current source catalog.
@@ -2751,11 +2789,6 @@ pub fn format_generated_binary_audit_summary(summary: &Vsop87GeneratedBlobAuditS
 fn format_validated_generated_binary_audit_summary_for_report(
     summary: &Vsop87GeneratedBlobAuditSummary,
 ) -> String {
-    let audits = generated_binary_audits();
-    if let Err(error) = validate_generated_binary_audits(&audits) {
-        return format!("VSOP87 generated binary audit: unavailable ({error})");
-    }
-
     match summary.validate() {
         Ok(()) => summary.summary_line(),
         Err(error) => format!("VSOP87 generated binary audit: unavailable ({error})"),
@@ -2764,7 +2797,19 @@ fn format_validated_generated_binary_audit_summary_for_report(
 
 /// Returns the release-facing generated binary audit summary string.
 pub fn generated_binary_audit_summary_for_report() -> String {
-    format_validated_generated_binary_audit_summary_for_report(&generated_binary_audit_summary())
+    let audits = match build_generated_binary_audits_with_lookup(
+        checked_in_generated_vsop87b_table_bytes_for_source_file,
+    ) {
+        Ok(audits) => audits,
+        Err(error) => return format!("VSOP87 generated binary audit: unavailable ({error})"),
+    };
+
+    if let Err(error) = validate_generated_binary_audits(&audits) {
+        return format!("VSOP87 generated binary audit: unavailable ({error})");
+    }
+
+    let summary = generated_binary_audit_summary_from_audits(&audits);
+    format_validated_generated_binary_audit_summary_for_report(&summary)
 }
 
 /// Returns a summary of the current VSOP87 source-documentation catalog.
@@ -7987,6 +8032,31 @@ mod tests {
                     expected_body: CelestialBody::Sun,
                 }
             )
+        );
+    }
+
+    #[test]
+    fn generated_binary_audit_builder_rejects_missing_checked_in_blob() {
+        let error = build_generated_binary_audits_with_lookup(|source_file| {
+            if source_file == "VSOP87B.ear" {
+                None
+            } else {
+                Some(&[])
+            }
+        })
+        .expect_err("missing generated blobs should fail manifest construction");
+
+        assert_eq!(
+            error,
+            Vsop87GeneratedBlobAuditValidationError::MissingGeneratedBlob {
+                position: 1,
+                body: CelestialBody::Sun,
+                source_file: "VSOP87B.ear",
+            }
+        );
+        assert_eq!(
+            error.to_string(),
+            "generated binary audit record #1 is missing the checked-in blob for Sun at source file `VSOP87B.ear`"
         );
     }
 
