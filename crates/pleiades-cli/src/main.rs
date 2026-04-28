@@ -698,6 +698,7 @@ mod tests {
         assert!(rendered.contains("Whole Sign system"));
         assert!(rendered.contains("Whole Sign house system"));
         assert!(rendered.contains("Whole Sign (house 1 = Aries)"));
+        assert!(rendered.contains("Whole-sign"));
         assert!(rendered.contains("Carter's poli-equatorial"));
         assert!(rendered.contains("Poli-equatorial"));
         assert!(rendered.contains("horizon/azimuth"));
@@ -709,6 +710,7 @@ mod tests {
         assert!(rendered.contains("Equal (1=Aries) table of houses"));
         assert!(rendered.contains("Equal/MC = 10th"));
         assert!(rendered.contains("Equal Midheaven table of houses"));
+        assert!(rendered.contains("Equal Midheaven house system"));
         assert!(rendered.contains("Equal/1=0 Aries"));
         assert!(rendered.contains("Equal (cusp 1 = 0° Aries)"));
         assert!(rendered.contains("WvA"));
@@ -883,6 +885,8 @@ mod tests {
         assert!(release_notes.contains("Galactic Center (Rgilbrand)"));
         assert!(release_notes.contains("Babylonian (True Geoc)"));
         assert!(release_notes.contains("Pullen SD (Sinusoidal Delta)"));
+        assert!(release_notes.contains("Equal/MC house system"));
+        assert!(release_notes.contains("Equal Midheaven house system"));
 
         let release_notes_summary =
             render_cli(&["release-notes-summary"]).expect("release notes summary should render");

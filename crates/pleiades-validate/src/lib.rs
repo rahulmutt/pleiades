@@ -11560,6 +11560,7 @@ mod tests {
         assert!(rendered.contains("Meridian house system"));
         assert!(rendered.contains("Horizon house system"));
         assert!(rendered.contains("Whole-sign"));
+        assert!(rendered.contains("Equal Midheaven house system"));
         assert!(rendered.contains("Equal Quadrant"));
         assert!(rendered.contains("Horizontal house system"));
         assert!(rendered.contains("Azimuth house system"));
@@ -11842,7 +11843,9 @@ mod tests {
         assert!(rendered.contains("Babylonian (True Obs)"));
         assert!(rendered.contains("Babylonian (House Obs)"));
         assert!(rendered.contains("Equal MC"));
+        assert!(rendered.contains("Equal/MC house system"));
         assert!(rendered.contains("Equal Midheaven"));
+        assert!(rendered.contains("Equal Midheaven house system"));
         assert!(rendered.contains("Babylonian (Kugler 1)"));
         assert!(rendered.contains("Krusinski/Pisa/Goelzer"));
         assert!(rendered.contains("Equal/MC = 10th"));
