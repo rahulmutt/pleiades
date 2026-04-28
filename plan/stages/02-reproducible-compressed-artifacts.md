@@ -38,7 +38,7 @@ Turn the current compressed-artifact scaffolding into a reproducible packaged-da
    - Keep artifact loading usable for desktop/server applications without mandatory native dependencies.
    - Progress note: the compression crate now prefers the later segment when two adjacent segments both include the same boundary instant, and the random-access regression suite covers that shared-boundary behavior alongside the existing missing-body and out-of-range checks.
    - Progress note: the compression codec now also rejects duplicate body entries, duplicate stored/derived/unsupported profile entries, and malformed segment metadata during encode/decode, which keeps the serialized artifact representation stricter and makes the random-access surface less ambiguous.
-   - Progress note (2026-04-28): segment validation now also fails closed on non-finite bounds and overlapping same-scale segments while still allowing shared-boundary adjacency, so the packaged artifact's time-slice ordering is explicit before lookup or encoding.
+   - Progress note (2026-04-28): segment validation now also fails closed on non-finite bounds and overlapping same-scale segments while still allowing shared-boundary adjacency, so the packaged artifact's time-slice ordering is explicit before lookup or encoding. Segment validation now also rejects unsorted stored and residual channel lists, which keeps the deterministic binary layout canonical across builders instead of relying on insertion order to stay stable.
 
 4. Measure compression quality.
    - Define initial per-body-class target error envelopes.

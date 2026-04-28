@@ -671,6 +671,9 @@ impl Segment {
     }
 
     /// Validates the segment metadata before the segment is stored or encoded.
+    ///
+    /// Stored and residual channels must be unique and ordered canonically by
+    /// channel kind so deterministic encoding stays stable across builders.
     pub fn validate(&self) -> Result<(), CompressionError> {
         validate_segment(self)
     }
@@ -1362,22 +1365,21 @@ fn validate_segment(segment: &Segment) -> Result<(), CompressionError> {
         channel.validate()?;
     }
 
-    validate_unique_values(
-        "segment stored channels",
-        &segment
-            .channels
-            .iter()
-            .map(|channel| channel.kind)
-            .collect::<Vec<_>>(),
-    )?;
-    validate_unique_values(
-        "segment residual channels",
-        &segment
-            .residual_channels
-            .iter()
-            .map(|channel| channel.kind)
-            .collect::<Vec<_>>(),
-    )?;
+    let stored_channels = segment
+        .channels
+        .iter()
+        .map(|channel| channel.kind)
+        .collect::<Vec<_>>();
+    let residual_channels = segment
+        .residual_channels
+        .iter()
+        .map(|channel| channel.kind)
+        .collect::<Vec<_>>();
+
+    validate_unique_values("segment stored channels", &stored_channels)?;
+    validate_unique_values("segment residual channels", &residual_channels)?;
+    validate_channel_kind_order("segment stored channels", &stored_channels)?;
+    validate_channel_kind_order("segment residual channels", &residual_channels)?;
 
     for residual_channel in &segment.residual_channels {
         if segment.channel(residual_channel.kind).is_none() {
@@ -1386,6 +1388,22 @@ fn validate_segment(segment: &Segment) -> Result<(), CompressionError> {
                 format!(
                     "segment residual channels require a matching stored channel for {:?}",
                     residual_channel.kind
+                ),
+            ));
+        }
+    }
+
+    Ok(())
+}
+
+fn validate_channel_kind_order(field: &str, kinds: &[ChannelKind]) -> Result<(), CompressionError> {
+    for pair in kinds.windows(2) {
+        if pair[0] as u8 > pair[1] as u8 {
+            return Err(CompressionError::new(
+                CompressionErrorKind::InvalidFormat,
+                format!(
+                    "{field} must be ordered by channel kind; found {:?} before {:?}",
+                    pair[0], pair[1]
                 ),
             ));
         }
@@ -2387,6 +2405,27 @@ mod tests {
             .expect_err("duplicate residual channels should be rejected");
         assert_eq!(error.kind, CompressionErrorKind::InvalidFormat);
         assert!(error.to_string().contains("segment residual channels"));
+    }
+
+    #[test]
+    fn segment_validate_rejects_unsorted_stored_channels() {
+        let segment = Segment::new(
+            Instant::new(pleiades_types::JulianDay::from_days(10.0), TimeScale::Tt),
+            Instant::new(pleiades_types::JulianDay::from_days(11.0), TimeScale::Tt),
+            vec![
+                PolynomialChannel::linear(ChannelKind::Latitude, 9, 3.0, 4.0),
+                PolynomialChannel::linear(ChannelKind::Longitude, 9, 20.0, 22.0),
+                PolynomialChannel::new(ChannelKind::DistanceAu, 12, vec![4.0]),
+            ],
+        );
+
+        let error = segment
+            .validate()
+            .expect_err("stored channels should be ordered canonically by channel kind");
+        assert_eq!(error.kind, CompressionErrorKind::InvalidFormat);
+        assert!(error
+            .to_string()
+            .contains("segment stored channels must be ordered by channel kind"));
     }
 
     #[test]
