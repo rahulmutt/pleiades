@@ -422,6 +422,25 @@ mod tests {
     }
 
     #[test]
+    fn validate_chart_requests_prefixes_topocentric_house_failures() {
+        let engine = ChartEngine::new(SimpleBackend);
+        let instant = Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt);
+        let requests = [
+            ChartRequest::new(instant).with_bodies(vec![CelestialBody::Sun]),
+            ChartRequest::new(instant).with_house_system(crate::HouseSystem::Topocentric),
+        ];
+
+        let error = engine
+            .validate_chart_requests(&requests)
+            .expect_err("batch chart validation should reject missing topocentric observers");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert_eq!(
+            error.message,
+            "chart request #2 failed validation: house placement requires an observer location"
+        );
+    }
+
+    #[test]
     fn validated_metadata_rejects_duplicate_body_coverage() {
         struct InvalidMetadataBackend;
 
