@@ -2391,13 +2391,20 @@ fn format_source_files(source_files: &[&'static str]) -> String {
     }
 }
 
+fn format_validated_source_documentation_health_summary_for_report(
+    summary: &Vsop87SourceDocumentationHealthSummary,
+) -> String {
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("VSOP87 source documentation health: unavailable ({error})"),
+    }
+}
+
 /// Returns the release-facing source-documentation health string.
 pub fn source_documentation_health_summary_for_report() -> String {
-    let summary = source_documentation_health_summary();
-    summary
-        .validate()
-        .expect("VSOP87 source documentation health should remain internally consistent");
-    summary.summary_line()
+    format_validated_source_documentation_health_summary_for_report(
+        &source_documentation_health_summary(),
+    )
 }
 
 /// Backend-owned summary of the canonical VSOP87 body evidence envelope.
@@ -6029,6 +6036,10 @@ mod tests {
         assert_eq!(error.summary(), &summary);
         assert_eq!(error.summary_line(), summary.summary_line());
         assert_eq!(error.to_string(), summary.summary_line());
+        assert_eq!(
+            format_validated_source_documentation_health_summary_for_report(&summary),
+            "VSOP87 source documentation health: unavailable (VSOP87 source documentation health: needs attention (1 source specs, 2 source files, 1 source-backed profiles, 2 body profiles; 1 generated binary profiles (Sun), 0 vendored full-file profiles (none), 0 truncated profiles (none), 1 fallback profiles (Pluto); source files: VSOP87B.ear; source-backed order: Sun; source-backed partition order: Sun; fallback order: Pluto; documented fields: needs attention); issues: source specification/file count mismatch, documented field mismatch)"
+        );
     }
 
     #[test]
