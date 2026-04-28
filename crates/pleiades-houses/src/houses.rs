@@ -1753,6 +1753,33 @@ mod tests {
     }
 
     #[test]
+    fn meridian_axial_and_morinus_share_the_documented_equatorial_projection_layout() {
+        let request = sample_request(HouseSystem::Meridian);
+        let meridian = calculate_houses(&request).expect("meridian houses should work");
+        let axial = calculate_houses(&sample_request(HouseSystem::Axial))
+            .expect("axial houses should work");
+        let morinus = calculate_houses(&sample_request(HouseSystem::Morinus))
+            .expect("morinus houses should work");
+
+        assert_eq!(meridian.cusps.len(), 12);
+        assert_eq!(meridian.cusps, axial.cusps);
+        assert_eq!(meridian.cusps, morinus.cusps);
+        assert_eq!(meridian.angles, axial.angles);
+        assert_eq!(meridian.angles, morinus.angles);
+
+        let obliquity = meridian.obliquity.degrees().to_radians();
+        let sidereal_time = local_sidereal_time(request.instant, request.observer.longitude);
+        assert_eq!(
+            meridian.cusps[9],
+            ecliptic_longitude_from_ra(sidereal_time.degrees(), obliquity)
+        );
+        assert_eq!(
+            meridian.cusps[0],
+            ecliptic_longitude_from_ra(sidereal_time.degrees() + 90.0, obliquity)
+        );
+    }
+
+    #[test]
     fn albategnius_and_pullen_release_systems_are_available() {
         for system in [
             HouseSystem::Albategnius,
