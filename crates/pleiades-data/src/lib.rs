@@ -937,6 +937,12 @@ impl PackagedBatchParitySummary {
             });
         }
 
+        if self.ecliptic_request_count == 0 || self.equatorial_request_count == 0 {
+            return Err(PackagedBatchParitySummaryValidationError::FieldOutOfSync {
+                field: "frame_mix",
+            });
+        }
+
         if self.exact_count + self.interpolated_count + self.approximate_count + self.unknown_count
             != self.request_count
         {
@@ -1235,6 +1241,14 @@ impl PackagedTimeScaleBatchParitySummary {
             return Err(
                 PackagedTimeScaleBatchParitySummaryValidationError::FieldOutOfSync {
                     field: "time_scale_counts",
+                },
+            );
+        }
+
+        if self.tt_request_count == 0 || self.tdb_request_count == 0 {
+            return Err(
+                PackagedTimeScaleBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "time_scale_mix",
                 },
             );
         }
@@ -2686,6 +2700,19 @@ mod tests {
     }
 
     #[test]
+    fn packaged_mixed_frame_batch_parity_summary_report_marks_frame_mix_drift_as_unavailable() {
+        let mut summary = packaged_mixed_frame_batch_parity_summary()
+            .expect("packaged mixed frame batch parity should be available");
+        summary.ecliptic_request_count = summary.request_count;
+        summary.equatorial_request_count = 0;
+
+        assert_eq!(
+            format_validated_packaged_mixed_frame_batch_parity_summary_for_report(&summary),
+            "Packaged mixed frame batch parity: unavailable (the packaged mixed-frame batch-parity summary field `frame_mix` is out of sync with the current packaged posture)"
+        );
+    }
+
+    #[test]
     fn packaged_mixed_frame_batch_parity_summary_report_marks_order_drift_as_unavailable() {
         let mut summary = packaged_mixed_frame_batch_parity_summary()
             .expect("packaged mixed frame batch parity should be available");
@@ -2778,6 +2805,20 @@ mod tests {
         assert_eq!(
             format_validated_packaged_mixed_tt_tdb_batch_parity_summary_for_report(&summary),
             "Packaged mixed TT/TDB batch parity: unavailable (the packaged mixed TT/TDB batch-parity summary field `request_count/body_count` is out of sync with the current packaged posture)"
+        );
+    }
+
+    #[test]
+    fn packaged_mixed_tt_tdb_batch_parity_summary_report_marks_time_scale_mix_drift_as_unavailable()
+    {
+        let mut summary = packaged_mixed_tt_tdb_batch_parity_summary()
+            .expect("packaged mixed TT/TDB batch parity should be available");
+        summary.tt_request_count = summary.request_count;
+        summary.tdb_request_count = 0;
+
+        assert_eq!(
+            format_validated_packaged_mixed_tt_tdb_batch_parity_summary_for_report(&summary),
+            "Packaged mixed TT/TDB batch parity: unavailable (the packaged mixed TT/TDB batch-parity summary field `time_scale_mix` is out of sync with the current packaged posture)"
         );
     }
 
