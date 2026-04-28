@@ -40,11 +40,11 @@ use pleiades_backend::{
 };
 use pleiades_core::{
     current_api_stability_profile, current_compatibility_profile,
-    current_release_profile_identifiers, default_chart_bodies, AccuracyClass, Apparentness,
-    BackendCapabilities, BackendFamily, BackendMetadata, CelestialBody, CompatibilityProfile,
-    CompositeBackend, CoordinateFrame, EclipticCoordinates, EphemerisBackend, EphemerisError,
-    EphemerisErrorKind, EphemerisRequest, EphemerisResult, Instant, JulianDay, Longitude,
-    TimeRange, TimeScale, ZodiacMode,
+    current_release_profile_identifiers, default_chart_bodies, validate_custom_definition_labels,
+    AccuracyClass, Apparentness, BackendCapabilities, BackendFamily, BackendMetadata,
+    CelestialBody, CompatibilityProfile, CompositeBackend, CoordinateFrame, EclipticCoordinates,
+    EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
+    Instant, JulianDay, Longitude, TimeRange, TimeScale, ZodiacMode,
 };
 use pleiades_data::{
     packaged_artifact_profile_summary_with_body_coverage,
@@ -3665,6 +3665,7 @@ fn verify_ayanamsa_aliases(
     Ok(labels_checked)
 }
 
+#[cfg(test)]
 const INTENTIONAL_CUSTOM_DEFINITION_AYANAMSA_HOMOGRAPHS: &[&str] = &[
     "Babylonian (House)",
     "Babylonian (Sissy)",
@@ -3674,39 +3675,14 @@ const INTENTIONAL_CUSTOM_DEFINITION_AYANAMSA_HOMOGRAPHS: &[&str] = &[
     "Babylonian (House Obs)",
 ];
 
+#[cfg(test)]
 fn is_intentional_custom_definition_ayanamsa_homograph(label: &str) -> bool {
     INTENTIONAL_CUSTOM_DEFINITION_AYANAMSA_HOMOGRAPHS.contains(&label)
 }
 
 fn verify_custom_definition_labels(labels: &[&'static str]) -> Result<usize, EphemerisError> {
-    let mut labels_checked = 0usize;
-    let mut seen_labels = BTreeSet::new();
-    let mut seen_labels_case_insensitive = BTreeMap::new();
-
-    for label in labels {
-        labels_checked += 1;
-        ensure_unique_profile_label(
-            "custom-definition",
-            label,
-            label,
-            &mut seen_labels,
-            &mut seen_labels_case_insensitive,
-        )?;
-        if resolve_house_system(label).is_some()
-            || (resolve_ayanamsa(label).is_some()
-                && !is_intentional_custom_definition_ayanamsa_homograph(label))
-        {
-            return Err(EphemerisError::new(
-                EphemerisErrorKind::InvalidRequest,
-                format!(
-                    "compatibility profile custom-definition label '{}' should remain unresolved as a built-in house system or ayanamsa",
-                    label
-                ),
-            ));
-        }
-    }
-
-    Ok(labels_checked)
+    validate_custom_definition_labels(labels)
+        .map_err(|error| EphemerisError::new(EphemerisErrorKind::InvalidRequest, error.to_string()))
 }
 
 fn has_surrounding_whitespace(value: &str) -> bool {
@@ -12485,6 +12461,9 @@ mod tests {
         let checked = verify_custom_definition_labels(labels)
             .expect("intentional custom-definition homographs should remain allowed");
         assert_eq!(checked, labels.len());
+        assert!(is_intentional_custom_definition_ayanamsa_homograph(
+            labels[0]
+        ));
     }
 
     #[test]
@@ -12498,7 +12477,7 @@ mod tests {
         assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
         assert!(error
             .message
-            .contains("labels are not unique ignoring case"));
+            .contains("custom-definition entries are not unique"));
     }
 
     #[test]

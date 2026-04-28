@@ -89,8 +89,8 @@ pub use chart::{
     SignSummary,
 };
 pub use compatibility::{
-    current_compatibility_profile, current_compatibility_profile_id, CompatibilityProfile,
-    CURRENT_COMPATIBILITY_PROFILE_ID,
+    current_compatibility_profile, current_compatibility_profile_id,
+    validate_custom_definition_labels, CompatibilityProfile, CURRENT_COMPATIBILITY_PROFILE_ID,
 };
 pub use pleiades_ayanamsa::{
     baseline_ayanamsas, built_in_ayanamsas, descriptor as ayanamsa_descriptor, release_ayanamsas,

@@ -11,11 +11,12 @@ use core::fmt;
 use std::collections::{BTreeMap, BTreeSet};
 
 use pleiades_ayanamsa::{
-    baseline_ayanamsas, built_in_ayanamsas, metadata_coverage, release_ayanamsas,
+    baseline_ayanamsas, built_in_ayanamsas, metadata_coverage, release_ayanamsas, resolve_ayanamsa,
     AyanamsaDescriptor,
 };
 use pleiades_houses::{
-    baseline_house_systems, built_in_house_systems, release_house_systems, HouseSystemDescriptor,
+    baseline_house_systems, built_in_house_systems, release_house_systems, resolve_house_system,
+    HouseSystemDescriptor,
 };
 
 /// The current compatibility-profile identifier.
@@ -89,7 +90,7 @@ impl CompatibilityProfile {
             "validation-reference-point",
             self.validation_reference_points,
         )?;
-        validate_profile_text_section("custom-definition", self.custom_definition_labels)?;
+        validate_custom_definition_labels(self.custom_definition_labels)?;
         validate_profile_text_section("compatibility-caveat", self.known_gaps)?;
         validate_profile_text_sections_are_disjoint(&[
             ("target-house-scope", self.target_house_scope),
@@ -180,6 +181,11 @@ pub enum CompatibilityProfileValidationError {
         /// Second section that contained the entry.
         second_section: &'static str,
     },
+    /// A custom-definition label resolves to a built-in house system or ayanamsa.
+    CustomDefinitionLabelResolvesToBuiltIn {
+        /// Label that should remain unresolved as a custom definition.
+        label: &'static str,
+    },
     /// Baseline and release partitions overlap on a catalog label.
     CatalogPartitionOverlap {
         /// Catalog that drifted.
@@ -244,6 +250,11 @@ impl fmt::Display for CompatibilityProfileValidationError {
                 f,
                 "compatibility profile text sections are not unique: duplicate entry '{}' appears in both {} and {}",
                 entry, first_section, second_section
+            ),
+            Self::CustomDefinitionLabelResolvesToBuiltIn { label } => write!(
+                f,
+                "compatibility profile custom-definition label '{}' should remain unresolved as a built-in house system or ayanamsa",
+                label
             ),
             Self::CatalogPartitionOverlap { catalog_label, label } => write!(
                 f,
@@ -368,6 +379,74 @@ fn validate_profile_text_sections_are_disjoint(
     }
 
     Ok(())
+}
+
+const INTENTIONAL_CUSTOM_DEFINITION_AYANAMSA_HOMOGRAPHS: &[&str] = &[
+    "Babylonian (House)",
+    "Babylonian (Sissy)",
+    "Babylonian (True Geoc)",
+    "Babylonian (True Topc)",
+    "Babylonian (True Obs)",
+    "Babylonian (House Obs)",
+];
+
+fn is_intentional_custom_definition_ayanamsa_homograph(label: &str) -> bool {
+    INTENTIONAL_CUSTOM_DEFINITION_AYANAMSA_HOMOGRAPHS.contains(&label)
+}
+
+pub fn validate_custom_definition_labels(
+    labels: &[&'static str],
+) -> Result<usize, CompatibilityProfileValidationError> {
+    if labels.is_empty() {
+        return Err(CompatibilityProfileValidationError::BlankTextSectionEntry {
+            section_label: "custom-definition",
+        });
+    }
+
+    let mut labels_checked = 0usize;
+    let mut seen_labels = BTreeSet::new();
+
+    for label in labels {
+        labels_checked += 1;
+
+        if label.trim().is_empty() {
+            return Err(CompatibilityProfileValidationError::BlankTextSectionEntry {
+                section_label: "custom-definition",
+            });
+        }
+
+        if has_surrounding_whitespace(label) {
+            return Err(
+                CompatibilityProfileValidationError::WhitespaceTextSectionEntry {
+                    section_label: "custom-definition",
+                    entry: label,
+                },
+            );
+        }
+
+        let normalized_label = normalized_profile_text_entry(label);
+        if !seen_labels.insert(normalized_label) {
+            return Err(
+                CompatibilityProfileValidationError::DuplicateTextSectionEntry {
+                    section_label: "custom-definition",
+                    entry: label,
+                },
+            );
+        }
+
+        if resolve_house_system(label).is_some()
+            || (resolve_ayanamsa(label).is_some()
+                && !is_intentional_custom_definition_ayanamsa_homograph(label))
+        {
+            return Err(
+                CompatibilityProfileValidationError::CustomDefinitionLabelResolvesToBuiltIn {
+                    label,
+                },
+            );
+        }
+    }
+
+    Ok(labels_checked)
 }
 
 fn validate_catalog_partitions_are_disjoint(
@@ -1640,6 +1719,41 @@ mod tests {
                 entry: "release note entry",
                 first_section: "validation-reference-point",
                 second_section: "compatibility-caveat"
+            }
+        ));
+    }
+
+    #[test]
+    fn compatibility_profile_validate_rejects_custom_definition_labels_that_resolve_to_house_systems(
+    ) {
+        let mut profile = current_compatibility_profile();
+        profile.custom_definition_labels = &["Placidus"];
+
+        let error = profile
+            .validate()
+            .expect_err("custom-definition labels should not resolve to built-in house systems");
+
+        assert!(matches!(
+            error,
+            CompatibilityProfileValidationError::CustomDefinitionLabelResolvesToBuiltIn {
+                label: "Placidus"
+            }
+        ));
+    }
+
+    #[test]
+    fn compatibility_profile_validate_rejects_custom_definition_labels_that_resolve_to_ayanamsas() {
+        let mut profile = current_compatibility_profile();
+        profile.custom_definition_labels = &["Lahiri"];
+
+        let error = profile
+            .validate()
+            .expect_err("custom-definition labels should not resolve to built-in ayanamsas");
+
+        assert!(matches!(
+            error,
+            CompatibilityProfileValidationError::CustomDefinitionLabelResolvesToBuiltIn {
+                label: "Lahiri"
             }
         ));
     }
