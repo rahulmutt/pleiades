@@ -1068,7 +1068,33 @@ fn validate_artifact_profile(profile: &ArtifactProfile) -> Result<(), Compressio
         "artifact profile unsupported outputs",
         &profile.unsupported_outputs,
     )?;
+    validate_coordinate_output_policy(profile)?;
     validate_motion_policy(profile)?;
+    Ok(())
+}
+
+fn validate_coordinate_output_policy(profile: &ArtifactProfile) -> Result<(), CompressionError> {
+    let needs_angular_channels = profile.derived_outputs.iter().any(|output| {
+        matches!(
+            *output,
+            ArtifactOutput::EclipticCoordinates
+                | ArtifactOutput::EquatorialCoordinates
+                | ArtifactOutput::ApparentCorrections
+                | ArtifactOutput::TopocentricCoordinates
+                | ArtifactOutput::SiderealCoordinates
+        )
+    });
+
+    if needs_angular_channels
+        && (!profile.stored_channels.contains(&ChannelKind::Longitude)
+            || !profile.stored_channels.contains(&ChannelKind::Latitude))
+    {
+        return Err(CompressionError::new(
+            CompressionErrorKind::InvalidFormat,
+            "artifact profile derived coordinate outputs require Longitude and Latitude in stored channels",
+        ));
+    }
+
     Ok(())
 }
 
@@ -1821,6 +1847,23 @@ mod tests {
             unsupported_motion_error.kind,
             CompressionErrorKind::InvalidFormat
         );
+
+        let derived_coordinate_channel_mismatch = ArtifactProfile::new(
+            vec![ChannelKind::Longitude],
+            vec![ArtifactOutput::EquatorialCoordinates],
+            vec![ArtifactOutput::Motion],
+            SpeedPolicy::Unsupported,
+        );
+        let derived_coordinate_channel_error = derived_coordinate_channel_mismatch
+            .validate()
+            .expect_err("derived coordinate outputs should require angular stored channels");
+        assert_eq!(
+            derived_coordinate_channel_error.kind,
+            CompressionErrorKind::InvalidFormat
+        );
+        assert!(format!("{derived_coordinate_channel_error}").contains(
+            "derived coordinate outputs require Longitude and Latitude in stored channels"
+        ));
 
         let invalid_segment_body = BodyArtifact::new(
             CelestialBody::Moon,
