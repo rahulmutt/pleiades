@@ -120,6 +120,19 @@ impl HouseSystemDescriptor {
         }
     }
 
+    /// Validates the descriptor-local metadata invariants.
+    pub fn validate(&self) -> Result<(), HouseCatalogValidationError> {
+        if self.notes.trim().is_empty()
+            || (!self.notes.is_empty() && self.notes.trim() != self.notes)
+        {
+            return Err(HouseCatalogValidationError::DescriptorNotesNotNormalized {
+                label: self.canonical_name,
+            });
+        }
+
+        Ok(())
+    }
+
     /// Returns `true` if the provided label matches the canonical name or one
     /// of the documented aliases.
     pub fn matches_label(&self, label: &str) -> bool {
@@ -307,13 +320,7 @@ fn validate_house_catalog_entries(
 
     for entry in entries {
         labels_checked += 1;
-        if entry.notes.trim().is_empty()
-            || (!entry.notes.is_empty() && entry.notes.trim() != entry.notes)
-        {
-            return Err(HouseCatalogValidationError::DescriptorNotesNotNormalized {
-                label: entry.canonical_name,
-            });
-        }
+        entry.validate()?;
 
         if resolve_house_system(entry.canonical_name) != Some(entry.system.clone()) {
             return Err(HouseCatalogValidationError::LabelDoesNotRoundTrip {
@@ -1805,14 +1812,14 @@ mod tests {
             })
         ));
 
-        let blank_notes_entry = [HouseSystemDescriptor::new(
-            HouseSystem::Equal,
-            "Equal",
-            &[],
-            "   ",
-            false,
-        )];
+        let blank_notes_descriptor =
+            HouseSystemDescriptor::new(HouseSystem::Equal, "Equal", &[], "   ", false);
+        assert!(matches!(
+            blank_notes_descriptor.validate(),
+            Err(HouseCatalogValidationError::DescriptorNotesNotNormalized { label: "Equal" })
+        ));
 
+        let blank_notes_entry = [blank_notes_descriptor];
         assert!(matches!(
             validate_house_catalog_entries(&blank_notes_entry),
             Err(HouseCatalogValidationError::DescriptorNotesNotNormalized { label: "Equal" })

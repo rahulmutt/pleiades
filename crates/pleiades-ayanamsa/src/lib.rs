@@ -64,6 +64,21 @@ impl AyanamsaDescriptor {
         }
     }
 
+    /// Validates the descriptor-local metadata invariants.
+    pub fn validate(&self) -> Result<(), AyanamsaCatalogValidationError> {
+        if self.notes.trim().is_empty()
+            || (!self.notes.is_empty() && self.notes.trim() != self.notes)
+        {
+            return Err(
+                AyanamsaCatalogValidationError::DescriptorNotesNotNormalized {
+                    label: self.canonical_name,
+                },
+            );
+        }
+
+        Ok(())
+    }
+
     /// Returns the sidereal offset at the provided instant, when the catalog
     /// entry carries enough metadata to derive one.
     pub fn offset_at(&self, instant: Instant) -> Option<Angle> {
@@ -1351,15 +1366,7 @@ fn validate_ayanamsa_catalog_entries(
 
     for entry in entries {
         labels_checked += 1;
-        if entry.notes.trim().is_empty()
-            || (!entry.notes.is_empty() && entry.notes.trim() != entry.notes)
-        {
-            return Err(
-                AyanamsaCatalogValidationError::DescriptorNotesNotNormalized {
-                    label: entry.canonical_name,
-                },
-            );
-        }
+        entry.validate()?;
 
         if resolve_ayanamsa(entry.canonical_name) != Some(entry.ayanamsa.clone()) {
             return Err(AyanamsaCatalogValidationError::LabelDoesNotRoundTrip {
@@ -1569,15 +1576,20 @@ mod tests {
             Err(AyanamsaCatalogValidationError::DuplicateLabel { label: "Lahiri" })
         ));
 
-        let blank_notes_entry = [AyanamsaDescriptor::new(
+        let blank_notes_descriptor = AyanamsaDescriptor::new(
             Ayanamsa::Lahiri,
             "Lahiri",
             &[],
             " ",
             Some(JulianDay::from_days(2_451_545.0)),
             Some(Angle::from_degrees(23.5)),
-        )];
+        );
+        assert!(matches!(
+            blank_notes_descriptor.validate(),
+            Err(AyanamsaCatalogValidationError::DescriptorNotesNotNormalized { label: "Lahiri" })
+        ));
 
+        let blank_notes_entry = [blank_notes_descriptor];
         assert!(matches!(
             validate_ayanamsa_catalog_entries(&blank_notes_entry),
             Err(AyanamsaCatalogValidationError::DescriptorNotesNotNormalized { label: "Lahiri" })
