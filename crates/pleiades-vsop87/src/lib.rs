@@ -969,6 +969,30 @@ impl Vsop87CanonicalEvidenceSummary {
             "max_distance_delta_source_file",
             self.max_distance_delta_source_file,
         )?;
+        validate_canonical_evidence_summary_peak_source_metadata(
+            CANONICAL_EVIDENCE_SUMMARY_LABEL,
+            "max_longitude_delta_source_kind",
+            "max_longitude_delta_source_file",
+            &self.max_longitude_delta_body,
+            self.max_longitude_delta_source_kind,
+            self.max_longitude_delta_source_file,
+        )?;
+        validate_canonical_evidence_summary_peak_source_metadata(
+            CANONICAL_EVIDENCE_SUMMARY_LABEL,
+            "max_latitude_delta_source_kind",
+            "max_latitude_delta_source_file",
+            &self.max_latitude_delta_body,
+            self.max_latitude_delta_source_kind,
+            self.max_latitude_delta_source_file,
+        )?;
+        validate_canonical_evidence_summary_peak_source_metadata(
+            CANONICAL_EVIDENCE_SUMMARY_LABEL,
+            "max_distance_delta_source_kind",
+            "max_distance_delta_source_file",
+            &self.max_distance_delta_body,
+            self.max_distance_delta_source_kind,
+            self.max_distance_delta_source_file,
+        )?;
 
         if self.out_of_limit_count > self.sample_count {
             return Err(
@@ -1119,6 +1143,30 @@ impl Vsop87CanonicalEquatorialEvidenceSummary {
             "max_distance_delta_source_file",
             self.max_distance_delta_source_file,
         )?;
+        validate_canonical_evidence_summary_peak_source_metadata(
+            CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL,
+            "max_right_ascension_delta_source_kind",
+            "max_right_ascension_delta_source_file",
+            &self.max_right_ascension_delta_body,
+            self.max_right_ascension_delta_source_kind,
+            self.max_right_ascension_delta_source_file,
+        )?;
+        validate_canonical_evidence_summary_peak_source_metadata(
+            CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL,
+            "max_declination_delta_source_kind",
+            "max_declination_delta_source_file",
+            &self.max_declination_delta_body,
+            self.max_declination_delta_source_kind,
+            self.max_declination_delta_source_file,
+        )?;
+        validate_canonical_evidence_summary_peak_source_metadata(
+            CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL,
+            "max_distance_delta_source_kind",
+            "max_distance_delta_source_file",
+            &self.max_distance_delta_body,
+            self.max_distance_delta_source_kind,
+            self.max_distance_delta_source_file,
+        )?;
 
         Ok(())
     }
@@ -1253,6 +1301,47 @@ fn validate_non_empty_source_file(
     } else {
         Ok(())
     }
+}
+
+fn validate_canonical_evidence_summary_peak_source_metadata(
+    summary: &'static str,
+    field_kind: &'static str,
+    field_file: &'static str,
+    body: &CelestialBody,
+    source_kind: Vsop87BodySourceKind,
+    source_file: &'static str,
+) -> Result<(), Vsop87CanonicalEvidenceSummaryValidationError> {
+    let expected_source_kind = source_kind_for_body(body.clone()).ok_or(
+        Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
+            summary,
+            field: field_kind,
+        },
+    )?;
+    let expected_source_file = source_file_for_body(body).ok_or(
+        Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
+            summary,
+            field: field_file,
+        },
+    )?;
+
+    if expected_source_kind != source_kind {
+        return Err(
+            Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
+                summary,
+                field: field_kind,
+            },
+        );
+    }
+    if expected_source_file != source_file {
+        return Err(
+            Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
+                summary,
+                field: field_file,
+            },
+        );
+    }
+
+    Ok(())
 }
 
 #[derive(Clone, Debug)]
@@ -3981,6 +4070,13 @@ fn source_kind_for_body(body: CelestialBody) -> Option<Vsop87BodySourceKind> {
         .map(|entry| entry.source_profile.kind)
 }
 
+fn source_file_for_body(body: &CelestialBody) -> Option<&'static str> {
+    source_specifications()
+        .into_iter()
+        .find(|spec| spec.body == *body)
+        .map(|spec| spec.source_file)
+}
+
 fn median_f64(values: &mut [f64]) -> f64 {
     values.sort_by(|left, right| left.total_cmp(right));
     let mid = values.len() / 2;
@@ -6461,6 +6557,49 @@ mod tests {
         assert_eq!(
             error.to_string(),
             "the VSOP87 canonical J2000 source-backed evidence summary lists body `Sun` more than once"
+        );
+    }
+
+    #[test]
+    fn canonical_evidence_summary_validation_rejects_peak_source_file_drift() {
+        let mut summary = canonical_epoch_evidence_summary().expect("summary should exist");
+        summary.max_longitude_delta_source_file = "VSOP87B.synthetic";
+
+        let error = summary
+            .validate()
+            .expect_err("peak source file drift should fail validation");
+        assert_eq!(
+            error,
+            Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
+                summary: CANONICAL_EVIDENCE_SUMMARY_LABEL,
+                field: "max_longitude_delta_source_file",
+            }
+        );
+        assert_eq!(
+            error.to_string(),
+            "the VSOP87 canonical J2000 source-backed evidence summary field `max_longitude_delta_source_file` is out of sync with the current canonical evidence"
+        );
+    }
+
+    #[test]
+    fn canonical_equatorial_evidence_summary_validation_rejects_peak_source_kind_drift() {
+        let mut summary =
+            canonical_epoch_equatorial_evidence_summary().expect("summary should exist");
+        summary.max_right_ascension_delta_source_kind = Vsop87BodySourceKind::MeanOrbitalElements;
+
+        let error = summary
+            .validate()
+            .expect_err("peak source kind drift should fail validation");
+        assert_eq!(
+            error,
+            Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
+                summary: CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL,
+                field: "max_right_ascension_delta_source_kind",
+            }
+        );
+        assert_eq!(
+            error.to_string(),
+            "the VSOP87 canonical J2000 equatorial companion evidence summary field `max_right_ascension_delta_source_kind` is out of sync with the current canonical evidence"
         );
     }
 
