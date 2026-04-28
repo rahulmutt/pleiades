@@ -42,7 +42,7 @@ Several downstream requirements depend on trusted ephemeris outputs:
 - Latest progress (2026-04-27): the validation report's comparison envelope now also preflights the aggregate summary plus the sampled deltas before rendering, so empty or non-finite comparison slices fail closed instead of formatting a stale envelope line.
 - Latest progress (2026-04-27): backend capability metadata now fails closed when it advertises neither geocentric nor topocentric positions, or neither mean nor apparent values, and `BackendMetadata::validate()` now reuses that guard so malformed capability combinations cannot reach release-facing inventory reports.
 - Latest progress (2026-04-27): body-specific comparison summaries now validate their finite, zero-sample, and per-body extrema invariants before the validation report renders them, so a malformed per-body envelope now fails closed instead of emitting stale body-level delta text.
-- Latest progress (2026-04-28): the JPL interpolation-quality and independent hold-out summaries now also validate against the derived checked-in fixture snapshots, so the release-facing transparency evidence now fails closed if cached metrics drift away from the underlying public-input rows or stale summary fields.
+- Latest progress (2026-04-28): the JPL interpolation-quality, reference snapshot, and independent hold-out summaries now also validate against the derived checked-in fixture snapshots, and the reference batch parity summary now fails closed on derived coverage drift too, so the release-facing transparency evidence now rejects cached-metric, row-count, and coverage-order drift before the compact report wrappers reuse stale snapshot state.
 
 ## Current repo state summary
 

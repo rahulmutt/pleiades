@@ -110,6 +110,8 @@ pub enum ReferenceSnapshotSummaryValidationError {
         asteroid_row_count: usize,
         row_count: usize,
     },
+    /// The summary drifted away from the checked-in derived evidence.
+    DerivedSummaryMismatch,
 }
 
 impl ReferenceSnapshotSummaryValidationError {
@@ -123,6 +125,7 @@ impl ReferenceSnapshotSummaryValidationError {
             Self::MissingEpochs => "missing epochs",
             Self::InvalidEpochRange { .. } => "invalid epoch range",
             Self::AsteroidRowCountExceedsRowCount { .. } => "asteroid row count exceeds row count",
+            Self::DerivedSummaryMismatch => "derived summary mismatch",
         }
     }
 }
@@ -171,6 +174,7 @@ impl fmt::Display for ReferenceSnapshotSummaryValidationError {
                 f,
                 "asteroid row count {asteroid_row_count} exceeds row count {row_count}"
             ),
+            Self::DerivedSummaryMismatch => f.write_str(self.label()),
         }
     }
 }
@@ -462,6 +466,8 @@ pub enum ReferenceSnapshotBatchParitySummaryValidationError {
         unknown_count: usize,
         row_count: usize,
     },
+    /// The summary drifted away from the checked-in derived evidence.
+    DerivedSummaryMismatch,
 }
 
 impl fmt::Display for ReferenceSnapshotBatchParitySummaryValidationError {
@@ -488,6 +494,7 @@ impl fmt::Display for ReferenceSnapshotBatchParitySummaryValidationError {
                 "quality counts {}+{}+{}+{} do not match row count {}",
                 exact_count, interpolated_count, approximate_count, unknown_count, row_count,
             ),
+            Self::DerivedSummaryMismatch => f.write_str("derived summary mismatch"),
         }
     }
 }
@@ -495,7 +502,7 @@ impl fmt::Display for ReferenceSnapshotBatchParitySummaryValidationError {
 impl std::error::Error for ReferenceSnapshotBatchParitySummaryValidationError {}
 
 impl ReferenceSnapshotBatchParitySummary {
-    /// Validates that the batch parity summary remains internally consistent.
+    /// Validates that the batch parity summary remains internally consistent and still matches the derived evidence.
     pub fn validate(&self) -> Result<(), ReferenceSnapshotBatchParitySummaryValidationError> {
         self.snapshot
             .validate()
@@ -523,6 +530,10 @@ impl ReferenceSnapshotBatchParitySummary {
                     row_count: self.snapshot.row_count,
                 },
             );
+        }
+
+        if reference_snapshot_batch_parity_summary().as_ref() != Some(self) {
+            return Err(ReferenceSnapshotBatchParitySummaryValidationError::DerivedSummaryMismatch);
         }
 
         Ok(())
@@ -573,7 +584,7 @@ pub fn reference_snapshot_batch_parity_summary_for_report() -> String {
 }
 
 impl ReferenceSnapshotSummary {
-    /// Validates that the summary remains internally consistent.
+    /// Validates that the summary remains internally consistent and still matches the derived evidence.
     pub fn validate(&self) -> Result<(), ReferenceSnapshotSummaryValidationError> {
         if self.bodies.is_empty() {
             return Err(ReferenceSnapshotSummaryValidationError::MissingBodies);
@@ -634,6 +645,10 @@ impl ReferenceSnapshotSummary {
                     row_count: self.row_count,
                 },
             );
+        }
+
+        if self.row_count != reference_snapshot().len() {
+            return Err(ReferenceSnapshotSummaryValidationError::DerivedSummaryMismatch);
         }
 
         Ok(())
@@ -805,6 +820,8 @@ pub enum IndependentHoldoutSnapshotSummaryValidationError {
         earliest_epoch: Instant,
         latest_epoch: Instant,
     },
+    /// The summary drifted away from the checked-in derived evidence.
+    DerivedSummaryMismatch,
 }
 
 impl IndependentHoldoutSnapshotSummaryValidationError {
@@ -817,6 +834,7 @@ impl IndependentHoldoutSnapshotSummaryValidationError {
             Self::DuplicateBody { .. } => "duplicate body",
             Self::MissingEpochs => "missing epochs",
             Self::InvalidEpochRange { .. } => "invalid epoch range",
+            Self::DerivedSummaryMismatch => "derived summary mismatch",
         }
     }
 }
@@ -845,6 +863,7 @@ impl fmt::Display for IndependentHoldoutSnapshotSummaryValidationError {
                 format_instant(*earliest_epoch),
                 format_instant(*latest_epoch)
             ),
+            Self::DerivedSummaryMismatch => f.write_str(self.label()),
             _ => f.write_str(self.label()),
         }
     }
@@ -905,7 +924,7 @@ pub fn independent_holdout_snapshot_summary() -> Option<IndependentHoldoutSnapsh
 }
 
 impl IndependentHoldoutSnapshotSummary {
-    /// Validates that the summary remains internally consistent.
+    /// Validates that the summary remains internally consistent and still matches the derived evidence.
     pub fn validate(&self) -> Result<(), IndependentHoldoutSnapshotSummaryValidationError> {
         if self.row_count == 0 {
             return Err(IndependentHoldoutSnapshotSummaryValidationError::MissingRows);
@@ -947,6 +966,10 @@ impl IndependentHoldoutSnapshotSummary {
                     latest_epoch: self.latest_epoch,
                 },
             );
+        }
+
+        if independent_holdout_snapshot_summary().as_ref() != Some(self) {
+            return Err(IndependentHoldoutSnapshotSummaryValidationError::DerivedSummaryMismatch);
         }
 
         Ok(())
@@ -4488,6 +4511,18 @@ mod tests {
     }
 
     #[test]
+    fn reference_snapshot_summary_validation_rejects_row_count_drift() {
+        let mut summary =
+            reference_snapshot_summary().expect("reference snapshot summary should exist");
+        summary.row_count += 1;
+
+        assert_eq!(
+            summary.validate(),
+            Err(ReferenceSnapshotSummaryValidationError::DerivedSummaryMismatch)
+        );
+    }
+
+    #[test]
     fn reference_snapshot_equatorial_parity_summary_reports_the_expected_coverage() {
         let summary = reference_snapshot_equatorial_parity_summary()
             .expect("reference snapshot equatorial parity summary should exist");
@@ -4534,6 +4569,18 @@ mod tests {
                 )
             )
         ));
+    }
+
+    #[test]
+    fn reference_snapshot_batch_parity_summary_validation_rejects_derived_summary_drift() {
+        let mut summary = reference_snapshot_batch_parity_summary()
+            .expect("reference snapshot batch parity summary should exist");
+        summary.snapshot.asteroid_row_count += 1;
+
+        assert_eq!(
+            summary.validate(),
+            Err(ReferenceSnapshotBatchParitySummaryValidationError::DerivedSummaryMismatch)
+        );
     }
 
     #[test]
@@ -5163,6 +5210,20 @@ mod tests {
                 body,
             }) if body == "Mars"
         ));
+    }
+
+    #[test]
+    fn independent_holdout_snapshot_summary_validation_rejects_body_order_drift() {
+        let summary = independent_holdout_snapshot_summary()
+            .expect("independent hold-out summary should exist");
+        let mut bodies = summary.bodies.clone();
+        bodies.swap(0, 1);
+        let summary = IndependentHoldoutSnapshotSummary { bodies, ..summary };
+
+        assert_eq!(
+            summary.validate(),
+            Err(IndependentHoldoutSnapshotSummaryValidationError::DerivedSummaryMismatch)
+        );
     }
 
     #[test]
