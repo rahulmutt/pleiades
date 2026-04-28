@@ -4317,6 +4317,27 @@ impl Vsop87SourceBodyClassEvidenceSummary {
                 },
             );
         }
+        validate_source_body_class_summary_peak_source_metadata(
+            "max_longitude_delta_source_kind",
+            "max_longitude_delta_source_file",
+            &self.max_longitude_delta_body,
+            self.max_longitude_delta_source_kind,
+            self.max_longitude_delta_source_file,
+        )?;
+        validate_source_body_class_summary_peak_source_metadata(
+            "max_latitude_delta_source_kind",
+            "max_latitude_delta_source_file",
+            &self.max_latitude_delta_body,
+            self.max_latitude_delta_source_kind,
+            self.max_latitude_delta_source_file,
+        )?;
+        validate_source_body_class_summary_peak_source_metadata(
+            "max_distance_delta_source_kind",
+            "max_distance_delta_source_file",
+            &self.max_distance_delta_body,
+            self.max_distance_delta_source_kind,
+            self.max_distance_delta_source_file,
+        )?;
         for (field, value) in [
             ("max_longitude_delta_deg", self.max_longitude_delta_deg),
             (
@@ -4422,6 +4443,38 @@ impl fmt::Display for Vsop87SourceBodyClassEvidenceSummaryValidationError {
 }
 
 impl std::error::Error for Vsop87SourceBodyClassEvidenceSummaryValidationError {}
+
+fn validate_source_body_class_summary_peak_source_metadata(
+    field_kind: &'static str,
+    field_file: &'static str,
+    body: &CelestialBody,
+    source_kind: Vsop87BodySourceKind,
+    source_file: &'static str,
+) -> Result<(), Vsop87SourceBodyClassEvidenceSummaryValidationError> {
+    let expected_source_kind = source_kind_for_body(body.clone()).ok_or(
+        Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync { field: field_kind },
+    )?;
+    let expected_source_file = source_file_for_body(body).ok_or(
+        Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync { field: field_file },
+    )?;
+
+    if expected_source_kind != source_kind {
+        return Err(
+            Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync {
+                field: field_kind,
+            },
+        );
+    }
+    if expected_source_file != source_file {
+        return Err(
+            Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync {
+                field: field_file,
+            },
+        );
+    }
+
+    Ok(())
+}
 
 impl fmt::Display for Vsop87SourceBodyClassEvidenceSummary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -8450,6 +8503,42 @@ mod tests {
         assert_eq!(
             error.to_string(),
             "the VSOP87 source-backed body-class evidence summary field `max_longitude_delta_source_file` is out of sync with the current canonical evidence"
+        );
+    }
+
+    #[test]
+    fn source_body_class_evidence_summary_validation_rejects_source_kind_drift() {
+        let mut summary = source_body_class_evidence_summary()
+            .expect("summary should exist")
+            .into_iter()
+            .find(|summary| summary.class == Vsop87SourceBodyClass::MajorPlanet)
+            .expect("major-planet summary should exist");
+        summary.max_longitude_delta_source_kind = Vsop87BodySourceKind::VendoredVsop87b;
+
+        let error = summary
+            .validate()
+            .expect_err("source-kind drift should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "the VSOP87 source-backed body-class evidence summary field `max_longitude_delta_source_kind` is out of sync with the current canonical evidence"
+        );
+    }
+
+    #[test]
+    fn source_body_class_evidence_summary_validation_rejects_source_file_drift() {
+        let mut summary = source_body_class_evidence_summary()
+            .expect("summary should exist")
+            .into_iter()
+            .find(|summary| summary.class == Vsop87SourceBodyClass::MajorPlanet)
+            .expect("major-planet summary should exist");
+        summary.max_latitude_delta_source_file = "VSOP87B.ear";
+
+        let error = summary
+            .validate()
+            .expect_err("source-file drift should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "the VSOP87 source-backed body-class evidence summary field `max_latitude_delta_source_file` is out of sync with the current canonical evidence"
         );
     }
 
