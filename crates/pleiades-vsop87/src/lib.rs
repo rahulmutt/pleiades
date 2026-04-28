@@ -104,6 +104,22 @@ pub struct Vsop87BodySource {
     pub accuracy: AccuracyClass,
 }
 
+impl Vsop87BodySource {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "{}: kind={}, accuracy={}, {}",
+            self.body, self.kind, self.accuracy, self.provenance
+        )
+    }
+}
+
+impl fmt::Display for Vsop87BodySource {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Returns the per-body source profiles used by [`Vsop87Backend`].
 ///
 /// The returned list is derived from the unified VSOP87 body catalog so the
@@ -5891,7 +5907,19 @@ mod tests {
             assert!(profile
                 .provenance
                 .contains("vendored full IMCCE/CELMECH VSOP87B"));
+            assert_eq!(profile.summary_line(), profile.to_string());
         }
+
+        let sun = profiles
+            .iter()
+            .find(|profile| profile.body == CelestialBody::Sun)
+            .expect("Sun profile should exist");
+        assert!(sun
+            .summary_line()
+            .starts_with("Sun: kind=generated binary VSOP87B, accuracy=Exact"));
+        assert!(sun
+            .summary_line()
+            .contains("vendored full IMCCE/CELMECH VSOP87B"));
 
         let pluto = profiles
             .iter()
@@ -5899,6 +5927,10 @@ mod tests {
             .expect("Pluto profile should exist");
         assert_eq!(pluto.kind, Vsop87BodySourceKind::MeanOrbitalElements);
         assert!(pluto.provenance.contains("fallback"));
+        assert_eq!(pluto.summary_line(), pluto.to_string());
+        assert!(pluto
+            .summary_line()
+            .starts_with("Pluto: kind=mean orbital elements fallback, accuracy=Approximate"));
     }
 
     #[test]

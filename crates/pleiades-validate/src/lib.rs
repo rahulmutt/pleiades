@@ -9405,11 +9405,7 @@ fn write_backend_catalog_entry(
     if entry.metadata.id.as_str() == "pleiades-vsop87" {
         writeln!(f, "  body source profiles:")?;
         for profile in body_source_profiles() {
-            writeln!(
-                f,
-                "    {}: kind={}, accuracy={}, {}",
-                profile.body, profile.kind, profile.accuracy, profile.provenance
-            )?;
+            writeln!(f, "    {}", profile.summary_line())?;
         }
 
         writeln!(f, "  source documentation:")?;
