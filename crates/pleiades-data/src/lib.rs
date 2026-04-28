@@ -1392,6 +1392,22 @@ pub fn packaged_backend_from_artifact(artifact: CompressedArtifact) -> PackagedD
 }
 
 /// Returns a packaged-data backend built from decoded artifact bytes.
+///
+/// # Examples
+///
+/// ```
+/// use pleiades_backend::EphemerisBackend;
+/// use pleiades_data::{packaged_artifact, packaged_backend_from_bytes};
+///
+/// let bytes = packaged_artifact()
+///     .encode()
+///     .expect("packaged artifact should encode");
+/// let backend = packaged_backend_from_bytes(&bytes)
+///     .expect("packaged artifact bytes should decode");
+///
+/// assert_eq!(backend.metadata().id.as_str(), "pleiades-data");
+/// assert!(backend.metadata().offline);
+/// ```
 pub fn packaged_backend_from_bytes(
     bytes: &[u8],
 ) -> Result<PackagedDataBackend, PackagedArtifactLoadError> {
@@ -1400,6 +1416,27 @@ pub fn packaged_backend_from_bytes(
 
 #[cfg(feature = "packaged-artifact-path")]
 /// Returns a packaged-data backend built from a decoded artifact file.
+///
+/// # Examples
+///
+/// ```
+/// use std::fs;
+/// use pleiades_backend::EphemerisBackend;
+/// use pleiades_data::{packaged_artifact, packaged_backend_from_path};
+///
+/// let bytes = packaged_artifact()
+///     .encode()
+///     .expect("packaged artifact should encode");
+/// let path = std::env::temp_dir().join(format!(
+///     "pleiades-packaged-artifact-{}.bin",
+///     std::process::id()
+/// ));
+/// fs::write(&path, &bytes).expect("artifact fixture should be writable");
+/// let backend = packaged_backend_from_path(&path)
+///     .expect("packaged artifact file should decode");
+/// assert_eq!(backend.metadata().id.as_str(), "pleiades-data");
+/// let _ = fs::remove_file(&path);
+/// ```
 pub fn packaged_backend_from_path(
     path: impl AsRef<Path>,
 ) -> Result<PackagedDataBackend, PackagedArtifactLoadError> {
@@ -1432,6 +1469,9 @@ impl PackagedDataBackend {
     }
 
     /// Creates a packaged-data backend from decoded artifact bytes.
+    ///
+    /// See [`packaged_backend_from_bytes`] for an end-to-end example that
+    /// encodes the checked-in artifact and reloads it through this constructor.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, PackagedArtifactLoadError> {
         Ok(Self::from_artifact(
             packaged_artifact_from_bytes(bytes).map_err(PackagedArtifactLoadError::Decode)?,
@@ -1440,6 +1480,10 @@ impl PackagedDataBackend {
 
     #[cfg(feature = "packaged-artifact-path")]
     /// Creates a packaged-data backend from an artifact file.
+    ///
+    /// See [`packaged_backend_from_path`] for an end-to-end example that writes
+    /// the checked-in artifact to a temporary file and reloads it through this
+    /// constructor.
     pub fn from_path(path: impl AsRef<Path>) -> Result<Self, PackagedArtifactLoadError> {
         Ok(Self::from_artifact(packaged_artifact_from_path(path)?))
     }
