@@ -2006,6 +2006,27 @@ pub struct LunarReferenceBatchParitySummary {
     pub single_query_parity: bool,
 }
 
+/// Validation error for a lunar mixed TT/TDB batch-parity summary that drifted
+/// from the current reference evidence.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LunarReferenceBatchParitySummaryValidationError {
+    /// A rendered summary field no longer matches the current evidence slice.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for LunarReferenceBatchParitySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the lunar reference mixed TT/TDB batch parity summary field `{field}` is out of sync with the current evidence"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for LunarReferenceBatchParitySummaryValidationError {}
+
 /// Returns a compact summary of the mixed TT/TDB lunar reference batch parity slice.
 pub fn lunar_reference_batch_parity_summary() -> Option<LunarReferenceBatchParitySummary> {
     let samples = lunar_reference_evidence();
@@ -2061,6 +2082,64 @@ pub fn lunar_reference_batch_parity_summary() -> Option<LunarReferenceBatchParit
 }
 
 impl LunarReferenceBatchParitySummary {
+    /// Returns `Ok(())` when the summary still matches the current reference evidence.
+    pub fn validate(&self) -> Result<(), LunarReferenceBatchParitySummaryValidationError> {
+        let samples = lunar_reference_evidence();
+        let expected_sample_count = samples.len();
+        let expected_body_count = samples
+            .iter()
+            .map(|sample| sample.body.to_string())
+            .collect::<std::collections::BTreeSet<_>>()
+            .len();
+        let expected_tt_request_count = expected_sample_count.div_ceil(2);
+        let expected_tdb_request_count = expected_sample_count / 2;
+
+        if self.sample_count != expected_sample_count {
+            return Err(
+                LunarReferenceBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        }
+        if self.body_count != expected_body_count {
+            return Err(
+                LunarReferenceBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "body_count",
+                },
+            );
+        }
+        if self.tt_request_count != expected_tt_request_count {
+            return Err(
+                LunarReferenceBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "tt_request_count",
+                },
+            );
+        }
+        if self.tdb_request_count != expected_tdb_request_count {
+            return Err(
+                LunarReferenceBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "tdb_request_count",
+                },
+            );
+        }
+        if !self.order_preserved {
+            return Err(
+                LunarReferenceBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "order_preserved",
+                },
+            );
+        }
+        if !self.single_query_parity {
+            return Err(
+                LunarReferenceBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "single_query_parity",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
     /// Returns the release-facing one-line lunar mixed-scale batch parity summary.
     pub fn summary_line(&self) -> String {
         let order = if self.order_preserved {
@@ -2102,7 +2181,12 @@ pub fn format_lunar_reference_batch_parity_summary(
 /// Returns the release-facing lunar mixed TT/TDB batch-parity summary string.
 pub fn lunar_reference_batch_parity_summary_for_report() -> String {
     match lunar_reference_batch_parity_summary() {
-        Some(summary) => format_lunar_reference_batch_parity_summary(&summary),
+        Some(summary) => match summary.validate() {
+            Ok(()) => format_lunar_reference_batch_parity_summary(&summary),
+            Err(error) => {
+                format!("lunar reference mixed TT/TDB batch parity: unavailable ({error})")
+            }
+        },
         None => "lunar reference mixed TT/TDB batch parity: unavailable".to_string(),
     }
 }
@@ -5417,6 +5501,7 @@ mod tests {
         assert!(parity.order_preserved);
         assert!(parity.single_query_parity);
         assert_eq!(parity.summary_line(), parity.to_string());
+        assert!(parity.validate().is_ok());
         assert_eq!(
             format_lunar_reference_batch_parity_summary(&parity),
             parity.summary_line()
@@ -5464,6 +5549,24 @@ mod tests {
         assert_eq!(
             format_lunar_reference_evidence_envelope(&envelope),
             envelope.summary_line()
+        );
+    }
+
+    #[test]
+    fn lunar_reference_batch_parity_summary_validation_rejects_count_drift() {
+        let mut parity = lunar_reference_batch_parity_summary()
+            .expect("mixed-scale batch parity evidence should exist");
+        parity.tt_request_count -= 1;
+
+        let error = parity
+            .validate()
+            .expect_err("drifted mixed-scale parity evidence should fail validation");
+
+        assert_eq!(
+            error,
+            LunarReferenceBatchParitySummaryValidationError::FieldOutOfSync {
+                field: "tt_request_count"
+            }
         );
     }
 
