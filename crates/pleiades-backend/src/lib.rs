@@ -1488,10 +1488,11 @@ pub fn validate_request_against_metadata(
 /// ```
 /// use pleiades_backend::{
 ///     validate_requests_against_metadata, AccuracyClass, BackendCapabilities, BackendFamily,
-///     BackendId, BackendMetadata, BackendProvenance, EphemerisRequest,
+///     BackendId, BackendMetadata, BackendProvenance, EphemerisErrorKind, EphemerisRequest,
 /// };
 /// use pleiades_types::{
-///     CelestialBody, CoordinateFrame, Instant, JulianDay, TimeRange, TimeScale,
+///     CelestialBody, CoordinateFrame, Instant, JulianDay, Latitude, Longitude,
+///     ObserverLocation, TimeRange, TimeScale,
 /// };
 ///
 /// let metadata = BackendMetadata {
@@ -1526,6 +1527,28 @@ pub fn validate_request_against_metadata(
 /// let error = validate_requests_against_metadata(&requests, &batchless_metadata)
 ///     .expect_err("batch support should be required before dispatch");
 /// assert_eq!(error.message, "toy backend does not support batch requests");
+///
+/// let observer_requests = [
+///     EphemerisRequest::new(
+///         CelestialBody::Sun,
+///         Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+///     ),
+///     EphemerisRequest {
+///         observer: Some(ObserverLocation::new(
+///             Latitude::from_degrees(51.5),
+///             Longitude::from_degrees(12.5),
+///             Some(0.0),
+///         )),
+///         ..EphemerisRequest::new(
+///             CelestialBody::Moon,
+///             Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+///         )
+///     },
+/// ];
+/// let error = validate_requests_against_metadata(&observer_requests, &metadata)
+///     .expect_err("observer-bearing batch requests should preserve the indexed observer failure");
+/// assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
+/// assert!(error.message.contains("batch request 2:"));
 /// ```
 pub fn validate_requests_against_metadata(
     reqs: &[EphemerisRequest],
