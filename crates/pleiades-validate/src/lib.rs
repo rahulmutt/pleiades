@@ -14345,6 +14345,7 @@ version = "0.9.0"
             .contains("Artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(release_notes_summary
             .contains("Compatibility profile verification: verify-compatibility-profile"));
+        assert!(release_notes_summary.contains("Workspace audit summary: workspace-audit-summary"));
         assert!(release_summary.contains("Release summary"));
         assert!(release_summary.contains("API stability summary line: API stability posture:"));
         assert!(release_summary.contains(
@@ -14362,6 +14363,7 @@ version = "0.9.0"
         ));
         assert!(release_summary
             .contains("Compatibility profile verification: verify-compatibility-profile"));
+        assert!(release_summary.contains("Workspace audit summary: workspace-audit-summary"));
         assert!(release_summary.contains("Artifact validation: validate-artifact"));
         assert!(release_summary.contains(
             "Packaged-artifact profile: byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]"
