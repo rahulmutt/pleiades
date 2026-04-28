@@ -65,6 +65,7 @@
 
 use core::fmt;
 use std::borrow::Cow;
+use std::time::Duration;
 
 pub use pleiades_types::{
     Angle, Apparentness, Ayanamsa, CelestialBody, CoordinateFrame, CustomAyanamsa, CustomBodyId,
@@ -783,6 +784,137 @@ impl EphemerisRequest {
         conversion: TimeScaleConversion,
     ) -> Result<Self, TimeScaleConversionError> {
         self.instant = conversion.apply(self.instant)?;
+        Ok(self)
+    }
+
+    /// Converts the request instant from TT to TDB using a caller-supplied offset.
+    ///
+    /// This is the backend-level counterpart to [`Instant::tdb_from_tt`].
+    pub fn with_tdb_from_tt(mut self, offset: Duration) -> Result<Self, TimeScaleConversionError> {
+        self.instant = self.instant.tdb_from_tt(offset)?;
+        Ok(self)
+    }
+
+    /// Converts the request instant from TT to TDB using a caller-supplied signed offset.
+    ///
+    /// This is the backend-level counterpart to [`Instant::tdb_from_tt_signed`].
+    pub fn with_tdb_from_tt_signed(
+        mut self,
+        offset_seconds: f64,
+    ) -> Result<Self, TimeScaleConversionError> {
+        self.instant = self.instant.tdb_from_tt_signed(offset_seconds)?;
+        Ok(self)
+    }
+
+    /// Converts the request instant from TDB to TT using a caller-supplied offset.
+    ///
+    /// This is the backend-level counterpart to [`Instant::tt_from_tdb`].
+    pub fn with_tt_from_tdb(
+        mut self,
+        offset_seconds: f64,
+    ) -> Result<Self, TimeScaleConversionError> {
+        self.instant = self.instant.tt_from_tdb(offset_seconds)?;
+        Ok(self)
+    }
+
+    /// Converts the request instant from TDB to TT using a caller-supplied signed offset.
+    ///
+    /// This is the backend-level counterpart to [`Instant::tt_from_tdb_signed`].
+    pub fn with_tt_from_tdb_signed(
+        mut self,
+        offset_seconds: f64,
+    ) -> Result<Self, TimeScaleConversionError> {
+        self.instant = self.instant.tt_from_tdb_signed(offset_seconds)?;
+        Ok(self)
+    }
+
+    /// Converts the request instant from UT1 to TT using a caller-supplied offset.
+    ///
+    /// This is the backend-level counterpart to [`Instant::tt_from_ut1`].
+    pub fn with_tt_from_ut1(mut self, delta_t: Duration) -> Result<Self, TimeScaleConversionError> {
+        self.instant = self.instant.tt_from_ut1(delta_t)?;
+        Ok(self)
+    }
+
+    /// Converts the request instant from UT1 to TT using a caller-supplied signed offset.
+    ///
+    /// This is the backend-level counterpart to [`Instant::tt_from_ut1_signed`].
+    pub fn with_tt_from_ut1_signed(
+        mut self,
+        delta_t_seconds: f64,
+    ) -> Result<Self, TimeScaleConversionError> {
+        self.instant = self.instant.tt_from_ut1_signed(delta_t_seconds)?;
+        Ok(self)
+    }
+
+    /// Converts the request instant from UTC to TT using a caller-supplied offset.
+    ///
+    /// This is the backend-level counterpart to [`Instant::tt_from_utc`].
+    pub fn with_tt_from_utc(mut self, delta_t: Duration) -> Result<Self, TimeScaleConversionError> {
+        self.instant = self.instant.tt_from_utc(delta_t)?;
+        Ok(self)
+    }
+
+    /// Converts the request instant from UTC to TT using a caller-supplied signed offset.
+    ///
+    /// This is the backend-level counterpart to [`Instant::tt_from_utc_signed`].
+    pub fn with_tt_from_utc_signed(
+        mut self,
+        delta_t_seconds: f64,
+    ) -> Result<Self, TimeScaleConversionError> {
+        self.instant = self.instant.tt_from_utc_signed(delta_t_seconds)?;
+        Ok(self)
+    }
+
+    /// Converts the request instant from UT1 to TDB using caller-supplied TT-UT1 and TDB-TT offsets.
+    ///
+    /// This is the backend-level counterpart to [`Instant::tdb_from_ut1`].
+    pub fn with_tdb_from_ut1(
+        mut self,
+        tt_offset: Duration,
+        tdb_offset: Duration,
+    ) -> Result<Self, TimeScaleConversionError> {
+        self.instant = self.instant.tdb_from_ut1(tt_offset, tdb_offset)?;
+        Ok(self)
+    }
+
+    /// Converts the request instant from UT1 to TDB using caller-supplied TT-UT1 and signed TDB-TT offsets.
+    ///
+    /// This is the backend-level counterpart to [`Instant::tdb_from_ut1_signed`].
+    pub fn with_tdb_from_ut1_signed(
+        mut self,
+        tt_offset: Duration,
+        tdb_offset_seconds: f64,
+    ) -> Result<Self, TimeScaleConversionError> {
+        self.instant = self
+            .instant
+            .tdb_from_ut1_signed(tt_offset, tdb_offset_seconds)?;
+        Ok(self)
+    }
+
+    /// Converts the request instant from UTC to TDB using caller-supplied TT-UTC and TDB-TT offsets.
+    ///
+    /// This is the backend-level counterpart to [`Instant::tdb_from_utc`].
+    pub fn with_tdb_from_utc(
+        mut self,
+        tt_offset: Duration,
+        tdb_offset: Duration,
+    ) -> Result<Self, TimeScaleConversionError> {
+        self.instant = self.instant.tdb_from_utc(tt_offset, tdb_offset)?;
+        Ok(self)
+    }
+
+    /// Converts the request instant from UTC to TDB using caller-supplied TT-UTC and signed TDB-TT offsets.
+    ///
+    /// This is the backend-level counterpart to [`Instant::tdb_from_utc_signed`].
+    pub fn with_tdb_from_utc_signed(
+        mut self,
+        tt_offset: Duration,
+        tdb_offset_seconds: f64,
+    ) -> Result<Self, TimeScaleConversionError> {
+        self.instant = self
+            .instant
+            .tdb_from_utc_signed(tt_offset, tdb_offset_seconds)?;
         Ok(self)
     }
 
@@ -1805,6 +1937,7 @@ fn should_fallback_to_secondary(kind: &EphemerisErrorKind) -> bool {
 mod tests {
     use super::*;
     use core::sync::atomic::{AtomicUsize, Ordering};
+    use std::time::Duration;
 
     #[test]
     fn family_and_accuracy_labels_are_stable() {
@@ -2400,6 +2533,110 @@ mod tests {
         assert_eq!(checked_offset.frame, time_scale_request.frame);
         assert_eq!(checked_offset.zodiac_mode, time_scale_request.zodiac_mode);
         assert_eq!(checked_offset.apparent, time_scale_request.apparent);
+
+        let tt_from_tdb_request = EphemerisRequest {
+            instant: Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tdb),
+            ..time_scale_request.clone()
+        };
+        let tt_from_tdb = tt_from_tdb_request
+            .clone()
+            .with_tt_from_tdb(-0.001_657)
+            .expect("TDB request should convert back to TT with a caller-supplied offset");
+        assert_eq!(tt_from_tdb.instant.scale, TimeScale::Tt);
+        assert_eq!(tt_from_tdb.body, tt_from_tdb_request.body);
+        assert_eq!(tt_from_tdb.observer, tt_from_tdb_request.observer);
+        assert_eq!(tt_from_tdb.frame, tt_from_tdb_request.frame);
+        assert_eq!(tt_from_tdb.zodiac_mode, tt_from_tdb_request.zodiac_mode);
+        assert_eq!(tt_from_tdb.apparent, tt_from_tdb_request.apparent);
+
+        let tt_from_tdb_signed = tt_from_tdb_request
+            .clone()
+            .with_tt_from_tdb_signed(-0.001_657)
+            .expect("TDB request should convert back to TT with a signed offset");
+        assert_eq!(tt_from_tdb_signed.instant.scale, TimeScale::Tt);
+        assert_eq!(tt_from_tdb_signed.body, tt_from_tdb_request.body);
+        assert_eq!(tt_from_tdb_signed.observer, tt_from_tdb_request.observer);
+        assert_eq!(tt_from_tdb_signed.frame, tt_from_tdb_request.frame);
+        assert_eq!(
+            tt_from_tdb_signed.zodiac_mode,
+            tt_from_tdb_request.zodiac_mode
+        );
+        assert_eq!(tt_from_tdb_signed.apparent, tt_from_tdb_request.apparent);
+
+        let tt_from_ut1_request = EphemerisRequest {
+            instant: Instant::new(JulianDay::from_days(2451545.0), TimeScale::Ut1),
+            ..time_scale_request.clone()
+        };
+        let tt_from_ut1 = tt_from_ut1_request
+            .clone()
+            .with_tt_from_ut1_signed(64.184)
+            .expect("UT1 request should convert to TT with a signed offset");
+        assert_eq!(tt_from_ut1.instant.scale, TimeScale::Tt);
+        assert_eq!(tt_from_ut1.body, tt_from_ut1_request.body);
+        assert_eq!(tt_from_ut1.observer, tt_from_ut1_request.observer);
+        assert_eq!(tt_from_ut1.frame, tt_from_ut1_request.frame);
+        assert_eq!(tt_from_ut1.zodiac_mode, tt_from_ut1_request.zodiac_mode);
+        assert_eq!(tt_from_ut1.apparent, tt_from_ut1_request.apparent);
+
+        let tt_from_utc_request = EphemerisRequest {
+            instant: Instant::new(JulianDay::from_days(2451545.0), TimeScale::Utc),
+            ..time_scale_request.clone()
+        };
+        let tt_from_utc = tt_from_utc_request
+            .clone()
+            .with_tt_from_utc_signed(64.184)
+            .expect("UTC request should convert to TT with a signed offset");
+        assert_eq!(tt_from_utc.instant.scale, TimeScale::Tt);
+        assert_eq!(tt_from_utc.body, tt_from_utc_request.body);
+        assert_eq!(tt_from_utc.observer, tt_from_utc_request.observer);
+        assert_eq!(tt_from_utc.frame, tt_from_utc_request.frame);
+        assert_eq!(tt_from_utc.zodiac_mode, tt_from_utc_request.zodiac_mode);
+        assert_eq!(tt_from_utc.apparent, tt_from_utc_request.apparent);
+
+        let tdb_from_tt_request = EphemerisRequest {
+            instant: Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt),
+            ..time_scale_request.clone()
+        };
+        let tdb_from_tt = tdb_from_tt_request
+            .clone()
+            .with_tdb_from_tt_signed(-0.001_657)
+            .expect("TT request should convert to TDB with a signed offset");
+        assert_eq!(tdb_from_tt.instant.scale, TimeScale::Tdb);
+        assert_eq!(tdb_from_tt.body, tdb_from_tt_request.body);
+        assert_eq!(tdb_from_tt.observer, tdb_from_tt_request.observer);
+        assert_eq!(tdb_from_tt.frame, tdb_from_tt_request.frame);
+        assert_eq!(tdb_from_tt.zodiac_mode, tdb_from_tt_request.zodiac_mode);
+        assert_eq!(tdb_from_tt.apparent, tdb_from_tt_request.apparent);
+
+        let tdb_from_ut1_request = EphemerisRequest {
+            instant: Instant::new(JulianDay::from_days(2451545.0), TimeScale::Ut1),
+            ..time_scale_request.clone()
+        };
+        let tdb_from_ut1 = tdb_from_ut1_request
+            .clone()
+            .with_tdb_from_ut1_signed(Duration::from_secs_f64(64.184), -0.001_657)
+            .expect("UT1 request should convert to TDB with caller-supplied offsets");
+        assert_eq!(tdb_from_ut1.instant.scale, TimeScale::Tdb);
+        assert_eq!(tdb_from_ut1.body, tdb_from_ut1_request.body);
+        assert_eq!(tdb_from_ut1.observer, tdb_from_ut1_request.observer);
+        assert_eq!(tdb_from_ut1.frame, tdb_from_ut1_request.frame);
+        assert_eq!(tdb_from_ut1.zodiac_mode, tdb_from_ut1_request.zodiac_mode);
+        assert_eq!(tdb_from_ut1.apparent, tdb_from_ut1_request.apparent);
+
+        let tdb_from_utc_request = EphemerisRequest {
+            instant: Instant::new(JulianDay::from_days(2451545.0), TimeScale::Utc),
+            ..time_scale_request.clone()
+        };
+        let tdb_from_utc = tdb_from_utc_request
+            .clone()
+            .with_tdb_from_utc_signed(Duration::from_secs_f64(64.184), -0.001_657)
+            .expect("UTC request should convert to TDB with caller-supplied offsets");
+        assert_eq!(tdb_from_utc.instant.scale, TimeScale::Tdb);
+        assert_eq!(tdb_from_utc.body, tdb_from_utc_request.body);
+        assert_eq!(tdb_from_utc.observer, tdb_from_utc_request.observer);
+        assert_eq!(tdb_from_utc.frame, tdb_from_utc_request.frame);
+        assert_eq!(tdb_from_utc.zodiac_mode, tdb_from_utc_request.zodiac_mode);
+        assert_eq!(tdb_from_utc.apparent, tdb_from_utc_request.apparent);
 
         let error = time_scale_request
             .clone()
