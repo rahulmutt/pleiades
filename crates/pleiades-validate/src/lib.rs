@@ -12767,27 +12767,17 @@ mod tests {
             "Profile: {}",
             release_profiles.compatibility_profile_id
         )));
-        assert!(rendered.contains("House systems verified:"));
+        assert!(rendered.contains("House systems verified: 25 descriptors, 181 labels"));
         assert!(rendered
             .contains("Alias uniqueness checks: exact and case-insensitive labels verified"));
         assert!(rendered.contains(
             "Latitude-sensitive house systems verified: 8 descriptors, 8 labels (Placidus, Koch, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Topocentric, Sunshine, Gauquelin sectors)"
         ));
-        assert!(rendered.contains("Ayanamsas verified:"));
+        assert!(rendered.contains("Ayanamsas verified: 59 descriptors, 242 labels"));
         assert!(rendered.contains("House formula families verified: Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign"));
-        assert!(rendered.contains(&format!(
-            "Ayanamsa reference metadata verified: {} descriptors with epoch/offset metadata, {} metadata gaps",
-            profile
-                .ayanamsas
-                .iter()
-                .filter(|entry| entry.has_sidereal_metadata())
-                .count(),
-            profile.ayanamsas.len() - profile
-                .ayanamsas
-                .iter()
-                .filter(|entry| entry.has_sidereal_metadata())
-                .count()
-        )));
+        assert!(rendered.contains(
+            "Ayanamsa reference metadata verified: 53 descriptors with epoch/offset metadata, 6 metadata gaps"
+        ));
         assert!(rendered.contains(&format!(
             "Custom-definition labels verified: {} labels, all remain custom-definition territory",
             profile.custom_definition_labels.len()
