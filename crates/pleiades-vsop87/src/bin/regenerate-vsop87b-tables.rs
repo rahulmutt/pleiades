@@ -1,5 +1,6 @@
 use std::{env, fs, path::PathBuf, process::ExitCode};
 
+use pleiades_types::CelestialBody;
 use pleiades_vsop87::{
     checked_in_generated_vsop87b_table_bytes_for_source_file, source_specifications,
     try_generated_vsop87b_table_bytes_for_source_file,
@@ -26,13 +27,18 @@ fn write_regenerated_tables(output_dir: PathBuf) -> Result<(), String> {
     fs::create_dir_all(&output_dir)
         .map_err(|error| format!("failed to create {}: {error}", output_dir.display()))?;
 
-    for spec in source_specifications() {
-        let bytes = try_generated_vsop87b_table_bytes_for_source_file(spec.source_file)
+    for (body, source_file) in source_manifest() {
+        let bytes = try_generated_vsop87b_table_bytes_for_source_file(source_file)
             .map_err(|error| error.to_string())?;
-        let output_path = output_dir.join(format!("{}.bin", spec.source_file));
+        let output_path = output_dir.join(format!("{}.bin", source_file));
         fs::write(&output_path, &bytes)
             .map_err(|error| format!("failed to write {}: {error}", output_path.display()))?;
-        println!("wrote {} from {}", output_path.display(), spec.source_file);
+        println!(
+            "wrote {} from {} ({})",
+            output_path.display(),
+            body,
+            source_file
+        );
     }
 
     Ok(())
@@ -40,27 +46,29 @@ fn write_regenerated_tables(output_dir: PathBuf) -> Result<(), String> {
 
 fn check_regenerated_tables() -> Result<(), String> {
     let mut mismatches = Vec::new();
+    let manifest = source_manifest();
+    let supported_source_files = manifest
+        .iter()
+        .map(|(_, source_file)| *source_file)
+        .collect::<Vec<_>>()
+        .join(", ");
 
-    for spec in source_specifications() {
-        let regenerated = try_generated_vsop87b_table_bytes_for_source_file(spec.source_file)
+    for (body, source_file) in manifest {
+        let regenerated = try_generated_vsop87b_table_bytes_for_source_file(source_file)
             .map_err(|error| error.to_string())?;
-        let committed = checked_in_generated_vsop87b_table_bytes_for_source_file(spec.source_file)
+        let committed = checked_in_generated_vsop87b_table_bytes_for_source_file(source_file)
             .ok_or_else(|| {
                 format!(
-                    "no checked-in VSOP87B blob found for {}; supported source files: {}",
-                    spec.source_file,
-                    source_specifications()
-                        .iter()
-                        .map(|specification| specification.source_file)
-                        .collect::<Vec<_>>()
-                        .join(", ")
+                    "no checked-in VSOP87B blob found for {} ({source_file}); supported source files: {}",
+                    body,
+                    supported_source_files
                 )
             })?;
 
         if regenerated.as_slice() != committed {
             mismatches.push(format!(
-                "{} (generated {} bytes, committed {} bytes)",
-                spec.source_file,
+                "{} ({source_file}) (generated {} bytes, committed {} bytes)",
+                body,
                 regenerated.len(),
                 committed.len()
             ));
@@ -70,7 +78,7 @@ fn check_regenerated_tables() -> Result<(), String> {
     if mismatches.is_empty() {
         println!(
             "checked {} regenerated VSOP87B blobs against the committed artifacts",
-            source_specifications().len()
+            source_manifest().len()
         );
         Ok(())
     } else {
@@ -79,6 +87,13 @@ fn check_regenerated_tables() -> Result<(), String> {
             mismatches.join(", ")
         ))
     }
+}
+
+fn source_manifest() -> Vec<(CelestialBody, &'static str)> {
+    source_specifications()
+        .into_iter()
+        .map(|spec| (spec.body, spec.source_file))
+        .collect()
 }
 
 enum Command {
@@ -126,7 +141,7 @@ fn usage() -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::{check_regenerated_tables, parse_command, Command};
+    use super::{check_regenerated_tables, parse_command, source_manifest, Command};
 
     #[test]
     fn parse_command_accepts_check_mode() {
@@ -156,6 +171,45 @@ mod tests {
             .into_iter()
         )
         .is_err());
+    }
+
+    #[test]
+    fn source_manifest_pairs_bodies_with_source_files_in_release_order() {
+        let manifest = source_manifest();
+
+        assert_eq!(manifest.len(), 8);
+        assert_eq!(
+            manifest
+                .iter()
+                .map(|(body, _)| body.to_string())
+                .collect::<Vec<_>>(),
+            vec![
+                "Sun".to_string(),
+                "Mercury".to_string(),
+                "Venus".to_string(),
+                "Mars".to_string(),
+                "Jupiter".to_string(),
+                "Saturn".to_string(),
+                "Uranus".to_string(),
+                "Neptune".to_string(),
+            ]
+        );
+        assert_eq!(
+            manifest
+                .iter()
+                .map(|(_, source_file)| *source_file)
+                .collect::<Vec<_>>(),
+            vec![
+                "VSOP87B.ear",
+                "VSOP87B.mer",
+                "VSOP87B.ven",
+                "VSOP87B.mar",
+                "VSOP87B.jup",
+                "VSOP87B.sat",
+                "VSOP87B.ura",
+                "VSOP87B.nep",
+            ]
+        );
     }
 
     #[test]
