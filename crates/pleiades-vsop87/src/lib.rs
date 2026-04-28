@@ -993,6 +993,49 @@ impl Vsop87CanonicalEvidenceSummary {
             self.max_distance_delta_source_kind,
             self.max_distance_delta_source_file,
         )?;
+        for (field, value) in [
+            ("max_longitude_delta_deg", self.max_longitude_delta_deg),
+            (
+                "max_longitude_delta_limit_deg",
+                self.max_longitude_delta_limit_deg,
+            ),
+            ("max_latitude_delta_deg", self.max_latitude_delta_deg),
+            (
+                "max_latitude_delta_limit_deg",
+                self.max_latitude_delta_limit_deg,
+            ),
+            ("max_distance_delta_au", self.max_distance_delta_au),
+            (
+                "max_distance_delta_limit_au",
+                self.max_distance_delta_limit_au,
+            ),
+            ("mean_longitude_delta_deg", self.mean_longitude_delta_deg),
+            (
+                "median_longitude_delta_deg",
+                self.median_longitude_delta_deg,
+            ),
+            (
+                "percentile_longitude_delta_deg",
+                self.percentile_longitude_delta_deg,
+            ),
+            ("rms_longitude_delta_deg", self.rms_longitude_delta_deg),
+            ("mean_latitude_delta_deg", self.mean_latitude_delta_deg),
+            ("median_latitude_delta_deg", self.median_latitude_delta_deg),
+            (
+                "percentile_latitude_delta_deg",
+                self.percentile_latitude_delta_deg,
+            ),
+            ("rms_latitude_delta_deg", self.rms_latitude_delta_deg),
+            ("mean_distance_delta_au", self.mean_distance_delta_au),
+            ("median_distance_delta_au", self.median_distance_delta_au),
+            (
+                "percentile_distance_delta_au",
+                self.percentile_distance_delta_au,
+            ),
+            ("rms_distance_delta_au", self.rms_distance_delta_au),
+        ] {
+            validate_finite_non_negative_measure(CANONICAL_EVIDENCE_SUMMARY_LABEL, field, value)?;
+        }
 
         let Some(body_evidence) = canonical_epoch_body_evidence() else {
             return Err(
@@ -1180,6 +1223,56 @@ impl Vsop87CanonicalEquatorialEvidenceSummary {
             self.max_distance_delta_source_kind,
             self.max_distance_delta_source_file,
         )?;
+        for (field, value) in [
+            (
+                "max_right_ascension_delta_deg",
+                self.max_right_ascension_delta_deg,
+            ),
+            ("max_declination_delta_deg", self.max_declination_delta_deg),
+            ("max_distance_delta_au", self.max_distance_delta_au),
+            (
+                "mean_right_ascension_delta_deg",
+                self.mean_right_ascension_delta_deg,
+            ),
+            (
+                "median_right_ascension_delta_deg",
+                self.median_right_ascension_delta_deg,
+            ),
+            (
+                "percentile_right_ascension_delta_deg",
+                self.percentile_right_ascension_delta_deg,
+            ),
+            (
+                "rms_right_ascension_delta_deg",
+                self.rms_right_ascension_delta_deg,
+            ),
+            (
+                "mean_declination_delta_deg",
+                self.mean_declination_delta_deg,
+            ),
+            (
+                "median_declination_delta_deg",
+                self.median_declination_delta_deg,
+            ),
+            (
+                "percentile_declination_delta_deg",
+                self.percentile_declination_delta_deg,
+            ),
+            ("rms_declination_delta_deg", self.rms_declination_delta_deg),
+            ("mean_distance_delta_au", self.mean_distance_delta_au),
+            ("median_distance_delta_au", self.median_distance_delta_au),
+            (
+                "percentile_distance_delta_au",
+                self.percentile_distance_delta_au,
+            ),
+            ("rms_distance_delta_au", self.rms_distance_delta_au),
+        ] {
+            validate_finite_non_negative_measure(
+                CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL,
+                field,
+                value,
+            )?;
+        }
 
         Ok(())
     }
@@ -1313,6 +1406,18 @@ fn validate_non_empty_source_file(
         Err(Vsop87CanonicalEvidenceSummaryValidationError::BlankSourceFile { summary, field })
     } else {
         Ok(())
+    }
+}
+
+fn validate_finite_non_negative_measure(
+    summary: &'static str,
+    field: &'static str,
+    value: f64,
+) -> Result<(), Vsop87CanonicalEvidenceSummaryValidationError> {
+    if value.is_finite() && value >= 0.0 {
+        Ok(())
+    } else {
+        Err(Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync { summary, field })
     }
 }
 
@@ -6819,6 +6924,41 @@ mod tests {
         assert_eq!(
             error.to_string(),
             "the VSOP87 canonical J2000 source-backed evidence summary field `max_longitude_delta_source_file` is out of sync with the current canonical evidence"
+        );
+    }
+
+    #[test]
+    fn canonical_evidence_summary_validation_rejects_non_finite_metric() {
+        let mut summary = canonical_epoch_evidence_summary().expect("summary should exist");
+        summary.mean_distance_delta_au = f64::INFINITY;
+
+        let error = summary
+            .validate()
+            .expect_err("non-finite metrics should fail validation");
+        assert_eq!(
+            error,
+            Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
+                summary: CANONICAL_EVIDENCE_SUMMARY_LABEL,
+                field: "mean_distance_delta_au",
+            }
+        );
+    }
+
+    #[test]
+    fn canonical_equatorial_evidence_summary_validation_rejects_non_finite_metric() {
+        let mut summary =
+            canonical_epoch_equatorial_evidence_summary().expect("summary should exist");
+        summary.rms_distance_delta_au = f64::NAN;
+
+        let error = summary
+            .validate()
+            .expect_err("non-finite metrics should fail validation");
+        assert_eq!(
+            error,
+            Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
+                summary: CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL,
+                field: "rms_distance_delta_au",
+            }
         );
     }
 
