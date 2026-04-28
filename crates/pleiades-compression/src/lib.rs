@@ -675,6 +675,28 @@ impl Segment {
         validate_segment(self)
     }
 
+    /// Returns a compact one-line summary of the segment span and channel mix.
+    pub fn summary_line(&self) -> String {
+        let stored_channels = self
+            .channels
+            .iter()
+            .map(|channel| channel.kind)
+            .collect::<Vec<_>>();
+        let residual_channels = self
+            .residual_channels
+            .iter()
+            .map(|channel| channel.kind)
+            .collect::<Vec<_>>();
+
+        format!(
+            "start: {}; end: {}; stored channels: {}; residual channels: {}",
+            self.start,
+            self.end,
+            format_bracketed_labels(&stored_channels),
+            format_bracketed_labels(&residual_channels),
+        )
+    }
+
     fn contains(&self, instant: Instant) -> bool {
         self.start.scale == instant.scale
             && self.end.scale == instant.scale
@@ -716,6 +738,12 @@ impl Segment {
     }
 }
 
+impl fmt::Display for Segment {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// All segments for a single body.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
@@ -745,6 +773,22 @@ impl BodyArtifact {
         validate_body_segments(&self.segments)
     }
 
+    /// Returns a compact one-line summary of the body's segment coverage.
+    pub fn summary_line(&self) -> String {
+        let residual_segment_count = self
+            .segments
+            .iter()
+            .filter(|segment| !segment.residual_channels.is_empty())
+            .count();
+
+        format!(
+            "body: {}; segments: {}; residual-bearing segments: {}",
+            self.body,
+            self.segments.len(),
+            residual_segment_count,
+        )
+    }
+
     /// Returns the segment covering the requested instant, if any.
     ///
     /// When two adjacent segments both include the same boundary instant, the
@@ -755,6 +799,12 @@ impl BodyArtifact {
             .iter()
             .rev()
             .find(|segment| segment.contains(instant))
+    }
+}
+
+impl fmt::Display for BodyArtifact {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
     }
 }
 
@@ -2256,6 +2306,63 @@ mod tests {
         .expect("artifact with residual channels should decode");
 
         assert_eq!(decoded.bodies[0].segments[0], segment);
+    }
+
+    #[test]
+    fn segment_summary_line_reports_stored_and_residual_channels() {
+        let segment = Segment::with_residual_channels(
+            Instant::new(pleiades_types::JulianDay::from_days(10.0), TimeScale::Tt),
+            Instant::new(pleiades_types::JulianDay::from_days(11.0), TimeScale::Tt),
+            vec![
+                PolynomialChannel::linear(ChannelKind::Longitude, 9, 20.0, 22.0),
+                PolynomialChannel::new(ChannelKind::Latitude, 9, vec![3.0]),
+                PolynomialChannel::new(ChannelKind::DistanceAu, 12, vec![4.0]),
+            ],
+            vec![
+                PolynomialChannel::new(ChannelKind::Longitude, 9, vec![0.5]),
+                PolynomialChannel::new(ChannelKind::Latitude, 9, vec![-0.25]),
+                PolynomialChannel::new(ChannelKind::DistanceAu, 12, vec![0.125]),
+            ],
+        );
+
+        let expected = format!(
+            "start: {}; end: {}; stored channels: [Longitude, Latitude, DistanceAu]; residual channels: [Longitude, Latitude, DistanceAu]",
+            segment.start, segment.end
+        );
+        assert_eq!(segment.summary_line(), expected);
+        assert_eq!(segment.to_string(), expected);
+    }
+
+    #[test]
+    fn body_artifact_summary_line_reports_body_and_residual_segments() {
+        let body_artifact = BodyArtifact::new(
+            CelestialBody::Sun,
+            vec![
+                Segment::new(
+                    Instant::new(pleiades_types::JulianDay::from_days(0.0), TimeScale::Tt),
+                    Instant::new(pleiades_types::JulianDay::from_days(1.0), TimeScale::Tt),
+                    vec![
+                        PolynomialChannel::linear(ChannelKind::Longitude, 9, 10.0, 11.0),
+                        PolynomialChannel::new(ChannelKind::Latitude, 9, vec![1.0]),
+                        PolynomialChannel::new(ChannelKind::DistanceAu, 12, vec![2.0]),
+                    ],
+                ),
+                Segment::with_residual_channels(
+                    Instant::new(pleiades_types::JulianDay::from_days(10.0), TimeScale::Tt),
+                    Instant::new(pleiades_types::JulianDay::from_days(11.0), TimeScale::Tt),
+                    vec![
+                        PolynomialChannel::linear(ChannelKind::Longitude, 9, 20.0, 22.0),
+                        PolynomialChannel::new(ChannelKind::Latitude, 9, vec![3.0]),
+                        PolynomialChannel::new(ChannelKind::DistanceAu, 12, vec![4.0]),
+                    ],
+                    vec![PolynomialChannel::new(ChannelKind::Longitude, 9, vec![0.5])],
+                ),
+            ],
+        );
+
+        let expected = "body: Sun; segments: 2; residual-bearing segments: 1";
+        assert_eq!(body_artifact.summary_line(), expected);
+        assert_eq!(body_artifact.to_string(), expected);
     }
 
     #[test]
