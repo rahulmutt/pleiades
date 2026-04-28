@@ -2200,7 +2200,11 @@ impl fmt::Display for ValidationReport {
         writeln!(f)?;
         writeln!(f, "API stability posture")?;
         writeln!(f, "  id: {}", release_profiles.api_stability_profile_id)?;
-        writeln!(f, "Release profile identifiers: {}", release_profiles)?;
+        writeln!(
+            f,
+            "Release profile identifiers: {}",
+            release_profiles.summary_line()
+        )?;
         writeln!(f, "{}", current_api_stability_profile())?;
         writeln!(f)?;
         write_backend_catalog(
@@ -4323,7 +4327,7 @@ fn render_release_summary_text() -> String {
     text.push_str(release_profiles.api_stability_profile_id);
     text.push('\n');
     text.push_str("Release profile identifiers: ");
-    text.push_str(&release_profiles.to_string());
+    text.push_str(&release_profiles.summary_line());
     text.push('\n');
     text.push_str("Time-scale policy: ");
     text.push_str(request_policy.time_scale);
@@ -4765,7 +4769,7 @@ pub fn render_release_bundle(
     let release_summary_text = render_release_summary_text();
     let release_profile_identifiers_text = format!(
         "Release profile identifiers: {}\n",
-        current_release_profile_identifiers()
+        current_release_profile_identifiers().summary_line()
     );
     let release_checklist_text = render_release_checklist_text();
     let release_checklist_summary_text = render_release_checklist_summary_text();
@@ -6967,7 +6971,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         "API stability posture: {}",
         release_profiles.api_stability_profile_id
     );
-    let _ = writeln!(text, "Release profile identifiers: {}", release_profiles);
+    let _ = writeln!(
+        text,
+        "Release profile identifiers: {}",
+        release_profiles.summary_line()
+    );
     let _ = writeln!(text, "Time-scale policy: {}", request_policy.time_scale);
     let _ = writeln!(text, "Observer policy: {}", request_policy.observer);
     let _ = writeln!(text, "Apparentness policy: {}", request_policy.apparentness);
@@ -8015,7 +8023,7 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("Release profile identifiers: ");
-    text.push_str(&release_profiles.to_string());
+    text.push_str(&release_profiles.summary_line());
     text.push('\n');
     text.push_str("API stability summary: api-stability-summary\n");
     text.push_str("Release notes summary: release-notes-summary\n");
@@ -8050,7 +8058,7 @@ fn render_api_stability_summary_text() -> String {
     text.push_str(release_profiles.compatibility_profile_id);
     text.push('\n');
     text.push_str("Release profile identifiers: ");
-    text.push_str(&release_profiles.to_string());
+    text.push_str(&release_profiles.summary_line());
     text.push('\n');
     text.push_str("Stable surfaces: ");
     text.push_str(&profile.stable_surfaces.len().to_string());

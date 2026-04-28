@@ -20,13 +20,19 @@ pub struct ReleaseProfileIdentifiers {
     pub api_stability_profile_id: &'static str,
 }
 
-impl fmt::Display for ReleaseProfileIdentifiers {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
+impl ReleaseProfileIdentifiers {
+    /// Returns the compact summary used in release-facing reports.
+    pub fn summary_line(&self) -> String {
+        format!(
             "compatibility={}, api-stability={}",
             self.compatibility_profile_id, self.api_stability_profile_id
         )
+    }
+}
+
+impl fmt::Display for ReleaseProfileIdentifiers {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
     }
 }
 
@@ -62,13 +68,13 @@ mod tests {
     #[test]
     fn identifiers_render_as_a_compact_pair_summary() {
         let identifiers = current_release_profile_identifiers();
-        assert_eq!(
-            identifiers.to_string(),
-            format!(
-                "compatibility={}, api-stability={}",
-                current_compatibility_profile_id(),
-                current_api_stability_profile_id()
-            )
+        let expected = format!(
+            "compatibility={}, api-stability={}",
+            current_compatibility_profile_id(),
+            current_api_stability_profile_id()
         );
+
+        assert_eq!(identifiers.summary_line(), expected);
+        assert_eq!(identifiers.to_string(), expected);
     }
 }
