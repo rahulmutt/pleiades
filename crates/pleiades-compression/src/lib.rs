@@ -579,6 +579,23 @@ impl PolynomialChannel {
         Self::new(kind, scale_exponent, vec![start, end - start])
     }
 
+    /// Validates that the channel coefficients are finite before encoding or lookup.
+    pub fn validate(&self) -> Result<(), CompressionError> {
+        for (index, coefficient) in self.coefficients.iter().enumerate() {
+            if !coefficient.is_finite() {
+                return Err(CompressionError::new(
+                    CompressionErrorKind::InvalidFormat,
+                    format!(
+                        "polynomial channel {:?} contains a non-finite coefficient at index {index}",
+                        self.kind
+                    ),
+                ));
+            }
+        }
+
+        Ok(())
+    }
+
     fn evaluate(&self, x: f64) -> f64 {
         let mut result = 0.0;
         let mut power = 1.0;
@@ -1264,6 +1281,14 @@ fn validate_segment(segment: &Segment) -> Result<(), CompressionError> {
         ));
     }
 
+    for channel in segment
+        .channels
+        .iter()
+        .chain(segment.residual_channels.iter())
+    {
+        channel.validate()?;
+    }
+
     validate_unique_values(
         "segment stored channels",
         &segment
@@ -1336,6 +1361,8 @@ fn encode_polynomial_channel(
     bytes: &mut Vec<u8>,
     channel: &PolynomialChannel,
 ) -> Result<(), CompressionError> {
+    channel.validate()?;
+
     write_u8(bytes, encode_channel_kind(channel.kind));
     write_u8(bytes, channel.scale_exponent);
     write_u8(bytes, channel.coefficients.len() as u8);
@@ -2276,6 +2303,27 @@ mod tests {
             .expect_err("non-finite segment bounds should be rejected");
         assert_eq!(error.kind, CompressionErrorKind::InvalidFormat);
         assert!(error.message.contains("segment start must be finite"));
+    }
+
+    #[test]
+    fn segment_validate_rejects_non_finite_channel_coefficients() {
+        let segment = Segment::new(
+            Instant::new(pleiades_types::JulianDay::from_days(10.0), TimeScale::Tt),
+            Instant::new(pleiades_types::JulianDay::from_days(11.0), TimeScale::Tt),
+            vec![
+                PolynomialChannel::linear(ChannelKind::Longitude, 9, 20.0, 22.0),
+                PolynomialChannel::new(ChannelKind::Latitude, 9, vec![f64::NAN]),
+                PolynomialChannel::new(ChannelKind::DistanceAu, 12, vec![4.0]),
+            ],
+        );
+
+        let error = segment
+            .validate()
+            .expect_err("non-finite channel coefficients should be rejected");
+        assert_eq!(error.kind, CompressionErrorKind::InvalidFormat);
+        assert!(error
+            .message
+            .contains("polynomial channel Latitude contains a non-finite coefficient at index 0"));
     }
 
     #[test]
