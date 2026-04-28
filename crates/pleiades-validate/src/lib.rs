@@ -13409,6 +13409,9 @@ mod tests {
         assert!(rendered.contains("Observer policy:"));
         assert!(rendered.contains("Apparentness policy:"));
         assert!(rendered.contains("Request policy: time-scale="));
+        assert!(rendered.contains(
+            "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags)"
+        ));
         assert!(rendered.contains("Primary request surfaces: pleiades-types::Instant"));
         assert!(rendered.contains(
             "pleiades-core::ChartRequest (chart assembly plus house-observer preflight)"
@@ -13743,6 +13746,9 @@ version = "0.9.0"
         assert!(release_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(release_summary.contains("Backend matrix summary: backend-matrix-summary"));
+        assert!(release_summary.contains(
+            "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags)"
+        ));
         assert!(release_summary.contains("Primary request surfaces: pleiades-types::Instant"));
         assert!(release_summary.contains(
             "Validation report summary: validation-report-summary / validation-summary / report-summary"
@@ -13936,6 +13942,9 @@ version = "0.9.0"
         assert!(backend_matrix.contains("Implemented backend matrices"));
         assert!(backend_matrix.contains("JPL snapshot reference backend"));
         assert!(backend_matrix_summary.contains("Backend matrix summary"));
+        assert!(backend_matrix_summary.contains(
+            "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags)"
+        ));
         assert!(
             backend_matrix_summary.contains("Primary request surfaces: pleiades-types::Instant")
         );
