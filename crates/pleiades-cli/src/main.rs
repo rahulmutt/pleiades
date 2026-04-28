@@ -754,6 +754,8 @@ mod tests {
         assert!(rendered.contains("Skydram (Mardyks)"));
         assert!(rendered.contains("Galactic Center (Mula/Wilhelm)"));
         assert!(rendered.contains("Galactic Center (Rgilbrand)"));
+        assert!(rendered.contains("Galactic Center (Gil Brand)"));
+        assert!(rendered.contains("Gil Brand"));
         assert!(rendered.contains("P.V.R. Narasimha Rao"));
         assert!(rendered.contains("Pullen SR (Sinusoidal Ratio) table of houses"));
         assert!(rendered.contains("True Citra Paksha"));

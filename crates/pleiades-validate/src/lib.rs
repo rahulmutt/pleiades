@@ -11635,6 +11635,8 @@ mod tests {
         assert!(rendered.contains("Galactic Equator (Fiorenza)"));
         assert!(rendered.contains("Nick Anthony Fiorenza"));
         assert!(rendered.contains("Galactic Center (Cochrane)"));
+        assert!(rendered.contains("Galactic Center (Gil Brand)"));
+        assert!(rendered.contains("Gil Brand"));
         assert!(rendered.contains("P.V.R. Narasimha Rao"));
         assert!(rendered.contains("Bob Makransky"));
         assert!(rendered.contains("Sunshine table of houses, by Bob Makransky"));
