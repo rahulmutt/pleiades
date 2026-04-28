@@ -1710,7 +1710,7 @@ pub fn validate_source_specifications(
         if !seen_source_files.insert(source_file.to_string()) {
             return Err(
                 Vsop87SourceSpecificationValidationError::DuplicateSourceFile {
-                    source_file: spec.source_file,
+                    source_file: spec.source_file.trim(),
                 },
             );
         }
@@ -5887,6 +5887,32 @@ mod tests {
     }
 
     #[test]
+    fn source_specification_validation_rejects_blank_date_range() {
+        let mut spec = source_specifications()
+            .into_iter()
+            .next()
+            .expect("expected at least one VSOP87 source specification");
+        let body = spec.body.clone();
+        spec.date_range = "\t";
+
+        let error = spec
+            .validate()
+            .expect_err("blank source-specification fields should fail validation");
+
+        assert_eq!(
+            error,
+            Vsop87SourceSpecificationValidationError::BlankField {
+                body: body.clone(),
+                field: "date_range",
+            }
+        );
+        assert_eq!(
+            error.to_string(),
+            format!("the VSOP87 source specification for {body} has a blank `date_range` field")
+        );
+    }
+
+    #[test]
     fn source_specification_catalog_rejects_duplicate_public_source_files() {
         let mut specs = source_specifications();
         let duplicated_source_file = specs[0].source_file;
@@ -5894,6 +5920,29 @@ mod tests {
 
         let error = validate_source_specifications(&specs)
             .expect_err("duplicate public source files should fail validation");
+
+        assert_eq!(
+            error,
+            Vsop87SourceSpecificationValidationError::DuplicateSourceFile {
+                source_file: duplicated_source_file,
+            }
+        );
+        assert_eq!(
+            error.to_string(),
+            format!(
+                "the VSOP87 source specification catalog lists public source file `{duplicated_source_file}` more than once"
+            )
+        );
+    }
+
+    #[test]
+    fn source_specification_catalog_rejects_whitespace_padded_duplicate_public_source_files() {
+        let mut specs = source_specifications();
+        let duplicated_source_file = specs[0].source_file;
+        specs[1].source_file = "  VSOP87B.ear  ";
+
+        let error = validate_source_specifications(&specs)
+            .expect_err("whitespace-padded public source files should fail validation");
 
         assert_eq!(
             error,
