@@ -1266,6 +1266,57 @@ impl BodyToleranceSummary {
     pub fn validate(&self) -> Result<(), EphemerisError> {
         validate_comparison_tolerance(&self.tolerance)?;
 
+        if self.sample_count == 0 {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "body tolerance summary for {} has no samples to compare",
+                    self.body
+                ),
+            ));
+        }
+
+        for (label, value) in [
+            ("longitude", self.max_longitude_delta_deg),
+            ("latitude", self.max_latitude_delta_deg),
+            ("longitude margin", self.longitude_margin_deg),
+            ("latitude margin", self.latitude_margin_deg),
+        ] {
+            if !value.is_finite() || value < 0.0 {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "body tolerance summary for {} has invalid {} {}",
+                        self.body, label, value
+                    ),
+                ));
+            }
+        }
+
+        if let Some(value) = self.max_distance_delta_au {
+            if !value.is_finite() || value < 0.0 {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "body tolerance summary for {} has invalid distance delta {}",
+                        self.body, value
+                    ),
+                ));
+            }
+        }
+
+        if let Some(value) = self.distance_margin_au {
+            if !value.is_finite() {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "body tolerance summary for {} has invalid distance margin {}",
+                        self.body, value
+                    ),
+                ));
+            }
+        }
+
         let tolerance = &self.tolerance;
         let distance_margin = self.distance_margin_au;
         let has_distance_limit = tolerance.max_distance_delta_au.is_some();
@@ -10996,6 +11047,46 @@ mod tests {
             .validate()
             .expect_err("mutated body tolerance summary should fail validation");
         assert!(error.to_string().contains("longitude margin"));
+    }
+
+    #[test]
+    fn body_tolerance_summary_validate_rejects_zero_sample_counts() {
+        let corpus = default_corpus();
+        let reference = default_reference_backend();
+        let candidate = default_candidate_backend();
+        let report =
+            compare_backends(&reference, &candidate, &corpus).expect("comparison should build");
+        let tolerance_summaries = report.tolerance_summaries();
+        let mut summary = tolerance_summaries
+            .first()
+            .expect("comparison should include at least one tolerance summary")
+            .clone();
+
+        summary.sample_count = 0;
+        let error = summary
+            .validate()
+            .expect_err("zero-sample body tolerance summary should fail validation");
+        assert!(error.to_string().contains("has no samples to compare"));
+    }
+
+    #[test]
+    fn body_tolerance_summary_validate_rejects_non_finite_metrics() {
+        let corpus = default_corpus();
+        let reference = default_reference_backend();
+        let candidate = default_candidate_backend();
+        let report =
+            compare_backends(&reference, &candidate, &corpus).expect("comparison should build");
+        let tolerance_summaries = report.tolerance_summaries();
+        let mut summary = tolerance_summaries
+            .first()
+            .expect("comparison should include at least one tolerance summary")
+            .clone();
+
+        summary.max_latitude_delta_deg = f64::NAN;
+        let error = summary
+            .validate()
+            .expect_err("non-finite body tolerance summary should fail validation");
+        assert!(error.to_string().contains("has invalid latitude"));
     }
 
     #[test]

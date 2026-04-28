@@ -1433,26 +1433,31 @@ pub fn validate_request_policy(
 /// topocentric capability validation. The shared metadata model still does not
 /// capture per-ayanamsa sidereal catalog breadth, so callers that need
 /// finer-grained sidereal routing must keep that logic at the backend or façade
-/// layer.
+/// layer. Routing backends are treated as a special case: they still preflight
+/// custom definitions and body coverage here, but they defer the broader
+/// time-scale, frame, zodiac, apparentness, and observer checks to the selected
+/// provider because their aggregate metadata is intentionally conservative.
 pub fn validate_request_against_metadata(
     req: &EphemerisRequest,
     metadata: &BackendMetadata,
 ) -> Result<(), EphemerisError> {
     req.validate_custom_definitions()?;
 
-    validate_request_policy(
-        req,
-        metadata.id.as_str(),
-        &metadata.supported_time_scales,
-        &metadata.supported_frames,
-        metadata.capabilities.apparent,
-    )?;
+    if !metadata.family.is_routing() {
+        validate_request_policy(
+            req,
+            metadata.id.as_str(),
+            &metadata.supported_time_scales,
+            &metadata.supported_frames,
+            metadata.capabilities.apparent,
+        )?;
 
-    if !metadata.capabilities.native_sidereal {
-        validate_zodiac_policy(req, metadata.id.as_str(), &[ZodiacMode::Tropical])?;
+        if !metadata.capabilities.native_sidereal {
+            validate_zodiac_policy(req, metadata.id.as_str(), &[ZodiacMode::Tropical])?;
+        }
+
+        validate_observer_policy(req, metadata.id.as_str(), metadata.capabilities.topocentric)?;
     }
-
-    validate_observer_policy(req, metadata.id.as_str(), metadata.capabilities.topocentric)?;
 
     if !metadata.body_coverage.contains(&req.body) {
         return Err(EphemerisError::new(
@@ -1473,7 +1478,10 @@ pub fn validate_request_against_metadata(
 /// the structured error with the slice position that triggered it. Batch
 /// requests preserve sidereal, apparentness, observer, and body-coverage
 /// failures with the same index prefix so callers can pinpoint the invalid slice
-/// entry without losing the underlying request policy details.
+/// entry without losing the underlying request policy details. Routing backends
+/// are treated conservatively here too: the aggregate metadata only gates the
+/// body coverage, while the routed providers remain responsible for the
+/// provider-specific batch and request-shape checks.
 ///
 /// # Example
 ///
@@ -1523,7 +1531,7 @@ pub fn validate_requests_against_metadata(
     reqs: &[EphemerisRequest],
     metadata: &BackendMetadata,
 ) -> Result<(), EphemerisError> {
-    if !metadata.capabilities.batch {
+    if !metadata.family.is_routing() && !metadata.capabilities.batch {
         return Err(EphemerisError::new(
             EphemerisErrorKind::InvalidRequest,
             format!("{} does not support batch requests", metadata.id),
@@ -3138,6 +3146,133 @@ mod tests {
         );
         assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
         assert_eq!(error.message, "toy backend does not support batch requests");
+    }
+
+    #[test]
+    fn routing_metadata_defers_request_shape_checks_to_the_selected_provider() {
+        struct RejectingSunBackend;
+
+        impl EphemerisBackend for RejectingSunBackend {
+            fn metadata(&self) -> BackendMetadata {
+                BackendMetadata {
+                    id: BackendId::new("rejecting-sun"),
+                    version: "0.1.0".to_string(),
+                    family: BackendFamily::Algorithmic,
+                    provenance: BackendProvenance::new("rejecting Sun backend"),
+                    nominal_range: TimeRange::new(None, None),
+                    supported_time_scales: vec![TimeScale::Tt],
+                    body_coverage: vec![CelestialBody::Sun],
+                    supported_frames: vec![CoordinateFrame::Ecliptic],
+                    capabilities: BackendCapabilities {
+                        batch: false,
+                        apparent: false,
+                        topocentric: false,
+                        ..BackendCapabilities::default()
+                    },
+                    accuracy: AccuracyClass::Approximate,
+                    deterministic: true,
+                    offline: true,
+                }
+            }
+
+            fn supports_body(&self, body: CelestialBody) -> bool {
+                body == CelestialBody::Sun
+            }
+
+            fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+                if req.observer.is_some() {
+                    return Err(EphemerisError::new(
+                        EphemerisErrorKind::InvalidObserver,
+                        "rejecting Sun backend is geocentric only",
+                    ));
+                }
+
+                if req.apparent == Apparentness::Apparent {
+                    return Err(EphemerisError::new(
+                        EphemerisErrorKind::InvalidRequest,
+                        "rejecting Sun backend only returns mean geometric coordinates",
+                    ));
+                }
+
+                Ok(EphemerisResult::new(
+                    BackendId::new("rejecting-sun"),
+                    req.body.clone(),
+                    req.instant,
+                    req.frame,
+                    req.zodiac_mode.clone(),
+                    req.apparent,
+                ))
+            }
+        }
+
+        struct AcceptingSunBackend;
+
+        impl EphemerisBackend for AcceptingSunBackend {
+            fn metadata(&self) -> BackendMetadata {
+                BackendMetadata {
+                    id: BackendId::new("accepting-sun"),
+                    version: "0.1.0".to_string(),
+                    family: BackendFamily::Algorithmic,
+                    provenance: BackendProvenance::new("accepting Sun backend"),
+                    nominal_range: TimeRange::new(None, None),
+                    supported_time_scales: vec![TimeScale::Tt],
+                    body_coverage: vec![CelestialBody::Sun],
+                    supported_frames: vec![CoordinateFrame::Ecliptic],
+                    capabilities: BackendCapabilities {
+                        batch: true,
+                        apparent: true,
+                        topocentric: true,
+                        ..BackendCapabilities::default()
+                    },
+                    accuracy: AccuracyClass::Approximate,
+                    deterministic: true,
+                    offline: true,
+                }
+            }
+
+            fn supports_body(&self, body: CelestialBody) -> bool {
+                body == CelestialBody::Sun
+            }
+
+            fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+                Ok(EphemerisResult::new(
+                    BackendId::new("accepting-sun"),
+                    req.body.clone(),
+                    req.instant,
+                    req.frame,
+                    req.zodiac_mode.clone(),
+                    req.apparent,
+                ))
+            }
+        }
+
+        let routing = RoutingBackend::new(vec![
+            Box::new(RejectingSunBackend),
+            Box::new(AcceptingSunBackend),
+        ]);
+        let mut request = EphemerisRequest::new(
+            CelestialBody::Sun,
+            Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+        );
+        request.observer = Some(ObserverLocation::new(
+            Latitude::from_degrees(51.5),
+            Longitude::from_degrees(12.5),
+            Some(0.0),
+        ));
+        request.apparent = Apparentness::Apparent;
+
+        let metadata = routing.metadata();
+        assert!(metadata.family.is_routing());
+        assert!(!metadata.capabilities.batch);
+
+        validate_requests_against_metadata(&[request.clone()], &metadata)
+            .expect("routing metadata should defer request-shape checks to the selected provider");
+
+        let result = routing
+            .positions(&[request])
+            .expect("routing should recover through the secondary provider");
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].backend_id.as_str(), "accepting-sun");
     }
 
     #[test]

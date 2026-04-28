@@ -32,6 +32,8 @@ The table below summarizes the current responsibility split between the typed re
 
 Batch callers should use `validate_requests_against_metadata()` on slices before dispatch so batch support and per-request policy failures surface with the same explicit contract as single-request preflight.
 
+Routing backends are treated specially by that helper: the aggregate router metadata still checks body coverage, but it defers the time-scale, frame, zodiac, apparentness, observer, and batch checks to the selected provider because the combined routing metadata is intentionally conservative. That keeps route-based backend swaps from being blocked by a coarse aggregate capability summary.
+
 Validation and release summaries also surface a compact `Primary request surfaces:` line that mirrors this split so the entry-point contract stays visible in report output, not just in the prose table.
 
 ## Current request-scale contract
