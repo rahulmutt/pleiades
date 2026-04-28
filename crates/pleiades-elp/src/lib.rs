@@ -279,6 +279,16 @@ impl LunarTheorySourceSelection {
                 field: "license_note",
             });
         }
+        if resolve_lunar_theory_by_key(self.catalog_key()) != Some(lunar_theory_specification()) {
+            return Err(LunarTheorySourceSelectionValidationError::FieldOutOfSync {
+                field: "catalog_key",
+            });
+        }
+        if resolve_lunar_theory_by_key(self.family_key()) != Some(lunar_theory_specification()) {
+            return Err(LunarTheorySourceSelectionValidationError::FieldOutOfSync {
+                field: "family_key",
+            });
+        }
 
         Ok(())
     }
@@ -5130,6 +5140,18 @@ mod tests {
         assert_eq!(selection.to_string(), summary);
         assert_eq!(format_lunar_theory_source_selection(&selection), summary);
         assert_eq!(lunar_theory_source_selection_summary(), summary);
+        assert_eq!(
+            resolve_lunar_theory_by_key(selection.catalog_key()),
+            Some(lunar_theory_specification())
+        );
+        assert_eq!(
+            resolve_lunar_theory_by_key(selection.family_key()),
+            Some(lunar_theory_specification())
+        );
+        assert_eq!(
+            lunar_theory_catalog_entry_for_selection(selection).map(|entry| entry.specification),
+            Some(lunar_theory_specification())
+        );
         assert!(summary.contains(selection.identifier));
         assert!(summary.contains(selection.family_label()));
         assert!(summary.contains(selection.citation));
