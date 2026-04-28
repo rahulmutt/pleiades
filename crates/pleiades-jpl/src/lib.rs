@@ -110,6 +110,23 @@ pub enum ReferenceSnapshotSummaryValidationError {
         asteroid_row_count: usize,
         row_count: usize,
     },
+    /// The summary's epoch count drifted away from the checked-in derived evidence.
+    EpochCountMismatch {
+        epoch_count: usize,
+        derived_epoch_count: usize,
+    },
+    /// The summary's asteroid row count drifted away from the checked-in derived evidence.
+    AsteroidRowCountMismatch {
+        asteroid_row_count: usize,
+        derived_asteroid_row_count: usize,
+    },
+    /// The summary's epoch range drifted away from the checked-in derived evidence.
+    EpochRangeMismatch {
+        earliest_epoch: Instant,
+        latest_epoch: Instant,
+        derived_earliest_epoch: Instant,
+        derived_latest_epoch: Instant,
+    },
     /// The summary drifted away from the checked-in derived evidence.
     DerivedSummaryMismatch,
 }
@@ -125,6 +142,9 @@ impl ReferenceSnapshotSummaryValidationError {
             Self::MissingEpochs => "missing epochs",
             Self::InvalidEpochRange { .. } => "invalid epoch range",
             Self::AsteroidRowCountExceedsRowCount { .. } => "asteroid row count exceeds row count",
+            Self::EpochCountMismatch { .. } => "epoch count mismatch",
+            Self::AsteroidRowCountMismatch { .. } => "asteroid row count mismatch",
+            Self::EpochRangeMismatch { .. } => "epoch range mismatch",
             Self::DerivedSummaryMismatch => "derived summary mismatch",
         }
     }
@@ -173,6 +193,33 @@ impl fmt::Display for ReferenceSnapshotSummaryValidationError {
             } => write!(
                 f,
                 "asteroid row count {asteroid_row_count} exceeds row count {row_count}"
+            ),
+            Self::EpochCountMismatch {
+                epoch_count,
+                derived_epoch_count,
+            } => write!(
+                f,
+                "epoch count {epoch_count} does not match derived epoch count {derived_epoch_count}"
+            ),
+            Self::AsteroidRowCountMismatch {
+                asteroid_row_count,
+                derived_asteroid_row_count,
+            } => write!(
+                f,
+                "asteroid row count {asteroid_row_count} does not match derived asteroid row count {derived_asteroid_row_count}"
+            ),
+            Self::EpochRangeMismatch {
+                earliest_epoch,
+                latest_epoch,
+                derived_earliest_epoch,
+                derived_latest_epoch,
+            } => write!(
+                f,
+                "epoch range {}..{} does not match derived range {}..{}",
+                format_instant(*earliest_epoch),
+                format_instant(*latest_epoch),
+                format_instant(*derived_earliest_epoch),
+                format_instant(*derived_latest_epoch),
             ),
             Self::DerivedSummaryMismatch => f.write_str(self.label()),
         }
@@ -290,12 +337,17 @@ impl std::error::Error for ReferenceSnapshotEquatorialParitySummaryValidationErr
 impl ReferenceSnapshotEquatorialParitySummary {
     /// Validates that the equatorial parity summary remains internally consistent.
     pub fn validate(&self) -> Result<(), ReferenceSnapshotEquatorialParitySummaryValidationError> {
+        let derived_summary = reference_snapshot_summary().ok_or(
+            ReferenceSnapshotEquatorialParitySummaryValidationError::Snapshot(
+                ReferenceSnapshotSummaryValidationError::DerivedSummaryMismatch,
+            ),
+        )?;
         let snapshot = ReferenceSnapshotSummary {
             row_count: self.row_count,
             body_count: self.body_count,
             bodies: self.bodies,
             epoch_count: self.epoch_count,
-            asteroid_row_count: 0,
+            asteroid_row_count: derived_summary.asteroid_row_count,
             earliest_epoch: self.earliest_epoch,
             latest_epoch: self.latest_epoch,
         };
@@ -629,14 +681,21 @@ impl ReferenceSnapshotSummary {
             });
         }
 
+        let derived_summary = reference_snapshot_summary()
+            .ok_or(ReferenceSnapshotSummaryValidationError::DerivedSummaryMismatch)?;
+        if self.row_count != derived_summary.row_count {
+            return Err(ReferenceSnapshotSummaryValidationError::DerivedSummaryMismatch);
+        }
         if self.epoch_count == 0 {
             return Err(ReferenceSnapshotSummaryValidationError::MissingEpochs);
         }
-        if self.earliest_epoch.julian_day.days() > self.latest_epoch.julian_day.days() {
-            return Err(ReferenceSnapshotSummaryValidationError::InvalidEpochRange {
-                earliest_epoch: self.earliest_epoch,
-                latest_epoch: self.latest_epoch,
-            });
+        if self.epoch_count != derived_summary.epoch_count {
+            return Err(
+                ReferenceSnapshotSummaryValidationError::EpochCountMismatch {
+                    epoch_count: self.epoch_count,
+                    derived_epoch_count: derived_summary.epoch_count,
+                },
+            );
         }
         if self.asteroid_row_count > self.row_count {
             return Err(
@@ -646,9 +705,25 @@ impl ReferenceSnapshotSummary {
                 },
             );
         }
-
-        if self.row_count != reference_snapshot().len() {
-            return Err(ReferenceSnapshotSummaryValidationError::DerivedSummaryMismatch);
+        if self.asteroid_row_count != derived_summary.asteroid_row_count {
+            return Err(
+                ReferenceSnapshotSummaryValidationError::AsteroidRowCountMismatch {
+                    asteroid_row_count: self.asteroid_row_count,
+                    derived_asteroid_row_count: derived_summary.asteroid_row_count,
+                },
+            );
+        }
+        if self.earliest_epoch != derived_summary.earliest_epoch
+            || self.latest_epoch != derived_summary.latest_epoch
+        {
+            return Err(
+                ReferenceSnapshotSummaryValidationError::EpochRangeMismatch {
+                    earliest_epoch: self.earliest_epoch,
+                    latest_epoch: self.latest_epoch,
+                    derived_earliest_epoch: derived_summary.earliest_epoch,
+                    derived_latest_epoch: derived_summary.latest_epoch,
+                },
+            );
         }
 
         Ok(())
@@ -4974,6 +5049,40 @@ mod tests {
     }
 
     #[test]
+    fn reference_snapshot_summary_validation_rejects_epoch_count_drift() {
+        let mut summary =
+            reference_snapshot_summary().expect("reference snapshot summary should exist");
+        summary.epoch_count += 1;
+
+        assert!(matches!(
+            summary.validate(),
+            Err(
+                ReferenceSnapshotSummaryValidationError::EpochCountMismatch {
+                    epoch_count: 7,
+                    derived_epoch_count: 6,
+                }
+            )
+        ));
+    }
+
+    #[test]
+    fn reference_snapshot_summary_validation_rejects_asteroid_row_count_drift() {
+        let mut summary =
+            reference_snapshot_summary().expect("reference snapshot summary should exist");
+        summary.asteroid_row_count += 1;
+
+        assert!(matches!(
+            summary.validate(),
+            Err(
+                ReferenceSnapshotSummaryValidationError::AsteroidRowCountMismatch {
+                    asteroid_row_count: 6,
+                    derived_asteroid_row_count: 5,
+                }
+            )
+        ));
+    }
+
+    #[test]
     fn reference_snapshot_equatorial_parity_summary_reports_the_expected_coverage() {
         let summary = reference_snapshot_equatorial_parity_summary()
             .expect("reference snapshot equatorial parity summary should exist");
@@ -5028,10 +5137,17 @@ mod tests {
             .expect("reference snapshot batch parity summary should exist");
         summary.snapshot.asteroid_row_count += 1;
 
-        assert_eq!(
+        assert!(matches!(
             summary.validate(),
-            Err(ReferenceSnapshotBatchParitySummaryValidationError::DerivedSummaryMismatch)
-        );
+            Err(
+                ReferenceSnapshotBatchParitySummaryValidationError::Snapshot(
+                    ReferenceSnapshotSummaryValidationError::AsteroidRowCountMismatch {
+                        asteroid_row_count: 6,
+                        derived_asteroid_row_count: 5,
+                    }
+                )
+            )
+        ));
     }
 
     #[test]
