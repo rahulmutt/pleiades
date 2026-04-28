@@ -2653,6 +2653,17 @@ fn canonical_batch_parity_counts(
     ))
 }
 
+fn canonical_j2000_batch_parity_expected_bodies() -> Vec<CelestialBody> {
+    canonical_epoch_samples()
+        .iter()
+        .map(|sample| sample.body.clone())
+        .collect()
+}
+
+fn canonical_j1900_batch_parity_expected_bodies() -> Vec<CelestialBody> {
+    Vsop87Backend::supported_bodies().to_vec()
+}
+
 /// Validation error for a VSOP87 canonical batch-parity summary that drifted
 /// from the current backend-derived counts.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -2713,13 +2724,34 @@ impl Vsop87CanonicalJ2000BatchParitySummary {
         )
     }
 
-    /// Returns `Ok(())` when the summary still matches the current derived counts.
+    /// Returns `Ok(())` when the summary still matches the current derived batch evidence.
     pub fn validate(&self) -> Result<(), Vsop87CanonicalBatchParitySummaryValidationError> {
         if self.sample_count != self.sample_bodies.len() {
             return Err(
                 Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
                     field: "sample_count",
                 },
+            );
+        }
+        if self.sample_bodies != canonical_j2000_batch_parity_expected_bodies() {
+            return Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "sample_bodies",
+                },
+            );
+        }
+        if self.reference_epoch
+            != Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt)
+        {
+            return Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "reference_epoch",
+                },
+            );
+        }
+        if self.frame != CoordinateFrame::Ecliptic {
+            return Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync { field: "frame" },
             );
         }
         if self.exact_count + self.interpolated_count + self.approximate_count + self.unknown_count
@@ -2812,13 +2844,34 @@ impl Vsop87CanonicalJ1900BatchParitySummary {
         )
     }
 
-    /// Returns `Ok(())` when the summary still matches the current derived counts.
+    /// Returns `Ok(())` when the summary still matches the current derived batch evidence.
     pub fn validate(&self) -> Result<(), Vsop87CanonicalBatchParitySummaryValidationError> {
         if self.sample_count != self.sample_bodies.len() {
             return Err(
                 Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
                     field: "sample_count",
                 },
+            );
+        }
+        if self.sample_bodies != canonical_j1900_batch_parity_expected_bodies() {
+            return Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "sample_bodies",
+                },
+            );
+        }
+        if self.reference_epoch
+            != Instant::new(pleiades_types::JulianDay::from_days(J1900), TimeScale::Tdb)
+        {
+            return Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "reference_epoch",
+                },
+            );
+        }
+        if self.frame != CoordinateFrame::Equatorial {
+            return Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync { field: "frame" },
             );
         }
         if self.exact_count + self.interpolated_count + self.approximate_count + self.unknown_count
@@ -6476,6 +6529,55 @@ mod tests {
             Err(
                 Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
                     field: "quality_counts"
+                }
+            )
+        );
+    }
+
+    #[test]
+    fn canonical_j2000_batch_parity_summary_validation_rejects_reference_epoch_drift() {
+        let mut summary =
+            canonical_j2000_batch_parity_summary().expect("batch summary should exist");
+        summary.reference_epoch = Instant::new(
+            pleiades_types::JulianDay::from_days(J2000 + 1.0),
+            TimeScale::Tt,
+        );
+
+        assert_eq!(
+            summary.validate(),
+            Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "reference_epoch"
+                }
+            )
+        );
+    }
+
+    #[test]
+    fn canonical_j1900_batch_parity_summary_validation_rejects_frame_drift() {
+        let mut summary =
+            canonical_j1900_batch_parity_summary().expect("batch summary should exist");
+        summary.frame = CoordinateFrame::Ecliptic;
+
+        assert_eq!(
+            summary.validate(),
+            Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync { field: "frame" }
+            )
+        );
+    }
+
+    #[test]
+    fn canonical_j1900_batch_parity_summary_validation_rejects_body_order_drift() {
+        let mut summary =
+            canonical_j1900_batch_parity_summary().expect("batch summary should exist");
+        summary.sample_bodies.reverse();
+
+        assert_eq!(
+            summary.validate(),
+            Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "sample_bodies"
                 }
             )
         );
