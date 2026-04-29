@@ -103,6 +103,7 @@ Progress note (2026-04-28): that same source-selection validation now also round
 Progress note (2026-04-27): the lunar catalog summary now also has a typed validation helper and report preflight, so any future drift in the catalog counts or selected-source fields now surfaces as an unavailable report line instead of a silently stale compact summary.
 Progress note (2026-04-27): `pleiades-elp::LunarTheorySpecification` now also validates its duplicated source-selection and request-policy fields, and the validation/release report paths now reuse a validated lunar-theory summary helper, so stale lunar provenance text now fails closed instead of formatting a silently drifted compact summary.
 Progress note (2026-04-26): the compact compatibility profile, release notes summary, and release summary now explicitly surface the latitude-sensitive house-system subset, so release-facing catalog summaries now call out the polar-failure-constraint systems alongside the baseline and release-specific counts.
+Progress note (2026-04-29): the backend-matrix ELP section now also renders the compact lunar-theory specification summary line, so the current source/provenance posture is visible in the detailed backend audit alongside the existing catalog, capability, request-policy, and frame-treatment fields.
 
 ## 3. JPL reader/interpolator expansion
 

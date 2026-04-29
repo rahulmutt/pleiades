@@ -10799,6 +10799,11 @@ fn write_backend_catalog_entry(
             "    capability summary: {}",
             lunar_theory_capability_summary_for_report()
         )?;
+        writeln!(
+            f,
+            "    specification summary: {}",
+            lunar_theory_summary_for_report()
+        )?;
         writeln!(f, "    source identifier: {}", theory.source_identifier)?;
         writeln!(f, "    source citation: {}", theory.source_citation)?;
         writeln!(f, "    source material: {}", theory.source_material)?;
@@ -15178,6 +15183,7 @@ mod tests {
         assert!(rendered.contains("VSOP87 planetary backend"));
         assert!(rendered.contains("Pluto remains the current mean-element fallback special case until a Pluto-specific source path is selected"));
         assert!(rendered.contains("ELP lunar backend (Moon and lunar nodes)"));
+        assert!(rendered.contains("specification summary: ELP lunar theory specification:"));
         assert!(rendered.contains("compact lunar and lunar-point formulas provide the current deterministic baseline while documented production lunar-theory ingestion remains open"));
         assert!(rendered.contains("Lunar high-curvature continuity evidence"));
         assert!(rendered.contains("Lunar high-curvature equatorial continuity evidence"));
