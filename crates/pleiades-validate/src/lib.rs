@@ -81,6 +81,7 @@ use pleiades_houses::{
     validate_house_catalog,
 };
 use pleiades_jpl::{
+    comparison_snapshot_batch_parity_summary_for_report,
     comparison_snapshot_manifest_summary_for_report, comparison_snapshot_requests,
     comparison_snapshot_source_summary_for_report, comparison_snapshot_summary_for_report,
     format_jpl_interpolation_quality_kind_coverage,
@@ -3089,6 +3090,11 @@ impl fmt::Display for ValidationReport {
         writeln!(f, "Comparison corpus")?;
         write_corpus_summary(f, &self.comparison_corpus)?;
         writeln!(f, "  {}", comparison_snapshot_summary_for_report())?;
+        writeln!(
+            f,
+            "  {}",
+            comparison_snapshot_batch_parity_summary_for_report()
+        )?;
         writeln!(f)?;
         writeln!(f, "Benchmark corpus")?;
         write_corpus_summary(f, &self.benchmark_corpus)?;
@@ -5305,6 +5311,8 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&comparison_snapshot_summary_for_report());
     text.push('\n');
+    text.push_str(&comparison_snapshot_batch_parity_summary_for_report());
+    text.push('\n');
     text.push_str(&comparison_snapshot_source_summary_for_report());
     text.push('\n');
     text.push_str(&comparison_snapshot_manifest_summary_for_report());
@@ -5389,6 +5397,8 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&reference_snapshot_manifest_summary_for_report());
     text.push('\n');
     text.push_str(&comparison_snapshot_summary_for_report());
+    text.push('\n');
+    text.push_str(&comparison_snapshot_batch_parity_summary_for_report());
     text.push('\n');
     text.push_str(&comparison_snapshot_source_summary_for_report());
     text.push('\n');
@@ -9590,6 +9600,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&jpl_snapshot_batch_error_taxonomy_summary_for_report());
     text.push('\n');
     text.push_str(&comparison_snapshot_summary_for_report());
+    text.push('\n');
+    text.push_str(&comparison_snapshot_batch_parity_summary_for_report());
     text.push('\n');
     text.push_str(&comparison_snapshot_source_summary_for_report());
     text.push('\n');

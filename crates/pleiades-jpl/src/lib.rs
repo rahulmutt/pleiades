@@ -1830,6 +1830,243 @@ pub fn comparison_snapshot_summary_for_report() -> String {
     }
 }
 
+/// A compact coverage summary for the checked-in comparison snapshot in mixed-frame batch parity mode.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ComparisonSnapshotBatchParitySummary {
+    /// Comparison snapshot coverage exercised through the batch regression.
+    pub snapshot: ComparisonSnapshotSummary,
+    /// Number of ecliptic requests in the mixed-frame batch regression.
+    pub ecliptic_request_count: usize,
+    /// Number of equatorial requests in the mixed-frame batch regression.
+    pub equatorial_request_count: usize,
+    /// Number of exact-quality results observed in the batch regression.
+    pub exact_count: usize,
+    /// Number of interpolated-quality results observed in the batch regression.
+    pub interpolated_count: usize,
+    /// Number of approximate-quality results observed in the batch regression.
+    pub approximate_count: usize,
+    /// Number of unknown-quality results observed in the batch regression.
+    pub unknown_count: usize,
+}
+
+/// Returns a compact mixed-frame batch parity summary for the checked-in comparison snapshot.
+pub fn comparison_snapshot_batch_parity_summary() -> Option<ComparisonSnapshotBatchParitySummary> {
+    let snapshot = comparison_snapshot_summary()?;
+    let backend = JplSnapshotBackend;
+    let requests = comparison_snapshot_batch_parity_requests()?;
+    let results = backend.positions(&requests).ok()?;
+
+    if results.len() != requests.len() {
+        return None;
+    }
+
+    let mut ecliptic_request_count = 0usize;
+    let mut equatorial_request_count = 0usize;
+    let mut exact_count = 0usize;
+    let mut interpolated_count = 0usize;
+    let mut approximate_count = 0usize;
+    let mut unknown_count = 0usize;
+
+    for ((request, result), entry) in requests
+        .iter()
+        .zip(results.iter())
+        .zip(comparison_snapshot())
+    {
+        let single = backend.position(request).ok()?;
+        if single != *result {
+            return None;
+        }
+
+        if result.body != entry.body
+            || result.instant.julian_day != entry.epoch.julian_day
+            || result.frame != request.frame
+        {
+            return None;
+        }
+
+        let ecliptic = result
+            .ecliptic
+            .as_ref()
+            .expect("comparison snapshot batch parity rows should include ecliptic coordinates");
+        if *ecliptic != entry.ecliptic() {
+            return None;
+        }
+
+        if request.frame == CoordinateFrame::Equatorial {
+            let expected_equatorial = ecliptic.to_equatorial(result.instant.mean_obliquity());
+            let equatorial = result
+                .equatorial
+                .as_ref()
+                .expect("equatorial batch parity rows should include equatorial coordinates");
+            if *equatorial != expected_equatorial {
+                return None;
+            }
+        }
+
+        match request.frame {
+            CoordinateFrame::Ecliptic => ecliptic_request_count += 1,
+            CoordinateFrame::Equatorial => equatorial_request_count += 1,
+            _ => return None,
+        }
+
+        match result.quality {
+            QualityAnnotation::Exact => exact_count += 1,
+            QualityAnnotation::Interpolated => interpolated_count += 1,
+            QualityAnnotation::Approximate => approximate_count += 1,
+            QualityAnnotation::Unknown => unknown_count += 1,
+            _ => unknown_count += 1,
+        }
+    }
+
+    Some(ComparisonSnapshotBatchParitySummary {
+        snapshot,
+        ecliptic_request_count,
+        equatorial_request_count,
+        exact_count,
+        interpolated_count,
+        approximate_count,
+        unknown_count,
+    })
+}
+
+/// Structured validation errors for a comparison snapshot batch parity summary.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ComparisonSnapshotBatchParitySummaryValidationError {
+    /// The nested comparison snapshot summary failed validation.
+    Snapshot(ComparisonSnapshotSummaryValidationError),
+    /// The number of mixed-frame requests does not match the row count.
+    RequestCountMismatch {
+        ecliptic_request_count: usize,
+        equatorial_request_count: usize,
+        row_count: usize,
+    },
+    /// The quality counts do not match the row count.
+    QualityCountMismatch {
+        exact_count: usize,
+        interpolated_count: usize,
+        approximate_count: usize,
+        unknown_count: usize,
+        row_count: usize,
+    },
+    /// The summary drifted away from the checked-in derived evidence.
+    DerivedSummaryMismatch,
+}
+
+impl fmt::Display for ComparisonSnapshotBatchParitySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Snapshot(error) => write!(f, "comparison snapshot validation failed: {error}"),
+            Self::RequestCountMismatch {
+                ecliptic_request_count,
+                equatorial_request_count,
+                row_count,
+            } => write!(
+                f,
+                "request count {}+{} does not match row count {}",
+                ecliptic_request_count, equatorial_request_count, row_count,
+            ),
+            Self::QualityCountMismatch {
+                exact_count,
+                interpolated_count,
+                approximate_count,
+                unknown_count,
+                row_count,
+            } => write!(
+                f,
+                "quality counts {}+{}+{}+{} do not match row count {}",
+                exact_count, interpolated_count, approximate_count, unknown_count, row_count,
+            ),
+            Self::DerivedSummaryMismatch => f.write_str("derived summary mismatch"),
+        }
+    }
+}
+
+impl std::error::Error for ComparisonSnapshotBatchParitySummaryValidationError {}
+
+impl ComparisonSnapshotBatchParitySummary {
+    /// Validates that the batch parity summary remains internally consistent and still matches the derived evidence.
+    pub fn validate(&self) -> Result<(), ComparisonSnapshotBatchParitySummaryValidationError> {
+        self.snapshot
+            .validate()
+            .map_err(ComparisonSnapshotBatchParitySummaryValidationError::Snapshot)?;
+
+        if self.ecliptic_request_count + self.equatorial_request_count != self.snapshot.row_count {
+            return Err(
+                ComparisonSnapshotBatchParitySummaryValidationError::RequestCountMismatch {
+                    ecliptic_request_count: self.ecliptic_request_count,
+                    equatorial_request_count: self.equatorial_request_count,
+                    row_count: self.snapshot.row_count,
+                },
+            );
+        }
+
+        if self.exact_count + self.interpolated_count + self.approximate_count + self.unknown_count
+            != self.snapshot.row_count
+        {
+            return Err(
+                ComparisonSnapshotBatchParitySummaryValidationError::QualityCountMismatch {
+                    exact_count: self.exact_count,
+                    interpolated_count: self.interpolated_count,
+                    approximate_count: self.approximate_count,
+                    unknown_count: self.unknown_count,
+                    row_count: self.snapshot.row_count,
+                },
+            );
+        }
+
+        if comparison_snapshot_batch_parity_summary().as_ref() != Some(self) {
+            return Err(
+                ComparisonSnapshotBatchParitySummaryValidationError::DerivedSummaryMismatch,
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "JPL comparison snapshot batch parity: {} rows across {} bodies and {} epochs ({}..{}); bodies: {}; frame mix: {} ecliptic, {} equatorial; quality counts: Exact={}, Interpolated={}, Approximate={}, Unknown={}; batch/single parity preserved",
+            self.snapshot.row_count,
+            self.snapshot.body_count,
+            self.snapshot.epoch_count,
+            format_instant(self.snapshot.earliest_epoch),
+            format_instant(self.snapshot.latest_epoch),
+            format_bodies(&self.snapshot.bodies),
+            self.ecliptic_request_count,
+            self.equatorial_request_count,
+            self.exact_count,
+            self.interpolated_count,
+            self.approximate_count,
+            self.unknown_count,
+        )
+    }
+}
+
+impl fmt::Display for ComparisonSnapshotBatchParitySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Formats the checked-in comparison snapshot batch parity summary for release-facing reporting.
+pub fn format_comparison_snapshot_batch_parity_summary(
+    summary: &ComparisonSnapshotBatchParitySummary,
+) -> String {
+    summary.summary_line()
+}
+
+/// Returns the release-facing comparison snapshot batch parity summary string.
+pub fn comparison_snapshot_batch_parity_summary_for_report() -> String {
+    match comparison_snapshot_batch_parity_summary() {
+        Some(summary) => match summary.validate() {
+            Ok(()) => format_comparison_snapshot_batch_parity_summary(&summary),
+            Err(error) => format!("JPL comparison snapshot batch parity: unavailable ({error})"),
+        },
+        None => "JPL comparison snapshot batch parity: unavailable".to_string(),
+    }
+}
+
 /// Returns the source-backed asteroid subset present in the reference snapshot.
 pub fn reference_asteroids() -> &'static [pleiades_backend::CelestialBody] {
     reference_asteroid_list()
@@ -3241,6 +3478,37 @@ pub fn comparison_snapshot_requests(frame: CoordinateFrame) -> Option<Vec<Epheme
                 instant: Instant::new(entry.epoch.julian_day, TimeScale::Tt),
                 observer: None,
                 frame,
+                zodiac_mode: ZodiacMode::Tropical,
+                apparent: Apparentness::Mean,
+            })
+            .collect(),
+    )
+}
+
+/// Returns the mixed-frame comparison-snapshot request corpus used by batch parity checks.
+///
+/// The requests preserve the checked-in row order and alternate between ecliptic
+/// and equatorial frames so downstream tooling can reuse the exact validation
+/// batch shape without reconstructing it from snapshot metadata.
+pub fn comparison_snapshot_batch_parity_requests() -> Option<Vec<EphemerisRequest>> {
+    let entries = comparison_snapshot();
+    if entries.is_empty() {
+        return None;
+    }
+
+    Some(
+        entries
+            .iter()
+            .enumerate()
+            .map(|(index, entry)| EphemerisRequest {
+                body: entry.body.clone(),
+                instant: Instant::new(entry.epoch.julian_day, TimeScale::Tt),
+                observer: None,
+                frame: if index % 2 == 0 {
+                    CoordinateFrame::Ecliptic
+                } else {
+                    CoordinateFrame::Equatorial
+                },
                 zodiac_mode: ZodiacMode::Tropical,
                 apparent: Apparentness::Mean,
             })
@@ -5899,6 +6167,61 @@ mod tests {
             assert_eq!(request.instant.julian_day, entry.epoch.julian_day);
             assert_eq!(request.instant.scale, TimeScale::Tt);
             assert_eq!(request.frame, CoordinateFrame::Ecliptic);
+            assert_eq!(request.zodiac_mode, ZodiacMode::Tropical);
+            assert_eq!(request.apparent, Apparentness::Mean);
+            assert!(request.observer.is_none());
+        }
+    }
+
+    #[test]
+    fn comparison_snapshot_batch_parity_summary_reports_the_expected_coverage() {
+        let summary = comparison_snapshot_batch_parity_summary()
+            .expect("comparison snapshot batch parity summary should exist");
+        assert_eq!(summary.snapshot.row_count, 41);
+        assert_eq!(summary.snapshot.body_count, 10);
+        assert_eq!(summary.snapshot.epoch_count, 6);
+        assert_eq!(
+            summary.snapshot.earliest_epoch.julian_day.days(),
+            2_378_499.0
+        );
+        assert_eq!(summary.snapshot.latest_epoch.julian_day.days(), 2_634_167.0);
+        assert_eq!(summary.snapshot.bodies.as_slice(), comparison_bodies());
+        assert_eq!(summary.ecliptic_request_count, 21);
+        assert_eq!(summary.equatorial_request_count, 20);
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(
+            summary.summary_line(),
+            format!(
+                "JPL comparison snapshot batch parity: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: {}; frame mix: 21 ecliptic, 20 equatorial; quality counts: Exact=41, Interpolated=0, Approximate=0, Unknown=0; batch/single parity preserved",
+                format_bodies(comparison_bodies())
+            )
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            comparison_snapshot_batch_parity_summary_for_report(),
+            summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn comparison_snapshot_batch_parity_requests_preserve_the_mixed_frame_slice() {
+        let requests = comparison_snapshot_batch_parity_requests()
+            .expect("comparison snapshot batch parity requests should exist");
+        let entries = comparison_snapshot();
+
+        assert_eq!(requests.len(), entries.len());
+        for (index, (request, entry)) in requests.iter().zip(entries.iter()).enumerate() {
+            assert_eq!(request.body, entry.body);
+            assert_eq!(request.instant.julian_day, entry.epoch.julian_day);
+            assert_eq!(request.instant.scale, TimeScale::Tt);
+            assert_eq!(
+                request.frame,
+                if index % 2 == 0 {
+                    CoordinateFrame::Ecliptic
+                } else {
+                    CoordinateFrame::Equatorial
+                }
+            );
             assert_eq!(request.zodiac_mode, ZodiacMode::Tropical);
             assert_eq!(request.apparent, Apparentness::Mean);
             assert!(request.observer.is_none());
