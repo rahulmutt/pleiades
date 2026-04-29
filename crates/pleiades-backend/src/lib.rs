@@ -3205,6 +3205,85 @@ mod tests {
     }
 
     #[test]
+    fn validate_requests_against_metadata_preserves_mixed_time_scales_and_topocentric_requests_when_supported(
+    ) {
+        struct EchoSunBackend;
+
+        impl EphemerisBackend for EchoSunBackend {
+            fn metadata(&self) -> BackendMetadata {
+                BackendMetadata {
+                    id: BackendId::new("echo-sun"),
+                    version: "0.1.0".to_string(),
+                    family: BackendFamily::Algorithmic,
+                    provenance: BackendProvenance::new("echo Sun backend"),
+                    nominal_range: TimeRange::new(None, None),
+                    supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
+                    body_coverage: vec![CelestialBody::Sun],
+                    supported_frames: vec![CoordinateFrame::Ecliptic],
+                    capabilities: BackendCapabilities {
+                        batch: true,
+                        apparent: true,
+                        topocentric: true,
+                        ..BackendCapabilities::default()
+                    },
+                    accuracy: AccuracyClass::Approximate,
+                    deterministic: true,
+                    offline: true,
+                }
+            }
+
+            fn supports_body(&self, body: CelestialBody) -> bool {
+                body == CelestialBody::Sun
+            }
+
+            fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+                Ok(EphemerisResult::new(
+                    BackendId::new("echo-sun"),
+                    req.body.clone(),
+                    req.instant,
+                    req.frame,
+                    req.zodiac_mode.clone(),
+                    req.apparent,
+                ))
+            }
+        }
+
+        let backend = EchoSunBackend;
+        let metadata = backend.metadata();
+
+        let geocentric_request = EphemerisRequest::new(
+            CelestialBody::Sun,
+            Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+        );
+        let mut topocentric_request = EphemerisRequest::new(
+            CelestialBody::Sun,
+            Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb),
+        );
+        topocentric_request.observer = Some(ObserverLocation::new(
+            Latitude::from_degrees(51.5),
+            Longitude::from_degrees(12.5),
+            Some(0.0),
+        ));
+
+        validate_requests_against_metadata(
+            &[geocentric_request.clone(), topocentric_request.clone()],
+            &metadata,
+        )
+        .expect(
+            "batch preflight should preserve mixed TT/TDB and topocentric requests when supported",
+        );
+
+        let results = backend
+            .positions(&[geocentric_request, topocentric_request])
+            .expect("batch adapter should preserve the validated request shapes");
+        assert_eq!(results.len(), 2);
+        assert_eq!(results[0].backend_id.as_str(), "echo-sun");
+        assert_eq!(results[1].backend_id.as_str(), "echo-sun");
+        assert_eq!(results[0].instant.scale, TimeScale::Tt);
+        assert_eq!(results[1].instant.scale, TimeScale::Tdb);
+    }
+
+    #[test]
     fn routing_metadata_defers_request_shape_checks_to_the_selected_provider() {
         struct RejectingSunBackend;
 
