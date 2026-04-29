@@ -57,6 +57,53 @@ pub fn reference_snapshot() -> &'static [SnapshotEntry] {
     snapshot_entries().unwrap_or(&[])
 }
 
+/// Returns the reference-snapshot request corpus in the requested frame.
+///
+/// The requests preserve the checked-in row order and stored epochs from the
+/// derivative CSV. Callers can reuse this corpus for exact batch checks or
+/// retag the returned instants with a different time-scale policy if needed.
+pub fn reference_snapshot_requests(frame: CoordinateFrame) -> Option<Vec<EphemerisRequest>> {
+    snapshot_entries().map(|entries| {
+        entries
+            .iter()
+            .map(|entry| EphemerisRequest {
+                body: entry.body.clone(),
+                instant: entry.epoch,
+                observer: None,
+                frame,
+                zodiac_mode: ZodiacMode::Tropical,
+                apparent: Apparentness::Mean,
+            })
+            .collect()
+    })
+}
+
+/// Returns the mixed-frame reference-snapshot request corpus used by batch parity checks.
+///
+/// The requests preserve the checked-in row order and alternate between ecliptic
+/// and equatorial frames so downstream tooling can reuse the exact release-facing
+/// batch shape without reconstructing it from snapshot metadata.
+pub fn reference_snapshot_batch_parity_requests() -> Option<Vec<EphemerisRequest>> {
+    snapshot_entries().map(|entries| {
+        entries
+            .iter()
+            .enumerate()
+            .map(|(index, entry)| EphemerisRequest {
+                body: entry.body.clone(),
+                instant: entry.epoch,
+                observer: None,
+                frame: if index % 2 == 0 {
+                    CoordinateFrame::Ecliptic
+                } else {
+                    CoordinateFrame::Equatorial
+                },
+                zodiac_mode: ZodiacMode::Tropical,
+                apparent: Apparentness::Mean,
+            })
+            .collect()
+    })
+}
+
 /// A compact coverage summary for the checked-in reference snapshot.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ReferenceSnapshotSummary {
@@ -408,22 +455,7 @@ pub struct ReferenceSnapshotBatchParitySummary {
 pub fn reference_snapshot_batch_parity_summary() -> Option<ReferenceSnapshotBatchParitySummary> {
     let snapshot = reference_snapshot_summary()?;
     let backend = JplSnapshotBackend;
-    let requests = reference_snapshot()
-        .iter()
-        .enumerate()
-        .map(|(index, entry)| EphemerisRequest {
-            body: entry.body.clone(),
-            instant: entry.epoch,
-            observer: None,
-            frame: if index % 2 == 0 {
-                CoordinateFrame::Ecliptic
-            } else {
-                CoordinateFrame::Equatorial
-            },
-            zodiac_mode: ZodiacMode::Tropical,
-            apparent: Apparentness::Mean,
-        })
-        .collect::<Vec<_>>();
+    let requests = reference_snapshot_batch_parity_requests()?;
     let results = backend.positions(&requests).ok()?;
 
     if results.len() != requests.len() {
@@ -6294,17 +6326,8 @@ mod tests {
     #[test]
     fn batch_query_preserves_reference_snapshot_order_and_equatorial_values() {
         let backend = JplSnapshotBackend;
-        let requests = reference_snapshot()
-            .iter()
-            .map(|entry| EphemerisRequest {
-                body: entry.body.clone(),
-                instant: entry.epoch,
-                observer: None,
-                frame: CoordinateFrame::Equatorial,
-                zodiac_mode: ZodiacMode::Tropical,
-                apparent: Apparentness::Mean,
-            })
-            .collect::<Vec<_>>();
+        let requests = reference_snapshot_requests(CoordinateFrame::Equatorial)
+            .expect("reference snapshot requests should exist");
 
         let results = backend
             .positions(&requests)
@@ -6335,22 +6358,8 @@ mod tests {
     #[test]
     fn batch_query_preserves_mixed_frame_requests_and_values() {
         let backend = JplSnapshotBackend;
-        let requests = reference_snapshot()
-            .iter()
-            .enumerate()
-            .map(|(index, entry)| EphemerisRequest {
-                body: entry.body.clone(),
-                instant: entry.epoch,
-                observer: None,
-                frame: if index % 2 == 0 {
-                    CoordinateFrame::Ecliptic
-                } else {
-                    CoordinateFrame::Equatorial
-                },
-                zodiac_mode: ZodiacMode::Tropical,
-                apparent: Apparentness::Mean,
-            })
-            .collect::<Vec<_>>();
+        let requests = reference_snapshot_batch_parity_requests()
+            .expect("reference snapshot batch parity requests should exist");
 
         let results = backend
             .positions(&requests)
@@ -7233,25 +7242,18 @@ mod tests {
     #[test]
     fn batch_query_preserves_mixed_time_scales_across_the_reference_snapshot() {
         let backend = JplSnapshotBackend;
-        let requests = reference_snapshot()
-            .iter()
-            .enumerate()
-            .map(|(index, entry)| EphemerisRequest {
-                body: entry.body.clone(),
-                instant: Instant::new(
-                    entry.epoch.julian_day,
-                    if index % 2 == 0 {
-                        TimeScale::Tt
-                    } else {
-                        TimeScale::Tdb
-                    },
-                ),
-                observer: None,
-                frame: CoordinateFrame::Ecliptic,
-                zodiac_mode: ZodiacMode::Tropical,
-                apparent: Apparentness::Mean,
-            })
-            .collect::<Vec<_>>();
+        let mut requests = reference_snapshot_requests(CoordinateFrame::Ecliptic)
+            .expect("reference snapshot requests should exist");
+        for (index, request) in requests.iter_mut().enumerate() {
+            request.instant = Instant::new(
+                request.instant.julian_day,
+                if index % 2 == 0 {
+                    TimeScale::Tt
+                } else {
+                    TimeScale::Tdb
+                },
+            );
+        }
 
         let results = backend
             .positions(&requests)
