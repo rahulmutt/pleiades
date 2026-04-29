@@ -78,6 +78,12 @@ pub fn reference_snapshot_requests(frame: CoordinateFrame) -> Option<Vec<Ephemer
     })
 }
 
+/// This is a compatibility alias for [`reference_snapshot_requests`].
+#[doc(alias = "reference_snapshot_requests")]
+pub fn reference_snapshot_request_corpus(frame: CoordinateFrame) -> Option<Vec<EphemerisRequest>> {
+    reference_snapshot_requests(frame)
+}
+
 /// Returns the mixed-frame reference-snapshot request corpus used by batch parity checks.
 ///
 /// The requests preserve the checked-in row order and alternate between ecliptic
@@ -3549,6 +3555,12 @@ pub fn comparison_snapshot_requests(frame: CoordinateFrame) -> Option<Vec<Epheme
     )
 }
 
+/// This is a compatibility alias for [`comparison_snapshot_requests`].
+#[doc(alias = "comparison_snapshot_requests")]
+pub fn comparison_snapshot_request_corpus(frame: CoordinateFrame) -> Option<Vec<EphemerisRequest>> {
+    comparison_snapshot_requests(frame)
+}
+
 /// Returns the mixed-frame comparison-snapshot request corpus used by batch parity checks.
 ///
 /// The requests preserve the checked-in row order and alternate between ecliptic
@@ -5478,6 +5490,14 @@ pub fn independent_holdout_snapshot_requests(
     })
 }
 
+/// This is a compatibility alias for [`independent_holdout_snapshot_requests`].
+#[doc(alias = "independent_holdout_snapshot_requests")]
+pub fn independent_holdout_snapshot_request_corpus(
+    frame: CoordinateFrame,
+) -> Option<Vec<EphemerisRequest>> {
+    independent_holdout_snapshot_requests(frame)
+}
+
 /// Returns the mixed-scale independent hold-out request corpus used by batch parity checks.
 ///
 /// The requests preserve the checked-in row order, alternate TT and TDB labels
@@ -6412,6 +6432,14 @@ mod tests {
     #[test]
     fn request_corpus_aliases_preserve_the_current_jpl_batch_shapes() {
         assert_eq!(
+            reference_snapshot_request_corpus(CoordinateFrame::Ecliptic),
+            reference_snapshot_requests(CoordinateFrame::Ecliptic)
+        );
+        assert_eq!(
+            reference_snapshot_request_corpus(CoordinateFrame::Equatorial),
+            reference_snapshot_requests(CoordinateFrame::Equatorial)
+        );
+        assert_eq!(
             reference_snapshot_batch_parity_request_corpus(),
             reference_snapshot_batch_parity_requests()
         );
@@ -6420,12 +6448,28 @@ mod tests {
             reference_snapshot_mixed_time_scale_batch_parity_requests()
         );
         assert_eq!(
+            comparison_snapshot_request_corpus(CoordinateFrame::Ecliptic),
+            comparison_snapshot_requests(CoordinateFrame::Ecliptic)
+        );
+        assert_eq!(
+            comparison_snapshot_request_corpus(CoordinateFrame::Equatorial),
+            comparison_snapshot_requests(CoordinateFrame::Equatorial)
+        );
+        assert_eq!(
             comparison_snapshot_batch_parity_request_corpus(),
             comparison_snapshot_batch_parity_requests()
         );
         assert_eq!(
             comparison_snapshot_mixed_time_scale_batch_parity_request_corpus(),
             comparison_snapshot_mixed_time_scale_batch_parity_requests()
+        );
+        assert_eq!(
+            independent_holdout_snapshot_request_corpus(CoordinateFrame::Ecliptic),
+            independent_holdout_snapshot_requests(CoordinateFrame::Ecliptic)
+        );
+        assert_eq!(
+            independent_holdout_snapshot_request_corpus(CoordinateFrame::Equatorial),
+            independent_holdout_snapshot_requests(CoordinateFrame::Equatorial)
         );
         assert_eq!(
             independent_holdout_snapshot_batch_parity_request_corpus(),
