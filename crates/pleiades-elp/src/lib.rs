@@ -5241,6 +5241,50 @@ mod tests {
     }
 
     #[test]
+    fn lunar_theory_source_summary_validation_fails_closed_for_drifted_keys() {
+        let source_summary = lunar_theory_source_summary();
+
+        let drifted_catalog_key = LunarTheorySourceSummary {
+            catalog_key: LunarTheoryCatalogKey::SourceFamily(source_summary.source_family),
+            ..source_summary
+        };
+        let catalog_error = drifted_catalog_key
+            .validate()
+            .expect_err("drifted catalog key should fail validation");
+        assert_eq!(
+            catalog_error.to_string(),
+            "the lunar source summary field `catalog_key` is out of sync with the current selection"
+        );
+        assert_eq!(
+            format_validated_lunar_theory_source_summary_for_report(&drifted_catalog_key),
+            "lunar source selection: unavailable (the lunar source summary field `catalog_key` is out of sync with the current selection)"
+        );
+
+        let drifted_family_key = LunarTheorySourceSummary {
+            source_family_key: LunarTheoryCatalogKey::SourceIdentifier(
+                source_summary.source_identifier,
+            ),
+            ..source_summary
+        };
+        let family_error = drifted_family_key
+            .validate()
+            .expect_err("drifted family key should fail validation");
+        assert_eq!(
+            family_error.to_string(),
+            "the lunar source summary field `source_family_key` is out of sync with the current selection"
+        );
+        assert_eq!(
+            format_validated_lunar_theory_source_summary_for_report(&drifted_family_key),
+            "lunar source selection: unavailable (the lunar source summary field `source_family_key` is out of sync with the current selection)"
+        );
+
+        assert_eq!(
+            lunar_theory_source_summary_for_report(),
+            source_summary.summary_line()
+        );
+    }
+
+    #[test]
     fn backend_supports_the_moon_and_lunar_nodes() {
         let backend = ElpBackend::new();
         assert!(backend.supports_body(CelestialBody::Moon));
