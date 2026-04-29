@@ -233,6 +233,8 @@ impl fmt::Display for ArtifactOutput {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 #[non_exhaustive]
 pub enum ArtifactOutputSupport {
+    /// The output is stored directly in the artifact payload.
+    Stored,
     /// The output is reconstructed deterministically from stored data.
     Derived,
     /// The output is explicitly unsupported by the profile.
@@ -245,6 +247,7 @@ impl ArtifactOutputSupport {
     /// Returns the compact label used in release-facing summaries.
     pub const fn label(self) -> &'static str {
         match self {
+            Self::Stored => "stored",
             Self::Derived => "derived",
             Self::Unsupported => "unsupported",
             Self::Unlisted => "unlisted",
@@ -318,9 +321,8 @@ impl SpeedPolicy {
     pub const fn motion_output_support(self) -> ArtifactOutputSupport {
         match self {
             Self::Unsupported => ArtifactOutputSupport::Unsupported,
-            Self::Stored | Self::FittedDerivative | Self::NumericalDifference => {
-                ArtifactOutputSupport::Derived
-            }
+            Self::Stored => ArtifactOutputSupport::Stored,
+            Self::FittedDerivative | Self::NumericalDifference => ArtifactOutputSupport::Derived,
         }
     }
 }
@@ -438,7 +440,9 @@ impl ArtifactProfile {
 
     /// Returns how a high-level output is represented by this profile.
     pub fn output_support(&self, output: ArtifactOutput) -> ArtifactOutputSupport {
-        if self.derived_outputs.contains(&output) {
+        if output == ArtifactOutput::Motion {
+            self.speed_policy.motion_output_support()
+        } else if self.derived_outputs.contains(&output) {
             ArtifactOutputSupport::Derived
         } else if self.unsupported_outputs.contains(&output) {
             ArtifactOutputSupport::Unsupported
@@ -447,9 +451,12 @@ impl ArtifactProfile {
         }
     }
 
-    /// Returns whether the profile can reconstruct the requested output.
+    /// Returns whether the profile can provide the requested output.
     pub fn supports_output(&self, output: ArtifactOutput) -> bool {
-        matches!(self.output_support(output), ArtifactOutputSupport::Derived)
+        matches!(
+            self.output_support(output),
+            ArtifactOutputSupport::Stored | ArtifactOutputSupport::Derived
+        )
     }
 
     /// Returns whether the profile explicitly marks the output unsupported.
@@ -1073,7 +1080,7 @@ impl CompressedArtifact {
         } else {
             Err(CompressionError::new(
                 CompressionErrorKind::InvalidFormat,
-                format!("artifact profile does not derive {output}"),
+                format!("artifact profile does not support {output}"),
             ))
         }
     }
@@ -1273,8 +1280,24 @@ fn validate_coordinate_output_policy(profile: &ArtifactProfile) -> Result<(), Co
 }
 
 fn validate_motion_policy(profile: &ArtifactProfile) -> Result<(), CompressionError> {
-    let motion_support = profile.speed_policy.motion_output_support();
-    match motion_support {
+    match profile.speed_policy.motion_output_support() {
+        ArtifactOutputSupport::Stored => {
+            if profile.derived_outputs.contains(&ArtifactOutput::Motion) {
+                return Err(CompressionError::new(
+                    CompressionErrorKind::InvalidFormat,
+                    "artifact profile speed policy Stored must not list Motion in derived outputs",
+                ));
+            }
+            if profile
+                .unsupported_outputs
+                .contains(&ArtifactOutput::Motion)
+            {
+                return Err(CompressionError::new(
+                    CompressionErrorKind::InvalidFormat,
+                    "artifact profile speed policy Stored must not list Motion in unsupported outputs",
+                ));
+            }
+        }
         ArtifactOutputSupport::Derived => {
             if !profile.derived_outputs.contains(&ArtifactOutput::Motion) {
                 return Err(CompressionError::new(
@@ -1301,7 +1324,7 @@ fn validate_motion_policy(profile: &ArtifactProfile) -> Result<(), CompressionEr
             }
         }
         ArtifactOutputSupport::Unlisted => {
-            unreachable!("motion support is always derived or unsupported")
+            unreachable!("motion support is always stored, derived, or unsupported")
         }
     }
 
@@ -1997,7 +2020,7 @@ mod tests {
 
         assert_eq!(
             SpeedPolicy::Stored.motion_output_support(),
-            ArtifactOutputSupport::Derived
+            ArtifactOutputSupport::Stored
         );
         assert_eq!(
             SpeedPolicy::FittedDerivative.motion_output_support(),
@@ -2016,10 +2039,10 @@ mod tests {
         );
         assert_eq!(
             unlisted_profile.output_support(ArtifactOutput::Motion),
-            ArtifactOutputSupport::Unlisted
+            ArtifactOutputSupport::Unsupported
         );
         assert!(!unlisted_profile.supports_output(ArtifactOutput::Motion));
-        assert!(!unlisted_profile.is_unsupported_output(ArtifactOutput::Motion));
+        assert!(unlisted_profile.is_unsupported_output(ArtifactOutput::Motion));
     }
 
     #[test]
@@ -2035,15 +2058,36 @@ mod tests {
             .expect_err("duplicate profile entries should be rejected");
         assert_eq!(profile_error.kind, CompressionErrorKind::InvalidFormat);
 
-        let motion_policy_mismatch = ArtifactProfile::new(
-            vec![ChannelKind::Longitude],
+        let stored_motion_profile = ArtifactProfile::new(
+            vec![
+                ChannelKind::Longitude,
+                ChannelKind::Latitude,
+                ChannelKind::DistanceAu,
+            ],
             vec![ArtifactOutput::EclipticCoordinates],
-            vec![ArtifactOutput::Motion],
+            Vec::new(),
+            SpeedPolicy::Stored,
+        );
+        assert_eq!(
+            stored_motion_profile.output_support(ArtifactOutput::Motion),
+            ArtifactOutputSupport::Stored
+        );
+        assert!(stored_motion_profile.supports_output(ArtifactOutput::Motion));
+        assert_eq!(stored_motion_profile.validate(), Ok(()));
+
+        let motion_policy_mismatch = ArtifactProfile::new(
+            vec![
+                ChannelKind::Longitude,
+                ChannelKind::Latitude,
+                ChannelKind::DistanceAu,
+            ],
+            vec![ArtifactOutput::EclipticCoordinates, ArtifactOutput::Motion],
+            Vec::new(),
             SpeedPolicy::Stored,
         );
         let motion_policy_error = motion_policy_mismatch
             .validate()
-            .expect_err("stored motion support should require Motion in derived outputs");
+            .expect_err("stored motion support should keep Motion out of derived outputs");
         assert_eq!(
             motion_policy_error.kind,
             CompressionErrorKind::InvalidFormat
@@ -3139,7 +3183,7 @@ mod tests {
 
         assert_eq!(
             error.message,
-            "artifact profile does not derive EclipticCoordinates"
+            "artifact profile does not support EclipticCoordinates"
         );
     }
 
@@ -3187,7 +3231,7 @@ mod tests {
 
         assert_eq!(
             error.message,
-            "artifact profile does not derive EquatorialCoordinates"
+            "artifact profile does not support EquatorialCoordinates"
         );
     }
 
