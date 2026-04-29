@@ -1016,6 +1016,12 @@ mod tests {
         assert!(release_notes_summary.contains("Artifact validation: validate-artifact"));
         assert!(release_notes_summary.contains("Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_notes_summary.contains("Release notes: release-notes"));
+        assert!(release_notes_summary.contains("Packaged-artifact storage:"));
+        assert!(release_notes_summary.contains("Packaged-artifact access:"));
+        assert!(release_notes_summary.contains("Packaged-artifact generation policy:"));
+        assert!(release_notes_summary.contains("Packaged request policy:"));
+        assert!(release_notes_summary.contains("Packaged lookup epoch policy:"));
+        assert!(release_notes_summary.contains("Packaged batch parity:"));
         assert!(release_notes_summary
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(release_notes_summary
