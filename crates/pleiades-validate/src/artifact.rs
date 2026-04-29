@@ -680,6 +680,20 @@ impl ArtifactDecodeBenchmarkReport {
 
         Ok(())
     }
+
+    /// Returns a compact one-line summary of the packaged-artifact decode benchmark.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "artifact={}; source={}; rounds={}; decodes per round={}; encoded bytes={}; ns/decode={:.2}; decodes/s={:.2}",
+            self.artifact_label,
+            self.source,
+            self.rounds,
+            self.sample_count,
+            self.encoded_bytes,
+            self.nanoseconds_per_decode(),
+            self.decodes_per_second(),
+        )
+    }
 }
 
 impl fmt::Display for ArtifactDecodeBenchmarkReport {
@@ -1162,24 +1176,8 @@ fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
     text.push_str(&regression_count.to_string());
     text.push('\n');
     text.push_str("\nArtifact decode benchmark\n");
-    text.push_str("  artifact: ");
-    text.push_str(&report.decode_benchmark.artifact_label);
-    text.push_str("; source: ");
-    text.push_str(&report.decode_benchmark.source);
-    text.push_str("; rounds: ");
-    text.push_str(&report.decode_benchmark.rounds.to_string());
-    text.push_str("; decodes/round: ");
-    text.push_str(&report.decode_benchmark.sample_count.to_string());
-    text.push_str("; ns/decode: ");
-    text.push_str(&format!(
-        "{:.2}",
-        report.decode_benchmark.nanoseconds_per_decode()
-    ));
-    text.push_str("; decodes/s: ");
-    text.push_str(&format!(
-        "{:.2}",
-        report.decode_benchmark.decodes_per_second()
-    ));
+    text.push_str("  ");
+    text.push_str(&report.decode_benchmark.summary_line());
     text.push('\n');
 
     text.push_str("\nRelease summary: release-summary\n");
@@ -1631,6 +1629,7 @@ impl fmt::Display for ArtifactInspectionReport {
 
         writeln!(f)?;
         writeln!(f, "Artifact decode benchmark")?;
+        writeln!(f, "  {}", self.decode_benchmark.summary_line())?;
         writeln!(f, "  artifact: {}", self.decode_benchmark.artifact_label)?;
         writeln!(f, "  source: {}", self.decode_benchmark.source)?;
         writeln!(f, "  rounds: {}", self.decode_benchmark.rounds)?;
@@ -1864,6 +1863,20 @@ mod tests {
         assert!((report.nanoseconds_per_decode() - 833_333.3333333334).abs() < 1e-9);
         assert!((report.decodes_per_second() - 1_200.0).abs() < 1e-9);
         assert!(report.to_string().contains("Artifact: packaged artifact"));
+    }
+
+    #[test]
+    fn decode_benchmark_report_summary_line_mentions_the_provenance_and_throughput() {
+        let report = decode_benchmark_report();
+
+        let summary = report.summary_line();
+        assert!(summary.contains("artifact=packaged artifact"));
+        assert!(summary.contains("source=public reference snapshot"));
+        assert!(summary.contains("rounds=2"));
+        assert!(summary.contains("decodes per round=3"));
+        assert!(summary.contains("encoded bytes=128"));
+        assert!(summary.contains("ns/decode=833333.33"));
+        assert!(summary.contains("decodes/s=1200.00"));
     }
 
     #[test]

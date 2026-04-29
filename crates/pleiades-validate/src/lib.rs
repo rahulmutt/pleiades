@@ -15340,8 +15340,8 @@ version = "0.9.0"
         assert!(artifact_summary.contains("Comparison tolerance audit"));
         assert!(artifact_summary.contains("bodies checked:"));
         assert!(artifact_summary.contains("Artifact decode benchmark"));
-        assert!(artifact_summary.contains("ns/decode:"));
-        assert!(artifact_summary.contains("decodes/s:"));
+        assert!(artifact_summary.contains("ns/decode="));
+        assert!(artifact_summary.contains("decodes/s="));
         assert!(artifact_summary.contains("Release summary: release-summary"));
         assert!(artifact_summary.contains("Release notes summary: release-notes-summary"));
         assert!(artifact_summary.contains("Workspace audit: workspace-audit / audit"));
