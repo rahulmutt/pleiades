@@ -5678,6 +5678,14 @@ pub fn canonical_mixed_time_scale_batch_parity_requests() -> Vec<EphemerisReques
     requests
 }
 
+/// Returns the canonical mixed TT/TDB request corpus used by the batch-parity evidence.
+///
+/// This is a compatibility alias for [`canonical_mixed_time_scale_batch_parity_requests`].
+#[doc(alias = "canonical_mixed_time_scale_batch_parity_requests")]
+pub fn canonical_mixed_time_scale_batch_parity_request_corpus() -> Vec<EphemerisRequest> {
+    canonical_mixed_time_scale_batch_parity_requests()
+}
+
 /// Returns the canonical per-body error envelope used by release-facing
 /// validation reports.
 ///
@@ -10065,6 +10073,14 @@ mod tests {
         assert!(rendered.contains("TT/TDB mix"));
         assert!(rendered.contains("TT requests="));
         assert!(rendered.contains("TDB requests="));
+    }
+
+    #[test]
+    fn canonical_mixed_time_scale_batch_parity_request_corpus_remains_the_explicit_alias() {
+        assert_eq!(
+            canonical_mixed_time_scale_batch_parity_request_corpus(),
+            canonical_mixed_time_scale_batch_parity_requests()
+        );
     }
 
     #[test]
