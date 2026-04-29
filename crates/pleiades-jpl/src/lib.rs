@@ -1866,6 +1866,30 @@ pub fn reference_asteroid_evidence() -> &'static [ReferenceAsteroidEvidence] {
     reference_asteroid_evidence_list()
 }
 
+/// Returns the exact J2000 asteroid request corpus in the requested frame.
+///
+/// The requests preserve the checked-in asteroid order and stored J2000 epoch,
+/// so downstream batch checks can reuse the exact selected-asteroid slice
+/// without reconstructing it from the sample evidence.
+pub fn reference_asteroid_requests(frame: CoordinateFrame) -> Option<Vec<EphemerisRequest>> {
+    reference_asteroid_requests_with_frame_selector(|_| frame)
+}
+
+/// Returns the mixed-frame exact J2000 asteroid request corpus used by batch parity checks.
+///
+/// The requests preserve the checked-in asteroid order and alternate between
+/// ecliptic and equatorial frames so downstream tooling can reuse the exact
+/// selected-asteroid batch shape without reconstructing it from sample evidence.
+pub fn reference_asteroid_batch_parity_requests() -> Option<Vec<EphemerisRequest>> {
+    reference_asteroid_requests_with_frame_selector(|index| {
+        if index % 2 == 0 {
+            CoordinateFrame::Ecliptic
+        } else {
+            CoordinateFrame::Equatorial
+        }
+    })
+}
+
 /// Returns the exact J2000 asteroid equatorial evidence samples derived from the reference snapshot.
 pub fn reference_asteroid_equatorial_evidence() -> &'static [ReferenceAsteroidEquatorialEvidence] {
     reference_asteroid_equatorial_evidence_list()
@@ -5102,6 +5126,30 @@ fn reference_asteroid_list() -> &'static [pleiades_backend::CelestialBody] {
         .as_slice()
 }
 
+fn reference_asteroid_requests_with_frame_selector(
+    frame_for_index: impl Fn(usize) -> CoordinateFrame,
+) -> Option<Vec<EphemerisRequest>> {
+    let evidence = reference_asteroid_evidence();
+    if evidence.is_empty() {
+        return None;
+    }
+
+    Some(
+        evidence
+            .iter()
+            .enumerate()
+            .map(|(index, sample)| EphemerisRequest {
+                body: sample.body.clone(),
+                instant: sample.epoch,
+                observer: None,
+                frame: frame_for_index(index),
+                zodiac_mode: ZodiacMode::Tropical,
+                apparent: Apparentness::Mean,
+            })
+            .collect(),
+    )
+}
+
 fn reference_asteroid_evidence_list() -> &'static [ReferenceAsteroidEvidence] {
     static EVIDENCE: OnceLock<Vec<ReferenceAsteroidEvidence>> = OnceLock::new();
     EVIDENCE
@@ -8182,6 +8230,93 @@ mod tests {
         );
         assert!((evidence[0].longitude_deg - 184.459642854516).abs() < 1e-12);
         assert!((evidence[4].distance_au - 1.854402724550437).abs() < 1e-12);
+    }
+
+    #[test]
+    fn reference_asteroid_requests_preserve_the_exact_j2000_slice() {
+        let backend = JplSnapshotBackend;
+        let requests = reference_asteroid_requests(CoordinateFrame::Equatorial)
+            .expect("selected asteroid requests should exist");
+        let results = backend
+            .positions(&requests)
+            .expect("selected asteroid batch query should preserve the exact J2000 slice");
+
+        assert_eq!(results.len(), requests.len());
+        for ((sample, result), request) in reference_asteroid_evidence()
+            .iter()
+            .zip(results.iter())
+            .zip(requests.iter())
+        {
+            assert_eq!(result.body, sample.body);
+            assert_eq!(result.instant, sample.epoch);
+            assert_eq!(result.frame, request.frame);
+            assert_eq!(result.quality, QualityAnnotation::Exact);
+
+            let ecliptic = result
+                .ecliptic
+                .expect("selected asteroid batch rows should include ecliptic coordinates");
+            assert!((ecliptic.longitude.degrees() - sample.longitude_deg).abs() < 1e-12);
+            assert!((ecliptic.latitude.degrees() - sample.latitude_deg).abs() < 1e-12);
+            assert!(
+                (ecliptic.distance_au.expect("distance should exist") - sample.distance_au).abs()
+                    < 1e-12
+            );
+
+            let equatorial = result
+                .equatorial
+                .expect("selected asteroid batch rows should include equatorial coordinates");
+            let expected_equatorial = ecliptic.to_equatorial(result.instant.mean_obliquity());
+            assert_eq!(equatorial, expected_equatorial);
+        }
+    }
+
+    #[test]
+    fn reference_asteroid_batch_parity_requests_preserve_the_selected_j2000_slice() {
+        let backend = JplSnapshotBackend;
+        let requests = reference_asteroid_batch_parity_requests()
+            .expect("selected asteroid batch parity requests should exist");
+        let results = backend
+            .positions(&requests)
+            .expect("mixed-frame selected asteroid batch query should preserve the exact slice");
+
+        assert_eq!(results.len(), requests.len());
+        for ((sample, result), request) in reference_asteroid_evidence()
+            .iter()
+            .zip(results.iter())
+            .zip(requests.iter())
+        {
+            assert_eq!(result.body, sample.body);
+            assert_eq!(result.instant, sample.epoch);
+            assert_eq!(result.frame, request.frame);
+            assert_eq!(result.quality, QualityAnnotation::Exact);
+
+            let ecliptic = result
+                .ecliptic
+                .expect("selected asteroid batch rows should include ecliptic coordinates");
+            let expected = EclipticCoordinates::new(
+                Longitude::from_degrees(sample.longitude_deg),
+                Latitude::from_degrees(sample.latitude_deg),
+                Some(sample.distance_au),
+            );
+            assert!((ecliptic.longitude.degrees() - expected.longitude.degrees()).abs() < 1e-12);
+            assert!((ecliptic.latitude.degrees() - expected.latitude.degrees()).abs() < 1e-12);
+            assert!(
+                (ecliptic.distance_au.expect("distance should exist")
+                    - expected
+                        .distance_au
+                        .expect("expected distance should exist"))
+                .abs()
+                    < 1e-12
+            );
+
+            let equatorial = result
+                .equatorial
+                .expect("selected asteroid batch rows should include equatorial coordinates");
+            assert_eq!(
+                equatorial,
+                ecliptic.to_equatorial(result.instant.mean_obliquity())
+            );
+        }
     }
 
     #[test]
