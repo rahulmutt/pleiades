@@ -880,6 +880,25 @@ impl ArtifactInspectionReport {
 
         self.model_comparison.summary.validate()?;
         self.decode_benchmark.validate()?;
+
+        if self.decode_benchmark.artifact_label != self.generation_label {
+            return Err(report_validation_error(
+                "artifact inspection report decode benchmark artifact label does not match the decoded artifact header",
+            ));
+        }
+
+        if self.decode_benchmark.source != self.source {
+            return Err(report_validation_error(
+                "artifact inspection report decode benchmark source does not match the decoded artifact header",
+            ));
+        }
+
+        if self.decode_benchmark.encoded_bytes != self.encoded_bytes {
+            return Err(report_validation_error(
+                "artifact inspection report decode benchmark encoded byte count does not match the decoded artifact",
+            ));
+        }
+
         artifact_boundary_envelope_summary(self)
             .validate()
             .map_err(ArtifactInspectionError::BoundaryEnvelope)?;
@@ -1958,6 +1977,22 @@ mod tests {
         assert!(error
             .to_string()
             .contains("artifact inspection report field `body_count`"));
+    }
+
+    #[test]
+    fn artifact_inspection_report_validate_rejects_decode_benchmark_drift() {
+        let artifact = packaged_artifact();
+        let encoded = artifact.encode().expect("packaged artifact should encode");
+        let mut report = ArtifactInspectionReport::from_artifact(artifact, encoded.len())
+            .expect("artifact inspection report should build");
+        report.decode_benchmark.encoded_bytes += 1;
+
+        let error = report
+            .validate()
+            .expect_err("decode benchmark drift should fail validation");
+        assert!(error.to_string().contains(
+            "artifact inspection report decode benchmark encoded byte count does not match"
+        ));
     }
 
     #[test]
