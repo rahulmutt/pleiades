@@ -15143,6 +15143,7 @@ mod tests {
             .any(|line| line == profile.target_ayanamsa_scope.join("; ")));
         assert!(rendered.contains("Release summary line:"));
         assert!(rendered.contains(&profile.catalog_inventory_summary_line()));
+        assert!(rendered.contains("Compatibility catalog inventory: house systems=25 (12 baseline, 13 release-specific, 156 aliases); house-code aliases=22; ayanamsas=59 (5 baseline, 54 release-specific, 183 aliases); custom-definition labels=9; known gaps=2"));
         assert!(rendered.contains(&format!(
             "House code aliases: {}",
             profile.house_code_aliases_summary_line()
