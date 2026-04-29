@@ -1857,16 +1857,20 @@ mod tests {
     }
 
     #[test]
-    fn krusinski_pisa_goelzer_release_system_is_available() {
+    fn krusinski_pisa_goelzer_release_system_preserves_the_documented_opposite_pairs() {
         let snapshot = calculate_houses(&sample_request(HouseSystem::KrusinskiPisaGoelzer))
             .expect("krusinski-pisa-goelzer houses should work");
+
         assert_eq!(snapshot.cusps.len(), 12);
-        assert!(snapshot.cusps[0].degrees().is_finite());
-        assert_eq!(
-            (snapshot.cusps[6].degrees() - snapshot.cusps[0].degrees()).rem_euclid(360.0),
-            180.0
-        );
-        assert_ne!(snapshot.cusps[0], snapshot.cusps[9]);
+        assert!(snapshot.cusps.iter().all(|cusp| cusp.degrees().is_finite()));
+
+        for index in 0..6 {
+            assert_eq!(
+                (snapshot.cusps[index + 6].degrees() - snapshot.cusps[index].degrees())
+                    .rem_euclid(360.0),
+                180.0
+            );
+        }
     }
 
     #[test]
