@@ -4102,26 +4102,62 @@ impl fmt::Display for LunarHighCurvatureContinuityEnvelope {
     }
 }
 
+fn lunar_high_curvature_requests(frame: CoordinateFrame) -> Vec<EphemerisRequest> {
+    LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS
+        .into_iter()
+        .map(|instant| {
+            let mut request = EphemerisRequest::new(CelestialBody::Moon, instant);
+            request.frame = frame;
+            request
+        })
+        .collect()
+}
+
+/// Returns the lunar high-curvature continuity request corpus used by the nearby-motion regression slice.
+pub fn lunar_high_curvature_continuity_requests() -> Vec<EphemerisRequest> {
+    lunar_high_curvature_requests(CoordinateFrame::Ecliptic)
+}
+
+/// This is a compatibility alias for [`lunar_high_curvature_continuity_requests`].
+#[doc(alias = "lunar_high_curvature_continuity_requests")]
+pub fn lunar_high_curvature_continuity_request_corpus() -> Vec<EphemerisRequest> {
+    lunar_high_curvature_continuity_requests()
+}
+
+/// Returns the lunar high-curvature equatorial continuity request corpus used by the nearby-motion regression slice.
+pub fn lunar_high_curvature_equatorial_continuity_requests() -> Vec<EphemerisRequest> {
+    lunar_high_curvature_requests(CoordinateFrame::Equatorial)
+}
+
+/// This is a compatibility alias for [`lunar_high_curvature_equatorial_continuity_requests`].
+#[doc(alias = "lunar_high_curvature_equatorial_continuity_requests")]
+pub fn lunar_high_curvature_equatorial_continuity_request_corpus() -> Vec<EphemerisRequest> {
+    lunar_high_curvature_equatorial_continuity_requests()
+}
+
 fn lunar_high_curvature_continuity_envelope() -> Option<LunarHighCurvatureContinuityEnvelope> {
     let backend = ElpBackend::new();
     let mut bodies = std::collections::BTreeSet::new();
-    let mut earliest_epoch = LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS[0];
-    let mut latest_epoch = LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS[0];
+    let requests = lunar_high_curvature_continuity_requests();
+    let sample_count = requests.len();
+    let mut earliest_epoch = requests[0].instant;
+    let mut latest_epoch = requests[0].instant;
     let mut previous_sample: Option<(Instant, f64, f64, f64)> = None;
-    let mut max_longitude_step_start_epoch = LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS[0];
-    let mut max_longitude_step_end_epoch = LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS[0];
+    let mut max_longitude_step_start_epoch = requests[0].instant;
+    let mut max_longitude_step_end_epoch = requests[0].instant;
     let mut max_longitude_step_deg = 0.0;
-    let mut max_latitude_step_start_epoch = LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS[0];
-    let mut max_latitude_step_end_epoch = LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS[0];
+    let mut max_latitude_step_start_epoch = requests[0].instant;
+    let mut max_latitude_step_end_epoch = requests[0].instant;
     let mut max_latitude_step_deg = 0.0;
-    let mut max_distance_step_start_epoch = LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS[0];
-    let mut max_distance_step_end_epoch = LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS[0];
+    let mut max_distance_step_start_epoch = requests[0].instant;
+    let mut max_distance_step_end_epoch = requests[0].instant;
     let mut max_distance_step_au = 0.0;
     let mut within_regression_limits = true;
 
-    for instant in LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS {
+    for request in &requests {
+        let instant = request.instant;
         let result = backend
-            .position(&EphemerisRequest::new(CelestialBody::Moon, instant))
+            .position(request)
             .expect("the high-curvature lunar continuity samples should remain computable");
         let ecliptic = result.ecliptic.expect(
             "the high-curvature lunar continuity samples should include ecliptic coordinates",
@@ -4173,7 +4209,7 @@ fn lunar_high_curvature_continuity_envelope() -> Option<LunarHighCurvatureContin
     }
 
     Some(LunarHighCurvatureContinuityEnvelope {
-        sample_count: LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS.len(),
+        sample_count,
         body_count: bodies.len(),
         earliest_epoch,
         latest_epoch,
@@ -4322,23 +4358,26 @@ fn lunar_high_curvature_equatorial_continuity_envelope(
 ) -> Option<LunarHighCurvatureEquatorialContinuityEnvelope> {
     let backend = ElpBackend::new();
     let mut bodies = std::collections::BTreeSet::new();
-    let mut earliest_epoch = LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS[0];
-    let mut latest_epoch = LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS[0];
+    let requests = lunar_high_curvature_equatorial_continuity_requests();
+    let sample_count = requests.len();
+    let mut earliest_epoch = requests[0].instant;
+    let mut latest_epoch = requests[0].instant;
     let mut previous_sample: Option<(Instant, f64, f64, f64)> = None;
-    let mut max_right_ascension_step_start_epoch = LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS[0];
-    let mut max_right_ascension_step_end_epoch = LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS[0];
+    let mut max_right_ascension_step_start_epoch = requests[0].instant;
+    let mut max_right_ascension_step_end_epoch = requests[0].instant;
     let mut max_right_ascension_step_deg = 0.0;
-    let mut max_declination_step_start_epoch = LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS[0];
-    let mut max_declination_step_end_epoch = LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS[0];
+    let mut max_declination_step_start_epoch = requests[0].instant;
+    let mut max_declination_step_end_epoch = requests[0].instant;
     let mut max_declination_step_deg = 0.0;
-    let mut max_distance_step_start_epoch = LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS[0];
-    let mut max_distance_step_end_epoch = LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS[0];
+    let mut max_distance_step_start_epoch = requests[0].instant;
+    let mut max_distance_step_end_epoch = requests[0].instant;
     let mut max_distance_step_au = 0.0;
     let mut within_regression_limits = true;
 
-    for instant in LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS {
+    for request in &requests {
+        let instant = request.instant;
         let result = backend
-            .position(&EphemerisRequest::new(CelestialBody::Moon, instant))
+            .position(request)
             .expect("the high-curvature lunar continuity samples should remain computable");
         let equatorial = result.equatorial.expect(
             "the high-curvature lunar continuity samples should include equatorial coordinates",
@@ -4395,7 +4434,7 @@ fn lunar_high_curvature_equatorial_continuity_envelope(
     }
 
     Some(LunarHighCurvatureEquatorialContinuityEnvelope {
-        sample_count: LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS.len(),
+        sample_count,
         body_count: bodies.len(),
         earliest_epoch,
         latest_epoch,
@@ -6140,6 +6179,45 @@ mod tests {
         assert!(report.contains("Δlon≤20.0°"));
         assert!(report.contains("Δlat≤10.0°"));
         assert!(report.contains("Δdist≤0.02 AU"));
+    }
+
+    #[test]
+    fn lunar_high_curvature_request_corpus_helpers_match_the_regression_window() {
+        let ecliptic_requests = lunar_high_curvature_continuity_requests();
+        let equatorial_requests = lunar_high_curvature_equatorial_continuity_requests();
+
+        assert_eq!(
+            ecliptic_requests,
+            lunar_high_curvature_continuity_request_corpus()
+        );
+        assert_eq!(
+            equatorial_requests,
+            lunar_high_curvature_equatorial_continuity_request_corpus()
+        );
+
+        for (request, expected_epoch) in ecliptic_requests
+            .iter()
+            .zip(LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS)
+        {
+            assert_eq!(request.body, CelestialBody::Moon);
+            assert_eq!(request.instant, expected_epoch);
+            assert_eq!(request.frame, CoordinateFrame::Ecliptic);
+            assert_eq!(request.zodiac_mode, ZodiacMode::Tropical);
+            assert_eq!(request.apparent, Apparentness::Mean);
+            assert!(request.observer.is_none());
+        }
+
+        for (request, expected_epoch) in equatorial_requests
+            .iter()
+            .zip(LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS)
+        {
+            assert_eq!(request.body, CelestialBody::Moon);
+            assert_eq!(request.instant, expected_epoch);
+            assert_eq!(request.frame, CoordinateFrame::Equatorial);
+            assert_eq!(request.zodiac_mode, ZodiacMode::Tropical);
+            assert_eq!(request.apparent, Apparentness::Mean);
+            assert!(request.observer.is_none());
+        }
     }
 
     #[test]
