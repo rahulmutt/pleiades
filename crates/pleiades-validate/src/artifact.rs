@@ -793,7 +793,7 @@ impl ArtifactInspectionReport {
     /// Returns a compact one-line summary of the inspection report.
     pub fn summary_line(&self) -> String {
         format!(
-            "artifact inspection: {} bundled bodies, {} segments, residual-bearing segments: {}, residual-bearing bodies: {}, coverage: {} → {}, roundtrip={}, checksum={}",
+            "artifact inspection: {} bundled bodies, {} segments, residual-bearing segments: {}, residual-bearing bodies: {}, coverage: {} → {}, roundtrip={}, checksum={}, encoded bytes={}",
             self.body_count,
             self.segment_count,
             self.residual_segment_count,
@@ -802,6 +802,7 @@ impl ArtifactInspectionReport {
             self.latest,
             yes_no(self.roundtrip_ok),
             yes_no(self.checksum_ok),
+            self.encoded_bytes,
         )
     }
 
@@ -1961,6 +1962,8 @@ mod tests {
         assert!(summary.contains("residual-bearing bodies: Moon"));
         assert!(summary.contains("roundtrip=ok"));
         assert!(summary.contains("checksum=ok"));
+        assert!(summary.contains("encoded bytes="));
+        assert!(summary.contains(&format!("encoded bytes={}", report.encoded_bytes)));
     }
 
     #[test]
