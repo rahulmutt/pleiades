@@ -261,6 +261,23 @@ impl HouseSystemCodeAlias {
     pub fn summary_line(&self) -> String {
         format!("{} -> {}", self.label, self.system)
     }
+
+    /// Validates the alias normalization and round-trip behavior for one entry.
+    pub fn validate(&self) -> Result<(), HouseSystemCodeAliasValidationError> {
+        if self.label.trim().is_empty() || has_surrounding_whitespace(self.label) {
+            return Err(HouseSystemCodeAliasValidationError::LabelNotNormalized {
+                label: self.label,
+            });
+        }
+        if resolve_house_system(self.label) != Some(self.system.clone()) {
+            return Err(HouseSystemCodeAliasValidationError::LabelDoesNotRoundTrip {
+                label: self.label,
+                expected_system: self.system.clone(),
+            });
+        }
+
+        Ok(())
+    }
 }
 
 impl fmt::Display for HouseSystemCodeAlias {
@@ -445,19 +462,9 @@ fn validate_house_system_code_alias_entries(
     for alias in entries {
         labels_checked += 1;
 
-        if alias.label.trim().is_empty() || has_surrounding_whitespace(alias.label) {
-            return Err(HouseSystemCodeAliasValidationError::LabelNotNormalized {
-                label: alias.label,
-            });
-        }
+        alias.validate()?;
         if !seen_labels.insert(alias.label.to_ascii_lowercase()) {
             return Err(HouseSystemCodeAliasValidationError::DuplicateLabel { label: alias.label });
-        }
-        if resolve_house_system(alias.label) != Some(alias.system.clone()) {
-            return Err(HouseSystemCodeAliasValidationError::LabelDoesNotRoundTrip {
-                label: alias.label,
-                expected_system: alias.system.clone(),
-            });
         }
     }
 
@@ -2207,12 +2214,12 @@ mod tests {
     fn house_system_code_alias_validation_rejects_duplicate_short_labels() {
         let aliases = [
             HouseSystemCodeAlias {
-                label: "P",
-                system: HouseSystem::Placidus,
+                label: "Axial Rotation",
+                system: HouseSystem::Meridian,
             },
             HouseSystemCodeAlias {
-                label: "p",
-                system: HouseSystem::Porphyry,
+                label: "axial rotation",
+                system: HouseSystem::Meridian,
             },
         ];
 
@@ -2220,12 +2227,32 @@ mod tests {
             .expect_err("duplicate labels should be rejected");
         assert!(matches!(
             error,
-            HouseSystemCodeAliasValidationError::DuplicateLabel { label: "p" }
+            HouseSystemCodeAliasValidationError::DuplicateLabel {
+                label: "axial rotation"
+            }
         ));
     }
 
     #[test]
-    fn house_system_code_alias_validation_rejects_line_breaks() {
+    fn house_system_code_alias_validate_rejects_normalization_and_round_trip_drift() {
+        let valid_alias = HouseSystemCodeAlias {
+            label: "P",
+            system: HouseSystem::Placidus,
+        };
+        assert_eq!(valid_alias.validate(), Ok(()));
+
+        let mismatched_alias = HouseSystemCodeAlias {
+            label: "P",
+            system: HouseSystem::Porphyry,
+        };
+        assert!(matches!(
+            mismatched_alias.validate(),
+            Err(HouseSystemCodeAliasValidationError::LabelDoesNotRoundTrip {
+                label: "P",
+                expected_system: HouseSystem::Porphyry
+            })
+        ));
+
         let aliases = [HouseSystemCodeAlias {
             label: "P\n",
             system: HouseSystem::Placidus,
