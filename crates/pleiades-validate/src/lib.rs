@@ -4569,6 +4569,9 @@ fn render_compatibility_profile_summary_text() -> String {
         &summarize_house_formula_families(&profile),
     ));
     text.push('\n');
+    text.push_str("House code aliases: ");
+    text.push_str(&profile.house_code_aliases_summary_line());
+    text.push('\n');
     text.push_str("Ayanamsas: ");
     text.push_str(&profile.ayanamsas.len().to_string());
     text.push_str(" total (");
@@ -4639,6 +4642,9 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push('\n');
     text.push_str(&profile.catalog_inventory_summary_line());
+    text.push('\n');
+    text.push_str("House code aliases: ");
+    text.push_str(&profile.house_code_aliases_summary_line());
     text.push('\n');
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("Backend matrix summary: backend-matrix-summary\n");
@@ -4768,6 +4774,9 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&format_house_formula_families_summary(
         &summarize_house_formula_families(&profile),
     ));
+    text.push('\n');
+    text.push_str("House code aliases: ");
+    text.push_str(&profile.house_code_aliases_summary_line());
     text.push('\n');
     text.push_str(&reference_asteroid_evidence_summary_for_report());
     text.push('\n');
@@ -4970,6 +4979,9 @@ fn render_release_summary_text() -> String {
     text.push_str(profile.summary);
     text.push('\n');
     text.push_str(&profile.catalog_inventory_summary_line());
+    text.push('\n');
+    text.push_str("House code aliases: ");
+    text.push_str(&profile.house_code_aliases_summary_line());
     text.push('\n');
     text.push_str("Latitude-sensitive house systems: ");
     text.push_str(&summarize_latitude_sensitive_house_systems(&profile));
@@ -12960,6 +12972,10 @@ mod tests {
         let coverage = metadata_coverage();
         assert!(rendered.contains("House systems:"));
         assert!(rendered.contains("House systems: 25 total (12 baseline, 13 release-specific)"));
+        assert!(rendered.contains(&format!(
+            "House code aliases: {}",
+            profile.house_code_aliases_summary_line()
+        )));
         assert!(rendered.contains("Ayanamsas:"));
         assert!(rendered.contains(&format!(
             "Ayanamsa sidereal metadata: {}/{} entries with both a reference epoch and offset",
@@ -12967,6 +12983,10 @@ mod tests {
         )));
         assert!(rendered.contains("ayanamsa catalog validation: ok"));
         assert!(rendered.contains("Release-specific house-system canonical names: 13 (Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter (poli-equatorial), Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen SD, Pullen SR, Sunshine, Gauquelin sectors)"));
+        assert!(rendered.contains(&format!(
+            "House code aliases: {}",
+            profile.house_code_aliases_summary_line()
+        )));
         assert!(rendered.contains("Release-specific ayanamsa canonical names:"));
         assert!(rendered.contains("Release-specific ayanamsa canonical names: 54 (True Citra, J2000, J1900, B1950, True Revati, True Mula, Suryasiddhanta (Revati), Suryasiddhanta (Citra), Lahiri (ICRC), Lahiri (1940), Usha Shashi, Suryasiddhanta (499 CE), Aryabhata (499 CE), Sassanian, DeLuce, Yukteshwar, PVR Pushya-paksha, Sheoran, Hipparchus, Babylonian (Kugler 1), Babylonian (Kugler 2), Babylonian (Kugler 3), Babylonian (Huber), Babylonian (Eta Piscium), Babylonian (Aldebaran), Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs), Galactic Center, Galactic Equator, True Pushya, Udayagiri, Djwhal Khul, JN Bhasin, Suryasiddhanta (Mean Sun), Aryabhata (Mean Sun), Babylonian (Britton), Aryabhata (522 CE), Lahiri (VP285), Krishnamurti (VP291), True Sheoran, Galactic Center (Rgilbrand), Galactic Center (Mardyks), Galactic Center (Mula/Wilhelm), Dhruva Galactic Center (Middle Mula), Galactic Center (Cochrane), Galactic Equator (IAU 1958), Galactic Equator (True), Galactic Equator (Mula), Galactic Equator (Fiorenza), Valens Moon)"));
         assert!(rendered.contains("Custom-definition labels: 9"));
@@ -13970,6 +13990,10 @@ mod tests {
         )));
         assert!(rendered.contains("Release summary line:"));
         assert!(rendered.contains(&profile.catalog_inventory_summary_line()));
+        assert!(rendered.contains(&format!(
+            "House code aliases: {}",
+            profile.house_code_aliases_summary_line()
+        )));
         assert!(rendered.contains("House formula families: 7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign)"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
         assert!(rendered.contains("Backend matrix summary: backend-matrix-summary"));

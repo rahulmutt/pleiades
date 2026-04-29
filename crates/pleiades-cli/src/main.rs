@@ -848,6 +848,7 @@ mod tests {
     #[test]
     fn summary_commands_render_compact_reports() {
         let release_profiles = current_release_profile_identifiers();
+        let profile = current_compatibility_profile();
 
         let compatibility = render_cli(&["compatibility-profile-summary"])
             .expect("compatibility summary should render");
@@ -857,6 +858,10 @@ mod tests {
             release_profiles.compatibility_profile_id
         )));
         assert!(compatibility.contains("House systems: 25 total"));
+        assert!(compatibility.contains(&format!(
+            "House code aliases: {}",
+            profile.house_code_aliases_summary_line()
+        )));
         assert!(compatibility
             .contains("Compatibility profile verification: verify-compatibility-profile"));
         assert!(compatibility.contains("Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
@@ -874,7 +879,6 @@ mod tests {
         assert!(compatibility.contains("Babylonian (House Obs)"));
         assert!(compatibility.contains("Custom-definition label names: Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs), True Balarama, Aphoric, Takra"));
 
-        let profile = current_compatibility_profile();
         let verification = render_cli(&["verify-compatibility-profile"])
             .expect("compatibility profile verification should render");
         assert!(verification.contains("Compatibility profile verification"));
@@ -965,6 +969,10 @@ mod tests {
         let release_notes_summary =
             render_cli(&["release-notes-summary"]).expect("release notes summary should render");
         assert!(release_notes_summary.contains("Release notes summary"));
+        assert!(release_notes_summary.contains(&format!(
+            "House code aliases: {}",
+            current_compatibility_profile().house_code_aliases_summary_line()
+        )));
         assert!(release_notes_summary.contains("API stability summary line:"));
         assert!(release_notes_summary.contains("Artifact validation: validate-artifact"));
         assert!(release_notes_summary.contains("Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
@@ -1031,6 +1039,10 @@ mod tests {
         assert!(release_summary.contains(&format!(
             "House-code aliases: {}",
             current_compatibility_profile().house_code_alias_count()
+        )));
+        assert!(release_summary.contains(&format!(
+            "House code aliases: {}",
+            current_compatibility_profile().house_code_aliases_summary_line()
         )));
         assert!(release_summary.contains("House formula families: 7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign)"));
         assert!(release_summary.contains("Release profile identifiers: v1 compatibility=pleiades-compatibility-profile/0.6.123, api-stability=pleiades-api-stability/0.1.0"));
