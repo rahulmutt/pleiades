@@ -1090,6 +1090,19 @@ const PACKAGED_REQUEST_POLICY_SUMMARY: PackagedRequestPolicySummary =
     };
 
 /// Returns the current packaged-data request-policy summary record.
+///
+/// # Examples
+///
+/// ```
+/// use pleiades_data::packaged_request_policy_summary_details;
+///
+/// let summary = packaged_request_policy_summary_details();
+/// assert_eq!(
+///     summary.summary_line(),
+///     "Packaged request policy: geocentric-only; frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false; lookup epoch policy=TT-grid retag without relativistic correction; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction",
+/// );
+/// assert!(summary.validate().is_ok());
+/// ```
 pub fn packaged_request_policy_summary_details() -> PackagedRequestPolicySummary {
     let summary = PACKAGED_REQUEST_POLICY_SUMMARY;
     debug_assert!(summary.validate().is_ok());
@@ -2839,6 +2852,10 @@ mod tests {
             PackagedLookupEpochPolicy::RetagToTtGridWithoutRelativisticCorrection
         );
         assert_eq!(request_policy.lookup_epoch_policy.validate(), Ok(()));
+        assert_eq!(
+            request_policy.summary_line(),
+            "Packaged request policy: geocentric-only; frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false; lookup epoch policy=TT-grid retag without relativistic correction; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction"
+        );
         assert_eq!(
             request_policy.summary_line(),
             packaged_request_policy_summary_for_report()
