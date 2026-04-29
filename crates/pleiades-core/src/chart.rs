@@ -50,6 +50,12 @@ fn render_house_system_label(house_system: &HouseSystem) -> String {
     }
 }
 
+fn render_observer_location_label(observer: Option<&ObserverLocation>) -> String {
+    observer
+        .map(ObserverLocation::summary_line)
+        .unwrap_or_else(|| "none".to_string())
+}
+
 /// Observer-policy summary for chart assembly and chart snapshots.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ObserverPolicy {
@@ -558,6 +564,9 @@ impl ChartRequest {
     ///   house system is also requested,
     /// - geocentric requests are described explicitly when no observer is set
     ///   or the observer is not used for house calculations,
+    /// - observer locations are rendered separately from the observer policy
+    ///   when present so house-only use stays explicit without implying a
+    ///   topocentric body-position request,
     /// - the current zodiac mode, apparentness, body count, and house-system
     ///   selection stay visible in a single line.
     ///
@@ -569,13 +578,14 @@ impl ChartRequest {
             .map_or_else(|| "none".to_string(), render_house_system_label);
 
         format!(
-            "instant={} ({}); bodies={}; zodiac={}; apparentness={}; observer={}; house system={}",
+            "instant={} ({}); bodies={}; zodiac={}; apparentness={}; observer={}; observer location={}; house system={}",
             self.instant.julian_day,
             self.instant.scale,
             self.bodies.len(),
             self.zodiac_mode,
             self.apparentness,
             self.observer_policy().summary_line(),
+            render_observer_location_label(self.observer.as_ref()),
             house_system,
         )
     }
@@ -675,7 +685,9 @@ impl ChartSnapshot {
     /// release-facing snapshot notes. It mirrors the request-shape vocabulary
     /// used by [`ChartRequest::summary_line`] while adding the backend ID and
     /// the computed placement count so callers can compare the assembled chart
-    /// against the original request at a glance.
+    /// against the original request at a glance. The stored observer location,
+    /// when present, is rendered separately from the observer policy so the
+    /// geocentric-versus-house-only split stays explicit.
     pub fn summary_line(&self) -> String {
         let house_system = self.houses.as_ref().map_or_else(
             || "none".to_string(),
@@ -684,7 +696,7 @@ impl ChartSnapshot {
         let house_cusp_count = self.houses.as_ref().map_or(0, |houses| houses.cusps.len());
 
         format!(
-            "backend={}; instant={} ({}); placements={}; zodiac={}; apparentness={}; observer={}; house system={}; house cusps={}",
+            "backend={}; instant={} ({}); placements={}; zodiac={}; apparentness={}; observer={}; observer location={}; house system={}; house cusps={}",
             self.backend_id,
             self.instant.julian_day,
             self.instant.scale,
@@ -692,6 +704,7 @@ impl ChartSnapshot {
             self.zodiac_mode,
             self.apparentness,
             self.observer_policy().summary_line(),
+            render_observer_location_label(self.observer.as_ref()),
             house_system,
             house_cusp_count,
         )
@@ -2465,7 +2478,7 @@ mod tests {
         let rendered = chart.to_string();
         assert_eq!(
             chart.summary_line(),
-            "backend=toy-chart; instant=JD 2451545 (TT); placements=0; zodiac=Tropical; apparentness=Mean; observer=geocentric; house system=none; house cusps=0"
+            "backend=toy-chart; instant=JD 2451545 (TT); placements=0; zodiac=Tropical; apparentness=Mean; observer=geocentric; observer location=none; house system=none; house cusps=0"
         );
         assert!(rendered
             .contains("Observer policy: geocentric body positions; no house observer supplied"));
@@ -2676,7 +2689,7 @@ mod tests {
         assert_eq!(chart.observer_policy(), ObserverPolicy::HouseOnly);
         assert_eq!(
             chart.summary_line(),
-            "backend=toy-chart; instant=JD 2451545 (TT); placements=2; zodiac=Tropical; apparentness=Mean; observer=house-only; house system=Whole Sign; house cusps=12"
+            "backend=toy-chart; instant=JD 2451545 (TT); placements=2; zodiac=Tropical; apparentness=Mean; observer=house-only; observer location=latitude=0°, longitude=0°, elevation=n/a; house system=Whole Sign; house cusps=12"
         );
         assert!(rendered.contains("House system: Whole Sign"));
         assert!(rendered
@@ -2762,7 +2775,7 @@ mod tests {
         assert_eq!(chart.observer_policy(), ObserverPolicy::Geocentric);
         assert_eq!(
             chart.summary_line(),
-            "backend=recording-chart; instant=JD 2451545 (TT); placements=1; zodiac=Tropical; apparentness=Mean; observer=geocentric; house system=none; house cusps=0"
+            "backend=recording-chart; instant=JD 2451545 (TT); placements=1; zodiac=Tropical; apparentness=Mean; observer=geocentric; observer location=latitude=51.5°, longitude=359.9°, elevation=n/a; house system=none; house cusps=0"
         );
         assert!(chart
             .to_string()
@@ -2872,7 +2885,7 @@ mod tests {
         assert_eq!(request.observer_policy(), ObserverPolicy::Geocentric);
         assert_eq!(
             request.summary_line(),
-            "instant=JD 2451545 (TT); bodies=10; zodiac=Tropical; apparentness=Mean; observer=geocentric; house system=none"
+            "instant=JD 2451545 (TT); bodies=10; zodiac=Tropical; apparentness=Mean; observer=geocentric; observer location=none; house system=none"
         );
         assert_eq!(request.to_string(), request.summary_line());
     }
@@ -2899,7 +2912,7 @@ mod tests {
         assert_eq!(ObserverPolicy::HouseOnly.summary_line(), "house-only");
         assert_eq!(
             request.summary_line(),
-            "instant=JD 2451545 (UTC); bodies=2; zodiac=Sidereal (Lahiri); apparentness=Apparent; observer=house-only; house system=Whole Sign"
+            "instant=JD 2451545 (UTC); bodies=2; zodiac=Sidereal (Lahiri); apparentness=Apparent; observer=house-only; observer location=latitude=12.5°, longitude=45°, elevation=100.000 m; house system=Whole Sign"
         );
     }
 
@@ -2919,7 +2932,7 @@ mod tests {
         assert_eq!(request.observer_policy(), ObserverPolicy::Geocentric);
         assert_eq!(
             request.summary_line(),
-            "instant=JD 2451545 (TT); bodies=2; zodiac=Tropical; apparentness=Mean; observer=geocentric; house system=none"
+            "instant=JD 2451545 (TT); bodies=2; zodiac=Tropical; apparentness=Mean; observer=geocentric; observer location=latitude=12.5°, longitude=45°, elevation=100.000 m; house system=none"
         );
     }
 
@@ -2937,7 +2950,7 @@ mod tests {
 
         assert_eq!(
             request.summary_line(),
-            "instant=JD 2451545 (TT); bodies=10; zodiac=Tropical; apparentness=Mean; observer=geocentric; house system=My Custom Houses [aliases: My Alias] (uses a local calibration)"
+            "instant=JD 2451545 (TT); bodies=10; zodiac=Tropical; apparentness=Mean; observer=geocentric; observer location=none; house system=My Custom Houses [aliases: My Alias] (uses a local calibration)"
         );
     }
 
