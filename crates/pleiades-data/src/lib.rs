@@ -321,6 +321,19 @@ const PACKAGED_ARTIFACT_GENERATION_POLICY_SUMMARY: PackagedArtifactGenerationPol
     };
 
 /// Returns the current packaged-artifact generation policy summary record.
+///
+/// # Examples
+///
+/// ```
+/// use pleiades_data::{
+///     packaged_artifact_generation_policy_summary_details,
+///     packaged_artifact_generation_policy_summary_for_report,
+/// };
+///
+/// let summary = packaged_artifact_generation_policy_summary_details();
+/// assert_eq!(summary.to_string(), packaged_artifact_generation_policy_summary_for_report());
+/// assert!(summary.validate().is_ok());
+/// ```
 pub fn packaged_artifact_generation_policy_summary_details(
 ) -> PackagedArtifactGenerationPolicySummary {
     let summary = PACKAGED_ARTIFACT_GENERATION_POLICY_SUMMARY;
