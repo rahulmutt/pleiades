@@ -3473,6 +3473,12 @@ enum LunarHighCurvatureEvidenceValidationError {
     NonFiniteMeasure { field: &'static str },
     /// A stored step window is reversed.
     ReversedStepWindow { field: &'static str },
+    /// The stored regression-limit flag drifted away from the derived thresholds.
+    RegressionLimitMismatch {
+        envelope: &'static str,
+        within_regression_limits: bool,
+        expected_within_regression_limits: bool,
+    },
 }
 
 impl fmt::Display for LunarHighCurvatureEvidenceValidationError {
@@ -3501,6 +3507,14 @@ impl fmt::Display for LunarHighCurvatureEvidenceValidationError {
             Self::ReversedStepWindow { field } => write!(
                 f,
                 "the lunar high-curvature continuity evidence field `{field}` has a reversed step window"
+            ),
+            Self::RegressionLimitMismatch {
+                envelope,
+                within_regression_limits,
+                expected_within_regression_limits,
+            } => write!(
+                f,
+                "the {envelope} stored regression-limit flag `{within_regression_limits}` does not match the derived limits (`{expected_within_regression_limits}`)"
             ),
         }
     }
@@ -3627,7 +3641,23 @@ impl LunarHighCurvatureContinuityEnvelope {
                     self.max_distance_step_au,
                 ),
             ],
-        )
+        )?;
+
+        let expected_within_regression_limits = self.max_longitude_step_deg
+            <= LUNAR_HIGH_CURVATURE_LONGITUDE_LIMIT_DEG
+            && self.max_latitude_step_deg <= LUNAR_HIGH_CURVATURE_LATITUDE_LIMIT_DEG
+            && self.max_distance_step_au <= LUNAR_HIGH_CURVATURE_DISTANCE_LIMIT_AU;
+        if self.within_regression_limits != expected_within_regression_limits {
+            return Err(
+                LunarHighCurvatureEvidenceValidationError::RegressionLimitMismatch {
+                    envelope: "lunar high-curvature continuity evidence",
+                    within_regression_limits: self.within_regression_limits,
+                    expected_within_regression_limits,
+                },
+            );
+        }
+
+        Ok(())
     }
 }
 
@@ -3827,7 +3857,23 @@ impl LunarHighCurvatureEquatorialContinuityEnvelope {
                     self.max_distance_step_au,
                 ),
             ],
-        )
+        )?;
+
+        let expected_within_regression_limits = self.max_right_ascension_step_deg
+            <= LUNAR_HIGH_CURVATURE_RIGHT_ASCENSION_LIMIT_DEG
+            && self.max_declination_step_deg <= LUNAR_HIGH_CURVATURE_DECLINATION_LIMIT_DEG
+            && self.max_distance_step_au <= LUNAR_HIGH_CURVATURE_DISTANCE_LIMIT_AU;
+        if self.within_regression_limits != expected_within_regression_limits {
+            return Err(
+                LunarHighCurvatureEvidenceValidationError::RegressionLimitMismatch {
+                    envelope: "lunar high-curvature equatorial continuity evidence",
+                    within_regression_limits: self.within_regression_limits,
+                    expected_within_regression_limits,
+                },
+            );
+        }
+
+        Ok(())
     }
 }
 
@@ -5588,6 +5634,24 @@ mod tests {
     }
 
     #[test]
+    fn lunar_high_curvature_continuity_validation_rejects_stale_regression_limit_flag() {
+        let mut envelope =
+            lunar_high_curvature_continuity_envelope().expect("envelope should exist");
+        envelope.within_regression_limits = false;
+
+        assert!(matches!(
+            envelope.validate(),
+            Err(
+                LunarHighCurvatureEvidenceValidationError::RegressionLimitMismatch {
+                    envelope: "lunar high-curvature continuity evidence",
+                    within_regression_limits: false,
+                    expected_within_regression_limits: true,
+                }
+            )
+        ));
+    }
+
+    #[test]
     fn lunar_high_curvature_equatorial_continuity_evidence_is_rendered() {
         let envelope = lunar_high_curvature_equatorial_continuity_envelope()
             .expect("equatorial envelope should exist");
@@ -5617,6 +5681,24 @@ mod tests {
         assert!(matches!(
             envelope.validate(),
             Err(LunarHighCurvatureEvidenceValidationError::SampleCountTooSmall { sample_count: 1 })
+        ));
+    }
+
+    #[test]
+    fn lunar_high_curvature_equatorial_continuity_validation_rejects_stale_regression_limit_flag() {
+        let mut envelope = lunar_high_curvature_equatorial_continuity_envelope()
+            .expect("equatorial envelope should exist");
+        envelope.within_regression_limits = false;
+
+        assert!(matches!(
+            envelope.validate(),
+            Err(
+                LunarHighCurvatureEvidenceValidationError::RegressionLimitMismatch {
+                    envelope: "lunar high-curvature equatorial continuity evidence",
+                    within_regression_limits: false,
+                    expected_within_regression_limits: true,
+                }
+            )
         ));
     }
 
