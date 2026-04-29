@@ -3390,6 +3390,8 @@ pub struct CompatibilityProfileVerificationSummary {
     pub house_system_label_count: usize,
     /// Number of Swiss Ephemeris house-table code aliases checked.
     pub house_code_alias_count: usize,
+    /// Compact mapping of the Swiss Ephemeris house-table code aliases.
+    pub house_code_aliases_summary: String,
     /// Latitude-sensitive house systems exposed by the profile.
     pub latitude_sensitive_house_systems: Vec<String>,
     /// Number of ayanamsa descriptors checked.
@@ -3481,6 +3483,16 @@ impl CompatibilityProfileVerificationSummary {
                 format!(
                     "compatibility profile verification summary house-code alias count mismatch: expected {}, found {}",
                     profile.house_code_alias_count(), self.house_code_alias_count
+                ),
+            ));
+        }
+        let expected_house_code_aliases = profile.house_code_aliases_summary_line();
+        if self.house_code_aliases_summary != expected_house_code_aliases {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile verification summary house-code aliases mismatch: expected [{}], found [{}]",
+                    expected_house_code_aliases, self.house_code_aliases_summary
                 ),
             ));
         }
@@ -3717,6 +3729,9 @@ impl CompatibilityProfileVerificationSummary {
         text.push_str("House code aliases verified: ");
         text.push_str(&self.house_code_alias_count.to_string());
         text.push_str(" short-form labels\n");
+        text.push_str("House code aliases: ");
+        text.push_str(&self.house_code_aliases_summary);
+        text.push('\n');
         text.push_str("Alias uniqueness checks: exact and case-insensitive labels verified\n");
         text.push_str("Latitude-sensitive house systems verified: ");
         text.push_str(&self.latitude_sensitive_house_systems.len().to_string());
@@ -3887,6 +3902,7 @@ pub fn compatibility_profile_verification_summary(
         house_system_descriptor_count: profile.house_systems.len(),
         house_system_label_count: house_labels_checked,
         house_code_alias_count: profile.house_code_alias_count(),
+        house_code_aliases_summary: profile.house_code_aliases_summary_line(),
         latitude_sensitive_house_systems: profile
             .latitude_sensitive_house_systems()
             .into_iter()
@@ -13052,6 +13068,10 @@ mod tests {
             summary.house_code_alias_count,
             profile.house_code_alias_count()
         );
+        assert_eq!(
+            summary.house_code_aliases_summary,
+            profile.house_code_aliases_summary_line()
+        );
         assert_eq!(summary.ayanamsa_descriptor_count, profile.ayanamsas.len());
         assert_eq!(
             summary.baseline_house_system_count,
@@ -13114,6 +13134,10 @@ mod tests {
             "House code aliases verified: {} short-form labels",
             profile.house_code_alias_count()
         )));
+        assert!(summary.summary_line().contains(&format!(
+            "House code aliases: {}",
+            profile.house_code_aliases_summary_line()
+        )));
         assert!(summary
             .summary_line()
             .contains("House formula families verified: Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign"));
@@ -13162,6 +13186,16 @@ mod tests {
             .expect_err("stale house-code alias count should fail validation");
         assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
         assert!(error.message.contains("house-code alias count mismatch"));
+
+        let mut summary = compatibility_profile_verification_summary()
+            .expect("compatibility profile verification summary should render");
+        summary.house_code_aliases_summary = "stale summary".to_string();
+
+        let error = summary
+            .validate()
+            .expect_err("stale house-code alias summary should fail validation");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error.message.contains("house-code aliases mismatch"));
 
         let mut summary = compatibility_profile_verification_summary()
             .expect("compatibility profile verification summary should render");

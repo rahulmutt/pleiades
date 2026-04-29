@@ -250,6 +250,19 @@ pub struct HouseSystemCodeAlias {
     pub system: HouseSystem,
 }
 
+impl HouseSystemCodeAlias {
+    /// Returns a compact one-line rendering of the alias mapping.
+    pub fn summary_line(&self) -> String {
+        format!("{} -> {}", self.label, self.system)
+    }
+}
+
+impl fmt::Display for HouseSystemCodeAlias {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 const SWISS_EPHEMERIS_HOUSE_SYSTEM_CODE_ALIASES: &[HouseSystemCodeAlias] = &[
     HouseSystemCodeAlias {
         label: "P",
@@ -344,6 +357,15 @@ const SWISS_EPHEMERIS_HOUSE_SYSTEM_CODE_ALIASES: &[HouseSystemCodeAlias] = &[
 /// Returns the Swiss-Ephemeris-style short-form house labels accepted by the resolver.
 pub const fn house_system_code_aliases() -> &'static [HouseSystemCodeAlias] {
     SWISS_EPHEMERIS_HOUSE_SYSTEM_CODE_ALIASES
+}
+
+/// Returns a compact one-line rendering of the Swiss-Ephemeris house-code alias table.
+pub fn house_system_code_aliases_summary_line() -> String {
+    house_system_code_aliases()
+        .iter()
+        .map(HouseSystemCodeAlias::summary_line)
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 /// Errors emitted when validating the built-in house-system catalog.
@@ -2030,6 +2052,10 @@ mod tests {
         }
 
         assert_eq!(aliases.len(), 22);
+        assert_eq!(aliases[0].summary_line(), "P -> Placidus");
+        assert_eq!(aliases[0].to_string(), "P -> Placidus");
+        assert!(house_system_code_aliases_summary_line().contains("P -> Placidus"));
+        assert!(house_system_code_aliases_summary_line().contains("Y -> APC"));
         assert_eq!(
             resolve_house_system("axial rotation"),
             Some(HouseSystem::Meridian)

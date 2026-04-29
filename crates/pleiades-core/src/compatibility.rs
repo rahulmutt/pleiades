@@ -73,6 +73,11 @@ impl CompatibilityProfile {
         pleiades_houses::house_system_code_aliases().len()
     }
 
+    /// Returns the Swiss-Ephemeris house-code alias table as compact mappings.
+    pub fn house_code_aliases_summary_line(&self) -> String {
+        pleiades_houses::house_system_code_aliases_summary_line()
+    }
+
     /// Returns a compact inventory line for the current compatibility catalog.
     pub fn catalog_inventory_summary_line(&self) -> String {
         fn alias_count<T>(entries: &[T], aliases: impl Fn(&T) -> &'static [&'static str]) -> usize {
