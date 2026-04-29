@@ -111,6 +111,8 @@ Progress note: `pleiades-vsop87` now also exposes a reusable batch-request corpu
    - Progress note: the compact release summary now also surfaces the ELP lunar capability line plus the lunar reference and lunar equatorial evidence summaries alongside the JPL interpolation evidence, so the one-screen release overview keeps the current lunar theory baseline visible next to the other phase-1 accuracy evidence. The compact release and validation summaries now also render the lunar request-policy line explicitly, so the current TT/TDB, frame, apparentness, and observer posture is visible at a glance in release-facing output. The compact lunar summary views now also surface the lunar frame-treatment line explicitly, which keeps the mean-obliquity ecliptic/equatorial policy visible without opening the longer specification text.
    - Progress note: the compact ELP and VSOP87 implementation notes now describe the current baselines in production-neutral language, which keeps the remaining release-facing fallback wording aligned with the current phase-1 posture while the source-backed upgrades continue.
 
+   - Progress note: the lunar reference and lunar equatorial batch-parity request corpora now also expose compatibility aliases, which keeps the reusable request-shape helpers aligned with the JPL and VSOP87 corpus naming pattern for downstream tooling.
+
 3. Upgrade `pleiades-jpl` from snapshot fixture to reference backend.
    - Parse documented public JPL-style files or a reproducible derivative format in pure Rust.
    - Support multiple epochs through interpolation rather than exact fixture lookup only.

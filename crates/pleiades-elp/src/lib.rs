@@ -2152,6 +2152,14 @@ pub fn lunar_reference_batch_requests() -> Vec<EphemerisRequest> {
         .collect()
 }
 
+/// Returns the canonical mixed TT/TDB request corpus used by lunar batch-parity validation.
+///
+/// This is a compatibility alias for [`lunar_reference_batch_requests`].
+#[doc(alias = "lunar_reference_batch_requests")]
+pub fn lunar_reference_batch_request_corpus() -> Vec<EphemerisRequest> {
+    lunar_reference_batch_requests()
+}
+
 /// A single canonical lunar equatorial evidence sample used by validation and reporting.
 #[derive(Clone, Debug, PartialEq)]
 pub struct LunarEquatorialReferenceSample {
@@ -2264,6 +2272,14 @@ pub fn lunar_equatorial_reference_batch_requests() -> Vec<EphemerisRequest> {
             request
         })
         .collect()
+}
+
+/// Returns the canonical equatorial lunar batch-parity corpus used by validation and reporting.
+///
+/// This is a compatibility alias for [`lunar_equatorial_reference_batch_requests`].
+#[doc(alias = "lunar_equatorial_reference_batch_requests")]
+pub fn lunar_equatorial_reference_batch_request_corpus() -> Vec<EphemerisRequest> {
+    lunar_equatorial_reference_batch_requests()
 }
 
 /// A compact summary of the canonical lunar equatorial reference batch-parity slice.
@@ -6798,6 +6814,18 @@ mod tests {
             assert!(request.observer.is_none());
             assert_eq!(request.instant.scale, TimeScale::Tt);
         }
+    }
+
+    #[test]
+    fn lunar_request_corpus_aliases_remain_the_canonical_slices() {
+        assert_eq!(
+            lunar_reference_batch_request_corpus(),
+            lunar_reference_batch_requests()
+        );
+        assert_eq!(
+            lunar_equatorial_reference_batch_request_corpus(),
+            lunar_equatorial_reference_batch_requests()
+        );
     }
 
     #[test]
