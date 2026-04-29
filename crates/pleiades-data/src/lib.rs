@@ -914,6 +914,19 @@ const PACKAGED_LOOKUP_EPOCH_POLICY_SUMMARY: PackagedLookupEpochPolicySummary =
     };
 
 /// Returns the current packaged-data lookup-epoch policy summary record.
+///
+/// # Examples
+///
+/// ```
+/// use pleiades_data::packaged_lookup_epoch_policy_summary_details;
+///
+/// let summary = packaged_lookup_epoch_policy_summary_details();
+/// assert_eq!(
+///     summary.summary_line(),
+///     "TT-grid retag without relativistic correction; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction",
+/// );
+/// assert!(summary.validate().is_ok());
+/// ```
 pub fn packaged_lookup_epoch_policy_summary_details() -> PackagedLookupEpochPolicySummary {
     let summary = PACKAGED_LOOKUP_EPOCH_POLICY_SUMMARY;
     debug_assert!(summary.validate().is_ok());
@@ -1383,6 +1396,19 @@ impl fmt::Display for PackagedArtifactAccessSummary {
 }
 
 /// Returns the structured packaged-artifact access summary.
+///
+/// # Examples
+///
+/// ```
+/// use pleiades_data::{
+///     packaged_artifact_access_summary_details,
+///     packaged_artifact_access_summary_for_report,
+/// };
+///
+/// let summary = packaged_artifact_access_summary_details();
+/// assert_eq!(summary.to_string(), packaged_artifact_access_summary_for_report());
+/// assert!(summary.validate().is_ok());
+/// ```
 pub const fn packaged_artifact_access_summary_details() -> PackagedArtifactAccessSummary {
     PackagedArtifactAccessSummary {
         explicit_path_loading: cfg!(feature = "packaged-artifact-path"),
