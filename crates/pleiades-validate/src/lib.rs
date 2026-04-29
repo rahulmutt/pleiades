@@ -605,12 +605,24 @@ pub struct ComparisonAuditSummary {
 }
 
 impl ComparisonAuditSummary {
-    fn status_label(self) -> &'static str {
+    fn status_label(&self) -> &'static str {
         if self.regression_count == 0 {
             "clean"
         } else {
             "regressions found"
         }
+    }
+
+    /// Returns the compact release-facing comparison-audit summary line.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "status={}, bodies checked={}, within tolerance bodies={}, outside tolerance bodies={}, notable regressions={}",
+            self.status_label(),
+            self.body_count,
+            self.within_tolerance_body_count,
+            self.outside_tolerance_body_count,
+            self.regression_count,
+        )
     }
 
     /// Validates the comparison-audit counts before the summary is rendered or reused.
@@ -640,17 +652,6 @@ impl ComparisonAuditSummary {
         }
 
         Ok(())
-    }
-
-    fn summary_line(self) -> String {
-        format!(
-            "status={}, bodies checked={}, within tolerance bodies={}, outside tolerance bodies={}, notable regressions={}",
-            self.status_label(),
-            self.body_count,
-            self.within_tolerance_body_count,
-            self.outside_tolerance_body_count,
-            self.regression_count,
-        )
     }
 }
 
