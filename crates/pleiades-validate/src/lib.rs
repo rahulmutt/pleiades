@@ -1621,6 +1621,185 @@ struct BodyClassToleranceSummary {
 }
 
 impl BodyClassToleranceSummary {
+    fn validate(&self) -> Result<(), EphemerisError> {
+        if self.body_count == 0 {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "body-class tolerance summary must include at least one body",
+            ));
+        }
+
+        if self.sample_count == 0 {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "body-class tolerance summary must include at least one sample",
+            ));
+        }
+
+        let within_and_outside = self
+            .within_tolerance_body_count
+            .saturating_add(self.outside_tolerance_body_count);
+        if within_and_outside != self.body_count {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "body-class tolerance summary body-count mismatch: expected {}, found within tolerance {} + outside tolerance {} = {}",
+                    self.body_count,
+                    self.within_tolerance_body_count,
+                    self.outside_tolerance_body_count,
+                    within_and_outside
+                ),
+            ));
+        }
+
+        if self.outside_tolerance_sample_count > self.sample_count {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "body-class tolerance summary outside-sample count {} exceeds sample count {}",
+                    self.outside_tolerance_sample_count, self.sample_count
+                ),
+            ));
+        }
+
+        if self.outside_bodies.len() != self.outside_tolerance_body_count {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "body-class tolerance summary outside-body list mismatch: expected {}, found {}",
+                    self.outside_tolerance_body_count,
+                    self.outside_bodies.len()
+                ),
+            ));
+        }
+
+        let mut seen_outside_bodies = BTreeSet::new();
+        for body in &self.outside_bodies {
+            if !seen_outside_bodies.insert(body.to_string()) {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "body-class tolerance summary contains a duplicate outside body: {body}"
+                    ),
+                ));
+            }
+        }
+
+        for (label, value) in [
+            ("max_longitude_delta_deg", self.max_longitude_delta_deg),
+            ("max_latitude_delta_deg", self.max_latitude_delta_deg),
+            ("max_distance_delta_au", self.max_distance_delta_au),
+            (
+                "median_longitude_delta_deg",
+                Some(self.median_longitude_delta_deg),
+            ),
+            (
+                "percentile_longitude_delta_deg",
+                Some(self.percentile_longitude_delta_deg),
+            ),
+            (
+                "median_latitude_delta_deg",
+                Some(self.median_latitude_delta_deg),
+            ),
+            (
+                "percentile_latitude_delta_deg",
+                Some(self.percentile_latitude_delta_deg),
+            ),
+            (
+                "sum_longitude_delta_deg",
+                Some(self.sum_longitude_delta_deg),
+            ),
+            (
+                "sum_longitude_delta_sq_deg",
+                Some(self.sum_longitude_delta_sq_deg),
+            ),
+            ("sum_latitude_delta_deg", Some(self.sum_latitude_delta_deg)),
+            (
+                "sum_latitude_delta_sq_deg",
+                Some(self.sum_latitude_delta_sq_deg),
+            ),
+            ("sum_distance_delta_au", Some(self.sum_distance_delta_au)),
+            (
+                "sum_distance_delta_sq_au",
+                Some(self.sum_distance_delta_sq_au),
+            ),
+        ] {
+            if let Some(value) = value {
+                if !value.is_finite() || value.is_sign_negative() {
+                    return Err(EphemerisError::new(
+                        EphemerisErrorKind::InvalidRequest,
+                        format!(
+                            "body-class tolerance summary for {} field `{label}` must be a finite non-negative value",
+                            self.class.label()
+                        ),
+                    ));
+                }
+            }
+        }
+
+        if let Some(value) = self.max_distance_delta_au {
+            if !value.is_finite() || value.is_sign_negative() {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "body-class tolerance summary for {} field `max_distance_delta_au` must be a finite non-negative value",
+                        self.class.label()
+                    ),
+                ));
+            }
+        }
+
+        if self.distance_count > self.sample_count {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "body-class tolerance summary distance count {} exceeds sample count {}",
+                    self.distance_count, self.sample_count
+                ),
+            ));
+        }
+
+        let distance_fields_present = self.max_distance_delta_body.is_some()
+            || self.max_distance_delta_au.is_some()
+            || self.median_distance_delta_au.is_some()
+            || self.percentile_distance_delta_au.is_some();
+        if self.distance_count == 0 {
+            if distance_fields_present {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "body-class tolerance summary for {} must not carry distance metrics when no distance samples are present",
+                        self.class.label()
+                    ),
+                ));
+            }
+        } else if self.max_distance_delta_body.is_none()
+            || self.max_distance_delta_au.is_none()
+            || self.median_distance_delta_au.is_none()
+            || self.percentile_distance_delta_au.is_none()
+        {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "body-class tolerance summary for {} must carry distance extrema and spread metrics when distance samples are present",
+                    self.class.label()
+                ),
+            ));
+        }
+
+        if self.max_longitude_delta_body.is_none() || self.max_latitude_delta_body.is_none() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "body-class tolerance summary for {} must name the longitude and latitude extrema drivers",
+                    self.class.label()
+                ),
+            ));
+        }
+
+        Ok(())
+    }
+
     fn mean_longitude_delta_deg(&self) -> f64 {
         if self.sample_count == 0 {
             0.0
@@ -7112,7 +7291,10 @@ fn format_body_class_comparison_envelope_for_report(summary: &BodyClassSummary) 
 }
 
 fn format_body_class_tolerance_envelope_for_report(summary: &BodyClassToleranceSummary) -> String {
-    summary.summary_line()
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("body-class tolerance envelope unavailable ({error})"),
+    }
 }
 
 fn validate_comparison_sample_distance_channels(
@@ -12564,12 +12746,56 @@ mod tests {
 
         let expected = "Major planets: backend family=reference data, profile=phase-1 body-class tolerance, bodies=2, samples=2, within tolerance bodies=1, outside tolerance bodies=1, limit Δlon≤1.500000°, margin Δlon=+0.500000000000°, limit Δlat≤0.500000°, margin Δlat=+0.250000000000°, limit Δdist=3.000000 AU, margin Δdist=+0.500000000000 AU, max Δlon=1.000000000000° (Mars), max Δlat=0.250000000000° (Jupiter), max Δdist=2.500000000000 AU (Saturn)";
 
+        assert!(summary.validate().is_ok());
         assert_eq!(summary.summary_line(), expected);
         assert_eq!(summary.to_string(), expected);
         assert_eq!(
             format_body_class_tolerance_envelope_for_report(&summary),
             expected
         );
+    }
+
+    #[test]
+    fn body_class_tolerance_summary_rejects_count_drift() {
+        let summary = BodyClassToleranceSummary {
+            class: BodyClass::MajorPlanet,
+            tolerance: ComparisonTolerance {
+                backend_family: BackendFamily::ReferenceData,
+                profile: "phase-1 body-class tolerance",
+                max_longitude_delta_deg: 1.5,
+                max_latitude_delta_deg: 0.5,
+                max_distance_delta_au: Some(3.0),
+            },
+            body_count: 1,
+            sample_count: 1,
+            within_tolerance_body_count: 1,
+            outside_tolerance_body_count: 0,
+            outside_tolerance_sample_count: 0,
+            max_longitude_delta_body: Some(CelestialBody::Mars),
+            max_longitude_delta_deg: Some(1.0),
+            max_latitude_delta_body: Some(CelestialBody::Jupiter),
+            max_latitude_delta_deg: Some(0.25),
+            max_distance_delta_body: Some(CelestialBody::Saturn),
+            max_distance_delta_au: Some(2.5),
+            sum_longitude_delta_deg: 1.0,
+            sum_longitude_delta_sq_deg: 1.0,
+            sum_latitude_delta_deg: 0.25,
+            sum_latitude_delta_sq_deg: 0.0625,
+            sum_distance_delta_au: 2.5,
+            sum_distance_delta_sq_au: 6.25,
+            distance_count: 1,
+            median_longitude_delta_deg: 1.0,
+            percentile_longitude_delta_deg: 1.0,
+            median_latitude_delta_deg: 0.25,
+            percentile_latitude_delta_deg: 0.25,
+            median_distance_delta_au: Some(2.5),
+            percentile_distance_delta_au: Some(2.5),
+            outside_bodies: vec![CelestialBody::Mars, CelestialBody::Jupiter],
+        };
+
+        let rendered = format_body_class_tolerance_envelope_for_report(&summary);
+        assert!(rendered.contains("body-class tolerance envelope unavailable"));
+        assert!(summary.validate().is_err());
     }
 
     #[test]
