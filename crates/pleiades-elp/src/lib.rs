@@ -201,8 +201,10 @@ impl LunarTheorySourceSelection {
         };
 
         format!(
-            "lunar source selection: {} [family: {}]; aliases: {}; citation: {}; provenance: {}; redistribution: {}; license: {}",
+            "lunar source selection: {} [selected key: {}; family key: {}; family: {}]; aliases: {}; citation: {}; provenance: {}; redistribution: {}; license: {}",
             self.identifier,
+            self.catalog_key(),
+            self.family_key(),
             self.family_label(),
             aliases,
             self.citation,
@@ -5914,6 +5916,11 @@ mod tests {
             Some(lunar_theory_specification())
         );
         assert!(summary.contains(selection.identifier));
+        assert!(summary
+            .contains("selected key: source identifier=meeus-style-truncated-lunar-baseline"));
+        assert!(
+            summary.contains("family key: source family=Meeus-style truncated analytical baseline")
+        );
         assert!(summary.contains(selection.family_label()));
         assert!(summary.contains(selection.citation));
         assert!(summary.contains(selection.license_note));
