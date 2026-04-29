@@ -269,6 +269,25 @@ impl fmt::Display for PackagedArtifactGenerationPolicySummaryValidationError {
 
 impl std::error::Error for PackagedArtifactGenerationPolicySummaryValidationError {}
 
+fn validate_packaged_artifact_generation_policy_residual_bodies(
+    policy: PackagedArtifactGenerationPolicy,
+    residual_bodies: &[CelestialBody],
+) -> Result<(), PackagedArtifactGenerationPolicySummaryValidationError> {
+    match policy {
+        PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments => {
+            if residual_bodies != [CelestialBody::Moon] {
+                return Err(
+                    PackagedArtifactGenerationPolicySummaryValidationError::FieldOutOfSync {
+                        field: "residual_bodies",
+                    },
+                );
+            }
+        }
+    }
+
+    Ok(())
+}
+
 impl PackagedArtifactGenerationPolicySummary {
     /// Returns the packaged-artifact generation policy as a compact human-readable line.
     pub fn summary_line(self) -> String {
@@ -281,7 +300,12 @@ impl PackagedArtifactGenerationPolicySummary {
             PackagedArtifactGenerationPolicyValidationError::FieldOutOfSync { field } => {
                 PackagedArtifactGenerationPolicySummaryValidationError::FieldOutOfSync { field }
             }
-        })
+        })?;
+
+        validate_packaged_artifact_generation_policy_residual_bodies(
+            self.policy,
+            &packaged_artifact().residual_bodies(),
+        )
     }
 }
 
@@ -3114,18 +3138,35 @@ mod tests {
     #[test]
     fn packaged_artifact_generation_policy_summary_matches_current_posture() {
         let summary = packaged_artifact_generation_policy_summary_details();
+        let artifact = packaged_artifact();
         assert_eq!(
             summary.policy,
             PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments
         );
         assert_eq!(summary.summary_line(), "adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic residual corrections to keep the high-curvature fit compact");
         assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(artifact.residual_bodies(), vec![CelestialBody::Moon]);
         summary
             .validate()
             .expect("generation policy summary should validate");
         assert_eq!(
             packaged_artifact_generation_policy_summary(),
             summary.to_string()
+        );
+    }
+
+    #[test]
+    fn packaged_artifact_generation_policy_summary_rejects_residual_body_drift() {
+        assert_eq!(
+            validate_packaged_artifact_generation_policy_residual_bodies(
+                PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments,
+                &[CelestialBody::Sun],
+            ),
+            Err(
+                PackagedArtifactGenerationPolicySummaryValidationError::FieldOutOfSync {
+                    field: "residual_bodies",
+                }
+            )
         );
     }
 
