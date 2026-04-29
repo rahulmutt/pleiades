@@ -865,6 +865,17 @@ impl ArtifactInspectionReport {
                     "artifact inspection report field `residual_bodies` does not match the inspected residual-bearing body set",
                 ));
             }
+
+            let expected_residual_segment_count: usize = self
+                .bodies
+                .iter()
+                .map(|inspection| inspection.residual_segment_count)
+                .sum();
+            if self.residual_segment_count != expected_residual_segment_count {
+                return Err(report_validation_error(
+                    "artifact inspection report field `residual_segment_count` does not match the inspected residual-bearing segment count",
+                ));
+            }
         }
 
         if self
@@ -2018,6 +2029,22 @@ mod tests {
         assert!(error
             .to_string()
             .contains("artifact inspection report field `residual_bodies` does not match"));
+    }
+
+    #[test]
+    fn artifact_inspection_report_validate_rejects_residual_segment_count_drift() {
+        let artifact = packaged_artifact();
+        let encoded = artifact.encode().expect("packaged artifact should encode");
+        let mut report = ArtifactInspectionReport::from_artifact(artifact, encoded.len())
+            .expect("artifact inspection report should build");
+        report.residual_segment_count += 1;
+
+        let error = report
+            .validate()
+            .expect_err("residual segment count drift should fail validation");
+        assert!(error
+            .to_string()
+            .contains("artifact inspection report field `residual_segment_count` does not match"));
     }
 
     #[test]
