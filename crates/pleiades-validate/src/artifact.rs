@@ -69,6 +69,8 @@ pub struct ArtifactBodyInspection {
     pub latest: Instant,
     /// Number of sample lookups exercised for this body.
     pub sample_count: usize,
+    /// Number of segments that carry residual-correction channels.
+    pub residual_segment_count: usize,
     /// Number of shared segment boundaries checked for continuity.
     pub boundary_checks: usize,
     /// Sum of longitude deltas across all checked boundaries.
@@ -155,13 +157,14 @@ impl ArtifactBodyInspection {
     /// Returns a compact one-line summary of the body inspection envelope.
     pub fn summary_line(&self) -> String {
         format!(
-            "{}: {} segments, {} → {}, {} samples, {} boundary checks, mean boundary Δlon={:.12}°, rms boundary Δlon={:.12}°, mean boundary Δlat={:.12}°, rms boundary Δlat={:.12}°, mean boundary Δdist={}, rms boundary Δdist={}, max boundary Δlon={:.12}°, Δlat={:.12}°, Δdist={}",
+            "{}: {} segments, {} → {}, {} samples, {} boundary checks, {} residual-bearing segments, mean boundary Δlon={:.12}°, rms boundary Δlon={:.12}°, mean boundary Δlat={:.12}°, rms boundary Δlat={:.12}°, mean boundary Δdist={}, rms boundary Δdist={}, max boundary Δlon={:.12}°, Δlat={:.12}°, Δdist={}",
             self.body,
             self.segment_count,
             self.earliest,
             self.latest,
             self.sample_count,
             self.boundary_checks,
+            self.residual_segment_count,
             self.mean_boundary_longitude_delta_deg(),
             self.rms_boundary_longitude_delta_deg(),
             self.mean_boundary_latitude_delta_deg(),
@@ -849,6 +852,19 @@ impl ArtifactInspectionReport {
                     "artifact inspection report field `residual_segment_count` exceeds the total inspected segments",
                 ));
             }
+
+            let expected_residual_bodies = self
+                .bodies
+                .iter()
+                .filter(|inspection| inspection.residual_segment_count > 0)
+                .map(|inspection| inspection.body.clone())
+                .collect::<Vec<_>>();
+
+            if self.residual_bodies != expected_residual_bodies {
+                return Err(report_validation_error(
+                    "artifact inspection report field `residual_bodies` does not match the inspected residual-bearing body set",
+                ));
+            }
         }
 
         if self
@@ -1087,6 +1103,11 @@ fn inspect_body(
         earliest,
         latest,
         sample_count,
+        residual_segment_count: body
+            .segments
+            .iter()
+            .filter(|segment| !segment.residual_channels.is_empty())
+            .count(),
         boundary_checks,
         sum_boundary_longitude_delta_deg,
         sum_boundary_longitude_delta_deg_sq,
@@ -1921,6 +1942,7 @@ mod tests {
             earliest: instant(1.0),
             latest: instant(2.0),
             sample_count: 6,
+            residual_segment_count: 1,
             boundary_checks: 2,
             sum_boundary_longitude_delta_deg: 0.20,
             sum_boundary_longitude_delta_deg_sq: 0.05,
@@ -1937,7 +1959,7 @@ mod tests {
         let summary = inspection.summary_line();
         assert!(summary.contains("Sun: 2 segments,"));
         assert!(summary.contains("JD 1 TT → JD 2 TT"));
-        assert!(summary.contains("6 samples, 2 boundary checks"));
+        assert!(summary.contains("6 samples, 2 boundary checks, 1 residual-bearing segments"));
         assert!(summary.contains("mean boundary Δlon=0.100000000000°"));
         assert!(summary.contains("rms boundary Δlon=0.158113883008°"));
         assert!(summary.contains("mean boundary Δlat=0.200000000000°"));
@@ -1980,6 +2002,22 @@ mod tests {
         assert!(error
             .to_string()
             .contains("artifact inspection report field `body_count`"));
+    }
+
+    #[test]
+    fn artifact_inspection_report_validate_rejects_residual_body_coverage_drift() {
+        let artifact = packaged_artifact();
+        let encoded = artifact.encode().expect("packaged artifact should encode");
+        let mut report = ArtifactInspectionReport::from_artifact(artifact, encoded.len())
+            .expect("artifact inspection report should build");
+        report.residual_bodies.push(CelestialBody::Sun);
+
+        let error = report
+            .validate()
+            .expect_err("residual body drift should fail validation");
+        assert!(error
+            .to_string()
+            .contains("artifact inspection report field `residual_bodies` does not match"));
     }
 
     #[test]
