@@ -2251,6 +2251,198 @@ pub fn lunar_equatorial_reference_evidence() -> &'static [LunarEquatorialReferen
     SAMPLES
 }
 
+/// Returns the canonical equatorial lunar batch-parity corpus used by validation and reporting.
+pub fn lunar_equatorial_reference_batch_requests() -> Vec<EphemerisRequest> {
+    lunar_equatorial_reference_evidence()
+        .iter()
+        .map(|sample| {
+            let mut request = EphemerisRequest::new(sample.body.clone(), sample.epoch);
+            request.frame = CoordinateFrame::Equatorial;
+            request.instant.scale = TimeScale::Tt;
+            request.zodiac_mode = ZodiacMode::Tropical;
+            request.apparent = Apparentness::Mean;
+            request
+        })
+        .collect()
+}
+
+/// A compact summary of the canonical lunar equatorial reference batch-parity slice.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct LunarEquatorialReferenceBatchParitySummary {
+    /// Number of evidence samples in the checked-in batch slice.
+    pub sample_count: usize,
+    /// Number of distinct bodies covered by the batch slice.
+    pub body_count: usize,
+    /// Coordinate frame covered by the batch slice.
+    pub frame: CoordinateFrame,
+    /// Whether the batch results preserved request order.
+    pub order_preserved: bool,
+    /// Whether batch results matched the corresponding single-query lookups.
+    pub single_query_parity: bool,
+}
+
+/// Validation error for a lunar equatorial batch-parity summary that drifted from the current reference evidence.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LunarEquatorialReferenceBatchParitySummaryValidationError {
+    /// A rendered summary field no longer matches the current evidence slice.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for LunarEquatorialReferenceBatchParitySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the lunar equatorial reference batch parity summary field `{field}` is out of sync with the current evidence"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for LunarEquatorialReferenceBatchParitySummaryValidationError {}
+
+/// Returns a compact summary of the canonical lunar equatorial reference batch-parity slice.
+pub fn lunar_equatorial_reference_batch_parity_summary(
+) -> Option<LunarEquatorialReferenceBatchParitySummary> {
+    let requests = lunar_equatorial_reference_batch_requests();
+    if requests.is_empty() {
+        return None;
+    }
+
+    let backend = ElpBackend::new();
+    let bodies = requests
+        .iter()
+        .map(|request| request.body.to_string())
+        .collect::<std::collections::BTreeSet<_>>();
+
+    let results = backend.positions(&requests).ok()?;
+    let mut order_preserved = true;
+    let mut single_query_parity = true;
+
+    for (request, result) in requests.iter().zip(results.iter()) {
+        order_preserved &= result.body == request.body;
+
+        let single = backend.position(request).ok()?;
+        single_query_parity &= result.body == single.body
+            && result.instant == single.instant
+            && result.frame == single.frame
+            && result.quality == single.quality
+            && result.ecliptic == single.ecliptic
+            && result.equatorial == single.equatorial
+            && result.motion == single.motion;
+    }
+
+    Some(LunarEquatorialReferenceBatchParitySummary {
+        sample_count: requests.len(),
+        body_count: bodies.len(),
+        frame: CoordinateFrame::Equatorial,
+        order_preserved,
+        single_query_parity,
+    })
+}
+
+impl LunarEquatorialReferenceBatchParitySummary {
+    /// Returns `Ok(())` when the summary still matches the current reference evidence.
+    pub fn validate(
+        &self,
+    ) -> Result<(), LunarEquatorialReferenceBatchParitySummaryValidationError> {
+        let samples = lunar_equatorial_reference_evidence();
+        let expected_sample_count = samples.len();
+        let expected_body_count = samples
+            .iter()
+            .map(|sample| sample.body.to_string())
+            .collect::<std::collections::BTreeSet<_>>()
+            .len();
+
+        if self.sample_count != expected_sample_count {
+            return Err(
+                LunarEquatorialReferenceBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        }
+        if self.body_count != expected_body_count {
+            return Err(
+                LunarEquatorialReferenceBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "body_count",
+                },
+            );
+        }
+        if self.frame != CoordinateFrame::Equatorial {
+            return Err(
+                LunarEquatorialReferenceBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "frame",
+                },
+            );
+        }
+        if !self.order_preserved {
+            return Err(
+                LunarEquatorialReferenceBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "order_preserved",
+                },
+            );
+        }
+        if !self.single_query_parity {
+            return Err(
+                LunarEquatorialReferenceBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "single_query_parity",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the release-facing one-line lunar equatorial batch parity summary.
+    pub fn summary_line(&self) -> String {
+        let order = if self.order_preserved {
+            "preserved"
+        } else {
+            "needs attention"
+        };
+        let parity = if self.single_query_parity {
+            "preserved"
+        } else {
+            "needs attention"
+        };
+
+        format!(
+            "lunar equatorial reference batch parity: {} requests across {} bodies, frame={}, order={}, single-query parity={}",
+            self.sample_count,
+            self.body_count,
+            self.frame,
+            order,
+            parity,
+        )
+    }
+}
+
+impl fmt::Display for LunarEquatorialReferenceBatchParitySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Formats the lunar equatorial batch-parity evidence for release-facing reporting.
+pub fn format_lunar_equatorial_reference_batch_parity_summary(
+    summary: &LunarEquatorialReferenceBatchParitySummary,
+) -> String {
+    summary.summary_line()
+}
+
+/// Returns the release-facing lunar equatorial batch-parity summary string.
+pub fn lunar_equatorial_reference_batch_parity_summary_for_report() -> String {
+    match lunar_equatorial_reference_batch_parity_summary() {
+        Some(summary) => match summary.validate() {
+            Ok(()) => format_lunar_equatorial_reference_batch_parity_summary(&summary),
+            Err(error) => {
+                format!("lunar equatorial reference batch parity: unavailable ({error})")
+            }
+        },
+        None => "lunar equatorial reference batch parity: unavailable".to_string(),
+    }
+}
+
 /// A compact summary of the canonical lunar reference evidence slice.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct LunarReferenceEvidenceSummary {
@@ -6585,6 +6777,30 @@ mod tests {
     }
 
     #[test]
+    fn lunar_equatorial_reference_batch_requests_match_the_canonical_slice() {
+        let requests = lunar_equatorial_reference_batch_requests();
+        let samples = lunar_equatorial_reference_evidence();
+
+        assert_eq!(requests.len(), samples.len());
+
+        for (index, (request, sample)) in requests.iter().zip(samples.iter()).enumerate() {
+            assert_eq!(
+                request.body, sample.body,
+                "request {index} body should match evidence"
+            );
+            assert_eq!(
+                request.instant.julian_day, sample.epoch.julian_day,
+                "request {index} epoch should match evidence"
+            );
+            assert_eq!(request.frame, CoordinateFrame::Equatorial);
+            assert_eq!(request.zodiac_mode, ZodiacMode::Tropical);
+            assert_eq!(request.apparent, Apparentness::Mean);
+            assert!(request.observer.is_none());
+            assert_eq!(request.instant.scale, TimeScale::Tt);
+        }
+    }
+
+    #[test]
     fn lunar_reference_evidence_summary_matches_the_canonical_slice() {
         let summary = lunar_reference_evidence_summary().expect("reference evidence should exist");
 
@@ -6622,6 +6838,25 @@ mod tests {
         assert!(lunar_reference_batch_parity_summary_for_report().contains("order=preserved"));
         assert!(lunar_reference_batch_parity_summary_for_report()
             .contains("single-query parity=preserved"));
+
+        let equatorial_parity = lunar_equatorial_reference_batch_parity_summary()
+            .expect("equatorial batch parity evidence should exist");
+        assert_eq!(equatorial_parity.sample_count, 2);
+        assert_eq!(equatorial_parity.body_count, 1);
+        assert_eq!(equatorial_parity.frame, CoordinateFrame::Equatorial);
+        assert!(equatorial_parity.order_preserved);
+        assert!(equatorial_parity.single_query_parity);
+        assert_eq!(
+            equatorial_parity.summary_line(),
+            equatorial_parity.to_string()
+        );
+        assert!(equatorial_parity.validate().is_ok());
+        assert_eq!(
+            format_lunar_equatorial_reference_batch_parity_summary(&equatorial_parity),
+            equatorial_parity.summary_line()
+        );
+        assert!(lunar_equatorial_reference_batch_parity_summary_for_report()
+            .contains("lunar equatorial reference batch parity: 2 requests across 1 bodies, frame=Equatorial, order=preserved, single-query parity=preserved"));
 
         let envelope = lunar_reference_evidence_envelope().expect("error envelope should exist");
         assert_eq!(envelope.sample_count, summary.sample_count);
@@ -6717,6 +6952,24 @@ mod tests {
             error,
             LunarReferenceBatchParitySummaryValidationError::FieldOutOfSync {
                 field: "tt_request_count"
+            }
+        );
+    }
+
+    #[test]
+    fn lunar_equatorial_reference_batch_parity_summary_validation_rejects_count_drift() {
+        let mut parity = lunar_equatorial_reference_batch_parity_summary()
+            .expect("equatorial batch parity evidence should exist");
+        parity.sample_count += 1;
+
+        let error = parity
+            .validate()
+            .expect_err("drifted equatorial parity evidence should fail validation");
+
+        assert_eq!(
+            error,
+            LunarEquatorialReferenceBatchParitySummaryValidationError::FieldOutOfSync {
+                field: "sample_count"
             }
         );
     }

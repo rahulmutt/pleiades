@@ -62,8 +62,9 @@ use pleiades_data::{
 };
 use pleiades_elp::{
     lunar_apparent_comparison_evidence, lunar_apparent_comparison_summary,
-    lunar_apparent_comparison_summary_for_report, lunar_equatorial_reference_evidence,
-    lunar_equatorial_reference_evidence_envelope_for_report,
+    lunar_apparent_comparison_summary_for_report,
+    lunar_equatorial_reference_batch_parity_summary_for_report,
+    lunar_equatorial_reference_evidence, lunar_equatorial_reference_evidence_envelope_for_report,
     lunar_equatorial_reference_evidence_summary,
     lunar_equatorial_reference_evidence_summary_for_report,
     lunar_high_curvature_continuity_evidence_for_report,
@@ -5898,6 +5899,9 @@ fn render_release_summary_text() -> String {
     text.push_str("Lunar equatorial reference: ");
     text.push_str(&lunar_equatorial_reference_evidence_summary_for_report());
     text.push('\n');
+    text.push_str("Lunar equatorial reference batch parity: ");
+    text.push_str(&lunar_equatorial_reference_batch_parity_summary_for_report());
+    text.push('\n');
     text.push_str("Lunar equatorial reference envelope: ");
     text.push_str(&lunar_equatorial_reference_evidence_envelope_for_report());
     text.push('\n');
@@ -8953,6 +8957,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(
         text,
         "  {}",
+        lunar_equatorial_reference_batch_parity_summary_for_report()
+    );
+    let _ = writeln!(
+        text,
+        "  {}",
         lunar_equatorial_reference_evidence_envelope_for_report()
     );
     let _ = writeln!(text);
@@ -9693,6 +9702,9 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str("Lunar equatorial reference\n");
     text.push_str(&lunar_equatorial_reference_evidence_summary_for_report());
+    text.push('\n');
+    text.push_str("Lunar equatorial reference batch parity\n");
+    text.push_str(&lunar_equatorial_reference_batch_parity_summary_for_report());
     text.push('\n');
     text.push_str(&lunar_equatorial_reference_evidence_envelope_for_report());
     text.push('\n');
@@ -10996,6 +11008,11 @@ fn write_lunar_equatorial_reference_evidence(f: &mut fmt::Formatter<'_>) -> fmt:
         f,
         "    {}",
         lunar_equatorial_reference_evidence_summary_for_report()
+    )?;
+    writeln!(
+        f,
+        "    {}",
+        lunar_equatorial_reference_batch_parity_summary_for_report()
     )?;
     writeln!(
         f,
@@ -12980,6 +12997,9 @@ mod tests {
         ));
         assert!(report.contains(
             "lunar reference mixed TT/TDB batch parity: 9 requests across 5 bodies, TT requests=5, TDB requests=4, order=preserved, single-query parity=preserved"
+        ));
+        assert!(report.contains(
+            "lunar equatorial reference batch parity: 2 requests across 1 bodies, frame=Equatorial, order=preserved, single-query parity=preserved"
         ));
         assert!(report.contains("exact J2000 evidence: 5 bodies at JD 2451545.0"));
         assert!(report.contains("Body comparison summaries"));
@@ -15813,6 +15833,9 @@ version = "0.9.0"
         assert!(release_summary.contains(
             "lunar reference mixed TT/TDB batch parity: 9 requests across 5 bodies, TT requests=5, TDB requests=4, order=preserved, single-query parity=preserved"
         ));
+        assert!(release_summary.contains(
+            "lunar equatorial reference batch parity: 2 requests across 1 bodies, frame=Equatorial, order=preserved, single-query parity=preserved"
+        ));
         assert!(release_summary.contains("JPL independent hold-out:"));
         assert!(release_summary.contains(&independent_holdout_source_summary_for_report()));
         assert!(release_summary.contains(&independent_holdout_manifest_summary_for_report()));
@@ -16087,6 +16110,9 @@ version = "0.9.0"
         ));
         assert!(validation_report_summary.contains(
             "lunar reference mixed TT/TDB batch parity: 9 requests across 5 bodies, TT requests=5, TDB requests=4, order=preserved, single-query parity=preserved"
+        ));
+        assert!(validation_report_summary.contains(
+            "lunar equatorial reference batch parity: 2 requests across 1 bodies, frame=Equatorial, order=preserved, single-query parity=preserved"
         ));
         assert!(
             validation_report_summary.contains("ELP lunar capability: lunar capability summary:")
