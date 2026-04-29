@@ -3009,37 +3009,23 @@ pub struct JplSnapshotBatchErrorTaxonomySummary {
 
 /// Structured errors for a JPL batch error-taxonomy summary.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum JplSnapshotBatchErrorTaxonomySummaryError {
-    /// The unsupported-body batch unexpectedly succeeded.
-    UnsupportedBodyBatchUnexpectedlySucceeded,
-    /// The unsupported-body batch returned an unexpected error kind.
-    UnsupportedBodyBatchReturned { error_kind: EphemerisErrorKind },
-    /// The out-of-range batch unexpectedly succeeded.
-    OutOfRangeBatchUnexpectedlySucceeded,
-    /// The out-of-range batch returned an unexpected error kind.
-    OutOfRangeBatchReturned { error_kind: EphemerisErrorKind },
+pub enum JplSnapshotBatchErrorTaxonomySummaryValidationError {
+    /// A summary field is out of sync with the current backend posture.
+    FieldOutOfSync { field: &'static str },
 }
 
-impl fmt::Display for JplSnapshotBatchErrorTaxonomySummaryError {
+impl fmt::Display for JplSnapshotBatchErrorTaxonomySummaryValidationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::UnsupportedBodyBatchUnexpectedlySucceeded => {
-                f.write_str("unsupported-body batch unexpectedly succeeded")
-            }
-            Self::UnsupportedBodyBatchReturned { error_kind } => {
-                write!(f, "unsupported-body batch returned {error_kind}")
-            }
-            Self::OutOfRangeBatchUnexpectedlySucceeded => {
-                f.write_str("out-of-range batch unexpectedly succeeded")
-            }
-            Self::OutOfRangeBatchReturned { error_kind } => {
-                write!(f, "out-of-range batch returned {error_kind}")
-            }
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the JPL batch error-taxonomy summary field `{field}` is out of sync with the current posture"
+            ),
         }
     }
 }
 
-impl std::error::Error for JplSnapshotBatchErrorTaxonomySummaryError {}
+impl std::error::Error for JplSnapshotBatchErrorTaxonomySummaryValidationError {}
 
 impl JplSnapshotBatchErrorTaxonomySummary {
     /// Returns the compact summary line used in release-facing reporting.
@@ -3052,6 +3038,46 @@ impl JplSnapshotBatchErrorTaxonomySummary {
             self.out_of_range_error_kind,
         )
     }
+
+    /// Validates the summary against the current JPL snapshot backend posture.
+    pub fn validate(&self) -> Result<(), JplSnapshotBatchErrorTaxonomySummaryValidationError> {
+        if self.supported_request_body != CelestialBody::Ceres {
+            return Err(
+                JplSnapshotBatchErrorTaxonomySummaryValidationError::FieldOutOfSync {
+                    field: "supported_request_body",
+                },
+            );
+        }
+        if self.unsupported_request_body != CelestialBody::MeanNode {
+            return Err(
+                JplSnapshotBatchErrorTaxonomySummaryValidationError::FieldOutOfSync {
+                    field: "unsupported_request_body",
+                },
+            );
+        }
+        if self.unsupported_error_kind != EphemerisErrorKind::UnsupportedBody {
+            return Err(
+                JplSnapshotBatchErrorTaxonomySummaryValidationError::FieldOutOfSync {
+                    field: "unsupported_error_kind",
+                },
+            );
+        }
+        if self.out_of_range_request_body != CelestialBody::Ceres {
+            return Err(
+                JplSnapshotBatchErrorTaxonomySummaryValidationError::FieldOutOfSync {
+                    field: "out_of_range_request_body",
+                },
+            );
+        }
+        if self.out_of_range_error_kind != EphemerisErrorKind::OutOfRangeInstant {
+            return Err(
+                JplSnapshotBatchErrorTaxonomySummaryValidationError::FieldOutOfSync {
+                    field: "out_of_range_error_kind",
+                },
+            );
+        }
+        Ok(())
+    }
 }
 
 impl fmt::Display for JplSnapshotBatchErrorTaxonomySummary {
@@ -3062,7 +3088,8 @@ impl fmt::Display for JplSnapshotBatchErrorTaxonomySummary {
 
 /// Returns a compact batch error-taxonomy summary for the current JPL snapshot backend.
 pub fn jpl_snapshot_batch_error_taxonomy_summary(
-) -> Result<JplSnapshotBatchErrorTaxonomySummary, JplSnapshotBatchErrorTaxonomySummaryError> {
+) -> Result<JplSnapshotBatchErrorTaxonomySummary, JplSnapshotBatchErrorTaxonomySummaryValidationError>
+{
     let backend = JplSnapshotBackend;
 
     let supported_request = EphemerisRequest {
@@ -3077,20 +3104,21 @@ pub fn jpl_snapshot_batch_error_taxonomy_summary(
         body: CelestialBody::MeanNode,
         ..supported_request.clone()
     };
-    let unsupported_body_error = match backend
-        .positions(&[supported_request.clone(), unsupported_body_request])
-    {
-        Ok(_) => {
-            return Err(
-                JplSnapshotBatchErrorTaxonomySummaryError::UnsupportedBodyBatchUnexpectedlySucceeded,
-            );
-        }
-        Err(error) => error,
-    };
+    let unsupported_body_error =
+        match backend.positions(&[supported_request.clone(), unsupported_body_request]) {
+            Ok(_) => {
+                return Err(
+                    JplSnapshotBatchErrorTaxonomySummaryValidationError::FieldOutOfSync {
+                        field: "unsupported_body_batch",
+                    },
+                );
+            }
+            Err(error) => error,
+        };
     if unsupported_body_error.kind != EphemerisErrorKind::UnsupportedBody {
         return Err(
-            JplSnapshotBatchErrorTaxonomySummaryError::UnsupportedBodyBatchReturned {
-                error_kind: unsupported_body_error.kind,
+            JplSnapshotBatchErrorTaxonomySummaryValidationError::FieldOutOfSync {
+                field: "unsupported_body_error_kind",
             },
         );
     }
@@ -3103,15 +3131,17 @@ pub fn jpl_snapshot_batch_error_taxonomy_summary(
     let out_of_range_error = match backend.positions(&[out_of_range_request]) {
         Ok(_) => {
             return Err(
-                JplSnapshotBatchErrorTaxonomySummaryError::OutOfRangeBatchUnexpectedlySucceeded,
+                JplSnapshotBatchErrorTaxonomySummaryValidationError::FieldOutOfSync {
+                    field: "out_of_range_batch",
+                },
             );
         }
         Err(error) => error,
     };
     if out_of_range_error.kind != EphemerisErrorKind::OutOfRangeInstant {
         return Err(
-            JplSnapshotBatchErrorTaxonomySummaryError::OutOfRangeBatchReturned {
-                error_kind: out_of_range_error.kind,
+            JplSnapshotBatchErrorTaxonomySummaryValidationError::FieldOutOfSync {
+                field: "out_of_range_error_kind",
             },
         );
     }
@@ -3128,7 +3158,10 @@ pub fn jpl_snapshot_batch_error_taxonomy_summary(
 /// Returns the release-facing batch error-taxonomy summary for the current JPL snapshot backend.
 pub fn jpl_snapshot_batch_error_taxonomy_summary_for_report() -> String {
     match jpl_snapshot_batch_error_taxonomy_summary() {
-        Ok(summary) => summary.to_string(),
+        Ok(summary) => match summary.validate() {
+            Ok(()) => summary.to_string(),
+            Err(error) => format!("JPL batch error taxonomy: unavailable ({error})"),
+        },
         Err(error) => format!("JPL batch error taxonomy: unavailable ({error})"),
     }
 }
@@ -7740,6 +7773,7 @@ mod tests {
             jpl_snapshot_batch_error_taxonomy_summary_for_report(),
             summary.summary_line()
         );
+        assert_eq!(summary.validate(), Ok(()));
         assert_eq!(
             summary.supported_request_body,
             pleiades_backend::CelestialBody::Ceres
@@ -7759,6 +7793,32 @@ mod tests {
         assert_eq!(
             summary.out_of_range_error_kind,
             EphemerisErrorKind::OutOfRangeInstant
+        );
+    }
+
+    #[test]
+    fn batch_error_taxonomy_summary_validation_rejects_drifted_fields() {
+        let summary = JplSnapshotBatchErrorTaxonomySummary {
+            supported_request_body: pleiades_backend::CelestialBody::Sun,
+            unsupported_request_body: pleiades_backend::CelestialBody::MeanNode,
+            unsupported_error_kind: EphemerisErrorKind::UnsupportedBody,
+            out_of_range_request_body: pleiades_backend::CelestialBody::Ceres,
+            out_of_range_error_kind: EphemerisErrorKind::OutOfRangeInstant,
+        };
+        assert_eq!(
+            summary.validate(),
+            Err(
+                JplSnapshotBatchErrorTaxonomySummaryValidationError::FieldOutOfSync {
+                    field: "supported_request_body"
+                }
+            )
+        );
+        assert_eq!(
+            JplSnapshotBatchErrorTaxonomySummaryValidationError::FieldOutOfSync {
+                field: "supported_request_body"
+            }
+            .to_string(),
+            "the JPL batch error-taxonomy summary field `supported_request_body` is out of sync with the current posture"
         );
     }
 
