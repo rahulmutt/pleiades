@@ -883,6 +883,10 @@ mod tests {
             release_profiles.compatibility_profile_id
         )));
         assert!(verification.contains("House systems verified:"));
+        assert!(verification.contains(&format!(
+            "House code aliases verified: {} short-form labels",
+            profile.house_code_alias_count()
+        )));
         assert!(verification.contains("Ayanamsas verified:"));
         assert!(verification.contains(
             "House formula families verified: Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign"

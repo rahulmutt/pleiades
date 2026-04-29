@@ -22,6 +22,7 @@ The repository already exposes baseline house systems and ayanamsas, a larger re
    - Mark each item as implemented, metadata-only, approximate, unsupported, or deferred.
    - Ensure release profiles distinguish baseline guarantees from expanded release coverage.
    - Progress note: the compatibility-profile display and release-summary paths now expose a compact inventory line for the current house-system and ayanamsa catalogs, including baseline/release-specific counts, alias totals, custom-definition labels, and known-gap counts, which gives the target-catalog source table a smaller release-facing summary while the fuller appendix work continues. That inventory line now also counts the Swiss-Ephemeris house-table code aliases separately, and `pleiades-core::CompatibilityProfile` now exposes that code-alias count as a structured helper with direct regression coverage, so the compact release posture distinguishes descriptor aliases from resolver short codes.
+   - Progress note: `pleiades-validate::CompatibilityProfileVerificationSummary` now renders that same house-code alias count in the compact verification line and validates it against the core compatibility profile, while the CLI smoke tests pin the visible short-form label wording, so the release-facing verification path now keeps the code-alias inventory anchored alongside the descriptor totals.
 
 2. Validate house-system formulas.
    - Add reference-backed tests for each implemented house system across representative latitudes and dates.
