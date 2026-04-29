@@ -104,6 +104,14 @@ pub fn reference_snapshot_batch_parity_requests() -> Option<Vec<EphemerisRequest
     })
 }
 
+/// Returns the mixed-frame reference-snapshot request corpus used by batch parity checks.
+///
+/// This is a compatibility alias for [`reference_snapshot_batch_parity_requests`].
+#[doc(alias = "reference_snapshot_batch_parity_requests")]
+pub fn reference_snapshot_batch_parity_request_corpus() -> Option<Vec<EphemerisRequest>> {
+    reference_snapshot_batch_parity_requests()
+}
+
 /// Returns the mixed TT/TDB reference-snapshot request corpus used by batch parity checks.
 ///
 /// The requests preserve the checked-in row order, keep the ecliptic frame,
@@ -132,6 +140,16 @@ pub fn reference_snapshot_mixed_time_scale_batch_parity_requests() -> Option<Vec
             })
             .collect()
     })
+}
+
+/// Returns the mixed TT/TDB reference-snapshot request corpus used by batch parity checks.
+///
+/// This is a compatibility alias for
+/// [`reference_snapshot_mixed_time_scale_batch_parity_requests`].
+#[doc(alias = "reference_snapshot_mixed_time_scale_batch_parity_requests")]
+pub fn reference_snapshot_mixed_time_scale_batch_parity_request_corpus(
+) -> Option<Vec<EphemerisRequest>> {
+    reference_snapshot_mixed_time_scale_batch_parity_requests()
 }
 
 /// A compact coverage summary for the checked-in reference snapshot.
@@ -2157,6 +2175,14 @@ pub fn reference_asteroid_batch_parity_requests() -> Option<Vec<EphemerisRequest
     })
 }
 
+/// Returns the mixed-frame exact J2000 asteroid request corpus used by batch parity checks.
+///
+/// This is a compatibility alias for [`reference_asteroid_batch_parity_requests`].
+#[doc(alias = "reference_asteroid_batch_parity_requests")]
+pub fn reference_asteroid_batch_parity_request_corpus() -> Option<Vec<EphemerisRequest>> {
+    reference_asteroid_batch_parity_requests()
+}
+
 /// Returns the exact J2000 asteroid equatorial evidence samples derived from the reference snapshot.
 pub fn reference_asteroid_equatorial_evidence() -> &'static [ReferenceAsteroidEquatorialEvidence] {
     reference_asteroid_equatorial_evidence_list()
@@ -3546,6 +3572,14 @@ pub fn comparison_snapshot_batch_parity_requests() -> Option<Vec<EphemerisReques
     )
 }
 
+/// Returns the mixed-frame comparison-snapshot request corpus used by batch parity checks.
+///
+/// This is a compatibility alias for [`comparison_snapshot_batch_parity_requests`].
+#[doc(alias = "comparison_snapshot_batch_parity_requests")]
+pub fn comparison_snapshot_batch_parity_request_corpus() -> Option<Vec<EphemerisRequest>> {
+    comparison_snapshot_batch_parity_requests()
+}
+
 /// Returns the mixed-scale comparison-snapshot request corpus used by batch parity checks.
 ///
 /// The requests preserve the checked-in row order, keep the ecliptic frame, and
@@ -3579,6 +3613,16 @@ pub fn comparison_snapshot_mixed_time_scale_batch_parity_requests() -> Option<Ve
             })
             .collect(),
     )
+}
+
+/// Returns the mixed TT/TDB comparison-snapshot request corpus used by batch parity checks.
+///
+/// This is a compatibility alias for
+/// [`comparison_snapshot_mixed_time_scale_batch_parity_requests`].
+#[doc(alias = "comparison_snapshot_mixed_time_scale_batch_parity_requests")]
+pub fn comparison_snapshot_mixed_time_scale_batch_parity_request_corpus(
+) -> Option<Vec<EphemerisRequest>> {
+    comparison_snapshot_mixed_time_scale_batch_parity_requests()
 }
 
 /// Returns the parsed manifest for the comparison snapshot.
@@ -5425,6 +5469,15 @@ pub fn independent_holdout_snapshot_batch_parity_requests() -> Option<Vec<Epheme
     })
 }
 
+/// Returns the mixed-scale independent hold-out request corpus used by batch parity checks.
+///
+/// This is a compatibility alias for
+/// [`independent_holdout_snapshot_batch_parity_requests`].
+#[doc(alias = "independent_holdout_snapshot_batch_parity_requests")]
+pub fn independent_holdout_snapshot_batch_parity_request_corpus() -> Option<Vec<EphemerisRequest>> {
+    independent_holdout_snapshot_batch_parity_requests()
+}
+
 fn independent_holdout_snapshot_error() -> Option<&'static SnapshotLoadError> {
     independent_holdout_state().error()
 }
@@ -6316,6 +6369,34 @@ mod tests {
             assert_eq!(request.apparent, Apparentness::Mean);
             assert!(request.observer.is_none());
         }
+    }
+
+    #[test]
+    fn request_corpus_aliases_preserve_the_current_jpl_batch_shapes() {
+        assert_eq!(
+            reference_snapshot_batch_parity_request_corpus(),
+            reference_snapshot_batch_parity_requests()
+        );
+        assert_eq!(
+            reference_snapshot_mixed_time_scale_batch_parity_request_corpus(),
+            reference_snapshot_mixed_time_scale_batch_parity_requests()
+        );
+        assert_eq!(
+            comparison_snapshot_batch_parity_request_corpus(),
+            comparison_snapshot_batch_parity_requests()
+        );
+        assert_eq!(
+            comparison_snapshot_mixed_time_scale_batch_parity_request_corpus(),
+            comparison_snapshot_mixed_time_scale_batch_parity_requests()
+        );
+        assert_eq!(
+            independent_holdout_snapshot_batch_parity_request_corpus(),
+            independent_holdout_snapshot_batch_parity_requests()
+        );
+        assert_eq!(
+            reference_asteroid_batch_parity_request_corpus(),
+            reference_asteroid_batch_parity_requests()
+        );
     }
 
     #[test]
