@@ -13323,10 +13323,6 @@ mod tests {
         assert!(validation_report_summary.contains(
             "Packaged-artifact storage: Quantized linear segments stored in pleiades-compression artifact format; equatorial coordinates are reconstructed at runtime from stored channels"
         ));
-        assert!(validation_report_summary.contains(&format!(
-            "Packaged-artifact access: {}",
-            format_packaged_artifact_access_summary()
-        )));
         assert!(validation_report_summary.contains(
             "Packaged-artifact generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic residual corrections to keep the high-curvature fit compact"
         ));
@@ -15021,6 +15017,10 @@ mod tests {
         assert!(rendered.contains("Comparison snapshot source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.; coverage=Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.; columns=body, x_km, y_km, z_km"));
         assert!(rendered
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
+        assert!(rendered.contains(&format!(
+            "Packaged-artifact access: {}",
+            format_packaged_artifact_access_summary()
+        )));
         assert!(rendered.contains("Packaged request policy:"));
         assert!(rendered.contains("Packaged lookup epoch policy:"));
         assert!(rendered.contains("Packaged batch parity:"));
@@ -15810,10 +15810,6 @@ version = "0.9.0"
         assert!(release_notes_summary
             .contains("Artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(release_notes_summary.contains("Packaged-artifact storage: Quantized linear segments stored in pleiades-compression artifact format; equatorial coordinates are reconstructed at runtime from stored channels"));
-        assert!(release_notes_summary.contains(&format!(
-            "Packaged-artifact access: {}",
-            format_packaged_artifact_access_summary()
-        )));
         assert!(release_notes_summary.contains(
             "Packaged-artifact generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic residual corrections to keep the high-curvature fit compact"
         ));
