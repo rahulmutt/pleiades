@@ -5442,6 +5442,15 @@ fn render_release_notes_summary_text() -> String {
     text.push_str("Packaged-artifact generation policy: ");
     text.push_str(&packaged_artifact_generation_policy_summary_for_report());
     text.push('\n');
+    text.push_str("Packaged request policy: ");
+    text.push_str(&packaged_request_policy_summary_for_report());
+    text.push('\n');
+    text.push_str("Packaged lookup epoch policy: ");
+    text.push_str(&packaged_lookup_epoch_policy_summary_for_report());
+    text.push('\n');
+    text.push_str("Packaged batch parity: ");
+    text.push_str(&packaged_mixed_tt_tdb_batch_parity_summary_for_report());
+    text.push('\n');
     text.push_str("Artifact boundary envelope: ");
     text.push_str(
         &artifact_boundary_envelope_summary_for_report()
@@ -14876,6 +14885,9 @@ mod tests {
         assert!(rendered.contains("Comparison snapshot source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.; coverage=Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.; columns=body, x_km, y_km, z_km"));
         assert!(rendered
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
+        assert!(rendered.contains("Packaged request policy:"));
+        assert!(rendered.contains("Packaged lookup epoch policy:"));
+        assert!(rendered.contains("Packaged batch parity:"));
         assert!(rendered.contains("Release notes: release-notes"));
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(rendered.contains("Reference snapshot coverage: 46 rows across 15 bodies and 6 epochs (5 asteroid rows; JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies:"));
