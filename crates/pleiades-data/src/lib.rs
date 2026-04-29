@@ -337,6 +337,21 @@ pub fn packaged_artifact_generation_policy_summary_for_report() -> String {
     }
 }
 
+/// Returns the current packaged-artifact residual-bearing body set after validating the structured posture.
+pub fn packaged_artifact_generation_residual_bodies_summary_for_report() -> String {
+    let residual_bodies = packaged_artifact().residual_bodies();
+    match validate_packaged_artifact_generation_policy_residual_bodies(
+        PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments,
+        &residual_bodies,
+    ) {
+        Ok(()) => match residual_bodies.as_slice() {
+            [] => "residual bodies: none".to_string(),
+            residual_bodies => format!("residual bodies: {}", join_display(residual_bodies)),
+        },
+        Err(error) => format!("residual bodies: unavailable ({error})"),
+    }
+}
+
 /// Returns the current packaged-artifact generation policy summary.
 pub fn packaged_artifact_generation_policy_summary() -> &'static str {
     static SUMMARY: OnceLock<String> = OnceLock::new();
@@ -3172,6 +3187,10 @@ mod tests {
         assert_eq!(
             packaged_artifact_generation_policy_summary(),
             summary.to_string()
+        );
+        assert_eq!(
+            packaged_artifact_generation_residual_bodies_summary_for_report(),
+            "residual bodies: Moon"
         );
     }
 

@@ -51,6 +51,7 @@ use pleiades_core::{
 use pleiades_data::{
     packaged_artifact_access_summary_for_report,
     packaged_artifact_generation_policy_summary_for_report,
+    packaged_artifact_generation_residual_bodies_summary_for_report,
     packaged_artifact_output_support_summary_for_report,
     packaged_artifact_profile_summary_with_body_coverage,
     packaged_artifact_regeneration_summary_for_report,
@@ -5433,6 +5434,9 @@ fn render_release_notes_summary_text() -> String {
     text.push_str("Packaged-artifact generation policy: ");
     text.push_str(&packaged_artifact_generation_policy_summary_for_report());
     text.push('\n');
+    text.push_str("Packaged-artifact generation residual bodies: ");
+    text.push_str(&packaged_artifact_generation_residual_bodies_summary_for_report());
+    text.push('\n');
     text.push_str("Packaged request policy: ");
     text.push_str(&packaged_request_policy_summary_for_report());
     text.push('\n');
@@ -5915,6 +5919,9 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str("Packaged-artifact generation policy: ");
     text.push_str(&packaged_artifact_generation_policy_summary_for_report());
+    text.push('\n');
+    text.push_str("Packaged-artifact generation residual bodies: ");
+    text.push_str(&packaged_artifact_generation_residual_bodies_summary_for_report());
     text.push('\n');
     text.push_str("Packaged-artifact regeneration: ");
     text.push_str(&packaged_artifact_regeneration_summary_for_report());
@@ -9241,6 +9248,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         text,
         "  Packaged-artifact generation policy: {}",
         packaged_artifact_generation_policy_summary_for_report()
+    );
+    let _ = writeln!(
+        text,
+        "  Packaged-artifact generation residual bodies: {}",
+        packaged_artifact_generation_residual_bodies_summary_for_report()
     );
     let _ = writeln!(text, "  {}", packaged_request_policy_summary_for_report());
     let _ = writeln!(
@@ -13192,6 +13204,8 @@ mod tests {
         assert!(validation_report_summary.contains(
             "Packaged-artifact generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic residual corrections to keep the high-curvature fit compact"
         ));
+        assert!(validation_report_summary
+            .contains("Packaged-artifact generation residual bodies: residual bodies: Moon"));
         assert!(validation_report_summary.contains("Packaged request policy"));
         assert!(validation_report_summary.contains("Packaged lookup epoch policy: TT-grid retag without relativistic correction; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction"));
         assert!(validation_report_summary.contains("Packaged frame parity"));
@@ -15677,6 +15691,8 @@ version = "0.9.0"
             "Packaged-artifact generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic residual corrections to keep the high-curvature fit compact"
         ));
         assert!(release_notes_summary
+            .contains("Packaged-artifact generation residual bodies: residual bodies: Moon"));
+        assert!(release_notes_summary
             .contains("Compatibility profile verification: verify-compatibility-profile"));
         assert!(release_notes_summary.contains("Workspace audit summary: workspace-audit-summary"));
         assert!(release_summary.contains("Release summary"));
@@ -15718,7 +15734,8 @@ version = "0.9.0"
         assert!(release_summary.contains(
             "Packaged-artifact generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic residual corrections to keep the high-curvature fit compact"
         ));
-        assert!(release_summary.contains("residual bodies: Moon"));
+        assert!(release_summary
+            .contains("Packaged-artifact generation residual bodies: residual bodies: Moon"));
         assert!(release_summary.contains(
             "Packaged-artifact regeneration: Packaged artifact regeneration source: label=stage-5 packaged-data prototype"
         ));
