@@ -3215,6 +3215,33 @@ pub fn comparison_snapshot() -> &'static [SnapshotEntry] {
     comparison_snapshot_entries()
 }
 
+/// Returns the comparison-snapshot request corpus in the requested frame.
+///
+/// The requests preserve the checked-in row order and retag the comparison rows
+/// onto the TT request time scale currently used by the validation corpus, which
+/// lets downstream tooling reuse the exact batch shape without reconstructing it
+/// from the snapshot metadata in each caller.
+pub fn comparison_snapshot_requests(frame: CoordinateFrame) -> Option<Vec<EphemerisRequest>> {
+    let entries = comparison_snapshot();
+    if entries.is_empty() {
+        return None;
+    }
+
+    Some(
+        entries
+            .iter()
+            .map(|entry| EphemerisRequest {
+                body: entry.body.clone(),
+                instant: Instant::new(entry.epoch.julian_day, TimeScale::Tt),
+                observer: None,
+                frame,
+                zodiac_mode: ZodiacMode::Tropical,
+                apparent: Apparentness::Mean,
+            })
+            .collect(),
+    )
+}
+
 /// Returns the parsed manifest for the comparison snapshot.
 pub fn comparison_snapshot_manifest() -> &'static SnapshotManifest {
     static MANIFEST: OnceLock<SnapshotManifest> = OnceLock::new();
@@ -5799,6 +5826,24 @@ mod tests {
             comparison_snapshot_summary_for_report(),
             summary.summary_line()
         );
+    }
+
+    #[test]
+    fn comparison_snapshot_requests_preserve_row_order_and_tt_frame() {
+        let requests = comparison_snapshot_requests(CoordinateFrame::Ecliptic)
+            .expect("comparison snapshot requests should exist");
+        let entries = comparison_snapshot();
+
+        assert_eq!(requests.len(), entries.len());
+        for (request, entry) in requests.iter().zip(entries.iter()) {
+            assert_eq!(request.body, entry.body);
+            assert_eq!(request.instant.julian_day, entry.epoch.julian_day);
+            assert_eq!(request.instant.scale, TimeScale::Tt);
+            assert_eq!(request.frame, CoordinateFrame::Ecliptic);
+            assert_eq!(request.zodiac_mode, ZodiacMode::Tropical);
+            assert_eq!(request.apparent, Apparentness::Mean);
+            assert!(request.observer.is_none());
+        }
     }
 
     #[test]

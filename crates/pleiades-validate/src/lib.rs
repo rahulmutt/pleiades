@@ -80,7 +80,7 @@ use pleiades_houses::{
     validate_house_catalog,
 };
 use pleiades_jpl::{
-    comparison_snapshot, comparison_snapshot_manifest_summary_for_report,
+    comparison_snapshot_manifest_summary_for_report, comparison_snapshot_requests,
     comparison_snapshot_source_summary_for_report, comparison_snapshot_summary_for_report,
     format_jpl_interpolation_quality_kind_coverage,
     format_jpl_interpolation_quality_summary_for_report,
@@ -288,17 +288,8 @@ impl fmt::Display for CorpusSummary {
 impl ValidationCorpus {
     /// Creates the default JPL snapshot corpus.
     pub fn jpl_snapshot() -> Self {
-        let requests = comparison_snapshot()
-            .iter()
-            .map(|entry| EphemerisRequest {
-                body: entry.body.clone(),
-                instant: Instant::new(entry.epoch.julian_day, TimeScale::Tt),
-                observer: None,
-                frame: CoordinateFrame::Ecliptic,
-                zodiac_mode: ZodiacMode::Tropical,
-                apparent: Apparentness::Mean,
-            })
-            .collect();
+        let requests = comparison_snapshot_requests(CoordinateFrame::Ecliptic)
+            .expect("comparison snapshot requests should exist");
 
         Self {
             name: "JPL Horizons comparison window".to_string(),
