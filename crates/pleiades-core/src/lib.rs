@@ -12,7 +12,8 @@
 //! use pleiades_core::{ChartEngine, EphemerisBackend, EphemerisRequest, EphemerisResult, BackendMetadata,
 //!     BackendId, BackendFamily, BackendProvenance, BackendCapabilities, AccuracyClass, TimeRange,
 //!     CelestialBody, CoordinateFrame, Instant, JulianDay, TimeScale, TimeScaleConversion,
-//!     EphemerisError, EphemerisErrorKind, current_api_stability_profile};
+//!     EphemerisError, EphemerisErrorKind, current_api_stability_profile,
+//!     current_release_profile_identifiers};
 //!
 //! struct DemoBackend;
 //!
@@ -70,6 +71,10 @@
 //!
 //! let posture = current_api_stability_profile();
 //! assert!(posture.summary.contains("stable consumer surface"));
+//!
+//! let release_profiles = current_release_profile_identifiers();
+//! assert!(release_profiles.validate().is_ok());
+//! assert!(release_profiles.summary_line().starts_with("v1 compatibility="));
 //! ```
 
 #![forbid(unsafe_code)]

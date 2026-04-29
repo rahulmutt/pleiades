@@ -12,6 +12,17 @@ use core::fmt;
 use super::{current_api_stability_profile_id, current_compatibility_profile_id};
 
 /// The identifiers that name the current release-facing profiles.
+///
+/// # Example
+///
+/// ```
+/// use pleiades_core::{current_release_profile_identifiers, ReleaseProfileIdentifiers};
+///
+/// let identifiers = current_release_profile_identifiers();
+/// assert_eq!(ReleaseProfileIdentifiers::schema_version(), 1);
+/// assert!(identifiers.validate().is_ok());
+/// assert!(identifiers.summary_line().starts_with("v1 compatibility="));
+/// ```
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ReleaseProfileIdentifiers {
     /// Identifier for the compatibility profile.
@@ -27,6 +38,15 @@ impl ReleaseProfileIdentifiers {
     }
 
     /// Returns the compact summary used in release-facing reports.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use pleiades_core::current_release_profile_identifiers;
+    ///
+    /// let identifiers = current_release_profile_identifiers();
+    /// assert!(identifiers.summary_line().contains("api-stability="));
+    /// ```
     pub fn summary_line(&self) -> String {
         format!(
             "v{} compatibility={}, api-stability={}",
