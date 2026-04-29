@@ -236,6 +236,7 @@ Progress note: `pleiades-vsop87` now also exposes a reusable batch-request corpu
 - `cargo test --workspace` passes after the backend upgrades.
 
 - Progress note (2026-04-28): the compatibility-profile verification smoke coverage now also pins the custom-definition label names line directly, which keeps the explicit `Custom-definition label names verified:` release posture visible in both the CLI and validation audit paths alongside the house-formula-family and release-posture checks.
+- Progress note (2026-04-29): the compact compatibility-profile, release-notes summary, and release-summary views now also surface the target house and ayanamsa scope lines, which keeps the long-term Swiss-Ephemeris-class catalog framing visible in the compact release-facing summaries as well as the verification helper.
 - Progress note (2026-04-28): the descriptor-local house and ayanamsa validators now also reject duplicate aliases within a single entry while preserving the intentional case-only canonical-name variants already used by the built-in interoperability spellings, which keeps the lower-level profile-ingest guardrail aligned with the release-facing catalog vocabulary.
 
 ## Work that belongs in later phases
