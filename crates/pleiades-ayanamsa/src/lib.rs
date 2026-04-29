@@ -66,7 +66,9 @@ impl AyanamsaDescriptor {
 
     /// Validates the descriptor-local metadata invariants.
     pub fn validate(&self) -> Result<(), AyanamsaCatalogValidationError> {
-        if self.canonical_name.trim().is_empty() || has_surrounding_whitespace(self.canonical_name)
+        if self.canonical_name.trim().is_empty()
+            || has_surrounding_whitespace(self.canonical_name)
+            || contains_line_break(self.canonical_name)
         {
             return Err(
                 AyanamsaCatalogValidationError::DescriptorLabelNotNormalized {
@@ -77,7 +79,10 @@ impl AyanamsaDescriptor {
         }
 
         for alias in self.aliases {
-            if alias.trim().is_empty() || has_surrounding_whitespace(alias) {
+            if alias.trim().is_empty()
+                || has_surrounding_whitespace(alias)
+                || contains_line_break(alias)
+            {
                 return Err(
                     AyanamsaCatalogValidationError::DescriptorLabelNotNormalized {
                         label: alias,
@@ -89,6 +94,7 @@ impl AyanamsaDescriptor {
 
         if self.notes.trim().is_empty()
             || (!self.notes.is_empty() && self.notes.trim() != self.notes)
+            || contains_line_break(self.notes)
         {
             return Err(
                 AyanamsaCatalogValidationError::DescriptorNotesNotNormalized {
@@ -1500,11 +1506,11 @@ impl fmt::Display for AyanamsaCatalogValidationError {
             ),
             Self::DescriptorLabelNotNormalized { label, field } => write!(
                 f,
-                "the ayanamsa catalog descriptor {field} for `{label}` is blank or contains surrounding whitespace"
+                "the ayanamsa catalog descriptor {field} for `{label}` is blank, contains surrounding whitespace, or contains line breaks"
             ),
             Self::DescriptorNotesNotNormalized { label } => write!(
                 f,
-                "the ayanamsa catalog descriptor note for `{label}` is blank or contains surrounding whitespace"
+                "the ayanamsa catalog descriptor note for `{label}` is blank, contains surrounding whitespace, or contains line breaks"
             ),
             Self::PartialSiderealMetadata { label } => write!(
                 f,
@@ -1518,6 +1524,10 @@ impl std::error::Error for AyanamsaCatalogValidationError {}
 
 fn has_surrounding_whitespace(value: &str) -> bool {
     !value.is_empty() && value.trim() != value
+}
+
+fn contains_line_break(value: &str) -> bool {
+    value.chars().any(|ch| matches!(ch, '\n' | '\r'))
 }
 
 /// A compact validation summary for the built-in ayanamsa catalog.
@@ -1866,6 +1876,55 @@ mod tests {
         let blank_notes_entry = [blank_notes_descriptor];
         assert!(matches!(
             validate_ayanamsa_catalog_entries(&blank_notes_entry),
+            Err(AyanamsaCatalogValidationError::DescriptorNotesNotNormalized { label: "Lahiri" })
+        ));
+
+        let line_break_name_descriptor = AyanamsaDescriptor::new(
+            Ayanamsa::Lahiri,
+            "La\nhiri",
+            &[],
+            "Summary note",
+            Some(JulianDay::from_days(2_451_545.0)),
+            Some(Angle::from_degrees(23.5)),
+        );
+        assert!(matches!(
+            line_break_name_descriptor.validate(),
+            Err(
+                AyanamsaCatalogValidationError::DescriptorLabelNotNormalized {
+                    label: "La\nhiri",
+                    field: "canonical name"
+                }
+            )
+        ));
+
+        let line_break_alias_descriptor = AyanamsaDescriptor::new(
+            Ayanamsa::Lahiri,
+            "Lahiri",
+            &["La\nhiri alias"],
+            "Summary note",
+            Some(JulianDay::from_days(2_451_545.0)),
+            Some(Angle::from_degrees(23.5)),
+        );
+        assert!(matches!(
+            line_break_alias_descriptor.validate(),
+            Err(
+                AyanamsaCatalogValidationError::DescriptorLabelNotNormalized {
+                    label: "La\nhiri alias",
+                    field: "alias"
+                }
+            )
+        ));
+
+        let line_break_notes_descriptor = AyanamsaDescriptor::new(
+            Ayanamsa::Lahiri,
+            "Lahiri",
+            &[],
+            "Summary note\nline two",
+            Some(JulianDay::from_days(2_451_545.0)),
+            Some(Angle::from_degrees(23.5)),
+        );
+        assert!(matches!(
+            line_break_notes_descriptor.validate(),
             Err(AyanamsaCatalogValidationError::DescriptorNotesNotNormalized { label: "Lahiri" })
         ));
     }

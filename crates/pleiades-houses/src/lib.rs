@@ -122,7 +122,9 @@ impl HouseSystemDescriptor {
 
     /// Validates the descriptor-local metadata invariants.
     pub fn validate(&self) -> Result<(), HouseCatalogValidationError> {
-        if self.canonical_name.trim().is_empty() || has_surrounding_whitespace(self.canonical_name)
+        if self.canonical_name.trim().is_empty()
+            || has_surrounding_whitespace(self.canonical_name)
+            || contains_line_break(self.canonical_name)
         {
             return Err(HouseCatalogValidationError::DescriptorLabelNotNormalized {
                 label: self.canonical_name,
@@ -131,7 +133,10 @@ impl HouseSystemDescriptor {
         }
 
         for alias in self.aliases {
-            if alias.trim().is_empty() || has_surrounding_whitespace(alias) {
+            if alias.trim().is_empty()
+                || has_surrounding_whitespace(alias)
+                || contains_line_break(alias)
+            {
                 return Err(HouseCatalogValidationError::DescriptorLabelNotNormalized {
                     label: alias,
                     field: "alias",
@@ -141,6 +146,7 @@ impl HouseSystemDescriptor {
 
         if self.notes.trim().is_empty()
             || (!self.notes.is_empty() && self.notes.trim() != self.notes)
+            || contains_line_break(self.notes)
         {
             return Err(HouseCatalogValidationError::DescriptorNotesNotNormalized {
                 label: self.canonical_name,
@@ -407,7 +413,7 @@ impl fmt::Display for HouseSystemCodeAliasValidationError {
             Self::EmptyAliasTable => f.write_str("the house-code alias table is empty"),
             Self::LabelNotNormalized { label } => write!(
                 f,
-                "the house-code alias label `{label}` is blank or contains surrounding whitespace"
+                "the house-code alias label `{label}` is blank, contains surrounding whitespace, or contains line breaks"
             ),
             Self::DuplicateLabel { label } => write!(
                 f,
@@ -524,11 +530,11 @@ impl fmt::Display for HouseCatalogValidationError {
             ),
             Self::DescriptorLabelNotNormalized { label, field } => write!(
                 f,
-                "the house catalog descriptor {field} for `{label}` is blank or contains surrounding whitespace"
+                "the house catalog descriptor {field} for `{label}` is blank, contains surrounding whitespace, or contains line breaks"
             ),
             Self::DescriptorNotesNotNormalized { label } => write!(
                 f,
-                "the house catalog descriptor note for `{label}` is blank or contains surrounding whitespace"
+                "the house catalog descriptor note for `{label}` is blank, contains surrounding whitespace, or contains line breaks"
             ),
         }
     }
@@ -538,6 +544,10 @@ impl std::error::Error for HouseCatalogValidationError {}
 
 fn has_surrounding_whitespace(value: &str) -> bool {
     !value.is_empty() && value.trim() != value
+}
+
+fn contains_line_break(value: &str) -> bool {
+    value.chars().any(|ch| matches!(ch, '\n' | '\r'))
 }
 
 /// A compact validation summary for the built-in house-system catalog.
@@ -2111,6 +2121,33 @@ mod tests {
             Err(HouseCatalogValidationError::DescriptorNotesNotNormalized { label: "Equal" })
         ));
 
+        let line_break_name_descriptor =
+            HouseSystemDescriptor::new(HouseSystem::Equal, "Equ\nal", &[], "notes", false);
+        assert!(matches!(
+            line_break_name_descriptor.validate(),
+            Err(HouseCatalogValidationError::DescriptorLabelNotNormalized {
+                label: "Equ\nal",
+                field: "canonical name"
+            })
+        ));
+
+        let line_break_alias_descriptor =
+            HouseSystemDescriptor::new(HouseSystem::Equal, "Equal", &["Al\nial"], "notes", false);
+        assert!(matches!(
+            line_break_alias_descriptor.validate(),
+            Err(HouseCatalogValidationError::DescriptorLabelNotNormalized {
+                label: "Al\nial",
+                field: "alias"
+            })
+        ));
+
+        let line_break_notes_descriptor =
+            HouseSystemDescriptor::new(HouseSystem::Equal, "Equal", &[], "notes\nline two", false);
+        assert!(matches!(
+            line_break_notes_descriptor.validate(),
+            Err(HouseCatalogValidationError::DescriptorNotesNotNormalized { label: "Equal" })
+        ));
+
         let duplicate_alias_descriptor = HouseSystemDescriptor::new(
             HouseSystem::Equal,
             "Equal",
@@ -2184,6 +2221,21 @@ mod tests {
         assert!(matches!(
             error,
             HouseSystemCodeAliasValidationError::DuplicateLabel { label: "p" }
+        ));
+    }
+
+    #[test]
+    fn house_system_code_alias_validation_rejects_line_breaks() {
+        let aliases = [HouseSystemCodeAlias {
+            label: "P\n",
+            system: HouseSystem::Placidus,
+        }];
+
+        let error = validate_house_system_code_alias_entries(&aliases)
+            .expect_err("line-break labels should be rejected");
+        assert!(matches!(
+            error,
+            HouseSystemCodeAliasValidationError::LabelNotNormalized { label: "P\n" }
         ));
     }
 }
