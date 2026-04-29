@@ -5,7 +5,7 @@ use crate::{
     compare_backends, default_candidate_backend, ComparisonReport, ComparisonSample,
     ValidationCorpus,
 };
-use pleiades_compression::{CompressedArtifact, CompressionError, EndianPolicy};
+use pleiades_compression::{join_display, CompressedArtifact, CompressionError, EndianPolicy};
 use pleiades_core::{
     Angle, Apparentness, BackendFamily, CelestialBody, CoordinateFrame, EclipticCoordinates,
     EphemerisRequest, Instant, JulianDay, ZodiacMode,
@@ -40,6 +40,10 @@ pub struct ArtifactInspectionReport {
     pub body_count: usize,
     /// Number of segments across all bodies.
     pub segment_count: usize,
+    /// Number of segments that carry residual-correction channels.
+    pub residual_segment_count: usize,
+    /// Bodies that carry at least one residual-correction segment.
+    pub residual_bodies: Vec<CelestialBody>,
     /// Earliest covered instant.
     pub earliest: Instant,
     /// Latest covered instant.
@@ -760,6 +764,8 @@ impl ArtifactInspectionReport {
             &comparison_corpus,
         )?;
         let decode_benchmark = benchmark_packaged_artifact_decode(1)?;
+        let residual_segment_count = decoded.residual_segment_count();
+        let residual_bodies = decoded.residual_bodies();
 
         let report = Self {
             generation_label: decoded.header.generation_label,
@@ -772,6 +778,8 @@ impl ArtifactInspectionReport {
             checksum_ok: decoded.checksum == artifact.checksum,
             body_count: decoded.bodies.len(),
             segment_count,
+            residual_segment_count,
+            residual_bodies,
             earliest: earliest.unwrap_or_else(|| artifact_first_instant(artifact)),
             latest: latest.unwrap_or_else(|| artifact_first_instant(artifact)),
             model_comparison,
@@ -971,6 +979,14 @@ fn inspect_body(
     })
 }
 
+fn format_residual_bodies(bodies: &[CelestialBody]) -> String {
+    if bodies.is_empty() {
+        "none".to_string()
+    } else {
+        join_display(bodies)
+    }
+}
+
 fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
     let mut text = String::new();
 
@@ -1017,6 +1033,12 @@ fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
     text.push_str("  segments: ");
     text.push_str(&report.segment_count.to_string());
     text.push_str(" total\n");
+    text.push_str("  residual-bearing segments: ");
+    text.push_str(&report.residual_segment_count.to_string());
+    text.push('\n');
+    text.push_str("  residual-bearing bodies: ");
+    text.push_str(&format_residual_bodies(&report.residual_bodies));
+    text.push('\n');
     text.push_str("  ");
     text.push_str(&artifact_boundary_envelope_summary(report).summary_line());
     text.push('\n');
@@ -1543,6 +1565,16 @@ impl fmt::Display for ArtifactInspectionReport {
         writeln!(f, "  checksum verified: {}", yes_no(self.checksum_ok))?;
         writeln!(f, "  bodies: {}", self.body_count)?;
         writeln!(f, "  segments: {}", self.segment_count)?;
+        writeln!(
+            f,
+            "  residual-bearing segments: {}",
+            self.residual_segment_count
+        )?;
+        writeln!(
+            f,
+            "  residual-bearing bodies: {}",
+            format_residual_bodies(&self.residual_bodies)
+        )?;
         writeln!(
             f,
             "  coverage: {} → {}",
