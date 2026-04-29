@@ -2114,6 +2114,23 @@ pub fn lunar_reference_evidence() -> &'static [LunarReferenceSample] {
     SAMPLES
 }
 
+/// Returns the canonical mixed TT/TDB request corpus used by lunar batch-parity validation.
+pub fn lunar_reference_batch_requests() -> Vec<EphemerisRequest> {
+    lunar_reference_evidence()
+        .iter()
+        .enumerate()
+        .map(|(index, sample)| {
+            let mut request = EphemerisRequest::new(sample.body.clone(), sample.epoch);
+            request.instant.scale = if index % 2 == 0 {
+                TimeScale::Tt
+            } else {
+                TimeScale::Tdb
+            };
+            request
+        })
+        .collect()
+}
+
 /// A single canonical lunar equatorial evidence sample used by validation and reporting.
 #[derive(Clone, Debug, PartialEq)]
 pub struct LunarEquatorialReferenceSample {
@@ -2330,30 +2347,24 @@ impl std::error::Error for LunarReferenceBatchParitySummaryValidationError {}
 
 /// Returns a compact summary of the mixed TT/TDB lunar reference batch parity slice.
 pub fn lunar_reference_batch_parity_summary() -> Option<LunarReferenceBatchParitySummary> {
-    let samples = lunar_reference_evidence();
-    if samples.is_empty() {
+    let requests = lunar_reference_batch_requests();
+    if requests.is_empty() {
         return None;
     }
 
     let backend = ElpBackend::new();
-    let mut bodies = std::collections::BTreeSet::new();
-    let mut requests = Vec::with_capacity(samples.len());
-    let mut tt_request_count = 0usize;
-    let mut tdb_request_count = 0usize;
-
-    for (index, sample) in samples.iter().enumerate() {
-        bodies.insert(sample.body.to_string());
-
-        let mut request = EphemerisRequest::new(sample.body.clone(), sample.epoch);
-        if index % 2 == 0 {
-            request.instant.scale = TimeScale::Tt;
-            tt_request_count += 1;
-        } else {
-            request.instant.scale = TimeScale::Tdb;
-            tdb_request_count += 1;
-        }
-        requests.push(request);
-    }
+    let bodies = requests
+        .iter()
+        .map(|request| request.body.to_string())
+        .collect::<std::collections::BTreeSet<_>>();
+    let tt_request_count = requests
+        .iter()
+        .filter(|request| request.instant.scale == TimeScale::Tt)
+        .count();
+    let tdb_request_count = requests
+        .iter()
+        .filter(|request| request.instant.scale == TimeScale::Tdb)
+        .count();
 
     let results = backend.positions(&requests).ok()?;
     let mut order_preserved = true;
@@ -6440,6 +6451,49 @@ mod tests {
                 .expect_err("unsupported lunar bodies should fail explicitly");
             assert_eq!(error.kind, EphemerisErrorKind::UnsupportedBody);
         }
+    }
+
+    #[test]
+    fn lunar_reference_batch_requests_match_the_canonical_slice() {
+        let requests = lunar_reference_batch_requests();
+        let samples = lunar_reference_evidence();
+
+        assert_eq!(requests.len(), samples.len());
+
+        for (index, (request, sample)) in requests.iter().zip(samples.iter()).enumerate() {
+            assert_eq!(
+                request.body, sample.body,
+                "request {index} body should match evidence"
+            );
+            assert_eq!(
+                request.instant.julian_day, sample.epoch.julian_day,
+                "request {index} epoch should match evidence"
+            );
+            assert_eq!(request.frame, CoordinateFrame::Ecliptic);
+            assert_eq!(request.zodiac_mode, ZodiacMode::Tropical);
+            assert_eq!(request.apparent, Apparentness::Mean);
+            assert!(request.observer.is_none());
+            if index % 2 == 0 {
+                assert_eq!(request.instant.scale, TimeScale::Tt);
+            } else {
+                assert_eq!(request.instant.scale, TimeScale::Tdb);
+            }
+        }
+
+        assert_eq!(
+            requests
+                .iter()
+                .filter(|request| request.instant.scale == TimeScale::Tt)
+                .count(),
+            5
+        );
+        assert_eq!(
+            requests
+                .iter()
+                .filter(|request| request.instant.scale == TimeScale::Tdb)
+                .count(),
+            4
+        );
     }
 
     #[test]
