@@ -488,6 +488,19 @@ impl Instant {
     /// It keeps the same explicit `target - source` interpretation while
     /// rejecting non-finite offsets and mismatched source scales before the
     /// instant is retagged.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use pleiades_types::{Instant, JulianDay, TimeScale};
+    ///
+    /// let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Ut1);
+    /// let converted = instant
+    ///     .with_time_scale_offset_checked(TimeScale::Tt, 64.184)
+    ///     .expect("validated offset");
+    ///
+    /// assert_eq!(converted.scale, TimeScale::Tt);
+    /// ```
     pub fn with_time_scale_offset_checked(
         self,
         target_scale: TimeScale,

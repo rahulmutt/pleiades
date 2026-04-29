@@ -765,6 +765,23 @@ impl EphemerisRequest {
     /// It rejects non-finite offsets and mismatched source scales before the
     /// request is retagged, which keeps the backend-level convenience available
     /// in a release-grade form.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use pleiades_backend::EphemerisRequest;
+    /// use pleiades_types::{CelestialBody, Instant, JulianDay, TimeScale};
+    ///
+    /// let request = EphemerisRequest::new(
+    ///     CelestialBody::Sun,
+    ///     Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Ut1),
+    /// );
+    /// let converted = request
+    ///     .with_instant_time_scale_offset_checked(TimeScale::Tt, 64.184)
+    ///     .expect("validated backend offset");
+    ///
+    /// assert_eq!(converted.instant.scale, TimeScale::Tt);
+    /// ```
     pub fn with_instant_time_scale_offset_checked(
         mut self,
         target_scale: TimeScale,

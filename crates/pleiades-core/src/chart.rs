@@ -191,6 +191,23 @@ impl ChartRequest {
     /// It validates the source scale and rejects non-finite offsets before the
     /// instant is retagged, which makes the raw offset convenience available in
     /// a release-grade form when the caller wants to stay at the chart façade.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use pleiades_core::ChartRequest;
+    /// use pleiades_types::{Instant, JulianDay, TimeScale};
+    ///
+    /// let request = ChartRequest::new(Instant::new(
+    ///     JulianDay::from_days(2_451_545.0),
+    ///     TimeScale::Ut1,
+    /// ));
+    /// let converted = request
+    ///     .with_instant_time_scale_offset_checked(TimeScale::Tt, 64.184)
+    ///     .expect("validated chart offset");
+    ///
+    /// assert_eq!(converted.instant.scale, TimeScale::Tt);
+    /// ```
     pub fn with_instant_time_scale_offset_checked(
         mut self,
         target_scale: TimeScale,
