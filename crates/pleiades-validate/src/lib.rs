@@ -3111,7 +3111,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("compatibility-profile") | Some("profile") => {
             ensure_no_extra_args(&args[1..], "compatibility-profile")?;
-            Ok(current_compatibility_profile().to_string())
+            validated_compatibility_profile_for_report().map(|profile| profile.to_string())
         }
         Some("benchmark") => {
             let rounds = parse_rounds(&args[1..], DEFAULT_BENCHMARK_ROUNDS)?;
@@ -4542,7 +4542,10 @@ fn format_descriptor_names_summary(summary: &DescriptorNamesSummary) -> String {
 }
 
 fn render_compatibility_profile_summary_text() -> String {
-    let profile = current_compatibility_profile();
+    let profile = match validated_compatibility_profile_for_report() {
+        Ok(profile) => profile,
+        Err(error) => return format!("Compatibility profile summary unavailable ({error})"),
+    };
     let release_profiles = match validated_release_profile_identifiers_for_report() {
         Ok(release_profiles) => release_profiles,
         Err(error) => return format!("Compatibility profile summary unavailable ({error})"),
@@ -4626,7 +4629,10 @@ fn render_compatibility_profile_summary_text() -> String {
 }
 
 fn render_release_notes_text() -> String {
-    let profile = current_compatibility_profile();
+    let profile = match validated_compatibility_profile_for_report() {
+        Ok(profile) => profile,
+        Err(error) => return format!("Release notes unavailable ({error})"),
+    };
     let release_profiles = match validated_release_profile_identifiers_for_report() {
         Ok(release_profiles) => release_profiles,
         Err(error) => return format!("Release notes unavailable ({error})"),
@@ -4750,7 +4756,10 @@ fn render_release_notes_text() -> String {
 }
 
 fn render_release_notes_summary_text() -> String {
-    let profile = current_compatibility_profile();
+    let profile = match validated_compatibility_profile_for_report() {
+        Ok(profile) => profile,
+        Err(error) => return format!("Release notes summary unavailable ({error})"),
+    };
     let release_profiles = match validated_release_profile_identifiers_for_report() {
         Ok(release_profiles) => release_profiles,
         Err(error) => return format!("Release notes summary unavailable ({error})"),
@@ -4935,7 +4944,10 @@ fn render_release_checklist_text() -> String {
 }
 
 fn render_release_summary_text() -> String {
-    let profile = current_compatibility_profile();
+    let profile = match validated_compatibility_profile_for_report() {
+        Ok(profile) => profile,
+        Err(error) => return format!("Release summary unavailable ({error})"),
+    };
     let release_profiles = match validated_release_profile_identifiers_for_report() {
         Ok(release_profiles) => release_profiles,
         Err(error) => return format!("Release summary unavailable ({error})"),
@@ -7613,6 +7625,12 @@ fn format_request_policy_summary_for_report(
 fn validated_api_stability_profile_for_report() -> Result<pleiades_core::ApiStabilityProfile, String>
 {
     let profile = current_api_stability_profile();
+    profile.validate().map_err(|error| error.to_string())?;
+    Ok(profile)
+}
+
+fn validated_compatibility_profile_for_report() -> Result<CompatibilityProfile, String> {
+    let profile = current_compatibility_profile();
     profile.validate().map_err(|error| error.to_string())?;
     Ok(profile)
 }
@@ -13025,6 +13043,16 @@ mod tests {
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
         assert!(
             rendered.contains("See release-summary for the compact one-screen release overview.")
+        );
+    }
+
+    #[test]
+    fn compatibility_profile_report_helper_validates_the_current_profile() {
+        let profile = validated_compatibility_profile_for_report()
+            .expect("compatibility profile should validate");
+        assert_eq!(
+            profile.profile_id,
+            current_compatibility_profile().profile_id
         );
     }
 
