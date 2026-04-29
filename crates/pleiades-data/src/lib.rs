@@ -1230,6 +1230,113 @@ pub fn packaged_artifact_storage_summary_for_report() -> String {
     }
 }
 
+/// Structured packaged-artifact access summary.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PackagedArtifactAccessSummary {
+    /// Whether explicit artifact-file loading is enabled.
+    pub explicit_path_loading: bool,
+}
+
+/// Validation error for a packaged artifact access summary that drifted away from the current build posture.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PackagedArtifactAccessSummaryValidationError {
+    /// The summary text is blank or whitespace-only.
+    BlankSummary,
+    /// The summary text has surrounding whitespace.
+    WhitespacePaddedSummary,
+    /// The feature-flag state no longer matches the current build posture.
+    FeatureStateOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for PackagedArtifactAccessSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BlankSummary => f.write_str("packaged artifact access summary is blank"),
+            Self::WhitespacePaddedSummary => {
+                f.write_str("packaged artifact access summary has surrounding whitespace")
+            }
+            Self::FeatureStateOutOfSync { field } => write!(
+                f,
+                "packaged artifact access summary is out of sync with the build feature field `{field}`"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for PackagedArtifactAccessSummaryValidationError {}
+
+fn validate_packaged_artifact_access_summary_line(
+    summary: &str,
+) -> Result<(), PackagedArtifactAccessSummaryValidationError> {
+    if summary.trim().is_empty() {
+        Err(PackagedArtifactAccessSummaryValidationError::BlankSummary)
+    } else if summary.trim() != summary {
+        Err(PackagedArtifactAccessSummaryValidationError::WhitespacePaddedSummary)
+    } else {
+        Ok(())
+    }
+}
+
+impl PackagedArtifactAccessSummary {
+    /// Returns the packaged artifact access posture as a compact human-readable line.
+    pub const fn summary_line(self) -> &'static str {
+        if self.explicit_path_loading {
+            "packaged artifact access: checked-in fixture plus explicit artifact-path loading via `packaged-artifact-path` feature"
+        } else {
+            "packaged artifact access: checked-in fixture only; explicit artifact-path loading disabled"
+        }
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current build posture.
+    pub fn validate(&self) -> Result<(), PackagedArtifactAccessSummaryValidationError> {
+        validate_packaged_artifact_access_summary_line(self.summary_line())?;
+        if self.explicit_path_loading != cfg!(feature = "packaged-artifact-path") {
+            return Err(
+                PackagedArtifactAccessSummaryValidationError::FeatureStateOutOfSync {
+                    field: "explicit_path_loading",
+                },
+            );
+        }
+        Ok(())
+    }
+}
+
+impl fmt::Display for PackagedArtifactAccessSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.summary_line())
+    }
+}
+
+/// Returns the structured packaged-artifact access summary.
+pub const fn packaged_artifact_access_summary_details() -> PackagedArtifactAccessSummary {
+    PackagedArtifactAccessSummary {
+        explicit_path_loading: cfg!(feature = "packaged-artifact-path"),
+    }
+}
+
+/// Returns the packaged-artifact access summary.
+pub fn packaged_artifact_access_summary() -> &'static str {
+    static SUMMARY: OnceLock<String> = OnceLock::new();
+    SUMMARY
+        .get_or_init(|| {
+            let summary = packaged_artifact_access_summary_details();
+            match summary.validate() {
+                Ok(()) => summary.to_string(),
+                Err(error) => format!("Packaged artifact access unavailable ({error})"),
+            }
+        })
+        .as_str()
+}
+
+/// Returns the packaged-artifact access summary for reporting.
+pub fn packaged_artifact_access_summary_for_report() -> String {
+    let summary = packaged_artifact_access_summary_details();
+    match summary.validate() {
+        Ok(()) => summary.to_string(),
+        Err(error) => format!("Packaged artifact access: unavailable ({error})"),
+    }
+}
+
 /// Structured mixed batch-parity summary for the packaged artifact.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PackagedBatchParitySummary {
@@ -1930,6 +2037,7 @@ impl EphemerisBackend for PackagedDataBackend {
                     packaged_request_policy_summary_details().to_string(),
                     packaged_frame_treatment_summary_details().to_string(),
                     packaged_artifact_storage_summary_for_report(),
+                    packaged_artifact_access_summary_for_report(),
                 ],
             },
             nominal_range: range,
@@ -2696,6 +2804,19 @@ mod tests {
             packaged_artifact_storage_summary_details().validate(),
             Ok(())
         );
+        assert_eq!(
+            metadata.provenance.data_sources[4],
+            packaged_artifact_access_summary()
+        );
+        assert_eq!(
+            packaged_artifact_access_summary_details().to_string(),
+            packaged_artifact_access_summary()
+        );
+        assert!(metadata.provenance.data_sources[4].contains("checked-in fixture"));
+        assert_eq!(
+            packaged_artifact_access_summary_details().validate(),
+            Ok(())
+        );
     }
 
     #[test]
@@ -2942,6 +3063,40 @@ mod tests {
     }
 
     #[test]
+    fn packaged_artifact_access_summary_matches_current_build_posture() {
+        let summary = packaged_artifact_access_summary_details();
+        assert_eq!(
+            summary.explicit_path_loading,
+            cfg!(feature = "packaged-artifact-path")
+        );
+        assert_eq!(summary.summary_line(), packaged_artifact_access_summary());
+        assert_eq!(summary.to_string(), packaged_artifact_access_summary());
+        assert_eq!(
+            packaged_artifact_access_summary_for_report(),
+            summary.to_string()
+        );
+        summary
+            .validate()
+            .expect("packaged artifact access summary should validate");
+    }
+
+    #[test]
+    fn packaged_artifact_access_summary_validation_rejects_drift() {
+        let mut summary = packaged_artifact_access_summary_details();
+        summary.explicit_path_loading = !summary.explicit_path_loading;
+
+        let error = summary
+            .validate()
+            .expect_err("drifted packaged artifact access summary should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactAccessSummaryValidationError::FeatureStateOutOfSync {
+                field: "explicit_path_loading"
+            }
+        );
+    }
+
+    #[test]
     fn packaged_artifact_profile_summary_report_marks_drift_as_unavailable() {
         let mut summary = packaged_artifact_profile_summary_details();
         summary.body_count += 1;
@@ -3046,6 +3201,30 @@ mod tests {
         assert_eq!(
             validate_packaged_artifact_storage_summary_line(""),
             Err(PackagedArtifactStorageSummaryValidationError::BlankSummary)
+        );
+    }
+
+    #[test]
+    fn packaged_artifact_access_summary_rejects_whitespace_padded_summary_text() {
+        let summary = format!(
+            " {} ",
+            PackagedArtifactAccessSummary {
+                explicit_path_loading: cfg!(feature = "packaged-artifact-path"),
+            }
+            .summary_line()
+        );
+
+        assert_eq!(
+            validate_packaged_artifact_access_summary_line(&summary),
+            Err(PackagedArtifactAccessSummaryValidationError::WhitespacePaddedSummary)
+        );
+    }
+
+    #[test]
+    fn packaged_artifact_access_summary_rejects_blank_summary_text() {
+        assert_eq!(
+            validate_packaged_artifact_access_summary_line(""),
+            Err(PackagedArtifactAccessSummaryValidationError::BlankSummary)
         );
     }
 
