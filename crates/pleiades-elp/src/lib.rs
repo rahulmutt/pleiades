@@ -454,6 +454,30 @@ pub struct LunarTheoryCatalogEntry {
     pub specification: LunarTheorySpecification,
 }
 
+impl LunarTheoryCatalogEntry {
+    /// Returns a compact summary line for a catalog entry.
+    pub fn summary_line(&self) -> String {
+        let source = self.specification.source_selection();
+
+        format!(
+            "lunar theory catalog entry: selected={}; source={} [{}]; key={}; aliases={}; supported bodies={}; unsupported bodies={}",
+            self.selected,
+            self.specification.source_identifier,
+            self.specification.source_family.label(),
+            source.catalog_key(),
+            self.specification.source_aliases.len(),
+            self.specification.supported_bodies.len(),
+            self.specification.unsupported_bodies.len(),
+        )
+    }
+}
+
+impl fmt::Display for LunarTheoryCatalogEntry {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Typed lookup keys for resolving a lunar-theory catalog entry.
 ///
 /// This keeps future source-backed lunar catalogs explicit about which label
@@ -4874,6 +4898,27 @@ mod tests {
             lunar_theory_catalog_summary_for_report(),
             catalog_summary.summary_line()
         );
+        let catalog_entry_summary = catalog[0].summary_line();
+        assert_eq!(catalog_entry_summary, catalog[0].to_string());
+        assert!(catalog_entry_summary.contains("lunar theory catalog entry: selected=true"));
+        assert!(catalog_entry_summary.contains(
+            "source=meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]"
+        ));
+        assert!(catalog_entry_summary
+            .contains("key=source identifier=meeus-style-truncated-lunar-baseline"));
+        assert!(catalog_entry_summary.contains(&format!("aliases={}", theory.source_aliases.len())));
+        assert!(catalog_entry_summary.contains(&format!(
+            "supported bodies={}",
+            theory.supported_bodies.len()
+        )));
+        assert!(catalog_entry_summary.contains(&format!(
+            "unsupported bodies={}",
+            theory.unsupported_bodies.len()
+        )));
+        let mut drifted_catalog_entry = catalog[0];
+        drifted_catalog_entry.selected = false;
+        let drifted_catalog_entry_summary = drifted_catalog_entry.summary_line();
+        assert!(drifted_catalog_entry_summary.contains("selected=false"));
         assert!(lunar_theory_catalog_summary_for_report()
             .contains("lunar theory catalog: 1 entry, 1 selected entry"));
         assert!(lunar_theory_catalog_summary_for_report()
