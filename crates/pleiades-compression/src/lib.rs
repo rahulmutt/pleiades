@@ -2232,6 +2232,14 @@ mod tests {
             .expect("residual body coverage should match the artifact");
 
         let mut drifted = summary.clone();
+        drifted.body_count += 1;
+        let count_error = drifted
+            .validate(&artifact)
+            .expect_err("drifted residual body coverage count should be rejected");
+        assert_eq!(count_error.kind, CompressionErrorKind::InvalidFormat);
+        assert!(format!("{count_error}").contains("body count does not match the body list"));
+
+        let mut drifted = summary.clone();
         drifted.bodies = vec![CelestialBody::Sun];
         let error = drifted
             .validate(&artifact)
