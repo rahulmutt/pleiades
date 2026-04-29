@@ -1469,6 +1469,26 @@ impl fmt::Display for HouseSummary {
 }
 
 /// A summary of motion-direction classifications in a chart snapshot.
+///
+/// The counts track the current chart placements in the order used by the
+/// compact report text: direct, stationary, retrograde, then unknown.
+///
+/// # Example
+///
+/// ```
+/// use pleiades_core::MotionSummary;
+///
+/// let summary = MotionSummary {
+///     direct: 2,
+///     stationary: 1,
+///     retrograde: 3,
+///     unknown: 0,
+/// };
+///
+/// assert_eq!(summary.summary_line(), "2 direct, 1 stationary, 3 retrograde, 0 unknown");
+/// assert_eq!(summary.to_string(), summary.summary_line());
+/// assert!(summary.has_known_motion());
+/// ```
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct MotionSummary {
     /// Placements classified as direct.
@@ -3945,6 +3965,23 @@ mod tests {
         assert!(rendered.contains("Stationary bodies: Mercury"));
         assert!(rendered.contains("Unknown motion bodies: Jupiter"));
         assert!(rendered.contains("Retrograde bodies: Mars"));
+    }
+
+    #[test]
+    fn motion_summary_summary_line_matches_display_order() {
+        let summary = MotionSummary {
+            direct: 2,
+            stationary: 1,
+            retrograde: 3,
+            unknown: 4,
+        };
+
+        assert_eq!(
+            summary.summary_line(),
+            "2 direct, 1 stationary, 3 retrograde, 4 unknown"
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert!(summary.has_known_motion());
     }
 
     #[test]

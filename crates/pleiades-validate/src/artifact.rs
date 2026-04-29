@@ -1910,7 +1910,7 @@ mod tests {
     fn artifact_inspection_report_validate_rejects_body_count_drift() {
         let artifact = packaged_artifact();
         let encoded = artifact.encode().expect("packaged artifact should encode");
-        let mut report = ArtifactInspectionReport::from_artifact(&artifact, encoded.len())
+        let mut report = ArtifactInspectionReport::from_artifact(artifact, encoded.len())
             .expect("artifact inspection report should build");
         report.body_count += 1;
 
