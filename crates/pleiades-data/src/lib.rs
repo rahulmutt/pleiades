@@ -51,8 +51,8 @@ use pleiades_backend::{
 use pleiades_compression::CompressedArtifact;
 use pleiades_compression::{
     join_display, ArtifactHeader, ArtifactOutput, ArtifactOutputSupport, ArtifactProfile,
-    ArtifactProfileCoverageSummary, BodyArtifact, ChannelKind, EndianPolicy, PolynomialChannel,
-    Segment,
+    ArtifactProfileCoverageSummary, ArtifactResidualBodyCoverageSummary, BodyArtifact, ChannelKind,
+    EndianPolicy, PolynomialChannel, Segment,
 };
 use pleiades_jpl::{
     format_reference_snapshot_summary, reference_snapshot, reference_snapshot_summary,
@@ -400,12 +400,14 @@ impl PackagedArtifactRegenerationSummary {
             .unwrap_or_else(|| "Reference snapshot coverage: unavailable".to_string())
     }
 
+    /// Returns the residual-correction body coverage as a compact structured summary.
+    pub fn residual_body_coverage_summary(&self) -> ArtifactResidualBodyCoverageSummary {
+        ArtifactResidualBodyCoverageSummary::new(self.residual_bodies.clone())
+    }
+
     /// Returns the residual-correction body list as a compact human-readable line.
     pub fn residual_body_line(&self) -> String {
-        match self.residual_bodies.as_slice() {
-            [] => "residual bodies: none".to_string(),
-            residual_bodies => format!("residual bodies: {}", join_display(residual_bodies)),
-        }
+        self.residual_body_coverage_summary().summary_line()
     }
 
     /// Returns the generation policy as a compact human-readable line.
@@ -463,16 +465,16 @@ impl PackagedArtifactRegenerationSummary {
             )
         })?;
 
-        if self.residual_bodies != artifact.residual_bodies() {
-            return Err(pleiades_compression::CompressionError::new(
-                pleiades_compression::CompressionErrorKind::InvalidFormat,
-                format!(
-                    "packaged artifact regeneration summary residual body list does not match the checked-in packaged artifact: expected [{}]; got [{}]",
-                    join_display(&artifact.residual_bodies()),
-                    join_display(&self.residual_bodies)
-                ),
-            ));
-        }
+        self.residual_body_coverage_summary()
+            .validate(artifact)
+            .map_err(|error| {
+                pleiades_compression::CompressionError::new(
+                    pleiades_compression::CompressionErrorKind::InvalidFormat,
+                    format!(
+                        "packaged artifact regeneration summary residual body coverage is invalid: {error}"
+                    ),
+                )
+            })?;
 
         if self.reference_snapshot.is_none() {
             return Err(pleiades_compression::CompressionError::new(
@@ -3288,6 +3290,16 @@ mod tests {
             "generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic residual corrections to keep the high-curvature fit compact"
         );
         assert_eq!(summary.residual_body_line(), "residual bodies: Moon");
+        let residual_coverage = summary.residual_body_coverage_summary();
+        assert_eq!(residual_coverage.body_count, 1);
+        assert_eq!(residual_coverage.summary_line(), "residual bodies: Moon");
+        assert_eq!(
+            residual_coverage.to_string(),
+            residual_coverage.summary_line()
+        );
+        residual_coverage
+            .validate(artifact)
+            .expect("residual body coverage should validate");
         assert_eq!(
             packaged_body_coverage_summary_details().summary_line(),
             format!("Packaged body set: {}", summary.body_coverage_line())
