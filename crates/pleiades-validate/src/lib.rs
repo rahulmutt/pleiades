@@ -945,6 +945,34 @@ pub struct ComparisonToleranceEntry {
     pub tolerance: ComparisonTolerance,
 }
 
+impl ComparisonToleranceEntry {
+    /// Validates the tolerance entry before it is rendered.
+    pub fn validate(&self) -> Result<(), EphemerisError> {
+        validate_comparison_tolerance(&self.tolerance)
+    }
+
+    /// Renders the compact report wording for this tolerance entry.
+    pub fn summary_line(&self) -> String {
+        let tolerance = &self.tolerance;
+        format!(
+            "{}: Δlon≤{:.3}°, Δlat≤{:.3}°, Δdist={}",
+            self.scope.label(),
+            tolerance.max_longitude_delta_deg,
+            tolerance.max_latitude_delta_deg,
+            tolerance
+                .max_distance_delta_au
+                .map(|value| format!("{value:.3} AU"))
+                .unwrap_or_else(|| "n/a".to_string())
+        )
+    }
+}
+
+impl fmt::Display for ComparisonToleranceEntry {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Structured comparison tolerance policy details for a validation report.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ComparisonTolerancePolicySummary {
@@ -995,7 +1023,7 @@ impl ComparisonTolerancePolicySummary {
                 ));
             }
 
-            validate_comparison_tolerance(&entry.tolerance)?;
+            entry.validate()?;
 
             let coverage = &self.coverage[index];
             if coverage.entry.scope != entry.scope {
@@ -1183,7 +1211,7 @@ impl ComparisonToleranceScopeCoverageSummary {
             }
         }
 
-        validate_comparison_tolerance(&self.entry.tolerance)?;
+        self.entry.validate()?;
         Ok(())
     }
 
@@ -7551,17 +7579,7 @@ fn format_comparison_tolerance_limits_for_report(entries: &[ComparisonToleranceE
 }
 
 fn format_comparison_tolerance_limit_for_report(entry: &ComparisonToleranceEntry) -> String {
-    let tolerance = &entry.tolerance;
-    format!(
-        "{}: Δlon≤{:.3}°, Δlat≤{:.3}°, Δdist={}",
-        entry.scope.label(),
-        tolerance.max_longitude_delta_deg,
-        tolerance.max_latitude_delta_deg,
-        tolerance
-            .max_distance_delta_au
-            .map(|value| format!("{value:.3} AU"))
-            .unwrap_or_else(|| "n/a".to_string())
-    )
+    entry.summary_line()
 }
 
 fn comparison_coordinate_frames(comparison: &ComparisonReport) -> &[CoordinateFrame] {
@@ -11804,6 +11822,28 @@ mod tests {
         assert!(error.to_string().contains("appears in multiple scope rows"));
         assert!(error.to_string().contains("Luminaries"));
         assert!(error.to_string().contains("Major planets"));
+    }
+
+    #[test]
+    fn comparison_tolerance_entry_has_a_displayable_summary_line() {
+        let corpus = default_corpus();
+        let reference = default_reference_backend();
+        let candidate = default_candidate_backend();
+        let report =
+            compare_backends(&reference, &candidate, &corpus).expect("comparison should build");
+        let summary = report.tolerance_policy_summary();
+        let entry = summary
+            .entries
+            .first()
+            .expect("comparison should include at least one tolerance entry");
+
+        assert_eq!(entry.summary_line(), entry.to_string());
+        entry
+            .validate()
+            .expect("reported tolerance entry should validate");
+        assert!(entry.summary_line().contains(entry.scope.label()));
+        assert!(entry.summary_line().contains("Δlon≤"));
+        assert!(entry.summary_line().contains("Δlat≤"));
     }
 
     #[test]
