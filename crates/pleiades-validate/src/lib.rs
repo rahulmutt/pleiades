@@ -108,6 +108,7 @@ use pleiades_vsop87::{
     source_body_class_evidence_summary_for_report, source_body_evidence_summary_for_report,
     source_documentation_health_summary_for_report, source_documentation_summary_for_report,
     source_specifications, supported_body_j1900_ecliptic_batch_parity_summary_for_report,
+    supported_body_j1900_equatorial_batch_parity_summary_for_report,
     supported_body_j2000_ecliptic_batch_parity_summary_for_report,
     supported_body_j2000_equatorial_batch_parity_summary_for_report,
     vsop87_request_policy_summary_for_report, Vsop87Backend,
@@ -5581,6 +5582,8 @@ fn render_release_summary_text() -> String {
     text.push_str(" | ");
     text.push_str(&format_vsop87_supported_body_j1900_ecliptic_batch_summary());
     text.push_str(" | ");
+    text.push_str(&format_vsop87_supported_body_j1900_equatorial_batch_summary());
+    text.push_str(" | ");
     text.push_str(&format_vsop87_mixed_batch_summary());
     text.push_str(" | ");
     text.push_str(&format_vsop87_j1900_batch_summary());
@@ -7963,6 +7966,10 @@ fn format_vsop87_supported_body_j1900_ecliptic_batch_summary() -> String {
     supported_body_j1900_ecliptic_batch_parity_summary_for_report()
 }
 
+fn format_vsop87_supported_body_j1900_equatorial_batch_summary() -> String {
+    supported_body_j1900_equatorial_batch_parity_summary_for_report()
+}
+
 fn format_vsop87_mixed_batch_summary() -> String {
     canonical_mixed_time_scale_batch_parity_summary_for_report()
 }
@@ -8903,6 +8910,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         "  {}",
         format_vsop87_supported_body_j1900_ecliptic_batch_summary()
     );
+    let _ = writeln!(
+        text,
+        "  {}",
+        format_vsop87_supported_body_j1900_equatorial_batch_summary()
+    );
     let _ = writeln!(text, "  {}", format_vsop87_mixed_batch_summary());
     let _ = writeln!(text, "  {}", format_vsop87_j1900_batch_summary());
     let _ = writeln!(text, "  {}", format_vsop87_body_evidence_summary());
@@ -9337,6 +9349,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&format_vsop87_supported_body_j2000_equatorial_batch_summary());
     text.push('\n');
     text.push_str(&format_vsop87_supported_body_j1900_ecliptic_batch_summary());
+    text.push('\n');
+    text.push_str(&format_vsop87_supported_body_j1900_equatorial_batch_summary());
     text.push('\n');
     text.push_str(&format_vsop87_mixed_batch_summary());
     text.push('\n');
@@ -14760,6 +14774,7 @@ mod tests {
         assert!(rendered.contains("VSOP87 supported-body J2000 ecliptic batch parity:"));
         assert!(rendered.contains("VSOP87 supported-body J2000 equatorial batch parity:"));
         assert!(rendered.contains("VSOP87 supported-body J1900 ecliptic batch parity:"));
+        assert!(rendered.contains("VSOP87 supported-body J1900 equatorial batch parity:"));
         assert!(rendered.contains("VSOP87 canonical mixed TT/TDB batch parity:"));
         assert!(rendered.contains("JPL batch error taxonomy: unsupported body Mean Node -> UnsupportedBody; out-of-range Ceres -> OutOfRangeInstant"));
         assert!(rendered.contains("VSOP87 canonical J1900 batch parity:"));
@@ -14911,6 +14926,7 @@ mod tests {
         assert!(rendered.contains("VSOP87 supported-body J2000 ecliptic batch parity:"));
         assert!(rendered.contains("VSOP87 supported-body J2000 equatorial batch parity:"));
         assert!(rendered.contains("VSOP87 supported-body J1900 ecliptic batch parity:"));
+        assert!(rendered.contains("VSOP87 supported-body J1900 equatorial batch parity:"));
         assert!(rendered.contains("VSOP87 canonical mixed TT/TDB batch parity:"));
         assert!(rendered.contains("JPL batch error taxonomy: unsupported body Mean Node -> UnsupportedBody; out-of-range Ceres -> OutOfRangeInstant"));
         assert!(rendered
@@ -15438,6 +15454,7 @@ version = "0.9.0"
         assert!(release_summary.contains("VSOP87 supported-body J2000 ecliptic batch parity:"));
         assert!(release_summary.contains("VSOP87 supported-body J2000 equatorial batch parity:"));
         assert!(release_summary.contains("VSOP87 supported-body J1900 ecliptic batch parity:"));
+        assert!(release_summary.contains("VSOP87 supported-body J1900 equatorial batch parity:"));
         assert!(release_summary.contains("VSOP87 canonical mixed TT/TDB batch parity:"));
         assert!(release_summary.contains("VSOP87 canonical J1900 batch parity:"));
         assert!(release_summary.contains("VSOP87 source-backed body evidence:"));
@@ -15643,6 +15660,8 @@ version = "0.9.0"
             .contains("VSOP87 supported-body J2000 equatorial batch parity:"));
         assert!(validation_report_summary
             .contains("VSOP87 supported-body J1900 ecliptic batch parity:"));
+        assert!(validation_report_summary
+            .contains("VSOP87 supported-body J1900 equatorial batch parity:"));
         assert!(validation_report_summary.contains("VSOP87 canonical mixed TT/TDB batch parity:"));
         assert!(validation_report_summary
             .contains("VSOP87 canonical J2000 equatorial companion evidence: 8 samples"));
