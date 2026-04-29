@@ -202,7 +202,10 @@ impl<B: EphemerisBackend> ChartEngine<B> {
     /// use pleiades_core::{ChartEngine, ChartRequest, EphemerisBackend};
     /// use pleiades_core::{AccuracyClass, BackendCapabilities, BackendFamily, BackendId};
     /// use pleiades_core::{BackendMetadata, BackendProvenance, EphemerisError, EphemerisErrorKind};
-    /// use pleiades_core::{CoordinateFrame, CelestialBody, Instant, JulianDay, TimeRange, TimeScale};
+    /// use pleiades_core::{
+    ///     CelestialBody, CoordinateFrame, HouseSystem, Instant, JulianDay, Latitude,
+    ///     Longitude, ObserverLocation, TimeRange, TimeScale,
+    /// };
     ///
     /// struct DemoBackend;
     ///
@@ -217,7 +220,10 @@ impl<B: EphemerisBackend> ChartEngine<B> {
     ///             supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
     ///             body_coverage: vec![CelestialBody::Sun],
     ///             supported_frames: vec![CoordinateFrame::Ecliptic],
-    ///             capabilities: BackendCapabilities::default(),
+    ///             capabilities: BackendCapabilities {
+    ///                 topocentric: true,
+    ///                 ..BackendCapabilities::default()
+    ///             },
     ///             accuracy: AccuracyClass::Approximate,
     ///             deterministic: true,
     ///             offline: true,
@@ -246,10 +252,25 @@ impl<B: EphemerisBackend> ChartEngine<B> {
     ///     .with_bodies(vec![CelestialBody::Sun])
     ///     .with_house_system(pleiades_core::HouseSystem::WholeSign);
     /// let error = engine
-    ///     .validate_chart_requests(&[tt_request, house_request])
+    ///     .validate_chart_requests(&[tt_request.clone(), house_request])
     ///     .expect_err("batch chart validation should keep the failing request index");
     /// assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
     /// assert_eq!(error.message, "chart request #2 failed validation: house placement requires an observer location");
+    ///
+    /// let supported_house_request = ChartRequest::new(Instant::new(
+    ///     JulianDay::from_days(2_451_545.0),
+    ///     TimeScale::Tdb,
+    /// ))
+    /// .with_observer(ObserverLocation::new(
+    ///     Latitude::from_degrees(51.5),
+    ///     Longitude::from_degrees(-0.1),
+    ///     None,
+    /// ))
+    /// .with_house_system(pleiades_core::HouseSystem::WholeSign)
+    /// .with_bodies(vec![CelestialBody::Sun]);
+    /// assert!(engine
+    ///     .validate_chart_requests(&[tt_request, supported_house_request])
+    ///     .is_ok());
     /// ```
     pub fn validate_chart_requests(&self, requests: &[ChartRequest]) -> Result<(), EphemerisError> {
         let metadata = self.validated_metadata().map_err(|error| {
