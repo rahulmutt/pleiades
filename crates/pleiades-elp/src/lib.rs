@@ -2446,6 +2446,29 @@ pub struct LunarApparentComparisonSample {
     pub note: &'static str,
 }
 
+impl LunarApparentComparisonSample {
+    /// Returns a compact, release-facing summary of the published sample.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "body={}; epoch={}; apparent lon/lat/dist={:+.6}°/{:+.6}°/{:.12} AU; apparent RA/Dec={:+.6}°/{:+.6}°; note={}",
+            self.body,
+            format_instant(self.epoch),
+            self.apparent_longitude_deg,
+            self.apparent_latitude_deg,
+            self.apparent_distance_au,
+            self.apparent_right_ascension_deg,
+            self.apparent_declination_deg,
+            self.note,
+        )
+    }
+}
+
+impl fmt::Display for LunarApparentComparisonSample {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Returns the reference-only apparent Moon comparison sample used by validation and reporting.
 pub fn lunar_apparent_comparison_evidence() -> &'static [LunarApparentComparisonSample] {
     const SAMPLES: &[LunarApparentComparisonSample] = &[
@@ -6355,6 +6378,11 @@ mod tests {
         assert_eq!(samples[3].epoch.julian_day.days(), 2_453_986.285_649);
         assert!(samples[3].note.contains("EclipseWise"));
         assert!(samples[3].note.contains("shared mean-obliquity transform"));
+        assert!(samples[3].summary_line().contains("body=Moon"));
+        assert!(samples[3].summary_line().contains("EclipseWise"));
+        assert!(samples[3]
+            .to_string()
+            .contains("shared mean-obliquity transform"));
     }
 
     #[test]
