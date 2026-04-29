@@ -2930,6 +2930,20 @@ impl fmt::Display for LunarApparentComparisonSample {
     }
 }
 
+fn lunar_apparent_comparison_requests_for_frame(frame: CoordinateFrame) -> Vec<EphemerisRequest> {
+    lunar_apparent_comparison_evidence()
+        .iter()
+        .map(|sample| {
+            let mut request = EphemerisRequest::new(sample.body.clone(), sample.epoch);
+            request.frame = frame;
+            request.instant.scale = TimeScale::Tt;
+            request.zodiac_mode = ZodiacMode::Tropical;
+            request.apparent = Apparentness::Mean;
+            request
+        })
+        .collect()
+}
+
 /// Returns the reference-only apparent Moon comparison sample used by validation and reporting.
 pub fn lunar_apparent_comparison_evidence() -> &'static [LunarApparentComparisonSample] {
     const SAMPLES: &[LunarApparentComparisonSample] = &[
@@ -2985,6 +2999,28 @@ pub fn lunar_apparent_comparison_evidence() -> &'static [LunarApparentComparison
     ];
 
     SAMPLES
+}
+
+/// Returns the canonical ecliptic apparent-comparison request corpus used by validation and reporting.
+pub fn lunar_apparent_comparison_requests() -> Vec<EphemerisRequest> {
+    lunar_apparent_comparison_requests_for_frame(CoordinateFrame::Ecliptic)
+}
+
+/// This is a compatibility alias for [`lunar_apparent_comparison_requests`].
+#[doc(alias = "lunar_apparent_comparison_requests")]
+pub fn lunar_apparent_comparison_request_corpus() -> Vec<EphemerisRequest> {
+    lunar_apparent_comparison_requests()
+}
+
+/// Returns the canonical equatorial apparent-comparison request corpus used by validation and reporting.
+pub fn lunar_apparent_comparison_equatorial_requests() -> Vec<EphemerisRequest> {
+    lunar_apparent_comparison_requests_for_frame(CoordinateFrame::Equatorial)
+}
+
+/// This is a compatibility alias for [`lunar_apparent_comparison_equatorial_requests`].
+#[doc(alias = "lunar_apparent_comparison_equatorial_requests")]
+pub fn lunar_apparent_comparison_equatorial_request_corpus() -> Vec<EphemerisRequest> {
+    lunar_apparent_comparison_equatorial_requests()
 }
 
 /// A compact summary of the reference-only apparent Moon comparison evidence.
@@ -6904,6 +6940,57 @@ mod tests {
             lunar_equatorial_reference_batch_request_corpus(),
             lunar_equatorial_reference_batch_requests()
         );
+        assert_eq!(
+            lunar_apparent_comparison_request_corpus(),
+            lunar_apparent_comparison_requests()
+        );
+        assert_eq!(
+            lunar_apparent_comparison_equatorial_request_corpus(),
+            lunar_apparent_comparison_equatorial_requests()
+        );
+    }
+
+    #[test]
+    fn lunar_apparent_comparison_request_corpora_match_the_canonical_slice() {
+        let samples = lunar_apparent_comparison_evidence();
+        let ecliptic_requests = lunar_apparent_comparison_requests();
+        let equatorial_requests = lunar_apparent_comparison_equatorial_requests();
+
+        assert_eq!(ecliptic_requests.len(), samples.len());
+        assert_eq!(equatorial_requests.len(), samples.len());
+
+        for (index, (request, sample)) in ecliptic_requests.iter().zip(samples.iter()).enumerate() {
+            assert_eq!(
+                request.body, sample.body,
+                "ecliptic request {index} body should match evidence"
+            );
+            assert_eq!(
+                request.instant.julian_day, sample.epoch.julian_day,
+                "ecliptic request {index} epoch should match evidence"
+            );
+            assert_eq!(request.frame, CoordinateFrame::Ecliptic);
+            assert_eq!(request.zodiac_mode, ZodiacMode::Tropical);
+            assert_eq!(request.apparent, Apparentness::Mean);
+            assert!(request.observer.is_none());
+            assert_eq!(request.instant.scale, TimeScale::Tt);
+        }
+
+        for (index, (request, sample)) in equatorial_requests.iter().zip(samples.iter()).enumerate()
+        {
+            assert_eq!(
+                request.body, sample.body,
+                "equatorial request {index} body should match evidence"
+            );
+            assert_eq!(
+                request.instant.julian_day, sample.epoch.julian_day,
+                "equatorial request {index} epoch should match evidence"
+            );
+            assert_eq!(request.frame, CoordinateFrame::Equatorial);
+            assert_eq!(request.zodiac_mode, ZodiacMode::Tropical);
+            assert_eq!(request.apparent, Apparentness::Mean);
+            assert!(request.observer.is_none());
+            assert_eq!(request.instant.scale, TimeScale::Tt);
+        }
     }
 
     #[test]
