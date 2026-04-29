@@ -3262,7 +3262,7 @@ impl fmt::Display for JplInterpolationQualityKindCoverage {
 }
 
 impl JplInterpolationQualityKindCoverage {
-    /// Validates that the coverage summary remains internally consistent.
+    /// Validates that the coverage summary remains internally consistent and still matches the derived evidence.
     pub fn validate(&self) -> Result<(), JplInterpolationQualitySummaryValidationError> {
         if self.sample_count == 0 {
             return Err(JplInterpolationQualitySummaryValidationError::MissingSamples);
@@ -3291,6 +3291,10 @@ impl JplInterpolationQualityKindCoverage {
                     },
                 );
             }
+        }
+
+        if jpl_interpolation_quality_kind_coverage().as_ref() != Some(self) {
+            return Err(JplInterpolationQualitySummaryValidationError::DerivedSummaryMismatch);
         }
 
         Ok(())
@@ -7065,6 +7069,17 @@ mod tests {
         assert_eq!(
             coverage.validate(),
             Err(JplInterpolationQualitySummaryValidationError::DuplicateBody { body: duplicate })
+        );
+    }
+
+    #[test]
+    fn interpolation_quality_coverage_validation_rejects_derived_summary_drift() {
+        let mut coverage =
+            jpl_interpolation_quality_kind_coverage().expect("coverage should exist");
+        coverage.cubic_body_count += 1;
+        assert_eq!(
+            coverage.validate(),
+            Err(JplInterpolationQualitySummaryValidationError::DerivedSummaryMismatch)
         );
     }
 
