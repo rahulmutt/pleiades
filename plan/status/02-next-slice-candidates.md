@@ -148,6 +148,7 @@ Progress note (2026-04-26): the JPL reference snapshot now also publishes an exp
 Progress note (2026-04-26): the JPL mixed-frame batch regression now builds its alternating-frame requests inline, which keeps the reference-snapshot parity test idiomatic and clippy-clean while preserving the exact request order and frame coverage.
 Progress note (2026-04-27): the JPL reference snapshot batch-parity evidence is now also surfaced as a distinct release-summary line, so the compact frontend reports name the mixed-frame reference corpus explicitly instead of only folding it into the combined source-backed evidence block.
 Progress note (2026-04-29): the JPL snapshot batch path now also distinguishes unsupported bodies from out-of-range requests in its own regression slice, so the single-request error taxonomy stays visible through `positions()` as well as the direct lookup path. The same batch error-taxonomy summary now also validates its canonical field set before the release-facing wrapper formats it, so the compact report line fails closed if that backend-owned summary ever drifts away from the current posture.
+Progress note (2026-04-29): the checked-in JPL hold-out corpus now also exposes a public request-corpus helper that preserves the stored row order and requested coordinate frame, which makes the exact held-out batch shapes reusable by downstream validation and reproducibility tooling without reconstructing them from the snapshot metadata in each caller.
 
 Remaining suggested scope:
 

@@ -4966,8 +4966,36 @@ fn independent_holdout_state() -> &'static SnapshotState {
     })
 }
 
-fn independent_holdout_snapshot_entries() -> Option<&'static [SnapshotEntry]> {
+/// Returns the parsed independent hold-out fixture entries.
+///
+/// The entries preserve the checked-in order from the derivative CSV so
+/// downstream validation and reproducibility tooling can rebuild the exact
+/// hold-out request corpus without re-parsing the fixture.
+pub fn independent_holdout_snapshot_entries() -> Option<&'static [SnapshotEntry]> {
     independent_holdout_state().entries()
+}
+
+/// Returns the independent hold-out request corpus in the requested frame.
+///
+/// The requests preserve the checked-in row order and the stored epochs from
+/// the derivative CSV. Callers can reuse this corpus for exact batch checks or
+/// retag the returned instants with a different time-scale policy if needed.
+pub fn independent_holdout_snapshot_requests(
+    frame: CoordinateFrame,
+) -> Option<Vec<EphemerisRequest>> {
+    independent_holdout_snapshot_entries().map(|entries| {
+        entries
+            .iter()
+            .map(|entry| EphemerisRequest {
+                body: entry.body.clone(),
+                instant: entry.epoch,
+                observer: None,
+                frame,
+                zodiac_mode: ZodiacMode::Tropical,
+                apparent: Apparentness::Mean,
+            })
+            .collect()
+    })
 }
 
 fn independent_holdout_snapshot_error() -> Option<&'static SnapshotLoadError> {
@@ -6637,17 +6665,8 @@ mod tests {
         let backend = JplSnapshotBackend;
         let entries = independent_holdout_snapshot_entries()
             .expect("independent hold-out entries should exist");
-        let requests = entries
-            .iter()
-            .map(|entry| EphemerisRequest {
-                body: entry.body.clone(),
-                instant: entry.epoch,
-                observer: None,
-                frame: CoordinateFrame::Ecliptic,
-                zodiac_mode: ZodiacMode::Tropical,
-                apparent: Apparentness::Mean,
-            })
-            .collect::<Vec<_>>();
+        let requests = independent_holdout_snapshot_requests(CoordinateFrame::Ecliptic)
+            .expect("independent hold-out requests should exist");
 
         let results = backend
             .positions(&requests)
@@ -6674,25 +6693,18 @@ mod tests {
         let backend = JplSnapshotBackend;
         let entries = independent_holdout_snapshot_entries()
             .expect("independent hold-out entries should exist");
-        let requests = entries
-            .iter()
-            .enumerate()
-            .map(|(index, entry)| EphemerisRequest {
-                body: entry.body.clone(),
-                instant: Instant::new(
-                    entry.epoch.julian_day,
-                    if index % 2 == 0 {
-                        TimeScale::Tt
-                    } else {
-                        TimeScale::Tdb
-                    },
-                ),
-                observer: None,
-                frame: CoordinateFrame::Ecliptic,
-                zodiac_mode: ZodiacMode::Tropical,
-                apparent: Apparentness::Mean,
-            })
-            .collect::<Vec<_>>();
+        let mut requests = independent_holdout_snapshot_requests(CoordinateFrame::Ecliptic)
+            .expect("independent hold-out requests should exist");
+        for (index, request) in requests.iter_mut().enumerate() {
+            request.instant = Instant::new(
+                request.instant.julian_day,
+                if index % 2 == 0 {
+                    TimeScale::Tt
+                } else {
+                    TimeScale::Tdb
+                },
+            );
+        }
 
         let results = backend
             .positions(&requests)
@@ -6721,17 +6733,8 @@ mod tests {
         let backend = JplSnapshotBackend;
         let entries = independent_holdout_snapshot_entries()
             .expect("independent hold-out entries should exist");
-        let requests = entries
-            .iter()
-            .map(|entry| EphemerisRequest {
-                body: entry.body.clone(),
-                instant: entry.epoch,
-                observer: None,
-                frame: CoordinateFrame::Equatorial,
-                zodiac_mode: ZodiacMode::Tropical,
-                apparent: Apparentness::Mean,
-            })
-            .collect::<Vec<_>>();
+        let requests = independent_holdout_snapshot_requests(CoordinateFrame::Equatorial)
+            .expect("independent hold-out requests should exist");
 
         let results = backend
             .positions(&requests)
