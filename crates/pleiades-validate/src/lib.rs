@@ -51,7 +51,7 @@ use pleiades_data::{
     packaged_artifact_output_support_summary_for_report,
     packaged_artifact_profile_summary_with_body_coverage,
     packaged_artifact_regeneration_summary_for_report, packaged_frame_parity_summary_for_report,
-    packaged_frame_treatment_summary_details,
+    packaged_frame_treatment_summary_details, packaged_lookup_epoch_policy_summary_for_report,
     packaged_mixed_tt_tdb_batch_parity_summary_for_report,
     packaged_request_policy_summary_for_report, PackagedDataBackend,
 };
@@ -5453,6 +5453,9 @@ fn render_release_summary_text() -> String {
     text.push_str("Packaged request policy: ");
     text.push_str(&packaged_request_policy_summary_for_report());
     text.push('\n');
+    text.push_str("Packaged lookup epoch policy: ");
+    text.push_str(&packaged_lookup_epoch_policy_summary_for_report());
+    text.push('\n');
     text.push_str("Packaged batch parity: ");
     text.push_str(&packaged_mixed_tt_tdb_batch_parity_summary_for_report());
     text.push('\n');
@@ -8668,6 +8671,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         format_packaged_artifact_output_support_summary()
     );
     let _ = writeln!(text, "  {}", packaged_request_policy_summary_for_report());
+    let _ = writeln!(
+        text,
+        "  Packaged lookup epoch policy: {}",
+        packaged_lookup_epoch_policy_summary_for_report()
+    );
     let _ = writeln!(
         text,
         "  Packaged batch parity: {}",
@@ -12529,6 +12537,7 @@ mod tests {
             "Packaged-artifact output support: EclipticCoordinates=derived, EquatorialCoordinates=derived, ApparentCorrections=unsupported, TopocentricCoordinates=unsupported, SiderealCoordinates=unsupported, Motion=unsupported"
         ));
         assert!(validation_report_summary.contains("Packaged request policy"));
+        assert!(validation_report_summary.contains("Packaged lookup epoch policy: TT-grid retag without relativistic correction; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction"));
         assert!(validation_report_summary.contains("Packaged frame parity"));
         assert!(validation_report_summary.contains("Packaged frame treatment"));
         assert!(validation_report_summary.contains("Time-scale policy:"));
@@ -15094,6 +15103,10 @@ version = "0.9.0"
         assert!(release_summary.contains("|Δlon| mean/median/p95="));
         assert!(release_summary.contains("|ΔDec| mean/median/p95="));
         assert!(release_summary.contains(&packaged_request_policy_summary_for_report()));
+        assert!(release_summary.contains(&format!(
+            "Packaged lookup epoch policy: {}",
+            packaged_lookup_epoch_policy_summary_for_report()
+        )));
         assert!(release_summary.contains(&format!(
             "Packaged frame treatment: {}",
             packaged_frame_treatment_summary_details().summary_line()

@@ -13,7 +13,9 @@
 //! checked-in fixture from the bundled JPL reference snapshot without
 //! introducing any native tooling. When the `packaged-artifact-path` feature is
 //! enabled, callers can also load an explicit artifact file for larger or
-//! externally distributed packaged datasets.
+//! externally distributed packaged datasets. See `docs/time-observer-policy.md`
+//! for the explicit packaged request/lookup-epoch policy, and
+//! `spec/data-compression.md` for the stored-vs-derived artifact contract.
 //!
 //! # Examples
 //!
@@ -629,6 +631,92 @@ impl fmt::Display for PackagedLookupEpochPolicy {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.label())
     }
+}
+
+/// Structured summary for the packaged-data lookup-epoch policy.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PackagedLookupEpochPolicySummary {
+    /// Policy describing how TDB-tagged lookups are handled.
+    pub policy: PackagedLookupEpochPolicy,
+}
+
+/// Validation error for the packaged-data lookup-epoch policy summary.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PackagedLookupEpochPolicySummaryValidationError {
+    /// A summary field is out of sync with the current packaged-data posture.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for PackagedLookupEpochPolicySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the packaged lookup-epoch policy summary field `{field}` is out of sync with the current posture"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for PackagedLookupEpochPolicySummaryValidationError {}
+
+impl PackagedLookupEpochPolicySummary {
+    /// Returns the packaged lookup-epoch policy as a compact human-readable line.
+    pub fn summary_line(self) -> String {
+        self.policy.summary_line()
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current packaged-data posture.
+    pub fn validate(&self) -> Result<(), PackagedLookupEpochPolicySummaryValidationError> {
+        if self.policy != PackagedLookupEpochPolicy::RetagToTtGridWithoutRelativisticCorrection {
+            return Err(
+                PackagedLookupEpochPolicySummaryValidationError::FieldOutOfSync { field: "policy" },
+            );
+        }
+
+        Ok(())
+    }
+}
+
+impl fmt::Display for PackagedLookupEpochPolicySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+const PACKAGED_LOOKUP_EPOCH_POLICY_SUMMARY: PackagedLookupEpochPolicySummary =
+    PackagedLookupEpochPolicySummary {
+        policy: PackagedLookupEpochPolicy::RetagToTtGridWithoutRelativisticCorrection,
+    };
+
+/// Returns the current packaged-data lookup-epoch policy summary record.
+pub fn packaged_lookup_epoch_policy_summary_details() -> PackagedLookupEpochPolicySummary {
+    let summary = PACKAGED_LOOKUP_EPOCH_POLICY_SUMMARY;
+    debug_assert!(summary.validate().is_ok());
+    summary
+}
+
+/// Returns the current packaged-data lookup-epoch policy summary after validating the structured posture.
+pub fn packaged_lookup_epoch_policy_summary_for_report() -> String {
+    let summary = packaged_lookup_epoch_policy_summary_details();
+    match summary.validate() {
+        Ok(()) => summary.to_string(),
+        Err(error) => format!("Packaged lookup epoch policy: unavailable ({error})"),
+    }
+}
+
+/// Returns the current packaged-data lookup-epoch policy summary.
+pub fn packaged_lookup_epoch_policy_summary() -> &'static str {
+    static SUMMARY: OnceLock<String> = OnceLock::new();
+    SUMMARY
+        .get_or_init(|| {
+            let summary = packaged_lookup_epoch_policy_summary_details();
+            match summary.validate() {
+                Ok(()) => summary.to_string(),
+                Err(error) => format!("Packaged lookup epoch policy: unavailable ({error})"),
+            }
+        })
+        .as_str()
 }
 
 /// Structured request-policy summary for the packaged-data backend.
@@ -2263,9 +2351,27 @@ mod tests {
             packaged_request_policy_summary()
         );
         assert_eq!(request_policy.to_string(), request_policy.summary_line());
+        let lookup_epoch_policy = packaged_lookup_epoch_policy_summary_details();
         assert_eq!(
-            request_policy.lookup_epoch_policy.summary_line(),
+            lookup_epoch_policy.policy,
+            request_policy.lookup_epoch_policy
+        );
+        assert_eq!(lookup_epoch_policy.validate(), Ok(()));
+        assert_eq!(
+            lookup_epoch_policy.summary_line(),
             "TT-grid retag without relativistic correction; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction"
+        );
+        assert_eq!(
+            lookup_epoch_policy.summary_line(),
+            packaged_lookup_epoch_policy_summary_for_report()
+        );
+        assert_eq!(
+            lookup_epoch_policy.summary_line(),
+            packaged_lookup_epoch_policy_summary()
+        );
+        assert_eq!(
+            lookup_epoch_policy.to_string(),
+            lookup_epoch_policy.summary_line()
         );
         assert_eq!(
             metadata.provenance.data_sources[1],

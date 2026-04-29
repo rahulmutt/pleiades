@@ -7,6 +7,9 @@
 //! layering deterministic corrections on top. The format is intentionally
 //! simple enough to audit while still exercising the same segmented lookup flow
 //! and random-access body/segment helpers that later, denser artifacts will use.
+//! See `spec/data-compression.md` for the stored-vs-derived output contract and
+//! `docs/time-observer-policy.md` for the explicit packaged lookup policy that
+//! keeps derived coordinates separate from observer-driven body-position modes.
 //!
 //! Enable the optional `serde` feature to serialize compressed artifacts for
 //! inspection or interchange workflows.
