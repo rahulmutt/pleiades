@@ -663,6 +663,11 @@ impl PackagedArtifactProfileSummary {
         )
     }
 
+    /// Returns the packaged artifact profile's output-support summary line.
+    pub fn output_support_summary_line(&self) -> String {
+        self.profile.output_support_entries_summary_line()
+    }
+
     /// Renders the packaged artifact profile with its bundled body list.
     pub fn summary_line_with_bodies(&self) -> String {
         let coverage = self.profile_coverage_summary();
@@ -670,6 +675,16 @@ impl PackagedArtifactProfileSummary {
             "byte order: {}; {}",
             self.endian_policy,
             coverage.summary_line_with_bodies(),
+        )
+    }
+
+    /// Renders the packaged artifact profile together with the built-in output
+    /// support posture used by the current packaged artifact.
+    pub fn summary_line_with_output_support(&self) -> String {
+        format!(
+            "{}; output support: {}",
+            self.summary_line_with_bodies(),
+            self.output_support_summary_line()
         )
     }
 }
@@ -3050,6 +3065,18 @@ mod tests {
         assert_eq!(
             packaged_artifact_output_support_summary_for_report(),
             summary.profile.output_support_entries_summary_line()
+        );
+        assert_eq!(
+            summary.output_support_summary_line(),
+            summary.profile.output_support_entries_summary_line()
+        );
+        assert_eq!(
+            summary.summary_line_with_output_support(),
+            format!(
+                "{}; output support: {}",
+                summary.summary_line_with_bodies(),
+                summary.profile.output_support_entries_summary_line()
+            )
         );
         assert_eq!(
             packaged_artifact_profile_summary_with_body_coverage(),
