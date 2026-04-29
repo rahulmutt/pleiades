@@ -63,15 +63,54 @@ pub struct CompatibilityProfile {
     pub known_gaps: &'static [&'static str],
 }
 
+/// Typed summary of the built-in Swiss-Ephemeris house-code alias inventory.
+#[derive(Clone, Copy, Debug)]
+pub struct HouseCodeAliasInventorySummary {
+    aliases: &'static [HouseSystemCodeAlias],
+}
+
+impl HouseCodeAliasInventorySummary {
+    /// Creates a summary for the provided house-code alias inventory.
+    pub const fn new(aliases: &'static [HouseSystemCodeAlias]) -> Self {
+        Self { aliases }
+    }
+
+    /// Returns the number of short-form aliases in the inventory.
+    pub fn count(&self) -> usize {
+        self.aliases.len()
+    }
+
+    /// Returns the compact rendered short-code mapping.
+    pub fn summary_line(&self) -> String {
+        pleiades_houses::house_system_code_aliases_summary_line()
+    }
+
+    /// Validates the inventory against the release-profile house-code rules.
+    pub fn validate(&self) -> Result<usize, CompatibilityProfileValidationError> {
+        validate_house_code_aliases(self.aliases)
+    }
+}
+
+impl fmt::Display for HouseCodeAliasInventorySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 impl CompatibilityProfile {
     /// Returns a short release note string.
     pub const fn release_note(&self) -> &'static str {
         self.summary
     }
 
+    /// Returns a typed summary of the Swiss-Ephemeris house-code alias inventory.
+    pub fn house_code_alias_inventory_summary(&self) -> HouseCodeAliasInventorySummary {
+        HouseCodeAliasInventorySummary::new(house_system_code_aliases())
+    }
+
     /// Returns the number of Swiss Ephemeris house-table code aliases.
     pub fn house_code_alias_count(&self) -> usize {
-        pleiades_houses::house_system_code_aliases().len()
+        self.house_code_alias_inventory_summary().count()
     }
 
     /// Returns the Swiss-Ephemeris house-code alias table as compact mappings.
@@ -85,7 +124,7 @@ impl CompatibilityProfile {
     /// assert!(summary.contains("P -> Placidus"));
     /// ```
     pub fn house_code_aliases_summary_line(&self) -> String {
-        pleiades_houses::house_system_code_aliases_summary_line()
+        self.house_code_alias_inventory_summary().summary_line()
     }
 
     /// Returns a compact inventory line for the current compatibility catalog.
@@ -185,7 +224,7 @@ impl CompatibilityProfile {
             self.validation_reference_points,
         )?;
         validate_custom_definition_labels(self.custom_definition_labels)?;
-        validate_house_code_aliases(house_system_code_aliases())?;
+        self.house_code_alias_inventory_summary().validate()?;
         validate_profile_text_section("compatibility-caveat", self.known_gaps)?;
         validate_profile_text_sections_are_disjoint(&[
             ("target-house-scope", self.target_house_scope),
@@ -2849,6 +2888,28 @@ mod tests {
             "house-code aliases={}",
             profile.house_code_alias_count()
         )));
+    }
+
+    #[test]
+    fn house_code_alias_inventory_summary_tracks_the_built_in_table() {
+        let profile = current_compatibility_profile();
+        let summary = profile.house_code_alias_inventory_summary();
+
+        assert_eq!(summary.count(), house_system_code_aliases().len());
+        assert_eq!(
+            summary.summary_line(),
+            profile.house_code_aliases_summary_line()
+        );
+        assert_eq!(
+            summary.to_string(),
+            profile.house_code_aliases_summary_line()
+        );
+        assert_eq!(
+            summary
+                .validate()
+                .expect("built-in aliases should validate"),
+            summary.count()
+        );
     }
 
     #[test]
