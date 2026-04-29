@@ -4976,6 +4976,9 @@ fn render_release_summary_text() -> String {
     text.push_str(" baseline, ");
     text.push_str(&profile.release_house_systems.len().to_string());
     text.push_str(" release-specific)\n");
+    text.push_str("House-code aliases: ");
+    text.push_str(&profile.house_code_alias_count().to_string());
+    text.push('\n');
     text.push_str("Release-specific house-system canonical names: ");
     text.push_str(
         &summarize_descriptor_names(profile.release_house_systems, |entry| entry.canonical_name)
@@ -13939,6 +13942,10 @@ mod tests {
         assert!(rendered.contains("ayanamsa catalog validation: ok"));
         assert!(rendered.contains("House systems:"));
         assert!(rendered.contains("House systems: 25 total (12 baseline, 13 release-specific)"));
+        assert!(rendered.contains(&format!(
+            "House-code aliases: {}",
+            profile.house_code_alias_count()
+        )));
         assert!(rendered.contains("Release-specific house-system canonical names: 13 (Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter (poli-equatorial), Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen SD, Pullen SR, Sunshine, Gauquelin sectors)"));
         assert!(rendered.contains("Wang"));
         assert!(rendered.contains("Aries houses"));
