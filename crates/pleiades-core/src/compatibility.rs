@@ -2353,7 +2353,13 @@ mod tests {
 
         let rendered = profile.to_string();
         assert!(rendered.contains("Target compatibility catalog:"));
+        assert!(rendered.contains(
+            "the full Swiss-Ephemeris-class house-system catalog remains the long-term compatibility goal."
+        ));
         assert!(rendered.contains("Target ayanamsa catalog:"));
+        assert!(rendered.contains(
+            "the full Swiss-Ephemeris-class ayanamsa catalog remains the long-term compatibility goal."
+        ));
         assert!(rendered.contains("Baseline compatibility milestone:"));
         assert!(rendered.contains("Release-specific coverage beyond baseline:"));
         assert!(rendered.contains("Alias mappings for built-in house systems:"));

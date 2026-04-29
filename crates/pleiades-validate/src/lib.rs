@@ -12605,6 +12605,13 @@ mod tests {
         )));
         assert!(rendered.contains("Stage 6 release profile:"));
         assert!(rendered.contains("Target compatibility catalog:"));
+        assert!(rendered.contains(
+            "the full Swiss-Ephemeris-class house-system catalog remains the long-term compatibility goal."
+        ));
+        assert!(rendered.contains("Target ayanamsa catalog:"));
+        assert!(rendered.contains(
+            "the full Swiss-Ephemeris-class ayanamsa catalog remains the long-term compatibility goal."
+        ));
         assert!(rendered.contains("Release-specific coverage beyond baseline:"));
         assert!(rendered.contains("Alias mappings for built-in house systems:"));
         assert!(rendered.contains("Source-label aliases for built-in house systems:"));
