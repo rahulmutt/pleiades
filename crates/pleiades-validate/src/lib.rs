@@ -2238,6 +2238,43 @@ impl fmt::Display for RegressionFinding {
     }
 }
 
+impl RegressionFinding {
+    /// Returns `Ok(())` when the regression note is internally consistent.
+    pub fn validate(&self) -> Result<(), EphemerisError> {
+        if self.note.trim().is_empty() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "regression finding note must not be blank",
+            ));
+        }
+
+        for (label, value) in [
+            ("longitude_delta_deg", self.longitude_delta_deg),
+            ("latitude_delta_deg", self.latitude_delta_deg),
+        ] {
+            if !value.is_finite() || value.is_sign_negative() {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "regression finding field `{label}` must be a finite non-negative value"
+                    ),
+                ));
+            }
+        }
+
+        if let Some(distance) = self.distance_delta_au {
+            if !distance.is_finite() || distance.is_sign_negative() {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    "regression finding distance delta must be a finite non-negative value",
+                ));
+            }
+        }
+
+        Ok(())
+    }
+}
+
 /// Benchmark summary for a backend.
 #[derive(Clone, Debug)]
 pub struct BenchmarkReport {
@@ -2391,6 +2428,219 @@ pub struct ValidationReport {
     pub packaged_benchmark: BenchmarkReport,
     /// Benchmark output for full chart assembly.
     pub chart_benchmark: ChartBenchmarkReport,
+}
+
+impl RegressionArchive {
+    /// Returns `Ok(())` when the archived regression cases are internally consistent.
+    pub fn validate(&self) -> Result<(), EphemerisError> {
+        if self.corpus_name.trim().is_empty() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "regression archive corpus name must not be blank",
+            ));
+        }
+
+        for (index, case) in self.cases.iter().enumerate() {
+            case.validate().map_err(|error| {
+                EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!("regression archive case #{} is invalid: {error}", index + 1),
+                )
+            })?;
+        }
+
+        Ok(())
+    }
+}
+
+impl ValidationReport {
+    /// Returns `Ok(())` when the report is internally consistent.
+    pub fn validate(&self) -> Result<(), EphemerisError> {
+        self.comparison_corpus.validate().map_err(|error| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!("validation report comparison corpus is invalid: {error}"),
+            )
+        })?;
+        self.benchmark_corpus.validate().map_err(|error| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!("validation report benchmark corpus is invalid: {error}"),
+            )
+        })?;
+        self.packaged_benchmark_corpus.validate().map_err(|error| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!("validation report packaged benchmark corpus is invalid: {error}"),
+            )
+        })?;
+        self.chart_benchmark_corpus.validate().map_err(|error| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!("validation report chart benchmark corpus is invalid: {error}"),
+            )
+        })?;
+        self.artifact_decode_benchmark.validate().map_err(|error| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!("validation report artifact decode benchmark is invalid: {error}"),
+            )
+        })?;
+        self.house_validation.validate().map_err(|error| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!("validation report house validation corpus is invalid: {error}"),
+            )
+        })?;
+        self.comparison.summary.validate().map_err(|error| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!("validation report comparison summary is invalid: {error}"),
+            )
+        })?;
+        self.comparison.corpus_summary.validate().map_err(|error| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!("validation report comparison corpus summary is invalid: {error}"),
+            )
+        })?;
+        if self.comparison.summary.sample_count != self.comparison.samples.len() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "validation report comparison summary sample-count mismatch: summary has {}, samples have {}",
+                    self.comparison.summary.sample_count,
+                    self.comparison.samples.len()
+                ),
+            ));
+        }
+        if self.comparison.corpus_summary.request_count != self.comparison.samples.len() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "validation report comparison corpus request-count mismatch: summary has {}, samples have {}",
+                    self.comparison.corpus_summary.request_count,
+                    self.comparison.samples.len()
+                ),
+            ));
+        }
+        if self.comparison.corpus_summary.name != self.comparison.corpus_name {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "validation report comparison corpus name does not match the comparison summary",
+            ));
+        }
+        if self.comparison.corpus_summary.apparentness != self.comparison.apparentness {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "validation report comparison corpus apparentness does not match the comparison summary",
+            ));
+        }
+        if self.reference_benchmark.corpus_name != self.comparison_corpus.name {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "validation report reference benchmark corpus does not match the comparison corpus",
+            ));
+        }
+        if self.reference_benchmark.apparentness != self.comparison_corpus.apparentness {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "validation report reference benchmark apparentness does not match the comparison corpus",
+            ));
+        }
+        if self.reference_benchmark.sample_count != self.comparison_corpus.request_count {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "validation report reference benchmark sample count does not match the comparison corpus",
+            ));
+        }
+        if self.candidate_benchmark.corpus_name != self.benchmark_corpus.name {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "validation report candidate benchmark corpus does not match the benchmark corpus",
+            ));
+        }
+        if self.candidate_benchmark.apparentness != self.benchmark_corpus.apparentness {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "validation report candidate benchmark apparentness does not match the benchmark corpus",
+            ));
+        }
+        if self.candidate_benchmark.sample_count != self.benchmark_corpus.request_count {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "validation report candidate benchmark sample count does not match the benchmark corpus",
+            ));
+        }
+        if self.packaged_benchmark.corpus_name != self.packaged_benchmark_corpus.name {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "validation report packaged benchmark corpus does not match the packaged benchmark corpus summary",
+            ));
+        }
+        if self.packaged_benchmark.apparentness != self.packaged_benchmark_corpus.apparentness {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "validation report packaged benchmark apparentness does not match the packaged benchmark corpus",
+            ));
+        }
+        if self.packaged_benchmark.sample_count != self.packaged_benchmark_corpus.request_count {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "validation report packaged benchmark sample count does not match the packaged benchmark corpus",
+            ));
+        }
+        if self.chart_benchmark.corpus_name != self.chart_benchmark_corpus.name {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "validation report chart benchmark corpus does not match the chart benchmark corpus summary",
+            ));
+        }
+        if self.chart_benchmark.apparentness != self.chart_benchmark_corpus.apparentness {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "validation report chart benchmark apparentness does not match the chart benchmark corpus",
+            ));
+        }
+        if self.chart_benchmark.sample_count != self.chart_benchmark_corpus.request_count {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "validation report chart benchmark sample count does not match the chart benchmark corpus",
+            ));
+        }
+        self.reference_benchmark.validate().map_err(|error| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!("validation report reference benchmark is invalid: {error}"),
+            )
+        })?;
+        self.candidate_benchmark.validate().map_err(|error| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!("validation report candidate benchmark is invalid: {error}"),
+            )
+        })?;
+        self.packaged_benchmark.validate().map_err(|error| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!("validation report packaged benchmark is invalid: {error}"),
+            )
+        })?;
+        self.chart_benchmark.validate().map_err(|error| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!("validation report chart benchmark is invalid: {error}"),
+            )
+        })?;
+        self.archived_regressions.validate().map_err(|error| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!("validation report regression archive is invalid: {error}"),
+            )
+        })?;
+
+        Ok(())
+    }
 }
 
 /// A generated release bundle containing the compatibility profile, release-profile
@@ -2814,6 +3064,10 @@ pub fn render_workspace_audit_summary() -> Result<String, std::io::Error> {
 
 impl fmt::Display for ValidationReport {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Err(error) = self.validate() {
+            return write!(f, "Validation report unavailable ({error})");
+        }
+
         writeln!(f, "Validation report")?;
         writeln!(f)?;
         let release_profiles = current_release_profile_identifiers();
@@ -7093,7 +7347,7 @@ fn build_validation_report(rounds: usize) -> Result<ValidationReport, EphemerisE
     let chart_benchmark = benchmark_chart_backend(default_candidate_backend(), rounds)?;
     let archived_regressions = comparison.regression_archive();
 
-    Ok(ValidationReport {
+    let report = ValidationReport {
         comparison_corpus: comparison_corpus.summary(),
         benchmark_corpus: benchmark_corpus.summary(),
         packaged_benchmark_corpus: packaged_benchmark_corpus.summary(),
@@ -7106,7 +7360,9 @@ fn build_validation_report(rounds: usize) -> Result<ValidationReport, EphemerisE
         candidate_benchmark,
         packaged_benchmark,
         chart_benchmark,
-    })
+    };
+    report.validate()?;
+    Ok(report)
 }
 
 /// Renders the validation report used by the CLI.
@@ -8263,6 +8519,10 @@ fn format_packaged_frame_treatment_summary() -> String {
 
 fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     use std::fmt::Write as _;
+
+    if let Err(error) = report.validate() {
+        return format!("Validation report summary unavailable ({error})");
+    }
 
     let release_profiles = match validated_release_profile_identifiers_for_report() {
         Ok(release_profiles) => release_profiles,
@@ -12454,6 +12714,33 @@ mod tests {
         assert!(provenance
             .summary_line()
             .starts_with("Benchmark provenance\n  source revision: "));
+    }
+
+    #[test]
+    fn validation_report_validate_rejects_drifted_chart_benchmark_corpus() {
+        let mut report = build_validation_report(10).expect("validation report should build");
+        report.chart_benchmark_corpus.name.clear();
+
+        let error = report
+            .validate()
+            .expect_err("chart benchmark corpus drift should be rejected");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("validation report chart benchmark corpus is invalid"));
+        assert!(error
+            .message
+            .contains("corpus summary name must not be blank"));
+    }
+
+    #[test]
+    fn validation_report_display_rejects_drifted_regression_archive() {
+        let mut report = build_validation_report(10).expect("validation report should build");
+        report.archived_regressions.corpus_name.clear();
+
+        let rendered = report.to_string();
+        assert!(rendered.contains("Validation report unavailable"));
+        assert!(rendered.contains("regression archive corpus name must not be blank"));
     }
 
     #[test]
