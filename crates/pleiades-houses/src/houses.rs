@@ -143,7 +143,8 @@ impl HouseSnapshot {
         house_for_longitude(longitude, &self.cusps)
     }
 
-    /// Ensures the snapshot contains only finite numeric values.
+    /// Ensures the snapshot contains only finite numeric values and consistent
+    /// opposite angle pairs.
     pub fn validate(&self) -> Result<(), HouseError> {
         validate_house_snapshot(self)
     }
@@ -411,6 +412,26 @@ fn validate_house_snapshot(snapshot: &HouseSnapshot) -> Result<(), HouseError> {
                 snapshot.system,
                 snapshot.cusps.len(),
                 expected_cusp_count
+            ),
+        ));
+    }
+
+    if snapshot.angles.descendant != longitude_opposite(snapshot.angles.ascendant) {
+        return Err(HouseError::new(
+            HouseErrorKind::NumericalFailure,
+            format!(
+                "house calculation for {} produced a descendant that is not opposite the ascendant",
+                snapshot.system
+            ),
+        ));
+    }
+
+    if snapshot.angles.imum_coeli != longitude_opposite(snapshot.angles.midheaven) {
+        return Err(HouseError::new(
+            HouseErrorKind::NumericalFailure,
+            format!(
+                "house calculation for {} produced an imum coeli that is not opposite the midheaven",
+                snapshot.system
             ),
         ));
     }
@@ -1944,6 +1965,53 @@ mod tests {
         assert!(gauquelin_error
             .message
             .contains("house calculation for Gauquelin sectors produced 12 cusps (expected 36)"));
+    }
+
+    #[test]
+    fn house_snapshots_reject_inconsistent_angle_pairs() {
+        let broken_descendant_snapshot = HouseSnapshot {
+            system: HouseSystem::Equal,
+            instant: sample_request(HouseSystem::Equal).instant,
+            observer: observer(),
+            obliquity: Angle::from_degrees(23.4),
+            angles: HouseAngles {
+                ascendant: Longitude::from_degrees(15.0),
+                descendant: Longitude::from_degrees(200.0),
+                midheaven: Longitude::from_degrees(45.0),
+                imum_coeli: longitude_opposite(Longitude::from_degrees(45.0)),
+            },
+            cusps: vec![Longitude::from_degrees(0.0); 12],
+        };
+
+        let descendant_error = broken_descendant_snapshot
+            .validate()
+            .expect_err("a non-opposite descendant should fail validation");
+        assert_eq!(descendant_error.kind, HouseErrorKind::NumericalFailure);
+        assert!(descendant_error.message.contains(
+            "house calculation for Equal produced a descendant that is not opposite the ascendant"
+        ));
+
+        let broken_ic_snapshot = HouseSnapshot {
+            system: HouseSystem::Equal,
+            instant: sample_request(HouseSystem::Equal).instant,
+            observer: observer(),
+            obliquity: Angle::from_degrees(23.4),
+            angles: HouseAngles {
+                ascendant: Longitude::from_degrees(15.0),
+                descendant: longitude_opposite(Longitude::from_degrees(15.0)),
+                midheaven: Longitude::from_degrees(45.0),
+                imum_coeli: Longitude::from_degrees(250.0),
+            },
+            cusps: vec![Longitude::from_degrees(0.0); 12],
+        };
+
+        let ic_error = broken_ic_snapshot
+            .validate()
+            .expect_err("a non-opposite imum coeli should fail validation");
+        assert_eq!(ic_error.kind, HouseErrorKind::NumericalFailure);
+        assert!(ic_error.message.contains(
+            "house calculation for Equal produced an imum coeli that is not opposite the midheaven"
+        ));
     }
 
     #[test]
