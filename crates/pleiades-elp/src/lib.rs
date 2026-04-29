@@ -2000,6 +2000,40 @@ pub struct LunarReferenceSample {
     pub note: &'static str,
 }
 
+impl LunarReferenceSample {
+    /// Returns `Ok(())` when the sample still represents a valid lunar evidence row.
+    pub fn validate(&self) -> Result<(), EphemerisError> {
+        if self.epoch.scale != TimeScale::Tt {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "lunar reference sample must use TT epochs",
+            ));
+        }
+        if !self.longitude_deg.is_finite() || !self.latitude_deg.is_finite() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "lunar reference sample must use finite ecliptic coordinates",
+            ));
+        }
+        if let Some(distance_au) = self.distance_au {
+            if !distance_au.is_finite() || distance_au <= 0.0 {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    "lunar reference sample must use a positive finite distance when present",
+                ));
+            }
+        }
+        if self.note.trim().is_empty() || self.note.trim() != self.note {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "lunar reference sample note must be a non-blank canonical line",
+            ));
+        }
+
+        Ok(())
+    }
+}
+
 /// Returns the canonical lunar evidence samples used by validation and reporting.
 pub fn lunar_reference_evidence() -> &'static [LunarReferenceSample] {
     const SAMPLES: &[LunarReferenceSample] = &[
@@ -2093,6 +2127,42 @@ pub struct LunarEquatorialReferenceSample {
     pub note: &'static str,
 }
 
+impl LunarEquatorialReferenceSample {
+    /// Returns `Ok(())` when the sample still represents a valid lunar equatorial evidence row.
+    pub fn validate(&self) -> Result<(), EphemerisError> {
+        if self.epoch.scale != TimeScale::Tt {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "lunar equatorial reference sample must use TT epochs",
+            ));
+        }
+        if !self.equatorial.right_ascension.degrees().is_finite()
+            || !self.equatorial.declination.degrees().is_finite()
+        {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "lunar equatorial reference sample must use finite equatorial coordinates",
+            ));
+        }
+        if let Some(distance_au) = self.equatorial.distance_au {
+            if !distance_au.is_finite() || distance_au <= 0.0 {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    "lunar equatorial reference sample must use a positive finite distance when present",
+                ));
+            }
+        }
+        if self.note.trim().is_empty() || self.note.trim() != self.note {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "lunar equatorial reference sample note must be a non-blank canonical line",
+            ));
+        }
+
+        Ok(())
+    }
+}
+
 /// Returns the canonical lunar equatorial evidence samples used by validation and reporting.
 pub fn lunar_equatorial_reference_evidence() -> &'static [LunarEquatorialReferenceSample] {
     const SAMPLES: &[LunarEquatorialReferenceSample] = &[
@@ -2137,7 +2207,7 @@ pub struct LunarReferenceEvidenceSummary {
 /// Returns a compact summary of the canonical lunar reference evidence slice.
 pub fn lunar_reference_evidence_summary() -> Option<LunarReferenceEvidenceSummary> {
     let samples = lunar_reference_evidence();
-    if samples.is_empty() {
+    if samples.is_empty() || samples.iter().any(|sample| sample.validate().is_err()) {
         return None;
     }
 
@@ -2439,7 +2509,7 @@ pub struct LunarEquatorialReferenceEvidenceSummary {
 pub fn lunar_equatorial_reference_evidence_summary(
 ) -> Option<LunarEquatorialReferenceEvidenceSummary> {
     let samples = lunar_equatorial_reference_evidence();
-    if samples.is_empty() {
+    if samples.is_empty() || samples.iter().any(|sample| sample.validate().is_err()) {
         return None;
     }
 
@@ -2546,6 +2616,36 @@ pub struct LunarApparentComparisonSample {
 }
 
 impl LunarApparentComparisonSample {
+    /// Returns `Ok(())` when the sample still represents a valid apparent Moon evidence row.
+    pub fn validate(&self) -> Result<(), EphemerisError> {
+        if self.epoch.scale != TimeScale::Tt {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "lunar apparent comparison sample must use TT epochs",
+            ));
+        }
+        if !self.apparent_longitude_deg.is_finite()
+            || !self.apparent_latitude_deg.is_finite()
+            || !self.apparent_distance_au.is_finite()
+            || self.apparent_distance_au <= 0.0
+            || !self.apparent_right_ascension_deg.is_finite()
+            || !self.apparent_declination_deg.is_finite()
+        {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "lunar apparent comparison sample must use finite apparent coordinates",
+            ));
+        }
+        if self.note.trim().is_empty() || self.note.trim() != self.note {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "lunar apparent comparison sample note must be a non-blank canonical line",
+            ));
+        }
+
+        Ok(())
+    }
+
     /// Returns a compact, release-facing summary of the published sample.
     pub fn summary_line(&self) -> String {
         format!(
@@ -2775,7 +2875,7 @@ fn lunar_apparent_comparison_equatorial_baseline_sample(
 /// Returns a compact summary of the reference-only apparent Moon comparison evidence.
 pub fn lunar_apparent_comparison_summary() -> Option<LunarApparentComparisonSummary> {
     let samples = lunar_apparent_comparison_evidence();
-    if samples.is_empty() {
+    if samples.is_empty() || samples.iter().any(|sample| sample.validate().is_err()) {
         return None;
     }
 
@@ -6686,6 +6786,33 @@ mod tests {
         assert!(samples[3]
             .to_string()
             .contains("shared mean-obliquity transform"));
+    }
+
+    #[test]
+    fn lunar_evidence_sample_validators_reject_drifted_metadata() {
+        let mut reference = lunar_reference_evidence()[0].clone();
+        reference.epoch = Instant::new(
+            pleiades_types::JulianDay::from_days(reference.epoch.julian_day.days()),
+            TimeScale::Tdb,
+        );
+        assert_eq!(
+            reference.validate().unwrap_err().kind,
+            EphemerisErrorKind::InvalidRequest
+        );
+
+        let mut equatorial = lunar_equatorial_reference_evidence()[0].clone();
+        equatorial.note = " ";
+        assert_eq!(
+            equatorial.validate().unwrap_err().kind,
+            EphemerisErrorKind::InvalidRequest
+        );
+
+        let mut apparent = lunar_apparent_comparison_evidence()[0].clone();
+        apparent.apparent_distance_au = f64::NAN;
+        assert_eq!(
+            apparent.validate().unwrap_err().kind,
+            EphemerisErrorKind::InvalidRequest
+        );
     }
 
     #[test]
