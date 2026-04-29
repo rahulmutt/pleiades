@@ -592,11 +592,15 @@ impl fmt::Display for ComparisonSummary {
 
 /// Summary statistics for the comparison-audit gate over a comparison run.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct ComparisonAuditSummary {
-    body_count: usize,
-    within_tolerance_body_count: usize,
-    outside_tolerance_body_count: usize,
-    regression_count: usize,
+pub struct ComparisonAuditSummary {
+    /// Number of compared bodies.
+    pub body_count: usize,
+    /// Number of bodies whose measured deltas stayed within tolerance.
+    pub within_tolerance_body_count: usize,
+    /// Number of bodies whose measured deltas exceeded tolerance.
+    pub outside_tolerance_body_count: usize,
+    /// Number of notable regressions in the comparison corpus.
+    pub regression_count: usize,
 }
 
 impl ComparisonAuditSummary {
@@ -9959,6 +9963,11 @@ impl fmt::Display for BenchmarkReport {
 }
 
 impl ComparisonReport {
+    /// Returns the structured comparison-audit summary used by compact report surfaces.
+    pub fn comparison_audit_summary(&self) -> ComparisonAuditSummary {
+        comparison_audit_summary(self)
+    }
+
     /// Returns per-body comparison statistics preserving first-seen body order.
     pub fn body_summaries(&self) -> Vec<BodyComparisonSummary> {
         body_comparison_summaries(&self.samples)
@@ -12656,6 +12665,21 @@ mod tests {
         assert!(error
             .to_string()
             .contains("must include at least one compared body"));
+    }
+
+    #[test]
+    fn comparison_report_exposes_a_public_audit_summary() {
+        let corpus = default_corpus();
+        let reference = default_reference_backend();
+        let candidate = default_candidate_backend();
+        let report = compare_backends(&reference, &candidate, &corpus)
+            .expect("comparison report should build");
+        let summary = report.comparison_audit_summary();
+
+        assert_eq!(summary.summary_line(), summary.to_string());
+        assert!(summary.validate().is_ok());
+        assert_eq!(summary.body_count, report.tolerance_summaries().len());
+        assert_eq!(summary.regression_count, report.notable_regressions().len());
     }
 
     #[test]
