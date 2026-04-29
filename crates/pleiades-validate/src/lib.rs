@@ -5431,6 +5431,9 @@ fn render_release_notes_summary_text() -> String {
     text.push_str("Release notes: release-notes\n");
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
+    text.push_str("Packaged-artifact storage: ");
+    text.push_str(&packaged_artifact_storage_summary_for_report());
+    text.push('\n');
     text.push_str("Artifact boundary envelope: ");
     text.push_str(
         &artifact_boundary_envelope_summary_for_report()
@@ -15621,6 +15624,7 @@ version = "0.9.0"
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(release_notes_summary
             .contains("Artifact summary: artifact-summary / artifact-posture-summary"));
+        assert!(release_notes_summary.contains("Packaged-artifact storage: Quantized linear segments stored in pleiades-compression artifact format; equatorial coordinates are reconstructed at runtime from stored channels"));
         assert!(release_notes_summary
             .contains("Compatibility profile verification: verify-compatibility-profile"));
         assert!(release_notes_summary.contains("Workspace audit summary: workspace-audit-summary"));
