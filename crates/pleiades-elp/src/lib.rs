@@ -1944,6 +1944,19 @@ pub fn lunar_theory_frame_treatment_summary_details() -> FrameTreatmentSummary {
     FrameTreatmentSummary::new(lunar_theory_specification().frame_note)
 }
 
+/// Returns the current lunar-theory frame-treatment summary for reports.
+///
+/// The report helper validates the backend-owned frame-treatment summary first
+/// so any future drift in the mean-obliquity wording shows up as an unavailable
+/// report line instead of a silently stale summary.
+pub fn lunar_theory_frame_treatment_summary_for_report() -> String {
+    let summary = lunar_theory_frame_treatment_summary_details();
+    match summary.validate() {
+        Ok(()) => summary.to_string(),
+        Err(error) => format!("ELP frame treatment unavailable ({error})"),
+    }
+}
+
 /// Returns the current lunar-theory frame-treatment summary.
 pub fn lunar_theory_frame_treatment_summary() -> &'static str {
     lunar_theory_frame_treatment_summary_details().summary_line()
@@ -6671,6 +6684,10 @@ mod tests {
         let frame_summary = lunar_theory_frame_treatment_summary_details();
         assert_eq!(frame_summary.to_string(), frame_summary.summary_line());
         assert_eq!(frame_summary.summary_line(), theory.frame_note);
+        assert_eq!(
+            lunar_theory_frame_treatment_summary_for_report(),
+            frame_summary.to_string()
+        );
         assert_eq!(
             lunar_theory_frame_treatment_summary(),
             frame_summary.summary_line()

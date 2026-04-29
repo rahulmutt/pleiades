@@ -73,7 +73,7 @@ use pleiades_elp::{
     lunar_reference_evidence_envelope_for_report, lunar_reference_evidence_summary,
     lunar_reference_evidence_summary_for_report, lunar_theory_capability_summary_for_report,
     lunar_theory_catalog_summary_for_report, lunar_theory_catalog_validation_summary_for_report,
-    lunar_theory_frame_treatment_summary_details, lunar_theory_request_policy_summary,
+    lunar_theory_frame_treatment_summary_for_report, lunar_theory_request_policy_summary,
     lunar_theory_source_summary_for_report, lunar_theory_specification,
     lunar_theory_summary_for_report, ElpBackend,
 };
@@ -8628,11 +8628,7 @@ fn format_packaged_frame_parity_summary() -> String {
 }
 
 fn format_lunar_frame_treatment_summary() -> String {
-    let summary = lunar_theory_frame_treatment_summary_details();
-    match summary.validate() {
-        Ok(()) => summary.to_string(),
-        Err(error) => format!("ELP frame treatment unavailable ({error})"),
-    }
+    lunar_theory_frame_treatment_summary_for_report()
 }
 
 fn format_packaged_frame_treatment_summary() -> String {
