@@ -5393,6 +5393,8 @@ fn render_release_notes_summary_text() -> String {
     text.push_str("House code aliases: ");
     text.push_str(&profile.house_code_aliases_summary_line());
     text.push('\n');
+    text.push_str(&request_surface_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_asteroid_evidence_summary_for_report());
     text.push('\n');
     text.push_str(&reference_asteroid_equatorial_evidence_summary_for_report());
