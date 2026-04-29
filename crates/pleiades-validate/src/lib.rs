@@ -15138,6 +15138,7 @@ mod tests {
             &artifact_inspection_summary_for_report()
                 .expect("artifact inspection summary should build")
         ));
+        assert!(rendered.contains("residual-bearing bodies: Moon"));
         assert!(rendered.contains("Release checklist summary: release-checklist-summary"));
         assert!(rendered.contains("Release gate reminders:"));
         assert!(rendered.contains("verify-compatibility-profile"));
@@ -15852,6 +15853,7 @@ version = "0.9.0"
             &artifact_inspection_summary_for_report()
                 .expect("artifact inspection summary should build")
         ));
+        assert!(release_summary.contains("residual-bearing bodies: Moon"));
         assert!(release_summary.contains("applies to 11 bundled bodies"));
         assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_summary.contains("Release notes summary: release-notes-summary"));
