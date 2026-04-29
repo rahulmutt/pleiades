@@ -104,6 +104,36 @@ pub fn reference_snapshot_batch_parity_requests() -> Option<Vec<EphemerisRequest
     })
 }
 
+/// Returns the mixed TT/TDB reference-snapshot request corpus used by batch parity checks.
+///
+/// The requests preserve the checked-in row order, keep the ecliptic frame,
+/// and alternate TT/TDB labels so downstream tooling can reuse the exact
+/// release-facing batch shape without reconstructing it from snapshot metadata.
+pub fn reference_snapshot_mixed_time_scale_batch_parity_requests() -> Option<Vec<EphemerisRequest>>
+{
+    snapshot_entries().map(|entries| {
+        entries
+            .iter()
+            .enumerate()
+            .map(|(index, entry)| EphemerisRequest {
+                body: entry.body.clone(),
+                instant: Instant::new(
+                    entry.epoch.julian_day,
+                    if index % 2 == 0 {
+                        TimeScale::Tt
+                    } else {
+                        TimeScale::Tdb
+                    },
+                ),
+                observer: None,
+                frame: CoordinateFrame::Ecliptic,
+                zodiac_mode: ZodiacMode::Tropical,
+                apparent: Apparentness::Mean,
+            })
+            .collect()
+    })
+}
+
 /// A compact coverage summary for the checked-in reference snapshot.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ReferenceSnapshotSummary {
@@ -7717,20 +7747,34 @@ mod tests {
     }
 
     #[test]
-    fn batch_query_preserves_mixed_time_scales_across_the_reference_snapshot() {
-        let backend = JplSnapshotBackend;
-        let mut requests = reference_snapshot_requests(CoordinateFrame::Ecliptic)
-            .expect("reference snapshot requests should exist");
-        for (index, request) in requests.iter_mut().enumerate() {
-            request.instant = Instant::new(
-                request.instant.julian_day,
+    fn reference_snapshot_mixed_time_scale_batch_parity_requests_preserve_the_ecliptic_slice() {
+        let requests = reference_snapshot_mixed_time_scale_batch_parity_requests()
+            .expect("reference snapshot mixed TT/TDB batch parity requests should exist");
+        let entries = reference_snapshot();
+
+        assert_eq!(requests.len(), entries.len());
+        for (index, (request, entry)) in requests.iter().zip(entries.iter()).enumerate() {
+            assert_eq!(request.body, entry.body);
+            assert_eq!(request.instant.julian_day, entry.epoch.julian_day);
+            assert_eq!(
+                request.instant.scale,
                 if index % 2 == 0 {
                     TimeScale::Tt
                 } else {
                     TimeScale::Tdb
-                },
+                }
             );
+            assert_eq!(request.frame, CoordinateFrame::Ecliptic);
+            assert_eq!(request.zodiac_mode, ZodiacMode::Tropical);
+            assert_eq!(request.apparent, Apparentness::Mean);
         }
+    }
+
+    #[test]
+    fn batch_query_preserves_mixed_time_scales_across_the_reference_snapshot() {
+        let backend = JplSnapshotBackend;
+        let requests = reference_snapshot_mixed_time_scale_batch_parity_requests()
+            .expect("reference snapshot mixed TT/TDB batch parity requests should exist");
 
         let results = backend
             .positions(&requests)
