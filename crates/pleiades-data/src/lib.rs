@@ -599,6 +599,14 @@ impl PackagedArtifactProfileSummary {
     /// Validates that the packaged artifact profile summary is internally
     /// consistent with its bundled body list and embedded capability profile.
     pub fn validate(&self) -> Result<(), pleiades_compression::CompressionError> {
+        let artifact = packaged_artifact();
+        if self.profile != artifact.profile_coverage_summary().profile {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact profile metadata does not match the checked-in packaged artifact profile",
+            ));
+        }
+
         let coverage = self.profile_coverage_summary();
         coverage.validate()?;
         if self.body_count != self.bodies.len() {
@@ -3002,6 +3010,25 @@ mod tests {
         assert!(error
             .message
             .contains("packaged artifact profile body count does not match bundled body list"));
+    }
+
+    #[test]
+    fn packaged_artifact_profile_summary_validation_rejects_profile_drift() {
+        let mut summary = packaged_artifact_profile_summary_details();
+        summary.profile.derived_outputs.retain(|output| {
+            *output != pleiades_compression::ArtifactOutput::EquatorialCoordinates
+        });
+
+        let error = summary
+            .validate()
+            .expect_err("profile drift should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error
+            .message
+            .contains("packaged artifact profile metadata does not match the checked-in packaged artifact profile"));
     }
 
     #[test]
