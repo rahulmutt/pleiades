@@ -5573,7 +5573,13 @@ where
         .collect()
 }
 
-fn canonical_epoch_requests() -> Vec<EphemerisRequest> {
+/// Returns the canonical J2000 request corpus used by the VSOP87 batch-path evidence.
+///
+/// The requests preserve the source-backed body order, use the shared J2000 TT
+/// instant, and keep the geocentric ecliptic frame so validation and
+/// reproducibility tooling can reuse the exact canonical batch slice without
+/// reconstructing it from the sample metadata.
+pub fn canonical_epoch_requests() -> Vec<EphemerisRequest> {
     requests_for_bodies_at(
         canonical_epoch_samples()
             .into_iter()
@@ -9787,6 +9793,25 @@ mod tests {
         assert_eq!(summary.reference_epoch.scale, TimeScale::Tt);
         assert!(rendered.contains("quality counts: Exact="));
         assert!(rendered.contains("batch/single parity preserved"));
+    }
+
+    #[test]
+    fn canonical_epoch_requests_preserve_the_source_backed_batch_slice() {
+        let requests = canonical_epoch_requests();
+
+        assert_eq!(requests.len(), canonical_epoch_samples().len());
+        assert_eq!(
+            requests
+                .iter()
+                .map(|request| request.body.clone())
+                .collect::<Vec<_>>(),
+            source_backed_body_order()
+        );
+        assert!(requests.iter().all(|request| {
+            request.instant.julian_day.days() == J2000
+                && request.instant.scale == TimeScale::Tt
+                && request.frame == CoordinateFrame::Ecliptic
+        }));
     }
 
     #[test]
