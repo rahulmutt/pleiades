@@ -1502,11 +1502,7 @@ impl fmt::Display for CompatibilityProfile {
             self.baseline_ayanamsas.len(),
             self.release_ayanamsas.len()
         )?;
-        writeln!(
-            f,
-            "- ayanamsa sidereal metadata: {}/{} entries with both a reference epoch and offset",
-            coverage.with_sidereal_metadata, coverage.total
-        )?;
+        writeln!(f, "- {}", coverage.summary_line())?;
         if !coverage.custom_definition_only.is_empty() {
             writeln!(
                 f,

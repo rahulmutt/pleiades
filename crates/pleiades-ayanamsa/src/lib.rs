@@ -1276,6 +1276,20 @@ impl AyanamsaMetadataCoverage {
     pub fn is_complete(&self) -> bool {
         self.without_sidereal_metadata.is_empty()
     }
+
+    /// Returns the compact release-facing summary line for the metadata coverage state.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "ayanamsa sidereal metadata: {}/{} entries with both a reference epoch and offset",
+            self.with_sidereal_metadata, self.total
+        )
+    }
+}
+
+impl fmt::Display for AyanamsaMetadataCoverage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
 }
 
 /// Returns a coverage summary for the built-in ayanamsa catalog.
@@ -2489,6 +2503,14 @@ mod tests {
             expected_custom_definition_only
         );
         assert_eq!(coverage.without_sidereal_metadata, expected_without);
+        assert_eq!(
+            coverage.summary_line(),
+            format!(
+                "ayanamsa sidereal metadata: {}/{} entries with both a reference epoch and offset",
+                coverage.with_sidereal_metadata, coverage.total
+            )
+        );
+        assert_eq!(coverage.to_string(), coverage.summary_line());
         assert!(coverage.is_complete());
         assert!(coverage
             .custom_definition_only

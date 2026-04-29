@@ -4582,11 +4582,8 @@ fn render_compatibility_profile_summary_text() -> String {
     text.push_str(" baseline, ");
     text.push_str(&profile.release_ayanamsas.len().to_string());
     text.push_str(" release-specific)\n");
-    text.push_str("Ayanamsa sidereal metadata: ");
-    text.push_str(&coverage.with_sidereal_metadata.to_string());
-    text.push('/');
-    text.push_str(&coverage.total.to_string());
-    text.push_str(" entries with both a reference epoch and offset\n");
+    text.push_str(&coverage.summary_line());
+    text.push('\n');
     text.push_str(&ayanamsa_catalog_validation_summary().summary_line());
     text.push('\n');
     text.push_str("Release-specific house-system canonical names: ");
@@ -13014,10 +13011,7 @@ mod tests {
             profile.house_code_aliases_summary_line()
         )));
         assert!(rendered.contains("Ayanamsas:"));
-        assert!(rendered.contains(&format!(
-            "Ayanamsa sidereal metadata: {}/{} entries with both a reference epoch and offset",
-            coverage.with_sidereal_metadata, coverage.total
-        )));
+        assert!(rendered.contains(&coverage.summary_line()));
         assert!(rendered.contains("ayanamsa catalog validation: ok"));
         assert!(rendered.contains("Release-specific house-system canonical names: 13 (Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter (poli-equatorial), Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen SD, Pullen SR, Sunshine, Gauquelin sectors)"));
         assert!(rendered.contains(&format!(
