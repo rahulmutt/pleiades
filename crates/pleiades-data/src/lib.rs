@@ -607,6 +607,16 @@ impl PackagedArtifactProfileSummary {
                 "packaged artifact profile body count does not match bundled body list",
             ));
         }
+        if self.bodies.as_slice() != packaged_bodies() {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                format!(
+                    "packaged artifact profile bundled body list does not match the checked-in packaged body set: expected [{}]; got [{}]",
+                    join_display(packaged_bodies()),
+                    join_display(&self.bodies)
+                ),
+            ));
+        }
 
         Ok(())
     }
@@ -2992,6 +3002,30 @@ mod tests {
         assert!(error
             .message
             .contains("packaged artifact profile body count does not match bundled body list"));
+    }
+
+    #[test]
+    fn packaged_artifact_profile_summary_validation_rejects_bundled_body_set_drift() {
+        let mut bodies = packaged_bodies().to_vec();
+        bodies[0] = CelestialBody::Ceres;
+
+        let summary = PackagedArtifactProfileSummary {
+            body_count: bodies.len(),
+            bodies,
+            endian_policy: EndianPolicy::LittleEndian,
+            profile: ArtifactProfile::ecliptic_longitude_latitude_distance(),
+        };
+
+        let error = summary
+            .validate()
+            .expect_err("packaged body set drift should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error
+            .message
+            .contains("packaged artifact profile bundled body list does not match the checked-in packaged body set"));
     }
 
     #[test]
