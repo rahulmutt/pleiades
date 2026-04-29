@@ -180,19 +180,43 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
                 time_scale_explicit = true;
             }
             "--tt-offset-seconds" => {
+                if tt_offset_seconds.is_some() {
+                    return Err(
+                        "conflicting TT offset flags: use only one --tt-offset-seconds value"
+                            .to_string(),
+                    );
+                }
                 tt_offset_seconds = Some(parse_seconds(iter.next(), "--tt-offset-seconds")?);
             }
             "--tdb-offset-seconds" => {
+                if tdb_offset_seconds.is_some() || tdb_from_tt_offset_seconds.is_some() {
+                    return Err(
+                        "conflicting TDB-TT offset flags: use either --tdb-offset-seconds or --tdb-from-tt-offset-seconds"
+                            .to_string(),
+                    );
+                }
                 tdb_offset_seconds =
                     Some(parse_signed_seconds(iter.next(), "--tdb-offset-seconds")?);
             }
             "--tdb-from-tt-offset-seconds" => {
+                if tdb_offset_seconds.is_some() || tdb_from_tt_offset_seconds.is_some() {
+                    return Err(
+                        "conflicting TDB-TT offset flags: use either --tdb-offset-seconds or --tdb-from-tt-offset-seconds"
+                            .to_string(),
+                    );
+                }
                 tdb_from_tt_offset_seconds = Some(parse_signed_seconds(
                     iter.next(),
                     "--tdb-from-tt-offset-seconds",
                 )?);
             }
             "--tt-from-tdb-offset-seconds" => {
+                if tt_from_tdb_offset_seconds.is_some() {
+                    return Err(
+                        "conflicting TT-TDB offset flags: use only one --tt-from-tdb-offset-seconds value"
+                            .to_string(),
+                    );
+                }
                 tt_from_tdb_offset_seconds = Some(parse_signed_seconds(
                     iter.next(),
                     "--tt-from-tdb-offset-seconds",
@@ -1354,6 +1378,40 @@ mod tests {
             "Sun",
         ])
         .expect_err("TT-tagged chart requests should reject conflicting TDB-TT aliases");
+        assert!(error.contains("conflicting TDB-TT offset flags"));
+    }
+
+    #[test]
+    fn chart_command_rejects_repeated_tt_offset_flags() {
+        let error = render_chart(&[
+            "--jd",
+            "2451545.0",
+            "--utc",
+            "--tt-offset-seconds",
+            "64.184",
+            "--tt-offset-seconds",
+            "65.0",
+            "--body",
+            "Sun",
+        ])
+        .expect_err("UTC-tagged chart requests should reject duplicate TT offset flags");
+        assert!(error.contains("conflicting TT offset flags"));
+    }
+
+    #[test]
+    fn chart_command_rejects_repeated_tdb_offset_flags() {
+        let error = render_chart(&[
+            "--jd",
+            "2451545.0",
+            "--tt",
+            "--tdb-offset-seconds",
+            "-0.001657",
+            "--tdb-offset-seconds",
+            "-0.002",
+            "--body",
+            "Sun",
+        ])
+        .expect_err("TT-tagged chart requests should reject duplicate TDB-TT offset flags");
         assert!(error.contains("conflicting TDB-TT offset flags"));
     }
 
