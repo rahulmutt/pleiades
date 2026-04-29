@@ -3653,6 +3653,36 @@ pub fn interpolation_quality_samples() -> &'static [InterpolationQualitySample] 
     interpolation_quality_sample_list()
 }
 
+/// Returns the exact ecliptic request corpus used to derive the interpolation-quality samples.
+///
+/// The requests preserve the checked-in sample order and stored epochs from the
+/// derivative fixture, so downstream validation and reproducibility tooling can
+/// reuse the exact held-out batch slice without reconstructing it from the sample
+/// metadata.
+pub fn interpolation_quality_sample_requests() -> Option<Vec<EphemerisRequest>> {
+    snapshot_entries().map(|_| {
+        interpolation_quality_samples()
+            .iter()
+            .map(|sample| EphemerisRequest {
+                body: sample.body.clone(),
+                instant: sample.epoch,
+                observer: None,
+                frame: CoordinateFrame::Ecliptic,
+                zodiac_mode: ZodiacMode::Tropical,
+                apparent: Apparentness::Mean,
+            })
+            .collect()
+    })
+}
+
+/// Returns the exact ecliptic request corpus used to derive the interpolation-quality samples.
+///
+/// This is a compatibility alias for [`interpolation_quality_sample_requests`].
+#[doc(alias = "interpolation_quality_sample_requests")]
+pub fn interpolation_quality_sample_request_corpus() -> Option<Vec<EphemerisRequest>> {
+    interpolation_quality_sample_requests()
+}
+
 /// A compact interpolation-quality summary for the checked-in JPL snapshot.
 #[derive(Clone, Debug, PartialEq)]
 pub struct JplInterpolationQualitySummary {
@@ -8007,17 +8037,18 @@ mod tests {
     fn batch_query_preserves_interpolation_quality_samples_and_order() {
         let backend = JplSnapshotBackend;
         let samples = interpolation_quality_samples();
-        let requests = samples
-            .iter()
-            .map(|sample| EphemerisRequest {
-                body: sample.body.clone(),
-                instant: sample.epoch,
-                observer: None,
-                frame: CoordinateFrame::Ecliptic,
-                zodiac_mode: ZodiacMode::Tropical,
-                apparent: Apparentness::Mean,
-            })
-            .collect::<Vec<_>>();
+        let requests = interpolation_quality_sample_requests()
+            .expect("interpolation-quality sample requests should exist");
+
+        assert_eq!(requests.len(), samples.len());
+        for (sample, request) in samples.iter().zip(requests.iter()) {
+            assert_eq!(request.body, sample.body);
+            assert_eq!(request.instant, sample.epoch);
+            assert_eq!(request.frame, CoordinateFrame::Ecliptic);
+            assert_eq!(request.zodiac_mode, ZodiacMode::Tropical);
+            assert_eq!(request.apparent, Apparentness::Mean);
+            assert!(request.observer.is_none());
+        }
 
         let results = backend
             .positions(&requests)
@@ -8040,6 +8071,14 @@ mod tests {
                 .expect("distance should exist")
                 .is_finite());
         }
+    }
+
+    #[test]
+    fn interpolation_quality_sample_request_corpus_remains_the_explicit_alias() {
+        assert_eq!(
+            interpolation_quality_sample_request_corpus(),
+            interpolation_quality_sample_requests()
+        );
     }
 
     #[test]
