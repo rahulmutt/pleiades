@@ -790,6 +790,21 @@ impl ArtifactInspectionReport {
         Ok(report)
     }
 
+    /// Returns a compact one-line summary of the inspection report.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "artifact inspection: {} bundled bodies, {} segments, residual-bearing segments: {}, residual-bearing bodies: {}, coverage: {} → {}, roundtrip={}, checksum={}",
+            self.body_count,
+            self.segment_count,
+            self.residual_segment_count,
+            format_residual_bodies(&self.residual_bodies),
+            self.earliest,
+            self.latest,
+            yes_no(self.roundtrip_ok),
+            yes_no(self.checksum_ok),
+        )
+    }
+
     pub fn validate(&self) -> Result<(), ArtifactInspectionError> {
         if !self.roundtrip_ok {
             return Err(report_validation_error(
@@ -899,6 +914,14 @@ pub fn render_artifact_summary() -> Result<String, ArtifactInspectionError> {
     let encoded = artifact.encode()?;
     let report = ArtifactInspectionReport::from_artifact(artifact, encoded.len())?;
     Ok(render_artifact_summary_text(&report))
+}
+
+/// Returns the compact artifact inspection summary used by release-facing reports.
+pub fn artifact_inspection_summary_for_report() -> Result<String, ArtifactInspectionError> {
+    let artifact = packaged_artifact();
+    let encoded = artifact.encode()?;
+    let report = ArtifactInspectionReport::from_artifact(artifact, encoded.len())?;
+    Ok(report.summary_line())
 }
 
 pub(crate) fn benchmark_packaged_artifact_decode(
@@ -1904,6 +1927,21 @@ mod tests {
         assert!(summary.contains("max boundary Δlon=0.150000000000°"));
         assert!(summary.contains("Δlat=0.300000000000°"));
         assert!(summary.contains("Δdist=0.450000000000 AU"));
+    }
+
+    #[test]
+    fn artifact_inspection_report_summary_line_includes_residual_bodies_and_checksum_status() {
+        let artifact = packaged_artifact();
+        let encoded = artifact.encode().expect("packaged artifact should encode");
+        let report = ArtifactInspectionReport::from_artifact(artifact, encoded.len())
+            .expect("artifact inspection report should build");
+
+        let summary = report.summary_line();
+        assert!(summary.contains("artifact inspection:"));
+        assert!(summary.contains("residual-bearing segments: 2"));
+        assert!(summary.contains("residual-bearing bodies: Moon"));
+        assert!(summary.contains("roundtrip=ok"));
+        assert!(summary.contains("checksum=ok"));
     }
 
     #[test]

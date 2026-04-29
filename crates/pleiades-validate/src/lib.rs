@@ -18,9 +18,10 @@ mod chart_benchmark;
 mod house_validation;
 
 pub use artifact::{
-    artifact_boundary_envelope_summary_for_report, render_artifact_report, render_artifact_summary,
-    ArtifactBodyInspection, ArtifactDecodeBenchmarkReport,
-    ArtifactDecodeBenchmarkReportValidationError, ArtifactInspectionReport,
+    artifact_boundary_envelope_summary_for_report, artifact_inspection_summary_for_report,
+    render_artifact_report, render_artifact_summary, ArtifactBodyInspection,
+    ArtifactDecodeBenchmarkReport, ArtifactDecodeBenchmarkReportValidationError,
+    ArtifactInspectionReport,
 };
 pub use chart_benchmark::{
     benchmark_chart_backend, chart_benchmark_corpus_summary, ChartBenchmarkReport,
@@ -5179,6 +5180,11 @@ fn render_release_notes_summary_text() -> String {
             .unwrap_or_else(|_| "unavailable".to_string()),
     );
     text.push('\n');
+    text.push_str("Artifact inspection: ");
+    text.push_str(
+        &artifact_inspection_summary_for_report().unwrap_or_else(|_| "unavailable".to_string()),
+    );
+    text.push('\n');
     text.push_str("Artifact summary: artifact-summary / artifact-posture-summary\n");
     text.push_str("Workspace audit summary: workspace-audit-summary\n");
     text.push_str("Artifact validation: validate-artifact\n");
@@ -5637,6 +5643,11 @@ fn render_release_summary_text() -> String {
         &artifact_boundary_envelope_summary_for_report()
             .map(|summary| summary.summary_line())
             .unwrap_or_else(|_| "unavailable".to_string()),
+    );
+    text.push('\n');
+    text.push_str("Artifact inspection: ");
+    text.push_str(
+        &artifact_inspection_summary_for_report().unwrap_or_else(|_| "unavailable".to_string()),
     );
     text.push('\n');
     text.push_str("Release bundle verification: verify-release-bundle\n");
@@ -14658,6 +14669,10 @@ mod tests {
         assert!(rendered
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Artifact boundary envelope:"));
+        assert!(rendered.contains(
+            &artifact_inspection_summary_for_report()
+                .expect("artifact inspection summary should build")
+        ));
         assert!(rendered.contains("Release checklist summary: release-checklist-summary"));
         assert!(rendered.contains("Release gate reminders:"));
         assert!(rendered.contains("verify-compatibility-profile"));
@@ -15338,6 +15353,10 @@ version = "0.9.0"
         assert!(release_summary.contains("Packaged batch parity:"));
         assert!(release_summary.contains("Packaged frame parity:"));
         assert!(release_summary.contains("Artifact boundary envelope:"));
+        assert!(release_summary.contains(
+            &artifact_inspection_summary_for_report()
+                .expect("artifact inspection summary should build")
+        ));
         assert!(release_summary.contains("applies to 11 bundled bodies"));
         assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_summary.contains("Release notes summary: release-notes-summary"));
