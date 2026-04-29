@@ -75,6 +75,15 @@ impl CompatibilityProfile {
     }
 
     /// Returns the Swiss-Ephemeris house-code alias table as compact mappings.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use pleiades_core::current_compatibility_profile;
+    ///
+    /// let summary = current_compatibility_profile().house_code_aliases_summary_line();
+    /// assert!(summary.contains("P -> Placidus"));
+    /// ```
     pub fn house_code_aliases_summary_line(&self) -> String {
         pleiades_houses::house_system_code_aliases_summary_line()
     }

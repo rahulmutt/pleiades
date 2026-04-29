@@ -360,6 +360,15 @@ pub const fn house_system_code_aliases() -> &'static [HouseSystemCodeAlias] {
 }
 
 /// Returns a compact one-line rendering of the Swiss-Ephemeris house-code alias table.
+///
+/// # Examples
+///
+/// ```
+/// use pleiades_houses::house_system_code_aliases_summary_line;
+///
+/// let summary = house_system_code_aliases_summary_line();
+/// assert!(summary.contains("P -> Placidus"));
+/// ```
 pub fn house_system_code_aliases_summary_line() -> String {
     house_system_code_aliases()
         .iter()
