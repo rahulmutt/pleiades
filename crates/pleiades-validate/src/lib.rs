@@ -3258,6 +3258,129 @@ impl fmt::Display for ReleaseBundle {
     }
 }
 
+impl ReleaseBundle {
+    /// Validates the release bundle metadata before it is surfaced to callers.
+    pub fn validate(&self) -> Result<(), ReleaseBundleError> {
+        for (path, expected_name, label) in [
+            (
+                &self.compatibility_profile_path,
+                "compatibility-profile.txt",
+                "compatibility profile",
+            ),
+            (
+                &self.compatibility_profile_summary_path,
+                "compatibility-profile-summary.txt",
+                "compatibility profile summary",
+            ),
+            (
+                &self.release_notes_path,
+                "release-notes.txt",
+                "release notes",
+            ),
+            (
+                &self.release_notes_summary_path,
+                "release-notes-summary.txt",
+                "release notes summary",
+            ),
+            (
+                &self.release_summary_path,
+                "release-summary.txt",
+                "release summary",
+            ),
+            (
+                &self.release_profile_identifiers_path,
+                "release-profile-identifiers.txt",
+                "release-profile identifiers",
+            ),
+            (
+                &self.release_checklist_path,
+                "release-checklist.txt",
+                "release checklist",
+            ),
+            (
+                &self.release_checklist_summary_path,
+                "release-checklist-summary.txt",
+                "release checklist summary",
+            ),
+            (
+                &self.backend_matrix_path,
+                "backend-matrix.txt",
+                "backend matrix",
+            ),
+            (
+                &self.backend_matrix_summary_path,
+                "backend-matrix-summary.txt",
+                "backend matrix summary",
+            ),
+            (
+                &self.api_stability_path,
+                "api-stability.txt",
+                "API stability",
+            ),
+            (
+                &self.api_stability_summary_path,
+                "api-stability-summary.txt",
+                "API stability summary",
+            ),
+            (
+                &self.validation_report_summary_path,
+                "validation-report-summary.txt",
+                "validation report summary",
+            ),
+            (
+                &self.workspace_audit_summary_path,
+                "workspace-audit-summary.txt",
+                "workspace audit summary",
+            ),
+            (
+                &self.artifact_summary_path,
+                "artifact-summary.txt",
+                "artifact summary",
+            ),
+            (
+                &self.benchmark_report_path,
+                "benchmark-report.txt",
+                "benchmark report",
+            ),
+            (
+                &self.validation_report_path,
+                "validation-report.txt",
+                "validation report",
+            ),
+            (
+                &self.manifest_path,
+                "bundle-manifest.txt",
+                "bundle manifest",
+            ),
+            (
+                &self.manifest_checksum_path,
+                "bundle-manifest.checksum.txt",
+                "bundle manifest checksum sidecar",
+            ),
+        ] {
+            let expected_path = self.output_dir.join(expected_name);
+            if path != &expected_path {
+                return Err(ReleaseBundleError::Verification(format!(
+                    "unexpected {label} file path: expected {}, found {}",
+                    expected_path.display(),
+                    path.display()
+                )));
+            }
+        }
+
+        ensure_non_empty_manifest_value(&self.source_revision, "source revision")?;
+        ensure_non_empty_manifest_value(&self.workspace_status, "workspace status")?;
+        ensure_non_empty_manifest_value(&self.rustc_version, "rustc version")?;
+        if self.validation_rounds == 0 {
+            return Err(ReleaseBundleError::Verification(
+                "release bundle validation rounds must be greater than zero".to_string(),
+            ));
+        }
+
+        Ok(())
+    }
+}
+
 /// Builds the default validation corpus.
 pub fn default_corpus() -> ValidationCorpus {
     ValidationCorpus::jpl_snapshot()
@@ -6430,7 +6553,7 @@ fn verify_release_bundle(
         )));
     }
 
-    Ok(ReleaseBundle {
+    let bundle = ReleaseBundle {
         source_revision: manifest.source_revision,
         workspace_status: manifest.workspace_status,
         rustc_version: manifest.rustc_version,
@@ -6491,7 +6614,9 @@ fn verify_release_bundle(
         validation_report_checksum,
         manifest_checksum: manifest_checksum_value,
         validation_rounds: manifest.validation_rounds,
-    })
+    };
+    bundle.validate()?;
+    Ok(bundle)
 }
 
 fn parse_manifest_string(text: &str, prefix: &str) -> Result<String, ReleaseBundleError> {
@@ -15767,6 +15892,34 @@ version = "0.9.0"
             .expect_err("verification should fail for invalid validation rounds");
         assert!(error.contains("release bundle verification failed"));
         assert!(error.contains("invalid validation rounds entry"));
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn release_bundle_validate_accepts_rendered_bundle() {
+        let bundle_dir = unique_temp_dir("pleiades-release-bundle-validate-accepts");
+        let bundle = render_release_bundle(1, &bundle_dir).expect("release bundle should render");
+        bundle
+            .validate()
+            .expect("rendered release bundle should validate");
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn release_bundle_validate_rejects_manifest_path_drift() {
+        let bundle_dir = unique_temp_dir("pleiades-release-bundle-manifest-path-drift");
+        let mut bundle =
+            render_release_bundle(1, &bundle_dir).expect("release bundle should render");
+        bundle.manifest_path = bundle.output_dir.join("bundle-manifest-drift.txt");
+
+        let error = bundle
+            .validate()
+            .expect_err("path drift should be rejected by bundle validation");
+        let error = error.to_string();
+        assert!(error.contains("unexpected bundle manifest file path"));
+        assert!(error.contains("bundle-manifest.txt"));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
     }
