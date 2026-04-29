@@ -228,12 +228,22 @@ impl<B: EphemerisBackend> ChartEngine<B> {
     /// }
     ///
     /// let engine = ChartEngine::new(DemoBackend);
-    /// let mut tt_request = ChartRequest::new(Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt));
+    /// let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+    /// let mut tt_request = ChartRequest::new(instant);
     /// tt_request.bodies = vec![CelestialBody::Sun];
     /// let mut tdb_request = ChartRequest::new(Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb));
     /// tdb_request.bodies = vec![CelestialBody::Sun];
     ///
-    /// assert!(engine.validate_chart_requests(&[tt_request, tdb_request]).is_ok());
+    /// assert!(engine.validate_chart_requests(&[tt_request.clone(), tdb_request]).is_ok());
+    ///
+    /// let house_request = ChartRequest::new(instant)
+    ///     .with_bodies(vec![CelestialBody::Sun])
+    ///     .with_house_system(pleiades_core::HouseSystem::WholeSign);
+    /// let error = engine
+    ///     .validate_chart_requests(&[tt_request, house_request])
+    ///     .expect_err("batch chart validation should keep the failing request index");
+    /// assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+    /// assert_eq!(error.message, "chart request #2 failed validation: house placement requires an observer location");
     /// ```
     pub fn validate_chart_requests(&self, requests: &[ChartRequest]) -> Result<(), EphemerisError> {
         let metadata = self.validated_metadata().map_err(|error| {
