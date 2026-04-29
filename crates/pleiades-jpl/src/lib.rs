@@ -1156,25 +1156,7 @@ pub fn independent_holdout_snapshot_batch_parity_summary(
     let snapshot = independent_holdout_snapshot_summary()?;
     let entries = independent_holdout_snapshot_entries()?;
     let backend = JplSnapshotBackend;
-    let requests = entries
-        .iter()
-        .enumerate()
-        .map(|(index, entry)| EphemerisRequest {
-            body: entry.body.clone(),
-            instant: Instant::new(
-                entry.epoch.julian_day,
-                if index % 2 == 0 {
-                    TimeScale::Tt
-                } else {
-                    TimeScale::Tdb
-                },
-            ),
-            observer: None,
-            frame: CoordinateFrame::Ecliptic,
-            zodiac_mode: ZodiacMode::Tropical,
-            apparent: Apparentness::Mean,
-        })
-        .collect::<Vec<_>>();
+    let requests = independent_holdout_snapshot_batch_parity_requests()?;
     let results = backend.positions(&requests).ok()?;
 
     if results.len() != requests.len() {
@@ -5057,6 +5039,35 @@ pub fn independent_holdout_snapshot_requests(
     })
 }
 
+/// Returns the mixed-scale independent hold-out request corpus used by batch parity checks.
+///
+/// The requests preserve the checked-in row order, alternate TT and TDB labels
+/// per row, and keep the ecliptic frame so downstream tooling can reuse the
+/// exact mixed-scale batch slice without reconstructing it from the snapshot metadata.
+pub fn independent_holdout_snapshot_batch_parity_requests() -> Option<Vec<EphemerisRequest>> {
+    independent_holdout_snapshot_entries().map(|entries| {
+        entries
+            .iter()
+            .enumerate()
+            .map(|(index, entry)| EphemerisRequest {
+                body: entry.body.clone(),
+                instant: Instant::new(
+                    entry.epoch.julian_day,
+                    if index % 2 == 0 {
+                        TimeScale::Tt
+                    } else {
+                        TimeScale::Tdb
+                    },
+                ),
+                observer: None,
+                frame: CoordinateFrame::Ecliptic,
+                zodiac_mode: ZodiacMode::Tropical,
+                apparent: Apparentness::Mean,
+            })
+            .collect()
+    })
+}
+
 fn independent_holdout_snapshot_error() -> Option<&'static SnapshotLoadError> {
     independent_holdout_state().error()
 }
@@ -6747,18 +6758,8 @@ mod tests {
         let backend = JplSnapshotBackend;
         let entries = independent_holdout_snapshot_entries()
             .expect("independent hold-out entries should exist");
-        let mut requests = independent_holdout_snapshot_requests(CoordinateFrame::Ecliptic)
-            .expect("independent hold-out requests should exist");
-        for (index, request) in requests.iter_mut().enumerate() {
-            request.instant = Instant::new(
-                request.instant.julian_day,
-                if index % 2 == 0 {
-                    TimeScale::Tt
-                } else {
-                    TimeScale::Tdb
-                },
-            );
-        }
+        let requests = independent_holdout_snapshot_batch_parity_requests()
+            .expect("independent hold-out mixed-scale requests should exist");
 
         let results = backend
             .positions(&requests)
