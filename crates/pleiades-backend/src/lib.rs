@@ -1320,6 +1320,8 @@ pub enum FrameTreatmentSummaryValidationError {
     BlankSummary,
     /// The summary text has surrounding whitespace.
     WhitespacePaddedSummary,
+    /// The summary text contains an embedded line break.
+    EmbeddedLineBreak,
 }
 
 impl fmt::Display for FrameTreatmentSummaryValidationError {
@@ -1329,6 +1331,7 @@ impl fmt::Display for FrameTreatmentSummaryValidationError {
             Self::WhitespacePaddedSummary => {
                 f.write_str("frame-treatment summary has surrounding whitespace")
             }
+            Self::EmbeddedLineBreak => f.write_str("frame-treatment summary contains a line break"),
         }
     }
 }
@@ -1352,6 +1355,8 @@ impl FrameTreatmentSummary {
             Err(FrameTreatmentSummaryValidationError::BlankSummary)
         } else if self.summary.trim() != self.summary {
             Err(FrameTreatmentSummaryValidationError::WhitespacePaddedSummary)
+        } else if self.summary.contains('\n') || self.summary.contains('\r') {
+            Err(FrameTreatmentSummaryValidationError::EmbeddedLineBreak)
         } else {
             Ok(())
         }
@@ -2562,6 +2567,18 @@ mod tests {
         assert_eq!(
             summary.validate(),
             Err(FrameTreatmentSummaryValidationError::WhitespacePaddedSummary)
+        );
+    }
+
+    #[test]
+    fn frame_treatment_summary_rejects_embedded_line_breaks() {
+        let summary = FrameTreatmentSummary::new(
+            "geocentric ecliptic inputs;\nequatorial coordinates are derived with a mean-obliquity transform",
+        );
+
+        assert_eq!(
+            summary.validate(),
+            Err(FrameTreatmentSummaryValidationError::EmbeddedLineBreak)
         );
     }
 
