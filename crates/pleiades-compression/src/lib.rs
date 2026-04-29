@@ -560,6 +560,68 @@ impl fmt::Display for ArtifactProfileCoverageSummary {
     }
 }
 
+/// Structured body coverage for residual-correction-bearing segments in a compressed artifact.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ArtifactResidualBodyCoverageSummary {
+    /// Number of bundled bodies that include at least one residual-correction segment.
+    pub body_count: usize,
+    /// Bodies that include at least one residual-correction segment.
+    pub bodies: Vec<CelestialBody>,
+}
+
+impl ArtifactResidualBodyCoverageSummary {
+    /// Creates a residual-body coverage summary from an explicit body list.
+    pub fn new(bodies: Vec<CelestialBody>) -> Self {
+        let body_count = bodies.len();
+        Self { body_count, bodies }
+    }
+
+    /// Validates that the summary still matches the current artifact residual-body set.
+    pub fn validate(&self, artifact: &CompressedArtifact) -> Result<(), CompressionError> {
+        let expected_bodies = artifact.residual_bodies();
+
+        if self.body_count != expected_bodies.len() {
+            return Err(CompressionError::new(
+                CompressionErrorKind::InvalidFormat,
+                "artifact residual-body coverage body count does not match residual body list",
+            ));
+        }
+
+        if self.bodies != expected_bodies {
+            return Err(CompressionError::new(
+                CompressionErrorKind::InvalidFormat,
+                "artifact residual-body coverage body list does not match the current artifact",
+            ));
+        }
+
+        Ok(())
+    }
+
+    /// Returns the residual-body coverage as a compact human-readable line.
+    pub fn summary_line(&self) -> String {
+        match self.bodies.as_slice() {
+            [] => "residual bodies: none".to_string(),
+            bodies => format!("residual bodies: {}", join_display(bodies)),
+        }
+    }
+
+    /// Returns the residual-body coverage annotated with how many bodies share it.
+    pub fn summary_line_with_body_count(&self) -> String {
+        format!(
+            "{}; applies to {} bundled bodies",
+            self.summary_line(),
+            self.body_count
+        )
+    }
+}
+
+impl fmt::Display for ArtifactResidualBodyCoverageSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// The kind of ecliptic channel carried by a segment.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -872,6 +934,11 @@ impl CompressedArtifact {
             self.header.profile.clone(),
             self.bodies.iter().map(|body| body.body.clone()).collect(),
         )
+    }
+
+    /// Returns the bodies that include at least one residual-correction segment.
+    pub fn residual_body_coverage_summary(&self) -> ArtifactResidualBodyCoverageSummary {
+        ArtifactResidualBodyCoverageSummary::new(self.residual_bodies())
     }
 
     /// Returns the body artifact for the requested body, if present.
@@ -2064,6 +2131,68 @@ mod tests {
         );
         assert!(!unlisted_profile.supports_output(ArtifactOutput::Motion));
         assert!(unlisted_profile.is_unsupported_output(ArtifactOutput::Motion));
+    }
+
+    #[test]
+    fn artifact_residual_body_coverage_summary_tracks_artifact_residual_bodies() {
+        let artifact = CompressedArtifact::new(
+            ArtifactHeader::new("residual coverage demo", "unit test residual coverage"),
+            vec![
+                BodyArtifact::new(
+                    CelestialBody::Sun,
+                    vec![Segment::new(
+                        Instant::new(pleiades_types::JulianDay::from_days(0.0), TimeScale::Tt),
+                        Instant::new(pleiades_types::JulianDay::from_days(1.0), TimeScale::Tt),
+                        vec![PolynomialChannel::linear(
+                            ChannelKind::Longitude,
+                            9,
+                            10.0,
+                            11.0,
+                        )],
+                    )],
+                ),
+                BodyArtifact::new(
+                    CelestialBody::Moon,
+                    vec![Segment::with_residual_channels(
+                        Instant::new(pleiades_types::JulianDay::from_days(0.0), TimeScale::Tt),
+                        Instant::new(pleiades_types::JulianDay::from_days(1.0), TimeScale::Tt),
+                        vec![PolynomialChannel::linear(
+                            ChannelKind::Longitude,
+                            9,
+                            20.0,
+                            21.0,
+                        )],
+                        vec![PolynomialChannel::linear(
+                            ChannelKind::Longitude,
+                            9,
+                            0.1,
+                            0.2,
+                        )],
+                    )],
+                ),
+            ],
+        );
+
+        let summary = artifact.residual_body_coverage_summary();
+        assert_eq!(summary.body_count, 1);
+        assert_eq!(summary.bodies, vec![CelestialBody::Moon]);
+        assert_eq!(summary.summary_line(), "residual bodies: Moon");
+        assert_eq!(
+            summary.summary_line_with_body_count(),
+            "residual bodies: Moon; applies to 1 bundled bodies"
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
+        summary
+            .validate(&artifact)
+            .expect("residual body coverage should match the artifact");
+
+        let mut drifted = summary.clone();
+        drifted.bodies = vec![CelestialBody::Sun];
+        let error = drifted
+            .validate(&artifact)
+            .expect_err("drifted residual body coverage should be rejected");
+        assert_eq!(error.kind, CompressionErrorKind::InvalidFormat);
+        assert!(format!("{error}").contains("residual-body coverage body list"));
     }
 
     #[test]
