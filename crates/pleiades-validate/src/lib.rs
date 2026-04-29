@@ -8622,6 +8622,7 @@ fn render_backend_matrix_summary_text() -> String {
         Err(error) => return format!("Backend matrix summary unavailable ({error})"),
     };
     let request_policy = request_policy_summary_for_report();
+    let profile = current_compatibility_profile();
     let catalog = implemented_backend_catalog();
     let mut family_counts: BTreeMap<String, usize> = BTreeMap::new();
     let mut bodies: Vec<String> = Vec::new();
@@ -8742,6 +8743,9 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str("Backends with selected asteroid coverage: ");
     text.push_str(&selected_asteroid_count.to_string());
+    text.push('\n');
+    text.push_str("House code aliases: ");
+    text.push_str(&profile.house_code_aliases_summary_line());
     text.push('\n');
     text.push_str(&reference_asteroid_evidence_summary_for_report());
     text.push('\n');
@@ -8955,10 +8959,25 @@ fn backend_family_label(family: &BackendFamily) -> String {
 
 /// Renders a backend capability matrix for the implemented backend catalog.
 pub fn render_backend_matrix_report() -> Result<String, EphemerisError> {
+    let profile = current_compatibility_profile();
     let mut rendered = String::new();
     fmt::write(
         &mut rendered,
         format_args!("Implemented backend matrices\n\n"),
+    )
+    .map_err(|_| {
+        EphemerisError::new(
+            EphemerisErrorKind::NumericalFailure,
+            "failed to render backend capability matrix",
+        )
+    })?;
+
+    fmt::write(
+        &mut rendered,
+        format_args!(
+            "House code aliases: {}\n\n",
+            profile.house_code_aliases_summary_line()
+        ),
     )
     .map_err(|_| {
         EphemerisError::new(
@@ -14582,6 +14601,7 @@ version = "0.9.0"
                 .expect("workspace audit summary should be written");
         let artifact_summary = std::fs::read_to_string(bundle_dir.join("artifact-summary.txt"))
             .expect("artifact summary should be written");
+        let compatibility_profile = current_compatibility_profile();
         let benchmark_report = std::fs::read_to_string(bundle_dir.join("benchmark-report.txt"))
             .expect("benchmark report should be written");
         let report = std::fs::read_to_string(bundle_dir.join("validation-report.txt"))
@@ -14856,7 +14876,15 @@ version = "0.9.0"
         assert!(release_checklist_summary.contains("External publishing reminders: 3 items"));
         assert!(backend_matrix.contains("Implemented backend matrices"));
         assert!(backend_matrix.contains("JPL snapshot reference backend"));
+        assert!(backend_matrix.contains(&format!(
+            "House code aliases: {}",
+            compatibility_profile.house_code_aliases_summary_line()
+        )));
         assert!(backend_matrix_summary.contains("Backend matrix summary"));
+        assert!(backend_matrix_summary.contains(&format!(
+            "House code aliases: {}",
+            compatibility_profile.house_code_aliases_summary_line()
+        )));
         assert!(backend_matrix_summary.contains(
             "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags)"
         ));
