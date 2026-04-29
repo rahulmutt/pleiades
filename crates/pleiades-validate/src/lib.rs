@@ -5334,6 +5334,9 @@ fn render_release_summary_text() -> String {
     text.push_str("Frame policy: ");
     text.push_str(request_policy.frame);
     text.push('\n');
+    text.push_str("Mean-obliquity frame round-trip: ");
+    text.push_str(&mean_obliquity_frame_round_trip_summary_for_report());
+    text.push('\n');
     text.push_str("Request policy: ");
     text.push_str(&format_request_policy_summary_for_report(&request_policy));
     text.push('\n');
@@ -7995,6 +7998,69 @@ fn format_jpl_frame_treatment_summary() -> String {
     }
 }
 
+fn mean_obliquity_frame_round_trip_summary_for_report() -> String {
+    let samples = [
+        (
+            EclipticCoordinates::new(
+                Longitude::from_degrees(123.45),
+                pleiades_core::Latitude::from_degrees(-6.75),
+                Some(0.123),
+            ),
+            Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+        ),
+        (
+            EclipticCoordinates::new(
+                Longitude::from_degrees(90.0),
+                pleiades_core::Latitude::from_degrees(0.0),
+                Some(1.0),
+            ),
+            Instant::new(JulianDay::from_days(2_459_000.5), TimeScale::Tt),
+        ),
+        (
+            EclipticCoordinates::new(
+                Longitude::from_degrees(27.5),
+                pleiades_core::Latitude::from_degrees(-33.25),
+                Some(2.5),
+            ),
+            Instant::new(JulianDay::from_days(2_415_020.5), TimeScale::Tt),
+        ),
+    ];
+
+    let mut sample_count = 0usize;
+    let mut max_longitude_delta_deg: f64 = 0.0;
+    let mut max_latitude_delta_deg: f64 = 0.0;
+    let mut max_distance_delta_au: f64 = 0.0;
+
+    for (ecliptic, instant) in samples {
+        let obliquity = instant.mean_obliquity();
+        let round_trip = ecliptic.to_equatorial(obliquity).to_ecliptic(obliquity);
+        let longitude_delta_deg =
+            (round_trip.longitude.degrees() - ecliptic.longitude.degrees()).abs();
+        let latitude_delta_deg =
+            (round_trip.latitude.degrees() - ecliptic.latitude.degrees()).abs();
+        let distance_delta_au = (round_trip.distance_au.unwrap_or_default()
+            - ecliptic.distance_au.unwrap_or_default())
+        .abs();
+
+        if !longitude_delta_deg.is_finite()
+            || !latitude_delta_deg.is_finite()
+            || !distance_delta_au.is_finite()
+        {
+            return "unavailable (non-finite round-trip delta)".to_string();
+        }
+
+        max_longitude_delta_deg = max_longitude_delta_deg.max(longitude_delta_deg);
+        max_latitude_delta_deg = max_latitude_delta_deg.max(latitude_delta_deg);
+        max_distance_delta_au = max_distance_delta_au.max(distance_delta_au);
+        sample_count += 1;
+    }
+
+    format!(
+        "{} samples, max |Δlon|={:.12}°, max |Δlat|={:.12}°, max |Δdist|={:.12} AU",
+        sample_count, max_longitude_delta_deg, max_latitude_delta_deg, max_distance_delta_au,
+    )
+}
+
 fn format_request_policy_summary_for_report(
     summary: &pleiades_backend::RequestPolicySummary,
 ) -> String {
@@ -8205,6 +8271,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text, "Observer policy: {}", request_policy.observer);
     let _ = writeln!(text, "Apparentness policy: {}", request_policy.apparentness);
     let _ = writeln!(text, "Frame policy: {}", request_policy.frame);
+    let _ = writeln!(
+        text,
+        "Mean-obliquity frame round-trip: {}",
+        mean_obliquity_frame_round_trip_summary_for_report()
+    );
     let _ = writeln!(
         text,
         "Request policy: {}",
@@ -9217,6 +9288,9 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str("Frame policy: ");
     text.push_str(frame_policy_summary_for_report());
+    text.push('\n');
+    text.push_str("Mean-obliquity frame round-trip: ");
+    text.push_str(&mean_obliquity_frame_round_trip_summary_for_report());
     text.push('\n');
     text.push_str("Zodiac policy: ");
     text.push_str(&zodiac_policy_summary_for_report(&[ZodiacMode::Tropical]));
@@ -12767,6 +12841,7 @@ mod tests {
         assert!(validation_report_summary.contains("Observer policy:"));
         assert!(validation_report_summary.contains("Apparentness policy:"));
         assert!(validation_report_summary.contains("Frame policy:"));
+        assert!(validation_report_summary.contains("Mean-obliquity frame round-trip:"));
         assert!(validation_report_summary.contains("Zodiac policy:"));
         assert!(validation_report_summary.contains(
             "Release profile identifiers: v1 compatibility=pleiades-compatibility-profile/0.6.123, api-stability=pleiades-api-stability/0.1.0"
@@ -14573,6 +14648,7 @@ mod tests {
         assert!(rendered.contains("Observer policy: chart houses use observer locations; body requests stay geocentric; geocentric-only backends reject observer-bearing requests"));
         assert!(rendered.contains("Apparentness policy: current first-party backends accept mean geometric output only; apparent requests are rejected unless a backend explicitly advertises support"));
         assert!(rendered.contains("Frame policy: ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported"));
+        assert!(rendered.contains("Mean-obliquity frame round-trip:"));
         assert!(rendered.contains("Zodiac policy: tropical only"));
         assert!(rendered.contains("ayanamsa catalog validation: ok"));
         assert!(rendered.contains("House systems:"));
@@ -14903,6 +14979,7 @@ mod tests {
             "pleiades-core::ChartRequest (chart assembly plus house-observer preflight)"
         ));
         assert!(rendered.contains("Frame policy:"));
+        assert!(rendered.contains("Mean-obliquity frame round-trip:"));
         assert!(rendered.contains("Zodiac policy:"));
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(rendered.contains("API stability summary: api-stability-summary"));
