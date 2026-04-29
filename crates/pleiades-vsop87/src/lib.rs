@@ -5559,7 +5559,8 @@ where
 /// instant, and keep the geocentric ecliptic frame so validation and
 /// reproducibility tooling can reuse the exact canonical batch slice without
 /// reconstructing it from the sample metadata.
-pub fn canonical_epoch_requests() -> Vec<EphemerisRequest> {
+#[doc(alias = "canonical_epoch_requests")]
+pub fn canonical_j2000_batch_parity_requests() -> Vec<EphemerisRequest> {
     requests_for_bodies_at(
         canonical_epoch_samples()
             .into_iter()
@@ -5567,6 +5568,13 @@ pub fn canonical_epoch_requests() -> Vec<EphemerisRequest> {
         Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt),
         CoordinateFrame::Ecliptic,
     )
+}
+
+/// Returns the canonical J2000 request corpus used by the VSOP87 batch-path evidence.
+///
+/// This is a compatibility alias for [`canonical_j2000_batch_parity_requests`].
+pub fn canonical_epoch_requests() -> Vec<EphemerisRequest> {
+    canonical_j2000_batch_parity_requests()
 }
 
 /// Returns the supported-body J2000 request corpus used by the VSOP87 batch-parity evidence.
@@ -5626,7 +5634,7 @@ pub fn canonical_j1900_batch_parity_requests() -> Vec<EphemerisRequest> {
 /// The requests preserve the canonical source-backed body order and the shared
 /// J2000 ecliptic frame while alternating TT and TDB labels per request.
 pub fn canonical_mixed_time_scale_batch_parity_requests() -> Vec<EphemerisRequest> {
-    let mut requests = canonical_epoch_requests();
+    let mut requests = canonical_j2000_batch_parity_requests();
     for (index, request) in requests.iter_mut().enumerate() {
         request.instant.scale = if index % 2 == 0 {
             TimeScale::Tt
@@ -9828,8 +9836,8 @@ mod tests {
     }
 
     #[test]
-    fn canonical_epoch_requests_preserve_the_source_backed_batch_slice() {
-        let requests = canonical_epoch_requests();
+    fn canonical_j2000_batch_parity_requests_preserve_the_source_backed_batch_slice() {
+        let requests = canonical_j2000_batch_parity_requests();
 
         assert_eq!(requests.len(), canonical_epoch_samples().len());
         assert_eq!(
@@ -9844,6 +9852,14 @@ mod tests {
                 && request.instant.scale == TimeScale::Tt
                 && request.frame == CoordinateFrame::Ecliptic
         }));
+    }
+
+    #[test]
+    fn canonical_epoch_requests_remain_a_compatibility_alias() {
+        assert_eq!(
+            canonical_epoch_requests(),
+            canonical_j2000_batch_parity_requests()
+        );
     }
 
     #[test]
