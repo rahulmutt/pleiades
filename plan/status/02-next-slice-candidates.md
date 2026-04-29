@@ -316,6 +316,7 @@ Progress note (2026-04-29): the compatibility-profile verification summary and C
 Progress note (2026-04-29): the compact compatibility-profile, release-notes summary, and release-summary views now also surface the Swiss-Ephemeris house-code alias mapping line, so the short code table is now visible in the release-facing compact summaries themselves instead of only in the dedicated verification output.
 Progress note (2026-04-29): the CLI compatibility-profile, release-notes, and release-summary smoke coverage now also pins the shorter `Mula Wilhelm` and `Wilhelm` alias spellings for Galactic Center (Mula/Wilhelm), which keeps that galactic-reference alias cluster visible in the user-facing release audit alongside the already pinned canonical entry.
 Progress note (2026-04-29): the CLI release-summary smoke coverage now also pins the packaged lookup epoch policy and packaged batch parity lines, which keeps the packaged-data request-shape posture anchored in the one-screen release audit alongside the existing artifact and catalog summaries.
+Progress note (2026-04-29): that same release-facing smoke coverage now also pins the exact packaged mixed TT/TDB batch-parity line, which keeps the time-scale mix visible in the compact audit instead of only through the generic packaged batch-parity heading.
 
 Remaining suggested scope:
 

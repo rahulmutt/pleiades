@@ -15033,6 +15033,7 @@ mod tests {
         )));
         assert!(rendered.contains("Packaged request policy:"));
         assert!(rendered.contains("Packaged lookup epoch policy:"));
+        assert!(rendered.contains(&packaged_mixed_tt_tdb_batch_parity_summary_for_report()));
         assert!(rendered.contains("Packaged batch parity:"));
         assert!(rendered.contains("Release notes: release-notes"));
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
@@ -15978,6 +15979,7 @@ version = "0.9.0"
             "Packaged lookup epoch policy: {}",
             packaged_lookup_epoch_policy_summary_for_report()
         )));
+        assert!(release_summary.contains(&packaged_mixed_tt_tdb_batch_parity_summary_for_report()));
         assert!(release_summary.contains(&format!(
             "Packaged frame treatment: {}",
             packaged_frame_treatment_summary_details().summary_line()
