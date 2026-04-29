@@ -8316,7 +8316,53 @@ fn format_jpl_frame_treatment_summary() -> String {
     }
 }
 
-fn mean_obliquity_frame_round_trip_summary_for_report() -> String {
+#[derive(Clone, Debug, PartialEq)]
+struct MeanObliquityFrameRoundTripSummary {
+    sample_count: usize,
+    max_longitude_delta_deg: f64,
+    max_latitude_delta_deg: f64,
+    max_distance_delta_au: f64,
+}
+
+impl MeanObliquityFrameRoundTripSummary {
+    fn validate(&self) -> Result<(), String> {
+        if self.sample_count == 0 {
+            return Err("mean-obliquity frame round-trip summary has no samples".to_string());
+        }
+
+        for (label, value) in [
+            ("max_longitude_delta_deg", self.max_longitude_delta_deg),
+            ("max_latitude_delta_deg", self.max_latitude_delta_deg),
+            ("max_distance_delta_au", self.max_distance_delta_au),
+        ] {
+            if !value.is_finite() || value < 0.0 {
+                return Err(format!(
+                    "mean-obliquity frame round-trip summary field `{label}` must be a finite non-negative value"
+                ));
+            }
+        }
+
+        Ok(())
+    }
+
+    fn summary_line(&self) -> String {
+        format!(
+            "{} samples, max |Δlon|={:.12}°, max |Δlat|={:.12}°, max |Δdist|={:.12} AU",
+            self.sample_count,
+            self.max_longitude_delta_deg,
+            self.max_latitude_delta_deg,
+            self.max_distance_delta_au,
+        )
+    }
+}
+
+impl fmt::Display for MeanObliquityFrameRoundTripSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn mean_obliquity_frame_round_trip_summary() -> Result<MeanObliquityFrameRoundTripSummary, String> {
     let samples = [
         (
             EclipticCoordinates::new(
@@ -8364,7 +8410,7 @@ fn mean_obliquity_frame_round_trip_summary_for_report() -> String {
             || !latitude_delta_deg.is_finite()
             || !distance_delta_au.is_finite()
         {
-            return "unavailable (non-finite round-trip delta)".to_string();
+            return Err("non-finite round-trip delta".to_string());
         }
 
         max_longitude_delta_deg = max_longitude_delta_deg.max(longitude_delta_deg);
@@ -8373,10 +8419,30 @@ fn mean_obliquity_frame_round_trip_summary_for_report() -> String {
         sample_count += 1;
     }
 
-    format!(
-        "{} samples, max |Δlon|={:.12}°, max |Δlat|={:.12}°, max |Δdist|={:.12} AU",
-        sample_count, max_longitude_delta_deg, max_latitude_delta_deg, max_distance_delta_au,
-    )
+    let summary = MeanObliquityFrameRoundTripSummary {
+        sample_count,
+        max_longitude_delta_deg,
+        max_latitude_delta_deg,
+        max_distance_delta_au,
+    };
+    summary.validate()?;
+    Ok(summary)
+}
+
+fn format_mean_obliquity_frame_round_trip_summary_for_report(
+    summary: &MeanObliquityFrameRoundTripSummary,
+) -> String {
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("mean-obliquity frame round-trip unavailable ({error})"),
+    }
+}
+
+fn mean_obliquity_frame_round_trip_summary_for_report() -> String {
+    match mean_obliquity_frame_round_trip_summary() {
+        Ok(summary) => format_mean_obliquity_frame_round_trip_summary_for_report(&summary),
+        Err(error) => format!("mean-obliquity frame round-trip unavailable ({error})"),
+    }
 }
 
 fn format_request_policy_summary_for_report(
@@ -17441,6 +17507,28 @@ version = "0.9.0"
             envelope.contains("comparison envelope unavailable")
                 || envelope.contains("distance deltas must either all be present or all be absent")
         );
+    }
+
+    #[test]
+    fn mean_obliquity_frame_round_trip_summary_has_a_displayable_summary_line() {
+        let summary = mean_obliquity_frame_round_trip_summary()
+            .expect("mean-obliquity frame round-trip summary should exist");
+
+        assert_eq!(summary.summary_line(), summary.to_string());
+        assert!(summary.summary_line().contains("3 samples"));
+        assert!(summary.summary_line().contains("max |Δlon|="));
+        assert!(summary.validate().is_ok());
+    }
+
+    #[test]
+    fn mean_obliquity_frame_round_trip_summary_formatter_rejects_drift() {
+        let mut summary = mean_obliquity_frame_round_trip_summary()
+            .expect("mean-obliquity frame round-trip summary should exist");
+        summary.sample_count = 0;
+
+        let rendered = format_mean_obliquity_frame_round_trip_summary_for_report(&summary);
+        assert!(rendered.contains("mean-obliquity frame round-trip unavailable"));
+        assert!(rendered.contains("mean-obliquity frame round-trip summary has no samples"));
     }
 
     #[test]
