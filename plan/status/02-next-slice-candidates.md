@@ -146,6 +146,7 @@ Progress note (2026-04-26): the parsed JPL snapshot manifests are now also expos
 Progress note (2026-04-26): the JPL reference snapshot now also publishes an explicit equatorial-parity summary for the full checked-in corpus, and the validation/release evidence now renders that batch-path frame-transform line alongside the existing source, manifest, asteroid, and hold-out summaries so the full reference snapshot regression is visible in the compact report path.
 Progress note (2026-04-26): the JPL mixed-frame batch regression now builds its alternating-frame requests inline, which keeps the reference-snapshot parity test idiomatic and clippy-clean while preserving the exact request order and frame coverage.
 Progress note (2026-04-27): the JPL reference snapshot batch-parity evidence is now also surfaced as a distinct release-summary line, so the compact frontend reports name the mixed-frame reference corpus explicitly instead of only folding it into the combined source-backed evidence block.
+Progress note (2026-04-29): the JPL snapshot batch path now also distinguishes unsupported bodies from out-of-range requests in its own regression slice, so the single-request error taxonomy stays visible through `positions()` as well as the direct lookup path.
 
 Remaining suggested scope:
 

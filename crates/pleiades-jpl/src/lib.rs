@@ -7617,6 +7617,40 @@ mod tests {
     }
 
     #[test]
+    fn batch_query_distinguishes_unsupported_body_from_out_of_range() {
+        let backend = JplSnapshotBackend;
+        let supported = EphemerisRequest {
+            body: pleiades_backend::CelestialBody::Ceres,
+            instant: reference_instant(),
+            observer: None,
+            frame: CoordinateFrame::Ecliptic,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparent: Apparentness::Mean,
+        };
+        let unsupported = EphemerisRequest {
+            body: pleiades_backend::CelestialBody::MeanNode,
+            ..supported.clone()
+        };
+        let unsupported_error = backend
+            .positions(&[supported.clone(), unsupported])
+            .expect_err("batch queries should preserve unsupported-body failures");
+        assert_eq!(unsupported_error.kind, EphemerisErrorKind::UnsupportedBody);
+
+        let out_of_range = EphemerisRequest {
+            body: pleiades_backend::CelestialBody::Ceres,
+            instant: Instant::new(JulianDay::from_days(2_451_546.0), TimeScale::Tdb),
+            ..supported
+        };
+        let out_of_range_error = backend
+            .positions(&[out_of_range])
+            .expect_err("batch queries should preserve out-of-range failures");
+        assert_eq!(
+            out_of_range_error.kind,
+            EphemerisErrorKind::OutOfRangeInstant
+        );
+    }
+
+    #[test]
     fn snapshot_backend_resolves_ceres_at_j2000() {
         let backend = JplSnapshotBackend;
         let request = EphemerisRequest {
