@@ -820,6 +820,8 @@ mod tests {
         assert!(rendered.contains("Cochrane (Gal.Center = 0 Cap)"));
         assert!(rendered.contains("Galactic Center (Mardyks)"));
         assert!(rendered.contains("Skydram (Mardyks)"));
+        assert!(rendered.contains("Mula Wilhelm"));
+        assert!(rendered.contains("Wilhelm"));
         assert!(rendered.contains("Galactic Center (Mula/Wilhelm)"));
         assert!(rendered.contains("Galactic Center (Rgilbrand)"));
         assert!(rendered.contains("Galactic Center (Gil Brand)"));
@@ -977,6 +979,8 @@ mod tests {
         assert!(release_notes.contains("Galactic Center (Mardyks)"));
         assert!(release_notes.contains("Gal. Center = 0 Cap"));
         assert!(release_notes.contains("Skydram (Mardyks)"));
+        assert!(release_notes.contains("Mula Wilhelm"));
+        assert!(release_notes.contains("Wilhelm"));
         assert!(release_notes.contains("Galactic Center (Rgilbrand)"));
         assert!(release_notes.contains("Babylonian (True Geoc)"));
         assert!(release_notes.contains("Babylonian (True Topc)"));
@@ -1087,6 +1091,8 @@ mod tests {
         assert!(release_summary.contains("Fagan/Bradley"));
         assert!(release_summary.contains("Usha Shashi"));
         assert!(release_summary.contains("Galactic Center (Mula/Wilhelm)"));
+        assert!(release_summary.contains("Mula Wilhelm"));
+        assert!(release_summary.contains("Wilhelm"));
         assert!(release_summary.contains("Galactic Equator (Fiorenza)"));
         assert!(release_summary.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto override)"));
         assert!(release_summary.contains("coverage=Luminaries: backend family=composite, profile=phase-1 full-file VSOP87B planetary evidence, bodies=2 (Moon, Sun), samples="));
