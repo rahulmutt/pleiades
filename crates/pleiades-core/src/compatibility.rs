@@ -15,9 +15,10 @@ use pleiades_ayanamsa::{
     AyanamsaDescriptor,
 };
 use pleiades_houses::{
-    baseline_house_systems, built_in_house_systems, release_house_systems, resolve_house_system,
-    HouseSystemDescriptor,
+    baseline_house_systems, built_in_house_systems, house_system_code_aliases,
+    release_house_systems, resolve_house_system, HouseSystemCodeAlias, HouseSystemDescriptor,
 };
+use pleiades_types::HouseSystem;
 
 /// The current compatibility-profile identifier.
 pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.6.123";
@@ -175,6 +176,7 @@ impl CompatibilityProfile {
             self.validation_reference_points,
         )?;
         validate_custom_definition_labels(self.custom_definition_labels)?;
+        validate_house_code_aliases(house_system_code_aliases())?;
         validate_profile_text_section("compatibility-caveat", self.known_gaps)?;
         validate_profile_text_sections_are_disjoint(&[
             ("target-house-scope", self.target_house_scope),
@@ -276,6 +278,13 @@ pub enum CompatibilityProfileValidationError {
         /// Label that should remain unresolved as a custom definition.
         label: &'static str,
     },
+    /// A Swiss-Ephemeris house-code alias does not resolve back to its typed house system.
+    HouseCodeAliasDoesNotRoundTrip {
+        /// Alias label that failed validation.
+        label: &'static str,
+        /// Typed system that the alias should resolve to.
+        expected_system: HouseSystem,
+    },
     /// Baseline and release partitions overlap on a catalog label.
     CatalogPartitionOverlap {
         /// Catalog that drifted.
@@ -354,6 +363,14 @@ impl fmt::Display for CompatibilityProfileValidationError {
                 f,
                 "compatibility profile custom-definition label '{}' should remain unresolved as a built-in house system or ayanamsa",
                 label
+            ),
+            Self::HouseCodeAliasDoesNotRoundTrip {
+                label,
+                expected_system,
+            } => write!(
+                f,
+                "compatibility profile house-code alias '{}' should resolve to {}",
+                label, expected_system
             ),
             Self::CatalogPartitionOverlap { catalog_label, label } => write!(
                 f,
@@ -555,6 +572,62 @@ pub fn validate_custom_definition_labels(
     }
 
     Ok(labels_checked)
+}
+
+fn validate_house_code_aliases(
+    aliases: &[HouseSystemCodeAlias],
+) -> Result<usize, CompatibilityProfileValidationError> {
+    if aliases.is_empty() {
+        return Err(CompatibilityProfileValidationError::BlankTextSectionEntry {
+            section_label: "house-code-alias",
+        });
+    }
+
+    let mut aliases_checked = 0usize;
+    let mut seen_labels = BTreeSet::new();
+
+    for alias in aliases {
+        aliases_checked += 1;
+
+        if alias.label.trim().is_empty() {
+            return Err(CompatibilityProfileValidationError::BlankTextSectionEntry {
+                section_label: "house-code-alias",
+            });
+        }
+
+        if has_surrounding_whitespace(alias.label) {
+            return Err(
+                CompatibilityProfileValidationError::WhitespaceTextSectionEntry {
+                    section_label: "house-code-alias",
+                    entry: alias.label,
+                },
+            );
+        }
+
+        let normalized_label = normalized_profile_text_entry(alias.label);
+        if !seen_labels.insert(normalized_label) {
+            return Err(
+                CompatibilityProfileValidationError::DuplicateTextSectionEntry {
+                    section_label: "house-code-alias",
+                    entry: alias.label,
+                },
+            );
+        }
+
+        match resolve_house_system(alias.label) {
+            Some(system) if system == alias.system => {}
+            _ => {
+                return Err(
+                    CompatibilityProfileValidationError::HouseCodeAliasDoesNotRoundTrip {
+                        label: alias.label,
+                        expected_system: alias.system.clone(),
+                    },
+                );
+            }
+        }
+    }
+
+    Ok(aliases_checked)
 }
 
 fn validate_catalog_partitions_are_disjoint(
@@ -2771,5 +2844,51 @@ mod tests {
             "house-code aliases={}",
             profile.house_code_alias_count()
         )));
+    }
+
+    #[test]
+    fn house_code_alias_validation_accepts_the_built_in_table() {
+        assert_eq!(
+            validate_house_code_aliases(house_system_code_aliases())
+                .expect("built-in house-code aliases should validate"),
+            house_system_code_aliases().len()
+        );
+    }
+
+    #[test]
+    fn house_code_alias_validation_rejects_duplicates_and_round_trip_drift() {
+        let duplicate_aliases = [
+            HouseSystemCodeAlias {
+                label: "P",
+                system: HouseSystem::Placidus,
+            },
+            HouseSystemCodeAlias {
+                label: "p",
+                system: HouseSystem::Placidus,
+            },
+        ];
+        assert!(matches!(
+            validate_house_code_aliases(&duplicate_aliases),
+            Err(
+                CompatibilityProfileValidationError::DuplicateTextSectionEntry {
+                    section_label: "house-code-alias",
+                    entry: "p"
+                }
+            )
+        ));
+
+        let drifted_aliases = [HouseSystemCodeAlias {
+            label: "P",
+            system: HouseSystem::Koch,
+        }];
+        assert!(matches!(
+            validate_house_code_aliases(&drifted_aliases),
+            Err(
+                CompatibilityProfileValidationError::HouseCodeAliasDoesNotRoundTrip {
+                    label: "P",
+                    expected_system: HouseSystem::Koch,
+                }
+            )
+        ));
     }
 }
