@@ -1274,6 +1274,11 @@ pub enum IndependentHoldoutSnapshotBatchParitySummaryValidationError {
         tdb_request_count: usize,
         row_count: usize,
     },
+    /// The mixed-scale batch parity slice collapsed to a single time scale.
+    TimeScaleMixMissing {
+        tt_request_count: usize,
+        tdb_request_count: usize,
+    },
     /// The quality counts do not match the row count.
     QualityCountMismatch {
         exact_count: usize,
@@ -1298,6 +1303,14 @@ impl fmt::Display for IndependentHoldoutSnapshotBatchParitySummaryValidationErro
                 f,
                 "request count {}+{} does not match row count {}",
                 tt_request_count, tdb_request_count, row_count,
+            ),
+            Self::TimeScaleMixMissing {
+                tt_request_count,
+                tdb_request_count,
+            } => write!(
+                f,
+                "time-scale mix must include both TT and TDB requests (TT={}, TDB={})",
+                tt_request_count, tdb_request_count,
             ),
             Self::QualityCountMismatch {
                 exact_count,
@@ -1332,6 +1345,15 @@ impl IndependentHoldoutSnapshotBatchParitySummary {
                     tt_request_count: self.tt_request_count,
                     tdb_request_count: self.tdb_request_count,
                     row_count: self.snapshot.row_count,
+                },
+            );
+        }
+
+        if self.tt_request_count == 0 || self.tdb_request_count == 0 {
+            return Err(
+                IndependentHoldoutSnapshotBatchParitySummaryValidationError::TimeScaleMixMissing {
+                    tt_request_count: self.tt_request_count,
+                    tdb_request_count: self.tdb_request_count,
                 },
             );
         }
@@ -7491,6 +7513,23 @@ mod tests {
         assert!(matches!(
             summary.validate(),
             Err(IndependentHoldoutSnapshotBatchParitySummaryValidationError::ParityNotPreserved)
+        ));
+    }
+
+    #[test]
+    fn independent_holdout_snapshot_batch_parity_summary_validation_rejects_degenerate_time_scale_mix(
+    ) {
+        let mut summary = independent_holdout_snapshot_batch_parity_summary()
+            .expect("independent hold-out batch parity summary should exist");
+        summary.tt_request_count = summary.snapshot.row_count;
+        summary.tdb_request_count = 0;
+
+        assert!(matches!(
+            summary.validate(),
+            Err(IndependentHoldoutSnapshotBatchParitySummaryValidationError::TimeScaleMixMissing {
+                tt_request_count,
+                tdb_request_count,
+            }) if tt_request_count == summary.snapshot.row_count && tdb_request_count == 0
         ));
     }
 
