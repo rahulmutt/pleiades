@@ -364,6 +364,8 @@ pub struct PackagedArtifactRegenerationSummary {
     pub checksum: u64,
     /// Generation policy used to turn reference snapshots into segments.
     pub generation_policy: PackagedArtifactGenerationPolicy,
+    /// Bodies that carry residual correction channels in the packaged artifact.
+    pub residual_bodies: Vec<CelestialBody>,
     /// Bodies bundled into the packaged artifact.
     pub bodies: Vec<CelestialBody>,
     /// Coverage summary for the checked-in JPL reference snapshot used for regeneration.
@@ -385,6 +387,14 @@ impl PackagedArtifactRegenerationSummary {
         self.reference_snapshot
             .map(|summary| format_reference_snapshot_summary(&summary))
             .unwrap_or_else(|| "Reference snapshot coverage: unavailable".to_string())
+    }
+
+    /// Returns the residual-correction body list as a compact human-readable line.
+    pub fn residual_body_line(&self) -> String {
+        match self.residual_bodies.as_slice() {
+            [] => "residual bodies: none".to_string(),
+            residual_bodies => format!("residual bodies: {}", join_display(residual_bodies)),
+        }
     }
 
     /// Returns the generation policy as a compact human-readable line.
@@ -442,6 +452,17 @@ impl PackagedArtifactRegenerationSummary {
             )
         })?;
 
+        if self.residual_bodies != artifact.residual_bodies() {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                format!(
+                    "packaged artifact regeneration summary residual body list does not match the checked-in packaged artifact: expected [{}]; got [{}]",
+                    join_display(&artifact.residual_bodies()),
+                    join_display(&self.residual_bodies)
+                ),
+            ));
+        }
+
         if self.reference_snapshot.is_none() {
             return Err(pleiades_compression::CompressionError::new(
                 pleiades_compression::CompressionErrorKind::InvalidFormat,
@@ -495,11 +516,12 @@ impl PackagedArtifactRegenerationSummary {
     /// Returns the full packaged-artifact regeneration provenance summary.
     pub fn summary_line(&self) -> String {
         format!(
-            "Packaged artifact regeneration source: label={}; source={}; checksum=0x{:016x}; {}; bundled bodies: {}; {}; artifact version={}",
+            "Packaged artifact regeneration source: label={}; source={}; checksum=0x{:016x}; {}; {}; bundled bodies: {}; {}; artifact version={}",
             self.label,
             self.source,
             self.checksum,
             self.generation_policy_line(),
+            self.residual_body_line(),
             self.body_coverage_line(),
             self.reference_snapshot_line(),
             self.artifact_version,
@@ -522,6 +544,7 @@ pub fn packaged_artifact_regeneration_summary_details() -> PackagedArtifactRegen
         source: ARTIFACT_SOURCE,
         checksum: artifact.checksum,
         generation_policy: PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments,
+        residual_bodies: artifact.residual_bodies(),
         bodies: packaged_bodies().to_vec(),
         reference_snapshot: reference_snapshot_summary(),
     };
@@ -3191,6 +3214,7 @@ mod tests {
             summary.generation_policy_line(),
             "generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic residual corrections to keep the high-curvature fit compact"
         );
+        assert_eq!(summary.residual_body_line(), "residual bodies: Moon");
         assert_eq!(
             packaged_body_coverage_summary_details().summary_line(),
             format!("Packaged body set: {}", summary.body_coverage_line())
@@ -3210,6 +3234,7 @@ mod tests {
         ));
         assert!(provenance.contains("checksum=0x"));
         assert!(provenance.contains("generation policy: adjacent same-body linear segments"));
+        assert!(provenance.contains("residual bodies: Moon"));
         assert!(provenance.contains(&format!("artifact version={}", artifact.header.version)));
         assert!(provenance.contains("11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"));
         assert!(provenance.contains("Reference snapshot coverage:"));

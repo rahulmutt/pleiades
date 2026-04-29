@@ -15681,6 +15681,7 @@ version = "0.9.0"
         assert!(release_summary.contains(
             "Packaged-artifact generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic residual corrections to keep the high-curvature fit compact"
         ));
+        assert!(release_summary.contains("residual bodies: Moon"));
         assert!(release_summary.contains(
             "Packaged-artifact regeneration: Packaged artifact regeneration source: label=stage-5 packaged-data prototype"
         ));
@@ -15815,6 +15816,7 @@ version = "0.9.0"
         ));
         assert!(artifact_summary.contains("checksum=0x"));
         assert!(artifact_summary.contains("generation policy: adjacent same-body linear segments"));
+        assert!(artifact_summary.contains("residual bodies: Moon"));
         assert!(artifact_summary.contains(&format!(
             "artifact version={}",
             pleiades_data::packaged_artifact_regeneration_summary_details().artifact_version
