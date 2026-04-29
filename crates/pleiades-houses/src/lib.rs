@@ -368,6 +368,92 @@ pub fn house_system_code_aliases_summary_line() -> String {
         .join(", ")
 }
 
+/// Errors emitted when validating the Swiss-Ephemeris-style house-code alias table.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum HouseSystemCodeAliasValidationError {
+    /// The alias table unexpectedly contains no entries.
+    EmptyAliasTable,
+    /// A short label is blank or whitespace-padded.
+    LabelNotNormalized {
+        /// Label that drifted.
+        label: &'static str,
+    },
+    /// Two short labels resolve to the same case-insensitive spelling.
+    DuplicateLabel {
+        /// Label that collided.
+        label: &'static str,
+    },
+    /// A short label does not round-trip to the expected house system.
+    LabelDoesNotRoundTrip {
+        /// Label that failed to resolve.
+        label: &'static str,
+        /// Typed system that the label was expected to resolve to.
+        expected_system: HouseSystem,
+    },
+}
+
+impl fmt::Display for HouseSystemCodeAliasValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::EmptyAliasTable => f.write_str("the house-code alias table is empty"),
+            Self::LabelNotNormalized { label } => write!(
+                f,
+                "the house-code alias label `{label}` is blank or contains surrounding whitespace"
+            ),
+            Self::DuplicateLabel { label } => write!(
+                f,
+                "the house-code alias table contains duplicate label `{label}`"
+            ),
+            Self::LabelDoesNotRoundTrip {
+                label,
+                expected_system,
+            } => write!(
+                f,
+                "the house-code alias label `{label}` does not round-trip to {expected_system}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for HouseSystemCodeAliasValidationError {}
+
+fn validate_house_system_code_alias_entries(
+    entries: &[HouseSystemCodeAlias],
+) -> Result<usize, HouseSystemCodeAliasValidationError> {
+    if entries.is_empty() {
+        return Err(HouseSystemCodeAliasValidationError::EmptyAliasTable);
+    }
+
+    let mut labels_checked = 0usize;
+    let mut seen_labels = BTreeSet::new();
+
+    for alias in entries {
+        labels_checked += 1;
+
+        if alias.label.trim().is_empty() || has_surrounding_whitespace(alias.label) {
+            return Err(HouseSystemCodeAliasValidationError::LabelNotNormalized {
+                label: alias.label,
+            });
+        }
+        if !seen_labels.insert(alias.label.to_ascii_lowercase()) {
+            return Err(HouseSystemCodeAliasValidationError::DuplicateLabel { label: alias.label });
+        }
+        if resolve_house_system(alias.label) != Some(alias.system.clone()) {
+            return Err(HouseSystemCodeAliasValidationError::LabelDoesNotRoundTrip {
+                label: alias.label,
+                expected_system: alias.system.clone(),
+            });
+        }
+    }
+
+    Ok(labels_checked)
+}
+
+/// Validates the built-in Swiss-Ephemeris-style house-code alias table.
+pub fn validate_house_system_code_aliases() -> Result<(), HouseSystemCodeAliasValidationError> {
+    validate_house_system_code_alias_entries(house_system_code_aliases()).map(|_| ())
+}
+
 /// Errors emitted when validating the built-in house-system catalog.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum HouseCatalogValidationError {
@@ -2051,6 +2137,7 @@ mod tests {
             );
         }
 
+        assert_eq!(validate_house_system_code_aliases(), Ok(()));
         assert_eq!(aliases.len(), 22);
         assert_eq!(aliases[0].summary_line(), "P -> Placidus");
         assert_eq!(aliases[0].to_string(), "P -> Placidus");
@@ -2066,5 +2153,26 @@ mod tests {
         );
         assert_eq!(resolve_house_system("X"), Some(HouseSystem::Meridian));
         assert_eq!(resolve_house_system("Y"), Some(HouseSystem::Apc));
+    }
+
+    #[test]
+    fn house_system_code_alias_validation_rejects_duplicate_short_labels() {
+        let aliases = [
+            HouseSystemCodeAlias {
+                label: "P",
+                system: HouseSystem::Placidus,
+            },
+            HouseSystemCodeAlias {
+                label: "p",
+                system: HouseSystem::Porphyry,
+            },
+        ];
+
+        let error = validate_house_system_code_alias_entries(&aliases)
+            .expect_err("duplicate labels should be rejected");
+        assert!(matches!(
+            error,
+            HouseSystemCodeAliasValidationError::DuplicateLabel { label: "p" }
+        ));
     }
 }

@@ -3999,6 +3999,12 @@ fn verify_house_system_aliases(
             format!("house catalog validation failed: {error}"),
         ));
     }
+    if let Err(error) = pleiades_houses::validate_house_system_code_aliases() {
+        return Err(EphemerisError::new(
+            EphemerisErrorKind::InvalidRequest,
+            format!("house-code alias validation failed: {error}"),
+        ));
+    }
 
     let mut labels_checked = 0usize;
     let mut seen_labels = BTreeSet::new();
