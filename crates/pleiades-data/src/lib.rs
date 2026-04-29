@@ -1578,16 +1578,15 @@ impl PackagedBatchParitySummary {
     }
 }
 
-/// Returns a compact mixed-frame batch-parity summary for the packaged artifact.
-pub fn packaged_mixed_frame_batch_parity_summary() -> Option<PackagedBatchParitySummary> {
-    let backend = packaged_backend();
+fn packaged_mixed_frame_batch_parity_request_entries(
+) -> Option<(Vec<EphemerisRequest>, Vec<SnapshotEntry>)> {
     let snapshot = reference_snapshot();
     let mut requests = Vec::with_capacity(packaged_bodies().len());
     let mut entries = Vec::with_capacity(packaged_bodies().len());
 
     for (index, body) in packaged_bodies().iter().cloned().enumerate() {
         let entry = snapshot.iter().find(|entry| entry.body == body)?;
-        entries.push(entry);
+        entries.push(entry.clone());
         requests.push(EphemerisRequest {
             body,
             instant: Instant::new(entry.epoch.julian_day, TimeScale::Tt),
@@ -1601,6 +1600,25 @@ pub fn packaged_mixed_frame_batch_parity_summary() -> Option<PackagedBatchParity
             apparent: Apparentness::Mean,
         });
     }
+
+    Some((requests, entries))
+}
+
+/// Returns the packaged mixed-frame batch-parity request corpus used by downstream tooling.
+pub fn packaged_mixed_frame_batch_parity_requests() -> Option<Vec<EphemerisRequest>> {
+    packaged_mixed_frame_batch_parity_request_entries().map(|(requests, _)| requests)
+}
+
+/// This is a compatibility alias for [`packaged_mixed_frame_batch_parity_requests`].
+#[doc(alias = "packaged_mixed_frame_batch_parity_requests")]
+pub fn packaged_mixed_frame_batch_parity_request_corpus() -> Option<Vec<EphemerisRequest>> {
+    packaged_mixed_frame_batch_parity_requests()
+}
+
+/// Returns a compact mixed-frame batch-parity summary for the packaged artifact.
+pub fn packaged_mixed_frame_batch_parity_summary() -> Option<PackagedBatchParitySummary> {
+    let backend = packaged_backend();
+    let (requests, entries) = packaged_mixed_frame_batch_parity_request_entries()?;
 
     let results = backend.positions(&requests).ok()?;
     if results.len() != requests.len() {
@@ -1757,16 +1775,15 @@ impl fmt::Display for PackagedTimeScaleBatchParitySummaryValidationError {
 
 impl std::error::Error for PackagedTimeScaleBatchParitySummaryValidationError {}
 
-/// Returns a compact mixed TT/TDB batch-parity summary for the packaged artifact.
-pub fn packaged_mixed_tt_tdb_batch_parity_summary() -> Option<PackagedTimeScaleBatchParitySummary> {
-    let backend = packaged_backend();
+fn packaged_mixed_tt_tdb_batch_parity_request_entries(
+) -> Option<(Vec<EphemerisRequest>, Vec<SnapshotEntry>)> {
     let snapshot = reference_snapshot();
     let mut requests = Vec::with_capacity(packaged_bodies().len());
     let mut entries = Vec::with_capacity(packaged_bodies().len());
 
     for (index, body) in packaged_bodies().iter().cloned().enumerate() {
         let entry = snapshot.iter().find(|entry| entry.body == body)?;
-        entries.push(entry);
+        entries.push(entry.clone());
         requests.push(EphemerisRequest {
             body,
             instant: Instant::new(
@@ -1783,6 +1800,25 @@ pub fn packaged_mixed_tt_tdb_batch_parity_summary() -> Option<PackagedTimeScaleB
             apparent: Apparentness::Mean,
         });
     }
+
+    Some((requests, entries))
+}
+
+/// Returns the packaged mixed TT/TDB batch-parity request corpus used by downstream tooling.
+pub fn packaged_mixed_tt_tdb_batch_parity_requests() -> Option<Vec<EphemerisRequest>> {
+    packaged_mixed_tt_tdb_batch_parity_request_entries().map(|(requests, _)| requests)
+}
+
+/// This is a compatibility alias for [`packaged_mixed_tt_tdb_batch_parity_requests`].
+#[doc(alias = "packaged_mixed_tt_tdb_batch_parity_requests")]
+pub fn packaged_mixed_tt_tdb_batch_parity_request_corpus() -> Option<Vec<EphemerisRequest>> {
+    packaged_mixed_tt_tdb_batch_parity_requests()
+}
+
+/// Returns a compact mixed TT/TDB batch-parity summary for the packaged artifact.
+pub fn packaged_mixed_tt_tdb_batch_parity_summary() -> Option<PackagedTimeScaleBatchParitySummary> {
+    let backend = packaged_backend();
+    let (requests, entries) = packaged_mixed_tt_tdb_batch_parity_request_entries()?;
 
     let results = backend.positions(&requests).ok()?;
     if results.len() != requests.len() {
@@ -3675,47 +3711,34 @@ mod tests {
     #[test]
     fn packaged_mixed_frame_batch_requests_preserve_request_frames() {
         let backend = packaged_backend();
-        let reference = reference_snapshot()
-            .iter()
-            .find(|entry| {
-                entry.body == CelestialBody::Sun
-                    && (entry.epoch.julian_day.days() - 2_451_545.0).abs() < f64::EPSILON
-            })
-            .expect("reference snapshot should include the Sun at J2000");
-        let ecliptic_request = EphemerisRequest {
-            body: CelestialBody::Sun,
-            instant: reference.epoch,
-            observer: None,
-            frame: CoordinateFrame::Ecliptic,
-            zodiac_mode: ZodiacMode::Tropical,
-            apparent: pleiades_backend::Apparentness::Mean,
-        };
-        let equatorial_request = EphemerisRequest {
-            frame: CoordinateFrame::Equatorial,
-            ..ecliptic_request.clone()
-        };
+        let requests = packaged_mixed_frame_batch_parity_requests()
+            .expect("packaged mixed frame batch parity requests should be available");
+        let alias_requests = packaged_mixed_frame_batch_parity_request_corpus()
+            .expect("packaged mixed frame batch parity request corpus should be available");
+
+        assert_eq!(requests, alias_requests);
+        assert_eq!(requests.len(), packaged_bodies().len());
+        assert!(requests.iter().enumerate().all(|(index, request)| {
+            matches!(
+                (index % 2, request.frame),
+                (0, CoordinateFrame::Ecliptic) | (1, CoordinateFrame::Equatorial)
+            )
+        }));
 
         let batch_results = backend
-            .positions(&[ecliptic_request.clone(), equatorial_request.clone()])
+            .positions(&requests)
             .expect("mixed frame requests should succeed through the batch path");
-        assert_eq!(batch_results.len(), 2);
+        assert_eq!(batch_results.len(), requests.len());
 
-        let ecliptic_single = backend
-            .position(&ecliptic_request)
-            .expect("ecliptic requests should succeed through the single-request path");
-        let equatorial_single = backend
-            .position(&equatorial_request)
-            .expect("equatorial requests should succeed through the single-request path");
+        for (request, result) in requests.iter().zip(batch_results.iter()) {
+            let single = backend
+                .position(request)
+                .expect("mixed frame requests should succeed through the single-request path");
 
-        let ecliptic_result = &batch_results[0];
-        let equatorial_result = &batch_results[1];
-
-        assert_eq!(ecliptic_result.frame, CoordinateFrame::Ecliptic);
-        assert_eq!(equatorial_result.frame, CoordinateFrame::Equatorial);
-        assert_eq!(ecliptic_result.quality, QualityAnnotation::Interpolated);
-        assert_eq!(equatorial_result.quality, QualityAnnotation::Interpolated);
-        assert_eq!(ecliptic_result, &ecliptic_single);
-        assert_eq!(equatorial_result, &equatorial_single);
+            assert_eq!(result.frame, request.frame);
+            assert_eq!(result.quality, QualityAnnotation::Interpolated);
+            assert_eq!(result, &single);
+        }
     }
 
     #[test]
@@ -3780,51 +3803,34 @@ mod tests {
     #[test]
     fn packaged_mixed_tt_tdb_batch_requests_preserve_request_scales() {
         let backend = packaged_backend();
-        let tt_request = EphemerisRequest {
-            body: CelestialBody::Sun,
-            instant: Instant::new(
-                pleiades_backend::JulianDay::from_days(2_451_545.0),
-                TimeScale::Tt,
-            ),
-            observer: None,
-            frame: CoordinateFrame::Ecliptic,
-            zodiac_mode: ZodiacMode::Tropical,
-            apparent: pleiades_backend::Apparentness::Mean,
-        };
-        let tdb_request = EphemerisRequest {
-            instant: Instant::new(tt_request.instant.julian_day, TimeScale::Tdb),
-            ..tt_request.clone()
-        };
+        let requests = packaged_mixed_tt_tdb_batch_parity_requests()
+            .expect("packaged mixed TT/TDB batch parity requests should be available");
+        let alias_requests = packaged_mixed_tt_tdb_batch_parity_request_corpus()
+            .expect("packaged mixed TT/TDB batch parity request corpus should be available");
 
-        let batch_requests = [tt_request.clone(), tdb_request.clone()];
+        assert_eq!(requests, alias_requests);
+        assert_eq!(requests.len(), packaged_bodies().len());
+        assert!(requests.iter().enumerate().all(|(index, request)| {
+            matches!(
+                (index % 2, request.instant.scale),
+                (0, TimeScale::Tt) | (1, TimeScale::Tdb)
+            )
+        }));
+
         let batch_results = backend
-            .positions(&batch_requests)
+            .positions(&requests)
             .expect("mixed TT/TDB requests should succeed through the batch path");
+        assert_eq!(batch_results.len(), requests.len());
 
-        assert_eq!(batch_results.len(), 2);
+        for (request, result) in requests.iter().zip(batch_results.iter()) {
+            let single = backend
+                .position(request)
+                .expect("mixed TT/TDB requests should succeed through the single-request path");
 
-        let tt_single_result = backend
-            .position(&tt_request)
-            .expect("TT requests should succeed through the single-request path");
-        let tdb_single_result = backend
-            .position(&tdb_request)
-            .expect("TDB requests should succeed through the single-request path");
-
-        let tt_result = &batch_results[0];
-        let tdb_result = &batch_results[1];
-
-        assert_eq!(tt_result.instant.scale, TimeScale::Tt);
-        assert_eq!(tdb_result.instant.scale, TimeScale::Tdb);
-        assert_eq!(tt_result.quality, QualityAnnotation::Interpolated);
-        assert_eq!(tdb_result.quality, QualityAnnotation::Interpolated);
-        assert_eq!(tt_result.ecliptic, tt_single_result.ecliptic);
-        assert_eq!(tdb_result.ecliptic, tdb_single_result.ecliptic);
-        assert_eq!(tt_result.backend_id, tt_single_result.backend_id);
-        assert_eq!(tdb_result.backend_id, tdb_single_result.backend_id);
-        assert_eq!(tt_result.body, tt_single_result.body);
-        assert_eq!(tdb_result.body, tdb_single_result.body);
-        assert_eq!(tt_result.apparent, tt_single_result.apparent);
-        assert_eq!(tdb_result.apparent, tdb_single_result.apparent);
+            assert_eq!(result.instant.scale, request.instant.scale);
+            assert_eq!(result.quality, QualityAnnotation::Interpolated);
+            assert_eq!(result, &single);
+        }
     }
 
     #[test]
