@@ -2992,8 +2992,77 @@ pub fn jpl_snapshot_request_policy_summary_for_report() -> String {
     }
 }
 
+/// A compact batch error-taxonomy summary for the current JPL snapshot backend.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JplSnapshotBatchErrorTaxonomySummary {
+    /// The body used for the supported batch check.
+    pub supported_request_body: CelestialBody,
+    /// The body used for the unsupported-body batch check.
+    pub unsupported_request_body: CelestialBody,
+    /// The error kind observed for the unsupported-body batch check.
+    pub unsupported_error_kind: EphemerisErrorKind,
+    /// The body used for the out-of-range batch check.
+    pub out_of_range_request_body: CelestialBody,
+    /// The error kind observed for the out-of-range batch check.
+    pub out_of_range_error_kind: EphemerisErrorKind,
+}
+
+/// Structured errors for a JPL batch error-taxonomy summary.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum JplSnapshotBatchErrorTaxonomySummaryError {
+    /// The unsupported-body batch unexpectedly succeeded.
+    UnsupportedBodyBatchUnexpectedlySucceeded,
+    /// The unsupported-body batch returned an unexpected error kind.
+    UnsupportedBodyBatchReturned { error_kind: EphemerisErrorKind },
+    /// The out-of-range batch unexpectedly succeeded.
+    OutOfRangeBatchUnexpectedlySucceeded,
+    /// The out-of-range batch returned an unexpected error kind.
+    OutOfRangeBatchReturned { error_kind: EphemerisErrorKind },
+}
+
+impl fmt::Display for JplSnapshotBatchErrorTaxonomySummaryError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::UnsupportedBodyBatchUnexpectedlySucceeded => {
+                f.write_str("unsupported-body batch unexpectedly succeeded")
+            }
+            Self::UnsupportedBodyBatchReturned { error_kind } => {
+                write!(f, "unsupported-body batch returned {error_kind}")
+            }
+            Self::OutOfRangeBatchUnexpectedlySucceeded => {
+                f.write_str("out-of-range batch unexpectedly succeeded")
+            }
+            Self::OutOfRangeBatchReturned { error_kind } => {
+                write!(f, "out-of-range batch returned {error_kind}")
+            }
+        }
+    }
+}
+
+impl std::error::Error for JplSnapshotBatchErrorTaxonomySummaryError {}
+
+impl JplSnapshotBatchErrorTaxonomySummary {
+    /// Returns the compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "JPL batch error taxonomy: unsupported body {} -> {}; out-of-range {} -> {}",
+            self.unsupported_request_body,
+            self.unsupported_error_kind,
+            self.out_of_range_request_body,
+            self.out_of_range_error_kind,
+        )
+    }
+}
+
+impl fmt::Display for JplSnapshotBatchErrorTaxonomySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Returns a compact batch error-taxonomy summary for the current JPL snapshot backend.
-pub fn jpl_snapshot_batch_error_taxonomy_summary_for_report() -> String {
+pub fn jpl_snapshot_batch_error_taxonomy_summary(
+) -> Result<JplSnapshotBatchErrorTaxonomySummary, JplSnapshotBatchErrorTaxonomySummaryError> {
     let backend = JplSnapshotBackend;
 
     let supported_request = EphemerisRequest {
@@ -3012,15 +3081,17 @@ pub fn jpl_snapshot_batch_error_taxonomy_summary_for_report() -> String {
         .positions(&[supported_request.clone(), unsupported_body_request])
     {
         Ok(_) => {
-            return "JPL batch error taxonomy: unavailable (unsupported-body batch unexpectedly succeeded)"
-                .to_string();
+            return Err(
+                JplSnapshotBatchErrorTaxonomySummaryError::UnsupportedBodyBatchUnexpectedlySucceeded,
+            );
         }
         Err(error) => error,
     };
     if unsupported_body_error.kind != EphemerisErrorKind::UnsupportedBody {
-        return format!(
-            "JPL batch error taxonomy: unavailable (unsupported-body batch returned {})",
-            unsupported_body_error.kind
+        return Err(
+            JplSnapshotBatchErrorTaxonomySummaryError::UnsupportedBodyBatchReturned {
+                error_kind: unsupported_body_error.kind,
+            },
         );
     }
 
@@ -3031,19 +3102,35 @@ pub fn jpl_snapshot_batch_error_taxonomy_summary_for_report() -> String {
     };
     let out_of_range_error = match backend.positions(&[out_of_range_request]) {
         Ok(_) => {
-            return "JPL batch error taxonomy: unavailable (out-of-range batch unexpectedly succeeded)"
-                .to_string();
+            return Err(
+                JplSnapshotBatchErrorTaxonomySummaryError::OutOfRangeBatchUnexpectedlySucceeded,
+            );
         }
         Err(error) => error,
     };
     if out_of_range_error.kind != EphemerisErrorKind::OutOfRangeInstant {
-        return format!(
-            "JPL batch error taxonomy: unavailable (out-of-range batch returned {})",
-            out_of_range_error.kind
+        return Err(
+            JplSnapshotBatchErrorTaxonomySummaryError::OutOfRangeBatchReturned {
+                error_kind: out_of_range_error.kind,
+            },
         );
     }
 
-    "JPL batch error taxonomy: unsupported body Mean Node -> UnsupportedBody; out-of-range Ceres -> OutOfRangeInstant".to_string()
+    Ok(JplSnapshotBatchErrorTaxonomySummary {
+        supported_request_body: CelestialBody::Ceres,
+        unsupported_request_body: CelestialBody::MeanNode,
+        unsupported_error_kind: EphemerisErrorKind::UnsupportedBody,
+        out_of_range_request_body: CelestialBody::Ceres,
+        out_of_range_error_kind: EphemerisErrorKind::OutOfRangeInstant,
+    })
+}
+
+/// Returns the release-facing batch error-taxonomy summary for the current JPL snapshot backend.
+pub fn jpl_snapshot_batch_error_taxonomy_summary_for_report() -> String {
+    match jpl_snapshot_batch_error_taxonomy_summary() {
+        Ok(summary) => summary.to_string(),
+        Err(error) => format!("JPL batch error taxonomy: unavailable ({error})"),
+    }
 }
 
 /// Returns the structured JPL snapshot frame-treatment summary.
@@ -7642,9 +7729,36 @@ mod tests {
 
     #[test]
     fn batch_error_taxonomy_summary_matches_current_backend() {
+        let summary = jpl_snapshot_batch_error_taxonomy_summary()
+            .expect("the batch taxonomy summary should remain computable");
+        assert_eq!(
+            summary.summary_line(),
+            "JPL batch error taxonomy: unsupported body Mean Node -> UnsupportedBody; out-of-range Ceres -> OutOfRangeInstant"
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             jpl_snapshot_batch_error_taxonomy_summary_for_report(),
-            "JPL batch error taxonomy: unsupported body Mean Node -> UnsupportedBody; out-of-range Ceres -> OutOfRangeInstant"
+            summary.summary_line()
+        );
+        assert_eq!(
+            summary.supported_request_body,
+            pleiades_backend::CelestialBody::Ceres
+        );
+        assert_eq!(
+            summary.unsupported_request_body,
+            pleiades_backend::CelestialBody::MeanNode
+        );
+        assert_eq!(
+            summary.unsupported_error_kind,
+            EphemerisErrorKind::UnsupportedBody
+        );
+        assert_eq!(
+            summary.out_of_range_request_body,
+            pleiades_backend::CelestialBody::Ceres
+        );
+        assert_eq!(
+            summary.out_of_range_error_kind,
+            EphemerisErrorKind::OutOfRangeInstant
         );
     }
 
