@@ -350,10 +350,19 @@ pub fn packaged_artifact_generation_policy_summary_for_report() -> String {
     }
 }
 
+/// Returns the current packaged-artifact residual-bearing body coverage summary record.
+pub fn packaged_artifact_generation_residual_bodies_summary_details(
+) -> ArtifactResidualBodyCoverageSummary {
+    let artifact = packaged_artifact();
+    let summary = artifact.residual_body_coverage_summary();
+    debug_assert!(summary.validate(artifact).is_ok());
+    summary
+}
+
 /// Returns the current packaged-artifact residual-bearing body set after validating the structured posture.
 pub fn packaged_artifact_generation_residual_bodies_summary_for_report() -> String {
     let artifact = packaged_artifact();
-    let summary = artifact.residual_body_coverage_summary();
+    let summary = packaged_artifact_generation_residual_bodies_summary_details();
 
     match summary.validate(artifact) {
         Ok(()) => summary.to_string(),
@@ -3303,6 +3312,14 @@ mod tests {
             packaged_artifact_generation_policy_summary(),
             summary.to_string()
         );
+        let residual_bodies = packaged_artifact_generation_residual_bodies_summary_details();
+        assert_eq!(residual_bodies.body_count, 1);
+        assert_eq!(residual_bodies.bodies, vec![CelestialBody::Moon]);
+        assert_eq!(residual_bodies.summary_line(), "residual bodies: Moon");
+        assert_eq!(residual_bodies.to_string(), residual_bodies.summary_line());
+        residual_bodies
+            .validate(artifact)
+            .expect("residual body coverage summary should validate");
         assert_eq!(
             packaged_artifact_generation_residual_bodies_summary_for_report(),
             "residual bodies: Moon"
