@@ -4118,12 +4118,8 @@ impl fmt::Display for Vsop87SupportedBodyJ2000EclipticBatchParitySummary {
 pub fn supported_body_j2000_ecliptic_batch_parity_summary(
 ) -> Option<Vsop87SupportedBodyJ2000EclipticBatchParitySummary> {
     let backend = Vsop87Backend::new();
-    let reference_epoch = Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tdb);
-    let requests = requests_for_bodies_at(
-        Vsop87Backend::supported_bodies().iter().cloned(),
-        reference_epoch,
-        CoordinateFrame::Ecliptic,
-    );
+    let requests = supported_body_j2000_ecliptic_batch_parity_request_corpus();
+    let reference_epoch = requests.first()?.instant;
     let (sample_bodies, exact_count, interpolated_count, approximate_count, unknown_count) =
         canonical_batch_parity_counts(&backend, &requests)?;
 
@@ -5588,6 +5584,20 @@ pub fn supported_body_j2000_equatorial_batch_parity_requests() -> Vec<EphemerisR
         Vsop87Backend::supported_bodies().iter().cloned(),
         Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tdb),
         CoordinateFrame::Equatorial,
+    )
+}
+
+/// Returns the supported-body J2000 request corpus used by the VSOP87 supported-body batch evidence.
+///
+/// The requests preserve the supported-body order, use the shared J2000 TDB
+/// instant, and keep the ecliptic frame so validation and reproducibility
+/// tooling can reuse the exact supported-body batch slice without
+/// reconstructing it from the summary metadata.
+pub fn supported_body_j2000_ecliptic_batch_parity_request_corpus() -> Vec<EphemerisRequest> {
+    requests_for_bodies_at(
+        Vsop87Backend::supported_bodies().iter().cloned(),
+        Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tdb),
+        CoordinateFrame::Ecliptic,
     )
 }
 
@@ -9897,6 +9907,25 @@ mod tests {
             request.instant.julian_day.days() == J2000
                 && request.instant.scale == TimeScale::Tdb
                 && request.frame == CoordinateFrame::Equatorial
+        }));
+    }
+
+    #[test]
+    fn supported_body_j2000_ecliptic_batch_parity_requests_preserve_the_supported_body_order() {
+        let requests = supported_body_j2000_ecliptic_batch_parity_request_corpus();
+
+        assert_eq!(requests.len(), Vsop87Backend::supported_bodies().len());
+        assert_eq!(
+            requests
+                .iter()
+                .map(|request| request.body.clone())
+                .collect::<Vec<_>>(),
+            Vsop87Backend::supported_bodies().to_vec()
+        );
+        assert!(requests.iter().all(|request| {
+            request.instant.julian_day.days() == J2000
+                && request.instant.scale == TimeScale::Tdb
+                && request.frame == CoordinateFrame::Ecliptic
         }));
     }
 
