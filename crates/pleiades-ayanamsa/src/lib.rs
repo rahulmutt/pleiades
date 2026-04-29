@@ -1270,6 +1270,67 @@ pub struct AyanamsaMetadataCoverage {
     pub without_sidereal_metadata: Vec<&'static str>,
 }
 
+/// Errors returned when validating a sidereal-metadata coverage summary.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum AyanamsaMetadataCoverageValidationError {
+    /// The recorded counts do not add up to the expected total.
+    CountsDoNotSum {
+        /// Total number of built-in ayanamsas.
+        total: usize,
+        /// Built-in entries that provide both a reference epoch and a reference offset.
+        with_sidereal_metadata: usize,
+        /// Built-in entries that intentionally model custom-definition labels.
+        custom_definition_only: usize,
+        /// Built-in entries still missing one or both fields.
+        without_sidereal_metadata: usize,
+    },
+    /// A custom-definition-only label does not belong in that bucket.
+    UnexpectedCustomDefinitionLabel {
+        /// Label that drifted.
+        label: &'static str,
+    },
+    /// A missing-metadata label does not belong in the incomplete bucket.
+    UnexpectedMissingMetadataLabel {
+        /// Label that drifted.
+        label: &'static str,
+    },
+    /// A label appeared in more than one bucket.
+    DuplicateLabel {
+        /// Label that drifted.
+        label: &'static str,
+    },
+}
+
+impl fmt::Display for AyanamsaMetadataCoverageValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::CountsDoNotSum {
+                total,
+                with_sidereal_metadata,
+                custom_definition_only,
+                without_sidereal_metadata,
+            } => write!(
+                f,
+                "coverage counts do not sum to the total ({with_sidereal_metadata} + {custom_definition_only} + {without_sidereal_metadata} != {total})"
+            ),
+            Self::UnexpectedCustomDefinitionLabel { label } => write!(
+                f,
+                "label `{label}` is not a documented custom-definition-only ayanamsa"
+            ),
+            Self::UnexpectedMissingMetadataLabel { label } => write!(
+                f,
+                "label `{label}` is not a documented sidereal-metadata gap"
+            ),
+            Self::DuplicateLabel { label } => write!(
+                f,
+                "label `{label}` appears in more than one sidereal-metadata bucket"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for AyanamsaMetadataCoverageValidationError {}
+
 impl AyanamsaMetadataCoverage {
     /// Returns `true` when every built-in ayanamsa that is meant to carry
     /// sidereal metadata does so.
@@ -1277,12 +1338,60 @@ impl AyanamsaMetadataCoverage {
         self.without_sidereal_metadata.is_empty()
     }
 
+    /// Validates the derived coverage record before it is rendered in release-facing output.
+    pub fn validate(&self) -> Result<(), AyanamsaMetadataCoverageValidationError> {
+        if self.with_sidereal_metadata
+            + self.custom_definition_only.len()
+            + self.without_sidereal_metadata.len()
+            != self.total
+        {
+            return Err(AyanamsaMetadataCoverageValidationError::CountsDoNotSum {
+                total: self.total,
+                with_sidereal_metadata: self.with_sidereal_metadata,
+                custom_definition_only: self.custom_definition_only.len(),
+                without_sidereal_metadata: self.without_sidereal_metadata.len(),
+            });
+        }
+
+        let mut seen_labels = BTreeSet::new();
+        for label in &self.custom_definition_only {
+            if !is_custom_definition_only_ayanamsa(label) {
+                return Err(
+                    AyanamsaMetadataCoverageValidationError::UnexpectedCustomDefinitionLabel {
+                        label,
+                    },
+                );
+            }
+            if !seen_labels.insert(label.to_ascii_lowercase()) {
+                return Err(AyanamsaMetadataCoverageValidationError::DuplicateLabel { label });
+            }
+        }
+
+        for label in &self.without_sidereal_metadata {
+            if is_custom_definition_only_ayanamsa(label) {
+                return Err(
+                    AyanamsaMetadataCoverageValidationError::UnexpectedMissingMetadataLabel {
+                        label,
+                    },
+                );
+            }
+            if !seen_labels.insert(label.to_ascii_lowercase()) {
+                return Err(AyanamsaMetadataCoverageValidationError::DuplicateLabel { label });
+            }
+        }
+
+        Ok(())
+    }
+
     /// Returns the compact release-facing summary line for the metadata coverage state.
     pub fn summary_line(&self) -> String {
-        format!(
-            "ayanamsa sidereal metadata: {}/{} entries with both a reference epoch and offset",
-            self.with_sidereal_metadata, self.total
-        )
+        match self.validate() {
+            Ok(()) => format!(
+                "ayanamsa sidereal metadata: {}/{} entries with both a reference epoch and offset",
+                self.with_sidereal_metadata, self.total
+            ),
+            Err(error) => format!("ayanamsa sidereal metadata: unavailable ({error})"),
+        }
     }
 }
 
@@ -2523,12 +2632,44 @@ mod tests {
             )
         );
         assert_eq!(coverage.to_string(), coverage.summary_line());
+        assert!(coverage.validate().is_ok());
         assert!(coverage.is_complete());
         assert!(coverage
             .custom_definition_only
             .iter()
             .all(|name| name.starts_with("Babylonian (")));
         assert!(coverage.without_sidereal_metadata.is_empty());
+    }
+
+    #[test]
+    fn metadata_coverage_validate_rejects_count_or_label_drift() {
+        let mut count_drift = metadata_coverage();
+        count_drift.total += 1;
+
+        let count_error = count_drift
+            .validate()
+            .expect_err("mismatched counts should fail validation");
+        assert!(matches!(
+            count_error,
+            AyanamsaMetadataCoverageValidationError::CountsDoNotSum { .. }
+        ));
+        assert!(count_drift.summary_line().contains("unavailable"));
+
+        let mut label_drift = metadata_coverage();
+        label_drift.with_sidereal_metadata = label_drift.total.saturating_sub(2);
+        label_drift.custom_definition_only = vec!["Lahiri"];
+        label_drift.without_sidereal_metadata = vec!["Babylonian (House)"];
+
+        let label_error = label_drift
+            .validate()
+            .expect_err("unexpected custom-definition labels should fail validation");
+        assert!(matches!(
+            label_error,
+            AyanamsaMetadataCoverageValidationError::UnexpectedCustomDefinitionLabel {
+                label: "Lahiri"
+            }
+        ));
+        assert!(label_drift.summary_line().contains("unavailable"));
     }
 
     #[test]
