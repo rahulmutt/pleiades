@@ -630,15 +630,12 @@ impl fmt::Display for PackagedArtifactProfileSummary {
 /// Returns the current packaged-artifact profile summary record.
 pub fn packaged_artifact_profile_summary_details() -> PackagedArtifactProfileSummary {
     let artifact = packaged_artifact();
+    let coverage = artifact.profile_coverage_summary();
     let summary = PackagedArtifactProfileSummary {
-        body_count: artifact.bodies.len(),
-        bodies: artifact
-            .bodies
-            .iter()
-            .map(|series| series.body.clone())
-            .collect(),
+        body_count: coverage.body_count,
+        bodies: coverage.bodies,
         endian_policy: artifact.header.endian_policy,
-        profile: artifact.header.profile.clone(),
+        profile: coverage.profile,
     };
     debug_assert!(summary.validate().is_ok());
     summary

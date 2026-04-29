@@ -851,17 +851,27 @@ impl CompressedArtifact {
 
     /// Validates the in-memory artifact before encoding or regeneration.
     ///
-    /// This checks the header metadata, header profile, duplicate body entries,
-    /// and every body segment's metadata. It is useful for generators that want
-    /// to fail fast before writing a deterministic binary payload.
+    /// This checks the header metadata, the bundled body/profile coverage,
+    /// duplicate body entries, and every body segment's metadata. It is useful
+    /// for generators that want to fail fast before writing a deterministic
+    /// binary payload.
     pub fn validate(&self) -> Result<(), CompressionError> {
         self.header.validate()?;
+        self.profile_coverage_summary().validate()?;
         validate_body_artifacts(&self.bodies)?;
         for body in &self.bodies {
             body.validate()?;
         }
 
         Ok(())
+    }
+
+    /// Returns the artifact profile paired with the bundled body list.
+    pub fn profile_coverage_summary(&self) -> ArtifactProfileCoverageSummary {
+        ArtifactProfileCoverageSummary::new(
+            self.header.profile.clone(),
+            self.bodies.iter().map(|body| body.body.clone()).collect(),
+        )
     }
 
     /// Returns the body artifact for the requested body, if present.
@@ -1975,7 +1985,18 @@ mod tests {
         );
         let artifact = CompressedArtifact::new(
             ArtifactHeader::with_profile("profile demo", "unit test profile", profile.clone()),
-            Vec::new(),
+            vec![BodyArtifact::new(
+                CelestialBody::Sun,
+                vec![Segment::new(
+                    Instant::new(pleiades_types::JulianDay::from_days(0.0), TimeScale::Tt),
+                    Instant::new(pleiades_types::JulianDay::from_days(1.0), TimeScale::Tt),
+                    vec![
+                        PolynomialChannel::linear(ChannelKind::Longitude, 9, 10.0, 11.0),
+                        PolynomialChannel::linear(ChannelKind::Latitude, 9, 1.0, 2.0),
+                        PolynomialChannel::linear(ChannelKind::DistanceAu, 12, 0.1, 0.2),
+                    ],
+                )],
+            )],
         );
 
         let decoded = CompressedArtifact::decode(
@@ -2736,7 +2757,18 @@ mod tests {
                 EndianPolicy::LittleEndian,
                 ArtifactProfile::ecliptic_longitude_latitude_distance(),
             ),
-            Vec::new(),
+            vec![BodyArtifact::new(
+                CelestialBody::Sun,
+                vec![Segment::new(
+                    Instant::new(pleiades_types::JulianDay::from_days(0.0), TimeScale::Tt),
+                    Instant::new(pleiades_types::JulianDay::from_days(1.0), TimeScale::Tt),
+                    vec![
+                        PolynomialChannel::linear(ChannelKind::Longitude, 9, 10.0, 11.0),
+                        PolynomialChannel::linear(ChannelKind::Latitude, 9, 1.0, 2.0),
+                        PolynomialChannel::linear(ChannelKind::DistanceAu, 12, 0.1, 0.2),
+                    ],
+                )],
+            )],
         );
 
         let decoded = CompressedArtifact::decode(
@@ -3010,6 +3042,45 @@ mod tests {
             )
             .expect_err("missing bodies should error");
         assert_eq!(error.kind, CompressionErrorKind::MissingBody);
+    }
+
+    #[test]
+    fn compressed_artifact_profile_coverage_summary_tracks_bundled_bodies() {
+        let artifact = CompressedArtifact::new(
+            ArtifactHeader::new("demo", "coverage fixture"),
+            vec![
+                BodyArtifact::new(CelestialBody::Sun, Vec::new()),
+                BodyArtifact::new(CelestialBody::Moon, Vec::new()),
+            ],
+        );
+
+        let coverage = artifact.profile_coverage_summary();
+        assert_eq!(coverage.body_count, 2);
+        assert_eq!(
+            coverage.bodies,
+            vec![CelestialBody::Sun, CelestialBody::Moon]
+        );
+        assert_eq!(coverage.profile, artifact.header.profile);
+        assert_eq!(coverage.validate(), Ok(()));
+        assert_eq!(
+            coverage.summary_line_with_bodies(),
+            format!(
+                "{}; bundled bodies: Sun, Moon",
+                artifact.header.profile.summary_for_body_count(2)
+            )
+        );
+    }
+
+    #[test]
+    fn compressed_artifact_validate_rejects_empty_body_set() {
+        let artifact = CompressedArtifact::new(ArtifactHeader::new("demo", "empty"), Vec::new());
+        let error = artifact
+            .validate()
+            .expect_err("empty body sets should be rejected");
+        assert_eq!(error.kind, CompressionErrorKind::InvalidFormat);
+        assert!(error
+            .to_string()
+            .contains("artifact profile coverage bundled body list must not be empty"));
     }
 
     #[test]
