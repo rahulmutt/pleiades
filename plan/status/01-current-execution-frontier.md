@@ -542,6 +542,7 @@ Latest progress (2026-04-26): the comparison-tolerance policy summaries now also
 Latest progress (2026-04-26): chart snapshots now also render an explicit ecliptic frame policy line, so the chart-facing report makes the geocentric ecliptic body-position request shape visible alongside the existing time-scale, observer, and apparentness notes.
 
 Latest progress (2026-04-27): the release-summary and validation-summary CLI paths now use a minimal nonzero validation-report sample, and the bundle-release wrapper now does the same, so the compact comparison-tolerance policy and release-bundle outputs render again instead of failing on zero-round benchmark datasets.
+Latest progress (2026-04-29): the shared ecliptic and equatorial coordinate types now expose fail-closed validation helpers for finite angles, latitude bounds, and non-negative distances, and the frame-conversion round-trip tests now preflight those helpers before asserting the shared mean-obliquity rotation math.
 
 Active gaps:
 

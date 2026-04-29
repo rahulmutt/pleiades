@@ -1948,6 +1948,22 @@ impl EquatorialCoordinates {
         }
     }
 
+    /// Validates that the sample is finite and normalized enough for release-facing frame checks.
+    pub fn validate(&self) -> Result<(), CoordinateValidationError> {
+        validate_finite_coordinate_value(
+            "equatorial",
+            "right_ascension",
+            self.right_ascension.degrees(),
+        )?;
+        validate_right_ascension_range(self.right_ascension.degrees())?;
+        validate_finite_coordinate_value("equatorial", "declination", self.declination.degrees())?;
+        validate_latitude_range("equatorial", "declination", self.declination.degrees())?;
+        if let Some(distance_au) = self.distance_au {
+            validate_distance("equatorial", distance_au)?;
+        }
+        Ok(())
+    }
+
     /// Converts this equatorial position back into an ecliptic position using the supplied obliquity.
     ///
     /// The transform is the inverse geometric rotation of [`EclipticCoordinates::to_equatorial`]:
@@ -1969,6 +1985,158 @@ impl EquatorialCoordinates {
             Latitude::from_degrees(z.atan2((x * x + y * y).sqrt()).to_degrees()),
             self.distance_au,
         )
+    }
+}
+
+/// Validation errors for shared coordinate samples.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum CoordinateValidationError {
+    /// A stored numeric field was not finite.
+    NonFiniteValue {
+        /// The coordinate family being validated.
+        coordinate: &'static str,
+        /// The field that failed validation.
+        field: &'static str,
+        /// The offending value.
+        value: f64,
+    },
+    /// A stored latitude-like field fell outside the expected closed range.
+    LatitudeOutOfRange {
+        /// The coordinate family being validated.
+        coordinate: &'static str,
+        /// The field that failed validation.
+        field: &'static str,
+        /// The offending value.
+        value: f64,
+    },
+    /// A stored right-ascension field fell outside the expected half-open range.
+    RightAscensionOutOfRange {
+        /// The coordinate family being validated.
+        coordinate: &'static str,
+        /// The field that failed validation.
+        field: &'static str,
+        /// The offending value.
+        value: f64,
+    },
+    /// A stored distance channel was negative.
+    NegativeDistance {
+        /// The coordinate family being validated.
+        coordinate: &'static str,
+        /// The offending value.
+        value: f64,
+    },
+}
+
+impl CoordinateValidationError {
+    /// Returns a compact one-line rendering of the validation failure.
+    pub fn summary_line(&self) -> String {
+        match self {
+            Self::NonFiniteValue {
+                coordinate,
+                field,
+                value,
+            } => format!("{coordinate} coordinate field `{field}` must be finite, got {value}"),
+            Self::LatitudeOutOfRange {
+                coordinate,
+                field,
+                value,
+            } => format!(
+                "{coordinate} coordinate field `{field}` must stay within [-90, 90], got {value}"
+            ),
+            Self::RightAscensionOutOfRange {
+                coordinate,
+                field,
+                value,
+            } => format!(
+                "{coordinate} coordinate field `{field}` must stay within [0, 360), got {value}"
+            ),
+            Self::NegativeDistance { coordinate, value } => format!(
+                "{coordinate} coordinate field `distance_au` must be non-negative, got {value}"
+            ),
+        }
+    }
+}
+
+impl fmt::Display for CoordinateValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+impl std::error::Error for CoordinateValidationError {}
+
+fn validate_finite_coordinate_value(
+    coordinate: &'static str,
+    field: &'static str,
+    value: f64,
+) -> Result<(), CoordinateValidationError> {
+    if value.is_finite() {
+        Ok(())
+    } else {
+        Err(CoordinateValidationError::NonFiniteValue {
+            coordinate,
+            field,
+            value,
+        })
+    }
+}
+
+fn validate_latitude_range(
+    coordinate: &'static str,
+    field: &'static str,
+    value: f64,
+) -> Result<(), CoordinateValidationError> {
+    if (-90.0..=90.0).contains(&value) {
+        Ok(())
+    } else {
+        Err(CoordinateValidationError::LatitudeOutOfRange {
+            coordinate,
+            field,
+            value,
+        })
+    }
+}
+
+fn validate_right_ascension_range(value: f64) -> Result<(), CoordinateValidationError> {
+    if (0.0..360.0).contains(&value) {
+        Ok(())
+    } else {
+        Err(CoordinateValidationError::RightAscensionOutOfRange {
+            coordinate: "equatorial",
+            field: "right_ascension",
+            value,
+        })
+    }
+}
+
+fn validate_distance(
+    coordinate: &'static str,
+    value: f64,
+) -> Result<(), CoordinateValidationError> {
+    if !value.is_finite() {
+        return Err(CoordinateValidationError::NonFiniteValue {
+            coordinate,
+            field: "distance_au",
+            value,
+        });
+    }
+    if value < 0.0 {
+        Err(CoordinateValidationError::NegativeDistance { coordinate, value })
+    } else {
+        Ok(())
+    }
+}
+
+impl EclipticCoordinates {
+    /// Validates that the sample is finite and physically sensible for frame conversions.
+    pub fn validate(&self) -> Result<(), CoordinateValidationError> {
+        validate_finite_coordinate_value("ecliptic", "longitude", self.longitude.degrees())?;
+        validate_finite_coordinate_value("ecliptic", "latitude", self.latitude.degrees())?;
+        validate_latitude_range("ecliptic", "latitude", self.latitude.degrees())?;
+        if let Some(distance_au) = self.distance_au {
+            validate_distance("ecliptic", distance_au)?;
+        }
+        Ok(())
     }
 }
 
@@ -2173,8 +2341,11 @@ mod tests {
             Some(0.123),
         );
 
+        assert_eq!(ecliptic.validate(), Ok(()));
+
         let equatorial = ecliptic.to_equatorial(Angle::from_degrees(0.0));
 
+        assert_eq!(equatorial.validate(), Ok(()));
         assert_eq!(equatorial.right_ascension.degrees(), 123.45);
         assert!((equatorial.declination.degrees() + 6.75).abs() < 1e-12);
         assert_eq!(equatorial.distance_au, Some(0.123));
@@ -2188,8 +2359,11 @@ mod tests {
             Some(1.0),
         );
 
+        assert_eq!(ecliptic.validate(), Ok(()));
+
         let equatorial = ecliptic.to_equatorial(Angle::from_degrees(23.439_291_11));
 
+        assert_eq!(equatorial.validate(), Ok(()));
         assert_eq!(equatorial.right_ascension.degrees(), 90.0);
         assert!((equatorial.declination.degrees() - 23.439_291_11).abs() < 1e-10);
         assert_eq!(equatorial.distance_au, Some(1.0));
@@ -2234,9 +2408,13 @@ mod tests {
         );
         let obliquity = Angle::from_degrees(23.439_291_11);
 
+        assert_eq!(ecliptic.validate(), Ok(()));
+
         let equatorial = ecliptic.to_equatorial(obliquity);
+        assert_eq!(equatorial.validate(), Ok(()));
         let round_trip = equatorial.to_ecliptic(obliquity);
 
+        assert_eq!(round_trip.validate(), Ok(()));
         assert!((round_trip.longitude.degrees() - ecliptic.longitude.degrees()).abs() < 1e-10);
         assert!((round_trip.latitude.degrees() - ecliptic.latitude.degrees()).abs() < 1e-10);
         assert_eq!(round_trip.distance_au, Some(0.123));
@@ -2264,9 +2442,13 @@ mod tests {
         ];
 
         for (ecliptic, instant) in cases {
+            assert_eq!(ecliptic.validate(), Ok(()));
             let obliquity = instant.mean_obliquity();
-            let round_trip = ecliptic.to_equatorial(obliquity).to_ecliptic(obliquity);
+            let equatorial = ecliptic.to_equatorial(obliquity);
+            assert_eq!(equatorial.validate(), Ok(()));
+            let round_trip = equatorial.to_ecliptic(obliquity);
 
+            assert_eq!(round_trip.validate(), Ok(()));
             assert!((round_trip.longitude.degrees() - ecliptic.longitude.degrees()).abs() < 1e-10);
             assert!((round_trip.latitude.degrees() - ecliptic.latitude.degrees()).abs() < 1e-10);
             assert_eq!(round_trip.distance_au, ecliptic.distance_au);
@@ -3113,5 +3295,80 @@ mod tests {
             Some(MotionDirection::Stationary)
         );
         assert_eq!(Motion::new(None, None, None).longitude_direction(), None);
+    }
+
+    #[test]
+    fn coordinate_validation_rejects_non_finite_and_out_of_range_values() {
+        let bad_ecliptic = EclipticCoordinates::new(
+            Longitude::from_degrees(12.0),
+            Latitude::from_degrees(91.0),
+            Some(-1.0),
+        );
+        assert_eq!(
+            bad_ecliptic.validate(),
+            Err(CoordinateValidationError::LatitudeOutOfRange {
+                coordinate: "ecliptic",
+                field: "latitude",
+                value: 91.0,
+            })
+        );
+        assert_eq!(
+            CoordinateValidationError::LatitudeOutOfRange {
+                coordinate: "ecliptic",
+                field: "latitude",
+                value: 91.0,
+            }
+            .summary_line(),
+            "ecliptic coordinate field `latitude` must stay within [-90, 90], got 91"
+        );
+
+        let bad_distance = EclipticCoordinates::new(
+            Longitude::from_degrees(12.0),
+            Latitude::from_degrees(12.0),
+            Some(-1.0),
+        );
+        assert_eq!(
+            bad_distance.validate(),
+            Err(CoordinateValidationError::NegativeDistance {
+                coordinate: "ecliptic",
+                value: -1.0,
+            })
+        );
+
+        let bad_non_finite_distance = EclipticCoordinates::new(
+            Longitude::from_degrees(12.0),
+            Latitude::from_degrees(12.0),
+            Some(f64::NAN),
+        );
+        assert!(matches!(
+            bad_non_finite_distance.validate(),
+            Err(CoordinateValidationError::NonFiniteValue {
+                coordinate: "ecliptic",
+                field: "distance_au",
+                value,
+            }) if value.is_nan()
+        ));
+
+        let bad_equatorial = EquatorialCoordinates::new(
+            Angle::from_degrees(360.0),
+            Latitude::from_degrees(0.0),
+            Some(1.0),
+        );
+        assert_eq!(
+            bad_equatorial.validate(),
+            Err(CoordinateValidationError::RightAscensionOutOfRange {
+                coordinate: "equatorial",
+                field: "right_ascension",
+                value: 360.0,
+            })
+        );
+        assert_eq!(
+            CoordinateValidationError::NegativeDistance {
+                coordinate: "ecliptic",
+                value: -0.5,
+            }
+            .summary_line(),
+            "ecliptic coordinate field `distance_au` must be non-negative, got -0.5"
+        );
     }
 }
