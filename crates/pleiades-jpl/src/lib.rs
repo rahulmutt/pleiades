@@ -3516,6 +3516,41 @@ pub fn comparison_snapshot_batch_parity_requests() -> Option<Vec<EphemerisReques
     )
 }
 
+/// Returns the mixed-scale comparison-snapshot request corpus used by batch parity checks.
+///
+/// The requests preserve the checked-in row order, keep the ecliptic frame, and
+/// alternate TT/TDB labels so downstream tooling can reuse the exact validation
+/// batch shape without reconstructing it from snapshot metadata.
+pub fn comparison_snapshot_mixed_time_scale_batch_parity_requests() -> Option<Vec<EphemerisRequest>>
+{
+    let entries = comparison_snapshot();
+    if entries.is_empty() {
+        return None;
+    }
+
+    Some(
+        entries
+            .iter()
+            .enumerate()
+            .map(|(index, entry)| EphemerisRequest {
+                body: entry.body.clone(),
+                instant: Instant::new(
+                    entry.epoch.julian_day,
+                    if index % 2 == 0 {
+                        TimeScale::Tt
+                    } else {
+                        TimeScale::Tdb
+                    },
+                ),
+                observer: None,
+                frame: CoordinateFrame::Ecliptic,
+                zodiac_mode: ZodiacMode::Tropical,
+                apparent: Apparentness::Mean,
+            })
+            .collect(),
+    )
+}
+
 /// Returns the parsed manifest for the comparison snapshot.
 pub fn comparison_snapshot_manifest() -> &'static SnapshotManifest {
     static MANIFEST: OnceLock<SnapshotManifest> = OnceLock::new();
@@ -6222,6 +6257,31 @@ mod tests {
                     CoordinateFrame::Equatorial
                 }
             );
+            assert_eq!(request.zodiac_mode, ZodiacMode::Tropical);
+            assert_eq!(request.apparent, Apparentness::Mean);
+            assert!(request.observer.is_none());
+        }
+    }
+
+    #[test]
+    fn comparison_snapshot_mixed_time_scale_batch_parity_requests_preserve_the_ecliptic_slice() {
+        let requests = comparison_snapshot_mixed_time_scale_batch_parity_requests()
+            .expect("comparison snapshot mixed TT/TDB batch parity requests should exist");
+        let entries = comparison_snapshot();
+
+        assert_eq!(requests.len(), entries.len());
+        for (index, (request, entry)) in requests.iter().zip(entries.iter()).enumerate() {
+            assert_eq!(request.body, entry.body);
+            assert_eq!(request.instant.julian_day, entry.epoch.julian_day);
+            assert_eq!(
+                request.instant.scale,
+                if index % 2 == 0 {
+                    TimeScale::Tt
+                } else {
+                    TimeScale::Tdb
+                }
+            );
+            assert_eq!(request.frame, CoordinateFrame::Ecliptic);
             assert_eq!(request.zodiac_mode, ZodiacMode::Tropical);
             assert_eq!(request.apparent, Apparentness::Mean);
             assert!(request.observer.is_none());
