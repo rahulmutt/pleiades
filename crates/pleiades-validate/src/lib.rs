@@ -86,7 +86,8 @@ use pleiades_jpl::{
     independent_holdout_snapshot_equatorial_parity_summary_for_report as jpl_independent_holdout_snapshot_equatorial_parity_summary_for_report,
     independent_holdout_source_summary_for_report, interpolation_quality_samples,
     jpl_independent_holdout_summary_for_report, jpl_interpolation_quality_kind_coverage,
-    jpl_snapshot_evidence_summary_for_report, jpl_snapshot_request_policy_summary_for_report,
+    jpl_snapshot_batch_error_taxonomy_summary_for_report, jpl_snapshot_evidence_summary_for_report,
+    jpl_snapshot_request_policy_summary_for_report,
     reference_asteroid_equatorial_evidence_summary_for_report, reference_asteroid_evidence,
     reference_asteroid_evidence_summary_for_report, reference_asteroids,
     reference_snapshot_batch_parity_summary_for_report,
@@ -5352,6 +5353,9 @@ fn render_release_summary_text() -> String {
     text.push_str("JPL request policy: ");
     text.push_str(&jpl_snapshot_request_policy_summary_for_report());
     text.push('\n');
+    text.push_str("JPL batch error taxonomy: ");
+    text.push_str(&jpl_snapshot_batch_error_taxonomy_summary_for_report());
+    text.push('\n');
     text.push_str("JPL frame treatment: ");
     text.push_str(&format_jpl_frame_treatment_summary());
     text.push('\n');
@@ -8168,6 +8172,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         text,
         "JPL request policy: {}",
         jpl_snapshot_request_policy_summary_for_report()
+    );
+    let _ = writeln!(
+        text,
+        "JPL batch error taxonomy: {}",
+        jpl_snapshot_batch_error_taxonomy_summary_for_report()
     );
     let _ = writeln!(
         text,
@@ -14369,6 +14378,7 @@ mod tests {
         assert!(rendered.contains("JPL independent hold-out equatorial parity:"));
         assert!(rendered.contains("JPL independent hold-out batch parity:"));
         assert!(rendered.contains("JPL request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
+        assert!(rendered.contains("JPL batch error taxonomy: unsupported body Mean Node -> UnsupportedBody; out-of-range Ceres -> OutOfRangeInstant"));
         assert!(rendered.contains("JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"));
         assert!(rendered.contains("Reference snapshot coverage:"));
         assert!(rendered.contains("Selected asteroid evidence:"));
@@ -15016,6 +15026,7 @@ version = "0.9.0"
         assert!(release_summary.contains("JPL independent hold-out equatorial parity:"));
         assert!(release_summary.contains("JPL independent hold-out batch parity:"));
         assert!(release_summary.contains("JPL request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
+        assert!(release_summary.contains("JPL batch error taxonomy: unsupported body Mean Node -> UnsupportedBody; out-of-range Ceres -> OutOfRangeInstant"));
         assert!(release_summary.contains("Request policy: time-scale="));
         assert!(release_summary.contains("JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"));
         assert!(release_summary.contains(

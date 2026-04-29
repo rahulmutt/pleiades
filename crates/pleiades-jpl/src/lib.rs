@@ -26,8 +26,8 @@ use std::sync::OnceLock;
 use pleiades_backend::{
     validate_observer_policy, validate_request_policy, validate_zodiac_policy, AccuracyClass,
     BackendCapabilities, BackendFamily, BackendId, BackendMetadata, BackendProvenance,
-    EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
-    FrameTreatmentSummary, QualityAnnotation,
+    CelestialBody, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
+    EphemerisResult, FrameTreatmentSummary, QualityAnnotation,
 };
 use pleiades_types::{
     Apparentness, CoordinateFrame, CustomBodyId, EclipticCoordinates, Instant, JulianDay, Latitude,
@@ -2990,6 +2990,60 @@ pub fn jpl_snapshot_request_policy_summary_for_report() -> String {
         Ok(()) => policy.to_string(),
         Err(error) => format!("JPL snapshot request policy: unavailable ({error})"),
     }
+}
+
+/// Returns a compact batch error-taxonomy summary for the current JPL snapshot backend.
+pub fn jpl_snapshot_batch_error_taxonomy_summary_for_report() -> String {
+    let backend = JplSnapshotBackend;
+
+    let supported_request = EphemerisRequest {
+        body: CelestialBody::Ceres,
+        instant: reference_instant(),
+        observer: None,
+        frame: CoordinateFrame::Ecliptic,
+        zodiac_mode: ZodiacMode::Tropical,
+        apparent: Apparentness::Mean,
+    };
+    let unsupported_body_request = EphemerisRequest {
+        body: CelestialBody::MeanNode,
+        ..supported_request.clone()
+    };
+    let unsupported_body_error = match backend
+        .positions(&[supported_request.clone(), unsupported_body_request])
+    {
+        Ok(_) => {
+            return "JPL batch error taxonomy: unavailable (unsupported-body batch unexpectedly succeeded)"
+                .to_string();
+        }
+        Err(error) => error,
+    };
+    if unsupported_body_error.kind != EphemerisErrorKind::UnsupportedBody {
+        return format!(
+            "JPL batch error taxonomy: unavailable (unsupported-body batch returned {})",
+            unsupported_body_error.kind
+        );
+    }
+
+    let out_of_range_request = EphemerisRequest {
+        body: CelestialBody::Ceres,
+        instant: Instant::new(JulianDay::from_days(2_451_546.0), TimeScale::Tdb),
+        ..supported_request
+    };
+    let out_of_range_error = match backend.positions(&[out_of_range_request]) {
+        Ok(_) => {
+            return "JPL batch error taxonomy: unavailable (out-of-range batch unexpectedly succeeded)"
+                .to_string();
+        }
+        Err(error) => error,
+    };
+    if out_of_range_error.kind != EphemerisErrorKind::OutOfRangeInstant {
+        return format!(
+            "JPL batch error taxonomy: unavailable (out-of-range batch returned {})",
+            out_of_range_error.kind
+        );
+    }
+
+    "JPL batch error taxonomy: unsupported body Mean Node -> UnsupportedBody; out-of-range Ceres -> OutOfRangeInstant".to_string()
 }
 
 /// Returns the structured JPL snapshot frame-treatment summary.
@@ -7583,6 +7637,14 @@ mod tests {
         assert_eq!(
             error.to_string(),
             "the JPL snapshot request-policy summary field `supports_topocentric_observer` is out of sync with the current posture"
+        );
+    }
+
+    #[test]
+    fn batch_error_taxonomy_summary_matches_current_backend() {
+        assert_eq!(
+            jpl_snapshot_batch_error_taxonomy_summary_for_report(),
+            "JPL batch error taxonomy: unsupported body Mean Node -> UnsupportedBody; out-of-range Ceres -> OutOfRangeInstant"
         );
     }
 
