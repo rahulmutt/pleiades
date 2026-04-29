@@ -209,6 +209,17 @@ impl ArtifactOutput {
         ]
     }
 
+    const fn ordinal(self) -> u8 {
+        match self {
+            Self::EclipticCoordinates => 0,
+            Self::EquatorialCoordinates => 1,
+            Self::ApparentCorrections => 2,
+            Self::TopocentricCoordinates => 3,
+            Self::SiderealCoordinates => 4,
+            Self::Motion => 5,
+        }
+    }
+
     /// Returns the compact label used in release-facing summaries.
     pub const fn label(self) -> &'static str {
         match self {
@@ -380,7 +391,8 @@ impl ArtifactProfile {
         }
     }
 
-    /// Validates that the profile does not contain duplicate or conflicting entries.
+    /// Validates that the profile does not contain duplicate, conflicting, or
+    /// non-canonical entries.
     ///
     /// The codec performs the same checks when encoding or decoding artifacts,
     /// but exposing the validation step directly lets artifact generators fail
@@ -1319,6 +1331,12 @@ fn validate_artifact_profile(profile: &ArtifactProfile) -> Result<(), Compressio
         "artifact profile unsupported outputs",
         &profile.unsupported_outputs,
     )?;
+    validate_channel_kind_order("artifact profile stored channels", &profile.stored_channels)?;
+    validate_artifact_output_order("artifact profile derived outputs", &profile.derived_outputs)?;
+    validate_artifact_output_order(
+        "artifact profile unsupported outputs",
+        &profile.unsupported_outputs,
+    )?;
     validate_disjoint_values(
         "artifact profile derived outputs",
         &profile.derived_outputs,
@@ -1327,6 +1345,25 @@ fn validate_artifact_profile(profile: &ArtifactProfile) -> Result<(), Compressio
     )?;
     validate_coordinate_output_policy(profile)?;
     validate_motion_policy(profile)?;
+    Ok(())
+}
+
+fn validate_artifact_output_order(
+    field: &str,
+    outputs: &[ArtifactOutput],
+) -> Result<(), CompressionError> {
+    for pair in outputs.windows(2) {
+        if pair[0].ordinal() > pair[1].ordinal() {
+            return Err(CompressionError::new(
+                CompressionErrorKind::InvalidFormat,
+                format!(
+                    "{field} must be ordered by artifact output kind; found {:?} before {:?}",
+                    pair[0], pair[1]
+                ),
+            ));
+        }
+    }
+
     Ok(())
 }
 
@@ -2208,6 +2245,49 @@ mod tests {
             .expect_err("duplicate profile entries should be rejected");
         assert_eq!(profile_error.kind, CompressionErrorKind::InvalidFormat);
 
+        let out_of_order_stored_profile = ArtifactProfile::new(
+            vec![
+                ChannelKind::Longitude,
+                ChannelKind::DistanceAu,
+                ChannelKind::Latitude,
+            ],
+            vec![ArtifactOutput::EclipticCoordinates],
+            vec![ArtifactOutput::Motion],
+            SpeedPolicy::Unsupported,
+        );
+        let out_of_order_stored_error = out_of_order_stored_profile
+            .validate()
+            .expect_err("stored channels should be ordered canonically");
+        assert_eq!(
+            out_of_order_stored_error.kind,
+            CompressionErrorKind::InvalidFormat
+        );
+        assert!(format!("{out_of_order_stored_error}")
+            .contains("artifact profile stored channels must be ordered by channel kind"));
+
+        let out_of_order_output_profile = ArtifactProfile::new(
+            vec![
+                ChannelKind::Longitude,
+                ChannelKind::Latitude,
+                ChannelKind::DistanceAu,
+            ],
+            vec![
+                ArtifactOutput::EquatorialCoordinates,
+                ArtifactOutput::EclipticCoordinates,
+            ],
+            vec![ArtifactOutput::Motion],
+            SpeedPolicy::Unsupported,
+        );
+        let out_of_order_output_error = out_of_order_output_profile
+            .validate()
+            .expect_err("derived outputs should be ordered canonically");
+        assert_eq!(
+            out_of_order_output_error.kind,
+            CompressionErrorKind::InvalidFormat
+        );
+        assert!(format!("{out_of_order_output_error}")
+            .contains("artifact profile derived outputs must be ordered by artifact output kind"));
+
         let stored_motion_profile = ArtifactProfile::new(
             vec![
                 ChannelKind::Longitude,
@@ -2256,6 +2336,27 @@ mod tests {
             unsupported_motion_error.kind,
             CompressionErrorKind::InvalidFormat
         );
+
+        let out_of_order_unsupported_profile = ArtifactProfile::new(
+            vec![
+                ChannelKind::Longitude,
+                ChannelKind::Latitude,
+                ChannelKind::DistanceAu,
+            ],
+            vec![ArtifactOutput::EclipticCoordinates],
+            vec![ArtifactOutput::Motion, ArtifactOutput::SiderealCoordinates],
+            SpeedPolicy::Unsupported,
+        );
+        let out_of_order_unsupported_error = out_of_order_unsupported_profile
+            .validate()
+            .expect_err("unsupported outputs should be ordered canonically");
+        assert_eq!(
+            out_of_order_unsupported_error.kind,
+            CompressionErrorKind::InvalidFormat
+        );
+        assert!(format!("{out_of_order_unsupported_error}").contains(
+            "artifact profile unsupported outputs must be ordered by artifact output kind"
+        ));
 
         let derived_coordinate_channel_mismatch = ArtifactProfile::new(
             vec![ChannelKind::Longitude, ChannelKind::Latitude],

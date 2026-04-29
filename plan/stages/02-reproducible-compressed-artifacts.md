@@ -25,6 +25,7 @@ Turn the current compressed-artifact scaffolding into a reproducible packaged-da
    - Latest progress (2026-04-29): the compression crate now also exposes a public artifact profile coverage summary from `CompressedArtifact`, and `CompressedArtifact::validate()` now checks the bundled body/profile coverage directly before segment validation so empty packaged artifacts fail closed at the codec boundary instead of only in downstream report code.
    - Latest progress (2026-04-29): the packaged artifact's residual-bearing body set now has a typed `ArtifactResidualBodyCoverageSummary` in `pleiades-compression`, and `pleiades-data` reuses it for the packaged residual-body report path, which keeps the Moon-only residual-correction posture reusable by future generated artifacts without changing the current report text.
    - Latest progress (2026-04-29): the packaged artifact profile summary validation now also fails closed if the bundled body list drifts away from the checked-in packaged body set, which keeps the compact byte-order/profile summary aligned with the actual packaged coverage instead of only checking count and uniqueness.
+   - Latest progress (2026-04-29): the artifact profile validator now also enforces canonical declaration order for stored channels and declared output lists, which keeps the deterministic capability metadata stable across builders instead of relying only on uniqueness and disjointness checks.
    - Keep decode deterministic and independent of platform-specific binary layout.
 
 2. Build a deterministic generation pipeline.
