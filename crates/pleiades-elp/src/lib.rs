@@ -4993,6 +4993,51 @@ mod tests {
             format_validated_lunar_theory_source_summary_for_report(&drifted_source_summary),
             "lunar source selection: unavailable (the lunar source summary field `source_identifier` is out of sync with the current selection)"
         );
+        let drifted_catalog_key = LunarTheorySourceSummary {
+            catalog_key: LunarTheoryCatalogKey::SourceFamily(source.family),
+            ..source_summary
+        };
+        let error = drifted_catalog_key
+            .validate()
+            .expect_err("drifted catalog key should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "the lunar source summary field `catalog_key` is out of sync with the current selection"
+        );
+        assert_eq!(
+            format_validated_lunar_theory_source_summary_for_report(&drifted_catalog_key),
+            "lunar source selection: unavailable (the lunar source summary field `catalog_key` is out of sync with the current selection)"
+        );
+        let drifted_family_key = LunarTheorySourceSummary {
+            source_family_key: LunarTheoryCatalogKey::SourceIdentifier(source.identifier),
+            ..source_summary
+        };
+        let error = drifted_family_key
+            .validate()
+            .expect_err("drifted family key should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "the lunar source summary field `source_family_key` is out of sync with the current selection"
+        );
+        assert_eq!(
+            format_validated_lunar_theory_source_summary_for_report(&drifted_family_key),
+            "lunar source selection: unavailable (the lunar source summary field `source_family_key` is out of sync with the current selection)"
+        );
+        let drifted_family_label = LunarTheorySourceSummary {
+            source_family_label: "Drifted family label",
+            ..source_summary
+        };
+        let error = drifted_family_label
+            .validate()
+            .expect_err("drifted family label should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "the lunar source summary field `source_family_label` is out of sync with the current selection"
+        );
+        assert_eq!(
+            format_validated_lunar_theory_source_summary_for_report(&drifted_family_label),
+            "lunar source selection: unavailable (the lunar source summary field `source_family_label` is out of sync with the current selection)"
+        );
         assert!(lunar_theory_source_summary_for_report().contains("lunar source selection: "));
         assert!(lunar_theory_source_summary_for_report()
             .contains("selected key: source identifier=meeus-style-truncated-lunar-baseline"));
