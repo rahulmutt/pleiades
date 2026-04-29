@@ -5581,6 +5581,25 @@ pub fn canonical_j2000_batch_parity_request_corpus() -> Vec<EphemerisRequest> {
     canonical_j2000_batch_parity_requests()
 }
 
+/// Returns the source-backed J2000 request corpus used by the VSOP87 batch-path evidence.
+///
+/// The requests preserve the source-backed body order, use the shared J2000 TT
+/// instant, and keep the geocentric ecliptic frame so validation and
+/// reproducibility tooling can reuse the exact source-backed batch slice without
+/// reconstructing it from the sample metadata.
+#[doc(alias = "canonical_j2000_batch_parity_requests")]
+pub fn source_backed_body_j2000_batch_parity_requests() -> Vec<EphemerisRequest> {
+    canonical_j2000_batch_parity_requests()
+}
+
+/// Returns the source-backed J2000 request corpus used by the VSOP87 batch-path evidence.
+///
+/// This is a compatibility alias for [`source_backed_body_j2000_batch_parity_requests`].
+#[doc(alias = "source_backed_body_j2000_batch_parity_requests")]
+pub fn source_backed_body_j2000_batch_parity_request_corpus() -> Vec<EphemerisRequest> {
+    source_backed_body_j2000_batch_parity_requests()
+}
+
 /// Returns the supported-body J2000 request corpus used by the VSOP87 batch-parity evidence.
 ///
 /// The requests preserve the supported-body order, use the shared J2000 TDB
@@ -9941,6 +9960,22 @@ mod tests {
         assert_eq!(
             canonical_j2000_batch_parity_request_corpus(),
             canonical_j2000_batch_parity_requests()
+        );
+    }
+
+    #[test]
+    fn source_backed_body_j2000_batch_parity_requests_remain_the_explicit_alias() {
+        assert_eq!(
+            source_backed_body_j2000_batch_parity_requests(),
+            canonical_j2000_batch_parity_requests()
+        );
+    }
+
+    #[test]
+    fn source_backed_body_j2000_batch_parity_request_corpus_remains_the_explicit_alias() {
+        assert_eq!(
+            source_backed_body_j2000_batch_parity_request_corpus(),
+            source_backed_body_j2000_batch_parity_requests()
         );
     }
 
