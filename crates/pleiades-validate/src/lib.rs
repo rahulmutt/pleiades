@@ -5602,6 +5602,12 @@ fn render_release_summary_text() -> String {
     text.push_str("Lunar apparent comparison: ");
     text.push_str(&lunar_apparent_comparison_summary_for_report());
     text.push('\n');
+    text.push_str("Lunar high-curvature continuity evidence\n");
+    text.push_str(&lunar_high_curvature_continuity_evidence_for_report());
+    text.push('\n');
+    text.push_str("Lunar high-curvature equatorial continuity evidence\n");
+    text.push_str(&lunar_high_curvature_equatorial_continuity_evidence_for_report());
+    text.push('\n');
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("Backend matrix summary: backend-matrix-summary\n");
     text.push_str("Validation report summary: validation-report-summary / validation-summary / report-summary\n");
@@ -10416,6 +10422,12 @@ fn write_backend_catalog_entry(
         write_lunar_reference_evidence(f)?;
         write_lunar_equatorial_reference_evidence(f)?;
         write_lunar_apparent_comparison_evidence(f)?;
+        writeln!(f, "  Lunar high-curvature continuity evidence:")?;
+        writeln!(
+            f,
+            "    {}",
+            lunar_high_curvature_continuity_evidence_for_report()
+        )?;
         write_lunar_high_curvature_equatorial_continuity_evidence(f)?;
     }
     if entry.metadata.id.as_str() == "jpl-snapshot" {
@@ -14733,6 +14745,8 @@ mod tests {
         assert!(rendered.contains("Pluto remains the current mean-element fallback special case until a Pluto-specific source path is selected"));
         assert!(rendered.contains("ELP lunar backend (Moon and lunar nodes)"));
         assert!(rendered.contains("compact lunar and lunar-point formulas provide the current deterministic baseline while documented production lunar-theory ingestion remains open"));
+        assert!(rendered.contains("Lunar high-curvature continuity evidence"));
+        assert!(rendered.contains("Lunar high-curvature equatorial continuity evidence"));
         assert!(rendered.contains("unsupported bodies: True Apogee, True Perigee"));
         assert!(rendered.contains("Packaged data backend"));
         assert!(rendered.contains("Composite routed backend"));
@@ -15339,6 +15353,8 @@ version = "0.9.0"
         assert!(release_summary.contains("Lunar equatorial reference envelope:"));
         assert!(release_summary
             .contains("Lunar apparent comparison: lunar apparent comparison evidence:"));
+        assert!(release_summary.contains("Lunar high-curvature continuity evidence"));
+        assert!(release_summary.contains("Lunar high-curvature equatorial continuity evidence"));
         assert!(release_summary.contains("|Δlon| mean/median/p95="));
         assert!(release_summary.contains("|ΔDec| mean/median/p95="));
         assert!(release_summary.contains(&packaged_request_policy_summary_for_report()));
