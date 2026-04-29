@@ -613,7 +613,8 @@ impl ComparisonAuditSummary {
         }
     }
 
-    fn validate(&self) -> Result<(), EphemerisError> {
+    /// Validates the comparison-audit counts before the summary is rendered or reused.
+    pub fn validate(&self) -> Result<(), EphemerisError> {
         if self.body_count == 0 {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,
