@@ -4517,12 +4517,8 @@ impl fmt::Display for Vsop87SupportedBodyJ1900EquatorialBatchParitySummary {
 pub fn supported_body_j1900_equatorial_batch_parity_summary(
 ) -> Option<Vsop87SupportedBodyJ1900EquatorialBatchParitySummary> {
     let backend = Vsop87Backend::new();
-    let reference_epoch = Instant::new(pleiades_types::JulianDay::from_days(J1900), TimeScale::Tdb);
-    let requests = requests_for_bodies_at(
-        Vsop87Backend::supported_bodies().iter().cloned(),
-        reference_epoch,
-        CoordinateFrame::Equatorial,
-    );
+    let requests = supported_body_j1900_equatorial_batch_parity_requests();
+    let reference_epoch = requests.first()?.instant;
     let (sample_bodies, exact_count, interpolated_count, approximate_count, unknown_count) =
         canonical_batch_parity_counts(&backend, &requests)?;
 
@@ -5590,8 +5586,22 @@ pub fn supported_body_j2000_equatorial_batch_parity_requests() -> Vec<EphemerisR
 /// Returns the supported-body J1900 request corpus used by the VSOP87 supported-body batch evidence.
 ///
 /// The requests preserve the supported-body order, use the shared J1900 TDB
+/// instant, and keep the mean-obliquity equatorial frame so validation and
+/// reproducibility tooling can reuse the exact supported-body batch slice without
+/// reconstructing it from the sample metadata.
+pub fn supported_body_j1900_equatorial_batch_parity_requests() -> Vec<EphemerisRequest> {
+    requests_for_bodies_at(
+        Vsop87Backend::supported_bodies().iter().cloned(),
+        Instant::new(pleiades_types::JulianDay::from_days(J1900), TimeScale::Tdb),
+        CoordinateFrame::Equatorial,
+    )
+}
+
+/// Returns the supported-body J1900 request corpus used by the VSOP87 supported-body batch evidence.
+///
+/// The requests preserve the supported-body order, use the shared J1900 TDB
 /// instant, and keep the ecliptic frame so validation and reproducibility
-/// tooling can reuse the exact canonical batch slice without reconstructing it
+/// tooling can reuse the exact supported-body batch slice without reconstructing it
 /// from the sample metadata.
 pub fn supported_body_j1900_ecliptic_batch_parity_requests() -> Vec<EphemerisRequest> {
     requests_for_bodies_at(
@@ -5601,18 +5611,14 @@ pub fn supported_body_j1900_ecliptic_batch_parity_requests() -> Vec<EphemerisReq
     )
 }
 
-/// Returns the supported-body J1900 request corpus used by the VSOP87 supported-body batch evidence.
+/// Returns the supported-body J1900 request corpus used by the VSOP87 canonical batch evidence.
 ///
 /// The requests preserve the supported-body order, use the shared J1900 TDB
 /// instant, and keep the mean-obliquity equatorial frame so validation and
 /// reproducibility tooling can reuse the exact canonical batch slice without
 /// reconstructing it from the sample metadata.
 pub fn canonical_j1900_batch_parity_requests() -> Vec<EphemerisRequest> {
-    requests_for_bodies_at(
-        Vsop87Backend::supported_bodies().iter().cloned(),
-        Instant::new(pleiades_types::JulianDay::from_days(J1900), TimeScale::Tdb),
-        CoordinateFrame::Equatorial,
-    )
+    supported_body_j1900_equatorial_batch_parity_requests()
 }
 
 /// Returns the canonical mixed TT/TDB request corpus used by the batch-parity evidence.
@@ -9894,6 +9900,25 @@ mod tests {
             request.instant.julian_day.days() == J1900
                 && request.instant.scale == TimeScale::Tdb
                 && request.frame == CoordinateFrame::Ecliptic
+        }));
+    }
+
+    #[test]
+    fn supported_body_j1900_equatorial_batch_parity_requests_preserve_the_supported_body_order() {
+        let requests = supported_body_j1900_equatorial_batch_parity_requests();
+
+        assert_eq!(requests.len(), Vsop87Backend::supported_bodies().len());
+        assert_eq!(
+            requests
+                .iter()
+                .map(|request| request.body.clone())
+                .collect::<Vec<_>>(),
+            Vsop87Backend::supported_bodies().to_vec()
+        );
+        assert!(requests.iter().all(|request| {
+            request.instant.julian_day.days() == J1900
+                && request.instant.scale == TimeScale::Tdb
+                && request.frame == CoordinateFrame::Equatorial
         }));
     }
 
