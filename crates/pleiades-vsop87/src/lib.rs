@@ -7135,6 +7135,20 @@ mod tests {
     }
 
     #[test]
+    fn supported_body_j2000_ecliptic_batch_parity_report_surfaces_validation_errors() {
+        let mut summary = supported_body_j2000_ecliptic_batch_parity_summary()
+            .expect("batch summary should exist");
+        summary.frame = CoordinateFrame::Equatorial;
+
+        assert_eq!(
+            format_validated_supported_body_j2000_ecliptic_batch_parity_summary_for_report(
+                &summary
+            ),
+            "VSOP87 supported-body J2000 ecliptic batch parity: unavailable (the VSOP87 canonical batch parity summary field `frame` is out of sync with the current canonical evidence)"
+        );
+    }
+
+    #[test]
     fn batch_query_preserves_supported_vsop87_paths_at_the_j2000_reference_epoch_in_ecliptic_frame()
     {
         let backend = Vsop87Backend::new();
