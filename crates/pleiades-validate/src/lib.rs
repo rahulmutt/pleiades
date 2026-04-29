@@ -4894,10 +4894,8 @@ fn render_compatibility_profile_summary_text() -> String {
     text.push_str(" baseline, ");
     text.push_str(&profile.release_ayanamsas.len().to_string());
     text.push_str(" release-specific)\n");
-    text.push_str("Target house scope: ");
     text.push_str(&profile.target_house_scope.join("; "));
     text.push('\n');
-    text.push_str("Target ayanamsa scope: ");
     text.push_str(&profile.target_ayanamsa_scope.join("; "));
     text.push('\n');
     text.push_str(&coverage.summary_line());
@@ -5136,10 +5134,8 @@ fn render_release_notes_summary_text() -> String {
     text.push_str("Compatibility caveats: ");
     text.push_str(&profile.known_gaps.len().to_string());
     text.push('\n');
-    text.push_str("Target house scope: ");
     text.push_str(&profile.target_house_scope.join("; "));
     text.push('\n');
-    text.push_str("Target ayanamsa scope: ");
     text.push_str(&profile.target_ayanamsa_scope.join("; "));
     text.push('\n');
     text.push_str("API stability summary line: ");
@@ -5288,10 +5284,8 @@ fn render_release_summary_text() -> String {
         &release_profiles,
     ));
     text.push('\n');
-    text.push_str("Target house scope: ");
     text.push_str(&profile.target_house_scope.join("; "));
     text.push('\n');
-    text.push_str("Target ayanamsa scope: ");
     text.push_str(&profile.target_ayanamsa_scope.join("; "));
     text.push('\n');
     text.push_str("Time-scale policy: ");
@@ -13454,14 +13448,12 @@ mod tests {
             profile.house_code_aliases_summary_line()
         )));
         assert!(rendered.contains("Ayanamsas:"));
-        assert!(rendered.contains(&format!(
-            "Target house scope: {}",
-            profile.target_house_scope.join("; ")
-        )));
-        assert!(rendered.contains(&format!(
-            "Target ayanamsa scope: {}",
-            profile.target_ayanamsa_scope.join("; ")
-        )));
+        assert!(rendered
+            .lines()
+            .any(|line| line == profile.target_house_scope.join("; ")));
+        assert!(rendered
+            .lines()
+            .any(|line| line == profile.target_ayanamsa_scope.join("; ")));
         assert!(rendered.contains(&coverage.summary_line()));
         assert!(rendered.contains("ayanamsa catalog validation: ok"));
         assert!(rendered.contains("Release-specific house-system canonical names: 13 (Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter (poli-equatorial), Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen SD, Pullen SR, Sunshine, Gauquelin sectors)"));
@@ -14374,14 +14366,12 @@ mod tests {
             "Compatibility caveats: {}",
             profile.known_gaps.len()
         )));
-        assert!(rendered.contains(&format!(
-            "Target house scope: {}",
-            profile.target_house_scope.join("; ")
-        )));
-        assert!(rendered.contains(&format!(
-            "Target ayanamsa scope: {}",
-            profile.target_ayanamsa_scope.join("; ")
-        )));
+        assert!(rendered
+            .lines()
+            .any(|line| line == profile.target_house_scope.join("; ")));
+        assert!(rendered
+            .lines()
+            .any(|line| line == profile.target_ayanamsa_scope.join("; ")));
         assert!(rendered.contains("API stability summary line: API stability posture: pleiades-api-stability/0.1.0; stable surfaces: 6; experimental surfaces: 3; deprecation policy items: 4; intentional limits: 3"));
         assert!(rendered.contains("Reference snapshot source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; geocentric ecliptic J2000; TDB reference epoch JD 2451545.0 (TDB)"));
         assert!(rendered.contains("Comparison snapshot source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.; coverage=Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.; columns=body, x_km, y_km, z_km"));
@@ -14492,14 +14482,12 @@ mod tests {
             "Release profile identifiers: v1 compatibility={}, api-stability={}",
             release_profiles.compatibility_profile_id, release_profiles.api_stability_profile_id
         )));
-        assert!(rendered.contains(&format!(
-            "Target house scope: {}",
-            profile.target_house_scope.join("; ")
-        )));
-        assert!(rendered.contains(&format!(
-            "Target ayanamsa scope: {}",
-            profile.target_ayanamsa_scope.join("; ")
-        )));
+        assert!(rendered
+            .lines()
+            .any(|line| line == profile.target_house_scope.join("; ")));
+        assert!(rendered
+            .lines()
+            .any(|line| line == profile.target_ayanamsa_scope.join("; ")));
         assert!(rendered.contains("Release summary line:"));
         assert!(rendered.contains(&profile.catalog_inventory_summary_line()));
         assert!(rendered.contains(&format!(
