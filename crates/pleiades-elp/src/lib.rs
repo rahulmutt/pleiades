@@ -776,7 +776,7 @@ const LUNAR_THEORY_SPECIFICATION: LunarTheorySpecification = LunarTheorySpecific
     unit_note:
         "Angular outputs are reported in degrees and distance outputs, when present, are reported in astronomical units",
     date_range_note:
-        "Validated against the published 1992-04-12 geocentric Moon example, the published 1992-04-12 geocentric Moon RA/Dec example used for the mean-obliquity equatorial transform, the reference-only published 1968-12-24 apparent geocentric Moon comparison datum, J2000 lunar-point anchors including the mean apogee and mean perigee references, published 1913-05-27 true-node and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example; no full ELP coefficient range has been published yet",
+        "Validated against the published 1992-04-12 geocentric Moon example, the published 1992-04-12 geocentric Moon RA/Dec example used for the mean-obliquity equatorial transform, the reference-only published 1968-12-24 apparent geocentric Moon comparison datum, the reference-only published 2004-04-01 NASA RP 1349 apparent Moon table row, the reference-only published 2006-09-07 EclipseWise apparent Moon coordinate row, J2000 lunar-point anchors including the mean apogee and mean perigee references, published 1913-05-27 true-node and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example; no full ELP coefficient range has been published yet",
     frame_note:
         "Geocentric ecliptic coordinates are produced directly from the truncated lunar series; equatorial coordinates are derived with a mean-obliquity transform",
     validation_window: LUNAR_THEORY_VALIDATION_WINDOW,
@@ -2485,6 +2485,19 @@ pub fn lunar_apparent_comparison_evidence() -> &'static [LunarApparentComparison
             apparent_declination_deg: 21.130_333_333_333_333,
             note: "Published 2004-04-01 geocentric Moon table row from NASA RP 1349; apparent equatorial coordinates are published directly and the ecliptic row is derived from them using the shared mean-obliquity transform",
         },
+        LunarApparentComparisonSample {
+            body: CelestialBody::Moon,
+            epoch: Instant::new(
+                pleiades_types::JulianDay::from_days(2_453_986.285_649),
+                TimeScale::Tt,
+            ),
+            apparent_longitude_deg: 345.100_191_937_146_6,
+            apparent_latitude_deg: -0.943_574_954_873_848_7,
+            apparent_distance_au: 0.002_388_348_345_388_321_4,
+            apparent_right_ascension_deg: 346.648_333_333_333_3,
+            apparent_declination_deg: -6.740_444_444_444_445,
+            note: "Published 2006-09-07 geocentric Moon coordinate row from EclipseWise; apparent equatorial coordinates are published directly and the ecliptic row is derived from them using the shared mean-obliquity transform",
+        },
     ];
 
     SAMPLES
@@ -2580,7 +2593,7 @@ impl LunarApparentComparisonSummary {
     /// Returns the release-facing one-line apparent comparison summary.
     pub fn summary_line(&self) -> String {
         format!(
-            "lunar apparent comparison evidence: {} reference-only samples across {} bodies, epoch range {}, mean-only gap against the published apparent Moon examples: Δlon={:+.6}° @ {}; |Δlon| mean/median/p95={:.6}/{:.6}/{:.6}°; Δlat={:+.6}° @ {}; |Δlat| mean/median/p95={:.6}/{:.6}/{:.6}°; Δdist={:+.12} AU @ {}; |Δdist| mean/median/p95={:.12}/{:.12}/{:.12} AU; ΔRA={:+.6}° @ {}; |ΔRA| mean/median/p95={:.6}/{:.6}/{:.6}°; ΔDec={:+.6}° @ {}; |ΔDec| mean/median/p95={:.6}/{:.6}/{:.6}°; apparent requests remain unsupported",
+            "lunar apparent comparison evidence: {} reference-only samples across {} bodies, epoch range {}, mean-only gap against the published apparent Moon examples, including the 1992-04-12, 1968-12-24, 2004-04-01, and 2006-09-07 examples: Δlon={:+.6}° @ {}; |Δlon| mean/median/p95={:.6}/{:.6}/{:.6}°; Δlat={:+.6}° @ {}; |Δlat| mean/median/p95={:.6}/{:.6}/{:.6}°; Δdist={:+.12} AU @ {}; |Δdist| mean/median/p95={:.12}/{:.12}/{:.12} AU; ΔRA={:+.6}° @ {}; |ΔRA| mean/median/p95={:.6}/{:.6}/{:.6}°; ΔDec={:+.6}° @ {}; |ΔDec| mean/median/p95={:.6}/{:.6}/{:.6}°; apparent requests remain unsupported",
             self.sample_count,
             self.body_count,
             format_epoch_range(self.earliest_epoch, self.latest_epoch),
@@ -5296,6 +5309,36 @@ mod tests {
     }
 
     #[test]
+    fn published_eclipsewise_apparent_moon_example_matches_the_shared_mean_obliquity_transform() {
+        let sample = lunar_apparent_comparison_evidence()
+            .iter()
+            .find(|sample| {
+                (sample.epoch.julian_day.days() - 2_453_986.285_649).abs() < f64::EPSILON
+            })
+            .expect("EclipseWise apparent Moon sample should exist");
+
+        let equatorial = EquatorialCoordinates::new(
+            Angle::from_degrees(sample.apparent_right_ascension_deg),
+            Latitude::from_degrees(sample.apparent_declination_deg),
+            Some(sample.apparent_distance_au),
+        );
+        let ecliptic = equatorial.to_ecliptic(sample.epoch.mean_obliquity());
+
+        assert!((ecliptic.longitude.degrees() - sample.apparent_longitude_deg).abs() < 1e-6);
+        assert!((ecliptic.latitude.degrees() - sample.apparent_latitude_deg).abs() < 1e-6);
+        assert!(
+            (ecliptic
+                .distance_au
+                .expect("apparent Moon distance should exist")
+                - sample.apparent_distance_au)
+                .abs()
+                < 1e-12
+        );
+        assert!(sample.note.contains("EclipseWise"));
+        assert!(sample.note.contains("shared mean-obliquity transform"));
+    }
+
+    #[test]
     fn published_true_node_example_matches_reference() {
         let backend = ElpBackend::new();
         let instant = Instant::new(
@@ -6250,10 +6293,10 @@ mod tests {
         let summary =
             lunar_apparent_comparison_summary().expect("apparent comparison evidence should exist");
 
-        assert_eq!(summary.sample_count, 3);
+        assert_eq!(summary.sample_count, 4);
         assert_eq!(summary.body_count, 1);
         assert!((summary.earliest_epoch.julian_day.days() - 2_440_214.916_7).abs() < 1e-9);
-        assert_eq!(summary.latest_epoch.julian_day.days(), 2_453_100.5);
+        assert!((summary.latest_epoch.julian_day.days() - 2_453_986.285_649).abs() < 1e-9);
         assert!(summary.max_ecliptic_longitude_delta_deg.is_finite());
         assert!(summary.mean_ecliptic_longitude_delta_deg.is_finite());
         assert!(summary.median_ecliptic_longitude_delta_deg.is_finite());
@@ -6274,14 +6317,14 @@ mod tests {
         assert!(summary.mean_declination_delta_deg.is_finite());
         assert!(summary.median_declination_delta_deg.is_finite());
         assert!(summary.percentile_declination_delta_deg.is_finite());
-        let known_epochs = [2_440_214.916_7, 2_448_724.5, 2_453_100.5];
+        let known_epochs = [2_440_214.916_7, 2_448_724.5, 2_453_100.5, 2_453_986.285_649];
         assert!(known_epochs.contains(&summary.max_ecliptic_longitude_epoch.julian_day.days()));
         assert!(known_epochs.contains(&summary.max_ecliptic_latitude_epoch.julian_day.days()));
         assert!(known_epochs.contains(&summary.max_ecliptic_distance_epoch.julian_day.days()));
         assert!(known_epochs.contains(&summary.max_right_ascension_epoch.julian_day.days()));
         assert!(known_epochs.contains(&summary.max_declination_epoch.julian_day.days()));
         assert!(lunar_apparent_comparison_summary_for_report().contains(
-            "lunar apparent comparison evidence: 3 reference-only samples across 1 bodies"
+            "lunar apparent comparison evidence: 4 reference-only samples across 1 bodies"
         ));
         assert!(lunar_apparent_comparison_summary_for_report()
             .contains("mean-only gap against the published apparent Moon examples"));
@@ -6293,7 +6336,7 @@ mod tests {
         assert_eq!(summary.summary_line(), summary.to_string());
 
         let samples = lunar_apparent_comparison_evidence();
-        assert_eq!(samples.len(), 3);
+        assert_eq!(samples.len(), 4);
         assert_eq!(samples[0].body, CelestialBody::Moon);
         assert_eq!(samples[0].epoch.julian_day.days(), 2_448_724.5);
         assert!(samples[0]
@@ -6308,6 +6351,10 @@ mod tests {
         assert_eq!(samples[2].epoch.julian_day.days(), 2_453_100.5);
         assert!(samples[2].note.contains("NASA RP 1349"));
         assert!(samples[2].note.contains("shared mean-obliquity transform"));
+        assert_eq!(samples[3].body, CelestialBody::Moon);
+        assert_eq!(samples[3].epoch.julian_day.days(), 2_453_986.285_649);
+        assert!(samples[3].note.contains("EclipseWise"));
+        assert!(samples[3].note.contains("shared mean-obliquity transform"));
     }
 
     #[test]
