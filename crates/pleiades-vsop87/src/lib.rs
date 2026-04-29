@@ -3783,6 +3783,10 @@ impl Vsop87CanonicalMixedTimeScaleBatchParitySummary {
     }
 
     /// Returns `Ok(())` when the summary still matches the current derived batch evidence.
+    ///
+    /// The canonical alternating TT/TDB request counts already imply the mixed-slice posture for
+    /// this fixed 11-body slice, so the validation path keeps its focus on the exact counts,
+    /// bodies, epoch, and frame rather than introducing a separate degenerate-mix guard.
     pub fn validate(&self) -> Result<(), Vsop87CanonicalBatchParitySummaryValidationError> {
         if self.sample_count != self.sample_bodies.len() {
             return Err(
