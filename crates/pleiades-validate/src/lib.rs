@@ -847,7 +847,30 @@ pub struct ComparisonTolerance {
     pub max_distance_delta_au: Option<f64>,
 }
 
+fn validate_comparison_tolerance_profile(profile: &str) -> Result<(), EphemerisError> {
+    if profile.trim().is_empty() {
+        return Err(EphemerisError::new(
+            EphemerisErrorKind::InvalidRequest,
+            "comparison tolerance profile must not be blank",
+        ));
+    }
+
+    if has_surrounding_whitespace(profile) {
+        return Err(EphemerisError::new(
+            EphemerisErrorKind::InvalidRequest,
+            format!(
+                "comparison tolerance profile '{}' contains surrounding whitespace",
+                profile
+            ),
+        ));
+    }
+
+    Ok(())
+}
+
 fn validate_comparison_tolerance(tolerance: &ComparisonTolerance) -> Result<(), EphemerisError> {
+    validate_comparison_tolerance_profile(tolerance.profile)?;
+
     for (label, value) in [
         ("longitude", tolerance.max_longitude_delta_deg),
         ("latitude", tolerance.max_latitude_delta_deg),
@@ -11100,6 +11123,34 @@ mod tests {
             .validate()
             .expect_err("summary should reject body-count drift");
         assert!(error.to_string().contains("body-count mismatch"));
+    }
+
+    #[test]
+    fn comparison_tolerance_validation_rejects_blank_profile() {
+        let error = validate_comparison_tolerance(&ComparisonTolerance {
+            backend_family: BackendFamily::Algorithmic,
+            profile: "",
+            max_longitude_delta_deg: 0.1,
+            max_latitude_delta_deg: 0.2,
+            max_distance_delta_au: Some(0.3),
+        })
+        .expect_err("tolerance should reject a blank profile label");
+        assert!(error.to_string().contains("must not be blank"));
+    }
+
+    #[test]
+    fn comparison_tolerance_validation_rejects_padded_profile() {
+        let error = validate_comparison_tolerance(&ComparisonTolerance {
+            backend_family: BackendFamily::Algorithmic,
+            profile: " test tolerance ",
+            max_longitude_delta_deg: 0.1,
+            max_latitude_delta_deg: 0.2,
+            max_distance_delta_au: Some(0.3),
+        })
+        .expect_err("tolerance should reject a padded profile label");
+        assert!(error
+            .to_string()
+            .contains("contains surrounding whitespace"));
     }
 
     #[test]
