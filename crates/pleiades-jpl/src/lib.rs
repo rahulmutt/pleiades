@@ -1857,6 +1857,348 @@ pub fn reference_asteroid_equatorial_evidence() -> &'static [ReferenceAsteroidEq
     reference_asteroid_equatorial_evidence_list()
 }
 
+/// Compact release-facing summary for the exact asteroid evidence slice.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReferenceAsteroidEvidenceSummary {
+    /// Number of exact samples in the selected asteroid slice.
+    pub sample_count: usize,
+    /// Bodies covered by the exact asteroid evidence slice in first-seen order.
+    pub sample_bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Exact epoch shared by the asteroid evidence slice.
+    pub epoch: Instant,
+}
+
+/// Validation errors for a reference asteroid evidence summary that drifted from the current slice.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ReferenceAsteroidEvidenceSummaryValidationError {
+    /// The summary did not expose any samples.
+    Empty,
+    /// The summary sample count drifted from the current evidence slice.
+    SampleCountMismatch {
+        sample_count: usize,
+        derived_sample_count: usize,
+    },
+    /// The summary body list drifted from the current evidence slice.
+    BodyOrderMismatch {
+        index: usize,
+        expected: pleiades_backend::CelestialBody,
+        found: pleiades_backend::CelestialBody,
+    },
+    /// The summary epoch drifted from the current evidence slice.
+    EpochMismatch { expected: Instant, found: Instant },
+}
+
+impl fmt::Display for ReferenceAsteroidEvidenceSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Empty => f.write_str("selected asteroid evidence is unavailable"),
+            Self::SampleCountMismatch {
+                sample_count,
+                derived_sample_count,
+            } => write!(
+                f,
+                "selected asteroid evidence sample count {sample_count} does not match derived sample count {derived_sample_count}"
+            ),
+            Self::BodyOrderMismatch {
+                index,
+                expected,
+                found,
+            } => write!(
+                f,
+                "selected asteroid evidence body order mismatch at index {index}: expected {expected}, found {found}"
+            ),
+            Self::EpochMismatch { expected, found } => write!(
+                f,
+                "selected asteroid evidence epoch mismatch: expected {}, found {}",
+                format_instant(*expected),
+                format_instant(*found)
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ReferenceAsteroidEvidenceSummaryValidationError {}
+
+impl ReferenceAsteroidEvidenceSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Selected asteroid evidence: {} exact J2000 samples at {} ({})",
+            self.sample_count,
+            format_instant(self.epoch),
+            format_bodies(&self.sample_bodies),
+        )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current evidence slice.
+    pub fn validate(&self) -> Result<(), ReferenceAsteroidEvidenceSummaryValidationError> {
+        let evidence = reference_asteroid_evidence();
+        if evidence.is_empty() {
+            return Err(ReferenceAsteroidEvidenceSummaryValidationError::Empty);
+        }
+
+        if self.sample_count != evidence.len() {
+            return Err(
+                ReferenceAsteroidEvidenceSummaryValidationError::SampleCountMismatch {
+                    sample_count: self.sample_count,
+                    derived_sample_count: evidence.len(),
+                },
+            );
+        }
+        if self.sample_bodies.as_slice() != reference_asteroids() {
+            for (index, (expected, found)) in reference_asteroids()
+                .iter()
+                .zip(self.sample_bodies.iter())
+                .enumerate()
+            {
+                if expected != found {
+                    return Err(
+                        ReferenceAsteroidEvidenceSummaryValidationError::BodyOrderMismatch {
+                            index,
+                            expected: expected.clone(),
+                            found: found.clone(),
+                        },
+                    );
+                }
+            }
+            return Err(
+                ReferenceAsteroidEvidenceSummaryValidationError::SampleCountMismatch {
+                    sample_count: self.sample_count,
+                    derived_sample_count: evidence.len(),
+                },
+            );
+        }
+        if self.epoch != evidence[0].epoch {
+            return Err(
+                ReferenceAsteroidEvidenceSummaryValidationError::EpochMismatch {
+                    expected: evidence[0].epoch,
+                    found: self.epoch,
+                },
+            );
+        }
+
+        Ok(())
+    }
+}
+
+impl fmt::Display for ReferenceAsteroidEvidenceSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Compact release-facing summary for the equatorial asteroid evidence slice.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReferenceAsteroidEquatorialEvidenceSummary {
+    /// Number of exact samples in the selected asteroid slice.
+    pub sample_count: usize,
+    /// Bodies covered by the exact asteroid evidence slice in first-seen order.
+    pub sample_bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Exact epoch shared by the asteroid evidence slice.
+    pub epoch: Instant,
+    /// Summary of the equatorial transform used to derive the equatorial slice.
+    pub transform_note: &'static str,
+}
+
+/// Validation errors for a reference asteroid equatorial evidence summary that drifted from the current slice.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ReferenceAsteroidEquatorialEvidenceSummaryValidationError {
+    /// The summary did not expose any samples.
+    Empty,
+    /// The summary sample count drifted from the current evidence slice.
+    SampleCountMismatch {
+        sample_count: usize,
+        derived_sample_count: usize,
+    },
+    /// The summary body list drifted from the current evidence slice.
+    BodyOrderMismatch {
+        index: usize,
+        expected: pleiades_backend::CelestialBody,
+        found: pleiades_backend::CelestialBody,
+    },
+    /// The summary epoch drifted from the current evidence slice.
+    EpochMismatch { expected: Instant, found: Instant },
+    /// The summary transform note drifted from the current evidence slice.
+    TransformNoteMismatch {
+        expected: &'static str,
+        found: &'static str,
+    },
+}
+
+impl fmt::Display for ReferenceAsteroidEquatorialEvidenceSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Empty => f.write_str("selected asteroid equatorial evidence is unavailable"),
+            Self::SampleCountMismatch {
+                sample_count,
+                derived_sample_count,
+            } => write!(
+                f,
+                "selected asteroid equatorial evidence sample count {sample_count} does not match derived sample count {derived_sample_count}"
+            ),
+            Self::BodyOrderMismatch {
+                index,
+                expected,
+                found,
+            } => write!(
+                f,
+                "selected asteroid equatorial evidence body order mismatch at index {index}: expected {expected}, found {found}"
+            ),
+            Self::EpochMismatch { expected, found } => write!(
+                f,
+                "selected asteroid equatorial evidence epoch mismatch: expected {}, found {}",
+                format_instant(*expected),
+                format_instant(*found)
+            ),
+            Self::TransformNoteMismatch { expected, found } => write!(
+                f,
+                "selected asteroid equatorial evidence transform note mismatch: expected '{expected}', found '{found}'"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ReferenceAsteroidEquatorialEvidenceSummaryValidationError {}
+
+impl ReferenceAsteroidEquatorialEvidenceSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Selected asteroid equatorial evidence: {} exact J2000 samples at {} ({}) using a {}",
+            self.sample_count,
+            format_instant(self.epoch),
+            format_bodies(&self.sample_bodies),
+            self.transform_note,
+        )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current evidence slice.
+    pub fn validate(
+        &self,
+    ) -> Result<(), ReferenceAsteroidEquatorialEvidenceSummaryValidationError> {
+        let evidence = reference_asteroid_equatorial_evidence();
+        if evidence.is_empty() {
+            return Err(ReferenceAsteroidEquatorialEvidenceSummaryValidationError::Empty);
+        }
+
+        if self.sample_count != evidence.len() {
+            return Err(
+                ReferenceAsteroidEquatorialEvidenceSummaryValidationError::SampleCountMismatch {
+                    sample_count: self.sample_count,
+                    derived_sample_count: evidence.len(),
+                },
+            );
+        }
+        if self.sample_bodies.as_slice() != reference_asteroids() {
+            for (index, (expected, found)) in reference_asteroids()
+                .iter()
+                .zip(self.sample_bodies.iter())
+                .enumerate()
+            {
+                if expected != found {
+                    return Err(
+                        ReferenceAsteroidEquatorialEvidenceSummaryValidationError::BodyOrderMismatch {
+                            index,
+                            expected: expected.clone(),
+                            found: found.clone(),
+                        },
+                    );
+                }
+            }
+            return Err(
+                ReferenceAsteroidEquatorialEvidenceSummaryValidationError::SampleCountMismatch {
+                    sample_count: self.sample_count,
+                    derived_sample_count: evidence.len(),
+                },
+            );
+        }
+        if self.epoch != evidence[0].epoch {
+            return Err(
+                ReferenceAsteroidEquatorialEvidenceSummaryValidationError::EpochMismatch {
+                    expected: evidence[0].epoch,
+                    found: self.epoch,
+                },
+            );
+        }
+        if self.transform_note != "mean-obliquity equatorial transform" {
+            return Err(
+                ReferenceAsteroidEquatorialEvidenceSummaryValidationError::TransformNoteMismatch {
+                    expected: "mean-obliquity equatorial transform",
+                    found: self.transform_note,
+                },
+            );
+        }
+
+        Ok(())
+    }
+}
+
+impl fmt::Display for ReferenceAsteroidEquatorialEvidenceSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn reference_asteroid_evidence_summary_details() -> Option<ReferenceAsteroidEvidenceSummary> {
+    let evidence = reference_asteroid_evidence();
+    evidence
+        .first()
+        .map(|first| ReferenceAsteroidEvidenceSummary {
+            sample_count: evidence.len(),
+            sample_bodies: reference_asteroids().to_vec(),
+            epoch: first.epoch,
+        })
+}
+
+fn reference_asteroid_equatorial_evidence_summary_details(
+) -> Option<ReferenceAsteroidEquatorialEvidenceSummary> {
+    let evidence = reference_asteroid_equatorial_evidence();
+    evidence
+        .first()
+        .map(|first| ReferenceAsteroidEquatorialEvidenceSummary {
+            sample_count: evidence.len(),
+            sample_bodies: reference_asteroids().to_vec(),
+            epoch: first.epoch,
+            transform_note: "mean-obliquity equatorial transform",
+        })
+}
+
+fn reference_asteroid_evidence_summary_from_slice(
+    evidence: &[ReferenceAsteroidEvidence],
+) -> Option<ReferenceAsteroidEvidenceSummary> {
+    evidence
+        .first()
+        .map(|first| ReferenceAsteroidEvidenceSummary {
+            sample_count: evidence.len(),
+            sample_bodies: reference_asteroids().to_vec(),
+            epoch: first.epoch,
+        })
+}
+
+fn reference_asteroid_equatorial_evidence_summary_from_slice(
+    evidence: &[ReferenceAsteroidEquatorialEvidence],
+) -> Option<ReferenceAsteroidEquatorialEvidenceSummary> {
+    evidence
+        .first()
+        .map(|first| ReferenceAsteroidEquatorialEvidenceSummary {
+            sample_count: evidence.len(),
+            sample_bodies: reference_asteroids().to_vec(),
+            epoch: first.epoch,
+            transform_note: "mean-obliquity equatorial transform",
+        })
+}
+
+/// Returns the compact typed summary for the exact asteroid evidence slice.
+pub fn reference_asteroid_evidence_summary() -> Option<ReferenceAsteroidEvidenceSummary> {
+    reference_asteroid_evidence_summary_details()
+}
+
+/// Returns the compact typed summary for the equatorial asteroid evidence slice.
+pub fn reference_asteroid_equatorial_evidence_summary(
+) -> Option<ReferenceAsteroidEquatorialEvidenceSummary> {
+    reference_asteroid_equatorial_evidence_summary_details()
+}
+
 fn join_display<T: fmt::Display>(values: &[T]) -> String {
     values
         .iter()
@@ -2204,15 +2546,12 @@ fn validate_reference_asteroid_equatorial_evidence(
 pub fn format_reference_asteroid_evidence_summary(
     evidence: &[ReferenceAsteroidEvidence],
 ) -> String {
-    if evidence.is_empty() {
-        "Selected asteroid evidence: unavailable".to_string()
-    } else {
-        format!(
-            "Selected asteroid evidence: {} exact J2000 samples at {} ({})",
-            evidence.len(),
-            format_instant(evidence[0].epoch),
-            format_bodies(reference_asteroids())
-        )
+    match validate_reference_asteroid_evidence(evidence) {
+        Ok(()) => match reference_asteroid_evidence_summary_from_slice(evidence) {
+            Some(summary) => summary.summary_line(),
+            None => "Selected asteroid evidence: unavailable".to_string(),
+        },
+        Err(error) => format!("Selected asteroid evidence: unavailable ({error})"),
     }
 }
 
@@ -2220,7 +2559,10 @@ pub fn format_reference_asteroid_evidence_summary(
 pub fn reference_asteroid_evidence_summary_for_report() -> String {
     let evidence = reference_asteroid_evidence();
     match validate_reference_asteroid_evidence(evidence) {
-        Ok(()) => format_reference_asteroid_evidence_summary(evidence),
+        Ok(()) => match reference_asteroid_evidence_summary_details() {
+            Some(summary) => summary.summary_line(),
+            None => "Selected asteroid evidence: unavailable".to_string(),
+        },
         Err(error) => format!("Selected asteroid evidence: unavailable ({error})"),
     }
 }
@@ -2229,15 +2571,12 @@ pub fn reference_asteroid_evidence_summary_for_report() -> String {
 pub fn format_reference_asteroid_equatorial_evidence_summary(
     evidence: &[ReferenceAsteroidEquatorialEvidence],
 ) -> String {
-    if evidence.is_empty() {
-        "Selected asteroid equatorial evidence: unavailable".to_string()
-    } else {
-        format!(
-            "Selected asteroid equatorial evidence: {} exact J2000 samples at {} ({}) using a mean-obliquity equatorial transform",
-            evidence.len(),
-            format_instant(evidence[0].epoch),
-            format_bodies(reference_asteroids())
-        )
+    match validate_reference_asteroid_equatorial_evidence(evidence) {
+        Ok(()) => match reference_asteroid_equatorial_evidence_summary_from_slice(evidence) {
+            Some(summary) => summary.summary_line(),
+            None => "Selected asteroid equatorial evidence: unavailable".to_string(),
+        },
+        Err(error) => format!("Selected asteroid equatorial evidence: unavailable ({error})"),
     }
 }
 
@@ -2245,7 +2584,10 @@ pub fn format_reference_asteroid_equatorial_evidence_summary(
 pub fn reference_asteroid_equatorial_evidence_summary_for_report() -> String {
     let evidence = reference_asteroid_equatorial_evidence();
     match validate_reference_asteroid_equatorial_evidence(evidence) {
-        Ok(()) => format_reference_asteroid_equatorial_evidence_summary(evidence),
+        Ok(()) => match reference_asteroid_equatorial_evidence_summary_details() {
+            Some(summary) => summary.summary_line(),
+            None => "Selected asteroid equatorial evidence: unavailable".to_string(),
+        },
         Err(error) => format!("Selected asteroid equatorial evidence: unavailable ({error})"),
     }
 }
@@ -5267,8 +5609,34 @@ mod tests {
 
     #[test]
     fn reference_asteroid_evidence_summary_reports_the_expected_coverage() {
-        let report = reference_asteroid_evidence_summary_for_report();
-        assert_eq!(report, "Selected asteroid evidence: 5 exact J2000 samples at JD 2451545.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)");
+        let summary = reference_asteroid_evidence_summary()
+            .expect("reference asteroid evidence summary should exist");
+        summary
+            .validate()
+            .expect("reference asteroid evidence summary should validate");
+        assert_eq!(
+            summary.summary_line(),
+            "Selected asteroid evidence: 5 exact J2000 samples at JD 2451545.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            reference_asteroid_evidence_summary_for_report(),
+            summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn reference_asteroid_evidence_summary_validation_rejects_body_order_drift() {
+        let mut summary = reference_asteroid_evidence_summary()
+            .expect("reference asteroid evidence summary should exist");
+        summary.sample_bodies.swap(0, 1);
+
+        assert!(matches!(
+            summary.validate(),
+            Err(
+                ReferenceAsteroidEvidenceSummaryValidationError::BodyOrderMismatch { index: 0, .. }
+            )
+        ));
     }
 
     #[test]
@@ -5665,8 +6033,37 @@ mod tests {
 
     #[test]
     fn reference_asteroid_equatorial_evidence_summary_reports_the_expected_coverage() {
-        let report = reference_asteroid_equatorial_evidence_summary_for_report();
-        assert_eq!(report, "Selected asteroid equatorial evidence: 5 exact J2000 samples at JD 2451545.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros) using a mean-obliquity equatorial transform");
+        let summary = reference_asteroid_equatorial_evidence_summary()
+            .expect("reference asteroid equatorial evidence summary should exist");
+        summary
+            .validate()
+            .expect("reference asteroid equatorial evidence summary should validate");
+        assert_eq!(
+            summary.summary_line(),
+            "Selected asteroid equatorial evidence: 5 exact J2000 samples at JD 2451545.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros) using a mean-obliquity equatorial transform"
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            reference_asteroid_equatorial_evidence_summary_for_report(),
+            summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn reference_asteroid_equatorial_evidence_summary_validation_rejects_transform_drift() {
+        let mut summary = reference_asteroid_equatorial_evidence_summary()
+            .expect("reference asteroid equatorial evidence summary should exist");
+        summary.transform_note = "broken transform";
+
+        assert!(matches!(
+            summary.validate(),
+            Err(
+                ReferenceAsteroidEquatorialEvidenceSummaryValidationError::TransformNoteMismatch {
+                    expected: "mean-obliquity equatorial transform",
+                    found: "broken transform",
+                }
+            )
+        ));
     }
 
     #[test]
