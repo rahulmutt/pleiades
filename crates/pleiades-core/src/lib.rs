@@ -189,6 +189,52 @@ impl<B: EphemerisBackend> ChartEngine<B> {
     /// requests when the backend metadata allows both scales. It is useful for callers that want to
     /// preflight a chart corpus before dispatching a sequence of chart assemblies or validation
     /// runs.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use pleiades_core::{ChartEngine, ChartRequest, EphemerisBackend};
+    /// use pleiades_core::{AccuracyClass, BackendCapabilities, BackendFamily, BackendId};
+    /// use pleiades_core::{BackendMetadata, BackendProvenance, EphemerisError, EphemerisErrorKind};
+    /// use pleiades_core::{CoordinateFrame, CelestialBody, Instant, JulianDay, TimeRange, TimeScale};
+    ///
+    /// struct DemoBackend;
+    ///
+    /// impl EphemerisBackend for DemoBackend {
+    ///     fn metadata(&self) -> BackendMetadata {
+    ///         BackendMetadata {
+    ///             id: BackendId::new("demo"),
+    ///             version: "0.1.0".to_string(),
+    ///             family: BackendFamily::Algorithmic,
+    ///             provenance: BackendProvenance::new("demo backend"),
+    ///             nominal_range: TimeRange::new(None, None),
+    ///             supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
+    ///             body_coverage: vec![CelestialBody::Sun],
+    ///             supported_frames: vec![CoordinateFrame::Ecliptic],
+    ///             capabilities: BackendCapabilities::default(),
+    ///             accuracy: AccuracyClass::Approximate,
+    ///             deterministic: true,
+    ///             offline: true,
+    ///         }
+    ///     }
+    ///
+    ///     fn supports_body(&self, body: CelestialBody) -> bool {
+    ///         body == CelestialBody::Sun
+    ///     }
+    ///
+    ///     fn position(&self, _request: &pleiades_core::EphemerisRequest) -> Result<pleiades_core::EphemerisResult, EphemerisError> {
+    ///         Err(EphemerisError::new(EphemerisErrorKind::UnsupportedBody, "not used in this example"))
+    ///     }
+    /// }
+    ///
+    /// let engine = ChartEngine::new(DemoBackend);
+    /// let mut tt_request = ChartRequest::new(Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt));
+    /// tt_request.bodies = vec![CelestialBody::Sun];
+    /// let mut tdb_request = ChartRequest::new(Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb));
+    /// tdb_request.bodies = vec![CelestialBody::Sun];
+    ///
+    /// assert!(engine.validate_chart_requests(&[tt_request, tdb_request]).is_ok());
+    /// ```
     pub fn validate_chart_requests(&self, requests: &[ChartRequest]) -> Result<(), EphemerisError> {
         let metadata = self.validated_metadata().map_err(|error| {
             EphemerisError::new(
