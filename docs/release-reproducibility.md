@@ -87,6 +87,8 @@ The bundle currently writes these text artifacts:
 - `api-stability.txt`
 - `api-stability-summary.txt`
 - `artifact-summary.txt`
+- `release-profile-identifiers.txt`
+- `benchmark-report.txt`
 - `validation-report-summary.txt`
 - `validation-report.txt`
 - `bundle-manifest.txt` (includes the recorded source revision, workspace status, Rust compiler version, profile/API identifiers, and validation-round count)
