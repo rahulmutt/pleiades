@@ -12941,6 +12941,7 @@ mod tests {
         let rendered = render_cli(&["release-notes"]).expect("release notes should render");
         assert!(rendered.contains("Release notes"));
         let release_profiles = current_release_profile_identifiers();
+        let profile = current_compatibility_profile();
         assert!(rendered.contains(&format!(
             "Profile: {}",
             release_profiles.compatibility_profile_id
@@ -12963,6 +12964,10 @@ mod tests {
         assert!(rendered.contains("API stability posture:"));
         assert!(rendered.contains("Deprecation policy:"));
         assert!(rendered.contains("Release-specific coverage:"));
+        assert!(rendered.contains(&format!(
+            "House code aliases: {}",
+            profile.house_code_aliases_summary_line()
+        )));
         assert!(rendered.contains("selected asteroid coverage"));
         assert!(rendered.contains("WvA"));
         assert!(rendered.contains("Selected asteroid evidence: 5 exact J2000 samples"));
@@ -13911,6 +13916,10 @@ mod tests {
         assert!(rendered.contains("Release-specific coverage:"));
         assert!(rendered.contains("Custom-definition labels:"));
         assert!(rendered.contains("House formula families: 7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign)"));
+        assert!(rendered.contains(&format!(
+            "House code aliases: {}",
+            profile.house_code_aliases_summary_line()
+        )));
         assert!(rendered.contains("Validation reference points: 1 (stage-4 validation corpus)"));
         assert!(rendered.contains("Compatibility caveats:"));
         assert!(rendered.contains(&format!(
