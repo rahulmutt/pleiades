@@ -577,6 +577,122 @@ mod tests {
     }
 
     #[test]
+    fn validate_chart_requests_preserves_routing_batch_deferral_for_mixed_time_scales_sidereal_and_topocentric_requests(
+    ) {
+        struct RoutingSunBackend;
+
+        impl EphemerisBackend for RoutingSunBackend {
+            fn metadata(&self) -> BackendMetadata {
+                BackendMetadata {
+                    id: BackendId::new("routing-sun"),
+                    version: "0.1.0".to_string(),
+                    family: BackendFamily::Algorithmic,
+                    provenance: BackendProvenance::new("routing Sun test backend"),
+                    nominal_range: TimeRange::new(None, None),
+                    supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
+                    body_coverage: vec![CelestialBody::Sun],
+                    supported_frames: vec![CoordinateFrame::Ecliptic],
+                    capabilities: BackendCapabilities::default(),
+                    accuracy: AccuracyClass::Approximate,
+                    deterministic: true,
+                    offline: true,
+                }
+            }
+
+            fn supports_body(&self, body: CelestialBody) -> bool {
+                body == CelestialBody::Sun
+            }
+
+            fn position(
+                &self,
+                request: &EphemerisRequest,
+            ) -> Result<EphemerisResult, EphemerisError> {
+                Ok(EphemerisResult::new(
+                    BackendId::new("routing-sun"),
+                    request.body.clone(),
+                    request.instant,
+                    request.frame,
+                    request.zodiac_mode.clone(),
+                    request.apparent,
+                ))
+            }
+        }
+
+        struct RoutingMoonBackend;
+
+        impl EphemerisBackend for RoutingMoonBackend {
+            fn metadata(&self) -> BackendMetadata {
+                BackendMetadata {
+                    id: BackendId::new("routing-moon"),
+                    version: "0.1.0".to_string(),
+                    family: BackendFamily::Algorithmic,
+                    provenance: BackendProvenance::new("routing Moon test backend"),
+                    nominal_range: TimeRange::new(None, None),
+                    supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
+                    body_coverage: vec![CelestialBody::Moon],
+                    supported_frames: vec![CoordinateFrame::Ecliptic],
+                    capabilities: BackendCapabilities::default(),
+                    accuracy: AccuracyClass::Approximate,
+                    deterministic: true,
+                    offline: true,
+                }
+            }
+
+            fn supports_body(&self, body: CelestialBody) -> bool {
+                body == CelestialBody::Moon
+            }
+
+            fn position(
+                &self,
+                request: &EphemerisRequest,
+            ) -> Result<EphemerisResult, EphemerisError> {
+                Ok(EphemerisResult::new(
+                    BackendId::new("routing-moon"),
+                    request.body.clone(),
+                    request.instant,
+                    request.frame,
+                    request.zodiac_mode.clone(),
+                    request.apparent,
+                ))
+            }
+        }
+
+        let engine = ChartEngine::new(RoutingBackend::new(vec![
+            Box::new(RoutingSunBackend),
+            Box::new(RoutingMoonBackend),
+        ]));
+        let tt_request =
+            ChartRequest::new(Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt))
+                .with_bodies(vec![CelestialBody::Sun]);
+        let sidereal_request = ChartRequest::new(Instant::new(
+            JulianDay::from_days(2451545.0),
+            TimeScale::Tdb,
+        ))
+        .with_bodies(vec![CelestialBody::Moon])
+        .with_observer(ObserverLocation::new(
+            Latitude::from_degrees(12.5),
+            Longitude::from_degrees(45.0),
+            Some(100.0),
+        ))
+        .with_house_system(crate::HouseSystem::Topocentric)
+        .with_zodiac_mode(ZodiacMode::Sidereal {
+            ayanamsa: Ayanamsa::Lahiri,
+        });
+        let requests = [tt_request, sidereal_request];
+
+        engine
+            .validate_chart_requests(&requests)
+            .expect("routing chart validation should defer mixed TT/TDB, sidereal, and observer-bearing house requests to the selected provider");
+        assert_eq!(requests[0].instant.scale, TimeScale::Tt);
+        assert_eq!(requests[1].instant.scale, TimeScale::Tdb);
+        assert_eq!(requests[1].observer_policy(), ObserverPolicy::HouseOnly);
+        assert!(matches!(
+            requests[1].zodiac_mode,
+            ZodiacMode::Sidereal { .. }
+        ));
+    }
+
+    #[test]
     fn validated_metadata_rejects_duplicate_body_coverage() {
         struct InvalidMetadataBackend;
 
