@@ -8495,8 +8495,10 @@ fn api_stability_summary_line_for_report() -> String {
     }
 }
 
+/// Compact inventory of the public request surfaces that are called out in the
+/// time-observer policy and release-facing validation summaries.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-struct RequestSurfaceSummary {
+pub struct RequestSurfaceSummary {
     instant: &'static str,
     chart_request: &'static str,
     backend_request: &'static str,
@@ -8505,7 +8507,20 @@ struct RequestSurfaceSummary {
 }
 
 impl RequestSurfaceSummary {
-    fn validate(&self) -> Result<(), EphemerisError> {
+    /// Returns the current compact request-surface inventory.
+    pub const fn current() -> Self {
+        Self {
+            instant: "pleiades-types::Instant (tagged instant plus caller-supplied retagging)",
+            chart_request: "pleiades-core::ChartRequest (chart assembly plus house-observer preflight)",
+            backend_request:
+                "pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight)",
+            house_request: "pleiades-houses::HouseRequest (house-only observer calculations)",
+            cli_chart: "pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags)",
+        }
+    }
+
+    /// Validates that the cached inventory still matches the documented request surfaces.
+    pub fn validate(&self) -> Result<(), EphemerisError> {
         const EXPECTED_INSTANT: &str =
             "pleiades-types::Instant (tagged instant plus caller-supplied retagging)";
         const EXPECTED_CHART_REQUEST: &str =
@@ -8537,7 +8552,8 @@ impl RequestSurfaceSummary {
         Ok(())
     }
 
-    fn summary_line(self) -> String {
+    /// Returns the compact `Primary request surfaces:` line.
+    pub fn summary_line(self) -> String {
         format!(
             "Primary request surfaces: {}; {}; {}; {}; {}",
             self.instant,
@@ -8570,19 +8586,13 @@ fn validate_request_surface_label(
     ))
 }
 
-const fn current_request_surface_summary() -> RequestSurfaceSummary {
-    RequestSurfaceSummary {
-        instant: "pleiades-types::Instant (tagged instant plus caller-supplied retagging)",
-        chart_request: "pleiades-core::ChartRequest (chart assembly plus house-observer preflight)",
-        backend_request:
-            "pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight)",
-        house_request: "pleiades-houses::HouseRequest (house-only observer calculations)",
-        cli_chart: "pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags)",
-    }
+/// Returns the current compact request-surface inventory.
+pub const fn current_request_surface_summary() -> RequestSurfaceSummary {
+    RequestSurfaceSummary::current()
 }
 
 fn request_surface_summary_for_report() -> String {
-    let summary = current_request_surface_summary();
+    let summary = RequestSurfaceSummary::current();
     match summary.validate() {
         Ok(()) => summary.to_string(),
         Err(error) => format!("primary request surfaces unavailable ({error})"),
@@ -12045,7 +12055,7 @@ mod tests {
 
     #[test]
     fn request_surface_summary_validation_matches_the_report_line() {
-        let summary = current_request_surface_summary();
+        let summary = RequestSurfaceSummary::current();
         assert_eq!(summary.validate(), Ok(()));
         assert_eq!(summary.summary_line(), summary.to_string());
         assert_eq!(summary.to_string(), request_surface_summary_for_report());
