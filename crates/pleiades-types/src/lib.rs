@@ -457,6 +457,17 @@ impl Instant {
     /// [`TimeScaleConversion::validate`], which lets callers preflight the same
     /// explicit source/target/offset contract directly from an instant when
     /// they do not yet want to mutate it.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use pleiades_types::{Instant, JulianDay, TimeScale, TimeScaleConversion};
+    ///
+    /// let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Ut1);
+    /// let policy = TimeScaleConversion::new(TimeScale::Ut1, TimeScale::Tt, 64.184);
+    ///
+    /// assert!(instant.validate_time_scale_conversion(policy).is_ok());
+    /// ```
     pub fn validate_time_scale_conversion(
         self,
         conversion: TimeScaleConversion,

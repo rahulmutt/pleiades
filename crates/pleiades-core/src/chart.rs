@@ -315,6 +315,26 @@ impl ChartRequest {
     /// error that chart assembly uses if the observer is missing, and it also
     /// reuses the house-layer validation so malformed observer locations fail
     /// before the façade gets to house derivation.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use pleiades_core::ChartRequest;
+    /// use pleiades_types::{HouseSystem, Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale};
+    ///
+    /// let request = ChartRequest::new(Instant::new(
+    ///     JulianDay::from_days(2_451_545.0),
+    ///     TimeScale::Tt,
+    /// ))
+    /// .with_observer(ObserverLocation::new(
+    ///     Latitude::from_degrees(51.5),
+    ///     Longitude::from_degrees(-0.1),
+    ///     None,
+    /// ))
+    /// .with_house_system(HouseSystem::WholeSign);
+    ///
+    /// assert!(request.validate_house_observer_policy().is_ok());
+    /// ```
     pub fn validate_house_observer_policy(&self) -> Result<(), EphemerisError> {
         if let Some(system) = &self.house_system {
             let observer = self.observer.clone().ok_or_else(|| {
