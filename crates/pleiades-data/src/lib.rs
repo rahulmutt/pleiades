@@ -182,6 +182,26 @@ pub enum PackagedArtifactGenerationPolicy {
     AdjacentSameBodyLinearSegments,
 }
 
+/// Validation error for the packaged-artifact generation policy.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PackagedArtifactGenerationPolicyValidationError {
+    /// A policy field is out of sync with the current packaged-artifact posture.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for PackagedArtifactGenerationPolicyValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the packaged artifact generation policy field `{field}` is out of sync with the current posture"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for PackagedArtifactGenerationPolicyValidationError {}
+
 impl PackagedArtifactGenerationPolicy {
     /// Returns the compact label used in release-facing summaries.
     pub const fn label(self) -> &'static str {
@@ -198,12 +218,113 @@ impl PackagedArtifactGenerationPolicy {
             }
         }
     }
+
+    /// Returns the compact release-facing summary for the generation policy.
+    pub fn summary_line(self) -> String {
+        format!("{}; {}", self.label(), self.note())
+    }
+
+    /// Returns `Ok(())` when the generation policy still matches the current packaged-artifact posture.
+    pub fn validate(self) -> Result<(), PackagedArtifactGenerationPolicyValidationError> {
+        if self != Self::AdjacentSameBodyLinearSegments {
+            return Err(
+                PackagedArtifactGenerationPolicyValidationError::FieldOutOfSync { field: "policy" },
+            );
+        }
+
+        Ok(())
+    }
 }
 
 impl fmt::Display for PackagedArtifactGenerationPolicy {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.label())
     }
+}
+
+/// Structured summary for the packaged-artifact generation policy.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PackagedArtifactGenerationPolicySummary {
+    /// Policy describing how the packaged artifact is generated.
+    pub policy: PackagedArtifactGenerationPolicy,
+}
+
+/// Validation error for the packaged-artifact generation policy summary.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PackagedArtifactGenerationPolicySummaryValidationError {
+    /// A summary field is out of sync with the current packaged-artifact posture.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for PackagedArtifactGenerationPolicySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the packaged artifact generation policy summary field `{field}` is out of sync with the current posture"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for PackagedArtifactGenerationPolicySummaryValidationError {}
+
+impl PackagedArtifactGenerationPolicySummary {
+    /// Returns the packaged-artifact generation policy as a compact human-readable line.
+    pub fn summary_line(self) -> String {
+        self.policy.summary_line()
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current packaged-artifact posture.
+    pub fn validate(&self) -> Result<(), PackagedArtifactGenerationPolicySummaryValidationError> {
+        self.policy.validate().map_err(|error| match error {
+            PackagedArtifactGenerationPolicyValidationError::FieldOutOfSync { field } => {
+                PackagedArtifactGenerationPolicySummaryValidationError::FieldOutOfSync { field }
+            }
+        })
+    }
+}
+
+impl fmt::Display for PackagedArtifactGenerationPolicySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+const PACKAGED_ARTIFACT_GENERATION_POLICY_SUMMARY: PackagedArtifactGenerationPolicySummary =
+    PackagedArtifactGenerationPolicySummary {
+        policy: PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments,
+    };
+
+/// Returns the current packaged-artifact generation policy summary record.
+pub fn packaged_artifact_generation_policy_summary_details(
+) -> PackagedArtifactGenerationPolicySummary {
+    let summary = PACKAGED_ARTIFACT_GENERATION_POLICY_SUMMARY;
+    debug_assert!(summary.validate().is_ok());
+    summary
+}
+
+/// Returns the current packaged-artifact generation policy summary after validating the structured posture.
+pub fn packaged_artifact_generation_policy_summary_for_report() -> String {
+    let summary = packaged_artifact_generation_policy_summary_details();
+    match summary.validate() {
+        Ok(()) => summary.to_string(),
+        Err(error) => format!("Packaged-artifact generation policy: unavailable ({error})"),
+    }
+}
+
+/// Returns the current packaged-artifact generation policy summary.
+pub fn packaged_artifact_generation_policy_summary() -> &'static str {
+    static SUMMARY: OnceLock<String> = OnceLock::new();
+    SUMMARY
+        .get_or_init(|| {
+            let summary = packaged_artifact_generation_policy_summary_details();
+            match summary.validate() {
+                Ok(()) => summary.to_string(),
+                Err(error) => format!("Packaged-artifact generation policy: unavailable ({error})"),
+            }
+        })
+        .as_str()
 }
 
 /// Structured regeneration provenance for the packaged artifact.
@@ -245,9 +366,8 @@ impl PackagedArtifactRegenerationSummary {
     /// Returns the generation policy as a compact human-readable line.
     pub fn generation_policy_line(&self) -> String {
         format!(
-            "generation policy: {}; {}",
-            self.generation_policy,
-            self.generation_policy.note()
+            "generation policy: {}",
+            self.generation_policy.summary_line()
         )
     }
 
@@ -289,14 +409,14 @@ impl PackagedArtifactRegenerationSummary {
                 ),
             ));
         }
-        if self.generation_policy
-            != PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments
-        {
-            return Err(pleiades_compression::CompressionError::new(
+        self.generation_policy.validate().map_err(|error| {
+            pleiades_compression::CompressionError::new(
                 pleiades_compression::CompressionErrorKind::InvalidFormat,
-                "packaged artifact regeneration summary generation policy does not match the checked-in packaged artifact generation policy",
-            ));
-        }
+                format!(
+                    "packaged artifact regeneration summary generation policy is invalid: {error}"
+                ),
+            )
+        })?;
 
         if self.reference_snapshot.is_none() {
             return Err(pleiades_compression::CompressionError::new(
@@ -2833,6 +2953,24 @@ mod tests {
         assert_eq!(
             render_packaged_artifact_profile_summary(&summary, true),
             "Packaged artifact profile with bundled bodies: unavailable (InvalidFormat: packaged artifact profile body count does not match bundled body list)"
+        );
+    }
+
+    #[test]
+    fn packaged_artifact_generation_policy_summary_matches_current_posture() {
+        let summary = packaged_artifact_generation_policy_summary_details();
+        assert_eq!(
+            summary.policy,
+            PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments
+        );
+        assert_eq!(summary.summary_line(), "adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic residual corrections to keep the high-curvature fit compact");
+        assert_eq!(summary.to_string(), summary.summary_line());
+        summary
+            .validate()
+            .expect("generation policy summary should validate");
+        assert_eq!(
+            packaged_artifact_generation_policy_summary(),
+            summary.to_string()
         );
     }
 
