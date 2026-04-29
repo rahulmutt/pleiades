@@ -14582,6 +14582,10 @@ version = "0.9.0"
         assert!(release_summary.contains(
             "Latitude-sensitive house systems: 8 (Placidus, Koch, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Topocentric, Sunshine, Gauquelin sectors)"
         ));
+        assert!(release_summary.contains(&format!(
+            "House-code aliases: {}",
+            current_compatibility_profile().house_code_alias_count()
+        )));
         assert!(release_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(release_summary.contains("Backend matrix summary: backend-matrix-summary"));
