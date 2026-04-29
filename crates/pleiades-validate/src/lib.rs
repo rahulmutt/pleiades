@@ -5145,6 +5145,9 @@ fn render_release_notes_summary_text() -> String {
     text.push('\n');
     text.push_str(&comparison_snapshot_manifest_summary_for_report());
     text.push('\n');
+    text.push_str("Comparison tolerance policy: ");
+    text.push_str(&comparison_tolerance_policy_summary_for_release_notes());
+    text.push('\n');
     text.push_str("Custom-definition labels: ");
     text.push_str(&profile.custom_definition_labels.len().to_string());
     text.push('\n');
@@ -5202,6 +5205,16 @@ fn render_release_notes_summary_text() -> String {
     text.push_str("See release-summary for the compact one-screen release overview.\n");
 
     text
+}
+
+fn comparison_tolerance_policy_summary_for_release_notes() -> String {
+    let corpus = default_corpus();
+    let reference = default_reference_backend();
+    let candidate = default_candidate_backend();
+    match compare_backends(&reference, &candidate, &corpus) {
+        Ok(report) => format_comparison_tolerance_policy_for_report(&report),
+        Err(error) => format!("comparison tolerance policy unavailable ({error})"),
+    }
 }
 
 fn render_release_checklist_text() -> String {
@@ -15312,6 +15325,9 @@ version = "0.9.0"
         assert!(release_notes.contains("Bundle provenance:"));
         assert!(release_notes.contains("Rust compiler version"));
         assert!(release_notes_summary.contains("Release notes summary"));
+        assert!(release_notes_summary.contains(
+            "Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto override); limits="
+        ));
         assert!(release_notes_summary.contains("Release-specific coverage:"));
         assert!(release_notes_summary.contains(
             "Latitude-sensitive house systems: 8 (Placidus, Koch, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Topocentric, Sunshine, Gauquelin sectors)"

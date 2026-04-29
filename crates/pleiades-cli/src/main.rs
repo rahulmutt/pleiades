@@ -995,6 +995,9 @@ mod tests {
         let release_notes_summary =
             render_cli(&["release-notes-summary"]).expect("release notes summary should render");
         assert!(release_notes_summary.contains("Release notes summary"));
+        assert!(release_notes_summary.contains(
+            "Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto override); limits="
+        ));
         assert!(release_notes_summary.contains(&format!(
             "House code aliases: {}",
             current_compatibility_profile().house_code_aliases_summary_line()
