@@ -144,36 +144,40 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
             "--lon" => lon = Some(parse_f64(iter.next(), "--lon")?),
             "--body" => bodies.push(parse_body(iter.next())?),
             "--tt" => {
-                if time_scale_explicit && time_scale != TimeScale::Tt {
+                if time_scale_explicit {
                     return Err(
-                        "conflicting time-scale flags: --tt, --tdb, --utc, and --ut1".to_string(),
+                        "conflicting time-scale flags: use only one of --tt, --tdb, --utc, or --ut1"
+                            .to_string(),
                     );
                 }
                 time_scale = TimeScale::Tt;
                 time_scale_explicit = true;
             }
             "--tdb" => {
-                if time_scale_explicit && time_scale != TimeScale::Tdb {
+                if time_scale_explicit {
                     return Err(
-                        "conflicting time-scale flags: --tt, --tdb, --utc, and --ut1".to_string(),
+                        "conflicting time-scale flags: use only one of --tt, --tdb, --utc, or --ut1"
+                            .to_string(),
                     );
                 }
                 time_scale = TimeScale::Tdb;
                 time_scale_explicit = true;
             }
             "--utc" => {
-                if time_scale_explicit && time_scale != TimeScale::Utc {
+                if time_scale_explicit {
                     return Err(
-                        "conflicting time-scale flags: --tt, --tdb, --utc, and --ut1".to_string(),
+                        "conflicting time-scale flags: use only one of --tt, --tdb, --utc, or --ut1"
+                            .to_string(),
                     );
                 }
                 time_scale = TimeScale::Utc;
                 time_scale_explicit = true;
             }
             "--ut1" => {
-                if time_scale_explicit && time_scale != TimeScale::Ut1 {
+                if time_scale_explicit {
                     return Err(
-                        "conflicting time-scale flags: --tt, --tdb, --utc, and --ut1".to_string(),
+                        "conflicting time-scale flags: use only one of --tt, --tdb, --utc, or --ut1"
+                            .to_string(),
                     );
                 }
                 time_scale = TimeScale::Ut1;
@@ -223,15 +227,21 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
                 )?);
             }
             "--mean" => {
-                if apparentness_explicit && apparentness != Apparentness::Mean {
-                    return Err("conflicting apparentness flags: --mean and --apparent".to_string());
+                if apparentness_explicit {
+                    return Err(
+                        "conflicting apparentness flags: use only one of --mean or --apparent"
+                            .to_string(),
+                    );
                 }
                 apparentness = Apparentness::Mean;
                 apparentness_explicit = true;
             }
             "--apparent" => {
-                if apparentness_explicit && apparentness != Apparentness::Apparent {
-                    return Err("conflicting apparentness flags: --mean and --apparent".to_string());
+                if apparentness_explicit {
+                    return Err(
+                        "conflicting apparentness flags: use only one of --mean or --apparent"
+                            .to_string(),
+                    );
                 }
                 apparentness = Apparentness::Apparent;
                 apparentness_explicit = true;
@@ -1449,6 +1459,20 @@ mod tests {
         ])
         .expect_err("TT-tagged chart requests should reject duplicate TDB-TT offset flags");
         assert!(error.contains("conflicting TDB-TT offset flags"));
+    }
+
+    #[test]
+    fn chart_command_rejects_repeated_time_scale_flags_even_when_the_same_scale_is_reused() {
+        let error = render_chart(&["--jd", "2451545.0", "--tt", "--tt", "--body", "Sun"])
+            .expect_err("chart requests should reject duplicate time-scale tags");
+        assert!(error.contains("conflicting time-scale flags"));
+    }
+
+    #[test]
+    fn chart_command_rejects_repeated_apparentness_flags_even_when_the_same_mode_is_reused() {
+        let error = render_chart(&["--jd", "2451545.0", "--mean", "--mean", "--body", "Sun"])
+            .expect_err("chart requests should reject duplicate apparentness tags");
+        assert!(error.contains("conflicting apparentness flags"));
     }
 
     #[test]
