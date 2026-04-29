@@ -1560,6 +1560,24 @@ impl fmt::Display for MotionSummary {
 }
 
 /// A summary of major aspect matches in a chart snapshot.
+///
+/// # Example
+///
+/// ```
+/// use pleiades_core::AspectSummary;
+///
+/// let summary = AspectSummary {
+///     conjunction: 0,
+///     sextile: 1,
+///     square: 0,
+///     trine: 2,
+///     opposition: 0,
+/// };
+///
+/// assert_eq!(summary.summary_line(), "1 Sextile, 2 Trine");
+/// assert_eq!(summary.to_string(), summary.summary_line());
+/// assert!(summary.has_known_aspects());
+/// ```
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct AspectSummary {
     /// Placements matched by conjunction.
@@ -1599,11 +1617,10 @@ impl AspectSummary {
     pub fn has_known_aspects(self) -> bool {
         self.conjunction + self.sextile + self.square + self.trine + self.opposition > 0
     }
-}
 
-impl fmt::Display for AspectSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut wrote_any = false;
+    /// Returns a compact one-line summary of the major aspect families in the snapshot.
+    pub fn summary_line(self) -> String {
+        let mut summary = String::new();
         for (count, aspect) in [
             (self.conjunction, AspectKind::Conjunction),
             (self.sextile, AspectKind::Sextile),
@@ -1614,18 +1631,25 @@ impl fmt::Display for AspectSummary {
             if count == 0 {
                 continue;
             }
-            if wrote_any {
-                f.write_str(", ")?;
+            if !summary.is_empty() {
+                summary.push_str(", ");
             }
-            wrote_any = true;
-            write!(f, "{} {}", count, aspect)?;
+            summary.push_str(&count.to_string());
+            summary.push(' ');
+            summary.push_str(aspect.name());
         }
 
-        if !wrote_any {
-            f.write_str("no major aspects")?;
+        if summary.is_empty() {
+            summary.push_str("no major aspects");
         }
 
-        Ok(())
+        summary
+    }
+}
+
+impl fmt::Display for AspectSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
     }
 }
 
@@ -4101,6 +4125,8 @@ mod tests {
                 opposition: 0,
             }
         );
+        assert_eq!(chart.aspect_summary().summary_line(), "1 Sextile");
+        assert_eq!(chart.aspect_summary().to_string(), "1 Sextile");
         let rendered = chart.to_string();
         assert!(rendered.contains("Aspect summary: 1 Sextile"));
         assert!(rendered.contains("Aspects:"));
