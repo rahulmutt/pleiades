@@ -2151,7 +2151,7 @@ pub fn lunar_reference_evidence() -> &'static [LunarReferenceSample] {
 }
 
 /// Returns the canonical mixed TT/TDB request corpus used by lunar batch-parity validation.
-pub fn lunar_reference_batch_requests() -> Vec<EphemerisRequest> {
+pub fn lunar_reference_batch_parity_requests() -> Vec<EphemerisRequest> {
     lunar_reference_evidence()
         .iter()
         .enumerate()
@@ -2169,10 +2169,18 @@ pub fn lunar_reference_batch_requests() -> Vec<EphemerisRequest> {
 
 /// Returns the canonical mixed TT/TDB request corpus used by lunar batch-parity validation.
 ///
-/// This is a compatibility alias for [`lunar_reference_batch_requests`].
-#[doc(alias = "lunar_reference_batch_requests")]
+/// This is a compatibility alias for [`lunar_reference_batch_parity_requests`].
+#[doc(alias = "lunar_reference_batch_parity_requests")]
+pub fn lunar_reference_batch_requests() -> Vec<EphemerisRequest> {
+    lunar_reference_batch_parity_requests()
+}
+
+/// Returns the canonical mixed TT/TDB request corpus used by lunar batch-parity validation.
+///
+/// This is a compatibility alias for [`lunar_reference_batch_parity_requests`].
+#[doc(alias = "lunar_reference_batch_parity_requests")]
 pub fn lunar_reference_batch_request_corpus() -> Vec<EphemerisRequest> {
-    lunar_reference_batch_requests()
+    lunar_reference_batch_parity_requests()
 }
 
 /// A single canonical lunar equatorial evidence sample used by validation and reporting.
@@ -2275,7 +2283,7 @@ pub fn lunar_equatorial_reference_evidence() -> &'static [LunarEquatorialReferen
 }
 
 /// Returns the canonical equatorial lunar batch-parity corpus used by validation and reporting.
-pub fn lunar_equatorial_reference_batch_requests() -> Vec<EphemerisRequest> {
+pub fn lunar_equatorial_reference_batch_parity_requests() -> Vec<EphemerisRequest> {
     lunar_equatorial_reference_evidence()
         .iter()
         .map(|sample| {
@@ -2291,10 +2299,18 @@ pub fn lunar_equatorial_reference_batch_requests() -> Vec<EphemerisRequest> {
 
 /// Returns the canonical equatorial lunar batch-parity corpus used by validation and reporting.
 ///
-/// This is a compatibility alias for [`lunar_equatorial_reference_batch_requests`].
-#[doc(alias = "lunar_equatorial_reference_batch_requests")]
+/// This is a compatibility alias for [`lunar_equatorial_reference_batch_parity_requests`].
+#[doc(alias = "lunar_equatorial_reference_batch_parity_requests")]
+pub fn lunar_equatorial_reference_batch_requests() -> Vec<EphemerisRequest> {
+    lunar_equatorial_reference_batch_parity_requests()
+}
+
+/// Returns the canonical equatorial lunar batch-parity corpus used by validation and reporting.
+///
+/// This is a compatibility alias for [`lunar_equatorial_reference_batch_parity_requests`].
+#[doc(alias = "lunar_equatorial_reference_batch_parity_requests")]
 pub fn lunar_equatorial_reference_batch_request_corpus() -> Vec<EphemerisRequest> {
-    lunar_equatorial_reference_batch_requests()
+    lunar_equatorial_reference_batch_parity_requests()
 }
 
 /// A compact summary of the canonical lunar equatorial reference batch-parity slice.
@@ -6957,12 +6973,20 @@ mod tests {
     #[test]
     fn lunar_request_corpus_aliases_remain_the_canonical_slices() {
         assert_eq!(
-            lunar_reference_batch_request_corpus(),
+            lunar_reference_batch_parity_requests(),
             lunar_reference_batch_requests()
         );
         assert_eq!(
-            lunar_equatorial_reference_batch_request_corpus(),
+            lunar_reference_batch_request_corpus(),
+            lunar_reference_batch_parity_requests()
+        );
+        assert_eq!(
+            lunar_equatorial_reference_batch_parity_requests(),
             lunar_equatorial_reference_batch_requests()
+        );
+        assert_eq!(
+            lunar_equatorial_reference_batch_request_corpus(),
+            lunar_equatorial_reference_batch_parity_requests()
         );
         assert_eq!(
             lunar_apparent_comparison_request_corpus(),
