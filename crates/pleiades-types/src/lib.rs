@@ -3207,6 +3207,17 @@ mod tests {
     }
 
     #[test]
+    fn time_scale_conversion_policy_renders_signed_offsets_in_summary_lines() {
+        let policy = TimeScaleConversion::new(TimeScale::Tdb, TimeScale::Tt, -0.001_657);
+
+        assert_eq!(
+            policy.summary_line(),
+            "source=TDB; target=TT; offset_seconds=-0.001657 s"
+        );
+        assert_eq!(policy.to_string(), policy.summary_line());
+    }
+
+    #[test]
     fn instant_validate_time_scale_conversion_rejects_mismatched_scales_and_non_finite_offsets() {
         let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
         let policy = TimeScaleConversion::new(TimeScale::Ut1, TimeScale::Tt, 64.184);
