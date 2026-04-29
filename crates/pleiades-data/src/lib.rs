@@ -189,14 +189,20 @@ pub enum PackagedArtifactGenerationPolicyValidationError {
     FieldOutOfSync { field: &'static str },
 }
 
-impl fmt::Display for PackagedArtifactGenerationPolicyValidationError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl PackagedArtifactGenerationPolicyValidationError {
+    /// Returns the compact release-facing summary for the validation error.
+    pub fn summary_line(&self) -> String {
         match self {
-            Self::FieldOutOfSync { field } => write!(
-                f,
+            Self::FieldOutOfSync { field } => format!(
                 "the packaged artifact generation policy field `{field}` is out of sync with the current posture"
             ),
         }
+    }
+}
+
+impl fmt::Display for PackagedArtifactGenerationPolicyValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
     }
 }
 
@@ -256,14 +262,20 @@ pub enum PackagedArtifactGenerationPolicySummaryValidationError {
     FieldOutOfSync { field: &'static str },
 }
 
-impl fmt::Display for PackagedArtifactGenerationPolicySummaryValidationError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl PackagedArtifactGenerationPolicySummaryValidationError {
+    /// Returns the compact release-facing summary for the validation error.
+    pub fn summary_line(&self) -> String {
         match self {
-            Self::FieldOutOfSync { field } => write!(
-                f,
+            Self::FieldOutOfSync { field } => format!(
                 "the packaged artifact generation policy summary field `{field}` is out of sync with the current posture"
             ),
         }
+    }
+}
+
+impl fmt::Display for PackagedArtifactGenerationPolicySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
     }
 }
 
@@ -3391,17 +3403,33 @@ mod tests {
 
     #[test]
     fn packaged_artifact_generation_policy_summary_rejects_residual_body_drift() {
+        let error = validate_packaged_artifact_generation_policy_residual_bodies(
+            PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments,
+            &[CelestialBody::Sun],
+        )
+        .expect_err("residual body drift should fail validation");
         assert_eq!(
-            validate_packaged_artifact_generation_policy_residual_bodies(
-                PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments,
-                &[CelestialBody::Sun],
-            ),
-            Err(
-                PackagedArtifactGenerationPolicySummaryValidationError::FieldOutOfSync {
-                    field: "residual_bodies",
-                }
-            )
+            error,
+            PackagedArtifactGenerationPolicySummaryValidationError::FieldOutOfSync {
+                field: "residual_bodies",
+            }
         );
+        assert_eq!(
+            error.summary_line(),
+            "the packaged artifact generation policy summary field `residual_bodies` is out of sync with the current posture"
+        );
+        assert_eq!(error.to_string(), error.summary_line());
+    }
+
+    #[test]
+    fn packaged_artifact_generation_policy_validation_error_has_summary_line() {
+        let error =
+            PackagedArtifactGenerationPolicyValidationError::FieldOutOfSync { field: "policy" };
+        assert_eq!(
+            error.summary_line(),
+            "the packaged artifact generation policy field `policy` is out of sync with the current posture"
+        );
+        assert_eq!(error.to_string(), error.summary_line());
     }
 
     #[test]
