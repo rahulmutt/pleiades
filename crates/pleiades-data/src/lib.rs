@@ -61,7 +61,7 @@ use pleiades_jpl::{
 
 const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data prototype";
-const ARTIFACT_SOURCE: &str = "Quantized linear segments fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with J2000 point segments for the outer planets, Pluto, and the asteroid coverage.";
+const ARTIFACT_SOURCE: &str = "Quantized linear segments with residual-corrected Moon spans fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with J2000 point segments for the outer planets, Pluto, and the asteroid coverage.";
 const PACKAGED_BASE_BODIES: [CelestialBody; 10] = [
     CelestialBody::Sun,
     CelestialBody::Moon,
@@ -194,7 +194,7 @@ impl PackagedArtifactGenerationPolicy {
     pub const fn note(self) -> &'static str {
         match self {
             Self::AdjacentSameBodyLinearSegments => {
-                "bodies with a single sampled epoch use point segments; multi-epoch bodies are fit with linear segments between adjacent same-body source epochs"
+                "bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic residual corrections to keep the high-curvature fit compact"
             }
         }
     }
@@ -1546,6 +1546,11 @@ pub const fn package_name() -> &'static str {
 
 const PACKAGED_ARTIFACT_FIXTURE: &[u8] = include_bytes!("../tests/fixtures/packaged-artifact.bin");
 
+/// Returns the checked-in packaged artifact bytes.
+pub fn packaged_artifact_bytes() -> &'static [u8] {
+    PACKAGED_ARTIFACT_FIXTURE
+}
+
 /// Returns the bundled packed artifact.
 pub fn packaged_artifact() -> &'static CompressedArtifact {
     static ARTIFACT: OnceLock<CompressedArtifact> = OnceLock::new();
@@ -1887,7 +1892,9 @@ fn packaged_body_artifacts() -> Vec<BodyArtifact> {
                 .unwrap_or(Ordering::Equal)
         });
 
-        let segments = if entries.len() == 1 {
+        let segments = if body == CelestialBody::Moon {
+            moon_segments_from_entries(&entries)
+        } else if entries.len() == 1 {
             vec![segment_from_entries(entries[0], entries[0])]
         } else {
             entries
@@ -1900,6 +1907,26 @@ fn packaged_body_artifacts() -> Vec<BodyArtifact> {
     }
 
     artifacts
+}
+
+fn moon_segments_from_entries(entries: &[&SnapshotEntry]) -> Vec<Segment> {
+    let mut segments = Vec::new();
+    let mut index = 0;
+
+    while index + 2 < entries.len() {
+        segments.push(segment_from_entries_with_midpoint(
+            entries[index],
+            entries[index + 1],
+            entries[index + 2],
+        ));
+        index += 2;
+    }
+
+    if index + 1 < entries.len() {
+        segments.push(segment_from_entries(entries[index], entries[index + 1]));
+    }
+
+    segments
 }
 
 fn segment_from_entries(start: &SnapshotEntry, end: &SnapshotEntry) -> Segment {
@@ -1929,6 +1956,88 @@ fn segment_from_entries(start: &SnapshotEntry, end: &SnapshotEntry) -> Segment {
             ),
         ],
     )
+}
+
+fn segment_from_entries_with_midpoint(
+    start: &SnapshotEntry,
+    midpoint: &SnapshotEntry,
+    end: &SnapshotEntry,
+) -> Segment {
+    let start_coordinates = coordinates(start);
+    let midpoint_coordinates = coordinates(midpoint);
+    let end_coordinates = coordinates(end);
+    let start_instant = Instant::new(start.epoch.julian_day, TimeScale::Tt);
+    let midpoint_instant = Instant::new(midpoint.epoch.julian_day, TimeScale::Tt);
+    let end_instant = Instant::new(end.epoch.julian_day, TimeScale::Tt);
+    let span = end_instant.julian_day.days() - start_instant.julian_day.days();
+    let midpoint_x = (midpoint_instant.julian_day.days() - start_instant.julian_day.days()) / span;
+
+    Segment::with_residual_channels(
+        start_instant,
+        end_instant,
+        vec![
+            PolynomialChannel::linear(
+                ChannelKind::Longitude,
+                9,
+                start_coordinates.longitude.degrees(),
+                end_coordinates.longitude.degrees(),
+            ),
+            PolynomialChannel::linear(
+                ChannelKind::Latitude,
+                9,
+                start_coordinates.latitude.degrees(),
+                end_coordinates.latitude.degrees(),
+            ),
+            PolynomialChannel::linear(
+                ChannelKind::DistanceAu,
+                12,
+                start_coordinates.distance_au.unwrap_or_default(),
+                end_coordinates.distance_au.unwrap_or_default(),
+            ),
+        ],
+        vec![
+            residual_channel(
+                ChannelKind::Longitude,
+                9,
+                start_coordinates.longitude.degrees(),
+                midpoint_coordinates.longitude.degrees(),
+                end_coordinates.longitude.degrees(),
+                midpoint_x,
+            ),
+            residual_channel(
+                ChannelKind::Latitude,
+                9,
+                start_coordinates.latitude.degrees(),
+                midpoint_coordinates.latitude.degrees(),
+                end_coordinates.latitude.degrees(),
+                midpoint_x,
+            ),
+            residual_channel(
+                ChannelKind::DistanceAu,
+                12,
+                start_coordinates.distance_au.unwrap_or_default(),
+                midpoint_coordinates.distance_au.unwrap_or_default(),
+                end_coordinates.distance_au.unwrap_or_default(),
+                midpoint_x,
+            ),
+        ],
+    )
+}
+
+fn residual_channel(
+    kind: ChannelKind,
+    scale_exponent: u8,
+    start: f64,
+    midpoint: f64,
+    end: f64,
+    midpoint_x: f64,
+) -> PolynomialChannel {
+    let base_midpoint = start + (end - start) * midpoint_x;
+    let delta = midpoint - base_midpoint;
+    let scale = midpoint_x * (1.0 - midpoint_x);
+    let amplitude = if scale == 0.0 { 0.0 } else { delta / scale };
+
+    PolynomialChannel::new(kind, scale_exponent, vec![0.0, amplitude, -amplitude])
 }
 
 fn coordinates(entry: &SnapshotEntry) -> EclipticCoordinates {
@@ -2091,6 +2200,8 @@ mod tests {
             .encode()
             .expect("generated packaged artifact should encode");
         assert_eq!(encoded, PACKAGED_ARTIFACT_FIXTURE);
+        assert_eq!(generated.residual_segment_count(), 2);
+        assert_eq!(generated.residual_bodies(), vec![CelestialBody::Moon]);
     }
 
     #[test]
@@ -2186,6 +2297,33 @@ mod tests {
         assert!((ecliptic.longitude.degrees() - expected.longitude.degrees()).abs() < 1e-8);
         assert!((ecliptic.latitude.degrees() - expected.latitude.degrees()).abs() < 1e-8);
         assert!((ecliptic.distance_au.unwrap() - expected.distance_au.unwrap()).abs() < 1e-12);
+    }
+
+    #[test]
+    fn lookup_uses_packaged_moon_residual_segments() {
+        let body = CelestialBody::Moon;
+        for epoch in [2_400_000.0, 2_500_000.0] {
+            let reference = reference_snapshot()
+                .iter()
+                .find(|entry| {
+                    entry.body == body
+                        && (entry.epoch.julian_day.days() - epoch).abs() < f64::EPSILON
+                })
+                .expect("reference snapshot should include the Moon at the sampled epoch");
+            let ecliptic = packaged_lookup(&body, reference.epoch)
+                .expect("packaged lookup should succeed for the Moon");
+            let expected = coordinates(reference);
+
+            assert!((ecliptic.longitude.degrees() - expected.longitude.degrees()).abs() < 1e-8);
+            assert!((ecliptic.latitude.degrees() - expected.latitude.degrees()).abs() < 1e-8);
+            assert!((ecliptic.distance_au.unwrap() - expected.distance_au.unwrap()).abs() < 1e-12);
+        }
+
+        assert_eq!(packaged_artifact().residual_segment_count(), 2);
+        assert_eq!(
+            packaged_artifact().residual_bodies(),
+            vec![CelestialBody::Moon]
+        );
     }
 
     #[test]
@@ -2686,7 +2824,7 @@ mod tests {
         );
         assert_eq!(
             summary.generation_policy_line(),
-            "generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch bodies are fit with linear segments between adjacent same-body source epochs"
+            "generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic residual corrections to keep the high-curvature fit compact"
         );
         assert_eq!(
             packaged_body_coverage_summary_details().summary_line(),

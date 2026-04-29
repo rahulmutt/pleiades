@@ -16,7 +16,7 @@ use pleiades_core::{
     Longitude, ObserverLocation, RoutingBackend, TimeScale, ZodiacMode,
 };
 use pleiades_data::{
-    packaged_artifact, packaged_artifact_regeneration_summary_for_report,
+    packaged_artifact_bytes, packaged_artifact_regeneration_summary_for_report,
     regenerate_packaged_artifact, PackagedDataBackend,
 };
 use pleiades_elp::ElpBackend;
@@ -378,11 +378,9 @@ fn render_packaged_artifact_regeneration(output_path: String) -> Result<String, 
 fn render_packaged_artifact_regeneration_check() -> Result<String, String> {
     let artifact = regenerate_packaged_artifact();
     let regenerated = artifact.encode().map_err(|error| error.to_string())?;
-    let committed = packaged_artifact()
-        .encode()
-        .map_err(|error| error.to_string())?;
+    let committed = packaged_artifact_bytes();
 
-    if regenerated != committed {
+    if regenerated.as_slice() != committed {
         return Err(format!(
             "packaged artifact regeneration check failed: regenerated {} bytes did not match the checked-in fixture {} bytes",
             regenerated.len(),
