@@ -1293,6 +1293,18 @@ impl fmt::Display for AyanamsaMetadataCoverage {
 }
 
 /// Returns a coverage summary for the built-in ayanamsa catalog.
+///
+/// # Examples
+///
+/// ```
+/// use pleiades_ayanamsa::metadata_coverage;
+///
+/// let coverage = metadata_coverage();
+/// assert_eq!(coverage.to_string(), coverage.summary_line());
+/// assert!(coverage
+///     .summary_line()
+///     .contains("entries with both a reference epoch and offset"));
+/// ```
 pub fn metadata_coverage() -> AyanamsaMetadataCoverage {
     let mut custom_definition_only = Vec::new();
     let mut without_sidereal_metadata = Vec::new();
