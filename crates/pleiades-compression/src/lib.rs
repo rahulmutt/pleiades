@@ -593,6 +593,14 @@ impl ArtifactResidualBodyCoverageSummary {
     pub fn validate(&self, artifact: &CompressedArtifact) -> Result<(), CompressionError> {
         let expected_bodies = artifact.residual_bodies();
 
+        if self.body_count != self.bodies.len() {
+            return Err(CompressionError::new(
+                CompressionErrorKind::InvalidFormat,
+                "artifact residual-body coverage body count does not match the body list",
+            ));
+        }
+        validate_unique_values("artifact residual-body coverage bodies", &self.bodies)?;
+
         if self.body_count != expected_bodies.len() {
             return Err(CompressionError::new(
                 CompressionErrorKind::InvalidFormat,
@@ -2230,6 +2238,43 @@ mod tests {
             .expect_err("drifted residual body coverage should be rejected");
         assert_eq!(error.kind, CompressionErrorKind::InvalidFormat);
         assert!(format!("{error}").contains("residual-body coverage body list"));
+
+        let duplicate_residual_segment = Segment::with_residual_channels(
+            Instant::new(pleiades_types::JulianDay::from_days(0.0), TimeScale::Tt),
+            Instant::new(pleiades_types::JulianDay::from_days(1.0), TimeScale::Tt),
+            vec![PolynomialChannel::linear(
+                ChannelKind::Longitude,
+                9,
+                20.0,
+                21.0,
+            )],
+            vec![PolynomialChannel::linear(
+                ChannelKind::Longitude,
+                9,
+                0.1,
+                0.2,
+            )],
+        );
+        let duplicate_residual_artifact = CompressedArtifact::new(
+            ArtifactHeader::new(
+                "duplicate residual coverage demo",
+                "unit test duplicate residual coverage",
+            ),
+            vec![
+                BodyArtifact::new(
+                    CelestialBody::Moon,
+                    vec![duplicate_residual_segment.clone()],
+                ),
+                BodyArtifact::new(CelestialBody::Moon, vec![duplicate_residual_segment]),
+            ],
+        );
+        let duplicate_summary = duplicate_residual_artifact.residual_body_coverage_summary();
+        let duplicate_error = duplicate_summary
+            .validate(&duplicate_residual_artifact)
+            .expect_err("duplicate residual body coverage should be rejected");
+        assert_eq!(duplicate_error.kind, CompressionErrorKind::InvalidFormat);
+        assert!(format!("{duplicate_error}")
+            .contains("artifact residual-body coverage bodies contains duplicate Moon entry"));
     }
 
     #[test]
