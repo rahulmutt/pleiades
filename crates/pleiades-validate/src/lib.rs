@@ -9171,6 +9171,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_batch_parity_summary_for_report());
     text.push('\n');
+    text.push_str(&jpl_snapshot_batch_error_taxonomy_summary_for_report());
+    text.push('\n');
     text.push_str(&comparison_snapshot_summary_for_report());
     text.push('\n');
     text.push_str(&comparison_snapshot_source_summary_for_report());
@@ -10407,6 +10409,11 @@ fn write_backend_catalog_entry(
     }
     if entry.metadata.id.as_str() == "jpl-snapshot" {
         write_jpl_interpolation_quality(f)?;
+        writeln!(
+            f,
+            "    {}",
+            jpl_snapshot_batch_error_taxonomy_summary_for_report()
+        )?;
     }
     writeln!(
         f,
@@ -14640,6 +14647,7 @@ mod tests {
         assert!(rendered.contains("VSOP87 supported-body J2000 equatorial batch parity:"));
         assert!(rendered.contains("VSOP87 supported-body J1900 ecliptic batch parity:"));
         assert!(rendered.contains("VSOP87 canonical mixed TT/TDB batch parity:"));
+        assert!(rendered.contains("JPL batch error taxonomy: unsupported body Mean Node -> UnsupportedBody; out-of-range Ceres -> OutOfRangeInstant"));
         assert!(rendered.contains("VSOP87 canonical J1900 batch parity:"));
         assert!(rendered.contains("VSOP87 source-backed body evidence:"));
         assert!(rendered.contains("Lunar reference envelope:"));
@@ -14784,6 +14792,7 @@ mod tests {
         assert!(rendered.contains("VSOP87 supported-body J2000 equatorial batch parity:"));
         assert!(rendered.contains("VSOP87 supported-body J1900 ecliptic batch parity:"));
         assert!(rendered.contains("VSOP87 canonical mixed TT/TDB batch parity:"));
+        assert!(rendered.contains("JPL batch error taxonomy: unsupported body Mean Node -> UnsupportedBody; out-of-range Ceres -> OutOfRangeInstant"));
         assert!(rendered
             .contains("VSOP87 source audit: 8 source-backed bodies (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune) across 8 source files (VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep); 8 vendored full-file inputs, 35080 total terms, max source size 949753 bytes / 7141 lines, 8 deterministic fingerprints"));
         assert!(rendered
