@@ -5583,7 +5583,11 @@ fn canonical_epoch_requests() -> Vec<EphemerisRequest> {
     )
 }
 
-fn canonical_mixed_time_scale_batch_parity_requests() -> Vec<EphemerisRequest> {
+/// Returns the canonical mixed TT/TDB request corpus used by the batch-parity evidence.
+///
+/// The requests preserve the canonical source-backed body order and the shared
+/// J2000 ecliptic frame while alternating TT and TDB labels per request.
+pub fn canonical_mixed_time_scale_batch_parity_requests() -> Vec<EphemerisRequest> {
     let mut requests = canonical_epoch_requests();
     for (index, request) in requests.iter_mut().enumerate() {
         request.instant.scale = if index % 2 == 0 {
@@ -9783,6 +9787,33 @@ mod tests {
         assert_eq!(summary.reference_epoch.scale, TimeScale::Tt);
         assert!(rendered.contains("quality counts: Exact="));
         assert!(rendered.contains("batch/single parity preserved"));
+    }
+
+    #[test]
+    fn canonical_mixed_time_scale_batch_parity_requests_preserve_the_canonical_slice() {
+        let requests = canonical_mixed_time_scale_batch_parity_requests();
+
+        assert_eq!(requests.len(), canonical_epoch_samples().len());
+        assert_eq!(
+            requests
+                .iter()
+                .map(|request| request.body.clone())
+                .collect::<Vec<_>>(),
+            canonical_epoch_samples()
+                .iter()
+                .map(|sample| sample.body.clone())
+                .collect::<Vec<_>>()
+        );
+        assert!(requests.iter().enumerate().all(|(index, request)| {
+            request.instant.julian_day.days() == J2000
+                && request.instant.scale
+                    == if index % 2 == 0 {
+                        TimeScale::Tt
+                    } else {
+                        TimeScale::Tdb
+                    }
+                && request.frame == CoordinateFrame::Ecliptic
+        }));
     }
 
     #[test]
