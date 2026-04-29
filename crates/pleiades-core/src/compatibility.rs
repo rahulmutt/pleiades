@@ -68,6 +68,11 @@ impl CompatibilityProfile {
         self.summary
     }
 
+    /// Returns the number of Swiss Ephemeris house-table code aliases.
+    pub fn house_code_alias_count(&self) -> usize {
+        pleiades_houses::house_system_code_aliases().len()
+    }
+
     /// Returns a compact inventory line for the current compatibility catalog.
     pub fn catalog_inventory_summary_line(&self) -> String {
         fn alias_count<T>(entries: &[T], aliases: impl Fn(&T) -> &'static [&'static str]) -> usize {
@@ -75,7 +80,7 @@ impl CompatibilityProfile {
         }
 
         let house_alias_count = alias_count(self.house_systems, |entry| entry.aliases);
-        let house_code_alias_count = pleiades_houses::house_system_code_aliases().len();
+        let house_code_alias_count = self.house_code_alias_count();
         let ayanamsa_alias_count = alias_count(self.ayanamsas, |entry| entry.aliases);
 
         let mut text = String::from("Compatibility catalog inventory: ");
@@ -2744,5 +2749,16 @@ mod tests {
                 .map(|entry| entry.canonical_name)
                 .collect::<Vec<_>>()
         );
+    }
+
+    #[test]
+    fn catalog_inventory_summary_line_reports_the_house_code_alias_count() {
+        let profile = current_compatibility_profile();
+        let rendered = profile.catalog_inventory_summary_line();
+
+        assert!(rendered.contains(&format!(
+            "house-code aliases={}",
+            profile.house_code_alias_count()
+        )));
     }
 }
