@@ -10119,7 +10119,12 @@ fn body_class_tolerance_summaries(
         .collect()
 }
 
-fn comparison_tolerance_policy_entries(
+/// Returns the expected comparison-tolerance catalog for a backend family.
+///
+/// The catalog is grouped by body-class scope and keeps the backend family
+/// explicit in each tolerance row so validation and release tooling can reuse
+/// the same stored thresholds without rebuilding them ad hoc.
+pub fn comparison_tolerance_catalog_entries(
     backend_family: &BackendFamily,
 ) -> Vec<ComparisonToleranceEntry> {
     [
@@ -10136,6 +10141,12 @@ fn comparison_tolerance_policy_entries(
         tolerance: comparison_tolerance_for_scope(scope, backend_family),
     })
     .collect()
+}
+
+fn comparison_tolerance_policy_entries(
+    backend_family: &BackendFamily,
+) -> Vec<ComparisonToleranceEntry> {
+    comparison_tolerance_catalog_entries(backend_family)
 }
 
 fn comparison_tolerance_for_scope(
@@ -11669,6 +11680,22 @@ mod tests {
             summary.comparison_window.end,
             corpus.summary().epochs.last().copied()
         );
+    }
+
+    #[test]
+    fn comparison_tolerance_catalog_entries_track_the_backend_family_and_scopes() {
+        let entries = comparison_tolerance_catalog_entries(&BackendFamily::Algorithmic);
+
+        assert_eq!(entries.len(), 6);
+        assert_eq!(entries[0].scope, ComparisonToleranceScope::Luminary);
+        assert_eq!(entries[1].scope, ComparisonToleranceScope::MajorPlanet);
+        assert_eq!(entries[2].scope, ComparisonToleranceScope::LunarPoint);
+        assert_eq!(entries[3].scope, ComparisonToleranceScope::Asteroid);
+        assert_eq!(entries[4].scope, ComparisonToleranceScope::Custom);
+        assert_eq!(entries[5].scope, ComparisonToleranceScope::Pluto);
+        assert!(entries
+            .iter()
+            .all(|entry| entry.tolerance.backend_family == BackendFamily::Algorithmic));
     }
 
     #[test]
