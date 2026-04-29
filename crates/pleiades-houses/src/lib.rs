@@ -2150,8 +2150,10 @@ mod tests {
         assert_eq!(aliases.len(), 22);
         assert_eq!(aliases[0].summary_line(), "P -> Placidus");
         assert_eq!(aliases[0].to_string(), "P -> Placidus");
-        assert!(house_system_code_aliases_summary_line().contains("P -> Placidus"));
-        assert!(house_system_code_aliases_summary_line().contains("Y -> APC"));
+        assert_eq!(
+            house_system_code_aliases_summary_line(),
+            "P -> Placidus, K -> Koch, R -> Regiomontanus, C -> Campanus, O -> Porphyry, D -> Equal (MC), E -> Equal, W -> Whole Sign, V -> Vehlow Equal, A -> Axial, H -> Horizon/Azimuth, B -> Alcabitius, M -> Morinus, S -> Sripati, I -> Sunshine, G -> Gauquelin sectors, T -> Topocentric, U -> Krusinski-Pisa-Goelzer, Axial Rotation -> Meridian, Axial rotation system -> Meridian, X -> Meridian, Y -> APC"
+        );
         assert_eq!(
             resolve_house_system("axial rotation"),
             Some(HouseSystem::Meridian)
