@@ -5573,6 +5573,14 @@ pub fn canonical_epoch_requests() -> Vec<EphemerisRequest> {
     canonical_j2000_batch_parity_requests()
 }
 
+/// Returns the canonical J2000 request corpus used by the VSOP87 batch-path evidence.
+///
+/// This is a compatibility alias for [`canonical_j2000_batch_parity_requests`].
+#[doc(alias = "canonical_j2000_batch_parity_requests")]
+pub fn canonical_j2000_batch_parity_request_corpus() -> Vec<EphemerisRequest> {
+    canonical_j2000_batch_parity_requests()
+}
+
 /// Returns the supported-body J2000 request corpus used by the VSOP87 batch-parity evidence.
 ///
 /// The requests preserve the supported-body order, use the shared J2000 TDB
@@ -5585,6 +5593,15 @@ pub fn supported_body_j2000_equatorial_batch_parity_requests() -> Vec<EphemerisR
         Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tdb),
         CoordinateFrame::Equatorial,
     )
+}
+
+/// Returns the supported-body J2000 request corpus used by the VSOP87 batch-parity evidence.
+///
+/// This is a compatibility alias for
+/// [`supported_body_j2000_equatorial_batch_parity_requests`].
+#[doc(alias = "supported_body_j2000_equatorial_batch_parity_requests")]
+pub fn supported_body_j2000_equatorial_batch_parity_request_corpus() -> Vec<EphemerisRequest> {
+    supported_body_j2000_equatorial_batch_parity_requests()
 }
 
 /// Returns the supported-body J2000 request corpus used by the VSOP87 supported-body batch evidence.
@@ -5630,6 +5647,22 @@ pub fn supported_body_j1900_equatorial_batch_parity_requests() -> Vec<EphemerisR
 /// [`supported_body_j1900_equatorial_batch_parity_requests`].
 #[doc(alias = "canonical_j1900_batch_parity_requests")]
 pub fn canonical_j1900_equatorial_batch_parity_requests() -> Vec<EphemerisRequest> {
+    supported_body_j1900_equatorial_batch_parity_requests()
+}
+
+/// Returns the supported-body J1900 request corpus used by the VSOP87 canonical batch evidence.
+///
+/// This is a compatibility alias for [`canonical_j1900_equatorial_batch_parity_requests`].
+#[doc(alias = "canonical_j1900_equatorial_batch_parity_requests")]
+pub fn canonical_j1900_equatorial_batch_parity_request_corpus() -> Vec<EphemerisRequest> {
+    canonical_j1900_equatorial_batch_parity_requests()
+}
+
+/// Returns the supported-body J1900 request corpus used by the VSOP87 canonical batch evidence.
+///
+/// This is a compatibility alias for [`supported_body_j1900_equatorial_batch_parity_requests`].
+#[doc(alias = "supported_body_j1900_equatorial_batch_parity_requests")]
+pub fn supported_body_j1900_equatorial_batch_parity_request_corpus() -> Vec<EphemerisRequest> {
     supported_body_j1900_equatorial_batch_parity_requests()
 }
 
@@ -9904,10 +9937,26 @@ mod tests {
     }
 
     #[test]
+    fn canonical_j2000_batch_parity_request_corpus_remains_the_explicit_alias() {
+        assert_eq!(
+            canonical_j2000_batch_parity_request_corpus(),
+            canonical_j2000_batch_parity_requests()
+        );
+    }
+
+    #[test]
     fn canonical_j1900_equatorial_batch_parity_requests_remain_the_explicit_alias() {
         assert_eq!(
             canonical_j1900_equatorial_batch_parity_requests(),
             canonical_j1900_batch_parity_requests()
+        );
+    }
+
+    #[test]
+    fn canonical_j1900_equatorial_batch_parity_request_corpus_remains_the_explicit_alias() {
+        assert_eq!(
+            canonical_j1900_equatorial_batch_parity_request_corpus(),
+            canonical_j1900_equatorial_batch_parity_requests()
         );
     }
 
@@ -9947,6 +9996,14 @@ mod tests {
                 && request.instant.scale == TimeScale::Tdb
                 && request.frame == CoordinateFrame::Equatorial
         }));
+    }
+
+    #[test]
+    fn supported_body_j2000_equatorial_batch_parity_request_corpus_remains_the_explicit_alias() {
+        assert_eq!(
+            supported_body_j2000_equatorial_batch_parity_request_corpus(),
+            supported_body_j2000_equatorial_batch_parity_requests()
+        );
     }
 
     #[test]
@@ -10020,6 +10077,14 @@ mod tests {
                 && request.instant.scale == TimeScale::Tdb
                 && request.frame == CoordinateFrame::Equatorial
         }));
+    }
+
+    #[test]
+    fn supported_body_j1900_equatorial_batch_parity_request_corpus_remains_the_explicit_alias() {
+        assert_eq!(
+            supported_body_j1900_equatorial_batch_parity_request_corpus(),
+            supported_body_j1900_equatorial_batch_parity_requests()
+        );
     }
 
     #[test]
