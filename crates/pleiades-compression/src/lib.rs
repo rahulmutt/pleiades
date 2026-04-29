@@ -862,6 +862,52 @@ impl CompressedArtifact {
         self.bodies.iter().find(|series| &series.body == body)
     }
 
+    /// Returns the total number of segments stored in the artifact.
+    pub fn segment_count(&self) -> usize {
+        self.bodies.iter().map(|body| body.segments.len()).sum()
+    }
+
+    /// Returns the number of segments that carry residual-correction channels.
+    pub fn residual_segment_count(&self) -> usize {
+        self.bodies
+            .iter()
+            .flat_map(|body| body.segments.iter())
+            .filter(|segment| !segment.residual_channels.is_empty())
+            .count()
+    }
+
+    /// Returns the bundled bodies that include at least one residual-correction segment.
+    pub fn residual_bodies(&self) -> Vec<CelestialBody> {
+        self.bodies
+            .iter()
+            .filter(|body| {
+                body.segments
+                    .iter()
+                    .any(|segment| !segment.residual_channels.is_empty())
+            })
+            .map(|body| body.body.clone())
+            .collect()
+    }
+
+    /// Returns a compact one-line summary of the artifact body, segment, and
+    /// residual-correction coverage.
+    pub fn summary_line(&self) -> String {
+        let residual_bodies = self.residual_bodies();
+        let residual_bodies = if residual_bodies.is_empty() {
+            "none".to_string()
+        } else {
+            join_display(&residual_bodies)
+        };
+
+        format!(
+            "bodies: {}; segments: {}; residual-bearing segments: {}; residual-bearing bodies: {}",
+            self.bodies.len(),
+            self.segment_count(),
+            self.residual_segment_count(),
+            residual_bodies,
+        )
+    }
+
     /// Returns the body segment covering the requested instant.
     pub fn segment_for(
         &self,
@@ -1045,6 +1091,12 @@ impl CompressedArtifact {
             encode_body(&mut bytes, body)?;
         }
         Ok(bytes)
+    }
+}
+
+impl fmt::Display for CompressedArtifact {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
     }
 }
 
@@ -2352,6 +2404,52 @@ mod tests {
         .expect("artifact with residual channels should decode");
 
         assert_eq!(decoded.bodies[0].segments[0], segment);
+    }
+
+    #[test]
+    fn compressed_artifact_summary_line_reports_residual_segments() {
+        let residual_segment = Segment::with_residual_channels(
+            Instant::new(pleiades_types::JulianDay::from_days(10.0), TimeScale::Tt),
+            Instant::new(pleiades_types::JulianDay::from_days(11.0), TimeScale::Tt),
+            vec![
+                PolynomialChannel::linear(ChannelKind::Longitude, 9, 20.0, 22.0),
+                PolynomialChannel::new(ChannelKind::Latitude, 9, vec![3.0]),
+                PolynomialChannel::new(ChannelKind::DistanceAu, 12, vec![4.0]),
+            ],
+            vec![
+                PolynomialChannel::new(ChannelKind::Longitude, 9, vec![0.5]),
+                PolynomialChannel::new(ChannelKind::Latitude, 9, vec![-0.25]),
+                PolynomialChannel::new(ChannelKind::DistanceAu, 12, vec![0.125]),
+            ],
+        );
+        let artifact = CompressedArtifact::new(
+            ArtifactHeader::new("residual summary demo", "unit test residual summary"),
+            vec![
+                BodyArtifact::new(
+                    CelestialBody::Sun,
+                    vec![Segment::new(
+                        Instant::new(pleiades_types::JulianDay::from_days(0.0), TimeScale::Tt),
+                        Instant::new(pleiades_types::JulianDay::from_days(1.0), TimeScale::Tt),
+                        vec![PolynomialChannel::linear(
+                            ChannelKind::Longitude,
+                            9,
+                            1.0,
+                            2.0,
+                        )],
+                    )],
+                ),
+                BodyArtifact::new(CelestialBody::Moon, vec![residual_segment]),
+            ],
+        );
+
+        assert_eq!(artifact.segment_count(), 2);
+        assert_eq!(artifact.residual_segment_count(), 1);
+        assert_eq!(artifact.residual_bodies(), vec![CelestialBody::Moon]);
+        assert_eq!(
+            artifact.summary_line(),
+            "bodies: 2; segments: 2; residual-bearing segments: 1; residual-bearing bodies: Moon"
+        );
+        assert_eq!(artifact.to_string(), artifact.summary_line());
     }
 
     #[test]
