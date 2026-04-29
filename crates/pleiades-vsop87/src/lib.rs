@@ -3992,7 +3992,7 @@ impl fmt::Display for Vsop87CanonicalJ1900BatchParitySummary {
 pub fn canonical_j1900_batch_parity_summary() -> Option<Vsop87CanonicalJ1900BatchParitySummary> {
     let backend = Vsop87Backend::new();
     let requests = canonical_j1900_equatorial_batch_parity_requests();
-    let reference_epoch = requests.first()?.instant;
+    let reference_epoch = Instant::new(pleiades_types::JulianDay::from_days(J1900), TimeScale::Tdb);
     let (sample_bodies, exact_count, interpolated_count, approximate_count, unknown_count) =
         canonical_batch_parity_counts(&backend, &requests)?;
 
@@ -10407,6 +10407,25 @@ mod tests {
         summary.reference_epoch = Instant::new(
             pleiades_types::JulianDay::from_days(J2000 + 1.0),
             TimeScale::Tt,
+        );
+
+        assert_eq!(
+            summary.validate(),
+            Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "reference_epoch"
+                }
+            )
+        );
+    }
+
+    #[test]
+    fn canonical_j1900_batch_parity_summary_validation_rejects_reference_epoch_drift() {
+        let mut summary =
+            canonical_j1900_batch_parity_summary().expect("batch summary should exist");
+        summary.reference_epoch = Instant::new(
+            pleiades_types::JulianDay::from_days(J1900 + 1.0),
+            TimeScale::Tdb,
         );
 
         assert_eq!(
