@@ -3332,6 +3332,141 @@ mod tests {
     }
 
     #[test]
+    fn routing_backend_batch_metadata_defers_observer_and_apparentness_checks_to_the_selected_provider(
+    ) {
+        struct RejectingSunBackend;
+
+        impl EphemerisBackend for RejectingSunBackend {
+            fn metadata(&self) -> BackendMetadata {
+                BackendMetadata {
+                    id: BackendId::new("rejecting-sun-batch"),
+                    version: "0.1.0".to_string(),
+                    family: BackendFamily::Algorithmic,
+                    provenance: BackendProvenance::new("rejecting Sun batch backend"),
+                    nominal_range: TimeRange::new(None, None),
+                    supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
+                    body_coverage: vec![CelestialBody::Sun],
+                    supported_frames: vec![CoordinateFrame::Ecliptic],
+                    capabilities: BackendCapabilities {
+                        batch: false,
+                        apparent: false,
+                        topocentric: false,
+                        ..BackendCapabilities::default()
+                    },
+                    accuracy: AccuracyClass::Approximate,
+                    deterministic: true,
+                    offline: true,
+                }
+            }
+
+            fn supports_body(&self, body: CelestialBody) -> bool {
+                body == CelestialBody::Sun
+            }
+
+            fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+                if req.observer.is_some() {
+                    return Err(EphemerisError::new(
+                        EphemerisErrorKind::InvalidObserver,
+                        "rejecting Sun batch backend is geocentric only",
+                    ));
+                }
+
+                if req.apparent == Apparentness::Apparent {
+                    return Err(EphemerisError::new(
+                        EphemerisErrorKind::InvalidRequest,
+                        "rejecting Sun batch backend only returns mean geometric coordinates",
+                    ));
+                }
+
+                Ok(EphemerisResult::new(
+                    BackendId::new("rejecting-sun-batch"),
+                    req.body.clone(),
+                    req.instant,
+                    req.frame,
+                    req.zodiac_mode.clone(),
+                    req.apparent,
+                ))
+            }
+        }
+
+        struct AcceptingSunBackend;
+
+        impl EphemerisBackend for AcceptingSunBackend {
+            fn metadata(&self) -> BackendMetadata {
+                BackendMetadata {
+                    id: BackendId::new("accepting-sun-batch"),
+                    version: "0.1.0".to_string(),
+                    family: BackendFamily::Algorithmic,
+                    provenance: BackendProvenance::new("accepting Sun batch backend"),
+                    nominal_range: TimeRange::new(None, None),
+                    supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
+                    body_coverage: vec![CelestialBody::Sun],
+                    supported_frames: vec![CoordinateFrame::Ecliptic],
+                    capabilities: BackendCapabilities {
+                        batch: true,
+                        apparent: true,
+                        topocentric: true,
+                        ..BackendCapabilities::default()
+                    },
+                    accuracy: AccuracyClass::Approximate,
+                    deterministic: true,
+                    offline: true,
+                }
+            }
+
+            fn supports_body(&self, body: CelestialBody) -> bool {
+                body == CelestialBody::Sun
+            }
+
+            fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+                Ok(EphemerisResult::new(
+                    BackendId::new("accepting-sun-batch"),
+                    req.body.clone(),
+                    req.instant,
+                    req.frame,
+                    req.zodiac_mode.clone(),
+                    req.apparent,
+                ))
+            }
+        }
+
+        let routing = RoutingBackend::new(vec![
+            Box::new(RejectingSunBackend),
+            Box::new(AcceptingSunBackend),
+        ]);
+        let mut geocentric_request = EphemerisRequest::new(
+            CelestialBody::Sun,
+            Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+        );
+        geocentric_request.observer = Some(ObserverLocation::new(
+            Latitude::from_degrees(51.5),
+            Longitude::from_degrees(12.5),
+            Some(0.0),
+        ));
+        let mut apparent_request = EphemerisRequest::new(
+            CelestialBody::Sun,
+            Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb),
+        );
+        apparent_request.apparent = Apparentness::Apparent;
+
+        let metadata = routing.metadata();
+        assert!(metadata.family.is_routing());
+        assert!(!metadata.capabilities.batch);
+
+        validate_requests_against_metadata(&[geocentric_request.clone(), apparent_request.clone()], &metadata)
+            .expect("routing metadata should defer observer and apparentness checks to the selected provider");
+
+        let results = routing
+            .positions(&[geocentric_request, apparent_request])
+            .expect("routing should recover through the secondary provider for batch requests");
+        assert_eq!(results.len(), 2);
+        assert_eq!(results[0].backend_id.as_str(), "accepting-sun-batch");
+        assert_eq!(results[1].backend_id.as_str(), "accepting-sun-batch");
+        assert_eq!(results[0].instant.scale, TimeScale::Tt);
+        assert_eq!(results[1].instant.scale, TimeScale::Tdb);
+    }
+
+    #[test]
     fn validate_requests_against_metadata_rejects_sidereal_requests_with_batch_index_prefix() {
         let metadata = BackendMetadata {
             id: BackendId::new("toy backend"),
