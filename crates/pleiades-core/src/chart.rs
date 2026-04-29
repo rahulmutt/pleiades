@@ -116,6 +116,9 @@ impl fmt::Display for ObserverPolicy {
 /// .with_tdb_from_utc_signed(Duration::from_secs_f64(64.184), -0.001_657)
 /// .expect("explicit time-scale conversion");
 ///
+/// let summary = request.summary_line();
+/// assert!(summary.contains("observer=house-only"));
+/// assert!(summary.contains("house system=Whole Sign"));
 /// assert_eq!(request.instant.scale, TimeScale::Tdb);
 /// assert_eq!(request.house_system, Some(HouseSystem::WholeSign));
 /// assert!(request.observer.is_some());
@@ -598,6 +601,36 @@ pub struct BodyPlacement {
 }
 
 /// A chart snapshot suitable for user-facing reports.
+///
+/// The snapshot keeps the observer posture explicit even when the chart does
+/// not include houses. An observer location by itself still leaves the body
+/// placements geocentric; the `house-only` policy only appears when the
+/// snapshot also carries computed houses.
+///
+/// # Example
+///
+/// ```
+/// use pleiades_core::{Apparentness, BackendId, ChartSnapshot};
+/// use pleiades_types::{Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale, ZodiacMode};
+///
+/// let snapshot = ChartSnapshot {
+///     backend_id: BackendId::new("demo"),
+///     instant: Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+///     observer: Some(ObserverLocation::new(
+///         Latitude::from_degrees(51.5),
+///         Longitude::from_degrees(-0.1),
+///         None,
+///     )),
+///     zodiac_mode: ZodiacMode::Tropical,
+///     apparentness: Apparentness::Mean,
+///     houses: None,
+///     placements: Vec::new(),
+/// };
+///
+/// let summary = snapshot.summary_line();
+/// assert!(summary.contains("observer=geocentric"));
+/// assert!(summary.contains("house system=none"));
+/// ```
 #[derive(Clone, Debug, PartialEq)]
 pub struct ChartSnapshot {
     /// Backend that produced the chart.
