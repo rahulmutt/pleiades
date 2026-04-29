@@ -15761,6 +15761,7 @@ version = "0.9.0"
         let artifact_summary = std::fs::read_to_string(bundle_dir.join("artifact-summary.txt"))
             .expect("artifact summary should be written");
         let compatibility_profile = current_compatibility_profile();
+        let house_code_aliases_summary = compatibility_profile.house_code_aliases_summary_line();
         let benchmark_report = std::fs::read_to_string(bundle_dir.join("benchmark-report.txt"))
             .expect("benchmark report should be written");
         let report = std::fs::read_to_string(bundle_dir.join("validation-report.txt"))
@@ -15830,6 +15831,10 @@ version = "0.9.0"
         assert!(release_notes_summary
             .contains("Compatibility profile verification: verify-compatibility-profile"));
         assert!(release_notes_summary.contains("Workspace audit summary: workspace-audit-summary"));
+        assert!(release_notes_summary.contains(&format!(
+            "House code aliases: {}",
+            house_code_aliases_summary
+        )));
         assert!(release_summary.contains("Release summary"));
         assert!(release_summary.contains("API stability summary line: API stability posture:"));
         assert!(release_summary.contains(
@@ -15838,6 +15843,10 @@ version = "0.9.0"
         assert!(release_summary.contains(&format!(
             "House-code aliases: {}",
             current_compatibility_profile().house_code_alias_count()
+        )));
+        assert!(release_summary.contains(&format!(
+            "House code aliases: {}",
+            house_code_aliases_summary
         )));
         assert!(release_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
