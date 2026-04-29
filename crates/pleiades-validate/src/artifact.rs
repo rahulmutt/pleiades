@@ -8,7 +8,7 @@ use crate::{
 use pleiades_compression::{join_display, CompressedArtifact, CompressionError, EndianPolicy};
 use pleiades_core::{
     Angle, Apparentness, BackendFamily, CelestialBody, CoordinateFrame, EclipticCoordinates,
-    EphemerisRequest, Instant, JulianDay, ZodiacMode,
+    EphemerisError, EphemerisErrorKind, EphemerisRequest, Instant, JulianDay, ZodiacMode,
 };
 use pleiades_data::{
     packaged_artifact, packaged_artifact_profile_summary_with_body_coverage,
@@ -786,10 +786,89 @@ impl ArtifactInspectionReport {
             decode_benchmark,
             bodies,
         };
-        artifact_boundary_envelope_summary(&report)
+        report.validate()?;
+        Ok(report)
+    }
+
+    pub fn validate(&self) -> Result<(), ArtifactInspectionError> {
+        if !self.roundtrip_ok {
+            return Err(report_validation_error(
+                "artifact inspection report roundtrip status drifted from the decoded artifact",
+            ));
+        }
+
+        if !self.checksum_ok {
+            return Err(report_validation_error(
+                "artifact inspection report checksum status drifted from the decoded artifact",
+            ));
+        }
+
+        if self.body_count != self.bodies.len() {
+            return Err(report_validation_error(
+                "artifact inspection report field `body_count` does not match the inspected body set",
+            ));
+        }
+
+        let expected_segment_count: usize = self.bodies.iter().map(|body| body.segment_count).sum();
+        if self.segment_count != expected_segment_count {
+            return Err(report_validation_error(
+                "artifact inspection report field `segment_count` does not match the inspected body set",
+            ));
+        }
+
+        if self.residual_segment_count == 0 {
+            if !self.residual_bodies.is_empty() {
+                return Err(report_validation_error(
+                    "artifact inspection report field `residual_bodies` must stay empty when no residual segments are present",
+                ));
+            }
+        } else {
+            if self.residual_bodies.is_empty() {
+                return Err(report_validation_error(
+                    "artifact inspection report field `residual_bodies` must name the residual-bearing bodies",
+                ));
+            }
+            if self.residual_segment_count > self.segment_count {
+                return Err(report_validation_error(
+                    "artifact inspection report field `residual_segment_count` exceeds the total inspected segments",
+                ));
+            }
+        }
+
+        if self
+            .residual_bodies
+            .iter()
+            .enumerate()
+            .any(|(index, body)| self.residual_bodies[..index].contains(body))
+        {
+            return Err(report_validation_error(
+                "artifact inspection report field `residual_bodies` contains duplicate entries",
+            ));
+        }
+
+        if self.residual_bodies.iter().any(|body| {
+            !self
+                .bodies
+                .iter()
+                .any(|inspection| inspection.body == *body)
+        }) {
+            return Err(report_validation_error(
+                "artifact inspection report field `residual_bodies` references a body not present in the inspected artifact",
+            ));
+        }
+
+        if self.earliest.julian_day.days() > self.latest.julian_day.days() {
+            return Err(report_validation_error(
+                "artifact inspection report coverage bounds are inverted",
+            ));
+        }
+
+        self.model_comparison.summary.validate()?;
+        self.decode_benchmark.validate()?;
+        artifact_boundary_envelope_summary(self)
             .validate()
             .map_err(ArtifactInspectionError::BoundaryEnvelope)?;
-        Ok(report)
+        Ok(())
     }
 }
 
@@ -977,6 +1056,13 @@ fn inspect_body(
         max_boundary_latitude_delta_deg,
         max_boundary_distance_delta_au,
     })
+}
+
+fn report_validation_error(message: &'static str) -> ArtifactInspectionError {
+    ArtifactInspectionError::Validation(EphemerisError::new(
+        EphemerisErrorKind::InvalidRequest,
+        message,
+    ))
 }
 
 fn format_residual_bodies(bodies: &[CelestialBody]) -> String {
@@ -1763,9 +1849,10 @@ mod tests {
     use super::{
         ArtifactBodyInspection, ArtifactBoundaryEnvelopeSummary,
         ArtifactBoundaryEnvelopeSummaryValidationError, ArtifactDecodeBenchmarkReport,
-        ArtifactDecodeBenchmarkReportValidationError,
+        ArtifactDecodeBenchmarkReportValidationError, ArtifactInspectionReport,
     };
     use pleiades_core::{CelestialBody, Instant, JulianDay, TimeScale};
+    use pleiades_data::packaged_artifact;
     use std::time::Duration;
 
     fn instant(days: f64) -> Instant {
@@ -1817,6 +1904,22 @@ mod tests {
         assert!(summary.contains("max boundary Δlon=0.150000000000°"));
         assert!(summary.contains("Δlat=0.300000000000°"));
         assert!(summary.contains("Δdist=0.450000000000 AU"));
+    }
+
+    #[test]
+    fn artifact_inspection_report_validate_rejects_body_count_drift() {
+        let artifact = packaged_artifact();
+        let encoded = artifact.encode().expect("packaged artifact should encode");
+        let mut report = ArtifactInspectionReport::from_artifact(&artifact, encoded.len())
+            .expect("artifact inspection report should build");
+        report.body_count += 1;
+
+        let error = report
+            .validate()
+            .expect_err("body count drift should fail validation");
+        assert!(error
+            .to_string()
+            .contains("artifact inspection report field `body_count`"));
     }
 
     #[test]
