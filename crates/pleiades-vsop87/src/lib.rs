@@ -10045,6 +10045,60 @@ mod tests {
     }
 
     #[test]
+    fn canonical_j2000_batch_parity_summary_validation_rejects_body_order_drift() {
+        let mut summary =
+            canonical_j2000_batch_parity_summary().expect("batch summary should exist");
+        summary.sample_bodies.reverse();
+
+        assert_eq!(
+            summary.validate(),
+            Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "sample_bodies"
+                }
+            )
+        );
+    }
+
+    #[test]
+    fn canonical_j2000_batch_parity_summary_validation_rejects_frame_drift() {
+        let mut summary =
+            canonical_j2000_batch_parity_summary().expect("batch summary should exist");
+        summary.frame = CoordinateFrame::Equatorial;
+
+        assert_eq!(
+            summary.validate(),
+            Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync { field: "frame" }
+            )
+        );
+    }
+
+    #[test]
+    fn canonical_j2000_batch_parity_report_surfaces_body_order_validation_errors() {
+        let mut summary =
+            canonical_j2000_batch_parity_summary().expect("batch summary should exist");
+        summary.sample_bodies.reverse();
+
+        assert_eq!(
+            format_validated_canonical_j2000_batch_parity_summary_for_report(&summary),
+            "VSOP87 canonical J2000 batch parity: unavailable (the VSOP87 canonical batch parity summary field `sample_bodies` is out of sync with the current canonical evidence)"
+        );
+    }
+
+    #[test]
+    fn canonical_j2000_batch_parity_report_surfaces_frame_validation_errors() {
+        let mut summary =
+            canonical_j2000_batch_parity_summary().expect("batch summary should exist");
+        summary.frame = CoordinateFrame::Equatorial;
+
+        assert_eq!(
+            format_validated_canonical_j2000_batch_parity_summary_for_report(&summary),
+            "VSOP87 canonical J2000 batch parity: unavailable (the VSOP87 canonical batch parity summary field `frame` is out of sync with the current canonical evidence)"
+        );
+    }
+
+    #[test]
     fn canonical_j1900_batch_parity_report_matches_the_backend_formatter() {
         let summary = canonical_j1900_batch_parity_summary().expect("batch summary should exist");
         let rendered = canonical_j1900_batch_parity_summary_for_report();
