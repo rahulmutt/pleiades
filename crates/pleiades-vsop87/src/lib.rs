@@ -3991,7 +3991,7 @@ impl fmt::Display for Vsop87CanonicalJ1900BatchParitySummary {
 /// Returns the backend-owned canonical J1900 batch-path regression summary.
 pub fn canonical_j1900_batch_parity_summary() -> Option<Vsop87CanonicalJ1900BatchParitySummary> {
     let backend = Vsop87Backend::new();
-    let requests = canonical_j1900_batch_parity_requests();
+    let requests = canonical_j1900_equatorial_batch_parity_requests();
     let reference_epoch = requests.first()?.instant;
     let (sample_bodies, exact_count, interpolated_count, approximate_count, unknown_count) =
         canonical_batch_parity_counts(&backend, &requests)?;
@@ -5615,6 +5615,15 @@ pub fn supported_body_j1900_equatorial_batch_parity_requests() -> Vec<EphemerisR
     )
 }
 
+/// Returns the supported-body J1900 request corpus used by the VSOP87 canonical batch evidence.
+///
+/// This is the explicit frame-qualified alias for
+/// [`supported_body_j1900_equatorial_batch_parity_requests`].
+#[doc(alias = "canonical_j1900_batch_parity_requests")]
+pub fn canonical_j1900_equatorial_batch_parity_requests() -> Vec<EphemerisRequest> {
+    supported_body_j1900_equatorial_batch_parity_requests()
+}
+
 /// Returns the supported-body J1900 request corpus used by the VSOP87 supported-body batch evidence.
 ///
 /// The requests preserve the supported-body order, use the shared J1900 TDB
@@ -5631,12 +5640,9 @@ pub fn supported_body_j1900_ecliptic_batch_parity_requests() -> Vec<EphemerisReq
 
 /// Returns the supported-body J1900 request corpus used by the VSOP87 canonical batch evidence.
 ///
-/// The requests preserve the supported-body order, use the shared J1900 TDB
-/// instant, and keep the mean-obliquity equatorial frame so validation and
-/// reproducibility tooling can reuse the exact canonical batch slice without
-/// reconstructing it from the sample metadata.
+/// This is a compatibility alias for [`canonical_j1900_equatorial_batch_parity_requests`].
 pub fn canonical_j1900_batch_parity_requests() -> Vec<EphemerisRequest> {
-    supported_body_j1900_equatorial_batch_parity_requests()
+    canonical_j1900_equatorial_batch_parity_requests()
 }
 
 /// Returns the canonical mixed TT/TDB request corpus used by the batch-parity evidence.
@@ -9869,6 +9875,14 @@ mod tests {
         assert_eq!(
             canonical_epoch_requests(),
             canonical_j2000_batch_parity_requests()
+        );
+    }
+
+    #[test]
+    fn canonical_j1900_equatorial_batch_parity_requests_remain_the_explicit_alias() {
+        assert_eq!(
+            canonical_j1900_equatorial_batch_parity_requests(),
+            canonical_j1900_batch_parity_requests()
         );
     }
 
