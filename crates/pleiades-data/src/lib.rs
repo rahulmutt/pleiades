@@ -621,6 +621,17 @@ impl PackagedLookupEpochPolicy {
         }
     }
 
+    /// Returns `Ok(())` when the policy still matches the current packaged-data posture.
+    pub fn validate(self) -> Result<(), PackagedLookupEpochPolicyValidationError> {
+        if self != Self::RetagToTtGridWithoutRelativisticCorrection {
+            return Err(PackagedLookupEpochPolicyValidationError::FieldOutOfSync {
+                field: "policy",
+            });
+        }
+
+        Ok(())
+    }
+
     /// Returns the compact release-facing summary for the lookup-epoch policy.
     pub fn summary_line(self) -> String {
         format!("{}; {}", self.label(), self.note())
@@ -632,6 +643,26 @@ impl fmt::Display for PackagedLookupEpochPolicy {
         f.write_str(self.label())
     }
 }
+
+/// Validation error for the packaged-data lookup-epoch policy.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PackagedLookupEpochPolicyValidationError {
+    /// A policy field is out of sync with the current packaged-data posture.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for PackagedLookupEpochPolicyValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the packaged lookup-epoch policy field `{field}` is out of sync with the current posture"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for PackagedLookupEpochPolicyValidationError {}
 
 /// Structured summary for the packaged-data lookup-epoch policy.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -668,13 +699,11 @@ impl PackagedLookupEpochPolicySummary {
 
     /// Returns `Ok(())` when the summary still matches the current packaged-data posture.
     pub fn validate(&self) -> Result<(), PackagedLookupEpochPolicySummaryValidationError> {
-        if self.policy != PackagedLookupEpochPolicy::RetagToTtGridWithoutRelativisticCorrection {
-            return Err(
-                PackagedLookupEpochPolicySummaryValidationError::FieldOutOfSync { field: "policy" },
-            );
-        }
-
-        Ok(())
+        self.policy.validate().map_err(|error| match error {
+            PackagedLookupEpochPolicyValidationError::FieldOutOfSync { field } => {
+                PackagedLookupEpochPolicySummaryValidationError::FieldOutOfSync { field }
+            }
+        })
     }
 }
 
@@ -2480,6 +2509,7 @@ mod tests {
             request_policy.lookup_epoch_policy,
             PackagedLookupEpochPolicy::RetagToTtGridWithoutRelativisticCorrection
         );
+        assert_eq!(request_policy.lookup_epoch_policy.validate(), Ok(()));
         assert_eq!(
             request_policy.summary_line(),
             packaged_request_policy_summary_for_report()
@@ -2494,6 +2524,7 @@ mod tests {
             lookup_epoch_policy.policy,
             request_policy.lookup_epoch_policy
         );
+        assert_eq!(lookup_epoch_policy.policy.validate(), Ok(()));
         assert_eq!(lookup_epoch_policy.validate(), Ok(()));
         assert_eq!(
             lookup_epoch_policy.summary_line(),
