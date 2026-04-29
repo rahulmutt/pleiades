@@ -2032,6 +2032,27 @@ impl LunarReferenceSample {
 
         Ok(())
     }
+
+    /// Returns a compact, release-facing summary of the published sample.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "{} at JD {:.1}: lon={:.12}°, lat={:.12}°, dist={}, note={}",
+            self.body,
+            self.epoch.julian_day.days(),
+            self.longitude_deg,
+            self.latitude_deg,
+            self.distance_au
+                .map(|value| format!("{value:.12} AU"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            self.note,
+        )
+    }
+}
+
+impl fmt::Display for LunarReferenceSample {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
 }
 
 /// Returns the canonical lunar evidence samples used by validation and reporting.
@@ -2177,6 +2198,28 @@ impl LunarEquatorialReferenceSample {
         }
 
         Ok(())
+    }
+
+    /// Returns a compact, release-facing summary of the published sample.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "{} at JD {:.1}: ra={:.12}°, dec={:.12}°, dist={}, note={}",
+            self.body,
+            self.epoch.julian_day.days(),
+            self.equatorial.right_ascension.degrees(),
+            self.equatorial.declination.degrees(),
+            self.equatorial
+                .distance_au
+                .map(|value| format!("{value:.12} AU"))
+                .unwrap_or_else(|| "n/a".to_string()),
+            self.note,
+        )
+    }
+}
+
+impl fmt::Display for LunarEquatorialReferenceSample {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
     }
 }
 
@@ -6867,6 +6910,23 @@ mod tests {
             apparent.validate().unwrap_err().kind,
             EphemerisErrorKind::InvalidRequest
         );
+    }
+
+    #[test]
+    fn lunar_reference_rows_expose_compact_summary_lines() {
+        let reference = lunar_reference_evidence()[0].clone();
+        assert_eq!(reference.summary_line(), reference.to_string());
+        assert!(reference
+            .summary_line()
+            .contains("Published 1992-04-12 geocentric Moon example"));
+        assert!(reference.summary_line().contains("lon=133.162655000000°"));
+
+        let equatorial = lunar_equatorial_reference_evidence()[0].clone();
+        assert_eq!(equatorial.summary_line(), equatorial.to_string());
+        assert!(equatorial
+            .summary_line()
+            .contains("Published 1992-04-12 geocentric Moon RA/Dec example"));
+        assert!(equatorial.summary_line().contains("ra=134.688470000000°"));
     }
 
     #[test]

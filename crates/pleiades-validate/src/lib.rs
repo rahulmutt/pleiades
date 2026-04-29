@@ -10637,19 +10637,7 @@ fn write_lunar_reference_evidence(f: &mut fmt::Formatter<'_>) -> fmt::Result {
     )?;
     writeln!(f, "    {}", lunar_reference_evidence_envelope_for_report())?;
     for sample in lunar_reference_evidence() {
-        writeln!(
-            f,
-            "    {} at JD {:.1}: lon={:.12}°, lat={:.12}°, dist={}, note={}",
-            sample.body,
-            sample.epoch.julian_day.days(),
-            sample.longitude_deg,
-            sample.latitude_deg,
-            sample
-                .distance_au
-                .map(|value| format!("{value:.12} AU"))
-                .unwrap_or_else(|| "n/a".to_string()),
-            sample.note
-        )?;
+        writeln!(f, "    {}", sample)?;
     }
     Ok(())
 }
@@ -10672,20 +10660,7 @@ fn write_lunar_equatorial_reference_evidence(f: &mut fmt::Formatter<'_>) -> fmt:
         lunar_equatorial_reference_evidence_envelope_for_report()
     )?;
     for sample in lunar_equatorial_reference_evidence() {
-        writeln!(
-            f,
-            "    {} at JD {:.1}: ra={:.12}°, dec={:.12}°, dist={}, note={}",
-            sample.body,
-            sample.epoch.julian_day.days(),
-            sample.equatorial.right_ascension.degrees(),
-            sample.equatorial.declination.degrees(),
-            sample
-                .equatorial
-                .distance_au
-                .map(|value| format!("{value:.12} AU"))
-                .unwrap_or_else(|| "n/a".to_string()),
-            sample.note
-        )?;
+        writeln!(f, "    {}", sample)?;
     }
     Ok(())
 }
