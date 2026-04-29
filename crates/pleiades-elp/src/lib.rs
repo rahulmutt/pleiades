@@ -470,6 +470,11 @@ impl LunarTheoryCatalogEntry {
             self.specification.unsupported_bodies.len(),
         )
     }
+
+    /// Returns `Ok(())` when the entry still matches the current baseline specification.
+    pub fn validate(&self) -> Result<(), LunarTheorySpecificationValidationError> {
+        self.specification.validate()
+    }
 }
 
 impl fmt::Display for LunarTheoryCatalogEntry {
@@ -623,6 +628,11 @@ impl LunarTheorySpecification {
                 field: "source_family",
             });
         }
+        if self.model_name != LUNAR_THEORY_SPECIFICATION.model_name {
+            return Err(LunarTheorySpecificationValidationError::FieldOutOfSync {
+                field: "model_name",
+            });
+        }
         if self.source_aliases != source.source_aliases {
             return Err(LunarTheorySpecificationValidationError::FieldOutOfSync {
                 field: "source_aliases",
@@ -678,17 +688,31 @@ impl LunarTheorySpecification {
                 field: "request_policy.supports_topocentric_observer",
             });
         }
-        if self.supported_bodies != SUPPORTED_LUNAR_BODIES {
+        if self.truncation_note != LUNAR_THEORY_SPECIFICATION.truncation_note {
             return Err(LunarTheorySpecificationValidationError::FieldOutOfSync {
-                field: "supported_bodies",
+                field: "truncation_note",
             });
         }
-        if self.unsupported_bodies != UNSUPPORTED_LUNAR_BODIES {
+        if self.unit_note != LUNAR_THEORY_SPECIFICATION.unit_note {
             return Err(LunarTheorySpecificationValidationError::FieldOutOfSync {
-                field: "unsupported_bodies",
+                field: "unit_note",
             });
         }
-
+        if self.date_range_note != LUNAR_THEORY_SPECIFICATION.date_range_note {
+            return Err(LunarTheorySpecificationValidationError::FieldOutOfSync {
+                field: "date_range_note",
+            });
+        }
+        if self.frame_note != LUNAR_THEORY_SPECIFICATION.frame_note {
+            return Err(LunarTheorySpecificationValidationError::FieldOutOfSync {
+                field: "frame_note",
+            });
+        }
+        if self.validation_window != LUNAR_THEORY_SPECIFICATION.validation_window {
+            return Err(LunarTheorySpecificationValidationError::FieldOutOfSync {
+                field: "validation_window",
+            });
+        }
         Ok(())
     }
 }
@@ -870,6 +894,13 @@ pub enum LunarTheoryCatalogValidationError {
         /// Source identifier of the selected entry.
         source_identifier: &'static str,
     },
+    /// A catalog entry's specification drifted away from the current baseline.
+    SpecificationFieldOutOfSync {
+        /// Source identifier of the drifting entry.
+        source_identifier: &'static str,
+        /// Field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for LunarTheoryCatalogValidationError {
@@ -913,6 +944,13 @@ impl fmt::Display for LunarTheoryCatalogValidationError {
                 f,
                 "the selected lunar-theory catalog entry `{source_identifier}` does not round-trip through the typed selection helper"
             ),
+            Self::SpecificationFieldOutOfSync {
+                source_identifier,
+                field,
+            } => write!(
+                f,
+                "the lunar-theory catalog entry `{source_identifier}` has specification field `{field}` out of sync with the current catalog"
+            ),
         }
     }
 }
@@ -938,6 +976,17 @@ fn validate_lunar_theory_catalog_entries(
     }
 
     for (index, entry) in catalog.iter().enumerate() {
+        if let Err(error) = entry.validate() {
+            return Err(match error {
+                LunarTheorySpecificationValidationError::FieldOutOfSync { field } => {
+                    LunarTheoryCatalogValidationError::SpecificationFieldOutOfSync {
+                        source_identifier: entry.specification.source_identifier,
+                        field,
+                    }
+                }
+            });
+        }
+
         for (body_index, body) in entry.specification.supported_bodies.iter().enumerate() {
             if entry.specification.supported_bodies[..body_index].contains(body) {
                 return Err(LunarTheoryCatalogValidationError::DuplicateSupportedBody {
@@ -1123,7 +1172,7 @@ impl LunarTheoryCatalogValidationSummary {
 
         match &self.validation_result {
             Ok(()) => format!(
-                "lunar theory catalog validation: ok ({} entries, {} selected; selected source: {}; selected key: {}; selected family key: {}; aliases={}; round-trip, alias uniqueness, body coverage disjointness, and case-insensitive key matching verified)",
+                "lunar theory catalog validation: ok ({} entries, {} selected; selected source: {}; selected key: {}; selected family key: {}; aliases={}; specification sync, round-trip, alias uniqueness, body coverage disjointness, and case-insensitive key matching verified)",
                 self.entry_count,
                 self.selected_count,
                 selected_source_summary,
@@ -4919,6 +4968,26 @@ mod tests {
         drifted_catalog_entry.selected = false;
         let drifted_catalog_entry_summary = drifted_catalog_entry.summary_line();
         assert!(drifted_catalog_entry_summary.contains("selected=false"));
+        assert!(catalog[0].validate().is_ok());
+        let mut drifted_specification = theory;
+        drifted_specification.model_name = "Drifted lunar baseline";
+        let spec_error = drifted_specification
+            .validate()
+            .expect_err("drifted lunar specification should fail validation");
+        assert_eq!(
+            spec_error.to_string(),
+            "the lunar theory specification field `model_name` is out of sync with the current selection"
+        );
+        let drifted_catalog_validation =
+            validate_lunar_theory_catalog_entries(&[LunarTheoryCatalogEntry {
+                selected: true,
+                specification: drifted_specification,
+            }])
+            .expect_err("drifted lunar catalog entry should fail validation");
+        assert_eq!(
+            drifted_catalog_validation.to_string(),
+            "the lunar-theory catalog entry `meeus-style-truncated-lunar-baseline` has specification field `model_name` out of sync with the current catalog"
+        );
         assert!(lunar_theory_catalog_summary_for_report()
             .contains("lunar theory catalog: 1 entry, 1 selected entry"));
         assert!(lunar_theory_catalog_summary_for_report()
@@ -4988,7 +5057,7 @@ mod tests {
             lunar_theory_catalog_validation_summary_for_report()
         );
         assert!(lunar_theory_catalog_validation_summary_for_report()
-            .contains("lunar theory catalog validation: ok (1 entries, 1 selected; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]; selected key: source identifier=meeus-style-truncated-lunar-baseline; selected family key: source family=Meeus-style truncated analytical baseline; aliases=1; round-trip, alias uniqueness, body coverage disjointness, and case-insensitive key matching verified)"));
+            .contains("lunar theory catalog validation: ok (1 entries, 1 selected; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]; selected key: source identifier=meeus-style-truncated-lunar-baseline; selected family key: source family=Meeus-style truncated analytical baseline; aliases=1; specification sync, round-trip, alias uniqueness, body coverage disjointness, and case-insensitive key matching verified)"));
         assert!(lunar_theory_catalog_summary_for_report()
             .contains("selected source: meeus-style-truncated-lunar-baseline"));
         assert!(lunar_theory_catalog_summary_for_report()
