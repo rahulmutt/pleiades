@@ -8316,8 +8316,9 @@ fn format_jpl_frame_treatment_summary() -> String {
     }
 }
 
+/// Compact validation evidence for the shared mean-obliquity frame round-trip samples.
 #[derive(Clone, Debug, PartialEq)]
-struct MeanObliquityFrameRoundTripSummary {
+pub struct MeanObliquityFrameRoundTripSummary {
     sample_count: usize,
     max_longitude_delta_deg: f64,
     max_latitude_delta_deg: f64,
@@ -8325,7 +8326,8 @@ struct MeanObliquityFrameRoundTripSummary {
 }
 
 impl MeanObliquityFrameRoundTripSummary {
-    fn validate(&self) -> Result<(), String> {
+    /// Validates the stored round-trip envelope.
+    pub fn validate(&self) -> Result<(), String> {
         if self.sample_count == 0 {
             return Err("mean-obliquity frame round-trip summary has no samples".to_string());
         }
@@ -8362,7 +8364,9 @@ impl fmt::Display for MeanObliquityFrameRoundTripSummary {
     }
 }
 
-fn mean_obliquity_frame_round_trip_summary() -> Result<MeanObliquityFrameRoundTripSummary, String> {
+/// Computes the shared mean-obliquity frame round-trip validation summary.
+pub fn mean_obliquity_frame_round_trip_summary(
+) -> Result<MeanObliquityFrameRoundTripSummary, String> {
     let samples = [
         (
             EclipticCoordinates::new(

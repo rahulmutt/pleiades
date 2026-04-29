@@ -84,6 +84,7 @@ The current contract is intentionally mechanical rather than modeled:
 - Ecliptic and equatorial result fields may both be populated by a backend, but the request frame still records the caller's requested output frame.
 - The shared type layer exposes the mean-obliquity forward rotation as `EclipticCoordinates::to_equatorial` and the inverse rotation as `EquatorialCoordinates::to_ecliptic`, so callers and backend tests can round-trip frame conversions with the same documented obliquity policy.
 - Frame transforms must document the obliquity/precession/nutation model used. The current VSOP87 source-backed path and the compact ELP lunar baseline both use a mean-obliquity transform, and that frame rotation should stay documented explicitly until a higher-order model is introduced.
+- `pleiades-validate` exposes a reusable mean-obliquity frame round-trip summary helper for the shared validation samples, which keeps the compact frame-conversion evidence available to downstream tooling without reassembling the sample envelope from report text.
 
 ## Follow-up work
 
