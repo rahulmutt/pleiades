@@ -50,7 +50,8 @@ use pleiades_core::{
 use pleiades_data::{
     packaged_artifact_output_support_summary_for_report,
     packaged_artifact_profile_summary_with_body_coverage,
-    packaged_artifact_regeneration_summary_for_report, packaged_frame_parity_summary_for_report,
+    packaged_artifact_regeneration_summary_for_report,
+    packaged_artifact_storage_summary_for_report, packaged_frame_parity_summary_for_report,
     packaged_frame_treatment_summary_details, packaged_lookup_epoch_policy_summary_for_report,
     packaged_mixed_tt_tdb_batch_parity_summary_for_report,
     packaged_request_policy_summary_for_report, PackagedDataBackend,
@@ -5447,6 +5448,9 @@ fn render_release_summary_text() -> String {
     text.push_str("Packaged-artifact output support: ");
     text.push_str(&format_packaged_artifact_output_support_summary());
     text.push('\n');
+    text.push_str("Packaged-artifact storage: ");
+    text.push_str(&format_packaged_artifact_storage_summary());
+    text.push('\n');
     text.push_str("Packaged-artifact regeneration: ");
     text.push_str(&packaged_artifact_regeneration_summary_for_report());
     text.push('\n');
@@ -7975,6 +7979,10 @@ fn format_packaged_artifact_output_support_summary() -> String {
     packaged_artifact_output_support_summary_for_report()
 }
 
+fn format_packaged_artifact_storage_summary() -> String {
+    packaged_artifact_storage_summary_for_report()
+}
+
 fn format_packaged_frame_parity_summary() -> String {
     packaged_frame_parity_summary_for_report()
 }
@@ -8669,6 +8677,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         text,
         "  Packaged-artifact output support: {}",
         format_packaged_artifact_output_support_summary()
+    );
+    let _ = writeln!(
+        text,
+        "  Packaged-artifact storage: {}",
+        format_packaged_artifact_storage_summary()
     );
     let _ = writeln!(text, "  {}", packaged_request_policy_summary_for_report());
     let _ = writeln!(
@@ -12536,6 +12549,9 @@ mod tests {
         assert!(validation_report_summary.contains(
             "Packaged-artifact output support: EclipticCoordinates=derived, EquatorialCoordinates=derived, ApparentCorrections=unsupported, TopocentricCoordinates=unsupported, SiderealCoordinates=unsupported, Motion=unsupported"
         ));
+        assert!(validation_report_summary.contains(
+            "Packaged-artifact storage: Quantized linear segments stored in pleiades-compression artifact format; equatorial coordinates are reconstructed at runtime from stored channels"
+        ));
         assert!(validation_report_summary.contains("Packaged request policy"));
         assert!(validation_report_summary.contains("Packaged lookup epoch policy: TT-grid retag without relativistic correction; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction"));
         assert!(validation_report_summary.contains("Packaged frame parity"));
@@ -15006,6 +15022,9 @@ version = "0.9.0"
             "Packaged-artifact output support: EclipticCoordinates=derived, EquatorialCoordinates=derived, ApparentCorrections=unsupported, TopocentricCoordinates=unsupported, SiderealCoordinates=unsupported, Motion=unsupported"
         ));
         assert!(release_summary.contains(
+            "Packaged-artifact storage: Quantized linear segments stored in pleiades-compression artifact format; equatorial coordinates are reconstructed at runtime from stored channels"
+        ));
+        assert!(release_summary.contains(
             "Packaged-artifact regeneration: Packaged artifact regeneration source: label=stage-5 packaged-data prototype"
         ));
         assert!(release_summary.contains("checksum=0x"));
@@ -15122,6 +15141,9 @@ version = "0.9.0"
             "Artifact profile: byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 11 bundled bodies; bundled bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros"
         ));
         assert!(artifact_summary.contains("Artifact request policy"));
+        assert!(artifact_summary.contains(
+            "Artifact storage: Quantized linear segments stored in pleiades-compression artifact format; equatorial coordinates are reconstructed at runtime from stored channels"
+        ));
         assert!(artifact_summary.contains(
             "regeneration provenance: Packaged artifact regeneration source: label=stage-5 packaged-data prototype"
         ));
