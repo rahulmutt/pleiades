@@ -1089,6 +1089,8 @@ mod tests {
         assert!(release_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(release_summary.contains("Release notes summary: release-notes-summary"));
+        assert!(release_summary
+            .contains("lunar source selection: Compact Meeus-style truncated lunar baseline"));
         assert!(release_summary.contains("Wang"));
         assert!(release_summary.contains("Aries houses"));
         assert!(release_summary.contains("Fagan/Bradley"));
