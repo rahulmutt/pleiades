@@ -1382,6 +1382,25 @@ mod tests {
     }
 
     #[test]
+    fn chart_command_rejects_conflicting_tdb_offset_aliases_in_either_order() {
+        let error = render_chart(&[
+            "--jd",
+            "2451545.0",
+            "--tt",
+            "--tdb-from-tt-offset-seconds",
+            "-0.001657",
+            "--tdb-offset-seconds",
+            "-0.001657",
+            "--body",
+            "Sun",
+        ])
+        .expect_err(
+            "TT-tagged chart requests should reject conflicting TDB-TT aliases regardless of order",
+        );
+        assert!(error.contains("conflicting TDB-TT offset flags"));
+    }
+
+    #[test]
     fn chart_command_rejects_repeated_tt_offset_flags() {
         let error = render_chart(&[
             "--jd",
