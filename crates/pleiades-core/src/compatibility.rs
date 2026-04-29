@@ -75,6 +75,7 @@ impl CompatibilityProfile {
         }
 
         let house_alias_count = alias_count(self.house_systems, |entry| entry.aliases);
+        let house_code_alias_count = pleiades_houses::house_system_code_aliases().len();
         let ayanamsa_alias_count = alias_count(self.ayanamsas, |entry| entry.aliases);
 
         let mut text = String::from("Compatibility catalog inventory: ");
@@ -86,7 +87,9 @@ impl CompatibilityProfile {
         text.push_str(&self.release_house_systems.len().to_string());
         text.push_str(" release-specific, ");
         text.push_str(&house_alias_count.to_string());
-        text.push_str(" aliases); ayanamsas=");
+        text.push_str(" aliases); house-code aliases=");
+        text.push_str(&house_code_alias_count.to_string());
+        text.push_str("; ayanamsas=");
         text.push_str(&self.ayanamsas.len().to_string());
         text.push_str(" (");
         text.push_str(&self.baseline_ayanamsas.len().to_string());
@@ -2688,11 +2691,12 @@ mod tests {
             .map(|entry| entry.aliases.len())
             .sum();
         assert!(rendered.contains(&format!(
-            "Compatibility catalog inventory: house systems={} ({} baseline, {} release-specific, {} aliases); ayanamsas={} ({} baseline, {} release-specific, {} aliases); custom-definition labels={}; known gaps={}",
+            "Compatibility catalog inventory: house systems={} ({} baseline, {} release-specific, {} aliases); house-code aliases={}; ayanamsas={} ({} baseline, {} release-specific, {} aliases); custom-definition labels={}; known gaps={}",
             profile.house_systems.len(),
             profile.baseline_house_systems.len(),
             profile.release_house_systems.len(),
             house_alias_count,
+            pleiades_houses::house_system_code_aliases().len(),
             profile.ayanamsas.len(),
             profile.baseline_ayanamsas.len(),
             profile.release_ayanamsas.len(),
