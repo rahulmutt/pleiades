@@ -2980,15 +2980,7 @@ pub fn format_source_documentation_summary(summary: &Vsop87SourceDocumentationSu
 /// confirms that the source/file/body partitioning still matches the current
 /// canonical VSOP87 inputs.
 pub fn source_documentation_summary_for_report() -> String {
-    let summary = source_documentation_summary();
-    if let Err(error) = summary.validate() {
-        return format!("VSOP87 source documentation: unavailable ({error})");
-    }
-
-    match source_documentation_health_summary().validate() {
-        Ok(()) => summary.summary_line(),
-        Err(error) => format!("VSOP87 source documentation: unavailable ({error})"),
-    }
+    format_validated_source_documentation_summary_for_report(&source_documentation_summary())
 }
 
 /// Returns a consistency check for the current VSOP87 source-documentation catalog.
@@ -3209,6 +3201,19 @@ fn format_validated_source_documentation_health_summary_for_report(
     match summary.validate() {
         Ok(()) => summary.summary_line(),
         Err(error) => format!("VSOP87 source documentation health: unavailable ({error})"),
+    }
+}
+
+fn format_validated_source_documentation_summary_for_report(
+    summary: &Vsop87SourceDocumentationSummary,
+) -> String {
+    if let Err(error) = summary.validate() {
+        return format!("VSOP87 source documentation: unavailable ({error})");
+    }
+
+    match source_documentation_health_summary().validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("VSOP87 source documentation: unavailable ({error})"),
     }
 }
 
@@ -9029,6 +9034,17 @@ mod tests {
         assert_eq!(summary.to_string(), rendered);
         assert!(rendered.contains("source files: VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep"));
         assert!(rendered.contains("source-backed breakdown: 8 generated binary bodies (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune), 0 vendored full-file bodies (none), 0 truncated slice bodies (none)"));
+    }
+
+    #[test]
+    fn source_documentation_report_marks_summary_drift_as_unavailable() {
+        let mut summary = source_documentation_summary();
+        summary.source_specification_count += 1;
+
+        assert_eq!(
+            format_validated_source_documentation_summary_for_report(&summary),
+            "VSOP87 source documentation: unavailable (the VSOP87 source documentation summary field `source_specification_count` is out of sync with the current source catalog)"
+        );
     }
 
     #[test]
