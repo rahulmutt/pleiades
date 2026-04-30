@@ -288,6 +288,12 @@ impl BackendProvenance {
             }
         })
     }
+
+    /// Returns the compact provenance summary after validating it.
+    pub fn validated_summary_line(&self) -> Result<String, BackendProvenanceValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 /// Errors returned when backend provenance metadata fails the shared consistency checks.
@@ -2637,6 +2643,10 @@ mod tests {
         assert_eq!(provenance.to_string(), provenance.summary_line());
         assert_eq!(provenance.summary_line(), "toy backend for tests");
         assert!(provenance.summary_line().contains("toy backend for tests"));
+        assert_eq!(
+            provenance.validated_summary_line(),
+            Ok(provenance.summary_line())
+        );
         assert!(provenance.validate().is_ok());
     }
 
@@ -2678,6 +2688,7 @@ mod tests {
             "backend provenance data sources contain duplicate entry `source A`"
         );
         assert_eq!(error.to_string(), error.summary_line());
+        assert!(provenance.validated_summary_line().is_err());
     }
 
     #[test]
