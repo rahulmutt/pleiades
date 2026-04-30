@@ -3311,7 +3311,7 @@ mod tests {
 
         assert_eq!(converted.scale, TimeScale::Tt);
         assert!(
-            (converted.julian_day.days() - 2_451_544.999_999_980_8).abs() < 1e-12,
+            (converted.julian_day.days() - 2_451_544.999_999_981).abs() < 1e-12,
             "signed TDB-to-TT conversion should apply the caller-supplied offset"
         );
     }
