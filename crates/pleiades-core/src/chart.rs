@@ -222,6 +222,12 @@ impl ObserverSummary {
         Ok(self.location_label())
     }
 
+    /// Returns the stored body-position observer location as a compact label after validation.
+    pub fn validated_body_location_label(&self) -> Result<String, ObserverSummaryValidationError> {
+        self.validate()?;
+        Ok(self.body_location_label())
+    }
+
     /// Returns a compact one-line rendering of the observer posture and location.
     pub fn summary_line(&self) -> String {
         format!(
@@ -3499,7 +3505,23 @@ mod tests {
     }
 
     #[test]
-    fn observer_summary_validate_rejects_invalid_body_locations() {
+    fn observer_summary_validated_body_location_label_returns_rendered_label() {
+        let summary = ObserverSummary::new(ObserverPolicy::Geocentric, None).with_body_location(
+            Some(ObserverLocation::new(
+                Latitude::from_degrees(-33.9),
+                Longitude::from_degrees(151.2),
+                None,
+            )),
+        );
+
+        assert_eq!(
+            summary.validated_body_location_label(),
+            Ok("latitude=-33.9°, longitude=151.2°, elevation=n/a".to_string())
+        );
+    }
+
+    #[test]
+    fn observer_summary_validated_body_location_label_rejects_invalid_locations() {
         let summary = ObserverSummary::new(ObserverPolicy::Geocentric, None).with_body_location(
             Some(ObserverLocation::new(
                 Latitude::from_degrees(12.5),
@@ -3509,7 +3531,7 @@ mod tests {
         );
 
         let error = summary
-            .validate()
+            .validated_body_location_label()
             .expect_err("observer summaries should reject invalid body locations");
         assert!(matches!(
             error,
