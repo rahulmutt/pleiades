@@ -84,6 +84,22 @@ pub fn reference_snapshot_request_corpus(frame: CoordinateFrame) -> Option<Vec<E
     reference_snapshot_requests(frame)
 }
 
+/// Returns the equatorial reference-snapshot request corpus used by batch parity checks.
+///
+/// This is a compatibility alias for [`reference_snapshot_requests`].
+#[doc(alias = "reference_snapshot_requests")]
+pub fn reference_snapshot_equatorial_parity_requests() -> Option<Vec<EphemerisRequest>> {
+    reference_snapshot_requests(CoordinateFrame::Equatorial)
+}
+
+/// Returns the equatorial reference-snapshot request corpus used by batch parity checks.
+///
+/// This is a compatibility alias for [`reference_snapshot_equatorial_parity_requests`].
+#[doc(alias = "reference_snapshot_equatorial_parity_requests")]
+pub fn reference_snapshot_equatorial_parity_request_corpus() -> Option<Vec<EphemerisRequest>> {
+    reference_snapshot_equatorial_parity_requests()
+}
+
 /// Returns the mixed-frame reference-snapshot request corpus used by batch parity checks.
 ///
 /// The requests preserve the checked-in row order and alternate between ecliptic
@@ -6497,6 +6513,14 @@ mod tests {
         assert_eq!(
             reference_snapshot_request_corpus(CoordinateFrame::Equatorial),
             reference_snapshot_requests(CoordinateFrame::Equatorial)
+        );
+        assert_eq!(
+            reference_snapshot_equatorial_parity_requests(),
+            reference_snapshot_requests(CoordinateFrame::Equatorial)
+        );
+        assert_eq!(
+            reference_snapshot_equatorial_parity_request_corpus(),
+            reference_snapshot_equatorial_parity_requests()
         );
         assert_eq!(
             reference_snapshot_batch_parity_request_corpus(),
