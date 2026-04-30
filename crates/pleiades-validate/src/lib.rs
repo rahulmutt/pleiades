@@ -5845,7 +5845,6 @@ fn render_release_summary_text() -> String {
     text.push_str("JPL request policy: ");
     text.push_str(&jpl_snapshot_request_policy_summary_for_report());
     text.push('\n');
-    text.push_str("JPL batch error taxonomy: ");
     text.push_str(&jpl_snapshot_batch_error_taxonomy_summary_for_report());
     text.push('\n');
     text.push_str("JPL frame treatment: ");
@@ -8854,7 +8853,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     );
     let _ = writeln!(
         text,
-        "JPL batch error taxonomy: {}",
+        "{}",
         jpl_snapshot_batch_error_taxonomy_summary_for_report()
     );
     let _ = writeln!(
@@ -15982,8 +15981,12 @@ version = "0.9.0"
         assert!(release_summary.contains(&independent_holdout_manifest_summary_for_report()));
         assert!(release_summary.contains("JPL independent hold-out equatorial parity:"));
         assert!(release_summary.contains("JPL independent hold-out batch parity:"));
-        assert!(release_summary.contains("JPL request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
-        assert!(release_summary.contains("JPL batch error taxonomy: unsupported body Mean Node -> UnsupportedBody; out-of-range Ceres -> OutOfRangeInstant"));
+        assert!(release_summary.lines().any(|line| {
+            line == "JPL request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"
+        }));
+        assert!(release_summary.lines().any(|line| {
+            line == "JPL batch error taxonomy: unsupported body Mean Node -> UnsupportedBody; out-of-range Ceres -> OutOfRangeInstant"
+        }));
         assert!(release_summary.contains("Request policy: time-scale="));
         assert!(release_summary.contains("JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"));
         assert!(release_summary.contains(
