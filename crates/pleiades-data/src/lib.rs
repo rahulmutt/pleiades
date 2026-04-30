@@ -1466,6 +1466,14 @@ impl PackagedArtifactAccessSummary {
         }
     }
 
+    /// Returns the validated packaged artifact access posture as a compact line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<&'static str, PackagedArtifactAccessSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
     /// Returns `Ok(())` when the summary still matches the current build posture.
     pub fn validate(&self) -> Result<(), PackagedArtifactAccessSummaryValidationError> {
         validate_packaged_artifact_access_summary_line(self.summary_line())?;
@@ -1519,8 +1527,8 @@ pub fn packaged_artifact_access_summary() -> &'static str {
     SUMMARY
         .get_or_init(|| {
             let summary = packaged_artifact_access_summary_details();
-            match summary.validate() {
-                Ok(()) => summary.to_string(),
+            match summary.validated_summary_line() {
+                Ok(rendered) => rendered.to_string(),
                 Err(error) => format!("Packaged artifact access unavailable ({error})"),
             }
         })
@@ -1530,8 +1538,8 @@ pub fn packaged_artifact_access_summary() -> &'static str {
 /// Returns the packaged-artifact access summary for reporting.
 pub fn packaged_artifact_access_summary_for_report() -> String {
     let summary = packaged_artifact_access_summary_details();
-    match summary.validate() {
-        Ok(()) => summary.to_string(),
+    match summary.validated_summary_line() {
+        Ok(rendered) => rendered.to_string(),
         Err(error) => format!("Packaged artifact access: unavailable ({error})"),
     }
 }
@@ -3401,6 +3409,7 @@ mod tests {
         );
         assert_eq!(summary.summary_line(), packaged_artifact_access_summary());
         assert_eq!(summary.to_string(), packaged_artifact_access_summary());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             packaged_artifact_access_summary_for_report(),
             summary.to_string()
