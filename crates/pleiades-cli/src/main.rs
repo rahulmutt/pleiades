@@ -1032,7 +1032,7 @@ mod tests {
         assert!(release_notes_summary.contains("Artifact validation: validate-artifact"));
         assert!(release_notes_summary.contains("Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_notes_summary.contains("Release notes: release-notes"));
-        assert!(release_notes_summary.contains("Packaged-artifact storage:"));
+        assert!(release_notes_summary.contains("Packaged-artifact storage/reconstruction:"));
         assert!(release_notes_summary
             .lines()
             .any(|line| line == packaged_artifact_access_report_line()));

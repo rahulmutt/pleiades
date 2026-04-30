@@ -5463,7 +5463,7 @@ fn render_release_notes_summary_text() -> String {
     text.push_str("Release notes: release-notes\n");
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
-    text.push_str("Packaged-artifact storage: ");
+    text.push_str("Packaged-artifact storage/reconstruction: ");
     text.push_str(&packaged_artifact_storage_summary_for_report());
     text.push('\n');
     text.push_str("Packaged-artifact access: ");
@@ -5951,7 +5951,7 @@ fn render_release_summary_text() -> String {
     text.push_str("Packaged-artifact output support: ");
     text.push_str(&format_packaged_artifact_output_support_summary());
     text.push('\n');
-    text.push_str("Packaged-artifact storage: ");
+    text.push_str("Packaged-artifact storage/reconstruction: ");
     text.push_str(&format_packaged_artifact_storage_summary());
     text.push('\n');
     text.push_str("Packaged-artifact access: ");
@@ -9419,7 +9419,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     );
     let _ = writeln!(
         text,
-        "  Packaged-artifact storage: {}",
+        "  Packaged-artifact storage/reconstruction: {}",
         format_packaged_artifact_storage_summary()
     );
     let _ = writeln!(
@@ -13477,7 +13477,7 @@ mod tests {
             "Packaged-artifact output support: EclipticCoordinates=derived, EquatorialCoordinates=derived, ApparentCorrections=unsupported, TopocentricCoordinates=unsupported, SiderealCoordinates=unsupported, Motion=unsupported"
         ));
         assert!(validation_report_summary.contains(
-            "Packaged-artifact storage: Quantized linear segments stored in pleiades-compression artifact format; equatorial coordinates are reconstructed at runtime from stored channels"
+            "Packaged-artifact storage/reconstruction: Quantized linear segments stored in pleiades-compression artifact format; equatorial coordinates are reconstructed at runtime from stored channels"
         ));
         assert!(validation_report_summary.contains(
             "Packaged-artifact generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic residual corrections to keep the high-curvature fit compact"
@@ -16060,7 +16060,7 @@ version = "0.9.0"
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(release_notes_summary
             .contains("Artifact summary: artifact-summary / artifact-posture-summary"));
-        assert!(release_notes_summary.contains("Packaged-artifact storage: Quantized linear segments stored in pleiades-compression artifact format; equatorial coordinates are reconstructed at runtime from stored channels"));
+        assert!(release_notes_summary.contains("Packaged-artifact storage/reconstruction: Quantized linear segments stored in pleiades-compression artifact format; equatorial coordinates are reconstructed at runtime from stored channels"));
         assert!(release_notes_summary.contains(
             "Packaged-artifact generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic residual corrections to keep the high-curvature fit compact"
         ));
@@ -16110,7 +16110,7 @@ version = "0.9.0"
             "Packaged-artifact output support: EclipticCoordinates=derived, EquatorialCoordinates=derived, ApparentCorrections=unsupported, TopocentricCoordinates=unsupported, SiderealCoordinates=unsupported, Motion=unsupported"
         ));
         assert!(release_summary.contains(
-            "Packaged-artifact storage: Quantized linear segments stored in pleiades-compression artifact format; equatorial coordinates are reconstructed at runtime from stored channels"
+            "Packaged-artifact storage/reconstruction: Quantized linear segments stored in pleiades-compression artifact format; equatorial coordinates are reconstructed at runtime from stored channels"
         ));
         assert!(release_summary.contains(&format!(
             "Packaged-artifact access: {}",
