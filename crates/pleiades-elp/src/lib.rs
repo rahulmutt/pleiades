@@ -4270,6 +4270,13 @@ pub fn lunar_high_curvature_continuity_requests() -> Vec<EphemerisRequest> {
 
 /// This is a compatibility alias for [`lunar_high_curvature_continuity_requests`].
 #[doc(alias = "lunar_high_curvature_continuity_requests")]
+pub fn lunar_high_curvature_request_corpus() -> Vec<EphemerisRequest> {
+    lunar_high_curvature_continuity_requests()
+}
+
+/// This is a compatibility alias for [`lunar_high_curvature_continuity_requests`].
+#[doc(alias = "lunar_high_curvature_continuity_requests")]
+#[doc(alias = "lunar_high_curvature_request_corpus")]
 pub fn lunar_high_curvature_continuity_request_corpus() -> Vec<EphemerisRequest> {
     lunar_high_curvature_continuity_requests()
 }
@@ -4295,6 +4302,13 @@ pub fn lunar_high_curvature_equatorial_continuity_requests() -> Vec<EphemerisReq
 
 /// This is a compatibility alias for [`lunar_high_curvature_equatorial_continuity_requests`].
 #[doc(alias = "lunar_high_curvature_equatorial_continuity_requests")]
+pub fn lunar_high_curvature_equatorial_request_corpus() -> Vec<EphemerisRequest> {
+    lunar_high_curvature_equatorial_continuity_requests()
+}
+
+/// This is a compatibility alias for [`lunar_high_curvature_equatorial_continuity_requests`].
+#[doc(alias = "lunar_high_curvature_equatorial_continuity_requests")]
+#[doc(alias = "lunar_high_curvature_equatorial_request_corpus")]
 pub fn lunar_high_curvature_equatorial_continuity_request_corpus() -> Vec<EphemerisRequest> {
     lunar_high_curvature_equatorial_continuity_requests()
 }
@@ -7155,6 +7169,22 @@ mod tests {
         assert_eq!(
             lunar_apparent_comparison_equatorial_batch_parity_request_corpus(),
             lunar_apparent_comparison_equatorial_batch_parity_requests()
+        );
+        assert_eq!(
+            lunar_high_curvature_request_corpus(),
+            lunar_high_curvature_continuity_requests()
+        );
+        assert_eq!(
+            lunar_high_curvature_continuity_request_corpus(),
+            lunar_high_curvature_continuity_requests()
+        );
+        assert_eq!(
+            lunar_high_curvature_equatorial_request_corpus(),
+            lunar_high_curvature_equatorial_continuity_requests()
+        );
+        assert_eq!(
+            lunar_high_curvature_equatorial_continuity_request_corpus(),
+            lunar_high_curvature_equatorial_continuity_requests()
         );
     }
 
