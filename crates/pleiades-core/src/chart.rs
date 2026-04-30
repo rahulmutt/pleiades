@@ -19,8 +19,8 @@ use pleiades_houses::{
 };
 use pleiades_types::{
     Angle, CelestialBody, CoordinateFrame, CustomDefinitionValidationError, HouseSystem, Instant,
-    Longitude, Motion, MotionDirection, ObserverLocation, TimeScale, TimeScaleConversion,
-    TimeScaleConversionError, ZodiacMode, ZodiacSign,
+    Longitude, Motion, MotionDirection, ObserverLocation, ObserverLocationValidationError,
+    TimeScale, TimeScaleConversion, TimeScaleConversionError, ZodiacMode, ZodiacSign,
 };
 
 use crate::ChartEngine;
@@ -345,12 +345,44 @@ impl ChartRequest {
 
     /// Validates the chart-level observer contract used for house calculations.
     ///
+    /// Observer coordinates are checked whenever they are present, even when
+    /// the request does not also ask for houses, so malformed observer data
+    /// fails closed before chart assembly or report rendering uses it.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use pleiades_core::ChartRequest;
+    /// use pleiades_types::{Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale};
+    ///
+    /// let request = ChartRequest::new(Instant::new(
+    ///     JulianDay::from_days(2_451_545.0),
+    ///     TimeScale::Tt,
+    /// ))
+    /// .with_observer(ObserverLocation::new(
+    ///     Latitude::from_degrees(51.5),
+    ///     Longitude::from_degrees(-0.1),
+    ///     None,
+    /// ));
+    ///
+    /// assert!(request.validate_observer_location().is_ok());
+    /// ```
+    pub fn validate_observer_location(&self) -> Result<(), EphemerisError> {
+        if let Some(observer) = &self.observer {
+            observer.validate().map_err(map_observer_location_error)?;
+        }
+
+        Ok(())
+    }
+
+    /// Validates the chart-level observer contract used for house calculations.
+    ///
     /// House requests require an observer location so the façade can keep the
     /// observer used for houses separate from the geocentric body-position
     /// backend requests. This preflight returns the same structured request
     /// error that chart assembly uses if the observer is missing, and it also
-    /// reuses the house-layer validation so malformed observer locations fail
-    /// before the façade gets to house derivation.
+    /// reuses the observer-location validation so malformed observer
+    /// coordinates fail before the façade gets to house derivation.
     ///
     /// # Example
     ///
@@ -372,6 +404,8 @@ impl ChartRequest {
     /// assert!(request.validate_house_observer_policy().is_ok());
     /// ```
     pub fn validate_house_observer_policy(&self) -> Result<(), EphemerisError> {
+        self.validate_observer_location()?;
+
         if let Some(system) = &self.house_system {
             let observer = self.observer.clone().ok_or_else(|| {
                 EphemerisError::new(
@@ -400,6 +434,7 @@ impl ChartRequest {
         metadata: &BackendMetadata,
     ) -> Result<(), EphemerisError> {
         self.validate_custom_definitions()?;
+        self.validate_observer_location()?;
         self.validate_house_observer_policy()?;
 
         let backend_zodiac_mode = if matches!(self.zodiac_mode, ZodiacMode::Sidereal { .. })
@@ -2185,6 +2220,10 @@ pub fn sidereal_longitude(
     }
 }
 
+fn map_observer_location_error(error: ObserverLocationValidationError) -> EphemerisError {
+    EphemerisError::new(EphemerisErrorKind::InvalidObserver, error.to_string())
+}
+
 fn map_house_error(error: pleiades_houses::HouseError) -> EphemerisError {
     let kind = match error.kind {
         pleiades_houses::HouseErrorKind::UnsupportedHouseSystem => {
@@ -3093,9 +3132,7 @@ mod tests {
             .chart(&request)
             .expect_err("chart should reject non-finite house observer elevation");
         assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
-        assert!(error
-            .message
-            .contains("observer elevation must be finite when provided"));
+        assert!(error.message.contains("observer elevation must be finite"));
         let observers = observers.lock().expect("observer log should be lockable");
         assert!(observers.is_empty());
     }
@@ -3955,6 +3992,46 @@ mod tests {
         .with_house_system(crate::HouseSystem::WholeSign);
 
         assert!(request.validate_house_observer_policy().is_ok());
+    }
+
+    #[test]
+    fn chart_request_validate_observer_location_rejects_invalid_observers_without_houses() {
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Tt,
+        ))
+        .with_observer(ObserverLocation::new(
+            Latitude::from_degrees(95.0),
+            Longitude::from_degrees(45.0),
+            Some(100.0),
+        ));
+
+        let error = request
+            .validate_observer_location()
+            .expect_err("observer validation should reject out-of-range latitude");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
+        assert!(error
+            .message
+            .contains("observer latitude must stay within [-90, 90], got 95"));
+    }
+
+    #[test]
+    fn chart_request_validate_house_observer_policy_rejects_invalid_observers_without_houses() {
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Tt,
+        ))
+        .with_observer(ObserverLocation::new(
+            Latitude::from_degrees(12.5),
+            Longitude::from_degrees(f64::NAN),
+            Some(100.0),
+        ));
+
+        let error = request
+            .validate_house_observer_policy()
+            .expect_err("house-observer policy should reject invalid observer coordinates");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
+        assert!(error.message.contains("observer longitude must be finite"));
     }
 
     #[test]
