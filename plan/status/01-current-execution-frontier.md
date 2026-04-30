@@ -14,6 +14,7 @@ Several downstream requirements depend on trusted ephemeris outputs:
 - release compatibility profiles must not imply unsupported accuracy;
 - chart APIs need deterministic body positions across supported bodies and time ranges;
 - validation reports need real error envelopes rather than placeholder comparisons.
+- Latest progress (2026-04-30): the CLI chart help text now explicitly spells out that observers are used for house calculations only while geocentric body positions remain the default, which keeps the time/observer separation visible at the command-line surface alongside the existing explicit time-scale flags.
 - Latest progress (2026-04-29): the compact request-surface inventory is now a public `pleiades-validate::RequestSurfaceSummary` helper, which keeps the primary entry-point matrix reusable by downstream tooling instead of only embedded in the validation report formatter.
 - Latest progress (2026-04-29): `pleiades-validate` now exposes the expected comparison-tolerance catalog as a reusable backend-family/body-class helper, and the validation/report paths reuse that catalog directly so the stored thresholds stay centralized instead of being rebuilt only inside the report formatter.
 - Latest progress (2026-04-29): `pleiades-validate::ComparisonReport` now also exposes the typed comparison-audit summary publicly, which keeps the compact compare-backends-audit body/status counts reusable for downstream tooling instead of only inside the report formatter.

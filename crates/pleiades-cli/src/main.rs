@@ -262,7 +262,7 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
             }
             "--help" | "-h" => {
                 return Ok(format!(
-                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--tt|--tdb|--utc|--ut1] [--tt-offset-seconds <seconds>] [--tdb-offset-seconds <seconds>] [--tdb-from-tt-offset-seconds <seconds>] [--tt-from-tdb-offset-seconds <seconds>] [--mean|--apparent] [--ayanamsa <name>] [--house-system <name>] [--body <name> ...]\n\nAyanamsa names may be built-in entries or custom definitions in the form custom:<name>|<epoch-jd>|<offset-degrees> (or custom-definition:<name>|<epoch-jd>|<offset-degrees>). Body names may be built-in bodies such as Sun or Moon, or custom identifiers in the form catalog:designation. When the chart instant is tagged as UTC or UT1, the caller must also supply the explicit TT offset before chart assembly, and may also supply a signed TDB-TT offset when converting to TDB. When the chart instant is tagged as TT, the caller may supply that signed TDB-TT offset via --tdb-offset-seconds or the more explicit --tdb-from-tt-offset-seconds alias. When the chart instant is tagged as TDB, the caller may supply a signed TT-TDB offset to re-tag the request as TT before assembly.",
+                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--tt|--tdb|--utc|--ut1] [--tt-offset-seconds <seconds>] [--tdb-offset-seconds <seconds>] [--tdb-from-tt-offset-seconds <seconds>] [--tt-from-tdb-offset-seconds <seconds>] [--mean|--apparent] [--ayanamsa <name>] [--house-system <name>] [--body <name> ...]\n\nAyanamsa names may be built-in entries or custom definitions in the form custom:<name>|<epoch-jd>|<offset-degrees> (or custom-definition:<name>|<epoch-jd>|<offset-degrees>). Body names may be built-in bodies such as Sun or Moon, or custom identifiers in the form catalog:designation. When the chart instant is tagged as UTC or UT1, the caller must also supply the explicit TT offset before chart assembly, and may also supply a signed TDB-TT offset when converting to TDB. When the chart instant is tagged as TT, the caller may supply that signed TDB-TT offset via --tdb-offset-seconds or the more explicit --tdb-from-tt-offset-seconds alias. When the chart instant is tagged as TDB, the caller may supply a signed TT-TDB offset to re-tag the request as TT before assembly. When an observer is provided, it is used for house calculations only; body positions remain geocentric unless a future topocentric mode is added.",
                     banner()
                 ));
             }
@@ -1316,6 +1316,17 @@ mod tests {
         assert!(error.contains("validation-summary     Alias for validation-report-summary"));
         assert!(error.contains("report-summary         Alias for validation-report-summary"));
         assert!(error.contains("chart                  Render a basic chart report"));
+    }
+
+    #[test]
+    fn chart_help_text_spells_out_the_house_observer_separation() {
+        let help = render_chart(&["--help"]).expect("chart help should render");
+        assert!(help.contains(
+            "When an observer is provided, it is used for house calculations only; body positions remain geocentric unless a future topocentric mode is added."
+        ));
+        assert!(help.contains(
+            "When the chart instant is tagged as UTC or UT1, the caller must also supply the explicit TT offset before chart assembly"
+        ));
     }
 
     #[test]
