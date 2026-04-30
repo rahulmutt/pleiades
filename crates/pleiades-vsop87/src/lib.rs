@@ -1680,6 +1680,8 @@ impl Vsop87CanonicalEvidenceSummary {
             );
         }
 
+        validate_canonical_epoch_evidence_summary_against_current_evidence(self)?;
+
         Ok(())
     }
 }
@@ -1923,6 +1925,8 @@ impl Vsop87CanonicalEquatorialEvidenceSummary {
             rms: self.rms_distance_delta_au,
             max: self.max_distance_delta_au,
         })?;
+
+        validate_canonical_epoch_equatorial_evidence_summary_against_current_evidence(self)?;
 
         Ok(())
     }
@@ -6618,10 +6622,9 @@ pub fn canonical_epoch_body_evidence() -> Option<Vec<Vsop87CanonicalBodyEvidence
     Some(evidence)
 }
 
-/// Returns the canonical J2000 error envelope summary used by release-facing
-/// validation reports.
-pub fn canonical_epoch_evidence_summary() -> Option<Vsop87CanonicalEvidenceSummary> {
-    let body_evidence = canonical_epoch_body_evidence()?;
+fn derive_canonical_epoch_evidence_summary(
+    body_evidence: &[Vsop87CanonicalBodyEvidence],
+) -> Option<Vsop87CanonicalEvidenceSummary> {
     let sample_bodies = body_evidence
         .iter()
         .map(|evidence| evidence.body.clone())
@@ -6652,7 +6655,7 @@ pub fn canonical_epoch_evidence_summary() -> Option<Vsop87CanonicalEvidenceSumma
     let mut out_of_limit_count = 0usize;
     let mut within_interim_limits = true;
 
-    for evidence in &body_evidence {
+    for evidence in body_evidence {
         sample_count += 1;
         total_longitude_delta_deg += evidence.longitude_delta_deg;
         total_latitude_delta_deg += evidence.latitude_delta_deg;
@@ -6722,6 +6725,197 @@ pub fn canonical_epoch_evidence_summary() -> Option<Vsop87CanonicalEvidenceSumma
     })
 }
 
+fn validate_canonical_epoch_evidence_summary_against_current_evidence(
+    summary: &Vsop87CanonicalEvidenceSummary,
+) -> Result<(), Vsop87CanonicalEvidenceSummaryValidationError> {
+    let body_evidence = canonical_epoch_body_evidence().ok_or(
+        Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
+            summary: CANONICAL_EVIDENCE_SUMMARY_LABEL,
+            field: "sample_count",
+        },
+    )?;
+    let expected = derive_canonical_epoch_evidence_summary(&body_evidence).ok_or(
+        Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
+            summary: CANONICAL_EVIDENCE_SUMMARY_LABEL,
+            field: "sample_count",
+        },
+    )?;
+
+    macro_rules! check_field {
+        ($field:literal, $left:expr, $right:expr) => {
+            if $left != $right {
+                return Err(
+                    Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
+                        summary: CANONICAL_EVIDENCE_SUMMARY_LABEL,
+                        field: $field,
+                    },
+                );
+            }
+        };
+    }
+
+    check_field!("sample_count", summary.sample_count, expected.sample_count);
+    check_field!(
+        "sample_bodies",
+        summary.sample_bodies,
+        expected.sample_bodies
+    );
+    check_field!(
+        "max_longitude_delta_body",
+        summary.max_longitude_delta_body,
+        expected.max_longitude_delta_body
+    );
+    check_field!(
+        "max_longitude_delta_source_kind",
+        summary.max_longitude_delta_source_kind,
+        expected.max_longitude_delta_source_kind
+    );
+    check_field!(
+        "max_longitude_delta_source_file",
+        summary.max_longitude_delta_source_file,
+        expected.max_longitude_delta_source_file
+    );
+    check_field!(
+        "max_longitude_delta_deg",
+        summary.max_longitude_delta_deg,
+        expected.max_longitude_delta_deg
+    );
+    check_field!(
+        "max_longitude_delta_limit_deg",
+        summary.max_longitude_delta_limit_deg,
+        expected.max_longitude_delta_limit_deg
+    );
+    check_field!(
+        "max_latitude_delta_body",
+        summary.max_latitude_delta_body,
+        expected.max_latitude_delta_body
+    );
+    check_field!(
+        "max_latitude_delta_source_kind",
+        summary.max_latitude_delta_source_kind,
+        expected.max_latitude_delta_source_kind
+    );
+    check_field!(
+        "max_latitude_delta_source_file",
+        summary.max_latitude_delta_source_file,
+        expected.max_latitude_delta_source_file
+    );
+    check_field!(
+        "max_latitude_delta_deg",
+        summary.max_latitude_delta_deg,
+        expected.max_latitude_delta_deg
+    );
+    check_field!(
+        "max_latitude_delta_limit_deg",
+        summary.max_latitude_delta_limit_deg,
+        expected.max_latitude_delta_limit_deg
+    );
+    check_field!(
+        "max_distance_delta_body",
+        summary.max_distance_delta_body,
+        expected.max_distance_delta_body
+    );
+    check_field!(
+        "max_distance_delta_source_kind",
+        summary.max_distance_delta_source_kind,
+        expected.max_distance_delta_source_kind
+    );
+    check_field!(
+        "max_distance_delta_source_file",
+        summary.max_distance_delta_source_file,
+        expected.max_distance_delta_source_file
+    );
+    check_field!(
+        "max_distance_delta_au",
+        summary.max_distance_delta_au,
+        expected.max_distance_delta_au
+    );
+    check_field!(
+        "max_distance_delta_limit_au",
+        summary.max_distance_delta_limit_au,
+        expected.max_distance_delta_limit_au
+    );
+    check_field!(
+        "mean_longitude_delta_deg",
+        summary.mean_longitude_delta_deg,
+        expected.mean_longitude_delta_deg
+    );
+    check_field!(
+        "median_longitude_delta_deg",
+        summary.median_longitude_delta_deg,
+        expected.median_longitude_delta_deg
+    );
+    check_field!(
+        "percentile_longitude_delta_deg",
+        summary.percentile_longitude_delta_deg,
+        expected.percentile_longitude_delta_deg
+    );
+    check_field!(
+        "rms_longitude_delta_deg",
+        summary.rms_longitude_delta_deg,
+        expected.rms_longitude_delta_deg
+    );
+    check_field!(
+        "mean_latitude_delta_deg",
+        summary.mean_latitude_delta_deg,
+        expected.mean_latitude_delta_deg
+    );
+    check_field!(
+        "median_latitude_delta_deg",
+        summary.median_latitude_delta_deg,
+        expected.median_latitude_delta_deg
+    );
+    check_field!(
+        "percentile_latitude_delta_deg",
+        summary.percentile_latitude_delta_deg,
+        expected.percentile_latitude_delta_deg
+    );
+    check_field!(
+        "rms_latitude_delta_deg",
+        summary.rms_latitude_delta_deg,
+        expected.rms_latitude_delta_deg
+    );
+    check_field!(
+        "mean_distance_delta_au",
+        summary.mean_distance_delta_au,
+        expected.mean_distance_delta_au
+    );
+    check_field!(
+        "median_distance_delta_au",
+        summary.median_distance_delta_au,
+        expected.median_distance_delta_au
+    );
+    check_field!(
+        "percentile_distance_delta_au",
+        summary.percentile_distance_delta_au,
+        expected.percentile_distance_delta_au
+    );
+    check_field!(
+        "rms_distance_delta_au",
+        summary.rms_distance_delta_au,
+        expected.rms_distance_delta_au
+    );
+    check_field!(
+        "out_of_limit_count",
+        summary.out_of_limit_count,
+        expected.out_of_limit_count
+    );
+    check_field!(
+        "within_interim_limits",
+        summary.within_interim_limits,
+        expected.within_interim_limits
+    );
+
+    Ok(())
+}
+
+/// Returns the canonical J2000 error envelope summary used by release-facing
+/// validation reports.
+pub fn canonical_epoch_evidence_summary() -> Option<Vsop87CanonicalEvidenceSummary> {
+    let body_evidence = canonical_epoch_body_evidence()?;
+    derive_canonical_epoch_evidence_summary(&body_evidence)
+}
+
 /// Returns the canonical J2000 equatorial companion evidence used by
 /// validation reporting.
 pub fn canonical_epoch_equatorial_body_evidence(
@@ -6786,11 +6980,9 @@ pub fn canonical_epoch_equatorial_body_evidence(
     Some(evidence)
 }
 
-/// Returns the canonical J2000 equatorial companion evidence summary used by
-/// release-facing validation reports.
-pub fn canonical_epoch_equatorial_evidence_summary(
+fn derive_canonical_epoch_equatorial_evidence_summary(
+    body_evidence: &[Vsop87CanonicalEquatorialBodyEvidence],
 ) -> Option<Vsop87CanonicalEquatorialEvidenceSummary> {
-    let body_evidence = canonical_epoch_equatorial_body_evidence()?;
     let sample_bodies = body_evidence
         .iter()
         .map(|evidence| evidence.body.clone())
@@ -6816,7 +7008,7 @@ pub fn canonical_epoch_equatorial_evidence_summary(
     let mut declination_values = Vec::with_capacity(body_evidence.len());
     let mut distance_values = Vec::with_capacity(body_evidence.len());
 
-    for evidence in &body_evidence {
+    for evidence in body_evidence {
         sample_count += 1;
         total_right_ascension_delta_deg += evidence.right_ascension_delta_deg;
         total_declination_delta_deg += evidence.declination_delta_deg;
@@ -6872,6 +7064,173 @@ pub fn canonical_epoch_equatorial_evidence_summary(
         percentile_distance_delta_au: percentile_f64(&mut distance_values, 0.95),
         rms_distance_delta_au: rms_f64(&distance_values),
     })
+}
+
+fn validate_canonical_epoch_equatorial_evidence_summary_against_current_evidence(
+    summary: &Vsop87CanonicalEquatorialEvidenceSummary,
+) -> Result<(), Vsop87CanonicalEvidenceSummaryValidationError> {
+    let body_evidence = canonical_epoch_equatorial_body_evidence().ok_or(
+        Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
+            summary: CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL,
+            field: "sample_count",
+        },
+    )?;
+    let expected = derive_canonical_epoch_equatorial_evidence_summary(&body_evidence).ok_or(
+        Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
+            summary: CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL,
+            field: "sample_count",
+        },
+    )?;
+
+    macro_rules! check_field {
+        ($field:literal, $left:expr, $right:expr) => {
+            if $left != $right {
+                return Err(
+                    Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
+                        summary: CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL,
+                        field: $field,
+                    },
+                );
+            }
+        };
+    }
+
+    check_field!("sample_count", summary.sample_count, expected.sample_count);
+    check_field!(
+        "sample_bodies",
+        summary.sample_bodies,
+        expected.sample_bodies
+    );
+    check_field!(
+        "max_right_ascension_delta_body",
+        summary.max_right_ascension_delta_body,
+        expected.max_right_ascension_delta_body
+    );
+    check_field!(
+        "max_right_ascension_delta_source_kind",
+        summary.max_right_ascension_delta_source_kind,
+        expected.max_right_ascension_delta_source_kind
+    );
+    check_field!(
+        "max_right_ascension_delta_source_file",
+        summary.max_right_ascension_delta_source_file,
+        expected.max_right_ascension_delta_source_file
+    );
+    check_field!(
+        "max_right_ascension_delta_deg",
+        summary.max_right_ascension_delta_deg,
+        expected.max_right_ascension_delta_deg
+    );
+    check_field!(
+        "max_declination_delta_body",
+        summary.max_declination_delta_body,
+        expected.max_declination_delta_body
+    );
+    check_field!(
+        "max_declination_delta_source_kind",
+        summary.max_declination_delta_source_kind,
+        expected.max_declination_delta_source_kind
+    );
+    check_field!(
+        "max_declination_delta_source_file",
+        summary.max_declination_delta_source_file,
+        expected.max_declination_delta_source_file
+    );
+    check_field!(
+        "max_declination_delta_deg",
+        summary.max_declination_delta_deg,
+        expected.max_declination_delta_deg
+    );
+    check_field!(
+        "max_distance_delta_body",
+        summary.max_distance_delta_body,
+        expected.max_distance_delta_body
+    );
+    check_field!(
+        "max_distance_delta_source_kind",
+        summary.max_distance_delta_source_kind,
+        expected.max_distance_delta_source_kind
+    );
+    check_field!(
+        "max_distance_delta_source_file",
+        summary.max_distance_delta_source_file,
+        expected.max_distance_delta_source_file
+    );
+    check_field!(
+        "max_distance_delta_au",
+        summary.max_distance_delta_au,
+        expected.max_distance_delta_au
+    );
+    check_field!(
+        "mean_right_ascension_delta_deg",
+        summary.mean_right_ascension_delta_deg,
+        expected.mean_right_ascension_delta_deg
+    );
+    check_field!(
+        "median_right_ascension_delta_deg",
+        summary.median_right_ascension_delta_deg,
+        expected.median_right_ascension_delta_deg
+    );
+    check_field!(
+        "percentile_right_ascension_delta_deg",
+        summary.percentile_right_ascension_delta_deg,
+        expected.percentile_right_ascension_delta_deg
+    );
+    check_field!(
+        "rms_right_ascension_delta_deg",
+        summary.rms_right_ascension_delta_deg,
+        expected.rms_right_ascension_delta_deg
+    );
+    check_field!(
+        "mean_declination_delta_deg",
+        summary.mean_declination_delta_deg,
+        expected.mean_declination_delta_deg
+    );
+    check_field!(
+        "median_declination_delta_deg",
+        summary.median_declination_delta_deg,
+        expected.median_declination_delta_deg
+    );
+    check_field!(
+        "percentile_declination_delta_deg",
+        summary.percentile_declination_delta_deg,
+        expected.percentile_declination_delta_deg
+    );
+    check_field!(
+        "rms_declination_delta_deg",
+        summary.rms_declination_delta_deg,
+        expected.rms_declination_delta_deg
+    );
+    check_field!(
+        "mean_distance_delta_au",
+        summary.mean_distance_delta_au,
+        expected.mean_distance_delta_au
+    );
+    check_field!(
+        "median_distance_delta_au",
+        summary.median_distance_delta_au,
+        expected.median_distance_delta_au
+    );
+    check_field!(
+        "percentile_distance_delta_au",
+        summary.percentile_distance_delta_au,
+        expected.percentile_distance_delta_au
+    );
+    check_field!(
+        "rms_distance_delta_au",
+        summary.rms_distance_delta_au,
+        expected.rms_distance_delta_au
+    );
+
+    Ok(())
+}
+
+/// Returns the canonical J2000 equatorial companion evidence summary used by
+/// release-facing validation reports.
+pub fn canonical_epoch_equatorial_evidence_summary(
+) -> Option<Vsop87CanonicalEquatorialEvidenceSummary> {
+    let body_evidence = canonical_epoch_equatorial_body_evidence()?;
+    derive_canonical_epoch_equatorial_evidence_summary(&body_evidence)
 }
 
 fn format_validated_canonical_epoch_equatorial_evidence_summary_for_report(
@@ -11092,6 +11451,23 @@ mod tests {
     }
 
     #[test]
+    fn canonical_evidence_summary_validation_rejects_body_evidence_drift() {
+        let mut summary = canonical_epoch_evidence_summary().expect("summary should exist");
+        summary.mean_distance_delta_au += 1e-12;
+
+        let error = summary
+            .validate()
+            .expect_err("body-evidence drift should fail validation");
+        assert_eq!(
+            error,
+            Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
+                summary: CANONICAL_EVIDENCE_SUMMARY_LABEL,
+                field: "mean_distance_delta_au",
+            }
+        );
+    }
+
+    #[test]
     fn canonical_equatorial_evidence_summary_validation_rejects_non_finite_metric() {
         let mut summary =
             canonical_epoch_equatorial_evidence_summary().expect("summary should exist");
@@ -11123,6 +11499,24 @@ mod tests {
             Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
                 summary: CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL,
                 field: "percentile_declination_delta_deg",
+            }
+        );
+    }
+
+    #[test]
+    fn canonical_equatorial_evidence_summary_validation_rejects_body_evidence_drift() {
+        let mut summary =
+            canonical_epoch_equatorial_evidence_summary().expect("summary should exist");
+        summary.mean_right_ascension_delta_deg += 1e-12;
+
+        let error = summary
+            .validate()
+            .expect_err("body-evidence drift should fail validation");
+        assert_eq!(
+            error,
+            Vsop87CanonicalEvidenceSummaryValidationError::FieldOutOfSync {
+                summary: CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL,
+                field: "mean_right_ascension_delta_deg",
             }
         );
     }
