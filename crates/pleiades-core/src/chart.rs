@@ -107,6 +107,30 @@ pub struct ObserverSummary {
     pub location: Option<ObserverLocation>,
 }
 
+/// Errors returned when an observer summary no longer matches the chart observer posture.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ObserverSummaryValidationError {
+    /// A house-only summary no longer carries an observer location.
+    HouseOnlyMissingLocation,
+    /// The rendered observer location is invalid.
+    InvalidLocation(ObserverLocationValidationError),
+}
+
+impl fmt::Display for ObserverSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::HouseOnlyMissingLocation => {
+                f.write_str("observer summary for house-only posture requires an observer location")
+            }
+            Self::InvalidLocation(error) => {
+                write!(f, "observer summary location is invalid: {error}")
+            }
+        }
+    }
+}
+
+impl std::error::Error for ObserverSummaryValidationError {}
+
 impl ObserverSummary {
     /// Creates a new observer summary from the typed policy and optional location.
     pub const fn new(policy: ObserverPolicy, location: Option<ObserverLocation>) -> Self {
@@ -118,6 +142,27 @@ impl ObserverSummary {
         render_observer_location_label(self.location.as_ref())
     }
 
+    /// Validates that the observer summary still matches the current observer posture.
+    pub fn validate(&self) -> Result<(), ObserverSummaryValidationError> {
+        if self.policy == ObserverPolicy::HouseOnly && self.location.is_none() {
+            return Err(ObserverSummaryValidationError::HouseOnlyMissingLocation);
+        }
+
+        if let Some(observer) = &self.location {
+            observer
+                .validate()
+                .map_err(ObserverSummaryValidationError::InvalidLocation)?;
+        }
+
+        Ok(())
+    }
+
+    /// Returns the stored observer location as a compact label.
+    pub fn validated_location_label(&self) -> Result<String, ObserverSummaryValidationError> {
+        self.validate()?;
+        Ok(self.location_label())
+    }
+
     /// Returns a compact one-line rendering of the observer posture and location.
     pub fn summary_line(&self) -> String {
         format!(
@@ -125,6 +170,12 @@ impl ObserverSummary {
             self.policy,
             self.location_label(),
         )
+    }
+
+    /// Returns a compact one-line rendering after validating the observer summary.
+    pub fn validated_summary_line(&self) -> Result<String, ObserverSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
     }
 }
 
@@ -3230,10 +3281,64 @@ mod tests {
             "latitude=12.5°, longitude=45°, elevation=100.000 m"
         );
         assert_eq!(
+            summary
+                .validated_location_label()
+                .expect("valid observer summary location"),
+            "latitude=12.5°, longitude=45°, elevation=100.000 m"
+        );
+        assert_eq!(
+            summary
+                .validated_summary_line()
+                .expect("valid observer summary"),
+            summary.summary_line()
+        );
+        assert_eq!(
             summary.summary_line(),
             "observer=house-only; observer location=latitude=12.5°, longitude=45°, elevation=100.000 m"
         );
         assert_eq!(summary.to_string(), summary.summary_line());
+    }
+
+    #[test]
+    fn observer_summary_validate_rejects_house_only_without_location() {
+        let summary = ObserverSummary::new(ObserverPolicy::HouseOnly, None);
+
+        let error = summary
+            .validate()
+            .expect_err("house-only summaries should require an observer location");
+        assert_eq!(
+            error,
+            ObserverSummaryValidationError::HouseOnlyMissingLocation
+        );
+        assert_eq!(
+            error.to_string(),
+            "observer summary for house-only posture requires an observer location"
+        );
+    }
+
+    #[test]
+    fn observer_summary_validate_rejects_invalid_locations() {
+        let summary = ObserverSummary::new(
+            ObserverPolicy::Geocentric,
+            Some(ObserverLocation::new(
+                Latitude::from_degrees(12.5),
+                Longitude::from_degrees(f64::NAN),
+                Some(100.0),
+            )),
+        );
+
+        let error = summary
+            .validate()
+            .expect_err("observer summaries should reject invalid locations");
+        assert!(matches!(
+            error,
+            ObserverSummaryValidationError::InvalidLocation(
+                ObserverLocationValidationError::NonFiniteLongitude { value }
+            ) if value.is_nan()
+        ));
+        assert!(error
+            .to_string()
+            .contains("observer summary location is invalid: observer longitude must be finite"));
     }
 
     #[test]
