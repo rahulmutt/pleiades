@@ -102,6 +102,34 @@ impl fmt::Display for ObserverPolicy {
 ///
 /// The house-observer location and the optional body-position observer are
 /// kept as separate typed fields so report text can distinguish them clearly.
+///
+/// # Example
+///
+/// ```
+/// use pleiades_core::{ObserverPolicy, ObserverSummary};
+/// use pleiades_types::{Latitude, Longitude, ObserverLocation};
+///
+/// let summary = ObserverSummary::new(
+///     ObserverPolicy::HouseOnly,
+///     Some(ObserverLocation::new(
+///         Latitude::from_degrees(12.5),
+///         Longitude::from_degrees(45.0),
+///         Some(100.0),
+///     )),
+/// )
+/// .with_body_location(Some(ObserverLocation::new(
+///     Latitude::from_degrees(-33.9),
+///     Longitude::from_degrees(151.2),
+///     None,
+/// )));
+///
+/// let rendered = summary
+///     .validated_summary_line()
+///     .expect("valid observer summary");
+/// assert!(rendered.contains("observer=house-only"));
+/// assert!(rendered.contains("observer location=latitude=12.5°"));
+/// assert!(rendered.contains("body observer=latitude=-33.9°"));
+/// ```
 #[derive(Clone, Debug, PartialEq)]
 pub struct ObserverSummary {
     /// The observer posture implied by the chart shape.
@@ -3385,7 +3413,7 @@ mod tests {
     }
 
     #[test]
-    fn observer_summary_renders_the_policy_and_location() {
+    fn observer_summary_renders_the_policy_location_and_body_location() {
         let summary = ObserverSummary::new(
             ObserverPolicy::HouseOnly,
             Some(ObserverLocation::new(
@@ -3393,12 +3421,21 @@ mod tests {
                 Longitude::from_degrees(45.0),
                 Some(100.0),
             )),
-        );
+        )
+        .with_body_location(Some(ObserverLocation::new(
+            Latitude::from_degrees(-33.9),
+            Longitude::from_degrees(151.2),
+            None,
+        )));
 
         assert_eq!(summary.policy, ObserverPolicy::HouseOnly);
         assert_eq!(
             summary.location_label(),
             "latitude=12.5°, longitude=45°, elevation=100.000 m"
+        );
+        assert_eq!(
+            summary.body_location_label(),
+            "latitude=-33.9°, longitude=151.2°, elevation=n/a"
         );
         assert_eq!(
             summary
@@ -3414,7 +3451,7 @@ mod tests {
         );
         assert_eq!(
             summary.summary_line(),
-            "observer=house-only; observer location=latitude=12.5°, longitude=45°, elevation=100.000 m; body observer=none"
+            "observer=house-only; observer location=latitude=12.5°, longitude=45°, elevation=100.000 m; body observer=latitude=-33.9°, longitude=151.2°, elevation=n/a"
         );
         assert_eq!(summary.to_string(), summary.summary_line());
     }
