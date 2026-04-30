@@ -135,6 +135,36 @@ impl CompatibilityProfile {
         Ok(self.house_code_aliases_summary_line())
     }
 
+    /// Returns the release-specific house-system canonical names as a compact summary.
+    pub fn release_house_system_canonical_names_summary_line(&self) -> String {
+        format_canonical_name_summary(&self.release_house_system_canonical_names())
+    }
+
+    /// Returns the release-specific house-system canonical names after validating the profile.
+    pub fn validated_release_house_system_canonical_names_summary_line(
+        &self,
+    ) -> Result<String, CompatibilityProfileValidationError> {
+        self.validate()?;
+        let names = self.release_house_system_canonical_names();
+        validate_profile_text_section("release-house-system-canonical-name", names.as_slice())?;
+        Ok(format_canonical_name_summary(&names))
+    }
+
+    /// Returns the release-specific ayanamsa canonical names as a compact summary.
+    pub fn release_ayanamsa_canonical_names_summary_line(&self) -> String {
+        format_canonical_name_summary(&self.release_ayanamsa_canonical_names())
+    }
+
+    /// Returns the release-specific ayanamsa canonical names after validating the profile.
+    pub fn validated_release_ayanamsa_canonical_names_summary_line(
+        &self,
+    ) -> Result<String, CompatibilityProfileValidationError> {
+        self.validate()?;
+        let names = self.release_ayanamsa_canonical_names();
+        validate_profile_text_section("release-ayanamsa-canonical-name", names.as_slice())?;
+        Ok(format_canonical_name_summary(&names))
+    }
+
     /// Returns a compact inventory line for the current compatibility catalog.
     pub fn catalog_inventory_summary_line(&self) -> String {
         fn alias_count<T>(entries: &[T], aliases: impl Fn(&T) -> &'static [&'static str]) -> usize {
@@ -224,6 +254,14 @@ impl CompatibilityProfile {
         canonical_name: impl Fn(&T) -> &'static str,
     ) -> Vec<&'static str> {
         entries.iter().map(canonical_name).collect()
+    }
+}
+
+fn format_canonical_name_summary(names: &[&'static str]) -> String {
+    match names {
+        [] => "0 (none)".to_string(),
+        [single] => format!("1 ({single})"),
+        _ => format!("{} ({})", names.len(), names.join(", ")),
     }
 }
 
@@ -2928,6 +2966,12 @@ mod tests {
         assert!(invalid_profile
             .validated_house_code_aliases_summary_line()
             .is_err());
+        assert!(invalid_profile
+            .validated_release_house_system_canonical_names_summary_line()
+            .is_err());
+        assert!(invalid_profile
+            .validated_release_ayanamsa_canonical_names_summary_line()
+            .is_err());
     }
 
     #[test]
@@ -2958,6 +3002,32 @@ mod tests {
             validate_house_code_aliases(house_system_code_aliases())
                 .expect("built-in house-code aliases should validate"),
             house_system_code_aliases().len()
+        );
+    }
+
+    #[test]
+    fn release_canonical_name_summaries_track_the_built_in_catalogs() {
+        let profile = current_compatibility_profile();
+        let house_summary =
+            format_canonical_name_summary(&profile.release_house_system_canonical_names());
+        let ayanamsa_summary =
+            format_canonical_name_summary(&profile.release_ayanamsa_canonical_names());
+
+        assert_eq!(
+            profile.release_house_system_canonical_names_summary_line(),
+            house_summary
+        );
+        assert_eq!(
+            profile.release_ayanamsa_canonical_names_summary_line(),
+            ayanamsa_summary
+        );
+        assert_eq!(
+            profile.validated_release_house_system_canonical_names_summary_line(),
+            Ok(house_summary.clone())
+        );
+        assert_eq!(
+            profile.validated_release_ayanamsa_canonical_names_summary_line(),
+            Ok(ayanamsa_summary.clone())
         );
     }
 

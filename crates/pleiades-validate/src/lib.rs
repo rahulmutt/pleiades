@@ -4356,30 +4356,44 @@ impl CompatibilityProfileVerificationSummary {
             ));
         }
 
-        let expected_release_house_names = DescriptorNamesSummary {
-            names: profile.release_house_system_canonical_names(),
-        };
-        expected_release_house_names.validate()?;
-        if self.release_house_canonical_names != expected_release_house_names.summary_line() {
+        let expected_release_house_names =
+            profile.validated_release_house_system_canonical_names_summary_line().map_err(
+                |error| {
+                    EphemerisError::new(
+                        EphemerisErrorKind::InvalidRequest,
+                        format!(
+                            "compatibility profile verification summary release house-system canonical names invalid: {error}"
+                        ),
+                    )
+                },
+            )?;
+        if self.release_house_canonical_names != expected_release_house_names {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,
                 format!(
                     "compatibility profile verification summary release house-system canonical names mismatch: expected {}, found {}",
-                    expected_release_house_names.summary_line(), self.release_house_canonical_names
+                    expected_release_house_names, self.release_house_canonical_names
                 ),
             ));
         }
 
-        let expected_release_ayanamsa_names = DescriptorNamesSummary {
-            names: profile.release_ayanamsa_canonical_names(),
-        };
-        expected_release_ayanamsa_names.validate()?;
-        if self.release_ayanamsa_canonical_names != expected_release_ayanamsa_names.summary_line() {
+        let expected_release_ayanamsa_names =
+            profile.validated_release_ayanamsa_canonical_names_summary_line().map_err(
+                |error| {
+                    EphemerisError::new(
+                        EphemerisErrorKind::InvalidRequest,
+                        format!(
+                            "compatibility profile verification summary release ayanamsa canonical names invalid: {error}"
+                        ),
+                    )
+                },
+            )?;
+        if self.release_ayanamsa_canonical_names != expected_release_ayanamsa_names {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,
                 format!(
                     "compatibility profile verification summary release ayanamsa canonical names mismatch: expected {}, found {}",
-                    expected_release_ayanamsa_names.summary_line(), self.release_ayanamsa_canonical_names
+                    expected_release_ayanamsa_names, self.release_ayanamsa_canonical_names
                 ),
             ));
         }
@@ -4682,11 +4696,23 @@ pub fn compatibility_profile_verification_summary(
     ])?;
 
     let release_house_names =
-        summarize_descriptor_names(profile.release_house_systems, |entry| entry.canonical_name);
-    release_house_names.validate()?;
+        profile.validated_release_house_system_canonical_names_summary_line().map_err(|error| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile verification summary release house-system canonical names invalid: {error}"
+                ),
+            )
+        })?;
     let release_ayanamsa_names =
-        summarize_descriptor_names(profile.release_ayanamsas, |entry| entry.canonical_name);
-    release_ayanamsa_names.validate()?;
+        profile.validated_release_ayanamsa_canonical_names_summary_line().map_err(|error| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile verification summary release ayanamsa canonical names invalid: {error}"
+                ),
+            )
+        })?;
     let house_formula_family_names = profile.house_formula_family_names().join(", ");
     let ayanamsa_metadata_count = profile
         .ayanamsas
@@ -4711,8 +4737,8 @@ pub fn compatibility_profile_verification_summary(
         release_house_system_count: profile.release_house_systems.len(),
         baseline_ayanamsa_count: profile.baseline_ayanamsas.len(),
         release_ayanamsa_count: profile.release_ayanamsas.len(),
-        release_house_canonical_names: release_house_names.summary_line(),
-        release_ayanamsa_canonical_names: release_ayanamsa_names.summary_line(),
+        release_house_canonical_names: release_house_names,
+        release_ayanamsa_canonical_names: release_ayanamsa_names,
         house_formula_family_names,
         release_posture: RELEASE_POSTURE_SUMMARY.to_string(),
         ayanamsa_metadata_count,
@@ -5304,11 +5330,13 @@ where
     Ok(())
 }
 
+#[cfg(test)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct DescriptorNamesSummary {
     names: Vec<&'static str>,
 }
 
+#[cfg(test)]
 impl DescriptorNamesSummary {
     fn validate(&self) -> Result<(), EphemerisError> {
         validate_name_sequence("descriptor-name summary", self.names.iter().copied())
@@ -5323,25 +5351,20 @@ impl DescriptorNamesSummary {
     }
 }
 
+#[cfg(test)]
 impl fmt::Display for DescriptorNamesSummary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.summary_line())
     }
 }
 
+#[cfg(test)]
 fn summarize_descriptor_names<T>(
     entries: &[T],
     canonical_name: impl Fn(&T) -> &'static str,
 ) -> DescriptorNamesSummary {
     DescriptorNamesSummary {
         names: entries.iter().map(canonical_name).collect::<Vec<_>>(),
-    }
-}
-
-fn format_descriptor_names_summary(summary: &DescriptorNamesSummary) -> String {
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
-        Err(error) => format!("unavailable ({error})"),
     }
 }
 
@@ -5398,14 +5421,16 @@ fn render_compatibility_profile_summary_text() -> String {
     text.push_str(&ayanamsa_catalog_validation_summary().summary_line());
     text.push('\n');
     text.push_str("Release-specific house-system canonical names: ");
-    text.push_str(&format_descriptor_names_summary(&DescriptorNamesSummary {
-        names: profile.release_house_system_canonical_names(),
-    }));
+    match profile.validated_release_house_system_canonical_names_summary_line() {
+        Ok(summary) => text.push_str(&summary),
+        Err(error) => return format!("Compatibility profile summary unavailable ({error})"),
+    }
     text.push('\n');
     text.push_str("Release-specific ayanamsa canonical names: ");
-    text.push_str(&format_descriptor_names_summary(&DescriptorNamesSummary {
-        names: profile.release_ayanamsa_canonical_names(),
-    }));
+    match profile.validated_release_ayanamsa_canonical_names_summary_line() {
+        Ok(summary) => text.push_str(&summary),
+        Err(error) => return format!("Compatibility profile summary unavailable ({error})"),
+    }
     text.push('\n');
     text.push_str("Custom-definition labels: ");
     text.push_str(&profile.custom_definition_labels.len().to_string());
@@ -5890,10 +5915,10 @@ fn render_release_summary_text() -> String {
     text.push_str(&profile.house_code_alias_count().to_string());
     text.push('\n');
     text.push_str("Release-specific house-system canonical names: ");
-    text.push_str(
-        &summarize_descriptor_names(profile.release_house_systems, |entry| entry.canonical_name)
-            .summary_line(),
-    );
+    match profile.validated_release_house_system_canonical_names_summary_line() {
+        Ok(summary) => text.push_str(&summary),
+        Err(error) => return format!("Release notes unavailable ({error})"),
+    }
     text.push('\n');
     text.push_str("Ayanamsas: ");
     text.push_str(&profile.ayanamsas.len().to_string());
@@ -5903,10 +5928,10 @@ fn render_release_summary_text() -> String {
     text.push_str(&profile.release_ayanamsas.len().to_string());
     text.push_str(" release-specific)\n");
     text.push_str("Release-specific ayanamsa canonical names: ");
-    text.push_str(
-        &summarize_descriptor_names(profile.release_ayanamsas, |entry| entry.canonical_name)
-            .summary_line(),
-    );
+    match profile.validated_release_ayanamsa_canonical_names_summary_line() {
+        Ok(summary) => text.push_str(&summary),
+        Err(error) => return format!("Release notes unavailable ({error})"),
+    }
     text.push('\n');
     text.push_str("Validation reference points: ");
     text.push_str(&summarize_validation_reference_points(
