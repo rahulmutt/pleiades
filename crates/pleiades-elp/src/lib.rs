@@ -4232,6 +4232,20 @@ pub fn lunar_high_curvature_continuity_request_corpus() -> Vec<EphemerisRequest>
     lunar_high_curvature_continuity_requests()
 }
 
+/// This is a compatibility alias for [`lunar_high_curvature_continuity_requests`].
+#[doc(alias = "lunar_high_curvature_continuity_requests")]
+#[doc(alias = "lunar_high_curvature_continuity_request_corpus")]
+pub fn lunar_high_curvature_continuity_batch_parity_requests() -> Vec<EphemerisRequest> {
+    lunar_high_curvature_continuity_requests()
+}
+
+/// This is a compatibility alias for [`lunar_high_curvature_continuity_requests`].
+#[doc(alias = "lunar_high_curvature_continuity_requests")]
+#[doc(alias = "lunar_high_curvature_continuity_request_corpus")]
+pub fn lunar_high_curvature_continuity_batch_parity_request_corpus() -> Vec<EphemerisRequest> {
+    lunar_high_curvature_continuity_requests()
+}
+
 /// Returns the lunar high-curvature equatorial continuity request corpus used by the nearby-motion regression slice.
 pub fn lunar_high_curvature_equatorial_continuity_requests() -> Vec<EphemerisRequest> {
     lunar_high_curvature_requests(CoordinateFrame::Equatorial)
@@ -4240,6 +4254,21 @@ pub fn lunar_high_curvature_equatorial_continuity_requests() -> Vec<EphemerisReq
 /// This is a compatibility alias for [`lunar_high_curvature_equatorial_continuity_requests`].
 #[doc(alias = "lunar_high_curvature_equatorial_continuity_requests")]
 pub fn lunar_high_curvature_equatorial_continuity_request_corpus() -> Vec<EphemerisRequest> {
+    lunar_high_curvature_equatorial_continuity_requests()
+}
+
+/// This is a compatibility alias for [`lunar_high_curvature_equatorial_continuity_requests`].
+#[doc(alias = "lunar_high_curvature_equatorial_continuity_requests")]
+#[doc(alias = "lunar_high_curvature_equatorial_continuity_request_corpus")]
+pub fn lunar_high_curvature_equatorial_continuity_batch_parity_requests() -> Vec<EphemerisRequest> {
+    lunar_high_curvature_equatorial_continuity_requests()
+}
+
+/// This is a compatibility alias for [`lunar_high_curvature_equatorial_continuity_requests`].
+#[doc(alias = "lunar_high_curvature_equatorial_continuity_requests")]
+#[doc(alias = "lunar_high_curvature_equatorial_continuity_request_corpus")]
+pub fn lunar_high_curvature_equatorial_continuity_batch_parity_request_corpus(
+) -> Vec<EphemerisRequest> {
     lunar_high_curvature_equatorial_continuity_requests()
 }
 
@@ -6304,8 +6333,24 @@ mod tests {
             lunar_high_curvature_continuity_request_corpus()
         );
         assert_eq!(
+            ecliptic_requests,
+            lunar_high_curvature_continuity_batch_parity_requests()
+        );
+        assert_eq!(
+            ecliptic_requests,
+            lunar_high_curvature_continuity_batch_parity_request_corpus()
+        );
+        assert_eq!(
             equatorial_requests,
             lunar_high_curvature_equatorial_continuity_request_corpus()
+        );
+        assert_eq!(
+            equatorial_requests,
+            lunar_high_curvature_equatorial_continuity_batch_parity_requests()
+        );
+        assert_eq!(
+            equatorial_requests,
+            lunar_high_curvature_equatorial_continuity_batch_parity_request_corpus()
         );
 
         for (request, expected_epoch) in ecliptic_requests
