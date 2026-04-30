@@ -3551,6 +3551,9 @@ impl fmt::Display for ReleaseBundle {
 
 impl ReleaseBundle {
     /// Validates the release bundle metadata before it is surfaced to callers.
+    ///
+    /// The provenance fields are required to stay canonical one-line values so the
+    /// release-bundle summary and manifest text remain stable.
     pub fn validate(&self) -> Result<(), ReleaseBundleError> {
         for (path, expected_name, label) in [
             (
@@ -3659,9 +3662,9 @@ impl ReleaseBundle {
             }
         }
 
-        ensure_non_empty_manifest_value(&self.source_revision, "source revision")?;
-        ensure_non_empty_manifest_value(&self.workspace_status, "workspace status")?;
-        ensure_non_empty_manifest_value(&self.rustc_version, "rustc version")?;
+        ensure_canonical_manifest_value(&self.source_revision, "source revision")?;
+        ensure_canonical_manifest_value(&self.workspace_status, "workspace status")?;
+        ensure_canonical_manifest_value(&self.rustc_version, "rustc version")?;
         if self.validation_rounds == 0 {
             return Err(ReleaseBundleError::Verification(
                 "release bundle validation rounds must be greater than zero".to_string(),
@@ -6691,11 +6694,11 @@ fn verify_release_bundle(
     let manifest = ParsedReleaseBundleManifest::parse(&manifest_text)?;
     ensure_release_bundle_manifest_is_canonical(&manifest_text)?;
     ensure_release_bundle_directory_contents(output_dir)?;
-    ensure_non_empty_manifest_value(&manifest.source_revision, "source revision")?;
-    ensure_non_empty_manifest_value(&manifest.workspace_status, "workspace status")?;
-    ensure_non_empty_manifest_value(&manifest.rustc_version, "rustc version")?;
-    ensure_non_empty_manifest_value(&manifest.profile_id, "profile id")?;
-    ensure_non_empty_manifest_value(
+    ensure_canonical_manifest_value(&manifest.source_revision, "source revision")?;
+    ensure_canonical_manifest_value(&manifest.workspace_status, "workspace status")?;
+    ensure_canonical_manifest_value(&manifest.rustc_version, "rustc version")?;
+    ensure_canonical_manifest_value(&manifest.profile_id, "profile id")?;
+    ensure_canonical_manifest_value(
         &manifest.api_stability_posture_id,
         "API stability posture id",
     )?;
@@ -7043,17 +7046,29 @@ fn parse_manifest_string(text: &str, prefix: &str) -> Result<String, ReleaseBund
     extract_prefixed_value(text, prefix).map(|value| value.to_string())
 }
 
-fn ensure_non_empty_manifest_value(
+fn ensure_canonical_manifest_value(
     value: &str,
     field_name: &str,
 ) -> Result<(), ReleaseBundleError> {
     if value.is_empty() {
-        Err(ReleaseBundleError::Verification(format!(
+        return Err(ReleaseBundleError::Verification(format!(
             "missing {field_name} entry"
-        )))
-    } else {
-        Ok(())
+        )));
     }
+
+    if value != value.trim() {
+        return Err(ReleaseBundleError::Verification(format!(
+            "invalid {field_name} entry: unexpected leading or trailing whitespace"
+        )));
+    }
+
+    if value.contains('\n') || value.contains('\r') {
+        return Err(ReleaseBundleError::Verification(format!(
+            "invalid {field_name} entry: unexpected line break"
+        )));
+    }
+
+    Ok(())
 }
 
 fn parse_manifest_usize(
@@ -16861,6 +16876,41 @@ version = "0.9.0"
         bundle
             .validate()
             .expect("rendered release bundle should validate");
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn release_bundle_validate_rejects_whitespace_padded_provenance() {
+        let bundle_dir = unique_temp_dir("pleiades-release-bundle-provenance-padding");
+        let mut bundle =
+            render_release_bundle(1, &bundle_dir).expect("release bundle should render");
+        let source_revision = bundle.source_revision.clone();
+        bundle.source_revision = format!(" {source_revision} ");
+
+        let error = bundle
+            .validate()
+            .expect_err("padded provenance should be rejected by bundle validation");
+        let error = error.to_string();
+        assert!(error.contains("invalid source revision entry"));
+        assert!(error.contains("unexpected leading or trailing whitespace"));
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn release_bundle_validate_rejects_multiline_provenance() {
+        let bundle_dir = unique_temp_dir("pleiades-release-bundle-provenance-multiline");
+        let mut bundle =
+            render_release_bundle(1, &bundle_dir).expect("release bundle should render");
+        bundle.workspace_status = "clean\nmodified".to_string();
+
+        let error = bundle
+            .validate()
+            .expect_err("multiline provenance should be rejected by bundle validation");
+        let error = error.to_string();
+        assert!(error.contains("invalid workspace status entry"));
+        assert!(error.contains("unexpected line break"));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
     }
