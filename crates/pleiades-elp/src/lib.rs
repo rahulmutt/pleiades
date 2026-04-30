@@ -1344,6 +1344,158 @@ pub fn format_lunar_theory_source_selection(selection: &LunarTheorySourceSelecti
     format_validated_lunar_theory_source_selection_for_report(selection)
 }
 
+/// Structured summary of the current lunar-theory source family.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct LunarTheorySourceFamilySummary {
+    /// Structured source family for the current lunar baseline.
+    pub family: LunarTheorySourceFamily,
+    /// Human-readable source family label for the current lunar baseline.
+    pub family_label: &'static str,
+    /// Stable identifier for the selected lunar baseline.
+    pub selected_source_identifier: &'static str,
+    /// Human-readable model name for the selected lunar baseline.
+    pub selected_model_name: &'static str,
+    /// Typed catalog key for the selected lunar baseline.
+    pub selected_catalog_key: LunarTheoryCatalogKey<'static>,
+    /// Typed family key for the selected lunar baseline.
+    pub selected_family_key: LunarTheoryCatalogKey<'static>,
+    /// Number of aliases documented for the selected lunar baseline.
+    pub selected_alias_count: usize,
+}
+
+/// Validation error for a lunar-theory source-family summary that drifted from the current selection.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LunarTheorySourceFamilySummaryValidationError {
+    /// A rendered summary field no longer matches the current lunar-theory family.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for LunarTheorySourceFamilySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the lunar source-family summary field `{field}` is out of sync with the current selection"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for LunarTheorySourceFamilySummaryValidationError {}
+
+impl LunarTheorySourceFamilySummary {
+    /// Returns a compact summary line for the current lunar source family.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "lunar source family: {} [selected source={}; selected model={}; selected key={}; selected family key={}; aliases={}]",
+            self.family_label,
+            self.selected_source_identifier,
+            self.selected_model_name,
+            self.selected_catalog_key,
+            self.selected_family_key,
+            self.selected_alias_count,
+        )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current lunar-theory family.
+    pub fn validate(&self) -> Result<(), LunarTheorySourceFamilySummaryValidationError> {
+        let theory = lunar_theory_specification();
+        let source = lunar_theory_source_selection();
+
+        if self.family != theory.source_family {
+            return Err(
+                LunarTheorySourceFamilySummaryValidationError::FieldOutOfSync { field: "family" },
+            );
+        }
+        if self.family_label != theory.source_family.label() {
+            return Err(
+                LunarTheorySourceFamilySummaryValidationError::FieldOutOfSync {
+                    field: "family_label",
+                },
+            );
+        }
+        if self.selected_source_identifier != source.identifier {
+            return Err(
+                LunarTheorySourceFamilySummaryValidationError::FieldOutOfSync {
+                    field: "selected_source_identifier",
+                },
+            );
+        }
+        if self.selected_model_name != theory.model_name {
+            return Err(
+                LunarTheorySourceFamilySummaryValidationError::FieldOutOfSync {
+                    field: "selected_model_name",
+                },
+            );
+        }
+        if self.selected_catalog_key != source.catalog_key() {
+            return Err(
+                LunarTheorySourceFamilySummaryValidationError::FieldOutOfSync {
+                    field: "selected_catalog_key",
+                },
+            );
+        }
+        if self.selected_family_key != source.family_key() {
+            return Err(
+                LunarTheorySourceFamilySummaryValidationError::FieldOutOfSync {
+                    field: "selected_family_key",
+                },
+            );
+        }
+        if self.selected_alias_count != theory.source_aliases.len() {
+            return Err(
+                LunarTheorySourceFamilySummaryValidationError::FieldOutOfSync {
+                    field: "selected_alias_count",
+                },
+            );
+        }
+
+        Ok(())
+    }
+}
+
+impl fmt::Display for LunarTheorySourceFamilySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns a structured summary of the current lunar source family.
+pub fn lunar_theory_source_family_summary() -> LunarTheorySourceFamilySummary {
+    let theory = lunar_theory_specification();
+    let source = lunar_theory_source_selection();
+
+    LunarTheorySourceFamilySummary {
+        family: theory.source_family,
+        family_label: theory.source_family.label(),
+        selected_source_identifier: source.identifier,
+        selected_model_name: theory.model_name,
+        selected_catalog_key: source.catalog_key(),
+        selected_family_key: source.family_key(),
+        selected_alias_count: theory.source_aliases.len(),
+    }
+}
+
+fn format_validated_lunar_theory_source_family_summary_for_report(
+    summary: &LunarTheorySourceFamilySummary,
+) -> String {
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("lunar source family: unavailable ({error})"),
+    }
+}
+
+/// Returns the compact source-family summary for the current lunar baseline.
+///
+/// The helper validates the backend-owned source-family record first so any
+/// future drift in the rendered provenance fields shows up as an unavailable
+/// report line instead of a silently stale summary.
+pub fn lunar_theory_source_family_summary_for_report() -> String {
+    format_validated_lunar_theory_source_family_summary_for_report(
+        &lunar_theory_source_family_summary(),
+    )
+}
+
 /// Returns the bodies/channels the current lunar-theory baseline explicitly supports.
 pub fn lunar_theory_supported_bodies() -> &'static [CelestialBody] {
     lunar_theory_specification().supported_bodies
@@ -5167,6 +5319,7 @@ impl EphemerisBackend for ElpBackend {
                 ),
                 data_sources: vec![
                     "Meeus-style truncated lunar orbit formulas implemented in pure Rust; see docs/lunar-theory-policy.md for the current baseline scope".to_string(),
+                    lunar_theory_source_family_summary_for_report(),
                     source.identifier.to_string(),
                     source.citation.to_string(),
                     source.material.to_string(),
@@ -5344,6 +5497,31 @@ mod tests {
         assert_eq!(source.redistribution_note, theory.redistribution_note);
         assert_eq!(source.license_note, theory.license_note);
         assert_eq!(source.family_label(), theory.source_family.label());
+        let family_summary = lunar_theory_source_family_summary();
+        assert_eq!(family_summary.family, theory.source_family);
+        assert_eq!(family_summary.family_label, theory.source_family.label());
+        assert_eq!(
+            family_summary.selected_source_identifier,
+            theory.source_identifier
+        );
+        assert_eq!(family_summary.selected_model_name, theory.model_name);
+        assert_eq!(
+            family_summary.selected_catalog_key,
+            LunarTheoryCatalogKey::SourceIdentifier(theory.source_identifier)
+        );
+        assert_eq!(
+            family_summary.selected_family_key,
+            LunarTheoryCatalogKey::SourceFamily(theory.source_family)
+        );
+        assert_eq!(
+            family_summary.selected_alias_count,
+            theory.source_aliases.len()
+        );
+        assert_eq!(family_summary.summary_line(), family_summary.to_string());
+        assert_eq!(
+            lunar_theory_source_family_summary_for_report(),
+            family_summary.summary_line()
+        );
         assert_eq!(
             source.catalog_key(),
             LunarTheoryCatalogKey::SourceIdentifier(theory.source_identifier)
@@ -6017,6 +6195,11 @@ mod tests {
         assert_eq!(source.redistribution_note, theory.redistribution_note);
         assert_eq!(source.license_note, theory.license_note);
         assert_eq!(source.family_label(), theory.source_family.label());
+        assert!(metadata
+            .provenance
+            .data_sources
+            .iter()
+            .any(|source| source == &lunar_theory_source_family_summary_for_report()));
         assert!(metadata.provenance.summary.contains(source.citation));
         assert!(metadata
             .provenance
