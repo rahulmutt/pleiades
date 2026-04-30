@@ -5520,6 +5520,23 @@ pub fn independent_holdout_snapshot_request_corpus(
     independent_holdout_snapshot_requests(frame)
 }
 
+/// Returns the equatorial independent hold-out request corpus used by batch parity checks.
+///
+/// This is a compatibility alias for [`independent_holdout_snapshot_requests`].
+#[doc(alias = "independent_holdout_snapshot_requests")]
+pub fn independent_holdout_snapshot_equatorial_parity_requests() -> Option<Vec<EphemerisRequest>> {
+    independent_holdout_snapshot_requests(CoordinateFrame::Equatorial)
+}
+
+/// Returns the equatorial independent hold-out request corpus used by batch parity checks.
+///
+/// This is a compatibility alias for [`independent_holdout_snapshot_equatorial_parity_requests`].
+#[doc(alias = "independent_holdout_snapshot_equatorial_parity_requests")]
+pub fn independent_holdout_snapshot_equatorial_parity_request_corpus(
+) -> Option<Vec<EphemerisRequest>> {
+    independent_holdout_snapshot_equatorial_parity_requests()
+}
+
 /// Returns the mixed-scale independent hold-out request corpus used by batch parity checks.
 ///
 /// The requests preserve the checked-in row order, alternate TT and TDB labels
@@ -6492,6 +6509,10 @@ mod tests {
         assert_eq!(
             independent_holdout_snapshot_request_corpus(CoordinateFrame::Equatorial),
             independent_holdout_snapshot_requests(CoordinateFrame::Equatorial)
+        );
+        assert_eq!(
+            independent_holdout_snapshot_equatorial_parity_request_corpus(),
+            independent_holdout_snapshot_equatorial_parity_requests()
         );
         assert_eq!(
             independent_holdout_snapshot_batch_parity_request_corpus(),
