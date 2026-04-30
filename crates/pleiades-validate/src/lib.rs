@@ -8418,6 +8418,12 @@ pub struct MeanObliquityFrameRoundTripSummary {
     max_longitude_delta_deg: f64,
     max_latitude_delta_deg: f64,
     max_distance_delta_au: f64,
+    mean_longitude_delta_deg: f64,
+    mean_latitude_delta_deg: f64,
+    mean_distance_delta_au: f64,
+    percentile_longitude_delta_deg: f64,
+    percentile_latitude_delta_deg: f64,
+    percentile_distance_delta_au: f64,
 }
 
 impl MeanObliquityFrameRoundTripSummary {
@@ -8431,6 +8437,21 @@ impl MeanObliquityFrameRoundTripSummary {
             ("max_longitude_delta_deg", self.max_longitude_delta_deg),
             ("max_latitude_delta_deg", self.max_latitude_delta_deg),
             ("max_distance_delta_au", self.max_distance_delta_au),
+            ("mean_longitude_delta_deg", self.mean_longitude_delta_deg),
+            ("mean_latitude_delta_deg", self.mean_latitude_delta_deg),
+            ("mean_distance_delta_au", self.mean_distance_delta_au),
+            (
+                "percentile_longitude_delta_deg",
+                self.percentile_longitude_delta_deg,
+            ),
+            (
+                "percentile_latitude_delta_deg",
+                self.percentile_latitude_delta_deg,
+            ),
+            (
+                "percentile_distance_delta_au",
+                self.percentile_distance_delta_au,
+            ),
         ] {
             if !value.is_finite() || value < 0.0 {
                 return Err(format!(
@@ -8439,16 +8460,30 @@ impl MeanObliquityFrameRoundTripSummary {
             }
         }
 
+        let expected = expected_mean_obliquity_frame_round_trip_summary()?;
+        if *self != expected {
+            return Err(
+                "mean-obliquity frame round-trip summary drifted from the canonical sample set"
+                    .to_string(),
+            );
+        }
+
         Ok(())
     }
 
     fn summary_line(&self) -> String {
         format!(
-            "{} samples, max |Δlon|={:.12}°, max |Δlat|={:.12}°, max |Δdist|={:.12} AU",
+            "{} samples, max |Δlon|={:.12}°, mean |Δlon|={:.12}°, p95 |Δlon|={:.12}°, max |Δlat|={:.12}°, mean |Δlat|={:.12}°, p95 |Δlat|={:.12}°, max |Δdist|={:.12} AU, mean |Δdist|={:.12} AU, p95 |Δdist|={:.12} AU",
             self.sample_count,
             self.max_longitude_delta_deg,
+            self.mean_longitude_delta_deg,
+            self.percentile_longitude_delta_deg,
             self.max_latitude_delta_deg,
+            self.mean_latitude_delta_deg,
+            self.percentile_latitude_delta_deg,
             self.max_distance_delta_au,
+            self.mean_distance_delta_au,
+            self.percentile_distance_delta_au,
         )
     }
 }
@@ -8459,10 +8494,8 @@ impl fmt::Display for MeanObliquityFrameRoundTripSummary {
     }
 }
 
-/// Computes the shared mean-obliquity frame round-trip validation summary.
-pub fn mean_obliquity_frame_round_trip_summary(
-) -> Result<MeanObliquityFrameRoundTripSummary, String> {
-    let samples = [
+fn mean_obliquity_frame_round_trip_samples() -> [(EclipticCoordinates, Instant); 5] {
+    [
         (
             EclipticCoordinates::new(
                 Longitude::from_degrees(123.45),
@@ -8487,14 +8520,41 @@ pub fn mean_obliquity_frame_round_trip_summary(
             ),
             Instant::new(JulianDay::from_days(2_415_020.5), TimeScale::Tt),
         ),
-    ];
+        (
+            EclipticCoordinates::new(
+                Longitude::from_degrees(315.0),
+                pleiades_core::Latitude::from_degrees(18.0),
+                Some(4.25),
+            ),
+            Instant::new(JulianDay::from_days(2_440_587.5), TimeScale::Tt),
+        ),
+        (
+            EclipticCoordinates::new(
+                Longitude::from_degrees(5.0),
+                pleiades_core::Latitude::from_degrees(66.0),
+                Some(0.75),
+            ),
+            Instant::new(JulianDay::from_days(2_500_000.5), TimeScale::Tt),
+        ),
+    ]
+}
+
+fn mean_obliquity_frame_round_trip_summary_from_samples(
+    samples: &[(EclipticCoordinates, Instant)],
+) -> Result<MeanObliquityFrameRoundTripSummary, String> {
+    if samples.is_empty() {
+        return Err("mean-obliquity frame round-trip summary has no samples".to_string());
+    }
 
     let mut sample_count = 0usize;
     let mut max_longitude_delta_deg: f64 = 0.0;
     let mut max_latitude_delta_deg: f64 = 0.0;
     let mut max_distance_delta_au: f64 = 0.0;
+    let mut longitude_deltas = Vec::with_capacity(samples.len());
+    let mut latitude_deltas = Vec::with_capacity(samples.len());
+    let mut distance_deltas = Vec::with_capacity(samples.len());
 
-    for (ecliptic, instant) in samples {
+    for (ecliptic, instant) in samples.iter().copied() {
         let obliquity = instant.mean_obliquity();
         let round_trip = ecliptic.to_equatorial(obliquity).to_ecliptic(obliquity);
         let longitude_delta_deg =
@@ -8515,15 +8575,64 @@ pub fn mean_obliquity_frame_round_trip_summary(
         max_longitude_delta_deg = max_longitude_delta_deg.max(longitude_delta_deg);
         max_latitude_delta_deg = max_latitude_delta_deg.max(latitude_delta_deg);
         max_distance_delta_au = max_distance_delta_au.max(distance_delta_au);
+        longitude_deltas.push(longitude_delta_deg);
+        latitude_deltas.push(latitude_delta_deg);
+        distance_deltas.push(distance_delta_au);
         sample_count += 1;
     }
 
-    let summary = MeanObliquityFrameRoundTripSummary {
+    Ok(MeanObliquityFrameRoundTripSummary {
         sample_count,
         max_longitude_delta_deg,
         max_latitude_delta_deg,
         max_distance_delta_au,
-    };
+        mean_longitude_delta_deg: arithmetic_mean(&longitude_deltas),
+        mean_latitude_delta_deg: arithmetic_mean(&latitude_deltas),
+        mean_distance_delta_au: arithmetic_mean(&distance_deltas),
+        percentile_longitude_delta_deg: percentile_linear_interpolation(&longitude_deltas, 0.95),
+        percentile_latitude_delta_deg: percentile_linear_interpolation(&latitude_deltas, 0.95),
+        percentile_distance_delta_au: percentile_linear_interpolation(&distance_deltas, 0.95),
+    })
+}
+
+fn expected_mean_obliquity_frame_round_trip_summary(
+) -> Result<MeanObliquityFrameRoundTripSummary, String> {
+    mean_obliquity_frame_round_trip_summary_from_samples(&mean_obliquity_frame_round_trip_samples())
+}
+
+fn arithmetic_mean(values: &[f64]) -> f64 {
+    values.iter().copied().sum::<f64>() / values.len() as f64
+}
+
+fn percentile_linear_interpolation(values: &[f64], percentile: f64) -> f64 {
+    let mut sorted = values.to_vec();
+    sorted.sort_by(|a, b| a.total_cmp(b));
+
+    if sorted.len() == 1 {
+        return sorted[0];
+    }
+
+    let clamped = percentile.clamp(0.0, 1.0);
+    let position = clamped * (sorted.len() - 1) as f64;
+    let lower_index = position.floor() as usize;
+    let upper_index = position.ceil() as usize;
+
+    if lower_index == upper_index {
+        sorted[lower_index]
+    } else {
+        let lower_value = sorted[lower_index];
+        let upper_value = sorted[upper_index];
+        let fraction = position - lower_index as f64;
+        lower_value + (upper_value - lower_value) * fraction
+    }
+}
+
+/// Computes the shared mean-obliquity frame round-trip validation summary.
+pub fn mean_obliquity_frame_round_trip_summary(
+) -> Result<MeanObliquityFrameRoundTripSummary, String> {
+    let summary = mean_obliquity_frame_round_trip_summary_from_samples(
+        &mean_obliquity_frame_round_trip_samples(),
+    )?;
     summary.validate()?;
     Ok(summary)
 }
@@ -17853,8 +17962,10 @@ version = "0.9.0"
             .expect("mean-obliquity frame round-trip summary should exist");
 
         assert_eq!(summary.summary_line(), summary.to_string());
-        assert!(summary.summary_line().contains("3 samples"));
+        assert!(summary.summary_line().contains("5 samples"));
         assert!(summary.summary_line().contains("max |Δlon|="));
+        assert!(summary.summary_line().contains("mean |Δlon|="));
+        assert!(summary.summary_line().contains("p95 |Δlon|="));
         assert!(summary.validate().is_ok());
     }
 
@@ -17867,6 +17978,18 @@ version = "0.9.0"
         let rendered = format_mean_obliquity_frame_round_trip_summary_for_report(&summary);
         assert!(rendered.contains("mean-obliquity frame round-trip unavailable"));
         assert!(rendered.contains("mean-obliquity frame round-trip summary has no samples"));
+    }
+
+    #[test]
+    fn mean_obliquity_frame_round_trip_summary_validate_rejects_metric_drift() {
+        let mut summary = mean_obliquity_frame_round_trip_summary()
+            .expect("mean-obliquity frame round-trip summary should exist");
+        summary.mean_longitude_delta_deg += 0.001;
+
+        let error = summary
+            .validate()
+            .expect_err("metric drift should fail validation");
+        assert!(error.contains("drifted from the canonical sample set"));
     }
 
     #[test]
