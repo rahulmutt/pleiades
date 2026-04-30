@@ -650,14 +650,30 @@ impl PackagedArtifactProfileSummary {
             ));
         }
 
-        let coverage = self.profile_coverage_summary();
-        coverage.validate()?;
         if self.body_count != self.bodies.len() {
             return Err(pleiades_compression::CompressionError::new(
                 pleiades_compression::CompressionErrorKind::InvalidFormat,
                 "packaged artifact profile body count does not match bundled body list",
             ));
         }
+
+        if self.bodies.is_empty() {
+            let coverage = self.profile_coverage_summary();
+            coverage.validate()?;
+            return Ok(());
+        }
+
+        if self
+            .bodies
+            .iter()
+            .enumerate()
+            .any(|(index, body)| self.bodies[..index].contains(body))
+        {
+            let coverage = self.profile_coverage_summary();
+            coverage.validate()?;
+            return Ok(());
+        }
+
         if self.bodies.as_slice() != packaged_bodies() {
             return Err(pleiades_compression::CompressionError::new(
                 pleiades_compression::CompressionErrorKind::InvalidFormat,
@@ -668,6 +684,9 @@ impl PackagedArtifactProfileSummary {
                 ),
             ));
         }
+
+        let coverage = self.profile_coverage_summary();
+        coverage.validate()?;
 
         Ok(())
     }

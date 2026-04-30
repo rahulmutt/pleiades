@@ -540,6 +540,7 @@ impl ArtifactProfileCoverageSummary {
             ));
         }
         validate_unique_values("artifact profile coverage bundled bodies", &self.bodies)?;
+        validate_canonical_body_order("artifact profile coverage bundled bodies", &self.bodies)?;
         if self.body_count != self.bodies.len() {
             return Err(CompressionError::new(
                 CompressionErrorKind::InvalidFormat,
@@ -947,8 +948,8 @@ impl CompressedArtifact {
     /// before writing a deterministic binary payload.
     pub fn validate(&self) -> Result<(), CompressionError> {
         self.header.validate()?;
-        self.profile_coverage_summary().validate()?;
         validate_body_artifacts(&self.bodies)?;
+        self.profile_coverage_summary().validate()?;
         for body in &self.bodies {
             body.validate()?;
         }
@@ -1498,13 +1499,26 @@ fn validate_body_artifacts(bodies: &[BodyArtifact]) -> Result<(), CompressionErr
         }
     }
 
+    let body_order = bodies
+        .iter()
+        .map(|body| body.body.clone())
+        .collect::<Vec<_>>();
+    validate_canonical_body_order("compressed artifact body entries", &body_order)?;
+
+    Ok(())
+}
+
+fn validate_canonical_body_order(
+    field: &str,
+    bodies: &[CelestialBody],
+) -> Result<(), CompressionError> {
     for pair in bodies.windows(2) {
-        if canonical_body_order_key(&pair[0].body) > canonical_body_order_key(&pair[1].body) {
+        if canonical_body_order_key(&pair[0]) > canonical_body_order_key(&pair[1]) {
             return Err(CompressionError::new(
                 CompressionErrorKind::InvalidFormat,
                 format!(
-                    "compressed artifact body entries must be ordered canonically; found {:?} before {:?}",
-                    pair[0].body, pair[1].body
+                    "{field} must be ordered canonically; found {:?} before {:?}",
+                    pair[0], pair[1]
                 ),
             ));
         }
@@ -3303,6 +3317,22 @@ mod tests {
         assert!(error
             .message
             .contains("artifact profile coverage bundled bodies contains duplicate Sun entry"));
+    }
+
+    #[test]
+    fn artifact_profile_coverage_validation_rejects_out_of_order_bodies() {
+        let coverage = ArtifactProfileCoverageSummary::new(
+            ArtifactProfile::ecliptic_longitude_latitude_distance(),
+            vec![CelestialBody::Moon, CelestialBody::Sun],
+        );
+
+        let error = coverage
+            .validate()
+            .expect_err("out-of-order bundled bodies should be rejected");
+        assert_eq!(error.kind, CompressionErrorKind::InvalidFormat);
+        assert!(error.message.contains(
+            "artifact profile coverage bundled bodies must be ordered canonically; found Moon before Sun"
+        ));
     }
 
     #[test]
