@@ -865,6 +865,33 @@ impl ObserverLocation {
         }
     }
 
+    /// Validates that the stored observer location is finite and within the
+    /// latitude range expected by house calculations.
+    pub fn validate(&self) -> Result<(), ObserverLocationValidationError> {
+        let latitude = self.latitude.degrees();
+        if !latitude.is_finite() {
+            return Err(ObserverLocationValidationError::NonFiniteLatitude { value: latitude });
+        }
+        if !(-90.0..=90.0).contains(&latitude) {
+            return Err(ObserverLocationValidationError::LatitudeOutOfRange { value: latitude });
+        }
+
+        let longitude = self.longitude.degrees();
+        if !longitude.is_finite() {
+            return Err(ObserverLocationValidationError::NonFiniteLongitude { value: longitude });
+        }
+
+        if let Some(elevation_m) = self.elevation_m {
+            if !elevation_m.is_finite() {
+                return Err(ObserverLocationValidationError::NonFiniteElevation {
+                    value: elevation_m,
+                });
+            }
+        }
+
+        Ok(())
+    }
+
     /// Returns a compact one-line rendering of the observer location.
     pub fn summary_line(&self) -> String {
         let elevation = self
@@ -884,6 +911,60 @@ impl fmt::Display for ObserverLocation {
         f.write_str(&self.summary_line())
     }
 }
+
+/// Validation errors for observer locations.
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[non_exhaustive]
+pub enum ObserverLocationValidationError {
+    /// The observer latitude was not finite.
+    NonFiniteLatitude {
+        /// The offending value.
+        value: f64,
+    },
+    /// The observer latitude fell outside the valid range.
+    LatitudeOutOfRange {
+        /// The offending value.
+        value: f64,
+    },
+    /// The observer longitude was not finite.
+    NonFiniteLongitude {
+        /// The offending value.
+        value: f64,
+    },
+    /// The observer elevation was not finite.
+    NonFiniteElevation {
+        /// The offending value.
+        value: f64,
+    },
+}
+
+impl ObserverLocationValidationError {
+    /// Returns a compact one-line rendering of the validation failure.
+    pub fn summary_line(&self) -> String {
+        match self {
+            Self::NonFiniteLatitude { value } => {
+                format!("observer latitude must be finite, got {value}")
+            }
+            Self::LatitudeOutOfRange { value } => {
+                format!("observer latitude must stay within [-90, 90], got {value}")
+            }
+            Self::NonFiniteLongitude { value } => {
+                format!("observer longitude must be finite, got {value}")
+            }
+            Self::NonFiniteElevation { value } => {
+                format!("observer elevation must be finite, got {value}")
+            }
+        }
+    }
+}
+
+impl fmt::Display for ObserverLocationValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+impl std::error::Error for ObserverLocationValidationError {}
 
 /// The coordinate frame requested from a backend.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -3535,6 +3616,63 @@ mod tests {
             }
             .summary_line(),
             "ecliptic coordinate field `distance_au` must be non-negative, got -0.5"
+        );
+    }
+
+    #[test]
+    fn observer_location_validation_rejects_invalid_values() {
+        let valid = ObserverLocation::new(
+            Latitude::from_degrees(51.5),
+            Longitude::from_degrees(-0.1),
+            Some(45.0),
+        );
+        assert_eq!(valid.validate(), Ok(()));
+        assert_eq!(
+            valid.summary_line(),
+            "latitude=51.5°, longitude=359.9°, elevation=45.000 m"
+        );
+
+        let bad_latitude = ObserverLocation::new(
+            Latitude::from_degrees(91.0),
+            Longitude::from_degrees(-0.1),
+            None,
+        );
+        assert_eq!(
+            bad_latitude.validate(),
+            Err(ObserverLocationValidationError::LatitudeOutOfRange { value: 91.0 })
+        );
+        assert_eq!(
+            ObserverLocationValidationError::LatitudeOutOfRange { value: 91.0 }.summary_line(),
+            "observer latitude must stay within [-90, 90], got 91"
+        );
+
+        let bad_longitude = ObserverLocation::new(
+            Latitude::from_degrees(51.5),
+            Longitude::from_degrees(f64::NAN),
+            None,
+        );
+        assert!(matches!(
+            bad_longitude.validate(),
+            Err(ObserverLocationValidationError::NonFiniteLongitude { value }) if value.is_nan()
+        ));
+
+        let bad_elevation = ObserverLocation::new(
+            Latitude::from_degrees(51.5),
+            Longitude::from_degrees(-0.1),
+            Some(f64::INFINITY),
+        );
+        assert_eq!(
+            bad_elevation.validate(),
+            Err(ObserverLocationValidationError::NonFiniteElevation {
+                value: f64::INFINITY,
+            })
+        );
+        assert_eq!(
+            ObserverLocationValidationError::NonFiniteElevation {
+                value: f64::INFINITY,
+            }
+            .summary_line(),
+            "observer elevation must be finite, got inf"
         );
     }
 }

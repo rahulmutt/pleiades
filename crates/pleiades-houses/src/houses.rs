@@ -16,7 +16,9 @@
 
 use core::fmt;
 
-use pleiades_types::{Angle, HouseSystem, Instant, Longitude, ObserverLocation};
+use pleiades_types::{
+    Angle, HouseSystem, Instant, Longitude, ObserverLocation, ObserverLocationValidationError,
+};
 
 /// A request for house calculation.
 #[derive(Clone, Debug, PartialEq)]
@@ -340,23 +342,25 @@ pub fn house_for_longitude(longitude: Longitude, cusps: &[Longitude]) -> usize {
 }
 
 fn validate_observer(observer: &ObserverLocation) -> Result<(), HouseError> {
-    let latitude = observer.latitude.degrees();
-    if !latitude.is_finite() || latitude.abs() > 90.0 {
-        return Err(HouseError::new(
+    observer.validate().map_err(|error| match error {
+        ObserverLocationValidationError::NonFiniteLatitude { value }
+        | ObserverLocationValidationError::LatitudeOutOfRange { value } => HouseError::new(
             HouseErrorKind::InvalidLatitude,
-            format!("observer latitude {latitude}° is outside the valid range"),
-        ));
-    }
-
-    let longitude = observer.longitude.degrees();
-    if !longitude.is_finite() {
-        return Err(HouseError::new(
+            format!("observer latitude {value}° is outside the valid range"),
+        ),
+        ObserverLocationValidationError::NonFiniteLongitude { .. } => HouseError::new(
             HouseErrorKind::InvalidLongitude,
             "observer longitude must be finite",
-        ));
-    }
-
-    Ok(())
+        ),
+        ObserverLocationValidationError::NonFiniteElevation { .. } => HouseError::new(
+            HouseErrorKind::InvalidElevation,
+            "observer elevation must be finite when provided",
+        ),
+        _ => HouseError::new(
+            HouseErrorKind::NumericalFailure,
+            "observer location validation failed unexpectedly",
+        ),
+    })
 }
 
 fn validated_obliquity(request: &HouseRequest) -> Result<Angle, HouseError> {
@@ -1515,6 +1519,20 @@ mod tests {
     #[test]
     fn house_request_validate_rejects_non_finite_topocentric_elevation() {
         let mut request = sample_request(HouseSystem::Topocentric);
+        request.observer.elevation_m = Some(f64::NAN);
+
+        let error = request
+            .validate()
+            .expect_err("non-finite elevation should fail fast");
+        assert_eq!(error.kind, HouseErrorKind::InvalidElevation);
+        assert!(error
+            .message
+            .contains("observer elevation must be finite when provided"));
+    }
+
+    #[test]
+    fn house_request_validate_rejects_non_finite_elevation_even_without_topocentric_houses() {
+        let mut request = sample_request(HouseSystem::Equal);
         request.observer.elevation_m = Some(f64::NAN);
 
         let error = request
