@@ -1398,7 +1398,8 @@ fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
         "  mean longitude delta: {:.12}°\n",
         report.model_comparison.summary.mean_longitude_delta_deg
     ));
-    let median = crate::comparison_median_envelope(&report.model_comparison.samples);
+    let median = crate::comparison_median_envelope(&report.model_comparison.samples)
+        .expect("median envelope should exist");
     let percentile = crate::comparison_percentile_envelope(&report.model_comparison.samples, 0.95);
     text.push_str(&format!(
         "  median longitude delta: {:.12}°\n",

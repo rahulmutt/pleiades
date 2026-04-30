@@ -7574,14 +7574,15 @@ fn format_summary_body(body: &Option<CelestialBody>) -> String {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-struct ComparisonMedianEnvelope {
+pub struct ComparisonMedianEnvelope {
     longitude_delta_deg: f64,
     latitude_delta_deg: f64,
     distance_delta_au: Option<f64>,
 }
 
 impl ComparisonMedianEnvelope {
-    fn validate(&self) -> Result<(), EphemerisError> {
+    /// Validates the stored median comparison envelope.
+    pub fn validate(&self) -> Result<(), EphemerisError> {
         for (label, value) in [
             ("longitude_delta_deg", self.longitude_delta_deg),
             ("latitude_delta_deg", self.latitude_delta_deg),
@@ -7608,7 +7609,8 @@ impl ComparisonMedianEnvelope {
         Ok(())
     }
 
-    fn summary_line(&self) -> String {
+    /// Returns the compact median comparison envelope line.
+    pub fn summary_line(&self) -> String {
         let distance = self
             .distance_delta_au
             .map(|value| format!("{value:.12} AU"))
@@ -7625,6 +7627,17 @@ impl fmt::Display for ComparisonMedianEnvelope {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.summary_line())
     }
+}
+
+/// Returns the median comparison envelope used by the compact report.
+pub fn comparison_median_envelope(
+    samples: &[ComparisonSample],
+) -> Result<ComparisonMedianEnvelope, EphemerisError> {
+    validate_comparison_samples_for_report(samples)?;
+
+    let envelope = comparison_median_envelope_for_samples(samples);
+    envelope.validate()?;
+    Ok(envelope)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -7764,7 +7777,7 @@ impl ComparisonEnvelopeSummary {
         self.median.validate()?;
         self.percentile.validate()?;
 
-        let expected_median = comparison_median_envelope(samples);
+        let expected_median = comparison_median_envelope_for_samples(samples);
         if self.median != expected_median {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,
@@ -7796,7 +7809,7 @@ fn comparison_envelope_summary(
 ) -> ComparisonEnvelopeSummary {
     ComparisonEnvelopeSummary {
         summary: summary.clone(),
-        median: comparison_median_envelope(samples),
+        median: comparison_median_envelope_for_samples(samples),
         percentile: comparison_percentile_envelope(samples, 0.95),
     }
 }
@@ -7833,7 +7846,9 @@ fn percentile_value(values: &mut [f64], percentile: f64) -> Option<f64> {
     }
 }
 
-fn comparison_median_envelope(samples: &[ComparisonSample]) -> ComparisonMedianEnvelope {
+fn comparison_median_envelope_for_samples(
+    samples: &[ComparisonSample],
+) -> ComparisonMedianEnvelope {
     let mut longitude_values = samples
         .iter()
         .map(|sample| sample.longitude_delta_deg)
@@ -8934,7 +8949,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         "  samples: {}",
         report.comparison.summary.sample_count
     );
-    let median = comparison_median_envelope(&report.comparison.samples);
+    let median = comparison_median_envelope_for_samples(&report.comparison.samples);
     let _ = writeln!(
         text,
         "  max longitude delta: {:.12}°{}",
@@ -12806,6 +12821,21 @@ mod tests {
             .contains("95th percentile absolute deltas:"));
         assert!(envelope.summary_line().contains("longitude"));
         assert!(envelope.summary_line().contains("latitude"));
+    }
+
+    #[test]
+    fn comparison_median_envelope_has_a_displayable_summary_line() {
+        let corpus = default_corpus();
+        let reference = default_reference_backend();
+        let candidate = default_candidate_backend();
+        let report =
+            compare_backends(&reference, &candidate, &corpus).expect("comparison should build");
+        let envelope =
+            comparison_median_envelope(&report.samples).expect("median envelope should exist");
+
+        assert_eq!(envelope.summary_line(), envelope.to_string());
+        assert!(envelope.summary_line().contains("median longitude delta:"));
+        assert!(envelope.summary_line().contains("median latitude delta:"));
     }
 
     #[test]
