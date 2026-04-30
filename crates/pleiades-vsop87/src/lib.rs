@@ -3565,6 +3565,20 @@ impl Vsop87SourceBodyEvidenceSummary {
                 },
             );
         }
+        if self.within_interim_limits_count != expected.within_interim_limits_count {
+            return Err(
+                Vsop87SourceBodyEvidenceSummaryValidationError::FieldOutOfSync {
+                    field: "within_interim_limits_count",
+                },
+            );
+        }
+        if self.outside_interim_limit_count != expected.outside_interim_limit_count {
+            return Err(
+                Vsop87SourceBodyEvidenceSummaryValidationError::FieldOutOfSync {
+                    field: "outside_interim_limit_count",
+                },
+            );
+        }
         if self.within_interim_limits_count + self.outside_interim_limit_count != self.sample_count
         {
             return Err(
@@ -5339,6 +5353,20 @@ impl Vsop87SourceBodyClassEvidenceSummary {
             return Err(
                 Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync {
                     field: "sample_bodies",
+                },
+            );
+        }
+        if self.within_interim_limits_count != expected.within_interim_limits_count {
+            return Err(
+                Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync {
+                    field: "within_interim_limits_count",
+                },
+            );
+        }
+        if self.outside_interim_limit_count != expected.outside_interim_limit_count {
+            return Err(
+                Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync {
+                    field: "outside_interim_limit_count",
                 },
             );
         }
@@ -11010,18 +11038,31 @@ mod tests {
     }
 
     #[test]
-    fn source_body_evidence_summary_validation_rejects_outlier_body_outside_sample_set() {
+    fn source_body_evidence_summary_validation_rejects_within_limit_count_drift() {
         let mut summary = source_body_evidence_summary().expect("summary should exist");
-        summary.within_interim_limits_count -= 1;
-        summary.outside_interim_limit_count = 1;
+        summary.within_interim_limits_count += 1;
+
+        let error = summary
+            .validate()
+            .expect_err("within-limit count drift should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "the VSOP87 source-backed body evidence summary field `within_interim_limits_count` is out of sync with the current canonical evidence"
+        );
+    }
+
+    #[test]
+    fn source_body_evidence_summary_validation_rejects_outside_limit_count_drift() {
+        let mut summary = source_body_evidence_summary().expect("summary should exist");
+        summary.outside_interim_limit_count += 1;
         summary.outside_interim_limit_bodies = vec![CelestialBody::Moon];
 
         let error = summary
             .validate()
-            .expect_err("outlier bodies must come from the sample set");
+            .expect_err("outside-limit count drift should fail validation");
         assert_eq!(
             error.to_string(),
-            "the VSOP87 source-backed body evidence summary field `outside_interim_limit_bodies` is out of sync with the current canonical evidence"
+            "the VSOP87 source-backed body evidence summary field `outside_interim_limit_count` is out of sync with the current canonical evidence"
         );
     }
 
@@ -11102,22 +11143,39 @@ mod tests {
     }
 
     #[test]
-    fn source_body_class_evidence_summary_validation_rejects_outlier_body_outside_sample_set() {
+    fn source_body_class_evidence_summary_validation_rejects_within_limit_count_drift() {
         let mut summary = source_body_class_evidence_summary()
             .expect("summary should exist")
             .into_iter()
             .find(|summary| summary.class == Vsop87SourceBodyClass::MajorPlanet)
             .expect("major-planet summary should exist");
-        summary.within_interim_limits_count -= 1;
-        summary.outside_interim_limit_count = 1;
+        summary.within_interim_limits_count += 1;
+
+        let error = summary
+            .validate()
+            .expect_err("within-limit count drift should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "the VSOP87 source-backed body-class evidence summary field `within_interim_limits_count` is out of sync with the current canonical evidence"
+        );
+    }
+
+    #[test]
+    fn source_body_class_evidence_summary_validation_rejects_outside_limit_count_drift() {
+        let mut summary = source_body_class_evidence_summary()
+            .expect("summary should exist")
+            .into_iter()
+            .find(|summary| summary.class == Vsop87SourceBodyClass::MajorPlanet)
+            .expect("major-planet summary should exist");
+        summary.outside_interim_limit_count += 1;
         summary.outside_interim_limit_bodies = vec![CelestialBody::Moon];
 
         let error = summary
             .validate()
-            .expect_err("outlier bodies must come from the sample set");
+            .expect_err("outside-limit count drift should fail validation");
         assert_eq!(
             error.to_string(),
-            "the VSOP87 source-backed body-class evidence summary field `outside_interim_limit_bodies` is out of sync with the current canonical evidence"
+            "the VSOP87 source-backed body-class evidence summary field `outside_interim_limit_count` is out of sync with the current canonical evidence"
         );
     }
 
