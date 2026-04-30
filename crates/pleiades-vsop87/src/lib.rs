@@ -6223,6 +6223,15 @@ pub fn source_backed_body_j2000_ecliptic_batch_parity_request_corpus() -> Vec<Ep
     source_backed_body_j2000_ecliptic_batch_parity_requests()
 }
 
+/// Returns the source-backed J2000 request corpus used by the VSOP87 batch evidence.
+///
+/// This is a compatibility alias for
+/// [`source_backed_body_j2000_ecliptic_batch_parity_request_corpus`].
+#[doc(alias = "source_backed_body_j2000_ecliptic_batch_parity_request_corpus")]
+pub fn source_backed_body_j2000_ecliptic_request_corpus() -> Vec<EphemerisRequest> {
+    source_backed_body_j2000_ecliptic_batch_parity_request_corpus()
+}
+
 /// Returns the supported-body J2000 request corpus used by the VSOP87 batch-parity evidence.
 ///
 /// The requests preserve the supported-body order, use the shared J2000 TDB
@@ -6270,6 +6279,15 @@ pub fn source_backed_body_j2000_equatorial_batch_parity_requests() -> Vec<Epheme
 #[doc(alias = "source_backed_body_j2000_equatorial_batch_parity_requests")]
 pub fn source_backed_body_j2000_equatorial_batch_parity_request_corpus() -> Vec<EphemerisRequest> {
     source_backed_body_j2000_equatorial_batch_parity_requests()
+}
+
+/// Returns the source-backed J2000 request corpus used by the VSOP87 batch evidence.
+///
+/// This is a compatibility alias for
+/// [`source_backed_body_j2000_equatorial_batch_parity_request_corpus`].
+#[doc(alias = "source_backed_body_j2000_equatorial_batch_parity_request_corpus")]
+pub fn source_backed_body_j2000_equatorial_request_corpus() -> Vec<EphemerisRequest> {
+    source_backed_body_j2000_equatorial_batch_parity_request_corpus()
 }
 
 /// Returns the supported-body J2000 request corpus used by the VSOP87 supported-body batch evidence.
@@ -6384,6 +6402,15 @@ pub fn source_backed_body_j1900_ecliptic_batch_parity_request_corpus() -> Vec<Ep
 
 /// Returns the source-backed J1900 request corpus used by the VSOP87 batch evidence.
 ///
+/// This is a compatibility alias for
+/// [`source_backed_body_j1900_ecliptic_batch_parity_request_corpus`].
+#[doc(alias = "source_backed_body_j1900_ecliptic_batch_parity_request_corpus")]
+pub fn source_backed_body_j1900_ecliptic_request_corpus() -> Vec<EphemerisRequest> {
+    source_backed_body_j1900_ecliptic_batch_parity_request_corpus()
+}
+
+/// Returns the source-backed J1900 request corpus used by the VSOP87 batch evidence.
+///
 /// This is a compatibility alias for [`supported_body_j1900_equatorial_batch_parity_requests`].
 #[doc(alias = "supported_body_j1900_equatorial_batch_parity_requests")]
 pub fn source_backed_body_j1900_equatorial_batch_parity_requests() -> Vec<EphemerisRequest> {
@@ -6397,6 +6424,15 @@ pub fn source_backed_body_j1900_equatorial_batch_parity_requests() -> Vec<Epheme
 #[doc(alias = "source_backed_body_j1900_equatorial_batch_parity_requests")]
 pub fn source_backed_body_j1900_equatorial_batch_parity_request_corpus() -> Vec<EphemerisRequest> {
     source_backed_body_j1900_equatorial_batch_parity_requests()
+}
+
+/// Returns the source-backed J1900 request corpus used by the VSOP87 batch evidence.
+///
+/// This is a compatibility alias for
+/// [`source_backed_body_j1900_equatorial_batch_parity_request_corpus`].
+#[doc(alias = "source_backed_body_j1900_equatorial_batch_parity_request_corpus")]
+pub fn source_backed_body_j1900_equatorial_request_corpus() -> Vec<EphemerisRequest> {
+    source_backed_body_j1900_equatorial_batch_parity_request_corpus()
 }
 
 /// Returns the supported-body J1900 request corpus used by the VSOP87 supported-body batch evidence.
@@ -11138,6 +11174,26 @@ mod tests {
         assert_eq!(
             source_backed_body_j2000_ecliptic_batch_parity_requests(),
             source_backed_body_j2000_ecliptic_batch_parity_request_corpus()
+        );
+    }
+
+    #[test]
+    fn source_backed_body_request_corpus_aliases_remain_the_frame_specific_canonical_slices() {
+        assert_eq!(
+            source_backed_body_j2000_ecliptic_request_corpus(),
+            source_backed_body_j2000_ecliptic_batch_parity_requests()
+        );
+        assert_eq!(
+            source_backed_body_j2000_equatorial_request_corpus(),
+            source_backed_body_j2000_equatorial_batch_parity_requests()
+        );
+        assert_eq!(
+            source_backed_body_j1900_ecliptic_request_corpus(),
+            source_backed_body_j1900_ecliptic_batch_parity_requests()
+        );
+        assert_eq!(
+            source_backed_body_j1900_equatorial_request_corpus(),
+            source_backed_body_j1900_equatorial_batch_parity_requests()
         );
     }
 
