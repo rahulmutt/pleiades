@@ -98,6 +98,42 @@ impl fmt::Display for ObserverPolicy {
     }
 }
 
+/// Observer-policy and location summary for chart requests and snapshots.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ObserverSummary {
+    /// The observer posture implied by the chart shape.
+    pub policy: ObserverPolicy,
+    /// The optional observer location rendered in report output.
+    pub location: Option<ObserverLocation>,
+}
+
+impl ObserverSummary {
+    /// Creates a new observer summary from the typed policy and optional location.
+    pub const fn new(policy: ObserverPolicy, location: Option<ObserverLocation>) -> Self {
+        Self { policy, location }
+    }
+
+    /// Returns the stored observer location as a compact label.
+    pub fn location_label(&self) -> String {
+        render_observer_location_label(self.location.as_ref())
+    }
+
+    /// Returns a compact one-line rendering of the observer posture and location.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "observer={}; observer location={}",
+            self.policy,
+            self.location_label(),
+        )
+    }
+}
+
+impl fmt::Display for ObserverSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// A request for chart assembly.
 ///
 /// # Example
@@ -614,15 +650,16 @@ impl ChartRequest {
             .as_ref()
             .map_or_else(|| "none".to_string(), render_house_system_label);
 
+        let observer = ObserverSummary::new(self.observer_policy(), self.observer.clone());
+
         format!(
-            "instant={} ({}); bodies={}; zodiac={}; apparentness={}; observer={}; observer location={}; house system={}",
+            "instant={} ({}); bodies={}; zodiac={}; apparentness={}; {}; house system={}",
             self.instant.julian_day,
             self.instant.scale,
             self.bodies.len(),
             self.zodiac_mode,
             self.apparentness,
-            self.observer_policy().summary_line(),
-            render_observer_location_label(self.observer.as_ref()),
+            observer,
             house_system,
         )
     }
@@ -732,16 +769,17 @@ impl ChartSnapshot {
         );
         let house_cusp_count = self.houses.as_ref().map_or(0, |houses| houses.cusps.len());
 
+        let observer = ObserverSummary::new(self.observer_policy(), self.observer.clone());
+
         format!(
-            "backend={}; instant={} ({}); placements={}; zodiac={}; apparentness={}; observer={}; observer location={}; house system={}; house cusps={}",
+            "backend={}; instant={} ({}); placements={}; zodiac={}; apparentness={}; {}; house system={}; house cusps={}",
             self.backend_id,
             self.instant.julian_day,
             self.instant.scale,
             self.placements.len(),
             self.zodiac_mode,
             self.apparentness,
-            self.observer_policy().summary_line(),
-            render_observer_location_label(self.observer.as_ref()),
+            observer,
             house_system,
             house_cusp_count,
         )
@@ -3130,6 +3168,29 @@ mod tests {
             "instant=JD 2451545 (TT); bodies=10; zodiac=Tropical; apparentness=Mean; observer=geocentric; observer location=none; house system=none"
         );
         assert_eq!(request.to_string(), request.summary_line());
+    }
+
+    #[test]
+    fn observer_summary_renders_the_policy_and_location() {
+        let summary = ObserverSummary::new(
+            ObserverPolicy::HouseOnly,
+            Some(ObserverLocation::new(
+                Latitude::from_degrees(12.5),
+                Longitude::from_degrees(45.0),
+                Some(100.0),
+            )),
+        );
+
+        assert_eq!(summary.policy, ObserverPolicy::HouseOnly);
+        assert_eq!(
+            summary.location_label(),
+            "latitude=12.5°, longitude=45°, elevation=100.000 m"
+        );
+        assert_eq!(
+            summary.summary_line(),
+            "observer=house-only; observer location=latitude=12.5°, longitude=45°, elevation=100.000 m"
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
     }
 
     #[test]

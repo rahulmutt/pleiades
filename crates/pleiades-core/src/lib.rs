@@ -92,7 +92,7 @@ pub use chart::{
     default_chart_bodies, sidereal_longitude, validate_aspect_definitions, AspectDefinition,
     AspectDefinitionValidationError, AspectKind, AspectMatch, AspectSummary, BodyPlacement,
     ChartRequest, ChartSnapshot, HouseSummary, MotionSummary, MotionSummaryValidationError,
-    ObserverPolicy, SignSummary,
+    ObserverPolicy, ObserverSummary, SignSummary,
 };
 pub use compatibility::{
     current_compatibility_profile, current_compatibility_profile_id,
