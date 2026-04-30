@@ -89,9 +89,10 @@ pub use api_stability::{
     ApiStabilityProfileValidationError, CURRENT_API_STABILITY_PROFILE_ID,
 };
 pub use chart::{
-    default_chart_bodies, sidereal_longitude, AspectDefinition, AspectKind, AspectMatch,
-    AspectSummary, BodyPlacement, ChartRequest, ChartSnapshot, HouseSummary, MotionSummary,
-    MotionSummaryValidationError, ObserverPolicy, SignSummary,
+    default_chart_bodies, sidereal_longitude, validate_aspect_definitions, AspectDefinition,
+    AspectDefinitionValidationError, AspectKind, AspectMatch, AspectSummary, BodyPlacement,
+    ChartRequest, ChartSnapshot, HouseSummary, MotionSummary, MotionSummaryValidationError,
+    ObserverPolicy, SignSummary,
 };
 pub use compatibility::{
     current_compatibility_profile, current_compatibility_profile_id,

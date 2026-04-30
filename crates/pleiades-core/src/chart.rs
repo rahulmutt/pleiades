@@ -968,7 +968,17 @@ impl ChartSnapshot {
 
     /// Returns the major aspects found in the chart using the built-in orb defaults.
     pub fn major_aspects(&self) -> Vec<AspectMatch> {
-        self.aspects_with_definitions(default_aspect_definitions())
+        self.aspects_with_definitions_checked(default_aspect_definitions())
+            .expect("default aspect definitions should be valid")
+    }
+
+    /// Returns aspect matches using custom aspect definitions after validating them.
+    pub fn aspects_with_definitions_checked(
+        &self,
+        definitions: &[AspectDefinition],
+    ) -> Result<Vec<AspectMatch>, AspectDefinitionValidationError> {
+        validate_aspect_definitions(definitions)?;
+        Ok(self.aspects_with_definitions(definitions))
     }
 
     /// Returns aspect matches using custom aspect definitions.
@@ -1728,6 +1738,37 @@ impl fmt::Display for AspectKind {
     }
 }
 
+/// Validation failure for a configurable aspect definition.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum AspectDefinitionValidationError {
+    /// The exact aspect angle was not finite or fell outside the supported half-circle range.
+    ExactDegreesOutOfRange { exact_degrees: f64 },
+    /// The orb was not finite or fell outside the supported half-circle range.
+    OrbDegreesOutOfRange { orb_degrees: f64 },
+}
+
+impl AspectDefinitionValidationError {
+    /// Returns a compact one-line summary of the validation failure.
+    pub fn summary_line(self) -> String {
+        match self {
+            Self::ExactDegreesOutOfRange { exact_degrees } => format!(
+                "aspect definition exact_degrees must be finite and between 0 and 180 degrees; found {exact_degrees}"
+            ),
+            Self::OrbDegreesOutOfRange { orb_degrees } => format!(
+                "aspect definition orb_degrees must be finite and between 0 and 180 degrees; found {orb_degrees}"
+            ),
+        }
+    }
+}
+
+impl fmt::Display for AspectDefinitionValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+impl std::error::Error for AspectDefinitionValidationError {}
+
 /// An aspect definition used for configurable matching.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct AspectDefinition {
@@ -1748,6 +1789,55 @@ impl AspectDefinition {
             orb_degrees,
         }
     }
+
+    /// Validates that the configured exact angle and orb remain finite and within range.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use pleiades_core::{AspectDefinition, AspectKind};
+    ///
+    /// let definition = AspectDefinition::new(AspectKind::Sextile, 60.0, 4.0);
+    /// assert!(definition.validate().is_ok());
+    /// ```
+    pub fn validate(self) -> Result<(), AspectDefinitionValidationError> {
+        if !self.exact_degrees.is_finite() || !(0.0..=180.0).contains(&self.exact_degrees) {
+            return Err(AspectDefinitionValidationError::ExactDegreesOutOfRange {
+                exact_degrees: self.exact_degrees,
+            });
+        }
+
+        if !self.orb_degrees.is_finite() || !(0.0..=180.0).contains(&self.orb_degrees) {
+            return Err(AspectDefinitionValidationError::OrbDegreesOutOfRange {
+                orb_degrees: self.orb_degrees,
+            });
+        }
+
+        Ok(())
+    }
+}
+
+/// Validates a slice of aspect definitions.
+///
+/// # Example
+///
+/// ```
+/// use pleiades_core::{validate_aspect_definitions, AspectDefinition, AspectKind};
+///
+/// let definitions = [
+///     AspectDefinition::new(AspectKind::Conjunction, 0.0, 8.0),
+///     AspectDefinition::new(AspectKind::Opposition, 180.0, 8.0),
+/// ];
+///
+/// assert!(validate_aspect_definitions(&definitions).is_ok());
+/// ```
+pub fn validate_aspect_definitions(
+    definitions: &[AspectDefinition],
+) -> Result<(), AspectDefinitionValidationError> {
+    definitions
+        .iter()
+        .copied()
+        .try_for_each(AspectDefinition::validate)
 }
 
 /// A matched aspect between two bodies.
@@ -4275,5 +4365,43 @@ mod tests {
         let rendered = chart.to_string();
         assert!(rendered.contains("asteroid:433-Eros"));
         assert!(rendered.contains("Retrograde bodies: asteroid:433-Eros"));
+    }
+
+    #[test]
+    fn aspect_definition_validation_rejects_non_finite_and_out_of_range_values() {
+        let valid = AspectDefinition::new(AspectKind::Sextile, 60.0, 4.0);
+        assert!(valid.validate().is_ok());
+        assert!(validate_aspect_definitions(&[valid]).is_ok());
+
+        let exact_nan = AspectDefinition::new(AspectKind::Conjunction, f64::NAN, 8.0);
+        let exact_error = exact_nan
+            .validate()
+            .expect_err("NaN exact degrees should be rejected");
+        assert!(exact_error
+            .summary_line()
+            .contains("exact_degrees must be finite and between 0 and 180 degrees"));
+        assert_eq!(exact_error.to_string(), exact_error.summary_line());
+
+        let orb_negative = AspectDefinition::new(AspectKind::Square, 90.0, -1.0);
+        let orb_error = orb_negative
+            .validate()
+            .expect_err("negative orbs should be rejected");
+        assert!(orb_error
+            .summary_line()
+            .contains("orb_degrees must be finite and between 0 and 180 degrees"));
+        assert_eq!(orb_error.to_string(), orb_error.summary_line());
+
+        let exact_out_of_range = AspectDefinition::new(AspectKind::Trine, 181.0, 6.0);
+        assert!(exact_out_of_range
+            .validate()
+            .expect_err("angles outside the supported half-circle should be rejected")
+            .summary_line()
+            .contains("found 181"));
+
+        assert!(validate_aspect_definitions(&[
+            valid,
+            AspectDefinition::new(AspectKind::Opposition, 180.0, 8.0),
+        ])
+        .is_ok());
     }
 }
