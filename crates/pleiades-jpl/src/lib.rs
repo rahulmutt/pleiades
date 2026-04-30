@@ -1980,6 +1980,14 @@ impl ComparisonSnapshotSummary {
             format_bodies(&self.bodies),
         )
     }
+
+    /// Returns a compact summary line after validating the comparison snapshot summary.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ComparisonSnapshotSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for ComparisonSnapshotSummary {
@@ -1996,8 +2004,8 @@ pub fn format_comparison_snapshot_summary(summary: &ComparisonSnapshotSummary) -
 /// Returns the release-facing comparison snapshot coverage summary string.
 pub fn comparison_snapshot_summary_for_report() -> String {
     match comparison_snapshot_summary() {
-        Some(summary) => match summary.validate() {
-            Ok(()) => format_comparison_snapshot_summary(&summary),
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
             Err(error) => format!("Comparison snapshot coverage: unavailable ({error})"),
         },
         None => "Comparison snapshot coverage: unavailable".to_string(),
@@ -2215,6 +2223,14 @@ impl ComparisonSnapshotBatchParitySummary {
             self.unknown_count,
         )
     }
+
+    /// Returns a compact summary line after validating the batch parity summary.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ComparisonSnapshotBatchParitySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for ComparisonSnapshotBatchParitySummary {
@@ -2233,8 +2249,8 @@ pub fn format_comparison_snapshot_batch_parity_summary(
 /// Returns the release-facing comparison snapshot batch parity summary string.
 pub fn comparison_snapshot_batch_parity_summary_for_report() -> String {
     match comparison_snapshot_batch_parity_summary() {
-        Some(summary) => match summary.validate() {
-            Ok(()) => format_comparison_snapshot_batch_parity_summary(&summary),
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
             Err(error) => format!("JPL comparison snapshot batch parity: unavailable ({error})"),
         },
         None => "JPL comparison snapshot batch parity: unavailable".to_string(),
@@ -6897,6 +6913,7 @@ mod tests {
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(summary.bodies.as_slice(), comparison_bodies());
         assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             summary.summary_line(),
             "Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Mercury, Moon, Sun, Venus, Jupiter, Saturn, Uranus, Neptune, Pluto"
@@ -6958,6 +6975,7 @@ mod tests {
         assert_eq!(summary.ecliptic_request_count, 21);
         assert_eq!(summary.equatorial_request_count, 20);
         assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             summary.summary_line(),
             format!(
@@ -6970,6 +6988,22 @@ mod tests {
             comparison_snapshot_batch_parity_summary_for_report(),
             summary.summary_line()
         );
+    }
+
+    #[test]
+    fn comparison_snapshot_batch_parity_summary_validation_rejects_request_count_mismatches() {
+        let mut summary = comparison_snapshot_batch_parity_summary()
+            .expect("comparison snapshot batch parity summary should exist");
+        summary.equatorial_request_count += 1;
+
+        assert!(matches!(
+            summary.validate(),
+            Err(ComparisonSnapshotBatchParitySummaryValidationError::RequestCountMismatch { .. })
+        ));
+        assert!(matches!(
+            summary.validated_summary_line(),
+            Err(ComparisonSnapshotBatchParitySummaryValidationError::RequestCountMismatch { .. })
+        ));
     }
 
     #[test]
@@ -7218,6 +7252,14 @@ mod tests {
 
         assert!(matches!(
             summary.validate(),
+            Err(ComparisonSnapshotSummaryValidationError::BodyOrderMismatch {
+                index: 0,
+                expected: actual_expected,
+                found: actual_found,
+            }) if actual_expected == expected && actual_found == found
+        ));
+        assert!(matches!(
+            summary.validated_summary_line(),
             Err(ComparisonSnapshotSummaryValidationError::BodyOrderMismatch {
                 index: 0,
                 expected: actual_expected,
