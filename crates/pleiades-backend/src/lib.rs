@@ -1685,8 +1685,18 @@ pub fn validate_observer_policy(
     backend_label: &str,
     supports_topocentric: bool,
 ) -> Result<(), EphemerisError> {
-    if !supports_topocentric {
-        if let Some(observer) = req.observer.as_ref() {
+    if let Some(observer) = req.observer.as_ref() {
+        observer.validate().map_err(|error| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidObserver,
+                format!(
+                    "{backend_label} received invalid observer location for {}: {error}",
+                    observer.summary_line(),
+                ),
+            )
+        })?;
+
+        if !supports_topocentric {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::InvalidObserver,
                 format!(
@@ -3146,6 +3156,30 @@ mod tests {
         assert!(error
             .message
             .contains(&observer_request.observer.as_ref().unwrap().summary_line()));
+    }
+
+    #[test]
+    fn validate_observer_policy_rejects_invalid_observer_locations_even_when_supported() {
+        let mut observer_request = EphemerisRequest::new(
+            CelestialBody::Sun,
+            Instant::new(
+                pleiades_types::JulianDay::from_days(2_451_545.0),
+                TimeScale::Tt,
+            ),
+        );
+        observer_request.observer = Some(ObserverLocation::new(
+            Latitude::from_degrees(95.0),
+            Longitude::from_degrees(-0.1),
+            Some(45.0),
+        ));
+        let error = validate_observer_policy(&observer_request, "toy backend", true).expect_err(
+            "invalid observer locations should fail even when topocentric support is available",
+        );
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
+        assert!(error
+            .message
+            .contains("observer latitude must stay within [-90, 90]"));
+        assert!(error.message.contains("received invalid observer location"));
     }
 
     #[test]
