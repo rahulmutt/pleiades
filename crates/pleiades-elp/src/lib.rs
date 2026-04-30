@@ -2018,6 +2018,19 @@ pub struct LunarReferenceSample {
 impl LunarReferenceSample {
     /// Returns `Ok(())` when the sample still represents a valid lunar evidence row.
     pub fn validate(&self) -> Result<(), EphemerisError> {
+        if !matches!(
+            self.body,
+            CelestialBody::Moon
+                | CelestialBody::MeanNode
+                | CelestialBody::TrueNode
+                | CelestialBody::MeanApogee
+                | CelestialBody::MeanPerigee
+        ) {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "lunar reference sample must use a supported lunar body",
+            ));
+        }
         if self.epoch.scale != TimeScale::Tt {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,
@@ -2199,6 +2212,12 @@ pub struct LunarEquatorialReferenceSample {
 impl LunarEquatorialReferenceSample {
     /// Returns `Ok(())` when the sample still represents a valid lunar equatorial evidence row.
     pub fn validate(&self) -> Result<(), EphemerisError> {
+        if self.body != CelestialBody::Moon {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "lunar equatorial reference sample must use the Moon body",
+            ));
+        }
         if self.epoch.scale != TimeScale::Tt {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,
@@ -2911,6 +2930,12 @@ pub struct LunarApparentComparisonSample {
 impl LunarApparentComparisonSample {
     /// Returns `Ok(())` when the sample still represents a valid apparent Moon evidence row.
     pub fn validate(&self) -> Result<(), EphemerisError> {
+        if self.body != CelestialBody::Moon {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "lunar apparent comparison sample must use the Moon body",
+            ));
+        }
         if self.epoch.scale != TimeScale::Tt {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,
@@ -7427,6 +7452,13 @@ mod tests {
     #[test]
     fn lunar_evidence_sample_validators_reject_drifted_metadata() {
         let mut reference = lunar_reference_evidence()[0].clone();
+        reference.body = CelestialBody::Sun;
+        assert_eq!(
+            reference.validate().unwrap_err().kind,
+            EphemerisErrorKind::InvalidRequest
+        );
+
+        reference = lunar_reference_evidence()[0].clone();
         reference.epoch = Instant::new(
             pleiades_types::JulianDay::from_days(reference.epoch.julian_day.days()),
             TimeScale::Tdb,
@@ -7437,6 +7469,13 @@ mod tests {
         );
 
         let mut equatorial = lunar_equatorial_reference_evidence()[0].clone();
+        equatorial.body = CelestialBody::Sun;
+        assert_eq!(
+            equatorial.validate().unwrap_err().kind,
+            EphemerisErrorKind::InvalidRequest
+        );
+
+        equatorial = lunar_equatorial_reference_evidence()[0].clone();
         equatorial.note = " ";
         assert_eq!(
             equatorial.validate().unwrap_err().kind,
@@ -7444,6 +7483,13 @@ mod tests {
         );
 
         let mut apparent = lunar_apparent_comparison_evidence()[0].clone();
+        apparent.body = CelestialBody::Sun;
+        assert_eq!(
+            apparent.validate().unwrap_err().kind,
+            EphemerisErrorKind::InvalidRequest
+        );
+
+        apparent = lunar_apparent_comparison_evidence()[0].clone();
         apparent.apparent_distance_au = f64::NAN;
         assert_eq!(
             apparent.validate().unwrap_err().kind,
