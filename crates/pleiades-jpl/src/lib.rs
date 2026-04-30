@@ -3515,12 +3515,14 @@ impl fmt::Display for JplSnapshotBatchErrorTaxonomySummary {
     }
 }
 
-/// Returns a compact batch error-taxonomy summary for the current JPL snapshot backend.
-pub fn jpl_snapshot_batch_error_taxonomy_summary(
-) -> Result<JplSnapshotBatchErrorTaxonomySummary, JplSnapshotBatchErrorTaxonomySummaryValidationError>
-{
-    let backend = JplSnapshotBackend;
-
+/// Returns the control-sample batch corpus used by the current JPL batch
+/// error taxonomy summary.
+///
+/// The requests preserve the supported-body, unsupported-body, and
+/// out-of-range checks exercised by the release-facing taxonomy summary so
+/// downstream tooling can reuse the exact batch shape without reconstructing it
+/// inline.
+pub fn jpl_snapshot_batch_error_taxonomy_requests() -> Vec<EphemerisRequest> {
     let supported_request = EphemerisRequest {
         body: CelestialBody::Ceres,
         instant: reference_instant(),
@@ -3533,6 +3535,36 @@ pub fn jpl_snapshot_batch_error_taxonomy_summary(
         body: CelestialBody::MeanNode,
         ..supported_request.clone()
     };
+    let out_of_range_request = EphemerisRequest {
+        body: CelestialBody::Ceres,
+        instant: Instant::new(JulianDay::from_days(2_451_546.0), TimeScale::Tdb),
+        ..supported_request.clone()
+    };
+
+    vec![
+        supported_request,
+        unsupported_body_request,
+        out_of_range_request,
+    ]
+}
+
+/// This is a compatibility alias for [`jpl_snapshot_batch_error_taxonomy_requests`].
+#[doc(alias = "jpl_snapshot_batch_error_taxonomy_requests")]
+pub fn jpl_snapshot_batch_error_taxonomy_request_corpus() -> Vec<EphemerisRequest> {
+    jpl_snapshot_batch_error_taxonomy_requests()
+}
+
+/// Returns a compact batch error-taxonomy summary for the current JPL snapshot backend.
+pub fn jpl_snapshot_batch_error_taxonomy_summary(
+) -> Result<JplSnapshotBatchErrorTaxonomySummary, JplSnapshotBatchErrorTaxonomySummaryValidationError>
+{
+    let backend = JplSnapshotBackend;
+
+    let requests = jpl_snapshot_batch_error_taxonomy_requests();
+    let supported_request = requests[0].clone();
+    let unsupported_body_request = requests[1].clone();
+    let out_of_range_request = requests[2].clone();
+
     let unsupported_body_error =
         match backend.positions(&[supported_request.clone(), unsupported_body_request]) {
             Ok(_) => {
@@ -3552,11 +3584,6 @@ pub fn jpl_snapshot_batch_error_taxonomy_summary(
         );
     }
 
-    let out_of_range_request = EphemerisRequest {
-        body: CelestialBody::Ceres,
-        instant: Instant::new(JulianDay::from_days(2_451_546.0), TimeScale::Tdb),
-        ..supported_request
-    };
     let out_of_range_error = match backend.positions(&[out_of_range_request]) {
         Ok(_) => {
             return Err(
@@ -8931,6 +8958,32 @@ mod tests {
             error.to_string(),
             "the JPL snapshot request-policy summary field `supports_topocentric_observer` is out of sync with the current posture"
         );
+    }
+
+    #[test]
+    fn batch_error_taxonomy_request_corpus_matches_the_control_sample() {
+        let requests = jpl_snapshot_batch_error_taxonomy_request_corpus();
+
+        assert_eq!(requests.len(), 3);
+        assert_eq!(requests[0].body, pleiades_backend::CelestialBody::Ceres);
+        assert_eq!(requests[1].body, pleiades_backend::CelestialBody::MeanNode);
+        assert_eq!(requests[2].body, pleiades_backend::CelestialBody::Ceres);
+        assert_eq!(requests[0].instant, reference_instant());
+        assert_eq!(requests[1].instant, reference_instant());
+        assert_eq!(
+            requests[2].instant,
+            Instant::new(JulianDay::from_days(2_451_546.0), TimeScale::Tdb)
+        );
+        assert!(requests.iter().all(|request| request.observer.is_none()));
+        assert!(requests
+            .iter()
+            .all(|request| request.frame == CoordinateFrame::Ecliptic));
+        assert!(requests
+            .iter()
+            .all(|request| request.zodiac_mode == ZodiacMode::Tropical));
+        assert!(requests
+            .iter()
+            .all(|request| request.apparent == Apparentness::Mean));
     }
 
     #[test]
