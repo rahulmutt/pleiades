@@ -5331,6 +5331,12 @@ pub fn supported_body_canonical_batch_matrix_requests() -> Vec<EphemerisRequest>
     supported_body_canonical_batch_matrix_request_corpus()
 }
 
+/// This is a compatibility alias for [`supported_body_canonical_batch_matrix_requests`].
+#[doc(alias = "supported_body_canonical_batch_matrix_requests")]
+pub fn supported_body_canonical_request_corpus() -> Vec<EphemerisRequest> {
+    supported_body_canonical_batch_matrix_requests()
+}
+
 /// Formats the canonical VSOP87 J2000 equatorial companion summary for reporting.
 pub fn format_canonical_equatorial_evidence_summary(
     summary: &Vsop87CanonicalEquatorialEvidenceSummary,
@@ -12370,6 +12376,14 @@ mod tests {
         assert_eq!(
             supported_body_canonical_batch_matrix_requests(),
             supported_body_canonical_batch_matrix_request_corpus()
+        );
+    }
+
+    #[test]
+    fn supported_body_canonical_request_corpus_remains_the_plain_alias() {
+        assert_eq!(
+            supported_body_canonical_request_corpus(),
+            supported_body_canonical_batch_matrix_requests()
         );
     }
 
