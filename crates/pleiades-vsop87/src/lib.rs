@@ -282,7 +282,8 @@ pub fn fallback_body_profiles() -> Vec<Vsop87BodySource> {
 /// The Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, and Neptune paths
 /// now use generated binary tables derived from their vendored public source
 /// files. Pluto remains a mean orbital-elements fallback until a Pluto-specific
-/// source path is selected.
+/// source path is selected. Each source-specification record validates that its
+/// body/file pairing still matches the current catalog and public source input.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Vsop87SourceSpecification {
     /// Body covered by the source-backed slice.
@@ -332,13 +333,21 @@ impl fmt::Display for Vsop87SourceSpecification {
     }
 }
 
-/// Validation error for a VSOP87 source specification that contains blank or drifted metadata.
+/// Validation error for a VSOP87 source specification that contains blank, unknown, or drifted
+/// metadata.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Vsop87SourceSpecificationValidationError {
     /// The rendered field is blank or whitespace-only for the named body.
     BlankField {
         body: CelestialBody,
         field: &'static str,
+    },
+    /// The specification names a body that is not backed by the current source catalog.
+    UnknownBody { body: CelestialBody },
+    /// The specification names a public source file that is not part of the current source catalog.
+    UnknownSourceFile {
+        body: CelestialBody,
+        source_file: &'static str,
     },
     /// The rendered field no longer matches the current canonical catalog value.
     FieldOutOfSync {
@@ -360,6 +369,14 @@ impl fmt::Display for Vsop87SourceSpecificationValidationError {
                     "the VSOP87 source specification for {body} has a blank `{field}` field"
                 )
             }
+            Self::UnknownBody { body } => write!(
+                f,
+                "the VSOP87 source specification for {body} is no longer backed by the current source catalog"
+            ),
+            Self::UnknownSourceFile { body, source_file } => write!(
+                f,
+                "the VSOP87 source specification for {body} references unknown public source file `{source_file}`"
+            ),
             Self::FieldOutOfSync {
                 body,
                 field,
@@ -399,6 +416,29 @@ impl Vsop87SourceSpecification {
                     field,
                 });
             }
+        }
+
+        if source_text_for_file(self.source_file).is_none() {
+            return Err(
+                Vsop87SourceSpecificationValidationError::UnknownSourceFile {
+                    body: self.body.clone(),
+                    source_file: self.source_file,
+                },
+            );
+        }
+
+        let expected_source_file = source_file_for_body(&self.body).ok_or(
+            Vsop87SourceSpecificationValidationError::UnknownBody {
+                body: self.body.clone(),
+            },
+        )?;
+        if expected_source_file != self.source_file {
+            return Err(Vsop87SourceSpecificationValidationError::FieldOutOfSync {
+                body: self.body.clone(),
+                field: "source_file",
+                expected: expected_source_file,
+                found: self.source_file,
+            });
         }
 
         for (field, expected, found) in [
@@ -2490,7 +2530,6 @@ pub fn validate_source_specifications(
     let mut seen_source_files = BTreeSet::new();
 
     for spec in specs {
-        spec.validate()?;
         let source_file = spec.source_file.trim();
         if !seen_source_files.insert(source_file.to_string()) {
             return Err(
@@ -2499,6 +2538,10 @@ pub fn validate_source_specifications(
                 },
             );
         }
+    }
+
+    for spec in specs {
+        spec.validate()?;
     }
 
     Ok(())
@@ -9363,6 +9406,88 @@ mod tests {
             format!(
                 "the VSOP87 source specification for {body} has `frame` = `J2000 equatorial`, but expected `J2000 ecliptic/equinox`"
             )
+        );
+    }
+
+    #[test]
+    fn source_specification_validation_rejects_unknown_public_source_file() {
+        let mut spec = source_specifications()
+            .into_iter()
+            .next()
+            .expect("expected at least one VSOP87 source specification");
+        let body = spec.body.clone();
+        spec.source_file = "VSOP87B.synthetic";
+
+        let error = spec
+            .validate()
+            .expect_err("unknown public source files should fail validation");
+
+        assert_eq!(
+            error,
+            Vsop87SourceSpecificationValidationError::UnknownSourceFile {
+                body: body.clone(),
+                source_file: "VSOP87B.synthetic",
+            }
+        );
+        assert_eq!(
+            error.to_string(),
+            format!(
+                "the VSOP87 source specification for {body} references unknown public source file `VSOP87B.synthetic`"
+            )
+        );
+    }
+
+    #[test]
+    fn source_specification_validation_rejects_body_source_drift() {
+        let mut spec = source_specifications()
+            .into_iter()
+            .next()
+            .expect("expected at least one VSOP87 source specification");
+        let body = spec.body.clone();
+        spec.source_file = "VSOP87B.mer";
+
+        let error = spec
+            .validate()
+            .expect_err("source-file drift should fail validation");
+
+        assert_eq!(
+            error,
+            Vsop87SourceSpecificationValidationError::FieldOutOfSync {
+                body: body.clone(),
+                field: "source_file",
+                expected: "VSOP87B.ear",
+                found: "VSOP87B.mer",
+            }
+        );
+        assert_eq!(
+            error.to_string(),
+            format!(
+                "the VSOP87 source specification for {body} has `source_file` = `VSOP87B.mer`, but expected `VSOP87B.ear`"
+            )
+        );
+    }
+
+    #[test]
+    fn source_specification_validation_rejects_unknown_body() {
+        let mut spec = source_specifications()
+            .into_iter()
+            .next()
+            .expect("expected at least one VSOP87 source specification");
+        spec.body = CelestialBody::Pluto;
+
+        let error = spec
+            .validate()
+            .expect_err("unknown source-backed bodies should fail validation");
+
+        assert_eq!(
+            error,
+            Vsop87SourceSpecificationValidationError::UnknownBody {
+                body: CelestialBody::Pluto,
+            }
+        );
+        assert_eq!(
+            error.to_string(),
+            "the VSOP87 source specification for Pluto is no longer backed by the current source catalog"
         );
     }
 
