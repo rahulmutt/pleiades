@@ -1526,6 +1526,7 @@ impl fmt::Display for HouseSummary {
 ///
 /// assert_eq!(summary.summary_line(), "2 direct, 1 stationary, 3 retrograde, 0 unknown");
 /// assert_eq!(summary.to_string(), summary.summary_line());
+/// assert_eq!(summary.validate(6), Ok(()));
 /// assert!(summary.has_known_motion());
 /// ```
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -1540,10 +1541,48 @@ pub struct MotionSummary {
     pub unknown: usize,
 }
 
+/// Errors returned when a motion summary no longer matches the chart placements.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MotionSummaryValidationError {
+    /// The total motion-summary count did not match the chart placement count.
+    PlacementCountMismatch {
+        /// Expected number of placements.
+        expected: usize,
+        /// Motion-summary total that was observed.
+        actual: usize,
+    },
+}
+
+impl fmt::Display for MotionSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::PlacementCountMismatch { expected, actual } => write!(
+                f,
+                "motion summary placement count mismatch: expected {expected}, found {actual}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for MotionSummaryValidationError {}
+
 impl MotionSummary {
     /// Returns `true` when the snapshot contains at least one known motion classification.
     pub fn has_known_motion(self) -> bool {
         self.direct + self.stationary + self.retrograde > 0
+    }
+
+    /// Validates that the summary covers the expected number of placements.
+    pub fn validate(self, placement_count: usize) -> Result<(), MotionSummaryValidationError> {
+        let actual = self.direct + self.stationary + self.retrograde + self.unknown;
+        if actual == placement_count {
+            Ok(())
+        } else {
+            Err(MotionSummaryValidationError::PlacementCountMismatch {
+                expected: placement_count,
+                actual,
+            })
+        }
     }
 
     /// Returns a compact one-line summary of the motion classifications in the snapshot.
@@ -1827,7 +1866,10 @@ impl fmt::Display for ChartSnapshot {
 
         let motion_summary = self.motion_summary();
         if motion_summary.has_known_motion() || motion_summary.unknown > 0 {
-            writeln!(f, "Motion summary: {}", motion_summary)?;
+            match motion_summary.validate(self.placements.len()) {
+                Ok(()) => writeln!(f, "Motion summary: {}", motion_summary)?,
+                Err(error) => writeln!(f, "Motion summary unavailable ({error})")?,
+            }
         }
 
         let stationary_bodies: Vec<String> = self
@@ -3788,6 +3830,39 @@ mod tests {
         };
 
         assert_eq!(placement.motion_direction(), None);
+    }
+
+    #[test]
+    fn motion_summary_validates_against_placement_count() {
+        let summary = MotionSummary {
+            direct: 2,
+            stationary: 1,
+            retrograde: 3,
+            unknown: 0,
+        };
+
+        assert_eq!(summary.validate(6), Ok(()));
+        assert_eq!(
+            summary.summary_line(),
+            "2 direct, 1 stationary, 3 retrograde, 0 unknown"
+        );
+
+        let error = MotionSummary {
+            direct: 1,
+            stationary: 1,
+            retrograde: 0,
+            unknown: 1,
+        }
+        .validate(4)
+        .expect_err("mismatched motion summary counts should fail validation");
+
+        assert_eq!(
+            error,
+            MotionSummaryValidationError::PlacementCountMismatch {
+                expected: 4,
+                actual: 3,
+            }
+        );
     }
 
     #[test]
