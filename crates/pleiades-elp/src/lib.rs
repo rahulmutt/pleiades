@@ -2196,6 +2196,16 @@ pub fn lunar_reference_batch_request_corpus() -> Vec<EphemerisRequest> {
     lunar_reference_batch_parity_requests()
 }
 
+/// Returns the canonical lunar request corpus used by validation and reporting.
+///
+/// This is a compatibility alias for [`lunar_reference_batch_requests`].
+#[doc(alias = "lunar_reference_requests")]
+#[doc(alias = "lunar_reference_batch_requests")]
+#[doc(alias = "lunar_reference_batch_request_corpus")]
+pub fn lunar_reference_request_corpus() -> Vec<EphemerisRequest> {
+    lunar_reference_batch_requests()
+}
+
 /// Returns the canonical mixed TT/TDB request corpus used by lunar batch-parity validation.
 ///
 /// This is a compatibility alias for [`lunar_reference_batch_parity_requests`].
@@ -2338,6 +2348,16 @@ pub fn lunar_equatorial_reference_batch_requests() -> Vec<EphemerisRequest> {
 #[doc(alias = "lunar_equatorial_reference_batch_parity_requests")]
 pub fn lunar_equatorial_reference_batch_request_corpus() -> Vec<EphemerisRequest> {
     lunar_equatorial_reference_batch_parity_requests()
+}
+
+/// Returns the canonical equatorial lunar request corpus used by validation and reporting.
+///
+/// This is a compatibility alias for [`lunar_equatorial_reference_batch_requests`].
+#[doc(alias = "lunar_equatorial_reference_requests")]
+#[doc(alias = "lunar_equatorial_reference_batch_requests")]
+#[doc(alias = "lunar_equatorial_reference_batch_request_corpus")]
+pub fn lunar_equatorial_reference_request_corpus() -> Vec<EphemerisRequest> {
+    lunar_equatorial_reference_batch_requests()
 }
 
 /// Returns the canonical equatorial lunar batch-parity corpus used by validation and reporting.
@@ -7067,6 +7087,10 @@ mod tests {
             lunar_reference_batch_parity_requests()
         );
         assert_eq!(
+            lunar_reference_request_corpus(),
+            lunar_reference_batch_requests()
+        );
+        assert_eq!(
             lunar_reference_batch_parity_request_corpus(),
             lunar_reference_batch_parity_requests()
         );
@@ -7077,6 +7101,10 @@ mod tests {
         assert_eq!(
             lunar_equatorial_reference_batch_request_corpus(),
             lunar_equatorial_reference_batch_parity_requests()
+        );
+        assert_eq!(
+            lunar_equatorial_reference_request_corpus(),
+            lunar_equatorial_reference_batch_requests()
         );
         assert_eq!(
             lunar_equatorial_reference_batch_parity_request_corpus(),
