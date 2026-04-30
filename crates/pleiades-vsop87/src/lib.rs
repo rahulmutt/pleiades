@@ -9431,6 +9431,38 @@ mod tests {
     }
 
     #[test]
+    fn source_specification_validation_rejects_transform_note_drift() {
+        let mut spec = source_specifications()
+            .into_iter()
+            .next()
+            .expect("expected at least one VSOP87 source specification");
+        let body = spec.body.clone();
+        spec.transform_note = "J2000 equatorial inputs; equatorial coordinates are derived with a mean-obliquity transform";
+
+        let error = spec
+            .validate()
+            .expect_err("transform note drift should fail validation");
+
+        assert_eq!(
+            error,
+            Vsop87SourceSpecificationValidationError::FieldOutOfSync {
+                body: body.clone(),
+                field: "transform_note",
+                expected:
+                    "J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a mean-obliquity transform",
+                found:
+                    "J2000 equatorial inputs; equatorial coordinates are derived with a mean-obliquity transform",
+            }
+        );
+        assert_eq!(
+            error.to_string(),
+            format!(
+                "the VSOP87 source specification for {body} has `transform_note` = `J2000 equatorial inputs; equatorial coordinates are derived with a mean-obliquity transform`, but expected `J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a mean-obliquity transform`"
+            )
+        );
+    }
+
+    #[test]
     fn source_specification_validation_rejects_truncation_policy_drift() {
         let mut spec = source_specifications()
             .into_iter()
@@ -9457,6 +9489,36 @@ mod tests {
             error.to_string(),
             format!(
                 "the VSOP87 source specification for {body} has `truncation_policy` = `vendored full source file`, but expected `generated binary coefficient table derived from vendored full source file`"
+            )
+        );
+    }
+
+    #[test]
+    fn source_specification_validation_rejects_date_range_drift() {
+        let mut spec = source_specifications()
+            .into_iter()
+            .next()
+            .expect("expected at least one VSOP87 source specification");
+        let body = spec.body.clone();
+        spec.date_range = "full public source file; J2000 reference sample";
+
+        let error = spec
+            .validate()
+            .expect_err("date range drift should fail validation");
+
+        assert_eq!(
+            error,
+            Vsop87SourceSpecificationValidationError::FieldOutOfSync {
+                body: body.clone(),
+                field: "date_range",
+                expected: "full public source file; J2000 canonical reference sample",
+                found: "full public source file; J2000 reference sample",
+            }
+        );
+        assert_eq!(
+            error.to_string(),
+            format!(
+                "the VSOP87 source specification for {body} has `date_range` = `full public source file; J2000 reference sample`, but expected `full public source file; J2000 canonical reference sample`"
             )
         );
     }
