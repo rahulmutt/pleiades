@@ -5432,6 +5432,11 @@ fn render_release_notes_summary_text() -> String {
     text.push('\n');
     text.push_str(&comparison_snapshot_manifest_summary_for_report());
     text.push('\n');
+    text.push_str("JPL request policy: ");
+    text.push_str(&jpl_snapshot_request_policy_summary_for_report());
+    text.push('\n');
+    text.push_str(&jpl_snapshot_batch_error_taxonomy_summary_for_report());
+    text.push('\n');
     text.push_str("Comparison tolerance policy: ");
     text.push_str(&comparison_tolerance_policy_summary_for_release_notes());
     text.push('\n');
@@ -16053,6 +16058,12 @@ version = "0.9.0"
             release_notes_summary.contains("API stability summary line: API stability posture:")
         );
         assert!(release_notes_summary.contains("Artifact validation: validate-artifact"));
+        assert!(release_notes_summary.lines().any(|line| {
+            line == "JPL request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"
+        }));
+        assert!(release_notes_summary.lines().any(|line| {
+            line == "JPL batch error taxonomy: supported body Ceres; unsupported body Mean Node -> UnsupportedBody; out-of-range Ceres -> OutOfRangeInstant"
+        }));
         assert!(release_notes_summary.contains("Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_notes_summary.contains("Release notes: release-notes"));
         assert!(release_notes_summary.contains("Compatibility caveats: 2"));
