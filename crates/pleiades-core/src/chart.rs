@@ -3491,6 +3491,48 @@ mod tests {
     }
 
     #[test]
+    fn chart_snapshot_keeps_house_and_body_observers_on_distinct_channels() {
+        let observers = Arc::new(Mutex::new(Vec::new()));
+        let engine = ChartEngine::new(RecordingChartBackend {
+            observers: Arc::clone(&observers),
+        });
+        let house_observer = ObserverLocation::new(
+            Latitude::from_degrees(12.5),
+            Longitude::from_degrees(45.0),
+            Some(100.0),
+        );
+        let body_observer = ObserverLocation::new(
+            Latitude::from_degrees(-33.9),
+            Longitude::from_degrees(151.2),
+            None,
+        );
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2451545.0),
+            TimeScale::Tt,
+        ))
+        .with_observer(house_observer.clone())
+        .with_body_observer(body_observer.clone())
+        .with_house_system(crate::HouseSystem::WholeSign)
+        .with_bodies(vec![CelestialBody::Sun]);
+
+        let chart = engine
+            .chart(&request)
+            .expect("chart should keep the house and body observers separate");
+
+        assert_eq!(chart.observer, request.observer);
+        assert_eq!(chart.body_observer, request.body_observer);
+        assert!(chart
+            .summary_line()
+            .contains("observer=house-only; observer location=latitude=12.5°"));
+        assert!(chart
+            .summary_line()
+            .contains("body observer=latitude=-33.9°"));
+
+        let observers = observers.lock().expect("observer log should be lockable");
+        assert_eq!(observers.as_slice(), &[Some(body_observer)]);
+    }
+
+    #[test]
     fn chart_snapshot_rejects_unsupported_body_before_backend_position() {
         let observers = Arc::new(Mutex::new(Vec::new()));
         let engine = ChartEngine::new(RecordingChartBackend {
