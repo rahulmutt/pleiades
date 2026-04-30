@@ -3104,6 +3104,17 @@ pub fn lunar_apparent_comparison_request_corpus() -> Vec<EphemerisRequest> {
     lunar_apparent_comparison_requests()
 }
 
+/// Returns the canonical ecliptic apparent-comparison batch-parity request corpus used by validation and reporting.
+pub fn lunar_apparent_comparison_batch_parity_requests() -> Vec<EphemerisRequest> {
+    lunar_apparent_comparison_requests()
+}
+
+/// This is a compatibility alias for [`lunar_apparent_comparison_batch_parity_requests`].
+#[doc(alias = "lunar_apparent_comparison_batch_parity_requests")]
+pub fn lunar_apparent_comparison_batch_parity_request_corpus() -> Vec<EphemerisRequest> {
+    lunar_apparent_comparison_batch_parity_requests()
+}
+
 /// Returns the canonical equatorial apparent-comparison request corpus used by validation and reporting.
 pub fn lunar_apparent_comparison_equatorial_requests() -> Vec<EphemerisRequest> {
     lunar_apparent_comparison_requests_for_frame(CoordinateFrame::Equatorial)
@@ -3113,6 +3124,17 @@ pub fn lunar_apparent_comparison_equatorial_requests() -> Vec<EphemerisRequest> 
 #[doc(alias = "lunar_apparent_comparison_equatorial_requests")]
 pub fn lunar_apparent_comparison_equatorial_request_corpus() -> Vec<EphemerisRequest> {
     lunar_apparent_comparison_equatorial_requests()
+}
+
+/// Returns the canonical equatorial apparent-comparison batch-parity request corpus used by validation and reporting.
+pub fn lunar_apparent_comparison_equatorial_batch_parity_requests() -> Vec<EphemerisRequest> {
+    lunar_apparent_comparison_equatorial_requests()
+}
+
+/// This is a compatibility alias for [`lunar_apparent_comparison_equatorial_batch_parity_requests`].
+#[doc(alias = "lunar_apparent_comparison_equatorial_batch_parity_requests")]
+pub fn lunar_apparent_comparison_equatorial_batch_parity_request_corpus() -> Vec<EphemerisRequest> {
+    lunar_apparent_comparison_equatorial_batch_parity_requests()
 }
 
 /// A compact summary of the reference-only apparent Moon comparison evidence.
@@ -7115,8 +7137,24 @@ mod tests {
             lunar_apparent_comparison_requests()
         );
         assert_eq!(
+            lunar_apparent_comparison_batch_parity_requests(),
+            lunar_apparent_comparison_requests()
+        );
+        assert_eq!(
+            lunar_apparent_comparison_batch_parity_request_corpus(),
+            lunar_apparent_comparison_batch_parity_requests()
+        );
+        assert_eq!(
             lunar_apparent_comparison_equatorial_request_corpus(),
             lunar_apparent_comparison_equatorial_requests()
+        );
+        assert_eq!(
+            lunar_apparent_comparison_equatorial_batch_parity_requests(),
+            lunar_apparent_comparison_equatorial_requests()
+        );
+        assert_eq!(
+            lunar_apparent_comparison_equatorial_batch_parity_request_corpus(),
+            lunar_apparent_comparison_equatorial_batch_parity_requests()
         );
     }
 
