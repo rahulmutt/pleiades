@@ -626,6 +626,11 @@ impl ChartRequest {
         }
     }
 
+    /// Returns the observer summary implied by the current request shape.
+    pub fn observer_summary(&self) -> ObserverSummary {
+        ObserverSummary::new(self.observer_policy(), self.observer.clone())
+    }
+
     /// Returns a compact one-line summary of the request shape.
     ///
     /// The summary is intended for diagnostics, validation reports, and
@@ -650,8 +655,6 @@ impl ChartRequest {
             .as_ref()
             .map_or_else(|| "none".to_string(), render_house_system_label);
 
-        let observer = ObserverSummary::new(self.observer_policy(), self.observer.clone());
-
         format!(
             "instant={} ({}); bodies={}; zodiac={}; apparentness={}; {}; house system={}",
             self.instant.julian_day,
@@ -659,7 +662,7 @@ impl ChartRequest {
             self.bodies.len(),
             self.zodiac_mode,
             self.apparentness,
-            observer,
+            self.observer_summary(),
             house_system,
         )
     }
@@ -753,6 +756,11 @@ impl ChartSnapshot {
         }
     }
 
+    /// Returns the observer summary implied by the computed chart snapshot.
+    pub fn observer_summary(&self) -> ObserverSummary {
+        ObserverSummary::new(self.observer_policy(), self.observer.clone())
+    }
+
     /// Returns a compact one-line summary of the computed chart snapshot.
     ///
     /// The summary is intended for diagnostics, validation reports, and
@@ -769,8 +777,6 @@ impl ChartSnapshot {
         );
         let house_cusp_count = self.houses.as_ref().map_or(0, |houses| houses.cusps.len());
 
-        let observer = ObserverSummary::new(self.observer_policy(), self.observer.clone());
-
         format!(
             "backend={}; instant={} ({}); placements={}; zodiac={}; apparentness={}; {}; house system={}; house cusps={}",
             self.backend_id,
@@ -779,7 +785,7 @@ impl ChartSnapshot {
             self.placements.len(),
             self.zodiac_mode,
             self.apparentness,
-            observer,
+            self.observer_summary(),
             house_system,
             house_cusp_count,
         )
@@ -3194,6 +3200,62 @@ mod tests {
     }
 
     #[test]
+    fn chart_request_observer_summary_matches_the_rendered_policy_line() {
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Tt,
+        ))
+        .with_observer(ObserverLocation::new(
+            Latitude::from_degrees(12.5),
+            Longitude::from_degrees(45.0),
+            Some(100.0),
+        ))
+        .with_house_system(crate::HouseSystem::WholeSign);
+
+        let observer = request.observer_summary();
+
+        assert_eq!(observer.policy, ObserverPolicy::HouseOnly);
+        assert_eq!(
+            observer.summary_line(),
+            "observer=house-only; observer location=latitude=12.5°, longitude=45°, elevation=100.000 m"
+        );
+        assert!(request
+            .summary_line()
+            .contains(observer.summary_line().as_str()));
+    }
+
+    #[test]
+    fn chart_snapshot_observer_summary_matches_the_rendered_policy_line() {
+        let snapshot = ChartSnapshot {
+            backend_id: crate::BackendId::new("demo"),
+            instant: Instant::new(
+                pleiades_types::JulianDay::from_days(2_451_545.0),
+                TimeScale::Tt,
+            ),
+            observer: Some(ObserverLocation::new(
+                Latitude::from_degrees(12.5),
+                Longitude::from_degrees(45.0),
+                Some(100.0),
+            )),
+            zodiac_mode: ZodiacMode::Tropical,
+            apparentness: Apparentness::Mean,
+            houses: None,
+            placements: Vec::new(),
+        };
+
+        let observer = snapshot.observer_summary();
+
+        assert_eq!(observer.policy, ObserverPolicy::Geocentric);
+        assert_eq!(
+            observer.summary_line(),
+            "observer=geocentric; observer location=latitude=12.5°, longitude=45°, elevation=100.000 m"
+        );
+        assert!(snapshot
+            .summary_line()
+            .contains(observer.summary_line().as_str()));
+    }
+
+    #[test]
     fn chart_request_summary_line_reflects_observer_and_house_system_policy() {
         let request = ChartRequest::new(Instant::new(
             pleiades_types::JulianDay::from_days(2_451_545.0),
@@ -3212,6 +3274,7 @@ mod tests {
         .with_apparentness(Apparentness::Apparent);
 
         assert_eq!(request.observer_policy(), ObserverPolicy::HouseOnly);
+        assert_eq!(request.observer_summary().policy, ObserverPolicy::HouseOnly);
         assert_eq!(ObserverPolicy::HouseOnly.summary_line(), "house-only");
         assert_eq!(
             request.summary_line(),
