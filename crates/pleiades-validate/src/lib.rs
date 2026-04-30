@@ -12053,13 +12053,27 @@ mod tests {
     #[test]
     fn comparison_report_uses_the_snapshot_backend() {
         let report = render_comparison_report().expect("comparison should render");
-        assert!(report.contains("Comparison corpus"));
-        assert!(report.contains("JPL Horizons comparison window"));
-        assert!(report.contains("Apparentness: Mean"));
-        assert!(report.contains("epoch labels:"));
-        assert!(report.contains("julian day span:"));
-        assert!(report.contains("Reference backend:"));
-        assert!(report.contains("Candidate backend:"));
+        assert!(report.lines().any(|line| line == "Comparison report"));
+        assert!(report.lines().any(|line| line == "Comparison corpus"));
+        assert!(report
+            .lines()
+            .any(|line| line == "  name: JPL Horizons comparison window"));
+        assert!(report.lines().any(|line| {
+            line == "  description: Source-backed comparison corpus built from the checked-in JPL Horizons snapshot across a small set of reference epochs, restricted to the bodies shared by the algorithmic comparison backend."
+        }));
+        assert!(report.lines().any(|line| line == "  Apparentness: Mean"));
+        assert!(report.lines().any(|line| {
+            line == "  epoch labels: JD 2378499.0 (TT), JD 2400000.0 (TT), JD 2451545.0 (TT), JD 2500000.0 (TT), JD 2600000.0 (TT), JD 2634167.0 (TT)"
+        }));
+        assert!(report
+            .lines()
+            .any(|line| line == "  julian day span: 2378499.0 → 2634167.0"));
+        assert!(report
+            .lines()
+            .any(|line| line == "Reference backend: jpl-snapshot"));
+        assert!(report
+            .lines()
+            .any(|line| line == "Candidate backend: composite:pleiades-vsop87+pleiades-elp"));
     }
 
     #[test]
@@ -12068,9 +12082,10 @@ mod tests {
         assert_eq!(summary.validate(), Ok(()));
         assert_eq!(summary.summary_line(), summary.to_string());
         assert_eq!(summary.to_string(), request_surface_summary_for_report());
-        assert!(summary
-            .summary_line()
-            .contains("pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags)"));
+        assert_eq!(
+            summary.summary_line(),
+            "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags)"
+        );
     }
 
     #[test]
