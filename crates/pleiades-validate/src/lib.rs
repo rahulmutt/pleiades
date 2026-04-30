@@ -626,6 +626,13 @@ impl ComparisonAuditSummary {
         )
     }
 
+    /// Returns the compact comparison-audit summary line after validating the
+    /// counted bodies.
+    pub fn validated_summary_line(&self) -> Result<String, EphemerisError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
     /// Validates the comparison-audit counts before the summary is rendered or reused.
     pub fn validate(&self) -> Result<(), EphemerisError> {
         if self.body_count == 0 {
@@ -7732,8 +7739,8 @@ fn comparison_audit_summary(report: &ComparisonReport) -> ComparisonAuditSummary
 fn comparison_audit_summary_for_report(report: &ComparisonReport) -> String {
     let summary = comparison_audit_summary(report);
 
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
+    match summary.validated_summary_line() {
+        Ok(line) => line,
         Err(error) => format!("comparison audit unavailable ({error})"),
     }
 }
@@ -13220,6 +13227,7 @@ mod tests {
             summary.summary_line(),
             "status=regressions found, bodies checked=10, within tolerance bodies=4, outside tolerance bodies=6, notable regressions=12"
         );
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(summary.validate(), Ok(()));
     }
 
@@ -13233,7 +13241,7 @@ mod tests {
         };
 
         let error = summary
-            .validate()
+            .validated_summary_line()
             .expect_err("mismatched audit counts should fail validation");
         assert!(error
             .to_string()
