@@ -157,7 +157,7 @@ impl ObserverSummary {
         Ok(())
     }
 
-    /// Returns the stored observer location as a compact label.
+    /// Returns the stored observer location as a compact label after validation.
     pub fn validated_location_label(&self) -> Result<String, ObserverSummaryValidationError> {
         self.validate()?;
         Ok(self.location_label())
@@ -717,6 +717,15 @@ impl ChartRequest {
         ObserverSummary::new(self.observer_policy(), self.observer.clone())
     }
 
+    /// Returns the observer summary implied by the current request shape after validation.
+    pub fn validated_observer_summary(
+        &self,
+    ) -> Result<ObserverSummary, ObserverSummaryValidationError> {
+        let summary = self.observer_summary();
+        summary.validate()?;
+        Ok(summary)
+    }
+
     /// Returns a compact one-line summary of the request shape.
     ///
     /// The summary is intended for diagnostics, validation reports, and
@@ -751,6 +760,12 @@ impl ChartRequest {
             self.observer_summary(),
             house_system,
         )
+    }
+
+    /// Returns a compact one-line summary after validating the observer summary.
+    pub fn validated_summary_line(&self) -> Result<String, ObserverSummaryValidationError> {
+        self.validated_observer_summary()?;
+        Ok(self.summary_line())
     }
 }
 
@@ -847,6 +862,15 @@ impl ChartSnapshot {
         ObserverSummary::new(self.observer_policy(), self.observer.clone())
     }
 
+    /// Returns the observer summary implied by the computed chart snapshot after validation.
+    pub fn validated_observer_summary(
+        &self,
+    ) -> Result<ObserverSummary, ObserverSummaryValidationError> {
+        let summary = self.observer_summary();
+        summary.validate()?;
+        Ok(summary)
+    }
+
     /// Returns a compact one-line summary of the computed chart snapshot.
     ///
     /// The summary is intended for diagnostics, validation reports, and
@@ -875,6 +899,12 @@ impl ChartSnapshot {
             house_system,
             house_cusp_count,
         )
+    }
+
+    /// Returns a compact one-line summary after validating the observer summary.
+    pub fn validated_summary_line(&self) -> Result<String, ObserverSummaryValidationError> {
+        self.validated_observer_summary()?;
+        Ok(self.summary_line())
     }
 
     /// Returns the first placement for a requested body, if present.
@@ -3395,6 +3425,59 @@ mod tests {
         assert!(snapshot
             .summary_line()
             .contains(observer.summary_line().as_str()));
+    }
+
+    #[test]
+    fn chart_request_validated_summary_line_rejects_invalid_observer_locations() {
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Tt,
+        ))
+        .with_observer(ObserverLocation::new(
+            Latitude::from_degrees(12.5),
+            Longitude::from_degrees(f64::NAN),
+            Some(100.0),
+        ));
+
+        let error = request
+            .validated_summary_line()
+            .expect_err("validated request summaries should reject invalid locations");
+        assert!(matches!(
+            error,
+            ObserverSummaryValidationError::InvalidLocation(
+                ObserverLocationValidationError::NonFiniteLongitude { value }
+            ) if value.is_nan()
+        ));
+    }
+
+    #[test]
+    fn chart_snapshot_validated_summary_line_rejects_invalid_observer_locations() {
+        let snapshot = ChartSnapshot {
+            backend_id: crate::BackendId::new("demo"),
+            instant: Instant::new(
+                pleiades_types::JulianDay::from_days(2_451_545.0),
+                TimeScale::Tt,
+            ),
+            observer: Some(ObserverLocation::new(
+                Latitude::from_degrees(12.5),
+                Longitude::from_degrees(f64::NAN),
+                Some(100.0),
+            )),
+            zodiac_mode: ZodiacMode::Tropical,
+            apparentness: Apparentness::Mean,
+            houses: None,
+            placements: Vec::new(),
+        };
+
+        let error = snapshot
+            .validated_summary_line()
+            .expect_err("validated snapshot summaries should reject invalid locations");
+        assert!(matches!(
+            error,
+            ObserverSummaryValidationError::InvalidLocation(
+                ObserverLocationValidationError::NonFiniteLongitude { value }
+            ) if value.is_nan()
+        ));
     }
 
     #[test]
