@@ -17030,6 +17030,8 @@ version = "0.9.0"
         assert!(manifest.contains("release notes checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("release notes summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("release summary checksum (fnv1a-64): 0x"));
+        assert!(manifest.contains("release-profile identifiers: release-profile-identifiers.txt"));
+        assert!(manifest.contains("release-profile identifiers checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("release checklist checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("release checklist summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("backend matrix checksum (fnv1a-64): 0x"));
@@ -17060,6 +17062,7 @@ version = "0.9.0"
         assert!(verified.contains("validation rounds: 1"));
         assert!(verified.contains("release notes checksum: 0x"));
         assert!(verified.contains("release notes summary checksum: 0x"));
+        assert!(verified.contains("release-profile identifiers checksum: 0x"));
         assert!(verified.contains("release checklist checksum: 0x"));
         assert!(verified.contains("release checklist summary checksum: 0x"));
         assert!(verified.contains("backend matrix checksum: 0x"));
