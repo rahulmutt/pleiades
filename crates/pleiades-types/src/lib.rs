@@ -343,7 +343,18 @@ impl std::error::Error for TimeRangeValidationError {}
 /// let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Ut1);
 /// let converted = policy.apply(instant).expect("UT1-tagged instant");
 ///
+/// assert_eq!(policy.summary_line(), "source=UT1; target=TT; offset_seconds=64.184 s");
 /// assert_eq!(converted.scale, TimeScale::Tt);
+/// ```
+///
+/// ```
+/// use pleiades_types::{Instant, JulianDay, TimeScale, TimeScaleConversion};
+///
+/// let policy = TimeScaleConversion::new(TimeScale::Tdb, TimeScale::Tt, -0.001_657);
+/// let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb);
+///
+/// assert!(policy.validate(instant).is_ok());
+/// assert_eq!(policy.summary_line(), "source=TDB; target=TT; offset_seconds=-0.001657 s");
 /// ```
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -3284,6 +3295,25 @@ mod tests {
             "source=TDB; target=TT; offset_seconds=-0.001657 s"
         );
         assert_eq!(policy.to_string(), policy.summary_line());
+    }
+
+    #[test]
+    fn time_scale_conversion_policy_accepts_signed_tdb_to_tt_validation() {
+        let policy = TimeScaleConversion::new(TimeScale::Tdb, TimeScale::Tt, -0.001_657);
+        let tdb = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb);
+
+        assert!(policy.validate(tdb).is_ok());
+        assert!(tdb.validate_time_scale_conversion(policy).is_ok());
+
+        let converted = policy
+            .apply(tdb)
+            .expect("signed TDB-to-TT policy should convert the source instant");
+
+        assert_eq!(converted.scale, TimeScale::Tt);
+        assert!(
+            (converted.julian_day.days() - 2_451_544.999_999_980_8).abs() < 1e-12,
+            "signed TDB-to-TT conversion should apply the caller-supplied offset"
+        );
     }
 
     #[test]
