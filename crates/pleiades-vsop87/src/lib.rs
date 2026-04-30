@@ -5822,6 +5822,14 @@ pub fn canonical_j2000_batch_parity_request_corpus() -> Vec<EphemerisRequest> {
     canonical_j2000_batch_parity_requests()
 }
 
+/// Returns the canonical J2000 request corpus used by the VSOP87 batch-path evidence.
+///
+/// This is a compatibility alias for [`canonical_j2000_batch_parity_requests`].
+#[doc(alias = "canonical_j2000_batch_parity_requests")]
+pub fn canonical_j2000_request_corpus() -> Vec<EphemerisRequest> {
+    canonical_j2000_batch_parity_requests()
+}
+
 /// Returns the source-backed J2000 request corpus used by the VSOP87 batch-path evidence.
 ///
 /// The requests preserve the source-backed body order, use the shared J2000 TT
@@ -5838,6 +5846,14 @@ pub fn source_backed_body_j2000_batch_parity_requests() -> Vec<EphemerisRequest>
 /// This is a compatibility alias for [`source_backed_body_j2000_batch_parity_requests`].
 #[doc(alias = "source_backed_body_j2000_batch_parity_requests")]
 pub fn source_backed_body_j2000_batch_parity_request_corpus() -> Vec<EphemerisRequest> {
+    source_backed_body_j2000_batch_parity_requests()
+}
+
+/// Returns the source-backed J2000 request corpus used by the VSOP87 batch-path evidence.
+///
+/// This is a compatibility alias for [`source_backed_body_j2000_batch_parity_requests`].
+#[doc(alias = "source_backed_body_j2000_batch_parity_requests")]
+pub fn source_backed_body_j2000_request_corpus() -> Vec<EphemerisRequest> {
     source_backed_body_j2000_batch_parity_requests()
 }
 
@@ -6034,6 +6050,14 @@ pub fn canonical_j1900_batch_parity_request_corpus() -> Vec<EphemerisRequest> {
     canonical_j1900_batch_parity_requests()
 }
 
+/// Returns the supported-body J1900 request corpus used by the VSOP87 canonical batch evidence.
+///
+/// This is a compatibility alias for [`canonical_j1900_batch_parity_requests`].
+#[doc(alias = "canonical_j1900_batch_parity_requests")]
+pub fn canonical_j1900_request_corpus() -> Vec<EphemerisRequest> {
+    canonical_j1900_batch_parity_requests()
+}
+
 /// Returns the canonical mixed TT/TDB request corpus used by the batch-parity evidence.
 ///
 /// The requests preserve the canonical source-backed body order and the shared
@@ -6055,6 +6079,14 @@ pub fn canonical_mixed_time_scale_batch_parity_requests() -> Vec<EphemerisReques
 /// This is a compatibility alias for [`canonical_mixed_time_scale_batch_parity_requests`].
 #[doc(alias = "canonical_mixed_time_scale_batch_parity_requests")]
 pub fn canonical_mixed_time_scale_batch_parity_request_corpus() -> Vec<EphemerisRequest> {
+    canonical_mixed_time_scale_batch_parity_requests()
+}
+
+/// Returns the canonical mixed TT/TDB request corpus used by the batch-parity evidence.
+///
+/// This is a compatibility alias for [`canonical_mixed_time_scale_batch_parity_requests`].
+#[doc(alias = "canonical_mixed_time_scale_batch_parity_requests")]
+pub fn canonical_mixed_time_scale_request_corpus() -> Vec<EphemerisRequest> {
     canonical_mixed_time_scale_batch_parity_requests()
 }
 
@@ -10391,6 +10423,14 @@ mod tests {
     }
 
     #[test]
+    fn canonical_j2000_request_corpus_remains_the_plain_alias() {
+        assert_eq!(
+            canonical_j2000_request_corpus(),
+            canonical_j2000_batch_parity_requests()
+        );
+    }
+
+    #[test]
     fn source_backed_body_j2000_batch_parity_requests_remain_the_explicit_alias() {
         assert_eq!(
             source_backed_body_j2000_batch_parity_requests(),
@@ -10402,6 +10442,14 @@ mod tests {
     fn source_backed_body_j2000_batch_parity_request_corpus_remains_the_explicit_alias() {
         assert_eq!(
             source_backed_body_j2000_batch_parity_request_corpus(),
+            source_backed_body_j2000_batch_parity_requests()
+        );
+    }
+
+    #[test]
+    fn source_backed_body_j2000_request_corpus_remains_the_plain_alias() {
+        assert_eq!(
+            source_backed_body_j2000_request_corpus(),
             source_backed_body_j2000_batch_parity_requests()
         );
     }
@@ -10458,6 +10506,14 @@ mod tests {
     fn canonical_j1900_batch_parity_request_corpus_remains_the_explicit_alias() {
         assert_eq!(
             canonical_j1900_batch_parity_request_corpus(),
+            canonical_j1900_batch_parity_requests()
+        );
+    }
+
+    #[test]
+    fn canonical_j1900_request_corpus_remains_the_plain_alias() {
+        assert_eq!(
+            canonical_j1900_request_corpus(),
             canonical_j1900_batch_parity_requests()
         );
     }
@@ -10697,6 +10753,14 @@ mod tests {
     fn canonical_mixed_time_scale_batch_parity_request_corpus_remains_the_explicit_alias() {
         assert_eq!(
             canonical_mixed_time_scale_batch_parity_request_corpus(),
+            canonical_mixed_time_scale_batch_parity_requests()
+        );
+    }
+
+    #[test]
+    fn canonical_mixed_time_scale_request_corpus_remains_the_plain_alias() {
+        assert_eq!(
+            canonical_mixed_time_scale_request_corpus(),
             canonical_mixed_time_scale_batch_parity_requests()
         );
     }
