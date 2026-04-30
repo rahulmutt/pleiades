@@ -427,43 +427,44 @@ impl Vsop87SourceSpecification {
             );
         }
 
-        let expected_source_file = source_file_for_body(&self.body).ok_or(
-            Vsop87SourceSpecificationValidationError::UnknownBody {
+        let Some(expected) = body_catalog_entry_for_body(&self.body)
+            .and_then(|entry| entry.source_specification.as_ref())
+        else {
+            return Err(Vsop87SourceSpecificationValidationError::UnknownBody {
                 body: self.body.clone(),
-            },
-        )?;
-        if expected_source_file != self.source_file {
+            });
+        };
+
+        if expected.source_file != self.source_file {
             return Err(Vsop87SourceSpecificationValidationError::FieldOutOfSync {
                 body: self.body.clone(),
                 field: "source_file",
-                expected: expected_source_file,
+                expected: expected.source_file,
                 found: self.source_file,
             });
         }
 
         for (field, expected, found) in [
-            ("variant", "VSOP87B", self.variant),
+            ("variant", expected.variant, self.variant),
             (
                 "coordinate_family",
-                "heliocentric spherical variables",
+                expected.coordinate_family,
                 self.coordinate_family,
             ),
-            ("frame", "J2000 ecliptic/equinox", self.frame),
-            (
-                "units",
-                "degrees and astronomical units",
-                self.units,
-            ),
+            ("frame", expected.frame, self.frame),
+            ("units", expected.units, self.units),
+            ("reduction", expected.reduction, self.reduction),
             (
                 "transform_note",
-                "J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a mean-obliquity transform",
+                expected.transform_note,
                 self.transform_note,
             ),
             (
-                "date_range",
-                "full public source file; J2000 canonical reference sample",
-                self.date_range,
+                "truncation_policy",
+                expected.truncation_policy,
+                self.truncation_policy,
             ),
+            ("date_range", expected.date_range, self.date_range),
         ] {
             if found != expected {
                 return Err(Vsop87SourceSpecificationValidationError::FieldOutOfSync {
@@ -3273,17 +3274,7 @@ pub fn source_documentation_summary_for_report() -> String {
 
 /// Returns a consistency check for the current VSOP87 source-documentation catalog.
 fn source_documentation_fields_are_consistent(source_specs: &[Vsop87SourceSpecification]) -> bool {
-    source_specs.iter().all(|spec| {
-        spec.variant == "VSOP87B"
-            && spec.coordinate_family == "heliocentric spherical variables"
-            && spec.frame == "J2000 ecliptic/equinox"
-            && spec.units == "degrees and astronomical units"
-            && spec.reduction.contains("geocentric")
-            && spec.transform_note.contains("mean-obliquity transform")
-            && spec.truncation_policy
-                == "generated binary coefficient table derived from vendored full source file"
-            && spec.date_range == "full public source file; J2000 canonical reference sample"
-    })
+    source_specs.iter().all(|spec| spec.validate().is_ok())
 }
 
 pub fn source_documentation_health_summary() -> Vsop87SourceDocumentationHealthSummary {
@@ -9405,6 +9396,67 @@ mod tests {
             error.to_string(),
             format!(
                 "the VSOP87 source specification for {body} has `frame` = `J2000 equatorial`, but expected `J2000 ecliptic/equinox`"
+            )
+        );
+    }
+
+    #[test]
+    fn source_specification_validation_rejects_reduction_drift() {
+        let mut spec = source_specifications()
+            .into_iter()
+            .next()
+            .expect("expected at least one VSOP87 source specification");
+        let body = spec.body.clone();
+        spec.reduction = "geocentric experimental reduction";
+
+        let error = spec
+            .validate()
+            .expect_err("reduction drift should fail validation");
+
+        assert_eq!(
+            error,
+            Vsop87SourceSpecificationValidationError::FieldOutOfSync {
+                body: body.clone(),
+                field: "reduction",
+                expected: "geocentric solar reduction from Earth coefficients",
+                found: "geocentric experimental reduction",
+            }
+        );
+        assert_eq!(
+            error.to_string(),
+            format!(
+                "the VSOP87 source specification for {body} has `reduction` = `geocentric experimental reduction`, but expected `geocentric solar reduction from Earth coefficients`"
+            )
+        );
+    }
+
+    #[test]
+    fn source_specification_validation_rejects_truncation_policy_drift() {
+        let mut spec = source_specifications()
+            .into_iter()
+            .next()
+            .expect("expected at least one VSOP87 source specification");
+        let body = spec.body.clone();
+        spec.truncation_policy = "vendored full source file";
+
+        let error = spec
+            .validate()
+            .expect_err("truncation policy drift should fail validation");
+
+        assert_eq!(
+            error,
+            Vsop87SourceSpecificationValidationError::FieldOutOfSync {
+                body: body.clone(),
+                field: "truncation_policy",
+                expected:
+                    "generated binary coefficient table derived from vendored full source file",
+                found: "vendored full source file",
+            }
+        );
+        assert_eq!(
+            error.to_string(),
+            format!(
+                "the VSOP87 source specification for {body} has `truncation_policy` = `vendored full source file`, but expected `generated binary coefficient table derived from vendored full source file`"
             )
         );
     }
