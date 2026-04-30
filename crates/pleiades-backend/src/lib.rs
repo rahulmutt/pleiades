@@ -1240,6 +1240,86 @@ fn map_custom_definition_error(
     )
 }
 
+/// Compact summary of the current shared time-scale policy.
+///
+/// # Example
+///
+/// ```
+/// use pleiades_backend::TimeScalePolicySummary;
+///
+/// let summary = TimeScalePolicySummary::current();
+/// assert_eq!(summary.to_string(), summary.summary_line());
+/// assert!(summary.summary_line().contains("TT/TDB"));
+/// assert!(summary.validate().is_ok());
+/// ```
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct TimeScalePolicySummary {
+    summary: &'static str,
+}
+
+/// Validation error for a time-scale policy summary that drifted away from a compact release-facing line.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum TimeScalePolicySummaryValidationError {
+    /// The summary text is blank or whitespace-only.
+    BlankSummary,
+    /// The summary text has surrounding whitespace.
+    WhitespacePaddedSummary,
+    /// The summary text contains an embedded line break.
+    EmbeddedLineBreak,
+}
+
+impl fmt::Display for TimeScalePolicySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BlankSummary => f.write_str("time-scale policy summary is blank"),
+            Self::WhitespacePaddedSummary => {
+                f.write_str("time-scale policy summary has surrounding whitespace")
+            }
+            Self::EmbeddedLineBreak => {
+                f.write_str("time-scale policy summary contains a line break")
+            }
+        }
+    }
+}
+
+impl std::error::Error for TimeScalePolicySummaryValidationError {}
+
+impl TimeScalePolicySummary {
+    /// Creates a new time-scale policy summary from a backend-owned note.
+    pub const fn new(summary: &'static str) -> Self {
+        Self { summary }
+    }
+
+    /// Returns the compact one-line rendering of the time-scale policy posture.
+    pub const fn summary_line(self) -> &'static str {
+        self.summary
+    }
+
+    /// Returns the current shared time-scale policy posture.
+    pub const fn current() -> Self {
+        current_time_scale_policy_summary()
+    }
+
+    /// Returns `Ok(())` when the summary still contains a compact canonical line.
+    pub fn validate(&self) -> Result<(), TimeScalePolicySummaryValidationError> {
+        if self.summary.trim().is_empty() {
+            Err(TimeScalePolicySummaryValidationError::BlankSummary)
+        } else if self.summary.trim() != self.summary {
+            Err(TimeScalePolicySummaryValidationError::WhitespacePaddedSummary)
+        } else if self.summary.contains('\n') || self.summary.contains('\r') {
+            Err(TimeScalePolicySummaryValidationError::EmbeddedLineBreak)
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl fmt::Display for TimeScalePolicySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.summary_line())
+    }
+}
+
 /// Compact summary of the current shared request-policy posture.
 ///
 /// # Example
@@ -1386,10 +1466,17 @@ impl fmt::Display for FrameTreatmentSummary {
     }
 }
 
+/// Returns the current shared time-scale policy used by validation and reports.
+pub const fn current_time_scale_policy_summary() -> TimeScalePolicySummary {
+    TimeScalePolicySummary::new(
+        "direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T model",
+    )
+}
+
 /// Returns the current shared request-policy posture used by validation and reports.
 pub const fn current_request_policy_summary() -> RequestPolicySummary {
     RequestPolicySummary {
-        time_scale: "direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T model",
+        time_scale: current_time_scale_policy_summary().summary_line(),
         observer: "chart houses use observer locations; body requests stay geocentric; geocentric-only backends reject observer-bearing requests",
         apparentness: "current first-party backends accept mean geometric output only; apparent requests are rejected unless a backend explicitly advertises support",
         frame: "ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported",
@@ -1644,8 +1731,8 @@ pub fn validate_zodiac_policy(
 }
 
 /// Returns the compact report wording for the current time-scale policy.
-pub const fn time_scale_policy_summary_for_report() -> &'static str {
-    current_request_policy_summary().time_scale
+pub const fn time_scale_policy_summary_for_report() -> TimeScalePolicySummary {
+    current_time_scale_policy_summary()
 }
 
 /// Returns the compact report wording for the current observer policy.
@@ -2171,6 +2258,33 @@ mod tests {
         let error = EphemerisError::new(EphemerisErrorKind::InvalidRequest, "example failure");
         assert_eq!(error.summary_line(), "InvalidRequest: example failure");
         assert_eq!(error.to_string(), error.summary_line());
+    }
+
+    #[test]
+    fn time_scale_policy_summary_has_a_compact_display() {
+        let summary = TimeScalePolicySummary::current();
+
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            summary.summary_line(),
+            "direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T model"
+        );
+        assert!(summary.summary_line().contains("TT/TDB"));
+        assert!(summary.validate().is_ok());
+        assert_eq!(
+            time_scale_policy_summary_for_report().summary_line(),
+            summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn time_scale_policy_summary_validate_rejects_blank_fields() {
+        let summary = TimeScalePolicySummary::new(" ");
+
+        let error = summary
+            .validate()
+            .expect_err("blank policy prose should fail validation");
+        assert_eq!(error.to_string(), "time-scale policy summary is blank");
     }
 
     #[test]
@@ -3124,7 +3238,7 @@ mod tests {
             "ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported"
         );
         assert_eq!(
-            time_scale_policy_summary_for_report(),
+            time_scale_policy_summary_for_report().summary_line(),
             request_policy.time_scale
         );
         assert_eq!(

@@ -5650,8 +5650,9 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str(&profile.target_ayanamsa_scope.join("; "));
     text.push('\n');
+    let time_scale_policy = time_scale_policy_summary_for_report();
     text.push_str("Time-scale policy: ");
-    text.push_str(request_policy.time_scale);
+    text.push_str(time_scale_policy.summary_line());
     text.push('\n');
     text.push_str("Observer policy: ");
     text.push_str(request_policy.observer);
@@ -9916,8 +9917,9 @@ fn render_backend_matrix_summary_text() -> String {
         text.push_str(&comparison_audit_summary_for_report(&report.comparison));
         text.push('\n');
     }
+    let time_scale_policy = time_scale_policy_summary_for_report();
     text.push_str("Time-scale policy: ");
-    text.push_str(request_policy.time_scale);
+    text.push_str(time_scale_policy.summary_line());
     text.push('\n');
     text.push_str("Observer policy: ");
     text.push_str(request_policy.observer);
@@ -10020,8 +10022,9 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(" (");
     text.push_str(&time_scales.join(", "));
     text.push_str(")\n");
+    let time_scale_policy = time_scale_policy_summary_for_report();
     text.push_str("Time-scale policy: ");
-    text.push_str(time_scale_policy_summary_for_report());
+    text.push_str(time_scale_policy.summary_line());
     text.push('\n');
     text.push_str("Observer policy: ");
     text.push_str(observer_policy_summary_for_report());
