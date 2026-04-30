@@ -1151,7 +1151,12 @@ mod tests {
         assert!(release_summary.lines().any(|line| {
             line == "Packaged-artifact generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic residual corrections to keep the high-curvature fit compact"
         }));
-        assert!(release_summary.contains("Packaged frame treatment"));
+        assert!(release_summary.lines().any(|line| {
+            line == format!(
+                "Packaged frame treatment: {}",
+                pleiades_data::packaged_frame_treatment_summary_for_report()
+            )
+        }));
         assert!(release_summary.contains(
             "Packaged lookup epoch policy: TT-grid retag without relativistic correction; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction"
         ));
@@ -1206,7 +1211,12 @@ mod tests {
         assert!(artifact_summary.contains("Artifact summary"));
         assert!(artifact_summary.contains("Artifact boundary envelope"));
         assert!(artifact_summary.contains("Model error envelope"));
-        assert!(artifact_summary.contains("Packaged frame treatment"));
+        assert!(artifact_summary.lines().any(|line| {
+            line == format!(
+                "  Packaged frame treatment: {}",
+                pleiades_data::packaged_frame_treatment_summary_for_report()
+            )
+        }));
         assert!(artifact_summary.contains("Release summary: release-summary"));
         assert!(artifact_summary.contains("Release notes summary: release-notes-summary"));
         assert!(artifact_summary

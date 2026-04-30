@@ -13679,7 +13679,12 @@ mod tests {
         assert!(validation_report_summary.contains("Packaged request policy"));
         assert!(validation_report_summary.contains("Packaged lookup epoch policy: TT-grid retag without relativistic correction; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction"));
         assert!(validation_report_summary.contains("Packaged frame parity"));
-        assert!(validation_report_summary.contains("Packaged frame treatment"));
+        assert!(validation_report_summary.lines().any(|line| {
+            line == format!(
+                "  Packaged frame treatment: {}",
+                packaged_frame_treatment_summary_for_report()
+            )
+        }));
         assert!(validation_report_summary.lines().any(|line| {
             line == "Time-scale policy: direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T model"
         }));
@@ -16497,7 +16502,12 @@ version = "0.9.0"
             "artifact version={}",
             pleiades_data::packaged_artifact_regeneration_summary_details().artifact_version
         )));
-        assert!(artifact_summary.contains("Packaged frame treatment"));
+        assert!(artifact_summary.lines().any(|line| {
+            line == format!(
+                "  Packaged frame treatment: {}",
+                packaged_frame_treatment_summary_for_report()
+            )
+        }));
         assert!(artifact_summary.contains("applies to 11 bundled bodies"));
         assert!(artifact_summary.contains("Model error envelope"));
         assert!(artifact_summary.contains("mean longitude delta:"));
