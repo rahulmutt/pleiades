@@ -3977,6 +3977,8 @@ pub fn render_release_summary() -> String {
 }
 
 /// A compact summary of the compatibility-profile verification posture.
+const RELEASE_POSTURE_SUMMARY: &str = "Release posture: baseline milestone preserved, release additions explicit, custom definitions tracked, caveats documented";
+
 #[derive(Clone, Debug)]
 pub struct CompatibilityProfileVerificationSummary {
     /// Release profile identifier that was verified.
@@ -4009,6 +4011,8 @@ pub struct CompatibilityProfileVerificationSummary {
     pub release_ayanamsa_canonical_names: String,
     /// Built-in house formula families surfaced by the profile.
     pub house_formula_family_names: String,
+    /// Human-readable release posture summary line.
+    pub release_posture: String,
     /// Number of built-in ayanamsa descriptors that carry reference epoch/offset metadata.
     pub ayanamsa_metadata_count: usize,
     /// Number of built-in ayanamsa descriptors that still lack reference epoch/offset metadata.
@@ -4212,6 +4216,15 @@ impl CompatibilityProfileVerificationSummary {
                 ),
             ));
         }
+        if self.release_posture != RELEASE_POSTURE_SUMMARY {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile verification summary release posture mismatch: expected {}, found {}",
+                    RELEASE_POSTURE_SUMMARY, self.release_posture
+                ),
+            ));
+        }
 
         let expected_ayanamsa_metadata_count = profile
             .ayanamsas
@@ -4366,6 +4379,8 @@ impl CompatibilityProfileVerificationSummary {
         text.push_str("House formula families verified: ");
         text.push_str(&self.house_formula_family_names);
         text.push('\n');
+        text.push_str(&self.release_posture);
+        text.push('\n');
         text.push_str("Ayanamsa reference metadata verified: ");
         text.push_str(&self.ayanamsa_metadata_count.to_string());
         text.push_str(" descriptors with epoch/offset metadata, ");
@@ -4514,6 +4529,7 @@ pub fn compatibility_profile_verification_summary(
         release_house_canonical_names: release_house_names.summary_line(),
         release_ayanamsa_canonical_names: release_ayanamsa_names.summary_line(),
         house_formula_family_names,
+        release_posture: RELEASE_POSTURE_SUMMARY.to_string(),
         ayanamsa_metadata_count,
         ayanamsa_metadata_gap_count: profile.ayanamsas.len() - ayanamsa_metadata_count,
         release_note_count: profile.release_notes.len(),
@@ -14296,6 +14312,7 @@ mod tests {
         assert!(summary
             .summary_line()
             .contains("House formula families verified: Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign"));
+        assert!(summary.summary_line().contains("Release posture: baseline milestone preserved, release additions explicit, custom definitions tracked, caveats documented"));
         assert!(summary.summary_line().contains(&format!(
             "Ayanamsa reference metadata verified: {} descriptors with epoch/offset metadata, {} metadata gaps",
             profile
@@ -14373,6 +14390,16 @@ mod tests {
             .expect_err("stale house formula families should fail validation");
         assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
         assert!(error.message.contains("house formula families mismatch"));
+
+        let mut summary = compatibility_profile_verification_summary()
+            .expect("compatibility profile verification summary should render");
+        summary.release_posture = "stale summary".to_string();
+
+        let error = summary
+            .validate()
+            .expect_err("stale release posture should fail validation");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error.message.contains("release posture mismatch"));
 
         let mut summary = compatibility_profile_verification_summary()
             .expect("compatibility profile verification summary should render");
