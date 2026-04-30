@@ -6062,19 +6062,51 @@ fn render_release_checklist_summary_text() -> String {
     text
 }
 
-#[derive(Clone, Debug)]
-struct WorkspaceProvenance {
-    source_revision: String,
-    workspace_status: String,
-    rustc_version: String,
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct WorkspaceProvenance {
+    /// Short git revision for the current workspace state.
+    pub source_revision: String,
+    /// Whether the workspace is clean, dirty, or unavailable.
+    pub workspace_status: String,
+    /// The current rustc version string.
+    pub rustc_version: String,
 }
 
+/// Validation error for a workspace provenance record that drifted away from the compact report shape.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WorkspaceProvenanceValidationError {
+    /// A provenance field was blank, padded, or multi-line.
+    FieldInvalid { field: &'static str },
+}
+
+impl fmt::Display for WorkspaceProvenanceValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldInvalid { field } => write!(
+                f,
+                "workspace provenance field `{field}` must be a single non-empty line"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for WorkspaceProvenanceValidationError {}
+
 impl WorkspaceProvenance {
-    fn summary_line(&self) -> String {
+    /// Returns the compact release-facing benchmark provenance block.
+    pub fn summary_line(&self) -> String {
         format!(
             "Benchmark provenance\n  source revision: {}\n  workspace status: {}\n  rustc version: {}",
             self.source_revision, self.workspace_status, self.rustc_version
         )
+    }
+
+    /// Returns `Ok(())` when the provenance fields are safe for release-facing rendering.
+    pub fn validate(&self) -> Result<(), WorkspaceProvenanceValidationError> {
+        validate_workspace_provenance_field(&self.source_revision, "source revision")?;
+        validate_workspace_provenance_field(&self.workspace_status, "workspace status")?;
+        validate_workspace_provenance_field(&self.rustc_version, "rustc version")?;
+        Ok(())
     }
 }
 
@@ -6084,7 +6116,18 @@ impl fmt::Display for WorkspaceProvenance {
     }
 }
 
-fn workspace_provenance() -> WorkspaceProvenance {
+fn validate_workspace_provenance_field(
+    value: &str,
+    field: &'static str,
+) -> Result<(), WorkspaceProvenanceValidationError> {
+    if value.trim().is_empty() || value.contains('\n') || value.contains('\r') {
+        return Err(WorkspaceProvenanceValidationError::FieldInvalid { field });
+    }
+
+    Ok(())
+}
+
+pub fn workspace_provenance() -> WorkspaceProvenance {
     let source_revision = Command::new("git")
         .args(["rev-parse", "--short=12", "HEAD"])
         .output()
@@ -6125,8 +6168,12 @@ fn workspace_provenance() -> WorkspaceProvenance {
     }
 }
 
-fn benchmark_provenance_text() -> String {
-    workspace_provenance().summary_line()
+pub fn benchmark_provenance_text() -> String {
+    let provenance = workspace_provenance();
+    match provenance.validate() {
+        Ok(()) => provenance.summary_line(),
+        Err(error) => format!("Benchmark provenance unavailable ({error})"),
+    }
 }
 
 /// Writes a release bundle containing the compatibility profile, release-profile
@@ -12850,10 +12897,9 @@ mod tests {
     #[test]
     fn benchmark_report_renders_a_time_summary() {
         let report = render_benchmark_report(10).expect("benchmark should render");
-        assert!(report.contains("Benchmark provenance"));
-        assert!(report.contains("source revision:"));
-        assert!(report.contains("workspace status:"));
-        assert!(report.contains("rustc version:"));
+        let provenance = workspace_provenance();
+        assert_eq!(provenance.validate(), Ok(()));
+        assert!(report.contains(&provenance.summary_line()));
         assert!(report.contains("Benchmark report"));
         assert!(report.contains("Summary: backend="));
         assert!(report.contains("Representative 1500-2500 window"));
@@ -12939,11 +12985,41 @@ mod tests {
     #[test]
     fn benchmark_workspace_provenance_display_matches_the_summary_helper() {
         let provenance = workspace_provenance();
+        let expected = format!(
+            "Benchmark provenance\n  source revision: {}\n  workspace status: {}\n  rustc version: {}",
+            provenance.source_revision, provenance.workspace_status, provenance.rustc_version
+        );
 
-        assert_eq!(provenance.summary_line(), provenance.to_string());
-        assert!(provenance
-            .summary_line()
-            .starts_with("Benchmark provenance\n  source revision: "));
+        assert_eq!(provenance.validate(), Ok(()));
+        assert_eq!(provenance.summary_line(), expected);
+        assert_eq!(provenance.to_string(), expected);
+    }
+
+    #[test]
+    fn benchmark_workspace_provenance_validation_rejects_blank_or_multiline_fields() {
+        let blank_source_revision = WorkspaceProvenance {
+            source_revision: String::new(),
+            workspace_status: "clean".to_string(),
+            rustc_version: "rustc 1.0.0 (dummy)".to_string(),
+        };
+        assert_eq!(
+            blank_source_revision.validate().unwrap_err(),
+            WorkspaceProvenanceValidationError::FieldInvalid {
+                field: "source revision"
+            }
+        );
+
+        let multiline_rustc_version = WorkspaceProvenance {
+            source_revision: "abc123def456".to_string(),
+            workspace_status: "dirty".to_string(),
+            rustc_version: "rustc 1.0.0\nextra".to_string(),
+        };
+        assert_eq!(
+            multiline_rustc_version.validate().unwrap_err(),
+            WorkspaceProvenanceValidationError::FieldInvalid {
+                field: "rustc version"
+            }
+        );
     }
 
     #[test]
