@@ -6322,6 +6322,14 @@ pub fn supported_body_j2000_ecliptic_request_corpus() -> Vec<EphemerisRequest> {
     supported_body_j2000_ecliptic_batch_parity_request_corpus()
 }
 
+/// Returns the supported-body J2000 request corpus used by the VSOP87 supported-body batch evidence.
+///
+/// This is a compatibility alias for [`supported_body_j2000_ecliptic_request_corpus`].
+#[doc(alias = "supported_body_j2000_ecliptic_request_corpus")]
+pub fn supported_body_j2000_request_corpus() -> Vec<EphemerisRequest> {
+    supported_body_j2000_ecliptic_request_corpus()
+}
+
 /// Returns the supported-body J1900 request corpus used by the VSOP87 supported-body batch evidence.
 ///
 /// The requests preserve the supported-body order, use the shared J1900 TDB
@@ -6449,6 +6457,14 @@ pub fn supported_body_j1900_ecliptic_batch_parity_request_corpus() -> Vec<Epheme
 #[doc(alias = "supported_body_j1900_ecliptic_batch_parity_requests")]
 pub fn supported_body_j1900_ecliptic_request_corpus() -> Vec<EphemerisRequest> {
     supported_body_j1900_ecliptic_batch_parity_requests()
+}
+
+/// Returns the supported-body J1900 request corpus used by the VSOP87 supported-body batch evidence.
+///
+/// This is a compatibility alias for [`supported_body_j1900_ecliptic_request_corpus`].
+#[doc(alias = "supported_body_j1900_ecliptic_request_corpus")]
+pub fn supported_body_j1900_request_corpus() -> Vec<EphemerisRequest> {
+    supported_body_j1900_ecliptic_request_corpus()
 }
 
 /// Returns the supported-body J1900 request corpus used by the VSOP87 canonical batch evidence.
@@ -11332,6 +11348,18 @@ mod tests {
         assert_eq!(
             supported_body_j2000_ecliptic_request_corpus(),
             supported_body_j2000_ecliptic_batch_parity_request_corpus()
+        );
+    }
+
+    #[test]
+    fn supported_body_request_corpus_remains_the_ecliptic_aliases() {
+        assert_eq!(
+            supported_body_j2000_request_corpus(),
+            supported_body_j2000_ecliptic_request_corpus()
+        );
+        assert_eq!(
+            supported_body_j1900_request_corpus(),
+            supported_body_j1900_ecliptic_request_corpus()
         );
     }
 

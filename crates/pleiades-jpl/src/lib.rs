@@ -3451,7 +3451,8 @@ impl JplSnapshotBatchErrorTaxonomySummary {
     /// Returns the compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         format!(
-            "JPL batch error taxonomy: unsupported body {} -> {}; out-of-range {} -> {}",
+            "JPL batch error taxonomy: supported body {}; unsupported body {} -> {}; out-of-range {} -> {}",
+            self.supported_request_body,
             self.unsupported_request_body,
             self.unsupported_error_kind,
             self.out_of_range_request_body,
@@ -8890,7 +8891,7 @@ mod tests {
             .expect("the batch taxonomy summary should remain computable");
         assert_eq!(
             summary.summary_line(),
-            "JPL batch error taxonomy: unsupported body Mean Node -> UnsupportedBody; out-of-range Ceres -> OutOfRangeInstant"
+            "JPL batch error taxonomy: supported body Ceres; unsupported body Mean Node -> UnsupportedBody; out-of-range Ceres -> OutOfRangeInstant"
         );
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(

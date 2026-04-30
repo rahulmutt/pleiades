@@ -1132,7 +1132,7 @@ mod tests {
             line == "JPL request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"
         }));
         assert!(release_summary.lines().any(|line| {
-            line == "JPL batch error taxonomy: unsupported body Mean Node -> UnsupportedBody; out-of-range Ceres -> OutOfRangeInstant"
+            line == "JPL batch error taxonomy: supported body Ceres; unsupported body Mean Node -> UnsupportedBody; out-of-range Ceres -> OutOfRangeInstant"
         }));
         assert!(release_summary.contains(
             "Validation report summary: validation-report-summary / validation-summary / report-summary"
