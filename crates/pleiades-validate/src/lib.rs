@@ -5196,7 +5196,10 @@ fn render_compatibility_profile_summary_text() -> String {
     ));
     text.push('\n');
     text.push_str("House code aliases: ");
-    text.push_str(&profile.house_code_aliases_summary_line());
+    match profile.validated_house_code_aliases_summary_line() {
+        Ok(summary) => text.push_str(&summary),
+        Err(error) => return format!("Compatibility profile summary unavailable ({error})"),
+    }
     text.push('\n');
     text.push_str("Ayanamsas: ");
     text.push_str(&profile.ayanamsas.len().to_string());
@@ -5271,10 +5274,16 @@ fn render_release_notes_text() -> String {
     text.push_str(profile.summary);
     text.push('\n');
     text.push('\n');
-    text.push_str(&profile.catalog_inventory_summary_line());
+    match profile.validated_catalog_inventory_summary_line() {
+        Ok(summary) => text.push_str(&summary),
+        Err(error) => return format!("Release notes unavailable ({error})"),
+    }
     text.push('\n');
     text.push_str("House code aliases: ");
-    text.push_str(&profile.house_code_aliases_summary_line());
+    match profile.validated_house_code_aliases_summary_line() {
+        Ok(summary) => text.push_str(&summary),
+        Err(error) => return format!("Release notes unavailable ({error})"),
+    }
     text.push('\n');
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("Backend matrix summary: backend-matrix-summary\n");
@@ -5680,10 +5689,16 @@ fn render_release_summary_text() -> String {
     text.push_str("Release summary line: ");
     text.push_str(profile.summary);
     text.push('\n');
-    text.push_str(&profile.catalog_inventory_summary_line());
+    match profile.validated_catalog_inventory_summary_line() {
+        Ok(summary) => text.push_str(&summary),
+        Err(error) => return format!("Release summary unavailable ({error})"),
+    }
     text.push('\n');
     text.push_str("House code aliases: ");
-    text.push_str(&profile.house_code_aliases_summary_line());
+    match profile.validated_house_code_aliases_summary_line() {
+        Ok(summary) => text.push_str(&summary),
+        Err(error) => return format!("Release summary unavailable ({error})"),
+    }
     text.push('\n');
     text.push_str("Latitude-sensitive house systems: ");
     text.push_str(&summarize_latitude_sensitive_house_systems(&profile));

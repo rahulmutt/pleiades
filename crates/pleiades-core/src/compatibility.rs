@@ -127,6 +127,14 @@ impl CompatibilityProfile {
         self.house_code_alias_inventory_summary().summary_line()
     }
 
+    /// Returns the house-code alias inventory after validating the profile.
+    pub fn validated_house_code_aliases_summary_line(
+        &self,
+    ) -> Result<String, CompatibilityProfileValidationError> {
+        self.validate()?;
+        Ok(self.house_code_aliases_summary_line())
+    }
+
     /// Returns a compact inventory line for the current compatibility catalog.
     pub fn catalog_inventory_summary_line(&self) -> String {
         fn alias_count<T>(entries: &[T], aliases: impl Fn(&T) -> &'static [&'static str]) -> usize {
@@ -161,6 +169,14 @@ impl CompatibilityProfile {
         text.push_str("; known gaps=");
         text.push_str(&self.known_gaps.len().to_string());
         text
+    }
+
+    /// Returns the catalog inventory after validating the profile.
+    pub fn validated_catalog_inventory_summary_line(
+        &self,
+    ) -> Result<String, CompatibilityProfileValidationError> {
+        self.validate()?;
+        Ok(self.catalog_inventory_summary_line())
     }
 
     /// Returns the built-in house systems that are latitude-sensitive.
@@ -2888,6 +2904,30 @@ mod tests {
             "house-code aliases={}",
             profile.house_code_alias_count()
         )));
+        assert_eq!(
+            profile.validated_catalog_inventory_summary_line(),
+            Ok(rendered.clone())
+        );
+        assert_eq!(
+            profile.validated_house_code_aliases_summary_line(),
+            Ok(profile.house_code_aliases_summary_line())
+        );
+    }
+
+    #[test]
+    fn catalog_inventory_summary_line_validation_rejects_invalid_profiles() {
+        let profile = current_compatibility_profile();
+        let invalid_profile = CompatibilityProfile {
+            summary: "",
+            ..profile
+        };
+
+        assert!(invalid_profile
+            .validated_catalog_inventory_summary_line()
+            .is_err());
+        assert!(invalid_profile
+            .validated_house_code_aliases_summary_line()
+            .is_err());
     }
 
     #[test]
