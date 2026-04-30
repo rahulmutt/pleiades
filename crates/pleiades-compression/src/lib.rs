@@ -565,6 +565,12 @@ impl ArtifactProfileCoverageSummary {
             join_display(&self.bodies)
         )
     }
+
+    /// Returns the bundled-body summary line after validating the coverage record.
+    pub fn validated_summary_line_with_bodies(&self) -> Result<String, CompressionError> {
+        self.validate()?;
+        Ok(self.summary_line_with_bodies())
+    }
 }
 
 impl fmt::Display for ArtifactProfileCoverageSummary {
@@ -3174,6 +3180,12 @@ mod tests {
             "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 2 bundled bodies; bundled bodies: Sun, Moon"
         );
         assert_eq!(
+            coverage
+                .validated_summary_line_with_bodies()
+                .expect("coverage summary should validate"),
+            "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 2 bundled bodies; bundled bodies: Sun, Moon"
+        );
+        assert_eq!(
             coverage.to_string(),
             "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 2 bundled bodies"
         );
@@ -3258,6 +3270,23 @@ mod tests {
         assert!(error
             .message
             .contains("artifact profile coverage bundled body list must not be empty"));
+    }
+
+    #[test]
+    fn artifact_profile_coverage_validated_summary_line_rejects_drift() {
+        let mut coverage = ArtifactProfileCoverageSummary::new(
+            ArtifactProfile::ecliptic_longitude_latitude_distance(),
+            vec![CelestialBody::Sun, CelestialBody::Moon],
+        );
+        coverage.body_count += 1;
+
+        let error = coverage
+            .validated_summary_line_with_bodies()
+            .expect_err("drifted coverage summaries should be rejected");
+        assert_eq!(error.kind, CompressionErrorKind::InvalidFormat);
+        assert!(error
+            .message
+            .contains("artifact profile coverage body count does not match bundled body list"));
     }
 
     #[test]

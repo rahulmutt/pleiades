@@ -737,9 +737,13 @@ pub fn packaged_artifact_profile_coverage_summary_details() -> ArtifactProfileCo
 pub fn packaged_artifact_profile_coverage_summary_for_report() -> String {
     let summary = packaged_artifact_profile_summary_details();
     match summary.validate() {
-        Ok(()) => summary
+        Ok(()) => match summary
             .profile_coverage_summary()
-            .summary_line_with_bodies(),
+            .validated_summary_line_with_bodies()
+        {
+            Ok(line) => line,
+            Err(error) => format!("Artifact profile coverage: unavailable ({error})"),
+        },
         Err(error) => format!("Artifact profile coverage: unavailable ({error})"),
     }
 }
