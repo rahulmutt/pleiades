@@ -496,6 +496,12 @@ impl ComparisonSummary {
         )
     }
 
+    /// Returns the compact comparison summary line after validating the aggregate envelope.
+    pub fn validated_summary_line(&self) -> Result<String, EphemerisError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
     /// Returns `Ok(())` when the aggregate envelope is finite and self-consistent.
     pub fn validate(&self) -> Result<(), EphemerisError> {
         if self.sample_count == 0 {
@@ -737,6 +743,12 @@ impl BodyComparisonSummary {
                 .map(|value| format!("{value:.12} AU"))
                 .unwrap_or_else(|| "n/a".to_string())
         )
+    }
+
+    /// Returns the compact body-specific summary line after validating the envelope.
+    pub fn validated_summary_line(&self) -> Result<String, EphemerisError> {
+        self.validate()?;
+        Ok(self.summary_line())
     }
 
     /// Returns `Ok(())` when the body-specific envelope is finite and self-consistent.
@@ -7951,7 +7963,11 @@ pub struct ComparisonEnvelopeSummary {
 impl ComparisonEnvelopeSummary {
     /// Returns the compact comparison summary line with the median envelope.
     pub fn summary_line(&self) -> String {
-        format!("{}; {}", self.summary, self.median)
+        let summary = self
+            .summary
+            .validated_summary_line()
+            .unwrap_or_else(|error| format!("comparison summary unavailable ({error})"));
+        format!("{}; {}", summary, self.median)
     }
 
     /// Returns the compact 95th-percentile tail line.
@@ -11674,8 +11690,8 @@ fn write_comparison_summary(f: &mut fmt::Formatter<'_>, report: &ComparisonRepor
 }
 
 fn format_body_comparison_summary_for_report(summary: &BodyComparisonSummary) -> String {
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
+    match summary.validated_summary_line() {
+        Ok(line) => line,
         Err(error) => format!(
             "body comparison summary for {} unavailable ({error})",
             summary.body
@@ -13045,6 +13061,7 @@ mod tests {
         summary
             .validate()
             .expect("reported body summary should validate");
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
     }
 
     #[test]
@@ -18274,7 +18291,34 @@ version = "0.9.0"
         assert!(rendered.contains("max latitude delta: 0.223456789012° (Moon)"));
         assert!(rendered.contains("max distance delta: 0.001234567890 AU (Mars)"));
         assert_eq!(rendered, format!("{summary}"));
+        assert_eq!(summary.validated_summary_line(), Ok(rendered));
         assert!(summary.validate().is_ok());
+    }
+
+    #[test]
+    fn comparison_summary_validated_summary_line_rejects_zero_sample_drift() {
+        let summary = ComparisonSummary {
+            sample_count: 0,
+            max_longitude_delta_body: Some(CelestialBody::Sun),
+            max_longitude_delta_deg: 0.123_456_789_012,
+            mean_longitude_delta_deg: 0.012_345_678_901,
+            rms_longitude_delta_deg: 0.023_456_789_012,
+            max_latitude_delta_body: Some(CelestialBody::Moon),
+            max_latitude_delta_deg: 0.223_456_789_012,
+            mean_latitude_delta_deg: 0.032_345_678_901,
+            rms_latitude_delta_deg: 0.043_456_789_012,
+            max_distance_delta_body: Some(CelestialBody::Mars),
+            max_distance_delta_au: Some(0.001_234_567_89),
+            mean_distance_delta_au: Some(0.000_234_567_89),
+            rms_distance_delta_au: Some(0.000_334_567_89),
+        };
+
+        let error = summary
+            .validated_summary_line()
+            .expect_err("zero-sample drift should fail validation");
+        assert!(error.to_string().contains(
+            "comparison summary with zero samples must not carry per-body or distance extrema"
+        ));
     }
 
     #[test]
