@@ -1862,6 +1862,7 @@ fn format_validated_source_summary_for_report(
     }
 }
 
+#[cfg(test)]
 fn format_manifest_summary_for_report(label: &str, manifest: &SnapshotManifest) -> String {
     match manifest.validate() {
         Ok(()) => manifest.summary_line(label),
@@ -1870,11 +1871,22 @@ fn format_manifest_summary_for_report(label: &str, manifest: &SnapshotManifest) 
 }
 
 /// Returns the manifest summary for the comparison snapshot used by validation.
+pub fn comparison_snapshot_manifest_summary() -> SnapshotManifestSummary {
+    SnapshotManifestSummary {
+        label: "Comparison snapshot manifest",
+        manifest: comparison_snapshot_manifest().clone(),
+        source_fallback: "unknown",
+        coverage_fallback: "unknown",
+    }
+}
+
+/// Returns the manifest summary for the comparison snapshot used by validation.
 pub fn comparison_snapshot_manifest_summary_for_report() -> String {
-    format_manifest_summary_for_report(
-        "Comparison snapshot manifest",
-        comparison_snapshot_manifest(),
-    )
+    let summary = comparison_snapshot_manifest_summary();
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("Comparison snapshot manifest: unavailable ({error})"),
+    }
 }
 
 impl ComparisonSnapshotSummary {
@@ -3160,8 +3172,22 @@ pub fn reference_snapshot_source_summary_for_report() -> String {
 }
 
 /// Returns the manifest summary for the checked-in reference snapshot.
+pub fn reference_snapshot_manifest_summary() -> SnapshotManifestSummary {
+    SnapshotManifestSummary {
+        label: "Reference snapshot manifest",
+        manifest: reference_snapshot_manifest().clone(),
+        source_fallback: "unknown",
+        coverage_fallback: "unknown",
+    }
+}
+
+/// Returns the manifest summary for the checked-in reference snapshot.
 pub fn reference_snapshot_manifest_summary_for_report() -> String {
-    format_manifest_summary_for_report("Reference snapshot manifest", reference_snapshot_manifest())
+    let summary = reference_snapshot_manifest_summary();
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("Reference snapshot manifest: unavailable ({error})"),
+    }
 }
 
 /// Backend-owned provenance summary for the checked-in hold-out snapshot source material.
@@ -3297,11 +3323,22 @@ pub fn independent_holdout_source_summary_for_report() -> String {
 }
 
 /// Returns the manifest summary for the checked-in hold-out snapshot.
+pub fn independent_holdout_manifest_summary() -> SnapshotManifestSummary {
+    SnapshotManifestSummary {
+        label: "Independent hold-out manifest",
+        manifest: independent_holdout_snapshot_manifest().clone(),
+        source_fallback: "unknown",
+        coverage_fallback: "unknown",
+    }
+}
+
+/// Returns the manifest summary for the checked-in hold-out snapshot.
 pub fn independent_holdout_manifest_summary_for_report() -> String {
-    format_manifest_summary_for_report(
-        "Independent hold-out manifest",
-        independent_holdout_snapshot_manifest(),
-    )
+    let summary = independent_holdout_manifest_summary();
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("Independent hold-out manifest: unavailable ({error})"),
+    }
 }
 
 /// Returns the combined snapshot evidence summary used by validation and release reports.
@@ -5380,6 +5417,76 @@ impl SnapshotManifest {
 impl fmt::Display for SnapshotManifest {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.summary_line_with_defaults("Snapshot manifest", "unknown", "unknown"))
+    }
+}
+
+/// A typed manifest summary for JPL snapshot provenance reporting.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SnapshotManifestSummary {
+    /// Release-facing label for the manifest summary.
+    pub label: &'static str,
+    /// Parsed manifest to render.
+    pub manifest: SnapshotManifest,
+    /// Default source label used when the manifest omits one.
+    pub source_fallback: &'static str,
+    /// Default coverage label used when the manifest omits one.
+    pub coverage_fallback: &'static str,
+}
+
+/// Structured validation errors for a JPL snapshot manifest summary wrapper.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum SnapshotManifestSummaryValidationError {
+    /// The summary label was blank after trimming.
+    BlankLabel,
+    /// The summary label carried surrounding whitespace.
+    SurroundedByWhitespace { field: &'static str },
+    /// The nested manifest failed validation.
+    Manifest(SnapshotManifestValidationError),
+}
+
+impl fmt::Display for SnapshotManifestSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BlankLabel => f.write_str("blank label"),
+            Self::SurroundedByWhitespace { field } => {
+                write!(f, "{field} contains surrounding whitespace")
+            }
+            Self::Manifest(error) => write!(f, "manifest {error}"),
+        }
+    }
+}
+
+impl std::error::Error for SnapshotManifestSummaryValidationError {}
+
+impl SnapshotManifestSummary {
+    /// Validates that the wrapper still matches a usable manifest label and payload.
+    pub fn validate(&self) -> Result<(), SnapshotManifestSummaryValidationError> {
+        if self.label.trim().is_empty() {
+            return Err(SnapshotManifestSummaryValidationError::BlankLabel);
+        }
+        if has_surrounding_whitespace(self.label) {
+            return Err(
+                SnapshotManifestSummaryValidationError::SurroundedByWhitespace { field: "label" },
+            );
+        }
+        self.manifest
+            .validate()
+            .map_err(SnapshotManifestSummaryValidationError::Manifest)
+    }
+
+    /// Returns the compact release-facing summary line for the manifest wrapper.
+    pub fn summary_line(&self) -> String {
+        self.manifest.summary_line_with_defaults(
+            self.label,
+            self.source_fallback,
+            self.coverage_fallback,
+        )
+    }
+}
+
+impl fmt::Display for SnapshotManifestSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
     }
 }
 
@@ -8118,6 +8225,29 @@ mod tests {
         assert_eq!(
             manifest.coverage_or("fallback coverage"),
             "fallback coverage"
+        );
+    }
+
+    #[test]
+    fn comparison_snapshot_manifest_summary_uses_the_current_manifest() {
+        let summary = comparison_snapshot_manifest_summary();
+
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(
+            summary.summary_line(),
+            comparison_snapshot_manifest_summary_for_report()
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
+    }
+
+    #[test]
+    fn comparison_snapshot_manifest_summary_validation_rejects_padded_label() {
+        let mut summary = comparison_snapshot_manifest_summary();
+        summary.label = " Comparison snapshot manifest ";
+
+        assert_eq!(
+            summary.validate(),
+            Err(SnapshotManifestSummaryValidationError::SurroundedByWhitespace { field: "label" })
         );
     }
 
