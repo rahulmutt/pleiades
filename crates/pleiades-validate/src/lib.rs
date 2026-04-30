@@ -15038,6 +15038,12 @@ mod tests {
         assert!(rendered.contains("Packaged batch parity:"));
         assert!(rendered.contains("Release notes: release-notes"));
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
+        assert!(rendered.contains(profile.target_house_scope.join("; ").as_str()));
+        assert!(rendered.contains(profile.target_ayanamsa_scope.join("; ").as_str()));
+        assert!(rendered.contains(&format!(
+            "Release profile identifiers: v1 compatibility={}, api-stability={}",
+            release_profiles.compatibility_profile_id, release_profiles.api_stability_profile_id
+        )));
         assert!(rendered.contains("Reference snapshot coverage: 46 rows across 15 bodies and 6 epochs (5 asteroid rows; JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies:"));
         assert!(rendered.contains("Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Mercury, Moon, Sun, Venus, Jupiter, Saturn, Uranus, Neptune, Pluto"));
         assert!(rendered

@@ -1013,6 +1013,12 @@ mod tests {
             current_compatibility_profile().house_code_aliases_summary_line()
         )));
         assert!(release_notes_summary.contains("API stability summary line:"));
+        assert!(release_notes_summary.contains(profile.target_house_scope.join("; ").as_str()));
+        assert!(release_notes_summary.contains(profile.target_ayanamsa_scope.join("; ").as_str()));
+        assert!(release_notes_summary.contains(&format!(
+            "Release profile identifiers: v1 compatibility={}, api-stability={}",
+            release_profiles.compatibility_profile_id, release_profiles.api_stability_profile_id
+        )));
         assert!(release_notes_summary.contains("Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags)"));
         assert!(release_notes_summary.contains("Artifact validation: validate-artifact"));
         assert!(release_notes_summary.contains("Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
