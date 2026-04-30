@@ -3547,6 +3547,14 @@ impl Vsop87SourceBodyEvidenceSummary {
         format_source_body_evidence_summary(self)
     }
 
+    /// Returns the validated summary line used by release-facing reporting.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, Vsop87SourceBodyEvidenceSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
     /// Returns `Ok(())` when the summary still matches the current derived counts.
     pub fn validate(&self) -> Result<(), Vsop87SourceBodyEvidenceSummaryValidationError> {
         let Some(expected) = source_body_evidence_summary() else {
@@ -5407,8 +5415,8 @@ pub fn format_source_body_evidence_summary(summary: &Vsop87SourceBodyEvidenceSum
 fn format_validated_source_body_evidence_summary_for_report(
     summary: &Vsop87SourceBodyEvidenceSummary,
 ) -> String {
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
+    match summary.validated_summary_line() {
+        Ok(rendered) => rendered,
         Err(error) => format!("VSOP87 source-backed body evidence: unavailable ({error})"),
     }
 }
@@ -11141,6 +11149,7 @@ mod tests {
     fn source_body_evidence_report_matches_the_backend_formatter() {
         let summary = source_body_evidence_summary().expect("summary should exist");
         assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             source_body_evidence_summary_for_report(),
             format_source_body_evidence_summary(&summary)
@@ -11152,6 +11161,20 @@ mod tests {
         assert_eq!(
             summary.to_string(),
             source_body_evidence_summary_for_report()
+        );
+    }
+
+    #[test]
+    fn source_body_evidence_validated_summary_line_rejects_drift() {
+        let mut summary = source_body_evidence_summary().expect("summary should exist");
+        summary.sample_count += 1;
+
+        let error = summary
+            .validated_summary_line()
+            .expect_err("drifted body evidence summary should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "the VSOP87 source-backed body evidence summary field `sample_count` is out of sync with the current canonical evidence"
         );
     }
 
