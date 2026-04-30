@@ -92,6 +92,14 @@ pub fn reference_snapshot_ecliptic_request_corpus() -> Option<Vec<EphemerisReque
     reference_snapshot_requests(CoordinateFrame::Ecliptic)
 }
 
+/// Returns the ecliptic reference-snapshot request corpus used by batch parity checks.
+///
+/// This is a compatibility alias for [`reference_snapshot_ecliptic_request_corpus`].
+#[doc(alias = "reference_snapshot_ecliptic_request_corpus")]
+pub fn reference_snapshot_ecliptic_requests() -> Option<Vec<EphemerisRequest>> {
+    reference_snapshot_ecliptic_request_corpus()
+}
+
 /// Returns the equatorial reference-snapshot request corpus used by batch parity checks.
 ///
 /// This is a compatibility alias for [`reference_snapshot_requests`].
@@ -115,6 +123,14 @@ pub fn reference_snapshot_equatorial_batch_parity_requests() -> Option<Vec<Ephem
 pub fn reference_snapshot_equatorial_batch_parity_request_corpus() -> Option<Vec<EphemerisRequest>>
 {
     reference_snapshot_equatorial_batch_parity_requests()
+}
+
+/// Returns the equatorial reference-snapshot request corpus used by batch parity checks.
+///
+/// This is a compatibility alias for [`reference_snapshot_equatorial_request_corpus`].
+#[doc(alias = "reference_snapshot_equatorial_request_corpus")]
+pub fn reference_snapshot_equatorial_requests() -> Option<Vec<EphemerisRequest>> {
+    reference_snapshot_equatorial_request_corpus()
 }
 
 /// Returns the equatorial reference-snapshot request corpus used by batch parity checks.
@@ -3787,6 +3803,14 @@ pub fn comparison_snapshot_ecliptic_request_corpus() -> Option<Vec<EphemerisRequ
     comparison_snapshot_request_corpus(CoordinateFrame::Ecliptic)
 }
 
+/// Returns the ecliptic comparison-snapshot request corpus used by validation tooling.
+///
+/// This is a compatibility alias for [`comparison_snapshot_ecliptic_request_corpus`].
+#[doc(alias = "comparison_snapshot_ecliptic_request_corpus")]
+pub fn comparison_snapshot_ecliptic_requests() -> Option<Vec<EphemerisRequest>> {
+    comparison_snapshot_ecliptic_request_corpus()
+}
+
 /// Returns the equatorial comparison-snapshot request corpus used by parity checks.
 ///
 /// This is a compatibility alias for [`comparison_snapshot_requests`].
@@ -3810,6 +3834,14 @@ pub fn comparison_snapshot_equatorial_batch_parity_requests() -> Option<Vec<Ephe
 pub fn comparison_snapshot_equatorial_batch_parity_request_corpus() -> Option<Vec<EphemerisRequest>>
 {
     comparison_snapshot_equatorial_batch_parity_requests()
+}
+
+/// Returns the equatorial comparison-snapshot request corpus used by batch parity checks.
+///
+/// This is a compatibility alias for [`comparison_snapshot_equatorial_request_corpus`].
+#[doc(alias = "comparison_snapshot_equatorial_request_corpus")]
+pub fn comparison_snapshot_equatorial_requests() -> Option<Vec<EphemerisRequest>> {
+    comparison_snapshot_equatorial_request_corpus()
 }
 
 /// Returns the equatorial comparison-snapshot request corpus used by parity checks.
@@ -5995,6 +6027,14 @@ pub fn independent_holdout_snapshot_ecliptic_request_corpus() -> Option<Vec<Ephe
     independent_holdout_snapshot_requests(CoordinateFrame::Ecliptic)
 }
 
+/// Returns the ecliptic independent hold-out request corpus used by batch parity checks.
+///
+/// This is a compatibility alias for [`independent_holdout_snapshot_ecliptic_request_corpus`].
+#[doc(alias = "independent_holdout_snapshot_ecliptic_request_corpus")]
+pub fn independent_holdout_snapshot_ecliptic_requests() -> Option<Vec<EphemerisRequest>> {
+    independent_holdout_snapshot_ecliptic_request_corpus()
+}
+
 /// Returns the equatorial independent hold-out request corpus used by batch parity checks.
 ///
 /// This is a compatibility alias for [`independent_holdout_snapshot_requests`].
@@ -6027,6 +6067,14 @@ pub fn independent_holdout_snapshot_equatorial_batch_parity_request_corpus(
 #[doc(alias = "independent_holdout_snapshot_equatorial_parity_requests")]
 pub fn independent_holdout_snapshot_equatorial_request_corpus() -> Option<Vec<EphemerisRequest>> {
     independent_holdout_snapshot_equatorial_parity_requests()
+}
+
+/// Returns the equatorial independent hold-out request corpus used by batch parity checks.
+///
+/// This is a compatibility alias for [`independent_holdout_snapshot_equatorial_request_corpus`].
+#[doc(alias = "independent_holdout_snapshot_equatorial_request_corpus")]
+pub fn independent_holdout_snapshot_equatorial_requests() -> Option<Vec<EphemerisRequest>> {
+    independent_holdout_snapshot_equatorial_request_corpus()
 }
 
 /// Returns the equatorial independent hold-out request corpus used by batch parity checks.
@@ -6960,6 +7008,10 @@ mod tests {
             comparison_snapshot_equatorial_parity_requests()
         );
         assert_eq!(
+            comparison_snapshot_equatorial_requests(),
+            comparison_snapshot_equatorial_request_corpus()
+        );
+        assert_eq!(
             comparison_snapshot_equatorial_parity_request_corpus(),
             comparison_snapshot_equatorial_parity_requests()
         );
@@ -7073,6 +7125,10 @@ mod tests {
             reference_snapshot_requests(CoordinateFrame::Ecliptic)
         );
         assert_eq!(
+            reference_snapshot_ecliptic_requests(),
+            reference_snapshot_ecliptic_request_corpus()
+        );
+        assert_eq!(
             reference_snapshot_request_corpus(CoordinateFrame::Equatorial),
             reference_snapshot_requests(CoordinateFrame::Equatorial)
         );
@@ -7091,6 +7147,10 @@ mod tests {
         assert_eq!(
             reference_snapshot_equatorial_request_corpus(),
             reference_snapshot_equatorial_parity_requests()
+        );
+        assert_eq!(
+            reference_snapshot_equatorial_requests(),
+            reference_snapshot_equatorial_request_corpus()
         );
         assert_eq!(
             reference_snapshot_equatorial_parity_request_corpus(),
@@ -7123,6 +7183,10 @@ mod tests {
         assert_eq!(
             comparison_snapshot_ecliptic_request_corpus(),
             comparison_snapshot_requests(CoordinateFrame::Ecliptic)
+        );
+        assert_eq!(
+            comparison_snapshot_ecliptic_requests(),
+            comparison_snapshot_ecliptic_request_corpus()
         );
         assert_eq!(
             comparison_snapshot_request_corpus(CoordinateFrame::Equatorial),
@@ -7165,6 +7229,10 @@ mod tests {
             independent_holdout_snapshot_requests(CoordinateFrame::Ecliptic)
         );
         assert_eq!(
+            independent_holdout_snapshot_ecliptic_requests(),
+            independent_holdout_snapshot_ecliptic_request_corpus()
+        );
+        assert_eq!(
             independent_holdout_snapshot_request_corpus(CoordinateFrame::Equatorial),
             independent_holdout_snapshot_requests(CoordinateFrame::Equatorial)
         );
@@ -7179,6 +7247,10 @@ mod tests {
         assert_eq!(
             independent_holdout_snapshot_equatorial_request_corpus(),
             independent_holdout_snapshot_equatorial_parity_requests()
+        );
+        assert_eq!(
+            independent_holdout_snapshot_equatorial_requests(),
+            independent_holdout_snapshot_equatorial_request_corpus()
         );
         assert_eq!(
             independent_holdout_snapshot_equatorial_parity_request_corpus(),
