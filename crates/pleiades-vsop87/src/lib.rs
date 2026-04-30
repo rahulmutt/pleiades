@@ -3253,6 +3253,14 @@ impl Vsop87SourceBodyEvidenceSummary {
 
     /// Returns `Ok(())` when the summary still matches the current derived counts.
     pub fn validate(&self) -> Result<(), Vsop87SourceBodyEvidenceSummaryValidationError> {
+        let Some(expected) = source_body_evidence_summary() else {
+            return Err(
+                Vsop87SourceBodyEvidenceSummaryValidationError::FieldOutOfSync {
+                    field: "sample_bodies",
+                },
+            );
+        };
+
         if self.sample_count != self.sample_bodies.len() {
             return Err(
                 Vsop87SourceBodyEvidenceSummaryValidationError::FieldOutOfSync {
@@ -3267,7 +3275,7 @@ impl Vsop87SourceBodyEvidenceSummary {
                 },
             );
         }
-        if !body_labels_are_unique(&self.sample_bodies) {
+        if self.sample_bodies != expected.sample_bodies {
             return Err(
                 Vsop87SourceBodyEvidenceSummaryValidationError::FieldOutOfSync {
                     field: "sample_bodies",
@@ -3289,18 +3297,21 @@ impl Vsop87SourceBodyEvidenceSummary {
                 },
             );
         }
-        if !body_labels_are_unique(&self.outside_interim_limit_bodies) {
+        if self.outside_interim_limit_bodies != expected.outside_interim_limit_bodies {
             return Err(
                 Vsop87SourceBodyEvidenceSummaryValidationError::FieldOutOfSync {
                     field: "outside_interim_limit_bodies",
                 },
             );
         }
-        if self
-            .outside_interim_limit_bodies
-            .iter()
-            .any(|body| !self.sample_bodies.contains(body))
-        {
+        if !body_labels_are_unique(&self.sample_bodies) {
+            return Err(
+                Vsop87SourceBodyEvidenceSummaryValidationError::FieldOutOfSync {
+                    field: "sample_bodies",
+                },
+            );
+        }
+        if !body_labels_are_unique(&self.outside_interim_limit_bodies) {
             return Err(
                 Vsop87SourceBodyEvidenceSummaryValidationError::FieldOutOfSync {
                     field: "outside_interim_limit_bodies",
@@ -4776,6 +4787,18 @@ impl Vsop87SourceBodyClassEvidenceSummary {
 
     /// Returns `Ok(())` when the summary still matches the current derived counts.
     pub fn validate(&self) -> Result<(), Vsop87SourceBodyClassEvidenceSummaryValidationError> {
+        let Some(expected) = source_body_class_evidence_summary().and_then(|summaries| {
+            summaries
+                .into_iter()
+                .find(|summary| summary.class == self.class)
+        }) else {
+            return Err(
+                Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync {
+                    field: "sample_bodies",
+                },
+            );
+        };
+
         if self.sample_count != self.sample_bodies.len() {
             return Err(
                 Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync {
@@ -4783,7 +4806,7 @@ impl Vsop87SourceBodyClassEvidenceSummary {
                 },
             );
         }
-        if !body_labels_are_unique(&self.sample_bodies) {
+        if self.sample_bodies != expected.sample_bodies {
             return Err(
                 Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync {
                     field: "sample_bodies",
@@ -4802,6 +4825,20 @@ impl Vsop87SourceBodyClassEvidenceSummary {
             return Err(
                 Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync {
                     field: "outside_interim_limit_bodies",
+                },
+            );
+        }
+        if self.outside_interim_limit_bodies != expected.outside_interim_limit_bodies {
+            return Err(
+                Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync {
+                    field: "outside_interim_limit_bodies",
+                },
+            );
+        }
+        if !body_labels_are_unique(&self.sample_bodies) {
+            return Err(
+                Vsop87SourceBodyClassEvidenceSummaryValidationError::FieldOutOfSync {
+                    field: "sample_bodies",
                 },
             );
         }
@@ -9560,6 +9597,20 @@ mod tests {
     }
 
     #[test]
+    fn source_body_evidence_summary_validation_rejects_sample_order_drift() {
+        let mut summary = source_body_evidence_summary().expect("summary should exist");
+        summary.sample_bodies.reverse();
+
+        let error = summary
+            .validate()
+            .expect_err("sample bodies must preserve canonical order");
+        assert_eq!(
+            error.to_string(),
+            "the VSOP87 source-backed body evidence summary field `sample_bodies` is out of sync with the current canonical evidence"
+        );
+    }
+
+    #[test]
     fn source_body_evidence_summary_validation_rejects_outlier_body_outside_sample_set() {
         let mut summary = source_body_evidence_summary().expect("summary should exist");
         summary.within_interim_limits_count -= 1;
@@ -9627,6 +9678,24 @@ mod tests {
         let error = summary
             .validate()
             .expect_err("duplicate sample bodies should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "the VSOP87 source-backed body-class evidence summary field `sample_bodies` is out of sync with the current canonical evidence"
+        );
+    }
+
+    #[test]
+    fn source_body_class_evidence_summary_validation_rejects_sample_order_drift() {
+        let mut summary = source_body_class_evidence_summary()
+            .expect("summary should exist")
+            .into_iter()
+            .find(|summary| summary.class == Vsop87SourceBodyClass::MajorPlanet)
+            .expect("major-planet summary should exist");
+        summary.sample_bodies.reverse();
+
+        let error = summary
+            .validate()
+            .expect_err("sample bodies must preserve canonical order");
         assert_eq!(
             error.to_string(),
             "the VSOP87 source-backed body-class evidence summary field `sample_bodies` is out of sync with the current canonical evidence"
