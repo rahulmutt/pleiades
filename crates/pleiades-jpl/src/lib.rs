@@ -1818,6 +1818,14 @@ impl ComparisonSnapshotSourceSummary {
             self.source, self.coverage, self.columns
         )
     }
+
+    /// Returns a compact summary line after validating the comparison snapshot source summary.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ComparisonSnapshotSourceSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for ComparisonSnapshotSourceSummary {
@@ -1861,8 +1869,8 @@ fn format_validated_comparison_snapshot_source_summary_for_report(
         return format!("Comparison snapshot source: unavailable ({error})");
     }
 
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
+    match summary.validated_summary_line() {
+        Ok(summary_line) => summary_line,
         Err(error) => format!("Comparison snapshot source: unavailable ({error})"),
     }
 }
@@ -3156,6 +3164,14 @@ impl ReferenceSnapshotSourceSummary {
             format_instant(self.reference_epoch),
         )
     }
+
+    /// Returns a compact summary line after validating the reference snapshot source summary.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ReferenceSnapshotSourceSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 /// Structured validation errors for a reference snapshot provenance summary.
@@ -3222,8 +3238,8 @@ pub fn reference_snapshot_source_summary_for_report() -> String {
     }
 
     let summary = reference_snapshot_source_summary();
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
+    match summary.validated_summary_line() {
+        Ok(summary_line) => summary_line,
         Err(error) => format!("Reference snapshot source: unavailable ({error})"),
     }
 }
@@ -3301,6 +3317,14 @@ impl IndependentHoldoutSourceSummary {
             self.source, self.coverage, self.columns
         )
     }
+
+    /// Returns a compact summary line after validating the hold-out snapshot source summary.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, IndependentHoldoutSourceSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 /// Structured validation errors for a hold-out snapshot provenance summary.
@@ -3373,8 +3397,8 @@ pub fn independent_holdout_source_summary_for_report() -> String {
     }
 
     let summary = independent_holdout_source_summary();
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
+    match summary.validated_summary_line() {
+        Ok(summary_line) => summary_line,
         Err(error) => format!("Independent hold-out source: unavailable ({error})"),
     }
 }
@@ -7411,6 +7435,10 @@ mod tests {
         assert_eq!(source_summary.to_string(), source_summary.summary_line());
         assert_eq!(source_summary.validate(), Ok(()));
         assert_eq!(
+            source_summary.validated_summary_line(),
+            Ok(source_summary.summary_line())
+        );
+        assert_eq!(
             format_comparison_snapshot_source_summary(&source_summary),
             source_summary.summary_line()
         );
@@ -7932,6 +7960,7 @@ mod tests {
         );
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             reference_snapshot_source_summary_for_report(),
             summary.summary_line()
@@ -7994,6 +8023,7 @@ mod tests {
         );
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             independent_holdout_source_summary_for_report(),
             summary.summary_line()
