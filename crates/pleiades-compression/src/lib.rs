@@ -550,9 +550,10 @@ impl ArtifactProfileCoverageSummary {
         Ok(())
     }
 
-    /// Returns the capability summary annotated with how many bodies share it.
+    /// Returns the capability summary annotated with how many bundled bodies
+    /// currently appear in the summary.
     pub fn summary_line(&self) -> String {
-        self.profile.summary_for_body_count(self.body_count)
+        self.profile.summary_for_body_count(self.bodies.len())
     }
 
     /// Returns the capability summary annotated with how many bodies share it
@@ -3219,6 +3220,28 @@ mod tests {
         assert!(error
             .message
             .contains("artifact profile coverage body count does not match bundled body list"));
+    }
+
+    #[test]
+    fn artifact_profile_coverage_summary_line_uses_bundled_body_list() {
+        let mut coverage = ArtifactProfileCoverageSummary::new(
+            ArtifactProfile::ecliptic_longitude_latitude_distance(),
+            vec![CelestialBody::Sun, CelestialBody::Moon],
+        );
+        coverage.body_count += 1;
+
+        assert_eq!(
+            coverage.summary_line(),
+            "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 2 bundled bodies"
+        );
+        assert_eq!(
+            coverage.summary_line_with_bodies(),
+            "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 2 bundled bodies; bundled bodies: Sun, Moon"
+        );
+        assert_eq!(
+            coverage.to_string(),
+            "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 2 bundled bodies"
+        );
     }
 
     #[test]
