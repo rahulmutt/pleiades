@@ -11751,6 +11751,14 @@ mod tests {
         path
     }
 
+    fn assert_report_contains_exact_line(report: &str, expected: &str) {
+        let expected = expected.trim_start();
+        assert!(
+            report.lines().any(|line| line.trim_start() == expected),
+            "expected report to contain line `{expected}`\nreport:\n{report}"
+        );
+    }
+
     fn assert_release_bundle_rejects_tampered_text_file(
         bundle_dir_prefix: &str,
         file_name: &str,
@@ -12962,7 +12970,10 @@ mod tests {
         assert!(report.contains("Target compatibility catalog:"));
         assert!(report.contains("Comparison corpus"));
         assert!(report.contains("JPL Horizons comparison window"));
-        assert!(report.contains("Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Mercury, Moon, Sun, Venus, Jupiter, Saturn, Uranus, Neptune, Pluto"));
+        assert_report_contains_exact_line(
+            &report,
+            "  Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Mercury, Moon, Sun, Venus, Jupiter, Saturn, Uranus, Neptune, Pluto",
+        );
         assert!(report.contains("Apparentness: Mean"));
         assert!(report.contains("Benchmark corpus"));
         assert!(report.contains("Representative 1500-2500 window"));
@@ -13291,7 +13302,10 @@ mod tests {
             .expect("report summary should render");
         assert!(rendered.contains("Validation report summary"));
         assert!(rendered.contains("Comparison corpus"));
-        assert!(rendered.contains("Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Mercury, Moon, Sun, Venus, Jupiter, Saturn, Uranus, Neptune, Pluto"));
+        assert_report_contains_exact_line(
+            &rendered,
+            "  Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Mercury, Moon, Sun, Venus, Jupiter, Saturn, Uranus, Neptune, Pluto",
+        );
         assert!(rendered.contains("Body comparison summaries"));
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
         assert!(rendered.contains("Packaged-artifact profile"));
@@ -14065,7 +14079,10 @@ mod tests {
         assert!(rendered.contains("Reference snapshot coverage: 46 rows across 15 bodies and 6 epochs (5 asteroid rows; JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies:"));
         assert!(rendered.contains(&reference_snapshot_source_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_manifest_summary_for_report()));
-        assert!(rendered.contains("Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Mercury, Moon, Sun, Venus, Jupiter, Saturn, Uranus, Neptune, Pluto"));
+        assert_report_contains_exact_line(
+            &rendered,
+            "Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Mercury, Moon, Sun, Venus, Jupiter, Saturn, Uranus, Neptune, Pluto",
+        );
         assert!(rendered.contains("asteroid:433-Eros"));
         assert!(rendered.contains("Validation reference points:"));
         assert!(rendered.contains("Compatibility caveats:"));
@@ -15075,7 +15092,10 @@ mod tests {
             release_profiles.compatibility_profile_id, release_profiles.api_stability_profile_id
         )));
         assert!(rendered.contains("Reference snapshot coverage: 46 rows across 15 bodies and 6 epochs (5 asteroid rows; JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies:"));
-        assert!(rendered.contains("Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Mercury, Moon, Sun, Venus, Jupiter, Saturn, Uranus, Neptune, Pluto"));
+        assert_report_contains_exact_line(
+            &rendered,
+            "  Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Mercury, Moon, Sun, Venus, Jupiter, Saturn, Uranus, Neptune, Pluto",
+        );
         assert!(rendered
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Artifact boundary envelope:"));
@@ -15257,7 +15277,10 @@ mod tests {
         assert!(rendered.contains("95th percentile longitude delta:"));
         assert!(rendered.contains("median latitude delta:"));
         assert!(rendered.contains("95th percentile latitude delta:"));
-        assert!(rendered.contains("Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Mercury, Moon, Sun, Venus, Jupiter, Saturn, Uranus, Neptune, Pluto"));
+        assert_report_contains_exact_line(
+            &rendered,
+            "Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Mercury, Moon, Sun, Venus, Jupiter, Saturn, Uranus, Neptune, Pluto",
+        );
         assert!(rendered.contains("Body-class error envelopes:"));
         assert!(rendered.contains("max Δlon="));
         assert!(rendered.contains("median Δlon="));
