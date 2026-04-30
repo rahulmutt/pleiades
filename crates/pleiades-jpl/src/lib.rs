@@ -1892,8 +1892,8 @@ pub fn comparison_snapshot_manifest_summary() -> SnapshotManifestSummary {
 /// Returns the manifest summary for the comparison snapshot used by validation.
 pub fn comparison_snapshot_manifest_summary_for_report() -> String {
     let summary = comparison_snapshot_manifest_summary();
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
+    match summary.validated_summary_line() {
+        Ok(summary_line) => summary_line,
         Err(error) => format!("Comparison snapshot manifest: unavailable ({error})"),
     }
 }
@@ -3225,8 +3225,8 @@ pub fn reference_snapshot_manifest_summary() -> SnapshotManifestSummary {
 /// Returns the manifest summary for the checked-in reference snapshot.
 pub fn reference_snapshot_manifest_summary_for_report() -> String {
     let summary = reference_snapshot_manifest_summary();
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
+    match summary.validated_summary_line() {
+        Ok(summary_line) => summary_line,
         Err(error) => format!("Reference snapshot manifest: unavailable ({error})"),
     }
 }
@@ -3376,8 +3376,8 @@ pub fn independent_holdout_manifest_summary() -> SnapshotManifestSummary {
 /// Returns the manifest summary for the checked-in hold-out snapshot.
 pub fn independent_holdout_manifest_summary_for_report() -> String {
     let summary = independent_holdout_manifest_summary();
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
+    match summary.validated_summary_line() {
+        Ok(summary_line) => summary_line,
         Err(error) => format!("Independent hold-out manifest: unavailable ({error})"),
     }
 }
@@ -5545,6 +5545,12 @@ impl SnapshotManifestSummary {
             self.coverage_fallback,
         )
     }
+
+    /// Returns the validated compact release-facing summary line for the manifest wrapper.
+    pub fn validated_summary_line(&self) -> Result<String, SnapshotManifestSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for SnapshotManifestSummary {
@@ -7656,6 +7662,24 @@ mod tests {
             manifest.summary_line("Example manifest"),
             "Example manifest: Example snapshot.; source=Example source; coverage=unknown; columns=body, x_km, body"
         );
+    }
+
+    #[test]
+    fn manifest_summary_validated_summary_line_returns_the_rendered_line() {
+        let summary = SnapshotManifestSummary {
+            label: "Example manifest",
+            manifest: SnapshotManifest {
+                title: Some("Example snapshot.".to_string()),
+                source: Some("Example source".to_string()),
+                coverage: Some("Example coverage".to_string()),
+                columns: vec!["body".to_string(), "x_km".to_string()],
+            },
+            source_fallback: "unknown",
+            coverage_fallback: "unknown",
+        };
+
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(summary.to_string(), summary.summary_line());
     }
 
     #[test]
