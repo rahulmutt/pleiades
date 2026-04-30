@@ -5575,6 +5575,26 @@ pub fn independent_holdout_snapshot_batch_parity_request_corpus() -> Option<Vec<
     independent_holdout_snapshot_batch_parity_requests()
 }
 
+/// Returns the mixed TT/TDB independent hold-out request corpus used by batch parity checks.
+///
+/// This is a compatibility alias for
+/// [`independent_holdout_snapshot_batch_parity_requests`].
+#[doc(alias = "independent_holdout_snapshot_batch_parity_requests")]
+pub fn independent_holdout_snapshot_mixed_time_scale_batch_parity_requests(
+) -> Option<Vec<EphemerisRequest>> {
+    independent_holdout_snapshot_batch_parity_requests()
+}
+
+/// Returns the mixed TT/TDB independent hold-out request corpus used by batch parity checks.
+///
+/// This is a compatibility alias for
+/// [`independent_holdout_snapshot_mixed_time_scale_batch_parity_requests`].
+#[doc(alias = "independent_holdout_snapshot_mixed_time_scale_batch_parity_requests")]
+pub fn independent_holdout_snapshot_mixed_time_scale_batch_parity_request_corpus(
+) -> Option<Vec<EphemerisRequest>> {
+    independent_holdout_snapshot_mixed_time_scale_batch_parity_requests()
+}
+
 fn independent_holdout_snapshot_error() -> Option<&'static SnapshotLoadError> {
     independent_holdout_state().error()
 }
@@ -6517,6 +6537,10 @@ mod tests {
         assert_eq!(
             independent_holdout_snapshot_batch_parity_request_corpus(),
             independent_holdout_snapshot_batch_parity_requests()
+        );
+        assert_eq!(
+            independent_holdout_snapshot_mixed_time_scale_batch_parity_request_corpus(),
+            independent_holdout_snapshot_mixed_time_scale_batch_parity_requests()
         );
         assert_eq!(
             reference_asteroid_request_corpus(CoordinateFrame::Ecliptic),
