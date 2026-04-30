@@ -13344,9 +13344,15 @@ mod tests {
         assert!(validation_report_summary.contains("Packaged lookup epoch policy: TT-grid retag without relativistic correction; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction"));
         assert!(validation_report_summary.contains("Packaged frame parity"));
         assert!(validation_report_summary.contains("Packaged frame treatment"));
-        assert!(validation_report_summary.contains("Time-scale policy:"));
-        assert!(validation_report_summary.contains("Observer policy:"));
-        assert!(validation_report_summary.contains("Apparentness policy:"));
+        assert!(validation_report_summary.lines().any(|line| {
+            line == "Time-scale policy: direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T model"
+        }));
+        assert!(validation_report_summary.lines().any(|line| {
+            line == "Observer policy: chart houses use observer locations; body requests stay geocentric; geocentric-only backends reject observer-bearing requests"
+        }));
+        assert!(validation_report_summary.lines().any(|line| {
+            line == "Apparentness policy: current first-party backends accept mean geometric output only; apparent requests are rejected unless a backend explicitly advertises support"
+        }));
         assert!(validation_report_summary.contains("Frame policy:"));
         let mean_obliquity_frame_round_trip = mean_obliquity_frame_round_trip_summary()
             .expect("mean-obliquity frame round-trip summary should exist");
@@ -15540,10 +15546,18 @@ mod tests {
         assert!(rendered.contains("Distinct bodies covered:"));
         assert!(rendered.contains("Distinct coordinate frames: 2 (Ecliptic, Equatorial)"));
         assert!(rendered.contains("Distinct time scales: 2 (TT, TDB)"));
-        assert!(rendered.contains("Time-scale policy:"));
-        assert!(rendered.contains("Observer policy:"));
-        assert!(rendered.contains("Apparentness policy:"));
-        assert!(rendered.contains("Request policy: time-scale="));
+        assert!(rendered.lines().any(|line| {
+            line == "Time-scale policy: direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T model"
+        }));
+        assert!(rendered.lines().any(|line| {
+            line == "Observer policy: chart houses use observer locations; body requests stay geocentric; geocentric-only backends reject observer-bearing requests"
+        }));
+        assert!(rendered.lines().any(|line| {
+            line == "Apparentness policy: current first-party backends accept mean geometric output only; apparent requests are rejected unless a backend explicitly advertises support"
+        }));
+        assert!(rendered.lines().any(|line| {
+            line == "Request policy: time-scale=direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T model; observer=chart houses use observer locations; body requests stay geocentric; geocentric-only backends reject observer-bearing requests; apparentness=current first-party backends accept mean geometric output only; apparent requests are rejected unless a backend explicitly advertises support; frame=ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported"
+        }));
         assert!(rendered.contains(
             "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags)"
         ));
@@ -16002,7 +16016,9 @@ version = "0.9.0"
         assert!(release_summary.lines().any(|line| {
             line == "JPL batch error taxonomy: supported body Ceres; unsupported body Mean Node -> UnsupportedBody; out-of-range Ceres -> OutOfRangeInstant"
         }));
-        assert!(release_summary.contains("Request policy: time-scale="));
+        assert!(release_summary.lines().any(|line| {
+            line == "Request policy: time-scale=direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T model; observer=chart houses use observer locations; body requests stay geocentric; geocentric-only backends reject observer-bearing requests; apparentness=current first-party backends accept mean geometric output only; apparent requests are rejected unless a backend explicitly advertises support; frame=ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported"
+        }));
         assert!(release_summary.contains("JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"));
         assert!(release_summary.contains(
             "JPL reference snapshot equatorial parity: 46 rows across 15 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies:"
@@ -16237,7 +16253,9 @@ version = "0.9.0"
             "VSOP87 frame treatment: J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a mean-obliquity transform"
         ));
         assert!(validation_report_summary.contains("VSOP87 request policy:"));
-        assert!(validation_report_summary.contains("Request policy: time-scale="));
+        assert!(validation_report_summary.lines().any(|line| {
+            line == "Request policy: time-scale=direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T model; observer=chart houses use observer locations; body requests stay geocentric; geocentric-only backends reject observer-bearing requests; apparentness=current first-party backends accept mean geometric output only; apparent requests are rejected unless a backend explicitly advertises support; frame=ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported"
+        }));
         assert!(validation_report_summary
             .contains("VSOP87 source audit: 8 source-backed bodies (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune) across 8 source files (VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep); 8 vendored full-file inputs, 35080 total terms, max source size 949753 bytes / 7141 lines, 8 deterministic fingerprints"));
         assert!(validation_report_summary
