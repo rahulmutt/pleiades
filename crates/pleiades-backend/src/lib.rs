@@ -70,9 +70,10 @@ use std::borrow::Cow;
 use std::time::Duration;
 
 pub use pleiades_types::{
-    Angle, Apparentness, Ayanamsa, CelestialBody, CoordinateFrame, CustomAyanamsa, CustomBodyId,
-    CustomDefinitionValidationError, CustomHouseSystem, EclipticCoordinates, EquatorialCoordinates,
-    HouseSystem, Instant, JulianDay, Latitude, Longitude, Motion, ObserverLocation, TimeRange,
+    Angle, Apparentness, Ayanamsa, CelestialBody, CoordinateFrame, CoordinateValidationError,
+    CustomAyanamsa, CustomBodyId, CustomDefinitionValidationError, CustomHouseSystem,
+    EclipticCoordinates, EquatorialCoordinates, HouseSystem, Instant, JulianDay, Latitude,
+    Longitude, Motion, MotionValidationError, ObserverLocation, TimeRange,
     TimeRangeValidationError, TimeScale, TimeScaleConversion, TimeScaleConversionError, ZodiacMode,
 };
 
@@ -1048,6 +1049,33 @@ pub struct EphemerisResult {
     pub quality: QualityAnnotation,
 }
 
+/// Errors returned when a backend result record no longer matches its stored data.
+#[derive(Clone, Debug, PartialEq)]
+pub enum EphemerisResultValidationError {
+    /// The stored ecliptic coordinates are invalid.
+    InvalidEcliptic(CoordinateValidationError),
+    /// The stored equatorial coordinates are invalid.
+    InvalidEquatorial(CoordinateValidationError),
+    /// The stored motion sample is invalid.
+    InvalidMotion(MotionValidationError),
+}
+
+impl fmt::Display for EphemerisResultValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidEcliptic(error) => {
+                write!(f, "backend result ecliptic is invalid: {error}")
+            }
+            Self::InvalidEquatorial(error) => {
+                write!(f, "backend result equatorial is invalid: {error}")
+            }
+            Self::InvalidMotion(error) => write!(f, "backend result motion is invalid: {error}"),
+        }
+    }
+}
+
+impl std::error::Error for EphemerisResultValidationError {}
+
 impl EphemerisResult {
     /// Creates an empty result shell with the request metadata filled in.
     pub fn new(
@@ -1072,6 +1100,29 @@ impl EphemerisResult {
         }
     }
 
+    /// Validates the stored coordinate and motion samples.
+    pub fn validate(&self) -> Result<(), EphemerisResultValidationError> {
+        if let Some(ecliptic) = &self.ecliptic {
+            ecliptic
+                .validate()
+                .map_err(EphemerisResultValidationError::InvalidEcliptic)?;
+        }
+
+        if let Some(equatorial) = &self.equatorial {
+            equatorial
+                .validate()
+                .map_err(EphemerisResultValidationError::InvalidEquatorial)?;
+        }
+
+        if let Some(motion) = &self.motion {
+            motion
+                .validate()
+                .map_err(EphemerisResultValidationError::InvalidMotion)?;
+        }
+
+        Ok(())
+    }
+
     /// Returns a compact one-line rendering of the backend result.
     ///
     /// The summary keeps the request-shape metadata alongside the available
@@ -1091,6 +1142,12 @@ impl EphemerisResult {
             format_optional_equatorial_coordinates(self.equatorial.as_ref()),
             format_optional_motion(self.motion.as_ref()),
         )
+    }
+
+    /// Returns a compact one-line rendering after validating the stored samples.
+    pub fn validated_summary_line(&self) -> Result<String, EphemerisResultValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
     }
 }
 
@@ -2201,6 +2258,8 @@ mod tests {
     use super::*;
     use core::sync::atomic::{AtomicUsize, Ordering};
     use std::time::Duration;
+
+    use pleiades_types::CoordinateValidationError;
 
     #[test]
     fn family_and_accuracy_labels_are_stable() {
@@ -4184,6 +4243,61 @@ mod tests {
             serde_json::from_value(serde_json::to_value(&result).expect("result should serialize"))
                 .expect("result should deserialize");
         assert_eq!(result_roundtrip, result);
+    }
+
+    #[test]
+    fn ephemeris_result_validation_rejects_invalid_coordinate_and_motion_samples() {
+        let mut result = EphemerisResult::new(
+            BackendId::new("toy"),
+            CelestialBody::Moon,
+            Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+            CoordinateFrame::Ecliptic,
+            ZodiacMode::Tropical,
+            Apparentness::Mean,
+        );
+        result.ecliptic = Some(EclipticCoordinates::new(
+            Longitude::from_degrees(12.5),
+            Latitude::from_degrees(2.5),
+            Some(1.0),
+        ));
+        result.equatorial = Some(EquatorialCoordinates::new(
+            Angle::from_degrees(f64::NAN),
+            Latitude::from_degrees(1.0),
+            Some(1.0),
+        ));
+        result.motion = Some(Motion::new(Some(f64::INFINITY), None, None));
+
+        let error = result
+            .validate()
+            .expect_err("invalid equatorial coordinates should fail validation");
+        assert!(matches!(
+            error,
+            EphemerisResultValidationError::InvalidEquatorial(
+                CoordinateValidationError::NonFiniteValue {
+                    coordinate: "equatorial",
+                    field: "right_ascension",
+                    value,
+                }
+            ) if value.is_nan()
+        ));
+        assert!(error
+            .to_string()
+            .contains("backend result equatorial is invalid: equatorial coordinate field `right_ascension` must be finite"));
+
+        result.equatorial = None;
+        let error = result
+            .validated_summary_line()
+            .expect_err("invalid motion should fail validation");
+        assert!(matches!(
+            error,
+            EphemerisResultValidationError::InvalidMotion(MotionValidationError::NonFiniteSpeed {
+                field: "longitude_deg_per_day",
+                value,
+            }) if value.is_infinite()
+        ));
+        assert!(error.to_string().contains(
+            "backend result motion is invalid: motion field `longitude_deg_per_day` must be finite"
+        ));
     }
 
     #[test]

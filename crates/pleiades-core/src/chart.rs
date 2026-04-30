@@ -13,9 +13,11 @@ use pleiades_ayanamsa::{resolve_ayanamsa, sidereal_offset};
 use pleiades_backend::{
     validate_request_against_metadata, Apparentness, BackendMetadata, EphemerisBackend,
     EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
+    EphemerisResultValidationError,
 };
 use pleiades_houses::{
-    calculate_houses, house_for_longitude, resolve_house_system, HouseRequest, HouseSnapshot,
+    calculate_houses, house_for_longitude, resolve_house_system, HouseError, HouseRequest,
+    HouseSnapshot,
 };
 use pleiades_types::{
     Angle, CelestialBody, CoordinateFrame, CustomDefinitionValidationError, HouseSystem, Instant,
@@ -870,6 +872,43 @@ pub struct BodyPlacement {
     pub house: Option<usize>,
 }
 
+/// Errors returned when a body placement no longer matches its stored result.
+#[derive(Clone, Debug, PartialEq)]
+pub enum BodyPlacementValidationError {
+    /// The stored backend result is invalid.
+    InvalidPosition {
+        /// The body represented by the placement.
+        body: CelestialBody,
+        /// The nested backend-result validation error.
+        error: EphemerisResultValidationError,
+    },
+    /// The stored house number is zero.
+    InvalidHouseNumber {
+        /// The body represented by the placement.
+        body: CelestialBody,
+        /// The invalid house number.
+        house: usize,
+    },
+}
+
+impl fmt::Display for BodyPlacementValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidPosition { body, error } => {
+                write!(f, "body {body} placement result is invalid: {error}")
+            }
+            Self::InvalidHouseNumber { body, house } => {
+                write!(
+                    f,
+                    "body {body} placement house must be one-based, got {house}"
+                )
+            }
+        }
+    }
+}
+
+impl std::error::Error for BodyPlacementValidationError {}
+
 /// A chart snapshot suitable for user-facing reports.
 ///
 /// The snapshot keeps the observer posture explicit even when the chart does
@@ -923,6 +962,82 @@ pub struct ChartSnapshot {
     pub placements: Vec<BodyPlacement>,
 }
 
+/// Errors returned when a chart snapshot no longer matches its stored rows.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ChartSnapshotValidationError {
+    /// The stored observer summary is invalid.
+    InvalidObserverSummary(ObserverSummaryValidationError),
+    /// The stored house snapshot is invalid.
+    InvalidHouseSnapshot(HouseError),
+    /// A body placement is invalid.
+    InvalidPlacement {
+        /// The one-based placement index.
+        placement: usize,
+        /// The body placement validation error.
+        error: BodyPlacementValidationError,
+    },
+    /// The chart snapshot includes houses but not the required observer location.
+    HouseSnapshotMissingObserver,
+    /// A placement carries a house number without a house snapshot.
+    PlacementHasHouseWithoutSnapshot {
+        /// The one-based placement index.
+        placement: usize,
+        /// The body represented by the placement.
+        body: CelestialBody,
+        /// The invalid house number.
+        house: usize,
+    },
+    /// A placement carries a house number outside the house snapshot's range.
+    PlacementHouseOutOfRange {
+        /// The one-based placement index.
+        placement: usize,
+        /// The body represented by the placement.
+        body: CelestialBody,
+        /// The invalid house number.
+        house: usize,
+        /// The available house count.
+        house_count: usize,
+    },
+}
+
+impl fmt::Display for ChartSnapshotValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidObserverSummary(error) => {
+                write!(f, "chart snapshot observer summary is invalid: {error}")
+            }
+            Self::InvalidHouseSnapshot(error) => {
+                write!(f, "chart snapshot house snapshot is invalid: {error}")
+            }
+            Self::HouseSnapshotMissingObserver => {
+                f.write_str("chart snapshot includes houses but no observer location")
+            }
+            Self::InvalidPlacement { placement, error } => {
+                write!(f, "chart snapshot placement {placement} is invalid: {error}")
+            }
+            Self::PlacementHasHouseWithoutSnapshot {
+                placement,
+                body,
+                house,
+            } => write!(
+                f,
+                "chart snapshot placement {placement} for body {body} carries house {house} without a house snapshot"
+            ),
+            Self::PlacementHouseOutOfRange {
+                placement,
+                body,
+                house,
+                house_count,
+            } => write!(
+                f,
+                "chart snapshot placement {placement} for body {body} carries house {house} but the house snapshot only has {house_count} cusps"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ChartSnapshotValidationError {}
+
 impl ChartSnapshot {
     /// Returns the number of body placements in the chart.
     pub fn len(&self) -> usize {
@@ -958,6 +1073,56 @@ impl ChartSnapshot {
         Ok(summary)
     }
 
+    /// Validates the stored observer summary, house snapshot, and placements.
+    pub fn validate(&self) -> Result<(), ChartSnapshotValidationError> {
+        self.observer_summary()
+            .validate()
+            .map_err(ChartSnapshotValidationError::InvalidObserverSummary)?;
+
+        if self.houses.is_some() && self.observer.is_none() {
+            return Err(ChartSnapshotValidationError::HouseSnapshotMissingObserver);
+        }
+
+        if let Some(houses) = &self.houses {
+            houses
+                .validate()
+                .map_err(ChartSnapshotValidationError::InvalidHouseSnapshot)?;
+        }
+
+        for (index, placement) in self.placements.iter().enumerate() {
+            placement.validate().map_err(|error| {
+                ChartSnapshotValidationError::InvalidPlacement {
+                    placement: index + 1,
+                    error,
+                }
+            })?;
+
+            if let Some(house) = placement.house {
+                if let Some(houses) = &self.houses {
+                    let house_count = houses.cusps.len();
+                    if house > house_count {
+                        return Err(ChartSnapshotValidationError::PlacementHouseOutOfRange {
+                            placement: index + 1,
+                            body: placement.body.clone(),
+                            house,
+                            house_count,
+                        });
+                    }
+                } else {
+                    return Err(
+                        ChartSnapshotValidationError::PlacementHasHouseWithoutSnapshot {
+                            placement: index + 1,
+                            body: placement.body.clone(),
+                            house,
+                        },
+                    );
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     /// Returns a compact one-line summary of the computed chart snapshot.
     ///
     /// The summary is intended for diagnostics, validation reports, and
@@ -989,9 +1154,9 @@ impl ChartSnapshot {
         )
     }
 
-    /// Returns a compact one-line summary after validating the observer summary.
-    pub fn validated_summary_line(&self) -> Result<String, ObserverSummaryValidationError> {
-        self.validated_observer_summary()?;
+    /// Returns a compact one-line summary after validating the snapshot data.
+    pub fn validated_summary_line(&self) -> Result<String, ChartSnapshotValidationError> {
+        self.validate()?;
         Ok(self.summary_line())
     }
 
@@ -1279,7 +1444,28 @@ impl BodyPlacement {
         self.position.motion.as_ref()
     }
 
-    /// Returns the coarse direction of longitudinal motion when the backend supplied motion data.
+    /// Validates the stored backend result and placement metadata.
+    pub fn validate(&self) -> Result<(), BodyPlacementValidationError> {
+        self.position.validate().map_err(|error| {
+            BodyPlacementValidationError::InvalidPosition {
+                body: self.body.clone(),
+                error,
+            }
+        })?;
+
+        if let Some(house) = self.house {
+            if house == 0 {
+                return Err(BodyPlacementValidationError::InvalidHouseNumber {
+                    body: self.body.clone(),
+                    house,
+                });
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Returns the backend motion sample when the backend supplied motion data.
     pub fn motion_direction(&self) -> Option<MotionDirection> {
         let motion = self.motion()?;
         motion.validate().ok()?;
@@ -1326,6 +1512,12 @@ impl BodyPlacement {
             "{:<12} {:>9}  {:<10}  {:>3}  {:<10}  {}",
             self.body, longitude, sign, house, motion, self.position.quality,
         )
+    }
+
+    /// Returns a compact one-line summary after validating the stored placement.
+    pub fn validated_summary_line(&self) -> Result<String, BodyPlacementValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
     }
 }
 
@@ -3602,29 +3794,6 @@ mod tests {
     }
 
     #[test]
-    fn chart_request_validated_summary_line_rejects_invalid_observer_locations() {
-        let request = ChartRequest::new(Instant::new(
-            pleiades_types::JulianDay::from_days(2_451_545.0),
-            TimeScale::Tt,
-        ))
-        .with_observer(ObserverLocation::new(
-            Latitude::from_degrees(12.5),
-            Longitude::from_degrees(f64::NAN),
-            Some(100.0),
-        ));
-
-        let error = request
-            .validated_summary_line()
-            .expect_err("validated request summaries should reject invalid locations");
-        assert!(matches!(
-            error,
-            ObserverSummaryValidationError::InvalidObserverLocation(
-                ObserverLocationValidationError::NonFiniteLongitude { value }
-            ) if value.is_nan()
-        ));
-    }
-
-    #[test]
     fn chart_snapshot_validated_summary_line_rejects_invalid_observer_locations() {
         let snapshot = ChartSnapshot {
             backend_id: crate::BackendId::new("demo"),
@@ -3647,6 +3816,274 @@ mod tests {
         let error = snapshot
             .validated_summary_line()
             .expect_err("validated snapshot summaries should reject invalid locations");
+        assert!(matches!(
+            error,
+            ChartSnapshotValidationError::InvalidObserverSummary(
+                ObserverSummaryValidationError::InvalidObserverLocation(
+                    ObserverLocationValidationError::NonFiniteLongitude { value }
+                )
+            ) if value.is_nan()
+        ));
+    }
+
+    #[test]
+    fn chart_snapshot_validate_rejects_house_assignments_without_house_snapshot() {
+        let snapshot = ChartSnapshot {
+            backend_id: crate::BackendId::new("demo"),
+            instant: Instant::new(
+                pleiades_types::JulianDay::from_days(2_451_545.0),
+                TimeScale::Tt,
+            ),
+            observer: None,
+            body_observer: None,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparentness: Apparentness::Mean,
+            houses: None,
+            placements: vec![BodyPlacement {
+                body: CelestialBody::Sun,
+                position: EphemerisResult::new(
+                    crate::BackendId::new("demo"),
+                    CelestialBody::Sun,
+                    Instant::new(
+                        pleiades_types::JulianDay::from_days(2_451_545.0),
+                        TimeScale::Tt,
+                    ),
+                    CoordinateFrame::Ecliptic,
+                    ZodiacMode::Tropical,
+                    Apparentness::Mean,
+                ),
+                sign: Some(ZodiacSign::Aries),
+                house: Some(1),
+            }],
+        };
+
+        let error = snapshot
+            .validate()
+            .expect_err("placement houses should require a house snapshot");
+        assert!(matches!(
+            error,
+            ChartSnapshotValidationError::PlacementHasHouseWithoutSnapshot {
+                placement: 1,
+                body: CelestialBody::Sun,
+                house: 1,
+            }
+        ));
+        assert!(error.to_string().contains(
+            "chart snapshot placement 1 for body Sun carries house 1 without a house snapshot"
+        ));
+    }
+
+    #[test]
+    fn chart_snapshot_validate_rejects_out_of_range_house_assignments() {
+        let instant = Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Tt,
+        );
+        let observer = ObserverLocation::new(
+            Latitude::from_degrees(12.5),
+            Longitude::from_degrees(45.0),
+            Some(100.0),
+        );
+        let houses = calculate_houses(&HouseRequest::new(
+            instant,
+            observer.clone(),
+            HouseSystem::WholeSign,
+        ))
+        .expect("house snapshot should validate");
+        assert_eq!(houses.cusps.len(), 12);
+
+        let snapshot = ChartSnapshot {
+            backend_id: crate::BackendId::new("demo"),
+            instant,
+            observer: Some(observer),
+            body_observer: None,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparentness: Apparentness::Mean,
+            houses: Some(houses),
+            placements: vec![BodyPlacement {
+                body: CelestialBody::Sun,
+                position: EphemerisResult::new(
+                    crate::BackendId::new("demo"),
+                    CelestialBody::Sun,
+                    instant,
+                    CoordinateFrame::Ecliptic,
+                    ZodiacMode::Tropical,
+                    Apparentness::Mean,
+                ),
+                sign: Some(ZodiacSign::Aries),
+                house: Some(13),
+            }],
+        };
+
+        let error = snapshot
+            .validate()
+            .expect_err("house numbers beyond the snapshot cusp count should fail");
+        assert!(matches!(
+            error,
+            ChartSnapshotValidationError::PlacementHouseOutOfRange {
+                placement: 1,
+                body: CelestialBody::Sun,
+                house: 13,
+                house_count: 12,
+            }
+        ));
+        assert!(error.to_string().contains(
+            "chart snapshot placement 1 for body Sun carries house 13 but the house snapshot only has 12 cusps"
+        ));
+    }
+
+    #[test]
+    fn chart_snapshot_validate_rejects_house_snapshots_without_observers() {
+        let instant = Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Tt,
+        );
+        let observer = ObserverLocation::new(
+            Latitude::from_degrees(12.5),
+            Longitude::from_degrees(45.0),
+            Some(100.0),
+        );
+        let houses = calculate_houses(&HouseRequest::new(
+            instant,
+            observer.clone(),
+            HouseSystem::WholeSign,
+        ))
+        .expect("house snapshot should validate");
+
+        let snapshot = ChartSnapshot {
+            backend_id: crate::BackendId::new("demo"),
+            instant,
+            observer: None,
+            body_observer: None,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparentness: Apparentness::Mean,
+            houses: Some(houses),
+            placements: Vec::new(),
+        };
+
+        let error = snapshot
+            .validate()
+            .expect_err("house snapshots should require an observer location");
+        assert!(matches!(
+            error,
+            ChartSnapshotValidationError::HouseSnapshotMissingObserver
+        ));
+        assert_eq!(
+            error.to_string(),
+            "chart snapshot includes houses but no observer location"
+        );
+    }
+
+    #[test]
+    fn body_placement_validate_rejects_zero_house_numbers() {
+        let placement = BodyPlacement {
+            body: CelestialBody::Sun,
+            position: EphemerisResult::new(
+                crate::BackendId::new("demo"),
+                CelestialBody::Sun,
+                Instant::new(
+                    pleiades_types::JulianDay::from_days(2_451_545.0),
+                    TimeScale::Tt,
+                ),
+                CoordinateFrame::Ecliptic,
+                ZodiacMode::Tropical,
+                Apparentness::Mean,
+            ),
+            sign: Some(ZodiacSign::Aries),
+            house: Some(0),
+        };
+
+        let error = placement
+            .validate()
+            .expect_err("body placements should reject zero-based house numbers");
+        assert!(matches!(
+            error,
+            BodyPlacementValidationError::InvalidHouseNumber {
+                body: CelestialBody::Sun,
+                house: 0,
+            }
+        ));
+        assert!(error
+            .to_string()
+            .contains("body Sun placement house must be one-based, got 0"));
+    }
+
+    #[test]
+    fn chart_snapshot_validate_rejects_invalid_body_placements() {
+        let snapshot = ChartSnapshot {
+            backend_id: crate::BackendId::new("demo"),
+            instant: Instant::new(
+                pleiades_types::JulianDay::from_days(2_451_545.0),
+                TimeScale::Tt,
+            ),
+            observer: None,
+            body_observer: None,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparentness: Apparentness::Mean,
+            houses: None,
+            placements: vec![BodyPlacement {
+                body: CelestialBody::Sun,
+                position: EphemerisResult::new(
+                    crate::BackendId::new("demo"),
+                    CelestialBody::Sun,
+                    Instant::new(
+                        pleiades_types::JulianDay::from_days(2_451_545.0),
+                        TimeScale::Tt,
+                    ),
+                    CoordinateFrame::Ecliptic,
+                    ZodiacMode::Tropical,
+                    Apparentness::Mean,
+                ),
+                sign: Some(ZodiacSign::Aries),
+                house: None,
+            }],
+        };
+        let mut invalid_snapshot = snapshot.clone();
+        invalid_snapshot.placements[0].position.ecliptic = Some(EclipticCoordinates::new(
+            Longitude::from_degrees(f64::NAN),
+            Latitude::from_degrees(2.5),
+            Some(1.0),
+        ));
+
+        let error = invalid_snapshot
+            .validate()
+            .expect_err("invalid placement positions should fail validation");
+        assert!(matches!(
+            error,
+            ChartSnapshotValidationError::InvalidPlacement {
+                placement: 1,
+                error: BodyPlacementValidationError::InvalidPosition {
+                    body: CelestialBody::Sun,
+                    error: EphemerisResultValidationError::InvalidEcliptic(
+                        pleiades_types::CoordinateValidationError::NonFiniteValue {
+                            coordinate: "ecliptic",
+                            field: "longitude",
+                            value,
+                        }
+                    ),
+                },
+            } if value.is_nan()
+        ));
+        assert!(error
+            .to_string()
+            .contains("chart snapshot placement 1 is invalid: body Sun placement result is invalid: backend result ecliptic is invalid: ecliptic coordinate field `longitude` must be finite"));
+    }
+
+    #[test]
+    fn chart_request_validated_summary_line_rejects_invalid_observer_locations() {
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Tt,
+        ))
+        .with_observer(ObserverLocation::new(
+            Latitude::from_degrees(12.5),
+            Longitude::from_degrees(f64::NAN),
+            Some(100.0),
+        ));
+
+        let error = request
+            .validated_summary_line()
+            .expect_err("validated request summaries should reject invalid locations");
         assert!(matches!(
             error,
             ObserverSummaryValidationError::InvalidObserverLocation(
