@@ -2962,6 +2962,180 @@ impl fmt::Display for WorkspaceAuditSummary {
     }
 }
 
+const RELEASE_CHECKLIST_REPOSITORY_MANAGED_RELEASE_GATES: [&str; 7] = [
+    "[x] mise run fmt",
+    "[x] mise run lint",
+    "[x] mise run test",
+    "[x] mise run audit",
+    "[x] mise run release-smoke",
+    "[x] cargo run -q -p pleiades-validate -- verify-compatibility-profile",
+    "[x] cargo run -q -p pleiades-validate -- validate-artifact",
+];
+
+const RELEASE_CHECKLIST_MANUAL_BUNDLE_WORKFLOW: [&str; 3] = [
+    "[x] cargo run -q -p pleiades-validate -- bundle-release --out /tmp/pleiades-release",
+    "[x] cargo run -q -p pleiades-validate -- verify-release-bundle --out /tmp/pleiades-release",
+    "[x] docs/release-reproducibility.md",
+];
+
+const RELEASE_CHECKLIST_BUNDLE_CONTENTS: [&str; 17] = [
+    "[x] compatibility-profile.txt",
+    "[x] compatibility-profile-summary.txt",
+    "[x] release-notes.txt",
+    "[x] release-notes-summary.txt",
+    "[x] release-summary.txt",
+    "[x] release-checklist.txt",
+    "[x] release-checklist-summary.txt",
+    "[x] backend-matrix.txt",
+    "[x] backend-matrix-summary.txt",
+    "[x] api-stability.txt",
+    "[x] api-stability-summary.txt",
+    "[x] validation-report-summary.txt",
+    "[x] workspace-audit-summary.txt",
+    "[x] validation-report.txt",
+    "[x] bundle-manifest.txt",
+    "[x] bundle-manifest.checksum.txt",
+    "[x] verify-release-bundle",
+];
+
+const RELEASE_CHECKLIST_EXTERNAL_PUBLISHING_REMINDERS: [&str; 3] = [
+    "[ ] tag and archive the release commit",
+    "[ ] publish or attach the release bundle outside the workspace",
+    "[ ] review any documented compatibility gaps before announcing the release",
+];
+
+fn release_checklist_repository_managed_release_gates() -> &'static [&'static str] {
+    &RELEASE_CHECKLIST_REPOSITORY_MANAGED_RELEASE_GATES
+}
+
+fn release_checklist_manual_bundle_workflow() -> &'static [&'static str] {
+    &RELEASE_CHECKLIST_MANUAL_BUNDLE_WORKFLOW
+}
+
+fn release_checklist_bundle_contents() -> &'static [&'static str] {
+    &RELEASE_CHECKLIST_BUNDLE_CONTENTS
+}
+
+fn release_checklist_external_publishing_reminders() -> &'static [&'static str] {
+    &RELEASE_CHECKLIST_EXTERNAL_PUBLISHING_REMINDERS
+}
+
+/// A compact summary of the release checklist posture.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ReleaseChecklistSummary {
+    /// Release-profile identifiers used by the checklist.
+    pub release_profile_identifiers: ReleaseProfileIdentifiers,
+    /// Number of repository-managed release gates.
+    pub repository_managed_release_gates: usize,
+    /// Number of manual bundle workflow items.
+    pub manual_bundle_workflow_items: usize,
+    /// Number of bundle content items.
+    pub bundle_contents_items: usize,
+    /// Number of external publishing reminders.
+    pub external_publishing_reminders: usize,
+}
+
+impl ReleaseChecklistSummary {
+    /// Returns `Ok(())` when the compact summary still matches the release posture.
+    pub fn validate(&self) -> Result<(), EphemerisError> {
+        self.release_profile_identifiers
+            .validate()
+            .map_err(|error| {
+                EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                    "release checklist summary release-profile identifiers are invalid: {error}"
+                ),
+                )
+            })?;
+
+        let repository_managed_release_gates =
+            release_checklist_repository_managed_release_gates().len();
+        if self.repository_managed_release_gates != repository_managed_release_gates {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "release checklist summary repository-managed release gate count mismatch: expected {}, found {}",
+                    repository_managed_release_gates, self.repository_managed_release_gates
+                ),
+            ));
+        }
+
+        let manual_bundle_workflow = release_checklist_manual_bundle_workflow().len();
+        if self.manual_bundle_workflow_items != manual_bundle_workflow {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "release checklist summary manual bundle workflow count mismatch: expected {}, found {}",
+                    manual_bundle_workflow, self.manual_bundle_workflow_items
+                ),
+            ));
+        }
+
+        let bundle_contents = release_checklist_bundle_contents().len();
+        if self.bundle_contents_items != bundle_contents {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "release checklist summary bundle contents count mismatch: expected {}, found {}",
+                    bundle_contents, self.bundle_contents_items
+                ),
+            ));
+        }
+
+        let external_publishing_reminders = release_checklist_external_publishing_reminders().len();
+        if self.external_publishing_reminders != external_publishing_reminders {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "release checklist summary external publishing reminder count mismatch: expected {}, found {}",
+                    external_publishing_reminders, self.external_publishing_reminders
+                ),
+            ));
+        }
+
+        Ok(())
+    }
+
+    /// Returns the compact summary used in release-facing reports.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "v{} compatibility={}, api-stability={}; repository-managed release gates={}; manual bundle workflow={}; bundle contents={}; external publishing reminders={}",
+            ReleaseProfileIdentifiers::schema_version(),
+            self.release_profile_identifiers.compatibility_profile_id,
+            self.release_profile_identifiers.api_stability_profile_id,
+            self.repository_managed_release_gates,
+            self.manual_bundle_workflow_items,
+            self.bundle_contents_items,
+            self.external_publishing_reminders,
+        )
+    }
+
+    /// Returns a compact summary line after validating the release posture.
+    pub fn validated_summary_line(&self) -> Result<String, EphemerisError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for ReleaseChecklistSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns the compact release-checklist summary derived from the release posture.
+pub fn release_checklist_summary() -> ReleaseChecklistSummary {
+    ReleaseChecklistSummary {
+        release_profile_identifiers: current_release_profile_identifiers(),
+        repository_managed_release_gates: release_checklist_repository_managed_release_gates()
+            .len(),
+        manual_bundle_workflow_items: release_checklist_manual_bundle_workflow().len(),
+        bundle_contents_items: release_checklist_bundle_contents().len(),
+        external_publishing_reminders: release_checklist_external_publishing_reminders().len(),
+    }
+}
+
 /// Returns the compact workspace-audit summary derived from the detailed report.
 pub fn workspace_audit_summary(report: &WorkspaceAuditReport) -> WorkspaceAuditSummary {
     WorkspaceAuditSummary {
@@ -5542,19 +5716,37 @@ fn comparison_tolerance_policy_summary_for_release_notes() -> String {
     }
 }
 
+fn release_checklist_summary_for_report() -> Result<ReleaseChecklistSummary, String> {
+    let release_profile_identifiers =
+        validated_release_profile_identifiers_for_report().map_err(|error| error.to_string())?;
+    let summary = ReleaseChecklistSummary {
+        release_profile_identifiers,
+        repository_managed_release_gates: release_checklist_repository_managed_release_gates()
+            .len(),
+        manual_bundle_workflow_items: release_checklist_manual_bundle_workflow().len(),
+        bundle_contents_items: release_checklist_bundle_contents().len(),
+        external_publishing_reminders: release_checklist_external_publishing_reminders().len(),
+    };
+    summary.validate().map_err(|error| error.to_string())?;
+    Ok(summary)
+}
+
 fn render_release_checklist_text() -> String {
-    let release_profiles = match validated_release_profile_identifiers_for_report() {
-        Ok(release_profiles) => release_profiles,
+    let summary = match release_checklist_summary_for_report() {
+        Ok(summary) => summary,
         Err(error) => return format!("Release checklist unavailable ({error})"),
     };
     let mut text = String::new();
 
     text.push_str("Release checklist\n");
     text.push_str("Profile: ");
-    text.push_str(release_profiles.compatibility_profile_id);
+    text.push_str(summary.release_profile_identifiers.compatibility_profile_id);
     text.push('\n');
     text.push_str("API stability posture: ");
-    text.push_str(release_profiles.api_stability_profile_id);
+    text.push_str(summary.release_profile_identifiers.api_stability_profile_id);
+    text.push('\n');
+    text.push_str("Summary: ");
+    text.push_str(&summary.summary_line());
     text.push('\n');
     text.push_str("Release notes summary: release-notes-summary\n");
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
@@ -5568,62 +5760,28 @@ fn render_release_checklist_text() -> String {
     text.push_str("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary\n");
     text.push('\n');
     text.push_str("Repository-managed release gates:\n");
-    for item in [
-        "[x] mise run fmt",
-        "[x] mise run lint",
-        "[x] mise run test",
-        "[x] mise run audit",
-        "[x] mise run release-smoke",
-        "[x] cargo run -q -p pleiades-validate -- verify-compatibility-profile",
-        "[x] cargo run -q -p pleiades-validate -- validate-artifact",
-    ] {
+    for &item in release_checklist_repository_managed_release_gates() {
         text.push_str("- ");
         text.push_str(item);
         text.push('\n');
     }
     text.push('\n');
     text.push_str("Manual bundle workflow:\n");
-    for item in [
-        "[x] cargo run -q -p pleiades-validate -- bundle-release --out /tmp/pleiades-release",
-        "[x] cargo run -q -p pleiades-validate -- verify-release-bundle --out /tmp/pleiades-release",
-        "[x] docs/release-reproducibility.md",
-    ] {
+    for &item in release_checklist_manual_bundle_workflow() {
         text.push_str("- ");
         text.push_str(item);
         text.push('\n');
     }
     text.push('\n');
     text.push_str("Bundle contents:\n");
-    for item in [
-        "[x] compatibility-profile.txt",
-        "[x] compatibility-profile-summary.txt",
-        "[x] release-notes.txt",
-        "[x] release-notes-summary.txt",
-        "[x] release-summary.txt",
-        "[x] release-checklist.txt",
-        "[x] release-checklist-summary.txt",
-        "[x] backend-matrix.txt",
-        "[x] backend-matrix-summary.txt",
-        "[x] api-stability.txt",
-        "[x] api-stability-summary.txt",
-        "[x] validation-report-summary.txt",
-        "[x] workspace-audit-summary.txt",
-        "[x] validation-report.txt",
-        "[x] bundle-manifest.txt",
-        "[x] bundle-manifest.checksum.txt",
-        "[x] verify-release-bundle",
-    ] {
+    for &item in release_checklist_bundle_contents() {
         text.push_str("- ");
         text.push_str(item);
         text.push('\n');
     }
     text.push('\n');
     text.push_str("External publishing reminders:\n");
-    for item in [
-        "[ ] tag and archive the release commit",
-        "[ ] publish or attach the release bundle outside the workspace",
-        "[ ] review any documented compatibility gaps before announcing the release",
-    ] {
+    for &item in release_checklist_external_publishing_reminders() {
         text.push_str("- ");
         text.push_str(item);
         text.push('\n');
@@ -6054,18 +6212,21 @@ fn render_release_summary_text() -> String {
 }
 
 fn render_release_checklist_summary_text() -> String {
-    let release_profiles = match validated_release_profile_identifiers_for_report() {
-        Ok(release_profiles) => release_profiles,
+    let summary = match release_checklist_summary_for_report() {
+        Ok(summary) => summary,
         Err(error) => return format!("Release checklist summary unavailable ({error})"),
     };
     let mut text = String::new();
 
     text.push_str("Release checklist summary\n");
     text.push_str("Profile: ");
-    text.push_str(release_profiles.compatibility_profile_id);
+    text.push_str(summary.release_profile_identifiers.compatibility_profile_id);
     text.push('\n');
     text.push_str("API stability posture: ");
-    text.push_str(release_profiles.api_stability_profile_id);
+    text.push_str(summary.release_profile_identifiers.api_stability_profile_id);
+    text.push('\n');
+    text.push_str("Summary: ");
+    text.push_str(&summary.summary_line());
     text.push('\n');
     text.push_str("Release notes summary: release-notes-summary\n");
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
@@ -6083,10 +6244,18 @@ fn render_release_checklist_summary_text() -> String {
     text.push_str("Release bundle verification: verify-release-bundle\n");
     text.push_str("Release summary: release-summary\n");
     text.push_str("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary\n");
-    text.push_str("Repository-managed release gates: 7 items\n");
-    text.push_str("Manual bundle workflow: 3 items\n");
-    text.push_str("Bundle contents: 17 items\n");
-    text.push_str("External publishing reminders: 3 items\n");
+    text.push_str("Repository-managed release gates: ");
+    text.push_str(&summary.repository_managed_release_gates.to_string());
+    text.push_str(" items\n");
+    text.push_str("Manual bundle workflow: ");
+    text.push_str(&summary.manual_bundle_workflow_items.to_string());
+    text.push_str(" items\n");
+    text.push_str("Bundle contents: ");
+    text.push_str(&summary.bundle_contents_items.to_string());
+    text.push_str(" items\n");
+    text.push_str("External publishing reminders: ");
+    text.push_str(&summary.external_publishing_reminders.to_string());
+    text.push_str(" items\n");
     text.push('\n');
     text.push_str("See release-checklist for the full maintainer-facing artifact.\n");
     text.push_str("See release-summary for the compact one-screen release overview.\n");
@@ -15465,6 +15634,35 @@ mod tests {
         assert!(
             rendered.contains("See release-summary for the compact one-screen release overview.")
         );
+    }
+
+    #[test]
+    fn release_checklist_summary_helper_reports_expected_posture() {
+        let summary = release_checklist_summary();
+
+        assert_eq!(
+            summary.release_profile_identifiers,
+            current_release_profile_identifiers()
+        );
+        assert_eq!(
+            summary.repository_managed_release_gates,
+            release_checklist_repository_managed_release_gates().len()
+        );
+        assert_eq!(
+            summary.manual_bundle_workflow_items,
+            release_checklist_manual_bundle_workflow().len()
+        );
+        assert_eq!(
+            summary.bundle_contents_items,
+            release_checklist_bundle_contents().len()
+        );
+        assert_eq!(
+            summary.external_publishing_reminders,
+            release_checklist_external_publishing_reminders().len()
+        );
+        assert!(summary.validate().is_ok());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert!(summary.summary_line().contains("v1 compatibility="));
     }
 
     #[test]
