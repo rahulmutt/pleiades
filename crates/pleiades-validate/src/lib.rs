@@ -13694,7 +13694,10 @@ mod tests {
             "Packaged-artifact generation residual bodies: residual bodies: Moon; applies to 1 bundled body"
         ));
         assert!(validation_report_summary.contains("Packaged request policy"));
-        assert!(validation_report_summary.contains("Packaged lookup epoch policy: TT-grid retag without relativistic correction; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction"));
+        assert_report_contains_exact_line(
+            &validation_report_summary,
+            "Packaged lookup epoch policy: TT-grid retag without relativistic correction; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction",
+        );
         assert!(validation_report_summary.contains("Packaged frame parity"));
         assert!(validation_report_summary.lines().any(|line| {
             line == format!(
@@ -16359,6 +16362,10 @@ version = "0.9.0"
         assert!(release_summary.contains(
             "Packaged-artifact generation residual bodies: residual bodies: Moon; applies to 1 bundled body"
         ));
+        assert_report_contains_exact_line(
+            &release_summary,
+            "Packaged lookup epoch policy: TT-grid retag without relativistic correction; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction",
+        );
         assert!(release_summary.contains(
             "Packaged-artifact regeneration: Packaged artifact regeneration source: label=stage-5 packaged-data prototype"
         ));
