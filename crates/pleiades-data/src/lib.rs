@@ -691,6 +691,28 @@ impl PackagedArtifactProfileSummary {
         Ok(())
     }
 
+    /// Returns the validated packaged artifact profile summary line.
+    pub fn validated_summary_line(&self) -> Result<String, pleiades_compression::CompressionError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
+    /// Returns the validated packaged artifact profile summary line with bundled bodies.
+    pub fn validated_summary_line_with_bodies(
+        &self,
+    ) -> Result<String, pleiades_compression::CompressionError> {
+        self.validate()?;
+        Ok(self.summary_line_with_bodies())
+    }
+
+    /// Returns the validated packaged artifact profile summary line with output support.
+    pub fn validated_summary_line_with_output_support(
+        &self,
+    ) -> Result<String, pleiades_compression::CompressionError> {
+        self.validate()?;
+        Ok(self.summary_line_with_output_support())
+    }
+
     /// Renders the packaged artifact profile into a release-facing summary line.
     pub fn summary_line(&self) -> String {
         let coverage = self.profile_coverage_summary();
@@ -789,8 +811,8 @@ pub fn packaged_artifact_profile_summary_with_body_coverage() -> String {
 /// see an explicit unavailable marker if the bundled profile metadata drifts.
 pub fn packaged_artifact_profile_summary_with_output_support() -> String {
     let summary = packaged_artifact_profile_summary_details();
-    match summary.validate() {
-        Ok(()) => summary.summary_line_with_output_support(),
+    match summary.validated_summary_line_with_output_support() {
+        Ok(line) => line,
         Err(error) => {
             format!("Packaged artifact profile with output support: unavailable ({error})")
         }
@@ -894,13 +916,18 @@ fn render_packaged_artifact_profile_summary(
     summary: &PackagedArtifactProfileSummary,
     with_bodies: bool,
 ) -> String {
-    match summary.validate() {
-        Ok(()) if with_bodies => summary.summary_line_with_bodies(),
-        Ok(()) => summary.summary_line(),
-        Err(error) if with_bodies => {
-            format!("Packaged artifact profile with bundled bodies: unavailable ({error})")
+    if with_bodies {
+        match summary.validated_summary_line_with_bodies() {
+            Ok(line) => line,
+            Err(error) => {
+                format!("Packaged artifact profile with bundled bodies: unavailable ({error})")
+            }
         }
-        Err(error) => format!("Packaged artifact profile: unavailable ({error})"),
+    } else {
+        match summary.validated_summary_line() {
+            Ok(line) => line,
+            Err(error) => format!("Packaged artifact profile: unavailable ({error})"),
+        }
     }
 }
 
@@ -3248,6 +3275,15 @@ mod tests {
                 summary.summary_line_with_bodies(),
                 summary.profile.output_support_entries_summary_line()
             )
+        );
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            summary.validated_summary_line_with_bodies(),
+            Ok(summary.summary_line_with_bodies())
+        );
+        assert_eq!(
+            summary.validated_summary_line_with_output_support(),
+            Ok(summary.summary_line_with_output_support())
         );
         assert_eq!(
             packaged_artifact_profile_summary_with_body_coverage(),
