@@ -1022,7 +1022,9 @@ impl BodyPlacement {
 
     /// Returns the coarse direction of longitudinal motion when the backend supplied motion data.
     pub fn motion_direction(&self) -> Option<MotionDirection> {
-        self.motion()?.longitude_direction()
+        let motion = self.motion()?;
+        motion.validate().ok()?;
+        motion.longitude_direction()
     }
 
     /// Returns the longitudinal motion speed when the backend supplied motion data.
@@ -3757,6 +3759,35 @@ mod tests {
                 .and_then(|motion| motion.longitude_deg_per_day),
             Some(-0.012)
         );
+    }
+
+    #[test]
+    fn body_placement_treats_non_finite_motion_as_unknown() {
+        let mut result = EphemerisResult::new(
+            BackendId::new("toy-chart"),
+            CelestialBody::Mars,
+            Instant::new(
+                pleiades_types::JulianDay::from_days(2451545.0),
+                TimeScale::Tt,
+            ),
+            pleiades_types::CoordinateFrame::Ecliptic,
+            ZodiacMode::Tropical,
+            Apparentness::Apparent,
+        );
+        result.motion = Some(pleiades_types::Motion::new(
+            Some(0.012),
+            Some(f64::NAN),
+            Some(0.0012),
+        ));
+
+        let placement = BodyPlacement {
+            body: CelestialBody::Mars,
+            position: result,
+            sign: None,
+            house: None,
+        };
+
+        assert_eq!(placement.motion_direction(), None);
     }
 
     #[test]

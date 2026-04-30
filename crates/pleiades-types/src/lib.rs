@@ -2186,6 +2186,30 @@ pub struct Motion {
     pub distance_au_per_day: Option<f64>,
 }
 
+/// Errors returned when motion samples contain non-finite values.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum MotionValidationError {
+    /// A motion component contained a non-finite value.
+    NonFiniteSpeed {
+        /// Motion field name.
+        field: &'static str,
+        /// Observed value.
+        value: f64,
+    },
+}
+
+impl fmt::Display for MotionValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::NonFiniteSpeed { field, value } => {
+                write!(f, "motion field `{field}` must be finite, got {value}")
+            }
+        }
+    }
+}
+
+impl std::error::Error for MotionValidationError {}
+
 impl Motion {
     /// Creates a new motion sample.
     pub const fn new(
@@ -2215,19 +2239,40 @@ impl Motion {
         self.distance_au_per_day
     }
 
+    /// Validates that every populated motion component is finite.
+    pub fn validate(self) -> Result<(), MotionValidationError> {
+        for (field, value) in [
+            ("longitude_deg_per_day", self.longitude_deg_per_day),
+            ("latitude_deg_per_day", self.latitude_deg_per_day),
+            ("distance_au_per_day", self.distance_au_per_day),
+        ] {
+            if let Some(value) = value {
+                if !value.is_finite() {
+                    return Err(MotionValidationError::NonFiniteSpeed { field, value });
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     /// Returns the coarse longitudinal motion direction when that speed is available.
     ///
     /// The classification is sign-based: positive speed is direct, negative speed is retrograde,
-    /// and an exact zero speed is stationary.
+    /// and an exact zero speed is stationary. Non-finite longitudinal speeds are treated as
+    /// unknown until the sample is validated.
     pub fn longitude_direction(self) -> Option<MotionDirection> {
-        self.longitude_speed().map(|speed| {
-            if speed > 0.0 {
-                MotionDirection::Direct
-            } else if speed < 0.0 {
-                MotionDirection::Retrograde
-            } else {
-                MotionDirection::Stationary
-            }
+        let speed = self.longitude_speed()?;
+        if !speed.is_finite() {
+            return None;
+        }
+
+        Some(if speed > 0.0 {
+            MotionDirection::Direct
+        } else if speed < 0.0 {
+            MotionDirection::Retrograde
+        } else {
+            MotionDirection::Stationary
         })
     }
 }
@@ -3317,6 +3362,40 @@ mod tests {
             Some(MotionDirection::Stationary)
         );
         assert_eq!(Motion::new(None, None, None).longitude_direction(), None);
+        assert_eq!(
+            Motion::new(Some(f64::NAN), None, None).longitude_direction(),
+            None
+        );
+    }
+
+    #[test]
+    fn motion_validation_rejects_non_finite_components() {
+        let longitude = Motion::new(Some(f64::INFINITY), None, None);
+        assert_eq!(
+            longitude.validate(),
+            Err(MotionValidationError::NonFiniteSpeed {
+                field: "longitude_deg_per_day",
+                value: f64::INFINITY,
+            })
+        );
+
+        let latitude = Motion::new(None, Some(f64::NAN), None);
+        assert!(matches!(
+            latitude.validate(),
+            Err(MotionValidationError::NonFiniteSpeed {
+                field: "latitude_deg_per_day",
+                value,
+            }) if value.is_nan()
+        ));
+
+        let distance = Motion::new(None, None, Some(f64::NEG_INFINITY));
+        assert_eq!(
+            distance.validate(),
+            Err(MotionValidationError::NonFiniteSpeed {
+                field: "distance_au_per_day",
+                value: f64::NEG_INFINITY,
+            })
+        );
     }
 
     #[test]
