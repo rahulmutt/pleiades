@@ -9487,6 +9487,96 @@ mod tests {
     }
 
     #[test]
+    fn source_specification_validation_rejects_variant_drift() {
+        let mut spec = source_specifications()
+            .into_iter()
+            .next()
+            .expect("expected at least one VSOP87 source specification");
+        let body = spec.body.clone();
+        spec.variant = "VSOP87C";
+
+        let error = spec
+            .validate()
+            .expect_err("variant drift should fail validation");
+
+        assert_eq!(
+            error,
+            Vsop87SourceSpecificationValidationError::FieldOutOfSync {
+                body: body.clone(),
+                field: "variant",
+                expected: "VSOP87B",
+                found: "VSOP87C",
+            }
+        );
+        assert_eq!(
+            error.to_string(),
+            format!(
+                "the VSOP87 source specification for {body} has `variant` = `VSOP87C`, but expected `VSOP87B`"
+            )
+        );
+    }
+
+    #[test]
+    fn source_specification_validation_rejects_coordinate_family_drift() {
+        let mut spec = source_specifications()
+            .into_iter()
+            .next()
+            .expect("expected at least one VSOP87 source specification");
+        let body = spec.body.clone();
+        spec.coordinate_family = "heliocentric rectangular variables";
+
+        let error = spec
+            .validate()
+            .expect_err("coordinate-family drift should fail validation");
+
+        assert_eq!(
+            error,
+            Vsop87SourceSpecificationValidationError::FieldOutOfSync {
+                body: body.clone(),
+                field: "coordinate_family",
+                expected: "heliocentric spherical variables",
+                found: "heliocentric rectangular variables",
+            }
+        );
+        assert_eq!(
+            error.to_string(),
+            format!(
+                "the VSOP87 source specification for {body} has `coordinate_family` = `heliocentric rectangular variables`, but expected `heliocentric spherical variables`"
+            )
+        );
+    }
+
+    #[test]
+    fn source_specification_validation_rejects_units_drift() {
+        let mut spec = source_specifications()
+            .into_iter()
+            .next()
+            .expect("expected at least one VSOP87 source specification");
+        let body = spec.body.clone();
+        spec.units = "radians and astronomical units";
+
+        let error = spec
+            .validate()
+            .expect_err("units drift should fail validation");
+
+        assert_eq!(
+            error,
+            Vsop87SourceSpecificationValidationError::FieldOutOfSync {
+                body: body.clone(),
+                field: "units",
+                expected: "degrees and astronomical units",
+                found: "radians and astronomical units",
+            }
+        );
+        assert_eq!(
+            error.to_string(),
+            format!(
+                "the VSOP87 source specification for {body} has `units` = `radians and astronomical units`, but expected `degrees and astronomical units`"
+            )
+        );
+    }
+
+    #[test]
     fn source_specification_validation_rejects_reduction_drift() {
         let mut spec = source_specifications()
             .into_iter()
