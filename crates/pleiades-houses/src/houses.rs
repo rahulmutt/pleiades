@@ -1784,6 +1784,35 @@ mod tests {
     }
 
     #[test]
+    fn regiomontanus_and_campanus_reduce_to_sidereal_phase_spacing_on_the_equator() {
+        let request =
+            sample_request(HouseSystem::Regiomontanus).with_obliquity(Angle::from_degrees(0.0));
+        let regiomontanus = calculate_houses(&request).expect("regiomontanus houses should work");
+        let campanus = calculate_houses(
+            &sample_request(HouseSystem::Campanus).with_obliquity(Angle::from_degrees(0.0)),
+        )
+        .expect("campanus houses should work");
+
+        assert_eq!(regiomontanus.cusps.len(), 12);
+        assert_eq!(campanus.cusps.len(), 12);
+        assert_eq!(regiomontanus.cusps[0], regiomontanus.angles.ascendant);
+        assert_eq!(regiomontanus.cusps[3], regiomontanus.angles.imum_coeli);
+        assert_eq!(regiomontanus.cusps[6], regiomontanus.angles.descendant);
+        assert_eq!(regiomontanus.cusps[9], regiomontanus.angles.midheaven);
+        assert_eq!(regiomontanus.cusps, campanus.cusps);
+
+        let sidereal_time =
+            local_sidereal_time(request.instant, request.observer.longitude).degrees();
+        for house in [2usize, 3, 5, 6, 8, 9, 11, 12] {
+            let expected = Longitude::from_degrees(sidereal_time + house_phase(house));
+            assert!(
+                (regiomontanus.cusps[house - 1].degrees() - expected.degrees()).abs() < 1.0e-10,
+                "house {house} should follow the equatorial sidereal-phase spacing"
+            );
+        }
+    }
+
+    #[test]
     fn carter_houses_follow_ascendant_centered_equatorial_spacing() {
         let request = sample_request(HouseSystem::Carter).with_obliquity(Angle::from_degrees(0.0));
         let snapshot = calculate_houses(&request).expect("carter houses should work");
