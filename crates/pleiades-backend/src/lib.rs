@@ -1497,7 +1497,7 @@ pub const fn current_time_scale_policy_summary() -> TimeScalePolicySummary {
 pub const fn current_request_policy_summary() -> RequestPolicySummary {
     RequestPolicySummary {
         time_scale: current_time_scale_policy_summary().summary_line(),
-        observer: "chart houses use observer locations; body requests stay geocentric; geocentric-only backends reject observer-bearing requests",
+        observer: "chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests",
         apparentness: "current first-party backends accept mean geometric output only; apparent requests are rejected unless a backend explicitly advertises support",
         frame: "ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported",
     }
@@ -2331,7 +2331,7 @@ mod tests {
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             summary.summary_line(),
-            "time-scale=direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T model; observer=chart houses use observer locations; body requests stay geocentric; geocentric-only backends reject observer-bearing requests; apparentness=current first-party backends accept mean geometric output only; apparent requests are rejected unless a backend explicitly advertises support; frame=ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported"
+            "time-scale=direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T model; observer=chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests; apparentness=current first-party backends accept mean geometric output only; apparent requests are rejected unless a backend explicitly advertises support; frame=ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported"
         );
         assert!(summary.summary_line().contains("time-scale="));
         assert!(summary.summary_line().contains("observer="));
@@ -3295,7 +3295,7 @@ mod tests {
         );
         assert_eq!(
             request_policy.observer,
-            "chart houses use observer locations; body requests stay geocentric; geocentric-only backends reject observer-bearing requests"
+            "chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests"
         );
         assert_eq!(
             request_policy.apparentness,
@@ -3396,7 +3396,7 @@ mod tests {
                 "direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers";
         });
         assert_field_out_of_sync(current, "observer", |summary| {
-            summary.observer = "chart houses use observer locations; body requests stay geocentric";
+            summary.observer = "chart houses use observer locations; chart body observers stay separate; body requests stay geocentric";
         });
         assert_field_out_of_sync(current, "apparentness", |summary| {
             summary.apparentness = "current first-party backends accept mean geometric output only";
