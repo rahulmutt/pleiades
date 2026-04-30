@@ -1146,6 +1146,201 @@ pub struct Vsop87CanonicalBodyEvidence {
     pub within_interim_limits: bool,
 }
 
+impl Vsop87CanonicalBodyEvidence {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "{}: kind={}, source={}, provenance={}, Δlon={:.12}°/limit {:.12}°/margin {:+.12}°, Δlat={:.12}°/limit {:.12}°/margin {:+.12}°, Δdist={:.12} AU/limit {:.12} AU/margin {:+.12} AU, status {}",
+            self.body,
+            self.source_kind,
+            self.source_file,
+            self.provenance,
+            self.longitude_delta_deg,
+            self.longitude_limit_deg,
+            self.longitude_limit_deg - self.longitude_delta_deg,
+            self.latitude_delta_deg,
+            self.latitude_limit_deg,
+            self.latitude_limit_deg - self.latitude_delta_deg,
+            self.distance_delta_au,
+            self.distance_limit_au,
+            self.distance_limit_au - self.distance_delta_au,
+            if self.within_interim_limits {
+                "within interim limits"
+            } else {
+                "outside interim limits"
+            },
+        )
+    }
+
+    /// Returns `Ok(())` when the row still matches the current canonical evidence.
+    pub fn validate(&self) -> Result<(), Vsop87CanonicalBodyEvidenceValidationError> {
+        let entry = body_catalog_entry_for_body(&self.body).ok_or(
+            Vsop87CanonicalBodyEvidenceValidationError::UnknownBody {
+                body: self.body.clone(),
+            },
+        )?;
+
+        if self.source_kind != entry.source_profile.kind {
+            return Err(
+                Vsop87CanonicalBodyEvidenceValidationError::SourceKindMismatch {
+                    body: self.body.clone(),
+                    expected: entry.source_profile.kind,
+                    found: self.source_kind,
+                },
+            );
+        }
+
+        let specification = entry.source_specification.as_ref().ok_or(
+            Vsop87CanonicalBodyEvidenceValidationError::MissingSourceSpecification {
+                body: self.body.clone(),
+            },
+        )?;
+
+        if self.source_file != specification.source_file {
+            return Err(
+                Vsop87CanonicalBodyEvidenceValidationError::SourceFileMismatch {
+                    body: self.body.clone(),
+                    expected: specification.source_file,
+                    found: self.source_file,
+                },
+            );
+        }
+        if self.provenance != entry.source_profile.provenance {
+            return Err(
+                Vsop87CanonicalBodyEvidenceValidationError::ProvenanceMismatch {
+                    body: self.body.clone(),
+                    expected: entry.source_profile.provenance,
+                    found: self.provenance,
+                },
+            );
+        }
+
+        for (field, value) in [
+            ("longitude_delta_deg", self.longitude_delta_deg),
+            ("latitude_delta_deg", self.latitude_delta_deg),
+            ("distance_delta_au", self.distance_delta_au),
+            ("longitude_limit_deg", self.longitude_limit_deg),
+            ("latitude_limit_deg", self.latitude_limit_deg),
+            ("distance_limit_au", self.distance_limit_au),
+        ] {
+            if !value.is_finite() {
+                return Err(
+                    Vsop87CanonicalBodyEvidenceValidationError::NonFiniteMetric {
+                        body: self.body.clone(),
+                        field,
+                    },
+                );
+            }
+            if value < 0.0 {
+                return Err(Vsop87CanonicalBodyEvidenceValidationError::NegativeMetric {
+                    body: self.body.clone(),
+                    field,
+                });
+            }
+        }
+
+        let within_limits = self.longitude_delta_deg <= self.longitude_limit_deg
+            && self.latitude_delta_deg <= self.latitude_limit_deg
+            && self.distance_delta_au <= self.distance_limit_au;
+        if within_limits != self.within_interim_limits {
+            return Err(
+                Vsop87CanonicalBodyEvidenceValidationError::InterimLimitStatusMismatch {
+                    body: self.body.clone(),
+                },
+            );
+        }
+
+        Ok(())
+    }
+}
+
+impl fmt::Display for Vsop87CanonicalBodyEvidence {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Validation error for a canonical VSOP87 body-evidence row that drifted
+/// from the current canonical evidence.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Vsop87CanonicalBodyEvidenceValidationError {
+    /// The catalog no longer contains the body.
+    UnknownBody { body: CelestialBody },
+    /// The declared source family drifted out of sync with the current catalog.
+    SourceKindMismatch {
+        body: CelestialBody,
+        expected: Vsop87BodySourceKind,
+        found: Vsop87BodySourceKind,
+    },
+    /// The catalog no longer exposes a source specification for the body.
+    MissingSourceSpecification { body: CelestialBody },
+    /// The public source file drifted out of sync with the current catalog.
+    SourceFileMismatch {
+        body: CelestialBody,
+        expected: &'static str,
+        found: &'static str,
+    },
+    /// The provenance text drifted out of sync with the current catalog.
+    ProvenanceMismatch {
+        body: CelestialBody,
+        expected: &'static str,
+        found: &'static str,
+    },
+    /// A numeric field is not finite.
+    NonFiniteMetric {
+        body: CelestialBody,
+        field: &'static str,
+    },
+    /// A numeric field is negative.
+    NegativeMetric {
+        body: CelestialBody,
+        field: &'static str,
+    },
+    /// The derived interim-limit status drifted away from the current metrics.
+    InterimLimitStatusMismatch { body: CelestialBody },
+}
+
+impl fmt::Display for Vsop87CanonicalBodyEvidenceValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::UnknownBody { body } => write!(
+                f,
+                "the VSOP87 canonical J2000 source-backed body evidence row for {body} is no longer present in the catalog"
+            ),
+            Self::SourceKindMismatch { body, expected, found } => write!(
+                f,
+                "the VSOP87 canonical J2000 source-backed body evidence row for {body} expects kind {expected} but found {found}"
+            ),
+            Self::MissingSourceSpecification { body } => write!(
+                f,
+                "the VSOP87 canonical J2000 source-backed body evidence row for {body} no longer has a source specification in the catalog"
+            ),
+            Self::SourceFileMismatch { body, expected, found } => write!(
+                f,
+                "the VSOP87 canonical J2000 source-backed body evidence row for {body} expects source file `{expected}` but found `{found}`"
+            ),
+            Self::ProvenanceMismatch { body, expected, found } => write!(
+                f,
+                "the VSOP87 canonical J2000 source-backed body evidence row for {body} expects provenance `{expected}` but found `{found}`"
+            ),
+            Self::NonFiniteMetric { body, field } => write!(
+                f,
+                "the VSOP87 canonical J2000 source-backed body evidence row for {body} has a non-finite `{field}` value"
+            ),
+            Self::NegativeMetric { body, field } => write!(
+                f,
+                "the VSOP87 canonical J2000 source-backed body evidence row for {body} has a negative `{field}` value"
+            ),
+            Self::InterimLimitStatusMismatch { body } => write!(
+                f,
+                "the VSOP87 canonical J2000 source-backed body evidence row for {body} has a mismatched interim-limit status"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for Vsop87CanonicalBodyEvidenceValidationError {}
+
 /// Public summary of the canonical J2000 error envelope.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Vsop87CanonicalEvidenceSummary {
@@ -5907,7 +6102,7 @@ pub fn canonical_epoch_body_evidence() -> Option<Vec<Vsop87CanonicalBodyEvidence
             && latitude_delta <= sample.max_latitude_delta_deg
             && distance_delta <= sample.max_distance_delta_au;
 
-        evidence.push(Vsop87CanonicalBodyEvidence {
+        let row = Vsop87CanonicalBodyEvidence {
             body: sample.body,
             source_kind: profile.kind,
             source_file: spec.source_file,
@@ -5919,7 +6114,9 @@ pub fn canonical_epoch_body_evidence() -> Option<Vec<Vsop87CanonicalBodyEvidence
             latitude_limit_deg: sample.max_latitude_delta_deg,
             distance_limit_au: sample.max_distance_delta_au,
             within_interim_limits,
-        });
+        };
+        row.validate().ok()?;
+        evidence.push(row);
     }
 
     Some(evidence)
@@ -6583,17 +6780,19 @@ pub fn canonical_epoch_equatorial_body_class_evidence_summary_for_report() -> St
     }
 }
 
-fn source_kind_for_body(body: CelestialBody) -> Option<Vsop87BodySourceKind> {
+fn body_catalog_entry_for_body(body: &CelestialBody) -> Option<&Vsop87BodyCatalogEntry> {
     body_catalog_entries()
         .iter()
-        .find(|entry| entry.source_profile.body == body)
-        .map(|entry| entry.source_profile.kind)
+        .find(|entry| entry.source_profile.body == *body)
+}
+
+fn source_kind_for_body(body: CelestialBody) -> Option<Vsop87BodySourceKind> {
+    body_catalog_entry_for_body(&body).map(|entry| entry.source_profile.kind)
 }
 
 fn source_file_for_body(body: &CelestialBody) -> Option<&'static str> {
-    source_specifications()
-        .into_iter()
-        .find(|spec| spec.body == *body)
+    body_catalog_entry_for_body(body)
+        .and_then(|entry| entry.source_specification.as_ref())
         .map(|spec| spec.source_file)
 }
 
@@ -9926,6 +10125,72 @@ mod tests {
         assert!(rendered.contains("p95 Δlon="));
         assert!(rendered.contains("p95 Δlat="));
         assert!(rendered.contains("p95 Δdist="));
+    }
+
+    #[test]
+    fn canonical_body_evidence_row_validation_and_summary_line_are_stable() {
+        let row = canonical_epoch_body_evidence()
+            .expect("evidence should exist")
+            .into_iter()
+            .next()
+            .expect("at least one evidence row should exist");
+
+        assert_eq!(row.summary_line(), row.to_string());
+        assert!(row.summary_line().contains("kind="));
+        assert!(row.summary_line().contains("source=VSOP87B.ear"));
+        assert!(row.summary_line().contains("provenance="));
+        assert!(row.summary_line().contains("status within interim limits"));
+        assert_eq!(row.validate(), Ok(()));
+    }
+
+    #[test]
+    fn canonical_body_evidence_validation_rejects_source_file_drift() {
+        let mut row = canonical_epoch_body_evidence()
+            .expect("evidence should exist")
+            .into_iter()
+            .next()
+            .expect("at least one evidence row should exist");
+        row.source_file = "VSOP87B.synthetic";
+        let body = row.body.clone();
+
+        let error = row
+            .validate()
+            .expect_err("source file drift should fail validation");
+        assert_eq!(
+            error,
+            Vsop87CanonicalBodyEvidenceValidationError::SourceFileMismatch {
+                body,
+                expected: "VSOP87B.ear",
+                found: "VSOP87B.synthetic",
+            }
+        );
+        assert_eq!(
+            error.to_string(),
+            "the VSOP87 canonical J2000 source-backed body evidence row for Sun expects source file `VSOP87B.ear` but found `VSOP87B.synthetic`"
+        );
+    }
+
+    #[test]
+    fn canonical_body_evidence_validation_rejects_interim_limit_status_drift() {
+        let mut row = canonical_epoch_body_evidence()
+            .expect("evidence should exist")
+            .into_iter()
+            .next()
+            .expect("at least one evidence row should exist");
+        row.within_interim_limits = !row.within_interim_limits;
+        let body = row.body.clone();
+
+        let error = row
+            .validate()
+            .expect_err("interim-limit status drift should fail validation");
+        assert_eq!(
+            error,
+            Vsop87CanonicalBodyEvidenceValidationError::InterimLimitStatusMismatch { body }
+        );
+        assert_eq!(
+            error.to_string(),
+            "the VSOP87 canonical J2000 source-backed body evidence row for Sun has a mismatched interim-limit status"
+        );
     }
 
     #[test]
