@@ -97,7 +97,7 @@ impl ArtifactHeader {
         Self::with_profile(
             generation_label,
             source,
-            ArtifactProfile::ecliptic_longitude_latitude_distance(),
+            ArtifactProfile::ecliptic_longitude_latitude_distance_with_derived_equatorial(),
         )
     }
 
@@ -485,6 +485,13 @@ impl ArtifactProfile {
     /// ecliptic coordinates and mean-obliquity policy, and motion or richer
     /// coordinate modes remain unsupported.
     pub fn ecliptic_longitude_latitude_distance() -> Self {
+        Self::ecliptic_longitude_latitude_distance_with_derived_equatorial()
+    }
+
+    /// Returns the current packaged-artifact profile with stored ecliptic
+    /// longitude, latitude, and distance channels plus derived equatorial
+    /// coordinates.
+    pub fn ecliptic_longitude_latitude_distance_with_derived_equatorial() -> Self {
         Self::new(
             vec![
                 ChannelKind::Longitude,
@@ -2195,6 +2202,11 @@ mod tests {
     #[test]
     fn artifact_profile_reports_output_support_statuses() {
         let profile = ArtifactProfile::ecliptic_longitude_latitude_distance();
+        let explicit_profile =
+            ArtifactProfile::ecliptic_longitude_latitude_distance_with_derived_equatorial();
+
+        assert_eq!(profile, explicit_profile);
+        assert_eq!(profile.summary_line(), explicit_profile.summary_line());
 
         assert_eq!(
             profile.output_support(ArtifactOutput::EclipticCoordinates),
