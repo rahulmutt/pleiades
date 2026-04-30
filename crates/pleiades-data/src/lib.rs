@@ -377,7 +377,7 @@ pub fn packaged_artifact_generation_residual_bodies_summary_for_report() -> Stri
     let summary = packaged_artifact_generation_residual_bodies_summary_details();
 
     match summary.validate(artifact) {
-        Ok(()) => summary.to_string(),
+        Ok(()) => summary.summary_line_with_body_count(),
         Err(error) => format!("residual bodies: unavailable ({error})"),
     }
 }
@@ -3398,7 +3398,7 @@ mod tests {
             .expect("residual body coverage summary should validate");
         assert_eq!(
             packaged_artifact_generation_residual_bodies_summary_for_report(),
-            "residual bodies: Moon"
+            "residual bodies: Moon; applies to 1 bundled body"
         );
     }
 
