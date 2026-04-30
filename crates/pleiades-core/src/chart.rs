@@ -810,6 +810,44 @@ impl ChartRequest {
         Ok(summary)
     }
 
+    /// Returns the topocentric body-position observer label after validation.
+    ///
+    /// This is a convenience wrapper around
+    /// [`ObserverSummary::validated_body_location_label()`] so chart-layer
+    /// report code can inspect the optional body observer without
+    /// reconstructing the summary record.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use pleiades_core::ChartRequest;
+    /// use pleiades_types::{HouseSystem, Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale};
+    ///
+    /// let request = ChartRequest::new(Instant::new(
+    ///     JulianDay::from_days(2_451_545.0),
+    ///     TimeScale::Tt,
+    /// ))
+    /// .with_observer(ObserverLocation::new(
+    ///     Latitude::from_degrees(51.5),
+    ///     Longitude::from_degrees(-0.1),
+    ///     None,
+    /// ))
+    /// .with_body_observer(ObserverLocation::new(
+    ///     Latitude::from_degrees(-33.9),
+    ///     Longitude::from_degrees(151.2),
+    ///     None,
+    /// ))
+    /// .with_house_system(HouseSystem::WholeSign);
+    ///
+    /// let label = request
+    ///     .validated_body_observer_label()
+    ///     .expect("valid body observer");
+    /// assert!(label.contains("latitude=-33.9°"));
+    /// ```
+    pub fn validated_body_observer_label(&self) -> Result<String, ObserverSummaryValidationError> {
+        self.observer_summary().validated_body_location_label()
+    }
+
     /// Returns a compact one-line summary of the request shape.
     ///
     /// The summary is intended for diagnostics, validation reports, and
@@ -1071,6 +1109,11 @@ impl ChartSnapshot {
         let summary = self.observer_summary();
         summary.validate()?;
         Ok(summary)
+    }
+
+    /// Returns the topocentric body-position observer label after validation.
+    pub fn validated_body_observer_label(&self) -> Result<String, ObserverSummaryValidationError> {
+        self.observer_summary().validated_body_location_label()
     }
 
     /// Validates the stored observer summary, house snapshot, and placements.
@@ -3756,9 +3799,33 @@ mod tests {
             observer.summary_line(),
             "observer=house-only; observer location=latitude=12.5°, longitude=45°, elevation=100.000 m; body observer=none"
         );
+        assert_eq!(
+            request
+                .validated_body_observer_label()
+                .expect("valid chart request body observer"),
+            "none"
+        );
         assert!(request
             .summary_line()
             .contains(observer.summary_line().as_str()));
+    }
+
+    #[test]
+    fn chart_request_validated_body_observer_label_returns_the_rendered_label() {
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Tt,
+        ))
+        .with_body_observer(ObserverLocation::new(
+            Latitude::from_degrees(-33.9),
+            Longitude::from_degrees(151.2),
+            None,
+        ));
+
+        assert_eq!(
+            request.validated_body_observer_label(),
+            Ok("latitude=-33.9°, longitude=151.2°, elevation=n/a".to_string())
+        );
     }
 
     #[test]
@@ -3788,9 +3855,41 @@ mod tests {
             observer.summary_line(),
             "observer=geocentric; observer location=latitude=12.5°, longitude=45°, elevation=100.000 m; body observer=none"
         );
+        assert_eq!(
+            snapshot
+                .validated_body_observer_label()
+                .expect("valid chart snapshot body observer"),
+            "none"
+        );
         assert!(snapshot
             .summary_line()
             .contains(observer.summary_line().as_str()));
+    }
+
+    #[test]
+    fn chart_snapshot_validated_body_observer_label_returns_the_rendered_label() {
+        let snapshot = ChartSnapshot {
+            backend_id: crate::BackendId::new("demo"),
+            instant: Instant::new(
+                pleiades_types::JulianDay::from_days(2_451_545.0),
+                TimeScale::Tt,
+            ),
+            observer: None,
+            body_observer: Some(ObserverLocation::new(
+                Latitude::from_degrees(-33.9),
+                Longitude::from_degrees(151.2),
+                None,
+            )),
+            zodiac_mode: ZodiacMode::Tropical,
+            apparentness: Apparentness::Mean,
+            houses: None,
+            placements: Vec::new(),
+        };
+
+        assert_eq!(
+            snapshot.validated_body_observer_label(),
+            Ok("latitude=-33.9°, longitude=151.2°, elevation=n/a".to_string())
+        );
     }
 
     #[test]
