@@ -53,6 +53,7 @@ use pleiades_data::{
     packaged_artifact_generation_policy_summary_for_report,
     packaged_artifact_generation_residual_bodies_summary_for_report,
     packaged_artifact_output_support_summary_for_report,
+    packaged_artifact_profile_coverage_summary_for_report,
     packaged_artifact_profile_summary_with_body_coverage,
     packaged_artifact_regeneration_summary_for_report,
     packaged_artifact_storage_summary_for_report, packaged_frame_parity_summary_for_report,
@@ -5957,6 +5958,9 @@ fn render_release_summary_text() -> String {
     text.push_str("Artifact validation: validate-artifact\n");
     text.push_str("Packaged-artifact profile: ");
     text.push_str(&format_packaged_artifact_profile_summary());
+    text.push('\n');
+    text.push_str("Artifact profile coverage: ");
+    text.push_str(&packaged_artifact_profile_coverage_summary_for_report());
     text.push('\n');
     text.push_str("Packaged-artifact output support: ");
     text.push_str(&format_packaged_artifact_output_support_summary());
@@ -16330,6 +16334,9 @@ version = "0.9.0"
         ));
         assert!(release_summary.contains(
             "Packaged-artifact storage/reconstruction: Quantized linear segments stored in pleiades-compression artifact format; equatorial coordinates are reconstructed at runtime from stored channels"
+        ));
+        assert!(release_summary.contains(
+            "Artifact profile coverage: stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 11 bundled bodies; bundled bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros"
         ));
         assert!(release_summary.contains(&format!(
             "Packaged-artifact access: {}",

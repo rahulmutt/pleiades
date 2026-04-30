@@ -728,6 +728,22 @@ pub fn packaged_artifact_profile_summary_details() -> PackagedArtifactProfileSum
     summary
 }
 
+/// Returns the current packaged-artifact profile coverage summary record.
+pub fn packaged_artifact_profile_coverage_summary_details() -> ArtifactProfileCoverageSummary {
+    packaged_artifact_profile_summary_details().profile_coverage_summary()
+}
+
+/// Returns the current packaged-artifact profile coverage summary for reporting.
+pub fn packaged_artifact_profile_coverage_summary_for_report() -> String {
+    let summary = packaged_artifact_profile_summary_details();
+    match summary.validate() {
+        Ok(()) => summary
+            .profile_coverage_summary()
+            .summary_line_with_bodies(),
+        Err(error) => format!("Artifact profile coverage: unavailable ({error})"),
+    }
+}
+
 /// Returns the current packaged-artifact profile summary.
 ///
 /// The summary is validated before it is rendered so release-facing callers
@@ -3206,6 +3222,16 @@ mod tests {
                     .header
                     .summary_for_body_count(artifact.bodies.len())
             )
+        );
+        assert_eq!(
+            packaged_artifact_profile_coverage_summary_details(),
+            summary.profile_coverage_summary()
+        );
+        assert_eq!(
+            packaged_artifact_profile_coverage_summary_for_report(),
+            summary
+                .profile_coverage_summary()
+                .summary_line_with_bodies()
         );
         assert_eq!(
             packaged_artifact_profile_summary_with_output_support(),
