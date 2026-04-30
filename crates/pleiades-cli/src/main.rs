@@ -1028,6 +1028,12 @@ mod tests {
         assert!(release_notes_summary.contains("Packaged-artifact generation policy:"));
         assert!(release_notes_summary.contains("Packaged request policy:"));
         assert!(release_notes_summary.contains("Packaged lookup epoch policy:"));
+        assert!(release_notes_summary.lines().any(|line| {
+            line == format!(
+                "Packaged batch parity: {}",
+                pleiades_data::packaged_mixed_tt_tdb_batch_parity_summary_for_report()
+            )
+        }));
         assert!(release_notes_summary.contains("Packaged batch parity:"));
         assert!(release_notes_summary
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
@@ -1107,6 +1113,12 @@ mod tests {
         assert!(release_summary.contains(
             "Packaged lookup epoch policy: TT-grid retag without relativistic correction; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction"
         ));
+        assert!(release_summary.lines().any(|line| {
+            line == format!(
+                "Packaged batch parity: {}",
+                pleiades_data::packaged_mixed_tt_tdb_batch_parity_summary_for_report()
+            )
+        }));
         assert!(release_summary.contains(
             "Packaged batch parity: Packaged mixed TT/TDB batch parity: 11 requests across 11 bodies, TT requests=6, TDB requests=5; quality counts: Exact=0, Interpolated=11, Approximate=0, Unknown=0; order=preserved, single-query parity=preserved"
         ));

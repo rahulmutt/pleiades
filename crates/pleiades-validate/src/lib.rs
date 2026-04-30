@@ -15053,7 +15053,12 @@ mod tests {
         )));
         assert!(rendered.contains("Packaged request policy:"));
         assert!(rendered.contains("Packaged lookup epoch policy:"));
-        assert!(rendered.contains(&packaged_mixed_tt_tdb_batch_parity_summary_for_report()));
+        assert!(rendered.lines().any(|line| {
+            line == format!(
+                "Packaged batch parity: {}",
+                packaged_mixed_tt_tdb_batch_parity_summary_for_report()
+            )
+        }));
         assert!(rendered.contains("Packaged batch parity:"));
         assert!(rendered.contains("Release notes: release-notes"));
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
@@ -15189,6 +15194,12 @@ mod tests {
         )));
         assert!(rendered.contains("House formula families: 7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign)"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
+        assert!(rendered.lines().any(|line| {
+            line == format!(
+                "Packaged batch parity: {}",
+                packaged_mixed_tt_tdb_batch_parity_summary_for_report()
+            )
+        }));
         assert!(rendered
             .lines()
             .any(|line| line == "Backend matrix summary: backend-matrix-summary"));
