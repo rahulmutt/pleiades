@@ -6102,6 +6102,14 @@ pub fn canonical_mixed_time_scale_batch_parity_request_corpus() -> Vec<Ephemeris
 ///
 /// This is a compatibility alias for [`canonical_mixed_time_scale_batch_parity_requests`].
 #[doc(alias = "canonical_mixed_time_scale_batch_parity_requests")]
+pub fn canonical_mixed_tt_tdb_batch_parity_requests() -> Vec<EphemerisRequest> {
+    canonical_mixed_time_scale_batch_parity_requests()
+}
+
+/// Returns the canonical mixed TT/TDB request corpus used by the batch-parity evidence.
+///
+/// This is a compatibility alias for [`canonical_mixed_time_scale_batch_parity_requests`].
+#[doc(alias = "canonical_mixed_time_scale_batch_parity_requests")]
 pub fn canonical_mixed_tt_tdb_batch_parity_request_corpus() -> Vec<EphemerisRequest> {
     canonical_mixed_time_scale_batch_parity_requests()
 }
@@ -10801,6 +10809,14 @@ mod tests {
     fn canonical_mixed_time_scale_batch_parity_request_corpus_remains_the_explicit_alias() {
         assert_eq!(
             canonical_mixed_time_scale_batch_parity_request_corpus(),
+            canonical_mixed_time_scale_batch_parity_requests()
+        );
+    }
+
+    #[test]
+    fn canonical_mixed_tt_tdb_batch_parity_requests_remain_the_explicit_alias() {
+        assert_eq!(
+            canonical_mixed_tt_tdb_batch_parity_requests(),
             canonical_mixed_time_scale_batch_parity_requests()
         );
     }
