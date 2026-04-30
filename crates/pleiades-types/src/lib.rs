@@ -355,6 +355,7 @@ impl std::error::Error for TimeRangeValidationError {}
 ///
 /// assert!(policy.validate(instant).is_ok());
 /// assert_eq!(policy.summary_line(), "source=TDB; target=TT; offset_seconds=-0.001657 s");
+/// assert_eq!(policy.validated_summary_line(instant).unwrap(), policy.summary_line());
 /// ```
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -383,6 +384,19 @@ impl TimeScaleConversion {
             "source={}; target={}; offset_seconds={} s",
             self.source, self.target, self.offset_seconds
         )
+    }
+
+    /// Returns the compact summary line after validating the policy.
+    ///
+    /// This keeps the fail-closed rendering path co-located with the explicit
+    /// conversion contract when a caller wants to report the policy before
+    /// mutating the instant.
+    pub fn validated_summary_line(
+        &self,
+        instant: Instant,
+    ) -> Result<String, TimeScaleConversionError> {
+        self.validate(instant)?;
+        Ok(self.summary_line())
     }
 
     /// Validates the policy against a specific instant without retagging it.
@@ -3382,6 +3396,19 @@ mod tests {
             "source=TDB; target=TT; offset_seconds=-0.001657 s"
         );
         assert_eq!(policy.to_string(), policy.summary_line());
+    }
+
+    #[test]
+    fn time_scale_conversion_policy_validated_summary_line_matches_the_plain_rendering() {
+        let policy = TimeScaleConversion::new(TimeScale::Tdb, TimeScale::Tt, -0.001_657);
+        let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb);
+
+        assert_eq!(
+            policy
+                .validated_summary_line(instant)
+                .expect("policy should validate"),
+            policy.summary_line()
+        );
     }
 
     #[test]

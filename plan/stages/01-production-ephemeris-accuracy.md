@@ -231,6 +231,8 @@ Progress note: `pleiades-vsop87` now also exposes a reusable batch-request corpu
 
 - Progress note (2026-04-28): the batch request-policy preflight now also preserves tropical-only sidereal failures with the same batch index prefix, which keeps the direct-backend sidereal guardrail explicit when callers validate slice-shaped requests instead of single requests.
 
+- Progress note (2026-04-30): `pleiades-types::TimeScaleConversion` now also exposes a validated summary-line helper, which keeps the caller-supplied Delta T / TDB offset policy on the same fail-closed summary path as the other typed time-observer records.
+
 5. Expand validation evidence.
    - Add golden positions for major bodies, lunar points, and baseline asteroids.
    - Generate cross-backend comparison reports with body/date/error summaries. Aggregate and per-body summary sections are now implemented; future source-backed backend increments should populate them with tighter measured errors.
