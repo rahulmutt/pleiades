@@ -5575,6 +5575,15 @@ pub fn canonical_epoch_requests() -> Vec<EphemerisRequest> {
 
 /// Returns the canonical J2000 request corpus used by the VSOP87 batch-path evidence.
 ///
+/// This is a compatibility alias for [`canonical_epoch_requests`].
+#[doc(alias = "canonical_epoch_requests")]
+#[doc(alias = "canonical_j2000_batch_parity_requests")]
+pub fn canonical_epoch_request_corpus() -> Vec<EphemerisRequest> {
+    canonical_epoch_requests()
+}
+
+/// Returns the canonical J2000 request corpus used by the VSOP87 batch-path evidence.
+///
 /// This is a compatibility alias for [`canonical_j2000_batch_parity_requests`].
 #[doc(alias = "canonical_j2000_batch_parity_requests")]
 pub fn canonical_j2000_batch_parity_request_corpus() -> Vec<EphemerisRequest> {
@@ -10004,6 +10013,11 @@ mod tests {
             canonical_epoch_requests(),
             canonical_j2000_batch_parity_requests()
         );
+    }
+
+    #[test]
+    fn canonical_epoch_request_corpus_remains_a_compatibility_alias() {
+        assert_eq!(canonical_epoch_request_corpus(), canonical_epoch_requests());
     }
 
     #[test]
