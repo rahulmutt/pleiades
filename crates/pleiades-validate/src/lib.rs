@@ -21,7 +21,7 @@ pub use artifact::{
     artifact_boundary_envelope_summary_for_report, artifact_inspection_summary_for_report,
     render_artifact_report, render_artifact_summary, ArtifactBodyInspection,
     ArtifactDecodeBenchmarkReport, ArtifactDecodeBenchmarkReportValidationError,
-    ArtifactInspectionReport,
+    ArtifactInspectionReport, ArtifactLookupBenchmarkReport,
 };
 pub use chart_benchmark::{
     benchmark_chart_backend, chart_benchmark_corpus_summary, ChartBenchmarkReport,
@@ -16428,6 +16428,9 @@ version = "0.9.0"
         assert!(artifact_summary.contains("Expected tolerance status"));
         assert!(artifact_summary.contains("Comparison tolerance audit"));
         assert!(artifact_summary.contains("bodies checked:"));
+        assert!(artifact_summary.contains("Artifact lookup benchmark"));
+        assert!(artifact_summary.contains("ns/lookup="));
+        assert!(artifact_summary.contains("lookups/s="));
         assert!(artifact_summary.contains("Artifact decode benchmark"));
         assert!(artifact_summary.contains("ns/decode="));
         assert!(artifact_summary.contains("decodes/s="));

@@ -52,6 +52,8 @@ pub struct ArtifactInspectionReport {
     pub model_comparison: ComparisonReport,
     /// Decode benchmark for the packaged artifact.
     pub decode_benchmark: ArtifactDecodeBenchmarkReport,
+    /// Lookup benchmark for the packaged artifact.
+    pub lookup_benchmark: ArtifactLookupBenchmarkReport,
     /// Per-body validation summaries.
     pub bodies: Vec<ArtifactBodyInspection>,
 }
@@ -617,6 +619,8 @@ pub enum ArtifactDecodeBenchmarkReportValidationError {
     BlankArtifactLabel,
     /// The source/provenance summary was blank.
     BlankSource,
+    /// The benchmark corpus name was blank.
+    BlankCorpusName,
     /// The benchmark was configured with zero rounds.
     ZeroRounds,
     /// The benchmark was configured with zero decodes per round.
@@ -631,6 +635,7 @@ impl ArtifactDecodeBenchmarkReportValidationError {
         match self {
             Self::BlankArtifactLabel => "blank artifact label",
             Self::BlankSource => "blank source",
+            Self::BlankCorpusName => "blank corpus name",
             Self::ZeroRounds => "zero rounds",
             Self::ZeroSampleCount => "zero decodes per round",
             Self::ZeroEncodedBytes => "zero encoded bytes",
@@ -725,6 +730,109 @@ impl fmt::Display for ArtifactDecodeBenchmarkReport {
     }
 }
 
+/// Benchmark summary for lookup performance against the packaged compressed artifact.
+#[derive(Clone, Debug)]
+pub struct ArtifactLookupBenchmarkReport {
+    /// Human-readable label from the artifact header.
+    pub artifact_label: String,
+    /// Source/provenance summary from the artifact header.
+    pub source: String,
+    /// Corpus name used for the benchmark.
+    pub corpus_name: String,
+    /// Number of benchmark rounds.
+    pub rounds: usize,
+    /// Number of lookups per round.
+    pub sample_count: usize,
+    /// Size of the encoded artifact in bytes.
+    pub encoded_bytes: usize,
+    /// Total elapsed time for the lookup path.
+    pub elapsed: std::time::Duration,
+}
+
+impl ArtifactLookupBenchmarkReport {
+    /// Returns the average number of nanoseconds per artifact lookup.
+    pub fn nanoseconds_per_lookup(&self) -> f64 {
+        let total_lookups = self.rounds as f64 * self.sample_count as f64;
+        if total_lookups == 0.0 {
+            return 0.0;
+        }
+
+        self.elapsed.as_secs_f64() * 1_000_000_000.0 / total_lookups
+    }
+
+    /// Returns the average throughput in artifact lookups per second.
+    pub fn lookups_per_second(&self) -> f64 {
+        let total_lookups = self.rounds as f64 * self.sample_count as f64;
+        if self.elapsed.is_zero() || total_lookups == 0.0 {
+            return 0.0;
+        }
+
+        total_lookups / self.elapsed.as_secs_f64()
+    }
+
+    /// Validates the lookup benchmark metadata before the report is formatted.
+    pub fn validate(&self) -> Result<(), ArtifactDecodeBenchmarkReportValidationError> {
+        if self.artifact_label.trim().is_empty() {
+            return Err(ArtifactDecodeBenchmarkReportValidationError::BlankArtifactLabel);
+        }
+        if self.source.trim().is_empty() {
+            return Err(ArtifactDecodeBenchmarkReportValidationError::BlankSource);
+        }
+        if self.corpus_name.trim().is_empty() {
+            return Err(ArtifactDecodeBenchmarkReportValidationError::BlankCorpusName);
+        }
+        if self.rounds == 0 {
+            return Err(ArtifactDecodeBenchmarkReportValidationError::ZeroRounds);
+        }
+        if self.sample_count == 0 {
+            return Err(ArtifactDecodeBenchmarkReportValidationError::ZeroSampleCount);
+        }
+        if self.encoded_bytes == 0 {
+            return Err(ArtifactDecodeBenchmarkReportValidationError::ZeroEncodedBytes);
+        }
+
+        Ok(())
+    }
+
+    /// Returns a compact one-line summary of the packaged-artifact lookup benchmark.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "artifact={}; source={}; corpus={}; rounds={}; lookups per round={}; encoded bytes={}; ns/lookup={:.2}; lookups/s={:.2}",
+            self.artifact_label,
+            self.source,
+            self.corpus_name,
+            self.rounds,
+            self.sample_count,
+            self.encoded_bytes,
+            self.nanoseconds_per_lookup(),
+            self.lookups_per_second(),
+        )
+    }
+}
+
+impl fmt::Display for ArtifactLookupBenchmarkReport {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "Artifact lookup benchmark report")?;
+        writeln!(f, "Artifact: {}", self.artifact_label)?;
+        writeln!(f, "Source: {}", self.source)?;
+        writeln!(f, "Corpus: {}", self.corpus_name)?;
+        writeln!(f, "Rounds: {}", self.rounds)?;
+        writeln!(f, "Lookups per round: {}", self.sample_count)?;
+        writeln!(f, "Encoded bytes: {}", self.encoded_bytes)?;
+        writeln!(
+            f,
+            "Lookup elapsed: {}",
+            super::format_duration(self.elapsed)
+        )?;
+        writeln!(
+            f,
+            "Nanoseconds per lookup: {:.2}",
+            self.nanoseconds_per_lookup()
+        )?;
+        writeln!(f, "Lookups per second: {:.2}", self.lookups_per_second())
+    }
+}
+
 impl ArtifactInspectionReport {
     fn from_artifact(
         artifact: &CompressedArtifact,
@@ -767,6 +875,7 @@ impl ArtifactInspectionReport {
             &comparison_corpus,
         )?;
         let decode_benchmark = benchmark_packaged_artifact_decode(1)?;
+        let lookup_benchmark = benchmark_packaged_artifact_lookup(1)?;
         let residual_segment_count = decoded.residual_segment_count();
         let residual_bodies = decoded.residual_bodies();
 
@@ -787,6 +896,7 @@ impl ArtifactInspectionReport {
             latest: latest.unwrap_or_else(|| artifact_first_instant(artifact)),
             model_comparison,
             decode_benchmark,
+            lookup_benchmark,
             bodies,
         };
         report.validate()?;
@@ -908,6 +1018,7 @@ impl ArtifactInspectionReport {
 
         self.model_comparison.summary.validate()?;
         self.decode_benchmark.validate()?;
+        self.lookup_benchmark.validate()?;
 
         if self.decode_benchmark.artifact_label != self.generation_label {
             return Err(report_validation_error(
@@ -924,6 +1035,24 @@ impl ArtifactInspectionReport {
         if self.decode_benchmark.encoded_bytes != self.encoded_bytes {
             return Err(report_validation_error(
                 "artifact inspection report decode benchmark encoded byte count does not match the decoded artifact",
+            ));
+        }
+
+        if self.lookup_benchmark.artifact_label != self.generation_label {
+            return Err(report_validation_error(
+                "artifact inspection report lookup benchmark artifact label does not match the decoded artifact header",
+            ));
+        }
+
+        if self.lookup_benchmark.source != self.source {
+            return Err(report_validation_error(
+                "artifact inspection report lookup benchmark source does not match the decoded artifact header",
+            ));
+        }
+
+        if self.lookup_benchmark.encoded_bytes != self.encoded_bytes {
+            return Err(report_validation_error(
+                "artifact inspection report lookup benchmark encoded byte count does not match the decoded artifact",
             ));
         }
 
@@ -987,6 +1116,35 @@ pub(crate) fn benchmark_packaged_artifact_decode(
         source: artifact.header.source.clone(),
         rounds,
         sample_count: 1,
+        encoded_bytes: encoded.len(),
+        elapsed,
+    };
+    report.validate()?;
+
+    Ok(report)
+}
+
+pub(crate) fn benchmark_packaged_artifact_lookup(
+    rounds: usize,
+) -> Result<ArtifactLookupBenchmarkReport, ArtifactInspectionError> {
+    let artifact = packaged_artifact();
+    let encoded = artifact.encode()?;
+    let corpus = artifact_model_comparison_corpus(artifact);
+    let sample_count = corpus.requests.len();
+    let start = StdInstant::now();
+    for _ in 0..rounds {
+        for request in &corpus.requests {
+            std::hint::black_box(artifact.lookup_ecliptic(&request.body, request.instant)?);
+        }
+    }
+    let elapsed = start.elapsed();
+
+    let report = ArtifactLookupBenchmarkReport {
+        artifact_label: artifact.header.generation_label.clone(),
+        source: artifact.header.source.clone(),
+        corpus_name: corpus.name,
+        rounds,
+        sample_count,
         encoded_bytes: encoded.len(),
         elapsed,
     };
@@ -1357,6 +1515,10 @@ fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
     text.push('\n');
     text.push_str("  notable regressions: ");
     text.push_str(&regression_count.to_string());
+    text.push('\n');
+    text.push_str("\nArtifact lookup benchmark\n");
+    text.push_str("  ");
+    text.push_str(&report.lookup_benchmark.summary_line());
     text.push('\n');
     text.push_str("\nArtifact decode benchmark\n");
     text.push_str("  ");
@@ -1925,6 +2087,7 @@ mod tests {
         ArtifactBodyInspection, ArtifactBoundaryEnvelopeSummary,
         ArtifactBoundaryEnvelopeSummaryValidationError, ArtifactDecodeBenchmarkReport,
         ArtifactDecodeBenchmarkReportValidationError, ArtifactInspectionReport,
+        ArtifactLookupBenchmarkReport,
     };
     use pleiades_core::{CelestialBody, Instant, JulianDay, TimeScale};
     use pleiades_data::packaged_artifact;
@@ -1942,6 +2105,18 @@ mod tests {
             sample_count: 3,
             encoded_bytes: 128,
             elapsed: Duration::from_millis(5),
+        }
+    }
+
+    fn lookup_benchmark_report() -> ArtifactLookupBenchmarkReport {
+        ArtifactLookupBenchmarkReport {
+            artifact_label: "packaged artifact".to_string(),
+            source: "public reference snapshot".to_string(),
+            corpus_name: "packaged artifact lookup corpus".to_string(),
+            rounds: 2,
+            sample_count: 4,
+            encoded_bytes: 128,
+            elapsed: Duration::from_millis(8),
         }
     }
 
@@ -2186,6 +2361,66 @@ mod tests {
         ));
 
         let mut report = decode_benchmark_report();
+        report.encoded_bytes = 0;
+        assert!(matches!(
+            report.validate(),
+            Err(ArtifactDecodeBenchmarkReportValidationError::ZeroEncodedBytes)
+        ));
+    }
+
+    #[test]
+    fn lookup_benchmark_report_summary_line_mentions_the_provenance_and_throughput() {
+        let report = lookup_benchmark_report();
+
+        let summary = report.summary_line();
+        assert!(summary.contains("artifact=packaged artifact"));
+        assert!(summary.contains("source=public reference snapshot"));
+        assert!(summary.contains("corpus=packaged artifact lookup corpus"));
+        assert!(summary.contains("rounds=2"));
+        assert!(summary.contains("lookups per round=4"));
+        assert!(summary.contains("encoded bytes=128"));
+        assert!(summary.contains("ns/lookup=1000000.00"));
+        assert!(summary.contains("lookups/s=1000.00"));
+    }
+
+    #[test]
+    fn lookup_benchmark_report_validate_rejects_invalid_metadata() {
+        let mut report = lookup_benchmark_report();
+        report.artifact_label = "   ".to_string();
+        assert!(matches!(
+            report.validate(),
+            Err(ArtifactDecodeBenchmarkReportValidationError::BlankArtifactLabel)
+        ));
+
+        let mut report = lookup_benchmark_report();
+        report.source = "\t".to_string();
+        assert!(matches!(
+            report.validate(),
+            Err(ArtifactDecodeBenchmarkReportValidationError::BlankSource)
+        ));
+
+        let mut report = lookup_benchmark_report();
+        report.corpus_name = " ".to_string();
+        assert!(matches!(
+            report.validate(),
+            Err(ArtifactDecodeBenchmarkReportValidationError::BlankCorpusName)
+        ));
+
+        let mut report = lookup_benchmark_report();
+        report.rounds = 0;
+        assert!(matches!(
+            report.validate(),
+            Err(ArtifactDecodeBenchmarkReportValidationError::ZeroRounds)
+        ));
+
+        let mut report = lookup_benchmark_report();
+        report.sample_count = 0;
+        assert!(matches!(
+            report.validate(),
+            Err(ArtifactDecodeBenchmarkReportValidationError::ZeroSampleCount)
+        ));
+
+        let mut report = lookup_benchmark_report();
         report.encoded_bytes = 0;
         assert!(matches!(
             report.validate(),
