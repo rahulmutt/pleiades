@@ -3645,6 +3645,14 @@ pub fn comparison_snapshot_request_corpus(frame: CoordinateFrame) -> Option<Vec<
     comparison_snapshot_requests(frame)
 }
 
+/// Returns the ecliptic comparison-snapshot request corpus used by validation tooling.
+///
+/// This is a compatibility alias for [`comparison_snapshot_request_corpus`].
+#[doc(alias = "comparison_snapshot_requests")]
+pub fn comparison_snapshot_ecliptic_request_corpus() -> Option<Vec<EphemerisRequest>> {
+    comparison_snapshot_request_corpus(CoordinateFrame::Ecliptic)
+}
+
 /// Returns the equatorial comparison-snapshot request corpus used by parity checks.
 ///
 /// This is a compatibility alias for [`comparison_snapshot_requests`].
@@ -6827,6 +6835,10 @@ mod tests {
         );
         assert_eq!(
             comparison_snapshot_request_corpus(CoordinateFrame::Ecliptic),
+            comparison_snapshot_requests(CoordinateFrame::Ecliptic)
+        );
+        assert_eq!(
+            comparison_snapshot_ecliptic_request_corpus(),
             comparison_snapshot_requests(CoordinateFrame::Ecliptic)
         );
         assert_eq!(
