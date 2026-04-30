@@ -1410,7 +1410,8 @@ pub fn lunar_theory_catalog_summary() -> LunarTheoryCatalogSummary {
     let selected_entry = catalog
         .iter()
         .find(|entry| entry.selected)
-        .unwrap_or(&catalog[0]);
+        .copied()
+        .unwrap_or(LUNAR_THEORY_CATALOG[0]);
 
     let selected_source = selected_entry.specification.source_selection();
 
@@ -5788,6 +5789,24 @@ mod tests {
                 .is_none()
         );
         assert!(validate_lunar_theory_catalog().is_ok());
+
+        let empty_catalog_error = validate_lunar_theory_catalog_entries(&[])
+            .expect_err("empty catalog should fail validation");
+        assert_eq!(
+            empty_catalog_error.to_string(),
+            "the lunar-theory catalog is empty"
+        );
+
+        let no_selected_catalog_error =
+            validate_lunar_theory_catalog_entries(&[LunarTheoryCatalogEntry {
+                selected: false,
+                specification: theory,
+            }])
+            .expect_err("catalog without a selected entry should fail validation");
+        assert_eq!(
+            no_selected_catalog_error.to_string(),
+            "the lunar-theory catalog has no selected entry"
+        );
     }
 
     #[test]
