@@ -5646,6 +5646,26 @@ pub fn source_backed_body_j2000_batch_parity_request_corpus() -> Vec<EphemerisRe
     source_backed_body_j2000_batch_parity_requests()
 }
 
+/// Returns the source-backed J2000 request corpus used by the VSOP87 batch-path evidence.
+///
+/// The requests preserve the source-backed body order, use the shared J2000 TT
+/// instant, and keep the geocentric ecliptic frame so validation and
+/// reproducibility tooling can reuse the exact source-backed batch slice without
+/// reconstructing it from the sample metadata.
+#[doc(alias = "source_backed_body_j2000_batch_parity_requests")]
+pub fn source_backed_body_j2000_ecliptic_batch_parity_requests() -> Vec<EphemerisRequest> {
+    source_backed_body_j2000_batch_parity_requests()
+}
+
+/// Returns the source-backed J2000 request corpus used by the VSOP87 batch-path evidence.
+///
+/// This is a compatibility alias for
+/// [`source_backed_body_j2000_ecliptic_batch_parity_requests`].
+#[doc(alias = "source_backed_body_j2000_ecliptic_batch_parity_requests")]
+pub fn source_backed_body_j2000_ecliptic_batch_parity_request_corpus() -> Vec<EphemerisRequest> {
+    source_backed_body_j2000_ecliptic_batch_parity_requests()
+}
+
 /// Returns the supported-body J2000 request corpus used by the VSOP87 batch-parity evidence.
 ///
 /// The requests preserve the supported-body order, use the shared J2000 TDB
@@ -10118,6 +10138,38 @@ mod tests {
         assert_eq!(
             source_backed_body_j2000_batch_parity_request_corpus(),
             source_backed_body_j2000_batch_parity_requests()
+        );
+    }
+
+    #[test]
+    fn source_backed_body_j2000_ecliptic_batch_parity_requests_preserve_the_source_backed_body_order(
+    ) {
+        let requests = source_backed_body_j2000_ecliptic_batch_parity_request_corpus();
+
+        assert_eq!(requests.len(), source_backed_body_order().len());
+        assert_eq!(
+            requests
+                .iter()
+                .map(|request| request.body.clone())
+                .collect::<Vec<_>>(),
+            source_backed_body_order()
+        );
+        assert!(requests.iter().all(|request| {
+            request.instant.julian_day.days() == J2000
+                && request.instant.scale == TimeScale::Tt
+                && request.frame == CoordinateFrame::Ecliptic
+        }));
+    }
+
+    #[test]
+    fn source_backed_body_j2000_ecliptic_batch_parity_requests_remain_the_explicit_alias() {
+        assert_eq!(
+            source_backed_body_j2000_ecliptic_batch_parity_requests(),
+            source_backed_body_j2000_batch_parity_requests()
+        );
+        assert_eq!(
+            source_backed_body_j2000_ecliptic_batch_parity_requests(),
+            source_backed_body_j2000_ecliptic_batch_parity_request_corpus()
         );
     }
 
