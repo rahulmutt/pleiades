@@ -5432,6 +5432,8 @@ fn render_release_notes_summary_text() -> String {
     text.push('\n');
     text.push_str(&comparison_snapshot_manifest_summary_for_report());
     text.push('\n');
+    text.push_str(&source_documentation_health_summary_for_report());
+    text.push('\n');
     text.push_str("JPL request policy: ");
     text.push_str(&jpl_snapshot_request_policy_summary_for_report());
     text.push('\n');
@@ -16058,6 +16060,9 @@ version = "0.9.0"
             release_notes_summary.contains("API stability summary line: API stability posture:")
         );
         assert!(release_notes_summary.contains("Artifact validation: validate-artifact"));
+        assert!(release_notes_summary.lines().any(|line| {
+            line == "VSOP87 source documentation health: ok (8 source specs, 8 source files, 8 source-backed profiles, 9 body profiles; 8 generated binary profiles (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune), 0 vendored full-file profiles (none), 0 truncated profiles (none), 1 fallback profiles (Pluto); source files: VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep; source-backed order: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; source-backed partition order: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; fallback order: Pluto; documented fields: variant, coordinate family, frame, units, reduction, transform note, truncation policy, and date range)"
+        }));
         assert!(release_notes_summary.lines().any(|line| {
             line == "JPL request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"
         }));

@@ -87,6 +87,7 @@ Progress note: `pleiades-vsop87` now also exposes a reusable batch-request corpu
 
 - Progress note (2026-04-29): the VSOP87 source-documentation report now routes through a testable formatter helper and has a drift regression for stale catalog counts, which keeps the compact provenance line fail-closed when the cached summary stops matching the current source catalog.
 - Progress note (2026-04-30): the release-summary smoke coverage now exact-pins the `Release summary` header and the `Backend matrix summary: backend-matrix-summary` line, which keeps two more user-facing status lines fail-closed instead of relying only on substring matches in the compact release view.
+- Progress note (2026-04-30): the release-notes-summary surface now also surfaces the VSOP87 source-documentation health line, which keeps the compact maintainer-facing notes view aligned with the source-backed planetary provenance that already appears in the validation and release-summary views.
 
 2. Implement production `pleiades-elp` lunar calculations.
    - Select and document a pure-Rust lunar theory source.
