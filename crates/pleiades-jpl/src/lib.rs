@@ -84,6 +84,14 @@ pub fn reference_snapshot_request_corpus(frame: CoordinateFrame) -> Option<Vec<E
     reference_snapshot_requests(frame)
 }
 
+/// Returns the ecliptic reference-snapshot request corpus used by batch parity checks.
+///
+/// This is a compatibility alias for [`reference_snapshot_requests`].
+#[doc(alias = "reference_snapshot_requests")]
+pub fn reference_snapshot_ecliptic_request_corpus() -> Option<Vec<EphemerisRequest>> {
+    reference_snapshot_requests(CoordinateFrame::Ecliptic)
+}
+
 /// Returns the equatorial reference-snapshot request corpus used by batch parity checks.
 ///
 /// This is a compatibility alias for [`reference_snapshot_requests`].
@@ -5787,6 +5795,14 @@ pub fn independent_holdout_snapshot_request_corpus(
     independent_holdout_snapshot_requests(frame)
 }
 
+/// Returns the ecliptic independent hold-out request corpus used by batch parity checks.
+///
+/// This is a compatibility alias for [`independent_holdout_snapshot_requests`].
+#[doc(alias = "independent_holdout_snapshot_requests")]
+pub fn independent_holdout_snapshot_ecliptic_request_corpus() -> Option<Vec<EphemerisRequest>> {
+    independent_holdout_snapshot_requests(CoordinateFrame::Ecliptic)
+}
+
 /// Returns the equatorial independent hold-out request corpus used by batch parity checks.
 ///
 /// This is a compatibility alias for [`independent_holdout_snapshot_requests`].
@@ -6825,6 +6841,10 @@ mod tests {
             reference_snapshot_requests(CoordinateFrame::Ecliptic)
         );
         assert_eq!(
+            reference_snapshot_ecliptic_request_corpus(),
+            reference_snapshot_requests(CoordinateFrame::Ecliptic)
+        );
+        assert_eq!(
             reference_snapshot_request_corpus(CoordinateFrame::Equatorial),
             reference_snapshot_requests(CoordinateFrame::Equatorial)
         );
@@ -6894,6 +6914,10 @@ mod tests {
         );
         assert_eq!(
             independent_holdout_snapshot_request_corpus(CoordinateFrame::Ecliptic),
+            independent_holdout_snapshot_requests(CoordinateFrame::Ecliptic)
+        );
+        assert_eq!(
+            independent_holdout_snapshot_ecliptic_request_corpus(),
             independent_holdout_snapshot_requests(CoordinateFrame::Ecliptic)
         );
         assert_eq!(
