@@ -5288,6 +5288,29 @@ pub fn supported_body_canonical_batch_parity_summary_for_report() -> String {
     }
 }
 
+/// Returns the supported-body canonical batch matrix request corpus used by the VSOP87 batch-path evidence.
+///
+/// The requests preserve the supported-body order and concatenate the J2000/J1900
+/// ecliptic and equatorial slices so validation and reproducibility tooling can
+/// reuse the full supported-planet matrix without reconstructing it from the
+/// summary metadata.
+pub fn supported_body_canonical_batch_parity_requests() -> Vec<EphemerisRequest> {
+    let mut requests = supported_body_j2000_ecliptic_batch_parity_requests();
+    requests.extend(supported_body_j2000_equatorial_batch_parity_requests());
+    requests.extend(supported_body_j1900_ecliptic_batch_parity_requests());
+    requests.extend(supported_body_j1900_equatorial_batch_parity_requests());
+    requests
+}
+
+/// Returns the supported-body canonical batch matrix request corpus used by the VSOP87 batch-path evidence.
+///
+/// This is a compatibility alias for [`supported_body_canonical_batch_parity_requests`].
+#[doc(alias = "supported_body_canonical_batch_parity_requests")]
+#[doc(alias = "supported_body_canonical_batch_matrix_request_corpus")]
+pub fn supported_body_canonical_batch_parity_request_corpus() -> Vec<EphemerisRequest> {
+    supported_body_canonical_batch_parity_requests()
+}
+
 /// Formats the canonical VSOP87 J2000 equatorial companion summary for reporting.
 pub fn format_canonical_equatorial_evidence_summary(
     summary: &Vsop87CanonicalEquatorialEvidenceSummary,
@@ -12211,6 +12234,7 @@ mod tests {
         let summary = supported_body_canonical_batch_parity_summary()
             .expect("supported-body canonical batch matrix should exist");
         let rendered = supported_body_canonical_batch_parity_summary_for_report();
+        let requests = supported_body_canonical_batch_parity_requests();
 
         assert_eq!(rendered, summary.summary_line());
         assert_eq!(summary.summary_line(), summary.to_string());
@@ -12255,10 +12279,47 @@ mod tests {
         assert_eq!(summary.j2000_equatorial.frame, CoordinateFrame::Equatorial);
         assert_eq!(summary.j1900_ecliptic.frame, CoordinateFrame::Ecliptic);
         assert_eq!(summary.j1900_equatorial.frame, CoordinateFrame::Equatorial);
+        assert_eq!(requests.len(), summary.supported_body_count * 4);
+        assert_eq!(
+            requests[..summary.supported_body_count]
+                .iter()
+                .map(|request| request.body.clone())
+                .collect::<Vec<_>>(),
+            summary.j2000_ecliptic.sample_bodies
+        );
+        assert_eq!(
+            requests[summary.supported_body_count..summary.supported_body_count * 2]
+                .iter()
+                .map(|request| request.body.clone())
+                .collect::<Vec<_>>(),
+            summary.j2000_equatorial.sample_bodies
+        );
+        assert_eq!(
+            requests[summary.supported_body_count * 2..summary.supported_body_count * 3]
+                .iter()
+                .map(|request| request.body.clone())
+                .collect::<Vec<_>>(),
+            summary.j1900_ecliptic.sample_bodies
+        );
+        assert_eq!(
+            requests[summary.supported_body_count * 3..]
+                .iter()
+                .map(|request| request.body.clone())
+                .collect::<Vec<_>>(),
+            summary.j1900_equatorial.sample_bodies
+        );
         assert!(rendered.contains("J2000 ecliptic"));
         assert!(rendered.contains("J2000 equatorial"));
         assert!(rendered.contains("J1900 ecliptic"));
         assert!(rendered.contains("J1900 equatorial"));
+    }
+
+    #[test]
+    fn supported_body_canonical_batch_parity_request_corpus_remains_the_plain_alias() {
+        assert_eq!(
+            supported_body_canonical_batch_parity_request_corpus(),
+            supported_body_canonical_batch_parity_requests()
+        );
     }
 
     #[test]
