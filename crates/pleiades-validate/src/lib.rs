@@ -13336,8 +13336,9 @@ mod tests {
         assert!(validation_report_summary.contains(
             "Packaged-artifact generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic residual corrections to keep the high-curvature fit compact"
         ));
-        assert!(validation_report_summary
-            .contains("Packaged-artifact generation residual bodies: residual bodies: Moon"));
+        assert!(validation_report_summary.contains(
+            "Packaged-artifact generation residual bodies: residual bodies: Moon; applies to 1 bundled body"
+        ));
         assert!(validation_report_summary.contains("Packaged request policy"));
         assert!(validation_report_summary.contains("Packaged lookup epoch policy: TT-grid retag without relativistic correction; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction"));
         assert!(validation_report_summary.contains("Packaged frame parity"));
@@ -15826,8 +15827,9 @@ version = "0.9.0"
         assert!(release_notes_summary.contains(
             "Packaged-artifact generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic residual corrections to keep the high-curvature fit compact"
         ));
-        assert!(release_notes_summary
-            .contains("Packaged-artifact generation residual bodies: residual bodies: Moon"));
+        assert!(release_notes_summary.contains(
+            "Packaged-artifact generation residual bodies: residual bodies: Moon; applies to 1 bundled body"
+        ));
         assert!(release_notes_summary
             .contains("Compatibility profile verification: verify-compatibility-profile"));
         assert!(release_notes_summary.contains("Workspace audit summary: workspace-audit-summary"));
@@ -15878,8 +15880,9 @@ version = "0.9.0"
         assert!(release_summary.contains(
             "Packaged-artifact generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic residual corrections to keep the high-curvature fit compact"
         ));
-        assert!(release_summary
-            .contains("Packaged-artifact generation residual bodies: residual bodies: Moon"));
+        assert!(release_summary.contains(
+            "Packaged-artifact generation residual bodies: residual bodies: Moon; applies to 1 bundled body"
+        ));
         assert!(release_summary.contains(
             "Packaged-artifact regeneration: Packaged artifact regeneration source: label=stage-5 packaged-data prototype"
         ));
@@ -16019,7 +16022,7 @@ version = "0.9.0"
         ));
         assert!(artifact_summary.contains("checksum=0x"));
         assert!(artifact_summary.contains("generation policy: adjacent same-body linear segments"));
-        assert!(artifact_summary.contains("residual bodies: Moon"));
+        assert!(artifact_summary.contains("residual bodies: Moon; applies to 1 bundled body"));
         assert!(artifact_summary.contains(&format!(
             "artifact version={}",
             pleiades_data::packaged_artifact_regeneration_summary_details().artifact_version

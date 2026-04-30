@@ -441,7 +441,8 @@ impl PackagedArtifactRegenerationSummary {
 
     /// Returns the residual-correction body list as a compact human-readable line.
     pub fn residual_body_line(&self) -> String {
-        self.residual_body_coverage_summary().summary_line()
+        self.residual_body_coverage_summary()
+            .summary_line_with_body_count()
     }
 
     /// Returns the generation policy as a compact human-readable line.
@@ -3453,7 +3454,10 @@ mod tests {
             summary.generation_policy_line(),
             "generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic residual corrections to keep the high-curvature fit compact"
         );
-        assert_eq!(summary.residual_body_line(), "residual bodies: Moon");
+        assert_eq!(
+            summary.residual_body_line(),
+            "residual bodies: Moon; applies to 1 bundled body"
+        );
         let residual_coverage = summary.residual_body_coverage_summary();
         assert_eq!(residual_coverage.body_count, 1);
         assert_eq!(residual_coverage.summary_line(), "residual bodies: Moon");
@@ -3483,7 +3487,7 @@ mod tests {
         ));
         assert!(provenance.contains("checksum=0x"));
         assert!(provenance.contains("generation policy: adjacent same-body linear segments"));
-        assert!(provenance.contains("residual bodies: Moon"));
+        assert!(provenance.contains("residual bodies: Moon; applies to 1 bundled body"));
         assert!(provenance.contains(&format!("artifact version={}", artifact.header.version)));
         assert!(provenance.contains("11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"));
         assert!(provenance.contains("Reference snapshot coverage:"));

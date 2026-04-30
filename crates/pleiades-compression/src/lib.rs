@@ -628,11 +628,12 @@ impl ArtifactResidualBodyCoverageSummary {
 
     /// Returns the residual-body coverage annotated with how many bodies share it.
     pub fn summary_line_with_body_count(&self) -> String {
-        format!(
-            "{}; applies to {} bundled bodies",
-            self.summary_line(),
-            self.body_count
-        )
+        let bundled_bodies = match self.body_count {
+            1 => "1 bundled body".to_string(),
+            count => format!("{count} bundled bodies"),
+        };
+
+        format!("{}; applies to {}", self.summary_line(), bundled_bodies)
     }
 }
 
@@ -2224,7 +2225,7 @@ mod tests {
         assert_eq!(summary.summary_line(), "residual bodies: Moon");
         assert_eq!(
             summary.summary_line_with_body_count(),
-            "residual bodies: Moon; applies to 1 bundled bodies"
+            "residual bodies: Moon; applies to 1 bundled body"
         );
         assert_eq!(summary.to_string(), summary.summary_line());
         summary
