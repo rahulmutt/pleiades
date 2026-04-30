@@ -5499,10 +5499,10 @@ fn render_release_notes_text() -> String {
     text.push_str("Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary\n");
     text.push_str("Release notes summary: release-notes-summary\n");
     text.push_str("Release summary: release-summary\n");
-    text.push_str("Release profile identifiers: v1 compatibility=");
-    text.push_str(release_profiles.compatibility_profile_id);
-    text.push_str(", api-stability=");
-    text.push_str(release_profiles.api_stability_profile_id);
+    text.push_str("Release profile identifiers: ");
+    text.push_str(&format_release_profile_identifiers_summary(
+        &release_profiles,
+    ));
     text.push('\n');
     text.push_str("Release checklist summary: release-checklist-summary\n");
     text.push_str("Release bundle verification: verify-release-bundle\n");
@@ -5727,10 +5727,10 @@ fn render_release_notes_summary_text() -> String {
     text.push_str("Release bundle verification: verify-release-bundle\n");
     text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
     text.push_str("Release summary: release-summary\n");
-    text.push_str("Release profile identifiers: v1 compatibility=");
-    text.push_str(release_profiles.compatibility_profile_id);
-    text.push_str(", api-stability=");
-    text.push_str(release_profiles.api_stability_profile_id);
+    text.push_str("Release profile identifiers: ");
+    text.push_str(&format_release_profile_identifiers_summary(
+        &release_profiles,
+    ));
     text.push('\n');
     text.push_str("See release-notes for the full maintainer-facing artifact.\n");
     text.push_str("See release-summary for the compact one-screen release overview.\n");
