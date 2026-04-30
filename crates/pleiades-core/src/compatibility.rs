@@ -82,7 +82,17 @@ impl HouseCodeAliasInventorySummary {
 
     /// Returns the compact rendered short-code mapping.
     pub fn summary_line(&self) -> String {
-        pleiades_houses::house_system_code_aliases_summary_line()
+        self.aliases
+            .iter()
+            .map(HouseSystemCodeAlias::summary_line)
+            .collect::<Vec<_>>()
+            .join(", ")
+    }
+
+    /// Returns the compact rendered short-code mapping after validation.
+    pub fn validated_summary_line(&self) -> Result<String, CompatibilityProfileValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
     }
 
     /// Validates the inventory against the release-profile house-code rules.
@@ -132,7 +142,8 @@ impl CompatibilityProfile {
         &self,
     ) -> Result<String, CompatibilityProfileValidationError> {
         self.validate()?;
-        Ok(self.house_code_aliases_summary_line())
+        self.house_code_alias_inventory_summary()
+            .validated_summary_line()
     }
 
     /// Returns the release-specific house-system canonical names as a compact summary.
@@ -2989,11 +3000,22 @@ mod tests {
             profile.house_code_aliases_summary_line()
         );
         assert_eq!(
+            summary.validated_summary_line(),
+            Ok(profile.house_code_aliases_summary_line())
+        );
+        assert_eq!(
             summary
                 .validate()
                 .expect("built-in aliases should validate"),
             summary.count()
         );
+    }
+
+    #[test]
+    fn house_code_alias_inventory_summary_validation_rejects_empty_inventory() {
+        let summary = HouseCodeAliasInventorySummary::new(&[]);
+
+        assert!(summary.validated_summary_line().is_err());
     }
 
     #[test]
