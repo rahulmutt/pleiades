@@ -332,13 +332,20 @@ impl fmt::Display for Vsop87SourceSpecification {
     }
 }
 
-/// Validation error for a VSOP87 source specification that contains blank metadata.
+/// Validation error for a VSOP87 source specification that contains blank or drifted metadata.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Vsop87SourceSpecificationValidationError {
     /// The rendered field is blank or whitespace-only for the named body.
     BlankField {
         body: CelestialBody,
         field: &'static str,
+    },
+    /// The rendered field no longer matches the current canonical catalog value.
+    FieldOutOfSync {
+        body: CelestialBody,
+        field: &'static str,
+        expected: &'static str,
+        found: &'static str,
     },
     /// The public source file label appears more than once in the catalog.
     DuplicateSourceFile { source_file: &'static str },
@@ -353,6 +360,15 @@ impl fmt::Display for Vsop87SourceSpecificationValidationError {
                     "the VSOP87 source specification for {body} has a blank `{field}` field"
                 )
             }
+            Self::FieldOutOfSync {
+                body,
+                field,
+                expected,
+                found,
+            } => write!(
+                f,
+                "the VSOP87 source specification for {body} has `{field}` = `{found}`, but expected `{expected}`"
+            ),
             Self::DuplicateSourceFile { source_file } => write!(
                 f,
                 "the VSOP87 source specification catalog lists public source file `{source_file}` more than once"
@@ -364,7 +380,7 @@ impl fmt::Display for Vsop87SourceSpecificationValidationError {
 impl std::error::Error for Vsop87SourceSpecificationValidationError {}
 
 impl Vsop87SourceSpecification {
-    /// Returns `Ok(())` when the specification still carries non-blank public metadata.
+    /// Returns `Ok(())` when the specification still carries the current canonical public metadata.
     pub fn validate(&self) -> Result<(), Vsop87SourceSpecificationValidationError> {
         for (field, value) in [
             ("source_file", self.source_file),
@@ -381,6 +397,40 @@ impl Vsop87SourceSpecification {
                 return Err(Vsop87SourceSpecificationValidationError::BlankField {
                     body: self.body.clone(),
                     field,
+                });
+            }
+        }
+
+        for (field, expected, found) in [
+            ("variant", "VSOP87B", self.variant),
+            (
+                "coordinate_family",
+                "heliocentric spherical variables",
+                self.coordinate_family,
+            ),
+            ("frame", "J2000 ecliptic/equinox", self.frame),
+            (
+                "units",
+                "degrees and astronomical units",
+                self.units,
+            ),
+            (
+                "transform_note",
+                "J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a mean-obliquity transform",
+                self.transform_note,
+            ),
+            (
+                "date_range",
+                "full public source file; J2000 canonical reference sample",
+                self.date_range,
+            ),
+        ] {
+            if found != expected {
+                return Err(Vsop87SourceSpecificationValidationError::FieldOutOfSync {
+                    body: self.body.clone(),
+                    field,
+                    expected,
+                    found,
                 });
             }
         }
@@ -9037,6 +9087,36 @@ mod tests {
         assert_eq!(
             error.to_string(),
             format!("the VSOP87 source specification for {body} has a blank `date_range` field")
+        );
+    }
+
+    #[test]
+    fn source_specification_validation_rejects_canonical_metadata_drift() {
+        let mut spec = source_specifications()
+            .into_iter()
+            .next()
+            .expect("expected at least one VSOP87 source specification");
+        let body = spec.body.clone();
+        spec.frame = "J2000 equatorial";
+
+        let error = spec
+            .validate()
+            .expect_err("canonical source-specification drift should fail validation");
+
+        assert_eq!(
+            error,
+            Vsop87SourceSpecificationValidationError::FieldOutOfSync {
+                body: body.clone(),
+                field: "frame",
+                expected: "J2000 ecliptic/equinox",
+                found: "J2000 equatorial",
+            }
+        );
+        assert_eq!(
+            error.to_string(),
+            format!(
+                "the VSOP87 source specification for {body} has `frame` = `J2000 equatorial`, but expected `J2000 ecliptic/equinox`"
+            )
         );
     }
 
