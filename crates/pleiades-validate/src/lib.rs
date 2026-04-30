@@ -108,7 +108,7 @@ use pleiades_vsop87::{
     canonical_epoch_evidence_summary_for_report, canonical_epoch_outlier_note_for_report,
     canonical_j1900_batch_parity_summary_for_report,
     canonical_j2000_batch_parity_summary_for_report,
-    canonical_mixed_time_scale_batch_parity_summary_for_report, frame_treatment_summary_details,
+    canonical_mixed_time_scale_batch_parity_summary_for_report, frame_treatment_summary_for_report,
     generated_binary_audit_summary_for_report, source_audit_summary_for_report, source_audits,
     source_body_class_evidence_summary_for_report, source_body_evidence_summary_for_report,
     source_documentation_health_summary_for_report, source_documentation_summary_for_report,
@@ -8440,11 +8440,7 @@ fn format_vsop87_source_documentation_health_summary() -> String {
 }
 
 fn format_vsop87_frame_treatment_summary() -> String {
-    let summary = frame_treatment_summary_details();
-    match summary.validate() {
-        Ok(()) => summary.to_string(),
-        Err(error) => format!("VSOP87 frame treatment unavailable ({error})"),
-    }
+    frame_treatment_summary_for_report()
 }
 
 fn format_jpl_frame_treatment_summary() -> String {

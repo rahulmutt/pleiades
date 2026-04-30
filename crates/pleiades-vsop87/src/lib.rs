@@ -2573,6 +2573,19 @@ pub fn frame_treatment_summary() -> &'static str {
     frame_treatment_summary_details().summary_line()
 }
 
+/// Returns the release-facing frame-treatment summary for VSOP87-backed results.
+///
+/// The backend-owned note is validated before the compact report line is
+/// rendered, so a drifted summary becomes an unavailable report rather than a
+/// stale cached string.
+pub fn frame_treatment_summary_for_report() -> String {
+    let summary = frame_treatment_summary_details();
+    match summary.validate() {
+        Ok(()) => summary.to_string(),
+        Err(error) => format!("VSOP87 frame treatment unavailable ({error})"),
+    }
+}
+
 /// Structured request policy for the current VSOP87 backend.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Vsop87RequestPolicy {
@@ -12652,6 +12665,7 @@ mod tests {
             "VSOP87 frame treatment: J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a mean-obliquity transform"
         );
         assert_eq!(frame_treatment_summary(), summary.summary_line());
+        assert_eq!(frame_treatment_summary_for_report(), summary.to_string());
         assert!(summary.summary_line().contains("mean-obliquity transform"));
     }
 
