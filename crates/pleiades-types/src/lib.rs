@@ -904,6 +904,12 @@ impl ObserverLocation {
             self.latitude, self.longitude, elevation
         )
     }
+
+    /// Returns a compact one-line rendering after validating the stored data.
+    pub fn validated_summary_line(&self) -> Result<String, ObserverLocationValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for ObserverLocation {
@@ -3631,6 +3637,7 @@ mod tests {
             valid.summary_line(),
             "latitude=51.5°, longitude=359.9°, elevation=45.000 m"
         );
+        assert_eq!(valid.validated_summary_line(), Ok(valid.summary_line()));
 
         let bad_latitude = ObserverLocation::new(
             Latitude::from_degrees(91.0),
@@ -3674,5 +3681,6 @@ mod tests {
             .summary_line(),
             "observer elevation must be finite, got inf"
         );
+        assert!(bad_elevation.validated_summary_line().is_err());
     }
 }
