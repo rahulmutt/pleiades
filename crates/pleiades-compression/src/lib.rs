@@ -935,9 +935,9 @@ impl CompressedArtifact {
     /// Validates the in-memory artifact before encoding or regeneration.
     ///
     /// This checks the header metadata, the bundled body/profile coverage,
-    /// duplicate body entries, and every body segment's metadata. It is useful
-    /// for generators that want to fail fast before writing a deterministic
-    /// binary payload.
+    /// canonical body ordering, duplicate body entries, and every body
+    /// segment's metadata. It is useful for generators that want to fail fast
+    /// before writing a deterministic binary payload.
     pub fn validate(&self) -> Result<(), CompressionError> {
         self.header.validate()?;
         self.profile_coverage_summary().validate()?;
@@ -1454,12 +1454,51 @@ fn validate_motion_policy(profile: &ArtifactProfile) -> Result<(), CompressionEr
     Ok(())
 }
 
+fn canonical_body_order_key(body: &CelestialBody) -> (u8, &str, &str) {
+    match body {
+        CelestialBody::Sun => (0, "", ""),
+        CelestialBody::Moon => (1, "", ""),
+        CelestialBody::Mercury => (2, "", ""),
+        CelestialBody::Venus => (3, "", ""),
+        CelestialBody::Mars => (4, "", ""),
+        CelestialBody::Jupiter => (5, "", ""),
+        CelestialBody::Saturn => (6, "", ""),
+        CelestialBody::Uranus => (7, "", ""),
+        CelestialBody::Neptune => (8, "", ""),
+        CelestialBody::Pluto => (9, "", ""),
+        CelestialBody::MeanNode => (10, "", ""),
+        CelestialBody::TrueNode => (11, "", ""),
+        CelestialBody::MeanApogee => (12, "", ""),
+        CelestialBody::TrueApogee => (13, "", ""),
+        CelestialBody::MeanPerigee => (14, "", ""),
+        CelestialBody::TruePerigee => (15, "", ""),
+        CelestialBody::Ceres => (16, "", ""),
+        CelestialBody::Pallas => (17, "", ""),
+        CelestialBody::Juno => (18, "", ""),
+        CelestialBody::Vesta => (19, "", ""),
+        CelestialBody::Custom(custom) => (20, custom.catalog.as_str(), custom.designation.as_str()),
+        _ => (u8::MAX, "", ""),
+    }
+}
+
 fn validate_body_artifacts(bodies: &[BodyArtifact]) -> Result<(), CompressionError> {
     for (index, body) in bodies.iter().enumerate() {
         if bodies[..index].iter().any(|other| other.body == body.body) {
             return Err(CompressionError::new(
                 CompressionErrorKind::InvalidFormat,
                 format!("compressed artifact contains duplicate body entry {body:?}"),
+            ));
+        }
+    }
+
+    for pair in bodies.windows(2) {
+        if canonical_body_order_key(&pair[0].body) > canonical_body_order_key(&pair[1].body) {
+            return Err(CompressionError::new(
+                CompressionErrorKind::InvalidFormat,
+                format!(
+                    "compressed artifact body entries must be ordered canonically; found {:?} before {:?}",
+                    pair[0].body, pair[1].body
+                ),
             ));
         }
     }
@@ -3365,6 +3404,25 @@ mod tests {
         assert!(error
             .to_string()
             .contains("artifact profile coverage bundled body list must not be empty"));
+    }
+
+    #[test]
+    fn compressed_artifact_validate_rejects_noncanonical_body_order() {
+        let artifact = CompressedArtifact::new(
+            ArtifactHeader::new("demo", "unordered bodies"),
+            vec![
+                BodyArtifact::new(CelestialBody::Moon, Vec::new()),
+                BodyArtifact::new(CelestialBody::Sun, Vec::new()),
+            ],
+        );
+
+        let error = artifact
+            .validate()
+            .expect_err("non-canonical body ordering should be rejected");
+        assert_eq!(error.kind, CompressionErrorKind::InvalidFormat);
+        assert!(error
+            .to_string()
+            .contains("compressed artifact body entries must be ordered canonically"));
     }
 
     #[test]
