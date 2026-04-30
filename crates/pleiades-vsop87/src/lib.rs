@@ -5774,6 +5774,14 @@ pub fn canonical_j1900_batch_parity_requests() -> Vec<EphemerisRequest> {
     canonical_j1900_equatorial_batch_parity_requests()
 }
 
+/// Returns the supported-body J1900 request corpus used by the VSOP87 canonical batch evidence.
+///
+/// This is a compatibility alias for [`canonical_j1900_batch_parity_requests`].
+#[doc(alias = "canonical_j1900_batch_parity_requests")]
+pub fn canonical_j1900_batch_parity_request_corpus() -> Vec<EphemerisRequest> {
+    canonical_j1900_batch_parity_requests()
+}
+
 /// Returns the canonical mixed TT/TDB request corpus used by the batch-parity evidence.
 ///
 /// The requests preserve the canonical source-backed body order and the shared
@@ -10057,6 +10065,14 @@ mod tests {
         assert_eq!(
             canonical_j1900_equatorial_batch_parity_request_corpus(),
             canonical_j1900_equatorial_batch_parity_requests()
+        );
+    }
+
+    #[test]
+    fn canonical_j1900_batch_parity_request_corpus_remains_the_explicit_alias() {
+        assert_eq!(
+            canonical_j1900_batch_parity_request_corpus(),
+            canonical_j1900_batch_parity_requests()
         );
     }
 
