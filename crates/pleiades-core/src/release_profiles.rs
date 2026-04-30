@@ -94,18 +94,26 @@ impl fmt::Display for ReleaseProfileIdentifiersValidationError {
 
 impl std::error::Error for ReleaseProfileIdentifiersValidationError {}
 
+fn contains_line_breaks(value: &str) -> bool {
+    value
+        .chars()
+        .any(|character| character == '\n' || character == '\r')
+}
+
 fn validate_release_profile_identifiers(
     compatibility_profile_id: &str,
     api_stability_profile_id: &str,
 ) -> Result<(), ReleaseProfileIdentifiersValidationError> {
     if compatibility_profile_id.trim().is_empty()
         || compatibility_profile_id.trim() != compatibility_profile_id
+        || contains_line_breaks(compatibility_profile_id)
     {
         return Err(ReleaseProfileIdentifiersValidationError::CompatibilityProfileIdOutOfSync);
     }
 
     if api_stability_profile_id.trim().is_empty()
         || api_stability_profile_id.trim() != api_stability_profile_id
+        || contains_line_breaks(api_stability_profile_id)
     {
         return Err(ReleaseProfileIdentifiersValidationError::ApiStabilityProfileIdOutOfSync);
     }
@@ -215,7 +223,7 @@ mod tests {
     }
 
     #[test]
-    fn validation_rejects_blank_or_whitespace_padded_identifiers() {
+    fn validation_rejects_blank_whitespace_padded_or_multiline_identifiers() {
         let compatibility_blank = ReleaseProfileIdentifiers {
             compatibility_profile_id: "",
             api_stability_profile_id: current_api_stability_profile_id(),
@@ -231,6 +239,24 @@ mod tests {
         };
         assert_eq!(
             api_stability_padded.validate().unwrap_err(),
+            ReleaseProfileIdentifiersValidationError::ApiStabilityProfileIdOutOfSync
+        );
+
+        let compatibility_multiline = ReleaseProfileIdentifiers {
+            compatibility_profile_id: "pleiades-compatibility/0.1.0\nrelease",
+            api_stability_profile_id: current_api_stability_profile_id(),
+        };
+        assert_eq!(
+            compatibility_multiline.validate().unwrap_err(),
+            ReleaseProfileIdentifiersValidationError::CompatibilityProfileIdOutOfSync
+        );
+
+        let api_stability_multiline = ReleaseProfileIdentifiers {
+            compatibility_profile_id: current_compatibility_profile_id(),
+            api_stability_profile_id: "pleiades-api-stability/0.1.0\r\nrelease",
+        };
+        assert_eq!(
+            api_stability_multiline.validate().unwrap_err(),
             ReleaseProfileIdentifiersValidationError::ApiStabilityProfileIdOutOfSync
         );
     }
