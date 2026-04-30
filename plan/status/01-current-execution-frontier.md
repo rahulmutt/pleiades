@@ -751,6 +751,8 @@ Latest progress (2026-04-27): the CLI compatibility-profile and release-notes sm
 Latest progress (2026-04-26): the compact house-validation corpus summary now also names the representative scenario labels directly, which makes the release-facing house evidence a little more traceable without changing the underlying baseline sample set.
 Latest progress (2026-04-26): the compact release-summary and validation-summary tests now assert the backend-family/profile wording in the Luminaries tolerance coverage row, so the release-facing comparison corpus checks stay aligned with the current structured tolerance policy text instead of the older abbreviated coverage snippet.
 
+Latest progress (2026-04-30): `pleiades-vsop87::supported_body_canonical_batch_matrix_requests()` now complements the existing matrix corpus alias, which keeps the combined J2000/J1900 ecliptic and equatorial batch slice discoverable through the shorter `requests` spelling as well.
+
 ## Constraints
 
 - Keep all implementation pure Rust.

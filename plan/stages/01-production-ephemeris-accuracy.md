@@ -129,6 +129,7 @@ Progress note: `pleiades-vsop87` now also exposes a reusable batch-request corpu
    - Progress note: the compact ELP and VSOP87 implementation notes now describe the current baselines in production-neutral language, which keeps the remaining release-facing fallback wording aligned with the current phase-1 posture while the source-backed upgrades continue.
 
    - Progress note: the lunar reference and lunar equatorial batch-parity request corpora now also expose parity-specific wrappers plus compatibility aliases, which keeps the reusable request-shape helpers aligned with the JPL and VSOP87 corpus naming pattern for downstream tooling. The same reference and equatorial reference slices now also expose plain `request_corpus` compatibility aliases, which keeps those canonical Moon evidence windows discoverable through the same naming pattern as the planetary corpora without changing the batch shape.
+   - Progress note (2026-04-30): `pleiades-vsop87::supported_body_canonical_batch_matrix_requests()` now complements the existing matrix corpus alias, which keeps the combined J2000/J1900 ecliptic and equatorial batch slice discoverable through the shorter `requests` spelling as well.
 
 3. Upgrade `pleiades-jpl` from snapshot fixture to reference backend.
    - Parse documented public JPL-style files or a reproducible derivative format in pure Rust.
