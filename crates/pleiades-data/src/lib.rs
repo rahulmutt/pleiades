@@ -1450,7 +1450,7 @@ impl PackagedArtifactAccessSummary {
     /// Returns `Ok(())` when the summary still matches the current build posture.
     pub fn validate(&self) -> Result<(), PackagedArtifactAccessSummaryValidationError> {
         validate_packaged_artifact_access_summary_line(self.summary_line())?;
-        if self.explicit_path_loading != cfg!(feature = "packaged-artifact-path") {
+        if self.explicit_path_loading != packaged_artifact_path_loading_enabled() {
             return Err(
                 PackagedArtifactAccessSummaryValidationError::FeatureStateOutOfSync {
                     field: "explicit_path_loading",
@@ -1467,6 +1467,11 @@ impl fmt::Display for PackagedArtifactAccessSummary {
     }
 }
 
+/// Returns whether this build can load packaged artifacts from an explicit path.
+pub const fn packaged_artifact_path_loading_enabled() -> bool {
+    cfg!(feature = "packaged-artifact-path")
+}
+
 /// Returns the structured packaged-artifact access summary.
 ///
 /// # Examples
@@ -1475,15 +1480,17 @@ impl fmt::Display for PackagedArtifactAccessSummary {
 /// use pleiades_data::{
 ///     packaged_artifact_access_summary_details,
 ///     packaged_artifact_access_summary_for_report,
+///     packaged_artifact_path_loading_enabled,
 /// };
 ///
 /// let summary = packaged_artifact_access_summary_details();
+/// assert_eq!(summary.explicit_path_loading, packaged_artifact_path_loading_enabled());
 /// assert_eq!(summary.to_string(), packaged_artifact_access_summary_for_report());
 /// assert!(summary.validate().is_ok());
 /// ```
 pub const fn packaged_artifact_access_summary_details() -> PackagedArtifactAccessSummary {
     PackagedArtifactAccessSummary {
-        explicit_path_loading: cfg!(feature = "packaged-artifact-path"),
+        explicit_path_loading: packaged_artifact_path_loading_enabled(),
     }
 }
 
@@ -3363,7 +3370,7 @@ mod tests {
         let summary = packaged_artifact_access_summary_details();
         assert_eq!(
             summary.explicit_path_loading,
-            cfg!(feature = "packaged-artifact-path")
+            packaged_artifact_path_loading_enabled()
         );
         assert_eq!(summary.summary_line(), packaged_artifact_access_summary());
         assert_eq!(summary.to_string(), packaged_artifact_access_summary());
