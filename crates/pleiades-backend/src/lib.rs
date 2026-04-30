@@ -1312,6 +1312,14 @@ impl TimeScalePolicySummary {
             Ok(())
         }
     }
+
+    /// Returns the compact summary line after validating the cached prose.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<&'static str, TimeScalePolicySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for TimeScalePolicySummary {
@@ -1356,6 +1364,12 @@ impl RequestPolicySummary {
             "time-scale={}; observer={}; apparentness={}; frame={}",
             self.time_scale, self.observer, self.apparentness, self.frame
         )
+    }
+
+    /// Returns the compact summary line after validating the cached prose.
+    pub fn validated_summary_line(&self) -> Result<String, RequestPolicySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
     }
 }
 
@@ -2271,6 +2285,7 @@ mod tests {
         );
         assert!(summary.summary_line().contains("TT/TDB"));
         assert!(summary.validate().is_ok());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             time_scale_policy_summary_for_report().summary_line(),
             summary.summary_line()
@@ -2285,6 +2300,7 @@ mod tests {
             .validate()
             .expect_err("blank policy prose should fail validation");
         assert_eq!(error.to_string(), "time-scale policy summary is blank");
+        assert!(summary.validated_summary_line().is_err());
     }
 
     #[test]
@@ -2301,6 +2317,7 @@ mod tests {
         assert!(summary.summary_line().contains("apparentness="));
         assert!(summary.summary_line().contains("frame="));
         assert!(summary.validate().is_ok());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
     }
 
     #[test]
@@ -2315,6 +2332,7 @@ mod tests {
             error.to_string(),
             "the request-policy summary field `frame` is out of sync with the current posture"
         );
+        assert!(summary.validated_summary_line().is_err());
     }
 
     #[test]

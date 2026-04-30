@@ -5652,7 +5652,9 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     let time_scale_policy = time_scale_policy_summary_for_report();
     text.push_str("Time-scale policy: ");
-    text.push_str(time_scale_policy.summary_line());
+    text.push_str(&format_time_scale_policy_summary_for_report(
+        &time_scale_policy,
+    ));
     text.push('\n');
     text.push_str("Observer policy: ");
     text.push_str(request_policy.observer);
@@ -8669,11 +8671,20 @@ fn mean_obliquity_frame_round_trip_summary_for_report() -> String {
     }
 }
 
+fn format_time_scale_policy_summary_for_report(
+    summary: &pleiades_backend::TimeScalePolicySummary,
+) -> String {
+    match summary.validated_summary_line() {
+        Ok(line) => line.to_string(),
+        Err(error) => format!("time-scale policy unavailable ({error})"),
+    }
+}
+
 fn format_request_policy_summary_for_report(
     summary: &pleiades_backend::RequestPolicySummary,
 ) -> String {
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
+    match summary.validated_summary_line() {
+        Ok(line) => line,
         Err(error) => format!("request policy unavailable ({error})"),
     }
 }
@@ -9919,7 +9930,9 @@ fn render_backend_matrix_summary_text() -> String {
     }
     let time_scale_policy = time_scale_policy_summary_for_report();
     text.push_str("Time-scale policy: ");
-    text.push_str(time_scale_policy.summary_line());
+    text.push_str(&format_time_scale_policy_summary_for_report(
+        &time_scale_policy,
+    ));
     text.push('\n');
     text.push_str("Observer policy: ");
     text.push_str(request_policy.observer);
@@ -10024,7 +10037,9 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(")\n");
     let time_scale_policy = time_scale_policy_summary_for_report();
     text.push_str("Time-scale policy: ");
-    text.push_str(time_scale_policy.summary_line());
+    text.push_str(&format_time_scale_policy_summary_for_report(
+        &time_scale_policy,
+    ));
     text.push('\n');
     text.push_str("Observer policy: ");
     text.push_str(observer_policy_summary_for_report());
