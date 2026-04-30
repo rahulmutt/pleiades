@@ -269,6 +269,7 @@ Progress note: `pleiades-vsop87` now also exposes a reusable batch-request corpu
    - Progress note (2026-04-28): the release-notes-summary and release-summary smoke coverage now also pin the workspace-audit summary line, which keeps the pure-Rust workspace gate visible in the compact release-facing audit path alongside the other bundled status summaries.
    - Latest progress (2026-04-29): the shared frame-treatment summary validation now also rejects embedded line breaks in addition to blank and padded text, which keeps backend-owned provenance notes on the same fail-closed compact-line path as the other release-facing policy summaries.
    - Latest progress (2026-04-29): the validation-layer mean-obliquity frame round-trip evidence now also travels through a typed summary record with `summary_line()`/`Display` and a fail-closed report wrapper, and the summary helper is now publicly reusable for downstream tooling, which keeps the compact frame-conversion check centralized instead of rebuilding the same wording ad hoc in the report path.
+   - Latest progress (2026-04-30): the canonical mean-obliquity frame round-trip sample corpus is now public too, which lets downstream validation and reproducibility tooling reuse the exact TT-tagged sample instants directly instead of reconstructing the five-point evidence slice from the summary helper.
    - Keep validation reproducible and pure Rust.
 
 ## Done criteria

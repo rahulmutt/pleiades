@@ -8549,7 +8549,10 @@ impl fmt::Display for MeanObliquityFrameRoundTripSummary {
     }
 }
 
-fn mean_obliquity_frame_round_trip_samples() -> [(EclipticCoordinates, Instant); 5] {
+/// Returns the canonical sample corpus used to validate the shared mean-obliquity frame round-trip envelope.
+///
+/// Downstream tooling can reuse this exact input set instead of reconstructing it from report text.
+pub fn mean_obliquity_frame_round_trip_sample_corpus() -> [(EclipticCoordinates, Instant); 5] {
     [
         (
             EclipticCoordinates::new(
@@ -8652,7 +8655,9 @@ fn mean_obliquity_frame_round_trip_summary_from_samples(
 
 fn expected_mean_obliquity_frame_round_trip_summary(
 ) -> Result<MeanObliquityFrameRoundTripSummary, String> {
-    mean_obliquity_frame_round_trip_summary_from_samples(&mean_obliquity_frame_round_trip_samples())
+    mean_obliquity_frame_round_trip_summary_from_samples(
+        &mean_obliquity_frame_round_trip_sample_corpus(),
+    )
 }
 
 fn arithmetic_mean(values: &[f64]) -> f64 {
@@ -8686,7 +8691,7 @@ fn percentile_linear_interpolation(values: &[f64], percentile: f64) -> f64 {
 pub fn mean_obliquity_frame_round_trip_summary(
 ) -> Result<MeanObliquityFrameRoundTripSummary, String> {
     let summary = mean_obliquity_frame_round_trip_summary_from_samples(
-        &mean_obliquity_frame_round_trip_samples(),
+        &mean_obliquity_frame_round_trip_sample_corpus(),
     )?;
     summary.validate()?;
     Ok(summary)
@@ -18111,6 +18116,33 @@ version = "0.9.0"
         assert!(summary.summary_line().contains("mean |Δlon|="));
         assert!(summary.summary_line().contains("p95 |Δlon|="));
         assert!(summary.validate().is_ok());
+    }
+
+    #[test]
+    fn mean_obliquity_frame_round_trip_sample_corpus_matches_the_canonical_summary() {
+        let samples = mean_obliquity_frame_round_trip_sample_corpus();
+
+        assert_eq!(samples.len(), 5);
+        assert_eq!(
+            samples
+                .first()
+                .expect("sample corpus should not be empty")
+                .1
+                .scale,
+            TimeScale::Tt
+        );
+        assert_eq!(
+            samples
+                .last()
+                .expect("sample corpus should not be empty")
+                .1
+                .scale,
+            TimeScale::Tt
+        );
+
+        let summary = mean_obliquity_frame_round_trip_summary_from_samples(&samples)
+            .expect("canonical sample corpus should remain valid");
+        assert_eq!(summary, mean_obliquity_frame_round_trip_summary().unwrap());
     }
 
     #[test]
