@@ -2635,6 +2635,33 @@ mod tests {
         let _ = std::fs::remove_file(&path);
     }
 
+    #[cfg(feature = "packaged-artifact-path")]
+    #[test]
+    fn packaged_artifact_from_path_rejects_corrupted_artifact() {
+        let path = std::env::temp_dir().join(format!(
+            "pleiades-data-packaged-artifact-corrupt-{}-{}.bin",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("system clock should be after the Unix epoch")
+                .as_nanos()
+        ));
+        std::fs::write(&path, b"not a valid packaged artifact")
+            .expect("corrupt artifact should be writable");
+
+        let error = packaged_artifact_from_path(&path)
+            .expect_err("corrupted packaged artifact should fail to decode");
+        let error_text = error.to_string();
+
+        match error {
+            PackagedArtifactLoadError::Decode(_) => {}
+            other => panic!("expected decode failure, got {other}"),
+        }
+        assert!(error_text.contains("failed to decode packaged artifact"));
+
+        let _ = std::fs::remove_file(&path);
+    }
+
     #[test]
     fn packaged_artifact_decode_rejects_checksum_corruption() {
         let mut encoded = PACKAGED_ARTIFACT_FIXTURE.to_vec();

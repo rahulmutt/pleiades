@@ -322,6 +322,7 @@ Progress note (2026-04-29): the compact compatibility-profile, release-notes sum
 Progress note (2026-04-29): the CLI compatibility-profile, release-notes, and release-summary smoke coverage now also pins the shorter `Mula Wilhelm` and `Wilhelm` alias spellings for Galactic Center (Mula/Wilhelm), which keeps that galactic-reference alias cluster visible in the user-facing release audit alongside the already pinned canonical entry.
 Progress note (2026-04-29): the CLI release-summary smoke coverage now also pins the packaged lookup epoch policy and packaged batch parity lines, which keeps the packaged-data request-shape posture anchored in the one-screen release audit alongside the existing artifact and catalog summaries.
 Progress note (2026-04-29): that same release-facing smoke coverage now also pins the exact packaged mixed TT/TDB batch-parity line, which keeps the time-scale mix visible in the compact audit instead of only through the generic packaged batch-parity heading.
+Progress note (2026-04-30): the feature-gated `packaged_artifact_from_path()` loader now also has an explicit corrupted-file regression, which keeps the external artifact-path decode failure mode fail-closed alongside the existing successful file-load test without changing the default checked-in fixture path.
 
 Remaining suggested scope:
 
