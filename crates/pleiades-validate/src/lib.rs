@@ -7710,23 +7710,34 @@ pub fn comparison_tail_envelope(
     Ok(envelope)
 }
 
+/// Combined comparison envelope summary used by the compact report.
+///
+/// The summary keeps the aggregate comparison record, the median deltas, and
+/// the 95th-percentile tail together so downstream tooling can reuse the same
+/// validated envelope that the report formatter renders.
 #[derive(Clone, Debug, PartialEq)]
-struct ComparisonEnvelopeSummary {
+pub struct ComparisonEnvelopeSummary {
     summary: ComparisonSummary,
     median: ComparisonMedianEnvelope,
     percentile: ComparisonPercentileEnvelope,
 }
 
 impl ComparisonEnvelopeSummary {
-    fn summary_line(&self) -> String {
+    /// Returns the compact comparison summary line with the median envelope.
+    pub fn summary_line(&self) -> String {
         format!("{}; {}", self.summary, self.median)
     }
 
-    fn percentile_line(&self) -> String {
+    /// Returns the compact 95th-percentile tail line.
+    pub fn percentile_line(&self) -> String {
         self.percentile.summary_line()
     }
 
-    fn validate_against_samples(&self, samples: &[ComparisonSample]) -> Result<(), EphemerisError> {
+    /// Validates the stored envelope against the provided comparison samples.
+    pub fn validate_against_samples(
+        &self,
+        samples: &[ComparisonSample],
+    ) -> Result<(), EphemerisError> {
         self.summary.validate()?;
 
         if self.summary.sample_count != samples.len() {
@@ -7806,7 +7817,8 @@ impl fmt::Display for ComparisonEnvelopeSummary {
     }
 }
 
-fn comparison_envelope_summary(
+/// Returns the combined comparison envelope summary used by the compact report.
+pub fn comparison_envelope_summary(
     summary: &ComparisonSummary,
     samples: &[ComparisonSample],
 ) -> ComparisonEnvelopeSummary {
