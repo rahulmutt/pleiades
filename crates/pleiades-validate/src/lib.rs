@@ -7559,14 +7559,15 @@ impl fmt::Display for ComparisonMedianEnvelope {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-struct ComparisonPercentileEnvelope {
+pub struct ComparisonPercentileEnvelope {
     longitude_delta_deg: f64,
     latitude_delta_deg: f64,
     distance_delta_au: Option<f64>,
 }
 
 impl ComparisonPercentileEnvelope {
-    fn validate(&self) -> Result<(), EphemerisError> {
+    /// Validates the stored 95th-percentile comparison envelope.
+    pub fn validate(&self) -> Result<(), EphemerisError> {
         for (label, value) in [
             ("longitude_delta_deg", self.longitude_delta_deg),
             ("latitude_delta_deg", self.latitude_delta_deg),
@@ -7593,7 +7594,8 @@ impl ComparisonPercentileEnvelope {
         Ok(())
     }
 
-    fn summary_line(&self) -> String {
+    /// Returns the compact 95th-percentile comparison envelope line.
+    pub fn summary_line(&self) -> String {
         let distance = self
             .distance_delta_au
             .map(|value| format!("{value:.12} AU"))
@@ -7610,6 +7612,17 @@ impl fmt::Display for ComparisonPercentileEnvelope {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.summary_line())
     }
+}
+
+/// Returns the 95th-percentile comparison envelope used by the compact tail report.
+pub fn comparison_tail_envelope(
+    samples: &[ComparisonSample],
+) -> Result<ComparisonPercentileEnvelope, EphemerisError> {
+    validate_comparison_samples_for_report(samples)?;
+
+    let envelope = comparison_percentile_envelope(samples, 0.95);
+    envelope.validate()?;
+    Ok(envelope)
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -7798,16 +7811,10 @@ fn comparison_percentile_envelope(
 }
 
 fn format_comparison_percentile_envelope_for_report(samples: &[ComparisonSample]) -> String {
-    if let Err(error) = validate_comparison_samples_for_report(samples) {
-        return format!("comparison percentile envelope unavailable ({error})");
+    match comparison_tail_envelope(samples) {
+        Ok(envelope) => envelope.summary_line(),
+        Err(error) => format!("comparison percentile envelope unavailable ({error})"),
     }
-
-    let envelope = comparison_percentile_envelope(samples, 0.95);
-    if let Err(error) = envelope.validate() {
-        return format!("comparison percentile envelope unavailable ({error})");
-    }
-
-    envelope.summary_line()
 }
 
 fn format_comparison_envelope_for_report(
@@ -12721,6 +12728,23 @@ mod tests {
     }
 
     #[test]
+    fn comparison_tail_envelope_is_publicly_reusable() {
+        let corpus = default_corpus();
+        let reference = default_reference_backend();
+        let candidate = default_candidate_backend();
+        let report =
+            compare_backends(&reference, &candidate, &corpus).expect("comparison should build");
+        let envelope =
+            comparison_tail_envelope(&report.samples).expect("tail envelope should exist");
+
+        assert_eq!(envelope.summary_line(), envelope.to_string());
+        assert_eq!(
+            envelope.summary_line(),
+            format_comparison_percentile_envelope_for_report(&report.samples)
+        );
+    }
+
+    #[test]
     fn regression_finding_has_a_displayable_summary_line() {
         let corpus = default_corpus();
         let reference = default_reference_backend();
@@ -16022,8 +16046,19 @@ version = "0.9.0"
         )));
         assert!(manifest.contains("release-profile-identifiers.txt"));
         assert!(release_summary.contains("Comparison envelope: samples:"));
-        assert!(
-            release_summary.contains("Comparison tail envelope: 95th percentile absolute deltas:")
+        let comparison_report = compare_backends(
+            &default_reference_backend(),
+            &default_candidate_backend(),
+            &default_corpus(),
+        )
+        .expect("comparison should build");
+        assert_report_contains_exact_line(
+            &release_summary,
+            &format!(
+                "Comparison tail envelope: {}",
+                comparison_tail_envelope(&comparison_report.samples)
+                    .expect("comparison tail envelope should exist")
+            ),
         );
         assert!(release_summary.contains("mean longitude delta:"));
         assert!(release_summary.contains("median longitude delta:"));
