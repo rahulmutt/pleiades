@@ -15407,6 +15407,10 @@ mod tests {
         assert!(rendered.contains("Packaged batch parity:"));
         assert!(rendered.contains("Release notes: release-notes"));
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
+        assert_report_contains_exact_line(
+            &rendered,
+            "Workspace audit summary: workspace-audit-summary",
+        );
         assert!(rendered.contains(profile.target_house_scope.join("; ").as_str()));
         assert!(rendered.contains(profile.target_ayanamsa_scope.join("; ").as_str()));
         assert!(rendered.contains(&format!(
@@ -15552,6 +15556,14 @@ mod tests {
             .lines()
             .any(|line| line == "Backend matrix summary: backend-matrix-summary"));
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
+        assert_report_contains_exact_line(
+            &rendered,
+            "Workspace audit summary: workspace-audit-summary",
+        );
+        assert_report_contains_exact_line(
+            &rendered,
+            "Release checklist summary: release-checklist-summary",
+        );
         assert!(rendered.contains("Workspace audit: workspace-audit / audit"));
         assert!(rendered.contains("Time-scale policy: direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T model"));
         assert!(rendered.contains("Observer policy: chart houses use observer locations; body requests stay geocentric; geocentric-only backends reject observer-bearing requests"));
