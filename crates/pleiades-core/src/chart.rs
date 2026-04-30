@@ -1790,6 +1790,27 @@ impl AspectDefinition {
         }
     }
 
+    /// Returns a compact one-line rendering of the configured aspect.
+    ///
+    /// This keeps the configurable aspect vocabulary aligned with the other
+    /// typed chart summaries while making the angle parameters easy to audit.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use pleiades_core::{AspectDefinition, AspectKind};
+    ///
+    /// let definition = AspectDefinition::new(AspectKind::Sextile, 60.0, 4.0);
+    /// assert_eq!(definition.summary_line(), "kind=Sextile; exact_degrees=60°; orb_degrees=4°");
+    /// assert_eq!(definition.to_string(), definition.summary_line());
+    /// ```
+    pub fn summary_line(self) -> String {
+        format!(
+            "kind={}; exact_degrees={}°; orb_degrees={}°",
+            self.kind, self.exact_degrees, self.orb_degrees
+        )
+    }
+
     /// Validates that the configured exact angle and orb remain finite and within range.
     ///
     /// # Example
@@ -1814,6 +1835,12 @@ impl AspectDefinition {
         }
 
         Ok(())
+    }
+}
+
+impl fmt::Display for AspectDefinition {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
     }
 }
 
@@ -4365,6 +4392,16 @@ mod tests {
         let rendered = chart.to_string();
         assert!(rendered.contains("asteroid:433-Eros"));
         assert!(rendered.contains("Retrograde bodies: asteroid:433-Eros"));
+    }
+
+    #[test]
+    fn aspect_definition_summary_line_and_validation_remain_typed() {
+        let definition = AspectDefinition::new(AspectKind::Sextile, 60.0, 4.0);
+        assert_eq!(
+            definition.summary_line(),
+            "kind=Sextile; exact_degrees=60°; orb_degrees=4°"
+        );
+        assert_eq!(definition.to_string(), definition.summary_line());
     }
 
     #[test]
