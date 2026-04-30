@@ -376,8 +376,8 @@ pub fn packaged_artifact_generation_residual_bodies_summary_for_report() -> Stri
     let artifact = packaged_artifact();
     let summary = packaged_artifact_generation_residual_bodies_summary_details();
 
-    match summary.validate(artifact) {
-        Ok(()) => summary.summary_line_with_body_count(),
+    match summary.validated_summary_line_with_body_count(artifact) {
+        Ok(line) => line,
         Err(error) => format!("residual bodies: unavailable ({error})"),
     }
 }

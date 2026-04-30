@@ -643,6 +643,15 @@ impl ArtifactResidualBodyCoverageSummary {
 
         format!("{}; applies to {}", self.summary_line(), bundled_bodies)
     }
+
+    /// Returns the residual-body coverage line after validating the artifact.
+    pub fn validated_summary_line_with_body_count(
+        &self,
+        artifact: &CompressedArtifact,
+    ) -> Result<String, CompressionError> {
+        self.validate(artifact)?;
+        Ok(self.summary_line_with_body_count())
+    }
 }
 
 impl fmt::Display for ArtifactResidualBodyCoverageSummary {
@@ -2285,6 +2294,12 @@ mod tests {
         assert_eq!(summary.summary_line(), "residual bodies: Moon");
         assert_eq!(
             summary.summary_line_with_body_count(),
+            "residual bodies: Moon; applies to 1 bundled body"
+        );
+        assert_eq!(
+            summary
+                .validated_summary_line_with_body_count(&artifact)
+                .expect("residual body coverage summary should validate"),
             "residual bodies: Moon; applies to 1 bundled body"
         );
         assert_eq!(summary.to_string(), summary.summary_line());
