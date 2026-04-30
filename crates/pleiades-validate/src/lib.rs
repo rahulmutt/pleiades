@@ -7078,6 +7078,12 @@ fn ensure_canonical_manifest_value(
         )));
     }
 
+    if value.eq_ignore_ascii_case("unknown") {
+        return Err(ReleaseBundleError::Verification(format!(
+            "invalid {field_name} entry: placeholder values are not allowed"
+        )));
+    }
+
     Ok(())
 }
 
@@ -17119,6 +17125,23 @@ version = "0.9.0"
         let error = error.to_string();
         assert!(error.contains("invalid source revision entry"));
         assert!(error.contains("unexpected leading or trailing whitespace"));
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn release_bundle_validate_rejects_placeholder_provenance() {
+        let bundle_dir = unique_temp_dir("pleiades-release-bundle-provenance-placeholder");
+        let mut bundle =
+            render_release_bundle(1, &bundle_dir).expect("release bundle should render");
+        bundle.rustc_version = "unknown".to_string();
+
+        let error = bundle
+            .validate()
+            .expect_err("placeholder provenance should be rejected by bundle validation");
+        let error = error.to_string();
+        assert!(error.contains("invalid rustc version entry"));
+        assert!(error.contains("placeholder values are not allowed"));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
     }
