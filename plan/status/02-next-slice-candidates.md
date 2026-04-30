@@ -330,6 +330,7 @@ Progress note (2026-04-29): the CLI release-summary smoke coverage now also pins
 Progress note (2026-04-29): that same release-facing smoke coverage now also pins the exact packaged mixed TT/TDB batch-parity line, which keeps the time-scale mix visible in the compact audit instead of only through the generic packaged batch-parity heading.
 Progress note (2026-04-30): the feature-gated `packaged_artifact_from_path()` loader now also has an explicit corrupted-file regression, which keeps the external artifact-path decode failure mode fail-closed alongside the existing successful file-load test without changing the default checked-in fixture path.
 Progress note (2026-04-30): the CLI release-summary and release-notes-summary smoke coverage now also exact-pins the packaged-artifact access and generation-policy lines, which keeps those release-profile status spellings fail-closed alongside the already pinned packaged lookup-epoch and batch-parity lines.
+Progress note (2026-04-30): the CLI release-summary smoke coverage now also exact-pins the release-profile identifiers and workspace-audit status lines, which extends the compact release-profile spelling hardening into the user-facing command path.
 
 Remaining suggested scope:
 

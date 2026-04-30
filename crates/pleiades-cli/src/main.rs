@@ -1126,7 +1126,9 @@ mod tests {
         )));
         assert!(release_summary.contains("Compatibility catalog inventory: house systems=25 (12 baseline, 13 release-specific, 156 aliases); house-code aliases=22; ayanamsas=59 (5 baseline, 54 release-specific, 183 aliases); custom-definition labels=9; known gaps=2"));
         assert!(release_summary.contains("House formula families: 7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign)"));
-        assert!(release_summary.contains("Release profile identifiers: v1 compatibility=pleiades-compatibility-profile/0.6.123, api-stability=pleiades-api-stability/0.1.0"));
+        assert!(release_summary.lines().any(|line| {
+            line == "Release profile identifiers: v1 compatibility=pleiades-compatibility-profile/0.6.123, api-stability=pleiades-api-stability/0.1.0"
+        }));
         assert!(release_summary.contains("API stability summary line: API stability posture: pleiades-api-stability/0.1.0; stable surfaces: 6; experimental surfaces: 3; deprecation policy items: 4; intentional limits: 3"));
         assert!(release_summary.lines().any(|line| {
             line == "Time-scale policy: direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T model"
@@ -1198,7 +1200,9 @@ mod tests {
         ));
         assert!(release_summary.contains("Artifact validation: validate-artifact"));
         assert!(release_summary.contains("Release bundle verification: verify-release-bundle"));
-        assert!(release_summary.contains("Workspace audit: workspace-audit / audit"));
+        assert!(release_summary
+            .lines()
+            .any(|line| line == "Workspace audit: workspace-audit / audit"));
         assert!(release_summary
             .contains("[x] cargo run -q -p pleiades-validate -- verify-compatibility-profile"));
         assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
