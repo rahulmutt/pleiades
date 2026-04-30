@@ -99,31 +99,41 @@ impl fmt::Display for ObserverPolicy {
 }
 
 /// Observer-policy and location summary for chart requests and snapshots.
+///
+/// The house-observer location and the optional body-position observer are
+/// kept as separate typed fields so report text can distinguish them clearly.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ObserverSummary {
     /// The observer posture implied by the chart shape.
     pub policy: ObserverPolicy,
     /// The optional observer location rendered in report output.
     pub location: Option<ObserverLocation>,
+    /// The optional topocentric body-position observer rendered in report output.
+    pub body_location: Option<ObserverLocation>,
 }
 
 /// Errors returned when an observer summary no longer matches the chart observer posture.
 #[derive(Clone, Debug, PartialEq)]
 pub enum ObserverSummaryValidationError {
     /// A house-only summary no longer carries an observer location.
-    HouseOnlyMissingLocation,
+    HouseOnlyMissingObserver,
     /// The rendered observer location is invalid.
-    InvalidLocation(ObserverLocationValidationError),
+    InvalidObserverLocation(ObserverLocationValidationError),
+    /// The rendered body-position observer location is invalid.
+    InvalidBodyPosition(ObserverLocationValidationError),
 }
 
 impl fmt::Display for ObserverSummaryValidationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::HouseOnlyMissingLocation => {
+            Self::HouseOnlyMissingObserver => {
                 f.write_str("observer summary for house-only posture requires an observer location")
             }
-            Self::InvalidLocation(error) => {
+            Self::InvalidObserverLocation(error) => {
                 write!(f, "observer summary location is invalid: {error}")
+            }
+            Self::InvalidBodyPosition(error) => {
+                write!(f, "observer summary body location is invalid: {error}")
             }
         }
     }
@@ -134,7 +144,17 @@ impl std::error::Error for ObserverSummaryValidationError {}
 impl ObserverSummary {
     /// Creates a new observer summary from the typed policy and optional location.
     pub const fn new(policy: ObserverPolicy, location: Option<ObserverLocation>) -> Self {
-        Self { policy, location }
+        Self {
+            policy,
+            location,
+            body_location: None,
+        }
+    }
+
+    /// Sets the optional body-position observer rendered in report output.
+    pub fn with_body_location(mut self, body_location: Option<ObserverLocation>) -> Self {
+        self.body_location = body_location;
+        self
     }
 
     /// Returns the stored observer location as a compact label.
@@ -142,16 +162,27 @@ impl ObserverSummary {
         render_observer_location_label(self.location.as_ref())
     }
 
+    /// Returns the stored body-position observer location as a compact label.
+    pub fn body_location_label(&self) -> String {
+        render_observer_location_label(self.body_location.as_ref())
+    }
+
     /// Validates that the observer summary still matches the current observer posture.
     pub fn validate(&self) -> Result<(), ObserverSummaryValidationError> {
         if self.policy == ObserverPolicy::HouseOnly && self.location.is_none() {
-            return Err(ObserverSummaryValidationError::HouseOnlyMissingLocation);
+            return Err(ObserverSummaryValidationError::HouseOnlyMissingObserver);
         }
 
         if let Some(observer) = &self.location {
             observer
                 .validate()
-                .map_err(ObserverSummaryValidationError::InvalidLocation)?;
+                .map_err(ObserverSummaryValidationError::InvalidObserverLocation)?;
+        }
+
+        if let Some(observer) = &self.body_location {
+            observer
+                .validate()
+                .map_err(ObserverSummaryValidationError::InvalidBodyPosition)?;
         }
 
         Ok(())
@@ -166,9 +197,10 @@ impl ObserverSummary {
     /// Returns a compact one-line rendering of the observer posture and location.
     pub fn summary_line(&self) -> String {
         format!(
-            "observer={}; observer location={}",
+            "observer={}; observer location={}; body observer={}",
             self.policy,
             self.location_label(),
+            self.body_location_label(),
         )
     }
 
@@ -222,10 +254,13 @@ pub struct ChartRequest {
     pub instant: Instant,
     /// Optional observer location used for house calculations.
     ///
-    /// Body positions are still queried geocentrically. A future topocentric
-    /// chart mode should add an explicit position-mode field instead of
-    /// reusing this house-observer value implicitly.
+    /// Body positions are still queried geocentrically unless the separate
+    /// `body_observer` field is set. A future topocentric chart mode should
+    /// keep that position-mode split explicit instead of reusing this
+    /// house-observer value implicitly.
     pub observer: Option<ObserverLocation>,
+    /// Optional observer location used for topocentric body-position requests.
+    pub body_observer: Option<ObserverLocation>,
     /// Bodies to include in the chart report.
     pub bodies: Vec<CelestialBody>,
     /// Desired zodiac mode.
@@ -242,6 +277,7 @@ impl ChartRequest {
         Self {
             instant,
             observer: None,
+            body_observer: None,
             bodies: default_chart_bodies().to_vec(),
             zodiac_mode: ZodiacMode::Tropical,
             apparentness: Apparentness::Mean,
@@ -252,6 +288,12 @@ impl ChartRequest {
     /// Sets the observer location.
     pub fn with_observer(mut self, observer: ObserverLocation) -> Self {
         self.observer = Some(observer);
+        self
+    }
+
+    /// Sets the observer location used for topocentric body-position requests.
+    pub fn with_body_observer(mut self, body_observer: ObserverLocation) -> Self {
+        self.body_observer = Some(body_observer);
         self
     }
 
@@ -397,8 +439,9 @@ impl ChartRequest {
     /// Validates the chart-level observer contract used for house calculations.
     ///
     /// Observer coordinates are checked whenever they are present, even when
-    /// the request does not also ask for houses, so malformed observer data
-    /// fails closed before chart assembly or report rendering uses it.
+    /// the request does not also ask for houses, so malformed house-observer
+    /// or body-position observer data fails closed before chart assembly or
+    /// report rendering uses it.
     ///
     /// # Example
     ///
@@ -420,6 +463,10 @@ impl ChartRequest {
     /// ```
     pub fn validate_observer_location(&self) -> Result<(), EphemerisError> {
         if let Some(observer) = &self.observer {
+            observer.validate().map_err(map_observer_location_error)?;
+        }
+
+        if let Some(observer) = &self.body_observer {
             observer.validate().map_err(map_observer_location_error)?;
         }
 
@@ -500,7 +547,7 @@ impl ChartRequest {
             let body_request = EphemerisRequest {
                 body: body.clone(),
                 instant: self.instant,
-                observer: None,
+                observer: self.body_observer.clone(),
                 frame: CoordinateFrame::Ecliptic,
                 zodiac_mode: backend_zodiac_mode.clone(),
                 apparent: self.apparentness,
@@ -715,6 +762,7 @@ impl ChartRequest {
     /// Returns the observer summary implied by the current request shape.
     pub fn observer_summary(&self) -> ObserverSummary {
         ObserverSummary::new(self.observer_policy(), self.observer.clone())
+            .with_body_location(self.body_observer.clone())
     }
 
     /// Returns the observer summary implied by the current request shape after validation.
@@ -737,8 +785,8 @@ impl ChartRequest {
     ///   house system is also requested,
     /// - geocentric requests are described explicitly when no observer is set
     ///   or the observer is not used for house calculations,
-    /// - observer locations are rendered separately from the observer policy
-    ///   when present so house-only use stays explicit without implying a
+    /// - house-observer and body-position observer locations are rendered
+    ///   separately so house-only use stays explicit without implying a
     ///   topocentric body-position request,
     /// - the current zodiac mode, apparentness, body count, and house-system
     ///   selection stay visible in a single line.
@@ -792,8 +840,9 @@ pub struct BodyPlacement {
 ///
 /// The snapshot keeps the observer posture explicit even when the chart does
 /// not include houses. An observer location by itself still leaves the body
-/// placements geocentric; the `house-only` policy only appears when the
-/// snapshot also carries computed houses.
+/// placements geocentric unless the separate body-position observer is set;
+/// the `house-only` policy only appears when the snapshot also carries computed
+/// houses.
 ///
 /// # Example
 ///
@@ -809,6 +858,7 @@ pub struct BodyPlacement {
 ///         Longitude::from_degrees(-0.1),
 ///         None,
 ///     )),
+///     body_observer: None,
 ///     zodiac_mode: ZodiacMode::Tropical,
 ///     apparentness: Apparentness::Mean,
 ///     houses: None,
@@ -827,6 +877,8 @@ pub struct ChartSnapshot {
     pub instant: Instant,
     /// Optional observer location.
     pub observer: Option<ObserverLocation>,
+    /// Optional observer location used for topocentric body positions.
+    pub body_observer: Option<ObserverLocation>,
     /// Zodiac mode used for the chart.
     pub zodiac_mode: ZodiacMode,
     /// Apparentness used for the backend position queries.
@@ -860,6 +912,7 @@ impl ChartSnapshot {
     /// Returns the observer summary implied by the computed chart snapshot.
     pub fn observer_summary(&self) -> ObserverSummary {
         ObserverSummary::new(self.observer_policy(), self.observer.clone())
+            .with_body_location(self.body_observer.clone())
     }
 
     /// Returns the observer summary implied by the computed chart snapshot after validation.
@@ -877,9 +930,10 @@ impl ChartSnapshot {
     /// release-facing snapshot notes. It mirrors the request-shape vocabulary
     /// used by [`ChartRequest::summary_line`] while adding the backend ID and
     /// the computed placement count so callers can compare the assembled chart
-    /// against the original request at a glance. The stored observer location,
-    /// when present, is rendered separately from the observer policy so the
-    /// geocentric-versus-house-only split stays explicit.
+    /// against the original request at a glance. The stored house observer and
+    /// body-position observer locations, when present, are rendered separately
+    /// from the observer policy so the geocentric-versus-house-only split
+    /// stays explicit.
     pub fn summary_line(&self) -> String {
         let house_system = self.houses.as_ref().map_or_else(
             || "none".to_string(),
@@ -967,6 +1021,7 @@ impl ChartSnapshot {
     ///     backend_id: BackendId::new("demo"),
     ///     instant,
     ///     observer: None,
+    ///     body_observer: None,
     ///     zodiac_mode: ZodiacMode::Tropical,
     ///     apparentness: Apparentness::Mean,
     ///     houses: None,
@@ -2492,7 +2547,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
             .map(|body| EphemerisRequest {
                 body: body.clone(),
                 instant: request.instant,
-                observer: None,
+                observer: request.body_observer.clone(),
                 frame: pleiades_types::CoordinateFrame::Ecliptic,
                 zodiac_mode: backend_zodiac_mode.clone(),
                 apparent: request.apparentness,
@@ -2558,6 +2613,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
             backend_id,
             instant: request.instant,
             observer: request.observer.clone(),
+            body_observer: request.body_observer.clone(),
             zodiac_mode: request.zodiac_mode.clone(),
             apparentness: request.apparentness,
             houses,
@@ -2658,7 +2714,10 @@ mod tests {
                 supported_time_scales: vec![TimeScale::Tt],
                 body_coverage: vec![CelestialBody::Sun],
                 supported_frames: vec![pleiades_types::CoordinateFrame::Ecliptic],
-                capabilities: BackendCapabilities::default(),
+                capabilities: BackendCapabilities {
+                    topocentric: true,
+                    ..BackendCapabilities::default()
+                },
                 accuracy: AccuracyClass::Approximate,
                 deterministic: true,
                 offline: true,
@@ -2875,6 +2934,7 @@ mod tests {
             backend_id: BackendId::new("toy-chart"),
             instant,
             observer: None,
+            body_observer: None,
             zodiac_mode: ZodiacMode::Tropical,
             apparentness: Apparentness::Mean,
             houses: None,
@@ -2884,7 +2944,7 @@ mod tests {
         let rendered = chart.to_string();
         assert_eq!(
             chart.summary_line(),
-            "backend=toy-chart; instant=JD 2451545 (TT); placements=0; zodiac=Tropical; apparentness=Mean; observer=geocentric; observer location=none; house system=none; house cusps=0"
+            "backend=toy-chart; instant=JD 2451545 (TT); placements=0; zodiac=Tropical; apparentness=Mean; observer=geocentric; observer location=none; body observer=none; house system=none; house cusps=0"
         );
         assert!(rendered
             .contains("Observer policy: geocentric body positions; no house observer supplied"));
@@ -2903,6 +2963,7 @@ mod tests {
             backend_id: BackendId::new("toy-chart"),
             instant,
             observer: None,
+            body_observer: None,
             zodiac_mode: ZodiacMode::Tropical,
             apparentness: Apparentness::Apparent,
             houses: None,
@@ -3095,7 +3156,7 @@ mod tests {
         assert_eq!(chart.observer_policy(), ObserverPolicy::HouseOnly);
         assert_eq!(
             chart.summary_line(),
-            "backend=toy-chart; instant=JD 2451545 (TT); placements=2; zodiac=Tropical; apparentness=Mean; observer=house-only; observer location=latitude=0°, longitude=0°, elevation=n/a; house system=Whole Sign; house cusps=12"
+            "backend=toy-chart; instant=JD 2451545 (TT); placements=2; zodiac=Tropical; apparentness=Mean; observer=house-only; observer location=latitude=0°, longitude=0°, elevation=n/a; body observer=none; house system=Whole Sign; house cusps=12"
         );
         assert!(rendered.contains("House system: Whole Sign"));
         assert!(rendered
@@ -3129,6 +3190,35 @@ mod tests {
         let observers = observers.lock().expect("observer log should be lockable");
         assert_eq!(observers.len(), 1);
         assert!(observers.iter().all(Option::is_none));
+    }
+
+    #[test]
+    fn chart_snapshot_passes_body_observers_through_topocentric_requests() {
+        let observers = Arc::new(Mutex::new(Vec::new()));
+        let engine = ChartEngine::new(RecordingChartBackend {
+            observers: Arc::clone(&observers),
+        });
+        let body_observer = ObserverLocation::new(
+            Latitude::from_degrees(35.0),
+            Longitude::from_degrees(-80.0),
+            Some(50.0),
+        );
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2451545.0),
+            TimeScale::Tt,
+        ))
+        .with_body_observer(body_observer.clone())
+        .with_bodies(vec![CelestialBody::Sun]);
+
+        let chart = engine
+            .chart(&request)
+            .expect("chart should render with a topocentric body observer");
+
+        assert_eq!(chart.body_observer, request.body_observer);
+        assert_eq!(chart.observer, request.observer);
+        assert!(chart.summary_line().contains("body observer=latitude=35°"));
+        let observers = observers.lock().expect("observer log should be lockable");
+        assert_eq!(observers.as_slice(), &[Some(body_observer)]);
     }
 
     #[test]
@@ -3181,7 +3271,7 @@ mod tests {
         assert_eq!(chart.observer_policy(), ObserverPolicy::Geocentric);
         assert_eq!(
             chart.summary_line(),
-            "backend=recording-chart; instant=JD 2451545 (TT); placements=1; zodiac=Tropical; apparentness=Mean; observer=geocentric; observer location=latitude=51.5°, longitude=359.9°, elevation=n/a; house system=none; house cusps=0"
+            "backend=recording-chart; instant=JD 2451545 (TT); placements=1; zodiac=Tropical; apparentness=Mean; observer=geocentric; observer location=latitude=51.5°, longitude=359.9°, elevation=n/a; body observer=none; house system=none; house cusps=0"
         );
         assert!(chart
             .to_string()
@@ -3289,7 +3379,7 @@ mod tests {
         assert_eq!(request.observer_policy(), ObserverPolicy::Geocentric);
         assert_eq!(
             request.summary_line(),
-            "instant=JD 2451545 (TT); bodies=10; zodiac=Tropical; apparentness=Mean; observer=geocentric; observer location=none; house system=none"
+            "instant=JD 2451545 (TT); bodies=10; zodiac=Tropical; apparentness=Mean; observer=geocentric; observer location=none; body observer=none; house system=none"
         );
         assert_eq!(request.to_string(), request.summary_line());
     }
@@ -3324,7 +3414,7 @@ mod tests {
         );
         assert_eq!(
             summary.summary_line(),
-            "observer=house-only; observer location=latitude=12.5°, longitude=45°, elevation=100.000 m"
+            "observer=house-only; observer location=latitude=12.5°, longitude=45°, elevation=100.000 m; body observer=none"
         );
         assert_eq!(summary.to_string(), summary.summary_line());
     }
@@ -3338,7 +3428,7 @@ mod tests {
             .expect_err("house-only summaries should require an observer location");
         assert_eq!(
             error,
-            ObserverSummaryValidationError::HouseOnlyMissingLocation
+            ObserverSummaryValidationError::HouseOnlyMissingObserver
         );
         assert_eq!(
             error.to_string(),
@@ -3362,13 +3452,37 @@ mod tests {
             .expect_err("observer summaries should reject invalid locations");
         assert!(matches!(
             error,
-            ObserverSummaryValidationError::InvalidLocation(
+            ObserverSummaryValidationError::InvalidObserverLocation(
                 ObserverLocationValidationError::NonFiniteLongitude { value }
             ) if value.is_nan()
         ));
         assert!(error
             .to_string()
             .contains("observer summary location is invalid: observer longitude must be finite"));
+    }
+
+    #[test]
+    fn observer_summary_validate_rejects_invalid_body_locations() {
+        let summary = ObserverSummary::new(ObserverPolicy::Geocentric, None).with_body_location(
+            Some(ObserverLocation::new(
+                Latitude::from_degrees(12.5),
+                Longitude::from_degrees(f64::NAN),
+                Some(100.0),
+            )),
+        );
+
+        let error = summary
+            .validate()
+            .expect_err("observer summaries should reject invalid body locations");
+        assert!(matches!(
+            error,
+            ObserverSummaryValidationError::InvalidBodyPosition(
+                ObserverLocationValidationError::NonFiniteLongitude { value }
+            ) if value.is_nan()
+        ));
+        assert!(error.to_string().contains(
+            "observer summary body location is invalid: observer longitude must be finite"
+        ));
     }
 
     #[test]
@@ -3389,7 +3503,7 @@ mod tests {
         assert_eq!(observer.policy, ObserverPolicy::HouseOnly);
         assert_eq!(
             observer.summary_line(),
-            "observer=house-only; observer location=latitude=12.5°, longitude=45°, elevation=100.000 m"
+            "observer=house-only; observer location=latitude=12.5°, longitude=45°, elevation=100.000 m; body observer=none"
         );
         assert!(request
             .summary_line()
@@ -3409,6 +3523,7 @@ mod tests {
                 Longitude::from_degrees(45.0),
                 Some(100.0),
             )),
+            body_observer: None,
             zodiac_mode: ZodiacMode::Tropical,
             apparentness: Apparentness::Mean,
             houses: None,
@@ -3420,7 +3535,7 @@ mod tests {
         assert_eq!(observer.policy, ObserverPolicy::Geocentric);
         assert_eq!(
             observer.summary_line(),
-            "observer=geocentric; observer location=latitude=12.5°, longitude=45°, elevation=100.000 m"
+            "observer=geocentric; observer location=latitude=12.5°, longitude=45°, elevation=100.000 m; body observer=none"
         );
         assert!(snapshot
             .summary_line()
@@ -3444,7 +3559,7 @@ mod tests {
             .expect_err("validated request summaries should reject invalid locations");
         assert!(matches!(
             error,
-            ObserverSummaryValidationError::InvalidLocation(
+            ObserverSummaryValidationError::InvalidObserverLocation(
                 ObserverLocationValidationError::NonFiniteLongitude { value }
             ) if value.is_nan()
         ));
@@ -3463,6 +3578,7 @@ mod tests {
                 Longitude::from_degrees(f64::NAN),
                 Some(100.0),
             )),
+            body_observer: None,
             zodiac_mode: ZodiacMode::Tropical,
             apparentness: Apparentness::Mean,
             houses: None,
@@ -3474,7 +3590,7 @@ mod tests {
             .expect_err("validated snapshot summaries should reject invalid locations");
         assert!(matches!(
             error,
-            ObserverSummaryValidationError::InvalidLocation(
+            ObserverSummaryValidationError::InvalidObserverLocation(
                 ObserverLocationValidationError::NonFiniteLongitude { value }
             ) if value.is_nan()
         ));
@@ -3503,7 +3619,7 @@ mod tests {
         assert_eq!(ObserverPolicy::HouseOnly.summary_line(), "house-only");
         assert_eq!(
             request.summary_line(),
-            "instant=JD 2451545 (UTC); bodies=2; zodiac=Sidereal (Lahiri); apparentness=Apparent; observer=house-only; observer location=latitude=12.5°, longitude=45°, elevation=100.000 m; house system=Whole Sign"
+            "instant=JD 2451545 (UTC); bodies=2; zodiac=Sidereal (Lahiri); apparentness=Apparent; observer=house-only; observer location=latitude=12.5°, longitude=45°, elevation=100.000 m; body observer=none; house system=Whole Sign"
         );
     }
 
@@ -3523,7 +3639,7 @@ mod tests {
         assert_eq!(request.observer_policy(), ObserverPolicy::Geocentric);
         assert_eq!(
             request.summary_line(),
-            "instant=JD 2451545 (TT); bodies=2; zodiac=Tropical; apparentness=Mean; observer=geocentric; observer location=latitude=12.5°, longitude=45°, elevation=100.000 m; house system=none"
+            "instant=JD 2451545 (TT); bodies=2; zodiac=Tropical; apparentness=Mean; observer=geocentric; observer location=latitude=12.5°, longitude=45°, elevation=100.000 m; body observer=none; house system=none"
         );
     }
 
@@ -3541,7 +3657,7 @@ mod tests {
 
         assert_eq!(
             request.summary_line(),
-            "instant=JD 2451545 (TT); bodies=10; zodiac=Tropical; apparentness=Mean; observer=geocentric; observer location=none; house system=My Custom Houses [aliases: My Alias] (uses a local calibration)"
+            "instant=JD 2451545 (TT); bodies=10; zodiac=Tropical; apparentness=Mean; observer=geocentric; observer location=none; body observer=none; house system=My Custom Houses [aliases: My Alias] (uses a local calibration)"
         );
     }
 
@@ -4204,6 +4320,27 @@ mod tests {
     }
 
     #[test]
+    fn chart_request_validate_observer_location_rejects_invalid_body_observers_without_houses() {
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Tt,
+        ))
+        .with_body_observer(ObserverLocation::new(
+            Latitude::from_degrees(95.0),
+            Longitude::from_degrees(45.0),
+            Some(100.0),
+        ));
+
+        let error = request
+            .validate_observer_location()
+            .expect_err("body-observer validation should reject out-of-range latitude");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
+        assert!(error
+            .message
+            .contains("observer latitude must stay within [-90, 90], got 95"));
+    }
+
+    #[test]
     fn chart_request_validate_house_observer_policy_rejects_invalid_observers_without_houses() {
         let request = ChartRequest::new(Instant::new(
             pleiades_types::JulianDay::from_days(2_451_545.0),
@@ -4481,6 +4618,7 @@ mod tests {
             backend_id: BackendId::new("toy-chart"),
             instant,
             observer: None,
+            body_observer: None,
             zodiac_mode: ZodiacMode::Tropical,
             apparentness: Apparentness::Apparent,
             houses: None,
@@ -4695,6 +4833,7 @@ mod tests {
             backend_id: BackendId::new("toy-chart"),
             instant,
             observer: None,
+            body_observer: None,
             zodiac_mode: ZodiacMode::Tropical,
             apparentness: Apparentness::Apparent,
             houses: None,
@@ -4767,6 +4906,7 @@ mod tests {
             backend_id: BackendId::new("toy-chart"),
             instant,
             observer: None,
+            body_observer: None,
             zodiac_mode: ZodiacMode::Tropical,
             apparentness: Apparentness::Apparent,
             houses: None,
