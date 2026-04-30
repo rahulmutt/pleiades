@@ -2294,6 +2294,22 @@ pub fn reference_asteroid_request_corpus(frame: CoordinateFrame) -> Option<Vec<E
     reference_asteroid_requests(frame)
 }
 
+/// Returns the exact J2000 asteroid request corpus in the ecliptic frame.
+///
+/// This is a compatibility alias for [`reference_asteroid_request_corpus`].
+#[doc(alias = "reference_asteroid_request_corpus")]
+pub fn reference_asteroid_ecliptic_request_corpus() -> Option<Vec<EphemerisRequest>> {
+    reference_asteroid_requests(CoordinateFrame::Ecliptic)
+}
+
+/// Returns the exact J2000 asteroid request corpus in the equatorial frame.
+///
+/// This is a compatibility alias for [`reference_asteroid_request_corpus`].
+#[doc(alias = "reference_asteroid_request_corpus")]
+pub fn reference_asteroid_equatorial_request_corpus() -> Option<Vec<EphemerisRequest>> {
+    reference_asteroid_requests(CoordinateFrame::Equatorial)
+}
+
 /// Returns the mixed-frame exact J2000 asteroid request corpus used by batch parity checks.
 ///
 /// The requests preserve the checked-in asteroid order and alternate between
@@ -7154,6 +7170,14 @@ mod tests {
         );
         assert_eq!(
             reference_asteroid_request_corpus(CoordinateFrame::Equatorial),
+            reference_asteroid_requests(CoordinateFrame::Equatorial)
+        );
+        assert_eq!(
+            reference_asteroid_ecliptic_request_corpus(),
+            reference_asteroid_requests(CoordinateFrame::Ecliptic)
+        );
+        assert_eq!(
+            reference_asteroid_equatorial_request_corpus(),
             reference_asteroid_requests(CoordinateFrame::Equatorial)
         );
         assert_eq!(
