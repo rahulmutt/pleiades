@@ -15098,7 +15098,9 @@ mod tests {
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(rendered.contains("Backend matrix summary: backend-matrix-summary"));
         assert!(rendered.contains("API stability summary: api-stability-summary"));
-        assert!(rendered.contains("Validation report summary: validation-report-summary / validation-summary / report-summary"));
+        assert!(rendered
+            .lines()
+            .any(|line| line == "Validation report summary: validation-report-summary / validation-summary / report-summary"));
         assert!(rendered
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Release summary: release-summary"));
@@ -15130,7 +15132,9 @@ mod tests {
         assert!(rendered.contains("Backend matrix summary: backend-matrix-summary"));
         assert!(rendered.contains("API stability summary: api-stability-summary"));
         assert!(rendered.contains("Zodiac policy:"));
-        assert!(rendered.contains("Validation report summary: validation-report-summary / validation-summary / report-summary"));
+        assert!(rendered
+            .lines()
+            .any(|line| line == "Validation report summary: validation-report-summary / validation-summary / report-summary"));
         assert!(rendered
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(
@@ -15560,9 +15564,9 @@ mod tests {
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Release checklist summary: release-checklist-summary"));
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
-        assert!(
-            rendered.contains("Validation report summary: validation-report-summary / validation-summary / report-summary")
-        );
+        assert!(rendered
+            .lines()
+            .any(|line| line == "Validation report summary: validation-report-summary / validation-summary / report-summary"));
         assert!(
             rendered.contains("See release-summary for the compact one-screen release overview.")
         );
