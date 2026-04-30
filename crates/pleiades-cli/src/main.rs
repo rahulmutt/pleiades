@@ -1026,8 +1026,12 @@ mod tests {
         assert!(release_notes_summary.contains("Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_notes_summary.contains("Release notes: release-notes"));
         assert!(release_notes_summary.contains("Packaged-artifact storage:"));
-        assert!(release_notes_summary.contains("Packaged-artifact access:"));
-        assert!(release_notes_summary.contains("Packaged-artifact generation policy:"));
+        assert!(release_notes_summary.lines().any(|line| {
+            line == "Packaged-artifact access: packaged artifact access: checked-in fixture only; explicit artifact-path loading disabled"
+        }));
+        assert!(release_notes_summary.lines().any(|line| {
+            line == "Packaged-artifact generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic residual corrections to keep the high-curvature fit compact"
+        }));
         assert!(release_notes_summary.contains("Packaged request policy:"));
         assert!(release_notes_summary.contains("Packaged lookup epoch policy:"));
         assert!(release_notes_summary.lines().any(|line| {
@@ -1125,6 +1129,12 @@ mod tests {
         }));
         assert!(release_summary
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
+        assert!(release_summary.lines().any(|line| {
+            line == "Packaged-artifact access: packaged artifact access: checked-in fixture only; explicit artifact-path loading disabled"
+        }));
+        assert!(release_summary.lines().any(|line| {
+            line == "Packaged-artifact generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic residual corrections to keep the high-curvature fit compact"
+        }));
         assert!(release_summary.contains("Packaged frame treatment"));
         assert!(release_summary.contains(
             "Packaged lookup epoch policy: TT-grid retag without relativistic correction; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction"
