@@ -1554,23 +1554,38 @@ pub fn validate_request_policy(
     Ok(())
 }
 
+fn validate_request_observer_location(req: &EphemerisRequest) -> Result<(), EphemerisError> {
+    if let Some(observer) = &req.observer {
+        observer.validate().map_err(|error| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidObserver,
+                format!("request received invalid observer location: {error}"),
+            )
+        })?;
+    }
+
+    Ok(())
+}
+
 /// Validates a direct backend request against the published backend metadata.
 ///
 /// This convenience helper combines the shared request-shape checks with custom
-/// body and sidereal descriptor validation, body coverage, tropical-only zodiac
-/// routing for backends that do not advertise native sidereal support, and
-/// topocentric capability validation. The shared metadata model still does not
-/// capture per-ayanamsa sidereal catalog breadth, so callers that need
-/// finer-grained sidereal routing must keep that logic at the backend or façade
-/// layer. Routing backends are treated as a special case: they still preflight
-/// custom definitions and body coverage here, but they defer the broader
-/// time-scale, frame, zodiac, apparentness, and observer checks to the selected
-/// provider because their aggregate metadata is intentionally conservative.
+/// body and sidereal descriptor validation, observer-location validation, body
+/// coverage, tropical-only zodiac routing for backends that do not advertise
+/// native sidereal support, and topocentric capability validation. The shared
+/// metadata model still does not capture per-ayanamsa sidereal catalog breadth,
+/// so callers that need finer-grained sidereal routing must keep that logic at
+/// the backend or façade layer. Routing backends are treated as a special case:
+/// they still preflight custom definitions and body coverage here, but they
+/// defer the broader time-scale, frame, zodiac, apparentness, and topocentric
+/// capability checks to the selected provider because their aggregate metadata
+/// is intentionally conservative.
 pub fn validate_request_against_metadata(
     req: &EphemerisRequest,
     metadata: &BackendMetadata,
 ) -> Result<(), EphemerisError> {
     req.validate_custom_definitions()?;
+    validate_request_observer_location(req)?;
 
     if !metadata.family.is_routing() {
         validate_request_policy(
@@ -3158,6 +3173,30 @@ mod tests {
                 .unwrap()
                 .summary_line()
         ));
+
+        let invalid_observer_request = EphemerisRequest {
+            observer: Some(ObserverLocation::new(
+                Latitude::from_degrees(95.0),
+                Longitude::from_degrees(-0.1),
+                Some(45.0),
+            )),
+            ..apparent_request.clone()
+        };
+        let routing_metadata = BackendMetadata {
+            family: BackendFamily::Composite,
+            capabilities: BackendCapabilities {
+                topocentric: true,
+                ..metadata.capabilities.clone()
+            },
+            ..metadata.clone()
+        };
+        let routing_error =
+            validate_request_against_metadata(&invalid_observer_request, &routing_metadata)
+                .expect_err("routing metadata should still reject invalid observer locations");
+        assert_eq!(routing_error.kind, EphemerisErrorKind::InvalidObserver);
+        assert!(routing_error
+            .message
+            .contains("request received invalid observer location"));
 
         let unsupported_body_request = EphemerisRequest {
             body: CelestialBody::Mars,
