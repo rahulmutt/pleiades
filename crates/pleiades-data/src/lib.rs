@@ -744,6 +744,25 @@ pub fn packaged_artifact_profile_summary_with_body_coverage() -> String {
     render_packaged_artifact_profile_summary(&packaged_artifact_profile_summary_details(), true)
 }
 
+/// Returns the current packaged-artifact profile summary with the output-support posture.
+///
+/// The summary is validated before it is rendered so release-facing callers
+/// see an explicit unavailable marker if the bundled profile metadata drifts.
+pub fn packaged_artifact_profile_summary_with_output_support() -> String {
+    let summary = packaged_artifact_profile_summary_details();
+    match summary.validate() {
+        Ok(()) => summary.summary_line_with_output_support(),
+        Err(error) => {
+            format!("Packaged artifact profile with output support: unavailable ({error})")
+        }
+    }
+}
+
+/// Returns the current packaged-artifact profile summary with output support for reporting.
+pub fn packaged_artifact_profile_summary_with_output_support_for_report() -> String {
+    packaged_artifact_profile_summary_with_output_support()
+}
+
 /// Structured output-support semantics for the packaged artifact profile.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PackagedArtifactOutputSupportSummary {
@@ -3179,6 +3198,14 @@ mod tests {
                     .header
                     .summary_for_body_count(artifact.bodies.len())
             )
+        );
+        assert_eq!(
+            packaged_artifact_profile_summary_with_output_support(),
+            summary.summary_line_with_output_support()
+        );
+        assert_eq!(
+            packaged_artifact_profile_summary_with_output_support_for_report(),
+            summary.summary_line_with_output_support()
         );
     }
 
