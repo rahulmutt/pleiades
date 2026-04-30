@@ -2239,6 +2239,24 @@ impl Motion {
         self.distance_au_per_day
     }
 
+    /// Returns a compact one-line summary of the motion sample.
+    pub fn summary_line(self) -> String {
+        let longitude = self
+            .longitude_speed()
+            .map(|value| format!("{value} deg/day"))
+            .unwrap_or_else(|| "n/a".to_string());
+        let latitude = self
+            .latitude_speed()
+            .map(|value| format!("{value} deg/day"))
+            .unwrap_or_else(|| "n/a".to_string());
+        let distance = self
+            .distance_speed()
+            .map(|value| format!("{value} au/day"))
+            .unwrap_or_else(|| "n/a".to_string());
+
+        format!("longitude={longitude}; latitude={latitude}; distance={distance}")
+    }
+
     /// Validates that every populated motion component is finite.
     pub fn validate(self) -> Result<(), MotionValidationError> {
         for (field, value) in [
@@ -2274,6 +2292,12 @@ impl Motion {
         } else {
             MotionDirection::Stationary
         })
+    }
+}
+
+impl fmt::Display for Motion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
     }
 }
 
@@ -3345,6 +3369,17 @@ mod tests {
         assert_eq!(motion.longitude_speed(), Some(0.12));
         assert_eq!(motion.latitude_speed(), Some(-0.03));
         assert_eq!(motion.distance_speed(), Some(0.000_4));
+    }
+
+    #[test]
+    fn motion_summary_line_matches_display() {
+        let motion = Motion::new(Some(0.12), Some(-0.03), Some(0.000_4));
+
+        assert_eq!(
+            motion.summary_line(),
+            "longitude=0.12 deg/day; latitude=-0.03 deg/day; distance=0.0004 au/day"
+        );
+        assert_eq!(motion.to_string(), motion.summary_line());
     }
 
     #[test]
