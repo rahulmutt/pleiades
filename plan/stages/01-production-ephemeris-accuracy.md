@@ -81,6 +81,7 @@ Progress note: `pleiades-vsop87` now also exposes a reusable batch-request corpu
    - Progress note: the VSOP87 canonical ecliptic and equatorial evidence summaries now also validate their internal mean/median/percentile/RMS ordering before release-facing formatting, so the compact planetary error envelopes fail closed if a future field swap ever makes the derived shape incoherent even when all values remain finite.
 
 - Progress note (2026-04-29): the VSOP87 source-documentation report now routes through a testable formatter helper and has a drift regression for stale catalog counts, which keeps the compact provenance line fail-closed when the cached summary stops matching the current source catalog.
+- Progress note (2026-04-30): the release-summary smoke coverage now exact-pins the `Release summary` header and the `Backend matrix summary: backend-matrix-summary` line, which keeps two more user-facing status lines fail-closed instead of relying only on substring matches in the compact release view.
 
 2. Implement production `pleiades-elp` lunar calculations.
    - Select and document a pure-Rust lunar theory source.

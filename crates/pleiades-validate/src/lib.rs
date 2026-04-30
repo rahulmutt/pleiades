@@ -15166,7 +15166,11 @@ mod tests {
         assert!(rendered
             .lines()
             .any(|line| line == profile.target_ayanamsa_scope.join("; ")));
+        assert!(rendered.lines().any(|line| line == "Release summary"));
         assert!(rendered.contains("Release summary line:"));
+        assert!(rendered
+            .lines()
+            .any(|line| line == "Backend matrix summary: backend-matrix-summary"));
         assert!(rendered.contains(&profile.catalog_inventory_summary_line()));
         assert!(rendered.contains("Compatibility catalog inventory: house systems=25 (12 baseline, 13 release-specific, 156 aliases); house-code aliases=22; ayanamsas=59 (5 baseline, 54 release-specific, 183 aliases); custom-definition labels=9; known gaps=2"));
         assert!(rendered.contains(&format!(
@@ -15175,7 +15179,9 @@ mod tests {
         )));
         assert!(rendered.contains("House formula families: 7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign)"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
-        assert!(rendered.contains("Backend matrix summary: backend-matrix-summary"));
+        assert!(rendered
+            .lines()
+            .any(|line| line == "Backend matrix summary: backend-matrix-summary"));
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
         assert!(rendered.contains("Workspace audit: workspace-audit / audit"));
         assert!(rendered.contains("Time-scale policy: direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T model"));
