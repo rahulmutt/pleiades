@@ -11040,17 +11040,7 @@ fn write_jpl_interpolation_quality(f: &mut fmt::Formatter<'_>) -> fmt::Result {
         jpl_independent_holdout_snapshot_equatorial_parity_summary_for_report()
     )?;
     for sample in interpolation_quality_samples() {
-        writeln!(
-            f,
-            "    {} at JD {:.1}: {} interpolation, bracket span {:.1} d, |Δlon|={:.12}°, |Δlat|={:.12}°, |Δdist|={:.12} AU",
-            sample.body,
-            sample.epoch.julian_day.days(),
-            sample.interpolation_kind.label(),
-            sample.bracket_span_days,
-            sample.longitude_error_deg,
-            sample.latitude_error_deg,
-            sample.distance_error_au
-        )?;
+        writeln!(f, "    {}", sample.summary_line())?;
     }
     Ok(())
 }
@@ -15362,7 +15352,8 @@ mod tests {
         assert!(rendered.contains("NASA/JPL Horizons API vector tables (DE441)"));
         assert!(rendered.contains("interpolation quality checks:"));
         assert!(rendered.contains("expanded public-input leave-one-out checks"));
-        assert!(rendered.contains("Mars at JD 2451545.0"));
+        assert!(rendered.contains("interpolation, bracket span"));
+        assert!(rendered.contains("TDB"));
         assert!(rendered.contains("VSOP87 planetary backend"));
         assert!(rendered.contains("Pluto remains the current mean-element fallback special case until a Pluto-specific source path is selected"));
         assert!(rendered.contains("ELP lunar backend (Moon and lunar nodes)"));

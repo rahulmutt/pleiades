@@ -4897,6 +4897,115 @@ pub struct InterpolationQualitySample {
     pub distance_error_au: f64,
 }
 
+/// Validation errors for an interpolation-quality hold-out sample that drifted
+/// away from the checked-in evidence.
+#[derive(Clone, Debug, PartialEq)]
+pub enum InterpolationQualitySampleValidationError {
+    /// The stored epoch no longer uses TDB.
+    NonTdbEpoch {
+        /// Body evaluated by the sample.
+        body: pleiades_backend::CelestialBody,
+        /// The time scale that drifted into the sample.
+        found: TimeScale,
+    },
+    /// A rendered field is no longer finite.
+    NonFiniteField {
+        /// Body evaluated by the sample.
+        body: pleiades_backend::CelestialBody,
+        /// Name of the field that drifted.
+        field: &'static str,
+    },
+    /// A rendered field should stay non-negative.
+    NegativeField {
+        /// Body evaluated by the sample.
+        body: pleiades_backend::CelestialBody,
+        /// Name of the field that drifted.
+        field: &'static str,
+    },
+}
+
+impl fmt::Display for InterpolationQualitySampleValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::NonTdbEpoch { body, found } => {
+                write!(
+                    f,
+                    "interpolation sample for {body} must use TDB, found {found}"
+                )
+            }
+            Self::NonFiniteField { body, field } => {
+                write!(f, "interpolation sample for {body} has non-finite {field}")
+            }
+            Self::NegativeField { body, field } => {
+                write!(f, "interpolation sample for {body} has negative {field}")
+            }
+        }
+    }
+}
+
+impl std::error::Error for InterpolationQualitySampleValidationError {}
+
+impl InterpolationQualitySample {
+    /// Returns a compact release-facing summary line.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "{} at {}: {} interpolation, bracket span {:.1} d, |Δlon|={:.12}°, |Δlat|={:.12}°, |Δdist|={:.12} AU",
+            self.body,
+            self.epoch.summary_line(),
+            self.interpolation_kind.label(),
+            self.bracket_span_days,
+            self.longitude_error_deg,
+            self.latitude_error_deg,
+            self.distance_error_au,
+        )
+    }
+
+    /// Returns `Ok(())` when the sample still matches the checked-in evidence.
+    pub fn validate(&self) -> Result<(), InterpolationQualitySampleValidationError> {
+        if self.epoch.scale != TimeScale::Tdb {
+            return Err(InterpolationQualitySampleValidationError::NonTdbEpoch {
+                body: self.body.clone(),
+                found: self.epoch.scale,
+            });
+        }
+
+        if !self.epoch.julian_day.days().is_finite() {
+            return Err(InterpolationQualitySampleValidationError::NonFiniteField {
+                body: self.body.clone(),
+                field: "epoch",
+            });
+        }
+
+        for (field, value) in [
+            ("bracket_span_days", self.bracket_span_days),
+            ("longitude_error_deg", self.longitude_error_deg),
+            ("latitude_error_deg", self.latitude_error_deg),
+            ("distance_error_au", self.distance_error_au),
+        ] {
+            if !value.is_finite() {
+                return Err(InterpolationQualitySampleValidationError::NonFiniteField {
+                    body: self.body.clone(),
+                    field,
+                });
+            }
+            if value < 0.0 {
+                return Err(InterpolationQualitySampleValidationError::NegativeField {
+                    body: self.body.clone(),
+                    field,
+                });
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl fmt::Display for InterpolationQualitySample {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// A reference-backend implementation backed by JPL Horizons fixture data.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct JplSnapshotBackend;
@@ -8346,10 +8455,14 @@ mod tests {
         assert_eq!(samples.len(), 21);
         assert!(samples.iter().all(|sample| {
             let epoch = sample.epoch.julian_day.days();
+            let summary_line = sample.summary_line();
             (epoch == 2_400_000.0
                 || epoch == REFERENCE_EPOCH_JD
                 || epoch == 2_500_000.0
                 || epoch == 2_600_000.0)
+                && sample.validate().is_ok()
+                && summary_line.contains("TDB")
+                && summary_line == sample.to_string()
                 && sample.bracket_span_days > 0.0
                 && sample.longitude_error_deg.is_finite()
                 && sample.latitude_error_deg.is_finite()
@@ -8382,6 +8495,20 @@ mod tests {
         assert!(samples
             .iter()
             .any(|sample| sample.body == pleiades_backend::CelestialBody::Mars));
+    }
+
+    #[test]
+    fn interpolation_quality_sample_validation_rejects_non_tdb_epochs() {
+        let mut sample = interpolation_quality_samples()[0].clone();
+        sample.epoch = Instant::new(sample.epoch.julian_day, TimeScale::Tt);
+
+        assert!(matches!(
+            sample.validate(),
+            Err(InterpolationQualitySampleValidationError::NonTdbEpoch {
+                found: TimeScale::Tt,
+                ..
+            })
+        ));
     }
 
     #[test]
