@@ -155,6 +155,7 @@ Progress note (2026-04-29): the JPL snapshot batch path now also distinguishes u
 Progress note (2026-04-29): the checked-in JPL hold-out corpus now also exposes a public request-corpus helper that preserves the stored row order and requested coordinate frame, which makes the exact held-out batch shapes reusable by downstream validation and reproducibility tooling without reconstructing them from the snapshot metadata in each caller. The same hold-out corpus now also carries the added Mars 2600000.0 row from the reference snapshot, which broadens the public-input derivative fixture to 10 rows across 3 bodies and 7 epochs without changing the backend contract.
 Progress note (2026-04-29): the same hold-out corpus now also includes a late Mars 2634167.0 sample from the reference snapshot, which extends the interpolation-validation window to 11 rows while keeping the existing Mars/Jupiter/Saturn body mix intact.
 Progress note (2026-04-30): the same hold-out corpus now also exposes an equatorial-parity request-corpus alias, which keeps the frame-specific hold-out batch shape discoverable alongside the existing frame-parameterized helper for downstream validation and reproducibility tooling.
+Progress note (2026-04-30): the JPL reference, comparison, and hold-out mixed TT/TDB batch corpora now also expose plain `*_request_corpus` aliases, which keeps the mixed-scale validation slices easier to discover from downstream tooling alongside the existing `*_batch_parity_request_corpus` names.
 
 Remaining suggested scope:
 

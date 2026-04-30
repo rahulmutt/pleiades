@@ -193,6 +193,24 @@ pub fn reference_snapshot_mixed_tt_tdb_batch_parity_request_corpus() -> Option<V
     reference_snapshot_mixed_tt_tdb_batch_parity_requests()
 }
 
+/// Returns the mixed TT/TDB reference-snapshot request corpus used by batch parity checks.
+///
+/// This is a compatibility alias for
+/// [`reference_snapshot_mixed_time_scale_request_corpus`].
+#[doc(alias = "reference_snapshot_mixed_time_scale_request_corpus")]
+pub fn reference_snapshot_mixed_tt_tdb_request_corpus() -> Option<Vec<EphemerisRequest>> {
+    reference_snapshot_mixed_tt_tdb_batch_parity_requests()
+}
+
+/// Returns the mixed TT/TDB reference-snapshot request corpus used by batch parity checks.
+///
+/// This is a compatibility alias for
+/// [`reference_snapshot_mixed_tt_tdb_batch_parity_requests`].
+#[doc(alias = "reference_snapshot_mixed_tt_tdb_batch_parity_requests")]
+pub fn reference_snapshot_mixed_time_scale_request_corpus() -> Option<Vec<EphemerisRequest>> {
+    reference_snapshot_mixed_time_scale_batch_parity_requests()
+}
+
 /// A compact coverage summary for the checked-in reference snapshot.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ReferenceSnapshotSummary {
@@ -3737,6 +3755,24 @@ pub fn comparison_snapshot_mixed_tt_tdb_batch_parity_request_corpus(
     comparison_snapshot_mixed_tt_tdb_batch_parity_requests()
 }
 
+/// Returns the mixed TT/TDB comparison-snapshot request corpus used by batch parity checks.
+///
+/// This is a compatibility alias for
+/// [`comparison_snapshot_mixed_time_scale_request_corpus`].
+#[doc(alias = "comparison_snapshot_mixed_time_scale_request_corpus")]
+pub fn comparison_snapshot_mixed_tt_tdb_request_corpus() -> Option<Vec<EphemerisRequest>> {
+    comparison_snapshot_mixed_tt_tdb_batch_parity_requests()
+}
+
+/// Returns the mixed TT/TDB comparison-snapshot request corpus used by batch parity checks.
+///
+/// This is a compatibility alias for
+/// [`comparison_snapshot_mixed_tt_tdb_batch_parity_requests`].
+#[doc(alias = "comparison_snapshot_mixed_tt_tdb_batch_parity_requests")]
+pub fn comparison_snapshot_mixed_time_scale_request_corpus() -> Option<Vec<EphemerisRequest>> {
+    comparison_snapshot_mixed_time_scale_batch_parity_requests()
+}
+
 /// Returns the parsed manifest for the comparison snapshot.
 pub fn comparison_snapshot_manifest() -> &'static SnapshotManifest {
     static MANIFEST: OnceLock<SnapshotManifest> = OnceLock::new();
@@ -5685,6 +5721,25 @@ pub fn independent_holdout_snapshot_mixed_tt_tdb_batch_parity_request_corpus(
     independent_holdout_snapshot_mixed_tt_tdb_batch_parity_requests()
 }
 
+/// Returns the mixed TT/TDB independent hold-out request corpus used by batch parity checks.
+///
+/// This is a compatibility alias for
+/// [`independent_holdout_snapshot_mixed_time_scale_request_corpus`].
+#[doc(alias = "independent_holdout_snapshot_mixed_time_scale_request_corpus")]
+pub fn independent_holdout_snapshot_mixed_tt_tdb_request_corpus() -> Option<Vec<EphemerisRequest>> {
+    independent_holdout_snapshot_mixed_tt_tdb_batch_parity_requests()
+}
+
+/// Returns the mixed TT/TDB independent hold-out request corpus used by batch parity checks.
+///
+/// This is a compatibility alias for
+/// [`independent_holdout_snapshot_mixed_tt_tdb_batch_parity_requests`].
+#[doc(alias = "independent_holdout_snapshot_mixed_tt_tdb_batch_parity_requests")]
+pub fn independent_holdout_snapshot_mixed_time_scale_request_corpus(
+) -> Option<Vec<EphemerisRequest>> {
+    independent_holdout_snapshot_mixed_time_scale_batch_parity_requests()
+}
+
 fn independent_holdout_snapshot_error() -> Option<&'static SnapshotLoadError> {
     independent_holdout_state().error()
 }
@@ -6621,6 +6676,14 @@ mod tests {
             reference_snapshot_mixed_tt_tdb_batch_parity_requests()
         );
         assert_eq!(
+            reference_snapshot_mixed_time_scale_request_corpus(),
+            reference_snapshot_mixed_time_scale_batch_parity_requests()
+        );
+        assert_eq!(
+            reference_snapshot_mixed_tt_tdb_request_corpus(),
+            reference_snapshot_mixed_tt_tdb_batch_parity_requests()
+        );
+        assert_eq!(
             comparison_snapshot_request_corpus(CoordinateFrame::Ecliptic),
             comparison_snapshot_requests(CoordinateFrame::Ecliptic)
         );
@@ -6638,6 +6701,14 @@ mod tests {
         );
         assert_eq!(
             comparison_snapshot_mixed_tt_tdb_batch_parity_request_corpus(),
+            comparison_snapshot_mixed_tt_tdb_batch_parity_requests()
+        );
+        assert_eq!(
+            comparison_snapshot_mixed_time_scale_request_corpus(),
+            comparison_snapshot_mixed_time_scale_batch_parity_requests()
+        );
+        assert_eq!(
+            comparison_snapshot_mixed_tt_tdb_request_corpus(),
             comparison_snapshot_mixed_tt_tdb_batch_parity_requests()
         );
         assert_eq!(
@@ -6662,6 +6733,14 @@ mod tests {
         );
         assert_eq!(
             independent_holdout_snapshot_mixed_tt_tdb_batch_parity_request_corpus(),
+            independent_holdout_snapshot_mixed_tt_tdb_batch_parity_requests()
+        );
+        assert_eq!(
+            independent_holdout_snapshot_mixed_time_scale_request_corpus(),
+            independent_holdout_snapshot_mixed_time_scale_batch_parity_requests()
+        );
+        assert_eq!(
+            independent_holdout_snapshot_mixed_tt_tdb_request_corpus(),
             independent_holdout_snapshot_mixed_tt_tdb_batch_parity_requests()
         );
         assert_eq!(
