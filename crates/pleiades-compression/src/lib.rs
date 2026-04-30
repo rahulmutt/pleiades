@@ -97,7 +97,8 @@ impl ArtifactHeader {
         Self::with_profile(
             generation_label,
             source,
-            ArtifactProfile::ecliptic_longitude_latitude_distance_with_derived_equatorial(),
+            ArtifactProfile::packaged_ecliptic_longitude_latitude_distance_with_derived_equatorial(
+            ),
         )
     }
 
@@ -491,7 +492,7 @@ impl ArtifactProfile {
     /// Returns the current packaged-artifact profile with stored ecliptic
     /// longitude, latitude, and distance channels plus derived equatorial
     /// coordinates.
-    pub fn ecliptic_longitude_latitude_distance_with_derived_equatorial() -> Self {
+    pub fn packaged_ecliptic_longitude_latitude_distance_with_derived_equatorial() -> Self {
         Self::new(
             vec![
                 ChannelKind::Longitude,
@@ -510,6 +511,13 @@ impl ArtifactProfile {
             ],
             SpeedPolicy::Unsupported,
         )
+    }
+
+    /// Returns the current packaged-artifact profile with stored ecliptic
+    /// longitude, latitude, and distance channels plus derived equatorial
+    /// coordinates.
+    pub fn ecliptic_longitude_latitude_distance_with_derived_equatorial() -> Self {
+        Self::packaged_ecliptic_longitude_latitude_distance_with_derived_equatorial()
     }
 }
 
@@ -2100,6 +2108,11 @@ mod tests {
         assert_eq!(decoded.header.source, "unit test fixture");
         assert_eq!(decoded.header.endian_policy, EndianPolicy::LittleEndian);
         assert_eq!(
+            decoded.header.profile,
+            ArtifactProfile::packaged_ecliptic_longitude_latitude_distance_with_derived_equatorial(
+            )
+        );
+        assert_eq!(
             decoded.header.profile.stored_channels,
             vec![
                 ChannelKind::Longitude,
@@ -2203,10 +2216,16 @@ mod tests {
     fn artifact_profile_reports_output_support_statuses() {
         let profile = ArtifactProfile::ecliptic_longitude_latitude_distance();
         let explicit_profile =
-            ArtifactProfile::ecliptic_longitude_latitude_distance_with_derived_equatorial();
+            ArtifactProfile::packaged_ecliptic_longitude_latitude_distance_with_derived_equatorial(
+            );
 
         assert_eq!(profile, explicit_profile);
         assert_eq!(profile.summary_line(), explicit_profile.summary_line());
+        assert_eq!(
+            ArtifactProfile::packaged_ecliptic_longitude_latitude_distance_with_derived_equatorial(
+            ),
+            explicit_profile
+        );
 
         assert_eq!(
             profile.output_support(ArtifactOutput::EclipticCoordinates),
