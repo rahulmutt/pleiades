@@ -6637,6 +6637,58 @@ mod tests {
     }
 
     #[test]
+    fn batch_query_preserves_lunar_high_curvature_continuity_order_and_values() {
+        let backend = ElpBackend::new();
+        let requests = lunar_high_curvature_continuity_batch_parity_requests();
+
+        let results = backend
+            .positions(&requests)
+            .expect("batch query should preserve the lunar high-curvature order");
+
+        assert_eq!(results.len(), requests.len());
+        for (request, result) in requests.iter().zip(results.iter()) {
+            assert_eq!(result.body, request.body);
+            assert_eq!(result.instant, request.instant);
+            assert_eq!(result.frame, CoordinateFrame::Ecliptic);
+
+            let batch = result.ecliptic.expect("ecliptic result should exist");
+            let single = backend
+                .position(request)
+                .expect("single high-curvature query should succeed")
+                .ecliptic
+                .expect("single-query ecliptic result should exist");
+
+            assert_eq!(batch, single);
+        }
+    }
+
+    #[test]
+    fn batch_query_preserves_lunar_high_curvature_equatorial_order_and_values() {
+        let backend = ElpBackend::new();
+        let requests = lunar_high_curvature_equatorial_continuity_batch_parity_requests();
+
+        let results = backend
+            .positions(&requests)
+            .expect("batch query should preserve the lunar high-curvature equatorial order");
+
+        assert_eq!(results.len(), requests.len());
+        for (request, result) in requests.iter().zip(results.iter()) {
+            assert_eq!(result.body, request.body);
+            assert_eq!(result.instant, request.instant);
+            assert_eq!(result.frame, CoordinateFrame::Equatorial);
+
+            let batch = result.equatorial.expect("equatorial result should exist");
+            let single = backend
+                .position(request)
+                .expect("single high-curvature equatorial query should succeed")
+                .equatorial
+                .expect("single-query equatorial result should exist");
+
+            assert_eq!(batch, single);
+        }
+    }
+
+    #[test]
     fn lunar_high_curvature_continuity_validation_rejects_stale_counts() {
         let mut envelope =
             lunar_high_curvature_continuity_envelope().expect("envelope should exist");
