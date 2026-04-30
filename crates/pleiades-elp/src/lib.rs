@@ -1277,6 +1277,11 @@ pub fn lunar_theory_catalog_entry_for_selection(
     lunar_theory_catalog_entry_for_key(selection.catalog_key())
 }
 
+/// Returns the catalog entry matching the current lunar-theory selection, when present.
+pub fn lunar_theory_catalog_entry_for_current_selection() -> Option<LunarTheoryCatalogEntry> {
+    lunar_theory_catalog_entry_for_selection(lunar_theory_source_selection())
+}
+
 /// Returns the current lunar-theory specification matching the provided alias, when present.
 pub fn resolve_lunar_theory_by_alias(alias: &str) -> Option<LunarTheorySpecification> {
     lunar_theory_catalog_entry_for_alias(alias).map(|entry| entry.specification)
@@ -6270,6 +6275,10 @@ mod tests {
         );
         assert_eq!(
             lunar_theory_catalog_entry_for_selection(selection).map(|entry| entry.specification),
+            Some(lunar_theory_specification())
+        );
+        assert_eq!(
+            lunar_theory_catalog_entry_for_current_selection().map(|entry| entry.specification),
             Some(lunar_theory_specification())
         );
         assert!(summary.contains(selection.identifier));
