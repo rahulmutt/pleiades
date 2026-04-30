@@ -12053,7 +12053,7 @@ mod tests {
     #[test]
     fn comparison_report_uses_the_snapshot_backend() {
         let report = render_comparison_report().expect("comparison should render");
-        assert!(report.lines().any(|line| line == "Comparison report"));
+        assert_eq!(report.lines().next(), Some("Comparison report"));
         assert!(report.lines().any(|line| line == "Comparison corpus"));
         assert!(report
             .lines()
@@ -12086,6 +12086,7 @@ mod tests {
             summary.summary_line(),
             "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags)"
         );
+        assert_eq!(summary.summary_line().lines().count(), 1);
     }
 
     #[test]
