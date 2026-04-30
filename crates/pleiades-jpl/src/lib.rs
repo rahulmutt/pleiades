@@ -3696,6 +3696,19 @@ pub fn frame_treatment_summary() -> &'static str {
     frame_treatment_summary_details().summary_line()
 }
 
+/// Returns the release-facing frame-treatment summary for the current JPL snapshot backend.
+///
+/// The backend-owned note is validated before the compact report line is
+/// rendered, so a drifted summary becomes an unavailable report rather than a
+/// stale cached string.
+pub fn frame_treatment_summary_for_report() -> String {
+    let summary = frame_treatment_summary_details();
+    match summary.validated_summary_line() {
+        Ok(summary_line) => summary_line.to_string(),
+        Err(error) => format!("JPL frame treatment unavailable ({error})"),
+    }
+}
+
 /// Returns the comparison-only subset used by the stage-4 validation corpus.
 pub fn comparison_snapshot() -> &'static [SnapshotEntry] {
     comparison_snapshot_entries()
@@ -9151,6 +9164,7 @@ mod tests {
             "checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"
         );
         assert_eq!(frame_treatment_summary(), summary.summary_line());
+        assert_eq!(frame_treatment_summary_for_report(), summary.summary_line());
         assert!(summary.summary_line().contains("mean-obliquity transform"));
     }
 

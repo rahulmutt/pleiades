@@ -1535,6 +1535,14 @@ impl FrameTreatmentSummary {
             Ok(())
         }
     }
+
+    /// Returns the compact one-line rendering after validation.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<&'static str, FrameTreatmentSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for FrameTreatmentSummary {
@@ -2789,6 +2797,7 @@ mod tests {
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.summary_line(), "geocentric ecliptic inputs; equatorial coordinates are derived with a mean-obliquity transform");
         assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert!(summary.summary_line().contains("mean-obliquity"));
     }
 

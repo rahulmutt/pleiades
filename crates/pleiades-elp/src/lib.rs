@@ -2104,8 +2104,8 @@ pub fn lunar_theory_frame_treatment_summary_details() -> FrameTreatmentSummary {
 /// report line instead of a silently stale summary.
 pub fn lunar_theory_frame_treatment_summary_for_report() -> String {
     let summary = lunar_theory_frame_treatment_summary_details();
-    match summary.validate() {
-        Ok(()) => summary.to_string(),
+    match summary.validated_summary_line() {
+        Ok(summary_line) => summary_line.to_string(),
         Err(error) => format!("ELP frame treatment unavailable ({error})"),
     }
 }

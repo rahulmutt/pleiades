@@ -2580,8 +2580,8 @@ pub fn frame_treatment_summary() -> &'static str {
 /// stale cached string.
 pub fn frame_treatment_summary_for_report() -> String {
     let summary = frame_treatment_summary_details();
-    match summary.validate() {
-        Ok(()) => summary.to_string(),
+    match summary.validated_summary_line() {
+        Ok(summary_line) => summary_line.to_string(),
         Err(error) => format!("VSOP87 frame treatment unavailable ({error})"),
     }
 }

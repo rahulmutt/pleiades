@@ -1271,6 +1271,14 @@ impl PackagedFrameTreatmentSummary {
     pub fn validate(&self) -> Result<(), PackagedFrameTreatmentSummaryValidationError> {
         validate_packaged_frame_treatment_summary_line(self.summary_line())
     }
+
+    /// Returns the compact one-line rendering after validation.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<&'static str, PackagedFrameTreatmentSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for PackagedFrameTreatmentSummary {
@@ -1287,8 +1295,8 @@ pub const fn packaged_frame_treatment_summary_details() -> PackagedFrameTreatmen
 /// Returns the packaged-artifact frame-treatment summary for report rendering.
 pub fn packaged_frame_treatment_summary_for_report() -> String {
     let summary = packaged_frame_treatment_summary_details();
-    match summary.validate() {
-        Ok(()) => summary.to_string(),
+    match summary.validated_summary_line() {
+        Ok(summary_line) => summary_line.to_string(),
         Err(error) => format!("Packaged frame treatment unavailable ({error})"),
     }
 }
@@ -3076,6 +3084,10 @@ mod tests {
         assert_eq!(
             packaged_frame_treatment_summary_details().validate(),
             Ok(())
+        );
+        assert_eq!(
+            packaged_frame_treatment_summary_details().validated_summary_line(),
+            Ok(packaged_frame_treatment_summary_details().summary_line())
         );
         assert!(metadata.provenance.data_sources[2]
             .contains("equatorial coordinates are reconstructed"));

@@ -88,7 +88,7 @@ use pleiades_jpl::{
     comparison_snapshot_source_summary_for_report, comparison_snapshot_summary_for_report,
     format_jpl_interpolation_quality_kind_coverage,
     format_jpl_interpolation_quality_summary_for_report,
-    frame_treatment_summary_details as jpl_frame_treatment_summary_details,
+    frame_treatment_summary_for_report as jpl_frame_treatment_summary_for_report,
     independent_holdout_manifest_summary_for_report,
     independent_holdout_snapshot_batch_parity_summary_for_report as jpl_independent_holdout_snapshot_batch_parity_summary_for_report,
     independent_holdout_snapshot_equatorial_parity_summary_for_report as jpl_independent_holdout_snapshot_equatorial_parity_summary_for_report,
@@ -8463,11 +8463,7 @@ fn format_vsop87_frame_treatment_summary() -> String {
 }
 
 fn format_jpl_frame_treatment_summary() -> String {
-    let summary = jpl_frame_treatment_summary_details();
-    match summary.validate() {
-        Ok(()) => summary.to_string(),
-        Err(error) => format!("JPL frame treatment unavailable ({error})"),
-    }
+    jpl_frame_treatment_summary_for_report()
 }
 
 /// Compact validation evidence for the shared mean-obliquity frame round-trip samples.
