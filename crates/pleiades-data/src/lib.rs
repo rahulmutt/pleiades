@@ -634,9 +634,15 @@ impl PackagedArtifactProfileSummary {
     }
 
     /// Validates that the packaged artifact profile summary is internally
-    /// consistent with its bundled body list and embedded capability profile.
+    /// consistent with its bundled body list, byte-order policy, and embedded capability profile.
     pub fn validate(&self) -> Result<(), pleiades_compression::CompressionError> {
         let artifact = packaged_artifact();
+        if self.endian_policy != artifact.header.endian_policy {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact profile byte-order policy does not match the checked-in packaged artifact header",
+            ));
+        }
         if self.profile != artifact.profile_coverage_summary().profile {
             return Err(pleiades_compression::CompressionError::new(
                 pleiades_compression::CompressionErrorKind::InvalidFormat,
@@ -3090,6 +3096,7 @@ mod tests {
             summary.profile.summary_line(),
             "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported"
         );
+        assert_eq!(summary.validate(), Ok(()));
         let coverage = summary.profile_coverage_summary();
         assert_eq!(coverage.body_count, artifact.bodies.len());
         assert_eq!(coverage.bodies, summary.bodies);
