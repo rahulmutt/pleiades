@@ -5107,6 +5107,174 @@ pub fn supported_body_j1900_equatorial_batch_parity_summary_for_report() -> Stri
     }
 }
 
+/// Backend-owned summary for the supported-body canonical batch matrix.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Vsop87SupportedBodyCanonicalBatchParitySummary {
+    /// Number of supported bodies exercised by each batch slice.
+    pub supported_body_count: usize,
+    /// Supported-body J2000 ecliptic batch regression summary.
+    pub j2000_ecliptic: Vsop87SupportedBodyJ2000EclipticBatchParitySummary,
+    /// Supported-body J2000 equatorial batch regression summary.
+    pub j2000_equatorial: Vsop87SupportedBodyJ2000EquatorialBatchParitySummary,
+    /// Supported-body J1900 ecliptic batch regression summary.
+    pub j1900_ecliptic: Vsop87SupportedBodyJ1900EclipticBatchParitySummary,
+    /// Supported-body J1900 equatorial batch regression summary.
+    pub j1900_equatorial: Vsop87SupportedBodyJ1900EquatorialBatchParitySummary,
+}
+
+/// Structured validation errors for a supported-body canonical batch matrix summary.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Vsop87SupportedBodyCanonicalBatchParitySummaryValidationError {
+    /// A rendered summary field no longer matches the current derived evidence.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for Vsop87SupportedBodyCanonicalBatchParitySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the VSOP87 supported-body canonical batch matrix field `{field}` is out of sync with the current supported-body batch evidence"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for Vsop87SupportedBodyCanonicalBatchParitySummaryValidationError {}
+
+impl Vsop87SupportedBodyCanonicalBatchParitySummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let bodies = if self.j2000_ecliptic.sample_bodies.is_empty() {
+            "none".to_string()
+        } else {
+            format_celestial_bodies(&self.j2000_ecliptic.sample_bodies)
+        };
+
+        format!(
+            "VSOP87 supported-body canonical batch matrix: {} bodies ({}); slices: J2000 ecliptic {} requests, J2000 equatorial {} requests, J1900 ecliptic {} requests, J1900 equatorial {} requests; batch/single parity preserved across the supported planetary set",
+            self.supported_body_count,
+            bodies,
+            self.j2000_ecliptic.sample_count,
+            self.j2000_equatorial.sample_count,
+            self.j1900_ecliptic.sample_count,
+            self.j1900_equatorial.sample_count,
+        )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current derived batch evidence.
+    pub fn validate(
+        &self,
+    ) -> Result<(), Vsop87SupportedBodyCanonicalBatchParitySummaryValidationError> {
+        self.j2000_ecliptic.validate().map_err(|_| {
+            Vsop87SupportedBodyCanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                field: "j2000_ecliptic",
+            }
+        })?;
+        self.j2000_equatorial.validate().map_err(|_| {
+            Vsop87SupportedBodyCanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                field: "j2000_equatorial",
+            }
+        })?;
+        self.j1900_ecliptic.validate().map_err(|_| {
+            Vsop87SupportedBodyCanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                field: "j1900_ecliptic",
+            }
+        })?;
+        self.j1900_equatorial.validate().map_err(|_| {
+            Vsop87SupportedBodyCanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                field: "j1900_equatorial",
+            }
+        })?;
+
+        let supported_bodies = Vsop87Backend::supported_bodies();
+        if self.supported_body_count != supported_bodies.len() {
+            return Err(
+                Vsop87SupportedBodyCanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "supported_body_count",
+                },
+            );
+        }
+
+        let expected_bodies = supported_bodies.to_vec();
+        macro_rules! validate_slice {
+            ($field:literal, $summary:expr) => {
+                let summary = &$summary;
+                if summary.sample_count != self.supported_body_count {
+                    return Err(
+                        Vsop87SupportedBodyCanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                            field: $field,
+                        },
+                    );
+                }
+                if summary.sample_bodies != expected_bodies {
+                    return Err(
+                        Vsop87SupportedBodyCanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                            field: $field,
+                        },
+                    );
+                }
+            };
+        }
+        validate_slice!("j2000_ecliptic", self.j2000_ecliptic);
+        validate_slice!("j2000_equatorial", self.j2000_equatorial);
+        validate_slice!("j1900_ecliptic", self.j1900_ecliptic);
+        validate_slice!("j1900_equatorial", self.j1900_equatorial);
+
+        if self.j2000_ecliptic.sample_bodies != self.j2000_equatorial.sample_bodies
+            || self.j2000_ecliptic.sample_bodies != self.j1900_ecliptic.sample_bodies
+            || self.j2000_ecliptic.sample_bodies != self.j1900_equatorial.sample_bodies
+        {
+            return Err(
+                Vsop87SupportedBodyCanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "body_order",
+                },
+            );
+        }
+
+        Ok(())
+    }
+}
+
+impl fmt::Display for Vsop87SupportedBodyCanonicalBatchParitySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns the backend-owned supported-body canonical batch matrix summary.
+pub fn supported_body_canonical_batch_parity_summary(
+) -> Option<Vsop87SupportedBodyCanonicalBatchParitySummary> {
+    Some(Vsop87SupportedBodyCanonicalBatchParitySummary {
+        supported_body_count: Vsop87Backend::supported_bodies().len(),
+        j2000_ecliptic: supported_body_j2000_ecliptic_batch_parity_summary()?,
+        j2000_equatorial: supported_body_j2000_equatorial_batch_parity_summary()?,
+        j1900_ecliptic: supported_body_j1900_ecliptic_batch_parity_summary()?,
+        j1900_equatorial: supported_body_j1900_equatorial_batch_parity_summary()?,
+    })
+}
+
+fn format_validated_supported_body_canonical_batch_parity_summary_for_report(
+    summary: &Vsop87SupportedBodyCanonicalBatchParitySummary,
+) -> String {
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => {
+            format!("VSOP87 supported-body canonical batch matrix: unavailable ({error})")
+        }
+    }
+}
+
+/// Returns the release-facing supported-body canonical batch matrix summary string.
+pub fn supported_body_canonical_batch_parity_summary_for_report() -> String {
+    match supported_body_canonical_batch_parity_summary() {
+        Some(summary) => {
+            format_validated_supported_body_canonical_batch_parity_summary_for_report(&summary)
+        }
+        None => "VSOP87 supported-body canonical batch matrix: unavailable".to_string(),
+    }
+}
+
 /// Formats the canonical VSOP87 J2000 equatorial companion summary for reporting.
 pub fn format_canonical_equatorial_evidence_summary(
     summary: &Vsop87CanonicalEquatorialEvidenceSummary,
@@ -12023,6 +12191,74 @@ mod tests {
             supported_body_j1900_equatorial_request_corpus(),
             supported_body_j1900_equatorial_batch_parity_requests()
         );
+    }
+
+    #[test]
+    fn supported_body_canonical_batch_parity_summary_matches_the_backend_helpers() {
+        let summary = supported_body_canonical_batch_parity_summary()
+            .expect("supported-body canonical batch matrix should exist");
+        let rendered = supported_body_canonical_batch_parity_summary_for_report();
+
+        assert_eq!(rendered, summary.summary_line());
+        assert_eq!(summary.summary_line(), summary.to_string());
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(
+            summary.supported_body_count,
+            Vsop87Backend::supported_bodies().len()
+        );
+        assert_eq!(
+            summary.j2000_ecliptic.sample_count,
+            summary.supported_body_count
+        );
+        assert_eq!(
+            summary.j2000_equatorial.sample_count,
+            summary.supported_body_count
+        );
+        assert_eq!(
+            summary.j1900_ecliptic.sample_count,
+            summary.supported_body_count
+        );
+        assert_eq!(
+            summary.j1900_equatorial.sample_count,
+            summary.supported_body_count
+        );
+        assert_eq!(
+            summary.j2000_ecliptic.sample_bodies,
+            Vsop87Backend::supported_bodies().to_vec()
+        );
+        assert_eq!(
+            summary.j2000_ecliptic.sample_bodies,
+            summary.j2000_equatorial.sample_bodies
+        );
+        assert_eq!(
+            summary.j2000_ecliptic.sample_bodies,
+            summary.j1900_ecliptic.sample_bodies
+        );
+        assert_eq!(
+            summary.j2000_ecliptic.sample_bodies,
+            summary.j1900_equatorial.sample_bodies
+        );
+        assert_eq!(summary.j2000_ecliptic.frame, CoordinateFrame::Ecliptic);
+        assert_eq!(summary.j2000_equatorial.frame, CoordinateFrame::Equatorial);
+        assert_eq!(summary.j1900_ecliptic.frame, CoordinateFrame::Ecliptic);
+        assert_eq!(summary.j1900_equatorial.frame, CoordinateFrame::Equatorial);
+        assert!(rendered.contains("J2000 ecliptic"));
+        assert!(rendered.contains("J2000 equatorial"));
+        assert!(rendered.contains("J1900 ecliptic"));
+        assert!(rendered.contains("J1900 equatorial"));
+    }
+
+    #[test]
+    fn supported_body_canonical_batch_parity_report_surfaces_validation_errors() {
+        let mut summary = supported_body_canonical_batch_parity_summary()
+            .expect("supported-body canonical batch matrix should exist");
+        summary.supported_body_count += 1;
+
+        let rendered =
+            format_validated_supported_body_canonical_batch_parity_summary_for_report(&summary);
+
+        assert!(rendered.starts_with("VSOP87 supported-body canonical batch matrix: unavailable ("));
+        assert!(rendered.contains("supported_body_count"));
     }
 
     #[test]
