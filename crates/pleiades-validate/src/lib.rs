@@ -56,7 +56,7 @@ use pleiades_data::{
     packaged_artifact_profile_summary_with_body_coverage,
     packaged_artifact_regeneration_summary_for_report,
     packaged_artifact_storage_summary_for_report, packaged_frame_parity_summary_for_report,
-    packaged_frame_treatment_summary_details, packaged_lookup_epoch_policy_summary_for_report,
+    packaged_frame_treatment_summary_for_report, packaged_lookup_epoch_policy_summary_for_report,
     packaged_mixed_tt_tdb_batch_parity_summary_for_report,
     packaged_request_policy_summary_for_report, PackagedDataBackend,
 };
@@ -8652,11 +8652,7 @@ fn format_lunar_frame_treatment_summary() -> String {
 }
 
 fn format_packaged_frame_treatment_summary() -> String {
-    let summary = packaged_frame_treatment_summary_details();
-    match summary.validate() {
-        Ok(()) => summary.to_string(),
-        Err(error) => format!("Packaged frame treatment unavailable ({error})"),
-    }
+    packaged_frame_treatment_summary_for_report()
 }
 
 fn render_validation_report_summary_text(report: &ValidationReport) -> String {
@@ -16027,7 +16023,7 @@ version = "0.9.0"
         assert!(release_summary.contains(&packaged_mixed_tt_tdb_batch_parity_summary_for_report()));
         assert!(release_summary.contains(&format!(
             "Packaged frame treatment: {}",
-            packaged_frame_treatment_summary_details().summary_line()
+            packaged_frame_treatment_summary_for_report()
         )));
         assert!(release_summary.contains("Packaged batch parity:"));
         assert!(release_summary.contains("Packaged frame parity:"));

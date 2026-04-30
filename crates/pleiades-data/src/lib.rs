@@ -1243,17 +1243,20 @@ pub const fn packaged_frame_treatment_summary_details() -> PackagedFrameTreatmen
     PackagedFrameTreatmentSummary
 }
 
+/// Returns the packaged-artifact frame-treatment summary for report rendering.
+pub fn packaged_frame_treatment_summary_for_report() -> String {
+    let summary = packaged_frame_treatment_summary_details();
+    match summary.validate() {
+        Ok(()) => summary.to_string(),
+        Err(error) => format!("Packaged frame treatment unavailable ({error})"),
+    }
+}
+
 /// Returns the packaged-artifact frame-treatment summary.
 pub fn packaged_frame_treatment_summary() -> &'static str {
     static SUMMARY: OnceLock<String> = OnceLock::new();
     SUMMARY
-        .get_or_init(|| {
-            let summary = packaged_frame_treatment_summary_details();
-            match summary.validate() {
-                Ok(()) => summary.to_string(),
-                Err(error) => format!("Packaged frame treatment unavailable ({error})"),
-            }
-        })
+        .get_or_init(packaged_frame_treatment_summary_for_report)
         .as_str()
 }
 
@@ -3493,6 +3496,19 @@ mod tests {
         assert!(provenance.contains("Reference snapshot coverage:"));
         assert!(provenance.contains("rows across"));
         assert!(provenance.contains("asteroid rows"));
+    }
+
+    #[test]
+    fn packaged_frame_treatment_summary_reuses_the_structured_report_helper() {
+        let summary = PackagedFrameTreatmentSummary;
+
+        assert_eq!(summary.summary_line(), packaged_frame_treatment_summary());
+        assert_eq!(summary.to_string(), packaged_frame_treatment_summary());
+        assert_eq!(
+            packaged_frame_treatment_summary_for_report(),
+            summary.to_string()
+        );
+        assert_eq!(summary.validate(), Ok(()));
     }
 
     #[test]
