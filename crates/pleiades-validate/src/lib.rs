@@ -13861,12 +13861,20 @@ mod tests {
         assert!(validation_report_summary.contains(
             "Packaged-artifact storage/reconstruction: Quantized linear segments stored in pleiades-compression artifact format; equatorial coordinates are reconstructed at runtime from stored channels"
         ));
-        assert!(validation_report_summary.contains(
-            "Packaged-artifact generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic residual corrections to keep the high-curvature fit compact"
-        ));
-        assert!(validation_report_summary.contains(
-            "Packaged-artifact generation residual bodies: residual bodies: Moon; applies to 1 bundled body"
-        ));
+        assert_report_contains_exact_line(
+            &validation_report_summary,
+            &format!(
+                "Packaged-artifact generation policy: {}",
+                packaged_artifact_generation_policy_summary_for_report()
+            ),
+        );
+        assert_report_contains_exact_line(
+            &validation_report_summary,
+            &format!(
+                "Packaged-artifact generation residual bodies: {}",
+                packaged_artifact_generation_residual_bodies_summary_for_report()
+            ),
+        );
         assert!(validation_report_summary.contains("Packaged request policy"));
         assert_report_contains_exact_line(
             &validation_report_summary,
@@ -16501,12 +16509,20 @@ version = "0.9.0"
         assert!(release_notes_summary
             .contains("Artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(release_notes_summary.contains("Packaged-artifact storage/reconstruction: Quantized linear segments stored in pleiades-compression artifact format; equatorial coordinates are reconstructed at runtime from stored channels"));
-        assert!(release_notes_summary.contains(
-            "Packaged-artifact generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic residual corrections to keep the high-curvature fit compact"
-        ));
-        assert!(release_notes_summary.contains(
-            "Packaged-artifact generation residual bodies: residual bodies: Moon; applies to 1 bundled body"
-        ));
+        assert_report_contains_exact_line(
+            &release_notes_summary,
+            &format!(
+                "Packaged-artifact generation policy: {}",
+                packaged_artifact_generation_policy_summary_for_report()
+            ),
+        );
+        assert_report_contains_exact_line(
+            &release_notes_summary,
+            &format!(
+                "Packaged-artifact generation residual bodies: {}",
+                packaged_artifact_generation_residual_bodies_summary_for_report()
+            ),
+        );
         assert!(release_notes_summary
             .contains("Compatibility profile verification: verify-compatibility-profile"));
         assert!(release_notes_summary.contains("Workspace audit summary: workspace-audit-summary"));
@@ -16559,12 +16575,20 @@ version = "0.9.0"
             "Packaged-artifact access: {}",
             format_packaged_artifact_access_summary()
         )));
-        assert!(release_summary.contains(
-            "Packaged-artifact generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic residual corrections to keep the high-curvature fit compact"
-        ));
-        assert!(release_summary.contains(
-            "Packaged-artifact generation residual bodies: residual bodies: Moon; applies to 1 bundled body"
-        ));
+        assert_report_contains_exact_line(
+            &release_summary,
+            &format!(
+                "Packaged-artifact generation policy: {}",
+                packaged_artifact_generation_policy_summary_for_report()
+            ),
+        );
+        assert_report_contains_exact_line(
+            &release_summary,
+            &format!(
+                "Packaged-artifact generation residual bodies: {}",
+                packaged_artifact_generation_residual_bodies_summary_for_report()
+            ),
+        );
         assert_report_contains_exact_line(
             &release_summary,
             "Packaged lookup epoch policy: TT-grid retag without relativistic correction; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction",
