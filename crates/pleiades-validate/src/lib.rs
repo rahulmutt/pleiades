@@ -13349,7 +13349,14 @@ mod tests {
         assert!(validation_report_summary.contains("Observer policy:"));
         assert!(validation_report_summary.contains("Apparentness policy:"));
         assert!(validation_report_summary.contains("Frame policy:"));
-        assert!(validation_report_summary.contains("Mean-obliquity frame round-trip:"));
+        let mean_obliquity_frame_round_trip = mean_obliquity_frame_round_trip_summary()
+            .expect("mean-obliquity frame round-trip summary should exist");
+        assert!(validation_report_summary.lines().any(|line| {
+            line == format!(
+                "Mean-obliquity frame round-trip: {}",
+                mean_obliquity_frame_round_trip
+            )
+        }));
         assert!(validation_report_summary.contains("Zodiac policy:"));
         assert!(validation_report_summary.contains(
             "Release profile identifiers: v1 compatibility=pleiades-compatibility-profile/0.6.123, api-stability=pleiades-api-stability/0.1.0"
@@ -15188,7 +15195,14 @@ mod tests {
         assert!(rendered.contains("Observer policy: chart houses use observer locations; body requests stay geocentric; geocentric-only backends reject observer-bearing requests"));
         assert!(rendered.contains("Apparentness policy: current first-party backends accept mean geometric output only; apparent requests are rejected unless a backend explicitly advertises support"));
         assert!(rendered.contains("Frame policy: ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported"));
-        assert!(rendered.contains("Mean-obliquity frame round-trip:"));
+        let mean_obliquity_frame_round_trip = mean_obliquity_frame_round_trip_summary()
+            .expect("mean-obliquity frame round-trip summary should exist");
+        assert!(rendered.lines().any(|line| {
+            line == format!(
+                "Mean-obliquity frame round-trip: {}",
+                mean_obliquity_frame_round_trip
+            )
+        }));
         assert!(rendered.contains("Zodiac policy: tropical only"));
         assert!(rendered.contains("ayanamsa catalog validation: ok"));
         assert!(rendered.contains("House systems:"));
@@ -15524,7 +15538,14 @@ mod tests {
             "pleiades-core::ChartRequest (chart assembly plus house-observer preflight)"
         ));
         assert!(rendered.contains("Frame policy:"));
-        assert!(rendered.contains("Mean-obliquity frame round-trip:"));
+        let mean_obliquity_frame_round_trip = mean_obliquity_frame_round_trip_summary()
+            .expect("mean-obliquity frame round-trip summary should exist");
+        assert!(rendered.lines().any(|line| {
+            line == format!(
+                "Mean-obliquity frame round-trip: {}",
+                mean_obliquity_frame_round_trip
+            )
+        }));
         assert!(rendered.contains("Zodiac policy:"));
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(rendered.contains("API stability summary: api-stability-summary"));
