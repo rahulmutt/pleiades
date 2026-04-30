@@ -6419,6 +6419,14 @@ pub fn source_backed_body_j1900_ecliptic_request_corpus() -> Vec<EphemerisReques
 
 /// Returns the source-backed J1900 request corpus used by the VSOP87 batch evidence.
 ///
+/// This is a compatibility alias for [`source_backed_body_j1900_ecliptic_request_corpus`].
+#[doc(alias = "source_backed_body_j1900_ecliptic_request_corpus")]
+pub fn source_backed_body_j1900_request_corpus() -> Vec<EphemerisRequest> {
+    source_backed_body_j1900_ecliptic_request_corpus()
+}
+
+/// Returns the source-backed J1900 request corpus used by the VSOP87 batch evidence.
+///
 /// This is a compatibility alias for [`supported_body_j1900_equatorial_batch_parity_requests`].
 #[doc(alias = "supported_body_j1900_equatorial_batch_parity_requests")]
 pub fn source_backed_body_j1900_equatorial_batch_parity_requests() -> Vec<EphemerisRequest> {
@@ -11485,6 +11493,14 @@ mod tests {
         assert_eq!(
             source_backed_body_j1900_ecliptic_batch_parity_request_corpus(),
             source_backed_body_j1900_ecliptic_batch_parity_requests()
+        );
+    }
+
+    #[test]
+    fn source_backed_body_j1900_request_corpus_remains_the_plain_alias() {
+        assert_eq!(
+            source_backed_body_j1900_request_corpus(),
+            source_backed_body_j1900_ecliptic_request_corpus()
         );
     }
 
