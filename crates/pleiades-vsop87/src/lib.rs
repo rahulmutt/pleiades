@@ -3836,6 +3836,21 @@ fn canonical_batch_parity_counts(
     ))
 }
 
+fn validate_batch_parity_quality_counts(
+    actual_counts: (usize, usize, usize, usize),
+    expected_counts: (usize, usize, usize, usize),
+) -> Result<(), Vsop87CanonicalBatchParitySummaryValidationError> {
+    if actual_counts != expected_counts {
+        return Err(
+            Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                field: "quality_counts",
+            },
+        );
+    }
+
+    Ok(())
+}
+
 fn canonical_j2000_batch_parity_expected_bodies() -> Vec<CelestialBody> {
     canonical_epoch_samples()
         .iter()
@@ -3937,7 +3952,10 @@ impl Vsop87CanonicalJ2000BatchParitySummary {
                 Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync { field: "frame" },
             );
         }
-        if self.exact_count + self.interpolated_count + self.approximate_count + self.unknown_count
+        if (self.exact_count
+            + self.interpolated_count
+            + self.approximate_count
+            + self.unknown_count)
             != self.sample_count
         {
             return Err(
@@ -3946,6 +3964,36 @@ impl Vsop87CanonicalJ2000BatchParitySummary {
                 },
             );
         }
+        let backend = Vsop87Backend::new();
+        let requests = canonical_epoch_requests();
+        let Some((
+            _,
+            expected_exact_count,
+            expected_interpolated_count,
+            expected_approximate_count,
+            expected_unknown_count,
+        )) = canonical_batch_parity_counts(&backend, &requests)
+        else {
+            return Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "quality_counts",
+                },
+            );
+        };
+        validate_batch_parity_quality_counts(
+            (
+                self.exact_count,
+                self.interpolated_count,
+                self.approximate_count,
+                self.unknown_count,
+            ),
+            (
+                expected_exact_count,
+                expected_interpolated_count,
+                expected_approximate_count,
+                expected_unknown_count,
+            ),
+        )?;
 
         Ok(())
     }
@@ -4088,7 +4136,10 @@ impl Vsop87CanonicalMixedTimeScaleBatchParitySummary {
                 },
             );
         }
-        if self.exact_count + self.interpolated_count + self.approximate_count + self.unknown_count
+        if (self.exact_count
+            + self.interpolated_count
+            + self.approximate_count
+            + self.unknown_count)
             != self.sample_count
         {
             return Err(
@@ -4097,6 +4148,36 @@ impl Vsop87CanonicalMixedTimeScaleBatchParitySummary {
                 },
             );
         }
+        let backend = Vsop87Backend::new();
+        let requests = canonical_mixed_time_scale_batch_parity_requests();
+        let Some((
+            _,
+            expected_exact_count,
+            expected_interpolated_count,
+            expected_approximate_count,
+            expected_unknown_count,
+        )) = canonical_batch_parity_counts(&backend, &requests)
+        else {
+            return Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "quality_counts",
+                },
+            );
+        };
+        validate_batch_parity_quality_counts(
+            (
+                self.exact_count,
+                self.interpolated_count,
+                self.approximate_count,
+                self.unknown_count,
+            ),
+            (
+                expected_exact_count,
+                expected_interpolated_count,
+                expected_approximate_count,
+                expected_unknown_count,
+            ),
+        )?;
 
         Ok(())
     }
@@ -4224,7 +4305,10 @@ impl Vsop87CanonicalJ1900BatchParitySummary {
                 Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync { field: "frame" },
             );
         }
-        if self.exact_count + self.interpolated_count + self.approximate_count + self.unknown_count
+        if (self.exact_count
+            + self.interpolated_count
+            + self.approximate_count
+            + self.unknown_count)
             != self.sample_count
         {
             return Err(
@@ -4233,6 +4317,36 @@ impl Vsop87CanonicalJ1900BatchParitySummary {
                 },
             );
         }
+        let backend = Vsop87Backend::new();
+        let requests = canonical_j1900_equatorial_batch_parity_requests();
+        let Some((
+            _,
+            expected_exact_count,
+            expected_interpolated_count,
+            expected_approximate_count,
+            expected_unknown_count,
+        )) = canonical_batch_parity_counts(&backend, &requests)
+        else {
+            return Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "quality_counts",
+                },
+            );
+        };
+        validate_batch_parity_quality_counts(
+            (
+                self.exact_count,
+                self.interpolated_count,
+                self.approximate_count,
+                self.unknown_count,
+            ),
+            (
+                expected_exact_count,
+                expected_interpolated_count,
+                expected_approximate_count,
+                expected_unknown_count,
+            ),
+        )?;
 
         Ok(())
     }
@@ -4350,7 +4464,10 @@ impl Vsop87SupportedBodyJ2000EclipticBatchParitySummary {
                 Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync { field: "frame" },
             );
         }
-        if self.exact_count + self.interpolated_count + self.approximate_count + self.unknown_count
+        if (self.exact_count
+            + self.interpolated_count
+            + self.approximate_count
+            + self.unknown_count)
             != self.sample_count
         {
             return Err(
@@ -4359,6 +4476,36 @@ impl Vsop87SupportedBodyJ2000EclipticBatchParitySummary {
                 },
             );
         }
+        let backend = Vsop87Backend::new();
+        let requests = supported_body_j2000_ecliptic_batch_parity_requests();
+        let Some((
+            _,
+            expected_exact_count,
+            expected_interpolated_count,
+            expected_approximate_count,
+            expected_unknown_count,
+        )) = canonical_batch_parity_counts(&backend, &requests)
+        else {
+            return Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "quality_counts",
+                },
+            );
+        };
+        validate_batch_parity_quality_counts(
+            (
+                self.exact_count,
+                self.interpolated_count,
+                self.approximate_count,
+                self.unknown_count,
+            ),
+            (
+                expected_exact_count,
+                expected_interpolated_count,
+                expected_approximate_count,
+                expected_unknown_count,
+            ),
+        )?;
 
         Ok(())
     }
@@ -4481,7 +4628,10 @@ impl Vsop87SupportedBodyJ2000EquatorialBatchParitySummary {
                 Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync { field: "frame" },
             );
         }
-        if self.exact_count + self.interpolated_count + self.approximate_count + self.unknown_count
+        if (self.exact_count
+            + self.interpolated_count
+            + self.approximate_count
+            + self.unknown_count)
             != self.sample_count
         {
             return Err(
@@ -4490,6 +4640,36 @@ impl Vsop87SupportedBodyJ2000EquatorialBatchParitySummary {
                 },
             );
         }
+        let backend = Vsop87Backend::new();
+        let requests = supported_body_j2000_equatorial_batch_parity_requests();
+        let Some((
+            _,
+            expected_exact_count,
+            expected_interpolated_count,
+            expected_approximate_count,
+            expected_unknown_count,
+        )) = canonical_batch_parity_counts(&backend, &requests)
+        else {
+            return Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "quality_counts",
+                },
+            );
+        };
+        validate_batch_parity_quality_counts(
+            (
+                self.exact_count,
+                self.interpolated_count,
+                self.approximate_count,
+                self.unknown_count,
+            ),
+            (
+                expected_exact_count,
+                expected_interpolated_count,
+                expected_approximate_count,
+                expected_unknown_count,
+            ),
+        )?;
 
         Ok(())
     }
@@ -4614,7 +4794,10 @@ impl Vsop87SupportedBodyJ1900EclipticBatchParitySummary {
                 Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync { field: "frame" },
             );
         }
-        if self.exact_count + self.interpolated_count + self.approximate_count + self.unknown_count
+        if (self.exact_count
+            + self.interpolated_count
+            + self.approximate_count
+            + self.unknown_count)
             != self.sample_count
         {
             return Err(
@@ -4623,6 +4806,36 @@ impl Vsop87SupportedBodyJ1900EclipticBatchParitySummary {
                 },
             );
         }
+        let backend = Vsop87Backend::new();
+        let requests = supported_body_j1900_ecliptic_batch_parity_requests();
+        let Some((
+            _,
+            expected_exact_count,
+            expected_interpolated_count,
+            expected_approximate_count,
+            expected_unknown_count,
+        )) = canonical_batch_parity_counts(&backend, &requests)
+        else {
+            return Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "quality_counts",
+                },
+            );
+        };
+        validate_batch_parity_quality_counts(
+            (
+                self.exact_count,
+                self.interpolated_count,
+                self.approximate_count,
+                self.unknown_count,
+            ),
+            (
+                expected_exact_count,
+                expected_interpolated_count,
+                expected_approximate_count,
+                expected_unknown_count,
+            ),
+        )?;
 
         Ok(())
     }
@@ -4745,7 +4958,10 @@ impl Vsop87SupportedBodyJ1900EquatorialBatchParitySummary {
                 Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync { field: "frame" },
             );
         }
-        if self.exact_count + self.interpolated_count + self.approximate_count + self.unknown_count
+        if (self.exact_count
+            + self.interpolated_count
+            + self.approximate_count
+            + self.unknown_count)
             != self.sample_count
         {
             return Err(
@@ -4754,6 +4970,36 @@ impl Vsop87SupportedBodyJ1900EquatorialBatchParitySummary {
                 },
             );
         }
+        let backend = Vsop87Backend::new();
+        let requests = supported_body_j1900_equatorial_batch_parity_requests();
+        let Some((
+            _,
+            expected_exact_count,
+            expected_interpolated_count,
+            expected_approximate_count,
+            expected_unknown_count,
+        )) = canonical_batch_parity_counts(&backend, &requests)
+        else {
+            return Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "quality_counts",
+                },
+            );
+        };
+        validate_batch_parity_quality_counts(
+            (
+                self.exact_count,
+                self.interpolated_count,
+                self.approximate_count,
+                self.unknown_count,
+            ),
+            (
+                expected_exact_count,
+                expected_interpolated_count,
+                expected_approximate_count,
+                expected_unknown_count,
+            ),
+        )?;
 
         Ok(())
     }
@@ -11062,7 +11308,47 @@ mod tests {
     fn canonical_batch_parity_summary_validation_rejects_quality_count_drift() {
         let mut summary =
             canonical_j1900_batch_parity_summary().expect("batch summary should exist");
-        summary.unknown_count += 1;
+        if summary.exact_count > 0 {
+            summary.exact_count -= 1;
+            summary.unknown_count += 1;
+        } else if summary.interpolated_count > 0 {
+            summary.interpolated_count -= 1;
+            summary.exact_count += 1;
+        } else if summary.approximate_count > 0 {
+            summary.approximate_count -= 1;
+            summary.exact_count += 1;
+        } else {
+            summary.unknown_count -= 1;
+            summary.exact_count += 1;
+        }
+
+        assert_eq!(
+            summary.validate(),
+            Err(
+                Vsop87CanonicalBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "quality_counts"
+                }
+            )
+        );
+    }
+
+    #[test]
+    fn canonical_j2000_batch_parity_summary_validation_rejects_quality_count_drift() {
+        let mut summary =
+            canonical_j2000_batch_parity_summary().expect("batch summary should exist");
+        if summary.exact_count > 0 {
+            summary.exact_count -= 1;
+            summary.unknown_count += 1;
+        } else if summary.interpolated_count > 0 {
+            summary.interpolated_count -= 1;
+            summary.exact_count += 1;
+        } else if summary.approximate_count > 0 {
+            summary.approximate_count -= 1;
+            summary.exact_count += 1;
+        } else {
+            summary.unknown_count -= 1;
+            summary.exact_count += 1;
+        }
 
         assert_eq!(
             summary.validate(),
