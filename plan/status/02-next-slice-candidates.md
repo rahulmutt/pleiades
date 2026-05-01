@@ -159,6 +159,7 @@ Progress note (2026-04-29): the same hold-out corpus now also includes a late Ma
 Progress note (2026-04-30): the same hold-out corpus now also exposes an equatorial-parity request-corpus alias, which keeps the frame-specific hold-out batch shape discoverable alongside the existing frame-parameterized helper for downstream validation and reproducibility tooling.
 Progress note (2026-04-30): the JPL reference, comparison, and hold-out mixed TT/TDB batch corpora now also expose plain `*_request_corpus` aliases, which keeps the mixed-scale validation slices easier to discover from downstream tooling alongside the existing `*_batch_parity_request_corpus` names.
 Progress note (2026-04-30): the exact J2000 asteroid request corpus now also exposes frame-qualified ecliptic and equatorial aliases, which keeps the selected-asteroid batch shape reusable from downstream validation tooling without reconstructing the coordinate-frame choice at each call site.
+Progress note (2026-05-01): the independent hold-out corpus now also carries later-epoch Sun, Mercury, and Venus rows at 2634167.0 TDB, which widens the checked-in derivative fixture to 27 rows while preserving the first-seen body order and the mixed-scale parity checks.
 
 Remaining suggested scope:
 
