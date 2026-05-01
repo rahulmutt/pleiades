@@ -3930,6 +3930,17 @@ pub fn default_corpus() -> ValidationCorpus {
     ValidationCorpus::jpl_snapshot()
 }
 
+/// Builds the release-grade comparison corpus with Pluto excluded from tolerance evidence.
+pub fn release_grade_corpus() -> ValidationCorpus {
+    let mut corpus = default_corpus();
+    corpus.name = "JPL Horizons release-grade comparison window".to_string();
+    corpus.description = "Release-grade comparison corpus built from the checked-in JPL Horizons snapshot, with Pluto excluded from tolerance evidence because Pluto remains an approximate fallback.";
+    corpus
+        .requests
+        .retain(|request| request.body != CelestialBody::Pluto);
+    corpus
+}
+
 /// Returns the CLI banner.
 pub fn banner() -> &'static str {
     BANNER
@@ -5810,7 +5821,7 @@ fn render_release_notes_summary_text() -> String {
 }
 
 fn comparison_tolerance_policy_summary_for_release_notes() -> String {
-    let corpus = default_corpus();
+    let corpus = release_grade_corpus();
     let reference = default_reference_backend();
     let candidate = default_candidate_backend();
     match compare_backends(&reference, &candidate, &corpus) {
@@ -7759,7 +7770,7 @@ pub fn workspace_audit_report() -> Result<WorkspaceAuditReport, std::io::Error> 
 }
 
 fn build_validation_report(rounds: usize) -> Result<ValidationReport, EphemerisError> {
-    let comparison_corpus = default_corpus();
+    let comparison_corpus = release_grade_corpus();
     let benchmark_corpus = benchmark_corpus();
     let packaged_benchmark_corpus = artifact::packaged_artifact_corpus();
     let chart_benchmark_corpus = chart_benchmark_corpus_summary();
@@ -8369,7 +8380,7 @@ fn comparison_coordinate_frames(comparison: &ComparisonReport) -> &[CoordinateFr
 
 /// Renders a release-grade comparison tolerance audit used by the CLI.
 pub fn render_comparison_audit_report() -> Result<String, String> {
-    let corpus = default_corpus();
+    let corpus = release_grade_corpus();
     let reference = default_reference_backend();
     let candidate = default_candidate_backend();
     let comparison =
@@ -12630,6 +12641,22 @@ mod tests {
     }
 
     #[test]
+    fn release_grade_corpus_excludes_pluto_from_tolerance_evidence() {
+        let corpus = release_grade_corpus();
+        let summary = corpus.summary();
+        assert!(corpus
+            .requests
+            .iter()
+            .all(|request| request.body != CelestialBody::Pluto));
+        assert!(summary.body_count < default_corpus().summary().body_count);
+        assert!(summary.request_count < default_corpus().summary().request_count);
+        assert!(corpus.name.contains("release-grade comparison window"));
+        assert!(corpus
+            .description
+            .contains("Pluto excluded from tolerance evidence"));
+    }
+
+    #[test]
     fn comparison_report_uses_the_snapshot_backend() {
         let report = render_comparison_report().expect("comparison should render");
         assert_eq!(report.lines().next(), Some("Comparison report"));
@@ -12689,7 +12716,7 @@ mod tests {
 
     #[test]
     fn comparison_tolerance_policy_summary_matches_the_rendered_line() {
-        let corpus = default_corpus();
+        let corpus = release_grade_corpus();
         let reference = default_reference_backend();
         let candidate = default_candidate_backend();
         let report =
@@ -12710,6 +12737,13 @@ mod tests {
         assert!(summary.summary_line().contains("frames=Ecliptic"));
         assert_eq!(summary.coverage.len(), summary.entries.len());
         assert_eq!(summary.comparison_body_count, report.body_summaries().len());
+        assert!(summary.coverage.iter().any(|coverage| coverage.entry.scope
+            == ComparisonToleranceScope::Pluto
+            && coverage.body_count == 0
+            && coverage.sample_count == 0));
+        assert!(summary.coverage.iter().all(|coverage| coverage.entry.scope
+            != ComparisonToleranceScope::Pluto
+            || coverage.bodies.is_empty()));
         assert_eq!(summary.comparison_sample_count, report.summary.sample_count);
         assert_eq!(
             summary.comparison_window.start,
@@ -13513,22 +13547,21 @@ mod tests {
     }
 
     #[test]
-    fn comparison_audit_command_reports_regressions() {
-        let error = render_cli(&["compare-backends-audit"])
-            .expect_err("comparison audit should fail while regressions remain");
-        assert!(error.contains("comparison audit failed"));
-        assert!(error.contains("Comparison tolerance audit"));
-        assert!(error.contains("comparison corpus"));
-        assert!(error.contains("julian day span:"));
-        assert!(error.contains("Body-class error envelopes"));
-        assert!(error.contains("rms longitude delta:"));
-        assert!(error.contains("rms latitude delta:"));
-        assert!(error.contains("rms distance delta:"));
-        assert!(error.contains("Body-class tolerance posture"));
-        assert!(error.contains("Tolerance policy"));
-        assert!(error.contains("Notable regressions"));
-        assert!(error.contains("regression bodies: Pluto"));
-        assert!(error.contains("Pluto"));
+    fn comparison_audit_command_reports_clean_release_grade_corpus() {
+        let report = render_cli(&["compare-backends-audit"])
+            .expect("comparison audit should render cleanly");
+        assert!(report.contains("Comparison tolerance audit"));
+        assert!(report.contains("comparison corpus"));
+        assert!(report.contains("julian day span:"));
+        assert!(report.contains("Body-class error envelopes"));
+        assert!(report.contains("rms longitude delta:"));
+        assert!(report.contains("rms latitude delta:"));
+        assert!(report.contains("rms distance delta:"));
+        assert!(report.contains("Body-class tolerance posture"));
+        assert!(report.contains("Tolerance policy"));
+        assert!(report.contains("Notable regressions\n  none"));
+        assert!(report.contains("regression bodies: none"));
+        assert!(report.contains("Pluto fallback (approximate): backend family=composite, profile=phase-1 Pluto approximate fallback evidence, bodies=0 (none), samples=0"));
     }
 
     #[test]
@@ -13723,7 +13756,7 @@ mod tests {
         assert!(report.contains("Composite routed backend"));
         assert!(report.contains("Target compatibility catalog:"));
         assert!(report.contains("Comparison corpus"));
-        assert!(report.contains("JPL Horizons comparison window"));
+        assert!(report.contains("JPL Horizons release-grade comparison window"));
         assert_report_contains_exact_line(
             &report,
             "  Comparison snapshot coverage: 41 rows across 10 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Mercury, Moon, Sun, Venus, Jupiter, Saturn, Uranus, Neptune, Pluto",
@@ -13826,7 +13859,7 @@ mod tests {
             "Major planets: backend family=composite, profile=phase-1 full-file VSOP87B planetary evidence"
         ));
         assert!(report.contains(
-            "Pluto fallback (approximate): backend family=composite, profile=phase-1 Pluto approximate fallback evidence"
+            "Pluto fallback (approximate): backend family=composite, profile=phase-1 Pluto approximate fallback evidence, bodies=0 (none), samples=0"
         ));
         assert!(report.contains("Luminaries"));
         assert!(report.contains("Major planets"));
@@ -13931,13 +13964,10 @@ mod tests {
         assert!(report.contains(
             "Major planets: backend family=composite, profile=phase-1 full-file VSOP87B planetary evidence"
         ));
-        assert!(report.contains(
-            "Pluto fallback (approximate): backend family=composite, profile=phase-1 Pluto approximate fallback evidence"
-        ));
         assert!(report.contains("Comparison tolerance audit"));
         assert!(report.contains("command: compare-backends-audit"));
-        assert!(report.contains("regressions found"));
-        assert!(report.contains("regression bodies: Pluto"));
+        assert!(report.contains("status: clean"));
+        assert!(!report.contains("regression bodies: Pluto"));
         let body_class_tolerance_posture = report
             .split("Body-class tolerance posture")
             .nth(1)
@@ -14089,8 +14119,9 @@ mod tests {
         assert!(validation_report_summary.contains("Chart benchmark"));
         assert!(validation_report_summary.contains("Comparison tolerance audit"));
         assert!(validation_report_summary.contains("command: compare-backends-audit"));
-        assert!(validation_report_summary.contains("regressions found"));
-        assert!(validation_report_summary.contains("regression bodies: Pluto"));
+        assert!(validation_report_summary.contains("status: clean"));
+        assert!(validation_report_summary.contains("regression bodies:"));
+        assert!(!validation_report_summary.contains("regression bodies: Pluto"));
         assert!(validation_report_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(validation_report_summary.contains("ayanamsa catalog validation: ok"));
@@ -14245,8 +14276,8 @@ mod tests {
     }
 
     #[test]
-    fn comparison_report_surfaces_regressions() {
-        let corpus = default_corpus();
+    fn comparison_report_uses_release_grade_corpus_without_pluto() {
+        let corpus = release_grade_corpus();
         let report = compare_backends(
             &default_reference_backend(),
             &default_candidate_backend(),
@@ -14255,19 +14286,13 @@ mod tests {
         .expect("comparison should succeed");
 
         let regressions = report.notable_regressions();
-        assert!(!regressions.is_empty());
-        assert!(regressions
-            .iter()
-            .any(|finding| finding.body == CelestialBody::Pluto));
-        assert!(!regressions
-            .iter()
-            .any(|finding| finding.body == CelestialBody::Neptune));
+        assert!(regressions.is_empty());
 
         let body_summaries = report.body_summaries();
-        assert_eq!(body_summaries.len(), comparison_bodies().len());
+        assert_eq!(body_summaries.len(), report.tolerance_summaries().len());
         assert!(body_summaries
             .iter()
-            .all(|summary| summary.sample_count > 0));
+            .all(|summary| summary.sample_count > 0 && summary.body != CelestialBody::Pluto));
         assert!(body_summaries
             .iter()
             .any(|summary| summary.body == CelestialBody::Jupiter
@@ -14276,20 +14301,15 @@ mod tests {
 
         let archive = report.regression_archive();
         assert_eq!(archive.corpus_name, corpus.name);
-        assert_eq!(archive.cases.len(), regressions.len());
-        assert!(archive
-            .cases
-            .iter()
-            .any(|finding| finding.body == CelestialBody::Pluto));
+        assert!(archive.cases.is_empty());
         let tolerance_summaries = report.tolerance_summaries();
-        assert_eq!(tolerance_summaries.len(), body_summaries.len());
         assert!(tolerance_summaries.iter().any(|summary| {
             summary.body == CelestialBody::Jupiter
                 && summary.tolerance.profile.contains("full-file VSOP87B")
         }));
         assert!(tolerance_summaries
             .iter()
-            .any(|summary| summary.body == CelestialBody::Pluto && !summary.within_tolerance));
+            .all(|summary| summary.body != CelestialBody::Pluto));
         let tolerance_policy_entries = report.tolerance_policy_entries();
         assert_eq!(tolerance_policy_entries.len(), 6);
         assert!(tolerance_policy_entries
@@ -14303,8 +14323,8 @@ mod tests {
             summary.class == BodyClass::MajorPlanet
                 && summary.body_count >= 1
                 && summary.sample_count >= summary.body_count
-                && summary.outside_tolerance_body_count >= 1
-                && summary.outside_bodies.contains(&CelestialBody::Pluto)
+                && summary.outside_tolerance_body_count == 0
+                && !summary.outside_bodies.contains(&CelestialBody::Pluto)
                 && summary.max_longitude_delta_body.is_some()
                 && summary.max_latitude_delta_body.is_some()
                 && summary.max_distance_delta_body.is_some()
@@ -14315,7 +14335,7 @@ mod tests {
         assert!(rendered.contains("Body-class tolerance posture"));
         assert!(rendered.contains("Expected tolerance status"));
         assert!(rendered.contains("phase-1 full-file VSOP87B planetary evidence"));
-        assert!(rendered.contains("Notable regressions"));
+        assert!(rendered.contains("Notable regressions\n  none"));
     }
 
     #[test]
@@ -16129,10 +16149,10 @@ mod tests {
         assert!(rendered.contains("Luminaries: Δlon≤45.000°, Δlat≤1.000°, Δdist=0.250 AU"));
         assert!(rendered
             .contains("Pluto fallback (approximate): Δlon≤45.000°, Δlat≤1.000°, Δdist=0.250 AU"));
-        assert!(rendered.contains("evidence=10 bodies, 41 samples"));
+        assert!(rendered.contains("evidence=9 bodies"));
         assert!(rendered.contains("Body-class tolerance posture:"));
         assert!(rendered.contains("Expected tolerance status:"));
-        assert!(rendered.contains("Comparison audit: status=regressions found, bodies checked="));
+        assert!(rendered.contains("Comparison audit: status=clean, bodies checked=9"));
         assert!(rendered.contains("JPL interpolation evidence:"));
         assert!(rendered.contains("JPL independent hold-out:"));
         assert!(rendered.contains("JPL independent hold-out equatorial parity:"));
@@ -16883,7 +16903,7 @@ version = "0.9.0"
         let comparison_report = compare_backends(
             &default_reference_backend(),
             &default_candidate_backend(),
-            &default_corpus(),
+            &release_grade_corpus(),
         )
         .expect("comparison should build");
         assert_report_contains_exact_line(

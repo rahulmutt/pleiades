@@ -12,7 +12,7 @@ Current summaries show:
 
 - all mandatory crates and release/reporting commands exist;
 - VSOP87B source-backed generated binary paths cover the Sun through Neptune;
-- Pluto remains an approximate mean-elements fallback and is explicitly downgraded out of release-grade major-body claims;
+- Pluto remains an approximate mean-elements fallback in the backend catalog, while release-grade comparison and tolerance reports now exclude Pluto from evidence;
 - the compact lunar baseline has documented reference evidence for supported lunar channels but is not a full ELP coefficient implementation;
 - the JPL backend is a checked-in fixture/snapshot backend with selected asteroid rows, not a broad production reader/corpus;
 - the packaged artifact is deterministic and validated as a prototype, but current fit errors are not release-grade;
@@ -24,21 +24,20 @@ Phase 2 production artifacts require trusted generation inputs and tolerances. P
 
 ## Immediate blockers
 
-1. **Pluto accuracy posture** — Replace, source-back, or explicitly downgrade Pluto so validation reports no longer advertise an unqualified release-grade outlier.
-2. **Reference corpus breadth** — Expand source/reference data enough to support production validation and artifact generation, not only fixture exactness.
-3. **Advanced request semantics** — Decide whether Delta T/UTC convenience, apparent corrections, and topocentric body positions are implemented for the first release or intentionally deferred with metadata and structured errors.
-4. **Release thresholds** — Convert interim broad tolerance posture into body-class-specific release thresholds for claimed scopes.
+1. **Reference corpus breadth** — Expand source/reference data enough to support production validation and artifact generation, not only fixture exactness.
+2. **Advanced request semantics** — Decide whether Delta T/UTC convenience, apparent corrections, and topocentric body positions are implemented for the first release or intentionally deferred with metadata and structured errors.
+3. **Release thresholds** — Convert interim broad tolerance posture into body-class-specific release thresholds for claimed scopes.
 
 ## Recommended next slice
 
-Start with **Pluto downgrade and corpus cleanup**:
+Pluto downgrade and corpus cleanup is complete:
 
-- keep Pluto explicitly downgraded and out of release-grade claims until a validated source-backed path exists;
-- remove Pluto from release-grade corpus/tolerance assertions where it is only approximate;
-- update backend metadata, capability summaries, and comparison reports to say exactly what is and is not supported;
-- make release tolerance audits fail closed if Pluto is advertised beyond its evidence.
+- keep Pluto explicitly labeled as approximate in backend metadata and fallback provenance;
+- use the Pluto-excluded release-grade corpus for comparison/tolerance evidence;
+- preserve the full snapshot corpus for provenance and validation archaeology;
+- keep release tolerance audits fail-closed if Pluto is advertised beyond its evidence.
 
-This slice keeps the release posture truthful without overstating approximate paths.
+The next slice should focus on broader reference coverage and the remaining request-semantics decisions.
 
 ## Parallel safe work
 

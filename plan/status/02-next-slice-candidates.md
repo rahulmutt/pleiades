@@ -2,18 +2,7 @@
 
 This file lists focused, reviewable implementation slices that map to the current phase ladder. It intentionally omits completed scaffold work and old progress-note history.
 
-## 1. Pluto explicit downgrade and corpus cleanup
-
-**Phase:** 1 — Accuracy Closure and Request Semantics
-
-**Goal:** keep Pluto clearly out of release-grade claims until a source-backed path is validated.
-
-**Work items:**
-
-- Keep Pluto explicitly marked as approximate/fallback in backend and release-profile summaries.
-- Exclude Pluto from release-grade corpus/tolerance assertions where it is only approximate.
-- Update metadata, source documentation, validation reports, and release-profile wording to say exactly what is supported.
-- Add regression tests that prevent silent reintroduction of release-grade Pluto claims.
+Recently completed: Pluto explicit downgrade and corpus cleanup. Release-grade comparison and tolerance reports now use a Pluto-excluded corpus, while the full snapshot corpus remains available for provenance and archaeology.
 
 ## 2. Production reference corpus expansion
 

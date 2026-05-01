@@ -26,7 +26,7 @@ The repository currently provides all required first-party crates, pure-Rust dev
 
 Important landed implementation state:
 
-- `pleiades-vsop87` uses generated binary tables from public VSOP87B sources for the Sun through Neptune, with Pluto still on an approximate mean-elements fallback.
+- `pleiades-vsop87` uses generated binary tables from public VSOP87B sources for the Sun through Neptune, with Pluto still on an approximate mean-elements fallback that is excluded from release-grade comparison evidence.
 - `pleiades-elp` provides a documented compact Meeus-style lunar baseline for the Moon, mean/true node, and mean apogee/perigee; it is not yet a full ELP coefficient implementation.
 - `pleiades-jpl` provides a checked-in JPL Horizons fixture/snapshot backend, exact fixture epochs, interpolation transparency evidence, equatorial reconstruction, and selected asteroid rows; it is not yet a broad production JPL reader/corpus.
 - `pleiades-data` ships a small deterministic prototype compressed artifact with codec validation, regeneration helpers, checksums, summaries, and benchmark evidence; it is not yet a 1500-2500 CE production artifact with acceptable measured fit error.
@@ -37,7 +37,7 @@ Important landed implementation state:
 
 The remaining gaps are implementation and evidence gaps, not workspace-structure gaps:
 
-1. Close ephemeris accuracy gaps, especially Pluto, lunar-theory scope, broader JPL/reference data, and production error envelopes.
+1. Close ephemeris accuracy gaps, especially lunar-theory scope, broader JPL/reference data, and production error envelopes.
 2. Replace the prototype compressed artifact with a reproducible, validated 1500-2500 CE data product generated from trusted public inputs.
 3. Finish compatibility-catalog evidence: formulas, aliases, latitude/numerical constraints, sidereal metadata, and truthful release-profile claims.
 4. Decide and implement or explicitly defer advanced request semantics: Delta T policy, UTC convenience, apparent-place corrections, topocentric body positions, and optional native sidereal/backend behavior.
@@ -78,7 +78,7 @@ plan/
 
 | Phase | Status | Summary |
 | --- | --- | --- |
-| 1. Accuracy closure and request semantics | Active | Prioritize Pluto/source-backed major-body outliers, broader reference evidence, and explicit advanced-request decisions |
+| 1. Accuracy closure and request semantics | Active | Prioritize broader reference evidence and explicit advanced-request decisions; Pluto release-grade cleanup is complete |
 | 2. Production compressed artifacts | Queued, with prototype groundwork landed | Begins after Phase 1 produces trusted generation inputs and tolerances |
 | 3. Compatibility evidence and catalog completion | Parallelizable | Continue formula, alias, sidereal metadata, and profile-truthfulness audits without blocking backend accuracy work |
 | 4. Release hardening and publication | Queued, with rehearsal tooling landed | Finalizes release gates after accuracy, artifacts, and compatibility evidence are current |
