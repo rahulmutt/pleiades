@@ -17,6 +17,7 @@ Current summaries show:
 - the JPL backend is a checked-in fixture/snapshot backend with expanded selected asteroid rows (J2000 plus 2001-01-01, 2132-08-31, and 2500-01-01) and expanded interpolation-quality coverage around JD 2451910.5, not a broad production reader/corpus;
 - the JPL backend now exposes a production-generation boundary overlay corpus that appends the full independent hold-out validation snapshot to the checked-in reference snapshot for validation and artifact-generation work, and the evidence report now also surfaces the boundary-overlay provenance alongside that broader coverage slice; the overlay now also has a standalone request corpus, inventory summary, and provenance summary for generation tooling; the interpolation-quality corpus also now carries a 2451910.5 boundary sample with quadratic coverage;
 - the packaged artifact is deterministic and validated as a prototype, and the checked-in fixture has been regenerated from the updated reference snapshot, but current fit errors are not release-grade;
+- interpolation-quality reporting now includes an explicit provenance line derived from the checked-in reference snapshot, alongside the existing interpolation-quality and hold-out summaries;
 - request policy is explicit: mean, tropical, geocentric TT/TDB requests are supported; apparent-place corrections, topocentric body-position requests, native sidereal backend output, and built-in Delta T/UTC convenience conversion are not implemented today.
 
 ## Why this frontier comes first

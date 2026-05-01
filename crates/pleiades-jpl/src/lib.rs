@@ -5899,11 +5899,166 @@ pub fn jpl_interpolation_quality_kind_coverage_for_report() -> String {
     }
 }
 
+const JPL_INTERPOLATION_QUALITY_DERIVATION: &str =
+    "leave-one-out interpolation evidence derived from the checked-in reference snapshot";
+
+/// Backend-owned provenance summary for the interpolation-quality evidence slice.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JplInterpolationQualitySourceSummary {
+    /// Source attribution for the interpolation-quality evidence.
+    pub source: String,
+    /// Derivation note describing how the evidence slice was produced.
+    pub derivation: String,
+    /// Number of interpolation-quality samples in the evidence slice.
+    pub sample_count: usize,
+    /// Number of distinct bodies represented by the evidence slice.
+    pub body_count: usize,
+    /// Number of distinct epochs represented by the evidence slice.
+    pub epoch_count: usize,
+}
+
+/// Structured validation errors for an interpolation-quality provenance summary.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum JplInterpolationQualitySourceSummaryValidationError {
+    /// The summary did not include a non-empty source label.
+    BlankSource,
+    /// The summary did not include a non-empty derivation note.
+    BlankDerivation,
+    /// The summary drifted away from the current derived evidence.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for JplInterpolationQualitySourceSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BlankSource => f.write_str("blank source"),
+            Self::BlankDerivation => f.write_str("blank derivation"),
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the JPL interpolation-quality source summary field `{field}` is out of sync with the current evidence"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for JplInterpolationQualitySourceSummaryValidationError {}
+
+impl JplInterpolationQualitySourceSummary {
+    /// Returns a compact release-facing provenance line.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "JPL interpolation quality source: {}; derivation={}; coverage: {} samples across {} bodies and {} epochs",
+            self.source, self.derivation, self.sample_count, self.body_count, self.epoch_count,
+        )
+    }
+
+    /// Returns a compact provenance line after validating the current evidence slice.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, JplInterpolationQualitySourceSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
+    /// Validates that the summary remains internally consistent and still matches the derived evidence.
+    pub fn validate(&self) -> Result<(), JplInterpolationQualitySourceSummaryValidationError> {
+        if self.source.trim().is_empty() {
+            return Err(JplInterpolationQualitySourceSummaryValidationError::BlankSource);
+        }
+        if self.derivation.trim().is_empty() {
+            return Err(JplInterpolationQualitySourceSummaryValidationError::BlankDerivation);
+        }
+
+        let reference_source = reference_snapshot_source_summary().source;
+        if self.source != reference_source {
+            return Err(
+                JplInterpolationQualitySourceSummaryValidationError::FieldOutOfSync {
+                    field: "source",
+                },
+            );
+        }
+        if self.derivation != JPL_INTERPOLATION_QUALITY_DERIVATION {
+            return Err(
+                JplInterpolationQualitySourceSummaryValidationError::FieldOutOfSync {
+                    field: "derivation",
+                },
+            );
+        }
+
+        let derived_summary = jpl_interpolation_quality_summary().ok_or(
+            JplInterpolationQualitySourceSummaryValidationError::FieldOutOfSync {
+                field: "derived_summary",
+            },
+        )?;
+        if self.sample_count != derived_summary.sample_count {
+            return Err(
+                JplInterpolationQualitySourceSummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        }
+        if self.body_count != derived_summary.body_count {
+            return Err(
+                JplInterpolationQualitySourceSummaryValidationError::FieldOutOfSync {
+                    field: "body_count",
+                },
+            );
+        }
+        if self.epoch_count != derived_summary.epoch_count {
+            return Err(
+                JplInterpolationQualitySourceSummaryValidationError::FieldOutOfSync {
+                    field: "epoch_count",
+                },
+            );
+        }
+
+        Ok(())
+    }
+}
+
+impl fmt::Display for JplInterpolationQualitySourceSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns the backend-owned provenance summary for the interpolation-quality evidence slice.
+pub fn jpl_interpolation_quality_source_summary() -> Option<JplInterpolationQualitySourceSummary> {
+    let summary = jpl_interpolation_quality_summary()?;
+    Some(JplInterpolationQualitySourceSummary {
+        source: reference_snapshot_source_summary().source,
+        derivation: JPL_INTERPOLATION_QUALITY_DERIVATION.to_string(),
+        sample_count: summary.sample_count,
+        body_count: summary.body_count,
+        epoch_count: summary.epoch_count,
+    })
+}
+
+/// Returns the release-facing interpolation-quality provenance summary string.
+pub fn jpl_interpolation_quality_source_summary_for_report() -> String {
+    match jpl_interpolation_quality_source_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => format!("JPL interpolation quality source: unavailable ({error})"),
+        },
+        None => "JPL interpolation quality source: unavailable".to_string(),
+    }
+}
+
 /// Formats the interpolation-quality summary together with the distinct-body coverage line.
 pub fn format_jpl_interpolation_quality_summary_for_report() -> String {
+    let source_summary = match jpl_interpolation_quality_source_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(rendered) => rendered,
+            Err(_) => return "JPL interpolation quality: unavailable".to_string(),
+        },
+        None => return "JPL interpolation quality: unavailable".to_string(),
+    };
+
     match jpl_interpolation_quality_summary() {
         Some(summary) => match summary.validated_summary_line() {
             Ok(mut rendered) => {
+                rendered.insert_str(0, &format!("{}\n", source_summary));
                 rendered.push('\n');
                 rendered.push_str(&jpl_interpolation_quality_kind_coverage_for_report());
                 rendered
@@ -10199,13 +10354,35 @@ mod tests {
     }
 
     #[test]
-    fn interpolation_quality_summary_for_report_combines_summary_and_coverage() {
+    fn interpolation_quality_summary_for_report_combines_source_summary_summary_and_coverage() {
+        let source_summary =
+            jpl_interpolation_quality_source_summary().expect("source summary should exist");
         let summary = jpl_interpolation_quality_summary().expect("summary should exist");
         let coverage = jpl_interpolation_quality_kind_coverage().expect("coverage should exist");
         let rendered = format_jpl_interpolation_quality_summary_for_report();
 
+        assert!(rendered.contains(&source_summary.summary_line()));
         assert!(rendered.contains(&format_jpl_interpolation_quality_summary(&summary)));
         assert!(rendered.contains(&format_jpl_interpolation_quality_kind_coverage(&coverage)));
+    }
+
+    #[test]
+    fn interpolation_quality_source_summary_reports_the_expected_provenance() {
+        let summary =
+            jpl_interpolation_quality_source_summary().expect("source summary should exist");
+
+        assert_eq!(summary.source, reference_snapshot_source_summary().source);
+        assert_eq!(summary.derivation, JPL_INTERPOLATION_QUALITY_DERIVATION);
+        assert_eq!(summary.sample_count, 23);
+        assert_eq!(summary.body_count, 10);
+        assert_eq!(summary.epoch_count, 5);
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            jpl_interpolation_quality_source_summary_for_report(),
+            summary.summary_line()
+        );
     }
 
     #[test]
@@ -10221,6 +10398,28 @@ mod tests {
         assert_eq!(
             summary.validated_summary_line(),
             Err(JplInterpolationQualitySummaryValidationError::DerivedSummaryMismatch)
+        );
+    }
+
+    #[test]
+    fn interpolation_quality_source_summary_validation_rejects_drift() {
+        let mut summary =
+            jpl_interpolation_quality_source_summary().expect("source summary should exist");
+        summary.epoch_count += 1;
+        assert_eq!(
+            summary.validate(),
+            Err(
+                JplInterpolationQualitySourceSummaryValidationError::FieldOutOfSync {
+                    field: "epoch_count"
+                }
+            )
+        );
+        assert_eq!(
+            JplInterpolationQualitySourceSummaryValidationError::FieldOutOfSync {
+                field: "epoch_count"
+            }
+            .to_string(),
+            "the JPL interpolation-quality source summary field `epoch_count` is out of sync with the current evidence"
         );
     }
 
