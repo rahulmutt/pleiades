@@ -3090,6 +3090,175 @@ pub fn independent_holdout_snapshot_source_window_summary_for_report() -> String
     }
 }
 
+/// Compact release-facing summary for any accidental overlap between the checked-in reference snapshot and the independent hold-out snapshot.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ReferenceHoldoutOverlapSummary {
+    /// Number of body/epoch pairs shared by the reference snapshot and the hold-out snapshot.
+    pub shared_sample_count: usize,
+    /// Shared bodies in first-seen reference order.
+    pub shared_bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Number of distinct epochs shared by the reference snapshot and the hold-out snapshot.
+    pub shared_epoch_count: usize,
+}
+
+/// Structured validation errors for a reference/hold-out overlap summary that drifted from the current snapshots.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ReferenceHoldoutOverlapSummaryValidationError {
+    /// A summary field is out of sync with the current overlap posture.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for ReferenceHoldoutOverlapSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the reference/hold-out overlap summary field `{field}` is out of sync with the current snapshots"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ReferenceHoldoutOverlapSummaryValidationError {}
+
+impl ReferenceHoldoutOverlapSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        if self.shared_sample_count == 0 {
+            return "Reference/hold-out overlap: 0 shared body-epoch pairs (reference snapshot and independent hold-out remain disjoint)".to_string();
+        }
+
+        format!(
+            "Reference/hold-out overlap: {} shared body-epoch pairs across {} bodies and {} epochs; bodies: {}",
+            self.shared_sample_count,
+            self.shared_bodies.len(),
+            self.shared_epoch_count,
+            format_bodies(&self.shared_bodies),
+        )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current overlap posture.
+    pub fn validate(&self) -> Result<(), ReferenceHoldoutOverlapSummaryValidationError> {
+        let Some(expected) = reference_holdout_overlap_summary_details() else {
+            return Err(
+                ReferenceHoldoutOverlapSummaryValidationError::FieldOutOfSync {
+                    field: "shared_sample_count",
+                },
+            );
+        };
+
+        if self.shared_sample_count != expected.shared_sample_count {
+            return Err(
+                ReferenceHoldoutOverlapSummaryValidationError::FieldOutOfSync {
+                    field: "shared_sample_count",
+                },
+            );
+        }
+        if self.shared_bodies != expected.shared_bodies {
+            return Err(
+                ReferenceHoldoutOverlapSummaryValidationError::FieldOutOfSync {
+                    field: "shared_bodies",
+                },
+            );
+        }
+        if self.shared_epoch_count != expected.shared_epoch_count {
+            return Err(
+                ReferenceHoldoutOverlapSummaryValidationError::FieldOutOfSync {
+                    field: "shared_epoch_count",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ReferenceHoldoutOverlapSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for ReferenceHoldoutOverlapSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn reference_holdout_overlap_summary_details() -> Option<ReferenceHoldoutOverlapSummary> {
+    let reference_entries = reference_snapshot();
+    let holdout_entries = independent_holdout_snapshot_entries()?;
+    let mut holdout_pairs = BTreeSet::new();
+    for entry in holdout_entries {
+        holdout_pairs.insert((
+            entry.body.to_string(),
+            entry.epoch.julian_day.days().to_bits(),
+        ));
+    }
+
+    let mut shared_bodies = Vec::new();
+    let mut shared_body_seen = BTreeSet::new();
+    let mut shared_epochs = BTreeSet::new();
+    let mut shared_sample_count = 0usize;
+
+    for body in reference_bodies() {
+        let mut body_has_overlap = false;
+        for entry in reference_entries.iter().filter(|entry| entry.body == *body) {
+            let key = (
+                entry.body.to_string(),
+                entry.epoch.julian_day.days().to_bits(),
+            );
+            if holdout_pairs.contains(&key) {
+                shared_sample_count += 1;
+                body_has_overlap = true;
+                shared_epochs.insert(entry.epoch.julian_day.days().to_bits());
+            }
+        }
+        if body_has_overlap && shared_body_seen.insert(body.to_string()) {
+            shared_bodies.push(body.clone());
+        }
+    }
+
+    Some(ReferenceHoldoutOverlapSummary {
+        shared_sample_count,
+        shared_bodies,
+        shared_epoch_count: shared_epochs.len(),
+    })
+}
+
+/// Returns the compact typed summary for any overlap between the reference snapshot and the independent hold-out snapshot.
+pub fn reference_holdout_overlap_summary() -> Option<ReferenceHoldoutOverlapSummary> {
+    static SUMMARY: OnceLock<ReferenceHoldoutOverlapSummary> = OnceLock::new();
+    Some(
+        SUMMARY
+            .get_or_init(|| {
+                reference_holdout_overlap_summary_details()
+                    .expect("reference/hold-out overlap summary should exist")
+            })
+            .clone(),
+    )
+}
+
+/// Formats the reference/hold-out overlap summary for release-facing reporting.
+pub fn format_reference_holdout_overlap_summary(
+    summary: &ReferenceHoldoutOverlapSummary,
+) -> String {
+    summary.summary_line()
+}
+
+/// Returns the release-facing reference/hold-out overlap summary string.
+pub fn reference_holdout_overlap_summary_for_report() -> String {
+    match reference_holdout_overlap_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => format!("Reference/hold-out overlap: unavailable ({error})"),
+        },
+        None => "Reference/hold-out overlap: unavailable".to_string(),
+    }
+}
+
 /// Formats the independent hold-out corpus coverage for release-facing reporting.
 pub fn format_independent_holdout_snapshot_summary(
     summary: &IndependentHoldoutSnapshotSummary,
@@ -6364,13 +6533,14 @@ pub fn independent_holdout_manifest_summary_for_report() -> String {
 /// Returns the combined snapshot evidence summary used by validation and release reports.
 pub fn jpl_snapshot_evidence_summary_for_report() -> String {
     format!(
-        "{} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {}",
+        "{} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {}",
         reference_snapshot_summary_for_report(),
         reference_snapshot_equatorial_parity_summary_for_report(),
         reference_snapshot_batch_parity_summary_for_report(),
         production_generation_snapshot_summary_for_report(),
         reference_snapshot_source_summary_for_report(),
         reference_snapshot_source_window_summary_for_report(),
+        reference_holdout_overlap_summary_for_report(),
         reference_snapshot_manifest_summary_for_report(),
         production_generation_boundary_source_summary_for_report(),
         production_generation_boundary_window_summary_for_report(),
@@ -11614,6 +11784,30 @@ mod tests {
     }
 
     #[test]
+    fn reference_holdout_overlap_summary_reports_the_current_overlap() {
+        let summary = reference_holdout_overlap_summary()
+            .expect("reference/hold-out overlap summary should exist");
+
+        assert_eq!(summary.shared_sample_count, 32);
+        assert_eq!(summary.shared_epoch_count, 7);
+        assert_eq!(summary.shared_bodies.len(), 10);
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            reference_holdout_overlap_summary_for_report(),
+            summary.summary_line()
+        );
+        assert_eq!(
+            summary.summary_line(),
+            format!(
+                "Reference/hold-out overlap: 32 shared body-epoch pairs across 10 bodies and 7 epochs; bodies: {}",
+                format_bodies(&summary.shared_bodies)
+            )
+        );
+    }
+
+    #[test]
     fn reference_snapshot_source_window_summary_validation_rejects_window_order_drift() {
         let mut summary = reference_snapshot_source_window_summary()
             .expect("reference snapshot source window summary should exist");
@@ -12168,6 +12362,7 @@ mod tests {
         assert!(report.contains(&reference_snapshot_summary_for_report()));
         assert!(report.contains(&reference_snapshot_equatorial_parity_summary_for_report()));
         assert!(report.contains(&reference_snapshot_source_summary_for_report()));
+        assert!(report.contains(&reference_holdout_overlap_summary_for_report()));
         assert!(report.contains(&reference_snapshot_manifest_summary_for_report()));
         assert!(report.contains(&reference_asteroid_evidence_summary_for_report()));
         assert!(report.contains(&reference_asteroid_equatorial_evidence_summary_for_report()));
