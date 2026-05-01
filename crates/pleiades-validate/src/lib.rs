@@ -118,6 +118,7 @@ use pleiades_jpl::{
     reference_snapshot_batch_parity_summary_for_report,
     reference_snapshot_body_class_coverage_summary_for_report,
     reference_snapshot_equatorial_parity_summary_for_report,
+    reference_snapshot_high_curvature_summary_for_report,
     reference_snapshot_lunar_boundary_summary_for_report,
     reference_snapshot_manifest_summary_for_report, reference_snapshot_source_summary_for_report,
     reference_snapshot_source_window_summary_for_report, reference_snapshot_summary_for_report,
@@ -5695,6 +5696,8 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_lunar_boundary_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_high_curvature_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_source_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_source_window_summary_for_report());
@@ -5795,6 +5798,8 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&reference_snapshot_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_lunar_boundary_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_high_curvature_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_source_summary_for_report());
     text.push('\n');
@@ -6248,6 +6253,8 @@ fn render_release_summary_text() -> String {
     text.push_str(&reference_snapshot_equatorial_parity_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_lunar_boundary_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_high_curvature_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_batch_parity_summary_for_report());
     text.push('\n');
@@ -10519,6 +10526,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&reference_snapshot_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_lunar_boundary_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_high_curvature_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_source_summary_for_report());
     text.push('\n');
@@ -15209,6 +15218,7 @@ mod tests {
             "selected asteroids: 20 rows across 5 bodies and 4 epochs; asteroid windows: "
         ));
         assert!(rendered.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
+        assert!(rendered.contains(&reference_snapshot_high_curvature_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_source_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_manifest_summary_for_report()));
         assert_report_contains_exact_line(
@@ -16850,6 +16860,7 @@ mod tests {
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
         assert!(rendered.contains("Reference snapshot coverage: 90 rows across 15 bodies and 10 epochs (20 asteroid rows; JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
         assert!(rendered.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
+        assert!(rendered.contains(&reference_snapshot_high_curvature_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_source_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_manifest_summary_for_report()));
         assert!(rendered.contains("Comparison audit: compare-backends-audit; status="));
@@ -17367,6 +17378,7 @@ version = "0.9.0"
         assert!(release_summary.contains("Selected asteroid source windows:"));
         assert!(release_summary.contains("Reference snapshot coverage:"));
         assert!(release_summary.contains("Reference snapshot body-class coverage: major bodies: 70 rows across 10 bodies and 9 epochs; major windows: "));
+        assert!(release_summary.contains(&reference_snapshot_high_curvature_summary_for_report()));
         assert!(
             release_summary.contains(&comparison_snapshot_body_class_coverage_summary_for_report())
         );
