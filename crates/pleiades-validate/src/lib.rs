@@ -104,6 +104,7 @@ use pleiades_jpl::{
     reference_asteroid_evidence_summary_for_report, reference_asteroids,
     reference_snapshot_batch_parity_summary_for_report,
     reference_snapshot_equatorial_parity_summary_for_report,
+    reference_snapshot_lunar_boundary_summary_for_report,
     reference_snapshot_manifest_summary_for_report, reference_snapshot_source_summary_for_report,
     reference_snapshot_summary_for_report, selected_asteroid_source_evidence_summary_for_report,
     JplSnapshotBackend,
@@ -5632,6 +5633,8 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_lunar_boundary_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_source_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_manifest_summary_for_report());
@@ -5722,6 +5725,8 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&reference_asteroid_equatorial_evidence_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_lunar_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_source_summary_for_report());
     text.push('\n');
@@ -6157,6 +6162,8 @@ fn render_release_summary_text() -> String {
     text.push_str(&format_jpl_frame_treatment_summary());
     text.push('\n');
     text.push_str(&reference_snapshot_equatorial_parity_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_lunar_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_batch_parity_summary_for_report());
     text.push('\n');
@@ -10282,6 +10289,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&reference_asteroid_evidence_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_lunar_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_source_summary_for_report());
     text.push('\n');
@@ -14888,6 +14897,7 @@ mod tests {
         assert!(rendered.contains("WvA"));
         assert!(rendered.contains("Selected asteroid evidence: 5 exact J2000 samples"));
         assert!(rendered.contains("Reference snapshot coverage: 81 rows across 15 bodies and 9 epochs (20 asteroid rows; JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies:"));
+        assert!(rendered.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_source_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_manifest_summary_for_report()));
         assert_report_contains_exact_line(
@@ -16490,6 +16500,7 @@ mod tests {
         assert!(rendered.contains("API stability summary: api-stability-summary"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
         assert!(rendered.contains("Reference snapshot coverage: 81 rows across 15 bodies and 9 epochs (20 asteroid rows; JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies:"));
+        assert!(rendered.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_source_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_manifest_summary_for_report()));
         assert!(rendered.contains("Comparison audit: compare-backends-audit; status="));
@@ -16988,6 +16999,7 @@ version = "0.9.0"
         assert!(release_summary.contains("Production generation boundary overlay source:"));
         assert!(release_summary.contains("Source-backed backend evidence:"));
         assert!(release_summary.contains("Reference snapshot coverage:"));
+        assert!(release_summary.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
         assert!(release_summary.contains(&reference_snapshot_source_summary_for_report()));
         assert!(release_summary.contains("Selected asteroid evidence:"));
         assert!(release_summary.contains("Selected asteroid equatorial evidence:"));

@@ -4024,6 +4024,110 @@ pub fn selected_asteroid_source_evidence_summary_for_report() -> String {
     }
 }
 
+const REFERENCE_LUNAR_BOUNDARY_EPOCHS: [f64; 2] = [2_451_911.5, 2_451_912.5];
+
+fn reference_snapshot_lunar_boundary_entries() -> Option<&'static [SnapshotEntry]> {
+    static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
+    let entries = ENTRIES
+        .get_or_init(|| {
+            snapshot_entries()
+                .into_iter()
+                .flatten()
+                .filter(|entry| {
+                    entry.body == pleiades_backend::CelestialBody::Moon
+                        && REFERENCE_LUNAR_BOUNDARY_EPOCHS.contains(&entry.epoch.julian_day.days())
+                })
+                .cloned()
+                .collect()
+        })
+        .as_slice();
+
+    if entries.is_empty() {
+        None
+    } else {
+        Some(entries)
+    }
+}
+
+/// Compact release-facing summary for the Moon high-curvature reference window.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReferenceLunarBoundarySummary {
+    /// Number of exact Moon samples in the reference window.
+    pub sample_count: usize,
+    /// Number of distinct epochs in the reference window.
+    pub epoch_count: usize,
+    /// Earliest epoch represented in the reference window.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented in the reference window.
+    pub latest_epoch: Instant,
+}
+
+impl ReferenceLunarBoundarySummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Reference lunar boundary evidence: {} exact Moon samples at {}..{}; high-curvature interpolation window",
+            self.sample_count,
+            format_instant(self.earliest_epoch),
+            format_instant(self.latest_epoch),
+        )
+    }
+}
+
+impl fmt::Display for ReferenceLunarBoundarySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn reference_snapshot_lunar_boundary_summary_details() -> Option<ReferenceLunarBoundarySummary> {
+    let entries = reference_snapshot_lunar_boundary_entries()?;
+    let earliest_epoch = entries
+        .iter()
+        .min_by(|left, right| {
+            left.epoch
+                .julian_day
+                .days()
+                .total_cmp(&right.epoch.julian_day.days())
+        })
+        .map(|entry| entry.epoch)
+        .expect("reference lunar boundary evidence should not be empty after collection");
+    let latest_epoch = entries
+        .iter()
+        .max_by(|left, right| {
+            left.epoch
+                .julian_day
+                .days()
+                .total_cmp(&right.epoch.julian_day.days())
+        })
+        .map(|entry| entry.epoch)
+        .expect("reference lunar boundary evidence should not be empty after collection");
+
+    Some(ReferenceLunarBoundarySummary {
+        sample_count: entries.len(),
+        epoch_count: entries
+            .iter()
+            .map(|entry| entry.epoch.julian_day.days().to_bits())
+            .collect::<BTreeSet<_>>()
+            .len(),
+        earliest_epoch,
+        latest_epoch,
+    })
+}
+
+/// Returns the compact typed summary for the Moon high-curvature reference window.
+pub fn reference_snapshot_lunar_boundary_summary() -> Option<ReferenceLunarBoundarySummary> {
+    reference_snapshot_lunar_boundary_summary_details()
+}
+
+/// Returns the release-facing Moon high-curvature reference window summary string.
+pub fn reference_snapshot_lunar_boundary_summary_for_report() -> String {
+    match reference_snapshot_lunar_boundary_summary() {
+        Some(summary) => summary.summary_line(),
+        None => "Reference lunar boundary evidence: unavailable".to_string(),
+    }
+}
+
 const REFERENCE_SNAPSHOT_SOURCE_FALLBACK: &str = "NASA/JPL Horizons API vector tables (DE441)";
 const INDEPENDENT_HOLDOUT_SOURCE_FALLBACK: &str = "NASA/JPL Horizons API vector tables (DE441)";
 const INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK: &str =
@@ -7883,6 +7987,25 @@ mod tests {
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             reference_snapshot_summary_for_report(),
+            summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn reference_snapshot_lunar_boundary_summary_reports_the_expected_window() {
+        let summary = reference_snapshot_lunar_boundary_summary()
+            .expect("reference lunar boundary summary should exist");
+        assert_eq!(summary.sample_count, 2);
+        assert_eq!(summary.epoch_count, 2);
+        assert_eq!(summary.earliest_epoch.julian_day.days(), 2_451_911.5);
+        assert_eq!(summary.latest_epoch.julian_day.days(), 2_451_912.5);
+        assert_eq!(
+            summary.summary_line(),
+            "Reference lunar boundary evidence: 2 exact Moon samples at JD 2451911.5 (TDB)..JD 2451912.5 (TDB); high-curvature interpolation window"
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            reference_snapshot_lunar_boundary_summary_for_report(),
             summary.summary_line()
         );
     }
