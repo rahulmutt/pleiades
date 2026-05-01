@@ -6400,7 +6400,7 @@ pub fn selected_asteroid_source_window_summary_for_report() -> String {
 }
 
 const REFERENCE_LUNAR_BOUNDARY_EPOCHS: [f64; 2] = [2_451_911.5, 2_451_912.5];
-const REFERENCE_HIGH_CURVATURE_EPOCHS: [f64; 2] = [2_451_911.5, 2_451_912.5];
+const REFERENCE_HIGH_CURVATURE_EPOCHS: [f64; 3] = [2_451_911.5, 2_451_912.5, 2_451_913.5];
 
 fn reference_snapshot_lunar_boundary_entries() -> Option<&'static [SnapshotEntry]> {
     static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
@@ -11199,17 +11199,17 @@ mod tests {
     fn reference_snapshot_high_curvature_summary_reports_the_expected_window() {
         let summary = reference_snapshot_high_curvature_summary()
             .expect("reference high-curvature summary should exist");
-        assert_eq!(summary.sample_count, 20);
+        assert_eq!(summary.sample_count, 30);
         assert_eq!(summary.body_count, 10);
         assert_eq!(summary.bodies.len(), 10);
-        assert_eq!(summary.epoch_count, 2);
+        assert_eq!(summary.epoch_count, 3);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_451_911.5);
-        assert_eq!(summary.latest_epoch.julian_day.days(), 2_451_912.5);
+        assert_eq!(summary.latest_epoch.julian_day.days(), 2_451_913.5);
         assert_eq!(summary.bodies[0], pleiades_backend::CelestialBody::Sun);
         assert_eq!(summary.bodies[9], pleiades_backend::CelestialBody::Jupiter);
         assert_eq!(
             summary.summary_line(),
-            "Reference major-body high-curvature evidence: 20 exact samples across 10 bodies and 2 epochs (JD 2451911.5 (TDB)..JD 2451912.5 (TDB)); bodies: Sun, Moon, Mercury, Venus, Saturn, Uranus, Neptune, Pluto, Mars, Jupiter; high-curvature interpolation window"
+            "Reference major-body high-curvature evidence: 30 exact samples across 10 bodies and 3 epochs (JD 2451911.5 (TDB)..JD 2451913.5 (TDB)); bodies: Sun, Moon, Mercury, Venus, Saturn, Uranus, Neptune, Pluto, Mars, Jupiter; high-curvature interpolation window"
         );
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
@@ -11222,11 +11222,11 @@ mod tests {
     fn reference_snapshot_high_curvature_window_summary_reports_the_expected_windows() {
         let summary = reference_snapshot_high_curvature_window_summary()
             .expect("reference high-curvature window summary should exist");
-        assert_eq!(summary.sample_count, 20);
+        assert_eq!(summary.sample_count, 30);
         assert_eq!(summary.sample_bodies.len(), 10);
-        assert_eq!(summary.epoch_count, 2);
+        assert_eq!(summary.epoch_count, 3);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_451_911.5);
-        assert_eq!(summary.latest_epoch.julian_day.days(), 2_451_912.5);
+        assert_eq!(summary.latest_epoch.julian_day.days(), 2_451_913.5);
         assert_eq!(
             summary.sample_bodies[0],
             pleiades_backend::CelestialBody::Sun
@@ -11240,17 +11240,17 @@ mod tests {
             summary.windows[0].body,
             pleiades_backend::CelestialBody::Sun
         );
-        assert_eq!(summary.windows[0].sample_count, 2);
-        assert_eq!(summary.windows[0].epoch_count, 2);
+        assert_eq!(summary.windows[0].sample_count, 3);
+        assert_eq!(summary.windows[0].epoch_count, 3);
         assert_eq!(
             summary.windows[9].body,
             pleiades_backend::CelestialBody::Jupiter
         );
-        assert_eq!(summary.windows[9].sample_count, 2);
-        assert_eq!(summary.windows[9].epoch_count, 2);
+        assert_eq!(summary.windows[9].sample_count, 3);
+        assert_eq!(summary.windows[9].epoch_count, 3);
         assert_eq!(
             summary.summary_line(),
-            "Reference major-body high-curvature windows: 20 source-backed samples across 10 bodies and 2 epochs (JD 2451911.5 (TDB)..JD 2451912.5 (TDB)); windows: Sun: 2 samples across 2 epochs at JD 2451911.5 (TDB)..JD 2451912.5 (TDB); Moon: 2 samples across 2 epochs at JD 2451911.5 (TDB)..JD 2451912.5 (TDB); Mercury: 2 samples across 2 epochs at JD 2451911.5 (TDB)..JD 2451912.5 (TDB); Venus: 2 samples across 2 epochs at JD 2451911.5 (TDB)..JD 2451912.5 (TDB); Saturn: 2 samples across 2 epochs at JD 2451911.5 (TDB)..JD 2451912.5 (TDB); Uranus: 2 samples across 2 epochs at JD 2451911.5 (TDB)..JD 2451912.5 (TDB); Neptune: 2 samples across 2 epochs at JD 2451911.5 (TDB)..JD 2451912.5 (TDB); Pluto: 2 samples across 2 epochs at JD 2451911.5 (TDB)..JD 2451912.5 (TDB); Mars: 2 samples across 2 epochs at JD 2451911.5 (TDB)..JD 2451912.5 (TDB); Jupiter: 2 samples across 2 epochs at JD 2451911.5 (TDB)..JD 2451912.5 (TDB)"
+            "Reference major-body high-curvature windows: 30 source-backed samples across 10 bodies and 3 epochs (JD 2451911.5 (TDB)..JD 2451913.5 (TDB)); windows: Sun: 3 samples across 3 epochs at JD 2451911.5 (TDB)..JD 2451913.5 (TDB); Moon: 3 samples across 3 epochs at JD 2451911.5 (TDB)..JD 2451913.5 (TDB); Mercury: 3 samples across 3 epochs at JD 2451911.5 (TDB)..JD 2451913.5 (TDB); Venus: 3 samples across 3 epochs at JD 2451911.5 (TDB)..JD 2451913.5 (TDB); Saturn: 3 samples across 3 epochs at JD 2451911.5 (TDB)..JD 2451913.5 (TDB); Uranus: 3 samples across 3 epochs at JD 2451911.5 (TDB)..JD 2451913.5 (TDB); Neptune: 3 samples across 3 epochs at JD 2451911.5 (TDB)..JD 2451913.5 (TDB); Pluto: 3 samples across 3 epochs at JD 2451911.5 (TDB)..JD 2451913.5 (TDB); Mars: 3 samples across 3 epochs at JD 2451911.5 (TDB)..JD 2451913.5 (TDB); Jupiter: 3 samples across 3 epochs at JD 2451911.5 (TDB)..JD 2451913.5 (TDB)"
         );
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validate(), Ok(()));
