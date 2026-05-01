@@ -2117,6 +2117,51 @@ mod tests {
     }
 
     #[test]
+    fn compatibility_profile_custom_definition_ayanamsas_align_with_metadata_coverage() {
+        let profile = current_compatibility_profile();
+        let coverage = metadata_coverage();
+
+        assert!(coverage
+            .custom_definition_only
+            .iter()
+            .all(|label| profile.custom_definition_labels.contains(label)));
+        assert!(profile.custom_definition_labels.contains(&"True Balarama"));
+        assert!(profile.custom_definition_labels.contains(&"Aphoric"));
+        assert!(profile.custom_definition_labels.contains(&"Takra"));
+        assert!(resolve_ayanamsa("True Balarama").is_none());
+        assert!(resolve_ayanamsa("Aphoric").is_none());
+        assert!(resolve_ayanamsa("Takra").is_none());
+        let mut resolved_custom_definition_labels = profile
+            .custom_definition_labels
+            .iter()
+            .copied()
+            .filter(|label| resolve_ayanamsa(label).is_some())
+            .collect::<Vec<_>>();
+        resolved_custom_definition_labels.sort_unstable();
+        assert_eq!(
+            resolved_custom_definition_labels,
+            vec![
+                "Babylonian (House Obs)",
+                "Babylonian (House)",
+                "Babylonian (Sissy)",
+                "Babylonian (True Geoc)",
+                "Babylonian (True Obs)",
+                "Babylonian (True Topc)",
+            ]
+        );
+        assert!(profile
+            .custom_definition_labels
+            .iter()
+            .filter(|label| resolve_ayanamsa(label).is_none())
+            .all(|label| {
+                !profile
+                    .release_ayanamsas
+                    .iter()
+                    .any(|entry| entry.canonical_name == *label)
+            }));
+    }
+
+    #[test]
     fn compatibility_profile_retains_intentional_case_only_alias_variants() {
         let profile = current_compatibility_profile();
 

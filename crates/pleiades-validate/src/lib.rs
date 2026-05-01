@@ -12802,14 +12802,14 @@ mod tests {
     fn default_corpus_covers_the_comparison_snapshot() {
         let corpus = default_corpus();
         let summary = corpus.summary();
-        assert_eq!(corpus.requests.len(), 61);
-        assert_eq!(summary.epoch_count, 8);
-        assert_eq!(summary.epochs.len(), 8);
+        assert_eq!(corpus.requests.len(), 70);
+        assert_eq!(summary.epoch_count, 9);
+        assert_eq!(summary.epochs.len(), 9);
         assert!(summary
             .epochs
             .iter()
             .all(|epoch| epoch.scale == TimeScale::Tt));
-        assert_eq!(summary.epochs[0].julian_day.days(), 2_378_499.0);
+        assert_eq!(summary.epochs[0].julian_day.days(), 2_360_233.5);
         assert_eq!(summary.body_count, comparison_bodies().len());
         assert!(corpus
             .requests
@@ -12831,7 +12831,7 @@ mod tests {
         assert!(corpus
             .requests
             .iter()
-            .any(|request| request.instant.julian_day.days() == 2_378_499.0));
+            .any(|request| request.instant.julian_day.days() == 2_360_233.5));
         assert!(corpus
             .requests
             .iter()
@@ -12874,11 +12874,11 @@ mod tests {
         }));
         assert!(report.lines().any(|line| line == "  Apparentness: Mean"));
         assert!(report.lines().any(|line| {
-            line == "  epoch labels: JD 2378499.0 (TT), JD 2400000.0 (TT), JD 2451545.0 (TT), JD 2451911.5 (TT), JD 2451912.5 (TT), JD 2500000.0 (TT), JD 2600000.0 (TT), JD 2634167.0 (TT)"
+            line == "  epoch labels: JD 2360233.5 (TT), JD 2378499.0 (TT), JD 2400000.0 (TT), JD 2451545.0 (TT), JD 2451911.5 (TT), JD 2451912.5 (TT), JD 2500000.0 (TT), JD 2600000.0 (TT), JD 2634167.0 (TT)"
         }));
         assert!(report
             .lines()
-            .any(|line| line == "  julian day span: 2378499.0 → 2634167.0"));
+            .any(|line| line == "  julian day span: 2360233.5 → 2634167.0"));
         assert!(report
             .lines()
             .any(|line| line == "Reference backend: jpl-snapshot"));
@@ -13986,7 +13986,7 @@ mod tests {
         assert!(report.contains("JPL Horizons release-grade comparison window"));
         assert_report_contains_exact_line(
             &report,
-            "  Comparison snapshot coverage: 61 rows across 10 bodies and 8 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Mercury, Moon, Sun, Venus, Jupiter, Saturn, Uranus, Neptune, Pluto",
+            "  Comparison snapshot coverage: 70 rows across 10 bodies and 9 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto",
         );
         assert!(report.contains("Apparentness: Mean"));
         assert!(report.contains("Benchmark corpus"));
@@ -14091,7 +14091,7 @@ mod tests {
         assert!(report.contains("Luminaries"));
         assert!(report.contains("Major planets"));
         assert!(report.contains("interpolation quality checks:"));
-        assert!(report.contains("JPL interpolation quality: 41 samples across 10 bodies"));
+        assert!(report.contains("JPL interpolation quality: 50 samples across 10 bodies"));
         assert!(report.contains("JPL interpolation quality kind coverage:"));
         assert!(report.contains("JPL independent hold-out:"));
         assert!(report.contains("JPL independent hold-out equatorial parity:"));
@@ -14138,7 +14138,7 @@ mod tests {
             release_profiles.api_stability_profile_id
         )));
         assert!(report.contains("Comparison corpus"));
-        assert!(report.contains("epoch labels: JD 2378499.0 (TT)"));
+        assert!(report.contains("epoch labels: JD 2360233.5 (TT)"));
         assert!(report.contains("House validation corpus"));
         assert!(report.contains("House validation corpus: 5 scenarios"));
         assert!(report.contains("Comparison summary"));
@@ -14206,7 +14206,7 @@ mod tests {
         assert!(body_class_tolerance_posture.contains("mean Δdist="));
         assert!(body_class_tolerance_posture.contains("rms Δdist="));
         assert!(report.contains("JPL interpolation quality"));
-        assert!(report.contains("JPL interpolation quality: 41 samples across 10 bodies"));
+        assert!(report.contains("JPL interpolation quality: 50 samples across 10 bodies"));
         assert!(report.contains("JPL independent hold-out:"));
         assert!(report.contains("JPL independent hold-out equatorial parity:"));
         assert!(report.contains("JPL independent hold-out batch parity:"));
@@ -14316,7 +14316,7 @@ mod tests {
         assert!(rendered.contains("Comparison corpus"));
         assert_report_contains_exact_line(
             &rendered,
-            "  Comparison snapshot coverage: 61 rows across 10 bodies and 8 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Mercury, Moon, Sun, Venus, Jupiter, Saturn, Uranus, Neptune, Pluto",
+            "  Comparison snapshot coverage: 70 rows across 10 bodies and 9 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto",
         );
         assert!(rendered.contains("Body comparison summaries"));
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
@@ -15108,13 +15108,13 @@ mod tests {
         assert!(rendered.contains("selected asteroid coverage"));
         assert!(rendered.contains("WvA"));
         assert!(rendered.contains("Selected asteroid evidence: 5 exact J2000 samples"));
-        assert!(rendered.contains("Reference snapshot coverage: 81 rows across 15 bodies and 9 epochs (20 asteroid rows; JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies:"));
+        assert!(rendered.contains("Reference snapshot coverage: 90 rows across 15 bodies and 10 epochs (20 asteroid rows; JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
         assert!(rendered.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_source_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_manifest_summary_for_report()));
         assert_report_contains_exact_line(
             &rendered,
-            "Comparison snapshot coverage: 61 rows across 10 bodies and 8 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Mercury, Moon, Sun, Venus, Jupiter, Saturn, Uranus, Neptune, Pluto",
+            "Comparison snapshot coverage: 70 rows across 10 bodies and 9 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto",
         );
         assert!(rendered.contains("asteroid:433-Eros"));
         assert!(rendered.contains("Validation reference points:"));
@@ -16105,7 +16105,7 @@ mod tests {
             .lines()
             .any(|line| line == profile.target_ayanamsa_scope.join("; ")));
         assert!(rendered.contains("API stability summary line: API stability posture: pleiades-api-stability/0.1.0; stable surfaces: 6; experimental surfaces: 3; deprecation policy items: 4; intentional limits: 3"));
-        assert!(rendered.contains("Reference snapshot source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; outer planets and Pluto sampled at 2400000, 2451545, and 2500000; major bodies sampled at 2001-01-02 through 2001-01-03 for additional boundary coverage; selected asteroids sampled at J2000, 2001-01-01, 2132-08-31, and 2500-01-01.; geocentric ecliptic J2000; TDB reference epoch JD 2451545.0 (TDB)"));
+        assert!(rendered.contains("Reference snapshot source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=major bodies sampled at 1749-12-31 for Sun through Neptune, inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; outer planets and Pluto sampled at 2400000, 2451545, and 2500000; major bodies sampled at 2001-01-02 through 2001-01-03 for additional boundary coverage; selected asteroids sampled at J2000, 2001-01-01, 2132-08-31, and 2500-01-01.; geocentric ecliptic J2000; TDB reference epoch JD 2451545.0 (TDB)"));
         assert!(rendered.contains("Comparison snapshot source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.; coverage=Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.; columns=body, x_km, y_km, z_km"));
         assert!(rendered
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
@@ -16134,10 +16134,10 @@ mod tests {
             "Release profile identifiers: v1 compatibility={}, api-stability={}",
             release_profiles.compatibility_profile_id, release_profiles.api_stability_profile_id
         )));
-        assert!(rendered.contains("Reference snapshot coverage: 81 rows across 15 bodies and 9 epochs (20 asteroid rows; JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies:"));
+        assert!(rendered.contains("Reference snapshot coverage: 90 rows across 15 bodies and 10 epochs (20 asteroid rows; JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
         assert_report_contains_exact_line(
             &rendered,
-            "  Comparison snapshot coverage: 61 rows across 10 bodies and 8 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Mercury, Moon, Sun, Venus, Jupiter, Saturn, Uranus, Neptune, Pluto",
+            "  Comparison snapshot coverage: 70 rows across 10 bodies and 9 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto",
         );
         assert!(rendered
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
@@ -16369,7 +16369,7 @@ mod tests {
         assert!(rendered.contains("95th percentile latitude delta:"));
         assert_report_contains_exact_line(
             &rendered,
-            "Comparison snapshot coverage: 61 rows across 10 bodies and 8 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Mercury, Moon, Sun, Venus, Jupiter, Saturn, Uranus, Neptune, Pluto",
+            "Comparison snapshot coverage: 70 rows across 10 bodies and 9 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto",
         );
         assert!(rendered.contains("Body-class error envelopes:"));
         assert!(rendered.contains("max Δlon="));
@@ -16392,8 +16392,8 @@ mod tests {
         assert!(rendered.contains("notable regressions"));
         assert!(rendered.contains("outside-tolerance bodies"));
         assert!(rendered.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto fallback (approximate)); limits="));
-        assert!(rendered.contains("coverage=Luminaries: backend family=composite, profile=phase-1 full-file VSOP87B planetary evidence, bodies=2 (Moon, Sun), samples="));
-        assert!(rendered.contains("window=JD 2378499.0 (TT) → JD 2634167.0 (TT)"));
+        assert!(rendered.contains("coverage=Luminaries: backend family=composite, profile=phase-1 full-file VSOP87B planetary evidence, bodies=2 (Sun, Moon), samples="));
+        assert!(rendered.contains("window=JD 2360233.5 (TT) → JD 2634167.0 (TT)"));
         assert!(rendered.contains("frames=Ecliptic"));
         assert!(rendered.contains("Luminaries: Δlon≤7.500°, Δlat≤0.750°, Δdist=0.001 AU"));
         assert!(rendered.contains("Major planets: Δlon≤0.010°, Δlat≤0.010°, Δdist=0.001 AU"));
@@ -16730,7 +16730,7 @@ mod tests {
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(rendered.contains("API stability summary: api-stability-summary"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
-        assert!(rendered.contains("Reference snapshot coverage: 81 rows across 15 bodies and 9 epochs (20 asteroid rows; JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies:"));
+        assert!(rendered.contains("Reference snapshot coverage: 90 rows across 15 bodies and 10 epochs (20 asteroid rows; JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
         assert!(rendered.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_source_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_manifest_summary_for_report()));
@@ -17229,10 +17229,10 @@ version = "0.9.0"
         }));
         assert!(release_summary.contains("JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"));
         assert!(release_summary.contains(
-            "JPL reference snapshot equatorial parity: 81 rows across 15 bodies and 9 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies:"
+            "JPL reference snapshot equatorial parity: 90 rows across 15 bodies and 10 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
         ));
         assert!(release_summary.contains(
-            "JPL reference snapshot batch parity: 81 rows across 15 bodies and 9 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies:"
+            "JPL reference snapshot batch parity: 90 rows across 15 bodies and 10 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
         ));
         assert!(release_summary.contains("JPL production-generation coverage:"));
         assert!(release_summary.contains("JPL production-generation source windows:"));
@@ -17437,7 +17437,7 @@ version = "0.9.0"
         assert!(backend_matrix_summary.contains("Algorithmic: 2"));
         assert!(backend_matrix_summary.contains("Composite: 1"));
         assert!(backend_matrix_summary.contains(
-            "JPL reference snapshot equatorial parity: 81 rows across 15 bodies and 9 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies:"
+            "JPL reference snapshot equatorial parity: 90 rows across 15 bodies and 10 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
         ));
         assert!(backend_matrix_summary
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));

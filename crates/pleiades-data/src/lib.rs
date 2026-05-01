@@ -76,6 +76,8 @@ const PACKAGED_BASE_BODIES: [CelestialBody; 10] = [
     CelestialBody::Pluto,
 ];
 
+const PACKAGED_REFERENCE_EPOCH_JD: f64 = 2_451_545.0;
+
 fn packaged_bodies() -> &'static [CelestialBody] {
     static BODIES: OnceLock<Vec<CelestialBody>> = OnceLock::new();
     BODIES.get_or_init(|| {
@@ -85,6 +87,21 @@ fn packaged_bodies() -> &'static [CelestialBody] {
         )));
         bodies
     })
+}
+
+fn packaged_reference_entry_for_body(
+    snapshot: &[SnapshotEntry],
+    body: &CelestialBody,
+) -> Option<SnapshotEntry> {
+    snapshot
+        .iter()
+        .find(|entry| {
+            entry.body == *body
+                && (entry.epoch.julian_day.days() - PACKAGED_REFERENCE_EPOCH_JD).abs()
+                    < f64::EPSILON
+        })
+        .cloned()
+        .or_else(|| snapshot.iter().find(|entry| entry.body == *body).cloned())
 }
 
 /// Structured coverage summary for the bodies bundled into the packaged artifact.
@@ -2771,7 +2788,7 @@ fn packaged_mixed_frame_batch_parity_request_entries(
     let mut entries = Vec::with_capacity(packaged_bodies().len());
 
     for (index, body) in packaged_bodies().iter().cloned().enumerate() {
-        let entry = snapshot.iter().find(|entry| entry.body == body)?;
+        let entry = packaged_reference_entry_for_body(snapshot, &body)?;
         entries.push(entry.clone());
         requests.push(EphemerisRequest {
             body,
@@ -2968,7 +2985,7 @@ fn packaged_mixed_tt_tdb_batch_parity_request_entries(
     let mut entries = Vec::with_capacity(packaged_bodies().len());
 
     for (index, body) in packaged_bodies().iter().cloned().enumerate() {
-        let entry = snapshot.iter().find(|entry| entry.body == body)?;
+        let entry = packaged_reference_entry_for_body(snapshot, &body)?;
         entries.push(entry.clone());
         requests.push(EphemerisRequest {
             body,
