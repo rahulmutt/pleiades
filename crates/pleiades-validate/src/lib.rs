@@ -136,9 +136,24 @@ use pleiades_vsop87::{
 const DEFAULT_BENCHMARK_ROUNDS: usize = 10_000;
 const SUMMARY_BENCHMARK_ROUNDS: usize = 1;
 const BANNER: &str = "pleiades-validate stage 4 tool";
-const REGRESSION_LONGITUDE_THRESHOLD_DEG: f64 = 45.0;
-const REGRESSION_LATITUDE_THRESHOLD_DEG: f64 = 1.0;
-const REGRESSION_DISTANCE_THRESHOLD_AU: f64 = 0.25;
+const LUMINARY_LONGITUDE_THRESHOLD_DEG: f64 = 7.5;
+const LUMINARY_LATITUDE_THRESHOLD_DEG: f64 = 0.75;
+const LUMINARY_DISTANCE_THRESHOLD_AU: f64 = 0.001;
+const MAJOR_PLANET_LONGITUDE_THRESHOLD_DEG: f64 = 0.01;
+const MAJOR_PLANET_LATITUDE_THRESHOLD_DEG: f64 = 0.01;
+const MAJOR_PLANET_DISTANCE_THRESHOLD_AU: f64 = 0.001;
+const LUNAR_POINT_LONGITUDE_THRESHOLD_DEG: f64 = 0.1;
+const LUNAR_POINT_LATITUDE_THRESHOLD_DEG: f64 = 0.01;
+const LUNAR_POINT_DISTANCE_THRESHOLD_AU: f64 = 0.001;
+const ASTEROID_LONGITUDE_THRESHOLD_DEG: f64 = 0.25;
+const ASTEROID_LATITUDE_THRESHOLD_DEG: f64 = 0.05;
+const ASTEROID_DISTANCE_THRESHOLD_AU: f64 = 0.01;
+const CUSTOM_LONGITUDE_THRESHOLD_DEG: f64 = 0.25;
+const CUSTOM_LATITUDE_THRESHOLD_DEG: f64 = 0.05;
+const CUSTOM_DISTANCE_THRESHOLD_AU: f64 = 0.01;
+const PLUTO_LONGITUDE_THRESHOLD_DEG: f64 = 45.0;
+const PLUTO_LATITUDE_THRESHOLD_DEG: f64 = 1.0;
+const PLUTO_DISTANCE_THRESHOLD_AU: f64 = 0.25;
 
 /// A validation corpus made up of request samples.
 #[derive(Clone, Debug)]
@@ -10766,7 +10781,10 @@ impl ComparisonReport {
 
     /// Returns the samples that exceed the built-in regression thresholds.
     pub fn notable_regressions(&self) -> Vec<RegressionFinding> {
-        self.samples.iter().filter_map(regression_finding).collect()
+        self.samples
+            .iter()
+            .filter_map(|sample| regression_finding(sample, &self.candidate_backend.family))
+            .collect()
     }
 
     /// Returns a preserved archive of the current regression findings.
@@ -11267,42 +11285,47 @@ fn comparison_tolerance_for_scope(
     backend_family: &BackendFamily,
 ) -> ComparisonTolerance {
     match scope {
-        ComparisonToleranceScope::Luminary | ComparisonToleranceScope::MajorPlanet => {
-            ComparisonTolerance {
-                backend_family: backend_family.clone(),
-                profile: "phase-1 full-file VSOP87B planetary evidence",
-                max_longitude_delta_deg: REGRESSION_LONGITUDE_THRESHOLD_DEG,
-                max_latitude_delta_deg: REGRESSION_LATITUDE_THRESHOLD_DEG,
-                max_distance_delta_au: Some(REGRESSION_DISTANCE_THRESHOLD_AU),
-            }
-        }
+        ComparisonToleranceScope::Luminary => ComparisonTolerance {
+            backend_family: backend_family.clone(),
+            profile: "phase-1 full-file VSOP87B planetary evidence",
+            max_longitude_delta_deg: LUMINARY_LONGITUDE_THRESHOLD_DEG,
+            max_latitude_delta_deg: LUMINARY_LATITUDE_THRESHOLD_DEG,
+            max_distance_delta_au: Some(LUMINARY_DISTANCE_THRESHOLD_AU),
+        },
+        ComparisonToleranceScope::MajorPlanet => ComparisonTolerance {
+            backend_family: backend_family.clone(),
+            profile: "phase-1 full-file VSOP87B planetary evidence",
+            max_longitude_delta_deg: MAJOR_PLANET_LONGITUDE_THRESHOLD_DEG,
+            max_latitude_delta_deg: MAJOR_PLANET_LATITUDE_THRESHOLD_DEG,
+            max_distance_delta_au: Some(MAJOR_PLANET_DISTANCE_THRESHOLD_AU),
+        },
         ComparisonToleranceScope::LunarPoint => ComparisonTolerance {
             backend_family: backend_family.clone(),
             profile: "phase-1 compact-ELP lunar evidence",
-            max_longitude_delta_deg: REGRESSION_LONGITUDE_THRESHOLD_DEG,
-            max_latitude_delta_deg: REGRESSION_LATITUDE_THRESHOLD_DEG,
-            max_distance_delta_au: Some(REGRESSION_DISTANCE_THRESHOLD_AU),
+            max_longitude_delta_deg: LUNAR_POINT_LONGITUDE_THRESHOLD_DEG,
+            max_latitude_delta_deg: LUNAR_POINT_LATITUDE_THRESHOLD_DEG,
+            max_distance_delta_au: Some(LUNAR_POINT_DISTANCE_THRESHOLD_AU),
         },
         ComparisonToleranceScope::Asteroid => ComparisonTolerance {
             backend_family: backend_family.clone(),
             profile: "phase-1 asteroid comparison evidence",
-            max_longitude_delta_deg: REGRESSION_LONGITUDE_THRESHOLD_DEG,
-            max_latitude_delta_deg: REGRESSION_LATITUDE_THRESHOLD_DEG,
-            max_distance_delta_au: Some(REGRESSION_DISTANCE_THRESHOLD_AU),
+            max_longitude_delta_deg: ASTEROID_LONGITUDE_THRESHOLD_DEG,
+            max_latitude_delta_deg: ASTEROID_LATITUDE_THRESHOLD_DEG,
+            max_distance_delta_au: Some(ASTEROID_DISTANCE_THRESHOLD_AU),
         },
         ComparisonToleranceScope::Custom => ComparisonTolerance {
             backend_family: backend_family.clone(),
             profile: "phase-1 uncategorized comparison evidence",
-            max_longitude_delta_deg: REGRESSION_LONGITUDE_THRESHOLD_DEG,
-            max_latitude_delta_deg: REGRESSION_LATITUDE_THRESHOLD_DEG,
-            max_distance_delta_au: Some(REGRESSION_DISTANCE_THRESHOLD_AU),
+            max_longitude_delta_deg: CUSTOM_LONGITUDE_THRESHOLD_DEG,
+            max_latitude_delta_deg: CUSTOM_LATITUDE_THRESHOLD_DEG,
+            max_distance_delta_au: Some(CUSTOM_DISTANCE_THRESHOLD_AU),
         },
         ComparisonToleranceScope::Pluto => ComparisonTolerance {
             backend_family: backend_family.clone(),
             profile: "phase-1 Pluto approximate fallback evidence",
-            max_longitude_delta_deg: REGRESSION_LONGITUDE_THRESHOLD_DEG,
-            max_latitude_delta_deg: REGRESSION_LATITUDE_THRESHOLD_DEG,
-            max_distance_delta_au: Some(REGRESSION_DISTANCE_THRESHOLD_AU),
+            max_longitude_delta_deg: PLUTO_LONGITUDE_THRESHOLD_DEG,
+            max_latitude_delta_deg: PLUTO_LATITUDE_THRESHOLD_DEG,
+            max_distance_delta_au: Some(PLUTO_DISTANCE_THRESHOLD_AU),
         },
     }
 }
@@ -12056,27 +12079,31 @@ fn write_reference_asteroid_section(f: &mut fmt::Formatter<'_>) -> fmt::Result {
     Ok(())
 }
 
-fn regression_finding(sample: &ComparisonSample) -> Option<RegressionFinding> {
+fn regression_finding(
+    sample: &ComparisonSample,
+    backend_family: &BackendFamily,
+) -> Option<RegressionFinding> {
+    let tolerance = comparison_tolerance_for_body(&sample.body, backend_family);
     let mut notes = Vec::new();
-    if sample.longitude_delta_deg >= REGRESSION_LONGITUDE_THRESHOLD_DEG {
+    if sample.longitude_delta_deg >= tolerance.max_longitude_delta_deg {
         notes.push(format!(
             "longitude delta exceeds {:.1}°",
-            REGRESSION_LONGITUDE_THRESHOLD_DEG
+            tolerance.max_longitude_delta_deg
         ));
     }
-    if sample.latitude_delta_deg >= REGRESSION_LATITUDE_THRESHOLD_DEG {
+    if sample.latitude_delta_deg >= tolerance.max_latitude_delta_deg {
         notes.push(format!(
-            "latitude delta exceeds {:.1}°",
-            REGRESSION_LATITUDE_THRESHOLD_DEG
+            "latitude delta exceeds {:.2}°",
+            tolerance.max_latitude_delta_deg
         ));
     }
     if sample
         .distance_delta_au
-        .is_some_and(|value| value >= REGRESSION_DISTANCE_THRESHOLD_AU)
+        .is_some_and(|value| value >= tolerance.max_distance_delta_au.unwrap_or(f64::INFINITY))
     {
         notes.push(format!(
-            "distance delta exceeds {:.2} AU",
-            REGRESSION_DISTANCE_THRESHOLD_AU
+            "distance delta exceeds {:.3} AU",
+            tolerance.max_distance_delta_au.unwrap_or(f64::INFINITY)
         ));
     }
 
@@ -12881,6 +12908,28 @@ mod tests {
         assert!(entries
             .iter()
             .all(|entry| entry.tolerance.backend_family == BackendFamily::Algorithmic));
+    }
+
+    #[test]
+    fn comparison_tolerance_catalog_entries_use_body_class_specific_limits() {
+        let entries = comparison_tolerance_catalog_entries(&BackendFamily::Composite);
+
+        assert_eq!(
+            entries[0].summary_line(),
+            "Luminaries: Δlon≤7.500°, Δlat≤0.750°, Δdist=0.001 AU"
+        );
+        assert_eq!(
+            entries[1].summary_line(),
+            "Major planets: Δlon≤0.010°, Δlat≤0.010°, Δdist=0.001 AU"
+        );
+        assert_eq!(
+            entries[2].summary_line(),
+            "Lunar points: Δlon≤0.100°, Δlat≤0.010°, Δdist=0.001 AU"
+        );
+        assert_eq!(
+            entries[5].summary_line(),
+            "Pluto fallback (approximate): Δlon≤45.000°, Δlat≤1.000°, Δdist=0.250 AU"
+        );
     }
 
     #[test]
@@ -16256,7 +16305,8 @@ mod tests {
         assert!(rendered.contains("coverage=Luminaries: backend family=composite, profile=phase-1 full-file VSOP87B planetary evidence, bodies=2 (Moon, Sun), samples="));
         assert!(rendered.contains("window=JD 2378499.0 (TT) → JD 2634167.0 (TT)"));
         assert!(rendered.contains("frames=Ecliptic"));
-        assert!(rendered.contains("Luminaries: Δlon≤45.000°, Δlat≤1.000°, Δdist=0.250 AU"));
+        assert!(rendered.contains("Luminaries: Δlon≤7.500°, Δlat≤0.750°, Δdist=0.001 AU"));
+        assert!(rendered.contains("Major planets: Δlon≤0.010°, Δlat≤0.010°, Δdist=0.001 AU"));
         assert!(rendered
             .contains("Pluto fallback (approximate): Δlon≤45.000°, Δlat≤1.000°, Δdist=0.250 AU"));
         assert!(rendered.contains("evidence=9 bodies"));

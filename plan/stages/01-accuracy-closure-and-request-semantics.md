@@ -23,6 +23,7 @@ Implemented and not re-planned here:
 - source-backed VSOP87B generated binary tables for Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, and Neptune;
 - compact lunar baseline with validation for Moon, mean/true node, and mean apogee/perigee;
 - JPL Horizons fixture/snapshot backend with selected asteroid rows, exact fixture epochs, interpolation transparency, equatorial reconstruction, and batch parity evidence; the interpolation-quality corpus now includes a 2451910.5 boundary sample with quadratic coverage;
+- comparison and regression tolerance audits now use body-class-specific release thresholds for the active planetary corpus instead of the earlier flat release posture;
 - validation/report commands that expose tolerance posture, source documentation, request policy, frame policy, and benchmark summaries; the shared frame-policy summary now also fails closed when it drifts from the current canonical posture.
 
 Known remaining gaps:
@@ -39,7 +40,6 @@ Known remaining gaps:
 
 - Keep Pluto as an explicitly downgraded approximate fallback unless a source-backed public-data path is proven and validated for the release profile.
 - Add reference comparisons over representative 1500-2500 epochs for all claimed major bodies.
-- Tighten tolerance profiles from interim broad thresholds to body-class-specific release thresholds.
 - Keep fallback/approximate paths clearly labeled and excluded from release-grade claims.
 
 ### 2. Expand reference-source coverage
