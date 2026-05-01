@@ -1036,6 +1036,10 @@ pub enum ChartSnapshotValidationError {
         /// The available house count.
         house_count: usize,
     },
+    /// The cached sign summary no longer matches the stored placements.
+    InvalidSignSummary(SignSummaryValidationError),
+    /// The cached house summary no longer matches the stored placements.
+    InvalidHouseSummary(HouseSummaryValidationError),
 }
 
 impl fmt::Display for ChartSnapshotValidationError {
@@ -1070,6 +1074,12 @@ impl fmt::Display for ChartSnapshotValidationError {
                 f,
                 "chart snapshot placement {placement} for body {body} carries house {house} but the house snapshot only has {house_count} cusps"
             ),
+            Self::InvalidSignSummary(error) => {
+                write!(f, "chart snapshot sign summary is invalid: {error}")
+            }
+            Self::InvalidHouseSummary(error) => {
+                write!(f, "chart snapshot house summary is invalid: {error}")
+            }
         }
     }
 }
@@ -1194,6 +1204,18 @@ impl ChartSnapshot {
                 }
             }
         }
+
+        let sign_count = self
+            .placements
+            .iter()
+            .filter(|placement| placement.sign.is_some())
+            .count();
+        self.sign_summary()
+            .validate(sign_count)
+            .map_err(ChartSnapshotValidationError::InvalidSignSummary)?;
+        self.house_summary()
+            .validate(self.placements.len())
+            .map_err(ChartSnapshotValidationError::InvalidHouseSummary)?;
 
         Ok(())
     }
@@ -1722,7 +1744,65 @@ impl SignSummary {
         }
         signs
     }
+
+    /// Returns a compact one-line summary of the occupied zodiac signs.
+    pub fn summary_line(self) -> String {
+        self.to_string()
+    }
+
+    /// Validates that the summary covers the expected number of sign placements.
+    pub fn validate(self, sign_count: usize) -> Result<(), SignSummaryValidationError> {
+        let actual = self.aries
+            + self.taurus
+            + self.gemini
+            + self.cancer
+            + self.leo
+            + self.virgo
+            + self.libra
+            + self.scorpio
+            + self.sagittarius
+            + self.capricorn
+            + self.aquarius
+            + self.pisces;
+        if actual == sign_count {
+            Ok(())
+        } else {
+            Err(SignSummaryValidationError::PlacementCountMismatch {
+                expected: sign_count,
+                actual,
+            })
+        }
+    }
+
+    /// Returns the compact summary line after validating the sign summary.
+    pub fn validated_summary_line(
+        self,
+        sign_count: usize,
+    ) -> Result<String, SignSummaryValidationError> {
+        self.validate(sign_count)?;
+        Ok(self.summary_line())
+    }
 }
+
+/// Structured validation errors for a sign summary.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SignSummaryValidationError {
+    /// The summary total did not match the expected sign-placement count.
+    PlacementCountMismatch { expected: usize, actual: usize },
+}
+
+impl fmt::Display for SignSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::PlacementCountMismatch { expected, actual } => write!(
+                f,
+                "sign summary placement count mismatch: expected {expected}, found {actual}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for SignSummaryValidationError {}
 
 fn dominant_sign_summary(summary: SignSummary) -> SignSummary {
     let max = [
@@ -1932,7 +2012,66 @@ impl HouseSummary {
         }
         houses
     }
+
+    /// Returns a compact one-line summary of the occupied houses.
+    pub fn summary_line(self) -> String {
+        self.to_string()
+    }
+
+    /// Validates that the summary covers the expected number of placements.
+    pub fn validate(self, placement_count: usize) -> Result<(), HouseSummaryValidationError> {
+        let actual = self.first
+            + self.second
+            + self.third
+            + self.fourth
+            + self.fifth
+            + self.sixth
+            + self.seventh
+            + self.eighth
+            + self.ninth
+            + self.tenth
+            + self.eleventh
+            + self.twelfth
+            + self.unknown;
+        if actual == placement_count {
+            Ok(())
+        } else {
+            Err(HouseSummaryValidationError::PlacementCountMismatch {
+                expected: placement_count,
+                actual,
+            })
+        }
+    }
+
+    /// Returns the compact summary line after validating the house summary.
+    pub fn validated_summary_line(
+        self,
+        placement_count: usize,
+    ) -> Result<String, HouseSummaryValidationError> {
+        self.validate(placement_count)?;
+        Ok(self.summary_line())
+    }
 }
+
+/// Structured validation errors for a house summary.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum HouseSummaryValidationError {
+    /// The summary total did not match the expected placement count.
+    PlacementCountMismatch { expected: usize, actual: usize },
+}
+
+impl fmt::Display for HouseSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::PlacementCountMismatch { expected, actual } => write!(
+                f,
+                "house summary placement count mismatch: expected {expected}, found {actual}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for HouseSummaryValidationError {}
 
 fn dominant_house_summary(summary: HouseSummary) -> HouseSummary {
     let max = [
@@ -5475,6 +5614,16 @@ mod tests {
                 unknown: 0,
             }
         );
+        assert_eq!(chart.sign_summary().validate(4), Ok(()));
+        assert_eq!(chart.house_summary().validate(4), Ok(()));
+        assert_eq!(
+            chart.sign_summary().validated_summary_line(4),
+            Ok(chart.sign_summary().summary_line())
+        );
+        assert_eq!(
+            chart.house_summary().validated_summary_line(4),
+            Ok(chart.house_summary().summary_line())
+        );
         assert_eq!(
             chart.motion_summary(),
             MotionSummary {
@@ -5536,6 +5685,71 @@ mod tests {
         );
         assert_eq!(summary.to_string(), summary.summary_line());
         assert!(summary.has_known_motion());
+    }
+
+    #[test]
+    fn sign_summary_validation_rejects_count_mismatch() {
+        let summary = SignSummary {
+            aries: 1,
+            taurus: 1,
+            gemini: 0,
+            cancer: 0,
+            leo: 0,
+            virgo: 0,
+            libra: 0,
+            scorpio: 0,
+            sagittarius: 0,
+            capricorn: 0,
+            aquarius: 0,
+            pisces: 0,
+        };
+
+        assert_eq!(summary.validate(2), Ok(()));
+        assert_eq!(summary.summary_line(), summary.to_string());
+        assert_eq!(
+            summary.validated_summary_line(2),
+            Ok(summary.summary_line())
+        );
+        assert_eq!(
+            summary.validate(3),
+            Err(SignSummaryValidationError::PlacementCountMismatch {
+                expected: 3,
+                actual: 2
+            })
+        );
+    }
+
+    #[test]
+    fn house_summary_validation_rejects_count_mismatch() {
+        let summary = HouseSummary {
+            first: 1,
+            second: 1,
+            third: 0,
+            fourth: 0,
+            fifth: 0,
+            sixth: 0,
+            seventh: 0,
+            eighth: 0,
+            ninth: 0,
+            tenth: 0,
+            eleventh: 0,
+            twelfth: 0,
+            unknown: 1,
+        };
+
+        assert_eq!(summary.validate(3), Ok(()));
+        assert_eq!(summary.summary_line(), summary.to_string());
+        assert_eq!(
+            summary.validated_summary_line(3),
+            Ok(summary.summary_line())
+        );
+        assert_eq!(
+            summary.validate(2),
+            Err(HouseSummaryValidationError::PlacementCountMismatch {
+                expected: 2,
+                actual: 3
+            })
+        );
     }
 
     #[test]
