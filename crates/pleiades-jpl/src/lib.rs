@@ -7357,7 +7357,7 @@ impl fmt::Display for SnapshotManifestSummary {
 }
 
 fn has_surrounding_whitespace(value: &str) -> bool {
-    value.trim() != value
+    value.trim() != value || value.contains('\n') || value.contains('\r')
 }
 
 fn parse_snapshot_manifest(source: &str) -> SnapshotManifest {
@@ -9520,6 +9520,20 @@ mod tests {
                 }
             )
         );
+
+        let multiline_columns = ComparisonSnapshotSourceSummary {
+            source: "source".to_string(),
+            coverage: "coverage".to_string(),
+            columns: "body,\nx_km, y_km, z_km".to_string(),
+        };
+        assert_eq!(
+            multiline_columns.validate(),
+            Err(
+                ComparisonSnapshotSourceSummaryValidationError::SurroundedByWhitespace {
+                    field: "columns",
+                }
+            )
+        );
     }
 
     #[test]
@@ -10014,6 +10028,21 @@ mod tests {
             )
         );
 
+        let multiline_source = ReferenceSnapshotSourceSummary {
+            source: "source\nline".to_string(),
+            coverage: "coverage".to_string(),
+            frame_treatment: "geocentric ecliptic J2000".to_string(),
+            reference_epoch: reference_instant(),
+        };
+        assert_eq!(
+            multiline_source.validate(),
+            Err(
+                ReferenceSnapshotSourceSummaryValidationError::SurroundedByWhitespace {
+                    field: "source",
+                }
+            )
+        );
+
         let blank_frame_treatment = ReferenceSnapshotSourceSummary {
             source: "source".to_string(),
             coverage: "coverage".to_string(),
@@ -10109,6 +10138,20 @@ mod tests {
             Err(
                 IndependentHoldoutSourceSummaryValidationError::SurroundedByWhitespace {
                     field: "columns",
+                }
+            )
+        );
+
+        let multiline_coverage = IndependentHoldoutSourceSummary {
+            source: "source".to_string(),
+            coverage: "coverage\nmore".to_string(),
+            columns: "epoch_jd, body, x_km, y_km, z_km".to_string(),
+        };
+        assert_eq!(
+            multiline_coverage.validate(),
+            Err(
+                IndependentHoldoutSourceSummaryValidationError::SurroundedByWhitespace {
+                    field: "coverage",
                 }
             )
         );
@@ -10535,6 +10578,12 @@ mod tests {
         let mut summary = comparison_snapshot_manifest_summary();
         summary.label = " Comparison snapshot manifest ";
 
+        assert_eq!(
+            summary.validate(),
+            Err(SnapshotManifestSummaryValidationError::SurroundedByWhitespace { field: "label" })
+        );
+
+        summary.label = "Comparison snapshot manifest\nrelease";
         assert_eq!(
             summary.validate(),
             Err(SnapshotManifestSummaryValidationError::SurroundedByWhitespace { field: "label" })
