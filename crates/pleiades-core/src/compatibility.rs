@@ -299,6 +299,7 @@ impl CompatibilityProfile {
             self.validation_reference_points,
         )?;
         validate_custom_definition_labels(self.custom_definition_labels)?;
+        validate_custom_definition_ayanamsa_coverage(self.custom_definition_labels)?;
         self.house_code_alias_inventory_summary().validate()?;
         validate_profile_text_section("compatibility-caveat", self.known_gaps)?;
         validate_profile_text_sections_are_disjoint(&[
@@ -401,6 +402,11 @@ pub enum CompatibilityProfileValidationError {
         /// Label that should remain unresolved as a custom definition.
         label: &'static str,
     },
+    /// A documented custom-definition-only ayanamsa is missing from the profile's custom-definition label list.
+    MissingCustomDefinitionAyanamsaCoverageLabel {
+        /// Label that should be surfaced as an intentional custom-definition ayanamsa.
+        label: &'static str,
+    },
     /// A Swiss-Ephemeris house-code alias does not resolve back to its typed house system.
     HouseCodeAliasDoesNotRoundTrip {
         /// Alias label that failed validation.
@@ -485,6 +491,11 @@ impl fmt::Display for CompatibilityProfileValidationError {
             Self::CustomDefinitionLabelResolvesToBuiltIn { label } => write!(
                 f,
                 "compatibility profile custom-definition label '{}' should remain unresolved as a built-in house system or ayanamsa",
+                label
+            ),
+            Self::MissingCustomDefinitionAyanamsaCoverageLabel { label } => write!(
+                f,
+                "compatibility profile custom-definition ayanamsa coverage is missing the documented custom-definition-only label '{}'",
                 label
             ),
             Self::HouseCodeAliasDoesNotRoundTrip {
@@ -695,6 +706,30 @@ pub fn validate_custom_definition_labels(
     }
 
     Ok(labels_checked)
+}
+
+fn validate_custom_definition_ayanamsa_coverage(
+    labels: &[&'static str],
+) -> Result<usize, CompatibilityProfileValidationError> {
+    let coverage = metadata_coverage();
+    let mut seen_labels = BTreeSet::new();
+    for label in labels {
+        seen_labels.insert(normalized_profile_text_entry(label));
+    }
+
+    let mut checked = 0usize;
+    for label in coverage.custom_definition_only {
+        checked += 1;
+        if !seen_labels.contains(&normalized_profile_text_entry(label)) {
+            return Err(
+                CompatibilityProfileValidationError::MissingCustomDefinitionAyanamsaCoverageLabel {
+                    label,
+                },
+            );
+        }
+    }
+
+    Ok(checked)
 }
 
 fn validate_house_code_aliases(
@@ -1634,8 +1669,8 @@ impl fmt::Display for CompatibilityProfile {
         if !coverage.custom_definition_only.is_empty() {
             writeln!(
                 f,
-                "- custom-definition ayanamsas: {} labels are intentionally tracked without sidereal metadata",
-                coverage.custom_definition_only.len()
+                "- custom-definition ayanamsas: {} (tracked without sidereal metadata)",
+                coverage.custom_definition_only.join(", ")
             )?;
         }
         if coverage.is_complete() {
@@ -2162,6 +2197,23 @@ mod tests {
     }
 
     #[test]
+    fn compatibility_profile_validate_rejects_missing_custom_definition_ayanamsa_coverage_labels() {
+        let mut profile = current_compatibility_profile();
+        profile.custom_definition_labels = &["True Balarama", "Aphoric", "Takra"];
+
+        let error = profile.validate().expect_err(
+            "custom-definition ayanamsa coverage labels should be required in the profile",
+        );
+
+        assert!(matches!(
+            error,
+            CompatibilityProfileValidationError::MissingCustomDefinitionAyanamsaCoverageLabel {
+                label: "Babylonian (House)"
+            }
+        ));
+    }
+
+    #[test]
     fn compatibility_profile_retains_intentional_case_only_alias_variants() {
         let profile = current_compatibility_profile();
 
@@ -2621,7 +2673,10 @@ mod tests {
             profile.house_formula_families_summary_line()
         )));
         assert!(rendered.contains("ayanamsa sidereal metadata:"));
-        assert!(rendered.contains("custom-definition ayanamsas:"));
+        assert!(rendered.contains(&format!(
+            "custom-definition ayanamsas: {} (tracked without sidereal metadata)",
+            metadata_coverage().custom_definition_only.join(", ")
+        )));
         assert!(rendered.contains("no unexpected sidereal-metadata gaps remain."));
         assert!(rendered.contains("custom-definition labels:"));
         assert!(rendered.contains("Validation reference points:"));
