@@ -5956,6 +5956,12 @@ impl ReferenceSnapshotSourceWindow {
     }
 }
 
+impl fmt::Display for ReferenceSnapshotSourceWindow {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Compact release-facing summary for the checked-in reference snapshot source coverage.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ReferenceSnapshotSourceWindowSummary {
@@ -6055,6 +6061,12 @@ impl ReferenceSnapshotSourceWindowSummary {
     ) -> Result<String, ReferenceSnapshotSourceWindowSummaryValidationError> {
         self.validate()?;
         Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for ReferenceSnapshotSourceWindowSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
     }
 }
 
@@ -11575,6 +11587,7 @@ mod tests {
             window_summary.validated_summary_line(),
             Ok(window_summary.summary_line())
         );
+        assert_eq!(window_summary.to_string(), window_summary.summary_line());
         assert_eq!(
             reference_snapshot_source_window_summary_for_report(),
             window_summary.summary_line()
