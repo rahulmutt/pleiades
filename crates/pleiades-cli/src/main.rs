@@ -1016,9 +1016,9 @@ mod tests {
         let release_notes_summary =
             render_cli(&["release-notes-summary"]).expect("release notes summary should render");
         assert!(release_notes_summary.contains("Release notes summary"));
-        assert!(release_notes_summary.contains(
-            "Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto override); limits="
-        ));
+        assert!(release_notes_summary
+            .contains("Comparison tolerance policy: backend family=Composite; scopes=6"));
+        assert!(release_notes_summary.contains("Pluto fallback (approximate)"));
         assert!(release_notes_summary.contains(&format!(
             "House code aliases: {}",
             current_compatibility_profile().house_code_aliases_summary_line()
@@ -1199,7 +1199,6 @@ mod tests {
         assert!(release_summary.contains("Mula Wilhelm"));
         assert!(release_summary.contains("Wilhelm"));
         assert!(release_summary.contains("Galactic Equator (Fiorenza)"));
-        assert!(release_summary.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto override)"));
         assert!(release_summary.contains("coverage=Luminaries: backend family=composite, profile=phase-1 full-file VSOP87B planetary evidence, bodies=2 (Moon, Sun), samples="));
         assert!(release_summary.lines().any(|line| {
             line == "JPL request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"

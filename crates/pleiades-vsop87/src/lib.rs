@@ -2526,7 +2526,7 @@ fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
                 source_profile: source_profile(
                     CelestialBody::Pluto,
                     Vsop87BodySourceKind::MeanOrbitalElements,
-                    "current mean-element fallback special case until a Pluto-specific source path is selected",
+                    "current approximate mean-element fallback special case until a Pluto-specific source path is selected",
                     AccuracyClass::Approximate,
                 ),
                 source_specification: None,

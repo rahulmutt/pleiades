@@ -943,7 +943,7 @@ pub enum ComparisonToleranceScope {
     Asteroid,
     /// Custom-body body-class scope.
     Custom,
-    /// Pluto-specific override scope.
+    /// Pluto-specific approximate fallback scope.
     Pluto,
 }
 
@@ -955,7 +955,7 @@ impl ComparisonToleranceScope {
             Self::LunarPoint => "Lunar points",
             Self::Asteroid => "Asteroids",
             Self::Custom => "Custom bodies",
-            Self::Pluto => "Pluto override",
+            Self::Pluto => "Pluto fallback (approximate)",
         }
     }
 }
@@ -11209,7 +11209,7 @@ fn comparison_tolerance_for_scope(
         },
         ComparisonToleranceScope::Pluto => ComparisonTolerance {
             backend_family: backend_family.clone(),
-            profile: "phase-1 Pluto mean-elements fallback evidence",
+            profile: "phase-1 Pluto approximate fallback evidence",
             max_longitude_delta_deg: REGRESSION_LONGITUDE_THRESHOLD_DEG,
             max_latitude_delta_deg: REGRESSION_LATITUDE_THRESHOLD_DEG,
             max_distance_delta_au: Some(REGRESSION_DISTANCE_THRESHOLD_AU),
@@ -12044,7 +12044,7 @@ fn implemented_backend_catalog() -> Vec<BackendMatrixEntry> {
             label: "VSOP87 planetary backend",
             metadata: Vsop87Backend::new().metadata(),
             implementation_status: BackendImplementationStatus::PartialSourceBacked,
-            status_note: "Sun through Neptune now use generated binary VSOP87B source tables derived from the vendored full-file inputs, and Pluto remains the current mean-element fallback special case until a Pluto-specific source path is selected",
+            status_note: "Sun through Neptune now use generated binary VSOP87B source tables derived from the vendored full-file inputs, and Pluto remains the current approximate mean-element fallback special case until a Pluto-specific source path is selected",
             expected_error_kinds: VSOP87_EXPECTED_ERROR_KINDS,
             required_data_files: &[],
         },
@@ -13826,7 +13826,7 @@ mod tests {
             "Major planets: backend family=composite, profile=phase-1 full-file VSOP87B planetary evidence"
         ));
         assert!(report.contains(
-            "Pluto override: backend family=composite, profile=phase-1 Pluto mean-elements fallback evidence"
+            "Pluto fallback (approximate): backend family=composite, profile=phase-1 Pluto approximate fallback evidence"
         ));
         assert!(report.contains("Luminaries"));
         assert!(report.contains("Major planets"));
@@ -13932,7 +13932,7 @@ mod tests {
             "Major planets: backend family=composite, profile=phase-1 full-file VSOP87B planetary evidence"
         ));
         assert!(report.contains(
-            "Pluto override: backend family=composite, profile=phase-1 Pluto mean-elements fallback evidence"
+            "Pluto fallback (approximate): backend family=composite, profile=phase-1 Pluto approximate fallback evidence"
         ));
         assert!(report.contains("Comparison tolerance audit"));
         assert!(report.contains("command: compare-backends-audit"));
@@ -16122,12 +16122,13 @@ mod tests {
         assert!(rendered.contains("Zodiac policy:"));
         assert!(rendered.contains("notable regressions"));
         assert!(rendered.contains("outside-tolerance bodies"));
-        assert!(rendered.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto override); limits="));
+        assert!(rendered.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto fallback (approximate)); limits="));
         assert!(rendered.contains("coverage=Luminaries: backend family=composite, profile=phase-1 full-file VSOP87B planetary evidence, bodies=2 (Moon, Sun), samples="));
         assert!(rendered.contains("window=JD 2378499.0 (TT) → JD 2634167.0 (TT)"));
         assert!(rendered.contains("frames=Ecliptic"));
         assert!(rendered.contains("Luminaries: Δlon≤45.000°, Δlat≤1.000°, Δdist=0.250 AU"));
-        assert!(rendered.contains("Pluto override: Δlon≤45.000°, Δlat≤1.000°, Δdist=0.250 AU"));
+        assert!(rendered
+            .contains("Pluto fallback (approximate): Δlon≤45.000°, Δlat≤1.000°, Δdist=0.250 AU"));
         assert!(rendered.contains("evidence=10 bodies, 41 samples"));
         assert!(rendered.contains("Body-class tolerance posture:"));
         assert!(rendered.contains("Expected tolerance status:"));
@@ -16245,7 +16246,7 @@ mod tests {
         assert!(rendered.contains("interpolation, bracket span"));
         assert!(rendered.contains("TDB"));
         assert!(rendered.contains("VSOP87 planetary backend"));
-        assert!(rendered.contains("Pluto remains the current mean-element fallback special case until a Pluto-specific source path is selected"));
+        assert!(rendered.contains("Pluto remains the current approximate mean-element fallback special case until a Pluto-specific source path is selected"));
         assert!(rendered.contains("ELP lunar backend (Moon and lunar nodes)"));
         assert!(rendered.contains("specification summary: ELP lunar theory specification:"));
         assert!(rendered.contains("compact lunar and lunar-point formulas provide the current deterministic baseline while documented production lunar-theory ingestion remains open"));
@@ -16751,7 +16752,7 @@ version = "0.9.0"
         assert!(release_notes.contains("Rust compiler version"));
         assert!(release_notes_summary.contains("Release notes summary"));
         assert!(release_notes_summary.contains(
-            "Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto override); limits="
+            "Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto fallback (approximate)); limits="
         ));
         assert!(release_notes_summary.contains("Release-specific coverage:"));
         assert!(release_notes_summary.contains(
