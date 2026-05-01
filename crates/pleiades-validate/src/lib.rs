@@ -5977,7 +5977,6 @@ fn render_release_summary_text() -> String {
     let time_scale_policy = time_scale_policy_summary_for_report();
     text.push_str(&format_request_semantics_summary_for_report(
         &time_scale_policy,
-        &request_policy,
     ));
     text.push_str("Frame policy: ");
     text.push_str(request_policy.frame);
@@ -9108,9 +9107,15 @@ fn format_request_policy_summary_for_report(
     }
 }
 
+fn validated_request_policy_summary_for_report(
+) -> Result<pleiades_backend::RequestPolicySummary, String> {
+    let summary = request_policy_summary_for_report();
+    summary.validate().map_err(|error| error.to_string())?;
+    Ok(summary)
+}
+
 fn format_request_semantics_summary_for_report(
     time_scale_policy: &pleiades_backend::TimeScalePolicySummary,
-    request_policy: &pleiades_backend::RequestPolicySummary,
 ) -> String {
     use std::fmt::Write as _;
 
@@ -9120,12 +9125,23 @@ fn format_request_semantics_summary_for_report(
         "Time-scale policy: {}",
         format_time_scale_policy_summary_for_report(time_scale_policy)
     );
+
+    let request_policy = match validated_request_policy_summary_for_report() {
+        Ok(summary) => summary,
+        Err(error) => {
+            let _ = writeln!(text, "Observer policy unavailable ({error})");
+            let _ = writeln!(text, "Apparentness policy unavailable ({error})");
+            let _ = writeln!(text, "Request policy unavailable ({error})");
+            return text;
+        }
+    };
+
     let _ = writeln!(text, "Observer policy: {}", request_policy.observer);
     let _ = writeln!(text, "Apparentness policy: {}", request_policy.apparentness);
     let _ = writeln!(
         text,
         "Request policy: {}",
-        format_request_policy_summary_for_report(request_policy)
+        format_request_policy_summary_for_report(&request_policy)
     );
     text
 }
@@ -10234,7 +10250,6 @@ fn render_backend_matrix_summary_text() -> String {
         Ok(release_profiles) => release_profiles,
         Err(error) => return format!("Backend matrix summary unavailable ({error})"),
     };
-    let request_policy = request_policy_summary_for_report();
     let profile = current_compatibility_profile();
     let catalog = implemented_backend_catalog();
     let mut family_counts: BTreeMap<String, usize> = BTreeMap::new();
@@ -10394,7 +10409,6 @@ fn render_backend_matrix_summary_text() -> String {
     let time_scale_policy = time_scale_policy_summary_for_report();
     text.push_str(&format_request_semantics_summary_for_report(
         &time_scale_policy,
-        &request_policy,
     ));
     text.push_str(&request_surface_summary_for_report());
     text.push('\n');
@@ -16614,6 +16628,14 @@ mod tests {
         assert!(rendered.lines().any(|line| {
             line == "Request policy: time-scale=direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T or UTC convenience model; observer=chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests; topocentric body positions remain unsupported; apparentness=current first-party backends accept mean geometric output only; apparent-place corrections are rejected unless a backend explicitly advertises support; frame=ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported; native sidereal backend output remains unsupported unless a backend explicitly advertises it"
         }));
+        assert_eq!(
+            validated_request_policy_summary_for_report()
+                .expect("current request policy summary should validate")
+                .summary_line(),
+            request_policy_summary_for_report()
+                .validated_summary_line()
+                .expect("current request policy summary should render")
+        );
         assert!(rendered.contains(
             "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags)"
         ));
