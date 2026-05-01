@@ -1802,7 +1802,7 @@ mod tests {
     }
 
     #[test]
-    fn regiomontanus_and_campanus_reduce_to_sidereal_phase_spacing_on_the_equator() {
+    fn regiomontanus_campanus_and_koch_reduce_to_sidereal_phase_spacing_on_the_equator() {
         let request =
             sample_request(HouseSystem::Regiomontanus).with_obliquity(Angle::from_degrees(0.0));
         let regiomontanus = calculate_houses(&request).expect("regiomontanus houses should work");
@@ -1810,9 +1810,14 @@ mod tests {
             &sample_request(HouseSystem::Campanus).with_obliquity(Angle::from_degrees(0.0)),
         )
         .expect("campanus houses should work");
+        let koch = calculate_houses(
+            &sample_request(HouseSystem::Koch).with_obliquity(Angle::from_degrees(0.0)),
+        )
+        .expect("koch houses should work");
 
         assert_eq!(regiomontanus.cusps.len(), 12);
         assert_eq!(campanus.cusps.len(), 12);
+        assert_eq!(koch.cusps.len(), 12);
         assert_eq!(regiomontanus.cusps[0], regiomontanus.angles.ascendant);
         assert_eq!(regiomontanus.cusps[3], regiomontanus.angles.imum_coeli);
         assert_eq!(regiomontanus.cusps[6], regiomontanus.angles.descendant);
@@ -1823,10 +1828,16 @@ mod tests {
             local_sidereal_time(request.instant, request.observer.longitude).degrees();
         for house in [2usize, 3, 5, 6, 8, 9, 11, 12] {
             let expected = Longitude::from_degrees(sidereal_time + house_phase(house));
-            assert!(
-                (regiomontanus.cusps[house - 1].degrees() - expected.degrees()).abs() < 1.0e-10,
-                "house {house} should follow the equatorial sidereal-phase spacing"
-            );
+            for (name, snapshot) in [
+                ("regiomontanus", &regiomontanus),
+                ("campanus", &campanus),
+                ("koch", &koch),
+            ] {
+                assert!(
+                    (snapshot.cusps[house - 1].degrees() - expected.degrees()).abs() < 1.0e-10,
+                    "{name} house {house} should follow the equatorial sidereal-phase spacing"
+                );
+            }
         }
     }
 
