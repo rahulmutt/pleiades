@@ -736,9 +736,9 @@ mod tests {
     use pleiades_core::{current_compatibility_profile, current_release_profile_identifiers};
 
     use super::{
-        banner, parse_ayanamsa, parse_body, regenerate_packaged_artifact,
-        render_chart, render_cli, shared_request_policy_help_block, Angle, Ayanamsa,
-        CelestialBody, CustomAyanamsa, CustomBodyId, JulianDay,
+        banner, parse_ayanamsa, parse_body, regenerate_packaged_artifact, render_chart, render_cli,
+        shared_request_policy_help_block, Angle, Ayanamsa, CelestialBody, CustomAyanamsa,
+        CustomBodyId, JulianDay,
     };
 
     fn unique_temp_dir(prefix: &str) -> std::path::PathBuf {

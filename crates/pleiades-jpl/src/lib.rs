@@ -753,6 +753,26 @@ pub struct ProductionGenerationBoundaryWindowSummary {
     pub windows: Vec<ProductionGenerationBoundaryWindow>,
 }
 
+/// Structured validation errors for a production-generation boundary window summary that drifted from the current slice.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ProductionGenerationBoundaryWindowSummaryValidationError {
+    /// The summary no longer matches the checked-in boundary window slice.
+    DerivedSummaryMismatch,
+}
+
+impl fmt::Display for ProductionGenerationBoundaryWindowSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::DerivedSummaryMismatch => write!(
+                f,
+                "the production-generation boundary window summary is out of sync with the current slice"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ProductionGenerationBoundaryWindowSummaryValidationError {}
+
 impl ProductionGenerationBoundaryWindowSummary {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
@@ -771,6 +791,31 @@ impl ProductionGenerationBoundaryWindowSummary {
             format_instant(self.latest_epoch),
             window_summary,
         )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the checked-in boundary window slice.
+    pub fn validate(&self) -> Result<(), ProductionGenerationBoundaryWindowSummaryValidationError> {
+        let Some(expected) = production_generation_boundary_window_summary_details() else {
+            return Err(
+                ProductionGenerationBoundaryWindowSummaryValidationError::DerivedSummaryMismatch,
+            );
+        };
+
+        if self != &expected {
+            return Err(
+                ProductionGenerationBoundaryWindowSummaryValidationError::DerivedSummaryMismatch,
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ProductionGenerationBoundaryWindowSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
     }
 }
 
@@ -861,7 +906,10 @@ pub fn production_generation_boundary_window_summary(
 /// Returns the release-facing production-generation boundary window summary string.
 pub fn production_generation_boundary_window_summary_for_report() -> String {
     match production_generation_boundary_window_summary() {
-        Some(summary) => summary.summary_line(),
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => format!("Production generation boundary windows: unavailable ({error})"),
+        },
         None => "Production generation boundary windows: unavailable".to_string(),
     }
 }
@@ -10456,10 +10504,15 @@ mod tests {
         assert!(summary.summary_line().starts_with("Production generation boundary windows: 34 source-backed samples across 10 bodies and 8 epochs (JD 2400000.0 (TDB)..JD 2634167.0 (TDB)); windows: "));
         assert!(summary.summary_line().contains("Mars: 7 samples across 7 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Jupiter: 6 samples across 6 epochs at JD 2400000.0 (TDB)..JD 2500000.0 (TDB)"));
         assert_eq!(summary.summary_line(), summary.to_string());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             production_generation_boundary_window_summary_for_report(),
             summary.summary_line()
         );
+
+        let mut drifted = summary.clone();
+        drifted.sample_count += 1;
+        assert!(drifted.validated_summary_line().is_err());
     }
 
     #[test]
