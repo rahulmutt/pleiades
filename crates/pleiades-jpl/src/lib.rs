@@ -5413,15 +5413,172 @@ pub fn reference_snapshot_source_summary_for_report() -> String {
     }
 }
 
-fn reference_snapshot_source_window_summary_details() -> Option<String> {
+/// A single body-window slice inside the checked-in reference snapshot source coverage.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReferenceSnapshotSourceWindow {
+    /// The snapshot body covered by this window.
+    pub body: pleiades_backend::CelestialBody,
+    /// Number of samples for the body.
+    pub sample_count: usize,
+    /// Number of distinct epochs represented for the body.
+    pub epoch_count: usize,
+    /// Earliest epoch represented for the body.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented for the body.
+    pub latest_epoch: Instant,
+}
+
+impl ReferenceSnapshotSourceWindow {
+    /// Returns a compact body-window summary used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let time_span = if self.earliest_epoch == self.latest_epoch {
+            format_instant(self.earliest_epoch)
+        } else {
+            format!(
+                "{}..{}",
+                format_instant(self.earliest_epoch),
+                format_instant(self.latest_epoch)
+            )
+        };
+
+        format!(
+            "{}: {} samples across {} epochs at {}",
+            self.body, self.sample_count, self.epoch_count, time_span
+        )
+    }
+}
+
+/// Compact release-facing summary for the checked-in reference snapshot source coverage.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReferenceSnapshotSourceWindowSummary {
+    /// Number of reference-snapshot samples in the source slice.
+    pub sample_count: usize,
+    /// Bodies covered by the checked-in source slice in first-seen order.
+    pub sample_bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Number of distinct epochs covered by the source slice.
+    pub epoch_count: usize,
+    /// Earliest epoch represented in the source slice.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented in the source slice.
+    pub latest_epoch: Instant,
+    /// Per-body window breakdown in first-seen order.
+    pub windows: Vec<ReferenceSnapshotSourceWindow>,
+}
+
+impl ReferenceSnapshotSourceWindowSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let window_summary = self
+            .windows
+            .iter()
+            .map(ReferenceSnapshotSourceWindow::summary_line)
+            .collect::<Vec<_>>()
+            .join("; ");
+        format!(
+            "Reference snapshot source windows: {} source-backed samples across {} bodies and {} epochs ({}..{}); windows: {}",
+            self.sample_count,
+            self.sample_bodies.len(),
+            self.epoch_count,
+            format_instant(self.earliest_epoch),
+            format_instant(self.latest_epoch),
+            window_summary,
+        )
+    }
+
+    /// Returns `Ok(())` when the reference snapshot source windows still match the checked-in slice.
+    pub fn validate(&self) -> Result<(), ReferenceSnapshotSourceWindowSummaryValidationError> {
+        let Some(expected) = reference_snapshot_source_window_summary_details() else {
+            return Err(
+                ReferenceSnapshotSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        };
+
+        if self.sample_count != expected.sample_count {
+            return Err(
+                ReferenceSnapshotSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        }
+        if self.sample_bodies != expected.sample_bodies {
+            return Err(
+                ReferenceSnapshotSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "sample_bodies",
+                },
+            );
+        }
+        if self.epoch_count != expected.epoch_count {
+            return Err(
+                ReferenceSnapshotSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "epoch_count",
+                },
+            );
+        }
+        if self.earliest_epoch != expected.earliest_epoch {
+            return Err(
+                ReferenceSnapshotSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "earliest_epoch",
+                },
+            );
+        }
+        if self.latest_epoch != expected.latest_epoch {
+            return Err(
+                ReferenceSnapshotSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "latest_epoch",
+                },
+            );
+        }
+        if self.windows != expected.windows {
+            return Err(
+                ReferenceSnapshotSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "windows",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated reference snapshot source window summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ReferenceSnapshotSourceWindowSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+/// Validation error for a reference snapshot source window summary that drifted from the current slice.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ReferenceSnapshotSourceWindowSummaryValidationError {
+    /// A summary field is out of sync with the checked-in reference snapshot source windows.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for ReferenceSnapshotSourceWindowSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the reference snapshot source window summary field `{field}` is out of sync with the current slice"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ReferenceSnapshotSourceWindowSummaryValidationError {}
+
+fn reference_snapshot_source_window_summary_details() -> Option<ReferenceSnapshotSourceWindowSummary>
+{
     let entries = reference_snapshot();
     if entries.is_empty() {
         return None;
     }
 
-    let bodies = reference_bodies();
     let mut windows = Vec::new();
-    for body in bodies {
+    for body in reference_bodies() {
         let body_entries = entries
             .iter()
             .filter(|entry| entry.body == *body)
@@ -5443,38 +5600,65 @@ fn reference_snapshot_source_window_summary_details() -> Option<String> {
             }
         }
 
-        let time_span = if earliest_epoch == latest_epoch {
-            format_instant(earliest_epoch)
-        } else {
-            format!(
-                "{}..{}",
-                format_instant(earliest_epoch),
-                format_instant(latest_epoch)
-            )
-        };
-        windows.push(format!(
-            "{}: {} samples across {} epochs at {}",
-            body,
-            body_entries.len(),
-            epochs.len(),
-            time_span,
-        ));
+        windows.push(ReferenceSnapshotSourceWindow {
+            body: body.clone(),
+            sample_count: body_entries.len(),
+            epoch_count: epochs.len(),
+            earliest_epoch,
+            latest_epoch,
+        });
     }
 
     if windows.is_empty() {
-        None
-    } else {
-        Some(format!(
-            "Reference snapshot source windows: {}",
-            windows.join("; ")
-        ))
+        return None;
     }
+
+    let earliest_epoch = windows
+        .iter()
+        .map(|window| window.earliest_epoch)
+        .min_by(|left, right| left.julian_day.days().total_cmp(&right.julian_day.days()))
+        .expect("reference snapshot source windows should not be empty after collection");
+    let latest_epoch = windows
+        .iter()
+        .map(|window| window.latest_epoch)
+        .max_by(|left, right| left.julian_day.days().total_cmp(&right.julian_day.days()))
+        .expect("reference snapshot source windows should not be empty after collection");
+
+    Some(ReferenceSnapshotSourceWindowSummary {
+        sample_count: entries.len(),
+        sample_bodies: reference_bodies().to_vec(),
+        epoch_count: entries
+            .iter()
+            .map(|entry| entry.epoch.julian_day.days().to_bits())
+            .collect::<BTreeSet<_>>()
+            .len(),
+        earliest_epoch,
+        latest_epoch,
+        windows,
+    })
+}
+
+/// Returns the compact typed summary for the checked-in reference snapshot source coverage.
+pub fn reference_snapshot_source_window_summary() -> Option<ReferenceSnapshotSourceWindowSummary> {
+    reference_snapshot_source_window_summary_details()
+}
+
+/// Formats the checked-in reference snapshot source windows for release-facing reporting.
+pub fn format_reference_snapshot_source_window_summary(
+    summary: &ReferenceSnapshotSourceWindowSummary,
+) -> String {
+    summary.summary_line()
 }
 
 /// Returns the body-window summary for the checked-in reference snapshot.
 pub fn reference_snapshot_source_window_summary_for_report() -> String {
-    reference_snapshot_source_window_summary_details()
-        .unwrap_or_else(|| "Reference snapshot source windows: unavailable".to_string())
+    match reference_snapshot_source_window_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => format!("Reference snapshot source windows: unavailable ({error})"),
+        },
+        None => "Reference snapshot source windows: unavailable".to_string(),
+    }
 }
 
 /// Returns the manifest summary for the checked-in reference snapshot.
@@ -10779,10 +10963,44 @@ mod tests {
             reference_snapshot_source_summary_for_report(),
             summary.summary_line()
         );
-        assert!(reference_snapshot_source_window_summary_for_report()
+
+        let window_summary = reference_snapshot_source_window_summary()
+            .expect("reference snapshot source window summary should exist");
+        assert_eq!(
+            window_summary.windows.len(),
+            window_summary.sample_bodies.len()
+        );
+        assert_eq!(window_summary.validate(), Ok(()));
+        assert_eq!(
+            window_summary.validated_summary_line(),
+            Ok(window_summary.summary_line())
+        );
+        assert_eq!(
+            reference_snapshot_source_window_summary_for_report(),
+            window_summary.summary_line()
+        );
+        assert!(window_summary
+            .summary_line()
             .starts_with("Reference snapshot source windows: "));
-        assert!(reference_snapshot_source_window_summary_for_report().contains("Moon:"));
-        assert!(reference_snapshot_source_window_summary_for_report().contains("Pluto:"));
+        assert!(window_summary.summary_line().contains("Moon:"));
+        assert!(window_summary.summary_line().contains("Pluto:"));
+    }
+
+    #[test]
+    fn reference_snapshot_source_window_summary_validation_rejects_window_order_drift() {
+        let mut summary = reference_snapshot_source_window_summary()
+            .expect("reference snapshot source window summary should exist");
+        summary.windows.swap(0, 1);
+
+        assert!(matches!(
+            summary.validate(),
+            Err(
+                ReferenceSnapshotSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "windows",
+                }
+            )
+        ));
+        assert!(summary.validated_summary_line().is_err());
     }
 
     #[test]
