@@ -33,8 +33,8 @@ pub use house_validation::{
 };
 
 use pleiades_ayanamsa::{
-    ayanamsa_catalog_validation_summary, baseline_ayanamsas, built_in_ayanamsas, metadata_coverage,
-    release_ayanamsas, resolve_ayanamsa, validate_ayanamsa_catalog,
+    ayanamsa_catalog_validation_summary, baseline_ayanamsas, built_in_ayanamsas, descriptor,
+    metadata_coverage, release_ayanamsas, resolve_ayanamsa, validate_ayanamsa_catalog,
 };
 use pleiades_backend::{
     delta_t_policy_summary_for_report, frame_policy_summary_for_report,
@@ -5336,6 +5336,39 @@ fn summarize_validation_reference_points(points: &[&str]) -> String {
     }
 }
 
+fn summarize_ayanamsa_reference_offsets() -> Option<String> {
+    let samples = [
+        pleiades_core::Ayanamsa::Lahiri,
+        pleiades_core::Ayanamsa::KrishnamurtiVP291,
+        pleiades_core::Ayanamsa::TrueSheoran,
+        pleiades_core::Ayanamsa::GalacticCenterMulaWilhelm,
+        pleiades_core::Ayanamsa::GalacticEquatorFiorenza,
+    ];
+
+    let mut rendered = Vec::with_capacity(samples.len());
+    for sample in samples {
+        let descriptor = descriptor(&sample)?;
+        let epoch = descriptor.epoch?;
+        let offset = descriptor.offset_degrees?;
+        rendered.push(format!(
+            "{}: epoch={}; offset={}",
+            descriptor.canonical_name, epoch, offset
+        ));
+    }
+
+    Some(format!(
+        "representative zero-point examples: {}",
+        rendered.join("; ")
+    ))
+}
+
+fn format_ayanamsa_reference_offsets_for_report() -> String {
+    match summarize_ayanamsa_reference_offsets() {
+        Some(summary) => format!("Ayanamsa reference offsets: {summary}"),
+        None => "Ayanamsa reference offsets: unavailable".to_string(),
+    }
+}
+
 fn summarize_latitude_sensitive_house_systems(profile: &CompatibilityProfile) -> String {
     let latitude_sensitive = profile.latitude_sensitive_house_systems();
 
@@ -5533,6 +5566,8 @@ fn render_compatibility_profile_summary_text() -> String {
     }
     text.push('\n');
     text.push_str(&ayanamsa_catalog_validation_summary().summary_line());
+    text.push('\n');
+    text.push_str(&format_ayanamsa_reference_offsets_for_report());
     text.push('\n');
     text.push_str("Release-specific house-system canonical names: ");
     match profile.validated_release_house_system_canonical_names_summary_line() {
@@ -6064,6 +6099,8 @@ fn render_release_summary_text() -> String {
         Ok(summary) => text.push_str(&summary),
         Err(error) => return format!("Release notes unavailable ({error})"),
     }
+    text.push('\n');
+    text.push_str(&format_ayanamsa_reference_offsets_for_report());
     text.push('\n');
     text.push_str("Validation reference points: ");
     text.push_str(&summarize_validation_reference_points(
@@ -15212,6 +15249,11 @@ mod tests {
             .any(|line| line == profile.target_ayanamsa_scope.join("; ")));
         assert!(rendered.contains(&coverage.summary_line()));
         assert!(rendered.contains("ayanamsa catalog validation: ok"));
+        assert!(
+            rendered.contains("Ayanamsa reference offsets: representative zero-point examples:")
+        );
+        assert!(rendered.contains("Lahiri: epoch=JD 2435553.5; offset=23.245524743°"));
+        assert!(rendered.contains("Galactic Equator (Fiorenza): epoch=JD 2451544.5; offset=25°"));
         assert!(rendered.contains("Release-specific house-system canonical names: 13 (Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter (poli-equatorial), Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen SD, Pullen SR, Sunshine, Gauquelin sectors)"));
         assert!(rendered.contains(&format!(
             "House code aliases: {}",
@@ -16389,6 +16431,11 @@ mod tests {
         assert!(rendered.contains("Galactic Equator (Fiorenza)"));
         assert!(rendered.contains("Ayanamsas:"));
         assert!(rendered.contains("Release-specific ayanamsa canonical names: 54 (True Citra, J2000, J1900, B1950, True Revati, True Mula, Suryasiddhanta (Revati), Suryasiddhanta (Citra), Lahiri (ICRC), Lahiri (1940), Usha Shashi, Suryasiddhanta (499 CE), Aryabhata (499 CE), Sassanian, DeLuce, Yukteshwar, PVR Pushya-paksha, Sheoran, Hipparchus, Babylonian (Kugler 1), Babylonian (Kugler 2), Babylonian (Kugler 3), Babylonian (Huber), Babylonian (Eta Piscium), Babylonian (Aldebaran), Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs), Galactic Center, Galactic Equator, True Pushya, Udayagiri, Djwhal Khul, JN Bhasin, Suryasiddhanta (Mean Sun), Aryabhata (Mean Sun), Babylonian (Britton), Aryabhata (522 CE), Lahiri (VP285), Krishnamurti (VP291), True Sheoran, Galactic Center (Rgilbrand), Galactic Center (Mardyks), Galactic Center (Mula/Wilhelm), Dhruva Galactic Center (Middle Mula), Galactic Center (Cochrane), Galactic Equator (IAU 1958), Galactic Equator (True), Galactic Equator (Mula), Galactic Equator (Fiorenza), Valens Moon)"));
+        assert!(
+            rendered.contains("Ayanamsa reference offsets: representative zero-point examples:")
+        );
+        assert!(rendered.contains("Lahiri: epoch=JD 2435553.5; offset=23.245524743°"));
+        assert!(rendered.contains("Galactic Equator (Fiorenza): epoch=JD 2451544.5; offset=25°"));
         assert!(rendered.contains("JN Bhasin"));
         assert!(rendered.contains("Validation reference points: 1 (stage-4 validation corpus)"));
         assert!(rendered.contains("Custom-definition labels: 9"));

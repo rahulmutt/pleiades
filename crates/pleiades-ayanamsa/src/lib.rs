@@ -2436,12 +2436,19 @@ mod tests {
 
     #[test]
     fn sidereal_offset_is_available_for_baseline_ayanamsas() {
+        let lahiri = descriptor(&Ayanamsa::Lahiri).expect("Lahiri descriptor");
+        assert_eq!(lahiri.epoch, Some(JulianDay::from_days(2_435_553.5)));
+        assert_eq!(
+            lahiri.offset_degrees,
+            Some(Angle::from_degrees(23.245_524_743))
+        );
+
         let instant = Instant::new(
-            JulianDay::from_days(2_451_545.0),
+            JulianDay::from_days(2_435_553.5),
             pleiades_types::TimeScale::Tt,
         );
         let offset = sidereal_offset(&Ayanamsa::Lahiri, instant).expect("offset should exist");
-        assert!(offset.degrees().is_finite());
+        assert_eq!(offset, Angle::from_degrees(23.245_524_743));
     }
 
     #[test]
@@ -2536,6 +2543,21 @@ mod tests {
         let valens = descriptor(&Ayanamsa::ValensMoon).expect("Valens Moon descriptor");
         assert_eq!(valens.epoch, Some(JulianDay::from_days(1_775_845.5)));
         assert_eq!(valens.offset_degrees, Some(Angle::from_degrees(-2.942_2)));
+
+        let fiorenza = descriptor(&Ayanamsa::GalacticEquatorFiorenza)
+            .expect("Galactic Equator (Fiorenza) descriptor");
+        assert_eq!(fiorenza.epoch, Some(JulianDay::from_days(2_451_544.5)));
+        assert_eq!(fiorenza.offset_degrees, Some(Angle::from_degrees(25.0)));
+        assert_eq!(
+            sidereal_offset(
+                &Ayanamsa::GalacticEquatorFiorenza,
+                Instant::new(
+                    JulianDay::from_days(2_451_544.5),
+                    pleiades_types::TimeScale::Tt
+                ),
+            ),
+            Some(Angle::from_degrees(25.0))
+        );
 
         let udayagiri = descriptor(&Ayanamsa::Udayagiri).expect("Udayagiri descriptor");
         assert_eq!(
