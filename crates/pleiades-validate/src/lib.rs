@@ -90,7 +90,8 @@ use pleiades_houses::{
 use pleiades_jpl::{
     comparison_snapshot_batch_parity_summary_for_report,
     comparison_snapshot_manifest_summary_for_report, comparison_snapshot_requests,
-    comparison_snapshot_source_summary_for_report, comparison_snapshot_summary_for_report,
+    comparison_snapshot_source_summary_for_report,
+    comparison_snapshot_source_window_summary_for_report, comparison_snapshot_summary_for_report,
     format_jpl_interpolation_quality_summary_for_report,
     frame_treatment_summary_for_report as jpl_frame_treatment_summary_for_report,
     independent_holdout_manifest_summary_for_report,
@@ -5671,6 +5672,8 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&comparison_snapshot_source_summary_for_report());
     text.push('\n');
+    text.push_str(&comparison_snapshot_source_window_summary_for_report());
+    text.push('\n');
     text.push_str(&comparison_snapshot_manifest_summary_for_report());
     text.push('\n');
 
@@ -5763,6 +5766,8 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&comparison_snapshot_batch_parity_summary_for_report());
     text.push('\n');
     text.push_str(&comparison_snapshot_source_summary_for_report());
+    text.push('\n');
+    text.push_str(&comparison_snapshot_source_window_summary_for_report());
     text.push('\n');
     text.push_str(&comparison_snapshot_manifest_summary_for_report());
     text.push('\n');
@@ -6207,6 +6212,9 @@ fn render_release_summary_text() -> String {
     text.push_str(&production_generation_boundary_request_corpus_summary_for_report());
     text.push('\n');
     text.push_str(&production_generation_boundary_source_summary_for_report());
+    text.push('\n');
+    text.push_str("Comparison snapshot source windows: ");
+    text.push_str(&comparison_snapshot_source_window_summary_for_report());
     text.push('\n');
     text.push_str("Source-backed backend evidence: ");
     text.push_str(&jpl_snapshot_evidence_summary_for_report());

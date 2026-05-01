@@ -3479,6 +3479,267 @@ pub fn comparison_snapshot_source_summary_for_report() -> String {
     )
 }
 
+/// A single body-window slice inside the comparison snapshot source coverage.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ComparisonSnapshotSourceWindow {
+    /// The snapshot body covered by this window.
+    pub body: pleiades_backend::CelestialBody,
+    /// Number of samples for the body.
+    pub sample_count: usize,
+    /// Number of distinct epochs represented for the body.
+    pub epoch_count: usize,
+    /// Earliest epoch represented for the body.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented for the body.
+    pub latest_epoch: Instant,
+}
+
+impl ComparisonSnapshotSourceWindow {
+    /// Returns a compact body-window summary used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let time_span = if self.earliest_epoch == self.latest_epoch {
+            format_instant(self.earliest_epoch)
+        } else {
+            format!(
+                "{}..{}",
+                format_instant(self.earliest_epoch),
+                format_instant(self.latest_epoch)
+            )
+        };
+
+        format!(
+            "{}: {} samples across {} epochs at {}",
+            self.body, self.sample_count, self.epoch_count, time_span
+        )
+    }
+}
+
+/// Compact release-facing summary for the comparison snapshot source coverage.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ComparisonSnapshotSourceWindowSummary {
+    /// Number of comparison-snapshot samples in the source slice.
+    pub sample_count: usize,
+    /// Bodies covered by the comparison snapshot source slice in first-seen order.
+    pub sample_bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Number of distinct epochs covered by the source slice.
+    pub epoch_count: usize,
+    /// Earliest epoch represented in the source slice.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented in the source slice.
+    pub latest_epoch: Instant,
+    /// Per-body window breakdown in first-seen order.
+    pub windows: Vec<ComparisonSnapshotSourceWindow>,
+}
+
+impl fmt::Display for ComparisonSnapshotSourceWindow {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+impl ComparisonSnapshotSourceWindowSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let window_summary = self
+            .windows
+            .iter()
+            .map(ComparisonSnapshotSourceWindow::summary_line)
+            .collect::<Vec<_>>()
+            .join("; ");
+        format!(
+            "Comparison snapshot source windows: {} source-backed samples across {} bodies and {} epochs ({}..{}); windows: {}",
+            self.sample_count,
+            self.sample_bodies.len(),
+            self.epoch_count,
+            format_instant(self.earliest_epoch),
+            format_instant(self.latest_epoch),
+            window_summary,
+        )
+    }
+
+    /// Returns `Ok(())` when the comparison snapshot source windows still match the checked-in slice.
+    pub fn validate(&self) -> Result<(), ComparisonSnapshotSourceWindowSummaryValidationError> {
+        let Some(expected) = comparison_snapshot_source_window_summary_details() else {
+            return Err(
+                ComparisonSnapshotSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        };
+
+        if self.sample_count != expected.sample_count {
+            return Err(
+                ComparisonSnapshotSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        }
+        if self.sample_bodies != expected.sample_bodies {
+            return Err(
+                ComparisonSnapshotSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "sample_bodies",
+                },
+            );
+        }
+        if self.epoch_count != expected.epoch_count {
+            return Err(
+                ComparisonSnapshotSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "epoch_count",
+                },
+            );
+        }
+        if self.earliest_epoch != expected.earliest_epoch {
+            return Err(
+                ComparisonSnapshotSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "earliest_epoch",
+                },
+            );
+        }
+        if self.latest_epoch != expected.latest_epoch {
+            return Err(
+                ComparisonSnapshotSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "latest_epoch",
+                },
+            );
+        }
+        if self.windows != expected.windows {
+            return Err(
+                ComparisonSnapshotSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "windows",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated comparison snapshot source window summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ComparisonSnapshotSourceWindowSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for ComparisonSnapshotSourceWindowSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Validation error for a comparison snapshot source window summary that drifted from the current slice.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ComparisonSnapshotSourceWindowSummaryValidationError {
+    /// A summary field is out of sync with the checked-in comparison snapshot source windows.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for ComparisonSnapshotSourceWindowSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the comparison snapshot source window summary field `{field}` is out of sync with the current slice"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ComparisonSnapshotSourceWindowSummaryValidationError {}
+
+fn comparison_snapshot_source_window_summary_details(
+) -> Option<ComparisonSnapshotSourceWindowSummary> {
+    let entries = comparison_snapshot();
+    if entries.is_empty() {
+        return None;
+    }
+
+    let mut windows = Vec::new();
+    for body in comparison_body_list() {
+        let body_entries = entries
+            .iter()
+            .filter(|entry| entry.body == *body)
+            .collect::<Vec<_>>();
+        if body_entries.is_empty() {
+            continue;
+        }
+
+        let mut earliest_epoch = body_entries[0].epoch;
+        let mut latest_epoch = body_entries[0].epoch;
+        let mut epochs = BTreeSet::new();
+        for entry in &body_entries {
+            epochs.insert(entry.epoch.julian_day.days().to_bits());
+            if entry.epoch.julian_day.days() < earliest_epoch.julian_day.days() {
+                earliest_epoch = entry.epoch;
+            }
+            if entry.epoch.julian_day.days() > latest_epoch.julian_day.days() {
+                latest_epoch = entry.epoch;
+            }
+        }
+
+        windows.push(ComparisonSnapshotSourceWindow {
+            body: body.clone(),
+            sample_count: body_entries.len(),
+            epoch_count: epochs.len(),
+            earliest_epoch,
+            latest_epoch,
+        });
+    }
+
+    if windows.is_empty() {
+        return None;
+    }
+
+    let earliest_epoch = windows
+        .iter()
+        .map(|window| window.earliest_epoch)
+        .min_by(|left, right| left.julian_day.days().total_cmp(&right.julian_day.days()))
+        .expect("comparison snapshot source windows should not be empty after collection");
+    let latest_epoch = windows
+        .iter()
+        .map(|window| window.latest_epoch)
+        .max_by(|left, right| left.julian_day.days().total_cmp(&right.julian_day.days()))
+        .expect("comparison snapshot source windows should not be empty after collection");
+
+    Some(ComparisonSnapshotSourceWindowSummary {
+        sample_count: entries.len(),
+        sample_bodies: comparison_body_list().to_vec(),
+        epoch_count: entries
+            .iter()
+            .map(|entry| entry.epoch.julian_day.days().to_bits())
+            .collect::<BTreeSet<_>>()
+            .len(),
+        earliest_epoch,
+        latest_epoch,
+        windows,
+    })
+}
+
+/// Returns the compact typed summary for the comparison snapshot source coverage.
+pub fn comparison_snapshot_source_window_summary() -> Option<ComparisonSnapshotSourceWindowSummary>
+{
+    comparison_snapshot_source_window_summary_details()
+}
+
+/// Formats the comparison snapshot source windows for release-facing reporting.
+pub fn format_comparison_snapshot_source_window_summary(
+    summary: &ComparisonSnapshotSourceWindowSummary,
+) -> String {
+    summary.summary_line()
+}
+
+/// Returns the body-window summary for the comparison snapshot.
+pub fn comparison_snapshot_source_window_summary_for_report() -> String {
+    match comparison_snapshot_source_window_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => format!("Comparison snapshot source windows: unavailable ({error})"),
+        },
+        None => "Comparison snapshot source windows: unavailable".to_string(),
+    }
+}
+
 #[cfg(test)]
 fn format_validated_source_summary_for_report(
     label: &'static str,
@@ -5842,7 +6103,7 @@ pub fn independent_holdout_manifest_summary_for_report() -> String {
 /// Returns the combined snapshot evidence summary used by validation and release reports.
 pub fn jpl_snapshot_evidence_summary_for_report() -> String {
     format!(
-        "{} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {}",
+        "{} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {}",
         reference_snapshot_summary_for_report(),
         reference_snapshot_equatorial_parity_summary_for_report(),
         reference_snapshot_batch_parity_summary_for_report(),
@@ -5857,6 +6118,7 @@ pub fn jpl_snapshot_evidence_summary_for_report() -> String {
         reference_asteroid_equatorial_evidence_summary_for_report(),
         comparison_snapshot_summary_for_report(),
         comparison_snapshot_source_summary_for_report(),
+        comparison_snapshot_source_window_summary_for_report(),
         comparison_snapshot_manifest_summary_for_report(),
         independent_holdout_snapshot_summary_for_report(),
         independent_holdout_snapshot_equatorial_parity_summary_for_report(),
@@ -10425,6 +10687,29 @@ mod tests {
             comparison_snapshot_source_summary_for_report(),
             source_summary.summary_line()
         );
+        let source_window_summary = comparison_snapshot_source_window_summary()
+            .expect("comparison snapshot source window summary should exist");
+        assert_eq!(
+            source_window_summary.summary_line(),
+            "Comparison snapshot source windows: 61 source-backed samples across 10 bodies and 8 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); windows: Mars: 8 samples across 8 epochs at JD 2378499.0 (TDB)..JD 2634167.0 (TDB); Mercury: 7 samples across 7 epochs at JD 2378499.0 (TDB)..JD 2634167.0 (TDB); Moon: 7 samples across 7 epochs at JD 2378499.0 (TDB)..JD 2634167.0 (TDB); Sun: 7 samples across 7 epochs at JD 2378499.0 (TDB)..JD 2634167.0 (TDB); Venus: 7 samples across 7 epochs at JD 2378499.0 (TDB)..JD 2634167.0 (TDB); Jupiter: 5 samples across 5 epochs at JD 2400000.0 (TDB)..JD 2500000.0 (TDB); Saturn: 5 samples across 5 epochs at JD 2400000.0 (TDB)..JD 2500000.0 (TDB); Uranus: 5 samples across 5 epochs at JD 2400000.0 (TDB)..JD 2500000.0 (TDB); Neptune: 5 samples across 5 epochs at JD 2400000.0 (TDB)..JD 2500000.0 (TDB); Pluto: 5 samples across 5 epochs at JD 2400000.0 (TDB)..JD 2500000.0 (TDB)"
+        );
+        assert_eq!(
+            source_window_summary.to_string(),
+            source_window_summary.summary_line()
+        );
+        assert_eq!(source_window_summary.validate(), Ok(()));
+        assert_eq!(
+            source_window_summary.validated_summary_line(),
+            Ok(source_window_summary.summary_line())
+        );
+        assert_eq!(
+            comparison_snapshot_source_window_summary_for_report(),
+            source_window_summary.summary_line()
+        );
+        assert_eq!(
+            format_comparison_snapshot_source_window_summary(&source_window_summary),
+            source_window_summary.summary_line()
+        );
         assert_eq!(
             format_validated_comparison_snapshot_source_summary_for_report(
                 &source_summary,
@@ -10511,6 +10796,56 @@ mod tests {
             Err(
                 ComparisonSnapshotSourceSummaryValidationError::SurroundedByWhitespace {
                     field: "columns",
+                }
+            )
+        );
+    }
+
+    #[test]
+    fn comparison_snapshot_source_window_summary_reports_the_expected_body_windows() {
+        let summary = comparison_snapshot_source_window_summary()
+            .expect("comparison snapshot source window summary should exist");
+        assert_eq!(summary.sample_count, 61);
+        assert_eq!(summary.sample_bodies.len(), 10);
+        assert_eq!(summary.epoch_count, 8);
+        assert_eq!(summary.windows.len(), 10);
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert!(summary.summary_line().contains("Comparison snapshot source windows: 61 source-backed samples across 10 bodies and 8 epochs"));
+        assert!(summary
+            .summary_line()
+            .contains("Mars: 8 samples across 8 epochs at JD 2378499.0 (TDB)..JD 2634167.0 (TDB)"));
+        assert!(summary.summary_line().contains(
+            "Pluto: 5 samples across 5 epochs at JD 2400000.0 (TDB)..JD 2500000.0 (TDB)"
+        ));
+        assert_eq!(
+            comparison_snapshot_source_window_summary_for_report(),
+            summary.summary_line()
+        );
+        assert_eq!(
+            format_comparison_snapshot_source_window_summary(&summary),
+            summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn comparison_snapshot_source_window_summary_validation_rejects_drift() {
+        let mut summary = comparison_snapshot_source_window_summary()
+            .expect("comparison snapshot source window summary should exist");
+        summary.sample_count += 1;
+        assert_eq!(
+            summary.validate(),
+            Err(
+                ComparisonSnapshotSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "sample_count"
+                }
+            )
+        );
+        assert_eq!(
+            summary.validated_summary_line(),
+            Err(
+                ComparisonSnapshotSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "sample_count"
                 }
             )
         );
@@ -11496,6 +11831,7 @@ mod tests {
         assert!(report.contains(&reference_asteroid_equatorial_evidence_summary_for_report()));
         assert!(report.contains(&comparison_snapshot_summary_for_report()));
         assert!(report.contains(&comparison_snapshot_source_summary_for_report()));
+        assert!(report.contains(&comparison_snapshot_source_window_summary_for_report()));
         assert!(report.contains(&comparison_snapshot_manifest_summary_for_report()));
         assert!(report.contains(&independent_holdout_snapshot_summary_for_report()));
         assert!(
