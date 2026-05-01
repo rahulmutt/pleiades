@@ -572,6 +572,13 @@ impl ArtifactProfileCoverageSummary {
         self.profile.summary_for_body_count(self.bodies.len())
     }
 
+    /// Returns the validated capability summary annotated with how many bundled
+    /// bodies currently appear in the summary.
+    pub fn validated_summary_line(&self) -> Result<String, CompressionError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
     /// Returns the capability summary annotated with how many bodies share it
     /// and lists the bundled bodies explicitly.
     pub fn summary_line_with_bodies(&self) -> String {
@@ -3233,6 +3240,12 @@ mod tests {
         assert_eq!(coverage.profile, profile);
         assert_eq!(
             coverage.summary_line(),
+            "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 2 bundled bodies"
+        );
+        assert_eq!(
+            coverage
+                .validated_summary_line()
+                .expect("coverage summary should validate"),
             "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 2 bundled bodies"
         );
         assert_eq!(
