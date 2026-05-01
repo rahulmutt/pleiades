@@ -3541,6 +3541,14 @@ impl JplSnapshotRequestPolicy {
         )
     }
 
+    /// Returns the compact summary line after validating the cached request policy.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, JplSnapshotRequestPolicyValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
     /// Validates the summary against the current JPL snapshot backend posture.
     pub fn validate(&self) -> Result<(), JplSnapshotRequestPolicyValidationError> {
         if self.supported_frames != JPL_SNAPSHOT_REQUEST_POLICY.supported_frames {
@@ -3596,8 +3604,8 @@ pub const fn jpl_snapshot_request_policy() -> JplSnapshotRequestPolicy {
 /// Returns the release-facing JPL snapshot request policy summary string.
 pub fn jpl_snapshot_request_policy_summary_for_report() -> String {
     let policy = jpl_snapshot_request_policy();
-    match policy.validate() {
-        Ok(()) => policy.to_string(),
+    match policy.validated_summary_line() {
+        Ok(summary_line) => summary_line,
         Err(error) => format!("JPL snapshot request policy: unavailable ({error})"),
     }
 }
@@ -3648,6 +3656,14 @@ impl JplSnapshotBatchErrorTaxonomySummary {
             self.out_of_range_request_body,
             self.out_of_range_error_kind,
         )
+    }
+
+    /// Returns the compact summary line after validating the cached batch taxonomy.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, JplSnapshotBatchErrorTaxonomySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
     }
 
     /// Validates the summary against the current JPL snapshot backend posture.
@@ -3796,8 +3812,8 @@ pub fn jpl_snapshot_batch_error_taxonomy_summary(
 /// Returns the release-facing batch error-taxonomy summary for the current JPL snapshot backend.
 pub fn jpl_snapshot_batch_error_taxonomy_summary_for_report() -> String {
     match jpl_snapshot_batch_error_taxonomy_summary() {
-        Ok(summary) => match summary.validate() {
-            Ok(()) => summary.to_string(),
+        Ok(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
             Err(error) => format!("JPL batch error taxonomy: unavailable ({error})"),
         },
         Err(error) => format!("JPL batch error taxonomy: unavailable ({error})"),
@@ -9417,6 +9433,7 @@ mod tests {
         let policy = jpl_snapshot_request_policy();
 
         assert_eq!(policy.to_string(), policy.summary_line());
+        assert_eq!(policy.validated_summary_line(), Ok(policy.summary_line()));
         assert_eq!(
             jpl_snapshot_request_policy_summary_for_report(),
             policy.summary_line()
@@ -9483,6 +9500,7 @@ mod tests {
             "JPL batch error taxonomy: supported body Ceres; unsupported body Mean Node -> UnsupportedBody; out-of-range Ceres -> OutOfRangeInstant"
         );
         assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             jpl_snapshot_batch_error_taxonomy_summary_for_report(),
             summary.summary_line()
