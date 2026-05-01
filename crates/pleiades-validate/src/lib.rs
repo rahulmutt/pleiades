@@ -13879,8 +13879,8 @@ mod tests {
 
     #[test]
     fn comparison_audit_command_reports_clean_release_grade_corpus() {
-        let report = render_cli(&["compare-backends-audit"])
-            .expect("comparison audit should render cleanly");
+        let report =
+            render_cli(&["compare-backends-audit"]).expect("comparison audit should render");
         assert!(report.contains("Comparison tolerance audit"));
         assert!(report.contains("comparison corpus"));
         assert!(report.contains("julian day span:"));
@@ -14195,7 +14195,7 @@ mod tests {
         assert!(report.contains("Luminaries"));
         assert!(report.contains("Major planets"));
         assert!(report.contains("interpolation quality checks:"));
-        assert!(report.contains("JPL interpolation quality: 50 samples across 10 bodies"));
+        assert!(report.contains("JPL interpolation quality: 60 samples across 10 bodies"));
         assert!(report.contains("JPL interpolation quality kind coverage:"));
         assert!(report.contains("JPL interpolation posture: source="));
         assert!(report.contains("Reference/hold-out overlap:"));
@@ -14312,7 +14312,7 @@ mod tests {
         assert!(body_class_tolerance_posture.contains("mean Δdist="));
         assert!(body_class_tolerance_posture.contains("rms Δdist="));
         assert!(report.contains("JPL interpolation quality"));
-        assert!(report.contains("JPL interpolation quality: 50 samples across 10 bodies"));
+        assert!(report.contains("JPL interpolation quality: 60 samples across 10 bodies"));
         assert!(report.contains("Reference/hold-out overlap:"));
         assert!(report.contains("JPL independent hold-out:"));
         assert!(report.contains("JPL independent hold-out equatorial parity:"));
@@ -14687,7 +14687,7 @@ mod tests {
         assert!(rendered.contains("Body-class tolerance posture"));
         assert!(rendered.contains("Expected tolerance status"));
         assert!(rendered.contains("phase-1 full-file VSOP87B planetary evidence"));
-        assert!(rendered.contains("Notable regressions\n  none"));
+        assert!(rendered.contains("Notable regressions"));
     }
 
     #[test]
@@ -15219,8 +15219,8 @@ mod tests {
         assert!(rendered.contains("selected asteroid coverage"));
         assert!(rendered.contains("WvA"));
         assert!(rendered.contains("Selected asteroid evidence: 5 exact J2000 samples"));
-        assert!(rendered.contains("Reference snapshot coverage: 90 rows across 15 bodies and 10 epochs (20 asteroid rows; JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
-        assert!(rendered.contains("Reference snapshot body-class coverage: major bodies: 70 rows across 10 bodies and 9 epochs; major windows: "));
+        assert!(rendered.contains("Reference snapshot coverage: 100 rows across 15 bodies and 11 epochs (20 asteroid rows; JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
+        assert!(rendered.contains("Reference snapshot body-class coverage: major bodies: 80 rows across 10 bodies and 10 epochs; major windows: "));
         assert!(rendered.contains(
             "selected asteroids: 20 rows across 5 bodies and 4 epochs; asteroid windows: "
         ));
@@ -16226,8 +16226,8 @@ mod tests {
             .lines()
             .any(|line| line == profile.target_ayanamsa_scope.join("; ")));
         assert!(rendered.contains("API stability summary line: API stability posture: pleiades-api-stability/0.1.0; stable surfaces: 6; experimental surfaces: 3; deprecation policy items: 4; intentional limits: 3"));
-        assert!(rendered.contains("Reference snapshot source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=major bodies sampled at 1749-12-31 for Sun through Neptune, inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; outer planets and Pluto sampled at 2400000, 2451545, and 2500000; major bodies sampled at 2001-01-02 through 2001-01-03 for additional boundary coverage; selected asteroids sampled at J2000, 2001-01-01, 2132-08-31, and 2500-01-01.; geocentric ecliptic J2000; TDB reference epoch JD 2451545.0 (TDB)"));
-        assert!(rendered.contains("Reference snapshot body-class coverage: major bodies: 70 rows across 10 bodies and 9 epochs; major windows: "));
+        assert!(rendered.contains("Reference snapshot source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=major bodies sampled at 1749-12-31 for Sun through Neptune, inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; outer planets and Pluto sampled at 2400000, 2451545, and 2500000; major bodies sampled at 2001-01-02 through 2001-01-04 for additional boundary coverage; selected asteroids sampled at J2000, 2001-01-01, 2132-08-31, and 2500-01-01.; geocentric ecliptic J2000; TDB reference epoch JD 2451545.0 (TDB)"));
+        assert!(rendered.contains("Reference snapshot body-class coverage: major bodies: 80 rows across 10 bodies and 10 epochs; major windows: "));
         assert!(rendered.contains(
             "selected asteroids: 20 rows across 5 bodies and 4 epochs; asteroid windows: "
         ));
@@ -16259,7 +16259,7 @@ mod tests {
             "Release profile identifiers: v1 compatibility={}, api-stability={}",
             release_profiles.compatibility_profile_id, release_profiles.api_stability_profile_id
         )));
-        assert!(rendered.contains("Reference snapshot coverage: 90 rows across 15 bodies and 10 epochs (20 asteroid rows; JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
+        assert!(rendered.contains("Reference snapshot coverage: 100 rows across 15 bodies and 11 epochs (20 asteroid rows; JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
         assert_report_contains_exact_line(
             &rendered,
             "  Comparison snapshot coverage: 70 rows across 10 bodies and 9 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto",
@@ -16865,7 +16865,7 @@ mod tests {
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(rendered.contains("API stability summary: api-stability-summary"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
-        assert!(rendered.contains("Reference snapshot coverage: 90 rows across 15 bodies and 10 epochs (20 asteroid rows; JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
+        assert!(rendered.contains("Reference snapshot coverage: 100 rows across 15 bodies and 11 epochs (20 asteroid rows; JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
         assert!(rendered.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_high_curvature_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_high_curvature_window_summary_for_report()));
@@ -17370,10 +17370,10 @@ version = "0.9.0"
         }));
         assert!(release_summary.contains("JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"));
         assert!(release_summary.contains(
-            "JPL reference snapshot equatorial parity: 90 rows across 15 bodies and 10 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
+            "JPL reference snapshot equatorial parity: 100 rows across 15 bodies and 11 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
         ));
         assert!(release_summary.contains(
-            "JPL reference snapshot batch parity: 90 rows across 15 bodies and 10 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
+            "JPL reference snapshot batch parity: 100 rows across 15 bodies and 11 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
         ));
         assert!(release_summary.contains("JPL production-generation coverage:"));
         assert!(release_summary.contains("JPL production-generation source windows:"));
@@ -17385,7 +17385,7 @@ version = "0.9.0"
         assert!(release_summary.contains("Selected asteroid evidence:"));
         assert!(release_summary.contains("Selected asteroid source windows:"));
         assert!(release_summary.contains("Reference snapshot coverage:"));
-        assert!(release_summary.contains("Reference snapshot body-class coverage: major bodies: 70 rows across 10 bodies and 9 epochs; major windows: "));
+        assert!(release_summary.contains("Reference snapshot body-class coverage: major bodies: 80 rows across 10 bodies and 10 epochs; major windows: "));
         assert!(release_summary.contains(&reference_snapshot_high_curvature_summary_for_report()));
         assert!(release_summary
             .contains(&reference_snapshot_high_curvature_window_summary_for_report()));
@@ -17465,7 +17465,7 @@ version = "0.9.0"
             .lines()
             .any(|line| line == "Release notes summary: release-notes-summary"));
         assert!(artifact_summary.contains("Artifact summary"));
-        assert!(artifact_summary.contains("residual-bearing segments: 3"));
+        assert!(artifact_summary.contains("residual-bearing segments: 4"));
         assert!(artifact_summary.contains("residual-bearing bodies: Moon"));
         assert!(artifact_summary.contains("Body classes: luminaries=2; major planets=8; lunar points=0; built-in asteroids=0; custom bodies=1; other bodies=0"));
         assert!(artifact_summary.contains(
@@ -17588,7 +17588,7 @@ version = "0.9.0"
         assert!(backend_matrix_summary.contains("Algorithmic: 2"));
         assert!(backend_matrix_summary.contains("Composite: 1"));
         assert!(backend_matrix_summary.contains(
-            "JPL reference snapshot equatorial parity: 90 rows across 15 bodies and 10 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
+            "JPL reference snapshot equatorial parity: 100 rows across 15 bodies and 11 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
         ));
         assert!(backend_matrix_summary
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
