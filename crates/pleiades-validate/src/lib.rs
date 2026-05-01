@@ -105,7 +105,8 @@ use pleiades_jpl::{
     reference_snapshot_batch_parity_summary_for_report,
     reference_snapshot_equatorial_parity_summary_for_report,
     reference_snapshot_manifest_summary_for_report, reference_snapshot_source_summary_for_report,
-    reference_snapshot_summary_for_report, JplSnapshotBackend,
+    reference_snapshot_summary_for_report, selected_asteroid_source_evidence_summary_for_report,
+    JplSnapshotBackend,
 };
 use pleiades_vsop87::{
     body_source_profiles, canonical_epoch_equatorial_body_class_evidence_summary_for_report,
@@ -11390,6 +11391,11 @@ fn write_backend_matrix(f: &mut fmt::Formatter<'_>, backend: &BackendMetadata) -
             format_bodies(&asteroids)
         )?;
         if backend.id.as_str() == "jpl-snapshot" {
+            writeln!(
+                f,
+                "  {}",
+                selected_asteroid_source_evidence_summary_for_report()
+            )?;
             let evidence = reference_asteroid_evidence();
             if let Some(first) = evidence.first() {
                 writeln!(

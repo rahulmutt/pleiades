@@ -3925,6 +3925,105 @@ pub fn reference_asteroid_equatorial_evidence_summary_for_report() -> String {
     }
 }
 
+fn selected_asteroid_source_entries() -> Option<&'static [SnapshotEntry]> {
+    static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
+    let entries = ENTRIES
+        .get_or_init(|| {
+            snapshot_entries()
+                .into_iter()
+                .flatten()
+                .filter(|entry| is_reference_asteroid(&entry.body))
+                .cloned()
+                .collect()
+        })
+        .as_slice();
+
+    if entries.is_empty() {
+        None
+    } else {
+        Some(entries)
+    }
+}
+
+/// Compact release-facing summary for the expanded selected-asteroid source coverage.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SelectedAsteroidSourceSummary {
+    /// Number of selected-asteroid samples in the expanded source slice.
+    pub sample_count: usize,
+    /// Bodies covered by the expanded selected-asteroid source slice in first-seen order.
+    pub sample_bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Number of distinct epochs covered by the expanded source slice.
+    pub epoch_count: usize,
+    /// Earliest epoch represented in the expanded source slice.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented in the expanded source slice.
+    pub latest_epoch: Instant,
+}
+
+impl SelectedAsteroidSourceSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Selected asteroid source evidence: {} source-backed samples across {} bodies and {} epochs ({}..{}); bodies: {}",
+            self.sample_count,
+            self.sample_bodies.len(),
+            self.epoch_count,
+            format_instant(self.earliest_epoch),
+            format_instant(self.latest_epoch),
+            format_bodies(&self.sample_bodies),
+        )
+    }
+}
+
+fn selected_asteroid_source_evidence_summary_details() -> Option<SelectedAsteroidSourceSummary> {
+    let evidence = selected_asteroid_source_entries()?;
+    let earliest_epoch = evidence
+        .iter()
+        .min_by(|left, right| {
+            left.epoch
+                .julian_day
+                .days()
+                .total_cmp(&right.epoch.julian_day.days())
+        })
+        .map(|entry| entry.epoch)
+        .expect("selected asteroid source evidence should not be empty after collection");
+    let latest_epoch = evidence
+        .iter()
+        .max_by(|left, right| {
+            left.epoch
+                .julian_day
+                .days()
+                .total_cmp(&right.epoch.julian_day.days())
+        })
+        .map(|entry| entry.epoch)
+        .expect("selected asteroid source evidence should not be empty after collection");
+
+    Some(SelectedAsteroidSourceSummary {
+        sample_count: evidence.len(),
+        sample_bodies: reference_asteroids().to_vec(),
+        epoch_count: evidence
+            .iter()
+            .map(|entry| entry.epoch.julian_day.days().to_bits())
+            .collect::<BTreeSet<_>>()
+            .len(),
+        earliest_epoch,
+        latest_epoch,
+    })
+}
+
+/// Returns the compact typed summary for the expanded selected-asteroid source slice.
+pub fn selected_asteroid_source_evidence_summary() -> Option<SelectedAsteroidSourceSummary> {
+    selected_asteroid_source_evidence_summary_details()
+}
+
+/// Returns the release-facing expanded selected-asteroid source coverage summary string.
+pub fn selected_asteroid_source_evidence_summary_for_report() -> String {
+    match selected_asteroid_source_evidence_summary() {
+        Some(summary) => summary.summary_line(),
+        None => "Selected asteroid source evidence: unavailable".to_string(),
+    }
+}
+
 const REFERENCE_SNAPSHOT_SOURCE_FALLBACK: &str = "NASA/JPL Horizons API vector tables (DE441)";
 const INDEPENDENT_HOLDOUT_SOURCE_FALLBACK: &str = "NASA/JPL Horizons API vector tables (DE441)";
 const INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK: &str =
@@ -8566,6 +8665,20 @@ mod tests {
         assert_eq!(
             reference_asteroid_evidence_summary_for_report(),
             summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn selected_asteroid_source_evidence_summary_reports_the_expanded_coverage() {
+        let summary = selected_asteroid_source_evidence_summary()
+            .expect("selected asteroid source evidence summary should exist");
+        assert_eq!(
+            summary.summary_line(),
+            "Selected asteroid source evidence: 20 source-backed samples across 5 bodies and 4 epochs (JD 2451545.0 (TDB)..JD 2634167.0 (TDB)); bodies: Ceres, Pallas, Juno, Vesta, asteroid:433-Eros"
+        );
+        assert_eq!(
+            summary.summary_line(),
+            selected_asteroid_source_evidence_summary_for_report()
         );
     }
 
