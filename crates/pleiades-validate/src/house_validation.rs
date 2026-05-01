@@ -13,6 +13,7 @@ use pleiades_core::{
     baseline_house_systems, calculate_houses, HouseError, HouseRequest, HouseSnapshot,
     HouseSystemDescriptor, Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale,
 };
+use pleiades_houses::HouseFormulaFamily;
 
 /// A house-validation sample for one system in one chart scenario.
 #[derive(Clone, Debug, PartialEq)]
@@ -190,6 +191,32 @@ impl HouseValidationReport {
         self.sample_count().saturating_sub(self.success_count())
     }
 
+    /// Returns the distinct formula families represented by the report.
+    pub fn formula_families(&self) -> Vec<String> {
+        let mut families = Vec::new();
+        for family in [
+            HouseFormulaFamily::Equal,
+            HouseFormulaFamily::WholeSign,
+            HouseFormulaFamily::Quadrant,
+            HouseFormulaFamily::EquatorialProjection,
+            HouseFormulaFamily::GreatCircle,
+            HouseFormulaFamily::SolarArc,
+            HouseFormulaFamily::Sector,
+            HouseFormulaFamily::Custom,
+            HouseFormulaFamily::Unknown,
+        ] {
+            if self
+                .scenarios
+                .iter()
+                .flat_map(|scenario| scenario.samples.iter())
+                .any(|sample| sample.descriptor.formula_family() == family)
+            {
+                families.push(family.to_string());
+            }
+        }
+        families
+    }
+
     /// Returns the distinct latitude-sensitive house systems represented by the report.
     pub fn latitude_sensitive_systems(&self) -> Vec<&'static str> {
         let mut systems = BTreeSet::new();
@@ -232,11 +259,12 @@ impl HouseValidationReport {
 
     /// Returns a compact release-facing summary line.
     pub fn summary_line(&self) -> String {
+        let formula_families = self.formula_families();
         let latitude_sensitive_systems = self.latitude_sensitive_systems();
         let latitude_sensitive_constraints = self.latitude_sensitive_constraints();
         let scenario_labels = self.scenario_labels();
         format!(
-            "House validation corpus: {} scenarios ({}), {} samples, {} successes, {} failures; latitude-sensitive systems: {}; constraints: {}",
+            "House validation corpus: {} scenarios ({}), {} samples, {} successes, {} failures; formula families: {}; latitude-sensitive systems: {}; constraints: {}",
             self.scenarios.len(),
             if scenario_labels.is_empty() {
                 "none".to_string()
@@ -246,6 +274,11 @@ impl HouseValidationReport {
             self.sample_count(),
             self.success_count(),
             self.failure_count(),
+            if formula_families.is_empty() {
+                "none".to_string()
+            } else {
+                formula_families.join(", ")
+            },
             if latitude_sensitive_systems.is_empty() {
                 "none".to_string()
             } else {
@@ -442,6 +475,10 @@ mod tests {
             vec!["Koch", "Placidus", "Topocentric"]
         );
         assert_eq!(
+            report.formula_families(),
+            vec!["Equal", "Whole Sign", "Quadrant", "Equatorial projection"]
+        );
+        assert_eq!(
             report.latitude_sensitive_constraints(),
             vec![
                 "Koch [Quadrant system with documented high-latitude pathologies.]",
@@ -462,7 +499,7 @@ mod tests {
 
         assert_eq!(
             report.summary_line(),
-            "House validation corpus: 5 scenarios (Mid-latitude reference chart, Equatorial reference chart, Polar stress chart, Southern polar stress chart, Southern hemisphere reference chart), 60 samples, 60 successes, 0 failures; latitude-sensitive systems: Koch, Placidus, Topocentric; constraints: Koch [Quadrant system with documented high-latitude pathologies.], Placidus [Quadrant system; can fail or become unstable at extreme latitudes.], Topocentric [Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.]"
+            "House validation corpus: 5 scenarios (Mid-latitude reference chart, Equatorial reference chart, Polar stress chart, Southern polar stress chart, Southern hemisphere reference chart), 60 samples, 60 successes, 0 failures; formula families: Equal, Whole Sign, Quadrant, Equatorial projection; latitude-sensitive systems: Koch, Placidus, Topocentric; constraints: Koch [Quadrant system with documented high-latitude pathologies.], Placidus [Quadrant system; can fail or become unstable at extreme latitudes.], Topocentric [Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.]"
         );
         assert_eq!(
             house_validation_summary_line_for_report(&report),
