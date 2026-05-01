@@ -1573,7 +1573,7 @@ impl fmt::Display for FrameTreatmentSummary {
 /// Returns the current shared time-scale policy used by validation and reports.
 pub const fn current_time_scale_policy_summary() -> TimeScalePolicySummary {
     TimeScalePolicySummary::new(
-        "direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T model",
+        "direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T or UTC convenience model",
     )
 }
 
@@ -1581,9 +1581,9 @@ pub const fn current_time_scale_policy_summary() -> TimeScalePolicySummary {
 pub const fn current_request_policy_summary() -> RequestPolicySummary {
     RequestPolicySummary {
         time_scale: current_time_scale_policy_summary().summary_line(),
-        observer: "chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests",
-        apparentness: "current first-party backends accept mean geometric output only; apparent requests are rejected unless a backend explicitly advertises support",
-        frame: "ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported",
+        observer: "chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests; topocentric body positions remain unsupported",
+        apparentness: "current first-party backends accept mean geometric output only; apparent-place corrections are rejected unless a backend explicitly advertises support",
+        frame: "ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported; native sidereal backend output remains unsupported unless a backend explicitly advertises it",
     }
 }
 
@@ -2388,7 +2388,7 @@ mod tests {
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             summary.summary_line(),
-            "direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T model"
+            "direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T or UTC convenience model"
         );
         assert!(summary.summary_line().contains("TT/TDB"));
         assert!(summary.validate().is_ok());
@@ -2433,7 +2433,7 @@ mod tests {
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             summary.summary_line(),
-            "time-scale=direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T model; observer=chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests; apparentness=current first-party backends accept mean geometric output only; apparent requests are rejected unless a backend explicitly advertises support; frame=ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported"
+            "time-scale=direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T or UTC convenience model; observer=chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests; topocentric body positions remain unsupported; apparentness=current first-party backends accept mean geometric output only; apparent-place corrections are rejected unless a backend explicitly advertises support; frame=ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported; native sidereal backend output remains unsupported unless a backend explicitly advertises it"
         );
         assert!(summary.summary_line().contains("time-scale="));
         assert!(summary.summary_line().contains("observer="));
@@ -3419,19 +3419,19 @@ mod tests {
         let request_policy = current_request_policy_summary();
         assert_eq!(
             request_policy.time_scale,
-            "direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T model"
+            "direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T or UTC convenience model"
         );
         assert_eq!(
             request_policy.observer,
-            "chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests"
+            "chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests; topocentric body positions remain unsupported"
         );
         assert_eq!(
             request_policy.apparentness,
-            "current first-party backends accept mean geometric output only; apparent requests are rejected unless a backend explicitly advertises support"
+            "current first-party backends accept mean geometric output only; apparent-place corrections are rejected unless a backend explicitly advertises support"
         );
         assert_eq!(
             request_policy.frame,
-            "ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported"
+            "ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported; native sidereal backend output remains unsupported unless a backend explicitly advertises it"
         );
         assert_eq!(
             time_scale_policy_summary_for_report().summary_line(),

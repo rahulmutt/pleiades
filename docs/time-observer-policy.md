@@ -9,7 +9,7 @@ Pleiades keeps time-scale conversion and observer semantics explicit so backend 
 - Backend position requests carry a typed [`TimeScale`](../crates/pleiades-types/src/lib.rs) on the requested instant.
 - The current first-party ephemeris backends accept **TT** (Terrestrial Time) and **TDB** (Barycentric Dynamical Time) for position queries.
 - The library does **not** currently choose a UTC/UT1-to-TT/TDB model internally for backend position requests.
-- Callers that start from civil time or UT are responsible for applying an appropriate Delta T, leap-second, DUT1, and/or relativistic policy before querying a backend that requires TT or TDB.
+- Callers that start from civil time or UT are responsible for applying an appropriate Delta T, leap-second, DUT1, and/or relativistic policy before querying a backend that requires TT or TDB; built-in Delta T or UTC convenience conversion remains out of scope for the current first release.
 
 ## Primary API entry points
 
@@ -72,7 +72,7 @@ The current contract is intentionally mechanical rather than modeled:
 - The current first-party backends are tropical-only at the backend layer; sidereal requests are handled by the chart façade when supported or rejected explicitly when a backend is queried directly.
 - `pleiades-backend::EphemerisRequest::new` defaults to `Apparentness::Mean` so bare requests line up with the current mean-only first-party backends.
 - `pleiades-core::ChartSnapshot` now renders an explicit apparentness policy line so chart output states whether the snapshot was built from a mean or apparent request before backend-specific accuracy details are consulted.
-- Light-time, aberration, deflection, nutation, and related apparent-place corrections are planned production work and must be documented per backend when implemented.
+- Light-time, aberration, deflection, nutation, and related apparent-place corrections are planned production work and must be documented per backend when implemented; native sidereal backend output remains out of scope unless a backend explicitly advertises it.
 
 ## Observer and topocentric behavior
 
@@ -81,7 +81,7 @@ The current contract is intentionally mechanical rather than modeled:
 - Geocentric-only backends must reject direct backend requests that include an observer location with a structured `InvalidObserver` error.
 - Shared observer-location validation rejects non-finite latitude, longitude, and elevation before house calculations or chart-request preflight uses the value, and the chart request helper now validates observer coordinates even when no house system is requested.
 - House calculations validate obliquity overrides up front; non-finite overrides are rejected with a structured invalid-obliquity house error instead of flowing into the quadrant formulas.
-- This separation prevents an observer used for houses from being mistaken for topocentric planetary or lunar coordinates.
+- This separation prevents an observer used for houses from being mistaken for topocentric planetary or lunar coordinates; topocentric body positions remain unsupported until a dedicated request surface exists.
 
 ## Frame behavior
 
@@ -97,4 +97,4 @@ Production accuracy work should add:
 1. a documented UTC/UT/TT/TDB conversion strategy if Pleiades adopts built-in Delta T/leap-second modeling beyond caller-supplied offsets;
 2. backend-specific apparent-place correction support or structured rejection tests;
 3. validation reports that label every reference epoch with its time scale;
-4. topocentric position support only behind an explicit request/configuration surface.
+4. topocentric or native-sidereal position support only behind an explicit request/configuration surface.
