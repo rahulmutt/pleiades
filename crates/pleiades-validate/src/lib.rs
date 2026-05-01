@@ -15079,6 +15079,10 @@ mod tests {
             profile.house_code_aliases_summary_line()
         )));
         assert!(rendered.contains("Ayanamsas:"));
+        assert!(rendered.contains(&format!(
+            "House formula families: {}",
+            profile.house_formula_families_summary_line()
+        )));
         assert!(rendered
             .lines()
             .any(|line| line == profile.target_house_scope.join("; ")));

@@ -240,6 +240,16 @@ impl CompatibilityProfile {
             .collect()
     }
 
+    /// Returns the house-formula-family coverage as a compact human-readable line.
+    pub fn house_formula_families_summary_line(&self) -> String {
+        let names = self.house_formula_family_names();
+        match names.as_slice() {
+            [] => "0 (none)".to_string(),
+            [single] => format!("1 ({single})"),
+            _ => format!("{} ({})", names.len(), names.join(", ")),
+        }
+    }
+
     /// Returns the canonical names for the built-in house-system baseline.
     pub fn baseline_house_system_canonical_names(&self) -> Vec<&'static str> {
         Self::canonical_names(self.baseline_house_systems, |entry| entry.canonical_name)
@@ -1616,6 +1626,11 @@ impl fmt::Display for CompatibilityProfile {
             self.release_ayanamsas.len()
         )?;
         writeln!(f, "- {}", coverage.summary_line())?;
+        writeln!(
+            f,
+            "- house formula families: {}",
+            self.house_formula_families_summary_line()
+        )?;
         if !coverage.custom_definition_only.is_empty() {
             writeln!(
                 f,
@@ -2556,6 +2571,10 @@ mod tests {
         assert!(rendered.contains("Coverage summary:"));
         assert!(rendered.contains("house systems:"));
         assert!(rendered.contains("ayanamsas:"));
+        assert!(rendered.contains(&format!(
+            "house formula families: {}",
+            profile.house_formula_families_summary_line()
+        )));
         assert!(rendered.contains("ayanamsa sidereal metadata:"));
         assert!(rendered.contains("custom-definition ayanamsas:"));
         assert!(rendered.contains("no unexpected sidereal-metadata gaps remain."));
