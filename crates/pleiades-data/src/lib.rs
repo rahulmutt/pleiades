@@ -2025,6 +2025,14 @@ impl PackagedBatchParitySummary {
 
         Ok(())
     }
+
+    /// Returns the validated batch-parity summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, PackagedBatchParitySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 fn packaged_mixed_frame_batch_parity_request_entries(
@@ -2160,8 +2168,8 @@ impl fmt::Display for PackagedBatchParitySummary {
 fn format_validated_packaged_mixed_frame_batch_parity_summary_for_report(
     summary: &PackagedBatchParitySummary,
 ) -> String {
-    match summary.validate() {
-        Ok(()) => summary.to_string(),
+    match summary.validated_summary_line() {
+        Ok(line) => line,
         Err(error) => format!("Packaged mixed frame batch parity: unavailable ({error})"),
     }
 }
@@ -2378,6 +2386,14 @@ impl PackagedTimeScaleBatchParitySummary {
         Ok(())
     }
 
+    /// Returns the validated batch-parity summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, PackagedTimeScaleBatchParitySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         let order = if self.order_preserved {
@@ -2415,8 +2431,8 @@ impl fmt::Display for PackagedTimeScaleBatchParitySummary {
 fn format_validated_packaged_mixed_tt_tdb_batch_parity_summary_for_report(
     summary: &PackagedTimeScaleBatchParitySummary,
 ) -> String {
-    match summary.validate() {
-        Ok(()) => summary.to_string(),
+    match summary.validated_summary_line() {
+        Ok(line) => line,
         Err(error) => format!("Packaged mixed TT/TDB batch parity: unavailable ({error})"),
     }
 }
@@ -4362,6 +4378,7 @@ mod tests {
             .expect("packaged mixed frame batch parity should be available");
 
         assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert!(summary.validate().is_ok());
         assert_eq!(summary.request_count, packaged_bodies().len());
         assert_eq!(summary.body_count, packaged_bodies().len());
@@ -4384,6 +4401,12 @@ mod tests {
             .expect("packaged mixed frame batch parity should be available");
         summary.request_count += 1;
 
+        assert_eq!(
+            summary.validated_summary_line(),
+            Err(PackagedBatchParitySummaryValidationError::FieldOutOfSync {
+                field: "request_count/body_count",
+            })
+        );
         assert_eq!(
             format_validated_packaged_mixed_frame_batch_parity_summary_for_report(&summary),
             "Packaged mixed frame batch parity: unavailable (the packaged mixed-frame batch-parity summary field `request_count/body_count` is out of sync with the current packaged posture)"
@@ -4454,6 +4477,7 @@ mod tests {
             .expect("packaged mixed TT/TDB batch parity should be available");
 
         assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert!(summary.validate().is_ok());
         assert_eq!(summary.request_count, packaged_bodies().len());
         assert_eq!(summary.body_count, packaged_bodies().len());
@@ -4476,6 +4500,14 @@ mod tests {
             .expect("packaged mixed TT/TDB batch parity should be available");
         summary.request_count += 1;
 
+        assert_eq!(
+            summary.validated_summary_line(),
+            Err(
+                PackagedTimeScaleBatchParitySummaryValidationError::FieldOutOfSync {
+                    field: "request_count/body_count",
+                }
+            )
+        );
         assert_eq!(
             format_validated_packaged_mixed_tt_tdb_batch_parity_summary_for_report(&summary),
             "Packaged mixed TT/TDB batch parity: unavailable (the packaged mixed TT/TDB batch-parity summary field `request_count/body_count` is out of sync with the current packaged posture)"
