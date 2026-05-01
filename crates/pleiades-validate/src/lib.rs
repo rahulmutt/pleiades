@@ -102,7 +102,8 @@ use pleiades_jpl::{
     independent_holdout_snapshot_equatorial_parity_summary_for_report as jpl_independent_holdout_snapshot_equatorial_parity_summary_for_report,
     independent_holdout_snapshot_source_window_summary_for_report,
     independent_holdout_source_summary_for_report, interpolation_quality_samples,
-    jpl_independent_holdout_summary_for_report, jpl_interpolation_quality_kind_coverage_for_report,
+    jpl_independent_holdout_summary_for_report, jpl_interpolation_posture_summary_for_report,
+    jpl_interpolation_quality_kind_coverage_for_report,
     jpl_snapshot_batch_error_taxonomy_summary_for_report, jpl_snapshot_evidence_summary_for_report,
     jpl_snapshot_request_policy_summary_for_report,
     production_generation_boundary_request_corpus_summary_for_report,
@@ -11884,10 +11885,7 @@ fn write_jpl_interpolation_quality(f: &mut fmt::Formatter<'_>) -> fmt::Result {
         "    {}",
         jpl_interpolation_quality_kind_coverage_for_report()
     )?;
-    writeln!(
-        f,
-        "    note: expanded public-input leave-one-out checks report current runtime interpolation error against held-out exact rows; they are not production tolerances"
-    )?;
+    writeln!(f, "    {}", jpl_interpolation_posture_summary_for_report())?;
     writeln!(f, "    {}", jpl_independent_holdout_summary_for_report())?;
     writeln!(
         f,
@@ -14178,11 +14176,11 @@ mod tests {
         assert!(report.contains("interpolation quality checks:"));
         assert!(report.contains("JPL interpolation quality: 50 samples across 10 bodies"));
         assert!(report.contains("JPL interpolation quality kind coverage:"));
+        assert!(report.contains("JPL interpolation posture: source="));
         assert!(report.contains("JPL independent hold-out:"));
         assert!(report.contains(&comparison_snapshot_body_class_coverage_summary_for_report()));
         assert!(report.contains("JPL independent hold-out equatorial parity:"));
         assert!(report.contains("JPL independent hold-out batch parity:"));
-        assert!(report.contains("transparency evidence only, not a production tolerance envelope"));
         assert!(report.contains("Lunar reference"));
         assert!(report.contains(
             "lunar reference evidence: 9 samples across 5 bodies, epoch range JD 2419914.5 (TT) → JD 2459278.5 (TT)"
@@ -14297,7 +14295,6 @@ mod tests {
         assert!(report.contains("JPL independent hold-out equatorial parity:"));
         assert!(report.contains("JPL independent hold-out batch parity:"));
         assert!(report.contains("leave-one-out runtime interpolation evidence"));
-        assert!(report.contains("transparency evidence only, not a production tolerance envelope"));
         assert!(report.contains("@ JD"));
         assert!(report.contains("ELP lunar capability: lunar capability summary:"));
         assert!(report.contains(
@@ -16625,7 +16622,7 @@ mod tests {
         assert!(rendered.contains("Meeus-style truncated lunar orbit formulas"));
         assert!(rendered.contains("NASA/JPL Horizons API vector tables (DE441)"));
         assert!(rendered.contains("interpolation quality checks:"));
-        assert!(rendered.contains("expanded public-input leave-one-out checks"));
+        assert!(rendered.contains("JPL interpolation posture: source="));
         assert!(rendered.contains("interpolation, bracket span"));
         assert!(rendered.contains("TDB"));
         assert!(rendered.contains("VSOP87 planetary backend"));

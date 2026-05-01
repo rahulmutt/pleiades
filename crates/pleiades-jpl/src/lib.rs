@@ -7899,6 +7899,66 @@ impl fmt::Display for JplInterpolationQualitySummary {
     }
 }
 
+const JPL_INTERPOLATION_POSTURE_SOURCE: &str =
+    "leave-one-out runtime interpolation evidence derived from the checked-in reference snapshot";
+const JPL_INTERPOLATION_POSTURE_DETAIL: &str = "transparency evidence only";
+const JPL_INTERPOLATION_POSTURE_ENVELOPE: &str = "not a production tolerance envelope";
+
+/// A compact posture summary for the checked-in interpolation-quality evidence.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JplInterpolationPostureSummary {
+    /// Source attribution for the interpolation-quality evidence posture.
+    pub source: String,
+    /// Release-facing posture label for the interpolation-quality evidence.
+    pub detail: String,
+    /// Explicit claim boundary for the interpolation-quality evidence.
+    pub envelope: String,
+}
+
+impl JplInterpolationPostureSummary {
+    /// Returns the compact release-facing interpolation posture summary line.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "JPL interpolation posture: source={}; detail={}; envelope={}",
+            self.source, self.detail, self.envelope
+        )
+    }
+
+    /// Validates that the posture summary still matches the checked-in evidence posture.
+    pub fn validate(&self) -> Result<(), JplInterpolationPostureSummaryValidationError> {
+        if self.source != JPL_INTERPOLATION_POSTURE_SOURCE {
+            return Err(
+                JplInterpolationPostureSummaryValidationError::FieldOutOfSync { field: "source" },
+            );
+        }
+        if self.detail != JPL_INTERPOLATION_POSTURE_DETAIL {
+            return Err(
+                JplInterpolationPostureSummaryValidationError::FieldOutOfSync { field: "detail" },
+            );
+        }
+        if self.envelope != JPL_INTERPOLATION_POSTURE_ENVELOPE {
+            return Err(
+                JplInterpolationPostureSummaryValidationError::FieldOutOfSync { field: "envelope" },
+            );
+        }
+        Ok(())
+    }
+
+    /// Returns the validated release-facing interpolation posture summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, JplInterpolationPostureSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for JplInterpolationPostureSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Structured validation errors for the interpolation-quality summary.
 #[derive(Clone, Debug, PartialEq)]
 pub enum JplInterpolationQualitySummaryValidationError {
@@ -8004,6 +8064,62 @@ impl fmt::Display for JplInterpolationQualitySummaryValidationError {
 }
 
 impl std::error::Error for JplInterpolationQualitySummaryValidationError {}
+
+/// Structured validation errors for the interpolation posture summary.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum JplInterpolationPostureSummaryValidationError {
+    /// A summary field is out of sync with the checked-in evidence posture.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl JplInterpolationPostureSummaryValidationError {
+    /// Returns the compact label used in release-facing summaries and tests.
+    pub const fn label(&self) -> &'static str {
+        match self {
+            Self::FieldOutOfSync { .. } => "field out of sync",
+        }
+    }
+}
+
+impl fmt::Display for JplInterpolationPostureSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the JPL interpolation posture summary field `{field}` is out of sync with the current evidence"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for JplInterpolationPostureSummaryValidationError {}
+
+/// Returns the release-facing interpolation posture summary for the checked-in evidence slice.
+pub fn jpl_interpolation_posture_summary() -> Option<JplInterpolationPostureSummary> {
+    Some(JplInterpolationPostureSummary {
+        source: JPL_INTERPOLATION_POSTURE_SOURCE.to_string(),
+        detail: JPL_INTERPOLATION_POSTURE_DETAIL.to_string(),
+        envelope: JPL_INTERPOLATION_POSTURE_ENVELOPE.to_string(),
+    })
+}
+
+/// Formats the interpolation posture summary for release-facing reports.
+pub fn format_jpl_interpolation_posture_summary(
+    summary: &JplInterpolationPostureSummary,
+) -> String {
+    summary.summary_line()
+}
+
+/// Returns the release-facing interpolation posture summary string.
+pub fn jpl_interpolation_posture_summary_for_report() -> String {
+    match jpl_interpolation_posture_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => format!("JPL interpolation posture: unavailable ({error})"),
+        },
+        None => "JPL interpolation posture: unavailable".to_string(),
+    }
+}
 
 fn validate_non_negative_metric(
     field: &'static str,
@@ -13842,6 +13958,39 @@ mod tests {
         assert!(rendered.contains(&source_summary.summary_line()));
         assert!(rendered.contains(&format_jpl_interpolation_quality_summary(&summary)));
         assert!(rendered.contains(&format_jpl_interpolation_quality_kind_coverage(&coverage)));
+    }
+
+    #[test]
+    fn interpolation_posture_summary_reports_the_release_decision() {
+        let summary = jpl_interpolation_posture_summary().expect("summary should exist");
+        assert_eq!(summary.source, JPL_INTERPOLATION_POSTURE_SOURCE);
+        assert_eq!(summary.detail, JPL_INTERPOLATION_POSTURE_DETAIL);
+        assert_eq!(summary.envelope, JPL_INTERPOLATION_POSTURE_ENVELOPE);
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            jpl_interpolation_posture_summary_for_report(),
+            summary.summary_line()
+        );
+        assert!(format_jpl_interpolation_posture_summary(&summary)
+            .contains("JPL interpolation posture:"));
+        assert!(summary
+            .summary_line()
+            .contains("transparency evidence only"));
+        assert!(summary
+            .summary_line()
+            .contains("not a production tolerance envelope"));
+    }
+
+    #[test]
+    fn interpolation_posture_summary_validation_rejects_drift() {
+        let mut summary = jpl_interpolation_posture_summary().expect("summary should exist");
+        summary.detail = "runtime production tolerance".to_string();
+        assert_eq!(
+            summary.validate(),
+            Err(JplInterpolationPostureSummaryValidationError::FieldOutOfSync { field: "detail" })
+        );
     }
 
     #[test]
