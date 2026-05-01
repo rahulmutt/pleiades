@@ -26,7 +26,7 @@ Known remaining gaps:
 - The checked-in artifact is a small prototype, not a full production 1500-2500 data product.
 - Current prototype fit error is not acceptable for release-grade packaged-data claims.
 - Generation is tied to the checked-in reference snapshot rather than a complete documented public-input corpus.
-- Body-specific segment strategy, polynomial order, residual density, and target thresholds are not finalized.
+- Body-specific segment strategy and residual density still need release-grade tuning, but the packaged-data crate now records the current measured fit envelope in the target-threshold scaffold and validates the generator manifest against it.
 - Optional external artifact loading is feature-gated and not yet a complete distribution story.
 
 ## Remaining implementation goals

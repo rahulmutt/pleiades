@@ -12,7 +12,7 @@ Recently completed: Pluto explicit downgrade and corpus cleanup, plus the produc
 
 **Work items:**
 
-- Expand JPL/reference rows for all release-claimed major bodies and selected asteroids. The production-generation boundary overlay now includes the full independent hold-out snapshot, the merged reference-plus-boundary corpus now totals 83 rows across 15 bodies and 9 epochs, and the interpolation-quality corpus now includes the current 41-sample, 10-body evidence set; the overlay also now has a standalone request corpus, summary, and provenance line for generation tooling, and the combined JPL evidence summary now includes the overlay provenance as well. The selected-asteroid source window summary now also surfaces the broader 20-sample asteroid provenance slice; remaining work is to add any further trusted source windows needed for production artifact generation and lunar-fit closure.
+- Expand JPL/reference rows for all release-claimed major bodies and selected asteroids. The production-generation boundary overlay now includes the full independent hold-out snapshot, the merged reference-plus-boundary corpus now totals 81 rows across 15 bodies and 9 epochs, and the interpolation-quality corpus now includes the current 41-sample, 10-body evidence set; the overlay also now has a standalone request corpus, summary, and provenance line for generation tooling, and the combined JPL evidence summary now includes the overlay provenance as well. The selected-asteroid source window summary now also surfaces the broader 20-sample asteroid provenance slice; remaining work is to add any further trusted source windows needed for production artifact generation and lunar-fit closure.
 - Preserve deterministic manifests, provenance summaries, checksums, and pure-Rust parsing/loading.
 - Decide whether interpolation is a runtime feature, generation-only aid, or transparency-only evidence.
 
@@ -37,7 +37,7 @@ Recently completed: Pluto explicit downgrade and corpus cleanup, plus the produc
 
 **Work items:**
 
-- Define production artifact profile identifiers, body sets, stored/derived/unsupported outputs, and target thresholds. The packaged-data crate now exposes a dedicated production-profile skeleton summary, a structured target-threshold scaffold, and deterministic generator-parameter/manifest outputs that capture the current prototype posture; the remaining work is to finalize the release thresholds and align the manifest with production fit validation.
+- Define production artifact profile identifiers, body sets, stored/derived/unsupported outputs, and target thresholds. The packaged-data crate now exposes a dedicated production-profile skeleton summary, a structured target-threshold scaffold that captures the current measured fit envelope, and deterministic generator-parameter/manifest outputs that capture the current prototype posture; the remaining work is to finalize the release thresholds and align the manifest with production fit validation.
 - Keep the prototype artifact labeled as prototype until Phase 2 fit validation passes.
 - Add tests for profile/header validation and claim drift.
 

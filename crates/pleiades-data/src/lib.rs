@@ -947,7 +947,7 @@ pub fn packaged_artifact_regeneration_summary_for_report() -> String {
     }
 }
 
-const PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATUS: &str = "pending finalization";
+const PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATUS: &str = "prototype fit envelope recorded";
 const PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES: &[&str] = &[
     "luminaries",
     "major planets",
@@ -957,12 +957,14 @@ const PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES: &[&str] = &[
 ];
 
 /// Structured target-threshold posture for the packaged artifact generator.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct PackagedArtifactTargetThresholdSummary {
     /// Current release posture for the production thresholds.
     pub status: &'static str,
     /// Body-class scopes that still require finalized thresholds.
     pub scopes: &'static [&'static str],
+    /// Measured fit envelope captured for the current packaged artifact posture.
+    pub fit_envelope: PackagedArtifactFitEnvelopeSummary,
 }
 
 /// Validation error for a packaged-artifact target-threshold summary that drifted from the current posture.
@@ -989,9 +991,10 @@ impl PackagedArtifactTargetThresholdSummary {
     /// Returns the target-threshold posture as a compact human-readable line.
     pub fn summary_line(&self) -> String {
         format!(
-            "target thresholds: {}; scopes={}",
+            "target thresholds: {}; scopes={}; {}",
             self.status,
             self.scopes.join(", "),
+            self.fit_envelope.summary_line(),
         )
     }
 
@@ -1008,6 +1011,15 @@ impl PackagedArtifactTargetThresholdSummary {
             return Err(
                 PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
                     field: "scopes",
+                },
+            );
+        }
+
+        let expected_fit_envelope = packaged_artifact_fit_envelope_summary_details();
+        if self.fit_envelope != expected_fit_envelope {
+            return Err(
+                PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                    field: "fit_envelope",
                 },
             );
         }
@@ -1036,6 +1048,7 @@ pub fn packaged_artifact_target_threshold_summary_details() -> PackagedArtifactT
     let summary = PackagedArtifactTargetThresholdSummary {
         status: PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATUS,
         scopes: PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES,
+        fit_envelope: packaged_artifact_fit_envelope_summary_details(),
     };
     debug_assert!(summary.validate().is_ok());
     summary
@@ -4869,6 +4882,10 @@ mod tests {
             summary.target_thresholds,
             packaged_artifact_target_threshold_summary_details()
         );
+        assert_eq!(
+            summary.target_thresholds.fit_envelope,
+            packaged_artifact_fit_envelope_summary_details()
+        );
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         summary
@@ -4879,7 +4896,7 @@ mod tests {
             .contains("Packaged artifact production profile skeleton:"));
         assert!(summary
             .summary_line()
-            .contains("target thresholds: pending finalization; scopes=luminaries, major planets, lunar points, selected asteroids, custom bodies"));
+            .contains("target thresholds: prototype fit envelope recorded; scopes=luminaries, major planets, lunar points, selected asteroids, custom bodies"));
         assert!(packaged_artifact_production_profile_summary_for_report()
             .contains("Packaged artifact production profile skeleton:"));
         assert_eq!(
@@ -4922,6 +4939,7 @@ mod tests {
         manifest.parameters.target_thresholds = PackagedArtifactTargetThresholdSummary {
             status: "drifted",
             scopes: &["luminaries"],
+            fit_envelope: packaged_artifact_fit_envelope_summary_details(),
         };
 
         let error = manifest
@@ -4942,6 +4960,7 @@ mod tests {
         summary.target_thresholds = PackagedArtifactTargetThresholdSummary {
             status: "drifted",
             scopes: &["luminaries"],
+            fit_envelope: packaged_artifact_fit_envelope_summary_details(),
         };
 
         let error = summary
@@ -4962,12 +4981,12 @@ mod tests {
 
         assert_eq!(summary.status, PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATUS);
         assert_eq!(summary.scopes, PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES);
-        assert_eq!(summary.summary_line(), "target thresholds: pending finalization; scopes=luminaries, major planets, lunar points, selected asteroids, custom bodies");
+        assert_eq!(summary.summary_line(), format!("target thresholds: prototype fit envelope recorded; scopes=luminaries, major planets, lunar points, selected asteroids, custom bodies; {}", summary.fit_envelope.summary_line()));
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert!(summary.validate().is_ok());
         assert!(packaged_artifact_target_threshold_summary_for_report()
-            .contains("target thresholds: pending finalization"));
+            .contains("target thresholds: prototype fit envelope recorded"));
     }
 
     #[test]
