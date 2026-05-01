@@ -1187,6 +1187,12 @@ impl ComparisonTolerancePolicySummary {
             self.comparison_sample_count,
         )
     }
+
+    /// Validates the policy summary and returns its compact report line.
+    pub fn validated_summary_line(&self) -> Result<String, EphemerisError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for ComparisonTolerancePolicySummary {
@@ -8293,8 +8299,8 @@ fn comparison_tolerance_policy_summary_details(
 
 fn format_comparison_tolerance_policy_for_report(comparison: &ComparisonReport) -> String {
     let summary = comparison_tolerance_policy_summary_details(comparison);
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
+    match summary.validated_summary_line() {
+        Ok(line) => line,
         Err(error) => format!("comparison tolerance policy unavailable ({error})"),
     }
 }
@@ -12650,6 +12656,12 @@ mod tests {
             summary.summary_line(),
             format_comparison_tolerance_policy_for_report(&report)
         );
+        assert_eq!(
+            summary
+                .validated_summary_line()
+                .expect("summary should validate"),
+            summary.summary_line()
+        );
         assert!(summary.summary_line().contains("frames=Ecliptic"));
         assert_eq!(summary.coverage.len(), summary.entries.len());
         assert_eq!(summary.comparison_body_count, report.body_summaries().len());
@@ -12662,6 +12674,22 @@ mod tests {
             summary.comparison_window.end,
             corpus.summary().epochs.last().copied()
         );
+    }
+
+    #[test]
+    fn comparison_tolerance_policy_summary_validated_summary_line_rejects_drift() {
+        let corpus = default_corpus();
+        let reference = default_reference_backend();
+        let candidate = default_candidate_backend();
+        let report =
+            compare_backends(&reference, &candidate, &corpus).expect("comparison should build");
+        let mut summary = report.tolerance_policy_summary();
+        summary.comparison_sample_count += 1;
+
+        let error = summary
+            .validated_summary_line()
+            .expect_err("summary should reject drifted counts");
+        assert!(error.to_string().contains("sample-count mismatch"));
     }
 
     #[test]
