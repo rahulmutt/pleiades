@@ -1484,6 +1484,14 @@ impl IndependentHoldoutSnapshotBatchParitySummary {
     }
 
     /// Returns a compact summary line used in release-facing reporting.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, IndependentHoldoutSnapshotBatchParitySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
+    /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         let order = if self.parity_preserved {
             "preserved"
@@ -1530,8 +1538,8 @@ pub fn format_independent_holdout_snapshot_batch_parity_summary(
 /// Returns the release-facing independent hold-out mixed-scale batch parity summary string.
 pub fn independent_holdout_snapshot_batch_parity_summary_for_report() -> String {
     match independent_holdout_snapshot_batch_parity_summary() {
-        Some(summary) => match summary.validate() {
-            Ok(()) => format_independent_holdout_snapshot_batch_parity_summary(&summary),
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
             Err(error) => format!("JPL independent hold-out batch parity: unavailable ({error})"),
         },
         None => "JPL independent hold-out batch parity: unavailable".to_string(),
@@ -1569,6 +1577,14 @@ pub fn independent_holdout_snapshot_equatorial_parity_summary(
 }
 
 impl IndependentHoldoutSnapshotEquatorialParitySummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, IndependentHoldoutSnapshotEquatorialParitySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         format!(
@@ -1683,8 +1699,8 @@ pub fn format_independent_holdout_snapshot_equatorial_parity_summary(
 /// Returns the release-facing independent hold-out equatorial parity summary string.
 pub fn independent_holdout_snapshot_equatorial_parity_summary_for_report() -> String {
     match independent_holdout_snapshot_equatorial_parity_summary() {
-        Some(summary) => match summary.validate() {
-            Ok(()) => format_independent_holdout_snapshot_equatorial_parity_summary(&summary),
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
             Err(error) => {
                 format!("JPL independent hold-out equatorial parity: unavailable ({error})")
             }
@@ -8150,6 +8166,7 @@ mod tests {
             "JPL independent hold-out equatorial parity: 24 rows across 8 bodies and 8 epochs (JD 2400000.0 (TDB)..JD 2634167.0 (TDB)); mean-obliquity transform against the checked-in ecliptic fixture"
         );
         assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             independent_holdout_snapshot_equatorial_parity_summary_for_report(),
             summary.summary_line()
@@ -8342,6 +8359,7 @@ mod tests {
             summary.snapshot.row_count,
         );
         assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
 
         let rendered = format_independent_holdout_snapshot_batch_parity_summary(&summary);
         assert!(rendered.contains("JPL independent hold-out batch parity:"));
