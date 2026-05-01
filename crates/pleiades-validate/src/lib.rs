@@ -13681,7 +13681,7 @@ mod tests {
             "lunar reference mixed TT/TDB batch parity: 9 requests across 5 bodies, TT requests=5, TDB requests=4, order=preserved, single-query parity=preserved"
         ));
         assert!(report.contains(
-            "lunar equatorial reference batch parity: 2 requests across 1 bodies, frame=Equatorial, order=preserved, single-query parity=preserved"
+            "lunar equatorial reference batch parity: 3 requests across 1 bodies, frame=Equatorial, order=preserved, single-query parity=preserved"
         ));
         assert!(report.contains("exact J2000 evidence: 5 bodies at JD 2451545.0"));
         assert!(report.contains("Body comparison summaries"));
@@ -16206,9 +16206,9 @@ mod tests {
         assert!(rendered.contains("request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"));
         assert!(rendered.contains("validation window: JD 2448724.5 (TT) → JD 2459278.5 (TT)"));
         assert!(rendered.contains("date-range note: Validated against the published 1992-04-12 geocentric Moon example, the published 1992-04-12 geocentric Moon RA/Dec example used for the mean-obliquity equatorial transform, the reference-only published 1968-12-24 apparent geocentric Moon comparison datum, the reference-only published 2004-04-01 NASA RP 1349 apparent Moon table row, the reference-only published 2006-09-07 EclipseWise apparent Moon coordinate row, J2000 lunar-point anchors including the mean apogee and mean perigee references, published 1913-05-27 true-node and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example"));
-        assert!(rendered.contains("lunar equatorial reference evidence: 2 samples across 1 bodies"));
+        assert!(rendered.contains("lunar equatorial reference evidence: 3 samples across 1 bodies"));
         assert!(rendered
-            .contains("lunar equatorial reference error envelope: 2 samples across 1 bodies"));
+            .contains("lunar equatorial reference error envelope: 3 samples across 1 bodies"));
         assert!(rendered.contains("mean ΔRA="));
         assert!(rendered.contains("median ΔRA="));
         assert!(rendered.contains("p95 ΔRA="));
@@ -16732,7 +16732,7 @@ version = "0.9.0"
             "lunar reference mixed TT/TDB batch parity: 9 requests across 5 bodies, TT requests=5, TDB requests=4, order=preserved, single-query parity=preserved"
         ));
         assert!(release_summary.contains(
-            "lunar equatorial reference batch parity: 2 requests across 1 bodies, frame=Equatorial, order=preserved, single-query parity=preserved"
+            "lunar equatorial reference batch parity: 3 requests across 1 bodies, frame=Equatorial, order=preserved, single-query parity=preserved"
         ));
         assert!(release_summary.contains("JPL independent hold-out:"));
         assert!(release_summary.contains(&independent_holdout_source_summary_for_report()));
@@ -17031,7 +17031,7 @@ version = "0.9.0"
             "lunar reference mixed TT/TDB batch parity: 9 requests across 5 bodies, TT requests=5, TDB requests=4, order=preserved, single-query parity=preserved"
         ));
         assert!(validation_report_summary.contains(
-            "lunar equatorial reference batch parity: 2 requests across 1 bodies, frame=Equatorial, order=preserved, single-query parity=preserved"
+            "lunar equatorial reference batch parity: 3 requests across 1 bodies, frame=Equatorial, order=preserved, single-query parity=preserved"
         ));
         assert!(
             validation_report_summary.contains("ELP lunar capability: lunar capability summary:")
@@ -17066,7 +17066,7 @@ version = "0.9.0"
             .contains("validation window: JD 2448724.5 (TT) → JD 2459278.5 (TT)"));
         assert!(validation_report_summary.contains("date-range note: Validated against the published 1992-04-12 geocentric Moon example, the published 1992-04-12 geocentric Moon RA/Dec example used for the mean-obliquity equatorial transform, the reference-only published 1968-12-24 apparent geocentric Moon comparison datum, the reference-only published 2004-04-01 NASA RP 1349 apparent Moon table row, the reference-only published 2006-09-07 EclipseWise apparent Moon coordinate row, J2000 lunar-point anchors including the mean apogee and mean perigee references, published 1913-05-27 true-node and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example"));
         assert!(validation_report_summary
-            .contains("lunar equatorial reference error envelope: 2 samples across 1 bodies"));
+            .contains("lunar equatorial reference error envelope: 3 samples across 1 bodies"));
         assert!(validation_report_summary.contains("mean ΔRA="));
         assert!(validation_report_summary.contains("median ΔRA="));
         assert!(validation_report_summary.contains("p95 ΔRA="));

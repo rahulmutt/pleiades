@@ -2472,6 +2472,16 @@ pub fn lunar_equatorial_reference_evidence() -> &'static [LunarEquatorialReferen
             ),
             note: "Derived equatorial companion from the published 1992-04-12 geocentric Moon example using the shared mean-obliquity transform",
         },
+        LunarEquatorialReferenceSample {
+            body: CelestialBody::Moon,
+            epoch: Instant::new(pleiades_types::JulianDay::from_days(2_448_724.5), TimeScale::Tt),
+            equatorial: EquatorialCoordinates::new(
+                Angle::from_degrees(134.688_469),
+                Latitude::from_degrees(13.768_367),
+                Some(368_409.7 / 149_597_870.700),
+            ),
+            note: "Reference-only published 1992-04-12 apparent geocentric Moon comparison datum reused as an additional equatorial cross-check",
+        },
     ];
 
     SAMPLES
@@ -3045,7 +3055,7 @@ impl LunarEquatorialReferenceEvidenceSummary {
     /// Returns the release-facing one-line lunar equatorial reference evidence summary.
     pub fn summary_line(&self) -> String {
         format!(
-            "lunar equatorial reference evidence: {} samples across {} bodies, epoch range {}, validated against the published 1992-04-12 geocentric Moon RA/Dec example and a derived 1992 equatorial companion built from the published 1992 geocentric Moon example via the shared mean-obliquity transform",
+            "lunar equatorial reference evidence: {} samples across {} bodies, epoch range {}, validated against the published 1992-04-12 geocentric Moon RA/Dec example, a derived 1992 equatorial companion built from the published 1992 geocentric Moon example via the shared mean-obliquity transform, and a reference-only published 1992-04-12 apparent geocentric Moon comparison datum",
             self.sample_count,
             self.body_count,
             format_epoch_range(self.earliest_epoch, self.latest_epoch),
@@ -7535,7 +7545,7 @@ mod tests {
 
         let equatorial_parity = lunar_equatorial_reference_batch_parity_summary()
             .expect("equatorial batch parity evidence should exist");
-        assert_eq!(equatorial_parity.sample_count, 2);
+        assert_eq!(equatorial_parity.sample_count, 3);
         assert_eq!(equatorial_parity.body_count, 1);
         assert_eq!(equatorial_parity.frame, CoordinateFrame::Equatorial);
         assert!(equatorial_parity.order_preserved);
@@ -7550,7 +7560,7 @@ mod tests {
             equatorial_parity.summary_line()
         );
         assert!(lunar_equatorial_reference_batch_parity_summary_for_report()
-            .contains("lunar equatorial reference batch parity: 2 requests across 1 bodies, frame=Equatorial, order=preserved, single-query parity=preserved"));
+            .contains("lunar equatorial reference batch parity: 3 requests across 1 bodies, frame=Equatorial, order=preserved, single-query parity=preserved"));
 
         let envelope = lunar_reference_evidence_envelope().expect("error envelope should exist");
         assert_eq!(envelope.sample_count, summary.sample_count);
@@ -7673,7 +7683,7 @@ mod tests {
         let summary = lunar_equatorial_reference_evidence_summary()
             .expect("equatorial reference evidence should exist");
 
-        assert_eq!(summary.sample_count, 2);
+        assert_eq!(summary.sample_count, 3);
         assert_eq!(summary.body_count, 1);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_448_724.5);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_448_724.5);
@@ -7683,7 +7693,7 @@ mod tests {
             summary.summary_line()
         );
         assert!(lunar_equatorial_reference_evidence_summary_for_report()
-            .contains("2 samples across 1 bodies"));
+            .contains("3 samples across 1 bodies"));
         assert!(lunar_equatorial_reference_evidence_summary_for_report()
             .contains("JD 2448724.5 (TT) → JD 2448724.5 (TT)"));
 
