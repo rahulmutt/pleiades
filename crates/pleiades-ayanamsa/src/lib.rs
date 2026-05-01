@@ -1392,12 +1392,24 @@ impl AyanamsaMetadataCoverage {
     /// Returns the compact release-facing summary line for the metadata coverage state.
     pub fn summary_line(&self) -> String {
         match self.validate() {
-            Ok(()) => format!(
-                "ayanamsa sidereal metadata: {}/{} entries with both a reference epoch and offset",
-                self.with_sidereal_metadata, self.total
-            ),
+            Ok(()) => self.render_summary_line(),
             Err(error) => format!("ayanamsa sidereal metadata: unavailable ({error})"),
         }
+    }
+
+    /// Returns the compact release-facing summary line after validation.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, AyanamsaMetadataCoverageValidationError> {
+        self.validate()?;
+        Ok(self.render_summary_line())
+    }
+
+    fn render_summary_line(&self) -> String {
+        format!(
+            "ayanamsa sidereal metadata: {}/{} entries with both a reference epoch and offset",
+            self.with_sidereal_metadata, self.total
+        )
     }
 }
 
@@ -2691,6 +2703,10 @@ mod tests {
             )
         );
         assert_eq!(coverage.to_string(), coverage.summary_line());
+        assert_eq!(
+            coverage.validated_summary_line(),
+            Ok(coverage.summary_line())
+        );
         assert!(coverage.validate().is_ok());
         assert!(coverage.is_complete());
         assert!(coverage
@@ -2713,6 +2729,7 @@ mod tests {
             AyanamsaMetadataCoverageValidationError::CountsDoNotSum { .. }
         ));
         assert!(count_drift.summary_line().contains("unavailable"));
+        assert!(count_drift.validated_summary_line().is_err());
 
         let mut label_drift = metadata_coverage();
         label_drift.with_sidereal_metadata = label_drift.total.saturating_sub(2);
@@ -2729,6 +2746,7 @@ mod tests {
             }
         ));
         assert!(label_drift.summary_line().contains("unavailable"));
+        assert!(label_drift.validated_summary_line().is_err());
     }
 
     #[test]

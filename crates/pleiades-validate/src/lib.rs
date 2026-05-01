@@ -5485,7 +5485,10 @@ fn render_compatibility_profile_summary_text() -> String {
     text.push('\n');
     text.push_str(&profile.target_ayanamsa_scope.join("; "));
     text.push('\n');
-    text.push_str(&coverage.summary_line());
+    match coverage.validated_summary_line() {
+        Ok(summary) => text.push_str(&summary),
+        Err(error) => return format!("Compatibility profile summary unavailable ({error})"),
+    }
     text.push('\n');
     text.push_str(&ayanamsa_catalog_validation_summary().summary_line());
     text.push('\n');

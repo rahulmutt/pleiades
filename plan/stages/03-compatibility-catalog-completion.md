@@ -44,6 +44,7 @@ The repository already exposes baseline house systems and ayanamsas, a larger re
    - Validate sidereal offsets at canonical epochs.
    - Progress note: `pleiades-ayanamsa::AyanamsaDescriptor::validate()` now also rejects descriptors that populate only one of the reference epoch or offset fields, so the catalog cannot drift into a half-specified sidereal metadata state even if the label still round-trips.
    - Progress note (2026-04-29): the ayanamsa metadata-coverage inventory now also exposes a typed `summary_line()`/`Display` helper, and the compatibility-profile/core/validation summary paths reuse it so the reference-epoch/offset posture line stays co-located with the catalog metadata instead of being rebuilt ad hoc in each report path.
+   - Progress note (2026-05-01): `AyanamsaMetadataCoverage` now also exposes a validated summary-line helper, and the compatibility-profile summary path reuses it so the sidereal-metadata coverage line fails closed at the typed coverage boundary instead of only through the raw summary renderer.
    - Progress note (2026-04-29): `AyanamsaMetadataCoverage` now also validates its derived counts and label buckets before rendering, so the compact sidereal-metadata posture fails closed if the coverage summary ever drifts away from the catalog-derived partition.
    - Preserve custom ayanamsa support for user-defined formulas or offset tables.
 
