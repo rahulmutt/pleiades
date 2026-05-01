@@ -9187,6 +9187,15 @@ fn format_time_scale_policy_summary_for_report(
     }
 }
 
+fn format_delta_t_policy_summary_for_report(
+    summary: &pleiades_backend::DeltaTPolicySummary,
+) -> String {
+    match summary.validated_summary_line() {
+        Ok(line) => line.to_string(),
+        Err(error) => format!("delta T policy unavailable ({error})"),
+    }
+}
+
 fn format_observer_policy_summary_for_report(
     summary: &pleiades_backend::ObserverPolicySummary,
 ) -> String {
@@ -9237,10 +9246,7 @@ fn format_request_semantics_summary_for_report(
     let _ = writeln!(
         text,
         "Delta T policy: {}",
-        match delta_t_policy.validated_summary_line() {
-            Ok(line) => line.to_string(),
-            Err(error) => format!("delta T policy unavailable ({error})"),
-        }
+        format_delta_t_policy_summary_for_report(&delta_t_policy)
     );
 
     let request_policy = match validated_request_policy_summary_for_report() {
@@ -9491,10 +9497,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(
         text,
         "Delta T policy: {}",
-        match delta_t_policy.validated_summary_line() {
-            Ok(line) => line.to_string(),
-            Err(error) => format!("delta T policy unavailable ({error})"),
-        }
+        format_delta_t_policy_summary_for_report(&delta_t_policy)
     );
     let _ = writeln!(text, "Observer policy: {}", request_policy.observer);
     let _ = writeln!(text, "Apparentness policy: {}", request_policy.apparentness);
@@ -10669,12 +10672,9 @@ fn render_backend_matrix_summary_text() -> String {
     ));
     text.push('\n');
     text.push_str("Delta T policy: ");
-    text.push_str(
-        &match delta_t_policy_summary_for_report().validated_summary_line() {
-            Ok(line) => line.to_string(),
-            Err(error) => format!("delta T policy unavailable ({error})"),
-        },
-    );
+    text.push_str(&format_delta_t_policy_summary_for_report(
+        &delta_t_policy_summary_for_report(),
+    ));
     text.push('\n');
     text.push_str("Observer policy: ");
     text.push_str(&format_observer_policy_summary_for_report(
