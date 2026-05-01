@@ -87,14 +87,13 @@ use pleiades_jpl::{
     comparison_snapshot_batch_parity_summary_for_report,
     comparison_snapshot_manifest_summary_for_report, comparison_snapshot_requests,
     comparison_snapshot_source_summary_for_report, comparison_snapshot_summary_for_report,
-    format_jpl_interpolation_quality_kind_coverage,
     format_jpl_interpolation_quality_summary_for_report,
     frame_treatment_summary_for_report as jpl_frame_treatment_summary_for_report,
     independent_holdout_manifest_summary_for_report,
     independent_holdout_snapshot_batch_parity_summary_for_report as jpl_independent_holdout_snapshot_batch_parity_summary_for_report,
     independent_holdout_snapshot_equatorial_parity_summary_for_report as jpl_independent_holdout_snapshot_equatorial_parity_summary_for_report,
     independent_holdout_source_summary_for_report, interpolation_quality_samples,
-    jpl_independent_holdout_summary_for_report, jpl_interpolation_quality_kind_coverage,
+    jpl_independent_holdout_summary_for_report, jpl_interpolation_quality_kind_coverage_for_report,
     jpl_snapshot_batch_error_taxonomy_summary_for_report, jpl_snapshot_evidence_summary_for_report,
     jpl_snapshot_request_policy_summary_for_report,
     reference_asteroid_equatorial_evidence_summary_for_report, reference_asteroid_evidence,
@@ -11594,18 +11593,11 @@ fn write_jpl_interpolation_quality(f: &mut fmt::Formatter<'_>) -> fmt::Result {
         "    {}",
         format_jpl_interpolation_quality_summary(&summary)
     )?;
-    if let Some(coverage) = jpl_interpolation_quality_kind_coverage() {
-        writeln!(
-            f,
-            "    {}",
-            format_jpl_interpolation_quality_kind_coverage(&coverage)
-        )?;
-    } else {
-        writeln!(
-            f,
-            "    JPL interpolation quality kind coverage: unavailable"
-        )?;
-    }
+    writeln!(
+        f,
+        "    {}",
+        jpl_interpolation_quality_kind_coverage_for_report()
+    )?;
     writeln!(
         f,
         "    note: expanded public-input leave-one-out checks report current runtime interpolation error against held-out exact rows; they are not production tolerances"

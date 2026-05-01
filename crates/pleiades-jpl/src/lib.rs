@@ -4726,6 +4726,14 @@ impl JplInterpolationQualityKindCoverage {
             self.linear_body_count,
         )
     }
+
+    /// Returns a compact summary line after validating the coverage summary.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, JplInterpolationQualitySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for JplInterpolationQualityKindCoverage {
@@ -5173,31 +5181,29 @@ pub fn format_jpl_interpolation_quality_kind_coverage(
     coverage.summary_line()
 }
 
+/// Returns the release-facing interpolation-kind coverage summary string.
+pub fn jpl_interpolation_quality_kind_coverage_for_report() -> String {
+    match jpl_interpolation_quality_kind_coverage() {
+        Some(coverage) => match coverage.validated_summary_line() {
+            Ok(rendered) => rendered,
+            Err(_) => "JPL interpolation quality kind coverage: unavailable".to_string(),
+        },
+        None => "JPL interpolation quality kind coverage: unavailable".to_string(),
+    }
+}
+
 /// Formats the interpolation-quality summary together with the distinct-body coverage line.
 pub fn format_jpl_interpolation_quality_summary_for_report() -> String {
-    match (
-        jpl_interpolation_quality_summary(),
-        jpl_interpolation_quality_kind_coverage(),
-    ) {
-        (Some(summary), Some(coverage)) => match summary.validated_summary_line() {
-            Ok(rendered) if coverage.validate().is_ok() => {
-                let mut rendered = rendered;
+    match jpl_interpolation_quality_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(mut rendered) => {
                 rendered.push('\n');
-                rendered.push_str(&coverage.to_string());
-                rendered
-            }
-            _ => "JPL interpolation quality: unavailable".to_string(),
-        },
-        (Some(summary), None) => match summary.validated_summary_line() {
-            Ok(rendered) => {
-                let mut rendered = rendered;
-                rendered.push('\n');
-                rendered.push_str("JPL interpolation quality kind coverage: unavailable");
+                rendered.push_str(&jpl_interpolation_quality_kind_coverage_for_report());
                 rendered
             }
             Err(_) => "JPL interpolation quality: unavailable".to_string(),
         },
-        (None, _) => "JPL interpolation quality: unavailable".to_string(),
+        None => "JPL interpolation quality: unavailable".to_string(),
     }
 }
 
@@ -9297,6 +9303,10 @@ mod tests {
         assert!(coverage.linear_body_count > 0);
 
         assert_eq!(coverage.to_string(), coverage.summary_line());
+        assert_eq!(
+            coverage.validated_summary_line(),
+            Ok(coverage.summary_line())
+        );
 
         let rendered = format_jpl_interpolation_quality_kind_coverage(&coverage);
         assert!(rendered.contains("JPL interpolation quality kind coverage:"));
@@ -9305,6 +9315,10 @@ mod tests {
         assert!(rendered.contains("cubic bodies"));
         assert!(rendered.contains("quadratic bodies"));
         assert!(rendered.contains("linear bodies"));
+        assert_eq!(
+            jpl_interpolation_quality_kind_coverage_for_report(),
+            coverage.summary_line()
+        );
     }
 
     #[test]
@@ -9329,6 +9343,17 @@ mod tests {
         summary.mean_longitude_error_deg += 1e-12;
         assert_eq!(
             summary.validated_summary_line(),
+            Err(JplInterpolationQualitySummaryValidationError::DerivedSummaryMismatch)
+        );
+    }
+
+    #[test]
+    fn interpolation_quality_kind_coverage_validated_summary_line_rejects_drift() {
+        let mut coverage =
+            jpl_interpolation_quality_kind_coverage().expect("coverage should exist");
+        coverage.cubic_body_count += 1;
+        assert_eq!(
+            coverage.validated_summary_line(),
             Err(JplInterpolationQualitySummaryValidationError::DerivedSummaryMismatch)
         );
     }
