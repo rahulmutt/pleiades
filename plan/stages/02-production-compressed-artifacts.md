@@ -18,7 +18,7 @@ This phase depends on Phase 1 accuracy closure because artifact fit error must b
 Implemented and not re-planned here:
 
 - `pleiades-compression` codec primitives, headers, checksums, body/segment validation, residual support, profile summaries, and decode helpers;
-- `pleiades-data` prototype artifact backend, checked-in deterministic fixture, regeneration helper, request policy summaries, frame reconstruction, batch parity, checksum verification, and benchmark/report integration;
+- `pleiades-data` prototype artifact backend, checked-in deterministic fixture, regeneration helper, request policy summaries, frame reconstruction, batch parity, checksum verification, benchmark/report integration, and explicit regeneration profile identifiers for the prototype posture;
 - CLI/validation commands for artifact summaries, validation, regeneration, and release-report inclusion.
 
 Known remaining gaps:

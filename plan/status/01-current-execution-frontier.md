@@ -47,7 +47,7 @@ The following can proceed without distracting from accuracy closure:
 - house/ayanamsa formula and alias audits;
 - documentation cleanup for already-explicit request policy;
 - release-bundle smoke-test maintenance;
-- artifact-profile design that does not claim production fit accuracy yet.
+- artifact-profile identifier groundwork that does not claim production fit accuracy yet.
 
 ## Constraints
 

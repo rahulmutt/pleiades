@@ -2,7 +2,7 @@
 
 This file lists focused, reviewable implementation slices that map to the current phase ladder. It intentionally omits completed scaffold work and old progress-note history.
 
-Recently completed: Pluto explicit downgrade and corpus cleanup, plus the production-generation boundary overlay corpus and report entry that now seed the full independent hold-out validation snapshot for validation and future artifact-generation work. Release-grade comparison and tolerance reports now use a Pluto-excluded corpus, while the full snapshot corpus remains available for provenance and archaeology. The interpolation-quality corpus also picked up a 2451910.5 boundary sample with quadratic coverage. The selected-asteroid reference slice now spans J2000, 2001-01-01, 2132-08-31, and 2500-01-01 for Ceres, Pallas, Juno, Vesta, and asteroid:433-Eros, and the packaged-artifact fixture has been regenerated from the updated reference snapshot. The production-generation boundary overlay now also has a standalone request corpus, inventory summary, and provenance summary for reuse in validation and future artifact-generation work. Request-semantic summaries, CLI help, and policy docs now also spell out the deferred apparent-place, topocentric, and native-sidereal posture explicitly.
+Recently completed: Pluto explicit downgrade and corpus cleanup, plus the production-generation boundary overlay corpus and report entry that now seed the full independent hold-out validation snapshot for validation and future artifact-generation work. Release-grade comparison and tolerance reports now use a Pluto-excluded corpus, while the full snapshot corpus remains available for provenance and archaeology. The interpolation-quality corpus also picked up a 2451910.5 boundary sample with quadratic coverage. The selected-asteroid reference slice now spans J2000, 2001-01-01, 2132-08-31, and 2500-01-01 for Ceres, Pallas, Juno, Vesta, and asteroid:433-Eros, and the packaged-artifact fixture has been regenerated from the updated reference snapshot. The production-generation boundary overlay now also has a standalone request corpus, inventory summary, and provenance summary for reuse in validation and future artifact-generation work, and the packaged artifact regeneration provenance now carries an explicit profile identifier. Request-semantic summaries, CLI help, and policy docs now also spell out the deferred apparent-place, topocentric, and native-sidereal posture explicitly.
 
 ## 2. Production reference corpus expansion
 
@@ -37,7 +37,7 @@ Recently completed: Pluto explicit downgrade and corpus cleanup, plus the produc
 
 **Work items:**
 
-- Define production artifact profile identifiers, body sets, stored/derived/unsupported outputs, and target thresholds.
+- Define production artifact profile identifiers, body sets, stored/derived/unsupported outputs, and target thresholds. The current regeneration provenance now records the prototype profile identifier explicitly, but the production profile skeleton still needs a dedicated generator shape.
 - Add generator parameter structs and deterministic manifest outputs.
 - Keep the prototype artifact labeled as prototype until Phase 2 fit validation passes.
 - Add tests for profile/header validation and claim drift.

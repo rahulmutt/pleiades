@@ -61,6 +61,7 @@ use pleiades_jpl::{
 
 const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data prototype";
+const ARTIFACT_PROFILE_ID: &str = "pleiades-packaged-artifact-profile/stage-5-prototype";
 const ARTIFACT_SOURCE: &str = "Quantized linear segments with residual-corrected Moon spans fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with J2000 point segments for the outer planets, Pluto, and the asteroid coverage.";
 const PACKAGED_BASE_BODIES: [CelestialBody; 10] = [
     CelestialBody::Sun,
@@ -709,6 +710,8 @@ pub struct PackagedArtifactRegenerationSummary {
     pub artifact_version: u16,
     /// Human-readable provenance/source summary.
     pub source: &'static str,
+    /// Stable identifier for the packaged-artifact profile.
+    pub profile_id: &'static str,
     /// Checksum of the checked-in packaged artifact.
     pub checksum: u64,
     /// Generation policy used to turn reference snapshots into segments.
@@ -775,6 +778,12 @@ impl PackagedArtifactRegenerationSummary {
             return Err(pleiades_compression::CompressionError::new(
                 pleiades_compression::CompressionErrorKind::InvalidFormat,
                 "packaged artifact regeneration summary source does not match the checked-in artifact source",
+            ));
+        }
+        if self.profile_id != ARTIFACT_PROFILE_ID {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact regeneration summary profile id does not match the checked-in artifact profile id",
             ));
         }
         if self.artifact_version != artifact.header.version {
@@ -877,8 +886,9 @@ impl PackagedArtifactRegenerationSummary {
     /// Returns the full packaged-artifact regeneration provenance summary.
     pub fn summary_line(&self) -> String {
         format!(
-            "Packaged artifact regeneration source: label={}; source={}; checksum=0x{:016x}; {}; {}; bundled bodies: {}; {}; fit envelope: {}; artifact version={}",
+            "Packaged artifact regeneration source: label={}; profile id={}; source={}; checksum=0x{:016x}; {}; {}; bundled bodies: {}; {}; fit envelope: {}; artifact version={}",
             self.label,
+            self.profile_id,
             self.source,
             self.checksum,
             self.generation_policy_line(),
@@ -910,6 +920,7 @@ pub fn packaged_artifact_regeneration_summary_details() -> PackagedArtifactRegen
         label: ARTIFACT_LABEL,
         artifact_version: artifact.header.version,
         source: ARTIFACT_SOURCE,
+        profile_id: ARTIFACT_PROFILE_ID,
         checksum: artifact.checksum,
         generation_policy: PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments,
         residual_bodies: artifact.residual_bodies(),
@@ -3990,6 +4001,7 @@ mod tests {
         assert_eq!(summary.label, ARTIFACT_LABEL);
         assert_eq!(summary.artifact_version, artifact.header.version);
         assert_eq!(summary.source, ARTIFACT_SOURCE);
+        assert_eq!(summary.profile_id, ARTIFACT_PROFILE_ID);
         assert_eq!(summary.checksum, artifact.checksum);
         assert_eq!(
             summary.generation_policy,
@@ -4049,6 +4061,9 @@ mod tests {
         assert!(provenance.contains(
             "Packaged artifact regeneration source: label=stage-5 packaged-data prototype"
         ));
+        assert!(
+            provenance.contains("profile id=pleiades-packaged-artifact-profile/stage-5-prototype")
+        );
         assert!(provenance.contains("checksum=0x"));
         assert!(provenance.contains("generation policy: adjacent same-body linear segments"));
         assert!(provenance.contains("residual bodies: Moon; applies to 1 bundled body"));
@@ -4059,6 +4074,20 @@ mod tests {
         assert!(provenance.contains("segment samples across"));
         assert!(provenance.contains("rows across"));
         assert!(provenance.contains("asteroid rows"));
+    }
+
+    #[test]
+    fn packaged_artifact_regeneration_summary_validation_rejects_profile_id_drift() {
+        let mut summary = packaged_artifact_regeneration_summary_details();
+        summary.profile_id = "pleiades-packaged-artifact-profile/test-drift";
+
+        let error = summary
+            .validate()
+            .expect_err("profile id drift should be rejected");
+
+        assert!(error
+            .to_string()
+            .contains("packaged artifact regeneration summary profile id does not match the checked-in artifact profile id"));
     }
 
     #[test]
