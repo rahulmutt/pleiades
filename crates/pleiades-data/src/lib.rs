@@ -1250,6 +1250,232 @@ pub fn packaged_artifact_production_profile_summary() -> &'static str {
         .as_str()
 }
 
+/// Structured generation parameters for the packaged artifact generator.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PackagedArtifactGeneratorParameters {
+    /// Stable identifier for the generation profile.
+    pub profile_id: &'static str,
+    /// Human-readable generation label.
+    pub label: &'static str,
+    /// Version of the packaged artifact format.
+    pub artifact_version: u16,
+    /// Covered time range for the packaged artifact.
+    pub time_range: TimeRange,
+    /// Bodies bundled into the packaged artifact.
+    pub body_coverage: PackagedBodyCoverageSummary,
+    /// Capability profile encoded by the packaged artifact.
+    pub artifact_profile: ArtifactProfile,
+    /// Generation policy used to turn reference snapshots into segments.
+    pub generation_policy: PackagedArtifactGenerationPolicy,
+    /// Request policy encoded by the packaged artifact.
+    pub request_policy: PackagedRequestPolicySummary,
+    /// Frame-treatment policy encoded by the packaged artifact.
+    pub frame_treatment: PackagedFrameTreatmentSummary,
+    /// Storage/reconstruction policy encoded by the packaged artifact.
+    pub storage_summary: PackagedArtifactStorageSummary,
+    /// Release-facing statement about the still-open production target thresholds.
+    pub target_thresholds: PackagedArtifactTargetThresholdSummary,
+}
+
+impl PackagedArtifactGeneratorParameters {
+    /// Returns the generator parameters as a compact human-readable line.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Packaged artifact generator parameters: profile id={}; label={}; version={}; time range={}; body coverage={}; artifact profile={}; generation policy={}; request policy={}; frame treatment={}; storage/reconstruction={}; {}",
+            self.profile_id,
+            self.label,
+            self.artifact_version,
+            self.time_range,
+            self.body_coverage,
+            self.artifact_profile,
+            self.generation_policy,
+            self.request_policy,
+            self.frame_treatment,
+            self.storage_summary,
+            self.target_thresholds,
+        )
+    }
+
+    /// Returns `Ok(())` when the parameters still match the current packaged-artifact posture.
+    pub fn validate(&self) -> Result<(), pleiades_compression::CompressionError> {
+        let current = packaged_artifact_production_profile_summary_details();
+
+        if self.profile_id != current.profile_id {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact generator parameters profile id does not match the current production profile",
+            ));
+        }
+        if self.label != current.label {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact generator parameters label does not match the current production profile",
+            ));
+        }
+        if self.artifact_version != current.artifact_version {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact generator parameters version does not match the current production profile",
+            ));
+        }
+        if self.time_range != current.time_range {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact generator parameters time range does not match the current production profile",
+            ));
+        }
+        if self.body_coverage != current.body_coverage {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact generator parameters body coverage does not match the current production profile",
+            ));
+        }
+        if self.artifact_profile != current.artifact_profile {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact generator parameters artifact profile does not match the current production profile",
+            ));
+        }
+        if self.generation_policy != current.generation_policy {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact generator parameters generation policy does not match the current production profile",
+            ));
+        }
+        if self.request_policy != current.request_policy {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact generator parameters request policy does not match the current production profile",
+            ));
+        }
+        if self.frame_treatment != current.frame_treatment {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact generator parameters frame-treatment policy does not match the current production profile",
+            ));
+        }
+        if self.storage_summary != current.storage_summary {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact generator parameters storage summary does not match the current production profile",
+            ));
+        }
+        if self.target_thresholds != current.target_thresholds {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact generator parameters target thresholds do not match the current production profile",
+            ));
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated generator parameters summary line.
+    pub fn validated_summary_line(&self) -> Result<String, pleiades_compression::CompressionError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for PackagedArtifactGeneratorParameters {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Structured deterministic manifest for the packaged artifact generator.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PackagedArtifactGenerationManifest {
+    /// Generator parameters used to produce the packaged artifact.
+    pub parameters: PackagedArtifactGeneratorParameters,
+    /// Regeneration provenance anchored to the checked-in artifact and source snapshot.
+    pub regeneration: PackagedArtifactRegenerationSummary,
+}
+
+impl PackagedArtifactGenerationManifest {
+    /// Returns the deterministic manifest as a compact human-readable line.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Packaged artifact generation manifest: {}; regeneration={}",
+            self.parameters, self.regeneration,
+        )
+    }
+
+    /// Returns `Ok(())` when the manifest still matches the current packaged-artifact posture.
+    pub fn validate(&self) -> Result<(), pleiades_compression::CompressionError> {
+        self.parameters.validate()?;
+        self.regeneration.validate()?;
+        Ok(())
+    }
+
+    /// Returns the validated manifest summary line.
+    pub fn validated_summary_line(&self) -> Result<String, pleiades_compression::CompressionError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for PackagedArtifactGenerationManifest {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns the current packaged-artifact generator parameters.
+pub fn packaged_artifact_generator_parameters_details() -> PackagedArtifactGeneratorParameters {
+    let summary = packaged_artifact_production_profile_summary_details();
+    let parameters = PackagedArtifactGeneratorParameters {
+        profile_id: summary.profile_id,
+        label: summary.label,
+        artifact_version: summary.artifact_version,
+        time_range: summary.time_range,
+        body_coverage: summary.body_coverage,
+        artifact_profile: summary.artifact_profile,
+        generation_policy: summary.generation_policy,
+        request_policy: summary.request_policy,
+        frame_treatment: summary.frame_treatment,
+        storage_summary: summary.storage_summary,
+        target_thresholds: summary.target_thresholds,
+    };
+    debug_assert!(parameters.validate().is_ok());
+    parameters
+}
+
+/// Returns the current deterministic packaged-artifact generation manifest.
+pub fn packaged_artifact_generation_manifest_details() -> PackagedArtifactGenerationManifest {
+    let manifest = PackagedArtifactGenerationManifest {
+        parameters: packaged_artifact_generator_parameters_details(),
+        regeneration: packaged_artifact_regeneration_summary_details(),
+    };
+    debug_assert!(manifest.validate().is_ok());
+    manifest
+}
+
+/// Returns the current deterministic packaged-artifact generation manifest after validation.
+pub fn packaged_artifact_generation_manifest_for_report() -> String {
+    let manifest = packaged_artifact_generation_manifest_details();
+    match manifest.validated_summary_line() {
+        Ok(line) => line,
+        Err(error) => format!("Packaged artifact generation manifest: unavailable ({error})"),
+    }
+}
+
+/// Returns the current deterministic packaged-artifact generation manifest.
+pub fn packaged_artifact_generation_manifest() -> &'static str {
+    static SUMMARY: OnceLock<String> = OnceLock::new();
+    SUMMARY
+        .get_or_init(|| {
+            let manifest = packaged_artifact_generation_manifest_details();
+            match manifest.validated_summary_line() {
+                Ok(rendered) => rendered,
+                Err(error) => {
+                    format!("Packaged artifact generation manifest: unavailable ({error})")
+                }
+            }
+        })
+        .as_str()
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PackagedArtifactProfileSummary {
     /// Number of bundled bodies that share the packaged artifact profile.
@@ -4660,6 +4886,54 @@ mod tests {
             packaged_artifact_production_profile_summary(),
             summary.summary_line()
         );
+    }
+
+    #[test]
+    fn packaged_artifact_generation_manifest_reflects_the_current_posture() {
+        let manifest = packaged_artifact_generation_manifest_details();
+        let parameters = packaged_artifact_generator_parameters_details();
+        let regeneration = packaged_artifact_regeneration_summary_details();
+
+        assert_eq!(manifest.parameters, parameters);
+        assert_eq!(manifest.regeneration, regeneration);
+        assert_eq!(manifest.to_string(), manifest.summary_line());
+        assert_eq!(
+            manifest.validated_summary_line(),
+            Ok(manifest.summary_line())
+        );
+        manifest
+            .validate()
+            .expect("generation manifest should validate");
+        assert!(manifest
+            .summary_line()
+            .contains("Packaged artifact generation manifest:"));
+        assert!(manifest.summary_line().contains("regeneration="));
+        assert!(packaged_artifact_generation_manifest_for_report()
+            .contains("Packaged artifact generation manifest:"));
+        assert_eq!(
+            packaged_artifact_generation_manifest(),
+            manifest.summary_line()
+        );
+    }
+
+    #[test]
+    fn packaged_artifact_generation_manifest_validation_rejects_parameter_drift() {
+        let mut manifest = packaged_artifact_generation_manifest_details();
+        manifest.parameters.target_thresholds = PackagedArtifactTargetThresholdSummary {
+            status: "drifted",
+            scopes: &["luminaries"],
+        };
+
+        let error = manifest
+            .validate()
+            .expect_err("drifted generation parameters should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error.message.contains(
+            "packaged artifact generator parameters target thresholds do not match the current production profile"
+        ));
     }
 
     #[test]

@@ -320,17 +320,43 @@ fn production_generation_snapshot_bodies() -> &'static [CelestialBody] {
     production_generation_snapshot_body_list()
 }
 
+fn extend_unique_snapshot_entries(merged: &mut Vec<SnapshotEntry>, entries: &[SnapshotEntry]) {
+    let mut seen = merged
+        .iter()
+        .map(|entry| {
+            (
+                entry.body.to_string(),
+                entry.epoch.julian_day.days().to_bits(),
+            )
+        })
+        .collect::<BTreeSet<_>>();
+
+    for entry in entries {
+        let key = (
+            entry.body.to_string(),
+            entry.epoch.julian_day.days().to_bits(),
+        );
+        if seen.insert(key) {
+            merged.push(entry.clone());
+        }
+    }
+}
+
 /// Returns the production-generation snapshot corpus used for boundary-coverage checks.
+///
+/// The merged corpus keeps the checked-in reference rows first, then appends the
+/// boundary overlay while skipping overlapping body/epoch pairs that are already
+/// covered by the reference snapshot.
 pub fn production_generation_snapshot_entries() -> Option<&'static [SnapshotEntry]> {
     static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
     let entries = ENTRIES
         .get_or_init(|| {
             let mut merged = Vec::new();
             if let Some(reference_entries) = snapshot_entries() {
-                merged.extend(reference_entries.iter().cloned());
+                extend_unique_snapshot_entries(&mut merged, reference_entries);
             }
             if let Some(boundary_entries) = production_generation_boundary_entries() {
-                merged.extend(boundary_entries.iter().cloned());
+                extend_unique_snapshot_entries(&mut merged, boundary_entries);
             }
             merged
         })
@@ -7740,17 +7766,17 @@ mod tests {
         summary
             .validate()
             .expect("reference snapshot summary should validate");
-        assert_eq!(summary.row_count, 63);
+        assert_eq!(summary.row_count, 69);
         assert_eq!(summary.body_count, 15);
         assert_eq!(summary.bodies, reference_bodies());
-        assert_eq!(summary.epoch_count, 7);
+        assert_eq!(summary.epoch_count, 9);
         assert_eq!(summary.asteroid_row_count, 20);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_499.0);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(
             summary.summary_line(),
             format!(
-                "Reference snapshot coverage: 63 rows across 15 bodies and 7 epochs (20 asteroid rows; JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: {}",
+                "Reference snapshot coverage: 69 rows across 15 bodies and 9 epochs (20 asteroid rows; JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: {}",
                 format_bodies(reference_bodies())
             )
         );
@@ -7987,16 +8013,16 @@ mod tests {
     fn reference_snapshot_equatorial_parity_summary_reports_the_expected_coverage() {
         let summary = reference_snapshot_equatorial_parity_summary()
             .expect("reference snapshot equatorial parity summary should exist");
-        assert_eq!(summary.row_count, 63);
+        assert_eq!(summary.row_count, 69);
         assert_eq!(summary.body_count, 15);
         assert_eq!(summary.bodies, reference_bodies());
-        assert_eq!(summary.epoch_count, 7);
+        assert_eq!(summary.epoch_count, 9);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_499.0);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(
             summary.summary_line(),
             format!(
-                "JPL reference snapshot equatorial parity: 63 rows across 15 bodies and 7 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: {}; mean-obliquity transform against the checked-in ecliptic fixture",
+                "JPL reference snapshot equatorial parity: 69 rows across 15 bodies and 9 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: {}; mean-obliquity transform against the checked-in ecliptic fixture",
                 format_bodies(reference_bodies())
             )
         );
