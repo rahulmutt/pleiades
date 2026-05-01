@@ -11,9 +11,10 @@ use core::{fmt, time::Duration};
 
 use pleiades_ayanamsa::{resolve_ayanamsa, sidereal_offset};
 use pleiades_backend::{
-    validate_request_against_metadata, Apparentness, BackendMetadata, EphemerisBackend,
-    EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
-    EphemerisResultValidationError,
+    frame_treatment_summary_for_report, request_policy_summary_for_report,
+    time_scale_policy_summary_for_report, validate_request_against_metadata, Apparentness,
+    BackendMetadata, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
+    EphemerisResult, EphemerisResultValidationError,
 };
 use pleiades_houses::{
     calculate_houses, house_for_longitude, resolve_house_system, HouseError, HouseRequest,
@@ -2628,7 +2629,8 @@ impl fmt::Display for ChartSnapshot {
         )?;
         writeln!(
             f,
-            "Time-scale policy: caller-supplied instant scale; no built-in Delta T or relativistic model"
+            "Time-scale policy: {}",
+            time_scale_policy_summary_for_report().summary_line()
         )?;
         if let Some(observer) = &self.observer {
             writeln!(
@@ -2655,22 +2657,15 @@ impl fmt::Display for ChartSnapshot {
         }
         writeln!(
             f,
-            "Frame policy: ecliptic body positions are requested from the backend; house calculations remain separate"
+            "Frame policy: {}",
+            frame_treatment_summary_for_report().summary_line()
         )?;
         writeln!(f, "Zodiac mode: {}", self.zodiac_mode)?;
         writeln!(f, "Apparentness: {}", self.apparentness)?;
         writeln!(
             f,
             "Apparentness policy: {}",
-            match self.apparentness {
-                Apparentness::Mean => {
-                    "mean geometric request by default; apparent corrections require backend support"
-                }
-                Apparentness::Apparent => {
-                    "apparent request explicitly requested; backend support required"
-                }
-                _ => "requested apparentness is backend-dependent",
-            }
+            request_policy_summary_for_report().apparentness
         )?;
         if let Some(houses) = &self.houses {
             let house_name = crate::house_system_descriptor(&houses.system)
@@ -3432,10 +3427,14 @@ mod tests {
         assert!(rendered.contains("Moon"));
         assert!(rendered.contains("Sign summary: 1 Aries, 1 Taurus"));
         assert!(rendered.contains("Instant: JD 2451545 (TT)"));
-        assert!(rendered.contains(
-            "Frame policy: ecliptic body positions are requested from the backend; house calculations remain separate"
-        ));
-        assert!(rendered.contains("Apparentness policy: mean geometric request by default; apparent corrections require backend support"));
+        assert!(rendered.contains(&format!(
+            "Frame policy: {}",
+            frame_treatment_summary_for_report().summary_line()
+        )));
+        assert!(rendered.contains(&format!(
+            "Apparentness policy: {}",
+            request_policy_summary_for_report().apparentness
+        )));
     }
 
     #[test]
@@ -3636,10 +3635,14 @@ mod tests {
         assert_eq!(chart.apparentness, Apparentness::Apparent);
         let rendered = chart.to_string();
         assert!(rendered.contains("Apparentness: Apparent"));
-        assert!(rendered.contains(
-            "Apparentness policy: apparent request explicitly requested; backend support required"
-        ));
-        assert!(rendered.contains("Time-scale policy: caller-supplied instant scale; no built-in Delta T or relativistic model"));
+        assert!(rendered.contains(&format!(
+            "Apparentness policy: {}",
+            request_policy_summary_for_report().apparentness
+        )));
+        assert!(rendered.contains(&format!(
+            "Time-scale policy: {}",
+            time_scale_policy_summary_for_report().summary_line()
+        )));
     }
 
     #[test]
