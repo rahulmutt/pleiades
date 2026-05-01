@@ -5949,25 +5949,15 @@ fn render_release_summary_text() -> String {
     text.push_str(&profile.target_ayanamsa_scope.join("; "));
     text.push('\n');
     let time_scale_policy = time_scale_policy_summary_for_report();
-    text.push_str("Time-scale policy: ");
-    text.push_str(&format_time_scale_policy_summary_for_report(
+    text.push_str(&format_request_semantics_summary_for_report(
         &time_scale_policy,
+        &request_policy,
     ));
-    text.push('\n');
-    text.push_str("Observer policy: ");
-    text.push_str(request_policy.observer);
-    text.push('\n');
-    text.push_str("Apparentness policy: ");
-    text.push_str(request_policy.apparentness);
-    text.push('\n');
     text.push_str("Frame policy: ");
     text.push_str(request_policy.frame);
     text.push('\n');
     text.push_str("Mean-obliquity frame round-trip: ");
     text.push_str(&mean_obliquity_frame_round_trip_summary_for_report());
-    text.push('\n');
-    text.push_str("Request policy: ");
-    text.push_str(&format_request_policy_summary_for_report(&request_policy));
     text.push('\n');
     text.push_str(&request_surface_summary_for_report());
     text.push('\n');
@@ -9080,6 +9070,28 @@ fn format_request_policy_summary_for_report(
     }
 }
 
+fn format_request_semantics_summary_for_report(
+    time_scale_policy: &pleiades_backend::TimeScalePolicySummary,
+    request_policy: &pleiades_backend::RequestPolicySummary,
+) -> String {
+    use std::fmt::Write as _;
+
+    let mut text = String::new();
+    let _ = writeln!(
+        text,
+        "Time-scale policy: {}",
+        format_time_scale_policy_summary_for_report(time_scale_policy)
+    );
+    let _ = writeln!(text, "Observer policy: {}", request_policy.observer);
+    let _ = writeln!(text, "Apparentness policy: {}", request_policy.apparentness);
+    let _ = writeln!(
+        text,
+        "Request policy: {}",
+        format_request_policy_summary_for_report(request_policy)
+    );
+    text
+}
+
 fn validated_api_stability_profile_for_report() -> Result<pleiades_core::ApiStabilityProfile, String>
 {
     let profile = current_api_stability_profile();
@@ -10332,20 +10344,10 @@ fn render_backend_matrix_summary_text() -> String {
         text.push('\n');
     }
     let time_scale_policy = time_scale_policy_summary_for_report();
-    text.push_str("Time-scale policy: ");
-    text.push_str(&format_time_scale_policy_summary_for_report(
+    text.push_str(&format_request_semantics_summary_for_report(
         &time_scale_policy,
+        &request_policy,
     ));
-    text.push('\n');
-    text.push_str("Observer policy: ");
-    text.push_str(request_policy.observer);
-    text.push('\n');
-    text.push_str("Apparentness policy: ");
-    text.push_str(request_policy.apparentness);
-    text.push('\n');
-    text.push_str("Request policy: ");
-    text.push_str(&format_request_policy_summary_for_report(&request_policy));
-    text.push('\n');
     text.push_str(&request_surface_summary_for_report());
     text.push('\n');
     text.push_str("Frame policy: ");
