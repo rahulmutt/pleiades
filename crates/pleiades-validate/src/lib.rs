@@ -5759,6 +5759,10 @@ fn render_release_notes_summary_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_source_window_summary_for_report());
     text.push('\n');
+    text.push_str(&selected_asteroid_source_evidence_summary_for_report());
+    text.push('\n');
+    text.push_str(&selected_asteroid_source_window_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_manifest_summary_for_report());
     text.push('\n');
     text.push_str(&comparison_snapshot_summary_for_report());
@@ -10418,6 +10422,10 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str("Backends with selected asteroid coverage: ");
     text.push_str(&selected_asteroid_count.to_string());
+    text.push('\n');
+    text.push_str(&selected_asteroid_source_evidence_summary_for_report());
+    text.push('\n');
+    text.push_str(&selected_asteroid_source_window_summary_for_report());
     text.push('\n');
     text.push_str("House code aliases: ");
     text.push_str(&profile.house_code_aliases_summary_line());
@@ -16059,6 +16067,8 @@ mod tests {
             release_profiles.compatibility_profile_id, release_profiles.api_stability_profile_id
         )));
         assert!(rendered.contains("Release-specific coverage:"));
+        assert!(rendered.contains("Selected asteroid source evidence: 20 source-backed samples across 5 bodies and 4 epochs (JD 2451545.0 (TDB)..JD 2634167.0 (TDB)); bodies: Ceres, Pallas, Juno, Vesta, asteroid:433-Eros"));
+        assert!(rendered.contains("Selected asteroid source windows: 20 source-backed samples across 5 bodies and 4 epochs (JD 2451545.0 (TDB)..JD 2634167.0 (TDB)); windows: Ceres: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Pallas: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Juno: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Vesta: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); asteroid:433-Eros: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB)"));
         assert!(rendered.contains("Custom-definition labels:"));
         assert!(rendered.contains("House formula families: 7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign)"));
         assert!(rendered.contains(&format!(
