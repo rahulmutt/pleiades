@@ -2336,6 +2336,12 @@ impl BenchmarkReport {
         )
     }
 
+    /// Returns the validated compact summary line for the benchmark.
+    pub fn validated_summary_line(&self) -> Result<String, EphemerisError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
     /// Returns the average number of nanoseconds per request for the single-request path.
     pub fn nanoseconds_per_request(&self) -> f64 {
         let total_requests = (self.rounds * self.sample_count) as f64;
@@ -13406,6 +13412,7 @@ mod tests {
         let report =
             benchmark_backend(&backend, &corpus, 1).expect("benchmark should produce a report");
         let summary = report.summary_line();
+        assert_eq!(report.validated_summary_line(), Ok(summary.clone()));
         assert!(summary.contains("backend="));
         assert!(summary.contains("corpus="));
         assert!(summary.contains("apparentness="));

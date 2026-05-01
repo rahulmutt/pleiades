@@ -40,7 +40,7 @@ impl ChartBenchmarkReport {
     /// Returns a compact release-facing summary line for the benchmark.
     pub fn summary_line(&self) -> String {
         format!(
-            "backend={}; corpus={}; apparentness={}; rounds={}; samples per round={}; chart ns/request={}; charts per second={:.2}; estimated corpus heap footprint={} bytes",
+            "backend={}; corpus={}; apparentness={}; rounds={}; samples per round={}; chart ns/request={}; charts per second={:.2} req/s; estimated corpus heap footprint={} bytes",
             self.backend.id,
             self.corpus_name,
             self.apparentness,
@@ -50,6 +50,12 @@ impl ChartBenchmarkReport {
             self.charts_per_second(),
             self.estimated_corpus_heap_bytes,
         )
+    }
+
+    /// Returns the validated compact summary line for the benchmark.
+    pub fn validated_summary_line(&self) -> Result<String, EphemerisError> {
+        self.validate()?;
+        Ok(self.summary_line())
     }
 
     /// Returns the average number of nanoseconds per chart for the benchmark.
@@ -283,6 +289,7 @@ mod tests {
         let report = benchmark_chart_backend(default_candidate_backend(), 1)
             .expect("chart benchmark should produce a report");
         let summary = report.summary_line();
+        assert_eq!(report.validated_summary_line(), Ok(summary.clone()));
         assert!(summary.contains("backend="));
         assert!(summary.contains("corpus="));
         assert!(summary.contains("apparentness="));
