@@ -4405,6 +4405,14 @@ impl LunarHighCurvatureContinuityEnvelope {
         )
     }
 
+    /// Returns the compact summary line after validating the continuity evidence slice.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, LunarHighCurvatureEvidenceValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
     fn validate(&self) -> Result<(), LunarHighCurvatureEvidenceValidationError> {
         validate_high_curvature_continuity_window(
             self.sample_count,
@@ -4627,15 +4635,16 @@ fn lunar_high_curvature_continuity_envelope() -> Option<LunarHighCurvatureContin
 fn format_lunar_high_curvature_continuity_evidence_envelope(
     envelope: &LunarHighCurvatureContinuityEnvelope,
 ) -> String {
-    envelope.summary_line()
+    match envelope.validated_summary_line() {
+        Ok(summary_line) => summary_line,
+        Err(_) => "lunar high-curvature continuity evidence: unavailable".to_string(),
+    }
 }
 
 /// Returns the release-facing lunar high-curvature continuity evidence string.
 pub fn lunar_high_curvature_continuity_evidence_for_report() -> String {
     match lunar_high_curvature_continuity_envelope() {
-        Some(envelope) if envelope.validate().is_ok() => {
-            format_lunar_high_curvature_continuity_evidence_envelope(&envelope)
-        }
+        Some(envelope) => format_lunar_high_curvature_continuity_evidence_envelope(&envelope),
         _ => "lunar high-curvature continuity evidence: unavailable".to_string(),
     }
 }
@@ -4698,6 +4707,14 @@ impl LunarHighCurvatureEquatorialContinuityEnvelope {
             LUNAR_HIGH_CURVATURE_DISTANCE_LIMIT_AU,
             self.within_regression_limits,
         )
+    }
+
+    /// Returns the compact summary line after validating the equatorial continuity evidence slice.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, LunarHighCurvatureEvidenceValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
     }
 
     fn validate(&self) -> Result<(), LunarHighCurvatureEvidenceValidationError> {
@@ -4852,13 +4869,16 @@ fn lunar_high_curvature_equatorial_continuity_envelope(
 fn format_lunar_high_curvature_equatorial_continuity_evidence_envelope(
     envelope: &LunarHighCurvatureEquatorialContinuityEnvelope,
 ) -> String {
-    envelope.summary_line()
+    match envelope.validated_summary_line() {
+        Ok(summary_line) => summary_line,
+        Err(_) => "lunar high-curvature equatorial continuity evidence: unavailable".to_string(),
+    }
 }
 
 /// Returns the release-facing lunar high-curvature equatorial continuity evidence string.
 pub fn lunar_high_curvature_equatorial_continuity_evidence_for_report() -> String {
     match lunar_high_curvature_equatorial_continuity_envelope() {
-        Some(envelope) if envelope.validate().is_ok() => {
+        Some(envelope) => {
             format_lunar_high_curvature_equatorial_continuity_evidence_envelope(&envelope)
         }
         _ => "lunar high-curvature equatorial continuity evidence: unavailable".to_string(),
@@ -6655,6 +6675,7 @@ mod tests {
         let report = lunar_high_curvature_continuity_evidence_for_report();
 
         assert_eq!(report, envelope.summary_line());
+        assert_eq!(envelope.validated_summary_line().unwrap(), report);
         assert!(envelope.validate().is_ok());
         assert!(
             report.contains("lunar high-curvature continuity evidence: 6 samples across 1 bodies")
@@ -6786,6 +6807,10 @@ mod tests {
             envelope.validate(),
             Err(LunarHighCurvatureEvidenceValidationError::SampleCountTooSmall { sample_count: 1 })
         ));
+        assert!(matches!(
+            envelope.validated_summary_line(),
+            Err(LunarHighCurvatureEvidenceValidationError::SampleCountTooSmall { sample_count: 1 })
+        ));
     }
 
     #[test]
@@ -6813,6 +6838,7 @@ mod tests {
         let report = lunar_high_curvature_equatorial_continuity_evidence_for_report();
 
         assert_eq!(report, envelope.summary_line());
+        assert_eq!(envelope.validated_summary_line().unwrap(), report);
         assert!(envelope.validate().is_ok());
         assert!(report.contains(
             "lunar high-curvature equatorial continuity evidence: 6 samples across 1 bodies"
@@ -6835,6 +6861,10 @@ mod tests {
 
         assert!(matches!(
             envelope.validate(),
+            Err(LunarHighCurvatureEvidenceValidationError::SampleCountTooSmall { sample_count: 1 })
+        ));
+        assert!(matches!(
+            envelope.validated_summary_line(),
             Err(LunarHighCurvatureEvidenceValidationError::SampleCountTooSmall { sample_count: 1 })
         ));
     }
