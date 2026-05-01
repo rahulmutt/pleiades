@@ -2111,6 +2111,7 @@ impl fmt::Display for MotionSummary {
 ///
 /// assert_eq!(summary.summary_line(), "1 Sextile, 2 Trine");
 /// assert_eq!(summary.to_string(), summary.summary_line());
+/// assert_eq!(summary.validate(3), Ok(()));
 /// assert!(summary.has_known_aspects());
 /// ```
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -2153,6 +2154,19 @@ impl AspectSummary {
         self.conjunction + self.sextile + self.square + self.trine + self.opposition > 0
     }
 
+    /// Validates that the summary covers the expected number of aspect matches.
+    pub fn validate(self, aspect_count: usize) -> Result<(), AspectSummaryValidationError> {
+        let actual = self.conjunction + self.sextile + self.square + self.trine + self.opposition;
+        if actual == aspect_count {
+            Ok(())
+        } else {
+            Err(AspectSummaryValidationError::PlacementCountMismatch {
+                expected: aspect_count,
+                actual,
+            })
+        }
+    }
+
     /// Returns a compact one-line summary of the major aspect families in the snapshot.
     pub fn summary_line(self) -> String {
         let mut summary = String::new();
@@ -2181,6 +2195,31 @@ impl AspectSummary {
         summary
     }
 }
+
+/// Errors returned when a major-aspect summary no longer matches the chart.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AspectSummaryValidationError {
+    /// The total aspect-summary count did not match the chart aspect count.
+    PlacementCountMismatch {
+        /// Expected number of aspect matches.
+        expected: usize,
+        /// Aspect-summary total that was observed.
+        actual: usize,
+    },
+}
+
+impl fmt::Display for AspectSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::PlacementCountMismatch { expected, actual } => write!(
+                f,
+                "aspect summary placement count mismatch: expected {expected}, found {actual}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for AspectSummaryValidationError {}
 
 impl fmt::Display for AspectSummary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -2504,7 +2543,10 @@ impl fmt::Display for ChartSnapshot {
         let aspects = self.major_aspects();
         let aspect_summary = AspectSummary::from_matches(&aspects);
         if aspect_summary.has_known_aspects() {
-            writeln!(f, "Aspect summary: {}", aspect_summary)?;
+            match aspect_summary.validate(aspects.len()) {
+                Ok(()) => writeln!(f, "Aspect summary: {}", aspect_summary)?,
+                Err(error) => writeln!(f, "Aspect summary unavailable ({error})")?,
+            }
         }
         if !aspects.is_empty() {
             writeln!(f, "Aspects:")?;
@@ -5433,6 +5475,26 @@ mod tests {
     }
 
     #[test]
+    fn aspect_summary_validation_rejects_count_mismatch() {
+        let summary = AspectSummary {
+            conjunction: 1,
+            sextile: 0,
+            square: 0,
+            trine: 1,
+            opposition: 0,
+        };
+
+        assert_eq!(summary.validate(2), Ok(()));
+        assert_eq!(
+            summary.validate(3),
+            Err(AspectSummaryValidationError::PlacementCountMismatch {
+                expected: 3,
+                actual: 2
+            })
+        );
+    }
+
+    #[test]
     fn chart_snapshot_exposes_major_aspects_and_angular_separation() {
         let instant = Instant::new(
             pleiades_types::JulianDay::from_days(2451545.0),
@@ -5515,6 +5577,7 @@ mod tests {
         );
         assert_eq!(chart.aspect_summary().summary_line(), "1 Sextile");
         assert_eq!(chart.aspect_summary().to_string(), "1 Sextile");
+        assert_eq!(chart.aspect_summary().validate(aspects.len()), Ok(()));
         let rendered = chart.to_string();
         assert!(rendered.contains("Aspect summary: 1 Sextile"));
         assert!(rendered.contains("Aspects:"));

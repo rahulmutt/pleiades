@@ -94,6 +94,7 @@ The repository already exposes baseline house systems and ayanamsas, a larger re
    - Progress note: the Gauquelin release-system regression now also checks the 36-sector spacing in the descending wraparound order in addition to the existing anchor points, so the special 36-cusp shape is exercised as part of the formula-validation slice instead of only as a sector-count check.
    - Progress note: the Krusinski-Pisa-Goelzer release-system regression now also pins the documented opposite-pair layout directly, so the remaining release-specific house system has an explicit geometry check instead of only an availability assertion.
    - Progress note: `HouseSnapshot::validate()` now also enforces the expected cusp cardinality for each supported system, so malformed manual snapshots for Gauquelin and the 12-cusp systems now fail closed before derived-domain consumers can treat them as structurally sound. The same validation now also checks that the descendant remains opposite the ascendant and the imum coeli remains opposite the midheaven, which keeps the stored angle pairs consistent when snapshots are constructed by hand or in future derived-domain tests.
+   - Progress note (2026-05-01): `pleiades-core::AspectSummary` now also exposes a validated summary helper and the chart snapshot formatter preflights the major-aspect count before rendering, which keeps the compact aspect line fail-closed in the same derived-domain style as the motion summary and the house/snapshot guards.
 
 ## Done criteria
 
