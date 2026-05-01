@@ -1422,12 +1422,16 @@ pub struct ReferenceSnapshotBodyClassCoverageSummary {
     pub major_bodies: Vec<pleiades_backend::CelestialBody>,
     /// Number of distinct epochs covered by the major-body subset.
     pub major_epoch_count: usize,
+    /// Per-body windows covered by the major-body subset in first-seen order.
+    pub major_windows: Vec<ReferenceSnapshotSourceWindow>,
     /// Number of selected-asteroid rows in the checked-in reference snapshot.
     pub asteroid_row_count: usize,
     /// Selected asteroids covered by the checked-in reference snapshot in first-seen order.
     pub asteroid_bodies: Vec<pleiades_backend::CelestialBody>,
     /// Number of distinct epochs covered by the selected-asteroid subset.
     pub asteroid_epoch_count: usize,
+    /// Per-body windows covered by the selected-asteroid subset in first-seen order.
+    pub asteroid_windows: Vec<ReferenceSnapshotSourceWindow>,
 }
 
 /// Validation error for a reference snapshot body-class coverage summary.
@@ -1453,14 +1457,29 @@ impl std::error::Error for ReferenceSnapshotBodyClassCoverageSummaryValidationEr
 impl ReferenceSnapshotBodyClassCoverageSummary {
     /// Returns a compact body-class summary used in release-facing reporting.
     pub fn summary_line(&self) -> String {
+        let major_windows = self
+            .major_windows
+            .iter()
+            .map(ReferenceSnapshotSourceWindow::summary_line)
+            .collect::<Vec<_>>()
+            .join("; ");
+        let asteroid_windows = self
+            .asteroid_windows
+            .iter()
+            .map(ReferenceSnapshotSourceWindow::summary_line)
+            .collect::<Vec<_>>()
+            .join("; ");
+
         format!(
-            "Reference snapshot body-class coverage: major bodies: {} rows across {} bodies and {} epochs; selected asteroids: {} rows across {} bodies and {} epochs",
+            "Reference snapshot body-class coverage: major bodies: {} rows across {} bodies and {} epochs; major windows: {}; selected asteroids: {} rows across {} bodies and {} epochs; asteroid windows: {}",
             self.major_body_row_count,
             self.major_bodies.len(),
             self.major_epoch_count,
+            major_windows,
             self.asteroid_row_count,
             self.asteroid_bodies.len(),
             self.asteroid_epoch_count,
+            asteroid_windows,
         )
     }
 
@@ -1495,6 +1514,13 @@ impl ReferenceSnapshotBodyClassCoverageSummary {
                 },
             );
         }
+        if self.major_windows != expected.major_windows {
+            return Err(
+                ReferenceSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "major_windows",
+                },
+            );
+        }
         if self.asteroid_row_count != expected.asteroid_row_count {
             return Err(
                 ReferenceSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
@@ -1513,6 +1539,13 @@ impl ReferenceSnapshotBodyClassCoverageSummary {
             return Err(
                 ReferenceSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
                     field: "asteroid_epoch_count",
+                },
+            );
+        }
+        if self.asteroid_windows != expected.asteroid_windows {
+            return Err(
+                ReferenceSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "asteroid_windows",
                 },
             );
         }
@@ -1559,6 +1592,20 @@ fn reference_snapshot_body_class_coverage_summary_details(
         }
     }
 
+    let source_windows = reference_snapshot_source_window_summary_details()?;
+    let major_windows = source_windows
+        .windows
+        .iter()
+        .filter(|window| is_comparison_body(&window.body))
+        .cloned()
+        .collect::<Vec<_>>();
+    let asteroid_windows = source_windows
+        .windows
+        .iter()
+        .filter(|window| is_reference_asteroid(&window.body))
+        .cloned()
+        .collect::<Vec<_>>();
+
     Some(ReferenceSnapshotBodyClassCoverageSummary {
         major_body_row_count,
         major_bodies: snapshot_bodies()
@@ -1567,9 +1614,11 @@ fn reference_snapshot_body_class_coverage_summary_details(
             .cloned()
             .collect(),
         major_epoch_count: major_epochs.len(),
+        major_windows,
         asteroid_row_count,
         asteroid_bodies: reference_asteroids().to_vec(),
         asteroid_epoch_count: asteroid_epochs.len(),
+        asteroid_windows,
     })
 }
 
@@ -11984,9 +12033,11 @@ mod tests {
         assert_eq!(body_class_summary.major_body_row_count, 70);
         assert_eq!(body_class_summary.major_bodies.len(), 10);
         assert_eq!(body_class_summary.major_epoch_count, 9);
+        assert_eq!(body_class_summary.major_windows.len(), 10);
         assert_eq!(body_class_summary.asteroid_row_count, 20);
         assert_eq!(body_class_summary.asteroid_bodies.len(), 5);
         assert_eq!(body_class_summary.asteroid_epoch_count, 4);
+        assert_eq!(body_class_summary.asteroid_windows.len(), 5);
         assert_eq!(body_class_summary.validate(), Ok(()));
         assert_eq!(
             body_class_summary.validated_summary_line(),
@@ -11998,7 +12049,10 @@ mod tests {
         );
         assert!(body_class_summary
             .summary_line()
-            .contains("Reference snapshot body-class coverage: major bodies: 70 rows across 10 bodies and 9 epochs; selected asteroids: 20 rows across 5 bodies and 4 epochs"));
+            .contains("Reference snapshot body-class coverage: major bodies: 70 rows across 10 bodies and 9 epochs; major windows: "));
+        assert!(body_class_summary.summary_line().contains(
+            "selected asteroids: 20 rows across 5 bodies and 4 epochs; asteroid windows: "
+        ));
 
         let window_summary = reference_snapshot_source_window_summary()
             .expect("reference snapshot source window summary should exist");
