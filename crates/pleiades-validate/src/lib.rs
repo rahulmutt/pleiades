@@ -16779,6 +16779,8 @@ version = "0.9.0"
         assert!(release_summary.contains(
             "Packaged-artifact regeneration: Packaged artifact regeneration source: label=stage-5 packaged-data prototype"
         ));
+        assert!(release_summary.contains("fit envelope:"));
+        assert!(release_summary.contains("segment samples across"));
         assert!(release_summary.contains("checksum=0x"));
         assert!(release_summary.contains("generation policy: adjacent same-body linear segments"));
         assert!(release_summary.contains(&format!(
@@ -16934,6 +16936,8 @@ version = "0.9.0"
         assert!(artifact_summary.contains(
             "regeneration provenance: Packaged artifact regeneration source: label=stage-5 packaged-data prototype"
         ));
+        assert!(artifact_summary.contains("fit envelope:"));
+        assert!(artifact_summary.contains("segment samples across"));
         assert!(artifact_summary.contains("checksum=0x"));
         assert!(artifact_summary.contains("generation policy: adjacent same-body linear segments"));
         assert!(artifact_summary.contains("residual bodies: Moon; applies to 1 bundled body"));

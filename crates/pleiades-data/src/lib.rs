@@ -43,10 +43,10 @@ use std::path::Path;
 
 use pleiades_backend::{
     validate_observer_policy, validate_request_policy, validate_zodiac_policy, AccuracyClass,
-    Apparentness, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
+    Angle, Apparentness, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
     BackendProvenance, CelestialBody, CoordinateFrame, CustomBodyId, EclipticCoordinates,
     EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
-    Instant, QualityAnnotation, TimeRange, TimeScale, ZodiacMode,
+    Instant, JulianDay, QualityAnnotation, TimeRange, TimeScale, ZodiacMode,
 };
 use pleiades_compression::CompressedArtifact;
 use pleiades_compression::{
@@ -56,7 +56,7 @@ use pleiades_compression::{
 };
 use pleiades_jpl::{
     format_reference_snapshot_summary, reference_snapshot, reference_snapshot_summary,
-    ReferenceSnapshotSummary, SnapshotEntry,
+    JplSnapshotBackend, ReferenceSnapshotSummary, SnapshotEntry,
 };
 
 const PACKAGE_NAME: &str = "pleiades-data";
@@ -396,6 +396,302 @@ pub fn packaged_artifact_generation_policy_summary() -> &'static str {
         .as_str()
 }
 
+/// Structured fit envelope for the packaged artifact.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PackagedArtifactFitEnvelopeSummary {
+    /// Number of successfully measured segment samples.
+    pub sample_count: usize,
+    /// Number of planned segment samples for the current artifact layout.
+    pub expected_sample_count: usize,
+    /// Number of bundled bodies covered by the measured sample set.
+    pub body_count: usize,
+    /// Mean absolute longitude delta in degrees.
+    pub mean_longitude_delta_degrees: f64,
+    /// Mean absolute latitude delta in degrees.
+    pub mean_latitude_delta_degrees: f64,
+    /// Mean absolute distance delta in AU.
+    pub mean_distance_delta_au: f64,
+    /// Maximum absolute longitude delta in degrees.
+    pub max_longitude_delta_degrees: f64,
+    /// Maximum absolute latitude delta in degrees.
+    pub max_latitude_delta_degrees: f64,
+    /// Maximum absolute distance delta in AU.
+    pub max_distance_delta_au: f64,
+}
+
+/// Validation error for a packaged-artifact fit envelope that drifted from the current posture.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PackagedArtifactFitEnvelopeSummaryValidationError {
+    /// A rendered summary field no longer matches the current packaged-artifact fit envelope.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl PackagedArtifactFitEnvelopeSummaryValidationError {
+    /// Returns the compact release-facing summary for the validation error.
+    pub fn summary_line(&self) -> String {
+        match self {
+            Self::FieldOutOfSync { field } => format!(
+                "the packaged artifact fit envelope summary field `{field}` is out of sync with the current posture"
+            ),
+        }
+    }
+}
+
+impl fmt::Display for PackagedArtifactFitEnvelopeSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+impl std::error::Error for PackagedArtifactFitEnvelopeSummaryValidationError {}
+
+#[derive(Clone, Debug, PartialEq)]
+struct PackagedArtifactFitSample {
+    body: CelestialBody,
+    longitude_delta_degrees: f64,
+    latitude_delta_degrees: f64,
+    distance_delta_au: f64,
+}
+
+impl PackagedArtifactFitEnvelopeSummary {
+    /// Returns the packaged-artifact fit evidence as a compact human-readable line.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "fit envelope: {}/{} segment samples across {} bundled bodies; mean Δlon={:.12}°, mean Δlat={:.12}°, mean Δdist={:.12} AU; max Δlon={:.12}°, max Δlat={:.12}°, max Δdist={:.12} AU",
+            self.sample_count,
+            self.expected_sample_count,
+            self.body_count,
+            self.mean_longitude_delta_degrees,
+            self.mean_latitude_delta_degrees,
+            self.mean_distance_delta_au,
+            self.max_longitude_delta_degrees,
+            self.max_latitude_delta_degrees,
+            self.max_distance_delta_au,
+        )
+    }
+
+    /// Returns `Ok(())` when the fit envelope still matches the current packaged artifact.
+    pub fn validate(&self) -> Result<(), PackagedArtifactFitEnvelopeSummaryValidationError> {
+        let artifact = packaged_artifact();
+        let expected = packaged_artifact_fit_envelope_summary_details();
+        let expected_sample_count = packaged_artifact_fit_expected_sample_count(artifact);
+        let expected_body_count = artifact.bodies.len();
+
+        if self.expected_sample_count != expected_sample_count {
+            return Err(
+                PackagedArtifactFitEnvelopeSummaryValidationError::FieldOutOfSync {
+                    field: "expected_sample_count",
+                },
+            );
+        }
+        if self.sample_count != expected_sample_count {
+            return Err(
+                PackagedArtifactFitEnvelopeSummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        }
+        if self.body_count != expected_body_count {
+            return Err(
+                PackagedArtifactFitEnvelopeSummaryValidationError::FieldOutOfSync {
+                    field: "body_count",
+                },
+            );
+        }
+
+        if self != &expected {
+            for (field, matches) in [
+                (
+                    "mean_longitude_delta_degrees",
+                    self.mean_longitude_delta_degrees == expected.mean_longitude_delta_degrees,
+                ),
+                (
+                    "mean_latitude_delta_degrees",
+                    self.mean_latitude_delta_degrees == expected.mean_latitude_delta_degrees,
+                ),
+                (
+                    "mean_distance_delta_au",
+                    self.mean_distance_delta_au == expected.mean_distance_delta_au,
+                ),
+                (
+                    "max_longitude_delta_degrees",
+                    self.max_longitude_delta_degrees == expected.max_longitude_delta_degrees,
+                ),
+                (
+                    "max_latitude_delta_degrees",
+                    self.max_latitude_delta_degrees == expected.max_latitude_delta_degrees,
+                ),
+                (
+                    "max_distance_delta_au",
+                    self.max_distance_delta_au == expected.max_distance_delta_au,
+                ),
+            ] {
+                if !matches {
+                    return Err(
+                        PackagedArtifactFitEnvelopeSummaryValidationError::FieldOutOfSync { field },
+                    );
+                }
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl fmt::Display for PackagedArtifactFitEnvelopeSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn packaged_artifact_fit_sample_fractions(segment: &Segment) -> &'static [f64] {
+    if segment.start.julian_day.days() == segment.end.julian_day.days() {
+        &[0.0]
+    } else {
+        &[0.25, 0.5, 0.75]
+    }
+}
+
+fn packaged_artifact_fit_expected_sample_count(artifact: &CompressedArtifact) -> usize {
+    artifact
+        .bodies
+        .iter()
+        .map(|body| {
+            body.segments
+                .iter()
+                .map(|segment| packaged_artifact_fit_sample_fractions(segment).len())
+                .sum::<usize>()
+        })
+        .sum()
+}
+
+fn packaged_artifact_fit_samples(artifact: &CompressedArtifact) -> Vec<PackagedArtifactFitSample> {
+    let reference_backend = JplSnapshotBackend;
+    let packaged_backend = packaged_backend();
+    let mut samples = Vec::new();
+
+    for body_artifact in &artifact.bodies {
+        for segment in &body_artifact.segments {
+            let start = segment.start.julian_day.days();
+            let span = segment.end.julian_day.days() - start;
+            for fraction in packaged_artifact_fit_sample_fractions(segment) {
+                let instant = Instant::new(
+                    JulianDay::from_days(start + span * fraction),
+                    segment.start.scale,
+                );
+                let request = EphemerisRequest {
+                    body: body_artifact.body.clone(),
+                    instant,
+                    observer: None,
+                    frame: CoordinateFrame::Ecliptic,
+                    zodiac_mode: ZodiacMode::Tropical,
+                    apparent: Apparentness::Mean,
+                };
+                let expected = match reference_backend.position(&request) {
+                    Ok(result) => result,
+                    Err(_) => continue,
+                };
+                let actual = match packaged_backend.position(&request) {
+                    Ok(result) => result,
+                    Err(_) => continue,
+                };
+
+                let (Some(expected_ecliptic), Some(actual_ecliptic)) =
+                    (expected.ecliptic, actual.ecliptic)
+                else {
+                    continue;
+                };
+                let (Some(expected_distance), Some(actual_distance)) =
+                    (expected_ecliptic.distance_au, actual_ecliptic.distance_au)
+                else {
+                    continue;
+                };
+
+                samples.push(PackagedArtifactFitSample {
+                    body: body_artifact.body.clone(),
+                    longitude_delta_degrees: Angle::from_degrees(
+                        actual_ecliptic.longitude.degrees() - expected_ecliptic.longitude.degrees(),
+                    )
+                    .normalized_signed()
+                    .degrees()
+                    .abs(),
+                    latitude_delta_degrees: (actual_ecliptic.latitude.degrees()
+                        - expected_ecliptic.latitude.degrees())
+                    .abs(),
+                    distance_delta_au: (actual_distance - expected_distance).abs(),
+                });
+            }
+        }
+    }
+
+    samples
+}
+
+fn packaged_artifact_fit_envelope_summary_from_samples(
+    samples: &[PackagedArtifactFitSample],
+    expected_sample_count: usize,
+) -> PackagedArtifactFitEnvelopeSummary {
+    let sample_count = samples.len();
+    let mut observed_bodies = Vec::new();
+    let mut mean_longitude_delta_degrees: f64 = 0.0;
+    let mut mean_latitude_delta_degrees: f64 = 0.0;
+    let mut mean_distance_delta_au: f64 = 0.0;
+    let mut max_longitude_delta_degrees: f64 = 0.0;
+    let mut max_latitude_delta_degrees: f64 = 0.0;
+    let mut max_distance_delta_au: f64 = 0.0;
+
+    for sample in samples {
+        if !observed_bodies.contains(&sample.body) {
+            observed_bodies.push(sample.body.clone());
+        }
+        mean_longitude_delta_degrees += sample.longitude_delta_degrees;
+        mean_latitude_delta_degrees += sample.latitude_delta_degrees;
+        mean_distance_delta_au += sample.distance_delta_au;
+        max_longitude_delta_degrees =
+            max_longitude_delta_degrees.max(sample.longitude_delta_degrees);
+        max_latitude_delta_degrees = max_latitude_delta_degrees.max(sample.latitude_delta_degrees);
+        max_distance_delta_au = max_distance_delta_au.max(sample.distance_delta_au);
+    }
+
+    if sample_count > 0 {
+        let sample_count = sample_count as f64;
+        mean_longitude_delta_degrees /= sample_count;
+        mean_latitude_delta_degrees /= sample_count;
+        mean_distance_delta_au /= sample_count;
+    }
+
+    PackagedArtifactFitEnvelopeSummary {
+        sample_count,
+        expected_sample_count,
+        body_count: observed_bodies.len(),
+        mean_longitude_delta_degrees,
+        mean_latitude_delta_degrees,
+        mean_distance_delta_au,
+        max_longitude_delta_degrees,
+        max_latitude_delta_degrees,
+        max_distance_delta_au,
+    }
+}
+
+/// Returns the current packaged-artifact fit envelope summary record.
+pub fn packaged_artifact_fit_envelope_summary_details() -> PackagedArtifactFitEnvelopeSummary {
+    let artifact = packaged_artifact();
+    let samples = packaged_artifact_fit_samples(artifact);
+    packaged_artifact_fit_envelope_summary_from_samples(
+        &samples,
+        packaged_artifact_fit_expected_sample_count(artifact),
+    )
+}
+
+/// Returns the current packaged-artifact fit envelope after validating the structured posture.
+pub fn packaged_artifact_fit_envelope_summary_for_report() -> String {
+    let summary = packaged_artifact_fit_envelope_summary_details();
+    match summary.validate() {
+        Ok(()) => summary.to_string(),
+        Err(error) => format!("fit envelope: unavailable ({error})"),
+    }
+}
+
 /// Structured regeneration provenance for the packaged artifact.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PackagedArtifactRegenerationSummary {
@@ -413,6 +709,8 @@ pub struct PackagedArtifactRegenerationSummary {
     pub residual_bodies: Vec<CelestialBody>,
     /// Bodies bundled into the packaged artifact.
     pub bodies: Vec<CelestialBody>,
+    /// Fit envelope measured against the generation source samples.
+    pub fit_envelope: PackagedArtifactFitEnvelopeSummary,
     /// Coverage summary for the checked-in JPL reference snapshot used for regeneration.
     pub reference_snapshot: Option<ReferenceSnapshotSummary>,
 }
@@ -539,6 +837,13 @@ impl PackagedArtifactRegenerationSummary {
             ));
         }
 
+        self.fit_envelope.validate().map_err(|error| {
+            pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                format!("packaged artifact regeneration fit envelope is invalid: {error}"),
+            )
+        })?;
+
         if let Some(reference_snapshot) = self.reference_snapshot {
             reference_snapshot.validate().map_err(|error| {
                 pleiades_compression::CompressionError::new(
@@ -564,7 +869,7 @@ impl PackagedArtifactRegenerationSummary {
     /// Returns the full packaged-artifact regeneration provenance summary.
     pub fn summary_line(&self) -> String {
         format!(
-            "Packaged artifact regeneration source: label={}; source={}; checksum=0x{:016x}; {}; {}; bundled bodies: {}; {}; artifact version={}",
+            "Packaged artifact regeneration source: label={}; source={}; checksum=0x{:016x}; {}; {}; bundled bodies: {}; {}; fit envelope: {}; artifact version={}",
             self.label,
             self.source,
             self.checksum,
@@ -572,6 +877,7 @@ impl PackagedArtifactRegenerationSummary {
             self.residual_body_line(),
             self.body_coverage_line(),
             self.reference_snapshot_line(),
+            self.fit_envelope.summary_line(),
             self.artifact_version,
         )
     }
@@ -594,6 +900,7 @@ pub fn packaged_artifact_regeneration_summary_details() -> PackagedArtifactRegen
         generation_policy: PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments,
         residual_bodies: artifact.residual_bodies(),
         bodies: packaged_bodies().to_vec(),
+        fit_envelope: packaged_artifact_fit_envelope_summary_details(),
         reference_snapshot: reference_snapshot_summary(),
     };
     debug_assert!(summary.validate().is_ok());
@@ -3671,6 +3978,15 @@ mod tests {
             summary.residual_body_line(),
             "residual bodies: Moon; applies to 1 bundled body"
         );
+        assert_eq!(summary.fit_envelope.body_count, packaged_bodies().len());
+        assert_eq!(
+            summary.fit_envelope.expected_sample_count,
+            summary.fit_envelope.sample_count
+        );
+        summary
+            .fit_envelope
+            .validate()
+            .expect("packaged fit envelope should validate");
         let residual_coverage = summary.residual_body_coverage_summary();
         assert_eq!(residual_coverage.body_count, 1);
         assert_eq!(residual_coverage.summary_line(), "residual bodies: Moon");
@@ -3704,8 +4020,24 @@ mod tests {
         assert!(provenance.contains(&format!("artifact version={}", artifact.header.version)));
         assert!(provenance.contains("11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"));
         assert!(provenance.contains("Reference snapshot coverage:"));
+        assert!(provenance.contains("fit envelope:"));
+        assert!(provenance.contains("segment samples across"));
         assert!(provenance.contains("rows across"));
         assert!(provenance.contains("asteroid rows"));
+    }
+
+    #[test]
+    fn packaged_artifact_regeneration_summary_validation_rejects_fit_envelope_drift() {
+        let mut summary = packaged_artifact_regeneration_summary_details();
+        summary.fit_envelope.sample_count += 1;
+
+        let error = summary
+            .validate()
+            .expect_err("fit envelope drift should be rejected");
+
+        assert!(error
+            .to_string()
+            .contains("packaged artifact regeneration fit envelope is invalid"));
     }
 
     #[test]
