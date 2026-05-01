@@ -738,6 +738,14 @@ impl ArtifactDecodeBenchmarkReport {
         Ok(())
     }
 
+    /// Validates the benchmark metadata before returning the compact summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ArtifactDecodeBenchmarkReportValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
     /// Returns a compact one-line summary of the packaged-artifact decode benchmark.
     pub fn summary_line(&self) -> String {
         format!(
@@ -837,6 +845,14 @@ impl ArtifactLookupBenchmarkReport {
         }
 
         Ok(())
+    }
+
+    /// Validates the benchmark metadata before returning the compact summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ArtifactLookupBenchmarkReportValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
     }
 
     /// Returns a compact one-line summary of the packaged-artifact lookup benchmark.
@@ -1574,11 +1590,21 @@ fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
     text.push('\n');
     text.push_str("\nArtifact lookup benchmark\n");
     text.push_str("  ");
-    text.push_str(&report.lookup_benchmark.summary_line());
+    text.push_str(
+        &report
+            .lookup_benchmark
+            .validated_summary_line()
+            .unwrap_or_else(|error| format!("Artifact lookup benchmark: unavailable ({error})")),
+    );
     text.push('\n');
     text.push_str("\nArtifact decode benchmark\n");
     text.push_str("  ");
-    text.push_str(&report.decode_benchmark.summary_line());
+    text.push_str(
+        &report
+            .decode_benchmark
+            .validated_summary_line()
+            .unwrap_or_else(|error| format!("Artifact decode benchmark: unavailable ({error})")),
+    );
     text.push('\n');
 
     text.push_str("\nRelease summary: release-summary\n");
@@ -2220,6 +2246,54 @@ mod tests {
         assert!(summary.contains("max boundary Δlon=0.150000000000°"));
         assert!(summary.contains("Δlat=0.300000000000°"));
         assert!(summary.contains("Δdist=0.450000000000 AU"));
+    }
+
+    #[test]
+    fn artifact_lookup_benchmark_report_validated_summary_line_matches_summary_line() {
+        let report = lookup_benchmark_report();
+
+        let summary = report.summary_line();
+        assert!(summary.contains("artifact=packaged artifact"));
+        assert!(summary.contains("corpus=packaged artifact lookup corpus"));
+        assert!(matches!(
+            report.validated_summary_line(),
+            Ok(rendered) if rendered == summary
+        ));
+    }
+
+    #[test]
+    fn artifact_lookup_benchmark_report_validated_summary_line_rejects_drift() {
+        let mut report = lookup_benchmark_report();
+        report.corpus_name = " ".to_string();
+
+        assert!(matches!(
+            report.validated_summary_line(),
+            Err(ArtifactLookupBenchmarkReportValidationError::BlankCorpusName)
+        ));
+    }
+
+    #[test]
+    fn artifact_decode_benchmark_report_validated_summary_line_matches_summary_line() {
+        let report = decode_benchmark_report();
+
+        let summary = report.summary_line();
+        assert!(summary.contains("artifact=packaged artifact"));
+        assert!(summary.contains("source=public reference snapshot"));
+        assert!(matches!(
+            report.validated_summary_line(),
+            Ok(rendered) if rendered == summary
+        ));
+    }
+
+    #[test]
+    fn artifact_decode_benchmark_report_validated_summary_line_rejects_drift() {
+        let mut report = decode_benchmark_report();
+        report.encoded_bytes = 0;
+
+        assert!(matches!(
+            report.validated_summary_line(),
+            Err(ArtifactDecodeBenchmarkReportValidationError::ZeroEncodedBytes)
+        ));
     }
 
     #[test]
