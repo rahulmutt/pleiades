@@ -1365,6 +1365,183 @@ pub fn reference_snapshot_summary() -> Option<ReferenceSnapshotSummary> {
     })
 }
 
+/// A compact body-class coverage summary for the checked-in reference snapshot.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReferenceSnapshotBodyClassCoverageSummary {
+    /// Number of major-body rows in the checked-in reference snapshot.
+    pub major_body_row_count: usize,
+    /// Major bodies covered by the checked-in reference snapshot in first-seen order.
+    pub major_bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Number of distinct epochs covered by the major-body subset.
+    pub major_epoch_count: usize,
+    /// Number of selected-asteroid rows in the checked-in reference snapshot.
+    pub asteroid_row_count: usize,
+    /// Selected asteroids covered by the checked-in reference snapshot in first-seen order.
+    pub asteroid_bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Number of distinct epochs covered by the selected-asteroid subset.
+    pub asteroid_epoch_count: usize,
+}
+
+/// Validation error for a reference snapshot body-class coverage summary.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ReferenceSnapshotBodyClassCoverageSummaryValidationError {
+    /// A summary field is out of sync with the checked-in body-class coverage.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for ReferenceSnapshotBodyClassCoverageSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the reference snapshot body-class coverage summary field `{field}` is out of sync with the current slice"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ReferenceSnapshotBodyClassCoverageSummaryValidationError {}
+
+impl ReferenceSnapshotBodyClassCoverageSummary {
+    /// Returns a compact body-class summary used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Reference snapshot body-class coverage: major bodies: {} rows across {} bodies and {} epochs; selected asteroids: {} rows across {} bodies and {} epochs",
+            self.major_body_row_count,
+            self.major_bodies.len(),
+            self.major_epoch_count,
+            self.asteroid_row_count,
+            self.asteroid_bodies.len(),
+            self.asteroid_epoch_count,
+        )
+    }
+
+    /// Returns `Ok(())` when the body-class coverage summary still matches the checked-in slice.
+    pub fn validate(&self) -> Result<(), ReferenceSnapshotBodyClassCoverageSummaryValidationError> {
+        let Some(expected) = reference_snapshot_body_class_coverage_summary_details() else {
+            return Err(
+                ReferenceSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "major_body_row_count",
+                },
+            );
+        };
+
+        if self.major_body_row_count != expected.major_body_row_count {
+            return Err(
+                ReferenceSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "major_body_row_count",
+                },
+            );
+        }
+        if self.major_bodies != expected.major_bodies {
+            return Err(
+                ReferenceSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "major_bodies",
+                },
+            );
+        }
+        if self.major_epoch_count != expected.major_epoch_count {
+            return Err(
+                ReferenceSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "major_epoch_count",
+                },
+            );
+        }
+        if self.asteroid_row_count != expected.asteroid_row_count {
+            return Err(
+                ReferenceSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "asteroid_row_count",
+                },
+            );
+        }
+        if self.asteroid_bodies != expected.asteroid_bodies {
+            return Err(
+                ReferenceSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "asteroid_bodies",
+                },
+            );
+        }
+        if self.asteroid_epoch_count != expected.asteroid_epoch_count {
+            return Err(
+                ReferenceSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "asteroid_epoch_count",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated body-class coverage summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ReferenceSnapshotBodyClassCoverageSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for ReferenceSnapshotBodyClassCoverageSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn reference_snapshot_body_class_coverage_summary_details(
+) -> Option<ReferenceSnapshotBodyClassCoverageSummary> {
+    let entries = reference_snapshot();
+    if entries.is_empty() {
+        return None;
+    }
+
+    let mut major_body_row_count = 0usize;
+    let mut asteroid_row_count = 0usize;
+    let mut major_epochs = BTreeSet::new();
+    let mut asteroid_epochs = BTreeSet::new();
+
+    for entry in entries {
+        let epoch_bits = entry.epoch.julian_day.days().to_bits();
+        if is_comparison_body(&entry.body) {
+            major_body_row_count += 1;
+            major_epochs.insert(epoch_bits);
+        }
+        if is_reference_asteroid(&entry.body) {
+            asteroid_row_count += 1;
+            asteroid_epochs.insert(epoch_bits);
+        }
+    }
+
+    Some(ReferenceSnapshotBodyClassCoverageSummary {
+        major_body_row_count,
+        major_bodies: snapshot_bodies()
+            .iter()
+            .filter(|body| is_comparison_body(body))
+            .cloned()
+            .collect(),
+        major_epoch_count: major_epochs.len(),
+        asteroid_row_count,
+        asteroid_bodies: reference_asteroids().to_vec(),
+        asteroid_epoch_count: asteroid_epochs.len(),
+    })
+}
+
+/// Returns a compact body-class coverage summary for the checked-in reference snapshot.
+pub fn reference_snapshot_body_class_coverage_summary(
+) -> Option<ReferenceSnapshotBodyClassCoverageSummary> {
+    reference_snapshot_body_class_coverage_summary_details()
+}
+
+/// Returns the release-facing body-class coverage summary string for the checked-in reference snapshot.
+pub fn reference_snapshot_body_class_coverage_summary_for_report() -> String {
+    match reference_snapshot_body_class_coverage_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => format!("Reference snapshot body-class coverage: unavailable ({error})"),
+        },
+        None => "Reference snapshot body-class coverage: unavailable".to_string(),
+    }
+}
+
 /// A compact coverage summary for the checked-in reference snapshot in
 /// equatorial-frame batch parity mode.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -6533,8 +6710,9 @@ pub fn independent_holdout_manifest_summary_for_report() -> String {
 /// Returns the combined snapshot evidence summary used by validation and release reports.
 pub fn jpl_snapshot_evidence_summary_for_report() -> String {
     format!(
-        "{} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {}",
+        "{} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {}",
         reference_snapshot_summary_for_report(),
+        reference_snapshot_body_class_coverage_summary_for_report(),
         reference_snapshot_equatorial_parity_summary_for_report(),
         reference_snapshot_batch_parity_summary_for_report(),
         production_generation_snapshot_summary_for_report(),
@@ -11748,6 +11926,27 @@ mod tests {
             summary.summary_line()
         );
 
+        let body_class_summary = reference_snapshot_body_class_coverage_summary()
+            .expect("reference snapshot body-class coverage summary should exist");
+        assert_eq!(body_class_summary.major_body_row_count, 70);
+        assert_eq!(body_class_summary.major_bodies.len(), 10);
+        assert_eq!(body_class_summary.major_epoch_count, 9);
+        assert_eq!(body_class_summary.asteroid_row_count, 20);
+        assert_eq!(body_class_summary.asteroid_bodies.len(), 5);
+        assert_eq!(body_class_summary.asteroid_epoch_count, 4);
+        assert_eq!(body_class_summary.validate(), Ok(()));
+        assert_eq!(
+            body_class_summary.validated_summary_line(),
+            Ok(body_class_summary.summary_line())
+        );
+        assert_eq!(
+            reference_snapshot_body_class_coverage_summary_for_report(),
+            body_class_summary.summary_line()
+        );
+        assert!(body_class_summary
+            .summary_line()
+            .contains("Reference snapshot body-class coverage: major bodies: 70 rows across 10 bodies and 9 epochs; selected asteroids: 20 rows across 5 bodies and 4 epochs"));
+
         let window_summary = reference_snapshot_source_window_summary()
             .expect("reference snapshot source window summary should exist");
         assert_eq!(
@@ -11781,6 +11980,42 @@ mod tests {
             .starts_with("Reference snapshot source windows: "));
         assert!(window_summary.summary_line().contains("Moon:"));
         assert!(window_summary.summary_line().contains("Pluto:"));
+    }
+
+    #[test]
+    fn reference_snapshot_body_class_coverage_summary_reports_the_expected_body_classes() {
+        let summary = reference_snapshot_body_class_coverage_summary()
+            .expect("reference snapshot body-class coverage summary should exist");
+
+        assert_eq!(summary.major_body_row_count, 70);
+        assert_eq!(summary.major_bodies.len(), 10);
+        assert_eq!(
+            summary.major_bodies[0],
+            pleiades_backend::CelestialBody::Sun
+        );
+        assert_eq!(
+            summary.major_bodies[9],
+            pleiades_backend::CelestialBody::Pluto
+        );
+        assert_eq!(summary.major_epoch_count, 9);
+        assert_eq!(summary.asteroid_row_count, 20);
+        assert_eq!(summary.asteroid_bodies.len(), 5);
+        assert_eq!(
+            summary.asteroid_bodies[0],
+            pleiades_backend::CelestialBody::Ceres
+        );
+        assert_eq!(
+            summary.asteroid_bodies[4],
+            pleiades_backend::CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros"))
+        );
+        assert_eq!(summary.asteroid_epoch_count, 4);
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            reference_snapshot_body_class_coverage_summary_for_report(),
+            summary.summary_line()
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
     }
 
     #[test]
@@ -12360,6 +12595,7 @@ mod tests {
     fn jpl_snapshot_evidence_summary_combines_the_backend_reports() {
         let report = jpl_snapshot_evidence_summary_for_report();
         assert!(report.contains(&reference_snapshot_summary_for_report()));
+        assert!(report.contains(&reference_snapshot_body_class_coverage_summary_for_report()));
         assert!(report.contains(&reference_snapshot_equatorial_parity_summary_for_report()));
         assert!(report.contains(&reference_snapshot_source_summary_for_report()));
         assert!(report.contains(&reference_holdout_overlap_summary_for_report()));

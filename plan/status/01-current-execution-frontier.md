@@ -50,7 +50,7 @@ The following can proceed without distracting from accuracy closure:
 - documentation cleanup for already-explicit request policy;
 - release-bundle smoke-test maintenance;
 - artifact-profile identifier groundwork and production-profile skeleton plumbing that do not claim production fit accuracy yet, including the release-profile identifier now threaded through packaged-artifact target thresholds.
-- reference snapshot source-window formatting parity now matches the other coverage summaries so report surfaces can rely on `to_string()` consistently, the reference source-window summary now derives its body order directly from the checked-in snapshot entries, and the new reference/hold-out overlap summary guards against silently collapsing the validation slice into the reference corpus.
+- reference snapshot source-window formatting parity now matches the other coverage summaries so report surfaces can rely on `to_string()` consistently, the reference source-window summary now derives its body order directly from the checked-in snapshot entries, the new reference body-class coverage summary now surfaces the major-body versus selected-asteroid split in release-facing reports, and the new reference/hold-out overlap summary guards against silently collapsing the validation slice into the reference corpus.
 
 ## Constraints
 
