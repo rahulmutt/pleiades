@@ -50,7 +50,7 @@ The following can proceed without distracting from accuracy closure:
 - documentation cleanup for already-explicit request policy;
 - release-bundle smoke-test maintenance;
 - artifact-profile identifier groundwork and production-profile skeleton plumbing that do not claim production fit accuracy yet, including the release-profile identifier now threaded through packaged-artifact target thresholds.
-- reference snapshot source-window formatting parity now matches the other coverage summaries so report surfaces can rely on `to_string()` consistently.
+- reference snapshot source-window formatting parity now matches the other coverage summaries so report surfaces can rely on `to_string()` consistently, and the reference source-window summary now derives its body order directly from the checked-in snapshot entries.
 
 ## Constraints
 

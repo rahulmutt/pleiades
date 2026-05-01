@@ -6098,6 +6098,7 @@ fn reference_snapshot_source_window_summary_details() -> Option<ReferenceSnapsho
     }
 
     let mut windows = Vec::new();
+    let mut sample_bodies = Vec::new();
     for body in reference_bodies() {
         let body_entries = entries
             .iter()
@@ -6120,6 +6121,7 @@ fn reference_snapshot_source_window_summary_details() -> Option<ReferenceSnapsho
             }
         }
 
+        sample_bodies.push(body.clone());
         windows.push(ReferenceSnapshotSourceWindow {
             body: body.clone(),
             sample_count: body_entries.len(),
@@ -6146,7 +6148,7 @@ fn reference_snapshot_source_window_summary_details() -> Option<ReferenceSnapsho
 
     Some(ReferenceSnapshotSourceWindowSummary {
         sample_count: entries.len(),
-        sample_bodies: reference_bodies().to_vec(),
+        sample_bodies,
         epoch_count: entries
             .iter()
             .map(|entry| entry.epoch.julian_day.days().to_bits())
@@ -11581,6 +11583,18 @@ mod tests {
         assert_eq!(
             window_summary.windows.len(),
             window_summary.sample_bodies.len()
+        );
+        assert_eq!(
+            window_summary.sample_bodies,
+            reference_snapshot()
+                .iter()
+                .map(|entry| entry.body.clone())
+                .fold(Vec::new(), |mut bodies, body| {
+                    if !bodies.contains(&body) {
+                        bodies.push(body);
+                    }
+                    bodies
+                })
         );
         assert_eq!(window_summary.validate(), Ok(()));
         assert_eq!(
