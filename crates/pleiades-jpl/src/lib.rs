@@ -2516,6 +2516,14 @@ impl ReferenceAsteroidEvidenceSummary {
 
         Ok(())
     }
+
+    /// Returns the compact summary line after validating the current evidence slice.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ReferenceAsteroidEvidenceSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for ReferenceAsteroidEvidenceSummary {
@@ -2667,6 +2675,14 @@ impl ReferenceAsteroidEquatorialEvidenceSummary {
         }
 
         Ok(())
+    }
+
+    /// Returns the compact summary line after validating the current evidence slice.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ReferenceAsteroidEquatorialEvidenceSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
     }
 }
 
@@ -3085,7 +3101,10 @@ pub fn format_reference_asteroid_evidence_summary(
 ) -> String {
     match validate_reference_asteroid_evidence(evidence) {
         Ok(()) => match reference_asteroid_evidence_summary_from_slice(evidence) {
-            Some(summary) => summary.summary_line(),
+            Some(summary) => match summary.validated_summary_line() {
+                Ok(summary_line) => summary_line,
+                Err(error) => format!("Selected asteroid evidence: unavailable ({error})"),
+            },
             None => "Selected asteroid evidence: unavailable".to_string(),
         },
         Err(error) => format!("Selected asteroid evidence: unavailable ({error})"),
@@ -3097,7 +3116,10 @@ pub fn reference_asteroid_evidence_summary_for_report() -> String {
     let evidence = reference_asteroid_evidence();
     match validate_reference_asteroid_evidence(evidence) {
         Ok(()) => match reference_asteroid_evidence_summary_details() {
-            Some(summary) => summary.summary_line(),
+            Some(summary) => match summary.validated_summary_line() {
+                Ok(summary_line) => summary_line,
+                Err(error) => format!("Selected asteroid evidence: unavailable ({error})"),
+            },
             None => "Selected asteroid evidence: unavailable".to_string(),
         },
         Err(error) => format!("Selected asteroid evidence: unavailable ({error})"),
@@ -3110,7 +3132,12 @@ pub fn format_reference_asteroid_equatorial_evidence_summary(
 ) -> String {
     match validate_reference_asteroid_equatorial_evidence(evidence) {
         Ok(()) => match reference_asteroid_equatorial_evidence_summary_from_slice(evidence) {
-            Some(summary) => summary.summary_line(),
+            Some(summary) => match summary.validated_summary_line() {
+                Ok(summary_line) => summary_line,
+                Err(error) => {
+                    format!("Selected asteroid equatorial evidence: unavailable ({error})")
+                }
+            },
             None => "Selected asteroid equatorial evidence: unavailable".to_string(),
         },
         Err(error) => format!("Selected asteroid equatorial evidence: unavailable ({error})"),
@@ -3122,7 +3149,12 @@ pub fn reference_asteroid_equatorial_evidence_summary_for_report() -> String {
     let evidence = reference_asteroid_equatorial_evidence();
     match validate_reference_asteroid_equatorial_evidence(evidence) {
         Ok(()) => match reference_asteroid_equatorial_evidence_summary_details() {
-            Some(summary) => summary.summary_line(),
+            Some(summary) => match summary.validated_summary_line() {
+                Ok(summary_line) => summary_line,
+                Err(error) => {
+                    format!("Selected asteroid equatorial evidence: unavailable ({error})")
+                }
+            },
             None => "Selected asteroid equatorial evidence: unavailable".to_string(),
         },
         Err(error) => format!("Selected asteroid equatorial evidence: unavailable ({error})"),
@@ -7398,6 +7430,7 @@ mod tests {
             "Selected asteroid evidence: 5 exact J2000 samples at JD 2451545.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"
         );
         assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             reference_asteroid_evidence_summary_for_report(),
             summary.summary_line()
@@ -7844,6 +7877,7 @@ mod tests {
             "Selected asteroid equatorial evidence: 5 exact J2000 samples at JD 2451545.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros) using a mean-obliquity equatorial transform"
         );
         assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             reference_asteroid_equatorial_evidence_summary_for_report(),
             summary.summary_line()
