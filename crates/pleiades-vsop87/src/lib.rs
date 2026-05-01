@@ -3853,6 +3853,14 @@ impl Vsop87CanonicalOutlierSummary {
         }
     }
 
+    /// Returns the validated compact summary line used in release-facing reporting.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, Vsop87CanonicalOutlierSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
     /// Returns `Ok(())` when the summary still matches the current derived evidence.
     pub fn validate(&self) -> Result<(), Vsop87CanonicalOutlierSummaryValidationError> {
         let Some(expected) = canonical_epoch_outlier_summary() else {
@@ -3898,8 +3906,8 @@ pub fn canonical_epoch_outlier_summary() -> Option<Vsop87CanonicalOutlierSummary
 /// current interim limits.
 pub fn canonical_epoch_outlier_note_for_report() -> String {
     match canonical_epoch_outlier_summary() {
-        Some(summary) => match summary.validate() {
-            Ok(()) => summary.summary_line(),
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(line) => line,
             Err(error) => format!("{CANONICAL_OUTLIER_NOTE_LABEL}: unavailable ({error})"),
         },
         None => format!("{CANONICAL_OUTLIER_NOTE_LABEL}: unavailable"),
@@ -12891,6 +12899,7 @@ mod tests {
         );
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             canonical_epoch_outlier_note_for_report(),
             summary.summary_line()
