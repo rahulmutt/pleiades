@@ -22,6 +22,7 @@ pub use artifact::{
     render_artifact_report, render_artifact_summary, ArtifactBodyInspection,
     ArtifactDecodeBenchmarkReport, ArtifactDecodeBenchmarkReportValidationError,
     ArtifactInspectionReport, ArtifactLookupBenchmarkReport,
+    ArtifactLookupBenchmarkReportValidationError,
 };
 pub use chart_benchmark::{
     benchmark_chart_backend, chart_benchmark_corpus_summary, ChartBenchmarkReport,
