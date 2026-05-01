@@ -90,6 +90,7 @@ use pleiades_houses::{
 };
 use pleiades_jpl::{
     comparison_snapshot_batch_parity_summary_for_report,
+    comparison_snapshot_body_class_coverage_summary_for_report,
     comparison_snapshot_manifest_summary_for_report, comparison_snapshot_requests,
     comparison_snapshot_source_summary_for_report,
     comparison_snapshot_source_window_summary_for_report, comparison_snapshot_summary_for_report,
@@ -3382,6 +3383,11 @@ impl fmt::Display for ValidationReport {
         writeln!(
             f,
             "  {}",
+            comparison_snapshot_body_class_coverage_summary_for_report()
+        )?;
+        writeln!(
+            f,
+            "  {}",
             comparison_snapshot_batch_parity_summary_for_report()
         )?;
         writeln!(f)?;
@@ -5698,6 +5704,8 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&comparison_snapshot_summary_for_report());
     text.push('\n');
+    text.push_str(&comparison_snapshot_body_class_coverage_summary_for_report());
+    text.push('\n');
     text.push_str(&comparison_snapshot_batch_parity_summary_for_report());
     text.push('\n');
     text.push_str(&comparison_snapshot_source_summary_for_report());
@@ -5798,6 +5806,8 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&reference_snapshot_manifest_summary_for_report());
     text.push('\n');
     text.push_str(&comparison_snapshot_summary_for_report());
+    text.push('\n');
+    text.push_str(&comparison_snapshot_body_class_coverage_summary_for_report());
     text.push('\n');
     text.push_str(&comparison_snapshot_batch_parity_summary_for_report());
     text.push('\n');
@@ -6203,6 +6213,8 @@ fn render_release_summary_text() -> String {
         ));
         text.push('\n');
         text.push_str(&comparison_snapshot_summary_for_report());
+        text.push('\n');
+        text.push_str(&comparison_snapshot_body_class_coverage_summary_for_report());
         text.push('\n');
         text.push_str(&reference_snapshot_batch_parity_summary_for_report());
         text.push('\n');
@@ -9510,6 +9522,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(
         text,
         "  {}",
+        comparison_snapshot_body_class_coverage_summary_for_report()
+    );
+    let _ = writeln!(
+        text,
+        "  {}",
         comparison_snapshot_source_summary_for_report()
     );
     let _ = writeln!(
@@ -10510,6 +10527,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&jpl_snapshot_batch_error_taxonomy_summary_for_report());
     text.push('\n');
     text.push_str(&comparison_snapshot_summary_for_report());
+    text.push('\n');
+    text.push_str(&comparison_snapshot_body_class_coverage_summary_for_report());
     text.push('\n');
     text.push_str(&comparison_snapshot_batch_parity_summary_for_report());
     text.push('\n');
@@ -14154,6 +14173,7 @@ mod tests {
         assert!(report.contains("JPL interpolation quality: 50 samples across 10 bodies"));
         assert!(report.contains("JPL interpolation quality kind coverage:"));
         assert!(report.contains("JPL independent hold-out:"));
+        assert!(report.contains(&comparison_snapshot_body_class_coverage_summary_for_report()));
         assert!(report.contains("JPL independent hold-out equatorial parity:"));
         assert!(report.contains("JPL independent hold-out batch parity:"));
         assert!(report.contains("transparency evidence only, not a production tolerance envelope"));
@@ -14374,6 +14394,7 @@ mod tests {
             .expect("report summary should render");
         assert!(rendered.contains("Validation report summary"));
         assert!(rendered.contains("Comparison corpus"));
+        assert!(rendered.contains(&comparison_snapshot_body_class_coverage_summary_for_report()));
         assert_report_contains_exact_line(
             &rendered,
             "  Comparison snapshot coverage: 70 rows across 10 bodies and 9 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto",
@@ -15147,6 +15168,7 @@ mod tests {
             release_profiles.compatibility_profile_id
         )));
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
+        assert!(rendered.contains(&comparison_snapshot_body_class_coverage_summary_for_report()));
         assert!(rendered
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
@@ -17333,6 +17355,9 @@ version = "0.9.0"
         assert!(release_summary.contains("Selected asteroid source windows:"));
         assert!(release_summary.contains("Reference snapshot coverage:"));
         assert!(release_summary.contains("Reference snapshot body-class coverage: major bodies: 70 rows across 10 bodies and 9 epochs; major windows: "));
+        assert!(
+            release_summary.contains(&comparison_snapshot_body_class_coverage_summary_for_report())
+        );
         assert!(release_summary.contains(
             "selected asteroids: 20 rows across 5 bodies and 4 epochs; asteroid windows: "
         ));
