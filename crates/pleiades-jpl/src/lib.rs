@@ -260,6 +260,123 @@ pub fn reference_snapshot_mixed_time_scale_request_corpus() -> Option<Vec<Epheme
     reference_snapshot_mixed_time_scale_batch_parity_requests()
 }
 
+const PRODUCTION_GENERATION_BOUNDARY_COVERAGE: &str =
+    "Mars and Jupiter at 2001-01-01 through 2001-01-03";
+const PRODUCTION_GENERATION_BOUNDARY_EPOCHS: [f64; 3] = [2_451_910.5, 2_451_911.5, 2_451_912.5];
+
+fn production_generation_boundary_entry(entry: &SnapshotEntry) -> bool {
+    matches!(entry.body, CelestialBody::Mars | CelestialBody::Jupiter)
+        && PRODUCTION_GENERATION_BOUNDARY_EPOCHS.contains(&entry.epoch.julian_day.days())
+}
+
+fn production_generation_boundary_entries() -> Option<&'static [SnapshotEntry]> {
+    static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
+    let entries = ENTRIES
+        .get_or_init(|| {
+            independent_holdout_snapshot_entries()
+                .into_iter()
+                .flatten()
+                .filter(|entry| production_generation_boundary_entry(entry))
+                .cloned()
+                .collect()
+        })
+        .as_slice();
+
+    if entries.is_empty() {
+        None
+    } else {
+        Some(entries)
+    }
+}
+
+fn production_generation_snapshot_body_list() -> &'static [CelestialBody] {
+    static BODIES: OnceLock<Vec<CelestialBody>> = OnceLock::new();
+    BODIES
+        .get_or_init(|| {
+            let mut bodies = Vec::new();
+            if let Some(entries) = production_generation_snapshot_entries() {
+                for entry in entries {
+                    if !bodies.contains(&entry.body) {
+                        bodies.push(entry.body.clone());
+                    }
+                }
+            }
+            bodies
+        })
+        .as_slice()
+}
+
+fn production_generation_boundary_body_list() -> &'static [CelestialBody] {
+    static BODIES: OnceLock<Vec<CelestialBody>> = OnceLock::new();
+    BODIES
+        .get_or_init(|| {
+            let mut bodies = Vec::new();
+            if let Some(entries) = production_generation_boundary_entries() {
+                for entry in entries {
+                    if !bodies.contains(&entry.body) {
+                        bodies.push(entry.body.clone());
+                    }
+                }
+            }
+            bodies
+        })
+        .as_slice()
+}
+
+fn production_generation_snapshot_bodies() -> &'static [CelestialBody] {
+    production_generation_snapshot_body_list()
+}
+
+/// Returns the production-generation snapshot corpus used for boundary-coverage checks.
+pub fn production_generation_snapshot_entries() -> Option<&'static [SnapshotEntry]> {
+    static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
+    let entries = ENTRIES
+        .get_or_init(|| {
+            let mut merged = Vec::new();
+            if let Some(reference_entries) = snapshot_entries() {
+                merged.extend(reference_entries.iter().cloned());
+            }
+            if let Some(boundary_entries) = production_generation_boundary_entries() {
+                merged.extend(boundary_entries.iter().cloned());
+            }
+            merged
+        })
+        .as_slice();
+
+    if entries.is_empty() {
+        None
+    } else {
+        Some(entries)
+    }
+}
+
+/// Returns the production-generation request corpus in the requested frame.
+pub fn production_generation_snapshot_requests(
+    frame: CoordinateFrame,
+) -> Option<Vec<EphemerisRequest>> {
+    production_generation_snapshot_entries().map(|entries| {
+        entries
+            .iter()
+            .map(|entry| EphemerisRequest {
+                body: entry.body.clone(),
+                instant: entry.epoch,
+                observer: None,
+                frame,
+                zodiac_mode: ZodiacMode::Tropical,
+                apparent: Apparentness::Mean,
+            })
+            .collect()
+    })
+}
+
+/// This is a compatibility alias for [`production_generation_snapshot_requests`].
+#[doc(alias = "production_generation_snapshot_requests")]
+pub fn production_generation_snapshot_request_corpus(
+    frame: CoordinateFrame,
+) -> Option<Vec<EphemerisRequest>> {
+    production_generation_snapshot_requests(frame)
+}
+
 /// A compact coverage summary for the checked-in reference snapshot.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ReferenceSnapshotSummary {
@@ -976,6 +1093,296 @@ pub fn reference_snapshot_summary_for_report() -> String {
             Err(error) => format!("Reference snapshot coverage: unavailable ({error})"),
         },
         None => "Reference snapshot coverage: unavailable".to_string(),
+    }
+}
+
+/// A compact coverage summary for the production-generation corpus.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ProductionGenerationSnapshotSummary {
+    /// Total number of parsed snapshot rows.
+    pub row_count: usize,
+    /// Number of distinct bodies covered by the corpus.
+    pub body_count: usize,
+    /// Bodies covered by the corpus in first-seen order.
+    pub bodies: &'static [pleiades_backend::CelestialBody],
+    /// Number of distinct epochs covered by the corpus.
+    pub epoch_count: usize,
+    /// Number of rows contributed by the boundary overlay.
+    pub boundary_row_count: usize,
+    /// Number of distinct bodies contributed by the boundary overlay.
+    pub boundary_body_count: usize,
+    /// Bodies contributed by the boundary overlay in first-seen order.
+    pub boundary_bodies: &'static [pleiades_backend::CelestialBody],
+    /// Number of distinct epochs represented by the boundary overlay.
+    pub boundary_epoch_count: usize,
+    /// Earliest epoch represented in the corpus.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented in the corpus.
+    pub latest_epoch: Instant,
+    /// Earliest epoch represented in the boundary overlay.
+    pub boundary_earliest_epoch: Instant,
+    /// Latest epoch represented in the boundary overlay.
+    pub boundary_latest_epoch: Instant,
+}
+
+/// Structured validation errors for the production-generation coverage summary.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ProductionGenerationSnapshotSummaryValidationError {
+    /// The summary did not expose any bodies.
+    MissingBodies,
+    /// The summary body count did not match the body list length.
+    BodyCountMismatch {
+        body_count: usize,
+        bodies_len: usize,
+    },
+    /// The summary reused a body after trimming its display form.
+    DuplicateBody {
+        first_index: usize,
+        second_index: usize,
+        body: String,
+    },
+    /// The summary body order drifted from the checked-in production corpus.
+    BodyOrderMismatch {
+        index: usize,
+        expected: String,
+        found: String,
+    },
+    /// The summary did not expose any epochs.
+    MissingEpochs,
+    /// The summary reported an invalid earliest/latest epoch range.
+    InvalidEpochRange {
+        earliest_epoch: Instant,
+        latest_epoch: Instant,
+    },
+    /// The summary drifted away from the checked-in derived evidence.
+    DerivedSummaryMismatch,
+}
+
+impl ProductionGenerationSnapshotSummaryValidationError {
+    /// Returns the compact label used in release-facing summaries and tests.
+    pub const fn label(&self) -> &'static str {
+        match self {
+            Self::MissingBodies => "missing bodies",
+            Self::BodyCountMismatch { .. } => "body count mismatch",
+            Self::DuplicateBody { .. } => "duplicate body",
+            Self::BodyOrderMismatch { .. } => "body order mismatch",
+            Self::MissingEpochs => "missing epochs",
+            Self::InvalidEpochRange { .. } => "invalid epoch range",
+            Self::DerivedSummaryMismatch => "derived summary mismatch",
+        }
+    }
+}
+
+impl fmt::Display for ProductionGenerationSnapshotSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BodyCountMismatch {
+                body_count,
+                bodies_len,
+            } => write!(f, "body count {body_count} does not match body list length {bodies_len}"),
+            Self::DuplicateBody {
+                first_index,
+                second_index,
+                body,
+            } => write!(f, "duplicate body '{body}' at index {second_index} (first seen at index {first_index})"),
+            Self::BodyOrderMismatch {
+                index,
+                expected,
+                found,
+            } => write!(f, "body order mismatch at index {index}: expected {expected}, found {found}"),
+            Self::InvalidEpochRange {
+                earliest_epoch,
+                latest_epoch,
+            } => write!(
+                f,
+                "epoch range {}..{} is invalid",
+                format_instant(*earliest_epoch),
+                format_instant(*latest_epoch),
+            ),
+            _ => f.write_str(self.label()),
+        }
+    }
+}
+
+impl std::error::Error for ProductionGenerationSnapshotSummaryValidationError {}
+
+impl ProductionGenerationSnapshotSummary {
+    /// Validates that the summary remains internally consistent.
+    pub fn validate(&self) -> Result<(), ProductionGenerationSnapshotSummaryValidationError> {
+        if self.body_count == 0 {
+            return Err(ProductionGenerationSnapshotSummaryValidationError::MissingBodies);
+        }
+        if self.bodies.is_empty() {
+            return Err(ProductionGenerationSnapshotSummaryValidationError::MissingBodies);
+        }
+        if self.body_count != self.bodies.len() {
+            return Err(
+                ProductionGenerationSnapshotSummaryValidationError::BodyCountMismatch {
+                    body_count: self.body_count,
+                    bodies_len: self.bodies.len(),
+                },
+            );
+        }
+
+        for (index, body) in self.bodies.iter().enumerate() {
+            if self.bodies[..index].iter().any(|other| other == body) {
+                return Err(
+                    ProductionGenerationSnapshotSummaryValidationError::DuplicateBody {
+                        first_index: self.bodies[..index]
+                            .iter()
+                            .position(|other| other == body)
+                            .unwrap(),
+                        second_index: index,
+                        body: body.to_string(),
+                    },
+                );
+            }
+        }
+
+        let expected_bodies = production_generation_snapshot_bodies();
+        if self.bodies != expected_bodies {
+            let mismatch_index = self
+                .bodies
+                .iter()
+                .zip(expected_bodies.iter())
+                .position(|(actual, expected)| actual != expected)
+                .unwrap_or_else(|| self.bodies.len().min(expected_bodies.len()));
+            return Err(
+                ProductionGenerationSnapshotSummaryValidationError::BodyOrderMismatch {
+                    index: mismatch_index,
+                    expected: expected_bodies
+                        .get(mismatch_index)
+                        .map(ToString::to_string)
+                        .unwrap_or_else(|| "<end of production body list>".to_string()),
+                    found: self
+                        .bodies
+                        .get(mismatch_index)
+                        .map(ToString::to_string)
+                        .unwrap_or_else(|| "<end of summary body list>".to_string()),
+                },
+            );
+        }
+
+        if self.epoch_count == 0 {
+            return Err(ProductionGenerationSnapshotSummaryValidationError::MissingEpochs);
+        }
+        if self.earliest_epoch.julian_day.days() > self.latest_epoch.julian_day.days() {
+            return Err(
+                ProductionGenerationSnapshotSummaryValidationError::InvalidEpochRange {
+                    earliest_epoch: self.earliest_epoch,
+                    latest_epoch: self.latest_epoch,
+                },
+            );
+        }
+
+        if production_generation_snapshot_summary().as_ref() != Some(self) {
+            return Err(ProductionGenerationSnapshotSummaryValidationError::DerivedSummaryMismatch);
+        }
+
+        Ok(())
+    }
+
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Production generation coverage: {} rows across {} bodies and {} epochs ({}..{}); bodies: {}; boundary overlay ({PRODUCTION_GENERATION_BOUNDARY_COVERAGE}): {} rows across {} bodies and {} epochs ({}..{}); boundary bodies: {}",
+            self.row_count,
+            self.body_count,
+            self.epoch_count,
+            format_instant(self.earliest_epoch),
+            format_instant(self.latest_epoch),
+            format_bodies(self.bodies),
+            self.boundary_row_count,
+            self.boundary_body_count,
+            self.boundary_epoch_count,
+            format_instant(self.boundary_earliest_epoch),
+            format_instant(self.boundary_latest_epoch),
+            format_bodies(self.boundary_bodies),
+        )
+    }
+
+    /// Returns a compact summary line after validating the production-generation summary.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ProductionGenerationSnapshotSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for ProductionGenerationSnapshotSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Formats the production-generation coverage for release-facing reporting.
+pub fn format_production_generation_snapshot_summary(
+    summary: &ProductionGenerationSnapshotSummary,
+) -> String {
+    summary.summary_line()
+}
+
+/// Returns the production-generation coverage summary used in release-facing reporting.
+pub fn production_generation_snapshot_summary() -> Option<ProductionGenerationSnapshotSummary> {
+    static SUMMARY: OnceLock<ProductionGenerationSnapshotSummary> = OnceLock::new();
+    Some(*SUMMARY.get_or_init(|| {
+        let entries = production_generation_snapshot_entries()
+            .expect("production generation snapshot entries should exist");
+        let boundary_entries = production_generation_boundary_entries()
+            .expect("production generation boundary entries should exist");
+
+        let mut earliest_epoch = entries[0].epoch;
+        let mut latest_epoch = entries[0].epoch;
+        let mut epochs = BTreeSet::new();
+        for entry in entries {
+            epochs.insert(entry.epoch.julian_day.days().to_bits());
+            if entry.epoch.julian_day.days() < earliest_epoch.julian_day.days() {
+                earliest_epoch = entry.epoch;
+            }
+            if entry.epoch.julian_day.days() > latest_epoch.julian_day.days() {
+                latest_epoch = entry.epoch;
+            }
+        }
+
+        let mut boundary_earliest_epoch = boundary_entries[0].epoch;
+        let mut boundary_latest_epoch = boundary_entries[0].epoch;
+        let mut boundary_epochs = BTreeSet::new();
+        for entry in boundary_entries {
+            boundary_epochs.insert(entry.epoch.julian_day.days().to_bits());
+            if entry.epoch.julian_day.days() < boundary_earliest_epoch.julian_day.days() {
+                boundary_earliest_epoch = entry.epoch;
+            }
+            if entry.epoch.julian_day.days() > boundary_latest_epoch.julian_day.days() {
+                boundary_latest_epoch = entry.epoch;
+            }
+        }
+
+        ProductionGenerationSnapshotSummary {
+            row_count: entries.len(),
+            body_count: production_generation_snapshot_body_list().len(),
+            bodies: production_generation_snapshot_body_list(),
+            epoch_count: epochs.len(),
+            boundary_row_count: boundary_entries.len(),
+            boundary_body_count: production_generation_boundary_body_list().len(),
+            boundary_bodies: production_generation_boundary_body_list(),
+            boundary_epoch_count: boundary_epochs.len(),
+            earliest_epoch,
+            latest_epoch,
+            boundary_earliest_epoch,
+            boundary_latest_epoch,
+        }
+    }))
+}
+
+/// Returns the release-facing production-generation coverage summary string.
+pub fn production_generation_snapshot_summary_for_report() -> String {
+    match production_generation_snapshot_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => format!("Production generation coverage: unavailable ({error})"),
+        },
+        None => "Production generation coverage: unavailable".to_string(),
     }
 }
 
@@ -3506,10 +3913,11 @@ pub fn independent_holdout_manifest_summary_for_report() -> String {
 /// Returns the combined snapshot evidence summary used by validation and release reports.
 pub fn jpl_snapshot_evidence_summary_for_report() -> String {
     format!(
-        "{} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {}",
+        "{} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {}",
         reference_snapshot_summary_for_report(),
         reference_snapshot_equatorial_parity_summary_for_report(),
         reference_snapshot_batch_parity_summary_for_report(),
+        production_generation_snapshot_summary_for_report(),
         reference_snapshot_source_summary_for_report(),
         reference_snapshot_manifest_summary_for_report(),
         reference_asteroid_evidence_summary_for_report(),
@@ -6901,6 +7309,70 @@ mod tests {
     }
 
     #[test]
+    fn production_generation_snapshot_summary_reports_the_boundary_overlay() {
+        let summary = production_generation_snapshot_summary()
+            .expect("production-generation snapshot summary should exist");
+        summary
+            .validate()
+            .expect("production-generation snapshot summary should validate");
+        assert_eq!(summary.row_count, 52);
+        assert_eq!(summary.body_count, 15);
+        assert_eq!(summary.bodies, reference_bodies());
+        assert_eq!(summary.epoch_count, 9);
+        assert_eq!(summary.boundary_row_count, 6);
+        assert_eq!(summary.boundary_body_count, 2);
+        assert_eq!(
+            summary.boundary_bodies,
+            &[CelestialBody::Mars, CelestialBody::Jupiter]
+        );
+        assert_eq!(summary.boundary_epoch_count, 3);
+        assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_499.0);
+        assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
+        assert_eq!(
+            summary.boundary_earliest_epoch.julian_day.days(),
+            2_451_910.5
+        );
+        assert_eq!(summary.boundary_latest_epoch.julian_day.days(), 2_451_912.5);
+        assert_eq!(
+            summary.summary_line(),
+            format!(
+                "Production generation coverage: 52 rows across 15 bodies and 9 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: {}; boundary overlay (Mars and Jupiter at 2001-01-01 through 2001-01-03): 6 rows across 2 bodies and 3 epochs (JD 2451910.5 (TDB)..JD 2451912.5 (TDB)); boundary bodies: Mars, Jupiter",
+                format_bodies(reference_bodies())
+            )
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            production_generation_snapshot_summary_for_report(),
+            summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn production_generation_snapshot_requests_preserve_the_boundary_overlay() {
+        let requests = production_generation_snapshot_requests(CoordinateFrame::Ecliptic)
+            .expect("production-generation snapshot requests should exist");
+        let entries = production_generation_snapshot_entries()
+            .expect("production-generation snapshot entries should exist");
+        let boundary_entries = production_generation_boundary_entries()
+            .expect("production-generation boundary entries should exist");
+
+        assert_eq!(requests.len(), entries.len());
+        for (request, entry) in requests.iter().zip(entries.iter()) {
+            assert_eq!(request.body, entry.body);
+            assert_eq!(request.instant.julian_day, entry.epoch.julian_day);
+            assert_eq!(request.frame, CoordinateFrame::Ecliptic);
+            assert_eq!(request.zodiac_mode, ZodiacMode::Tropical);
+            assert_eq!(request.apparent, Apparentness::Mean);
+            assert!(request.observer.is_none());
+        }
+        assert_eq!(
+            &entries[entries.len() - boundary_entries.len()..],
+            boundary_entries
+        );
+    }
+
+    #[test]
     fn reference_snapshot_summary_validation_rejects_body_count_drift() {
         let mut summary =
             reference_snapshot_summary().expect("reference snapshot summary should exist");
@@ -7092,6 +7564,8 @@ mod tests {
         assert!(jpl_snapshot_evidence_summary_for_report().contains(
             "JPL reference snapshot batch parity: 46 rows across 15 bodies and 6 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies:"
         ));
+        assert!(jpl_snapshot_evidence_summary_for_report()
+            .contains(&production_generation_snapshot_summary_for_report()));
     }
 
     #[test]
@@ -7104,6 +7578,26 @@ mod tests {
             summary.validate(),
             Err(ReferenceSnapshotBatchParitySummaryValidationError::RequestCountMismatch { .. })
         ));
+    }
+
+    #[test]
+    fn production_generation_snapshot_summary_reports_the_expected_coverage() {
+        let summary = production_generation_snapshot_summary()
+            .expect("production generation summary should exist");
+        assert_eq!(summary.row_count, 52);
+        assert_eq!(summary.body_count, 15);
+        assert_eq!(summary.epoch_count, 9);
+        assert_eq!(summary.boundary_row_count, 6);
+        assert_eq!(summary.boundary_body_count, 2);
+        assert_eq!(summary.boundary_epoch_count, 3);
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            production_generation_snapshot_summary_for_report(),
+            summary.summary_line()
+        );
+        assert!(summary.summary_line().contains("boundary overlay (Mars and Jupiter at 2001-01-01 through 2001-01-03): 6 rows across 2 bodies and 3 epochs"));
     }
 
     #[test]
