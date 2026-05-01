@@ -24,7 +24,7 @@ Recently completed: Pluto explicit downgrade and corpus cleanup, plus the produc
 
 **Work items:**
 
-- Decide first-release posture for built-in Delta T and UTC/UT1 convenience conversion.
+- Decide first-release posture for built-in Delta T and UTC/UT1 convenience conversion. The current backend/report surface now exposes the deferred no-built-in-Delta-T posture as a separate typed summary, but the decision itself is still to keep or implement a real model.
 - Decide first-release posture for apparent-place corrections.
 - Decide first-release posture for topocentric body positions.
 - Update metadata, errors, docs, CLI flags, and tests so unsupported modes continue to fail closed.

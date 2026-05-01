@@ -37,8 +37,9 @@ use pleiades_ayanamsa::{
     release_ayanamsas, resolve_ayanamsa, validate_ayanamsa_catalog,
 };
 use pleiades_backend::{
-    frame_policy_summary_for_report, request_policy_summary_for_report,
-    time_scale_policy_summary_for_report, zodiac_policy_summary_for_report,
+    delta_t_policy_summary_for_report, frame_policy_summary_for_report,
+    request_policy_summary_for_report, time_scale_policy_summary_for_report,
+    zodiac_policy_summary_for_report,
 };
 use pleiades_core::{
     current_api_stability_profile, current_compatibility_profile,
@@ -9176,6 +9177,16 @@ fn format_request_semantics_summary_for_report(
         format_time_scale_policy_summary_for_report(time_scale_policy)
     );
 
+    let delta_t_policy = delta_t_policy_summary_for_report();
+    let _ = writeln!(
+        text,
+        "Delta T policy: {}",
+        match delta_t_policy.validated_summary_line() {
+            Ok(line) => line.to_string(),
+            Err(error) => format!("delta T policy unavailable ({error})"),
+        }
+    );
+
     let request_policy = match validated_request_policy_summary_for_report() {
         Ok(summary) => summary,
         Err(error) => {
@@ -9420,6 +9431,15 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         format_release_profile_identifiers_summary(&release_profiles)
     );
     let _ = writeln!(text, "Time-scale policy: {}", request_policy.time_scale);
+    let delta_t_policy = delta_t_policy_summary_for_report();
+    let _ = writeln!(
+        text,
+        "Delta T policy: {}",
+        match delta_t_policy.validated_summary_line() {
+            Ok(line) => line.to_string(),
+            Err(error) => format!("delta T policy unavailable ({error})"),
+        }
+    );
     let _ = writeln!(text, "Observer policy: {}", request_policy.observer);
     let _ = writeln!(text, "Apparentness policy: {}", request_policy.apparentness);
     let _ = writeln!(text, "Frame policy: {}", request_policy.frame);
@@ -10579,6 +10599,14 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&format_time_scale_policy_summary_for_report(
         &time_scale_policy,
     ));
+    text.push('\n');
+    text.push_str("Delta T policy: ");
+    text.push_str(
+        &match delta_t_policy_summary_for_report().validated_summary_line() {
+            Ok(line) => line.to_string(),
+            Err(error) => format!("delta T policy unavailable ({error})"),
+        },
+    );
     text.push('\n');
     text.push_str("Observer policy: ");
     text.push_str(&format_observer_policy_summary_for_report(
@@ -14406,6 +14434,9 @@ mod tests {
             line == "Time-scale policy: direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T or UTC convenience model"
         }));
         assert!(validation_report_summary.lines().any(|line| {
+            line == "Delta T policy: built-in Delta T modeling remains out of scope; UTC/UT1 inputs require caller-supplied conversion helpers"
+        }));
+        assert!(validation_report_summary.lines().any(|line| {
             line == "Observer policy: chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests; topocentric body positions remain unsupported"
         }));
         assert!(validation_report_summary.lines().any(|line| {
@@ -16329,6 +16360,7 @@ mod tests {
         );
         assert!(rendered.contains("Workspace audit: workspace-audit / audit"));
         assert!(rendered.contains("Time-scale policy: direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T or UTC convenience model"));
+        assert!(rendered.contains("Delta T policy: built-in Delta T modeling remains out of scope; UTC/UT1 inputs require caller-supplied conversion helpers"));
         assert!(rendered.contains("Observer policy: chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests; topocentric body positions remain unsupported"));
         assert!(rendered.contains("Apparentness policy: current first-party backends accept mean geometric output only; apparent-place corrections are rejected unless a backend explicitly advertises support"));
         assert!(rendered.contains("Frame policy: ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported; native sidereal backend output remains unsupported unless a backend explicitly advertises it"));
@@ -16697,6 +16729,9 @@ mod tests {
         assert!(rendered.contains("Distinct time scales: 2 (TT, TDB)"));
         assert!(rendered.lines().any(|line| {
             line == "Time-scale policy: direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T or UTC convenience model"
+        }));
+        assert!(rendered.lines().any(|line| {
+            line == "Delta T policy: built-in Delta T modeling remains out of scope; UTC/UT1 inputs require caller-supplied conversion helpers"
         }));
         assert!(rendered.lines().any(|line| {
             line == "Observer policy: chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests; topocentric body positions remain unsupported"
@@ -17234,6 +17269,9 @@ version = "0.9.0"
         assert!(release_summary.lines().any(|line| {
             line == "Request policy: time-scale=direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T or UTC convenience model; observer=chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests; topocentric body positions remain unsupported; apparentness=current first-party backends accept mean geometric output only; apparent-place corrections are rejected unless a backend explicitly advertises support; frame=ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported; native sidereal backend output remains unsupported unless a backend explicitly advertises it"
         }));
+        assert!(release_summary.lines().any(|line| {
+            line == "Delta T policy: built-in Delta T modeling remains out of scope; UTC/UT1 inputs require caller-supplied conversion helpers"
+        }));
         assert!(release_summary.contains("JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"));
         assert!(release_summary.contains(
             "JPL reference snapshot equatorial parity: 90 rows across 15 bodies and 10 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
@@ -17497,6 +17535,9 @@ version = "0.9.0"
         assert!(validation_report_summary.contains("VSOP87 request policy:"));
         assert!(validation_report_summary.lines().any(|line| {
             line == "Request policy: time-scale=direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T or UTC convenience model; observer=chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests; topocentric body positions remain unsupported; apparentness=current first-party backends accept mean geometric output only; apparent-place corrections are rejected unless a backend explicitly advertises support; frame=ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported; native sidereal backend output remains unsupported unless a backend explicitly advertises it"
+        }));
+        assert!(validation_report_summary.lines().any(|line| {
+            line == "Delta T policy: built-in Delta T modeling remains out of scope; UTC/UT1 inputs require caller-supplied conversion helpers"
         }));
         assert!(validation_report_summary
             .contains("VSOP87 source audit: 8 source-backed bodies (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune) across 8 source files (VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep); 8 vendored full-file inputs, 35080 total terms, max source size 949753 bytes / 7141 lines, 8 deterministic fingerprints"));

@@ -107,13 +107,14 @@ pub use pleiades_ayanamsa::{
     resolve_ayanamsa, AyanamsaDescriptor,
 };
 pub use pleiades_backend::{
-    apparentness_policy_summary_for_report, frame_policy_summary_for_report,
-    observer_policy_summary_for_report, request_policy_summary_for_report,
-    time_scale_policy_summary_for_report, AccuracyClass, Apparentness, ApparentnessPolicySummary,
-    BackendCapabilities, BackendFamily, BackendId, BackendMetadata, BackendProvenance,
-    CompositeBackend, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
-    EphemerisResult, FramePolicySummary, ObserverPolicySummary, QualityAnnotation,
-    RequestPolicySummary, RoutingBackend, TimeScalePolicySummary,
+    apparentness_policy_summary_for_report, delta_t_policy_summary_for_report,
+    frame_policy_summary_for_report, observer_policy_summary_for_report,
+    request_policy_summary_for_report, time_scale_policy_summary_for_report, AccuracyClass,
+    Apparentness, ApparentnessPolicySummary, BackendCapabilities, BackendFamily, BackendId,
+    BackendMetadata, BackendProvenance, CompositeBackend, DeltaTPolicySummary, EphemerisBackend,
+    EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult, FramePolicySummary,
+    ObserverPolicySummary, QualityAnnotation, RequestPolicySummary, RoutingBackend,
+    TimeScalePolicySummary,
 };
 pub use pleiades_houses::{
     baseline_house_systems, calculate_houses, descriptor as house_system_descriptor,

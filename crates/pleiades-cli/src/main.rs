@@ -37,14 +37,16 @@ fn banner() -> &'static str {
 fn shared_request_policy_help_block() -> String {
     let request_policy = pleiades_core::request_policy_summary_for_report();
     let time_scale_policy = pleiades_core::time_scale_policy_summary_for_report();
+    let delta_t_policy = pleiades_core::delta_t_policy_summary_for_report();
     let observer_policy = pleiades_core::observer_policy_summary_for_report();
     let apparentness_policy = pleiades_core::apparentness_policy_summary_for_report();
     let frame_policy = pleiades_core::frame_policy_summary_for_report();
 
     format!(
-        "  Request policy: {}\n  Time-scale policy: {}\n  Observer policy: {}\n  Apparentness policy: {}\n  Frame policy: {}",
+        "  Request policy: {}\n  Time-scale policy: {}\n  Delta T policy: {}\n  Observer policy: {}\n  Apparentness policy: {}\n  Frame policy: {}",
         request_policy.summary_line(),
         time_scale_policy.summary_line(),
+        delta_t_policy.summary_line(),
         observer_policy.summary_line(),
         apparentness_policy.summary_line(),
         frame_policy,
@@ -1177,6 +1179,9 @@ mod tests {
         assert!(release_summary.contains("API stability summary line: API stability posture: pleiades-api-stability/0.1.0; stable surfaces: 6; experimental surfaces: 3; deprecation policy items: 4; intentional limits: 3"));
         assert!(release_summary.lines().any(|line| {
             line == "Time-scale policy: direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T or UTC convenience model"
+        }));
+        assert!(release_summary.lines().any(|line| {
+            line == "Delta T policy: built-in Delta T modeling remains out of scope; UTC/UT1 inputs require caller-supplied conversion helpers"
         }));
         assert!(release_summary.lines().any(|line| {
             line == "Observer policy: chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests; topocentric body positions remain unsupported"
