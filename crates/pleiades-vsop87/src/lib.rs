@@ -5558,6 +5558,15 @@ impl Vsop87SourceBodyClassEvidenceSummary {
         format_source_body_class_evidence_entry(self)
     }
 
+    /// Returns the validated compact summary line when the class evidence still matches
+    /// the current canonical evidence.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, Vsop87SourceBodyClassEvidenceSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
     /// Returns `Ok(())` when the summary still matches the current derived counts.
     pub fn validate(&self) -> Result<(), Vsop87SourceBodyClassEvidenceSummaryValidationError> {
         let Some(expected) = source_body_class_evidence_summary().and_then(|summaries| {
@@ -6058,14 +6067,20 @@ fn format_validated_source_body_class_evidence_summary_for_report(
         return "VSOP87 source-backed body-class envelopes: unavailable".to_string();
     }
 
-    if let Some(error) = summaries
-        .iter()
-        .find_map(|summary| summary.validate().err())
-    {
-        return format!("VSOP87 source-backed body-class envelopes: unavailable ({error})");
+    let mut rendered = Vec::with_capacity(summaries.len());
+    for summary in summaries {
+        match summary.validated_summary_line() {
+            Ok(line) => rendered.push(line),
+            Err(error) => {
+                return format!("VSOP87 source-backed body-class envelopes: unavailable ({error})");
+            }
+        }
     }
 
-    format_source_body_class_evidence_summary(summaries)
+    format!(
+        "VSOP87 source-backed body-class envelopes: {}",
+        rendered.join(" | ")
+    )
 }
 
 /// Returns the release-facing source-body-class evidence summary string.
@@ -11226,6 +11241,14 @@ mod tests {
         );
         assert_eq!(summary[0].summary_line(), summary[0].to_string());
         assert_eq!(summary[1].summary_line(), summary[1].to_string());
+        assert_eq!(
+            summary[0].validated_summary_line(),
+            Ok(summary[0].summary_line())
+        );
+        assert_eq!(
+            summary[1].validated_summary_line(),
+            Ok(summary[1].summary_line())
+        );
         assert!(rendered.contains("Luminary: samples=1, bodies: Sun"));
         assert!(rendered.contains("median Δlon="));
         assert!(rendered.contains("p95 Δlon="));
@@ -11234,6 +11257,17 @@ mod tests {
         assert!(rendered.contains("median Δdist="));
         assert!(rendered.contains("p95 Δdist="));
         assert!(rendered.contains("Major planets: samples=7, bodies: Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune"));
+    }
+
+    #[test]
+    fn source_body_class_evidence_report_marks_drift_as_unavailable() {
+        let mut summary = source_body_class_evidence_summary().expect("summary should exist");
+        summary[0].sample_count += 1;
+
+        assert_eq!(
+            format_validated_source_body_class_evidence_summary_for_report(&summary),
+            "VSOP87 source-backed body-class envelopes: unavailable (the VSOP87 source-backed body-class evidence summary field `sample_count` is out of sync with the current canonical evidence)"
+        );
     }
 
     #[test]
