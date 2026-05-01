@@ -1406,9 +1406,18 @@ impl AyanamsaMetadataCoverage {
     }
 
     fn render_summary_line(&self) -> String {
+        let custom_definition_only_labels = if self.custom_definition_only.is_empty() {
+            "none".to_string()
+        } else {
+            self.custom_definition_only.join(", ")
+        };
+
         format!(
-            "ayanamsa sidereal metadata: {}/{} entries with both a reference epoch and offset",
-            self.with_sidereal_metadata, self.total
+            "ayanamsa sidereal metadata: {}/{} entries with both a reference epoch and offset; custom-definition-only={} labels: {}",
+            self.with_sidereal_metadata,
+            self.total,
+            self.custom_definition_only.len(),
+            custom_definition_only_labels,
         )
     }
 }
@@ -1562,24 +1571,14 @@ pub struct AyanamsaCatalogValidationSummary {
 impl AyanamsaCatalogValidationSummary {
     /// Returns the compact release-facing summary line for the ayanamsa catalog validation state.
     pub fn summary_line(&self) -> String {
-        let custom_definition_only_labels =
-            if self.metadata_coverage.custom_definition_only.is_empty() {
-                "none".to_string()
-            } else {
-                self.metadata_coverage.custom_definition_only.join(", ")
-            };
-
         match &self.validation_result {
             Ok(()) => format!(
-                "ayanamsa catalog validation: ok ({} entries, {} labels checked; baseline={}, release={}; sidereal metadata={}/{} entries with both a reference epoch and offset; custom-definition-only={} labels: {}; round-trip, alias uniqueness, and notes verified)",
+                "ayanamsa catalog validation: ok ({} entries, {} labels checked; baseline={}, release={}; {}; round-trip, alias uniqueness, and notes verified)",
                 self.entry_count,
                 self.label_count,
                 self.baseline_entry_count,
                 self.release_entry_count,
-                self.metadata_coverage.with_sidereal_metadata,
-                self.metadata_coverage.total,
-                self.metadata_coverage.custom_definition_only.len(),
-                custom_definition_only_labels,
+                self.metadata_coverage.summary_line(),
             ),
             Err(error) => format!(
                 "ayanamsa catalog validation: error: {} ({} entries; baseline={}, release={})",
@@ -2698,8 +2697,11 @@ mod tests {
         assert_eq!(
             coverage.summary_line(),
             format!(
-                "ayanamsa sidereal metadata: {}/{} entries with both a reference epoch and offset",
-                coverage.with_sidereal_metadata, coverage.total
+                "ayanamsa sidereal metadata: {}/{} entries with both a reference epoch and offset; custom-definition-only={} labels: {}",
+                coverage.with_sidereal_metadata,
+                coverage.total,
+                coverage.custom_definition_only.len(),
+                coverage.custom_definition_only.join(", ")
             )
         );
         assert_eq!(coverage.to_string(), coverage.summary_line());
@@ -2713,6 +2715,9 @@ mod tests {
             .custom_definition_only
             .iter()
             .all(|name| name.starts_with("Babylonian (")));
+        assert!(coverage
+            .summary_line()
+            .contains("custom-definition-only=6 labels"));
         assert!(coverage.without_sidereal_metadata.is_empty());
     }
 
