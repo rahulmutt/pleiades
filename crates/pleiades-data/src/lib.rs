@@ -3291,6 +3291,7 @@ impl EphemerisBackend for PackagedDataBackend {
             "packaged data",
             &[TimeScale::Tt, TimeScale::Tdb],
             &[CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
+            true,
             false,
         )?;
 

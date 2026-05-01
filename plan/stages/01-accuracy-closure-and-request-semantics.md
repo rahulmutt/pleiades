@@ -19,7 +19,7 @@ The workspace already has the required crate structure, backend trait, chart fa√
 Implemented and not re-planned here:
 
 - backend trait, metadata, request validation, composite routing, batch APIs, and structured errors;
-- mean geometric geocentric TT/TDB request handling with explicit rejection of unsupported apparent/topocentric/native-sidereal modes;
+- mean geometric geocentric TT/TDB request handling with explicit rejection of unsupported mean/apparent, topocentric, and native-sidereal modes;
 - source-backed VSOP87B generated binary tables for Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, and Neptune;
 - compact lunar baseline with validation for Moon, mean/true node, and mean apogee/perigee;
 - JPL Horizons fixture/snapshot backend with selected asteroid rows, exact fixture epochs, interpolation transparency, equatorial reconstruction, and batch parity evidence; the interpolation-quality corpus now includes a 2451910.5 boundary sample with quadratic coverage;

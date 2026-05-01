@@ -8390,6 +8390,7 @@ impl EphemerisBackend for Vsop87Backend {
             BACKEND_LABEL,
             &[TimeScale::Tt, TimeScale::Tdb],
             &[CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
+            true,
             false,
         )?;
 

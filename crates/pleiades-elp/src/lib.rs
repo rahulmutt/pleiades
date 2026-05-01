@@ -5569,6 +5569,7 @@ impl EphemerisBackend for ElpBackend {
             "the ELP backend",
             SUPPORTED_LUNAR_TIME_SCALES,
             SUPPORTED_LUNAR_FRAMES,
+            true,
             false,
         )?;
 

@@ -6826,6 +6826,7 @@ impl EphemerisBackend for JplSnapshotBackend {
             "the JPL snapshot backend",
             &[TimeScale::Tt, TimeScale::Tdb],
             &[CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
+            true,
             false,
         )?;
 

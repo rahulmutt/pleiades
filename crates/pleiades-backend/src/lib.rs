@@ -1621,15 +1621,16 @@ pub const fn request_policy_summary_for_report() -> RequestPolicySummary {
 /// Validates the request-shape policy shared by the current first-party backends.
 ///
 /// This helper checks the request against the backend's published time-scale,
-/// frame, and apparentness capabilities. It leaves body-specific, observer,
-/// and zodiac-mode validation to the concrete backend so implementations can
-/// keep their own source-specific error messages while sharing the common
-/// policy guardrails.
+/// frame, and mean/apparent value-mode capabilities. It leaves body-specific,
+/// observer, and zodiac-mode validation to the concrete backend so
+/// implementations can keep their own source-specific error messages while
+/// sharing the common policy guardrails.
 pub fn validate_request_policy(
     req: &EphemerisRequest,
     backend_label: &str,
     supported_time_scales: &[TimeScale],
     supported_frames: &[CoordinateFrame],
+    supports_mean: bool,
     supports_apparent: bool,
 ) -> Result<(), EphemerisError> {
     if !supported_time_scales.contains(&req.instant.scale) {
@@ -1652,13 +1653,24 @@ pub fn validate_request_policy(
         ));
     }
 
-    if req.apparent == Apparentness::Apparent && !supports_apparent {
-        return Err(EphemerisError::new(
-            EphemerisErrorKind::InvalidRequest,
-            format!(
-                "{backend_label} currently returns mean geometric coordinates only; apparent corrections are not implemented"
-            ),
-        ));
+    match req.apparent {
+        Apparentness::Mean if !supports_mean => {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "{backend_label} currently returns apparent coordinates only; mean geometric coordinates are not implemented"
+                ),
+            ));
+        }
+        Apparentness::Apparent if !supports_apparent => {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "{backend_label} currently returns mean geometric coordinates only; apparent corrections are not implemented"
+                ),
+            ));
+        }
+        _ => {}
     }
 
     Ok(())
@@ -1687,9 +1699,9 @@ fn validate_request_observer_location(req: &EphemerisRequest) -> Result<(), Ephe
 /// so callers that need finer-grained sidereal routing must keep that logic at
 /// the backend or façade layer. Routing backends are treated as a special case:
 /// they still preflight custom definitions and body coverage here, but they
-/// defer the broader time-scale, frame, zodiac, apparentness, and topocentric
-/// capability checks to the selected provider because their aggregate metadata
-/// is intentionally conservative.
+/// defer the broader time-scale, frame, zodiac, and value-mode capability
+/// checks to the selected provider because their aggregate metadata is
+/// intentionally conservative.
 pub fn validate_request_against_metadata(
     req: &EphemerisRequest,
     metadata: &BackendMetadata,
@@ -1703,6 +1715,7 @@ pub fn validate_request_against_metadata(
             metadata.id.as_str(),
             &metadata.supported_time_scales,
             &metadata.supported_frames,
+            metadata.capabilities.mean,
             metadata.capabilities.apparent,
         )?;
 
@@ -3288,6 +3301,7 @@ mod tests {
             "toy backend",
             &[TimeScale::Tt],
             &[CoordinateFrame::Ecliptic],
+            true,
             false,
         )
         .expect_err("UTC should be rejected when only TT is supported");
@@ -3309,6 +3323,7 @@ mod tests {
             "toy backend",
             &[TimeScale::Tt],
             &[CoordinateFrame::Ecliptic],
+            true,
             false,
         )
         .expect_err("equatorial frame should be rejected when only ecliptic is supported");
@@ -3329,10 +3344,34 @@ mod tests {
             "toy backend",
             &[TimeScale::Tt],
             &[CoordinateFrame::Ecliptic],
+            true,
             false,
         )
         .expect_err("apparent requests should be rejected when only mean output is supported");
         assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert_eq!(
+            error.message,
+            "toy backend currently returns mean geometric coordinates only; apparent corrections are not implemented"
+        );
+
+        let mean_request = EphemerisRequest {
+            apparent: Apparentness::Mean,
+            ..apparent_request.clone()
+        };
+        let error = validate_request_policy(
+            &mean_request,
+            "toy backend",
+            &[TimeScale::Tt],
+            &[CoordinateFrame::Ecliptic],
+            false,
+            true,
+        )
+        .expect_err("mean requests should be rejected when only apparent output is supported");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert_eq!(
+            error.message,
+            "toy backend currently returns apparent coordinates only; mean geometric coordinates are not implemented"
+        );
 
         let metadata = BackendMetadata {
             id: BackendId::new("toy backend"),
@@ -4184,6 +4223,7 @@ mod tests {
                     "mean-only test backend",
                     &[TimeScale::Tt],
                     &[CoordinateFrame::Ecliptic],
+                    true,
                     false,
                 )?;
 
@@ -4320,6 +4360,7 @@ mod tests {
                     "mixed-scale test backend",
                     &[TimeScale::Tt, TimeScale::Tdb],
                     &[CoordinateFrame::Ecliptic],
+                    true,
                     false,
                 )?;
 
