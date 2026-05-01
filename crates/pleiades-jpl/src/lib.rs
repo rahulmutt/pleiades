@@ -2164,7 +2164,369 @@ pub fn production_generation_snapshot_summary_for_report() -> String {
     }
 }
 
-/// A compact coverage summary for the comparison snapshot used by validation.
+/// A single body-window slice inside the production-generation coverage corpus.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ProductionGenerationSnapshotWindow {
+    /// The body covered by this window.
+    pub body: pleiades_backend::CelestialBody,
+    /// Number of source-backed samples for the body.
+    pub sample_count: usize,
+    /// Number of distinct epochs represented for the body.
+    pub epoch_count: usize,
+    /// Earliest epoch represented for the body.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented for the body.
+    pub latest_epoch: Instant,
+}
+
+impl ProductionGenerationSnapshotWindow {
+    /// Returns a compact body-window summary used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let time_span = if self.earliest_epoch == self.latest_epoch {
+            format_instant(self.earliest_epoch)
+        } else {
+            format!(
+                "{}..{}",
+                format_instant(self.earliest_epoch),
+                format_instant(self.latest_epoch)
+            )
+        };
+
+        format!(
+            "{}: {} samples across {} epochs at {}",
+            self.body, self.sample_count, self.epoch_count, time_span
+        )
+    }
+}
+
+/// Compact release-facing summary for the production-generation source windows.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ProductionGenerationSnapshotWindowSummary {
+    /// Number of source-backed samples in the merged production-generation corpus.
+    pub sample_count: usize,
+    /// Bodies covered by the merged production-generation corpus in first-seen order.
+    pub sample_bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Number of distinct epochs covered by the merged production-generation corpus.
+    pub epoch_count: usize,
+    /// Earliest epoch represented in the merged production-generation corpus.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented in the merged production-generation corpus.
+    pub latest_epoch: Instant,
+    /// Per-body window breakdown in first-seen order.
+    pub windows: Vec<ProductionGenerationSnapshotWindow>,
+}
+
+/// Structured validation errors for a production-generation source window summary.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ProductionGenerationSnapshotWindowSummaryValidationError {
+    /// The summary did not include any samples.
+    MissingSamples,
+    /// The summary did not include any bodies.
+    MissingBodies,
+    /// The declared body count did not match the number of listed bodies.
+    BodyCountMismatch {
+        body_count: usize,
+        bodies_len: usize,
+    },
+    /// The summary reused a body after trimming its display form.
+    DuplicateBody {
+        first_index: usize,
+        second_index: usize,
+        body: String,
+    },
+    /// The summary included a blank body label.
+    BlankBody { index: usize },
+    /// The summary body order diverged from the checked-in merged corpus.
+    BodyOrderMismatch {
+        index: usize,
+        expected: String,
+        found: String,
+    },
+    /// The summary did not include any epochs.
+    MissingEpochs,
+    /// The summary reported an invalid epoch range.
+    InvalidEpochRange {
+        earliest_epoch: Instant,
+        latest_epoch: Instant,
+    },
+    /// The summary diverged from the derived merged-corpus windows.
+    DerivedSummaryMismatch,
+}
+
+impl ProductionGenerationSnapshotWindowSummaryValidationError {
+    /// Returns the compact label used in release-facing summaries and tests.
+    pub const fn label(&self) -> &'static str {
+        match self {
+            Self::MissingSamples => "missing samples",
+            Self::MissingBodies => "missing bodies",
+            Self::BodyCountMismatch { .. } => "body count mismatch",
+            Self::DuplicateBody { .. } => "duplicate body",
+            Self::BlankBody { .. } => "blank body",
+            Self::BodyOrderMismatch { .. } => "body order mismatch",
+            Self::MissingEpochs => "missing epochs",
+            Self::InvalidEpochRange { .. } => "invalid epoch range",
+            Self::DerivedSummaryMismatch => "derived summary mismatch",
+        }
+    }
+}
+
+impl fmt::Display for ProductionGenerationSnapshotWindowSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BodyCountMismatch {
+                body_count,
+                bodies_len,
+            } => write!(f, "body count {body_count} does not match listed bodies {bodies_len}"),
+            Self::DuplicateBody {
+                first_index,
+                second_index,
+                body,
+            } => write!(
+                f,
+                "duplicate body '{body}' at index {second_index} (first seen at index {first_index})"
+            ),
+            Self::BlankBody { index } => write!(f, "blank body at index {index}"),
+            Self::BodyOrderMismatch {
+                index,
+                expected,
+                found,
+            } => write!(
+                f,
+                "body order mismatch at index {index}: expected '{expected}', found '{found}'"
+            ),
+            Self::InvalidEpochRange {
+                earliest_epoch,
+                latest_epoch,
+            } => write!(
+                f,
+                "invalid epoch range: earliest {} is after latest {}",
+                format_instant(*earliest_epoch),
+                format_instant(*latest_epoch)
+            ),
+            _ => f.write_str(self.label()),
+        }
+    }
+}
+
+impl std::error::Error for ProductionGenerationSnapshotWindowSummaryValidationError {}
+
+impl fmt::Display for ProductionGenerationSnapshotWindow {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+impl ProductionGenerationSnapshotWindowSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Production generation source windows: {} source-backed samples across {} bodies and {} epochs ({}..{}); windows: {}",
+            self.sample_count,
+            self.sample_bodies.len(),
+            self.epoch_count,
+            format_instant(self.earliest_epoch),
+            format_instant(self.latest_epoch),
+            self.windows
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join("; ")
+        )
+    }
+
+    /// Validates that the summary remains internally consistent and still matches the derived evidence.
+    pub fn validate(&self) -> Result<(), ProductionGenerationSnapshotWindowSummaryValidationError> {
+        if self.sample_count == 0 {
+            return Err(ProductionGenerationSnapshotWindowSummaryValidationError::MissingSamples);
+        }
+        if self.sample_bodies.is_empty() {
+            return Err(ProductionGenerationSnapshotWindowSummaryValidationError::MissingBodies);
+        }
+        if self.sample_bodies.len() != self.windows.len() {
+            return Err(
+                ProductionGenerationSnapshotWindowSummaryValidationError::BodyCountMismatch {
+                    body_count: self.sample_bodies.len(),
+                    bodies_len: self.windows.len(),
+                },
+            );
+        }
+        let mut seen_bodies = BTreeSet::new();
+        for (index, body) in self.sample_bodies.iter().enumerate() {
+            if body.to_string().trim().is_empty() {
+                return Err(
+                    ProductionGenerationSnapshotWindowSummaryValidationError::BlankBody { index },
+                );
+            }
+            if !seen_bodies.insert(body.to_string()) {
+                return Err(
+                    ProductionGenerationSnapshotWindowSummaryValidationError::DuplicateBody {
+                        first_index: self.sample_bodies[..index]
+                            .iter()
+                            .position(|other| other == body)
+                            .unwrap(),
+                        second_index: index,
+                        body: body.to_string(),
+                    },
+                );
+            }
+        }
+
+        let expected_bodies = production_generation_snapshot_bodies();
+        if self.sample_bodies.as_slice() != expected_bodies {
+            let mismatch_index = self
+                .sample_bodies
+                .iter()
+                .zip(expected_bodies.iter())
+                .position(|(actual, expected)| actual != expected)
+                .unwrap_or_else(|| self.sample_bodies.len().min(expected_bodies.len()));
+            return Err(
+                ProductionGenerationSnapshotWindowSummaryValidationError::BodyOrderMismatch {
+                    index: mismatch_index,
+                    expected: expected_bodies
+                        .get(mismatch_index)
+                        .map(ToString::to_string)
+                        .unwrap_or_else(|| "<end of production body list>".to_string()),
+                    found: self
+                        .sample_bodies
+                        .get(mismatch_index)
+                        .map(ToString::to_string)
+                        .unwrap_or_else(|| "<end of summary body list>".to_string()),
+                },
+            );
+        }
+
+        if self.epoch_count == 0 {
+            return Err(ProductionGenerationSnapshotWindowSummaryValidationError::MissingEpochs);
+        }
+        if self.earliest_epoch.julian_day.days() > self.latest_epoch.julian_day.days() {
+            return Err(
+                ProductionGenerationSnapshotWindowSummaryValidationError::InvalidEpochRange {
+                    earliest_epoch: self.earliest_epoch,
+                    latest_epoch: self.latest_epoch,
+                },
+            );
+        }
+
+        if production_generation_snapshot_window_summary().as_ref() != Some(self) {
+            return Err(
+                ProductionGenerationSnapshotWindowSummaryValidationError::DerivedSummaryMismatch,
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns a compact summary line after validating the summary.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ProductionGenerationSnapshotWindowSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for ProductionGenerationSnapshotWindowSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Formats the production-generation source windows for release-facing reporting.
+pub fn format_production_generation_snapshot_window_summary(
+    summary: &ProductionGenerationSnapshotWindowSummary,
+) -> String {
+    summary.summary_line()
+}
+
+fn production_generation_snapshot_window_summary_details(
+) -> Option<ProductionGenerationSnapshotWindowSummary> {
+    let entries = production_generation_snapshot_entries()?;
+    let mut windows = Vec::new();
+    for body in production_generation_snapshot_bodies() {
+        let body_entries = entries
+            .iter()
+            .filter(|entry| entry.body == *body)
+            .collect::<Vec<_>>();
+        if body_entries.is_empty() {
+            continue;
+        }
+
+        let mut earliest_epoch = body_entries[0].epoch;
+        let mut latest_epoch = body_entries[0].epoch;
+        let mut epochs = BTreeSet::new();
+        for entry in &body_entries {
+            epochs.insert(entry.epoch.julian_day.days().to_bits());
+            if entry.epoch.julian_day.days() < earliest_epoch.julian_day.days() {
+                earliest_epoch = entry.epoch;
+            }
+            if entry.epoch.julian_day.days() > latest_epoch.julian_day.days() {
+                latest_epoch = entry.epoch;
+            }
+        }
+
+        windows.push(ProductionGenerationSnapshotWindow {
+            body: body.clone(),
+            sample_count: body_entries.len(),
+            epoch_count: epochs.len(),
+            earliest_epoch,
+            latest_epoch,
+        });
+    }
+
+    if windows.is_empty() {
+        return None;
+    }
+
+    let earliest_epoch = windows
+        .iter()
+        .map(|window| window.earliest_epoch)
+        .min_by(|left, right| left.julian_day.days().total_cmp(&right.julian_day.days()))
+        .expect("production generation source windows should not be empty after collection");
+    let latest_epoch = windows
+        .iter()
+        .map(|window| window.latest_epoch)
+        .max_by(|left, right| left.julian_day.days().total_cmp(&right.julian_day.days()))
+        .expect("production generation source windows should not be empty after collection");
+
+    Some(ProductionGenerationSnapshotWindowSummary {
+        sample_count: entries.len(),
+        sample_bodies: production_generation_snapshot_bodies().to_vec(),
+        epoch_count: entries
+            .iter()
+            .map(|entry| entry.epoch.julian_day.days().to_bits())
+            .collect::<BTreeSet<_>>()
+            .len(),
+        earliest_epoch,
+        latest_epoch,
+        windows,
+    })
+}
+
+/// Returns the compact typed summary for the merged production-generation source windows.
+pub fn production_generation_snapshot_window_summary(
+) -> Option<ProductionGenerationSnapshotWindowSummary> {
+    static SUMMARY: OnceLock<ProductionGenerationSnapshotWindowSummary> = OnceLock::new();
+    Some(
+        SUMMARY
+            .get_or_init(|| {
+                production_generation_snapshot_window_summary_details()
+                    .expect("production generation source windows should exist")
+            })
+            .clone(),
+    )
+}
+
+/// Returns the release-facing production-generation source window summary string.
+pub fn production_generation_snapshot_window_summary_for_report() -> String {
+    match production_generation_snapshot_window_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => format!("Production generation source windows: unavailable ({error})"),
+        },
+        None => "Production generation source windows: unavailable".to_string(),
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct ComparisonSnapshotSummary {
     /// Total number of parsed snapshot rows.
@@ -8917,6 +9279,36 @@ mod tests {
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             production_generation_snapshot_summary_for_report(),
+            summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn production_generation_snapshot_window_summary_reports_the_source_windows() {
+        let summary = production_generation_snapshot_window_summary()
+            .expect("production-generation source window summary should exist");
+        summary
+            .validate()
+            .expect("production-generation source window summary should validate");
+        assert_eq!(summary.sample_count, 83);
+        assert_eq!(summary.sample_bodies.len(), 15);
+        assert_eq!(summary.windows.len(), summary.sample_bodies.len());
+        assert_eq!(summary.sample_bodies, reference_bodies());
+        assert_eq!(summary.epoch_count, 9);
+        assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_499.0);
+        assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
+        assert_eq!(summary.windows[0].body, CelestialBody::Mars);
+        assert!(summary.windows[0].sample_count >= 8);
+        assert!(summary.windows[0].summary_line().starts_with("Mars: "));
+        assert!(summary.summary_line().starts_with(
+            "Production generation source windows: 83 source-backed samples across 15 bodies and 9 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); windows: "
+        ));
+        assert!(summary.summary_line().contains("Mars:"));
+        assert!(summary.summary_line().contains("Jupiter:"));
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            production_generation_snapshot_window_summary_for_report(),
             summary.summary_line()
         );
     }
