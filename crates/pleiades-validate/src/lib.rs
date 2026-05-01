@@ -8044,6 +8044,15 @@ impl ComparisonEnvelopeSummary {
         self.percentile.summary_line()
     }
 
+    /// Returns the compact 95th-percentile tail line after validating against samples.
+    pub fn validated_percentile_line(
+        &self,
+        samples: &[ComparisonSample],
+    ) -> Result<String, EphemerisError> {
+        self.validate_against_samples(samples)?;
+        Ok(self.percentile_line())
+    }
+
     /// Validates the stored envelope against the provided comparison samples.
     pub fn validate_against_samples(
         &self,
@@ -11775,7 +11784,10 @@ fn write_comparison_summary(f: &mut fmt::Formatter<'_>, report: &ComparisonRepor
     if let Some(value) = summary.rms_distance_delta_au {
         writeln!(f, "  rms distance delta: {:.12} AU", value)?;
     }
-    writeln!(f, "  {}", comparison_envelope.percentile_line())?;
+    match comparison_envelope.validated_percentile_line(&report.samples) {
+        Ok(line) => writeln!(f, "  {line}")?,
+        Err(error) => writeln!(f, "  comparison percentile envelope unavailable ({error})")?,
+    }
     Ok(())
 }
 
@@ -13319,6 +13331,10 @@ mod tests {
             envelope.percentile_line(),
             comparison_percentile_envelope(&report.samples, 0.95).summary_line()
         );
+        assert_eq!(
+            envelope.validated_percentile_line(&report.samples),
+            Ok(envelope.percentile_line())
+        );
         assert!(envelope.summary_line().contains("median longitude delta:"));
         assert!(envelope
             .percentile_line()
@@ -13354,7 +13370,7 @@ mod tests {
         envelope.percentile.longitude_delta_deg += 0.0001;
 
         let error = envelope
-            .validate_against_samples(&report.samples)
+            .validated_percentile_line(&report.samples)
             .expect_err("drifted percentile should fail validation");
         assert!(error
             .to_string()
