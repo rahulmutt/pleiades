@@ -229,6 +229,11 @@ impl CompatibilityProfile {
             .collect()
     }
 
+    /// Returns the latitude-sensitive house-system coverage as a compact human-readable line.
+    pub fn latitude_sensitive_house_systems_summary_line(&self) -> String {
+        format_canonical_name_summary(&self.latitude_sensitive_house_systems())
+    }
+
     /// Returns the unique house formula families represented in the profile,
     /// sorted by their release-facing labels.
     pub fn house_formula_family_names(&self) -> Vec<String> {
@@ -1666,6 +1671,11 @@ impl fmt::Display for CompatibilityProfile {
             "- house formula families: {}",
             self.house_formula_families_summary_line()
         )?;
+        writeln!(
+            f,
+            "- latitude-sensitive house systems: {}",
+            self.latitude_sensitive_house_systems_summary_line()
+        )?;
         if !coverage.custom_definition_only.is_empty() {
             writeln!(
                 f,
@@ -2671,6 +2681,10 @@ mod tests {
         assert!(rendered.contains(&format!(
             "house formula families: {}",
             profile.house_formula_families_summary_line()
+        )));
+        assert!(rendered.contains(&format!(
+            "latitude-sensitive house systems: {}",
+            profile.latitude_sensitive_house_systems_summary_line()
         )));
         assert!(rendered.contains("ayanamsa sidereal metadata:"));
         assert!(rendered.contains(&format!(

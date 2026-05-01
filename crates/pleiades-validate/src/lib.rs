@@ -5370,17 +5370,7 @@ fn format_ayanamsa_reference_offsets_for_report() -> String {
 }
 
 fn summarize_latitude_sensitive_house_systems(profile: &CompatibilityProfile) -> String {
-    let latitude_sensitive = profile.latitude_sensitive_house_systems();
-
-    match latitude_sensitive.as_slice() {
-        [] => "0 (none)".to_string(),
-        [single] => format!("1 ({single})"),
-        _ => format!(
-            "{} ({})",
-            latitude_sensitive.len(),
-            latitude_sensitive.join(", ")
-        ),
-    }
+    profile.latitude_sensitive_house_systems_summary_line()
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
