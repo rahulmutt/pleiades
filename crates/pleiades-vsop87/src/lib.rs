@@ -325,6 +325,14 @@ impl Vsop87SourceSpecification {
             self.date_range,
         )
     }
+
+    /// Validates the source specification and returns its compact report line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, Vsop87SourceSpecificationValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for Vsop87SourceSpecification {
@@ -2519,7 +2527,10 @@ pub fn source_specifications() -> Vec<Vsop87SourceSpecification> {
 
 /// Formats a single VSOP87 source specification for reporting.
 pub fn format_source_specification(spec: &Vsop87SourceSpecification) -> String {
-    spec.summary_line()
+    match spec.validated_summary_line() {
+        Ok(summary) => summary,
+        Err(error) => format!("VSOP87 source specification unavailable ({error})"),
+    }
 }
 
 /// Formats the current VSOP87 source-specification catalog for reporting.
@@ -10769,6 +10780,10 @@ mod tests {
             .join(", ");
 
         assert_eq!(first.summary_line(), first.to_string());
+        assert_eq!(
+            first.validated_summary_line().unwrap(),
+            first.summary_line()
+        );
         assert_eq!(format_source_specification(first), first.summary_line());
         assert!(first.summary_line().contains("body=Sun"));
         assert!(first.summary_line().contains("file=VSOP87B.ear"));
@@ -10779,6 +10794,37 @@ mod tests {
         assert_eq!(format_source_specifications(&specs), expected_joined);
         assert_eq!(source_specifications_for_report(), expected_joined);
         assert!(source_specifications_for_report().contains("body=Neptune"));
+    }
+
+    #[test]
+    fn source_specification_summary_rejects_drifted_metadata() {
+        let spec = Vsop87SourceSpecification {
+            body: CelestialBody::Sun,
+            source_file: "VSOP87B.synthetic",
+            variant: "VSOP87B",
+            coordinate_family: "heliocentric spherical variables",
+            frame: "J2000 ecliptic/equinox",
+            units: "degrees and astronomical units",
+            reduction: "geocentric solar reduction from Earth coefficients",
+            transform_note:
+                "J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a mean-obliquity transform",
+            truncation_policy: "generated binary coefficient table derived from vendored full source file",
+            date_range: "full public source file; J2000 canonical reference sample",
+        };
+
+        let error = spec
+            .validated_summary_line()
+            .expect_err("unknown source files should be rejected");
+        assert_eq!(
+            error,
+            Vsop87SourceSpecificationValidationError::UnknownSourceFile {
+                body: CelestialBody::Sun,
+                source_file: "VSOP87B.synthetic",
+            }
+        );
+        assert!(format_source_specification(&spec).starts_with(
+            "VSOP87 source specification unavailable (the VSOP87 source specification for Sun references unknown public source file `VSOP87B.synthetic`)"
+        ));
     }
 
     #[test]
