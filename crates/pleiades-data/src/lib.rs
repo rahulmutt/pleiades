@@ -881,6 +881,12 @@ impl PackagedArtifactRegenerationSummary {
             self.artifact_version,
         )
     }
+
+    /// Returns the full packaged-artifact regeneration provenance summary after validating the structured posture.
+    pub fn validated_summary_line(&self) -> Result<String, pleiades_compression::CompressionError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for PackagedArtifactRegenerationSummary {
@@ -916,8 +922,8 @@ pub fn packaged_artifact_regeneration_summary() -> String {
 /// the structured source and coverage metadata.
 pub fn packaged_artifact_regeneration_summary_for_report() -> String {
     let summary = packaged_artifact_regeneration_summary_details();
-    match summary.validate() {
-        Ok(()) => summary.to_string(),
+    match summary.validated_summary_line() {
+        Ok(line) => line,
         Err(error) => format!("Packaged artifact regeneration source: unavailable ({error})"),
     }
 }
@@ -4008,6 +4014,7 @@ mod tests {
 
         let provenance = summary.summary_line();
         assert_eq!(summary.to_string(), provenance);
+        assert_eq!(summary.validated_summary_line(), Ok(provenance.clone()));
         summary
             .validate()
             .expect("packaged regeneration summary should validate");
@@ -4038,6 +4045,24 @@ mod tests {
         assert!(error
             .to_string()
             .contains("packaged artifact regeneration fit envelope is invalid"));
+    }
+
+    #[test]
+    fn packaged_artifact_regeneration_summary_validated_summary_line_rejects_metadata_drift() {
+        let mut summary = packaged_artifact_regeneration_summary_details();
+        summary.artifact_version += 1;
+
+        let error = summary
+            .validated_summary_line()
+            .expect_err("metadata drift should be rejected");
+
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error
+            .message
+            .contains("packaged artifact regeneration summary artifact version"));
     }
 
     #[test]
