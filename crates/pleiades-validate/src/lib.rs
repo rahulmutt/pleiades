@@ -114,6 +114,7 @@ use pleiades_jpl::{
     production_generation_snapshot_window_summary_for_report,
     reference_asteroid_equatorial_evidence_summary_for_report, reference_asteroid_evidence,
     reference_asteroid_evidence_summary_for_report, reference_asteroids,
+    reference_holdout_overlap_summary_for_report,
     reference_snapshot_batch_parity_summary_for_report,
     reference_snapshot_body_class_coverage_summary_for_report,
     reference_snapshot_equatorial_parity_summary_for_report,
@@ -6228,6 +6229,8 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str(&independent_holdout_source_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_holdout_overlap_summary_for_report());
+    text.push('\n');
     text.push_str(&independent_holdout_manifest_summary_for_report());
     text.push('\n');
     text.push_str(&jpl_independent_holdout_snapshot_batch_parity_summary_for_report());
@@ -9637,6 +9640,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         format_jpl_interpolation_quality_summary_for_report()
     );
     let _ = writeln!(text, "  {}", jpl_independent_holdout_summary_for_report());
+    let _ = writeln!(text, "  {}", reference_holdout_overlap_summary_for_report());
     let _ = writeln!(
         text,
         "  {}",
@@ -11887,6 +11891,7 @@ fn write_jpl_interpolation_quality(f: &mut fmt::Formatter<'_>) -> fmt::Result {
     )?;
     writeln!(f, "    {}", jpl_interpolation_posture_summary_for_report())?;
     writeln!(f, "    {}", jpl_independent_holdout_summary_for_report())?;
+    writeln!(f, "    {}", reference_holdout_overlap_summary_for_report())?;
     writeln!(
         f,
         "    {}",
@@ -14177,6 +14182,7 @@ mod tests {
         assert!(report.contains("JPL interpolation quality: 50 samples across 10 bodies"));
         assert!(report.contains("JPL interpolation quality kind coverage:"));
         assert!(report.contains("JPL interpolation posture: source="));
+        assert!(report.contains("Reference/hold-out overlap:"));
         assert!(report.contains("JPL independent hold-out:"));
         assert!(report.contains(&comparison_snapshot_body_class_coverage_summary_for_report()));
         assert!(report.contains("JPL independent hold-out equatorial parity:"));
@@ -14291,6 +14297,7 @@ mod tests {
         assert!(body_class_tolerance_posture.contains("rms Δdist="));
         assert!(report.contains("JPL interpolation quality"));
         assert!(report.contains("JPL interpolation quality: 50 samples across 10 bodies"));
+        assert!(report.contains("Reference/hold-out overlap:"));
         assert!(report.contains("JPL independent hold-out:"));
         assert!(report.contains("JPL independent hold-out equatorial parity:"));
         assert!(report.contains("JPL independent hold-out batch parity:"));
@@ -16511,6 +16518,7 @@ mod tests {
         assert!(rendered.contains("Expected tolerance status:"));
         assert!(rendered.contains("Comparison audit: status=clean, bodies checked=9"));
         assert!(rendered.contains("JPL interpolation evidence:"));
+        assert!(rendered.contains("Reference/hold-out overlap:"));
         assert!(rendered.contains("JPL independent hold-out:"));
         assert!(rendered.contains("JPL independent hold-out equatorial parity:"));
         assert!(rendered.contains("JPL independent hold-out batch parity:"));
@@ -17318,6 +17326,7 @@ version = "0.9.0"
             "lunar equatorial reference batch parity: 3 requests across 1 bodies, frame=Equatorial, order=preserved, single-query parity=preserved"
         ));
         assert!(release_summary.contains("JPL independent hold-out:"));
+        assert!(release_summary.contains("Reference/hold-out overlap:"));
         assert!(release_summary.contains(&independent_holdout_source_summary_for_report()));
         assert_report_contains_exact_line(
             &release_summary,
