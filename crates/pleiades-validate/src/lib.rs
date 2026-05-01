@@ -50,7 +50,7 @@ use pleiades_core::{
     Instant, JulianDay, Longitude, ReleaseProfileIdentifiers, TimeRange, TimeScale, ZodiacMode,
 };
 use pleiades_data::{
-    packaged_artifact_access_summary_for_report,
+    packaged_artifact_access_summary_for_report, packaged_artifact_generation_manifest_for_report,
     packaged_artifact_generation_policy_summary_for_report,
     packaged_artifact_generation_residual_bodies_summary_for_report,
     packaged_artifact_output_support_summary_for_report,
@@ -58,8 +58,10 @@ use pleiades_data::{
     packaged_artifact_profile_coverage_summary_for_report,
     packaged_artifact_profile_summary_with_body_coverage,
     packaged_artifact_regeneration_summary_for_report,
-    packaged_artifact_storage_summary_for_report, packaged_frame_parity_summary_for_report,
-    packaged_frame_treatment_summary_for_report, packaged_lookup_epoch_policy_summary_for_report,
+    packaged_artifact_storage_summary_for_report,
+    packaged_artifact_target_threshold_summary_for_report,
+    packaged_frame_parity_summary_for_report, packaged_frame_treatment_summary_for_report,
+    packaged_lookup_epoch_policy_summary_for_report,
     packaged_mixed_tt_tdb_batch_parity_summary_for_report,
     packaged_request_policy_summary_for_report, PackagedDataBackend,
 };
@@ -5796,6 +5798,12 @@ fn render_release_notes_summary_text() -> String {
     text.push_str("Packaged-artifact generation residual bodies: ");
     text.push_str(&packaged_artifact_generation_residual_bodies_summary_for_report());
     text.push('\n');
+    text.push_str("Packaged-artifact target thresholds: ");
+    text.push_str(&packaged_artifact_target_threshold_summary_for_report());
+    text.push('\n');
+    text.push_str("Packaged-artifact generation manifest: ");
+    text.push_str(&packaged_artifact_generation_manifest_for_report());
+    text.push('\n');
     text.push_str("Packaged request policy: ");
     text.push_str(&packaged_request_policy_summary_for_report());
     text.push('\n');
@@ -6270,6 +6278,12 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str("Packaged-artifact production profile skeleton: ");
     text.push_str(&packaged_artifact_production_profile_summary_for_report());
+    text.push('\n');
+    text.push_str("Packaged-artifact target thresholds: ");
+    text.push_str(&packaged_artifact_target_threshold_summary_for_report());
+    text.push('\n');
+    text.push_str("Packaged-artifact generation manifest: ");
+    text.push_str(&packaged_artifact_generation_manifest_for_report());
     text.push('\n');
     text.push_str("Artifact profile coverage: ");
     text.push_str(&packaged_artifact_profile_coverage_summary_for_report());
@@ -9990,6 +10004,16 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         text,
         "  Packaged-artifact generation residual bodies: {}",
         packaged_artifact_generation_residual_bodies_summary_for_report()
+    );
+    let _ = writeln!(
+        text,
+        "  Packaged-artifact target thresholds: {}",
+        packaged_artifact_target_threshold_summary_for_report()
+    );
+    let _ = writeln!(
+        text,
+        "  Packaged-artifact generation manifest: {}",
+        packaged_artifact_generation_manifest_for_report()
     );
     let _ = writeln!(text, "  {}", packaged_request_policy_summary_for_report());
     let _ = writeln!(
@@ -14155,6 +14179,10 @@ mod tests {
         assert!(rendered.contains(
             "Packaged-artifact output support: EclipticCoordinates=derived, EquatorialCoordinates=derived, ApparentCorrections=unsupported, TopocentricCoordinates=unsupported, SiderealCoordinates=unsupported, Motion=unsupported"
         ));
+        assert!(rendered.contains("Packaged-artifact target thresholds: target thresholds: prototype fit envelope recorded; scopes=luminaries, major planets, lunar points, selected asteroids, custom bodies; fit envelope:"));
+        assert!(rendered.contains(
+            "Packaged-artifact generation manifest: Packaged artifact generation manifest:"
+        ));
         assert!(rendered.contains("Packaged batch parity:"));
         assert!(rendered.contains("Packaged frame parity:"));
         assert!(rendered.contains("Benchmark provenance"));
@@ -14191,6 +14219,10 @@ mod tests {
         ));
         assert!(validation_report_summary.contains(
             "Packaged-artifact storage/reconstruction: Quantized linear segments stored in pleiades-compression artifact format; equatorial coordinates are reconstructed at runtime from stored channels"
+        ));
+        assert!(validation_report_summary.contains("Packaged-artifact target thresholds: target thresholds: prototype fit envelope recorded; scopes=luminaries, major planets, lunar points, selected asteroids, custom bodies; fit envelope:"));
+        assert!(validation_report_summary.contains(
+            "Packaged-artifact generation manifest: Packaged artifact generation manifest:"
         ));
         assert_report_contains_exact_line(
             &validation_report_summary,
@@ -16920,6 +16952,10 @@ version = "0.9.0"
         ));
         assert!(release_summary.contains(
             "Packaged-artifact storage/reconstruction: Quantized linear segments stored in pleiades-compression artifact format; equatorial coordinates are reconstructed at runtime from stored channels"
+        ));
+        assert!(release_summary.contains("Packaged-artifact target thresholds: target thresholds: prototype fit envelope recorded; scopes=luminaries, major planets, lunar points, selected asteroids, custom bodies; fit envelope:"));
+        assert!(release_summary.contains(
+            "Packaged-artifact generation manifest: Packaged artifact generation manifest:"
         ));
         assert!(release_summary.contains(
             "Artifact profile coverage: stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 11 bundled bodies; bundled bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros"
