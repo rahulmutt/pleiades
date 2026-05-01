@@ -2,7 +2,7 @@
 
 This file lists focused, reviewable implementation slices that map to the current phase ladder. It intentionally omits completed scaffold work and old progress-note history.
 
-Recently completed: Pluto explicit downgrade and corpus cleanup, plus the production-generation boundary overlay corpus and report entry that seed Mars/Jupiter 2001 boundary samples for validation and future artifact-generation work. Release-grade comparison and tolerance reports now use a Pluto-excluded corpus, while the full snapshot corpus remains available for provenance and archaeology.
+Recently completed: Pluto explicit downgrade and corpus cleanup, plus the production-generation boundary overlay corpus and report entry that now seed the full independent hold-out validation snapshot for validation and future artifact-generation work. Release-grade comparison and tolerance reports now use a Pluto-excluded corpus, while the full snapshot corpus remains available for provenance and archaeology.
 
 ## 2. Production reference corpus expansion
 
@@ -12,7 +12,7 @@ Recently completed: Pluto explicit downgrade and corpus cleanup, plus the produc
 
 **Work items:**
 
-- Expand JPL/reference rows for all release-claimed major bodies and selected asteroids. The first production-generation boundary overlay is now in place; remaining work is to widen the boundary and lunar sampling windows beyond the initial Mars/Jupiter 2001 slice.
+- Expand JPL/reference rows for all release-claimed major bodies and selected asteroids. The production-generation boundary overlay now includes the full independent hold-out snapshot; remaining work is to add any further trusted source windows needed for production artifact generation and lunar-fit closure.
 - Preserve deterministic manifests, provenance summaries, checksums, and pure-Rust parsing/loading.
 - Decide whether interpolation is a runtime feature, generation-only aid, or transparency-only evidence.
 

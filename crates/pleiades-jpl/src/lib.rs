@@ -261,13 +261,7 @@ pub fn reference_snapshot_mixed_time_scale_request_corpus() -> Option<Vec<Epheme
 }
 
 const PRODUCTION_GENERATION_BOUNDARY_COVERAGE: &str =
-    "Mars and Jupiter at 2001-01-01 through 2001-01-03";
-const PRODUCTION_GENERATION_BOUNDARY_EPOCHS: [f64; 3] = [2_451_910.5, 2_451_911.5, 2_451_912.5];
-
-fn production_generation_boundary_entry(entry: &SnapshotEntry) -> bool {
-    matches!(entry.body, CelestialBody::Mars | CelestialBody::Jupiter)
-        && PRODUCTION_GENERATION_BOUNDARY_EPOCHS.contains(&entry.epoch.julian_day.days())
-}
+    "Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2500000, and 2634167, plus Moon at 2451545, 2500000, and 2634167, plus Pluto at 2451545 and 2500000";
 
 fn production_generation_boundary_entries() -> Option<&'static [SnapshotEntry]> {
     static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
@@ -276,7 +270,6 @@ fn production_generation_boundary_entries() -> Option<&'static [SnapshotEntry]> 
             independent_holdout_snapshot_entries()
                 .into_iter()
                 .flatten()
-                .filter(|entry| production_generation_boundary_entry(entry))
                 .cloned()
                 .collect()
         })
@@ -7315,28 +7308,39 @@ mod tests {
         summary
             .validate()
             .expect("production-generation snapshot summary should validate");
-        assert_eq!(summary.row_count, 52);
+        assert_eq!(summary.row_count, 80);
         assert_eq!(summary.body_count, 15);
         assert_eq!(summary.bodies, reference_bodies());
         assert_eq!(summary.epoch_count, 9);
-        assert_eq!(summary.boundary_row_count, 6);
-        assert_eq!(summary.boundary_body_count, 2);
+        assert_eq!(summary.boundary_row_count, 34);
+        assert_eq!(summary.boundary_body_count, 10);
         assert_eq!(
             summary.boundary_bodies,
-            &[CelestialBody::Mars, CelestialBody::Jupiter]
+            &[
+                CelestialBody::Mars,
+                CelestialBody::Jupiter,
+                CelestialBody::Mercury,
+                CelestialBody::Venus,
+                CelestialBody::Saturn,
+                CelestialBody::Uranus,
+                CelestialBody::Neptune,
+                CelestialBody::Sun,
+                CelestialBody::Moon,
+                CelestialBody::Pluto,
+            ]
         );
-        assert_eq!(summary.boundary_epoch_count, 3);
+        assert_eq!(summary.boundary_epoch_count, 8);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_499.0);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(
             summary.boundary_earliest_epoch.julian_day.days(),
-            2_451_910.5
+            2_400_000.0
         );
-        assert_eq!(summary.boundary_latest_epoch.julian_day.days(), 2_451_912.5);
+        assert_eq!(summary.boundary_latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(
             summary.summary_line(),
             format!(
-                "Production generation coverage: 52 rows across 15 bodies and 9 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: {}; boundary overlay (Mars and Jupiter at 2001-01-01 through 2001-01-03): 6 rows across 2 bodies and 3 epochs (JD 2451910.5 (TDB)..JD 2451912.5 (TDB)); boundary bodies: Mars, Jupiter",
+                "Production generation coverage: 80 rows across 15 bodies and 9 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies: {}; boundary overlay (Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2500000, and 2634167, plus Moon at 2451545, 2500000, and 2634167, plus Pluto at 2451545 and 2500000): 34 rows across 10 bodies and 8 epochs (JD 2400000.0 (TDB)..JD 2634167.0 (TDB)); boundary bodies: Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Moon, Pluto",
                 format_bodies(reference_bodies())
             )
         );
@@ -7584,12 +7588,12 @@ mod tests {
     fn production_generation_snapshot_summary_reports_the_expected_coverage() {
         let summary = production_generation_snapshot_summary()
             .expect("production generation summary should exist");
-        assert_eq!(summary.row_count, 52);
+        assert_eq!(summary.row_count, 80);
         assert_eq!(summary.body_count, 15);
         assert_eq!(summary.epoch_count, 9);
-        assert_eq!(summary.boundary_row_count, 6);
-        assert_eq!(summary.boundary_body_count, 2);
-        assert_eq!(summary.boundary_epoch_count, 3);
+        assert_eq!(summary.boundary_row_count, 34);
+        assert_eq!(summary.boundary_body_count, 10);
+        assert_eq!(summary.boundary_epoch_count, 8);
         assert_eq!(summary.validate(), Ok(()));
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(summary.to_string(), summary.summary_line());
@@ -7597,7 +7601,7 @@ mod tests {
             production_generation_snapshot_summary_for_report(),
             summary.summary_line()
         );
-        assert!(summary.summary_line().contains("boundary overlay (Mars and Jupiter at 2001-01-01 through 2001-01-03): 6 rows across 2 bodies and 3 epochs"));
+        assert!(summary.summary_line().contains("boundary overlay (Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2500000, and 2634167, plus Moon at 2451545, 2500000, and 2634167, plus Pluto at 2451545 and 2500000): 34 rows across 10 bodies and 8 epochs"));
     }
 
     #[test]
