@@ -4234,6 +4234,41 @@ fn selected_asteroid_source_entries() -> Option<&'static [SnapshotEntry]> {
     }
 }
 
+/// A single body-window slice inside the expanded selected-asteroid source coverage.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SelectedAsteroidSourceWindow {
+    /// The selected asteroid covered by this window.
+    pub body: pleiades_backend::CelestialBody,
+    /// Number of samples for the body.
+    pub sample_count: usize,
+    /// Number of distinct epochs represented for the body.
+    pub epoch_count: usize,
+    /// Earliest epoch represented for the body.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented for the body.
+    pub latest_epoch: Instant,
+}
+
+impl SelectedAsteroidSourceWindow {
+    /// Returns a compact body-window summary used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let time_span = if self.earliest_epoch == self.latest_epoch {
+            format_instant(self.earliest_epoch)
+        } else {
+            format!(
+                "{}..{}",
+                format_instant(self.earliest_epoch),
+                format_instant(self.latest_epoch)
+            )
+        };
+
+        format!(
+            "{}: {} samples across {} epochs at {}",
+            self.body, self.sample_count, self.epoch_count, time_span
+        )
+    }
+}
+
 /// Compact release-facing summary for the expanded selected-asteroid source coverage.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SelectedAsteroidSourceSummary {
@@ -4260,6 +4295,44 @@ impl SelectedAsteroidSourceSummary {
             format_instant(self.earliest_epoch),
             format_instant(self.latest_epoch),
             format_bodies(&self.sample_bodies),
+        )
+    }
+}
+
+/// Compact release-facing summary for the selected-asteroid source windows.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SelectedAsteroidSourceWindowSummary {
+    /// Number of selected-asteroid samples in the expanded source slice.
+    pub sample_count: usize,
+    /// Bodies covered by the expanded selected-asteroid source slice in first-seen order.
+    pub sample_bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Number of distinct epochs covered by the expanded source slice.
+    pub epoch_count: usize,
+    /// Earliest epoch represented in the expanded source slice.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented in the expanded source slice.
+    pub latest_epoch: Instant,
+    /// Per-body window breakdown in first-seen order.
+    pub windows: Vec<SelectedAsteroidSourceWindow>,
+}
+
+impl SelectedAsteroidSourceWindowSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let window_summary = self
+            .windows
+            .iter()
+            .map(SelectedAsteroidSourceWindow::summary_line)
+            .collect::<Vec<_>>()
+            .join("; ");
+        format!(
+            "Selected asteroid source windows: {} source-backed samples across {} bodies and {} epochs ({}..{}); windows: {}",
+            self.sample_count,
+            self.sample_bodies.len(),
+            self.epoch_count,
+            format_instant(self.earliest_epoch),
+            format_instant(self.latest_epoch),
+            window_summary,
         )
     }
 }
@@ -4300,9 +4373,78 @@ fn selected_asteroid_source_evidence_summary_details() -> Option<SelectedAsteroi
     })
 }
 
+fn selected_asteroid_source_window_summary_details() -> Option<SelectedAsteroidSourceWindowSummary>
+{
+    let evidence = selected_asteroid_source_entries()?;
+    let mut windows = Vec::new();
+    for body in reference_asteroids() {
+        let body_entries = evidence
+            .iter()
+            .filter(|entry| entry.body == *body)
+            .collect::<Vec<_>>();
+        if body_entries.is_empty() {
+            continue;
+        }
+
+        let mut earliest_epoch = body_entries[0].epoch;
+        let mut latest_epoch = body_entries[0].epoch;
+        let mut epochs = BTreeSet::new();
+        for entry in &body_entries {
+            epochs.insert(entry.epoch.julian_day.days().to_bits());
+            if entry.epoch.julian_day.days() < earliest_epoch.julian_day.days() {
+                earliest_epoch = entry.epoch;
+            }
+            if entry.epoch.julian_day.days() > latest_epoch.julian_day.days() {
+                latest_epoch = entry.epoch;
+            }
+        }
+
+        windows.push(SelectedAsteroidSourceWindow {
+            body: body.clone(),
+            sample_count: body_entries.len(),
+            epoch_count: epochs.len(),
+            earliest_epoch,
+            latest_epoch,
+        });
+    }
+
+    if windows.is_empty() {
+        return None;
+    }
+
+    let earliest_epoch = windows
+        .iter()
+        .map(|window| window.earliest_epoch)
+        .min_by(|left, right| left.julian_day.days().total_cmp(&right.julian_day.days()))
+        .expect("selected asteroid source windows should not be empty after collection");
+    let latest_epoch = windows
+        .iter()
+        .map(|window| window.latest_epoch)
+        .max_by(|left, right| left.julian_day.days().total_cmp(&right.julian_day.days()))
+        .expect("selected asteroid source windows should not be empty after collection");
+
+    Some(SelectedAsteroidSourceWindowSummary {
+        sample_count: evidence.len(),
+        sample_bodies: reference_asteroids().to_vec(),
+        epoch_count: evidence
+            .iter()
+            .map(|entry| entry.epoch.julian_day.days().to_bits())
+            .collect::<BTreeSet<_>>()
+            .len(),
+        earliest_epoch,
+        latest_epoch,
+        windows,
+    })
+}
+
 /// Returns the compact typed summary for the expanded selected-asteroid source slice.
 pub fn selected_asteroid_source_evidence_summary() -> Option<SelectedAsteroidSourceSummary> {
     selected_asteroid_source_evidence_summary_details()
+}
+
+/// Returns the compact typed summary for the selected-asteroid source windows.
+pub fn selected_asteroid_source_window_summary() -> Option<SelectedAsteroidSourceWindowSummary> {
+    selected_asteroid_source_window_summary_details()
 }
 
 /// Returns the release-facing expanded selected-asteroid source coverage summary string.
@@ -4310,6 +4452,14 @@ pub fn selected_asteroid_source_evidence_summary_for_report() -> String {
     match selected_asteroid_source_evidence_summary() {
         Some(summary) => summary.summary_line(),
         None => "Selected asteroid source evidence: unavailable".to_string(),
+    }
+}
+
+/// Returns the release-facing selected-asteroid source-window summary string.
+pub fn selected_asteroid_source_window_summary_for_report() -> String {
+    match selected_asteroid_source_window_summary() {
+        Some(summary) => summary.summary_line(),
+        None => "Selected asteroid source windows: unavailable".to_string(),
     }
 }
 
@@ -9217,6 +9367,23 @@ mod tests {
         assert_eq!(
             summary.summary_line(),
             selected_asteroid_source_evidence_summary_for_report()
+        );
+    }
+
+    #[test]
+    fn selected_asteroid_source_window_summary_reports_the_body_windows() {
+        let summary = selected_asteroid_source_window_summary()
+            .expect("selected asteroid source window summary should exist");
+        assert_eq!(summary.windows.len(), summary.sample_bodies.len());
+        assert_eq!(summary.sample_count, 20);
+        assert_eq!(summary.epoch_count, 4);
+        assert_eq!(
+            summary.summary_line(),
+            "Selected asteroid source windows: 20 source-backed samples across 5 bodies and 4 epochs (JD 2451545.0 (TDB)..JD 2634167.0 (TDB)); windows: Ceres: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Pallas: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Juno: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Vesta: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); asteroid:433-Eros: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB)"
+        );
+        assert_eq!(
+            summary.summary_line(),
+            selected_asteroid_source_window_summary_for_report()
         );
     }
 

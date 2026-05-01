@@ -111,7 +111,8 @@ use pleiades_jpl::{
     reference_snapshot_lunar_boundary_summary_for_report,
     reference_snapshot_manifest_summary_for_report, reference_snapshot_source_summary_for_report,
     reference_snapshot_source_window_summary_for_report, reference_snapshot_summary_for_report,
-    selected_asteroid_source_evidence_summary_for_report, JplSnapshotBackend,
+    selected_asteroid_source_evidence_summary_for_report,
+    selected_asteroid_source_window_summary_for_report, JplSnapshotBackend,
 };
 use pleiades_vsop87::{
     body_source_profiles, canonical_epoch_equatorial_body_class_evidence_summary_for_report,
@@ -11450,6 +11451,11 @@ fn write_backend_matrix(f: &mut fmt::Formatter<'_>, backend: &BackendMetadata) -
                 "  {}",
                 selected_asteroid_source_evidence_summary_for_report()
             )?;
+            writeln!(
+                f,
+                "  {}",
+                selected_asteroid_source_window_summary_for_report()
+            )?;
             let evidence = reference_asteroid_evidence();
             if let Some(first) = evidence.first() {
                 writeln!(
@@ -16316,6 +16322,8 @@ mod tests {
         assert!(rendered.contains(
             "selected asteroid coverage: 5 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"
         ));
+        assert!(rendered.contains("Selected asteroid source evidence: 20 source-backed samples across 5 bodies and 4 epochs (JD 2451545.0 (TDB)..JD 2634167.0 (TDB)); bodies: Ceres, Pallas, Juno, Vesta, asteroid:433-Eros"));
+        assert!(rendered.contains("Selected asteroid source windows: 20 source-backed samples across 5 bodies and 4 epochs (JD 2451545.0 (TDB)..JD 2634167.0 (TDB)); windows: Ceres: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Pallas: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Juno: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Vesta: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); asteroid:433-Eros: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB)"));
         assert!(rendered.contains("exact J2000 evidence: 5 bodies at JD 2451545.0"));
         assert!(rendered.contains("nominal range:"));
         assert!(rendered.contains("provenance sources:"));
