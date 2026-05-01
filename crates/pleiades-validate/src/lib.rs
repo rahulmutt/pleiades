@@ -990,6 +990,12 @@ impl ComparisonToleranceEntry {
                 .unwrap_or_else(|| "n/a".to_string())
         )
     }
+
+    /// Returns the compact summary line after validating the entry.
+    pub fn validated_summary_line(&self) -> Result<String, EphemerisError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for ComparisonToleranceEntry {
@@ -1270,6 +1276,12 @@ impl ComparisonToleranceScopeCoverageSummary {
                 .unwrap_or_else(|| "n/a".to_string())
         )
     }
+
+    /// Returns the compact summary line after validating the coverage row.
+    pub fn validated_summary_line(&self) -> Result<String, EphemerisError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for ComparisonToleranceScopeCoverageSummary {
@@ -1329,7 +1341,17 @@ fn write_tolerance_policy(
     )?;
     writeln!(f, "  coordinate frames: {}", coordinate_frames)?;
     for scope_coverage in coverage {
-        writeln!(f, "  {}", scope_coverage.summary_line())?;
+        writeln!(
+            f,
+            "  {}",
+            match scope_coverage.validated_summary_line() {
+                Ok(line) => line,
+                Err(error) => format!(
+                    "{} unavailable ({error})",
+                    scope_coverage.entry.scope.label()
+                ),
+            }
+        )?;
     }
     Ok(())
 }
@@ -1355,7 +1377,17 @@ fn write_tolerance_policy_text(text: &mut String, comparison: &ComparisonReport)
     );
     let _ = writeln!(text, "  coordinate frames: {}", coordinate_frames);
     for scope_coverage in coverage {
-        let _ = writeln!(text, "  {}", scope_coverage.summary_line());
+        let _ = writeln!(
+            text,
+            "  {}",
+            match scope_coverage.validated_summary_line() {
+                Ok(line) => line,
+                Err(error) => format!(
+                    "{} unavailable ({error})",
+                    scope_coverage.entry.scope.label()
+                ),
+            }
+        );
     }
 }
 
@@ -8314,7 +8346,10 @@ fn format_comparison_tolerance_limits_for_report(entries: &[ComparisonToleranceE
 }
 
 fn format_comparison_tolerance_limit_for_report(entry: &ComparisonToleranceEntry) -> String {
-    entry.summary_line()
+    match entry.validated_summary_line() {
+        Ok(line) => line,
+        Err(error) => format!("{} unavailable ({error})", entry.scope.label()),
+    }
 }
 
 fn comparison_coordinate_frames(comparison: &ComparisonReport) -> &[CoordinateFrame] {
@@ -12712,7 +12747,8 @@ mod tests {
     }
 
     #[test]
-    fn comparison_tolerance_scope_coverage_summary_rejects_body_count_drift() {
+    fn comparison_tolerance_scope_coverage_summary_validated_summary_line_rejects_body_count_drift()
+    {
         let summary = ComparisonToleranceScopeCoverageSummary {
             entry: ComparisonToleranceEntry {
                 scope: ComparisonToleranceScope::Luminary,
@@ -12730,9 +12766,26 @@ mod tests {
         };
 
         let error = summary
-            .validate()
+            .validated_summary_line()
             .expect_err("summary should reject body-count drift");
         assert!(error.to_string().contains("body-count mismatch"));
+    }
+
+    #[test]
+    fn comparison_tolerance_entry_has_a_validated_summary_line() {
+        let entry = ComparisonToleranceEntry {
+            scope: ComparisonToleranceScope::Luminary,
+            tolerance: ComparisonTolerance {
+                backend_family: BackendFamily::Algorithmic,
+                profile: "test tolerance",
+                max_longitude_delta_deg: 0.1,
+                max_latitude_delta_deg: 0.2,
+                max_distance_delta_au: Some(0.3),
+            },
+        };
+
+        assert_eq!(entry.summary_line(), entry.to_string());
+        assert_eq!(entry.validated_summary_line(), Ok(entry.summary_line()));
     }
 
     #[test]
@@ -12746,6 +12799,28 @@ mod tests {
         })
         .expect_err("tolerance should reject a blank profile label");
         assert!(error.to_string().contains("must not be blank"));
+    }
+
+    #[test]
+    fn comparison_tolerance_scope_coverage_summary_has_a_validated_summary_line() {
+        let summary = ComparisonToleranceScopeCoverageSummary {
+            entry: ComparisonToleranceEntry {
+                scope: ComparisonToleranceScope::Luminary,
+                tolerance: ComparisonTolerance {
+                    backend_family: BackendFamily::Algorithmic,
+                    profile: "test tolerance",
+                    max_longitude_delta_deg: 0.1,
+                    max_latitude_delta_deg: 0.2,
+                    max_distance_delta_au: Some(0.3),
+                },
+            },
+            bodies: vec![CelestialBody::Sun],
+            body_count: 1,
+            sample_count: 1,
+        };
+
+        assert_eq!(summary.summary_line(), summary.to_string());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
     }
 
     #[test]
