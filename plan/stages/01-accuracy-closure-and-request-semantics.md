@@ -45,7 +45,7 @@ Known remaining gaps:
 ### 2. Expand reference-source coverage
 
 - Decide whether `pleiades-jpl` becomes a parser/reader for a broader public JPL-derived corpus or remains a fixture backend paired with a separate generation input path.
-- Add enough source/reference rows to validate production artifact generation, including boundary dates and high-curvature windows. The checked-in reference snapshot now surfaces the Moon 2451911.5/2451912.5 high-curvature window as a dedicated report slice; broader lunar windows still need to be added before production artifact claims can rely on them.
+- Add enough source/reference rows to validate production artifact generation, including boundary dates and high-curvature windows. The checked-in reference snapshot now surfaces the Moon 2451911.5/2451912.5 high-curvature window as a dedicated report slice, and the lunar source-window summary now also includes the reference-only apparent Moon comparison windows; remaining work is to widen source windows beyond lunar-only evidence if production artifact generation needs additional body coverage.
 - Preserve pure-Rust parsing, deterministic fixture manifests, checksums, and provenance records.
 - Expand selected asteroid evidence for Ceres, Pallas, Juno, Vesta, and any custom/named bodies advertised in release profiles.
 

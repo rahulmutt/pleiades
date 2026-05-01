@@ -2855,13 +2855,19 @@ pub fn lunar_reference_evidence_summary_for_report() -> String {
     }
 }
 
-fn lunar_source_window_requests() -> Vec<EphemerisRequest> {
+fn lunar_exact_source_window_requests() -> Vec<EphemerisRequest> {
     let mut requests = lunar_reference_evidence()
         .iter()
         .filter(|sample| sample.body == CelestialBody::Moon)
         .map(|sample| EphemerisRequest::new(sample.body.clone(), sample.epoch))
         .collect::<Vec<_>>();
     requests.extend(lunar_high_curvature_continuity_requests());
+    requests
+}
+
+fn lunar_source_window_requests() -> Vec<EphemerisRequest> {
+    let mut requests = lunar_exact_source_window_requests();
+    requests.extend(lunar_apparent_comparison_requests());
     requests
 }
 
@@ -2874,12 +2880,16 @@ pub fn lunar_source_window_request_corpus() -> Vec<EphemerisRequest> {
 /// A compact summary of the broader lunar source-window evidence slice.
 #[derive(Clone, Debug, PartialEq)]
 pub struct LunarSourceWindowSummary {
-    /// Number of exact Moon samples across the broader source windows.
-    pub sample_count: usize,
+    /// Number of exact Moon samples across the exact source windows.
+    pub exact_sample_count: usize,
+    /// Number of reference-only apparent Moon samples across the apparent source windows.
+    pub apparent_sample_count: usize,
     /// Number of distinct bodies covered by the broader source windows.
     pub body_count: usize,
-    /// Number of source windows contributing to the broader slice.
-    pub window_count: usize,
+    /// Number of exact source windows contributing to the broader slice.
+    pub exact_window_count: usize,
+    /// Number of apparent source windows contributing to the broader slice.
+    pub apparent_window_count: usize,
     /// Earliest epoch represented in the broader source windows.
     pub earliest_epoch: Instant,
     /// Latest epoch represented in the broader source windows.
@@ -2890,10 +2900,13 @@ impl LunarSourceWindowSummary {
     /// Returns the release-facing one-line lunar source-window summary.
     pub fn summary_line(&self) -> String {
         format!(
-            "lunar source windows: {} exact Moon samples across {} bodies in {} windows, epoch range {}; source windows: published 1992-04-12 geocentric Moon example; J2000 high-curvature continuity window",
-            self.sample_count,
+            "lunar source windows: {} exact Moon samples across {} bodies in {} exact windows; {} reference-only apparent Moon samples across {} bodies in {} apparent windows, epoch range {}; exact windows: published 1992-04-12 geocentric Moon example; J2000 high-curvature continuity window; apparent windows: published 1992-04-12 apparent geocentric Moon comparison datum; published 1968-12-24 low-accuracy Meeus-style geocentric Moon example; published 2004-04-01 NASA RP 1349 apparent Moon table row; published 2006-09-07 EclipseWise apparent Moon coordinate row",
+            self.exact_sample_count,
             self.body_count,
-            self.window_count,
+            self.exact_window_count,
+            self.apparent_sample_count,
+            self.body_count,
+            self.apparent_window_count,
             format_epoch_range(self.earliest_epoch, self.latest_epoch),
         )
     }
@@ -2907,16 +2920,21 @@ impl fmt::Display for LunarSourceWindowSummary {
 
 /// Returns a compact summary of the broader lunar source-window evidence slice.
 pub fn lunar_source_window_summary() -> Option<LunarSourceWindowSummary> {
-    let requests = lunar_source_window_requests();
-    if requests.is_empty() {
+    let exact_requests = lunar_exact_source_window_requests();
+    let apparent_samples = lunar_apparent_comparison_evidence();
+    if exact_requests.is_empty() && apparent_samples.is_empty() {
         return None;
     }
 
     let mut bodies = std::collections::BTreeSet::new();
-    let mut earliest_epoch = requests[0].instant;
-    let mut latest_epoch = requests[0].instant;
+    let mut earliest_epoch = exact_requests
+        .first()
+        .map(|request| request.instant)
+        .or_else(|| apparent_samples.first().map(|sample| sample.epoch))
+        .expect("lunar source window evidence should not be empty after guard");
+    let mut latest_epoch = earliest_epoch;
 
-    for request in &requests {
+    for request in &exact_requests {
         bodies.insert(request.body.to_string());
         if request.instant.julian_day.days() < earliest_epoch.julian_day.days() {
             earliest_epoch = request.instant;
@@ -2926,10 +2944,22 @@ pub fn lunar_source_window_summary() -> Option<LunarSourceWindowSummary> {
         }
     }
 
+    for sample in apparent_samples {
+        bodies.insert(sample.body.to_string());
+        if sample.epoch.julian_day.days() < earliest_epoch.julian_day.days() {
+            earliest_epoch = sample.epoch;
+        }
+        if sample.epoch.julian_day.days() > latest_epoch.julian_day.days() {
+            latest_epoch = sample.epoch;
+        }
+    }
+
     Some(LunarSourceWindowSummary {
-        sample_count: requests.len(),
+        exact_sample_count: exact_requests.len(),
+        apparent_sample_count: apparent_samples.len(),
         body_count: bodies.len(),
-        window_count: 2,
+        exact_window_count: 2,
+        apparent_window_count: apparent_samples.len(),
         earliest_epoch,
         latest_epoch,
     })
@@ -6800,10 +6830,14 @@ mod tests {
 
         assert_eq!(report, summary.summary_line());
         assert_eq!(report, format_lunar_source_window_summary(&summary));
-        assert!(report
-            .contains("lunar source windows: 7 exact Moon samples across 1 bodies in 2 windows"));
         assert!(report.contains(
-            "published 1992-04-12 geocentric Moon example; J2000 high-curvature continuity window"
+            "lunar source windows: 7 exact Moon samples across 1 bodies in 2 exact windows; 4 reference-only apparent Moon samples across 1 bodies in 4 apparent windows"
+        ));
+        assert!(report.contains(
+            "exact windows: published 1992-04-12 geocentric Moon example; J2000 high-curvature continuity window"
+        ));
+        assert!(report.contains(
+            "apparent windows: published 1992-04-12 apparent geocentric Moon comparison datum; published 1968-12-24 low-accuracy Meeus-style geocentric Moon example; published 2004-04-01 NASA RP 1349 apparent Moon table row; published 2006-09-07 EclipseWise apparent Moon coordinate row"
         ));
     }
 
@@ -6811,7 +6845,7 @@ mod tests {
     fn lunar_source_window_request_corpus_matches_the_combined_windows() {
         let requests = lunar_source_window_request_corpus();
 
-        assert_eq!(requests.len(), 7);
+        assert_eq!(requests.len(), 11);
         assert!(requests
             .iter()
             .all(|request| request.body == CelestialBody::Moon));
@@ -6823,9 +6857,10 @@ mod tests {
             )
         );
         assert_eq!(
-            requests[1..],
+            requests[1..7],
             lunar_high_curvature_continuity_requests()[..]
         );
+        assert_eq!(requests[7..], lunar_apparent_comparison_requests()[..]);
     }
 
     #[test]

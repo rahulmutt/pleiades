@@ -14040,7 +14040,7 @@ mod tests {
         assert!(report.contains(
             "lunar reference evidence: 9 samples across 5 bodies, epoch range JD 2419914.5 (TT) → JD 2459278.5 (TT)"
         ));
-        assert!(report.contains("Lunar source windows\n  lunar source windows: 7 exact Moon samples across 1 bodies in 2 windows"));
+        assert!(report.contains("Lunar source windows\n  lunar source windows: 7 exact Moon samples across 1 bodies in 2 exact windows; 4 reference-only apparent Moon samples across 1 bodies in 4 apparent windows"));
         assert!(report.contains("Lunar high-curvature continuity evidence"));
         assert!(report.contains("Lunar high-curvature equatorial continuity evidence"));
         assert!(report.contains("within regression limits=true"));
@@ -17056,7 +17056,7 @@ version = "0.9.0"
         assert!(release_summary
             .contains("Lunar equatorial reference: lunar equatorial reference evidence:"));
         assert!(release_summary.contains("Lunar equatorial reference envelope:"));
-        assert!(release_summary.contains("Lunar source windows: lunar source windows:"));
+        assert!(release_summary.contains("Lunar source windows: lunar source windows: 7 exact Moon samples across 1 bodies in 2 exact windows; 4 reference-only apparent Moon samples across 1 bodies in 4 apparent windows"));
         assert!(release_summary
             .contains("Lunar apparent comparison: lunar apparent comparison evidence:"));
         assert!(release_summary.contains("Lunar high-curvature continuity evidence"));
