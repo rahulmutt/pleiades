@@ -1464,6 +1464,12 @@ impl fmt::Display for RequestPolicySummary {
 /// Validation error for the shared request-policy summary.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum RequestPolicySummaryValidationError {
+    /// A summary field was blank or whitespace-only.
+    BlankField { field: &'static str },
+    /// A summary field had surrounding whitespace.
+    WhitespacePaddedField { field: &'static str },
+    /// A summary field contained an embedded line break.
+    EmbeddedLineBreak { field: &'static str },
     /// A summary field is out of sync with the current request-policy posture.
     FieldOutOfSync { field: &'static str },
 }
@@ -1471,6 +1477,17 @@ pub enum RequestPolicySummaryValidationError {
 impl fmt::Display for RequestPolicySummaryValidationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::BlankField { field } => {
+                write!(f, "the request-policy summary field `{field}` is blank")
+            }
+            Self::WhitespacePaddedField { field } => write!(
+                f,
+                "the request-policy summary field `{field}` has surrounding whitespace"
+            ),
+            Self::EmbeddedLineBreak { field } => write!(
+                f,
+                "the request-policy summary field `{field}` contains a line break"
+            ),
             Self::FieldOutOfSync { field } => write!(
                 f,
                 "the request-policy summary field `{field}` is out of sync with the current posture"
@@ -1491,6 +1508,15 @@ impl RequestPolicySummary {
             ("apparentness", self.apparentness, current.apparentness),
             ("frame", self.frame, current.frame),
         ] {
+            if value.trim().is_empty() {
+                return Err(RequestPolicySummaryValidationError::BlankField { field });
+            }
+            if value.trim() != value {
+                return Err(RequestPolicySummaryValidationError::WhitespacePaddedField { field });
+            }
+            if value.contains('\n') || value.contains('\r') {
+                return Err(RequestPolicySummaryValidationError::EmbeddedLineBreak { field });
+            }
             if value != expected {
                 return Err(RequestPolicySummaryValidationError::FieldOutOfSync { field });
             }
@@ -2470,8 +2496,50 @@ mod tests {
             .validate()
             .expect_err("blank policy prose should fail validation");
         assert_eq!(
+            error,
+            RequestPolicySummaryValidationError::BlankField { field: "frame" }
+        );
+        assert_eq!(
             error.to_string(),
-            "the request-policy summary field `frame` is out of sync with the current posture"
+            "the request-policy summary field `frame` is blank"
+        );
+        assert!(summary.validated_summary_line().is_err());
+    }
+
+    #[test]
+    fn request_policy_summary_validate_rejects_whitespace_padded_fields() {
+        let mut summary = RequestPolicySummary::current();
+        summary.observer = " chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests; topocentric body positions remain unsupported ";
+
+        let error = summary
+            .validate()
+            .expect_err("whitespace-padded policy prose should fail validation");
+        assert_eq!(
+            error,
+            RequestPolicySummaryValidationError::WhitespacePaddedField { field: "observer" }
+        );
+        assert_eq!(
+            error.to_string(),
+            "the request-policy summary field `observer` has surrounding whitespace"
+        );
+        assert!(summary.validated_summary_line().is_err());
+    }
+
+    #[test]
+    fn request_policy_summary_validate_rejects_line_breaks() {
+        let mut summary = RequestPolicySummary::current();
+        summary.observer = "chart houses use observer locations\nbody requests stay geocentric";
+
+        let error = summary
+            .validate()
+            .expect_err("multi-line policy prose should fail validation");
+        assert_eq!(
+            error,
+            RequestPolicySummaryValidationError::EmbeddedLineBreak { field: "observer" }
+        );
+        assert_eq!(
+            error.to_string(),
+            "the request-policy summary field `observer` contains a line break"
         );
         assert!(summary.validated_summary_line().is_err());
     }
