@@ -9062,6 +9062,12 @@ impl RequestSurfaceSummary {
             self.cli_chart,
         )
     }
+
+    /// Validates the summary and returns its compact report line.
+    pub fn validated_summary_line(self) -> Result<String, EphemerisError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for RequestSurfaceSummary {
@@ -9092,8 +9098,8 @@ pub const fn current_request_surface_summary() -> RequestSurfaceSummary {
 
 fn request_surface_summary_for_report() -> String {
     let summary = RequestSurfaceSummary::current();
-    match summary.validate() {
-        Ok(()) => summary.to_string(),
+    match summary.validated_summary_line() {
+        Ok(line) => line,
         Err(error) => format!("primary request surfaces unavailable ({error})"),
     }
 }
@@ -12574,6 +12580,7 @@ mod tests {
         let summary = RequestSurfaceSummary::current();
         assert_eq!(summary.validate(), Ok(()));
         assert_eq!(summary.summary_line(), summary.to_string());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(summary.to_string(), request_surface_summary_for_report());
         assert_eq!(
             summary.summary_line(),
@@ -12583,7 +12590,7 @@ mod tests {
     }
 
     #[test]
-    fn request_surface_summary_validation_rejects_drift() {
+    fn request_surface_summary_validated_summary_line_rejects_drift() {
         let summary = RequestSurfaceSummary {
             instant: "",
             chart_request: "",
@@ -12593,7 +12600,7 @@ mod tests {
         };
 
         let error = summary
-            .validate()
+            .validated_summary_line()
             .expect_err("summary should reject blank request-surface labels");
         assert!(error
             .to_string()
