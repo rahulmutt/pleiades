@@ -905,7 +905,9 @@ mod tests {
         )));
         assert!(compatibility
             .contains("Compatibility profile verification: verify-compatibility-profile"));
-        assert!(compatibility.contains("Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
+        assert!(compatibility.lines().any(|line| {
+            line == "Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"
+        }));
         assert!(compatibility.contains("Release notes summary: release-notes-summary"));
         assert!(compatibility.contains("Release summary: release-summary"));
         assert!(compatibility.contains("Release checklist summary: release-checklist-summary"));
@@ -976,7 +978,9 @@ mod tests {
         assert!(release_notes.contains("Release notes summary: release-notes-summary"));
         assert!(release_notes.contains("Backend matrix summary: backend-matrix-summary"));
         assert!(release_notes.contains("Artifact validation: validate-artifact"));
-        assert!(release_notes.contains("Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
+        assert!(release_notes.lines().any(|line| {
+            line == "Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"
+        }));
         assert!(release_notes.contains("Release checklist summary: release-checklist-summary"));
         assert!(release_notes.contains("Release bundle verification: verify-release-bundle"));
         assert!(release_notes
@@ -1039,7 +1043,9 @@ mod tests {
             line == "JPL batch error taxonomy: supported body Ceres; unsupported body Mean Node -> UnsupportedBody; out-of-range Ceres -> OutOfRangeInstant"
         }));
         assert!(release_notes_summary.contains("Artifact validation: validate-artifact"));
-        assert!(release_notes_summary.contains("Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
+        assert!(release_notes_summary.lines().any(|line| {
+            line == "Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"
+        }));
         assert!(release_notes_summary.contains("Release notes: release-notes"));
         assert!(release_notes_summary.contains("Packaged-artifact storage/reconstruction:"));
         assert!(release_notes_summary
@@ -1082,7 +1088,9 @@ mod tests {
         assert!(release_checklist.contains("Backend matrix summary: backend-matrix-summary"));
         assert!(release_checklist.contains("API stability summary: api-stability-summary"));
         assert!(release_checklist.contains("Artifact validation: validate-artifact"));
-        assert!(release_checklist.contains("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
+        assert!(release_checklist.lines().any(|line| {
+            line == "Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"
+        }));
         assert!(release_checklist.contains("Repository-managed release gates:"));
         assert!(release_checklist
             .contains("[x] cargo run -q -p pleiades-validate -- verify-compatibility-profile"));
@@ -1104,7 +1112,9 @@ mod tests {
             .contains("Release bundle verification: verify-release-bundle"));
         assert!(release_checklist_summary.contains("Workspace audit: workspace-audit / audit"));
         assert!(release_checklist_summary.contains("Release summary: release-summary"));
-        assert!(release_checklist_summary.contains("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
+        assert!(release_checklist_summary.lines().any(|line| {
+            line == "Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"
+        }));
         assert!(release_checklist_summary.contains("Repository-managed release gates: 7 items"));
         assert!(release_checklist_summary.contains("Manual bundle workflow: 3 items"));
         assert!(release_checklist_summary.contains("Bundle contents: 17 items"));
@@ -1207,7 +1217,9 @@ mod tests {
             .any(|line| line == "Workspace audit: workspace-audit / audit"));
         assert!(release_summary
             .contains("[x] cargo run -q -p pleiades-validate -- verify-compatibility-profile"));
-        assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
+        assert!(release_summary.lines().any(|line| {
+            line == "Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"
+        }));
         assert!(release_summary.contains("Release checklist summary: release-checklist-summary"));
         assert!(release_summary.contains("Custom-definition label names: Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs), True Balarama, Aphoric, Takra"));
         assert!(release_summary.contains("See release-notes and release-checklist"));
