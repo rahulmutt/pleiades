@@ -586,6 +586,14 @@ impl ArtifactBoundaryEnvelopeSummary {
                 .unwrap_or_default(),
         )
     }
+
+    /// Returns the validated aggregate boundary envelope as a compact human-readable line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ArtifactBoundaryEnvelopeSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for ArtifactBoundaryEnvelopeSummary {
@@ -1402,7 +1410,11 @@ fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
     text.push_str(&format_residual_bodies(&report.residual_bodies));
     text.push('\n');
     text.push_str("  ");
-    text.push_str(&artifact_boundary_envelope_summary(report).summary_line());
+    text.push_str(
+        &artifact_boundary_envelope_summary(report)
+            .validated_summary_line()
+            .unwrap_or_else(|error| format!("Artifact boundary envelope: unavailable ({error})")),
+    );
     text.push('\n');
     text.push_str("  roundtrip decode: ");
     text.push_str(yes_no(report.roundtrip_ok));
@@ -2364,7 +2376,12 @@ mod tests {
         assert!(rendered.contains("max boundary Δlon=0.180000000000° (Moon)"));
         assert!(rendered.contains("max boundary Δlat=0.270000000000° (Sun)"));
         assert!(rendered.contains("max boundary Δdist=0.330000000000 AU (Moon)"));
-        assert!(summary.validate().is_ok());
+        assert_eq!(
+            summary
+                .validated_summary_line()
+                .expect("boundary summary should validate"),
+            rendered
+        );
     }
 
     #[test]
