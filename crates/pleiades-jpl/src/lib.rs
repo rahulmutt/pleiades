@@ -4281,6 +4281,14 @@ impl JplInterpolationQualitySummary {
             self.rms_distance_error_au,
         )
     }
+
+    /// Returns the validated compact interpolation-quality summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, JplInterpolationQualitySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for JplInterpolationQualitySummary {
@@ -5171,22 +5179,24 @@ pub fn format_jpl_interpolation_quality_summary_for_report() -> String {
         jpl_interpolation_quality_summary(),
         jpl_interpolation_quality_kind_coverage(),
     ) {
-        (Some(summary), Some(coverage))
-            if summary.validate().is_ok() && coverage.validate().is_ok() =>
-        {
-            let mut rendered = summary.to_string();
-            rendered.push('\n');
-            rendered.push_str(&coverage.to_string());
-            rendered
-        }
-        (Some(_), Some(_)) => "JPL interpolation quality: unavailable".to_string(),
-        (Some(summary), None) if summary.validate().is_ok() => {
-            let mut rendered = summary.to_string();
-            rendered.push('\n');
-            rendered.push_str("JPL interpolation quality kind coverage: unavailable");
-            rendered
-        }
-        (Some(_), None) => "JPL interpolation quality: unavailable".to_string(),
+        (Some(summary), Some(coverage)) => match summary.validated_summary_line() {
+            Ok(rendered) if coverage.validate().is_ok() => {
+                let mut rendered = rendered;
+                rendered.push('\n');
+                rendered.push_str(&coverage.to_string());
+                rendered
+            }
+            _ => "JPL interpolation quality: unavailable".to_string(),
+        },
+        (Some(summary), None) => match summary.validated_summary_line() {
+            Ok(rendered) => {
+                let mut rendered = rendered;
+                rendered.push('\n');
+                rendered.push_str("JPL interpolation quality kind coverage: unavailable");
+                rendered
+            }
+            Err(_) => "JPL interpolation quality: unavailable".to_string(),
+        },
         (None, _) => "JPL interpolation quality: unavailable".to_string(),
     }
 }
@@ -9305,6 +9315,22 @@ mod tests {
 
         assert!(rendered.contains(&format_jpl_interpolation_quality_summary(&summary)));
         assert!(rendered.contains(&format_jpl_interpolation_quality_kind_coverage(&coverage)));
+    }
+
+    #[test]
+    fn interpolation_quality_summary_validated_summary_line_returns_the_rendered_line() {
+        let summary = jpl_interpolation_quality_summary().expect("summary should exist");
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+    }
+
+    #[test]
+    fn interpolation_quality_summary_validated_summary_line_rejects_drift() {
+        let mut summary = jpl_interpolation_quality_summary().expect("summary should exist");
+        summary.mean_longitude_error_deg += 1e-12;
+        assert_eq!(
+            summary.validated_summary_line(),
+            Err(JplInterpolationQualitySummaryValidationError::DerivedSummaryMismatch)
+        );
     }
 
     #[test]
