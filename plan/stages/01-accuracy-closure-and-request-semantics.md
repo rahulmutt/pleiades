@@ -27,7 +27,7 @@ Implemented and not re-planned here:
 
 Known remaining gaps:
 
-- Pluto remains an approximate mean-elements fallback and is the current major-body tolerance outlier.
+- Pluto remains an approximate mean-elements fallback, and release-facing reports now label it as an explicit approximate fallback rather than a release-grade major-body claim.
 - The JPL backend is fixture/snapshot-oriented, not a broad production reader/corpus for artifact generation.
 - The lunar backend is a compact Meeus-style baseline, not a full ELP coefficient implementation.
 - Built-in Delta T modeling, UTC convenience conversion, apparent-place corrections, and topocentric body positions are not implemented; unsupported behavior is explicit today.
@@ -37,10 +37,10 @@ Known remaining gaps:
 
 ### 1. Resolve Pluto and major-body accuracy outliers
 
-- Replace or augment the Pluto fallback with a source-backed or validated public-data path suitable for the release profile.
+- Keep Pluto as an explicitly downgraded approximate fallback unless a source-backed public-data path is proven and validated for the release profile.
 - Add reference comparisons over representative 1500-2500 epochs for all claimed major bodies.
 - Tighten tolerance profiles from interim broad thresholds to body-class-specific release thresholds.
-- Keep fallback/approximate paths clearly labeled if they remain available for non-release use.
+- Keep fallback/approximate paths clearly labeled and excluded from release-grade claims.
 
 ### 2. Expand reference-source coverage
 
@@ -78,7 +78,7 @@ For each area, either implement the behavior or document the release deferral wi
 Phase 1 is complete when:
 
 - no body advertised as release-grade has unresolved tolerance outliers in validation reports;
-- Pluto and any other currently approximate release-scope body has either source-backed validation or is downgraded explicitly in the release profile;
+- Pluto and any other currently approximate release-scope body is either source-backed or downgraded explicitly and excluded from release-grade claims;
 - JPL/reference-source coverage is sufficient for production artifact generation inputs;
 - Delta T, UTC/UT1, apparentness, topocentric, sidereal, and frame behavior is implemented or explicitly deferred with metadata and structured errors;
 - `cargo fmt --all --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, and `cargo test --workspace` pass.

@@ -2,18 +2,18 @@
 
 This file lists focused, reviewable implementation slices that map to the current phase ladder. It intentionally omits completed scaffold work and old progress-note history.
 
-## 1. Pluto source-backed accuracy path
+## 1. Pluto explicit downgrade and corpus cleanup
 
 **Phase:** 1 — Accuracy Closure and Request Semantics
 
-**Goal:** remove the current Pluto tolerance outlier from release-grade major-body claims.
+**Goal:** keep Pluto clearly out of release-grade claims until a source-backed path is validated.
 
 **Work items:**
 
-- Select a pure-Rust public source strategy for Pluto: broader JPL-derived data, another documented public ephemeris source, or a clearly bounded downgrade in release profiles.
-- Add representative 1500-2500 validation rows and body-class tolerance thresholds.
-- Update metadata, source documentation, backend matrix, validation report, and release profile wording.
-- Add regression tests that prevent silent reintroduction of approximate release-grade Pluto claims.
+- Keep Pluto explicitly marked as approximate/fallback in backend and release-profile summaries.
+- Exclude Pluto from release-grade corpus/tolerance assertions where it is only approximate.
+- Update metadata, source documentation, validation reports, and release-profile wording to say exactly what is supported.
+- Add regression tests that prevent silent reintroduction of release-grade Pluto claims.
 
 ## 2. Production reference corpus expansion
 

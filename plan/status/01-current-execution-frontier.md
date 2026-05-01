@@ -12,7 +12,7 @@ Current summaries show:
 
 - all mandatory crates and release/reporting commands exist;
 - VSOP87B source-backed generated binary paths cover the Sun through Neptune;
-- Pluto remains an approximate mean-elements fallback and the current major-body tolerance outlier;
+- Pluto remains an approximate mean-elements fallback and is explicitly downgraded out of release-grade major-body claims;
 - the compact lunar baseline has documented reference evidence for supported lunar channels but is not a full ELP coefficient implementation;
 - the JPL backend is a checked-in fixture/snapshot backend with selected asteroid rows, not a broad production reader/corpus;
 - the packaged artifact is deterministic and validated as a prototype, but current fit errors are not release-grade;
@@ -31,14 +31,14 @@ Phase 2 production artifacts require trusted generation inputs and tolerances. P
 
 ## Recommended next slice
 
-Start with **Pluto and reference-corpus accuracy closure**:
+Start with **Pluto downgrade and corpus cleanup**:
 
-- choose a pure-Rust public source path or reference-data strategy for Pluto;
-- add validation rows across representative 1500-2500 epochs;
-- update backend metadata, capability summaries, and comparison reports;
-- make release tolerance audits fail closed if Pluto remains advertised beyond its evidence.
+- keep Pluto explicitly downgraded and out of release-grade claims until a validated source-backed path exists;
+- remove Pluto from release-grade corpus/tolerance assertions where it is only approximate;
+- update backend metadata, capability summaries, and comparison reports to say exactly what is and is not supported;
+- make release tolerance audits fail closed if Pluto is advertised beyond its evidence.
 
-This slice directly reduces the largest current validation outlier and unblocks credible artifact-generation inputs.
+This slice keeps the release posture truthful without overstating approximate paths.
 
 ## Parallel safe work
 
