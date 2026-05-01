@@ -11259,7 +11259,13 @@ fn write_corpus_summary_text(text: &mut String, corpus: &CorpusSummary) {
 }
 
 fn write_backend_matrix(f: &mut fmt::Formatter<'_>, backend: &BackendMetadata) -> fmt::Result {
-    writeln!(f, "  summary: {}", backend.summary_line())?;
+    writeln!(
+        f,
+        "  summary: {}",
+        backend
+            .validated_summary_line()
+            .unwrap_or_else(|error| format!("unavailable ({error})"))
+    )?;
     writeln!(f, "  id: {}", backend.id)?;
     writeln!(f, "  version: {}", backend.version)?;
     writeln!(f, "  family: {}", backend.family)?;

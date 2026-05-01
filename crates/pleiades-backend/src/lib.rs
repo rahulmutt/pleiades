@@ -492,6 +492,12 @@ impl BackendMetadata {
             self.provenance.summary_line(),
         )
     }
+
+    /// Returns the compact backend metadata summary after validating the stored fields.
+    pub fn validated_summary_line(&self) -> Result<String, BackendMetadataValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for BackendMetadata {
@@ -2441,6 +2447,10 @@ mod tests {
         };
 
         assert_eq!(metadata.to_string(), metadata.summary_line());
+        assert_eq!(
+            metadata.validated_summary_line(),
+            Ok(metadata.summary_line())
+        );
         assert!(metadata.summary_line().contains("id=toy"));
         assert!(metadata.summary_line().contains("version=0.1.0"));
         assert!(metadata.summary_line().contains("family=Algorithmic"));
@@ -2487,6 +2497,7 @@ mod tests {
             "backend metadata field `id` is blank or whitespace-padded"
         );
         assert_eq!(error.to_string(), error.summary_line());
+        assert!(metadata.validated_summary_line().is_err());
 
         metadata.id = BackendId::new("toy");
         metadata.provenance.summary = " ".to_string();
