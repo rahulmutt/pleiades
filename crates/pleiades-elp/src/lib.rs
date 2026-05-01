@@ -213,6 +213,14 @@ impl LunarTheorySourceSelection {
             self.license_note,
         )
     }
+
+    /// Returns the compact summary line after validating the selection against the current baseline.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, LunarTheorySourceSelectionValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for LunarTheorySourceSelection {
@@ -1332,8 +1340,8 @@ pub fn lunar_theory_source_selection() -> LunarTheorySourceSelection {
 fn format_validated_lunar_theory_source_selection_for_report(
     selection: &LunarTheorySourceSelection,
 ) -> String {
-    match selection.validate() {
-        Ok(()) => selection.summary_line(),
+    match selection.validated_summary_line() {
+        Ok(summary_line) => summary_line,
         Err(error) => format!("lunar source selection: unavailable ({error})"),
     }
 }
@@ -6339,6 +6347,7 @@ mod tests {
         assert!(summary.contains(selection.family_label()));
         assert!(summary.contains(selection.citation));
         assert!(summary.contains(selection.license_note));
+        assert_eq!(selection.validated_summary_line().unwrap(), summary);
         assert_eq!(selection.validate(), Ok(()));
     }
 
@@ -6355,6 +6364,10 @@ mod tests {
             .expect_err("drifted source selection should fail validation");
         assert_eq!(
             error.to_string(),
+            "the lunar source selection field `identifier` is out of sync with the current selection"
+        );
+        assert_eq!(
+            drifted.validated_summary_line().unwrap_err().to_string(),
             "the lunar source selection field `identifier` is out of sync with the current selection"
         );
         assert_eq!(
