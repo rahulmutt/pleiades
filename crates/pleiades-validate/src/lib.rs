@@ -6230,7 +6230,6 @@ fn render_release_summary_text() -> String {
     text.push_str("Selected asteroid source windows: ");
     text.push_str(&selected_asteroid_source_window_summary_for_report());
     text.push('\n');
-    text.push_str("Independent hold-out source windows: ");
     text.push_str(&independent_holdout_snapshot_source_window_summary_for_report());
     text.push('\n');
     text.push_str("VSOP87 evidence: ");
@@ -17210,8 +17209,10 @@ version = "0.9.0"
         ));
         assert!(release_summary.contains("JPL independent hold-out:"));
         assert!(release_summary.contains(&independent_holdout_source_summary_for_report()));
-        assert!(release_summary
-            .contains(&independent_holdout_snapshot_source_window_summary_for_report()));
+        assert_report_contains_exact_line(
+            &release_summary,
+            &independent_holdout_snapshot_source_window_summary_for_report(),
+        );
         assert!(release_summary.contains(&independent_holdout_manifest_summary_for_report()));
         assert!(release_summary.contains("JPL independent hold-out equatorial parity:"));
         assert!(release_summary.contains("JPL independent hold-out batch parity:"));
