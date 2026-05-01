@@ -4418,6 +4418,8 @@ pub fn reference_snapshot_lunar_boundary_summary_for_report() -> String {
 }
 
 const REFERENCE_SNAPSHOT_SOURCE_FALLBACK: &str = "NASA/JPL Horizons API vector tables (DE441)";
+const REFERENCE_SNAPSHOT_COVERAGE_FALLBACK: &str =
+    "inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; outer planets and Pluto sampled at 2400000, 2451545, and 2500000; major bodies sampled at 2001-01-02 through 2001-01-03 for additional boundary coverage; selected asteroids sampled at J2000, 2001-01-01, 2132-08-31, and 2500-01-01.";
 const INDEPENDENT_HOLDOUT_SOURCE_FALLBACK: &str = "NASA/JPL Horizons API vector tables (DE441)";
 const INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK: &str =
     "Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2500000, and 2634167, plus Moon at 2451545, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.";
@@ -4427,6 +4429,8 @@ const INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK: &str =
 pub struct ReferenceSnapshotSourceSummary {
     /// Source attribution for the checked-in reference snapshot.
     pub source: String,
+    /// Body and epoch coverage described by the checked-in reference snapshot.
+    pub coverage: String,
     /// Frame and coordinate posture described by the checked-in reference snapshot.
     pub frame_treatment: String,
     /// Reference epoch used by the checked-in snapshot.
@@ -4446,6 +4450,16 @@ impl ReferenceSnapshotSourceSummary {
                 },
             );
         }
+        if self.coverage.trim().is_empty() {
+            return Err(ReferenceSnapshotSourceSummaryValidationError::BlankCoverage);
+        }
+        if has_surrounding_whitespace(&self.coverage) {
+            return Err(
+                ReferenceSnapshotSourceSummaryValidationError::SurroundedByWhitespace {
+                    field: "coverage",
+                },
+            );
+        }
         if self.frame_treatment.trim().is_empty() {
             return Err(ReferenceSnapshotSourceSummaryValidationError::BlankFrameTreatment);
         }
@@ -4462,8 +4476,9 @@ impl ReferenceSnapshotSourceSummary {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         format!(
-            "Reference snapshot source: {}; {}; TDB reference epoch {}",
+            "Reference snapshot source: {}; coverage={}; {}; TDB reference epoch {}",
             self.source,
+            self.coverage,
             self.frame_treatment,
             format_instant(self.reference_epoch),
         )
@@ -4483,6 +4498,8 @@ impl ReferenceSnapshotSourceSummary {
 pub enum ReferenceSnapshotSourceSummaryValidationError {
     /// The summary did not include a non-empty source label.
     BlankSource,
+    /// The summary did not include a non-empty coverage label.
+    BlankCoverage,
     /// The summary did not include a non-empty frame-treatment label.
     BlankFrameTreatment,
     /// The summary carried surrounding whitespace in one of its labels.
@@ -4494,6 +4511,7 @@ impl ReferenceSnapshotSourceSummaryValidationError {
     pub const fn label(&self) -> &'static str {
         match self {
             Self::BlankSource => "blank source",
+            Self::BlankCoverage => "blank coverage",
             Self::BlankFrameTreatment => "blank frame treatment",
             Self::SurroundedByWhitespace { .. } => "surrounded by whitespace",
         }
@@ -4528,6 +4546,9 @@ pub fn reference_snapshot_source_summary() -> ReferenceSnapshotSourceSummary {
             let source = manifest.source_or(REFERENCE_SNAPSHOT_SOURCE_FALLBACK);
             ReferenceSnapshotSourceSummary {
                 source: source.to_string(),
+                coverage: manifest
+                    .coverage_or(REFERENCE_SNAPSHOT_COVERAGE_FALLBACK)
+                    .to_string(),
                 frame_treatment: "geocentric ecliptic J2000".to_string(),
                 reference_epoch: reference_instant(),
             }
@@ -9693,12 +9714,16 @@ mod tests {
             summary.source,
             "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables."
         );
+        assert_eq!(
+            summary.coverage,
+            "inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; outer planets and Pluto sampled at 2400000, 2451545, and 2500000; major bodies sampled at 2001-01-02 through 2001-01-03 for additional boundary coverage; selected asteroids sampled at J2000, 2001-01-01, 2132-08-31, and 2500-01-01."
+        );
         assert_eq!(summary.frame_treatment, "geocentric ecliptic J2000");
         assert_eq!(summary.reference_epoch.julian_day.days(), 2_451_545.0);
         assert_eq!(
             summary.summary_line(),
             format!(
-                "Reference snapshot source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; geocentric ecliptic J2000; TDB reference epoch {}",
+                "Reference snapshot source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; outer planets and Pluto sampled at 2400000, 2451545, and 2500000; major bodies sampled at 2001-01-02 through 2001-01-03 for additional boundary coverage; selected asteroids sampled at J2000, 2001-01-01, 2132-08-31, and 2500-01-01.; geocentric ecliptic J2000; TDB reference epoch {}",
                 format_instant(summary.reference_epoch)
             )
         );
@@ -9715,6 +9740,7 @@ mod tests {
     fn reference_snapshot_source_summary_validation_reports_blank_fields() {
         let blank_source = ReferenceSnapshotSourceSummary {
             source: " ".to_string(),
+            coverage: "coverage".to_string(),
             frame_treatment: "geocentric ecliptic J2000".to_string(),
             reference_epoch: reference_instant(),
         };
@@ -9723,8 +9749,35 @@ mod tests {
             Err(ReferenceSnapshotSourceSummaryValidationError::BlankSource)
         );
 
+        let blank_coverage = ReferenceSnapshotSourceSummary {
+            source: "source".to_string(),
+            coverage: "\n".to_string(),
+            frame_treatment: "geocentric ecliptic J2000".to_string(),
+            reference_epoch: reference_instant(),
+        };
+        assert_eq!(
+            blank_coverage.validate(),
+            Err(ReferenceSnapshotSourceSummaryValidationError::BlankCoverage)
+        );
+
+        let padded_coverage = ReferenceSnapshotSourceSummary {
+            source: "source".to_string(),
+            coverage: " coverage ".to_string(),
+            frame_treatment: "geocentric ecliptic J2000".to_string(),
+            reference_epoch: reference_instant(),
+        };
+        assert_eq!(
+            padded_coverage.validate(),
+            Err(
+                ReferenceSnapshotSourceSummaryValidationError::SurroundedByWhitespace {
+                    field: "coverage",
+                }
+            )
+        );
+
         let blank_frame_treatment = ReferenceSnapshotSourceSummary {
             source: "source".to_string(),
+            coverage: "coverage".to_string(),
             frame_treatment: "\n".to_string(),
             reference_epoch: reference_instant(),
         };
@@ -9735,6 +9788,7 @@ mod tests {
 
         let padded_frame_treatment = ReferenceSnapshotSourceSummary {
             source: "source".to_string(),
+            coverage: "coverage".to_string(),
             frame_treatment: " geocentric ecliptic J2000 ".to_string(),
             reference_epoch: reference_instant(),
         };
