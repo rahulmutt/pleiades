@@ -4569,6 +4569,70 @@ pub fn reference_snapshot_source_summary_for_report() -> String {
     }
 }
 
+fn reference_snapshot_source_window_summary_details() -> Option<String> {
+    let entries = reference_snapshot();
+    if entries.is_empty() {
+        return None;
+    }
+
+    let bodies = reference_bodies();
+    let mut windows = Vec::new();
+    for body in bodies {
+        let body_entries = entries
+            .iter()
+            .filter(|entry| entry.body == *body)
+            .collect::<Vec<_>>();
+        if body_entries.is_empty() {
+            continue;
+        }
+
+        let mut earliest_epoch = body_entries[0].epoch;
+        let mut latest_epoch = body_entries[0].epoch;
+        let mut epochs = BTreeSet::new();
+        for entry in &body_entries {
+            epochs.insert(entry.epoch.julian_day.days().to_bits());
+            if entry.epoch.julian_day.days() < earliest_epoch.julian_day.days() {
+                earliest_epoch = entry.epoch;
+            }
+            if entry.epoch.julian_day.days() > latest_epoch.julian_day.days() {
+                latest_epoch = entry.epoch;
+            }
+        }
+
+        let time_span = if earliest_epoch == latest_epoch {
+            format_instant(earliest_epoch)
+        } else {
+            format!(
+                "{}..{}",
+                format_instant(earliest_epoch),
+                format_instant(latest_epoch)
+            )
+        };
+        windows.push(format!(
+            "{}: {} samples across {} epochs at {}",
+            body,
+            body_entries.len(),
+            epochs.len(),
+            time_span,
+        ));
+    }
+
+    if windows.is_empty() {
+        None
+    } else {
+        Some(format!(
+            "Reference snapshot source windows: {}",
+            windows.join("; ")
+        ))
+    }
+}
+
+/// Returns the body-window summary for the checked-in reference snapshot.
+pub fn reference_snapshot_source_window_summary_for_report() -> String {
+    reference_snapshot_source_window_summary_details()
+        .unwrap_or_else(|| "Reference snapshot source windows: unavailable".to_string())
+}
+
 /// Returns the manifest summary for the checked-in reference snapshot.
 pub fn reference_snapshot_manifest_summary() -> SnapshotManifestSummary {
     SnapshotManifestSummary {
@@ -4756,6 +4820,7 @@ pub fn jpl_snapshot_evidence_summary_for_report() -> String {
         reference_snapshot_batch_parity_summary_for_report(),
         production_generation_snapshot_summary_for_report(),
         reference_snapshot_source_summary_for_report(),
+        reference_snapshot_source_window_summary_for_report(),
         reference_snapshot_manifest_summary_for_report(),
         production_generation_boundary_source_summary_for_report(),
         production_generation_boundary_request_corpus_summary_for_report(),
@@ -8663,6 +8728,8 @@ mod tests {
         assert!(jpl_snapshot_evidence_summary_for_report()
             .contains(&production_generation_boundary_source_summary_for_report()));
         assert!(jpl_snapshot_evidence_summary_for_report()
+            .contains(&reference_snapshot_source_window_summary_for_report()));
+        assert!(jpl_snapshot_evidence_summary_for_report()
             .contains(&production_generation_boundary_request_corpus_summary_for_report()));
     }
 
@@ -9735,6 +9802,10 @@ mod tests {
             reference_snapshot_source_summary_for_report(),
             summary.summary_line()
         );
+        assert!(reference_snapshot_source_window_summary_for_report()
+            .starts_with("Reference snapshot source windows: "));
+        assert!(reference_snapshot_source_window_summary_for_report().contains("Moon:"));
+        assert!(reference_snapshot_source_window_summary_for_report().contains("Pluto:"));
     }
 
     #[test]

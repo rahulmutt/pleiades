@@ -969,11 +969,12 @@ impl ArtifactInspectionReport {
     /// Returns a compact one-line summary of the inspection report.
     pub fn summary_line(&self) -> String {
         format!(
-            "artifact inspection: {} bundled bodies, {} segments, residual-bearing segments: {}, residual-bearing bodies: {}, coverage: {} → {}, roundtrip={}, checksum={}, encoded bytes={}",
+            "artifact inspection: {} bundled bodies, {} segments, residual-bearing segments: {}, residual-bearing bodies: {}, body classes: {}; coverage: {} → {}, roundtrip={}, checksum={}, encoded bytes={}",
             self.body_count,
             self.segment_count,
             self.residual_segment_count,
             format_residual_bodies(&self.residual_bodies),
+            format_body_class_coverage(self),
             self.earliest,
             self.latest,
             yes_no(self.roundtrip_ok),
@@ -1375,6 +1376,45 @@ fn format_residual_bodies(bodies: &[CelestialBody]) -> String {
     }
 }
 
+fn format_body_class_coverage(report: &ArtifactInspectionReport) -> String {
+    let mut luminaries = 0usize;
+    let mut major_planets = 0usize;
+    let mut lunar_points = 0usize;
+    let mut built_in_asteroids = 0usize;
+    let mut custom_bodies = 0usize;
+    let mut other_bodies = 0usize;
+
+    for body in &report.bodies {
+        match body.body {
+            CelestialBody::Sun | CelestialBody::Moon => luminaries += 1,
+            CelestialBody::Mercury
+            | CelestialBody::Venus
+            | CelestialBody::Mars
+            | CelestialBody::Jupiter
+            | CelestialBody::Saturn
+            | CelestialBody::Uranus
+            | CelestialBody::Neptune
+            | CelestialBody::Pluto => major_planets += 1,
+            CelestialBody::MeanNode
+            | CelestialBody::TrueNode
+            | CelestialBody::MeanApogee
+            | CelestialBody::TrueApogee
+            | CelestialBody::MeanPerigee
+            | CelestialBody::TruePerigee => lunar_points += 1,
+            CelestialBody::Ceres
+            | CelestialBody::Pallas
+            | CelestialBody::Juno
+            | CelestialBody::Vesta => built_in_asteroids += 1,
+            CelestialBody::Custom(_) => custom_bodies += 1,
+            _ => other_bodies += 1,
+        }
+    }
+
+    format!(
+        "luminaries={luminaries}; major planets={major_planets}; lunar points={lunar_points}; built-in asteroids={built_in_asteroids}; custom bodies={custom_bodies}; other bodies={other_bodies}"
+    )
+}
+
 fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
     let mut text = String::new();
 
@@ -1400,6 +1440,9 @@ fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
     text.push('\n');
     text.push_str("  Artifact profile: ");
     text.push_str(&packaged_artifact_profile_summary_with_body_coverage());
+    text.push('\n');
+    text.push_str("  Body classes: ");
+    text.push_str(&format_body_class_coverage(report));
     text.push('\n');
     text.push_str("  Production profile skeleton: ");
     text.push_str(&packaged_artifact_production_profile_summary_for_report());
@@ -2315,6 +2358,7 @@ mod tests {
         assert!(summary.contains("artifact inspection:"));
         assert!(summary.contains("residual-bearing segments: 3"));
         assert!(summary.contains("residual-bearing bodies: Moon"));
+        assert!(summary.contains("body classes: luminaries=2; major planets=8; lunar points=0; built-in asteroids=0; custom bodies=1; other bodies=0"));
         assert!(summary.contains("roundtrip=ok"));
         assert!(summary.contains("checksum=ok"));
         assert!(summary.contains("encoded bytes="));

@@ -108,8 +108,8 @@ use pleiades_jpl::{
     reference_snapshot_equatorial_parity_summary_for_report,
     reference_snapshot_lunar_boundary_summary_for_report,
     reference_snapshot_manifest_summary_for_report, reference_snapshot_source_summary_for_report,
-    reference_snapshot_summary_for_report, selected_asteroid_source_evidence_summary_for_report,
-    JplSnapshotBackend,
+    reference_snapshot_source_window_summary_for_report, reference_snapshot_summary_for_report,
+    selected_asteroid_source_evidence_summary_for_report, JplSnapshotBackend,
 };
 use pleiades_vsop87::{
     body_source_profiles, canonical_epoch_equatorial_body_class_evidence_summary_for_report,
@@ -5639,6 +5639,8 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_source_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_source_window_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_manifest_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_batch_parity_summary_for_report());
@@ -5731,6 +5733,8 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&reference_snapshot_lunar_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_source_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_source_window_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_manifest_summary_for_report());
     text.push('\n');
@@ -10303,6 +10307,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&reference_snapshot_lunar_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_source_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_source_window_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_manifest_summary_for_report());
     text.push('\n');
@@ -17025,6 +17031,7 @@ version = "0.9.0"
         assert!(release_summary.contains("Reference snapshot coverage:"));
         assert!(release_summary.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
         assert!(release_summary.contains(&reference_snapshot_source_summary_for_report()));
+        assert!(release_summary.contains(&reference_snapshot_source_window_summary_for_report()));
         assert!(release_summary.contains("Selected asteroid evidence:"));
         assert!(release_summary.contains("Selected asteroid equatorial evidence:"));
         assert!(release_summary.contains("Comparison snapshot coverage:"));
@@ -17094,6 +17101,7 @@ version = "0.9.0"
         assert!(artifact_summary.contains("Artifact summary"));
         assert!(artifact_summary.contains("residual-bearing segments: 3"));
         assert!(artifact_summary.contains("residual-bearing bodies: Moon"));
+        assert!(artifact_summary.contains("Body classes: luminaries=2; major planets=8; lunar points=0; built-in asteroids=0; custom bodies=1; other bodies=0"));
         assert!(artifact_summary.contains(
             "Artifact profile: byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 11 bundled bodies; bundled bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros"
         ));
