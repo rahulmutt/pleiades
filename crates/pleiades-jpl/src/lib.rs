@@ -540,17 +540,18 @@ impl std::error::Error for ReferenceSnapshotEquatorialParitySummaryValidationErr
 impl ReferenceSnapshotEquatorialParitySummary {
     /// Validates that the equatorial parity summary remains internally consistent.
     pub fn validate(&self) -> Result<(), ReferenceSnapshotEquatorialParitySummaryValidationError> {
-        let derived_summary = reference_snapshot_summary().ok_or(
-            ReferenceSnapshotEquatorialParitySummaryValidationError::Snapshot(
-                ReferenceSnapshotSummaryValidationError::DerivedSummaryMismatch,
-            ),
-        )?;
         let snapshot = ReferenceSnapshotSummary {
             row_count: self.row_count,
             body_count: self.body_count,
             bodies: self.bodies,
             epoch_count: self.epoch_count,
-            asteroid_row_count: derived_summary.asteroid_row_count,
+            asteroid_row_count: reference_snapshot_summary()
+                .ok_or(
+                    ReferenceSnapshotEquatorialParitySummaryValidationError::Snapshot(
+                        ReferenceSnapshotSummaryValidationError::DerivedSummaryMismatch,
+                    ),
+                )?
+                .asteroid_row_count,
             earliest_epoch: self.earliest_epoch,
             latest_epoch: self.latest_epoch,
         };
@@ -558,6 +559,14 @@ impl ReferenceSnapshotEquatorialParitySummary {
         snapshot
             .validate()
             .map_err(ReferenceSnapshotEquatorialParitySummaryValidationError::Snapshot)
+    }
+
+    /// Returns a compact summary line after validating the current evidence slice.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ReferenceSnapshotEquatorialParitySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
     }
 }
 
@@ -578,8 +587,8 @@ pub fn format_reference_snapshot_equatorial_parity_summary(
 /// Returns the release-facing reference snapshot equatorial parity summary string.
 pub fn reference_snapshot_equatorial_parity_summary_for_report() -> String {
     match reference_snapshot_equatorial_parity_summary() {
-        Some(summary) => match summary.validate() {
-            Ok(()) => format_reference_snapshot_equatorial_parity_summary(&summary),
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
             Err(error) => {
                 format!("JPL reference snapshot equatorial parity: unavailable ({error})")
             }
@@ -797,6 +806,14 @@ impl ReferenceSnapshotBatchParitySummary {
             self.unknown_count,
         )
     }
+
+    /// Returns a compact summary line after validating the current evidence slice.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ReferenceSnapshotBatchParitySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for ReferenceSnapshotBatchParitySummary {
@@ -815,8 +832,8 @@ pub fn format_reference_snapshot_batch_parity_summary(
 /// Returns the release-facing reference snapshot batch parity summary string.
 pub fn reference_snapshot_batch_parity_summary_for_report() -> String {
     match reference_snapshot_batch_parity_summary() {
-        Some(summary) => match summary.validate() {
-            Ok(()) => format_reference_snapshot_batch_parity_summary(&summary),
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
             Err(error) => format!("JPL reference snapshot batch parity: unavailable ({error})"),
         },
         None => "JPL reference snapshot batch parity: unavailable".to_string(),
@@ -930,6 +947,14 @@ impl ReferenceSnapshotSummary {
             format_bodies(self.bodies),
         )
     }
+
+    /// Returns a compact summary line after validating the current evidence slice.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ReferenceSnapshotSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for ReferenceSnapshotSummary {
@@ -946,8 +971,8 @@ pub fn format_reference_snapshot_summary(summary: &ReferenceSnapshotSummary) -> 
 /// Returns the release-facing reference snapshot coverage summary string.
 pub fn reference_snapshot_summary_for_report() -> String {
     match reference_snapshot_summary() {
-        Some(summary) => match summary.validate() {
-            Ok(()) => format_reference_snapshot_summary(&summary),
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
             Err(error) => format!("Reference snapshot coverage: unavailable ({error})"),
         },
         None => "Reference snapshot coverage: unavailable".to_string(),
@@ -1255,6 +1280,14 @@ impl IndependentHoldoutSnapshotSummary {
             bodies,
         )
     }
+
+    /// Returns a compact summary line after validating the current evidence slice.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, IndependentHoldoutSnapshotSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for IndependentHoldoutSnapshotSummary {
@@ -1273,8 +1306,8 @@ pub fn format_independent_holdout_snapshot_summary(
 /// Returns the release-facing independent hold-out coverage summary string.
 pub fn independent_holdout_snapshot_summary_for_report() -> String {
     match independent_holdout_snapshot_summary() {
-        Some(summary) => match summary.validate() {
-            Ok(()) => format_independent_holdout_snapshot_summary(&summary),
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
             Err(error) => format!("Independent hold-out coverage: unavailable ({error})"),
         },
         None => match independent_holdout_snapshot_error() {
@@ -6834,6 +6867,7 @@ mod tests {
             )
         );
         assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             reference_snapshot_summary_for_report(),
             summary.summary_line()
@@ -6946,6 +6980,7 @@ mod tests {
         );
         assert_eq!(summary.validate(), Ok(()));
         assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             reference_snapshot_equatorial_parity_summary_for_report(),
             summary.summary_line()
@@ -7023,6 +7058,7 @@ mod tests {
             )
         );
         assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             reference_snapshot_batch_parity_summary_for_report(),
             summary.summary_line()
@@ -8165,6 +8201,7 @@ mod tests {
             "Independent hold-out coverage: 30 rows across 9 bodies and 8 epochs (JD 2400000.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Pluto"
         );
         assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             independent_holdout_snapshot_summary_for_report(),
             summary.summary_line()
