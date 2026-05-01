@@ -492,6 +492,12 @@ impl LunarTheoryCatalogEntry {
     pub fn validate(&self) -> Result<(), LunarTheorySpecificationValidationError> {
         self.specification.validate()
     }
+
+    /// Returns the compact summary line after validating the entry against the current catalog.
+    pub fn validated_summary_line(&self) -> Result<String, LunarTheoryCatalogValidationError> {
+        validate_lunar_theory_catalog_entries(std::slice::from_ref(self))?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for LunarTheoryCatalogEntry {
@@ -5825,6 +5831,10 @@ mod tests {
         );
         let catalog_entry_summary = catalog[0].summary_line();
         assert_eq!(catalog_entry_summary, catalog[0].to_string());
+        assert_eq!(
+            catalog[0].validated_summary_line().unwrap(),
+            catalog_entry_summary
+        );
         assert!(catalog_entry_summary.contains("lunar theory catalog entry: selected=true"));
         assert!(catalog_entry_summary.contains(
             "source=meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]"
@@ -5844,6 +5854,13 @@ mod tests {
         drifted_catalog_entry.selected = false;
         let drifted_catalog_entry_summary = drifted_catalog_entry.summary_line();
         assert!(drifted_catalog_entry_summary.contains("selected=false"));
+        let drifted_catalog_entry_error = drifted_catalog_entry
+            .validated_summary_line()
+            .expect_err("unselected catalog entry should fail validation");
+        assert_eq!(
+            drifted_catalog_entry_error.to_string(),
+            "the lunar-theory catalog has no selected entry"
+        );
         assert!(catalog[0].validate().is_ok());
         let mut drifted_specification = theory;
         drifted_specification.model_name = "Drifted lunar baseline";
