@@ -96,6 +96,7 @@ use pleiades_jpl::{
     jpl_independent_holdout_summary_for_report, jpl_interpolation_quality_kind_coverage_for_report,
     jpl_snapshot_batch_error_taxonomy_summary_for_report, jpl_snapshot_evidence_summary_for_report,
     jpl_snapshot_request_policy_summary_for_report,
+    production_generation_boundary_summary_for_report,
     production_generation_snapshot_summary_for_report,
     reference_asteroid_equatorial_evidence_summary_for_report, reference_asteroid_evidence,
     reference_asteroid_evidence_summary_for_report, reference_asteroids,
@@ -6158,6 +6159,9 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str("JPL production-generation coverage: ");
     text.push_str(&production_generation_snapshot_summary_for_report());
+    text.push('\n');
+    text.push_str("JPL production-generation boundary overlay: ");
+    text.push_str(&production_generation_boundary_summary_for_report());
     text.push('\n');
     text.push_str("Source-backed backend evidence: ");
     text.push_str(&jpl_snapshot_evidence_summary_for_report());
@@ -16967,6 +16971,7 @@ version = "0.9.0"
             "JPL reference snapshot batch parity: 48 rows across 15 bodies and 7 epochs (JD 2378499.0 (TDB)..JD 2634167.0 (TDB)); bodies:"
         ));
         assert!(release_summary.contains("JPL production-generation coverage:"));
+        assert!(release_summary.contains("JPL production-generation boundary overlay:"));
         assert!(release_summary.contains("Source-backed backend evidence:"));
         assert!(release_summary.contains("Reference snapshot coverage:"));
         assert!(release_summary.contains(&reference_snapshot_source_summary_for_report()));
