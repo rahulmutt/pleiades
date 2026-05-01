@@ -7,7 +7,7 @@
 #![forbid(unsafe_code)]
 
 use core::fmt;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use pleiades_core::{
     baseline_house_systems, calculate_houses, HouseError, HouseRequest, HouseSnapshot,
@@ -195,6 +195,25 @@ impl HouseValidationReport {
         systems.into_iter().collect()
     }
 
+    /// Returns the release-facing constraint notes for latitude-sensitive systems.
+    pub fn latitude_sensitive_constraints(&self) -> Vec<String> {
+        let mut constraints = BTreeMap::new();
+        for scenario in &self.scenarios {
+            for sample in &scenario.samples {
+                if sample.descriptor.latitude_sensitive {
+                    constraints
+                        .entry(sample.descriptor.canonical_name)
+                        .or_insert(sample.descriptor.notes);
+                }
+            }
+        }
+
+        constraints
+            .into_iter()
+            .map(|(name, notes)| format!("{name} [{notes}]"))
+            .collect()
+    }
+
     /// Returns the scenario labels represented by the report.
     pub fn scenario_labels(&self) -> Vec<&'static str> {
         self.scenarios
@@ -206,9 +225,10 @@ impl HouseValidationReport {
     /// Returns a compact release-facing summary line.
     pub fn summary_line(&self) -> String {
         let latitude_sensitive_systems = self.latitude_sensitive_systems();
+        let latitude_sensitive_constraints = self.latitude_sensitive_constraints();
         let scenario_labels = self.scenario_labels();
         format!(
-            "House validation corpus: {} scenarios ({}), {} samples, {} successes, {} failures; latitude-sensitive systems: {}",
+            "House validation corpus: {} scenarios ({}), {} samples, {} successes, {} failures; latitude-sensitive systems: {}; constraints: {}",
             self.scenarios.len(),
             if scenario_labels.is_empty() {
                 "none".to_string()
@@ -222,6 +242,11 @@ impl HouseValidationReport {
                 "none".to_string()
             } else {
                 latitude_sensitive_systems.join(", ")
+            },
+            if latitude_sensitive_constraints.is_empty() {
+                "none".to_string()
+            } else {
+                latitude_sensitive_constraints.join(", ")
             }
         )
     }
@@ -409,6 +434,14 @@ mod tests {
             vec!["Koch", "Placidus", "Topocentric"]
         );
         assert_eq!(
+            report.latitude_sensitive_constraints(),
+            vec![
+                "Koch [Quadrant system with documented high-latitude pathologies.]",
+                "Placidus [Quadrant system; can fail or become unstable at extreme latitudes.]",
+                "Topocentric [Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.]",
+            ]
+        );
+        assert_eq!(
             report.scenario_labels(),
             vec![
                 "Mid-latitude reference chart",
@@ -420,7 +453,7 @@ mod tests {
 
         assert_eq!(
             report.summary_line(),
-            "House validation corpus: 4 scenarios (Mid-latitude reference chart, Equatorial reference chart, Polar stress chart, Southern hemisphere reference chart), 48 samples, 48 successes, 0 failures; latitude-sensitive systems: Koch, Placidus, Topocentric"
+            "House validation corpus: 4 scenarios (Mid-latitude reference chart, Equatorial reference chart, Polar stress chart, Southern hemisphere reference chart), 48 samples, 48 successes, 0 failures; latitude-sensitive systems: Koch, Placidus, Topocentric; constraints: Koch [Quadrant system with documented high-latitude pathologies.], Placidus [Quadrant system; can fail or become unstable at extreme latitudes.], Topocentric [Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.]"
         );
         assert_eq!(
             house_validation_summary_line_for_report(&report),
