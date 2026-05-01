@@ -462,6 +462,49 @@ struct PackagedArtifactFitSample {
     distance_delta_au: f64,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct PackagedArtifactTargetThresholdScopeSummary {
+    /// Release-scoped body class that the fit envelope applies to.
+    pub scope: &'static str,
+    /// Bundled bodies that contribute to the scope envelope.
+    pub body_count: usize,
+    /// Measured fit envelope for the scoped body set.
+    pub fit_envelope: PackagedArtifactFitEnvelopeSummary,
+}
+
+impl PackagedArtifactTargetThresholdScopeSummary {
+    /// Returns the scope-specific fit posture as a compact human-readable line.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "scope={}; bodies={}; {}",
+            self.scope,
+            self.body_count,
+            self.fit_envelope.summary_line(),
+        )
+    }
+
+    /// Returns `Ok(())` when the scope summary still matches the current packaged-artifact posture.
+    pub fn validate(&self) -> Result<(), PackagedArtifactFitEnvelopeSummaryValidationError> {
+        let expected =
+            packaged_artifact_target_threshold_scope_envelope_summary_details(self.scope);
+        if self != &expected {
+            return Err(
+                PackagedArtifactFitEnvelopeSummaryValidationError::FieldOutOfSync {
+                    field: "scope fit envelope",
+                },
+            );
+        }
+
+        Ok(())
+    }
+}
+
+impl fmt::Display for PackagedArtifactTargetThresholdScopeSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 impl PackagedArtifactFitEnvelopeSummary {
     /// Returns the packaged-artifact fit evidence as a compact human-readable line.
     pub fn summary_line(&self) -> String {
@@ -561,10 +604,17 @@ fn packaged_artifact_fit_sample_fractions(segment: &Segment) -> &'static [f64] {
     }
 }
 
-fn packaged_artifact_fit_expected_sample_count(artifact: &CompressedArtifact) -> usize {
+fn packaged_artifact_fit_expected_sample_count_with_filter<F>(
+    artifact: &CompressedArtifact,
+    mut include_body: F,
+) -> usize
+where
+    F: FnMut(&CelestialBody) -> bool,
+{
     artifact
         .bodies
         .iter()
+        .filter(|body| include_body(&body.body))
         .map(|body| {
             body.segments
                 .iter()
@@ -574,12 +624,26 @@ fn packaged_artifact_fit_expected_sample_count(artifact: &CompressedArtifact) ->
         .sum()
 }
 
-fn packaged_artifact_fit_samples(artifact: &CompressedArtifact) -> Vec<PackagedArtifactFitSample> {
+fn packaged_artifact_fit_expected_sample_count(artifact: &CompressedArtifact) -> usize {
+    packaged_artifact_fit_expected_sample_count_with_filter(artifact, |_| true)
+}
+
+fn packaged_artifact_fit_samples_with_filter<F>(
+    artifact: &CompressedArtifact,
+    mut include_body: F,
+) -> Vec<PackagedArtifactFitSample>
+where
+    F: FnMut(&CelestialBody) -> bool,
+{
     let reference_backend = JplSnapshotBackend;
     let packaged_backend = packaged_backend();
     let mut samples = Vec::new();
 
     for body_artifact in &artifact.bodies {
+        if !include_body(&body_artifact.body) {
+            continue;
+        }
+
         for segment in &body_artifact.segments {
             let start = segment.start.julian_day.days();
             let span = segment.end.julian_day.days() - start;
@@ -634,6 +698,10 @@ fn packaged_artifact_fit_samples(artifact: &CompressedArtifact) -> Vec<PackagedA
     }
 
     samples
+}
+
+fn packaged_artifact_fit_samples(artifact: &CompressedArtifact) -> Vec<PackagedArtifactFitSample> {
+    packaged_artifact_fit_samples_with_filter(artifact, |_| true)
 }
 
 fn packaged_artifact_fit_envelope_summary_from_samples(
@@ -699,6 +767,69 @@ pub fn packaged_artifact_fit_envelope_summary_for_report() -> String {
         Ok(()) => summary.to_string(),
         Err(error) => format!("fit envelope: unavailable ({error})"),
     }
+}
+
+fn packaged_artifact_body_scope(body: &CelestialBody) -> &'static str {
+    match body {
+        CelestialBody::Sun | CelestialBody::Moon => "luminaries",
+        CelestialBody::Mercury
+        | CelestialBody::Venus
+        | CelestialBody::Mars
+        | CelestialBody::Jupiter
+        | CelestialBody::Saturn
+        | CelestialBody::Uranus
+        | CelestialBody::Neptune
+        | CelestialBody::Pluto => "major planets",
+        CelestialBody::MeanNode
+        | CelestialBody::TrueNode
+        | CelestialBody::MeanApogee
+        | CelestialBody::TrueApogee
+        | CelestialBody::MeanPerigee
+        | CelestialBody::TruePerigee => "lunar points",
+        CelestialBody::Ceres
+        | CelestialBody::Pallas
+        | CelestialBody::Juno
+        | CelestialBody::Vesta => "selected asteroids",
+        CelestialBody::Custom(custom) if custom.catalog.eq_ignore_ascii_case("asteroid") => {
+            "selected asteroids"
+        }
+        CelestialBody::Custom(_) => "custom bodies",
+        _ => "custom bodies",
+    }
+}
+
+fn packaged_artifact_target_threshold_scope_envelope_summary_details(
+    scope: &'static str,
+) -> PackagedArtifactTargetThresholdScopeSummary {
+    let artifact = packaged_artifact();
+    let body_count = artifact
+        .bodies
+        .iter()
+        .filter(|body| packaged_artifact_body_scope(&body.body) == scope)
+        .count();
+    let samples = packaged_artifact_fit_samples_with_filter(artifact, |body| {
+        packaged_artifact_body_scope(body) == scope
+    });
+    let expected_sample_count =
+        packaged_artifact_fit_expected_sample_count_with_filter(artifact, |body| {
+            packaged_artifact_body_scope(body) == scope
+        });
+    let fit_envelope =
+        packaged_artifact_fit_envelope_summary_from_samples(&samples, expected_sample_count);
+    PackagedArtifactTargetThresholdScopeSummary {
+        scope,
+        body_count,
+        fit_envelope,
+    }
+}
+
+fn packaged_artifact_target_threshold_scope_envelopes_summary_details(
+) -> Vec<PackagedArtifactTargetThresholdScopeSummary> {
+    PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES
+        .iter()
+        .copied()
+        .map(packaged_artifact_target_threshold_scope_envelope_summary_details)
+        .collect()
 }
 
 /// Structured regeneration provenance for the packaged artifact.
@@ -967,6 +1098,8 @@ pub struct PackagedArtifactTargetThresholdSummary {
     pub scopes: &'static [&'static str],
     /// Measured fit envelope captured for the current packaged artifact posture.
     pub fit_envelope: PackagedArtifactFitEnvelopeSummary,
+    /// Body-class-specific fit envelopes captured for the current packaged artifact posture.
+    pub scope_envelopes: Vec<PackagedArtifactTargetThresholdScopeSummary>,
 }
 
 /// Validation error for a packaged-artifact target-threshold summary that drifted from the current posture.
@@ -993,11 +1126,12 @@ impl PackagedArtifactTargetThresholdSummary {
     /// Returns the target-threshold posture as a compact human-readable line.
     pub fn summary_line(&self) -> String {
         format!(
-            "profile id={}; target thresholds: {}; scopes={}; {}",
+            "profile id={}; target thresholds: {}; scopes={}; {}; scope envelopes={}",
             self.profile_id,
             self.status,
             self.scopes.join(", "),
             self.fit_envelope.summary_line(),
+            join_display(&self.scope_envelopes),
         )
     }
 
@@ -1034,6 +1168,16 @@ impl PackagedArtifactTargetThresholdSummary {
             );
         }
 
+        let expected_scope_envelopes =
+            packaged_artifact_target_threshold_scope_envelopes_summary_details();
+        if self.scope_envelopes != expected_scope_envelopes {
+            return Err(
+                PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                    field: "scope_envelopes",
+                },
+            );
+        }
+
         Ok(())
     }
 
@@ -1060,6 +1204,7 @@ pub fn packaged_artifact_target_threshold_summary_details() -> PackagedArtifactT
         status: PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATUS,
         scopes: PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES,
         fit_envelope: packaged_artifact_fit_envelope_summary_details(),
+        scope_envelopes: packaged_artifact_target_threshold_scope_envelopes_summary_details(),
     };
     debug_assert!(summary.validate().is_ok());
     summary
@@ -1071,6 +1216,18 @@ pub fn packaged_artifact_target_threshold_summary_for_report() -> String {
     match summary.validated_summary_line() {
         Ok(line) => line,
         Err(error) => format!("target thresholds: unavailable ({error})"),
+    }
+}
+
+/// Returns the current packaged-artifact body-class target-threshold envelopes after validating the structured posture.
+pub fn packaged_artifact_target_threshold_scope_envelopes_for_report() -> String {
+    let summary = packaged_artifact_target_threshold_summary_details();
+    match summary.validate() {
+        Ok(()) => format!(
+            "scope envelopes: {}",
+            join_display(&summary.scope_envelopes)
+        ),
+        Err(error) => format!("scope envelopes: unavailable ({error})"),
     }
 }
 
@@ -4944,6 +5101,10 @@ mod tests {
             summary.target_thresholds.fit_envelope,
             packaged_artifact_fit_envelope_summary_details()
         );
+        assert_eq!(
+            summary.target_thresholds.scope_envelopes,
+            packaged_artifact_target_threshold_scope_envelopes_summary_details()
+        );
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         summary
@@ -4954,7 +5115,10 @@ mod tests {
             .contains("Packaged artifact production profile skeleton:"));
         assert!(summary
             .summary_line()
-            .contains("target thresholds: prototype fit envelope recorded; scopes=luminaries, major planets, lunar points, selected asteroids, custom bodies"));
+            .contains("target thresholds: prototype fit envelope recorded; scopes=luminaries, major planets, lunar points, selected asteroids, custom bodies; fit envelope:"));
+        assert!(summary
+            .summary_line()
+            .contains("scope envelopes=scope=luminaries; bodies=2; fit envelope:"));
         assert!(packaged_artifact_production_profile_summary_for_report()
             .contains("Packaged artifact production profile skeleton:"));
         assert_eq!(
@@ -4999,6 +5163,7 @@ mod tests {
             status: "drifted",
             scopes: &["luminaries"],
             fit_envelope: packaged_artifact_fit_envelope_summary_details(),
+            scope_envelopes: packaged_artifact_target_threshold_scope_envelopes_summary_details(),
         };
 
         let error = manifest
@@ -5021,6 +5186,7 @@ mod tests {
             status: "drifted",
             scopes: &["luminaries"],
             fit_envelope: packaged_artifact_fit_envelope_summary_details(),
+            scope_envelopes: packaged_artifact_target_threshold_scope_envelopes_summary_details(),
         };
 
         let error = summary
@@ -5042,7 +5208,11 @@ mod tests {
         assert_eq!(summary.profile_id, ARTIFACT_PROFILE_ID);
         assert_eq!(summary.status, PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATUS);
         assert_eq!(summary.scopes, PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES);
-        assert_eq!(summary.summary_line(), format!("profile id={}; target thresholds: prototype fit envelope recorded; scopes=luminaries, major planets, lunar points, selected asteroids, custom bodies; {}", ARTIFACT_PROFILE_ID, summary.fit_envelope.summary_line()));
+        assert_eq!(
+            summary.scope_envelopes,
+            packaged_artifact_target_threshold_scope_envelopes_summary_details()
+        );
+        assert_eq!(summary.summary_line(), format!("profile id={}; target thresholds: prototype fit envelope recorded; scopes=luminaries, major planets, lunar points, selected asteroids, custom bodies; {}; scope envelopes={}", ARTIFACT_PROFILE_ID, summary.fit_envelope.summary_line(), join_display(&summary.scope_envelopes)));
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert!(summary.validate().is_ok());

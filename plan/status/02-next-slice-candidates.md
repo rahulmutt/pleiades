@@ -37,7 +37,7 @@ Recently completed: Pluto explicit downgrade and corpus cleanup, plus the produc
 
 **Work items:**
 
-- Define production artifact profile identifiers, body sets, stored/derived/unsupported outputs, and target thresholds. The packaged-data crate now exposes a dedicated production-profile skeleton summary, a structured target-threshold scaffold that captures the current measured fit envelope, and deterministic generator-parameter/manifest outputs that capture the current prototype posture; the target-threshold scaffold now also carries the release-profile identifier, the compact validation and release summaries now surface the target-threshold posture and generation manifest, and the remaining work is to finalize the release thresholds and align the manifest with production fit validation.
+- Define production artifact profile identifiers, body sets, stored/derived/unsupported outputs, and target thresholds. The packaged-data crate now exposes a dedicated production-profile skeleton summary, a structured target-threshold scaffold that captures the current measured fit envelope and body-class scope envelopes, and deterministic generator-parameter/manifest outputs that capture the current prototype posture; the target-threshold scaffold now also carries the release-profile identifier, the compact validation and release summaries now surface the target-threshold posture and generation manifest, and the remaining work is to finalize the release thresholds and align the manifest with production fit validation.
 - Keep the prototype artifact labeled as prototype until Phase 2 fit validation passes.
 - Add tests for profile/header validation and claim drift.
 

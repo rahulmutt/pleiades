@@ -18,7 +18,7 @@ This phase depends on Phase 1 accuracy closure because artifact fit error must b
 Implemented and not re-planned here:
 
 - `pleiades-compression` codec primitives, headers, checksums, body/segment validation, residual support, profile summaries, and decode helpers;
-- `pleiades-data` prototype artifact backend, checked-in deterministic fixture, regeneration helper, request policy summaries, frame reconstruction, batch parity, checksum verification, benchmark/report integration, explicit regeneration profile identifiers for the prototype posture, and compact body-class coverage summaries for the bundled prototype;
+- `pleiades-data` prototype artifact backend, checked-in deterministic fixture, regeneration helper, request policy summaries, frame reconstruction, batch parity, checksum verification, benchmark/report integration, explicit regeneration profile identifiers for the prototype posture, compact body-class coverage summaries for the bundled prototype, and explicit body-class target-envelope reporting for the current prototype posture;
 - CLI/validation commands for artifact summaries, validation, regeneration, and release-report inclusion.
 
 Known remaining gaps:
@@ -26,7 +26,7 @@ Known remaining gaps:
 - The checked-in artifact is a small prototype, not a full production 1500-2500 data product.
 - Current prototype fit error is not acceptable for release-grade packaged-data claims.
 - Generation is tied to the checked-in reference snapshot rather than a complete documented public-input corpus.
-- Body-specific segment strategy and residual density still need release-grade tuning, but the packaged-data crate now records the current measured fit envelope in the target-threshold scaffold and validates the generator manifest against it.
+- Body-specific segment strategy and residual density still need release-grade tuning, but the packaged-data crate now records the current measured fit envelope plus body-class scope envelopes in the target-threshold scaffold and validates the generator manifest against it.
 - Optional external artifact loading is feature-gated and not yet a complete distribution story.
 
 ## Remaining implementation goals
@@ -35,7 +35,7 @@ Known remaining gaps:
 
 - Define versioned artifact profile identifiers for release artifacts.
 - List bundled bodies, time range, stored channels, derived outputs, unsupported outputs, speed policy, frame treatment, and lookup epoch policy. The packaged-data crate now exposes a dedicated production-profile skeleton summary that aggregates the current prototype posture, and the target-threshold scaffold now carries the release-profile identifier through the manifest surface; the remaining work is to turn that skeleton into a finalized release manifest.
-- Define body-class-specific target error envelopes for luminaries, planets, Pluto, lunar points, selected asteroids, and custom/named bodies if shipped.
+- Define body-class-specific target error envelopes for luminaries, planets, Pluto, lunar points, selected asteroids, and custom/named bodies if shipped. The current prototype now exposes an explicit scope-envelope breakdown for the bundled body classes; the remaining work is to turn that posture into finalized release thresholds.
 - Encode profile metadata in artifact headers and release summaries.
 
 ### 2. Build deterministic generation from public inputs
