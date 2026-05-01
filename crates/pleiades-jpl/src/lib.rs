@@ -648,6 +648,33 @@ pub fn production_generation_boundary_summary_for_report() -> String {
     }
 }
 
+/// Returns the provenance summary shared by the production-generation boundary overlay.
+#[doc(alias = "independent_holdout_source_summary")]
+pub fn production_generation_boundary_source_summary() -> IndependentHoldoutSourceSummary {
+    independent_holdout_source_summary()
+}
+
+/// Formats the provenance summary for the production-generation boundary overlay.
+pub fn format_production_generation_boundary_source_summary(
+    summary: &IndependentHoldoutSourceSummary,
+) -> String {
+    format!(
+        "Production generation boundary overlay source: {}; coverage={}; columns={}",
+        summary.source, summary.coverage, summary.columns
+    )
+}
+
+/// Returns the release-facing provenance summary string for the production-generation boundary overlay.
+pub fn production_generation_boundary_source_summary_for_report() -> String {
+    let summary = production_generation_boundary_source_summary();
+    match summary.validate() {
+        Ok(()) => format_production_generation_boundary_source_summary(&summary),
+        Err(error) => {
+            format!("Production generation boundary overlay source: unavailable ({error})")
+        }
+    }
+}
+
 /// A compact coverage summary for the checked-in reference snapshot.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ReferenceSnapshotSummary {
@@ -7652,6 +7679,24 @@ mod tests {
         assert_eq!(
             production_generation_boundary_summary_for_report(),
             summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn production_generation_boundary_source_summary_reports_the_overlay_provenance() {
+        let boundary_summary = production_generation_boundary_source_summary();
+        let holdout_summary = independent_holdout_source_summary();
+        boundary_summary
+            .validate()
+            .expect("production-generation boundary source summary should validate");
+        assert_eq!(boundary_summary, holdout_summary);
+        assert_eq!(
+            format_production_generation_boundary_source_summary(&boundary_summary),
+            "Production generation boundary overlay source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2500000, and 2634167, plus Moon at 2451545, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.; columns=epoch_jd, body, x_km, y_km, z_km"
+        );
+        assert_eq!(
+            production_generation_boundary_source_summary_for_report(),
+            format_production_generation_boundary_source_summary(&boundary_summary)
         );
     }
 
