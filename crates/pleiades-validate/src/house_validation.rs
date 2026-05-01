@@ -130,6 +130,14 @@ impl HouseValidationReport {
                 ),
             ),
             (
+                "Southern polar stress chart",
+                ObserverLocation::new(
+                    Latitude::from_degrees(-69.6492),
+                    Longitude::from_degrees(18.9553),
+                    Some(0.0),
+                ),
+            ),
+            (
                 "Southern hemisphere reference chart",
                 ObserverLocation::new(
                     Latitude::from_degrees(-33.8688),
@@ -424,7 +432,7 @@ mod tests {
     fn summary_line_reports_scenario_and_latitude_sensitive_counts() {
         let report = house_validation_report();
 
-        assert_eq!(report.scenarios.len(), 4);
+        assert_eq!(report.scenarios.len(), 5);
         assert_eq!(
             report.sample_count(),
             report.scenarios.len() * baseline_house_systems().len()
@@ -447,13 +455,14 @@ mod tests {
                 "Mid-latitude reference chart",
                 "Equatorial reference chart",
                 "Polar stress chart",
+                "Southern polar stress chart",
                 "Southern hemisphere reference chart",
             ]
         );
 
         assert_eq!(
             report.summary_line(),
-            "House validation corpus: 4 scenarios (Mid-latitude reference chart, Equatorial reference chart, Polar stress chart, Southern hemisphere reference chart), 48 samples, 48 successes, 0 failures; latitude-sensitive systems: Koch, Placidus, Topocentric; constraints: Koch [Quadrant system with documented high-latitude pathologies.], Placidus [Quadrant system; can fail or become unstable at extreme latitudes.], Topocentric [Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.]"
+            "House validation corpus: 5 scenarios (Mid-latitude reference chart, Equatorial reference chart, Polar stress chart, Southern polar stress chart, Southern hemisphere reference chart), 60 samples, 60 successes, 0 failures; latitude-sensitive systems: Koch, Placidus, Topocentric; constraints: Koch [Quadrant system with documented high-latitude pathologies.], Placidus [Quadrant system; can fail or become unstable at extreme latitudes.], Topocentric [Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.]"
         );
         assert_eq!(
             house_validation_summary_line_for_report(&report),

@@ -62,7 +62,7 @@ Recently completed: Pluto explicit downgrade and corpus cleanup, plus the produc
 
 **Work items:**
 
-- Add or verify golden scenarios across hemispheres, latitudes, and polar/high-latitude constraints. The release-facing house-validation corpus now also surfaces the documented latitude-sensitive constraint notes for Placidus, Koch, and Topocentric directly in its summary.
+- Add or verify golden scenarios across hemispheres, latitudes, and polar/high-latitude constraints. The release-facing house-validation corpus now also surfaces the documented latitude-sensitive constraint notes for Placidus, Koch, and Topocentric directly in its summary, and it now includes a mirrored southern polar stress chart so both hemispheres are represented in the high-latitude evidence slice.
 - Check cusp ordering, angle derivation, normalization, and house placement.
 - Update compatibility caveats and profile verification for descriptor-only or constrained entries.
 
