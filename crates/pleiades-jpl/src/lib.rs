@@ -4012,6 +4012,152 @@ pub fn comparison_snapshot_summary() -> Option<ComparisonSnapshotSummary> {
     })
 }
 
+/// A compact body-class coverage summary for the comparison snapshot used by validation.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ComparisonSnapshotBodyClassCoverageSummary {
+    /// Number of rows in the comparison snapshot.
+    pub row_count: usize,
+    /// Bodies covered by the comparison snapshot in first-seen order.
+    pub bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Number of distinct epochs covered by the comparison snapshot.
+    pub epoch_count: usize,
+    /// Per-body windows covered by the comparison snapshot in first-seen order.
+    pub windows: Vec<ComparisonSnapshotSourceWindow>,
+}
+
+/// Validation error for a comparison snapshot body-class coverage summary.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ComparisonSnapshotBodyClassCoverageSummaryValidationError {
+    /// A summary field is out of sync with the checked-in body-class coverage.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for ComparisonSnapshotBodyClassCoverageSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the comparison snapshot body-class coverage summary field `{field}` is out of sync with the current slice"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ComparisonSnapshotBodyClassCoverageSummaryValidationError {}
+
+impl ComparisonSnapshotBodyClassCoverageSummary {
+    /// Returns a compact body-class summary used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let windows = self
+            .windows
+            .iter()
+            .map(ComparisonSnapshotSourceWindow::summary_line)
+            .collect::<Vec<_>>()
+            .join("; ");
+
+        format!(
+            "Comparison snapshot body-class coverage: {} rows across {} bodies and {} epochs; bodies: {}; windows: {}",
+            self.row_count,
+            self.body_count(),
+            self.epoch_count,
+            format_bodies(&self.bodies),
+            windows,
+        )
+    }
+
+    fn body_count(&self) -> usize {
+        self.bodies.len()
+    }
+
+    /// Returns `Ok(())` when the body-class coverage summary still matches the checked-in slice.
+    pub fn validate(
+        &self,
+    ) -> Result<(), ComparisonSnapshotBodyClassCoverageSummaryValidationError> {
+        let Some(expected) = comparison_snapshot_body_class_coverage_summary_details() else {
+            return Err(
+                ComparisonSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "row_count",
+                },
+            );
+        };
+
+        if self.row_count != expected.row_count {
+            return Err(
+                ComparisonSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "row_count",
+                },
+            );
+        }
+        if self.bodies != expected.bodies {
+            return Err(
+                ComparisonSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "bodies",
+                },
+            );
+        }
+        if self.epoch_count != expected.epoch_count {
+            return Err(
+                ComparisonSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "epoch_count",
+                },
+            );
+        }
+        if self.windows != expected.windows {
+            return Err(
+                ComparisonSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "windows",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated body-class coverage summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ComparisonSnapshotBodyClassCoverageSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for ComparisonSnapshotBodyClassCoverageSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn comparison_snapshot_body_class_coverage_summary_details(
+) -> Option<ComparisonSnapshotBodyClassCoverageSummary> {
+    let summary = comparison_snapshot_summary()?;
+    let source_windows = comparison_snapshot_source_window_summary_details()?;
+
+    Some(ComparisonSnapshotBodyClassCoverageSummary {
+        row_count: summary.row_count,
+        bodies: summary.bodies.to_vec(),
+        epoch_count: summary.epoch_count,
+        windows: source_windows.windows,
+    })
+}
+
+/// Returns the compact body-class coverage summary for the comparison snapshot used by validation.
+pub fn comparison_snapshot_body_class_coverage_summary(
+) -> Option<ComparisonSnapshotBodyClassCoverageSummary> {
+    comparison_snapshot_body_class_coverage_summary_details()
+}
+
+/// Returns the release-facing body-class coverage summary string for the comparison snapshot.
+pub fn comparison_snapshot_body_class_coverage_summary_for_report() -> String {
+    match comparison_snapshot_body_class_coverage_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => format!("Comparison snapshot body-class coverage: unavailable ({error})"),
+        },
+        None => "Comparison snapshot body-class coverage: unavailable".to_string(),
+    }
+}
+
 /// Backend-owned provenance summary for the comparison snapshot used by validation.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ComparisonSnapshotSourceSummary {
@@ -6807,7 +6953,7 @@ pub fn independent_holdout_manifest_summary_for_report() -> String {
 /// Returns the combined snapshot evidence summary used by validation and release reports.
 pub fn jpl_snapshot_evidence_summary_for_report() -> String {
     format!(
-        "{} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {}",
+        "{} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {}",
         reference_snapshot_summary_for_report(),
         reference_snapshot_body_class_coverage_summary_for_report(),
         reference_snapshot_equatorial_parity_summary_for_report(),
@@ -6823,6 +6969,7 @@ pub fn jpl_snapshot_evidence_summary_for_report() -> String {
         reference_asteroid_evidence_summary_for_report(),
         reference_asteroid_equatorial_evidence_summary_for_report(),
         comparison_snapshot_summary_for_report(),
+        comparison_snapshot_body_class_coverage_summary_for_report(),
         comparison_snapshot_source_summary_for_report(),
         comparison_snapshot_source_window_summary_for_report(),
         comparison_snapshot_manifest_summary_for_report(),
@@ -10898,6 +11045,28 @@ mod tests {
     }
 
     #[test]
+    fn comparison_snapshot_body_class_coverage_summary_reports_the_expected_windows() {
+        let summary = comparison_snapshot_body_class_coverage_summary()
+            .expect("comparison snapshot body-class coverage summary should exist");
+
+        assert_eq!(summary.row_count, 70);
+        assert_eq!(summary.bodies.as_slice(), comparison_bodies());
+        assert_eq!(summary.epoch_count, 9);
+        assert_eq!(summary.windows.len(), summary.bodies.len());
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            comparison_snapshot_body_class_coverage_summary_for_report(),
+            summary.summary_line()
+        );
+        assert!(summary
+            .summary_line()
+            .starts_with("Comparison snapshot body-class coverage: 70 rows across 10 bodies and 9 epochs; bodies: "));
+        assert!(summary.summary_line().contains("windows: Sun:"));
+    }
+
+    #[test]
     fn comparison_snapshot_requests_preserve_row_order_and_tt_frame() {
         let requests = comparison_snapshot_requests(CoordinateFrame::Ecliptic)
             .expect("comparison snapshot requests should exist");
@@ -12710,6 +12879,7 @@ mod tests {
         assert!(report.contains(&reference_asteroid_evidence_summary_for_report()));
         assert!(report.contains(&reference_asteroid_equatorial_evidence_summary_for_report()));
         assert!(report.contains(&comparison_snapshot_summary_for_report()));
+        assert!(report.contains(&comparison_snapshot_body_class_coverage_summary_for_report()));
         assert!(report.contains(&comparison_snapshot_source_summary_for_report()));
         assert!(report.contains(&comparison_snapshot_source_window_summary_for_report()));
         assert!(report.contains(&comparison_snapshot_manifest_summary_for_report()));
