@@ -3118,8 +3118,14 @@ mod tests {
     fn frame_policy_summary_details_reuse_the_current_posture() {
         let summary = frame_policy_summary_details();
 
-        assert_eq!(summary.summary_line(), current_request_policy_summary().frame);
-        assert_eq!(frame_policy_summary_for_report(), current_request_policy_summary().frame);
+        assert_eq!(
+            summary.summary_line(),
+            current_request_policy_summary().frame
+        );
+        assert_eq!(
+            frame_policy_summary_for_report(),
+            current_request_policy_summary().frame
+        );
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
     }
 
