@@ -1198,6 +1198,38 @@ impl ChartSnapshot {
     }
 
     /// Returns a compact one-line summary after validating the snapshot data.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use pleiades_core::{Apparentness, BackendId, ChartSnapshot};
+    /// use pleiades_types::{Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale, ZodiacMode};
+    ///
+    /// let snapshot = ChartSnapshot {
+    ///     backend_id: BackendId::new("demo"),
+    ///     instant: Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+    ///     observer: Some(ObserverLocation::new(
+    ///         Latitude::from_degrees(51.5),
+    ///         Longitude::from_degrees(-0.1),
+    ///         None,
+    ///     )),
+    ///     body_observer: Some(ObserverLocation::new(
+    ///         Latitude::from_degrees(-33.9),
+    ///         Longitude::from_degrees(151.2),
+    ///         None,
+    ///     )),
+    ///     zodiac_mode: ZodiacMode::Tropical,
+    ///     apparentness: Apparentness::Mean,
+    ///     houses: None,
+    ///     placements: Vec::new(),
+    /// };
+    ///
+    /// let summary = snapshot
+    ///     .validated_summary_line()
+    ///     .expect("valid chart snapshot");
+    /// assert!(summary.contains("observer=geocentric"));
+    /// assert!(summary.contains("body observer=latitude=-33.9°"));
+    /// ```
     pub fn validated_summary_line(&self) -> Result<String, ChartSnapshotValidationError> {
         self.validate()?;
         Ok(self.summary_line())
