@@ -34,6 +34,23 @@ fn banner() -> &'static str {
     "pleiades-cli chart utility"
 }
 
+fn shared_request_policy_help_block() -> String {
+    let request_policy = pleiades_core::request_policy_summary_for_report();
+    let time_scale_policy = pleiades_core::time_scale_policy_summary_for_report();
+    let observer_policy = pleiades_core::observer_policy_summary_for_report();
+    let apparentness_policy = pleiades_core::apparentness_policy_summary_for_report();
+    let frame_policy = pleiades_core::frame_policy_summary_for_report();
+
+    format!(
+        "  Request policy: {}\n  Time-scale policy: {}\n  Observer policy: {}\n  Apparentness policy: {}\n  Frame policy: {}",
+        request_policy.summary_line(),
+        time_scale_policy.summary_line(),
+        observer_policy.summary_line(),
+        apparentness_policy.summary_line(),
+        frame_policy,
+    )
+}
+
 fn render_cli(args: &[&str]) -> Result<String, String> {
     match args.first().copied() {
         Some("compare-backends") => validate_render_cli(&["compare-backends"]),
@@ -110,15 +127,9 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
 
 fn help_text() -> String {
     format!(
-        "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary        Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  bundle-release         Write the staged release bundle, benchmark report, and manifest files\n  verify-release-bundle  Read a staged release bundle back and verify its manifest checksums\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  api-stability-summary  Print the compact API stability summary\n  api-posture-summary    Alias for api-stability-summary\n  compare-backends       Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix         Print the implemented backend capability matrices\n  capability-matrix      Alias for backend-matrix\n  backend-matrix-summary Print the compact backend capability matrix summary\n  matrix-summary         Alias for backend-matrix-summary\n  release-notes          Print the release compatibility notes\n  release-notes-summary   Print the compact release notes summary\n  release-checklist      Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary      Alias for release-checklist-summary\n  release-summary        Print the compact release summary\n  artifact-summary       Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  validate-artifact      Inspect and validate the bundled compressed artifact\n  regenerate-packaged-artifact  Rebuild or verify the packaged artifact fixture from the checked-in reference snapshot; pass a file path, --out FILE, or --check\n  workspace-audit        Check the workspace for mandatory native build hooks\n  audit                  Alias for workspace-audit\n  report                 Print the full validation report\n  generate-report        Alias for report\n  validation-report-summary  Print the compact validation report summary\n  validation-summary     Alias for validation-report-summary\n  report-summary         Alias for validation-report-summary\n  chart                  Render a basic chart report\n    --tt|--tdb|--utc|--ut1  Tag the chart instant with a time scale
-    --tt-offset-seconds <seconds>  Caller-supplied TT offset for UTC/UT1-tagged instants
-    --tt-from-utc-offset-seconds <seconds>  Alias for --tt-offset-seconds when the chart instant is tagged as UTC
-    --tt-from-ut1-offset-seconds <seconds>  Alias for --tt-offset-seconds when the chart instant is tagged as UT1
-    --tdb-offset-seconds <seconds> Caller-supplied signed TDB-TT offset for TT/UTC/UT1-tagged instants
-    --tdb-from-tt-offset-seconds <seconds> Caller-supplied signed TDB-TT offset for TT-tagged instants
-    --tt-from-tdb-offset-seconds <seconds> Caller-supplied signed TT-TDB offset for TDB-tagged instants
-    --mean               Force mean positions for backend queries\n    --apparent           Force apparent positions for backend queries\n    --body <name>        Use a built-in body or a custom catalog:designation identifier\n  help                   Show this help text",
-        banner()
+        "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary        Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  bundle-release         Write the staged release bundle, benchmark report, and manifest files\n  verify-release-bundle  Read a staged release bundle back and verify its manifest checksums\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  api-stability-summary  Print the compact API stability summary\n  api-posture-summary    Alias for api-stability-summary\n  compare-backends       Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix         Print the implemented backend capability matrices\n  capability-matrix      Alias for backend-matrix\n  backend-matrix-summary Print the compact backend capability matrix summary\n  matrix-summary         Alias for backend-matrix-summary\n  release-notes          Print the release compatibility notes\n  release-notes-summary   Print the compact release notes summary\n  release-checklist      Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary      Alias for release-checklist-summary\n  release-summary        Print the compact release summary\n  artifact-summary       Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  validate-artifact      Inspect and validate the bundled compressed artifact\n  regenerate-packaged-artifact  Rebuild or verify the packaged artifact fixture from the checked-in reference snapshot; pass a file path, --out FILE, or --check\n  workspace-audit        Check the workspace for mandatory native build hooks\n  audit                  Alias for workspace-audit\n  report                 Print the full validation report\n  generate-report        Alias for report\n  validation-report-summary  Print the compact validation report summary\n  validation-summary     Alias for validation-report-summary\n  report-summary         Alias for validation-report-summary\n  chart                  Render a basic chart report\n    --tt|--tdb|--utc|--ut1  Tag the chart instant with a time scale\n    --tt-offset-seconds <seconds>  Caller-supplied TT offset for UTC/UT1-tagged instants\n    --tt-from-utc-offset-seconds <seconds>  Alias for --tt-offset-seconds when the chart instant is tagged as UTC\n    --tt-from-ut1-offset-seconds <seconds>  Alias for --tt-offset-seconds when the chart instant is tagged as UT1\n    --tdb-offset-seconds <seconds> Caller-supplied signed TDB-TT offset for TT/UTC/UT1-tagged instants\n    --tdb-from-tt-offset-seconds <seconds> Caller-supplied signed TDB-TT offset for TT-tagged instants\n    --tt-from-tdb-offset-seconds <seconds> Caller-supplied signed TT-TDB offset for TDB-tagged instants\n    --mean               Force mean positions for backend queries\n    --apparent           Force apparent positions for backend queries\n    --body <name>        Use a built-in body or a custom catalog:designation identifier\n  {}\n  help                   Show this help text",
+        banner(),
+        shared_request_policy_help_block(),
     )
 }
 
@@ -282,8 +293,9 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
             }
             "--help" | "-h" => {
                 return Ok(format!(
-                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--tt|--tdb|--utc|--ut1] [--tt-offset-seconds <seconds>|--tt-from-utc-offset-seconds <seconds>|--tt-from-ut1-offset-seconds <seconds>] [--tdb-offset-seconds <seconds>] [--tdb-from-tt-offset-seconds <seconds>] [--tt-from-tdb-offset-seconds <seconds>] [--mean|--apparent] [--ayanamsa <name>] [--house-system <name>] [--body <name> ...]\n\nAyanamsa names may be built-in entries or custom definitions in the form custom:<name>|<epoch-jd>|<offset-degrees> (or custom-definition:<name>|<epoch-jd>|<offset-degrees>). Body names may be built-in bodies such as Sun or Moon, or custom identifiers in the form catalog:designation. When the chart instant is tagged as UTC or UT1, the caller must also supply the explicit TT offset before chart assembly, either via --tt-offset-seconds or the more explicit --tt-from-utc-offset-seconds / --tt-from-ut1-offset-seconds aliases, and may also supply a signed TDB-TT offset when converting to TDB. When the chart instant is tagged as TT, the caller may supply that signed TDB-TT offset via --tdb-offset-seconds or the more explicit --tdb-from-tt-offset-seconds alias. When the chart instant is tagged as TDB, the caller may supply a signed TT-TDB offset to re-tag the request as TT before assembly. When an observer is provided, it is used for house calculations only; body positions remain geocentric unless a future topocentric mode is added; apparent-place corrections and native sidereal output remain unsupported today.",
-                    banner()
+                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--tt|--tdb|--utc|--ut1] [--tt-offset-seconds <seconds>|--tt-from-utc-offset-seconds <seconds>|--tt-from-ut1-offset-seconds <seconds>] [--tdb-offset-seconds <seconds>] [--tdb-from-tt-offset-seconds <seconds>] [--tt-from-tdb-offset-seconds <seconds>] [--mean|--apparent] [--ayanamsa <name>] [--house-system <name>] [--body <name> ...]\n\nAyanamsa names may be built-in entries or custom definitions in the form custom:<name>|<epoch-jd>|<offset-degrees> (or custom-definition:<name>|<epoch-jd>|<offset-degrees>). Body names may be built-in bodies such as Sun or Moon, or custom identifiers in the form catalog:designation. When the chart instant is tagged as UTC or UT1, the caller must also supply the explicit TT offset before chart assembly, either via --tt-offset-seconds or the more explicit --tt-from-utc-offset-seconds / --tt-from-ut1-offset-seconds aliases, and may also supply a signed TDB-TT offset when converting to TDB. When the chart instant is tagged as TT, the caller may supply that signed TDB-TT offset via --tdb-offset-seconds or the more explicit --tdb-from-tt-offset-seconds alias. When the chart instant is tagged as TDB, the caller may supply a signed TT-TDB offset to re-tag the request as TT before assembly.\n\n{}\n",
+                    banner(),
+                    shared_request_policy_help_block()
                 ));
             }
             other => return Err(format!("unknown argument: {other}")),
@@ -724,8 +736,9 @@ mod tests {
     use pleiades_core::{current_compatibility_profile, current_release_profile_identifiers};
 
     use super::{
-        banner, parse_ayanamsa, parse_body, regenerate_packaged_artifact, render_chart, render_cli,
-        Angle, Ayanamsa, CelestialBody, CustomAyanamsa, CustomBodyId, JulianDay,
+        banner, parse_ayanamsa, parse_body, regenerate_packaged_artifact,
+        render_chart, render_cli, shared_request_policy_help_block, Angle, Ayanamsa,
+        CelestialBody, CustomAyanamsa, CustomBodyId, JulianDay,
     };
 
     fn unique_temp_dir(prefix: &str) -> std::path::PathBuf {
@@ -1435,14 +1448,9 @@ mod tests {
     }
 
     #[test]
-    fn chart_help_text_spells_out_the_house_observer_separation() {
+    fn chart_help_text_spells_out_the_shared_request_policy() {
         let help = render_chart(&["--help"]).expect("chart help should render");
-        assert!(help.contains(
-            "When an observer is provided, it is used for house calculations only; body positions remain geocentric unless a future topocentric mode is added; apparent-place corrections and native sidereal output remain unsupported today."
-        ));
-        assert!(help.contains(
-            "When the chart instant is tagged as UTC or UT1, the caller must also supply the explicit TT offset before chart assembly"
-        ));
+        assert!(help.contains(&shared_request_policy_help_block()));
     }
 
     #[test]
