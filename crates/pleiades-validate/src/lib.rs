@@ -1507,6 +1507,12 @@ impl BodyToleranceSummary {
         Ok(())
     }
 
+    /// Renders the compact report wording after validating the summary fields.
+    pub fn validated_summary_line(&self) -> Result<String, EphemerisError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
     /// Renders the compact report wording for this tolerance status.
     pub fn summary_line(&self) -> String {
         format!(
@@ -11816,16 +11822,14 @@ fn write_tolerance_summaries(
     }
 
     for summary in summaries {
-        if let Err(error) = summary.validate() {
-            writeln!(
+        match summary.validated_summary_line() {
+            Ok(line) => writeln!(f, "  {line}"),
+            Err(error) => writeln!(
                 f,
                 "  body tolerance summary for {} unavailable ({error})",
                 summary.body
-            )?;
-            continue;
-        }
-
-        writeln!(f, "  {}", summary)?;
+            ),
+        }?;
     }
     Ok(())
 }
@@ -12989,6 +12993,10 @@ mod tests {
             .expect("comparison should include at least one tolerance summary");
 
         assert_eq!(summary.summary_line(), summary.to_string());
+        assert_eq!(
+            summary.validated_summary_line().unwrap(),
+            summary.summary_line()
+        );
         assert!(summary.summary_line().contains("backend family="));
         assert!(summary.summary_line().contains("status="));
     }
@@ -13046,6 +13054,26 @@ mod tests {
         summary.sample_count = 0;
         let error = summary
             .validate()
+            .expect_err("zero-sample body tolerance summary should fail validation");
+        assert!(error.to_string().contains("has no samples to compare"));
+    }
+
+    #[test]
+    fn body_tolerance_summary_validated_summary_line_rejects_drift() {
+        let corpus = default_corpus();
+        let reference = default_reference_backend();
+        let candidate = default_candidate_backend();
+        let report =
+            compare_backends(&reference, &candidate, &corpus).expect("comparison should build");
+        let tolerance_summaries = report.tolerance_summaries();
+        let mut summary = tolerance_summaries
+            .first()
+            .expect("comparison should include at least one tolerance summary")
+            .clone();
+
+        summary.sample_count = 0;
+        let error = summary
+            .validated_summary_line()
             .expect_err("zero-sample body tolerance summary should fail validation");
         assert!(error.to_string().contains("has no samples to compare"));
     }
