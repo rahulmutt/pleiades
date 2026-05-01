@@ -37,8 +37,7 @@ use pleiades_ayanamsa::{
     release_ayanamsas, resolve_ayanamsa, validate_ayanamsa_catalog,
 };
 use pleiades_backend::{
-    apparentness_policy_summary_for_report, frame_policy_summary_for_report,
-    observer_policy_summary_for_report, request_policy_summary_for_report,
+    frame_policy_summary_for_report, request_policy_summary_for_report,
     time_scale_policy_summary_for_report, zodiac_policy_summary_for_report,
 };
 use pleiades_core::{
@@ -9105,6 +9104,24 @@ fn format_time_scale_policy_summary_for_report(
     }
 }
 
+fn format_observer_policy_summary_for_report(
+    summary: &pleiades_backend::ObserverPolicySummary,
+) -> String {
+    match summary.validated_summary_line() {
+        Ok(line) => line.to_string(),
+        Err(error) => format!("observer policy unavailable ({error})"),
+    }
+}
+
+fn format_apparentness_policy_summary_for_report(
+    summary: &pleiades_backend::ApparentnessPolicySummary,
+) -> String {
+    match summary.validated_summary_line() {
+        Ok(line) => line.to_string(),
+        Err(error) => format!("apparentness policy unavailable ({error})"),
+    }
+}
+
 fn format_request_policy_summary_for_report(
     summary: &pleiades_backend::RequestPolicySummary,
 ) -> String {
@@ -9143,8 +9160,18 @@ fn format_request_semantics_summary_for_report(
         }
     };
 
-    let _ = writeln!(text, "Observer policy: {}", request_policy.observer);
-    let _ = writeln!(text, "Apparentness policy: {}", request_policy.apparentness);
+    let observer_policy = pleiades_backend::observer_policy_summary_for_report();
+    let apparentness_policy = pleiades_backend::apparentness_policy_summary_for_report();
+    let _ = writeln!(
+        text,
+        "Observer policy: {}",
+        format_observer_policy_summary_for_report(&observer_policy)
+    );
+    let _ = writeln!(
+        text,
+        "Apparentness policy: {}",
+        format_apparentness_policy_summary_for_report(&apparentness_policy)
+    );
     let _ = writeln!(
         text,
         "Request policy: {}",
@@ -10524,10 +10551,14 @@ fn render_backend_matrix_summary_text() -> String {
     ));
     text.push('\n');
     text.push_str("Observer policy: ");
-    text.push_str(observer_policy_summary_for_report());
+    text.push_str(&format_observer_policy_summary_for_report(
+        &pleiades_backend::observer_policy_summary_for_report(),
+    ));
     text.push('\n');
     text.push_str("Apparentness policy: ");
-    text.push_str(apparentness_policy_summary_for_report());
+    text.push_str(&format_apparentness_policy_summary_for_report(
+        &pleiades_backend::apparentness_policy_summary_for_report(),
+    ));
     text.push('\n');
     text.push_str("Zodiac policy: ");
     text.push_str(&zodiac_policy_summary_for_report(&[ZodiacMode::Tropical]));

@@ -1410,6 +1410,172 @@ impl fmt::Display for TimeScalePolicySummary {
     }
 }
 
+/// Compact summary of the current shared observer policy.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct ObserverPolicySummary {
+    summary: &'static str,
+}
+
+/// Validation error for the shared observer-policy summary.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ObserverPolicySummaryValidationError {
+    /// The summary text is blank or whitespace-only.
+    BlankSummary,
+    /// The summary text has surrounding whitespace.
+    WhitespacePaddedSummary,
+    /// The summary text contains an embedded line break.
+    EmbeddedLineBreak,
+    /// The summary text no longer matches the current canonical posture.
+    CurrentPolicyOutOfSync,
+}
+
+impl fmt::Display for ObserverPolicySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BlankSummary => f.write_str("observer policy summary is blank"),
+            Self::WhitespacePaddedSummary => {
+                f.write_str("observer policy summary has surrounding whitespace")
+            }
+            Self::EmbeddedLineBreak => f.write_str("observer policy summary contains a line break"),
+            Self::CurrentPolicyOutOfSync => {
+                f.write_str("observer policy summary is out of sync with the current posture")
+            }
+        }
+    }
+}
+
+impl std::error::Error for ObserverPolicySummaryValidationError {}
+
+impl ObserverPolicySummary {
+    /// Creates a new observer policy summary from a backend-owned note.
+    pub const fn new(summary: &'static str) -> Self {
+        Self { summary }
+    }
+
+    /// Returns the compact one-line rendering of the observer policy posture.
+    pub const fn summary_line(self) -> &'static str {
+        self.summary
+    }
+
+    /// Returns the current shared observer policy posture.
+    pub const fn current() -> Self {
+        current_observer_policy_summary()
+    }
+
+    /// Returns `Ok(())` when the summary still contains the current canonical line.
+    pub fn validate(&self) -> Result<(), ObserverPolicySummaryValidationError> {
+        if self.summary.trim().is_empty() {
+            Err(ObserverPolicySummaryValidationError::BlankSummary)
+        } else if self.summary.trim() != self.summary {
+            Err(ObserverPolicySummaryValidationError::WhitespacePaddedSummary)
+        } else if self.summary.contains('\n') || self.summary.contains('\r') {
+            Err(ObserverPolicySummaryValidationError::EmbeddedLineBreak)
+        } else if self.summary != current_observer_policy_summary().summary_line() {
+            Err(ObserverPolicySummaryValidationError::CurrentPolicyOutOfSync)
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Returns the compact summary line after validating the cached prose.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<&'static str, ObserverPolicySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for ObserverPolicySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.summary_line())
+    }
+}
+
+/// Compact summary of the current shared apparentness policy.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct ApparentnessPolicySummary {
+    summary: &'static str,
+}
+
+/// Validation error for the shared apparentness-policy summary.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ApparentnessPolicySummaryValidationError {
+    /// The summary text is blank or whitespace-only.
+    BlankSummary,
+    /// The summary text has surrounding whitespace.
+    WhitespacePaddedSummary,
+    /// The summary text contains an embedded line break.
+    EmbeddedLineBreak,
+    /// The summary text no longer matches the current canonical posture.
+    CurrentPolicyOutOfSync,
+}
+
+impl fmt::Display for ApparentnessPolicySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BlankSummary => f.write_str("apparentness policy summary is blank"),
+            Self::WhitespacePaddedSummary => {
+                f.write_str("apparentness policy summary has surrounding whitespace")
+            }
+            Self::EmbeddedLineBreak => {
+                f.write_str("apparentness policy summary contains a line break")
+            }
+            Self::CurrentPolicyOutOfSync => {
+                f.write_str("apparentness policy summary is out of sync with the current posture")
+            }
+        }
+    }
+}
+
+impl std::error::Error for ApparentnessPolicySummaryValidationError {}
+
+impl ApparentnessPolicySummary {
+    /// Creates a new apparentness policy summary from a backend-owned note.
+    pub const fn new(summary: &'static str) -> Self {
+        Self { summary }
+    }
+
+    /// Returns the compact one-line rendering of the apparentness policy posture.
+    pub const fn summary_line(self) -> &'static str {
+        self.summary
+    }
+
+    /// Returns the current shared apparentness policy posture.
+    pub const fn current() -> Self {
+        current_apparentness_policy_summary()
+    }
+
+    /// Returns `Ok(())` when the summary still contains the current canonical line.
+    pub fn validate(&self) -> Result<(), ApparentnessPolicySummaryValidationError> {
+        if self.summary.trim().is_empty() {
+            Err(ApparentnessPolicySummaryValidationError::BlankSummary)
+        } else if self.summary.trim() != self.summary {
+            Err(ApparentnessPolicySummaryValidationError::WhitespacePaddedSummary)
+        } else if self.summary.contains('\n') || self.summary.contains('\r') {
+            Err(ApparentnessPolicySummaryValidationError::EmbeddedLineBreak)
+        } else if self.summary != current_apparentness_policy_summary().summary_line() {
+            Err(ApparentnessPolicySummaryValidationError::CurrentPolicyOutOfSync)
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Returns the compact summary line after validating the cached prose.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<&'static str, ApparentnessPolicySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for ApparentnessPolicySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.summary_line())
+    }
+}
+
 /// Compact summary of the current shared request-policy posture.
 ///
 /// # Example
@@ -1682,12 +1848,26 @@ pub const fn current_time_scale_policy_summary() -> TimeScalePolicySummary {
     )
 }
 
+/// Returns the current shared observer policy used by validation and reports.
+pub const fn current_observer_policy_summary() -> ObserverPolicySummary {
+    ObserverPolicySummary::new(
+        "chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests; topocentric body positions remain unsupported",
+    )
+}
+
+/// Returns the current shared apparentness policy used by validation and reports.
+pub const fn current_apparentness_policy_summary() -> ApparentnessPolicySummary {
+    ApparentnessPolicySummary::new(
+        "current first-party backends accept mean geometric output only; apparent-place corrections are rejected unless a backend explicitly advertises support",
+    )
+}
+
 /// Returns the current shared request-policy posture used by validation and reports.
 pub const fn current_request_policy_summary() -> RequestPolicySummary {
     RequestPolicySummary {
         time_scale: current_time_scale_policy_summary().summary_line(),
-        observer: "chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests; topocentric body positions remain unsupported",
-        apparentness: "current first-party backends accept mean geometric output only; apparent-place corrections are rejected unless a backend explicitly advertises support",
+        observer: current_observer_policy_summary().summary_line(),
+        apparentness: current_apparentness_policy_summary().summary_line(),
         frame: "ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported; native sidereal backend output remains unsupported unless a backend explicitly advertises it",
     }
 }
@@ -1700,6 +1880,16 @@ pub const fn current_frame_policy_summary() -> FramePolicySummary {
 /// Returns the request-policy posture used by validation and release reporting.
 pub const fn request_policy_summary_for_report() -> RequestPolicySummary {
     current_request_policy_summary()
+}
+
+/// Returns the observer-policy posture used by validation and release reporting.
+pub const fn observer_policy_summary_for_report() -> ObserverPolicySummary {
+    current_observer_policy_summary()
+}
+
+/// Returns the apparentness-policy posture used by validation and release reporting.
+pub const fn apparentness_policy_summary_for_report() -> ApparentnessPolicySummary {
+    current_apparentness_policy_summary()
 }
 
 /// Validates the request-shape policy shared by the current first-party backends.
@@ -1975,16 +2165,6 @@ pub fn validate_zodiac_policy(
 /// Returns the compact report wording for the current time-scale policy.
 pub const fn time_scale_policy_summary_for_report() -> TimeScalePolicySummary {
     current_time_scale_policy_summary()
-}
-
-/// Returns the compact report wording for the current observer policy.
-pub const fn observer_policy_summary_for_report() -> &'static str {
-    current_request_policy_summary().observer
-}
-
-/// Returns the compact report wording for the current apparentness policy.
-pub const fn apparentness_policy_summary_for_report() -> &'static str {
-    current_request_policy_summary().apparentness
 }
 
 /// Returns the compact report wording for the current frame policy.
@@ -3698,11 +3878,11 @@ mod tests {
             request_policy.time_scale
         );
         assert_eq!(
-            observer_policy_summary_for_report(),
+            observer_policy_summary_for_report().summary_line(),
             request_policy.observer
         );
         assert_eq!(
-            apparentness_policy_summary_for_report(),
+            apparentness_policy_summary_for_report().summary_line(),
             request_policy.apparentness
         );
         assert_eq!(frame_policy_summary_for_report(), request_policy.frame);
@@ -3726,6 +3906,60 @@ mod tests {
         assert!(error
             .message
             .contains(&observer_request.observer.as_ref().unwrap().summary_line()));
+    }
+
+    #[test]
+    fn observer_policy_summary_validates_the_current_report_prose() {
+        let summary = observer_policy_summary_for_report();
+        assert_eq!(summary.summary_line(), summary.to_string());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+    }
+
+    #[test]
+    fn apparentness_policy_summary_validates_the_current_report_prose() {
+        let summary = apparentness_policy_summary_for_report();
+        assert_eq!(summary.summary_line(), summary.to_string());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+    }
+
+    #[test]
+    fn observer_policy_summary_rejects_invalid_cached_prose() {
+        assert!(matches!(
+            ObserverPolicySummary::new("").validate(),
+            Err(ObserverPolicySummaryValidationError::BlankSummary)
+        ));
+        assert!(matches!(
+            ObserverPolicySummary::new(" observer ").validate(),
+            Err(ObserverPolicySummaryValidationError::WhitespacePaddedSummary)
+        ));
+        assert!(matches!(
+            ObserverPolicySummary::new("observer\npolicy").validate(),
+            Err(ObserverPolicySummaryValidationError::EmbeddedLineBreak)
+        ));
+        assert!(matches!(
+            ObserverPolicySummary::new("observer policy drift").validate(),
+            Err(ObserverPolicySummaryValidationError::CurrentPolicyOutOfSync)
+        ));
+    }
+
+    #[test]
+    fn apparentness_policy_summary_rejects_invalid_cached_prose() {
+        assert!(matches!(
+            ApparentnessPolicySummary::new("").validate(),
+            Err(ApparentnessPolicySummaryValidationError::BlankSummary)
+        ));
+        assert!(matches!(
+            ApparentnessPolicySummary::new(" apparent ").validate(),
+            Err(ApparentnessPolicySummaryValidationError::WhitespacePaddedSummary)
+        ));
+        assert!(matches!(
+            ApparentnessPolicySummary::new("apparent\npolicy").validate(),
+            Err(ApparentnessPolicySummaryValidationError::EmbeddedLineBreak)
+        ));
+        assert!(matches!(
+            ApparentnessPolicySummary::new("apparentness policy drift").validate(),
+            Err(ApparentnessPolicySummaryValidationError::CurrentPolicyOutOfSync)
+        ));
     }
 
     #[test]

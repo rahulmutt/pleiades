@@ -24,7 +24,7 @@ Implemented and not re-planned here:
 - compact lunar baseline with validation for Moon, mean/true node, and mean apogee/perigee;
 - JPL Horizons fixture/snapshot backend with selected asteroid rows, exact fixture epochs, interpolation transparency, equatorial reconstruction, and batch parity evidence; the interpolation-quality corpus now includes a 2451910.5 boundary sample with quadratic coverage;
 - comparison and regression tolerance audits now use body-class-specific release thresholds for the active planetary corpus instead of the earlier flat release posture;
-- validation/report commands that expose tolerance posture, source documentation, request policy, frame policy, and benchmark summaries; the shared frame-policy summary now also fails closed when it drifts from the current canonical posture.
+- validation/report commands that expose tolerance posture, source documentation, request policy, frame policy, and benchmark summaries; the shared frame-policy summary now also fails closed when it drifts from the current canonical posture, and the observer/apparentness policy surfaces are now typed and validated in the shared request-semantics formatter so those report lines fail closed too.
 
 Known remaining gaps:
 
