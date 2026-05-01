@@ -34,7 +34,7 @@ Known remaining gaps:
 ### 1. Define production artifact profiles
 
 - Define versioned artifact profile identifiers for release artifacts.
-- List bundled bodies, time range, stored channels, derived outputs, unsupported outputs, speed policy, frame treatment, and lookup epoch policy. The packaged-data crate now exposes a dedicated production-profile skeleton summary that aggregates the current prototype posture; the remaining work is to turn that skeleton into a finalized release manifest.
+- List bundled bodies, time range, stored channels, derived outputs, unsupported outputs, speed policy, frame treatment, and lookup epoch policy. The packaged-data crate now exposes a dedicated production-profile skeleton summary that aggregates the current prototype posture, and the target-threshold scaffold now carries the release-profile identifier through the manifest surface; the remaining work is to turn that skeleton into a finalized release manifest.
 - Define body-class-specific target error envelopes for luminaries, planets, Pluto, lunar points, selected asteroids, and custom/named bodies if shipped.
 - Encode profile metadata in artifact headers and release summaries.
 

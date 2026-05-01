@@ -959,6 +959,8 @@ const PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES: &[&str] = &[
 /// Structured target-threshold posture for the packaged artifact generator.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PackagedArtifactTargetThresholdSummary {
+    /// Stable identifier for the release profile that the thresholds apply to.
+    pub profile_id: &'static str,
     /// Current release posture for the production thresholds.
     pub status: &'static str,
     /// Body-class scopes that still require finalized thresholds.
@@ -991,7 +993,8 @@ impl PackagedArtifactTargetThresholdSummary {
     /// Returns the target-threshold posture as a compact human-readable line.
     pub fn summary_line(&self) -> String {
         format!(
-            "target thresholds: {}; scopes={}; {}",
+            "profile id={}; target thresholds: {}; scopes={}; {}",
+            self.profile_id,
             self.status,
             self.scopes.join(", "),
             self.fit_envelope.summary_line(),
@@ -1000,6 +1003,13 @@ impl PackagedArtifactTargetThresholdSummary {
 
     /// Returns `Ok(())` when the summary still matches the current packaged-artifact posture.
     pub fn validate(&self) -> Result<(), PackagedArtifactTargetThresholdSummaryValidationError> {
+        if self.profile_id != ARTIFACT_PROFILE_ID {
+            return Err(
+                PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                    field: "profile_id",
+                },
+            );
+        }
         if self.status != PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATUS {
             return Err(
                 PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
@@ -1046,6 +1056,7 @@ impl fmt::Display for PackagedArtifactTargetThresholdSummary {
 pub fn packaged_artifact_target_threshold_summary_details() -> PackagedArtifactTargetThresholdSummary
 {
     let summary = PackagedArtifactTargetThresholdSummary {
+        profile_id: ARTIFACT_PROFILE_ID,
         status: PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATUS,
         scopes: PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES,
         fit_envelope: packaged_artifact_fit_envelope_summary_details(),
@@ -4938,6 +4949,7 @@ mod tests {
     fn packaged_artifact_generation_manifest_validation_rejects_parameter_drift() {
         let mut manifest = packaged_artifact_generation_manifest_details();
         manifest.parameters.target_thresholds = PackagedArtifactTargetThresholdSummary {
+            profile_id: ARTIFACT_PROFILE_ID,
             status: "drifted",
             scopes: &["luminaries"],
             fit_envelope: packaged_artifact_fit_envelope_summary_details(),
@@ -4959,6 +4971,7 @@ mod tests {
     fn packaged_artifact_production_profile_summary_validation_rejects_target_threshold_drift() {
         let mut summary = packaged_artifact_production_profile_summary_details();
         summary.target_thresholds = PackagedArtifactTargetThresholdSummary {
+            profile_id: ARTIFACT_PROFILE_ID,
             status: "drifted",
             scopes: &["luminaries"],
             fit_envelope: packaged_artifact_fit_envelope_summary_details(),
@@ -4980,14 +4993,19 @@ mod tests {
     fn packaged_artifact_target_threshold_summary_reflects_the_current_posture() {
         let summary = packaged_artifact_target_threshold_summary_details();
 
+        assert_eq!(summary.profile_id, ARTIFACT_PROFILE_ID);
         assert_eq!(summary.status, PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATUS);
         assert_eq!(summary.scopes, PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES);
-        assert_eq!(summary.summary_line(), format!("target thresholds: prototype fit envelope recorded; scopes=luminaries, major planets, lunar points, selected asteroids, custom bodies; {}", summary.fit_envelope.summary_line()));
+        assert_eq!(summary.summary_line(), format!("profile id={}; target thresholds: prototype fit envelope recorded; scopes=luminaries, major planets, lunar points, selected asteroids, custom bodies; {}", ARTIFACT_PROFILE_ID, summary.fit_envelope.summary_line()));
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert!(summary.validate().is_ok());
-        assert!(packaged_artifact_target_threshold_summary_for_report()
-            .contains("target thresholds: prototype fit envelope recorded"));
+        assert!(
+            packaged_artifact_target_threshold_summary_for_report().contains(&format!(
+                "profile id={}; target thresholds: prototype fit envelope recorded",
+                ARTIFACT_PROFILE_ID
+            ))
+        );
     }
 
     #[test]
