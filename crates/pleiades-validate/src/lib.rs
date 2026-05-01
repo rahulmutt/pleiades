@@ -15836,10 +15836,14 @@ mod tests {
             "API stability posture: {}",
             release_profiles.api_stability_profile_id
         )));
-        assert!(rendered.contains(&format!(
-            "Release profile identifiers: v1 compatibility={}, api-stability={}",
-            release_profiles.compatibility_profile_id, release_profiles.api_stability_profile_id
-        )));
+        assert_report_contains_exact_line(
+            &rendered,
+            &format!(
+                "Release profile identifiers: v1 compatibility={}, api-stability={}",
+                release_profiles.compatibility_profile_id,
+                release_profiles.api_stability_profile_id
+            ),
+        );
         assert!(rendered
             .lines()
             .any(|line| line == profile.target_house_scope.join("; ")));
@@ -15851,12 +15855,18 @@ mod tests {
         assert!(rendered
             .lines()
             .any(|line| line == "Backend matrix summary: backend-matrix-summary"));
-        assert!(rendered.contains(&profile.catalog_inventory_summary_line()));
-        assert!(rendered.contains("Compatibility catalog inventory: house systems=25 (12 baseline, 13 release-specific, 156 aliases); house-code aliases=22; ayanamsas=59 (5 baseline, 54 release-specific, 183 aliases); custom-definition labels=9; known gaps=2"));
-        assert!(rendered.contains(&format!(
-            "House code aliases: {}",
-            profile.house_code_aliases_summary_line()
-        )));
+        assert_report_contains_exact_line(&rendered, &profile.catalog_inventory_summary_line());
+        assert_report_contains_exact_line(
+            &rendered,
+            "Compatibility catalog inventory: house systems=25 (12 baseline, 13 release-specific, 156 aliases); house-code aliases=22; ayanamsas=59 (5 baseline, 54 release-specific, 183 aliases); custom-definition labels=9; known gaps=2",
+        );
+        assert_report_contains_exact_line(
+            &rendered,
+            &format!(
+                "House code aliases: {}",
+                profile.house_code_aliases_summary_line()
+            ),
+        );
         assert!(rendered.contains("House formula families: 7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign)"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
         assert!(rendered.lines().any(|line| {
