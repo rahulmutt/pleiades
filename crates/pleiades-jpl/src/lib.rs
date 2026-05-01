@@ -8546,7 +8546,7 @@ mod tests {
             manifest.source.as_deref(),
             Some("NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.")
         );
-        assert_eq!(manifest.coverage.as_deref(), Some("inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; outer planets and Pluto sampled at J2000 and 2132."));
+        assert_eq!(manifest.coverage.as_deref(), Some("inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; outer planets and Pluto sampled at 2400000, 2451545, and 2500000."));
         assert_eq!(
             manifest.columns,
             ["epoch_jd", "body", "x_km", "y_km", "z_km"]
@@ -8554,7 +8554,7 @@ mod tests {
         assert_eq!(manifest.validate(), Ok(()));
         assert_eq!(
             manifest.summary_line("Reference snapshot manifest"),
-            "Reference snapshot manifest: JPL Horizons reference snapshot.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; outer planets and Pluto sampled at J2000 and 2132.; columns=epoch_jd, body, x_km, y_km, z_km"
+            "Reference snapshot manifest: JPL Horizons reference snapshot.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; outer planets and Pluto sampled at 2400000, 2451545, and 2500000.; columns=epoch_jd, body, x_km, y_km, z_km"
         );
     }
 

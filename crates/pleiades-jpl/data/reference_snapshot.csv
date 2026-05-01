@@ -1,6 +1,6 @@
 # JPL Horizons reference snapshot.
 # Source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.
-# Coverage: inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; outer planets and Pluto sampled at J2000 and 2132.
+# Coverage: inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; outer planets and Pluto sampled at 2400000, 2451545, and 2500000.
 # Columns: epoch_jd,body,x_km,y_km,z_km
 2378499.000000000,Mars,-120036742.6317743957,-310704568.0697153211,408251.6429474354
 2378499.000000000,Mercury,-879960.6069035754,-111299572.7778941989,6173194.4373783022
