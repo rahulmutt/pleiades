@@ -414,6 +414,13 @@ impl LunarTheorySourceSummary {
 
         Ok(())
     }
+
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, LunarTheorySourceSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 /// Returns the current lunar-theory source family.
@@ -2063,8 +2070,8 @@ pub fn format_lunar_theory_source_summary(summary: &LunarTheorySourceSummary) ->
 fn format_validated_lunar_theory_source_summary_for_report(
     summary: &LunarTheorySourceSummary,
 ) -> String {
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
+    match summary.validated_summary_line() {
+        Ok(summary_line) => summary_line,
         Err(error) => format!("lunar source selection: unavailable ({error})"),
     }
 }
@@ -5611,6 +5618,10 @@ mod tests {
         assert_eq!(source_summary.to_string(), source_summary.summary_line());
         assert!(source_summary.validate().is_ok());
         assert_eq!(
+            source_summary.validated_summary_line().unwrap(),
+            source_summary.summary_line()
+        );
+        assert_eq!(
             format_lunar_theory_source_summary(&source_summary),
             lunar_theory_source_summary_for_report()
         );
@@ -5621,6 +5632,10 @@ mod tests {
             .expect_err("drifted summary should fail validation");
         assert_eq!(
             error.to_string(),
+            "the lunar source summary field `source_identifier` is out of sync with the current selection"
+        );
+        assert_eq!(
+            drifted_source_summary.validated_summary_line().unwrap_err().to_string(),
             "the lunar source summary field `source_identifier` is out of sync with the current selection"
         );
         assert_eq!(
