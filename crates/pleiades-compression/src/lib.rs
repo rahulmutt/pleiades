@@ -656,14 +656,22 @@ impl ArtifactResidualBodyCoverageSummary {
         }
     }
 
+    /// Returns the residual-body coverage after validating the artifact.
+    pub fn validated_summary_line(
+        &self,
+        artifact: &CompressedArtifact,
+    ) -> Result<String, CompressionError> {
+        self.validate(artifact)?;
+        Ok(self.summary_line())
+    }
+
     /// Returns the residual-body coverage annotated with how many bodies share it.
     pub fn summary_line_with_body_count(&self) -> String {
-        let bundled_bodies = match self.body_count {
-            1 => "1 bundled body".to_string(),
-            count => format!("{count} bundled bodies"),
-        };
-
-        format!("{}; applies to {}", self.summary_line(), bundled_bodies)
+        format!(
+            "{}; applies to {}",
+            self.summary_line(),
+            self.body_count_suffix()
+        )
     }
 
     /// Returns the residual-body coverage line after validating the artifact.
@@ -671,8 +679,19 @@ impl ArtifactResidualBodyCoverageSummary {
         &self,
         artifact: &CompressedArtifact,
     ) -> Result<String, CompressionError> {
-        self.validate(artifact)?;
-        Ok(self.summary_line_with_body_count())
+        let summary = self.validated_summary_line(artifact)?;
+        Ok(format!(
+            "{}; applies to {}",
+            summary,
+            self.body_count_suffix()
+        ))
+    }
+
+    fn body_count_suffix(&self) -> String {
+        match self.body_count {
+            1 => "1 bundled body".to_string(),
+            count => format!("{count} bundled bodies"),
+        }
     }
 }
 
@@ -2331,6 +2350,12 @@ mod tests {
         assert_eq!(summary.bodies, vec![CelestialBody::Moon]);
         assert_eq!(summary.summary_line(), "residual bodies: Moon");
         assert_eq!(
+            summary
+                .validated_summary_line(&artifact)
+                .expect("residual body coverage summary should validate"),
+            "residual bodies: Moon"
+        );
+        assert_eq!(
             summary.summary_line_with_body_count(),
             "residual bodies: Moon; applies to 1 bundled body"
         );
@@ -2352,6 +2377,10 @@ mod tests {
             .expect_err("drifted residual body coverage count should be rejected");
         assert_eq!(count_error.kind, CompressionErrorKind::InvalidFormat);
         assert!(format!("{count_error}").contains("body count does not match the body list"));
+        let validated_error = drifted
+            .validated_summary_line(&artifact)
+            .expect_err("drifted residual body coverage validated line should be rejected");
+        assert_eq!(validated_error.kind, CompressionErrorKind::InvalidFormat);
 
         let mut drifted = summary.clone();
         drifted.bodies = vec![CelestialBody::Sun];
