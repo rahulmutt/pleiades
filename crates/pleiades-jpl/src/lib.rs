@@ -701,6 +701,171 @@ pub fn production_generation_boundary_source_summary_for_report() -> String {
     }
 }
 
+/// A single body-window slice inside the production-generation boundary overlay.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ProductionGenerationBoundaryWindow {
+    /// The boundary-overlay body covered by this window.
+    pub body: pleiades_backend::CelestialBody,
+    /// Number of samples for the body.
+    pub sample_count: usize,
+    /// Number of distinct epochs represented for the body.
+    pub epoch_count: usize,
+    /// Earliest epoch represented for the body.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented for the body.
+    pub latest_epoch: Instant,
+}
+
+impl ProductionGenerationBoundaryWindow {
+    /// Returns a compact body-window summary used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let time_span = if self.earliest_epoch == self.latest_epoch {
+            format_instant(self.earliest_epoch)
+        } else {
+            format!(
+                "{}..{}",
+                format_instant(self.earliest_epoch),
+                format_instant(self.latest_epoch)
+            )
+        };
+
+        format!(
+            "{}: {} samples across {} epochs at {}",
+            self.body, self.sample_count, self.epoch_count, time_span
+        )
+    }
+}
+
+/// Compact release-facing summary for the production-generation boundary windows.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ProductionGenerationBoundaryWindowSummary {
+    /// Number of boundary-overlay samples in the expanded source slice.
+    pub sample_count: usize,
+    /// Bodies covered by the expanded source slice in first-seen order.
+    pub sample_bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Number of distinct epochs covered by the expanded source slice.
+    pub epoch_count: usize,
+    /// Earliest epoch represented in the expanded source slice.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented in the expanded source slice.
+    pub latest_epoch: Instant,
+    /// Per-body window breakdown in first-seen order.
+    pub windows: Vec<ProductionGenerationBoundaryWindow>,
+}
+
+impl ProductionGenerationBoundaryWindowSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let window_summary = self
+            .windows
+            .iter()
+            .map(ProductionGenerationBoundaryWindow::summary_line)
+            .collect::<Vec<_>>()
+            .join("; ");
+        format!(
+            "Production generation boundary windows: {} source-backed samples across {} bodies and {} epochs ({}..{}); windows: {}",
+            self.sample_count,
+            self.sample_bodies.len(),
+            self.epoch_count,
+            format_instant(self.earliest_epoch),
+            format_instant(self.latest_epoch),
+            window_summary,
+        )
+    }
+}
+
+impl fmt::Display for ProductionGenerationBoundaryWindowSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn production_generation_boundary_window_summary_details(
+) -> Option<ProductionGenerationBoundaryWindowSummary> {
+    let entries = production_generation_boundary_entries()?;
+    let mut windows = Vec::new();
+    for body in production_generation_boundary_body_list() {
+        let body_entries = entries
+            .iter()
+            .filter(|entry| entry.body == *body)
+            .collect::<Vec<_>>();
+        if body_entries.is_empty() {
+            continue;
+        }
+
+        let mut earliest_epoch = body_entries[0].epoch;
+        let mut latest_epoch = body_entries[0].epoch;
+        let mut epochs = BTreeSet::new();
+        for entry in &body_entries {
+            epochs.insert(entry.epoch.julian_day.days().to_bits());
+            if entry.epoch.julian_day.days() < earliest_epoch.julian_day.days() {
+                earliest_epoch = entry.epoch;
+            }
+            if entry.epoch.julian_day.days() > latest_epoch.julian_day.days() {
+                latest_epoch = entry.epoch;
+            }
+        }
+
+        windows.push(ProductionGenerationBoundaryWindow {
+            body: body.clone(),
+            sample_count: body_entries.len(),
+            epoch_count: epochs.len(),
+            earliest_epoch,
+            latest_epoch,
+        });
+    }
+
+    if windows.is_empty() {
+        return None;
+    }
+
+    let earliest_epoch = windows
+        .iter()
+        .map(|window| window.earliest_epoch)
+        .min_by(|left, right| left.julian_day.days().total_cmp(&right.julian_day.days()))
+        .expect("production generation boundary windows should not be empty after collection");
+    let latest_epoch = windows
+        .iter()
+        .map(|window| window.latest_epoch)
+        .max_by(|left, right| left.julian_day.days().total_cmp(&right.julian_day.days()))
+        .expect("production generation boundary windows should not be empty after collection");
+
+    Some(ProductionGenerationBoundaryWindowSummary {
+        sample_count: entries.len(),
+        sample_bodies: production_generation_boundary_body_list().to_vec(),
+        epoch_count: entries
+            .iter()
+            .map(|entry| entry.epoch.julian_day.days().to_bits())
+            .collect::<BTreeSet<_>>()
+            .len(),
+        earliest_epoch,
+        latest_epoch,
+        windows,
+    })
+}
+
+/// Returns the compact typed summary for the production-generation boundary windows.
+pub fn production_generation_boundary_window_summary(
+) -> Option<ProductionGenerationBoundaryWindowSummary> {
+    static SUMMARY: OnceLock<ProductionGenerationBoundaryWindowSummary> = OnceLock::new();
+    Some(
+        SUMMARY
+            .get_or_init(|| {
+                production_generation_boundary_window_summary_details()
+                    .expect("production generation boundary windows should exist")
+            })
+            .clone(),
+    )
+}
+
+/// Returns the release-facing production-generation boundary window summary string.
+pub fn production_generation_boundary_window_summary_for_report() -> String {
+    match production_generation_boundary_window_summary() {
+        Some(summary) => summary.summary_line(),
+        None => "Production generation boundary windows: unavailable".to_string(),
+    }
+}
+
 /// A compact coverage summary for the production-generation boundary request corpus.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ProductionGenerationBoundaryRequestCorpusSummary {
@@ -4964,7 +5129,7 @@ pub fn independent_holdout_manifest_summary_for_report() -> String {
 /// Returns the combined snapshot evidence summary used by validation and release reports.
 pub fn jpl_snapshot_evidence_summary_for_report() -> String {
     format!(
-        "{} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {}",
+        "{} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {}",
         reference_snapshot_summary_for_report(),
         reference_snapshot_equatorial_parity_summary_for_report(),
         reference_snapshot_batch_parity_summary_for_report(),
@@ -4973,6 +5138,7 @@ pub fn jpl_snapshot_evidence_summary_for_report() -> String {
         reference_snapshot_source_window_summary_for_report(),
         reference_snapshot_manifest_summary_for_report(),
         production_generation_boundary_source_summary_for_report(),
+        production_generation_boundary_window_summary_for_report(),
         production_generation_boundary_request_corpus_summary_for_report(),
         reference_asteroid_evidence_summary_for_report(),
         reference_asteroid_equatorial_evidence_summary_for_report(),
@@ -8632,6 +8798,39 @@ mod tests {
     }
 
     #[test]
+    fn production_generation_boundary_window_summary_reports_the_overlay_windows() {
+        let summary = production_generation_boundary_window_summary()
+            .expect("production-generation boundary window summary should exist");
+        assert_eq!(summary.sample_count, 34);
+        assert_eq!(summary.sample_bodies.len(), 10);
+        assert_eq!(
+            summary.sample_bodies,
+            production_generation_boundary_body_list().to_vec()
+        );
+        assert_eq!(summary.epoch_count, 8);
+        assert_eq!(summary.earliest_epoch.julian_day.days(), 2_400_000.0);
+        assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
+        assert_eq!(summary.windows[0].body, CelestialBody::Mars);
+        assert_eq!(summary.windows[0].sample_count, 7);
+        assert_eq!(summary.windows[0].epoch_count, 7);
+        assert_eq!(
+            summary.windows[0].summary_line(),
+            format!(
+                "Mars: 7 samples across 7 epochs at {}..{}",
+                format_instant(summary.windows[0].earliest_epoch),
+                format_instant(summary.windows[0].latest_epoch)
+            )
+        );
+        assert!(summary.summary_line().starts_with("Production generation boundary windows: 34 source-backed samples across 10 bodies and 8 epochs (JD 2400000.0 (TDB)..JD 2634167.0 (TDB)); windows: "));
+        assert!(summary.summary_line().contains("Mars: 7 samples across 7 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Jupiter: 6 samples across 6 epochs at JD 2400000.0 (TDB)..JD 2500000.0 (TDB)"));
+        assert_eq!(summary.summary_line(), summary.to_string());
+        assert_eq!(
+            production_generation_boundary_window_summary_for_report(),
+            summary.summary_line()
+        );
+    }
+
+    #[test]
     fn production_generation_snapshot_requests_preserve_the_boundary_overlay() {
         let requests = production_generation_snapshot_requests(CoordinateFrame::Ecliptic)
             .expect("production-generation snapshot requests should exist");
@@ -8877,6 +9076,8 @@ mod tests {
             .contains(&production_generation_snapshot_summary_for_report()));
         assert!(jpl_snapshot_evidence_summary_for_report()
             .contains(&production_generation_boundary_source_summary_for_report()));
+        assert!(jpl_snapshot_evidence_summary_for_report()
+            .contains(&production_generation_boundary_window_summary_for_report()));
         assert!(jpl_snapshot_evidence_summary_for_report()
             .contains(&reference_snapshot_source_window_summary_for_report()));
         assert!(jpl_snapshot_evidence_summary_for_report()

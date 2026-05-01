@@ -103,6 +103,7 @@ use pleiades_jpl::{
     production_generation_boundary_request_corpus_summary_for_report,
     production_generation_boundary_source_summary_for_report,
     production_generation_boundary_summary_for_report,
+    production_generation_boundary_window_summary_for_report,
     production_generation_snapshot_summary_for_report,
     reference_asteroid_equatorial_evidence_summary_for_report, reference_asteroid_evidence,
     reference_asteroid_evidence_summary_for_report, reference_asteroids,
@@ -6177,6 +6178,9 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str("JPL production-generation boundary overlay: ");
     text.push_str(&production_generation_boundary_summary_for_report());
+    text.push('\n');
+    text.push_str("JPL production-generation boundary windows: ");
+    text.push_str(&production_generation_boundary_window_summary_for_report());
     text.push('\n');
     text.push_str("JPL production-generation boundary request corpus: ");
     text.push_str(&production_generation_boundary_request_corpus_summary_for_report());
@@ -17071,6 +17075,7 @@ version = "0.9.0"
         ));
         assert!(release_summary.contains("JPL production-generation coverage:"));
         assert!(release_summary.contains("JPL production-generation boundary overlay:"));
+        assert!(release_summary.contains("JPL production-generation boundary windows:"));
         assert!(release_summary.contains("JPL production-generation boundary request corpus:"));
         assert!(release_summary.contains("Production generation boundary overlay source:"));
         assert!(release_summary.contains("Source-backed backend evidence:"));
