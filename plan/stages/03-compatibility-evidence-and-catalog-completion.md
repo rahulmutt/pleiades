@@ -18,7 +18,7 @@ Implemented and not re-planned here:
 - strongly typed house-system and ayanamsa identifiers with custom-definition support;
 - baseline house milestone entries and additional release-specific house entries;
 - baseline ayanamsa entries and many release-specific ayanamsa descriptors;
-- alias resolution, Swiss Ephemeris-style house code aliases, descriptor validation, catalog summaries, and compatibility-profile verification;
+- alias resolution, Swiss Ephemeris-style house code aliases, descriptor validation, built-in formula-family hardening, catalog summaries, and compatibility-profile verification;
 - chart façade support for sidereal conversion, house calculation, sign placement, house placement, aspects, summaries, and report/CLI integration;
 - validation corpus and summaries for current house scenarios and ayanamsa catalog integrity.
 

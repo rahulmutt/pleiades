@@ -153,6 +153,14 @@ impl HouseSystemDescriptor {
             });
         }
 
+        if self.formula_family() == HouseFormulaFamily::Unknown {
+            return Err(
+                HouseCatalogValidationError::DescriptorFormulaFamilyUnknown {
+                    label: self.canonical_name,
+                },
+            );
+        }
+
         let mut seen_labels = BTreeSet::new();
         let mut saw_canonical_case_variant = false;
         for alias in self.aliases {
@@ -512,6 +520,11 @@ pub enum HouseCatalogValidationError {
         /// Label whose descriptor note drifted.
         label: &'static str,
     },
+    /// A built-in descriptor mapped to an unknown formula family.
+    DescriptorFormulaFamilyUnknown {
+        /// Label whose formula family drifted.
+        label: &'static str,
+    },
 }
 
 impl fmt::Display for HouseCatalogValidationError {
@@ -542,6 +555,10 @@ impl fmt::Display for HouseCatalogValidationError {
             Self::DescriptorNotesNotNormalized { label } => write!(
                 f,
                 "the house catalog descriptor note for `{label}` is blank, contains surrounding whitespace, or contains line breaks"
+            ),
+            Self::DescriptorFormulaFamilyUnknown { label } => write!(
+                f,
+                "the house catalog descriptor for `{label}` resolves to an unknown formula family"
             ),
         }
     }
@@ -1462,6 +1479,18 @@ mod tests {
         );
         assert_eq!(solar_arc.formula_family(), HouseFormulaFamily::SolarArc);
         assert_eq!(sector.formula_family(), HouseFormulaFamily::Sector);
+    }
+
+    #[test]
+    fn built_in_house_systems_have_known_formula_families() {
+        for entry in built_in_house_systems() {
+            assert_ne!(
+                entry.formula_family(),
+                HouseFormulaFamily::Unknown,
+                "{} should map to a known formula family",
+                entry.canonical_name
+            );
+        }
     }
 
     #[test]
