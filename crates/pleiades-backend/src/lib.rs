@@ -1335,6 +1335,8 @@ pub enum TimeScalePolicySummaryValidationError {
     WhitespacePaddedSummary,
     /// The summary text contains an embedded line break.
     EmbeddedLineBreak,
+    /// The summary text no longer matches the current canonical posture.
+    CurrentPolicyOutOfSync,
 }
 
 impl fmt::Display for TimeScalePolicySummaryValidationError {
@@ -1346,6 +1348,9 @@ impl fmt::Display for TimeScalePolicySummaryValidationError {
             }
             Self::EmbeddedLineBreak => {
                 f.write_str("time-scale policy summary contains a line break")
+            }
+            Self::CurrentPolicyOutOfSync => {
+                f.write_str("time-scale policy summary is out of sync with the current posture")
             }
         }
     }
@@ -1369,7 +1374,7 @@ impl TimeScalePolicySummary {
         current_time_scale_policy_summary()
     }
 
-    /// Returns `Ok(())` when the summary still contains a compact canonical line.
+    /// Returns `Ok(())` when the summary still contains the current canonical line.
     pub fn validate(&self) -> Result<(), TimeScalePolicySummaryValidationError> {
         if self.summary.trim().is_empty() {
             Err(TimeScalePolicySummaryValidationError::BlankSummary)
@@ -1377,6 +1382,8 @@ impl TimeScalePolicySummary {
             Err(TimeScalePolicySummaryValidationError::WhitespacePaddedSummary)
         } else if self.summary.contains('\n') || self.summary.contains('\r') {
             Err(TimeScalePolicySummaryValidationError::EmbeddedLineBreak)
+        } else if self.summary != current_time_scale_policy_summary().summary_line() {
+            Err(TimeScalePolicySummaryValidationError::CurrentPolicyOutOfSync)
         } else {
             Ok(())
         }
@@ -2394,6 +2401,22 @@ mod tests {
             .validate()
             .expect_err("blank policy prose should fail validation");
         assert_eq!(error.to_string(), "time-scale policy summary is blank");
+        assert!(summary.validated_summary_line().is_err());
+    }
+
+    #[test]
+    fn time_scale_policy_summary_validate_rejects_policy_drift() {
+        let summary = TimeScalePolicySummary::new(
+            "direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; built-in Delta T model",
+        );
+
+        let error = summary
+            .validate()
+            .expect_err("drifted policy prose should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "time-scale policy summary is out of sync with the current posture"
+        );
         assert!(summary.validated_summary_line().is_err());
     }
 
