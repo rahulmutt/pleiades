@@ -16836,7 +16836,9 @@ version = "0.9.0"
         assert!(release_summary.contains("residual-bearing bodies: Moon"));
         assert!(release_summary.contains("applies to 11 bundled bodies"));
         assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
-        assert!(release_summary.contains("Release notes summary: release-notes-summary"));
+        assert!(release_summary
+            .lines()
+            .any(|line| line == "Release notes summary: release-notes-summary"));
         assert!(artifact_summary.contains("Artifact summary"));
         assert!(artifact_summary.contains("residual-bearing segments: 2"));
         assert!(artifact_summary.contains("residual-bearing bodies: Moon"));
