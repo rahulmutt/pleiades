@@ -882,6 +882,12 @@ impl PackagedArtifactOutputSupportSummary {
         validate_packaged_artifact_output_support_profile(&self.profile)
     }
 
+    /// Returns the validated output-support posture for the packaged artifact profile.
+    pub fn validated_summary_line(&self) -> Result<String, pleiades_compression::CompressionError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
     /// Renders the packaged artifact profile's output-support semantics.
     pub fn summary_line(&self) -> String {
         self.profile.output_support_entries_summary_line()
@@ -906,8 +912,8 @@ pub fn packaged_artifact_output_support_summary_details() -> PackagedArtifactOut
 /// Returns the output-support semantics of the packaged artifact profile for reporting.
 pub fn packaged_artifact_output_support_summary_for_report() -> String {
     let summary = packaged_artifact_output_support_summary_details();
-    match summary.validate() {
-        Ok(()) => summary.to_string(),
+    match summary.validated_summary_line() {
+        Ok(rendered) => rendered,
         Err(error) => format!("unavailable ({error})"),
     }
 }
@@ -3514,6 +3520,36 @@ mod tests {
         summary
             .validate()
             .expect("packaged artifact access summary should validate");
+    }
+
+    #[test]
+    fn packaged_artifact_output_support_summary_matches_current_build_posture() {
+        let summary = packaged_artifact_output_support_summary_details();
+        assert_eq!(
+            summary.summary_line(),
+            summary.profile.output_support_entries_summary_line()
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            packaged_artifact_output_support_summary_for_report(),
+            summary.summary_line()
+        );
+        summary
+            .validate()
+            .expect("packaged artifact output-support summary should validate");
+    }
+
+    #[test]
+    fn packaged_artifact_output_support_summary_validation_rejects_drift() {
+        let mut summary = packaged_artifact_output_support_summary_details();
+        summary
+            .profile
+            .derived_outputs
+            .retain(|output| *output != ArtifactOutput::EquatorialCoordinates);
+
+        assert!(summary.validated_summary_line().is_err());
+        assert!(summary.validate().is_err());
     }
 
     #[test]
