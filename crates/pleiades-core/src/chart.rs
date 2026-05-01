@@ -1112,6 +1112,38 @@ impl ChartSnapshot {
     }
 
     /// Returns the topocentric body-position observer label after validation.
+    ///
+    /// This is the chart-snapshot counterpart to
+    /// [`ChartRequest::validated_body_observer_label()`], so report code can
+    /// inspect the optional topocentric body observer without rebuilding the
+    /// shared observer summary.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use pleiades_core::{Apparentness, BackendId, ChartSnapshot};
+    /// use pleiades_types::{Instant, JulianDay, Latitude, Longitude, TimeScale, ZodiacMode};
+    ///
+    /// let snapshot = ChartSnapshot {
+    ///     backend_id: BackendId::new("demo"),
+    ///     instant: Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+    ///     observer: None,
+    ///     body_observer: Some(pleiades_types::ObserverLocation::new(
+    ///         Latitude::from_degrees(-33.9),
+    ///         Longitude::from_degrees(151.2),
+    ///         None,
+    ///     )),
+    ///     zodiac_mode: ZodiacMode::Tropical,
+    ///     apparentness: Apparentness::Mean,
+    ///     houses: None,
+    ///     placements: Vec::new(),
+    /// };
+    ///
+    /// let label = snapshot
+    ///     .validated_body_observer_label()
+    ///     .expect("valid chart snapshot body observer");
+    /// assert!(label.contains("latitude=-33.9°"));
+    /// ```
     pub fn validated_body_observer_label(&self) -> Result<String, ObserverSummaryValidationError> {
         self.observer_summary().validated_body_location_label()
     }
