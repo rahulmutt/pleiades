@@ -2843,6 +2843,253 @@ impl fmt::Display for IndependentHoldoutSnapshotSummary {
     }
 }
 
+/// A single body-window slice inside the independent hold-out snapshot source coverage.
+#[derive(Clone, Debug, PartialEq)]
+pub struct IndependentHoldoutSnapshotSourceWindow {
+    /// The hold-out body covered by this window.
+    pub body: pleiades_backend::CelestialBody,
+    /// Number of samples for the body.
+    pub sample_count: usize,
+    /// Number of distinct epochs represented for the body.
+    pub epoch_count: usize,
+    /// Earliest epoch represented for the body.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented for the body.
+    pub latest_epoch: Instant,
+}
+
+impl IndependentHoldoutSnapshotSourceWindow {
+    /// Returns a compact body-window summary used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let time_span = if self.earliest_epoch == self.latest_epoch {
+            format_instant(self.earliest_epoch)
+        } else {
+            format!(
+                "{}..{}",
+                format_instant(self.earliest_epoch),
+                format_instant(self.latest_epoch)
+            )
+        };
+
+        format!(
+            "{}: {} samples across {} epochs at {}",
+            self.body, self.sample_count, self.epoch_count, time_span
+        )
+    }
+}
+
+/// Compact release-facing summary for the independent hold-out snapshot source coverage.
+#[derive(Clone, Debug, PartialEq)]
+pub struct IndependentHoldoutSnapshotSourceWindowSummary {
+    /// Number of hold-out samples in the source slice.
+    pub sample_count: usize,
+    /// Bodies covered by the hold-out source slice in first-seen order.
+    pub sample_bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Number of distinct epochs covered by the source slice.
+    pub epoch_count: usize,
+    /// Earliest epoch represented in the source slice.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented in the source slice.
+    pub latest_epoch: Instant,
+    /// Per-body window breakdown in first-seen order.
+    pub windows: Vec<IndependentHoldoutSnapshotSourceWindow>,
+}
+
+impl IndependentHoldoutSnapshotSourceWindowSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let window_summary = self
+            .windows
+            .iter()
+            .map(IndependentHoldoutSnapshotSourceWindow::summary_line)
+            .collect::<Vec<_>>()
+            .join("; ");
+        format!(
+            "Independent hold-out source windows: {} source-backed samples across {} bodies and {} epochs ({}..{}); windows: {}",
+            self.sample_count,
+            self.sample_bodies.len(),
+            self.epoch_count,
+            format_instant(self.earliest_epoch),
+            format_instant(self.latest_epoch),
+            window_summary,
+        )
+    }
+
+    /// Returns `Ok(())` when the hold-out source windows still match the checked-in slice.
+    pub fn validate(
+        &self,
+    ) -> Result<(), IndependentHoldoutSnapshotSourceWindowSummaryValidationError> {
+        let Some(expected) = independent_holdout_source_window_summary_details() else {
+            return Err(
+                IndependentHoldoutSnapshotSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        };
+
+        if self.sample_count != expected.sample_count {
+            return Err(
+                IndependentHoldoutSnapshotSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        }
+        if self.sample_bodies != expected.sample_bodies {
+            return Err(
+                IndependentHoldoutSnapshotSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "sample_bodies",
+                },
+            );
+        }
+        if self.epoch_count != expected.epoch_count {
+            return Err(
+                IndependentHoldoutSnapshotSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "epoch_count",
+                },
+            );
+        }
+        if self.earliest_epoch != expected.earliest_epoch {
+            return Err(
+                IndependentHoldoutSnapshotSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "earliest_epoch",
+                },
+            );
+        }
+        if self.latest_epoch != expected.latest_epoch {
+            return Err(
+                IndependentHoldoutSnapshotSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "latest_epoch",
+                },
+            );
+        }
+        if self.windows != expected.windows {
+            return Err(
+                IndependentHoldoutSnapshotSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "windows",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated hold-out source window summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, IndependentHoldoutSnapshotSourceWindowSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+/// Validation error for an independent hold-out source window summary that drifted from the current slice.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum IndependentHoldoutSnapshotSourceWindowSummaryValidationError {
+    /// A summary field is out of sync with the checked-in hold-out source windows.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for IndependentHoldoutSnapshotSourceWindowSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the independent hold-out source window summary field `{field}` is out of sync with the current slice"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for IndependentHoldoutSnapshotSourceWindowSummaryValidationError {}
+
+fn independent_holdout_source_window_summary_details(
+) -> Option<IndependentHoldoutSnapshotSourceWindowSummary> {
+    let entries = independent_holdout_snapshot_entries()?;
+    let mut windows = Vec::new();
+    for body in independent_holdout_bodies() {
+        let body_entries = entries
+            .iter()
+            .filter(|entry| entry.body == *body)
+            .collect::<Vec<_>>();
+        if body_entries.is_empty() {
+            continue;
+        }
+
+        let mut earliest_epoch = body_entries[0].epoch;
+        let mut latest_epoch = body_entries[0].epoch;
+        let mut epochs = BTreeSet::new();
+        for entry in &body_entries {
+            epochs.insert(entry.epoch.julian_day.days().to_bits());
+            if entry.epoch.julian_day.days() < earliest_epoch.julian_day.days() {
+                earliest_epoch = entry.epoch;
+            }
+            if entry.epoch.julian_day.days() > latest_epoch.julian_day.days() {
+                latest_epoch = entry.epoch;
+            }
+        }
+
+        windows.push(IndependentHoldoutSnapshotSourceWindow {
+            body: body.clone(),
+            sample_count: body_entries.len(),
+            epoch_count: epochs.len(),
+            earliest_epoch,
+            latest_epoch,
+        });
+    }
+
+    if windows.is_empty() {
+        return None;
+    }
+
+    let earliest_epoch = windows
+        .iter()
+        .map(|window| window.earliest_epoch)
+        .min_by(|left, right| left.julian_day.days().total_cmp(&right.julian_day.days()))
+        .expect("independent hold-out source windows should not be empty after collection");
+    let latest_epoch = windows
+        .iter()
+        .map(|window| window.latest_epoch)
+        .max_by(|left, right| left.julian_day.days().total_cmp(&right.julian_day.days()))
+        .expect("independent hold-out source windows should not be empty after collection");
+
+    Some(IndependentHoldoutSnapshotSourceWindowSummary {
+        sample_count: entries.len(),
+        sample_bodies: independent_holdout_bodies().to_vec(),
+        epoch_count: entries
+            .iter()
+            .map(|entry| entry.epoch.julian_day.days().to_bits())
+            .collect::<BTreeSet<_>>()
+            .len(),
+        earliest_epoch,
+        latest_epoch,
+        windows,
+    })
+}
+
+/// Returns the compact typed summary for the independent hold-out source coverage.
+pub fn independent_holdout_snapshot_source_window_summary(
+) -> Option<IndependentHoldoutSnapshotSourceWindowSummary> {
+    independent_holdout_source_window_summary_details()
+}
+
+/// Formats the independent hold-out source windows for release-facing reporting.
+pub fn format_independent_holdout_snapshot_source_window_summary(
+    summary: &IndependentHoldoutSnapshotSourceWindowSummary,
+) -> String {
+    summary.summary_line()
+}
+
+/// Returns the release-facing independent hold-out source window summary string.
+pub fn independent_holdout_snapshot_source_window_summary_for_report() -> String {
+    match independent_holdout_snapshot_source_window_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => format!("Independent hold-out source windows: unavailable ({error})"),
+        },
+        None => "Independent hold-out source windows: unavailable".to_string(),
+    }
+}
+
 /// Formats the independent hold-out corpus coverage for release-facing reporting.
 pub fn format_independent_holdout_snapshot_summary(
     summary: &IndependentHoldoutSnapshotSummary,
@@ -6103,7 +6350,7 @@ pub fn independent_holdout_manifest_summary_for_report() -> String {
 /// Returns the combined snapshot evidence summary used by validation and release reports.
 pub fn jpl_snapshot_evidence_summary_for_report() -> String {
     format!(
-        "{} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {}",
+        "{} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {}",
         reference_snapshot_summary_for_report(),
         reference_snapshot_equatorial_parity_summary_for_report(),
         reference_snapshot_batch_parity_summary_for_report(),
@@ -6124,6 +6371,7 @@ pub fn jpl_snapshot_evidence_summary_for_report() -> String {
         independent_holdout_snapshot_equatorial_parity_summary_for_report(),
         independent_holdout_snapshot_batch_parity_summary_for_report(),
         independent_holdout_source_summary_for_report(),
+        independent_holdout_snapshot_source_window_summary_for_report(),
         independent_holdout_manifest_summary_for_report(),
         jpl_independent_holdout_summary_for_report(),
     )
@@ -9089,6 +9337,23 @@ pub fn independent_holdout_snapshot_mixed_time_scale_request_corpus(
     independent_holdout_snapshot_mixed_time_scale_batch_parity_requests()
 }
 
+fn independent_holdout_bodies() -> &'static [pleiades_backend::CelestialBody] {
+    static BODIES: OnceLock<Vec<pleiades_backend::CelestialBody>> = OnceLock::new();
+    BODIES
+        .get_or_init(|| {
+            let mut bodies = Vec::new();
+            if let Some(entries) = independent_holdout_snapshot_entries() {
+                for entry in entries {
+                    if !bodies.contains(&entry.body) {
+                        bodies.push(entry.body.clone());
+                    }
+                }
+            }
+            bodies
+        })
+        .as_slice()
+}
+
 fn independent_holdout_snapshot_error() -> Option<&'static SnapshotLoadError> {
     independent_holdout_state().error()
 }
@@ -11533,6 +11798,56 @@ mod tests {
             independent_holdout_snapshot_summary_for_report(),
             summary.summary_line()
         );
+    }
+
+    #[test]
+    fn independent_holdout_snapshot_source_window_summary_reports_the_expected_windows() {
+        let summary = independent_holdout_snapshot_source_window_summary()
+            .expect("independent hold-out source window summary should exist");
+        assert_eq!(summary.sample_count, 34);
+        assert_eq!(summary.sample_bodies.len(), 10);
+        assert_eq!(summary.sample_bodies, independent_holdout_bodies().to_vec());
+        assert_eq!(summary.epoch_count, 8);
+        assert_eq!(summary.earliest_epoch.julian_day.days(), 2_400_000.0);
+        assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
+        assert_eq!(summary.windows.len(), 10);
+        assert_eq!(
+            summary.windows[0].body,
+            pleiades_backend::CelestialBody::Mars
+        );
+        assert_eq!(summary.windows[0].sample_count, 7);
+        assert_eq!(summary.windows[0].epoch_count, 7);
+        assert_eq!(
+            summary.windows[0].earliest_epoch.julian_day.days(),
+            2_451_545.0
+        );
+        assert_eq!(
+            summary.windows[0].latest_epoch.julian_day.days(),
+            2_634_167.0
+        );
+        assert_eq!(
+            summary.windows[9].body,
+            pleiades_backend::CelestialBody::Pluto
+        );
+        assert_eq!(summary.windows[9].sample_count, 2);
+        assert_eq!(summary.windows[9].epoch_count, 2);
+        assert_eq!(
+            summary.windows[9].earliest_epoch.julian_day.days(),
+            2_451_545.0
+        );
+        assert_eq!(
+            summary.windows[9].latest_epoch.julian_day.days(),
+            2_500_000.0
+        );
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            independent_holdout_snapshot_source_window_summary_for_report(),
+            summary.summary_line()
+        );
+        assert!(summary.summary_line().contains(
+            "Independent hold-out source windows: 34 source-backed samples across 10 bodies and 8 epochs"
+        ));
     }
 
     #[test]

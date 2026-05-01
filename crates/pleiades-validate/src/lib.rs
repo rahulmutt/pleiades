@@ -97,6 +97,7 @@ use pleiades_jpl::{
     independent_holdout_manifest_summary_for_report,
     independent_holdout_snapshot_batch_parity_summary_for_report as jpl_independent_holdout_snapshot_batch_parity_summary_for_report,
     independent_holdout_snapshot_equatorial_parity_summary_for_report as jpl_independent_holdout_snapshot_equatorial_parity_summary_for_report,
+    independent_holdout_snapshot_source_window_summary_for_report,
     independent_holdout_source_summary_for_report, interpolation_quality_samples,
     jpl_independent_holdout_summary_for_report, jpl_interpolation_quality_kind_coverage_for_report,
     jpl_snapshot_batch_error_taxonomy_summary_for_report, jpl_snapshot_evidence_summary_for_report,
@@ -6222,6 +6223,9 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str("Source-backed backend evidence: ");
     text.push_str(&jpl_snapshot_evidence_summary_for_report());
+    text.push('\n');
+    text.push_str("Independent hold-out source windows: ");
+    text.push_str(&independent_holdout_snapshot_source_window_summary_for_report());
     text.push('\n');
     text.push_str("VSOP87 evidence: ");
     text.push_str(&format_vsop87_source_documentation_summary());
@@ -17200,6 +17204,8 @@ version = "0.9.0"
         ));
         assert!(release_summary.contains("JPL independent hold-out:"));
         assert!(release_summary.contains(&independent_holdout_source_summary_for_report()));
+        assert!(release_summary
+            .contains(&independent_holdout_snapshot_source_window_summary_for_report()));
         assert!(release_summary.contains(&independent_holdout_manifest_summary_for_report()));
         assert!(release_summary.contains("JPL independent hold-out equatorial parity:"));
         assert!(release_summary.contains("JPL independent hold-out batch parity:"));
