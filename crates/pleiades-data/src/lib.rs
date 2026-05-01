@@ -947,8 +947,108 @@ pub fn packaged_artifact_regeneration_summary_for_report() -> String {
     }
 }
 
-const PACKAGED_ARTIFACT_PRODUCTION_TARGET_THRESHOLDS: &str =
-    "target thresholds: pending finalization";
+const PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATUS: &str = "pending finalization";
+const PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES: &[&str] = &[
+    "luminaries",
+    "major planets",
+    "lunar points",
+    "selected asteroids",
+    "custom bodies",
+];
+
+/// Structured target-threshold posture for the packaged artifact generator.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PackagedArtifactTargetThresholdSummary {
+    /// Current release posture for the production thresholds.
+    pub status: &'static str,
+    /// Body-class scopes that still require finalized thresholds.
+    pub scopes: &'static [&'static str],
+}
+
+/// Validation error for a packaged-artifact target-threshold summary that drifted from the current posture.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PackagedArtifactTargetThresholdSummaryValidationError {
+    /// A summary field is out of sync with the current packaged-artifact posture.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for PackagedArtifactTargetThresholdSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the packaged artifact target-threshold summary field `{field}` is out of sync with the current posture"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for PackagedArtifactTargetThresholdSummaryValidationError {}
+
+impl PackagedArtifactTargetThresholdSummary {
+    /// Returns the target-threshold posture as a compact human-readable line.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "target thresholds: {}; scopes={}",
+            self.status,
+            self.scopes.join(", "),
+        )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current packaged-artifact posture.
+    pub fn validate(&self) -> Result<(), PackagedArtifactTargetThresholdSummaryValidationError> {
+        if self.status != PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATUS {
+            return Err(
+                PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                    field: "status",
+                },
+            );
+        }
+        if self.scopes != PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES {
+            return Err(
+                PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                    field: "scopes",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated target-threshold posture as a compact human-readable line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, PackagedArtifactTargetThresholdSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for PackagedArtifactTargetThresholdSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns the current packaged-artifact target-threshold summary record.
+pub fn packaged_artifact_target_threshold_summary_details() -> PackagedArtifactTargetThresholdSummary
+{
+    let summary = PackagedArtifactTargetThresholdSummary {
+        status: PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATUS,
+        scopes: PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES,
+    };
+    debug_assert!(summary.validate().is_ok());
+    summary
+}
+
+/// Returns the current packaged-artifact target-threshold summary after validating the structured posture.
+pub fn packaged_artifact_target_threshold_summary_for_report() -> String {
+    let summary = packaged_artifact_target_threshold_summary_details();
+    match summary.validated_summary_line() {
+        Ok(line) => line,
+        Err(error) => format!("target thresholds: unavailable ({error})"),
+    }
+}
 
 /// Structured production-profile skeleton for the packaged artifact generator.
 #[derive(Clone, Debug, PartialEq)]
@@ -974,7 +1074,7 @@ pub struct PackagedArtifactProductionProfileSummary {
     /// Storage/reconstruction policy encoded by the packaged artifact.
     pub storage_summary: PackagedArtifactStorageSummary,
     /// Release-facing statement about the still-open production target thresholds.
-    pub target_thresholds: &'static str,
+    pub target_thresholds: PackagedArtifactTargetThresholdSummary,
 }
 
 /// Validation error for a packaged artifact production-profile skeleton that drifted from the current posture.
@@ -1078,13 +1178,11 @@ impl PackagedArtifactProductionProfileSummary {
                 field: "storage_summary",
             }
         })?;
-        if self.target_thresholds != PACKAGED_ARTIFACT_PRODUCTION_TARGET_THRESHOLDS {
-            return Err(
-                PackagedArtifactProductionProfileSummaryValidationError::FieldOutOfSync {
-                    field: "target_thresholds",
-                },
-            );
-        }
+        self.target_thresholds.validate().map_err(|_| {
+            PackagedArtifactProductionProfileSummaryValidationError::FieldOutOfSync {
+                field: "target_thresholds",
+            }
+        })?;
 
         Ok(())
     }
@@ -1119,7 +1217,7 @@ pub fn packaged_artifact_production_profile_summary_details(
         request_policy: packaged_request_policy_summary_details(),
         frame_treatment: packaged_frame_treatment_summary_details(),
         storage_summary: packaged_artifact_storage_summary_details(),
-        target_thresholds: PACKAGED_ARTIFACT_PRODUCTION_TARGET_THRESHOLDS,
+        target_thresholds: packaged_artifact_target_threshold_summary_details(),
     };
     debug_assert!(summary.validate().is_ok());
     summary
@@ -4543,7 +4641,7 @@ mod tests {
         );
         assert_eq!(
             summary.target_thresholds,
-            PACKAGED_ARTIFACT_PRODUCTION_TARGET_THRESHOLDS
+            packaged_artifact_target_threshold_summary_details()
         );
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
@@ -4555,7 +4653,7 @@ mod tests {
             .contains("Packaged artifact production profile skeleton:"));
         assert!(summary
             .summary_line()
-            .contains("target thresholds: pending finalization"));
+            .contains("target thresholds: pending finalization; scopes=luminaries, major planets, lunar points, selected asteroids, custom bodies"));
         assert!(packaged_artifact_production_profile_summary_for_report()
             .contains("Packaged artifact production profile skeleton:"));
         assert_eq!(
@@ -4567,7 +4665,10 @@ mod tests {
     #[test]
     fn packaged_artifact_production_profile_summary_validation_rejects_target_threshold_drift() {
         let mut summary = packaged_artifact_production_profile_summary_details();
-        summary.target_thresholds = "target thresholds: drifted";
+        summary.target_thresholds = PackagedArtifactTargetThresholdSummary {
+            status: "drifted",
+            scopes: &["luminaries"],
+        };
 
         let error = summary
             .validate()
@@ -4579,6 +4680,20 @@ mod tests {
             }
         );
         assert!(error.to_string().contains("target_thresholds"));
+    }
+
+    #[test]
+    fn packaged_artifact_target_threshold_summary_reflects_the_current_posture() {
+        let summary = packaged_artifact_target_threshold_summary_details();
+
+        assert_eq!(summary.status, PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATUS);
+        assert_eq!(summary.scopes, PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES);
+        assert_eq!(summary.summary_line(), "target thresholds: pending finalization; scopes=luminaries, major planets, lunar points, selected asteroids, custom bodies");
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert!(summary.validate().is_ok());
+        assert!(packaged_artifact_target_threshold_summary_for_report()
+            .contains("target thresholds: pending finalization"));
     }
 
     #[test]
