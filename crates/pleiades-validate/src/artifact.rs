@@ -956,6 +956,12 @@ impl ArtifactInspectionReport {
         )
     }
 
+    /// Validates the inspection report before returning the compact summary line.
+    pub fn validated_summary_line(&self) -> Result<String, ArtifactInspectionError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
     pub fn validate(&self) -> Result<(), ArtifactInspectionError> {
         if !self.roundtrip_ok {
             return Err(report_validation_error(
@@ -1134,7 +1140,7 @@ pub fn artifact_inspection_summary_for_report() -> Result<String, ArtifactInspec
     let artifact = packaged_artifact();
     let encoded = artifact.encode()?;
     let report = ArtifactInspectionReport::from_artifact(artifact, encoded.len())?;
-    Ok(report.summary_line())
+    report.validated_summary_line()
 }
 
 pub(crate) fn benchmark_packaged_artifact_decode(
@@ -2219,6 +2225,29 @@ mod tests {
         assert!(summary.contains("checksum=ok"));
         assert!(summary.contains("encoded bytes="));
         assert!(summary.contains(&format!("encoded bytes={}", report.encoded_bytes)));
+        assert!(matches!(
+            report.validated_summary_line(),
+            Ok(rendered) if rendered == summary
+        ));
+    }
+
+    #[test]
+    fn artifact_inspection_report_validated_summary_line_rejects_drift() {
+        let artifact = packaged_artifact();
+        let encoded = artifact.encode().expect("packaged artifact should encode");
+        let mut report = ArtifactInspectionReport::from_artifact(artifact, encoded.len())
+            .expect("artifact inspection report should build");
+        report.lookup_benchmark.corpus_name = " ".to_string();
+
+        let error = report
+            .validated_summary_line()
+            .expect_err("lookup benchmark drift should fail validation");
+        assert!(matches!(
+            error,
+            super::ArtifactInspectionError::LookupBenchmark(
+                ArtifactLookupBenchmarkReportValidationError::BlankCorpusName
+            )
+        ));
     }
 
     #[test]
