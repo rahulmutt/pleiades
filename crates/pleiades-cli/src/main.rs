@@ -1328,6 +1328,13 @@ mod tests {
         assert!(validation_report_summary
             .contains("Release checklist summary: release-checklist-summary"));
         assert!(validation_report_summary.contains("Release summary: release-summary"));
+        assert!(validation_report_summary.lines().any(|line| {
+            line == format!(
+                "Release profile identifiers: v1 compatibility={}, api-stability={}",
+                release_profiles.compatibility_profile_id,
+                release_profiles.api_stability_profile_id
+            )
+        }));
         assert!(validation_report_summary.contains("Benchmark summaries"));
     }
 
