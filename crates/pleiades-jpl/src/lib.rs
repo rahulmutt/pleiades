@@ -4211,13 +4211,14 @@ pub fn independent_holdout_manifest_summary_for_report() -> String {
 /// Returns the combined snapshot evidence summary used by validation and release reports.
 pub fn jpl_snapshot_evidence_summary_for_report() -> String {
     format!(
-        "{} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {}",
+        "{} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {}",
         reference_snapshot_summary_for_report(),
         reference_snapshot_equatorial_parity_summary_for_report(),
         reference_snapshot_batch_parity_summary_for_report(),
         production_generation_snapshot_summary_for_report(),
         reference_snapshot_source_summary_for_report(),
         reference_snapshot_manifest_summary_for_report(),
+        production_generation_boundary_source_summary_for_report(),
         reference_asteroid_evidence_summary_for_report(),
         reference_asteroid_equatorial_evidence_summary_for_report(),
         comparison_snapshot_summary_for_report(),
@@ -7934,6 +7935,8 @@ mod tests {
         ));
         assert!(jpl_snapshot_evidence_summary_for_report()
             .contains(&production_generation_snapshot_summary_for_report()));
+        assert!(jpl_snapshot_evidence_summary_for_report()
+            .contains(&production_generation_boundary_source_summary_for_report()));
     }
 
     #[test]
