@@ -3836,6 +3836,52 @@ mod tests {
     }
 
     #[test]
+    fn lookup_uses_packaged_boundary_epochs_for_every_reference_body() {
+        use std::collections::HashMap;
+
+        let mut body_bounds: HashMap<CelestialBody, (Instant, Instant)> = HashMap::new();
+        for body in packaged_bodies() {
+            let mut body_entries = reference_snapshot()
+                .iter()
+                .filter(|entry| entry.body == *body);
+            let Some(first_entry) = body_entries.next() else {
+                panic!("reference snapshot should include packaged body {body}");
+            };
+            let mut earliest = first_entry.epoch;
+            let mut latest = first_entry.epoch;
+
+            for entry in body_entries {
+                if entry.epoch.julian_day.days() < earliest.julian_day.days() {
+                    earliest = entry.epoch;
+                }
+                if entry.epoch.julian_day.days() > latest.julian_day.days() {
+                    latest = entry.epoch;
+                }
+            }
+
+            body_bounds.insert(body.clone(), (earliest, latest));
+        }
+
+        for (body, (earliest, latest)) in body_bounds {
+            for epoch in [earliest, latest] {
+                let reference = reference_snapshot()
+                    .iter()
+                    .find(|entry| entry.body == body && entry.epoch == epoch)
+                    .expect("reference snapshot should include the body's boundary epoch");
+                let ecliptic = packaged_lookup(&body, epoch)
+                    .expect("packaged lookup should succeed for reference boundary epochs");
+                let expected = coordinates(reference);
+
+                assert!((ecliptic.longitude.degrees() - expected.longitude.degrees()).abs() < 1e-8);
+                assert!((ecliptic.latitude.degrees() - expected.latitude.degrees()).abs() < 1e-8);
+                assert!(
+                    (ecliptic.distance_au.unwrap() - expected.distance_au.unwrap()).abs() < 1e-12
+                );
+            }
+        }
+    }
+
+    #[test]
     fn observer_requests_are_rejected_explicitly() {
         let backend = packaged_backend();
         let request = EphemerisRequest {
