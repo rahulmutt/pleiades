@@ -2980,6 +2980,12 @@ impl WorkspaceAuditSummary {
         }
         text
     }
+
+    /// Validates and returns the compact summary line.
+    pub fn validated_summary_line(&self) -> Result<String, EphemerisError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for WorkspaceAuditSummary {
@@ -3217,8 +3223,8 @@ impl fmt::Display for WorkspaceAuditReport {
 
 fn render_workspace_audit_summary_text(report: &WorkspaceAuditReport) -> String {
     let summary = workspace_audit_summary(report);
-    match summary.validate() {
-        Ok(()) => {
+    match summary.validated_summary_line() {
+        Ok(summary_line) => {
             let mut text = String::new();
             text.push_str("Workspace audit summary\n");
             text.push_str("Workspace root: ");
@@ -3231,7 +3237,7 @@ fn render_workspace_audit_summary_text(report: &WorkspaceAuditReport) -> String 
             text.push_str(&summary.lockfile_path.display().to_string());
             text.push('\n');
             text.push_str("Summary: ");
-            text.push_str(&summary.summary_line());
+            text.push_str(&summary_line);
             text.push('\n');
             text.push_str("Violations: ");
             text.push_str(&summary.violation_count.to_string());
@@ -16315,6 +16321,7 @@ mod tests {
     fn workspace_audit_summary_reports_a_clean_workspace() {
         let report = workspace_audit_report().expect("workspace audit should render");
         let summary = workspace_audit_summary(&report);
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert!(summary.summary_line().contains("violations: 0"));
         assert!(summary
             .summary_line()
