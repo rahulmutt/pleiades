@@ -142,6 +142,14 @@ impl PackagedBodyCoverageSummary {
 
         Ok(())
     }
+
+    /// Returns the bundled body set as a validated compact human-readable line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, PackagedBodyCoverageSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for PackagedBodyCoverageSummary {
@@ -162,8 +170,8 @@ pub fn packaged_body_coverage_summary_details() -> PackagedBodyCoverageSummary {
 fn format_validated_packaged_body_coverage_summary_for_report(
     summary: &PackagedBodyCoverageSummary,
 ) -> String {
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
+    match summary.validated_summary_line() {
+        Ok(summary_line) => summary_line,
         Err(error) => format!("Packaged body set: unavailable ({error})"),
     }
 }
@@ -4024,6 +4032,10 @@ mod tests {
             format!("Packaged body set: {}", summary.body_coverage_line())
         );
         assert_eq!(
+            packaged_body_coverage_summary_details().validated_summary_line(),
+            Ok(packaged_body_coverage_summary_details().summary_line())
+        );
+        assert_eq!(
             packaged_body_coverage_summary(),
             packaged_body_coverage_summary_details().to_string()
         );
@@ -4605,6 +4617,24 @@ mod tests {
         assert_eq!(
             error.to_string(),
             "the packaged body coverage summary field `body_count` is out of sync with the current bundled body set"
+        );
+    }
+
+    #[test]
+    fn packaged_body_coverage_summary_validated_summary_line_rejects_body_drift() {
+        let mut summary = packaged_body_coverage_summary_details();
+        summary.bodies.swap(0, 1);
+
+        let error = summary
+            .validated_summary_line()
+            .expect_err("body-order drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedBodyCoverageSummaryValidationError::FieldOutOfSync { field: "bodies" }
+        );
+        assert_eq!(
+            error.to_string(),
+            "the packaged body coverage summary field `bodies` is out of sync with the current bundled body set"
         );
     }
 
