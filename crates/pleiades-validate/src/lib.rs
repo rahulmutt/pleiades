@@ -8780,6 +8780,12 @@ impl MeanObliquityFrameRoundTripSummary {
             self.percentile_distance_delta_au,
         )
     }
+
+    /// Returns the compact round-trip summary line after validating the canonical sample set.
+    pub fn validated_summary_line(&self) -> Result<String, String> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for MeanObliquityFrameRoundTripSummary {
@@ -8939,8 +8945,8 @@ pub fn mean_obliquity_frame_round_trip_summary(
 fn format_mean_obliquity_frame_round_trip_summary_for_report(
     summary: &MeanObliquityFrameRoundTripSummary,
 ) -> String {
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
+    match summary.validated_summary_line() {
+        Ok(line) => line,
         Err(error) => format!("mean-obliquity frame round-trip unavailable ({error})"),
     }
 }
@@ -18521,6 +18527,17 @@ version = "0.9.0"
             .validate()
             .expect_err("metric drift should fail validation");
         assert!(error.contains("drifted from the canonical sample set"));
+    }
+
+    #[test]
+    fn mean_obliquity_frame_round_trip_summary_validated_summary_line_matches_display() {
+        let summary = mean_obliquity_frame_round_trip_summary()
+            .expect("mean-obliquity frame round-trip summary should exist");
+
+        assert_eq!(
+            summary.validated_summary_line().unwrap(),
+            summary.to_string()
+        );
     }
 
     #[test]
