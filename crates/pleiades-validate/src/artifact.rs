@@ -2309,7 +2309,7 @@ mod tests {
 
         let summary = report.summary_line();
         assert!(summary.contains("artifact inspection:"));
-        assert!(summary.contains("residual-bearing segments: 2"));
+        assert!(summary.contains("residual-bearing segments: 3"));
         assert!(summary.contains("residual-bearing bodies: Moon"));
         assert!(summary.contains("roundtrip=ok"));
         assert!(summary.contains("checksum=ok"));

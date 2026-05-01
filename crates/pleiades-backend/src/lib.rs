@@ -2253,7 +2253,25 @@ fn intersect_ranges(primary: TimeRange, secondary: TimeRange) -> TimeRange {
         (None, Some(b)) => Some(b),
         (None, None) => None,
     };
-    TimeRange::new(start, end)
+
+    let canonical_scale = primary
+        .start
+        .or(primary.end)
+        .or(secondary.start)
+        .or(secondary.end)
+        .map(|instant| instant.scale);
+
+    TimeRange::new(
+        start.map(|instant| retag_instant(instant, canonical_scale)),
+        end.map(|instant| retag_instant(instant, canonical_scale)),
+    )
+}
+
+fn retag_instant(instant: Instant, scale: Option<TimeScale>) -> Instant {
+    match scale {
+        Some(scale) if instant.scale != scale => Instant::new(instant.julian_day, scale),
+        _ => instant,
+    }
 }
 
 fn min_accuracy(primary: AccuracyClass, secondary: AccuracyClass) -> AccuracyClass {
@@ -4544,7 +4562,16 @@ mod tests {
                     version: "0.1.0".to_string(),
                     family: BackendFamily::Algorithmic,
                     provenance: BackendProvenance::new("failing Sun backend"),
-                    nominal_range: TimeRange::new(None, None),
+                    nominal_range: TimeRange::new(
+                        Some(Instant::new(
+                            JulianDay::from_days(2_451_545.0),
+                            TimeScale::Tt,
+                        )),
+                        Some(Instant::new(
+                            JulianDay::from_days(2_451_546.0),
+                            TimeScale::Tt,
+                        )),
+                    ),
                     supported_time_scales: vec![TimeScale::Tt],
                     body_coverage: vec![CelestialBody::Sun],
                     supported_frames: vec![CoordinateFrame::Ecliptic],
@@ -4576,7 +4603,16 @@ mod tests {
                     version: "0.1.0".to_string(),
                     family: BackendFamily::Algorithmic,
                     provenance: BackendProvenance::new("recovery Sun backend"),
-                    nominal_range: TimeRange::new(None, None),
+                    nominal_range: TimeRange::new(
+                        Some(Instant::new(
+                            JulianDay::from_days(2_451_545.5),
+                            TimeScale::Tdb,
+                        )),
+                        Some(Instant::new(
+                            JulianDay::from_days(2_451_546.5),
+                            TimeScale::Tdb,
+                        )),
+                    ),
                     supported_time_scales: vec![TimeScale::Tt],
                     body_coverage: vec![CelestialBody::Sun],
                     supported_frames: vec![CoordinateFrame::Ecliptic],
@@ -4664,6 +4700,27 @@ mod tests {
         assert!(metadata.body_coverage.contains(&CelestialBody::Sun));
         assert!(metadata.body_coverage.contains(&CelestialBody::Moon));
         assert!(metadata.provenance.summary.contains("3 provider(s)"));
+        assert_eq!(metadata.nominal_range.validate(), Ok(()));
+        assert_eq!(
+            metadata
+                .nominal_range
+                .start
+                .expect("routing range start should exist")
+                .scale,
+            TimeScale::Tt
+        );
+        assert_eq!(
+            metadata
+                .nominal_range
+                .end
+                .expect("routing range end should exist")
+                .scale,
+            TimeScale::Tt
+        );
+        assert_eq!(
+            metadata.nominal_range.summary_line(),
+            "JD 2451545.5 (TT) → JD 2451546.0 (TT)"
+        );
 
         assert_eq!(
             routing.position(&sun_request).unwrap().backend_id.as_str(),
