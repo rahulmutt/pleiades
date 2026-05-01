@@ -4462,7 +4462,84 @@ impl SelectedAsteroidSourceSummary {
             format_bodies(&self.sample_bodies),
         )
     }
+
+    /// Returns `Ok(())` when the selected-asteroid evidence summary still matches the checked-in slice.
+    pub fn validate(&self) -> Result<(), SelectedAsteroidSourceSummaryValidationError> {
+        let Some(expected) = selected_asteroid_source_evidence_summary_details() else {
+            return Err(
+                SelectedAsteroidSourceSummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        };
+
+        if self.sample_count != expected.sample_count {
+            return Err(
+                SelectedAsteroidSourceSummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        }
+        if self.sample_bodies != expected.sample_bodies {
+            return Err(
+                SelectedAsteroidSourceSummaryValidationError::FieldOutOfSync {
+                    field: "sample_bodies",
+                },
+            );
+        }
+        if self.epoch_count != expected.epoch_count {
+            return Err(
+                SelectedAsteroidSourceSummaryValidationError::FieldOutOfSync {
+                    field: "epoch_count",
+                },
+            );
+        }
+        if self.earliest_epoch != expected.earliest_epoch {
+            return Err(
+                SelectedAsteroidSourceSummaryValidationError::FieldOutOfSync {
+                    field: "earliest_epoch",
+                },
+            );
+        }
+        if self.latest_epoch != expected.latest_epoch {
+            return Err(
+                SelectedAsteroidSourceSummaryValidationError::FieldOutOfSync {
+                    field: "latest_epoch",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated selected-asteroid evidence summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, SelectedAsteroidSourceSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
+
+/// Validation error for a selected-asteroid source evidence summary that drifted from the current slice.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum SelectedAsteroidSourceSummaryValidationError {
+    /// A summary field is out of sync with the checked-in selected-asteroid evidence.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for SelectedAsteroidSourceSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the selected asteroid source evidence summary field `{field}` is out of sync with the current slice"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for SelectedAsteroidSourceSummaryValidationError {}
 
 /// Compact release-facing summary for the selected-asteroid source windows.
 #[derive(Clone, Debug, PartialEq)]
@@ -4500,7 +4577,91 @@ impl SelectedAsteroidSourceWindowSummary {
             window_summary,
         )
     }
+
+    /// Returns `Ok(())` when the selected-asteroid window summary still matches the checked-in slice.
+    pub fn validate(&self) -> Result<(), SelectedAsteroidSourceWindowSummaryValidationError> {
+        let Some(expected) = selected_asteroid_source_window_summary_details() else {
+            return Err(
+                SelectedAsteroidSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        };
+
+        if self.sample_count != expected.sample_count {
+            return Err(
+                SelectedAsteroidSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        }
+        if self.sample_bodies != expected.sample_bodies {
+            return Err(
+                SelectedAsteroidSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "sample_bodies",
+                },
+            );
+        }
+        if self.epoch_count != expected.epoch_count {
+            return Err(
+                SelectedAsteroidSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "epoch_count",
+                },
+            );
+        }
+        if self.earliest_epoch != expected.earliest_epoch {
+            return Err(
+                SelectedAsteroidSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "earliest_epoch",
+                },
+            );
+        }
+        if self.latest_epoch != expected.latest_epoch {
+            return Err(
+                SelectedAsteroidSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "latest_epoch",
+                },
+            );
+        }
+        if self.windows != expected.windows {
+            return Err(
+                SelectedAsteroidSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "windows",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated selected-asteroid window summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, SelectedAsteroidSourceWindowSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
+
+/// Validation error for a selected-asteroid source window summary that drifted from the current slice.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum SelectedAsteroidSourceWindowSummaryValidationError {
+    /// A summary field is out of sync with the checked-in selected-asteroid windows.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for SelectedAsteroidSourceWindowSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the selected asteroid source window summary field `{field}` is out of sync with the current slice"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for SelectedAsteroidSourceWindowSummaryValidationError {}
 
 fn selected_asteroid_source_evidence_summary_details() -> Option<SelectedAsteroidSourceSummary> {
     let evidence = selected_asteroid_source_entries()?;
@@ -4615,7 +4776,10 @@ pub fn selected_asteroid_source_window_summary() -> Option<SelectedAsteroidSourc
 /// Returns the release-facing expanded selected-asteroid source coverage summary string.
 pub fn selected_asteroid_source_evidence_summary_for_report() -> String {
     match selected_asteroid_source_evidence_summary() {
-        Some(summary) => summary.summary_line(),
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => format!("Selected asteroid source evidence: unavailable ({error})"),
+        },
         None => "Selected asteroid source evidence: unavailable".to_string(),
     }
 }
@@ -4623,7 +4787,10 @@ pub fn selected_asteroid_source_evidence_summary_for_report() -> String {
 /// Returns the release-facing selected-asteroid source-window summary string.
 pub fn selected_asteroid_source_window_summary_for_report() -> String {
     match selected_asteroid_source_window_summary() {
-        Some(summary) => summary.summary_line(),
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => format!("Selected asteroid source windows: unavailable ({error})"),
+        },
         None => "Selected asteroid source windows: unavailable".to_string(),
     }
 }
@@ -9578,6 +9745,8 @@ mod tests {
         assert_eq!(summary.windows.len(), summary.sample_bodies.len());
         assert_eq!(summary.sample_count, 20);
         assert_eq!(summary.epoch_count, 4);
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             summary.summary_line(),
             "Selected asteroid source windows: 20 source-backed samples across 5 bodies and 4 epochs (JD 2451545.0 (TDB)..JD 2634167.0 (TDB)); windows: Ceres: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Pallas: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Juno: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Vesta: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); asteroid:433-Eros: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB)"
@@ -9586,6 +9755,40 @@ mod tests {
             summary.summary_line(),
             selected_asteroid_source_window_summary_for_report()
         );
+    }
+
+    #[test]
+    fn selected_asteroid_source_evidence_summary_validation_rejects_body_order_drift() {
+        let mut summary = selected_asteroid_source_evidence_summary()
+            .expect("selected asteroid source evidence summary should exist");
+        summary.sample_bodies.swap(0, 1);
+
+        assert!(matches!(
+            summary.validate(),
+            Err(
+                SelectedAsteroidSourceSummaryValidationError::FieldOutOfSync {
+                    field: "sample_bodies"
+                }
+            )
+        ));
+        assert!(summary.validated_summary_line().is_err());
+    }
+
+    #[test]
+    fn selected_asteroid_source_window_summary_validation_rejects_window_order_drift() {
+        let mut summary = selected_asteroid_source_window_summary()
+            .expect("selected asteroid source window summary should exist");
+        summary.windows.swap(0, 1);
+
+        assert!(matches!(
+            summary.validate(),
+            Err(
+                SelectedAsteroidSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "windows"
+                }
+            )
+        ));
+        assert!(summary.validated_summary_line().is_err());
     }
 
     #[test]
