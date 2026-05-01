@@ -12127,7 +12127,10 @@ fn format_time_scales(scales: &[TimeScale]) -> String {
 }
 
 fn format_capabilities(capabilities: &BackendCapabilities) -> String {
-    capabilities.summary_line()
+    match capabilities.validated_summary_line() {
+        Ok(summary) => summary,
+        Err(error) => format!("unavailable ({error})"),
+    }
 }
 
 fn format_error_kinds(kinds: &[EphemerisErrorKind]) -> String {
@@ -16201,6 +16204,23 @@ mod tests {
             .to_string()
             .contains("backend matrix entry `broken backend` has invalid metadata"));
         assert!(error.to_string().contains("provenance summary"));
+    }
+
+    #[test]
+    fn format_capabilities_reports_unavailable_for_invalid_flag_sets() {
+        let capabilities = BackendCapabilities {
+            geocentric: true,
+            topocentric: false,
+            apparent: false,
+            mean: false,
+            batch: true,
+            native_sidereal: false,
+        };
+
+        assert_eq!(
+            format_capabilities(&capabilities),
+            "unavailable (backend capabilities must support mean or apparent output)"
+        );
     }
 
     #[test]

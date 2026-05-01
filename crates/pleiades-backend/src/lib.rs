@@ -391,6 +391,12 @@ impl BackendCapabilities {
         )
     }
 
+    /// Returns the compact capability summary after validating the flag set.
+    pub fn validated_summary_line(&self) -> Result<String, BackendCapabilitiesValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
     /// Returns `Ok(())` when the capability flags describe at least one usable
     /// position mode and one usable value mode.
     pub fn validate(&self) -> Result<(), BackendCapabilitiesValidationError> {
@@ -2813,6 +2819,10 @@ mod tests {
 
         assert_eq!(capabilities.to_string(), capabilities.summary_line());
         assert_eq!(
+            capabilities.validated_summary_line(),
+            Ok(capabilities.summary_line())
+        );
+        assert_eq!(
             capabilities.summary_line(),
             "geocentric=true; topocentric=false; apparent=true; mean=true; batch=true; native_sidereal=false"
         );
@@ -2820,6 +2830,22 @@ mod tests {
         assert!(capabilities.summary_line().contains("topocentric="));
         assert!(capabilities.summary_line().contains("apparent="));
         assert!(capabilities.summary_line().contains("native_sidereal="));
+    }
+
+    #[test]
+    fn backend_capabilities_validated_summary_line_rejects_missing_modes() {
+        let capabilities = BackendCapabilities {
+            geocentric: false,
+            topocentric: false,
+            apparent: false,
+            mean: false,
+            ..BackendCapabilities::default()
+        };
+
+        assert_eq!(
+            capabilities.validated_summary_line(),
+            Err(BackendCapabilitiesValidationError::MissingPositionMode)
+        );
     }
 
     #[test]
