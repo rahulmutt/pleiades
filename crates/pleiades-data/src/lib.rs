@@ -910,6 +910,22 @@ impl PackagedArtifactRegenerationSummary {
         )
     }
 
+    /// Validates that every residual body is actually part of the bundled body list.
+    fn validate_residual_body_subset(&self) -> Result<(), pleiades_compression::CompressionError> {
+        for body in &self.residual_bodies {
+            if !self.bodies.contains(body) {
+                return Err(pleiades_compression::CompressionError::new(
+                    pleiades_compression::CompressionErrorKind::InvalidFormat,
+                    format!(
+                        "packaged artifact regeneration summary residual body {body} is not covered by the bundled body list"
+                    ),
+                ));
+            }
+        }
+
+        Ok(())
+    }
+
     /// Validates that the regeneration summary stays aligned with the bundled
     /// body list, the current checked-in artifact metadata, and the checked-in
     /// reference snapshot coverage.
@@ -1001,6 +1017,8 @@ impl PackagedArtifactRegenerationSummary {
                 ),
             ));
         }
+
+        self.validate_residual_body_subset()?;
 
         self.fit_envelope.validate().map_err(|error| {
             pleiades_compression::CompressionError::new(
@@ -4995,6 +5013,32 @@ mod tests {
             .contains("packaged artifact regeneration summary body list does not match the checked-in packaged body set"));
         assert!(error.message.contains("expected [Sun, Moon"));
         assert!(error.message.contains("got [Moon, Sun"));
+    }
+
+    #[test]
+    fn packaged_artifact_regeneration_summary_validation_rejects_residual_body_subset_drift() {
+        let mut summary = packaged_artifact_regeneration_summary_details();
+        summary
+            .validate_residual_body_subset()
+            .expect("current residual body coverage should stay within the bundled body list");
+
+        summary
+            .residual_bodies
+            .push(CelestialBody::Custom(CustomBodyId::new(
+                "catalog",
+                "designation",
+            )));
+
+        let error = summary
+            .validate_residual_body_subset()
+            .expect_err("residual bodies outside the bundled body list should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error
+            .message
+            .contains("packaged artifact regeneration summary residual body catalog:designation is not covered by the bundled body list"));
     }
 
     #[test]
