@@ -4985,6 +4985,14 @@ impl JplIndependentHoldoutSummary {
             self.rms_distance_error_au,
         )
     }
+
+    /// Returns the validated compact hold-out summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, JplInterpolationQualitySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for JplIndependentHoldoutSummary {
@@ -5098,14 +5106,16 @@ impl JplIndependentHoldoutSummary {
 
 /// Formats the independent hold-out summary for release-facing reporting.
 pub fn format_jpl_independent_holdout_summary(summary: &JplIndependentHoldoutSummary) -> String {
-    summary.summary_line()
+    match summary.validated_summary_line() {
+        Ok(rendered) => rendered,
+        Err(error) => format!("JPL independent hold-out: unavailable ({error})"),
+    }
 }
 
 /// Returns the release-facing independent hold-out interpolation summary string.
 pub fn jpl_independent_holdout_summary_for_report() -> String {
     match jpl_independent_holdout_summary() {
-        Some(summary) if summary.validate().is_ok() => summary.to_string(),
-        Some(_) => "JPL independent hold-out: unavailable".to_string(),
+        Some(summary) => format_jpl_independent_holdout_summary(&summary),
         None => match independent_holdout_snapshot_error() {
             Some(error) => format!("JPL independent hold-out: unavailable ({error})"),
             None => "JPL independent hold-out: unavailable".to_string(),
@@ -9454,6 +9464,20 @@ mod tests {
         assert_eq!(
             summary.validate(),
             Err(JplInterpolationQualitySummaryValidationError::DerivedSummaryMismatch)
+        );
+    }
+
+    #[test]
+    fn independent_holdout_summary_validated_summary_line_rejects_drift() {
+        let mut summary = jpl_independent_holdout_summary().expect("summary should exist");
+        summary.sample_count += 1;
+        assert_eq!(
+            summary.validated_summary_line(),
+            Err(JplInterpolationQualitySummaryValidationError::DerivedSummaryMismatch)
+        );
+        assert_eq!(
+            format_jpl_independent_holdout_summary(&summary),
+            "JPL independent hold-out: unavailable (summary no longer matches the derived interpolation evidence)"
         );
     }
 
