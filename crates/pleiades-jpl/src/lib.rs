@@ -6620,6 +6620,272 @@ pub fn reference_snapshot_high_curvature_summary_for_report() -> String {
     }
 }
 
+/// A single body-window slice inside the major-body high-curvature reference coverage.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReferenceHighCurvatureWindow {
+    /// The body covered by this window.
+    pub body: pleiades_backend::CelestialBody,
+    /// Number of samples for the body.
+    pub sample_count: usize,
+    /// Number of distinct epochs represented for the body.
+    pub epoch_count: usize,
+    /// Earliest epoch represented for the body.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented for the body.
+    pub latest_epoch: Instant,
+}
+
+impl ReferenceHighCurvatureWindow {
+    /// Returns a compact body-window summary used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let time_span = if self.earliest_epoch == self.latest_epoch {
+            format_instant(self.earliest_epoch)
+        } else {
+            format!(
+                "{}..{}",
+                format_instant(self.earliest_epoch),
+                format_instant(self.latest_epoch)
+            )
+        };
+
+        format!(
+            "{}: {} samples across {} epochs at {}",
+            self.body, self.sample_count, self.epoch_count, time_span
+        )
+    }
+}
+
+impl fmt::Display for ReferenceHighCurvatureWindow {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Compact release-facing summary for the major-body high-curvature reference coverage.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReferenceHighCurvatureWindowSummary {
+    /// Number of samples in the high-curvature slice.
+    pub sample_count: usize,
+    /// Bodies covered by the high-curvature slice in first-seen order.
+    pub sample_bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Number of distinct epochs covered by the high-curvature slice.
+    pub epoch_count: usize,
+    /// Earliest epoch represented in the high-curvature slice.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented in the high-curvature slice.
+    pub latest_epoch: Instant,
+    /// Per-body window breakdown in first-seen order.
+    pub windows: Vec<ReferenceHighCurvatureWindow>,
+}
+
+impl ReferenceHighCurvatureWindowSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let window_summary = self
+            .windows
+            .iter()
+            .map(ReferenceHighCurvatureWindow::summary_line)
+            .collect::<Vec<_>>()
+            .join("; ");
+        format!(
+            "Reference major-body high-curvature windows: {} source-backed samples across {} bodies and {} epochs ({}..{}); windows: {}",
+            self.sample_count,
+            self.sample_bodies.len(),
+            self.epoch_count,
+            format_instant(self.earliest_epoch),
+            format_instant(self.latest_epoch),
+            window_summary,
+        )
+    }
+
+    /// Returns `Ok(())` when the high-curvature window summary still matches the checked-in slice.
+    pub fn validate(&self) -> Result<(), ReferenceHighCurvatureWindowSummaryValidationError> {
+        let Some(expected) = reference_snapshot_high_curvature_window_summary_details() else {
+            return Err(
+                ReferenceHighCurvatureWindowSummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        };
+
+        if self.sample_count != expected.sample_count {
+            return Err(
+                ReferenceHighCurvatureWindowSummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        }
+        if self.sample_bodies != expected.sample_bodies {
+            return Err(
+                ReferenceHighCurvatureWindowSummaryValidationError::FieldOutOfSync {
+                    field: "sample_bodies",
+                },
+            );
+        }
+        if self.epoch_count != expected.epoch_count {
+            return Err(
+                ReferenceHighCurvatureWindowSummaryValidationError::FieldOutOfSync {
+                    field: "epoch_count",
+                },
+            );
+        }
+        if self.earliest_epoch != expected.earliest_epoch {
+            return Err(
+                ReferenceHighCurvatureWindowSummaryValidationError::FieldOutOfSync {
+                    field: "earliest_epoch",
+                },
+            );
+        }
+        if self.latest_epoch != expected.latest_epoch {
+            return Err(
+                ReferenceHighCurvatureWindowSummaryValidationError::FieldOutOfSync {
+                    field: "latest_epoch",
+                },
+            );
+        }
+        if self.windows != expected.windows {
+            return Err(
+                ReferenceHighCurvatureWindowSummaryValidationError::FieldOutOfSync {
+                    field: "windows",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated high-curvature window summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ReferenceHighCurvatureWindowSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for ReferenceHighCurvatureWindowSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Validation error for a high-curvature window summary that drifted from the current slice.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ReferenceHighCurvatureWindowSummaryValidationError {
+    /// A summary field is out of sync with the checked-in high-curvature windows.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for ReferenceHighCurvatureWindowSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the reference high-curvature window summary field `{field}` is out of sync with the current slice"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ReferenceHighCurvatureWindowSummaryValidationError {}
+
+fn reference_snapshot_high_curvature_window_summary_details(
+) -> Option<ReferenceHighCurvatureWindowSummary> {
+    let entries = reference_snapshot_high_curvature_entries()?;
+    let earliest_epoch = entries
+        .iter()
+        .min_by(|left, right| {
+            left.epoch
+                .julian_day
+                .days()
+                .total_cmp(&right.epoch.julian_day.days())
+        })
+        .map(|entry| entry.epoch)
+        .expect("reference high-curvature evidence should not be empty after collection");
+    let latest_epoch = entries
+        .iter()
+        .max_by(|left, right| {
+            left.epoch
+                .julian_day
+                .days()
+                .total_cmp(&right.epoch.julian_day.days())
+        })
+        .map(|entry| entry.epoch)
+        .expect("reference high-curvature evidence should not be empty after collection");
+
+    let mut sample_bodies = Vec::new();
+    let mut windows = Vec::new();
+    for entry in entries {
+        if sample_bodies.contains(&entry.body) {
+            continue;
+        }
+        let body_entries = entries
+            .iter()
+            .filter(|candidate| candidate.body == entry.body)
+            .collect::<Vec<_>>();
+        let body_earliest_epoch = body_entries
+            .iter()
+            .min_by(|left, right| {
+                left.epoch
+                    .julian_day
+                    .days()
+                    .total_cmp(&right.epoch.julian_day.days())
+            })
+            .map(|candidate| candidate.epoch)
+            .expect("reference high-curvature body window should not be empty after collection");
+        let body_latest_epoch = body_entries
+            .iter()
+            .max_by(|left, right| {
+                left.epoch
+                    .julian_day
+                    .days()
+                    .total_cmp(&right.epoch.julian_day.days())
+            })
+            .map(|candidate| candidate.epoch)
+            .expect("reference high-curvature body window should not be empty after collection");
+
+        sample_bodies.push(entry.body.clone());
+        windows.push(ReferenceHighCurvatureWindow {
+            body: entry.body.clone(),
+            sample_count: body_entries.len(),
+            epoch_count: body_entries
+                .iter()
+                .map(|candidate| candidate.epoch.julian_day.days().to_bits())
+                .collect::<BTreeSet<_>>()
+                .len(),
+            earliest_epoch: body_earliest_epoch,
+            latest_epoch: body_latest_epoch,
+        });
+    }
+
+    Some(ReferenceHighCurvatureWindowSummary {
+        sample_count: entries.len(),
+        sample_bodies,
+        epoch_count: entries
+            .iter()
+            .map(|entry| entry.epoch.julian_day.days().to_bits())
+            .collect::<BTreeSet<_>>()
+            .len(),
+        earliest_epoch,
+        latest_epoch,
+        windows,
+    })
+}
+
+/// Returns the compact typed summary for the major-body high-curvature reference coverage.
+pub fn reference_snapshot_high_curvature_window_summary(
+) -> Option<ReferenceHighCurvatureWindowSummary> {
+    reference_snapshot_high_curvature_window_summary_details()
+}
+
+/// Returns the release-facing major-body high-curvature window summary string.
+pub fn reference_snapshot_high_curvature_window_summary_for_report() -> String {
+    match reference_snapshot_high_curvature_window_summary() {
+        Some(summary) => summary.summary_line(),
+        None => "Reference major-body high-curvature windows: unavailable".to_string(),
+    }
+}
+
 const REFERENCE_SNAPSHOT_SOURCE_FALLBACK: &str = "NASA/JPL Horizons API vector tables (DE441)";
 const REFERENCE_SNAPSHOT_COVERAGE_FALLBACK: &str =
     "major bodies sampled at 1749-12-31 for Sun through Neptune, inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; outer planets and Pluto sampled at 2400000, 2451545, and 2500000; major bodies sampled at 2001-01-02 through 2001-01-03 for additional boundary coverage; selected asteroids sampled at J2000, 2001-01-01, 2132-08-31, and 2500-01-01.";
@@ -10946,6 +11212,49 @@ mod tests {
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             reference_snapshot_high_curvature_summary_for_report(),
+            summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn reference_snapshot_high_curvature_window_summary_reports_the_expected_windows() {
+        let summary = reference_snapshot_high_curvature_window_summary()
+            .expect("reference high-curvature window summary should exist");
+        assert_eq!(summary.sample_count, 20);
+        assert_eq!(summary.sample_bodies.len(), 10);
+        assert_eq!(summary.epoch_count, 2);
+        assert_eq!(summary.earliest_epoch.julian_day.days(), 2_451_911.5);
+        assert_eq!(summary.latest_epoch.julian_day.days(), 2_451_912.5);
+        assert_eq!(
+            summary.sample_bodies[0],
+            pleiades_backend::CelestialBody::Sun
+        );
+        assert_eq!(
+            summary.sample_bodies[9],
+            pleiades_backend::CelestialBody::Jupiter
+        );
+        assert_eq!(summary.windows.len(), summary.sample_bodies.len());
+        assert_eq!(
+            summary.windows[0].body,
+            pleiades_backend::CelestialBody::Sun
+        );
+        assert_eq!(summary.windows[0].sample_count, 2);
+        assert_eq!(summary.windows[0].epoch_count, 2);
+        assert_eq!(
+            summary.windows[9].body,
+            pleiades_backend::CelestialBody::Jupiter
+        );
+        assert_eq!(summary.windows[9].sample_count, 2);
+        assert_eq!(summary.windows[9].epoch_count, 2);
+        assert_eq!(
+            summary.summary_line(),
+            "Reference major-body high-curvature windows: 20 source-backed samples across 10 bodies and 2 epochs (JD 2451911.5 (TDB)..JD 2451912.5 (TDB)); windows: Sun: 2 samples across 2 epochs at JD 2451911.5 (TDB)..JD 2451912.5 (TDB); Moon: 2 samples across 2 epochs at JD 2451911.5 (TDB)..JD 2451912.5 (TDB); Mercury: 2 samples across 2 epochs at JD 2451911.5 (TDB)..JD 2451912.5 (TDB); Venus: 2 samples across 2 epochs at JD 2451911.5 (TDB)..JD 2451912.5 (TDB); Saturn: 2 samples across 2 epochs at JD 2451911.5 (TDB)..JD 2451912.5 (TDB); Uranus: 2 samples across 2 epochs at JD 2451911.5 (TDB)..JD 2451912.5 (TDB); Neptune: 2 samples across 2 epochs at JD 2451911.5 (TDB)..JD 2451912.5 (TDB); Pluto: 2 samples across 2 epochs at JD 2451911.5 (TDB)..JD 2451912.5 (TDB); Mars: 2 samples across 2 epochs at JD 2451911.5 (TDB)..JD 2451912.5 (TDB); Jupiter: 2 samples across 2 epochs at JD 2451911.5 (TDB)..JD 2451912.5 (TDB)"
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            reference_snapshot_high_curvature_window_summary_for_report(),
             summary.summary_line()
         );
     }
