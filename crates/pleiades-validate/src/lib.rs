@@ -98,6 +98,7 @@ use pleiades_jpl::{
     frame_treatment_summary_for_report as jpl_frame_treatment_summary_for_report,
     independent_holdout_manifest_summary_for_report,
     independent_holdout_snapshot_batch_parity_summary_for_report as jpl_independent_holdout_snapshot_batch_parity_summary_for_report,
+    independent_holdout_snapshot_body_class_coverage_summary_for_report,
     independent_holdout_snapshot_equatorial_parity_summary_for_report as jpl_independent_holdout_snapshot_equatorial_parity_summary_for_report,
     independent_holdout_snapshot_source_window_summary_for_report,
     independent_holdout_source_summary_for_report, interpolation_quality_samples,
@@ -11888,6 +11889,11 @@ fn write_jpl_interpolation_quality(f: &mut fmt::Formatter<'_>) -> fmt::Result {
         "    note: expanded public-input leave-one-out checks report current runtime interpolation error against held-out exact rows; they are not production tolerances"
     )?;
     writeln!(f, "    {}", jpl_independent_holdout_summary_for_report())?;
+    writeln!(
+        f,
+        "    {}",
+        independent_holdout_snapshot_body_class_coverage_summary_for_report()
+    )?;
     writeln!(
         f,
         "    {}",

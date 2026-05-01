@@ -3554,6 +3554,151 @@ pub fn independent_holdout_snapshot_summary_for_report() -> String {
     }
 }
 
+/// A compact body-class coverage summary for the independent hold-out snapshot used by validation.
+#[derive(Clone, Debug, PartialEq)]
+pub struct IndependentHoldoutSnapshotBodyClassCoverageSummary {
+    /// Number of rows in the hold-out snapshot.
+    pub row_count: usize,
+    /// Bodies covered by the hold-out snapshot in first-seen order.
+    pub bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Number of distinct epochs covered by the hold-out snapshot.
+    pub epoch_count: usize,
+    /// Per-body windows covered by the hold-out snapshot in first-seen order.
+    pub windows: Vec<IndependentHoldoutSnapshotSourceWindow>,
+}
+
+/// Validation error for an independent hold-out body-class coverage summary.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum IndependentHoldoutSnapshotBodyClassCoverageSummaryValidationError {
+    /// A summary field is out of sync with the checked-in hold-out body-class coverage.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for IndependentHoldoutSnapshotBodyClassCoverageSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the independent hold-out body-class coverage summary field `{field}` is out of sync with the current slice"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for IndependentHoldoutSnapshotBodyClassCoverageSummaryValidationError {}
+
+impl IndependentHoldoutSnapshotBodyClassCoverageSummary {
+    /// Returns a compact body-class summary used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let windows = self
+            .windows
+            .iter()
+            .map(IndependentHoldoutSnapshotSourceWindow::summary_line)
+            .collect::<Vec<_>>()
+            .join("; ");
+
+        format!(
+            "Independent hold-out body-class coverage: {} rows across {} bodies and {} epochs; bodies: {}; windows: {}",
+            self.row_count,
+            self.bodies.len(),
+            self.epoch_count,
+            format_bodies(&self.bodies),
+            windows,
+        )
+    }
+
+    /// Returns `Ok(())` when the body-class coverage summary still matches the checked-in slice.
+    pub fn validate(
+        &self,
+    ) -> Result<(), IndependentHoldoutSnapshotBodyClassCoverageSummaryValidationError> {
+        let Some(expected) = independent_holdout_snapshot_body_class_coverage_summary_details()
+        else {
+            return Err(
+                IndependentHoldoutSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "row_count",
+                },
+            );
+        };
+
+        if self.row_count != expected.row_count {
+            return Err(
+                IndependentHoldoutSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "row_count",
+                },
+            );
+        }
+        if self.bodies != expected.bodies {
+            return Err(
+                IndependentHoldoutSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "bodies",
+                },
+            );
+        }
+        if self.epoch_count != expected.epoch_count {
+            return Err(
+                IndependentHoldoutSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "epoch_count",
+                },
+            );
+        }
+        if self.windows != expected.windows {
+            return Err(
+                IndependentHoldoutSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "windows",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated body-class coverage summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, IndependentHoldoutSnapshotBodyClassCoverageSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for IndependentHoldoutSnapshotBodyClassCoverageSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn independent_holdout_snapshot_body_class_coverage_summary_details(
+) -> Option<IndependentHoldoutSnapshotBodyClassCoverageSummary> {
+    let summary = independent_holdout_snapshot_summary()?;
+    let source_windows = independent_holdout_source_window_summary_details()?;
+
+    Some(IndependentHoldoutSnapshotBodyClassCoverageSummary {
+        row_count: summary.row_count,
+        bodies: independent_holdout_bodies().to_vec(),
+        epoch_count: summary.epoch_count,
+        windows: source_windows.windows,
+    })
+}
+
+/// Returns a compact body-class coverage summary for the independent hold-out snapshot used by validation.
+pub fn independent_holdout_snapshot_body_class_coverage_summary(
+) -> Option<IndependentHoldoutSnapshotBodyClassCoverageSummary> {
+    independent_holdout_snapshot_body_class_coverage_summary_details()
+}
+
+/// Returns the release-facing body-class coverage summary string for the independent hold-out snapshot.
+pub fn independent_holdout_snapshot_body_class_coverage_summary_for_report() -> String {
+    match independent_holdout_snapshot_body_class_coverage_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => {
+                format!("Independent hold-out body-class coverage: unavailable ({error})")
+            }
+        },
+        None => "Independent hold-out body-class coverage: unavailable".to_string(),
+    }
+}
+
 /// A compact coverage summary for the independent hold-out corpus in mixed-scale
 /// batch parity mode.
 #[derive(Clone, Debug, PartialEq)]
