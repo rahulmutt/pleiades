@@ -1666,6 +1666,14 @@ impl LunarTheoryCatalogSummary {
     }
 
     /// Returns the compact release-facing summary line for the current lunar catalog.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, LunarTheoryCatalogSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
+    /// Returns the compact release-facing summary line for the current lunar catalog.
     pub fn summary_line(&self) -> String {
         let entry_label = if self.entry_count == 1 {
             "entry"
@@ -1709,8 +1717,8 @@ pub fn format_lunar_theory_catalog_summary(summary: &LunarTheoryCatalogSummary) 
 fn format_validated_lunar_theory_catalog_summary_for_report(
     summary: &LunarTheoryCatalogSummary,
 ) -> String {
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
+    match summary.validated_summary_line() {
+        Ok(summary_line) => summary_line,
         Err(error) => format!("lunar theory catalog: unavailable ({error})"),
     }
 }
@@ -1802,6 +1810,14 @@ pub fn lunar_theory_capability_summary() -> LunarTheoryCapabilitySummary {
 }
 
 impl LunarTheoryCapabilitySummary {
+    /// Returns the compact release-facing summary line for the current lunar selection.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, LunarTheoryCapabilitySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
     /// Returns the compact release-facing summary line for the current lunar selection.
     pub fn summary_line(&self) -> String {
         format!(
@@ -1954,8 +1970,8 @@ pub fn format_lunar_theory_capability_summary(summary: &LunarTheoryCapabilitySum
 fn format_validated_lunar_theory_capability_summary_for_report(
     summary: &LunarTheoryCapabilitySummary,
 ) -> String {
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
+    match summary.validated_summary_line() {
+        Ok(summary_line) => summary_line,
         Err(error) => format!("lunar capability summary: unavailable ({error})"),
     }
 }
@@ -5788,6 +5804,10 @@ mod tests {
         );
         assert_eq!(catalog_summary.summary_line(), catalog_summary.to_string());
         assert_eq!(
+            catalog_summary.validated_summary_line().unwrap(),
+            catalog_summary.summary_line()
+        );
+        assert_eq!(
             format_lunar_theory_catalog_summary(&catalog_summary),
             catalog_summary.summary_line()
         );
@@ -5851,6 +5871,10 @@ mod tests {
             .expect_err("drifted catalog summary should fail validation");
         assert_eq!(
             error.to_string(),
+            "the lunar catalog summary field `selected_alias_count` is out of sync with the current catalog"
+        );
+        assert_eq!(
+            drifted_catalog_summary.validated_summary_line().unwrap_err().to_string(),
             "the lunar catalog summary field `selected_alias_count` is out of sync with the current catalog"
         );
         assert_eq!(
@@ -7194,12 +7218,22 @@ mod tests {
             capability.summary_line(),
             format_lunar_theory_capability_summary(&capability)
         );
+        assert_eq!(
+            capability.validated_summary_line().unwrap(),
+            capability.summary_line()
+        );
         assert_eq!(capability.to_string(), capability.summary_line());
         assert_eq!(
             lunar_theory_capability_summary_for_report(),
             capability.summary_line()
         );
         assert_eq!(capability.validate(), Ok(()));
+        let mut drifted_helper = capability;
+        drifted_helper.catalog_validation_ok = !drifted_helper.catalog_validation_ok;
+        assert_eq!(
+            drifted_helper.validated_summary_line().unwrap_err().to_string(),
+            "the lunar capability summary field `catalog_validation_ok` is out of sync with the current selection"
+        );
         let mut drifted = capability;
         drifted.catalog_validation_ok = !drifted.catalog_validation_ok;
         assert_eq!(
