@@ -54,6 +54,7 @@ use pleiades_data::{
     packaged_artifact_generation_policy_summary_for_report,
     packaged_artifact_generation_residual_bodies_summary_for_report,
     packaged_artifact_output_support_summary_for_report,
+    packaged_artifact_production_profile_summary_for_report,
     packaged_artifact_profile_coverage_summary_for_report,
     packaged_artifact_profile_summary_with_body_coverage,
     packaged_artifact_regeneration_summary_for_report,
@@ -6256,6 +6257,9 @@ fn render_release_summary_text() -> String {
     text.push_str("Artifact validation: validate-artifact\n");
     text.push_str("Packaged-artifact profile: ");
     text.push_str(&format_packaged_artifact_profile_summary());
+    text.push('\n');
+    text.push_str("Packaged-artifact production profile skeleton: ");
+    text.push_str(&packaged_artifact_production_profile_summary_for_report());
     text.push('\n');
     text.push_str("Artifact profile coverage: ");
     text.push_str(&packaged_artifact_profile_coverage_summary_for_report());

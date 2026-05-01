@@ -947,6 +947,211 @@ pub fn packaged_artifact_regeneration_summary_for_report() -> String {
     }
 }
 
+const PACKAGED_ARTIFACT_PRODUCTION_TARGET_THRESHOLDS: &str =
+    "target thresholds: pending finalization";
+
+/// Structured production-profile skeleton for the packaged artifact generator.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PackagedArtifactProductionProfileSummary {
+    /// Stable identifier for the production-profile skeleton.
+    pub profile_id: &'static str,
+    /// Human-readable generation label.
+    pub label: &'static str,
+    /// Version of the packaged artifact format.
+    pub artifact_version: u16,
+    /// Covered time range for the packaged artifact.
+    pub time_range: TimeRange,
+    /// Bodies bundled into the packaged artifact.
+    pub body_coverage: PackagedBodyCoverageSummary,
+    /// Capability profile encoded by the packaged artifact.
+    pub artifact_profile: ArtifactProfile,
+    /// Generation policy used to turn reference snapshots into segments.
+    pub generation_policy: PackagedArtifactGenerationPolicy,
+    /// Request policy encoded by the packaged artifact.
+    pub request_policy: PackagedRequestPolicySummary,
+    /// Frame-treatment policy encoded by the packaged artifact.
+    pub frame_treatment: PackagedFrameTreatmentSummary,
+    /// Storage/reconstruction policy encoded by the packaged artifact.
+    pub storage_summary: PackagedArtifactStorageSummary,
+    /// Release-facing statement about the still-open production target thresholds.
+    pub target_thresholds: &'static str,
+}
+
+/// Validation error for a packaged artifact production-profile skeleton that drifted from the current posture.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PackagedArtifactProductionProfileSummaryValidationError {
+    /// A summary field is out of sync with the current packaged-artifact posture.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for PackagedArtifactProductionProfileSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the packaged artifact production profile summary field `{field}` is out of sync with the current posture"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for PackagedArtifactProductionProfileSummaryValidationError {}
+
+impl PackagedArtifactProductionProfileSummary {
+    /// Returns the production-profile skeleton as a compact human-readable line.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Packaged artifact production profile skeleton: profile id={}; label={}; version={}; time range={}; body coverage={}; artifact profile={}; generation policy={}; request policy={}; frame treatment={}; storage/reconstruction={}; {}",
+            self.profile_id,
+            self.label,
+            self.artifact_version,
+            self.time_range,
+            self.body_coverage,
+            self.artifact_profile,
+            self.generation_policy,
+            self.request_policy,
+            self.frame_treatment,
+            self.storage_summary,
+            self.target_thresholds,
+        )
+    }
+
+    /// Returns `Ok(())` when the production-profile skeleton still matches the current packaged-artifact posture.
+    pub fn validate(&self) -> Result<(), PackagedArtifactProductionProfileSummaryValidationError> {
+        if self.profile_id != ARTIFACT_PROFILE_ID {
+            return Err(
+                PackagedArtifactProductionProfileSummaryValidationError::FieldOutOfSync {
+                    field: "profile_id",
+                },
+            );
+        }
+        if self.label != ARTIFACT_LABEL {
+            return Err(
+                PackagedArtifactProductionProfileSummaryValidationError::FieldOutOfSync {
+                    field: "label",
+                },
+            );
+        }
+        if self.artifact_version != packaged_artifact().header.version {
+            return Err(
+                PackagedArtifactProductionProfileSummaryValidationError::FieldOutOfSync {
+                    field: "artifact_version",
+                },
+            );
+        }
+        if self.time_range != artifact_time_range(packaged_artifact()) {
+            return Err(
+                PackagedArtifactProductionProfileSummaryValidationError::FieldOutOfSync {
+                    field: "time_range",
+                },
+            );
+        }
+        self.body_coverage.validate().map_err(|_| {
+            PackagedArtifactProductionProfileSummaryValidationError::FieldOutOfSync {
+                field: "body_coverage",
+            }
+        })?;
+        if self.artifact_profile != packaged_artifact_profile_summary_details().profile {
+            return Err(
+                PackagedArtifactProductionProfileSummaryValidationError::FieldOutOfSync {
+                    field: "artifact_profile",
+                },
+            );
+        }
+        self.generation_policy.validate().map_err(|_| {
+            PackagedArtifactProductionProfileSummaryValidationError::FieldOutOfSync {
+                field: "generation_policy",
+            }
+        })?;
+        self.request_policy.validate().map_err(|_| {
+            PackagedArtifactProductionProfileSummaryValidationError::FieldOutOfSync {
+                field: "request_policy",
+            }
+        })?;
+        self.frame_treatment.validate().map_err(|_| {
+            PackagedArtifactProductionProfileSummaryValidationError::FieldOutOfSync {
+                field: "frame_treatment",
+            }
+        })?;
+        self.storage_summary.validate().map_err(|_| {
+            PackagedArtifactProductionProfileSummaryValidationError::FieldOutOfSync {
+                field: "storage_summary",
+            }
+        })?;
+        if self.target_thresholds != PACKAGED_ARTIFACT_PRODUCTION_TARGET_THRESHOLDS {
+            return Err(
+                PackagedArtifactProductionProfileSummaryValidationError::FieldOutOfSync {
+                    field: "target_thresholds",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated production-profile skeleton summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, PackagedArtifactProductionProfileSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for PackagedArtifactProductionProfileSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns the current packaged-artifact production-profile skeleton.
+pub fn packaged_artifact_production_profile_summary_details(
+) -> PackagedArtifactProductionProfileSummary {
+    let artifact = packaged_artifact();
+    let summary = PackagedArtifactProductionProfileSummary {
+        profile_id: ARTIFACT_PROFILE_ID,
+        label: ARTIFACT_LABEL,
+        artifact_version: artifact.header.version,
+        time_range: artifact_time_range(artifact),
+        body_coverage: packaged_body_coverage_summary_details(),
+        artifact_profile: packaged_artifact_profile_summary_details().profile,
+        generation_policy: PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments,
+        request_policy: packaged_request_policy_summary_details(),
+        frame_treatment: packaged_frame_treatment_summary_details(),
+        storage_summary: packaged_artifact_storage_summary_details(),
+        target_thresholds: PACKAGED_ARTIFACT_PRODUCTION_TARGET_THRESHOLDS,
+    };
+    debug_assert!(summary.validate().is_ok());
+    summary
+}
+
+/// Returns the current packaged-artifact production-profile skeleton after validating the structured posture.
+pub fn packaged_artifact_production_profile_summary_for_report() -> String {
+    let summary = packaged_artifact_production_profile_summary_details();
+    match summary.validated_summary_line() {
+        Ok(line) => line,
+        Err(error) => {
+            format!("Packaged artifact production profile skeleton: unavailable ({error})")
+        }
+    }
+}
+
+/// Returns the current packaged-artifact production-profile skeleton summary.
+pub fn packaged_artifact_production_profile_summary() -> &'static str {
+    static SUMMARY: OnceLock<String> = OnceLock::new();
+    SUMMARY
+        .get_or_init(|| {
+            let summary = packaged_artifact_production_profile_summary_details();
+            match summary.validated_summary_line() {
+                Ok(rendered) => rendered,
+                Err(error) => {
+                    format!("Packaged artifact production profile skeleton: unavailable ({error})")
+                }
+            }
+        })
+        .as_str()
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PackagedArtifactProfileSummary {
     /// Number of bundled bodies that share the packaged artifact profile.
@@ -4301,6 +4506,79 @@ mod tests {
         assert!(error.message.contains(
             "packaged artifact regeneration summary is missing reference snapshot coverage"
         ));
+    }
+
+    #[test]
+    fn packaged_artifact_production_profile_summary_reflects_the_current_posture() {
+        let summary = packaged_artifact_production_profile_summary_details();
+        let artifact = packaged_artifact();
+
+        assert_eq!(summary.profile_id, ARTIFACT_PROFILE_ID);
+        assert_eq!(summary.label, ARTIFACT_LABEL);
+        assert_eq!(summary.artifact_version, artifact.header.version);
+        assert_eq!(summary.time_range, artifact_time_range(artifact));
+        assert_eq!(
+            summary.body_coverage,
+            packaged_body_coverage_summary_details()
+        );
+        assert_eq!(
+            summary.artifact_profile,
+            packaged_artifact_profile_summary_details().profile
+        );
+        assert_eq!(
+            summary.generation_policy,
+            PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments
+        );
+        assert_eq!(
+            summary.request_policy,
+            packaged_request_policy_summary_details()
+        );
+        assert_eq!(
+            summary.frame_treatment,
+            packaged_frame_treatment_summary_details()
+        );
+        assert_eq!(
+            summary.storage_summary,
+            packaged_artifact_storage_summary_details()
+        );
+        assert_eq!(
+            summary.target_thresholds,
+            PACKAGED_ARTIFACT_PRODUCTION_TARGET_THRESHOLDS
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        summary
+            .validate()
+            .expect("production-profile skeleton should validate");
+        assert!(summary
+            .summary_line()
+            .contains("Packaged artifact production profile skeleton:"));
+        assert!(summary
+            .summary_line()
+            .contains("target thresholds: pending finalization"));
+        assert!(packaged_artifact_production_profile_summary_for_report()
+            .contains("Packaged artifact production profile skeleton:"));
+        assert_eq!(
+            packaged_artifact_production_profile_summary(),
+            summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn packaged_artifact_production_profile_summary_validation_rejects_target_threshold_drift() {
+        let mut summary = packaged_artifact_production_profile_summary_details();
+        summary.target_thresholds = "target thresholds: drifted";
+
+        let error = summary
+            .validate()
+            .expect_err("target threshold drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactProductionProfileSummaryValidationError::FieldOutOfSync {
+                field: "target_thresholds",
+            }
+        );
+        assert!(error.to_string().contains("target_thresholds"));
     }
 
     #[test]
