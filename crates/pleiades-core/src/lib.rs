@@ -4,7 +4,10 @@
 //! information while keeping the façade intentionally thin. It still delegates
 //! query execution to a backend, but it now also exposes the versioned
 //! compatibility profile and API stability posture used by the CLI,
-//! validation reports, and release notes.
+//! validation reports, and release notes. Computed chart snapshots follow the
+//! same explicit request-shape policy documented in `docs/time-observer-policy.md`,
+//! so the façade keeps the house-observer and body-observer channels distinct
+//! in both request and summary surfaces.
 //!
 //! # Examples
 //!
