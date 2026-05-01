@@ -851,6 +851,21 @@ impl Vsop87SourceDocumentationSummary {
     pub fn summary_line(&self) -> String {
         format_source_documentation_summary(self)
     }
+
+    /// Returns the rendered summary line after validating the cached catalog snapshot.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, Vsop87SourceDocumentationSummaryValidationError> {
+        self.validate()?;
+        source_documentation_health_summary()
+            .validate()
+            .map_err(
+                |_| Vsop87SourceDocumentationSummaryValidationError::FieldOutOfSync {
+                    field: "source_documentation_health",
+                },
+            )?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for Vsop87SourceDocumentationSummary {
@@ -3514,12 +3529,8 @@ fn format_validated_source_documentation_health_summary_for_report(
 fn format_validated_source_documentation_summary_for_report(
     summary: &Vsop87SourceDocumentationSummary,
 ) -> String {
-    if let Err(error) = summary.validate() {
-        return format!("VSOP87 source documentation: unavailable ({error})");
-    }
-
-    match source_documentation_health_summary().validate() {
-        Ok(()) => summary.summary_line(),
+    match summary.validated_summary_line() {
+        Ok(summary_line) => summary_line,
         Err(error) => format!("VSOP87 source documentation: unavailable ({error})"),
     }
 }
@@ -10698,6 +10709,11 @@ mod tests {
     fn source_documentation_summary_tracks_catalog_counts() {
         let summary = source_documentation_summary();
 
+        assert_eq!(summary.summary_line(), summary.to_string());
+        assert_eq!(
+            summary.validated_summary_line().unwrap(),
+            summary.summary_line()
+        );
         assert_eq!(summary.source_specification_count, 8);
         assert_eq!(summary.source_backed_profile_count, 8);
         assert_eq!(
@@ -11166,6 +11182,7 @@ mod tests {
         let summary = source_documentation_summary();
         let rendered = source_documentation_summary_for_report();
         assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line().unwrap(), rendered);
         assert!(source_documentation_health_summary().validate().is_ok());
         assert_eq!(rendered, format_source_documentation_summary(&summary));
         assert_eq!(summary.summary_line(), rendered);
