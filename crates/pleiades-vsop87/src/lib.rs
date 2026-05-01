@@ -733,6 +733,14 @@ impl Vsop87SourceAuditSummary {
         )
     }
 
+    /// Returns the rendered summary line after validating the cached manifest snapshot.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, Vsop87SourceAuditSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
     /// Returns `Ok(())` when the summary still matches the current source-audit manifest.
     pub fn validate(&self) -> Result<(), Vsop87SourceAuditSummaryValidationError> {
         let audits = source_audits();
@@ -2789,8 +2797,8 @@ pub fn format_source_audit_summary(summary: &Vsop87SourceAuditSummary) -> String
 }
 
 fn format_validated_source_audit_summary_for_report(summary: &Vsop87SourceAuditSummary) -> String {
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
+    match summary.validated_summary_line() {
+        Ok(rendered) => rendered,
         Err(error) => format!("VSOP87 source audit: unavailable ({error})"),
     }
 }
@@ -3015,6 +3023,14 @@ impl Vsop87GeneratedBlobAuditSummary {
         )
     }
 
+    /// Returns the rendered summary line after validating the cached manifest snapshot.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, Vsop87GeneratedBlobAuditSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
     /// Returns `Ok(())` when the summary still matches the current generated-blob manifest.
     pub fn validate(&self) -> Result<(), Vsop87GeneratedBlobAuditSummaryValidationError> {
         let audits = generated_binary_audits();
@@ -3150,8 +3166,8 @@ pub fn format_generated_binary_audit_summary(summary: &Vsop87GeneratedBlobAuditS
 fn format_validated_generated_binary_audit_summary_for_report(
     summary: &Vsop87GeneratedBlobAuditSummary,
 ) -> String {
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
+    match summary.validated_summary_line() {
+        Ok(rendered) => rendered,
         Err(error) => format!("VSOP87 generated binary audit: unavailable ({error})"),
     }
 }
@@ -10560,6 +10576,8 @@ mod tests {
         );
         assert_eq!(summary.summary_line(), summary.to_string());
         assert_eq!(summary.validate(), Ok(()));
+        let rendered = summary.summary_line();
+        assert_eq!(summary.validated_summary_line(), Ok(rendered));
         assert_eq!(
             source_audit_summary_for_report(),
             format_source_audit_summary(&summary)
@@ -10577,6 +10595,12 @@ mod tests {
         assert_eq!(
             error.to_string(),
             "the VSOP87 source audit summary field `fingerprint_count` is out of sync with the current manifest"
+        );
+        assert_eq!(
+            summary.validated_summary_line(),
+            Err(Vsop87SourceAuditSummaryValidationError::FieldOutOfSync {
+                field: "fingerprint_count"
+            })
         );
         assert_eq!(
             format_validated_source_audit_summary_for_report(&summary),
@@ -10628,6 +10652,8 @@ mod tests {
 
         assert_eq!(summary.summary_line(), summary.to_string());
         assert_eq!(summary.validate(), Ok(()));
+        let rendered = summary.summary_line();
+        assert_eq!(summary.validated_summary_line(), Ok(rendered));
         assert_eq!(
             generated_binary_audit_summary_for_report(),
             format_generated_binary_audit_summary(&summary)
@@ -10648,6 +10674,14 @@ mod tests {
         assert_eq!(
             error.to_string(),
             "the VSOP87 generated binary audit summary field `source_file_count` is out of sync with the current manifest"
+        );
+        assert_eq!(
+            summary.validated_summary_line(),
+            Err(
+                Vsop87GeneratedBlobAuditSummaryValidationError::FieldOutOfSync {
+                    field: "source_file_count"
+                }
+            )
         );
         assert_eq!(
             format_validated_generated_binary_audit_summary_for_report(&summary),
