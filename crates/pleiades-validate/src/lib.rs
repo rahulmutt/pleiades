@@ -8982,8 +8982,8 @@ fn validated_release_profile_identifiers_for_report() -> Result<ReleaseProfileId
 fn format_release_profile_identifiers_summary(
     release_profiles: &ReleaseProfileIdentifiers,
 ) -> String {
-    match release_profiles.validate() {
-        Ok(()) => release_profiles.summary_line(),
+    match release_profiles.validated_summary_line() {
+        Ok(summary) => summary,
         Err(error) => format!("unavailable ({error})"),
     }
 }

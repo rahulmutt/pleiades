@@ -56,6 +56,14 @@ impl ReleaseProfileIdentifiers {
         )
     }
 
+    /// Returns the compact summary after validating the identifiers.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ReleaseProfileIdentifiersValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
     /// Returns `Ok(())` when the identifiers still match the current release posture.
     pub fn validate(&self) -> Result<(), ReleaseProfileIdentifiersValidationError> {
         validate_release_profile_identifiers(
@@ -180,6 +188,7 @@ mod tests {
 
         assert_eq!(ReleaseProfileIdentifiers::schema_version(), 1);
         assert_eq!(identifiers.summary_line(), expected);
+        assert_eq!(identifiers.validated_summary_line().unwrap(), expected);
         assert_eq!(identifiers.to_string(), expected);
     }
 
