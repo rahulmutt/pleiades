@@ -1,7 +1,5 @@
 # Checklist 1 — Phase Gates
 
-Use this checklist before marking any remaining phase complete.
-
 ## Common gate for every phase
 
 - [ ] The implemented behavior maps to one or more requirements in `SPEC.md` or `spec/*.md`.
@@ -12,33 +10,35 @@ Use this checklist before marking any remaining phase complete.
 - [ ] `cargo clippy --workspace --all-targets --all-features -- -D warnings` passes or any exception is narrowly justified.
 - [ ] `cargo test --workspace` passes.
 - [ ] New tools are declared in `mise.toml` unless they must live in `devenv.nix` with justification.
-- [ ] The plan/status docs no longer list tasks completed by the change.
+- [ ] Plan/status docs no longer list tasks completed by the change.
 
-## Phase 1: Production ephemeris accuracy
+## Phase 1: Accuracy closure and request semantics
 
-- [ ] Backend metadata identifies real source material and accuracy expectations.
-- [ ] VSOP87, lunar, and JPL/reference implementations have golden or reference-backed tests for claimed bodies.
-- [ ] Time-scale, Delta T, apparent/mean, frame, and topocentric semantics are implemented or rejected explicitly.
-- [ ] Validation reports include measured errors and tolerances for claimed support.
+- [ ] Release-claimed bodies have source-backed or explicitly documented accuracy evidence.
+- [ ] Pluto and other approximate/fallback paths are either validated within release thresholds or downgraded in release-profile claims.
+- [ ] JPL/reference corpus coverage is sufficient for validation and artifact generation inputs.
+- [ ] Delta T, UTC/UT1 conversion, apparentness, topocentric, sidereal, and frame behavior is implemented or rejected explicitly through metadata and structured errors.
+- [ ] Validation reports include measured errors, body-class thresholds, and outlier/fail-closed status.
 
-## Phase 2: Reproducible compressed artifacts
+## Phase 2: Production compressed artifacts
 
-- [ ] Artifact headers/profiles record provenance, source versions, body coverage, channels, checksums, and generated parameters.
+- [ ] Artifact headers/profiles record provenance, source versions, body coverage, channels, checksums, and generation parameters.
 - [ ] Artifact generation is deterministic from documented public inputs.
-- [ ] Decode/lookup tests include segment boundaries, unsupported bodies, and checksum failures.
-- [ ] Artifact validation reports include measured errors and benchmark data.
+- [ ] Decode/lookup tests include segment boundaries, interval interiors, unsupported bodies, unsupported outputs, and checksum failures.
+- [ ] Artifact validation reports include measured errors inside published thresholds and benchmark data.
+- [ ] Runtime packaged-data metadata no longer labels production claims as prototype.
 
-## Phase 3: Compatibility catalog completion
+## Phase 3: Compatibility evidence and catalog completion
 
-- [ ] Every release-profile catalog entry has descriptor metadata, aliases, implementation status, and tests.
-- [ ] House systems document formulas, assumptions, and latitude/numerical failure modes.
-- [ ] Ayanamsas document reference epochs, offsets/formulas, aliases, and provenance.
-- [ ] Profile verification fails on unsupported entries advertised as implemented.
+- [ ] Every release-profile catalog entry has descriptor metadata, aliases, implementation status, constraints, and tests.
+- [ ] House systems document formulas, assumptions, latitude/numerical failure modes, and reference/golden scenarios.
+- [ ] Ayanamsas document reference epochs, offsets/formulas, aliases, provenance, and custom-definition posture.
+- [ ] Profile verification fails on unsupported, descriptor-only, or constrained entries advertised as fully implemented.
 
-## Phase 4: Release stabilization and hardening
+## Phase 4: Release hardening and publication
 
-- [ ] Compatibility profile, backend matrix, validation report, benchmark report, artifact summary, release notes, and release checklist are generated from current code/data.
+- [ ] Compatibility profile, backend matrix, validation report, benchmark report, artifact summary, release notes, release checklist, and release summary are generated from current code/data.
 - [ ] Release bundle verification passes from a clean checkout.
 - [ ] Native-dependency/pure-Rust audit passes.
-- [ ] Public documentation and rustdoc examples cover main workflows.
+- [ ] Public documentation and rustdoc examples cover main workflows and known limitations.
 - [ ] Archived artifacts include source revision, profile identifiers, tool versions, checksums, and validation parameters.

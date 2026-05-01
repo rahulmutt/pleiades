@@ -1,8 +1,8 @@
 # Pleiades Development Plan
 
-This document is the top-level execution map for `pleiades` after the initial workspace, baseline domain API, validation shell, and packaged-data scaffolding have landed.
+This plan is the forward execution map for `pleiades` after the workspace, core type model, backend trait, chart façade, baseline catalogs, validation/reporting tools, release-bundle rehearsal, source-backed VSOP87 major-planet path, compact lunar baseline, JPL snapshot fixture, and prototype packaged-data backend have already landed.
 
-It translates the remaining requirements in `SPEC.md` and `spec/*.md` into a forward-looking plan. Completed bootstrap and MVP tasks are intentionally not listed here; use git history for those details. This plan now focuses only on work still needed to make Pleiades a production-quality, Swiss-Ephemeris-class, pure-Rust ephemeris workspace.
+Completed bootstrap, MVP, and scaffolding work is intentionally not listed here. Use git history and validation reports for implementation archaeology. This document tracks only the remaining work needed to satisfy `SPEC.md` and `spec/*.md` as a production-quality, Swiss-Ephemeris-class, pure-Rust ephemeris workspace.
 
 ## Source material
 
@@ -22,24 +22,35 @@ This plan is derived from:
 
 ## Current implementation baseline
 
-The repository currently has all required first-party crates, shared domain types, a backend trait, composite routing helpers, a chart façade, baseline and expanded house/ayanamsa catalogs, preliminary algorithmic/snapshot/packaged backends, CLI and validation commands, release-profile reporting, full-chart benchmark evidence, bundle verification, and tests for those surfaces.
+The repository currently provides all required first-party crates, pure-Rust development tooling, shared domain types, backend metadata and validation helpers, composite/routing helpers, a chart façade, baseline-plus-expanded house and ayanamsa catalogs, CLI/validation commands, release-profile summaries, workspace audits, release-bundle generation/verification, and broad tests around those surfaces.
 
-Those capabilities are a strong foundation, but several spec requirements are not yet production-complete:
+Important landed implementation state:
 
-- the `pleiades-vsop87`, `pleiades-elp`, and `pleiades-jpl` crates need production-grade astronomical algorithms/readers and documented error envelopes, not only deterministic sample or simplified behavior;
-- the compressed-data pipeline needs a reproducible generator from public source inputs, measured fit error, and versioned binary artifacts for 1500-2500 CE;
-- compatibility catalogs need remaining formula validation, alias audits, latitude/numerical failure evidence, and release-profile truthfulness checks;
-- topocentric handling, Delta T policy, apparent/mean semantics, and equatorial/ecliptic transforms need stronger end-to-end implementation and documentation;
-- release gates need to be exercised on real artifacts and validation reports.
+- `pleiades-vsop87` uses generated binary tables from public VSOP87B sources for the Sun through Neptune, with Pluto still on an approximate mean-elements fallback.
+- `pleiades-elp` provides a documented compact Meeus-style lunar baseline for the Moon, mean/true node, and mean apogee/perigee; it is not yet a full ELP coefficient implementation.
+- `pleiades-jpl` provides a checked-in JPL Horizons fixture/snapshot backend, exact fixture epochs, interpolation transparency evidence, equatorial reconstruction, and selected asteroid rows; it is not yet a broad production JPL reader/corpus.
+- `pleiades-data` ships a small deterministic prototype compressed artifact with codec validation, regeneration helpers, checksums, summaries, and benchmark evidence; it is not yet a 1500-2500 CE production artifact with acceptable measured fit error.
+- Public request policy is explicit: first-party backends currently accept mean geometric, tropical, geocentric TT/TDB requests; apparent-place, topocentric body positions, native sidereal backend output, and built-in Delta T modeling remain future work or explicit unsupported modes.
+- Compatibility profiles are generated and verified against current catalogs, which are broad but still need final formula/reference audits before full interoperability claims.
+
+## Remaining specification gaps
+
+The remaining gaps are implementation and evidence gaps, not workspace-structure gaps:
+
+1. Close ephemeris accuracy gaps, especially Pluto, lunar-theory scope, broader JPL/reference data, and production error envelopes.
+2. Replace the prototype compressed artifact with a reproducible, validated 1500-2500 CE data product generated from trusted public inputs.
+3. Finish compatibility-catalog evidence: formulas, aliases, latitude/numerical constraints, sidereal metadata, and truthful release-profile claims.
+4. Decide and implement or explicitly defer advanced request semantics: Delta T policy, UTC convenience, apparent-place corrections, topocentric body positions, and optional native sidereal/backend behavior.
+5. Turn release rehearsal outputs into release gates backed by current artifacts, reports, checksums, rustdoc, and user-facing documentation.
 
 ## Planning principles
 
-1. **Do not re-plan completed bootstrap work.** Keep the plan focused on remaining implementation goals.
-2. **Evidence before claims.** Accuracy, compatibility, and release readiness require measurements or generated reports.
-3. **Reference first, package second.** Compressed artifacts must be generated from validated source outputs.
-4. **Catalog breadth must stay API-compatible.** New houses, ayanamsas, aliases, and bodies must not force public redesign.
-5. **Keep pure Rust mandatory.** New readers, generators, benchmarks, and release tools must preserve the no-required-C/C++ policy.
-6. **Ship in reviewable slices.** Each phase is decomposed into independently testable increments.
+1. **Plan only remaining work.** Do not reintroduce completed bootstrap or scaffolding tasks.
+2. **Evidence before claims.** Accuracy, compatibility, and release readiness require tests, validation reports, and documented tolerances.
+3. **Reference first, package second.** Production compressed artifacts must be generated from validated source outputs.
+4. **Catalog breadth must stay API-compatible.** New houses, ayanamsas, aliases, and bodies must not require public redesign.
+5. **Unsupported modes must fail closed.** Apparent, topocentric, sidereal-backend, out-of-range, and missing-data requests must remain structured errors until actually implemented.
+6. **Keep pure Rust mandatory.** Readers, generators, benchmarks, and release tools must preserve the no-required-C/C++ policy.
 
 ## Plan directory structure
 
@@ -58,19 +69,19 @@ plan/
 
 | Phase | Focus | Why it comes next | Workable-state promise | Detailed doc |
 | --- | --- | --- | --- | --- |
-| 1 | Production ephemeris accuracy | Real source-backed astronomy must replace simplified backend behavior before release claims expand | Major bodies and baseline lunar points have documented, tested accuracy against authoritative references | [plan/stages/01-production-ephemeris-accuracy.md](plan/stages/01-production-ephemeris-accuracy.md) |
-| 2 | Reproducible compressed artifacts | Packaged data must be generated and validated from public inputs, not hand-maintained samples | A maintainer can regenerate, inspect, validate, and use a 1500-2500 artifact deterministically | [plan/stages/02-reproducible-compressed-artifacts.md](plan/stages/02-reproducible-compressed-artifacts.md) |
-| 3 | Compatibility catalog completion | Swiss-Ephemeris-class interoperability requires formula, alias, and failure-mode evidence across houses and ayanamsas | Release profiles accurately describe shipped catalog coverage and known gaps | [plan/stages/03-compatibility-catalog-completion.md](plan/stages/03-compatibility-catalog-completion.md) |
-| 4 | Release stabilization and hardening | Public release requires validation reports, API documentation, audit gates, and reproducible bundles | Maintainers can publish a release with archived artifacts, reports, checksums, and clear compatibility claims | [plan/stages/04-release-stabilization-and-hardening.md](plan/stages/04-release-stabilization-and-hardening.md) |
+| 1 | Accuracy closure and request semantics | Production artifacts and release claims depend on trustworthy source outputs and explicit time/observer/apparentness behavior | Major-body, lunar-point, selected-asteroid, frame, time-scale, and unsupported-mode behavior has documented validation evidence and no known tolerance outliers in claimed scopes | [plan/stages/01-accuracy-closure-and-request-semantics.md](plan/stages/01-accuracy-closure-and-request-semantics.md) |
+| 2 | Production compressed artifacts | The current packaged artifact is a prototype; the spec requires reproducible 1500-2500 CE distributable data with measured fit error | Maintainers can regenerate, inspect, validate, benchmark, and ship a deterministic production artifact from public inputs | [plan/stages/02-production-compressed-artifacts.md](plan/stages/02-production-compressed-artifacts.md) |
+| 3 | Compatibility evidence and catalog completion | Catalog breadth exists, but interoperability claims require formula/reference evidence, aliases, and failure-mode audits | Release profiles accurately describe implemented house/ayanamsa coverage, constraints, aliases, custom definitions, and known gaps | [plan/stages/03-compatibility-evidence-and-catalog-completion.md](plan/stages/03-compatibility-evidence-and-catalog-completion.md) |
+| 4 | Release hardening and publication | Public release requires current reports, checksums, docs, CI gates, and reproducible bundle verification over real artifacts | Maintainers can publish an audited release bundle with archived reports, manifests, docs, and compatibility claims | [plan/stages/04-release-hardening-and-publication.md](plan/stages/04-release-hardening-and-publication.md) |
 
 ## Current planning posture
 
 | Phase | Status | Summary |
 | --- | --- | --- |
-| 1. Production ephemeris accuracy | Active | Start by replacing preliminary/snapshot calculations with source-backed algorithms and validation evidence |
-| 2. Reproducible compressed artifacts | Queued | Depends on trusted source outputs and measured error targets |
-| 3. Compatibility catalog completion | Queued | Can proceed in parallel where formulas and references are independent of backend accuracy |
-| 4. Release stabilization and hardening | Queued | Finalizes documentation, reports, and release bundles after accuracy and artifacts mature |
+| 1. Accuracy closure and request semantics | Active | Prioritize Pluto/source-backed major-body outliers, broader reference evidence, and explicit advanced-request decisions |
+| 2. Production compressed artifacts | Queued, with prototype groundwork landed | Begins after Phase 1 produces trusted generation inputs and tolerances |
+| 3. Compatibility evidence and catalog completion | Parallelizable | Continue formula, alias, sidereal metadata, and profile-truthfulness audits without blocking backend accuracy work |
+| 4. Release hardening and publication | Queued, with rehearsal tooling landed | Finalizes release gates after accuracy, artifacts, and compatibility evidence are current |
 
 For the live execution frontier, see:
 
@@ -89,7 +100,7 @@ For the live execution frontier, see:
 
 ### If you are making release-facing changes
 
-1. [plan/stages/04-release-stabilization-and-hardening.md](plan/stages/04-release-stabilization-and-hardening.md)
+1. [plan/stages/04-release-hardening-and-publication.md](plan/stages/04-release-hardening-and-publication.md)
 2. [plan/tracks/04-validation-and-release.md](plan/tracks/04-validation-and-release.md)
 3. [plan/checklists/02-release-artifacts.md](plan/checklists/02-release-artifacts.md)
 
@@ -101,10 +112,10 @@ For the live execution frontier, see:
 
 ### Remaining phases
 
-- [plan/stages/01-production-ephemeris-accuracy.md](plan/stages/01-production-ephemeris-accuracy.md)
-- [plan/stages/02-reproducible-compressed-artifacts.md](plan/stages/02-reproducible-compressed-artifacts.md)
-- [plan/stages/03-compatibility-catalog-completion.md](plan/stages/03-compatibility-catalog-completion.md)
-- [plan/stages/04-release-stabilization-and-hardening.md](plan/stages/04-release-stabilization-and-hardening.md)
+- [plan/stages/01-accuracy-closure-and-request-semantics.md](plan/stages/01-accuracy-closure-and-request-semantics.md)
+- [plan/stages/02-production-compressed-artifacts.md](plan/stages/02-production-compressed-artifacts.md)
+- [plan/stages/03-compatibility-evidence-and-catalog-completion.md](plan/stages/03-compatibility-evidence-and-catalog-completion.md)
+- [plan/stages/04-release-hardening-and-publication.md](plan/stages/04-release-hardening-and-publication.md)
 
 ### Status and next-slice guidance
 
@@ -138,6 +149,6 @@ When the plan changes:
 - update `plan/tracks/` when cross-cutting standards change,
 - update `plan/checklists/` when phase or release gates change,
 - update `plan/appendices/` when traceability or workable-state references change,
-- do not reintroduce completed bootstrap/MVP task lists unless they become active remediation work.
+- remove or rewrite completed tasks instead of accumulating progress-note history.
 
-Status: Updated 2026-04-24 after review against `SPEC.md`, `spec/*.md`, and the current implementation state.
+Status: Updated 2026-05-01 after review against `SPEC.md`, `spec/*.md`, validation summaries, and the current implementation state.

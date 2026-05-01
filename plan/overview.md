@@ -1,6 +1,6 @@
 # Plan Overview
 
-This directory contains the forward-looking implementation plan for Pleiades. It intentionally omits completed bootstrap, crate-skeleton, baseline API, and MVP workflow tasks so maintainers can focus on the remaining specification gaps.
+This directory contains the forward-looking implementation plan for Pleiades. It intentionally omits completed bootstrap, crate-skeleton, baseline API, MVP workflow, and release-rehearsal scaffolding tasks so maintainers can focus on remaining specification gaps.
 
 ## How to use this plan
 
@@ -24,14 +24,20 @@ This directory contains the forward-looking implementation plan for Pleiades. It
 The workspace already contains:
 
 - all mandatory first-party crates named with the `pleiades-*` prefix;
-- shared typed models for bodies, time, coordinates, houses, ayanamsas, observers, and compatibility metadata;
-- a backend trait with metadata, batch fallback, errors, and composite routing helpers;
-- domain crates for house and ayanamsa catalogs;
-- a high-level `pleiades-core` façade with chart summaries;
-- preliminary algorithmic, lunar, JPL snapshot, and packaged-data backends;
-- compression data structures and sample lookup behavior;
-- CLI and validation/reporting commands;
-- release-profile and release-bundle verification scaffolding.
+- shared typed models for bodies, time, coordinates, houses, ayanamsas, observers, custom definitions, and compatibility metadata;
+- backend traits, metadata validation, batch behavior, errors, and composite/routing helpers;
+- domain crates for house and ayanamsa catalogs plus chart-facing sidereal/house workflows;
+- source-backed VSOP87B generated tables for the Sun through Neptune, a compact lunar baseline, a JPL snapshot fixture, and a prototype packaged-data backend;
+- compression data structures, artifact validation, checksums, regeneration helpers, and packaged lookup behavior;
+- CLI and validation/reporting commands for profiles, matrices, artifacts, reports, audits, benchmarks, release summaries, and bundle verification.
+
+## Current remaining work at a glance
+
+- Close ephemeris accuracy gaps, especially Pluto and release-grade source/reference evidence.
+- Produce a real 1500-2500 CE compressed artifact with acceptable measured fit error.
+- Finish house/ayanamsa formula, alias, sidereal metadata, and failure-mode evidence.
+- Decide whether advanced request modes are implemented now or explicitly deferred.
+- Promote rehearsal release tooling into final release gates and documentation.
 
 ## Planning maintenance
 

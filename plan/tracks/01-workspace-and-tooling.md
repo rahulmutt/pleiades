@@ -2,15 +2,16 @@
 
 ## Role
 
-Maintain a reproducible pure-Rust development environment while the remaining phases add source data, generators, validation, benchmarks, and release tooling.
+Maintain a reproducible pure-Rust development environment while remaining phases add source data, artifact generators, validation thresholds, benchmarks, and release gates.
 
 ## Standards
 
-- Keep all standard tools declared in `mise.toml` when available through mise.
+- Keep standard developer tools declared in `mise.toml` when available through mise.
 - Use `devenv.nix` only for tools or system libraries that cannot reasonably be managed by mise, and document why.
 - Do not add curl-based bootstrap scripts or undocumented global tool assumptions.
 - Preserve the mandatory `pleiades-*` crate prefix for first-party crates.
-- Keep the workspace buildable on stable Rust unless a spec-approved change says otherwise.
+- Keep the workspace buildable on the declared stable Rust toolchain unless the spec is updated.
+- Keep generated data paths deterministic and reviewable.
 
 ## Checks to preserve
 
@@ -18,10 +19,12 @@ Maintain a reproducible pure-Rust development environment while the remaining ph
 - `cargo clippy --workspace --all-targets --all-features -- -D warnings`
 - `cargo test --workspace`
 - doc tests for public examples
-- pure-Rust/native-dependency audits in validation or release tooling
+- workspace-native pure-Rust/native-dependency audits
+- release-bundle verification when release-facing files change
 
 ## Phase-specific notes
 
-- Phase 1 source readers and coefficient data should not require C/C++ code generation or native libraries.
-- Phase 2 artifact generation must be reproducible from documented commands.
-- Phase 4 release bundles should capture tool versions and source revisions.
+- Phase 1 source readers and coefficient data must remain pure Rust and deterministic.
+- Phase 2 artifact generation must be reproducible from documented public inputs and commands.
+- Phase 3 catalog tests should not depend on concrete backend crates.
+- Phase 4 release bundles should capture source revision, workspace status, tool versions, checksums, and validation parameters.
