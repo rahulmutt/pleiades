@@ -6224,6 +6224,12 @@ fn render_release_summary_text() -> String {
     text.push_str("Source-backed backend evidence: ");
     text.push_str(&jpl_snapshot_evidence_summary_for_report());
     text.push('\n');
+    text.push_str("Selected asteroid evidence: ");
+    text.push_str(&selected_asteroid_source_evidence_summary_for_report());
+    text.push('\n');
+    text.push_str("Selected asteroid source windows: ");
+    text.push_str(&selected_asteroid_source_window_summary_for_report());
+    text.push('\n');
     text.push_str("Independent hold-out source windows: ");
     text.push_str(&independent_holdout_snapshot_source_window_summary_for_report());
     text.push('\n');
@@ -17234,6 +17240,8 @@ version = "0.9.0"
         assert!(release_summary.contains("JPL production-generation boundary request corpus:"));
         assert!(release_summary.contains("Production generation boundary overlay source:"));
         assert!(release_summary.contains("Source-backed backend evidence:"));
+        assert!(release_summary.contains("Selected asteroid evidence:"));
+        assert!(release_summary.contains("Selected asteroid source windows:"));
         assert!(release_summary.contains("Reference snapshot coverage:"));
         assert!(release_summary.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
         assert!(release_summary.contains(&reference_snapshot_source_summary_for_report()));
