@@ -7970,6 +7970,15 @@ impl ComparisonEnvelopeSummary {
         format!("{}; {}", summary, self.median)
     }
 
+    /// Returns the compact comparison summary line after validating against samples.
+    pub fn validated_summary_line(
+        &self,
+        samples: &[ComparisonSample],
+    ) -> Result<String, EphemerisError> {
+        self.validate_against_samples(samples)?;
+        Ok(self.summary_line())
+    }
+
     /// Returns the compact 95th-percentile tail line.
     pub fn percentile_line(&self) -> String {
         self.percentile.summary_line()
@@ -8163,8 +8172,8 @@ fn format_comparison_envelope_for_report(
     samples: &[ComparisonSample],
 ) -> String {
     let envelope = comparison_envelope_summary(summary, samples);
-    match envelope.validate_against_samples(samples) {
-        Ok(()) => envelope.summary_line(),
+    match envelope.validated_summary_line(samples) {
+        Ok(rendered) => rendered,
         Err(error) => format!("comparison envelope unavailable ({error})"),
     }
 }
@@ -13134,6 +13143,10 @@ mod tests {
 
         assert_eq!(envelope.summary_line(), envelope.to_string());
         assert_eq!(
+            envelope.validated_summary_line(&report.samples),
+            Ok(envelope.summary_line())
+        );
+        assert_eq!(
             envelope.percentile_line(),
             comparison_percentile_envelope(&report.samples, 0.95).summary_line()
         );
@@ -13154,7 +13167,7 @@ mod tests {
         envelope.median.longitude_delta_deg += 0.0001;
 
         let error = envelope
-            .validate_against_samples(&report.samples)
+            .validated_summary_line(&report.samples)
             .expect_err("drifted median should fail validation");
         assert!(error
             .to_string()
