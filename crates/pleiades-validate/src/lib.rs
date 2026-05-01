@@ -74,8 +74,9 @@ use pleiades_elp::{
     lunar_high_curvature_equatorial_continuity_evidence_for_report,
     lunar_reference_batch_parity_summary_for_report, lunar_reference_evidence,
     lunar_reference_evidence_envelope_for_report, lunar_reference_evidence_summary,
-    lunar_reference_evidence_summary_for_report, lunar_theory_capability_summary_for_report,
-    lunar_theory_catalog_summary_for_report, lunar_theory_catalog_validation_summary_for_report,
+    lunar_reference_evidence_summary_for_report, lunar_source_window_summary_for_report,
+    lunar_theory_capability_summary_for_report, lunar_theory_catalog_summary_for_report,
+    lunar_theory_catalog_validation_summary_for_report,
     lunar_theory_frame_treatment_summary_for_report, lunar_theory_request_policy_summary,
     lunar_theory_source_summary_for_report, lunar_theory_specification,
     lunar_theory_summary_for_report, ElpBackend,
@@ -6248,6 +6249,9 @@ fn render_release_summary_text() -> String {
     text.push_str("Lunar apparent comparison: ");
     text.push_str(&lunar_apparent_comparison_summary_for_report());
     text.push('\n');
+    text.push_str("Lunar source windows: ");
+    text.push_str(&lunar_source_window_summary_for_report());
+    text.push('\n');
     text.push_str("Lunar high-curvature continuity evidence\n");
     text.push_str(&lunar_high_curvature_continuity_evidence_for_report());
     text.push('\n');
@@ -9656,6 +9660,8 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text, "Lunar apparent comparison");
     let _ = writeln!(text, "  {}", lunar_apparent_comparison_summary_for_report());
     let _ = writeln!(text);
+    let _ = writeln!(text, "Lunar source windows");
+    let _ = writeln!(text, "  {}", lunar_source_window_summary_for_report());
     let _ = writeln!(text, "Lunar high-curvature continuity evidence");
     let _ = writeln!(
         text,
@@ -10400,6 +10406,9 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&lunar_equatorial_reference_batch_parity_summary_for_report());
     text.push('\n');
     text.push_str(&lunar_equatorial_reference_evidence_envelope_for_report());
+    text.push('\n');
+    text.push_str("Lunar source windows: ");
+    text.push_str(&lunar_source_window_summary_for_report());
     text.push('\n');
     text.push_str("Lunar high-curvature continuity evidence\n");
     text.push_str(&lunar_high_curvature_continuity_evidence_for_report());
@@ -11589,6 +11598,7 @@ fn write_backend_catalog_entry(
         write_lunar_reference_evidence(f)?;
         write_lunar_equatorial_reference_evidence(f)?;
         write_lunar_apparent_comparison_evidence(f)?;
+        write_lunar_source_window_evidence(f)?;
         writeln!(f, "  Lunar high-curvature continuity evidence:")?;
         writeln!(
             f,
@@ -11744,6 +11754,12 @@ fn write_lunar_apparent_comparison_evidence(f: &mut fmt::Formatter<'_>) -> fmt::
             sample.note
         )?;
     }
+    Ok(())
+}
+
+fn write_lunar_source_window_evidence(f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    writeln!(f, "  Lunar source windows:")?;
+    writeln!(f, "    {}", lunar_source_window_summary_for_report())?;
     Ok(())
 }
 
@@ -14024,6 +14040,7 @@ mod tests {
         assert!(report.contains(
             "lunar reference evidence: 9 samples across 5 bodies, epoch range JD 2419914.5 (TT) → JD 2459278.5 (TT)"
         ));
+        assert!(report.contains("Lunar source windows\n  lunar source windows: 7 exact Moon samples across 1 bodies in 2 windows"));
         assert!(report.contains("Lunar high-curvature continuity evidence"));
         assert!(report.contains("Lunar high-curvature equatorial continuity evidence"));
         assert!(report.contains("within regression limits=true"));
@@ -16228,6 +16245,7 @@ mod tests {
         assert!(rendered.contains("VSOP87 source-backed body evidence:"));
         assert!(rendered.contains("Lunar reference envelope:"));
         assert!(rendered.contains("Lunar equatorial reference envelope:"));
+        assert!(rendered.contains("Lunar source windows:"));
         assert!(rendered.contains("JPL interpolation quality:"));
         assert!(rendered.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
@@ -16301,6 +16319,7 @@ mod tests {
         assert!(rendered.contains("ELP lunar backend (Moon and lunar nodes)"));
         assert!(rendered.contains("specification summary: ELP lunar theory specification:"));
         assert!(rendered.contains("compact lunar and lunar-point formulas provide the current deterministic baseline while documented production lunar-theory ingestion remains open"));
+        assert!(rendered.contains("Lunar source windows"));
         assert!(rendered.contains("Lunar high-curvature continuity evidence"));
         assert!(rendered.contains("Lunar high-curvature equatorial continuity evidence"));
         assert!(rendered.contains("unsupported bodies: True Apogee, True Perigee"));
@@ -17037,6 +17056,7 @@ version = "0.9.0"
         assert!(release_summary
             .contains("Lunar equatorial reference: lunar equatorial reference evidence:"));
         assert!(release_summary.contains("Lunar equatorial reference envelope:"));
+        assert!(release_summary.contains("Lunar source windows: lunar source windows:"));
         assert!(release_summary
             .contains("Lunar apparent comparison: lunar apparent comparison evidence:"));
         assert!(release_summary.contains("Lunar high-curvature continuity evidence"));
