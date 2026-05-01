@@ -14,8 +14,8 @@ Current summaries show:
 - VSOP87B source-backed generated binary paths cover the Sun through Neptune;
 - Pluto remains an approximate mean-elements fallback in the backend catalog, while release-grade comparison and tolerance reports now exclude Pluto from evidence;
 - the compact lunar baseline has documented reference evidence for supported lunar channels but is not a full ELP coefficient implementation;
-- the JPL backend is a checked-in fixture/snapshot backend with selected asteroid rows, not a broad production reader/corpus;
-- the JPL backend now exposes a production-generation boundary overlay corpus that appends the full independent hold-out validation snapshot to the checked-in reference snapshot for validation and artifact-generation work, and the evidence report includes that broader coverage slice;
+- the JPL backend is a checked-in fixture/snapshot backend with selected asteroid rows and expanded interpolation-quality coverage around JD 2451910.5, not a broad production reader/corpus;
+- the JPL backend now exposes a production-generation boundary overlay corpus that appends the full independent hold-out validation snapshot to the checked-in reference snapshot for validation and artifact-generation work, and the evidence report includes that broader coverage slice; the interpolation-quality corpus also now carries a 2451910.5 boundary sample with quadratic coverage;
 - the packaged artifact is deterministic and validated as a prototype, but current fit errors are not release-grade;
 - request policy is explicit: mean, tropical, geocentric TT/TDB requests are supported; apparent-place corrections, topocentric body-position requests, native sidereal backend output, and built-in Delta T/UTC convenience conversion are not implemented today.
 
