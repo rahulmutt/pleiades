@@ -1596,6 +1596,85 @@ impl fmt::Display for FrameTreatmentSummary {
     }
 }
 
+/// Compact summary of the current frame policy.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct FramePolicySummary {
+    summary: &'static str,
+}
+
+/// Validation error for the current frame-policy summary.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum FramePolicySummaryValidationError {
+    /// The summary text is blank or whitespace-only.
+    BlankSummary,
+    /// The summary text has surrounding whitespace.
+    WhitespacePaddedSummary,
+    /// The summary text contains an embedded line break.
+    EmbeddedLineBreak,
+    /// The summary text no longer matches the current frame-policy posture.
+    CurrentPolicyOutOfSync,
+}
+
+impl fmt::Display for FramePolicySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BlankSummary => f.write_str("frame-policy summary is blank"),
+            Self::WhitespacePaddedSummary => {
+                f.write_str("frame-policy summary has surrounding whitespace")
+            }
+            Self::EmbeddedLineBreak => f.write_str("frame-policy summary contains a line break"),
+            Self::CurrentPolicyOutOfSync => {
+                f.write_str("frame-policy summary is out of sync with the current frame policy")
+            }
+        }
+    }
+}
+
+impl std::error::Error for FramePolicySummaryValidationError {}
+
+impl FramePolicySummary {
+    /// Creates a new frame-policy summary from a backend-owned note.
+    pub const fn new(summary: &'static str) -> Self {
+        Self { summary }
+    }
+
+    /// Returns the compact one-line rendering of the frame-policy posture.
+    pub const fn summary_line(self) -> &'static str {
+        self.summary
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current frame-policy posture.
+    pub fn validate(&self) -> Result<(), FramePolicySummaryValidationError> {
+        let current = current_request_policy_summary().frame;
+
+        if self.summary.trim().is_empty() {
+            Err(FramePolicySummaryValidationError::BlankSummary)
+        } else if self.summary.trim() != self.summary {
+            Err(FramePolicySummaryValidationError::WhitespacePaddedSummary)
+        } else if self.summary.contains('\n') || self.summary.contains('\r') {
+            Err(FramePolicySummaryValidationError::EmbeddedLineBreak)
+        } else if self.summary != current {
+            Err(FramePolicySummaryValidationError::CurrentPolicyOutOfSync)
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Returns the compact one-line rendering after validation.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<&'static str, FramePolicySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for FramePolicySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.summary_line())
+    }
+}
+
 /// Returns the current shared time-scale policy used by validation and reports.
 pub const fn current_time_scale_policy_summary() -> TimeScalePolicySummary {
     TimeScalePolicySummary::new(
@@ -1611,6 +1690,11 @@ pub const fn current_request_policy_summary() -> RequestPolicySummary {
         apparentness: "current first-party backends accept mean geometric output only; apparent-place corrections are rejected unless a backend explicitly advertises support",
         frame: "ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported; native sidereal backend output remains unsupported unless a backend explicitly advertises it",
     }
+}
+
+/// Returns the current shared frame-policy posture used by validation and reports.
+pub const fn current_frame_policy_summary() -> FramePolicySummary {
+    FramePolicySummary::new(current_request_policy_summary().frame)
 }
 
 /// Returns the request-policy posture used by validation and release reporting.
@@ -1905,7 +1989,17 @@ pub const fn apparentness_policy_summary_for_report() -> &'static str {
 
 /// Returns the compact report wording for the current frame policy.
 pub const fn frame_policy_summary_for_report() -> &'static str {
-    current_request_policy_summary().frame
+    current_frame_policy_summary().summary_line()
+}
+
+/// Returns the compact typed frame-policy posture for reporting.
+pub const fn frame_policy_summary_details() -> FramePolicySummary {
+    current_frame_policy_summary()
+}
+
+/// Returns the compact typed frame-treatment posture for reporting.
+pub const fn frame_treatment_summary_for_report() -> FrameTreatmentSummary {
+    FrameTreatmentSummary::new(current_request_policy_summary().frame)
 }
 
 /// Formats the zodiac-mode policy shared by the current first-party backends.
@@ -2992,6 +3086,41 @@ mod tests {
             summary.validate(),
             Err(FrameTreatmentSummaryValidationError::EmbeddedLineBreak)
         );
+    }
+
+    #[test]
+    fn frame_policy_summary_tracks_the_current_posture() {
+        let summary = FramePolicySummary::new(current_request_policy_summary().frame);
+
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            summary.summary_line(),
+            current_request_policy_summary().frame
+        );
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert!(summary.summary_line().contains("mean-obliquity"));
+    }
+
+    #[test]
+    fn frame_policy_summary_rejects_policy_drift() {
+        let summary = FramePolicySummary::new(
+            "geocentric ecliptic inputs; equatorial coordinates are derived with a mean-obliquity transform",
+        );
+
+        assert_eq!(
+            summary.validate(),
+            Err(FramePolicySummaryValidationError::CurrentPolicyOutOfSync)
+        );
+    }
+
+    #[test]
+    fn frame_policy_summary_details_reuse_the_current_posture() {
+        let summary = frame_policy_summary_details();
+
+        assert_eq!(summary.summary_line(), current_request_policy_summary().frame);
+        assert_eq!(frame_policy_summary_for_report(), current_request_policy_summary().frame);
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
     }
 
     struct ToyBackend;
