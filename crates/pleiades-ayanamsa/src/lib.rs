@@ -1262,6 +1262,14 @@ fn is_custom_definition_only_ayanamsa(canonical_name: &str) -> bool {
         .any(|name| name.eq_ignore_ascii_case(canonical_name))
 }
 
+fn format_ayanamsa_label_list(labels: &[&'static str]) -> String {
+    if labels.is_empty() {
+        "none".to_string()
+    } else {
+        labels.join(", ")
+    }
+}
+
 /// A summary of which built-in ayanamsas have sidereal reference metadata.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AyanamsaMetadataCoverage {
@@ -1300,6 +1308,20 @@ pub enum AyanamsaMetadataCoverageValidationError {
         /// Label that drifted.
         label: &'static str,
     },
+    /// The custom-definition-only bucket does not match the documented release profile.
+    CustomDefinitionOnlyLabelsDoNotMatch {
+        /// Expected release-profile labels.
+        expected: &'static [&'static str],
+        /// Labels observed in the coverage summary.
+        actual: Vec<&'static str>,
+    },
+    /// The missing-metadata bucket does not match the documented release profile.
+    WithoutSiderealMetadataLabelsDoNotMatch {
+        /// Expected release-profile labels.
+        expected: &'static [&'static str],
+        /// Labels observed in the coverage summary.
+        actual: Vec<&'static str>,
+    },
     /// A label appeared in more than one bucket.
     DuplicateLabel {
         /// Label that drifted.
@@ -1326,6 +1348,18 @@ impl fmt::Display for AyanamsaMetadataCoverageValidationError {
             Self::UnexpectedMissingMetadataLabel { label } => write!(
                 f,
                 "label `{label}` is not a documented sidereal-metadata gap"
+            ),
+            Self::CustomDefinitionOnlyLabelsDoNotMatch { expected, actual } => write!(
+                f,
+                "custom-definition-only labels do not match the documented release profile (expected: {}; actual: {})",
+                format_ayanamsa_label_list(expected),
+                format_ayanamsa_label_list(actual)
+            ),
+            Self::WithoutSiderealMetadataLabelsDoNotMatch { expected, actual } => write!(
+                f,
+                "missing sidereal-metadata labels do not match the documented release profile (expected: {}; actual: {})",
+                format_ayanamsa_label_list(expected),
+                format_ayanamsa_label_list(actual)
             ),
             Self::DuplicateLabel { label } => write!(
                 f,
@@ -1384,6 +1418,24 @@ impl AyanamsaMetadataCoverage {
             if !seen_labels.insert(label.to_ascii_lowercase()) {
                 return Err(AyanamsaMetadataCoverageValidationError::DuplicateLabel { label });
             }
+        }
+
+        if self.custom_definition_only.as_slice() != CUSTOM_DEFINITION_ONLY_AYANAMSAS {
+            return Err(
+                AyanamsaMetadataCoverageValidationError::CustomDefinitionOnlyLabelsDoNotMatch {
+                    expected: CUSTOM_DEFINITION_ONLY_AYANAMSAS,
+                    actual: self.custom_definition_only.clone(),
+                },
+            );
+        }
+
+        if !self.without_sidereal_metadata.is_empty() {
+            return Err(
+                AyanamsaMetadataCoverageValidationError::WithoutSiderealMetadataLabelsDoNotMatch {
+                    expected: &[],
+                    actual: self.without_sidereal_metadata.clone(),
+                },
+            );
         }
 
         Ok(())
@@ -2774,6 +2826,34 @@ mod tests {
         ));
         assert!(label_drift.summary_line().contains("unavailable"));
         assert!(label_drift.validated_summary_line().is_err());
+
+        let mut order_drift = metadata_coverage();
+        order_drift.custom_definition_only.reverse();
+
+        let order_error = order_drift
+            .validate()
+            .expect_err("reordered custom-definition labels should fail validation");
+        assert!(matches!(
+            order_error,
+            AyanamsaMetadataCoverageValidationError::CustomDefinitionOnlyLabelsDoNotMatch { .. }
+        ));
+        assert!(order_drift.summary_line().contains("unavailable"));
+        assert!(order_drift.validated_summary_line().is_err());
+
+        let mut missing_drift = metadata_coverage();
+        missing_drift.with_sidereal_metadata =
+            missing_drift.with_sidereal_metadata.saturating_sub(1);
+        missing_drift.without_sidereal_metadata = vec!["Placeholder"];
+
+        let missing_error = missing_drift
+            .validate()
+            .expect_err("non-empty missing-metadata labels should fail validation");
+        assert!(matches!(
+            missing_error,
+            AyanamsaMetadataCoverageValidationError::WithoutSiderealMetadataLabelsDoNotMatch { .. }
+        ));
+        assert!(missing_drift.summary_line().contains("unavailable"));
+        assert!(missing_drift.validated_summary_line().is_err());
     }
 
     #[test]
