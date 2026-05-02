@@ -49,7 +49,8 @@ The following can proceed without distracting from accuracy closure:
 - house/ayanamsa formula and alias audits;
 - documentation cleanup for already-explicit request policy;
 - release-bundle smoke-test maintenance;
-- artifact-profile identifier groundwork and production-profile skeleton plumbing that do not claim production fit accuracy yet, including the release-profile identifier now threaded through packaged-artifact target thresholds.
+- artifact-profile identifier groundwork and production-profile skeleton plumbing that do not claim production fit accuracy yet, including the release-profile identifier now threaded through packaged-artifact target thresholds;
+- direct ayanamsa reference-offset inspection now also has a dedicated `ayanamsa-reference-offsets-summary` command in both CLIs for release-facing archaeology.
 - reference snapshot source-window formatting parity now matches the other coverage summaries so report surfaces can rely on `to_string()` consistently, the reference source-window summary now derives its body order directly from the checked-in snapshot entries, the new reference body-class coverage summary now surfaces typed major-body and selected-asteroid window breakdowns in release-facing reports, the compatibility profile now also renders the latitude-sensitive house-system set through the shared formatter used by validation reports, the new reference/hold-out overlap summary guards against silently collapsing the validation slice into the reference corpus, and the selected-asteroid boundary and source-window evidence now have direct CLI paths in both CLIs.
 
 ## Constraints
