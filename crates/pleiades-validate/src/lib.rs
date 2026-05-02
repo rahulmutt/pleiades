@@ -2762,8 +2762,8 @@ impl ValidationReport {
 
 /// A generated release bundle containing the compatibility profile, release-profile
 /// identifiers, release notes, release checklist, backend matrix, API posture,
-/// API stability summary, validation report summary, benchmark report, validation report,
-/// and manifest.
+/// API stability summary, validation report summary, artifact summary, packaged-artifact
+/// generation manifest, benchmark report, validation report, and manifest.
 #[derive(Clone, Debug)]
 pub struct ReleaseBundle {
     /// Source revision recorded when the bundle was generated.
@@ -2804,6 +2804,8 @@ pub struct ReleaseBundle {
     pub workspace_audit_summary_path: PathBuf,
     /// Path to the generated artifact summary file.
     pub artifact_summary_path: PathBuf,
+    /// Path to the generated packaged-artifact generation manifest file.
+    pub packaged_artifact_generation_manifest_path: PathBuf,
     /// Path to the generated benchmark report file.
     pub benchmark_report_path: PathBuf,
     /// Path to the generated validation report file.
@@ -2842,6 +2844,8 @@ pub struct ReleaseBundle {
     pub workspace_audit_summary_bytes: usize,
     /// Number of bytes written for the artifact summary.
     pub artifact_summary_bytes: usize,
+    /// Number of bytes written for the packaged-artifact generation manifest.
+    pub packaged_artifact_generation_manifest_bytes: usize,
     /// Number of bytes written for the benchmark report.
     pub benchmark_report_bytes: usize,
     /// Number of bytes written for the validation report.
@@ -2878,6 +2882,8 @@ pub struct ReleaseBundle {
     pub workspace_audit_summary_checksum: u64,
     /// Deterministic checksum for the artifact summary contents.
     pub artifact_summary_checksum: u64,
+    /// Deterministic checksum for the packaged-artifact generation manifest contents.
+    pub packaged_artifact_generation_manifest_checksum: u64,
     /// Deterministic checksum for the benchmark report contents.
     pub benchmark_report_checksum: u64,
     /// Deterministic checksum for the validation report contents.
@@ -3935,6 +3941,11 @@ impl ReleaseBundle {
                 &self.artifact_summary_path,
                 "artifact-summary.txt",
                 "artifact summary",
+            ),
+            (
+                &self.packaged_artifact_generation_manifest_path,
+                "packaged-artifact-generation-manifest.txt",
+                "packaged-artifact generation manifest",
             ),
             (
                 &self.benchmark_report_path,
@@ -7057,8 +7068,8 @@ pub fn benchmark_provenance_text() -> String {
 /// Writes a release bundle containing the compatibility profile, release-profile
 /// identifiers, release notes, release notes summary, release summary, release checklist,
 /// release checklist summary, backend matrix, API posture, API stability summary,
-/// validation report summary, artifact summary, benchmark report, validation report,
-/// and a manifest.
+/// validation report summary, artifact summary, packaged-artifact generation manifest,
+/// benchmark report, validation report, and a manifest.
 pub fn render_release_bundle(
     rounds: usize,
     output_dir: impl AsRef<Path>,
@@ -7092,6 +7103,8 @@ pub fn render_release_bundle(
         .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
     let artifact_summary_text = render_artifact_summary()
         .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
+    let packaged_artifact_generation_manifest_text =
+        packaged_artifact_generation_manifest_for_report();
     let provenance = workspace_provenance();
     let profile_path = output_dir.join("compatibility-profile.txt");
     let profile_summary_path = output_dir.join("compatibility-profile-summary.txt");
@@ -7108,6 +7121,8 @@ pub fn render_release_bundle(
     let validation_report_summary_path = output_dir.join("validation-report-summary.txt");
     let workspace_audit_summary_path = output_dir.join("workspace-audit-summary.txt");
     let artifact_summary_path = output_dir.join("artifact-summary.txt");
+    let packaged_artifact_generation_manifest_path =
+        output_dir.join("packaged-artifact-generation-manifest.txt");
     let benchmark_report_path = output_dir.join("benchmark-report.txt");
     let report_path = output_dir.join("validation-report.txt");
     let manifest_path = output_dir.join("bundle-manifest.txt");
@@ -7128,10 +7143,12 @@ pub fn render_release_bundle(
     let validation_report_summary_checksum = checksum64(&validation_report_summary_text);
     let workspace_audit_summary_checksum = checksum64(&workspace_audit_summary_text);
     let artifact_summary_checksum = checksum64(&artifact_summary_text);
+    let packaged_artifact_generation_manifest_checksum =
+        checksum64(&packaged_artifact_generation_manifest_text);
     let benchmark_report_checksum = checksum64(&benchmark_report_text);
     let validation_report_checksum = checksum64(&validation_report_text);
     let manifest_text = format!(
-        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease notes summary: release-notes-summary.txt\nrelease notes summary checksum (fnv1a-64): 0x{release_notes_summary_checksum:016x}\nrelease summary: release-summary.txt\nrelease summary checksum (fnv1a-64): 0x{release_summary_checksum:016x}\nrelease-profile identifiers: release-profile-identifiers.txt\nrelease-profile identifiers checksum (fnv1a-64): 0x{release_profile_identifiers_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nrelease checklist summary: release-checklist-summary.txt\nrelease checklist summary checksum (fnv1a-64): 0x{release_checklist_summary_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\nbackend matrix summary: backend-matrix-summary.txt\nbackend matrix summary checksum (fnv1a-64): 0x{backend_matrix_summary_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\napi stability summary: api-stability-summary.txt\napi stability summary checksum (fnv1a-64): 0x{api_stability_summary_checksum:016x}\nvalidation report summary: validation-report-summary.txt\nvalidation report summary checksum (fnv1a-64): 0x{validation_report_summary_checksum:016x}\nworkspace audit summary: workspace-audit-summary.txt\nworkspace audit summary checksum (fnv1a-64): 0x{workspace_audit_summary_checksum:016x}\nartifact summary: artifact-summary.txt\nartifact summary checksum (fnv1a-64): 0x{artifact_summary_checksum:016x}\nbenchmark report: benchmark-report.txt\nbenchmark report checksum (fnv1a-64): 0x{benchmark_report_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
+        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease notes summary: release-notes-summary.txt\nrelease notes summary checksum (fnv1a-64): 0x{release_notes_summary_checksum:016x}\nrelease summary: release-summary.txt\nrelease summary checksum (fnv1a-64): 0x{release_summary_checksum:016x}\nrelease-profile identifiers: release-profile-identifiers.txt\nrelease-profile identifiers checksum (fnv1a-64): 0x{release_profile_identifiers_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nrelease checklist summary: release-checklist-summary.txt\nrelease checklist summary checksum (fnv1a-64): 0x{release_checklist_summary_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\nbackend matrix summary: backend-matrix-summary.txt\nbackend matrix summary checksum (fnv1a-64): 0x{backend_matrix_summary_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\napi stability summary: api-stability-summary.txt\napi stability summary checksum (fnv1a-64): 0x{api_stability_summary_checksum:016x}\nvalidation report summary: validation-report-summary.txt\nvalidation report summary checksum (fnv1a-64): 0x{validation_report_summary_checksum:016x}\nworkspace audit summary: workspace-audit-summary.txt\nworkspace audit summary checksum (fnv1a-64): 0x{workspace_audit_summary_checksum:016x}\nartifact summary: artifact-summary.txt\nartifact summary checksum (fnv1a-64): 0x{artifact_summary_checksum:016x}\npackaged-artifact generation manifest: packaged-artifact-generation-manifest.txt\npackaged-artifact generation manifest checksum (fnv1a-64): 0x{packaged_artifact_generation_manifest_checksum:016x}\nbenchmark report: benchmark-report.txt\nbenchmark report checksum (fnv1a-64): 0x{benchmark_report_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
         provenance.source_revision,
         provenance.workspace_status,
         provenance.rustc_version,
@@ -7178,6 +7195,10 @@ pub fn render_release_bundle(
     let manifest_checksum = checksum64(&manifest_text);
     let manifest_checksum_text = format!("0x{manifest_checksum:016x}\n");
     fs::write(&artifact_summary_path, artifact_summary_text.as_bytes())?;
+    fs::write(
+        &packaged_artifact_generation_manifest_path,
+        packaged_artifact_generation_manifest_text.as_bytes(),
+    )?;
     fs::write(&benchmark_report_path, benchmark_report_text.as_bytes())?;
     fs::write(&report_path, validation_report_text.as_bytes())?;
     fs::write(&manifest_path, manifest_text.as_bytes())?;
@@ -7218,6 +7239,8 @@ struct ParsedReleaseBundleManifest {
     workspace_audit_summary_checksum: u64,
     artifact_summary_path: String,
     artifact_summary_checksum: u64,
+    packaged_artifact_generation_manifest_path: String,
+    packaged_artifact_generation_manifest_checksum: u64,
     benchmark_report_path: String,
     benchmark_report_checksum: u64,
     validation_report_path: String,
@@ -7314,6 +7337,14 @@ impl ParsedReleaseBundleManifest {
                 text,
                 "artifact summary checksum (fnv1a-64):",
             )?,
+            packaged_artifact_generation_manifest_path: parse_manifest_string(
+                text,
+                "packaged-artifact generation manifest:",
+            )?,
+            packaged_artifact_generation_manifest_checksum: parse_manifest_checksum(
+                text,
+                "packaged-artifact generation manifest checksum (fnv1a-64):",
+            )?,
             benchmark_report_path: parse_manifest_string(text, "benchmark report:")?,
             benchmark_report_checksum: parse_manifest_checksum(
                 text,
@@ -7355,6 +7386,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
         "validation-report-summary.txt",
         "workspace-audit-summary.txt",
         "artifact-summary.txt",
+        "packaged-artifact-generation-manifest.txt",
         "benchmark-report.txt",
         "validation-report.txt",
         "bundle-manifest.txt",
@@ -7391,7 +7423,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
 fn ensure_release_bundle_manifest_is_canonical(
     manifest_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    const EXPECTED_MANIFEST_LINES: [&str; 41] = [
+    const EXPECTED_MANIFEST_LINES: [&str; 43] = [
         "Release bundle manifest",
         "profile:",
         "profile checksum (fnv1a-64):",
@@ -7423,6 +7455,8 @@ fn ensure_release_bundle_manifest_is_canonical(
         "workspace audit summary checksum (fnv1a-64):",
         "artifact summary:",
         "artifact summary checksum (fnv1a-64):",
+        "packaged-artifact generation manifest:",
+        "packaged-artifact generation manifest checksum (fnv1a-64):",
         "benchmark report:",
         "benchmark report checksum (fnv1a-64):",
         "validation report:",
@@ -7499,6 +7533,8 @@ fn verify_release_bundle(
     let validation_report_summary_path = output_dir.join("validation-report-summary.txt");
     let workspace_audit_summary_path = output_dir.join("workspace-audit-summary.txt");
     let artifact_summary_path = output_dir.join("artifact-summary.txt");
+    let packaged_artifact_generation_manifest_path =
+        output_dir.join("packaged-artifact-generation-manifest.txt");
     let benchmark_report_path = output_dir.join("benchmark-report.txt");
     let validation_report_path = output_dir.join("validation-report.txt");
     let manifest_path = output_dir.join("bundle-manifest.txt");
@@ -7558,6 +7594,10 @@ fn verify_release_bundle(
         read_required_bundle_text(&workspace_audit_summary_path, "workspace audit summary")?;
     let artifact_summary_text =
         read_required_bundle_text(&artifact_summary_path, "artifact summary")?;
+    let packaged_artifact_generation_manifest_text = read_required_bundle_text(
+        &packaged_artifact_generation_manifest_path,
+        "packaged-artifact generation manifest",
+    )?;
     let benchmark_report_text =
         read_required_bundle_text(&benchmark_report_path, "benchmark report")?;
     let validation_report_text =
@@ -7667,6 +7707,14 @@ fn verify_release_bundle(
             manifest.artifact_summary_path
         )));
     }
+    if manifest.packaged_artifact_generation_manifest_path
+        != "packaged-artifact-generation-manifest.txt"
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected packaged-artifact generation manifest file entry: {}",
+            manifest.packaged_artifact_generation_manifest_path
+        )));
+    }
     if manifest.benchmark_report_path != "benchmark-report.txt" {
         return Err(ReleaseBundleError::Verification(format!(
             "unexpected benchmark report file entry: {}",
@@ -7694,6 +7742,8 @@ fn verify_release_bundle(
     let validation_report_summary_checksum = checksum64(&validation_report_summary_text);
     let workspace_audit_summary_checksum = checksum64(&workspace_audit_summary_text);
     let artifact_summary_checksum = checksum64(&artifact_summary_text);
+    let packaged_artifact_generation_manifest_checksum =
+        checksum64(&packaged_artifact_generation_manifest_text);
     let benchmark_report_checksum = checksum64(&benchmark_report_text);
     let validation_report_checksum = checksum64(&validation_report_text);
     let manifest_checksum = checksum64(&manifest_text);
@@ -7832,6 +7882,15 @@ fn verify_release_bundle(
             manifest.artifact_summary_checksum, artifact_summary_checksum
         )));
     }
+    if manifest.packaged_artifact_generation_manifest_checksum
+        != packaged_artifact_generation_manifest_checksum
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "packaged-artifact generation manifest checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.packaged_artifact_generation_manifest_checksum,
+            packaged_artifact_generation_manifest_checksum
+        )));
+    }
     if manifest.benchmark_report_checksum != benchmark_report_checksum {
         return Err(ReleaseBundleError::Verification(format!(
             "benchmark report checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
@@ -7871,6 +7930,7 @@ fn verify_release_bundle(
         validation_report_summary_path,
         workspace_audit_summary_path,
         artifact_summary_path,
+        packaged_artifact_generation_manifest_path,
         benchmark_report_path,
         validation_report_path,
         manifest_path,
@@ -7890,6 +7950,8 @@ fn verify_release_bundle(
         validation_report_summary_bytes: validation_report_summary_text.len(),
         workspace_audit_summary_bytes: workspace_audit_summary_text.len(),
         artifact_summary_bytes: artifact_summary_text.len(),
+        packaged_artifact_generation_manifest_bytes: packaged_artifact_generation_manifest_text
+            .len(),
         benchmark_report_bytes: benchmark_report_text.len(),
         validation_report_bytes: validation_report_text.len(),
         manifest_checksum_bytes: manifest_checksum_text.len(),
@@ -7908,6 +7970,7 @@ fn verify_release_bundle(
         validation_report_summary_checksum,
         workspace_audit_summary_checksum,
         artifact_summary_checksum,
+        packaged_artifact_generation_manifest_checksum,
         benchmark_report_checksum,
         validation_report_checksum,
         manifest_checksum: manifest_checksum_value,
@@ -13187,7 +13250,7 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = default_corpus().requests.len();
     format!(
-        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  compare-backends-audit    Compare the JPL snapshot against the algorithmic composite backend and fail if the tolerance audit reports regressions\n  backend-matrix            Print the implemented backend capability matrices\n  capability-matrix         Alias for backend-matrix\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  matrix-summary            Alias for backend-matrix-summary\n  compatibility-profile     Print the release compatibility profile\n  profile                   Alias for compatibility-profile\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus and full chart assembly on representative house scenarios\n  comparison-corpus-summary  Print the compact release-grade comparison corpus summary\n  benchmark-corpus-summary  Print the compact representative benchmark corpus summary\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validation-report-summary [--rounds N]  Render a compact validation report summary\n  report-summary [--rounds N]  Alias for validation-report-summary\n  validation-summary        Alias for validation-report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  regenerate-packaged-artifact  Rebuild or verify the packaged artifact fixture from the checked-in reference snapshot; pass a file path, --out FILE, or --check\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  artifact-profile-coverage-summary  Print the packaged-artifact profile coverage summary\n  packaged-artifact-output-support-summary  Print the packaged-artifact output support summary\n  packaged-artifact-production-profile-summary  Print the packaged-artifact production profile skeleton summary\n  packaged-artifact-generation-manifest-summary  Print the packaged-artifact generation manifest summary\n  packaged-artifact-generation-policy-summary  Print the packaged-artifact generation policy summary\n  packaged-artifact-generation-residual-bodies-summary  Print the packaged-artifact generation residual bodies summary\n  packaged-lookup-epoch-policy-summary  Print the packaged lookup epoch policy summary\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  native-dependency-audit   Alias for workspace-audit\n  workspace-audit-summary   Print the compact workspace audit summary\n  native-dependency-audit-summary  Alias for workspace-audit-summary\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  jpl-batch-error-taxonomy-summary  Print the compact JPL batch error taxonomy summary\n  production-generation-boundary-summary  Print the compact production-generation boundary overlay summary\n  production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary\n  production-generation-body-class-coverage-summary  Print the compact production-generation body-class coverage summary\n  production-generation-source-window-summary  Print the compact production-generation source windows summary\n  comparison-snapshot-source-window-summary  Print the compact comparison snapshot source windows summary\n  comparison-snapshot-body-class-coverage-summary  Print the compact comparison snapshot body-class coverage summary\n  comparison-snapshot-manifest-summary  Print the compact comparison snapshot manifest summary\n  comparison-snapshot-summary  Print the compact comparison snapshot summary\n  comparison-snapshot-batch-parity-summary  Print the compact comparison snapshot batch parity summary\n  reference-snapshot-source-window-summary  Print the compact reference snapshot source windows summary\n  reference-snapshot-lunar-boundary-summary  Print the compact reference lunar boundary evidence summary\n  reference-snapshot-body-class-coverage-summary  Print the compact reference snapshot body-class coverage summary\n  reference-snapshot-manifest-summary  Print the compact reference snapshot manifest summary\n  reference-snapshot-summary  Print the compact reference snapshot summary\n  reference-snapshot-batch-parity-summary  Print the compact reference snapshot batch parity summary\n  reference-snapshot-equatorial-parity-summary  Print the compact reference snapshot equatorial parity summary\n  reference-high-curvature-summary  Print the compact reference major-body high-curvature evidence summary\n  reference-high-curvature-window-summary  Print the compact reference major-body high-curvature windows summary\n  source-documentation-summary  Print the compact VSOP87 source-documentation summary\n  source-documentation-health-summary  Print the compact VSOP87 source-documentation health summary\n  time-scale-policy-summary  Print the compact time-scale policy summary\n  delta-t-policy-summary   Print the compact Delta T policy summary\n  observer-policy-summary  Print the compact observer policy summary\n  apparentness-policy-summary  Print the compact apparentness policy summary\n  interpolation-posture-summary  Print the compact JPL interpolation posture summary\n  interpolation-quality-summary  Print the compact JPL interpolation quality summary\n  lunar-reference-error-envelope-summary  Print the compact lunar reference error envelope summary\n  lunar-equatorial-reference-error-envelope-summary  Print the compact lunar equatorial reference error envelope summary\n  lunar-apparent-comparison-summary  Print the compact lunar apparent comparison summary\n  lunar-source-window-summary  Print the compact lunar source windows summary\n  lunar-theory-summary      Print the compact ELP lunar theory specification\n  lunar-theory-capability-summary  Print the compact ELP lunar capability summary\n  lunar-theory-source-summary  Print the compact ELP lunar source summary\n  selected-asteroid-boundary-summary  Print the compact selected-asteroid boundary evidence summary\n  selected-asteroid-source-window-summary  Print the compact selected-asteroid source windows summary\n  selected-asteroid-batch-parity-summary  Print the compact selected-asteroid batch-parity summary\n  reference-asteroid-evidence-summary  Print the compact reference asteroid evidence summary\n  reference-asteroid-equatorial-evidence-summary  Print the compact reference asteroid equatorial evidence summary\n  reference-asteroid-source-window-summary  Print the compact reference asteroid source windows summary\n  reference-holdout-overlap-summary  Print the compact reference/hold-out overlap summary\n  independent-holdout-source-window-summary  Print the compact independent hold-out source windows summary\n  independent-holdout-body-class-coverage-summary  Print the compact independent hold-out body-class coverage summary\n  independent-holdout-batch-parity-summary  Print the compact independent hold-out batch parity summary\n  independent-holdout-equatorial-parity-summary  Print the compact independent hold-out equatorial parity summary\n  house-validation-summary   Print the compact house-validation corpus summary\n  ayanamsa-catalog-validation-summary  Print the compact ayanamsa catalog validation summary\n  ayanamsa-metadata-coverage-summary  Print the compact ayanamsa sidereal metadata coverage summary\n  ayanamsa-reference-offsets-summary  Print the compact ayanamsa reference offsets summary\n  frame-policy-summary      Print the compact frame-policy summary\n  release-profile-identifiers-summary  Print the compact release-profile identifiers summary\n  request-policy-summary    Print the compact request-policy summary\n  request-semantics-summary Alias for request-policy-summary\n  comparison-tolerance-policy-summary  Print the compact comparison tolerance policy summary\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release-profile identifiers, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API stability summary, validation report summary, workspace audit summary, artifact summary, benchmark report, validation report, manifest, and manifest checksum sidecar\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  compare-backends-audit    Compare the JPL snapshot against the algorithmic composite backend and fail if the tolerance audit reports regressions\n  backend-matrix            Print the implemented backend capability matrices\n  capability-matrix         Alias for backend-matrix\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  matrix-summary            Alias for backend-matrix-summary\n  compatibility-profile     Print the release compatibility profile\n  profile                   Alias for compatibility-profile\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus and full chart assembly on representative house scenarios\n  comparison-corpus-summary  Print the compact release-grade comparison corpus summary\n  benchmark-corpus-summary  Print the compact representative benchmark corpus summary\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validation-report-summary [--rounds N]  Render a compact validation report summary\n  report-summary [--rounds N]  Alias for validation-report-summary\n  validation-summary        Alias for validation-report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  regenerate-packaged-artifact  Rebuild or verify the packaged artifact fixture from the checked-in reference snapshot; pass a file path, --out FILE, or --check\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  artifact-profile-coverage-summary  Print the packaged-artifact profile coverage summary\n  packaged-artifact-output-support-summary  Print the packaged-artifact output support summary\n  packaged-artifact-production-profile-summary  Print the packaged-artifact production profile skeleton summary\n  packaged-artifact-generation-manifest-summary  Print the packaged-artifact generation manifest summary\n  packaged-artifact-generation-policy-summary  Print the packaged-artifact generation policy summary\n  packaged-artifact-generation-residual-bodies-summary  Print the packaged-artifact generation residual bodies summary\n  packaged-lookup-epoch-policy-summary  Print the packaged lookup epoch policy summary\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  native-dependency-audit   Alias for workspace-audit\n  workspace-audit-summary   Print the compact workspace audit summary\n  native-dependency-audit-summary  Alias for workspace-audit-summary\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  jpl-batch-error-taxonomy-summary  Print the compact JPL batch error taxonomy summary\n  production-generation-boundary-summary  Print the compact production-generation boundary overlay summary\n  production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary\n  production-generation-body-class-coverage-summary  Print the compact production-generation body-class coverage summary\n  production-generation-source-window-summary  Print the compact production-generation source windows summary\n  comparison-snapshot-source-window-summary  Print the compact comparison snapshot source windows summary\n  comparison-snapshot-body-class-coverage-summary  Print the compact comparison snapshot body-class coverage summary\n  comparison-snapshot-manifest-summary  Print the compact comparison snapshot manifest summary\n  comparison-snapshot-summary  Print the compact comparison snapshot summary\n  comparison-snapshot-batch-parity-summary  Print the compact comparison snapshot batch parity summary\n  reference-snapshot-source-window-summary  Print the compact reference snapshot source windows summary\n  reference-snapshot-lunar-boundary-summary  Print the compact reference lunar boundary evidence summary\n  reference-snapshot-body-class-coverage-summary  Print the compact reference snapshot body-class coverage summary\n  reference-snapshot-manifest-summary  Print the compact reference snapshot manifest summary\n  reference-snapshot-summary  Print the compact reference snapshot summary\n  reference-snapshot-batch-parity-summary  Print the compact reference snapshot batch parity summary\n  reference-snapshot-equatorial-parity-summary  Print the compact reference snapshot equatorial parity summary\n  reference-high-curvature-summary  Print the compact reference major-body high-curvature evidence summary\n  reference-high-curvature-window-summary  Print the compact reference major-body high-curvature windows summary\n  source-documentation-summary  Print the compact VSOP87 source-documentation summary\n  source-documentation-health-summary  Print the compact VSOP87 source-documentation health summary\n  time-scale-policy-summary  Print the compact time-scale policy summary\n  delta-t-policy-summary   Print the compact Delta T policy summary\n  observer-policy-summary  Print the compact observer policy summary\n  apparentness-policy-summary  Print the compact apparentness policy summary\n  interpolation-posture-summary  Print the compact JPL interpolation posture summary\n  interpolation-quality-summary  Print the compact JPL interpolation quality summary\n  lunar-reference-error-envelope-summary  Print the compact lunar reference error envelope summary\n  lunar-equatorial-reference-error-envelope-summary  Print the compact lunar equatorial reference error envelope summary\n  lunar-apparent-comparison-summary  Print the compact lunar apparent comparison summary\n  lunar-source-window-summary  Print the compact lunar source windows summary\n  lunar-theory-summary      Print the compact ELP lunar theory specification\n  lunar-theory-capability-summary  Print the compact ELP lunar capability summary\n  lunar-theory-source-summary  Print the compact ELP lunar source summary\n  selected-asteroid-boundary-summary  Print the compact selected-asteroid boundary evidence summary\n  selected-asteroid-source-window-summary  Print the compact selected-asteroid source windows summary\n  selected-asteroid-batch-parity-summary  Print the compact selected-asteroid batch-parity summary\n  reference-asteroid-evidence-summary  Print the compact reference asteroid evidence summary\n  reference-asteroid-equatorial-evidence-summary  Print the compact reference asteroid equatorial evidence summary\n  reference-asteroid-source-window-summary  Print the compact reference asteroid source windows summary\n  reference-holdout-overlap-summary  Print the compact reference/hold-out overlap summary\n  independent-holdout-source-window-summary  Print the compact independent hold-out source windows summary\n  independent-holdout-body-class-coverage-summary  Print the compact independent hold-out body-class coverage summary\n  independent-holdout-batch-parity-summary  Print the compact independent hold-out batch parity summary\n  independent-holdout-equatorial-parity-summary  Print the compact independent hold-out equatorial parity summary\n  house-validation-summary   Print the compact house-validation corpus summary\n  ayanamsa-catalog-validation-summary  Print the compact ayanamsa catalog validation summary\n  ayanamsa-metadata-coverage-summary  Print the compact ayanamsa sidereal metadata coverage summary\n  ayanamsa-reference-offsets-summary  Print the compact ayanamsa reference offsets summary\n  frame-policy-summary      Print the compact frame-policy summary\n  release-profile-identifiers-summary  Print the compact release-profile identifiers summary\n  request-policy-summary    Print the compact request-policy summary\n  request-semantics-summary Alias for request-policy-summary\n  comparison-tolerance-policy-summary  Print the compact comparison tolerance policy summary\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release-profile identifiers, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API stability summary, validation report summary, workspace audit summary, artifact summary, packaged-artifact generation manifest, benchmark report, validation report, manifest, and manifest checksum sidecar\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
@@ -17970,6 +18033,9 @@ version = "0.9.0"
         assert!(rendered.contains("validation-report-summary.txt"));
         assert!(rendered.contains("workspace-audit-summary.txt"));
         assert!(rendered.contains("artifact-summary.txt"));
+        assert!(bundle_dir
+            .join("packaged-artifact-generation-manifest.txt")
+            .exists());
         assert!(rendered.contains("benchmark-report.txt"));
         assert!(rendered.contains("validation-report.txt"));
         assert!(rendered.contains("release-profile-identifiers.txt"));
@@ -18017,6 +18083,9 @@ version = "0.9.0"
                 .expect("workspace audit summary should be written");
         let artifact_summary = std::fs::read_to_string(bundle_dir.join("artifact-summary.txt"))
             .expect("artifact summary should be written");
+        let packaged_artifact_generation_manifest =
+            std::fs::read_to_string(bundle_dir.join("packaged-artifact-generation-manifest.txt"))
+                .expect("packaged artifact generation manifest should be written");
         let compatibility_profile = current_compatibility_profile();
         let house_code_aliases_summary = compatibility_profile.house_code_aliases_summary_line();
         let benchmark_report = std::fs::read_to_string(bundle_dir.join("benchmark-report.txt"))
@@ -18359,6 +18428,8 @@ version = "0.9.0"
             .lines()
             .any(|line| line == "Release notes summary: release-notes-summary"));
         assert!(artifact_summary.contains("Artifact summary"));
+        assert!(packaged_artifact_generation_manifest
+            .contains("Packaged artifact generation manifest:"));
         assert!(artifact_summary.contains("residual-bearing segments: 6"));
         assert!(artifact_summary.contains("residual-bearing bodies: Moon"));
         assert!(artifact_summary.contains("Body classes: luminaries=2; major planets=8; lunar points=0; built-in asteroids=0; custom bodies=1; other bodies=0"));
@@ -18643,6 +18714,7 @@ version = "0.9.0"
         assert!(manifest.contains("api-stability-summary.txt"));
         assert!(manifest.contains("validation-report-summary.txt"));
         assert!(manifest.contains("artifact-summary.txt"));
+        assert!(manifest.contains("packaged-artifact-generation-manifest.txt"));
         assert!(manifest.contains("benchmark-report.txt"));
         assert!(manifest.contains("validation-report.txt"));
         assert!(!manifest.contains("bundle-manifest.checksum.txt"));
