@@ -2090,6 +2090,7 @@ mod tests {
         assert!(validation_report_summary
             .contains("Release checklist summary: release-checklist-summary"));
         assert!(validation_report_summary.contains("Release summary: release-summary"));
+        assert!(validation_report_summary.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto fallback (approximate)); limits="));
         assert!(validation_report_summary.lines().any(|line| {
             line == format!(
                 "Release profile identifiers: v1 compatibility={}, api-stability={}",

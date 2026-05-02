@@ -10148,6 +10148,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     );
     let _ = writeln!(
         text,
+        "Comparison tolerance policy: {}",
+        format_comparison_tolerance_policy_for_report(&report.comparison)
+    );
+    let _ = writeln!(
+        text,
         "Comparison audit: {}",
         comparison_audit_summary_for_report(&report.comparison)
     );
@@ -14978,6 +14983,7 @@ mod tests {
         assert!(validation_report_summary.contains("margin Δlon="));
         assert!(validation_report_summary.contains("margin Δdist="));
         assert!(validation_report_summary.contains("Chart benchmark"));
+        assert!(validation_report_summary.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto fallback (approximate)); limits="));
         assert!(validation_report_summary.contains("Comparison tolerance audit"));
         assert!(validation_report_summary.contains("command: compare-backends-audit"));
         assert!(validation_report_summary.contains("status: clean"));
