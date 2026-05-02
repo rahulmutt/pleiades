@@ -76,7 +76,7 @@ The lunar source-window summary slice is now complete in both the validation ren
 
 **Work items:**
 
-- Add golden/reference offsets for baseline and representative release-specific entries.
+- Expand golden/reference offsets for baseline and representative release-specific entries; Lahiri (ICRC) and Lahiri (1940) are now in the sample set, and more release-specific anchors can be added if the catalog audit needs them.
 - Classify custom-definition-only entries explicitly.
 - Verify alias uniqueness and compatibility-profile labels.
 - Keep sidereal conversion deterministic and domain-layer owned.

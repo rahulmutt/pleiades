@@ -5727,6 +5727,8 @@ fn summarize_ayanamsa_reference_offsets() -> Result<AyanamsaReferenceOffsetsSumm
 {
     let samples = [
         pleiades_core::Ayanamsa::Lahiri,
+        pleiades_core::Ayanamsa::LahiriIcrc,
+        pleiades_core::Ayanamsa::Lahiri1940,
         pleiades_core::Ayanamsa::Raman,
         pleiades_core::Ayanamsa::Krishnamurti,
         pleiades_core::Ayanamsa::FaganBradley,
@@ -16186,6 +16188,8 @@ mod tests {
             rendered.contains("Ayanamsa reference offsets: representative zero-point examples:")
         );
         assert!(rendered.contains("Lahiri: epoch=JD 2435553.5; offset=23.245524743°"));
+        assert!(rendered.contains("Lahiri (ICRC): epoch=JD 2435553.5; offset=23.25°"));
+        assert!(rendered.contains("Lahiri (1940): epoch=JD 2415020; offset=22.445972222222224°"));
         assert!(rendered.contains("Raman: epoch=JD 2415020; offset=21.01444°"));
         assert!(rendered.contains("Krishnamurti: epoch=JD 2415020; offset=22.363889°"));
         assert!(rendered.contains("Fagan/Bradley: epoch=JD 2433282.42346; offset=24.042044444°"));
@@ -16229,6 +16233,8 @@ mod tests {
             rendered.contains("Ayanamsa reference offsets: representative zero-point examples:")
         );
         assert!(rendered.contains("Lahiri: epoch=JD 2435553.5; offset=23.245524743°"));
+        assert!(rendered.contains("Lahiri (ICRC): epoch=JD 2435553.5; offset=23.25°"));
+        assert!(rendered.contains("Lahiri (1940): epoch=JD 2415020; offset=22.445972222222224°"));
         assert!(rendered.contains("Raman: epoch=JD 2415020; offset=21.01444°"));
         assert!(rendered.contains("Krishnamurti: epoch=JD 2415020; offset=22.363889°"));
         assert!(rendered.contains("Fagan/Bradley: epoch=JD 2433282.42346; offset=24.042044444°"));
@@ -17454,6 +17460,8 @@ mod tests {
             rendered.contains("Ayanamsa reference offsets: representative zero-point examples:")
         );
         assert!(rendered.contains("Lahiri: epoch=JD 2435553.5; offset=23.245524743°"));
+        assert!(rendered.contains("Lahiri (ICRC): epoch=JD 2435553.5; offset=23.25°"));
+        assert!(rendered.contains("Lahiri (1940): epoch=JD 2415020; offset=22.445972222222224°"));
         assert!(rendered.contains("Raman: epoch=JD 2415020; offset=21.01444°"));
         assert!(rendered.contains("Krishnamurti: epoch=JD 2415020; offset=22.363889°"));
         assert!(rendered.contains("Fagan/Bradley: epoch=JD 2433282.42346; offset=24.042044444°"));

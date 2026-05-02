@@ -1250,6 +1250,7 @@ mod tests {
         assert!(rendered.contains("Lahiri (VP285)"));
         assert!(rendered.contains("Krishnamurti (VP291)"));
         assert!(rendered.contains("Lahiri (ICRC)"));
+        assert!(rendered.contains("Lahiri (1940)"));
         assert!(rendered.contains("Udayagiri"));
         assert!(rendered.contains("Valens Moon"));
         assert!(rendered.contains("Babylonian (House Obs)"));
@@ -1951,6 +1952,10 @@ mod tests {
                 .expect("ayanamsa reference offsets summary should render");
         assert!(ayanamsa_reference_offsets_summary
             .contains("Ayanamsa reference offsets: representative zero-point examples:"));
+        assert!(ayanamsa_reference_offsets_summary
+            .contains("Lahiri (ICRC): epoch=JD 2435553.5; offset=23.25°"));
+        assert!(ayanamsa_reference_offsets_summary
+            .contains("Lahiri (1940): epoch=JD 2415020; offset=22.445972222222224°"));
         assert!(ayanamsa_reference_offsets_summary
             .contains("Galactic Equator (Fiorenza): epoch=JD 2451544.5; offset=25°"));
         assert_eq!(
