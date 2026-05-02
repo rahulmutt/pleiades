@@ -15219,7 +15219,7 @@ mod tests {
         assert!(rendered.contains("selected asteroid coverage"));
         assert!(rendered.contains("WvA"));
         assert!(rendered.contains("Selected asteroid evidence: 5 exact J2000 samples"));
-        assert!(rendered.contains("Reference snapshot coverage: 115 rows across 15 bodies and 13 epochs (25 asteroid rows; JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
+        assert!(rendered.contains("Reference snapshot coverage: 115 rows across 15 bodies and 12 epochs (25 asteroid rows; JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
         assert!(rendered.contains("Reference snapshot body-class coverage: major bodies: 90 rows across 10 bodies and 11 epochs; major windows: "));
         assert!(rendered.contains(
             "selected asteroids: 25 rows across 5 bodies and 5 epochs; asteroid windows: "
@@ -16259,7 +16259,7 @@ mod tests {
             "Release profile identifiers: v1 compatibility={}, api-stability={}",
             release_profiles.compatibility_profile_id, release_profiles.api_stability_profile_id
         )));
-        assert!(rendered.contains("Reference snapshot coverage: 115 rows across 15 bodies and 13 epochs (25 asteroid rows; JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
+        assert!(rendered.contains("Reference snapshot coverage: 115 rows across 15 bodies and 12 epochs (25 asteroid rows; JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
         assert_report_contains_exact_line(
             &rendered,
             "  Comparison snapshot coverage: 80 rows across 10 bodies and 10 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto",
@@ -16865,7 +16865,7 @@ mod tests {
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(rendered.contains("API stability summary: api-stability-summary"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
-        assert!(rendered.contains("Reference snapshot coverage: 115 rows across 15 bodies and 13 epochs (25 asteroid rows; JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
+        assert!(rendered.contains("Reference snapshot coverage: 115 rows across 15 bodies and 12 epochs (25 asteroid rows; JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
         assert!(rendered.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_high_curvature_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_high_curvature_window_summary_for_report()));
@@ -17370,10 +17370,10 @@ version = "0.9.0"
         }));
         assert!(release_summary.contains("JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"));
         assert!(release_summary.contains(
-            "JPL reference snapshot equatorial parity: 115 rows across 15 bodies and 13 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
+            "JPL reference snapshot equatorial parity: 115 rows across 15 bodies and 12 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
         ));
         assert!(release_summary.contains(
-            "JPL reference snapshot batch parity: 115 rows across 15 bodies and 13 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
+            "JPL reference snapshot batch parity: 115 rows across 15 bodies and 12 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
         ));
         assert!(release_summary.contains("JPL production-generation coverage:"));
         assert!(release_summary.contains("JPL production-generation source windows:"));
@@ -17588,7 +17588,7 @@ version = "0.9.0"
         assert!(backend_matrix_summary.contains("Algorithmic: 2"));
         assert!(backend_matrix_summary.contains("Composite: 1"));
         assert!(backend_matrix_summary.contains(
-            "JPL reference snapshot equatorial parity: 115 rows across 15 bodies and 13 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
+            "JPL reference snapshot equatorial parity: 115 rows across 15 bodies and 12 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
         ));
         assert!(backend_matrix_summary
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));

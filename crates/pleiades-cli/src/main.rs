@@ -129,7 +129,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
 
 fn help_text() -> String {
     format!(
-        "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary        Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  bundle-release         Write the staged release bundle, benchmark report, and manifest files\n  verify-release-bundle  Read a staged release bundle back and verify its manifest checksums\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  api-stability-summary  Print the compact API stability summary\n  api-posture-summary    Alias for api-stability-summary\n  compare-backends       Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix         Print the implemented backend capability matrices\n  capability-matrix      Alias for backend-matrix\n  backend-matrix-summary Print the compact backend capability matrix summary\n  matrix-summary         Alias for backend-matrix-summary\n  release-notes          Print the release compatibility notes\n  release-notes-summary   Print the compact release notes summary\n  release-checklist      Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary      Alias for release-checklist-summary\n  release-summary        Print the compact release summary\n  artifact-summary       Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  validate-artifact      Inspect and validate the bundled compressed artifact\n  regenerate-packaged-artifact  Rebuild or verify the packaged artifact fixture from the checked-in reference snapshot; pass a file path, --out FILE, or --check\n  workspace-audit        Check the workspace for mandatory native build hooks\n  audit                  Alias for workspace-audit\n  report                 Print the full validation report\n  generate-report        Alias for report\n  validation-report-summary  Print the compact validation report summary\n  validation-summary     Alias for validation-report-summary\n  report-summary         Alias for validation-report-summary\n  chart                  Render a basic chart report\n    --tt|--tdb|--utc|--ut1  Tag the chart instant with a time scale\n    --tt-offset-seconds <seconds>  Caller-supplied TT offset for UTC/UT1-tagged instants\n    --tt-from-utc-offset-seconds <seconds>  Alias for --tt-offset-seconds when the chart instant is tagged as UTC\n    --tt-from-ut1-offset-seconds <seconds>  Alias for --tt-offset-seconds when the chart instant is tagged as UT1\n    --tdb-offset-seconds <seconds> Caller-supplied signed TDB-TT offset for TT/UTC/UT1-tagged instants\n    --tdb-from-tt-offset-seconds <seconds> Caller-supplied signed TDB-TT offset for TT-tagged instants\n    --tt-from-tdb-offset-seconds <seconds> Caller-supplied signed TT-TDB offset for TDB-tagged instants\n    --mean               Force mean positions for backend queries\n    --apparent           Force apparent positions for backend queries\n    --body <name>        Use a built-in body or a custom catalog:designation identifier\n  {}\n  help                   Show this help text",
+        "{}\n\nCommands:\n  compatibility-profile  Print the release compatibility profile\n  profile                Alias for compatibility-profile\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary        Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  bundle-release         Write the staged release bundle, benchmark report, and manifest files\n  verify-release-bundle  Read a staged release bundle back and verify its manifest checksums\n  api-stability          Print the release API stability posture\n  api-posture            Alias for api-stability\n  api-stability-summary  Print the compact API stability summary\n  api-posture-summary    Alias for api-stability-summary\n  compare-backends       Compare the JPL snapshot against the algorithmic composite backend\n  backend-matrix         Print the implemented backend capability matrices\n  capability-matrix      Alias for backend-matrix\n  backend-matrix-summary Print the compact backend capability matrix summary\n  matrix-summary         Alias for backend-matrix-summary\n  release-notes          Print the release compatibility notes\n  release-notes-summary   Print the compact release notes summary\n  release-checklist      Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary      Alias for release-checklist-summary\n  release-summary        Print the compact release summary\n  artifact-summary       Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  validate-artifact      Inspect and validate the bundled compressed artifact\n  regenerate-packaged-artifact  Rebuild or verify the packaged artifact fixture from the checked-in reference snapshot; pass a file path, --out FILE, or --check\n  workspace-audit        Check the workspace for mandatory native build hooks\n  audit                  Alias for workspace-audit\n  report                 Print the full validation report\n  generate-report        Alias for report\n  validation-report-summary  Print the compact validation report summary\n  validation-summary     Alias for validation-report-summary\n  report-summary         Alias for validation-report-summary\n  chart                  Render a basic chart report\n    --tt|--tdb|--utc|--ut1  Tag the chart instant with a time scale\n    --tt-offset-seconds <seconds>  Caller-supplied TT offset for UTC/UT1-tagged instants\n    --tt-from-utc-offset-seconds <seconds>  Alias for --tt-offset-seconds when the chart instant is tagged as UTC\n    --tt-from-ut1-offset-seconds <seconds>  Alias for --tt-offset-seconds when the chart instant is tagged as UT1\n    --tdb-offset-seconds <seconds> Caller-supplied signed TDB-TT offset for TT/UTC/UT1-tagged instants\n    --tdb-from-utc-offset-seconds <seconds> Explicit UTC-tagged alias for the signed TDB-TT offset\n    --tdb-from-ut1-offset-seconds <seconds> Explicit UT1-tagged alias for the signed TDB-TT offset\n    --tdb-from-tt-offset-seconds <seconds> Caller-supplied signed TDB-TT offset for TT-tagged instants\n    --tt-from-tdb-offset-seconds <seconds> Caller-supplied signed TT-TDB offset for TDB-tagged instants\n    --mean               Force mean positions for backend queries\n    --apparent           Force apparent positions for backend queries\n    --body <name>        Use a built-in body or a custom catalog:designation identifier\n  {}\n  help                   Show this help text",
         banner(),
         shared_request_policy_help_block(),
     )
@@ -145,6 +145,8 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
     let mut time_scale_explicit = false;
     let mut tt_offset_seconds: Option<f64> = None;
     let mut tdb_offset_seconds: Option<f64> = None;
+    let mut tdb_from_utc_offset_seconds: Option<f64> = None;
+    let mut tdb_from_ut1_offset_seconds: Option<f64> = None;
     let mut tdb_from_tt_offset_seconds: Option<f64> = None;
     let mut apparentness = Apparentness::Mean;
     let mut apparentness_explicit = false;
@@ -226,19 +228,59 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
                 tt_offset_seconds = Some(parse_seconds(iter.next(), "--tt-offset-seconds")?);
             }
             "--tdb-offset-seconds" => {
-                if tdb_offset_seconds.is_some() || tdb_from_tt_offset_seconds.is_some() {
+                if tdb_offset_seconds.is_some()
+                    || tdb_from_utc_offset_seconds.is_some()
+                    || tdb_from_ut1_offset_seconds.is_some()
+                    || tdb_from_tt_offset_seconds.is_some()
+                {
                     return Err(
-                        "conflicting TDB-TT offset flags: use either --tdb-offset-seconds or --tdb-from-tt-offset-seconds"
+                        "conflicting TDB-TT offset flags: use only one of --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, or --tdb-from-tt-offset-seconds"
                             .to_string(),
                     );
                 }
                 tdb_offset_seconds =
                     Some(parse_signed_seconds(iter.next(), "--tdb-offset-seconds")?);
             }
-            "--tdb-from-tt-offset-seconds" => {
-                if tdb_offset_seconds.is_some() || tdb_from_tt_offset_seconds.is_some() {
+            "--tdb-from-utc-offset-seconds" => {
+                if tdb_offset_seconds.is_some()
+                    || tdb_from_utc_offset_seconds.is_some()
+                    || tdb_from_ut1_offset_seconds.is_some()
+                    || tdb_from_tt_offset_seconds.is_some()
+                {
                     return Err(
-                        "conflicting TDB-TT offset flags: use either --tdb-offset-seconds or --tdb-from-tt-offset-seconds"
+                        "conflicting TDB-TT offset flags: use only one of --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, or --tdb-from-tt-offset-seconds"
+                            .to_string(),
+                    );
+                }
+                tdb_from_utc_offset_seconds = Some(parse_signed_seconds(
+                    iter.next(),
+                    "--tdb-from-utc-offset-seconds",
+                )?);
+            }
+            "--tdb-from-ut1-offset-seconds" => {
+                if tdb_offset_seconds.is_some()
+                    || tdb_from_utc_offset_seconds.is_some()
+                    || tdb_from_ut1_offset_seconds.is_some()
+                    || tdb_from_tt_offset_seconds.is_some()
+                {
+                    return Err(
+                        "conflicting TDB-TT offset flags: use only one of --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, or --tdb-from-tt-offset-seconds"
+                            .to_string(),
+                    );
+                }
+                tdb_from_ut1_offset_seconds = Some(parse_signed_seconds(
+                    iter.next(),
+                    "--tdb-from-ut1-offset-seconds",
+                )?);
+            }
+            "--tdb-from-tt-offset-seconds" => {
+                if tdb_offset_seconds.is_some()
+                    || tdb_from_utc_offset_seconds.is_some()
+                    || tdb_from_ut1_offset_seconds.is_some()
+                    || tdb_from_tt_offset_seconds.is_some()
+                {
+                    return Err(
+                        "conflicting TDB-TT offset flags: use only one of --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, or --tdb-from-tt-offset-seconds"
                             .to_string(),
                     );
                 }
@@ -295,7 +337,7 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
             }
             "--help" | "-h" => {
                 return Ok(format!(
-                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--tt|--tdb|--utc|--ut1] [--tt-offset-seconds <seconds>|--tt-from-utc-offset-seconds <seconds>|--tt-from-ut1-offset-seconds <seconds>] [--tdb-offset-seconds <seconds>] [--tdb-from-tt-offset-seconds <seconds>] [--tt-from-tdb-offset-seconds <seconds>] [--mean|--apparent] [--ayanamsa <name>] [--house-system <name>] [--body <name> ...]\n\nAyanamsa names may be built-in entries or custom definitions in the form custom:<name>|<epoch-jd>|<offset-degrees> (or custom-definition:<name>|<epoch-jd>|<offset-degrees>). Body names may be built-in bodies such as Sun or Moon, or custom identifiers in the form catalog:designation. When the chart instant is tagged as UTC or UT1, the caller must also supply the explicit TT offset before chart assembly, either via --tt-offset-seconds or the more explicit --tt-from-utc-offset-seconds / --tt-from-ut1-offset-seconds aliases, and may also supply a signed TDB-TT offset when converting to TDB. When the chart instant is tagged as TT, the caller may supply that signed TDB-TT offset via --tdb-offset-seconds or the more explicit --tdb-from-tt-offset-seconds alias. When the chart instant is tagged as TDB, the caller may supply a signed TT-TDB offset to re-tag the request as TT before assembly.\n\n{}\n",
+                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--tt|--tdb|--utc|--ut1] [--tt-offset-seconds <seconds>|--tt-from-utc-offset-seconds <seconds>|--tt-from-ut1-offset-seconds <seconds>] [--tdb-offset-seconds <seconds>|--tdb-from-utc-offset-seconds <seconds>|--tdb-from-ut1-offset-seconds <seconds>] [--tdb-from-tt-offset-seconds <seconds>] [--tt-from-tdb-offset-seconds <seconds>] [--mean|--apparent] [--ayanamsa <name>] [--house-system <name>] [--body <name> ...]\n\nAyanamsa names may be built-in entries or custom definitions in the form custom:<name>|<epoch-jd>|<offset-degrees> (or custom-definition:<name>|<epoch-jd>|<offset-degrees>). Body names may be built-in bodies such as Sun or Moon, or custom identifiers in the form catalog:designation. When the chart instant is tagged as UTC or UT1, the caller must also supply the explicit TT offset before chart assembly, either via --tt-offset-seconds or the more explicit --tt-from-utc-offset-seconds / --tt-from-ut1-offset-seconds aliases, and may also supply a signed TDB-TT offset when converting to TDB, either via --tdb-offset-seconds or the more explicit UTC/UT1 aliases. When the chart instant is tagged as TT, the caller may supply that signed TDB-TT offset via --tdb-offset-seconds or the more explicit --tdb-from-tt-offset-seconds alias. When the chart instant is tagged as TDB, the caller may supply a signed TT-TDB offset to re-tag the request as TT before assembly.\n\n{}\n",
                     banner(),
                     shared_request_policy_help_block()
                 ));
@@ -308,10 +350,14 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
     let instant = build_chart_instant(
         jd,
         time_scale,
-        tt_offset_seconds,
-        tdb_offset_seconds,
-        tdb_from_tt_offset_seconds,
-        tt_from_tdb_offset_seconds,
+        ChartInstantConversionFlags {
+            tt_offset_seconds,
+            tdb_offset_seconds,
+            tdb_from_utc_offset_seconds,
+            tdb_from_ut1_offset_seconds,
+            tdb_from_tt_offset_seconds,
+            tt_from_tdb_offset_seconds,
+        },
     )?;
     let observer = match (lat, lon) {
         (Some(lat), Some(lon)) => Some(ObserverLocation::new(
@@ -471,32 +517,64 @@ fn parse_signed_seconds(value: Option<&str>, flag: &str) -> Result<f64, String> 
     Ok(seconds)
 }
 
+#[derive(Clone, Copy, Debug, Default)]
+struct ChartInstantConversionFlags {
+    tt_offset_seconds: Option<f64>,
+    tdb_offset_seconds: Option<f64>,
+    tdb_from_utc_offset_seconds: Option<f64>,
+    tdb_from_ut1_offset_seconds: Option<f64>,
+    tdb_from_tt_offset_seconds: Option<f64>,
+    tt_from_tdb_offset_seconds: Option<f64>,
+}
+
 fn build_chart_instant(
     jd: f64,
     time_scale: TimeScale,
-    tt_offset_seconds: Option<f64>,
-    tdb_offset_seconds: Option<f64>,
-    tdb_from_tt_offset_seconds: Option<f64>,
-    tt_from_tdb_offset_seconds: Option<f64>,
+    flags: ChartInstantConversionFlags,
 ) -> Result<Instant, String> {
     let instant = Instant::new(JulianDay::from_days(jd), time_scale);
-    let tt_offset = tt_offset_seconds.map(Duration::from_secs_f64);
-    let tdb_offset = tdb_offset_seconds;
-    let tdb_from_tt_offset = tdb_from_tt_offset_seconds;
-    let tt_from_tdb_offset = tt_from_tdb_offset_seconds;
+    let tt_offset = flags.tt_offset_seconds.map(Duration::from_secs_f64);
+    let tdb_offset = flags.tdb_offset_seconds;
+    let tdb_from_utc_offset = flags.tdb_from_utc_offset_seconds;
+    let tdb_from_ut1_offset = flags.tdb_from_ut1_offset_seconds;
+    let tdb_from_tt_offset = flags.tdb_from_tt_offset_seconds;
+    let tt_from_tdb_offset = flags.tt_from_tdb_offset_seconds;
 
-    if tdb_offset.is_some() && tdb_from_tt_offset.is_some() {
+    if tdb_offset.is_some()
+        && (tdb_from_utc_offset.is_some()
+            || tdb_from_ut1_offset.is_some()
+            || tdb_from_tt_offset.is_some())
+    {
         return Err(
-            "conflicting TDB-TT offset flags: use either --tdb-offset-seconds or --tdb-from-tt-offset-seconds"
+            "conflicting TDB-TT offset flags: use only one of --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, or --tdb-from-tt-offset-seconds"
                 .to_string(),
         );
     }
-
+    if tdb_from_utc_offset.is_some()
+        && (tdb_from_ut1_offset.is_some() || tdb_from_tt_offset.is_some())
+    {
+        return Err(
+            "conflicting TDB-TT offset flags: use only one of --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, or --tdb-from-tt-offset-seconds"
+                .to_string(),
+        );
+    }
+    if tdb_from_ut1_offset.is_some() && tdb_from_tt_offset.is_some() {
+        return Err(
+            "conflicting TDB-TT offset flags: use only one of --tdb-from-ut1-offset-seconds or --tdb-from-tt-offset-seconds"
+                .to_string(),
+        );
+    }
     match time_scale {
         TimeScale::Utc => {
             if tt_from_tdb_offset.is_some() {
                 return Err(
                     "--tt-from-tdb-offset-seconds is only valid when the chart instant is tagged as TDB"
+                        .to_string(),
+                );
+            }
+            if tdb_from_ut1_offset.is_some() {
+                return Err(
+                    "--tdb-from-ut1-offset-seconds is only valid when the chart instant is tagged as UT1"
                         .to_string(),
                 );
             }
@@ -510,7 +588,7 @@ fn build_chart_instant(
                 "missing value for --tt-offset-seconds when the chart instant is tagged as UTC"
                     .to_string()
             })?;
-            if let Some(tdb_offset_seconds) = tdb_offset {
+            if let Some(tdb_offset_seconds) = tdb_from_utc_offset.or(tdb_offset) {
                 instant
                     .tdb_from_utc_signed(tt_offset, tdb_offset_seconds)
                     .map_err(|error| error.to_string())
@@ -527,6 +605,12 @@ fn build_chart_instant(
                         .to_string(),
                 );
             }
+            if tdb_from_utc_offset.is_some() {
+                return Err(
+                    "--tdb-from-utc-offset-seconds is only valid when the chart instant is tagged as UTC"
+                        .to_string(),
+                );
+            }
             if tdb_from_tt_offset.is_some() {
                 return Err(
                     "--tdb-from-tt-offset-seconds is only valid when the chart instant is tagged as TT"
@@ -537,7 +621,7 @@ fn build_chart_instant(
                 "missing value for --tt-offset-seconds when the chart instant is tagged as UT1"
                     .to_string()
             })?;
-            if let Some(tdb_offset_seconds) = tdb_offset {
+            if let Some(tdb_offset_seconds) = tdb_from_ut1_offset.or(tdb_offset) {
                 instant
                     .tdb_from_ut1_signed(tt_offset, tdb_offset_seconds)
                     .map_err(|error| error.to_string())
@@ -551,6 +635,18 @@ fn build_chart_instant(
             if tt_offset.is_some() {
                 return Err(
                     "--tt-offset-seconds is only valid when the chart instant is tagged as UTC or UT1"
+                        .to_string(),
+                );
+            }
+            if tdb_from_utc_offset.is_some() {
+                return Err(
+                    "--tdb-from-utc-offset-seconds is only valid when the chart instant is tagged as UTC"
+                        .to_string(),
+                );
+            }
+            if tdb_from_ut1_offset.is_some() {
+                return Err(
+                    "--tdb-from-ut1-offset-seconds is only valid when the chart instant is tagged as UT1"
                         .to_string(),
                 );
             }
@@ -578,6 +674,18 @@ fn build_chart_instant(
             if tdb_offset.is_some() {
                 return Err(
                     "--tdb-offset-seconds is only valid when the chart instant is tagged as TT, UTC, or UT1"
+                        .to_string(),
+                );
+            }
+            if tdb_from_utc_offset.is_some() {
+                return Err(
+                    "--tdb-from-utc-offset-seconds is only valid when the chart instant is tagged as UTC"
+                        .to_string(),
+                );
+            }
+            if tdb_from_ut1_offset.is_some() {
+                return Err(
+                    "--tdb-from-ut1-offset-seconds is only valid when the chart instant is tagged as UT1"
                         .to_string(),
                 );
             }
@@ -775,6 +883,8 @@ mod tests {
         let rendered = render_cli(&["help"]).expect("help should render");
         assert!(rendered.contains("--tt-from-utc-offset-seconds"));
         assert!(rendered.contains("--tt-from-ut1-offset-seconds"));
+        assert!(rendered.contains("--tdb-from-utc-offset-seconds"));
+        assert!(rendered.contains("--tdb-from-ut1-offset-seconds"));
         assert!(rendered.contains("--tdb-from-tt-offset-seconds"));
         assert!(rendered.contains("--tt-from-tdb-offset-seconds"));
         assert!(rendered.contains("Caller-supplied signed TDB-TT offset for TT-tagged instants"));
@@ -1576,6 +1686,42 @@ mod tests {
             "Sun",
         ])
         .expect("TT-tagged chart should accept an explicit TT-to-TDB offset flag");
+        assert!(rendered.contains("Instant: JD"));
+        assert!(rendered.contains("(TDB)"));
+    }
+
+    #[test]
+    fn chart_command_can_convert_utc_to_tdb_with_explicit_alias() {
+        let rendered = render_chart(&[
+            "--jd",
+            "2451545.0",
+            "--utc",
+            "--tt-offset-seconds",
+            "64.184",
+            "--tdb-from-utc-offset-seconds",
+            "-0.001657",
+            "--body",
+            "Sun",
+        ])
+        .expect("UTC-tagged chart should accept an explicit UTC-to-TDB alias");
+        assert!(rendered.contains("Instant: JD"));
+        assert!(rendered.contains("(TDB)"));
+    }
+
+    #[test]
+    fn chart_command_can_convert_ut1_to_tdb_with_explicit_alias() {
+        let rendered = render_chart(&[
+            "--jd",
+            "2451545.0",
+            "--ut1",
+            "--tt-offset-seconds",
+            "64.184",
+            "--tdb-from-ut1-offset-seconds",
+            "-0.001657",
+            "--body",
+            "Sun",
+        ])
+        .expect("UT1-tagged chart should accept an explicit UT1-to-TDB alias");
         assert!(rendered.contains("Instant: JD"));
         assert!(rendered.contains("(TDB)"));
     }
