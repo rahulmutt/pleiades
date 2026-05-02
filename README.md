@@ -55,12 +55,13 @@ Rough command overview:
 - `api-stability-summary` / `api-posture-summary`: compact API stability summary
 - `backend-matrix` / `capability-matrix`: print implemented backend capability matrices
 - `backend-matrix-summary` / `matrix-summary`: compact backend matrix summary
-- `release-notes`, `release-notes-summary`, `release-checklist`, `release-checklist-summary` / `checklist-summary`, `release-summary`, `verify-compatibility-profile`, `verify-release-bundle`: maintainer-facing release metadata and catalog-alignment checks
+- `release-notes`, `release-notes-summary`, `release-checklist`, `release-checklist-summary` / `checklist-summary`, `release-summary`, `request-policy-summary` / `request-semantics-summary`, `verify-compatibility-profile`, `verify-release-bundle`: maintainer-facing release metadata and catalog-alignment checks
 - `artifact-summary` / `artifact-posture-summary`: compact summary of the packaged compressed artifact
 - `validate-artifact`: full packaged-artifact inspection mirrored from `pleiades-validate`
 - `workspace-audit` / `audit`: workspace-native dependency audit mirrored from `pleiades-validate`
 - `report` / `generate-report`: full validation report mirrored from `pleiades-validate`
 - `validation-report-summary` / `validation-summary` / `report-summary`: compact validation report summary
+- `request-policy-summary` / `request-semantics-summary`: compact request-policy summary
 - `chart`: render a basic chart report from a Julian day and optional observer settings
 
 Example usage:
@@ -117,7 +118,7 @@ Rough command overview:
 - `compatibility-profile`: print the full release compatibility profile
 - `compatibility-profile-summary`: compact compatibility profile summary
 - `verify-compatibility-profile`: verify the release compatibility profile against the canonical catalogs
-- `api-stability`, `api-stability-summary`, `release-notes`, `release-notes-summary`, `release-checklist`, `release-checklist-summary`, `release-summary`: release-facing report helpers
+- `api-stability`, `api-stability-summary`, `release-notes`, `release-notes-summary`, `release-checklist`, `release-checklist-summary`, `release-summary`, `request-policy-summary` / `request-semantics-summary`: release-facing report helpers
 - `bundle-release --out DIR`: write a staged release bundle to a directory
 - `verify-release-bundle --out DIR`: verify a previously staged release bundle
 - `regenerate-packaged-artifact FILE` or `regenerate-packaged-artifact --out FILE`: rebuild the checked-in packaged artifact fixture from the reference snapshot
