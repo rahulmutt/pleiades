@@ -7913,7 +7913,12 @@ pub fn reference_snapshot_high_curvature_window_summary(
 /// Returns the release-facing major-body high-curvature window summary string.
 pub fn reference_snapshot_high_curvature_window_summary_for_report() -> String {
     match reference_snapshot_high_curvature_window_summary() {
-        Some(summary) => summary.summary_line(),
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => {
+                format!("Reference major-body high-curvature windows: unavailable ({error})")
+            }
+        },
         None => "Reference major-body high-curvature windows: unavailable".to_string(),
     }
 }
@@ -12339,6 +12344,31 @@ mod tests {
         assert_eq!(
             reference_snapshot_high_curvature_window_summary_for_report(),
             summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn reference_snapshot_high_curvature_window_summary_validation_rejects_drift() {
+        let mut summary = reference_snapshot_high_curvature_window_summary()
+            .expect("reference high-curvature window summary should exist");
+        summary.sample_count += 1;
+
+        let error = summary
+            .validate()
+            .expect_err("drifted high-curvature window summary should fail validation");
+
+        assert!(matches!(
+            error,
+            ReferenceHighCurvatureWindowSummaryValidationError::FieldOutOfSync {
+                field: "sample_count"
+            }
+        ));
+        assert!(summary.validated_summary_line().is_err());
+        assert_eq!(
+            reference_snapshot_high_curvature_window_summary_for_report(),
+            reference_snapshot_high_curvature_window_summary()
+                .expect("reference high-curvature window summary should exist")
+                .summary_line()
         );
     }
 
