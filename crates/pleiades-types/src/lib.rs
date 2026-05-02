@@ -2025,7 +2025,10 @@ impl EclipticCoordinates {
     ///
     /// The transform is a pure geometric rotation: longitude/latitude are interpreted in the
     /// ecliptic frame, right ascension is normalized into `[0, 360)`, declination is signed, and
-    /// any available distance is preserved.
+    /// any available distance is preserved. Round-tripping through
+    /// [`EquatorialCoordinates::to_ecliptic`] with the same obliquity should stay numerically
+    /// stable within normal floating-point tolerance, including near wraparound and high-latitude
+    /// cases.
     pub fn to_equatorial(self, obliquity: Angle) -> EquatorialCoordinates {
         let longitude = self.longitude.degrees().to_radians();
         let latitude = self.latitude.degrees().to_radians();
@@ -2091,7 +2094,8 @@ impl EquatorialCoordinates {
     ///
     /// The transform is the inverse geometric rotation of [`EclipticCoordinates::to_equatorial`]:
     /// right ascension is interpreted as a normalized angle, declination is signed, and any
-    /// available distance is preserved.
+    /// available distance is preserved. Using the same obliquity as the forward transform should
+    /// recover the original ecliptic position within normal floating-point tolerance.
     pub fn to_ecliptic(self, obliquity: Angle) -> EclipticCoordinates {
         let right_ascension = self.right_ascension.degrees().to_radians();
         let declination = self.declination.degrees().to_radians();
@@ -2645,6 +2649,27 @@ mod tests {
             assert!((round_trip.latitude.degrees() - ecliptic.latitude.degrees()).abs() < 1e-10);
             assert_eq!(round_trip.distance_au, ecliptic.distance_au);
         }
+    }
+
+    #[test]
+    fn mean_obliquity_round_trip_stays_stable_near_the_poles() {
+        let ecliptic = EclipticCoordinates::new(
+            Longitude::from_degrees(0.025),
+            Latitude::from_degrees(89.75),
+            Some(0.42),
+        );
+        let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+        let obliquity = instant.mean_obliquity();
+
+        assert_eq!(ecliptic.validate(), Ok(()));
+        let equatorial = ecliptic.to_equatorial(obliquity);
+        assert_eq!(equatorial.validate(), Ok(()));
+        let round_trip = equatorial.to_ecliptic(obliquity);
+
+        assert_eq!(round_trip.validate(), Ok(()));
+        assert!((round_trip.longitude.degrees() - ecliptic.longitude.degrees()).abs() < 1e-10);
+        assert!((round_trip.latitude.degrees() - ecliptic.latitude.degrees()).abs() < 1e-10);
+        assert_eq!(round_trip.distance_au, Some(0.42));
     }
 
     #[test]
