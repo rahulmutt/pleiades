@@ -2014,6 +2014,8 @@ mod tests {
             .contains("Lahiri (1940): epoch=JD 2415020; offset=22.445972222222224°"));
         assert!(ayanamsa_reference_offsets_summary
             .contains("Galactic Equator (Fiorenza): epoch=JD 2451544.5; offset=25°"));
+        assert!(ayanamsa_reference_offsets_summary
+            .contains("Valens Moon: epoch=JD 1775845.5; offset=-2.9422°"));
         assert_eq!(
             ayanamsa_reference_offsets_summary,
             super::validate_render_cli(&["ayanamsa-reference-offsets-summary"])
