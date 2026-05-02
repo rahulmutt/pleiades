@@ -151,4 +151,4 @@ When the plan changes:
 - update `plan/appendices/` when traceability or workable-state references change,
 - remove or rewrite completed tasks instead of accumulating progress-note history.
 
-Status: Updated 2026-05-01 after review against `SPEC.md`, `spec/*.md`, validation summaries, and the current implementation state.
+Status: Updated 2026-05-02 after review against `SPEC.md`, `spec/*.md`, validation summaries, and the current implementation state.
