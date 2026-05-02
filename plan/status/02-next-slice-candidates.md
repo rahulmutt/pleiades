@@ -27,7 +27,7 @@ Recently completed: Pluto explicit downgrade and corpus cleanup, plus the produc
 - Decide first-release posture for built-in Delta T and UTC/UT1 convenience conversion. The current backend/report surface now exposes the deferred no-built-in-Delta-T posture as a separate typed summary, but the decision itself is still to keep or implement a real model.
 - Decide first-release posture for apparent-place corrections.
 - Decide first-release posture for topocentric body positions.
-- Update metadata, errors, docs, CLI flags, and tests so unsupported modes continue to fail closed. The explicit UTC/UT1 alias spelling is already wired through the CLI and now documented in the policy notes; the remaining task is broader reference-corpus expansion.
+- Update metadata, errors, docs, CLI flags, and tests so unsupported modes continue to fail closed. The explicit UTC/UT1/TDB alias spelling is already wired through the CLI and documented in the policy notes and README; the remaining task is broader reference-corpus expansion.
 
 ## 4. Production artifact profile and generator skeleton
 
