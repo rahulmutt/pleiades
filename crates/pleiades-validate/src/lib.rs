@@ -123,6 +123,7 @@ use pleiades_jpl::{
     reference_snapshot_lunar_boundary_summary_for_report,
     reference_snapshot_manifest_summary_for_report, reference_snapshot_source_summary_for_report,
     reference_snapshot_source_window_summary_for_report, reference_snapshot_summary_for_report,
+    selected_asteroid_boundary_summary_for_report,
     selected_asteroid_source_evidence_summary_for_report,
     selected_asteroid_source_window_summary_for_report, JplSnapshotBackend,
 };
@@ -5814,6 +5815,8 @@ fn render_release_notes_summary_text() -> String {
     text.push('\n');
     text.push_str(&selected_asteroid_source_window_summary_for_report());
     text.push('\n');
+    text.push_str(&selected_asteroid_boundary_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_manifest_summary_for_report());
     text.push('\n');
     text.push_str(&comparison_snapshot_summary_for_report());
@@ -6291,6 +6294,8 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str("Selected asteroid source windows: ");
     text.push_str(&selected_asteroid_source_window_summary_for_report());
+    text.push('\n');
+    text.push_str(&selected_asteroid_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&independent_holdout_snapshot_source_window_summary_for_report());
     text.push('\n');
@@ -10526,6 +10531,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str(&selected_asteroid_source_window_summary_for_report());
     text.push('\n');
+    text.push_str(&selected_asteroid_boundary_summary_for_report());
+    text.push('\n');
     text.push_str("House code aliases: ");
     text.push_str(&profile.house_code_aliases_summary_line());
     text.push('\n');
@@ -11670,6 +11677,7 @@ fn write_backend_matrix(f: &mut fmt::Formatter<'_>, backend: &BackendMetadata) -
                 "  {}",
                 selected_asteroid_source_window_summary_for_report()
             )?;
+            writeln!(f, "  {}", selected_asteroid_boundary_summary_for_report())?;
             let evidence = reference_asteroid_evidence();
             if let Some(first) = evidence.first() {
                 writeln!(
@@ -14074,6 +14082,7 @@ mod tests {
         )));
         assert!(report.contains("Implemented backend matrices"));
         assert!(report.contains("Selected asteroid coverage"));
+        assert!(report.contains(&selected_asteroid_boundary_summary_for_report()));
         assert!(report.contains("exact J2000 evidence: 5 bodies at JD 2451545.0"));
         assert!(report.contains("Ceres"));
         assert!(report.contains("Pallas"));
@@ -14213,6 +14222,7 @@ mod tests {
         assert!(report.contains(
             "lunar equatorial reference batch parity: 3 requests across 1 bodies, frame=Equatorial, order=preserved, single-query parity=preserved"
         ));
+        assert!(report.contains(&selected_asteroid_boundary_summary_for_report()));
         assert!(report.contains("exact J2000 evidence: 5 bodies at JD 2451545.0"));
         assert!(report.contains("Body comparison summaries"));
         assert!(report.contains("Sun: samples="));
@@ -16199,6 +16209,7 @@ mod tests {
         assert!(rendered.contains("Release-specific coverage:"));
         assert!(rendered.contains("Selected asteroid source evidence: 25 source-backed samples across 5 bodies and 5 epochs (JD 2451545.0 (TDB)..JD 2634167.0 (TDB)); bodies: Ceres, Pallas, Juno, Vesta, asteroid:433-Eros"));
         assert!(rendered.contains("Selected asteroid source windows: 25 source-backed samples across 5 bodies and 5 epochs (JD 2451545.0 (TDB)..JD 2634167.0 (TDB)); windows: Ceres: 5 samples across 5 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Pallas: 5 samples across 5 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Juno: 5 samples across 5 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Vesta: 5 samples across 5 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); asteroid:433-Eros: 5 samples across 5 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB)"));
+        assert!(rendered.contains(&selected_asteroid_boundary_summary_for_report()));
         assert!(rendered.contains("Custom-definition labels:"));
         assert!(rendered.contains("House formula families: 7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign)"));
         assert!(rendered.contains(&format!(
@@ -16608,6 +16619,7 @@ mod tests {
         ));
         assert!(rendered.contains("Selected asteroid source evidence: 25 source-backed samples across 5 bodies and 5 epochs (JD 2451545.0 (TDB)..JD 2634167.0 (TDB)); bodies: Ceres, Pallas, Juno, Vesta, asteroid:433-Eros"));
         assert!(rendered.contains("Selected asteroid source windows: 25 source-backed samples across 5 bodies and 5 epochs (JD 2451545.0 (TDB)..JD 2634167.0 (TDB)); windows: Ceres: 5 samples across 5 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Pallas: 5 samples across 5 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Juno: 5 samples across 5 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Vesta: 5 samples across 5 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); asteroid:433-Eros: 5 samples across 5 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB)"));
+        assert!(rendered.contains(&selected_asteroid_boundary_summary_for_report()));
         assert!(rendered.contains("exact J2000 evidence: 5 bodies at JD 2451545.0"));
         assert!(rendered.contains("nominal range:"));
         assert!(rendered.contains("provenance sources:"));
@@ -17603,6 +17615,7 @@ version = "0.9.0"
         assert!(backend_matrix.contains(
             "selected asteroid coverage: 5 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"
         ));
+        assert!(backend_matrix.contains(&selected_asteroid_boundary_summary_for_report()));
         assert!(backend_matrix.contains("exact J2000 evidence: 5 bodies at JD 2451545.0"));
         assert!(api_stability.contains(&format!(
             "API stability posture: {}",
