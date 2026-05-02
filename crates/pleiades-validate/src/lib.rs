@@ -4143,6 +4143,10 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "comparison-snapshot-manifest-summary")?;
             Ok(comparison_snapshot_manifest_summary_for_report())
         }
+        Some("comparison-snapshot-batch-parity-summary") => {
+            ensure_no_extra_args(&args[1..], "comparison-snapshot-batch-parity-summary")?;
+            Ok(comparison_snapshot_batch_parity_summary_for_report())
+        }
         Some("reference-snapshot-source-window-summary") => {
             ensure_no_extra_args(&args[1..], "reference-snapshot-source-window-summary")?;
             Ok(reference_snapshot_source_window_summary_for_report())
@@ -4154,6 +4158,14 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("reference-snapshot-manifest-summary") => {
             ensure_no_extra_args(&args[1..], "reference-snapshot-manifest-summary")?;
             Ok(reference_snapshot_manifest_summary_for_report())
+        }
+        Some("reference-snapshot-batch-parity-summary") => {
+            ensure_no_extra_args(&args[1..], "reference-snapshot-batch-parity-summary")?;
+            Ok(reference_snapshot_batch_parity_summary_for_report())
+        }
+        Some("reference-snapshot-equatorial-parity-summary") => {
+            ensure_no_extra_args(&args[1..], "reference-snapshot-equatorial-parity-summary")?;
+            Ok(reference_snapshot_equatorial_parity_summary_for_report())
         }
         Some("reference-high-curvature-summary") => {
             ensure_no_extra_args(&args[1..], "reference-high-curvature-summary")?;
@@ -4220,6 +4232,14 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
                 "independent-holdout-body-class-coverage-summary",
             )?;
             Ok(independent_holdout_snapshot_body_class_coverage_summary_for_report())
+        }
+        Some("independent-holdout-batch-parity-summary") => {
+            ensure_no_extra_args(&args[1..], "independent-holdout-batch-parity-summary")?;
+            Ok(jpl_independent_holdout_snapshot_batch_parity_summary_for_report())
+        }
+        Some("independent-holdout-equatorial-parity-summary") => {
+            ensure_no_extra_args(&args[1..], "independent-holdout-equatorial-parity-summary")?;
+            Ok(jpl_independent_holdout_snapshot_equatorial_parity_summary_for_report())
         }
         Some("reference-holdout-overlap-summary") => {
             ensure_no_extra_args(&args[1..], "reference-holdout-overlap-summary")?;
@@ -12957,7 +12977,7 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = default_corpus().requests.len();
     format!(
-        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  compare-backends-audit    Compare the JPL snapshot against the algorithmic composite backend and fail if the tolerance audit reports regressions\n  backend-matrix            Print the implemented backend capability matrices\n  capability-matrix         Alias for backend-matrix\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  matrix-summary            Alias for backend-matrix-summary\n  compatibility-profile     Print the release compatibility profile\n  profile                   Alias for compatibility-profile\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus and full chart assembly on representative house scenarios\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validation-report-summary [--rounds N]  Render a compact validation report summary\n  report-summary [--rounds N]  Alias for validation-report-summary\n  validation-summary        Alias for validation-report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  artifact-profile-coverage-summary  Print the packaged-artifact profile coverage summary\n  packaged-lookup-epoch-policy-summary  Print the packaged lookup epoch policy summary\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  workspace-audit-summary   Print the compact workspace audit summary\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  jpl-batch-error-taxonomy-summary  Print the compact JPL batch error taxonomy summary\n  production-generation-boundary-summary  Print the compact production-generation boundary overlay summary\n  production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary\n  production-generation-body-class-coverage-summary  Print the compact production-generation body-class coverage summary\n  production-generation-source-window-summary  Print the compact production-generation source windows summary\n  comparison-snapshot-source-window-summary  Print the compact comparison snapshot source windows summary\n  comparison-snapshot-body-class-coverage-summary  Print the compact comparison snapshot body-class coverage summary\n  comparison-snapshot-manifest-summary  Print the compact comparison snapshot manifest summary\n  reference-snapshot-source-window-summary  Print the compact reference snapshot source windows summary\n  reference-snapshot-body-class-coverage-summary  Print the compact reference snapshot body-class coverage summary\n  reference-snapshot-manifest-summary  Print the compact reference snapshot manifest summary\n  reference-high-curvature-summary  Print the compact reference major-body high-curvature evidence summary\n  reference-high-curvature-window-summary  Print the compact reference major-body high-curvature windows summary\n  delta-t-policy-summary   Print the compact Delta T policy summary\n  observer-policy-summary  Print the compact observer policy summary\n  apparentness-policy-summary  Print the compact apparentness policy summary\n  interpolation-posture-summary  Print the compact JPL interpolation posture summary\n  interpolation-quality-summary  Print the compact JPL interpolation quality summary\n  lunar-reference-error-envelope-summary  Print the compact lunar reference error envelope summary\n  lunar-equatorial-reference-error-envelope-summary  Print the compact lunar equatorial reference error envelope summary\n  lunar-apparent-comparison-summary  Print the compact lunar apparent comparison summary\n  selected-asteroid-boundary-summary  Print the compact selected-asteroid boundary evidence summary\n  selected-asteroid-source-window-summary  Print the compact selected-asteroid source windows summary\n  selected-asteroid-batch-parity-summary  Print the compact selected-asteroid batch-parity summary\n  reference-holdout-overlap-summary  Print the compact reference/hold-out overlap summary\n  independent-holdout-source-window-summary  Print the compact independent hold-out source windows summary\n  independent-holdout-body-class-coverage-summary  Print the compact independent hold-out body-class coverage summary\n  house-validation-summary   Print the compact house-validation corpus summary\n  ayanamsa-catalog-validation-summary  Print the compact ayanamsa catalog validation summary\n  ayanamsa-reference-offsets-summary  Print the compact ayanamsa reference offsets summary\n  frame-policy-summary      Print the compact frame-policy summary\n  release-profile-identifiers-summary  Print the compact release-profile identifiers summary\n  request-policy-summary    Print the compact request-policy summary\n  request-semantics-summary Alias for request-policy-summary\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release-profile identifiers, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API stability summary, validation report summary, workspace audit summary, artifact summary, benchmark report, validation report, manifest, and manifest checksum sidecar\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  compare-backends-audit    Compare the JPL snapshot against the algorithmic composite backend and fail if the tolerance audit reports regressions\n  backend-matrix            Print the implemented backend capability matrices\n  capability-matrix         Alias for backend-matrix\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  matrix-summary            Alias for backend-matrix-summary\n  compatibility-profile     Print the release compatibility profile\n  profile                   Alias for compatibility-profile\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus and full chart assembly on representative house scenarios\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validation-report-summary [--rounds N]  Render a compact validation report summary\n  report-summary [--rounds N]  Alias for validation-report-summary\n  validation-summary        Alias for validation-report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  artifact-profile-coverage-summary  Print the packaged-artifact profile coverage summary\n  packaged-lookup-epoch-policy-summary  Print the packaged lookup epoch policy summary\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  workspace-audit-summary   Print the compact workspace audit summary\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  jpl-batch-error-taxonomy-summary  Print the compact JPL batch error taxonomy summary\n  production-generation-boundary-summary  Print the compact production-generation boundary overlay summary\n  production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary\n  production-generation-body-class-coverage-summary  Print the compact production-generation body-class coverage summary\n  production-generation-source-window-summary  Print the compact production-generation source windows summary\n  comparison-snapshot-source-window-summary  Print the compact comparison snapshot source windows summary\n  comparison-snapshot-body-class-coverage-summary  Print the compact comparison snapshot body-class coverage summary\n  comparison-snapshot-manifest-summary  Print the compact comparison snapshot manifest summary\n  comparison-snapshot-batch-parity-summary  Print the compact comparison snapshot batch parity summary\n  reference-snapshot-source-window-summary  Print the compact reference snapshot source windows summary\n  reference-snapshot-body-class-coverage-summary  Print the compact reference snapshot body-class coverage summary\n  reference-snapshot-manifest-summary  Print the compact reference snapshot manifest summary\n  reference-snapshot-batch-parity-summary  Print the compact reference snapshot batch parity summary\n  reference-snapshot-equatorial-parity-summary  Print the compact reference snapshot equatorial parity summary\n  reference-high-curvature-summary  Print the compact reference major-body high-curvature evidence summary\n  reference-high-curvature-window-summary  Print the compact reference major-body high-curvature windows summary\n  delta-t-policy-summary   Print the compact Delta T policy summary\n  observer-policy-summary  Print the compact observer policy summary\n  apparentness-policy-summary  Print the compact apparentness policy summary\n  interpolation-posture-summary  Print the compact JPL interpolation posture summary\n  interpolation-quality-summary  Print the compact JPL interpolation quality summary\n  lunar-reference-error-envelope-summary  Print the compact lunar reference error envelope summary\n  lunar-equatorial-reference-error-envelope-summary  Print the compact lunar equatorial reference error envelope summary\n  lunar-apparent-comparison-summary  Print the compact lunar apparent comparison summary\n  selected-asteroid-boundary-summary  Print the compact selected-asteroid boundary evidence summary\n  selected-asteroid-source-window-summary  Print the compact selected-asteroid source windows summary\n  selected-asteroid-batch-parity-summary  Print the compact selected-asteroid batch-parity summary\n  reference-holdout-overlap-summary  Print the compact reference/hold-out overlap summary\n  independent-holdout-source-window-summary  Print the compact independent hold-out source windows summary\n  independent-holdout-body-class-coverage-summary  Print the compact independent hold-out body-class coverage summary\n  independent-holdout-batch-parity-summary  Print the compact independent hold-out batch parity summary\n  independent-holdout-equatorial-parity-summary  Print the compact independent hold-out equatorial parity summary\n  house-validation-summary   Print the compact house-validation corpus summary\n  ayanamsa-catalog-validation-summary  Print the compact ayanamsa catalog validation summary\n  ayanamsa-reference-offsets-summary  Print the compact ayanamsa reference offsets summary\n  frame-policy-summary      Print the compact frame-policy summary\n  release-profile-identifiers-summary  Print the compact release-profile identifiers summary\n  request-policy-summary    Print the compact request-policy summary\n  request-semantics-summary Alias for request-policy-summary\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release-profile identifiers, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API stability summary, validation report summary, workspace audit summary, artifact summary, benchmark report, validation report, manifest, and manifest checksum sidecar\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
@@ -15253,9 +15273,12 @@ mod tests {
         assert!(rendered.contains("comparison-snapshot-source-window-summary"));
         assert!(rendered.contains("comparison-snapshot-body-class-coverage-summary"));
         assert!(rendered.contains("comparison-snapshot-manifest-summary"));
+        assert!(rendered.contains("comparison-snapshot-batch-parity-summary"));
         assert!(rendered.contains("reference-snapshot-source-window-summary"));
         assert!(rendered.contains("reference-snapshot-body-class-coverage-summary"));
         assert!(rendered.contains("reference-snapshot-manifest-summary"));
+        assert!(rendered.contains("reference-snapshot-batch-parity-summary"));
+        assert!(rendered.contains("reference-snapshot-equatorial-parity-summary"));
         assert!(rendered.contains("reference-high-curvature-summary"));
         assert!(rendered.contains("reference-high-curvature-window-summary"));
         assert!(rendered.contains("interpolation-posture-summary"));
@@ -15267,6 +15290,8 @@ mod tests {
         assert!(rendered.contains("reference-holdout-overlap-summary"));
         assert!(rendered.contains("independent-holdout-source-window-summary"));
         assert!(rendered.contains("independent-holdout-body-class-coverage-summary"));
+        assert!(rendered.contains("independent-holdout-batch-parity-summary"));
+        assert!(rendered.contains("independent-holdout-equatorial-parity-summary"));
         assert!(rendered.contains("release-profile-identifiers-summary"));
         assert!(rendered.contains("request-policy-summary"));
         assert!(rendered.contains("request-semantics-summary"));
@@ -19815,6 +19840,49 @@ version = "0.9.0"
         assert_eq!(
             rendered,
             reference_snapshot_source_window_summary_for_report()
+        );
+    }
+
+    #[test]
+    fn batch_parity_summary_commands_render_the_matching_blocks() {
+        let comparison = render_cli(&["comparison-snapshot-batch-parity-summary"])
+            .expect("comparison snapshot batch parity summary should render");
+        assert!(comparison.contains("JPL comparison snapshot batch parity:"));
+        assert_eq!(
+            comparison,
+            comparison_snapshot_batch_parity_summary_for_report()
+        );
+
+        let reference = render_cli(&["reference-snapshot-batch-parity-summary"])
+            .expect("reference snapshot batch parity summary should render");
+        assert!(reference.contains("JPL reference snapshot batch parity:"));
+        assert_eq!(
+            reference,
+            reference_snapshot_batch_parity_summary_for_report()
+        );
+
+        let reference_equatorial = render_cli(&["reference-snapshot-equatorial-parity-summary"])
+            .expect("reference snapshot equatorial parity summary should render");
+        assert!(reference_equatorial.contains("JPL reference snapshot equatorial parity:"));
+        assert_eq!(
+            reference_equatorial,
+            reference_snapshot_equatorial_parity_summary_for_report()
+        );
+
+        let holdout = render_cli(&["independent-holdout-batch-parity-summary"])
+            .expect("independent hold-out batch parity summary should render");
+        assert!(holdout.contains("JPL independent hold-out batch parity:"));
+        assert_eq!(
+            holdout,
+            jpl_independent_holdout_snapshot_batch_parity_summary_for_report()
+        );
+
+        let holdout_equatorial = render_cli(&["independent-holdout-equatorial-parity-summary"])
+            .expect("independent hold-out equatorial parity summary should render");
+        assert!(holdout_equatorial.contains("JPL independent hold-out equatorial parity:"));
+        assert_eq!(
+            holdout_equatorial,
+            jpl_independent_holdout_snapshot_equatorial_parity_summary_for_report()
         );
     }
 
