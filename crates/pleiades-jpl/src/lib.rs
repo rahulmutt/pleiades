@@ -6959,6 +6959,317 @@ pub fn selected_asteroid_boundary_summary_for_report() -> String {
     }
 }
 
+/// Compact release-facing summary for the mixed-frame selected-asteroid batch parity slice.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SelectedAsteroidBatchParitySummary {
+    /// Number of requests in the mixed-frame batch parity slice.
+    pub request_count: usize,
+    /// Bodies covered by the batch parity slice in first-seen order.
+    pub sample_bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Exact epoch shared by the selected-asteroid batch parity slice.
+    pub epoch: Instant,
+    /// Number of ecliptic-frame requests in the mixed-frame batch parity slice.
+    pub ecliptic_count: usize,
+    /// Number of equatorial-frame requests in the mixed-frame batch parity slice.
+    pub equatorial_count: usize,
+    /// Whether the batch and single-request results stayed in parity.
+    pub parity_preserved: bool,
+}
+
+/// Validation errors for a selected-asteroid batch parity summary that drifted from the current slice.
+#[derive(Clone, Debug, PartialEq)]
+pub enum SelectedAsteroidBatchParitySummaryValidationError {
+    /// The summary did not expose any samples.
+    Empty,
+    /// The summary request count drifted from the current evidence slice.
+    RequestCountMismatch {
+        request_count: usize,
+        derived_request_count: usize,
+    },
+    /// The summary body list drifted from the current evidence slice.
+    BodyOrderMismatch {
+        index: usize,
+        expected: pleiades_backend::CelestialBody,
+        found: pleiades_backend::CelestialBody,
+    },
+    /// The summary epoch drifted from the current evidence slice.
+    EpochMismatch { expected: Instant, found: Instant },
+    /// The summary frame mix drifted from the current evidence slice.
+    FrameMixMismatch {
+        ecliptic_count: usize,
+        equatorial_count: usize,
+        derived_ecliptic_count: usize,
+        derived_equatorial_count: usize,
+    },
+    /// The batch/single parity posture drifted from the current evidence slice.
+    ParityPreservedMismatch { expected: bool, found: bool },
+}
+
+impl fmt::Display for SelectedAsteroidBatchParitySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Empty => f.write_str("selected asteroid batch parity evidence is unavailable"),
+            Self::RequestCountMismatch {
+                request_count,
+                derived_request_count,
+            } => write!(
+                f,
+                "selected asteroid batch parity request count {request_count} does not match derived request count {derived_request_count}"
+            ),
+            Self::BodyOrderMismatch {
+                index,
+                expected,
+                found,
+            } => write!(
+                f,
+                "selected asteroid batch parity body order mismatch at index {index}: expected {expected}, found {found}"
+            ),
+            Self::EpochMismatch { expected, found } => write!(
+                f,
+                "selected asteroid batch parity epoch mismatch: expected {}, found {}",
+                format_instant(*expected),
+                format_instant(*found)
+            ),
+            Self::FrameMixMismatch {
+                ecliptic_count,
+                equatorial_count,
+                derived_ecliptic_count,
+                derived_equatorial_count,
+            } => write!(
+                f,
+                "selected asteroid batch parity frame mix mismatch: expected {ecliptic_count} ecliptic and {equatorial_count} equatorial, found {derived_ecliptic_count} ecliptic and {derived_equatorial_count} equatorial"
+            ),
+            Self::ParityPreservedMismatch { expected, found } => write!(
+                f,
+                "selected asteroid batch parity preserved flag mismatch: expected {expected}, found {found}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for SelectedAsteroidBatchParitySummaryValidationError {}
+
+impl SelectedAsteroidBatchParitySummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let parity = if self.parity_preserved {
+            "preserved"
+        } else {
+            "not preserved"
+        };
+
+        format!(
+            "Selected asteroid batch parity: {} requests across {} bodies at {} ({}); frame mix: {} ecliptic, {} equatorial; batch/single parity {}",
+            self.request_count,
+            self.sample_bodies.len(),
+            format_instant(self.epoch),
+            format_bodies(&self.sample_bodies),
+            self.ecliptic_count,
+            self.equatorial_count,
+            parity,
+        )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current evidence slice.
+    pub fn validate(&self) -> Result<(), SelectedAsteroidBatchParitySummaryValidationError> {
+        let requests = reference_asteroid_batch_parity_requests()
+            .ok_or(SelectedAsteroidBatchParitySummaryValidationError::Empty)?;
+        let evidence = reference_asteroid_evidence();
+
+        if self.request_count != requests.len() {
+            return Err(
+                SelectedAsteroidBatchParitySummaryValidationError::RequestCountMismatch {
+                    request_count: self.request_count,
+                    derived_request_count: requests.len(),
+                },
+            );
+        }
+        if self.sample_bodies.as_slice() != reference_asteroids() {
+            for (index, (expected, found)) in reference_asteroids()
+                .iter()
+                .zip(self.sample_bodies.iter())
+                .enumerate()
+            {
+                if expected != found {
+                    return Err(
+                        SelectedAsteroidBatchParitySummaryValidationError::BodyOrderMismatch {
+                            index,
+                            expected: expected.clone(),
+                            found: found.clone(),
+                        },
+                    );
+                }
+            }
+            return Err(
+                SelectedAsteroidBatchParitySummaryValidationError::RequestCountMismatch {
+                    request_count: self.request_count,
+                    derived_request_count: requests.len(),
+                },
+            );
+        }
+        if self.epoch != requests[0].instant {
+            return Err(
+                SelectedAsteroidBatchParitySummaryValidationError::EpochMismatch {
+                    expected: requests[0].instant,
+                    found: self.epoch,
+                },
+            );
+        }
+
+        let derived_ecliptic_count = requests
+            .iter()
+            .filter(|request| matches!(request.frame, CoordinateFrame::Ecliptic))
+            .count();
+        let derived_equatorial_count = requests.len() - derived_ecliptic_count;
+        if self.ecliptic_count != derived_ecliptic_count
+            || self.equatorial_count != derived_equatorial_count
+        {
+            return Err(
+                SelectedAsteroidBatchParitySummaryValidationError::FrameMixMismatch {
+                    ecliptic_count: self.ecliptic_count,
+                    equatorial_count: self.equatorial_count,
+                    derived_ecliptic_count,
+                    derived_equatorial_count,
+                },
+            );
+        }
+
+        let backend = JplSnapshotBackend;
+        let results = backend
+            .positions(&requests)
+            .map_err(|_| SelectedAsteroidBatchParitySummaryValidationError::Empty)?;
+
+        let mut parity_preserved =
+            results.len() == requests.len() && evidence.len() == requests.len();
+        for ((request, result), expected) in
+            requests.iter().zip(results.iter()).zip(evidence.iter())
+        {
+            parity_preserved &= result.body == request.body;
+            parity_preserved &= result.instant == request.instant;
+            parity_preserved &= result.frame == request.frame;
+            parity_preserved &= result.quality == QualityAnnotation::Exact;
+
+            let ecliptic = match result.ecliptic {
+                Some(value) => value,
+                None => {
+                    parity_preserved = false;
+                    continue;
+                }
+            };
+            parity_preserved &=
+                (ecliptic.longitude.degrees() - expected.longitude_deg).abs() < 1e-12;
+            parity_preserved &= (ecliptic.latitude.degrees() - expected.latitude_deg).abs() < 1e-12;
+            parity_preserved &= (ecliptic
+                .distance_au
+                .expect("selected asteroid batch rows should include distance")
+                - expected.distance_au)
+                .abs()
+                < 1e-12;
+
+            let equatorial = match result.equatorial {
+                Some(value) => value,
+                None => {
+                    parity_preserved = false;
+                    continue;
+                }
+            };
+            parity_preserved &=
+                equatorial == ecliptic.to_equatorial(result.instant.mean_obliquity());
+        }
+
+        if self.parity_preserved != parity_preserved {
+            return Err(
+                SelectedAsteroidBatchParitySummaryValidationError::ParityPreservedMismatch {
+                    expected: parity_preserved,
+                    found: self.parity_preserved,
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the compact summary line after validating the current evidence slice.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, SelectedAsteroidBatchParitySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for SelectedAsteroidBatchParitySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn selected_asteroid_batch_parity_summary_details() -> Option<SelectedAsteroidBatchParitySummary> {
+    let requests = reference_asteroid_batch_parity_requests()?;
+    let evidence = reference_asteroid_evidence();
+    let backend = JplSnapshotBackend;
+    let results = backend.positions(&requests).ok()?;
+
+    let mut parity_preserved = results.len() == requests.len() && evidence.len() == requests.len();
+    for ((request, result), expected) in requests.iter().zip(results.iter()).zip(evidence.iter()) {
+        parity_preserved &= result.body == request.body;
+        parity_preserved &= result.instant == request.instant;
+        parity_preserved &= result.frame == request.frame;
+        parity_preserved &= result.quality == QualityAnnotation::Exact;
+
+        let Some(ecliptic) = result.ecliptic else {
+            parity_preserved = false;
+            continue;
+        };
+        parity_preserved &= (ecliptic.longitude.degrees() - expected.longitude_deg).abs() < 1e-12;
+        parity_preserved &= (ecliptic.latitude.degrees() - expected.latitude_deg).abs() < 1e-12;
+        parity_preserved &= (ecliptic
+            .distance_au
+            .expect("selected asteroid batch rows should include distance")
+            - expected.distance_au)
+            .abs()
+            < 1e-12;
+
+        let Some(equatorial) = result.equatorial else {
+            parity_preserved = false;
+            continue;
+        };
+        parity_preserved &= equatorial == ecliptic.to_equatorial(result.instant.mean_obliquity());
+    }
+
+    let first = requests.first()?;
+    Some(SelectedAsteroidBatchParitySummary {
+        request_count: requests.len(),
+        sample_bodies: reference_asteroids().to_vec(),
+        epoch: first.instant,
+        ecliptic_count: requests
+            .iter()
+            .filter(|request| matches!(request.frame, CoordinateFrame::Ecliptic))
+            .count(),
+        equatorial_count: requests
+            .iter()
+            .filter(|request| matches!(request.frame, CoordinateFrame::Equatorial))
+            .count(),
+        parity_preserved,
+    })
+}
+
+/// Returns the compact typed summary for the selected-asteroid batch-parity slice.
+pub fn selected_asteroid_batch_parity_summary() -> Option<SelectedAsteroidBatchParitySummary> {
+    selected_asteroid_batch_parity_summary_details()
+}
+
+/// Returns the release-facing selected-asteroid batch-parity summary string.
+pub fn selected_asteroid_batch_parity_summary_for_report() -> String {
+    match selected_asteroid_batch_parity_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => format!("Selected asteroid batch parity: unavailable ({error})"),
+        },
+        None => "Selected asteroid batch parity: unavailable".to_string(),
+    }
+}
+
 const REFERENCE_LUNAR_BOUNDARY_EPOCHS: [f64; 2] = [2_451_911.5, 2_451_912.5];
 const REFERENCE_HIGH_CURVATURE_EPOCHS: [f64; 4] =
     [2_451_911.5, 2_451_912.5, 2_451_913.5, 2_451_914.5];
@@ -12897,6 +13208,30 @@ mod tests {
     }
 
     #[test]
+    fn selected_asteroid_batch_parity_summary_reports_the_expected_coverage() {
+        let summary = selected_asteroid_batch_parity_summary()
+            .expect("selected asteroid batch parity summary should exist");
+        assert_eq!(summary.request_count, 5);
+        assert_eq!(summary.sample_bodies, reference_asteroids().to_vec());
+        assert_eq!(summary.epoch, reference_asteroid_evidence()[0].epoch);
+        assert_eq!(summary.ecliptic_count, 3);
+        assert_eq!(summary.equatorial_count, 2);
+        assert!(summary.parity_preserved);
+        summary
+            .validate()
+            .expect("selected asteroid batch parity summary should validate");
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            summary.summary_line(),
+            "Selected asteroid batch parity: 5 requests across 5 bodies at JD 2451545.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); frame mix: 3 ecliptic, 2 equatorial; batch/single parity preserved"
+        );
+        assert_eq!(
+            summary.summary_line(),
+            selected_asteroid_batch_parity_summary_for_report()
+        );
+    }
+
+    #[test]
     fn selected_asteroid_source_evidence_summary_validation_rejects_body_order_drift() {
         let mut summary = selected_asteroid_source_evidence_summary()
             .expect("selected asteroid source evidence summary should exist");
@@ -12907,6 +13242,24 @@ mod tests {
             Err(
                 SelectedAsteroidSourceSummaryValidationError::FieldOutOfSync {
                     field: "sample_bodies"
+                }
+            )
+        ));
+        assert!(summary.validated_summary_line().is_err());
+    }
+
+    #[test]
+    fn selected_asteroid_batch_parity_summary_validation_rejects_parity_drift() {
+        let mut summary = selected_asteroid_batch_parity_summary()
+            .expect("selected asteroid batch parity summary should exist");
+        summary.parity_preserved = false;
+
+        assert!(matches!(
+            summary.validate(),
+            Err(
+                SelectedAsteroidBatchParitySummaryValidationError::ParityPreservedMismatch {
+                    expected: true,
+                    found: false,
                 }
             )
         ));

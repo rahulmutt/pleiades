@@ -125,6 +125,7 @@ use pleiades_jpl::{
     reference_snapshot_lunar_boundary_summary_for_report,
     reference_snapshot_manifest_summary_for_report, reference_snapshot_source_summary_for_report,
     reference_snapshot_source_window_summary_for_report, reference_snapshot_summary_for_report,
+    selected_asteroid_batch_parity_summary_for_report,
     selected_asteroid_boundary_summary_for_report,
     selected_asteroid_source_evidence_summary_for_report,
     selected_asteroid_source_window_summary_for_report, JplSnapshotBackend,
@@ -5694,6 +5695,8 @@ fn render_release_notes_text() -> String {
     }
     text.push_str(&reference_asteroid_evidence_summary_for_report());
     text.push('\n');
+    text.push_str(&selected_asteroid_batch_parity_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_asteroid_equatorial_evidence_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_summary_for_report());
@@ -5814,6 +5817,8 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&reference_snapshot_body_class_coverage_summary_for_report());
     text.push('\n');
     text.push_str(&selected_asteroid_source_evidence_summary_for_report());
+    text.push('\n');
+    text.push_str(&selected_asteroid_batch_parity_summary_for_report());
     text.push('\n');
     text.push_str(&selected_asteroid_source_window_summary_for_report());
     text.push('\n');
@@ -6299,6 +6304,8 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str("Selected asteroid evidence: ");
     text.push_str(&selected_asteroid_source_evidence_summary_for_report());
+    text.push('\n');
+    text.push_str(&selected_asteroid_batch_parity_summary_for_report());
     text.push('\n');
     text.push_str("Selected asteroid source windows: ");
     text.push_str(&selected_asteroid_source_window_summary_for_report());
@@ -10536,6 +10543,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&selected_asteroid_count.to_string());
     text.push('\n');
     text.push_str(&selected_asteroid_source_evidence_summary_for_report());
+    text.push('\n');
+    text.push_str(&selected_asteroid_batch_parity_summary_for_report());
     text.push('\n');
     text.push_str(&selected_asteroid_source_window_summary_for_report());
     text.push('\n');
@@ -15237,6 +15246,7 @@ mod tests {
         assert!(rendered.contains("selected asteroid coverage"));
         assert!(rendered.contains("WvA"));
         assert!(rendered.contains("Selected asteroid evidence: 5 exact J2000 samples"));
+        assert!(rendered.contains("Selected asteroid batch parity: 5 requests across 5 bodies at JD 2451545.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); frame mix: 3 ecliptic, 2 equatorial; batch/single parity preserved"));
         assert!(rendered.contains("Reference snapshot coverage: 125 rows across 15 bodies and 13 epochs (25 asteroid rows; JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
         assert!(rendered.contains("Reference snapshot body-class coverage: major bodies: 100 rows across 10 bodies and 12 epochs; major windows: "));
         assert!(rendered.contains(
@@ -16569,6 +16579,7 @@ mod tests {
         assert!(rendered.contains("JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"));
         assert!(rendered.contains("Reference snapshot coverage:"));
         assert!(rendered.contains("Selected asteroid evidence:"));
+        assert!(rendered.contains("Selected asteroid batch parity:"));
         assert!(rendered.contains("VSOP87 evidence:"));
         assert!(rendered.contains("VSOP87 source-backed body-class envelopes:"));
         assert!(rendered.contains("VSOP87 canonical J2000 equatorial body-class envelopes:"));
@@ -17184,6 +17195,7 @@ version = "0.9.0"
         assert!(release_notes.contains("Release-specific coverage:"));
         assert!(release_notes.contains("selected asteroid coverage"));
         assert!(release_notes.contains("Selected asteroid evidence: 5 exact J2000 samples"));
+        assert!(release_notes.contains("Selected asteroid batch parity: 5 requests across 5 bodies at JD 2451545.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); frame mix: 3 ecliptic, 2 equatorial; batch/single parity preserved"));
         assert!(release_notes.contains("Selected asteroid equatorial evidence: 5 exact J2000 samples at JD 2451545.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros) using a mean-obliquity equatorial transform"));
         assert!(release_notes.contains("asteroid:433-Eros"));
         assert!(release_notes.contains("Validation reference points:"));
@@ -17405,6 +17417,7 @@ version = "0.9.0"
         assert!(release_summary.contains("Production generation boundary overlay source:"));
         assert!(release_summary.contains("Source-backed backend evidence:"));
         assert!(release_summary.contains("Selected asteroid evidence:"));
+        assert!(release_summary.contains("Selected asteroid batch parity:"));
         assert!(release_summary.contains("Selected asteroid source windows:"));
         assert!(release_summary.contains("Reference snapshot coverage:"));
         assert!(release_summary.contains("Reference snapshot body-class coverage: major bodies: 100 rows across 10 bodies and 12 epochs; major windows: "));
@@ -17620,6 +17633,7 @@ version = "0.9.0"
         assert!(
             backend_matrix_summary.contains("Selected asteroid evidence: 5 exact J2000 samples")
         );
+        assert!(backend_matrix_summary.contains("Selected asteroid batch parity:"));
         assert!(backend_matrix_summary
             .contains("Compatibility profile verification: verify-compatibility-profile"));
         assert!(backend_matrix.contains(
