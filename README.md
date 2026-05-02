@@ -61,6 +61,7 @@ Rough command overview:
 - `workspace-audit` / `audit`: workspace-native dependency audit mirrored from `pleiades-validate`
 - `report` / `generate-report`: full validation report mirrored from `pleiades-validate`
 - `validation-report-summary` / `validation-summary` / `report-summary`: compact validation report summary
+- `frame-policy-summary`: compact frame-policy summary
 - `request-policy-summary` / `request-semantics-summary`: compact request-policy summary
 - `chart`: render a basic chart report from a Julian day and optional observer settings
 

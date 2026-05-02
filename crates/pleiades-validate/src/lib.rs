@@ -37,9 +37,9 @@ use pleiades_ayanamsa::{
     metadata_coverage, release_ayanamsas, resolve_ayanamsa, validate_ayanamsa_catalog,
 };
 use pleiades_backend::{
-    delta_t_policy_summary_for_report, frame_policy_summary_for_report,
-    request_policy_summary_for_report, time_scale_policy_summary_for_report,
-    zodiac_policy_summary_for_report,
+    delta_t_policy_summary_for_report, frame_policy_summary_details,
+    frame_policy_summary_for_report, request_policy_summary_for_report,
+    time_scale_policy_summary_for_report, zodiac_policy_summary_for_report,
 };
 use pleiades_core::{
     current_api_stability_profile, current_compatibility_profile,
@@ -4089,6 +4089,10 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("release-summary") => {
             ensure_no_extra_args(&args[1..], "release-summary")?;
             Ok(render_release_summary_text())
+        }
+        Some("frame-policy-summary") => {
+            ensure_no_extra_args(&args[1..], "frame-policy-summary")?;
+            Ok(render_frame_policy_summary_text())
         }
         Some("request-policy-summary") | Some("request-semantics-summary") => {
             ensure_no_extra_args(&args[1..], "request-policy-summary")?;
@@ -9308,6 +9312,13 @@ fn format_request_semantics_summary_for_report(
     text
 }
 
+fn render_frame_policy_summary_text() -> String {
+    match frame_policy_summary_details().validated_summary_line() {
+        Ok(summary) => format!("Frame policy summary\nFrame policy: {}\n", summary),
+        Err(error) => format!("Frame policy summary\nFrame policy unavailable ({error})\n"),
+    }
+}
+
 fn render_request_policy_summary_text() -> String {
     let time_scale_policy = time_scale_policy_summary_for_report();
     let mut text = String::from("Request policy summary\n");
@@ -12610,7 +12621,7 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = default_corpus().requests.len();
     format!(
-        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  compare-backends-audit    Compare the JPL snapshot against the algorithmic composite backend and fail if the tolerance audit reports regressions\n  backend-matrix            Print the implemented backend capability matrices\n  capability-matrix         Alias for backend-matrix\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  matrix-summary            Alias for backend-matrix-summary\n  compatibility-profile     Print the release compatibility profile\n  profile                   Alias for compatibility-profile\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus and full chart assembly on representative house scenarios\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validation-report-summary [--rounds N]  Render a compact validation report summary\n  report-summary [--rounds N]  Alias for validation-report-summary\n  validation-summary        Alias for validation-report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  workspace-audit-summary   Print the compact workspace audit summary\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  request-policy-summary    Print the compact request-policy summary\n  request-semantics-summary Alias for request-policy-summary\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release-profile identifiers, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API stability summary, validation report summary, workspace audit summary, artifact summary, benchmark report, validation report, manifest, and manifest checksum sidecar\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  compare-backends-audit    Compare the JPL snapshot against the algorithmic composite backend and fail if the tolerance audit reports regressions\n  backend-matrix            Print the implemented backend capability matrices\n  capability-matrix         Alias for backend-matrix\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  matrix-summary            Alias for backend-matrix-summary\n  compatibility-profile     Print the release compatibility profile\n  profile                   Alias for compatibility-profile\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus and full chart assembly on representative house scenarios\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validation-report-summary [--rounds N]  Render a compact validation report summary\n  report-summary [--rounds N]  Alias for validation-report-summary\n  validation-summary        Alias for validation-report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  workspace-audit-summary   Print the compact workspace audit summary\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  frame-policy-summary      Print the compact frame-policy summary\n  request-policy-summary    Print the compact request-policy summary\n  request-semantics-summary Alias for request-policy-summary\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release-profile identifiers, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API stability summary, validation report summary, workspace audit summary, artifact summary, benchmark report, validation report, manifest, and manifest checksum sidecar\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
@@ -19222,6 +19233,15 @@ version = "0.9.0"
             summary.validated_summary_line().unwrap(),
             summary.to_string()
         );
+    }
+
+    #[test]
+    fn frame_policy_summary_command_renders_the_shared_frame_semantics_block() {
+        let rendered =
+            render_cli(&["frame-policy-summary"]).expect("frame policy summary should render");
+
+        assert!(rendered.contains("Frame policy summary"));
+        assert!(rendered.contains("Frame policy: ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported; native sidereal backend output remains unsupported unless a backend explicitly advertises it"));
     }
 
     #[test]
