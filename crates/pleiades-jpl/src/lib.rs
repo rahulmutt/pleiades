@@ -2987,6 +2987,192 @@ pub fn production_generation_snapshot_window_summary_for_report() -> String {
     }
 }
 
+/// A compact body-class coverage summary for the merged production-generation corpus.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ProductionGenerationSnapshotBodyClassCoverageSummary {
+    /// Number of rows in the merged production-generation corpus.
+    pub row_count: usize,
+    /// Number of major-body rows in the merged production-generation corpus.
+    pub major_body_row_count: usize,
+    /// Major bodies covered by the merged production-generation corpus in first-seen order.
+    pub major_bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Number of distinct epochs covered by the major-body subset.
+    pub major_epoch_count: usize,
+    /// Per-body windows covered by the major-body subset in first-seen order.
+    pub major_windows: Vec<ProductionGenerationSnapshotWindow>,
+    /// Number of selected-asteroid rows in the merged production-generation corpus.
+    pub asteroid_row_count: usize,
+    /// Selected asteroids covered by the merged production-generation corpus in first-seen order.
+    pub asteroid_bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Number of distinct epochs covered by the selected-asteroid subset.
+    pub asteroid_epoch_count: usize,
+    /// Per-body windows covered by the selected-asteroid subset in first-seen order.
+    pub asteroid_windows: Vec<ProductionGenerationSnapshotWindow>,
+}
+
+/// Validation error for a merged production-generation body-class coverage summary.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ProductionGenerationSnapshotBodyClassCoverageSummaryValidationError {
+    /// A summary field is out of sync with the current slice.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for ProductionGenerationSnapshotBodyClassCoverageSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the production-generation body-class coverage summary field `{field}` is out of sync with the current slice"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ProductionGenerationSnapshotBodyClassCoverageSummaryValidationError {}
+
+impl ProductionGenerationSnapshotBodyClassCoverageSummary {
+    /// Returns a compact body-class summary used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let major_windows = self
+            .major_windows
+            .iter()
+            .map(ProductionGenerationSnapshotWindow::summary_line)
+            .collect::<Vec<_>>()
+            .join("; ");
+        let asteroid_windows = self
+            .asteroid_windows
+            .iter()
+            .map(ProductionGenerationSnapshotWindow::summary_line)
+            .collect::<Vec<_>>()
+            .join("; ");
+
+        format!(
+            "Production generation body-class coverage: major bodies: {} rows across {} bodies and {} epochs; major windows: {}; selected asteroids: {} rows across {} bodies and {} epochs; asteroid windows: {}",
+            self.major_body_row_count,
+            self.major_bodies.len(),
+            self.major_epoch_count,
+            major_windows,
+            self.asteroid_row_count,
+            self.asteroid_bodies.len(),
+            self.asteroid_epoch_count,
+            asteroid_windows,
+        )
+    }
+
+    /// Returns `Ok(())` when the body-class coverage summary still matches the checked-in slice.
+    pub fn validate(
+        &self,
+    ) -> Result<(), ProductionGenerationSnapshotBodyClassCoverageSummaryValidationError> {
+        let Some(expected) = production_generation_snapshot_body_class_coverage_summary_details()
+        else {
+            return Err(
+                ProductionGenerationSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "row_count",
+                },
+            );
+        };
+
+        if self != &expected {
+            return Err(
+                ProductionGenerationSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "row_count",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated body-class coverage summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ProductionGenerationSnapshotBodyClassCoverageSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for ProductionGenerationSnapshotBodyClassCoverageSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn production_generation_snapshot_body_class_coverage_summary_details(
+) -> Option<ProductionGenerationSnapshotBodyClassCoverageSummary> {
+    let summary = production_generation_snapshot_summary()?;
+    let source_windows = production_generation_snapshot_window_summary_details()?;
+    let entries = production_generation_snapshot_entries()?;
+
+    let mut major_body_row_count = 0usize;
+    let mut major_epochs = BTreeSet::new();
+    let mut asteroid_row_count = 0usize;
+    let mut asteroid_epochs = BTreeSet::new();
+
+    for entry in entries {
+        let epoch_bits = entry.epoch.julian_day.days().to_bits();
+        if is_comparison_body(&entry.body) {
+            major_body_row_count += 1;
+            major_epochs.insert(epoch_bits);
+        }
+        if is_reference_asteroid(&entry.body) {
+            asteroid_row_count += 1;
+            asteroid_epochs.insert(epoch_bits);
+        }
+    }
+
+    Some(ProductionGenerationSnapshotBodyClassCoverageSummary {
+        row_count: summary.row_count,
+        major_body_row_count,
+        major_bodies: summary
+            .bodies
+            .iter()
+            .filter(|body| is_comparison_body(body))
+            .cloned()
+            .collect(),
+        major_epoch_count: major_epochs.len(),
+        major_windows: source_windows
+            .windows
+            .iter()
+            .filter(|window| is_comparison_body(&window.body))
+            .cloned()
+            .collect(),
+        asteroid_row_count,
+        asteroid_bodies: summary
+            .bodies
+            .iter()
+            .filter(|body| is_reference_asteroid(body))
+            .cloned()
+            .collect(),
+        asteroid_epoch_count: asteroid_epochs.len(),
+        asteroid_windows: source_windows
+            .windows
+            .iter()
+            .filter(|window| is_reference_asteroid(&window.body))
+            .cloned()
+            .collect(),
+    })
+}
+
+/// Returns the compact body-class coverage summary for the merged production-generation corpus.
+pub fn production_generation_snapshot_body_class_coverage_summary(
+) -> Option<ProductionGenerationSnapshotBodyClassCoverageSummary> {
+    production_generation_snapshot_body_class_coverage_summary_details()
+}
+
+/// Returns the release-facing body-class coverage summary string for the merged production-generation corpus.
+pub fn production_generation_snapshot_body_class_coverage_summary_for_report() -> String {
+    match production_generation_snapshot_body_class_coverage_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => {
+                format!("Production generation body-class coverage: unavailable ({error})")
+            }
+        },
+        None => "Production generation body-class coverage: unavailable".to_string(),
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct ComparisonSnapshotSummary {
     /// Total number of parsed snapshot rows.
@@ -11758,6 +11944,28 @@ mod tests {
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             production_generation_snapshot_window_summary_for_report(),
+            summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn production_generation_snapshot_body_class_coverage_summary_reports_the_split() {
+        let summary = production_generation_snapshot_body_class_coverage_summary()
+            .expect("production-generation body-class coverage summary should exist");
+        summary
+            .validate()
+            .expect("production-generation body-class coverage summary should validate");
+        assert_eq!(summary.row_count, 127);
+        assert_eq!(summary.major_bodies.len(), 10);
+        assert_eq!(summary.asteroid_bodies.len(), 5);
+        assert!(summary
+            .summary_line()
+            .starts_with("Production generation body-class coverage: major bodies: "));
+        assert!(summary.summary_line().contains("selected asteroids: "));
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            production_generation_snapshot_body_class_coverage_summary_for_report(),
             summary.summary_line()
         );
     }
