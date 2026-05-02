@@ -4074,6 +4074,44 @@ mod tests {
     }
 
     #[test]
+    fn packaged_backend_rejects_requests_outside_its_time_range() {
+        let backend = packaged_backend();
+        let time_range = packaged_artifact_production_profile_summary_details().time_range;
+        let start = time_range
+            .start
+            .expect("packaged artifact should have a lower bound");
+        let end = time_range
+            .end
+            .expect("packaged artifact should have an upper bound");
+
+        for instant in [
+            Instant::new(
+                pleiades_backend::JulianDay::from_days(start.julian_day.days() - 1.0),
+                start.scale,
+            ),
+            Instant::new(
+                pleiades_backend::JulianDay::from_days(end.julian_day.days() + 1.0),
+                end.scale,
+            ),
+        ] {
+            let request = EphemerisRequest {
+                body: CelestialBody::Sun,
+                instant,
+                observer: None,
+                frame: CoordinateFrame::Ecliptic,
+                zodiac_mode: ZodiacMode::Tropical,
+                apparent: pleiades_backend::Apparentness::Mean,
+            };
+
+            let error = backend
+                .position(&request)
+                .expect_err("packaged backend should reject out-of-range requests");
+
+            assert_eq!(error.kind, EphemerisErrorKind::OutOfRangeInstant);
+        }
+    }
+
+    #[test]
     fn observer_requests_are_rejected_explicitly() {
         let backend = packaged_backend();
         let request = EphemerisRequest {
