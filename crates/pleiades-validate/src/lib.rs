@@ -3983,7 +3983,7 @@ pub fn default_corpus() -> ValidationCorpus {
 pub fn release_grade_corpus() -> ValidationCorpus {
     let mut corpus = default_corpus();
     corpus.name = "JPL Horizons release-grade comparison window".to_string();
-    corpus.description = "Release-grade comparison corpus built from the checked-in JPL Horizons snapshot, with Pluto excluded from tolerance evidence because Pluto remains an approximate fallback.";
+    corpus.description = "Release-grade comparison corpus built from the checked-in JPL Horizons snapshot, with Pluto excluded from tolerance evidence because Pluto remains an approximate fallback; the 2451913.5 boundary day stays out of the audit slice to preserve the current release-grade comparison window.";
     corpus
         .requests
         .retain(|request| request.body != CelestialBody::Pluto);
@@ -13616,6 +13616,9 @@ mod tests {
         assert!(corpus
             .description
             .contains("Pluto excluded from tolerance evidence"));
+        assert!(corpus
+            .description
+            .contains("2451913.5 boundary day stays out of the audit slice"));
     }
 
     #[test]
