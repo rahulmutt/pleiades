@@ -44,7 +44,7 @@ use pleiades_backend::{
 use pleiades_core::{
     current_api_stability_profile, current_compatibility_profile,
     current_release_profile_identifiers, default_chart_bodies, validate_custom_definition_labels,
-    AccuracyClass, Apparentness, BackendCapabilities, BackendFamily, BackendMetadata,
+    AccuracyClass, Angle, Apparentness, BackendCapabilities, BackendFamily, BackendMetadata,
     CelestialBody, CompatibilityProfile, CompositeBackend, CoordinateFrame, EclipticCoordinates,
     EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
     Instant, JulianDay, Longitude, ReleaseProfileIdentifiers, TimeRange, TimeScale, ZodiacMode,
@@ -5378,7 +5378,58 @@ fn summarize_validation_reference_points(points: &[&str]) -> String {
     }
 }
 
-fn summarize_ayanamsa_reference_offsets() -> Option<String> {
+#[derive(Clone, Debug, PartialEq)]
+struct AyanamsaReferenceOffsetExample {
+    canonical_name: &'static str,
+    epoch: JulianDay,
+    offset_degrees: Angle,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct AyanamsaReferenceOffsetsSummary {
+    examples: Vec<AyanamsaReferenceOffsetExample>,
+}
+
+impl AyanamsaReferenceOffsetsSummary {
+    fn validate(&self) -> Result<(), EphemerisError> {
+        validate_name_sequence(
+            "ayanamsa reference offsets",
+            self.examples.iter().map(|example| example.canonical_name),
+        )?;
+
+        Ok(())
+    }
+
+    fn summary_line(&self) -> String {
+        match self.examples.as_slice() {
+            [] => "representative zero-point examples: 0 (none)".to_string(),
+            [single] => format!(
+                "representative zero-point examples: 1 ({}: epoch={}; offset={})",
+                single.canonical_name, single.epoch, single.offset_degrees
+            ),
+            _ => format!(
+                "representative zero-point examples: {}",
+                self.examples
+                    .iter()
+                    .map(|example| format!(
+                        "{}: epoch={}; offset={}",
+                        example.canonical_name, example.epoch, example.offset_degrees
+                    ))
+                    .collect::<Vec<_>>()
+                    .join("; ")
+            ),
+        }
+    }
+}
+
+impl fmt::Display for AyanamsaReferenceOffsetsSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn summarize_ayanamsa_reference_offsets() -> Result<AyanamsaReferenceOffsetsSummary, EphemerisError>
+{
     let samples = [
         pleiades_core::Ayanamsa::Lahiri,
         pleiades_core::Ayanamsa::Raman,
@@ -5390,27 +5441,49 @@ fn summarize_ayanamsa_reference_offsets() -> Option<String> {
         pleiades_core::Ayanamsa::GalacticEquatorFiorenza,
     ];
 
-    let mut rendered = Vec::with_capacity(samples.len());
+    let mut examples = Vec::with_capacity(samples.len());
     for sample in samples {
-        let descriptor = descriptor(&sample)?;
-        let epoch = descriptor.epoch?;
-        let offset = descriptor.offset_degrees?;
-        rendered.push(format!(
-            "{}: epoch={}; offset={}",
-            descriptor.canonical_name, epoch, offset
-        ));
+        let descriptor = descriptor(&sample).ok_or_else(|| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!("ayanamsa reference offsets sample `{sample}` is unavailable"),
+            )
+        })?;
+        let epoch = descriptor.epoch.ok_or_else(|| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "ayanamsa reference offsets sample `{}` is missing its reference epoch",
+                    descriptor.canonical_name
+                ),
+            )
+        })?;
+        let offset_degrees = descriptor.offset_degrees.ok_or_else(|| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "ayanamsa reference offsets sample `{}` is missing its reference offset",
+                    descriptor.canonical_name
+                ),
+            )
+        })?;
+
+        examples.push(AyanamsaReferenceOffsetExample {
+            canonical_name: descriptor.canonical_name,
+            epoch,
+            offset_degrees,
+        });
     }
 
-    Some(format!(
-        "representative zero-point examples: {}",
-        rendered.join("; ")
-    ))
+    let summary = AyanamsaReferenceOffsetsSummary { examples };
+    summary.validate()?;
+    Ok(summary)
 }
 
 fn format_ayanamsa_reference_offsets_for_report() -> String {
     match summarize_ayanamsa_reference_offsets() {
-        Some(summary) => format!("Ayanamsa reference offsets: {summary}"),
-        None => "Ayanamsa reference offsets: unavailable".to_string(),
+        Ok(summary) => format!("Ayanamsa reference offsets: {summary}"),
+        Err(error) => format!("Ayanamsa reference offsets: unavailable ({error})"),
     }
 }
 
@@ -15429,6 +15502,31 @@ mod tests {
         assert!(
             rendered.contains("See release-summary for the compact one-screen release overview.")
         );
+    }
+
+    #[test]
+    fn ayanamsa_reference_offsets_summary_rejects_duplicate_labels() {
+        let summary = AyanamsaReferenceOffsetsSummary {
+            examples: vec![
+                AyanamsaReferenceOffsetExample {
+                    canonical_name: "Lahiri",
+                    epoch: JulianDay::from_days(2_435_553.5),
+                    offset_degrees: Angle::from_degrees(23.245_524_743),
+                },
+                AyanamsaReferenceOffsetExample {
+                    canonical_name: "lahiri",
+                    epoch: JulianDay::from_days(2_451_544.5),
+                    offset_degrees: Angle::from_degrees(25.0),
+                },
+            ],
+        };
+
+        let error = summary
+            .validate()
+            .expect_err("duplicate ayanamsa reference labels should fail validation");
+        assert!(error
+            .to_string()
+            .contains("ayanamsa reference offsets contains a case-insensitive duplicate name"));
     }
 
     #[test]
