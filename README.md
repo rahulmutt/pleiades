@@ -56,6 +56,7 @@ Rough command overview:
 - `backend-matrix` / `capability-matrix`: print implemented backend capability matrices
 - `backend-matrix-summary` / `matrix-summary`: compact backend matrix summary
 - `release-notes`, `release-notes-summary`, `release-checklist`, `release-checklist-summary` / `checklist-summary`, `release-summary`, `request-policy-summary` / `request-semantics-summary`, `verify-compatibility-profile`, `verify-release-bundle`: maintainer-facing release metadata and catalog-alignment checks
+- `comparison-snapshot-manifest-summary`, `reference-snapshot-manifest-summary`: compact source-manifest provenance summaries for the checked-in JPL snapshots (also available through `pleiades-cli`)
 - `artifact-summary` / `artifact-posture-summary`: compact summary of the packaged compressed artifact
 - `validate-artifact`: full packaged-artifact inspection mirrored from `pleiades-validate`
 - `workspace-audit` / `audit`: workspace-native dependency audit mirrored from `pleiades-validate`
