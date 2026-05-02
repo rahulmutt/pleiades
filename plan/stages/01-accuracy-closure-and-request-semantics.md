@@ -21,6 +21,7 @@ Implemented and not re-planned here:
 - backend trait, metadata, request validation, composite routing, batch APIs, and structured errors;
 - mean geometric geocentric TT/TDB request handling with explicit rejection of unsupported mean/apparent, topocentric, and native-sidereal modes;
 - source-backed VSOP87B generated binary tables for Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, and Neptune;
+- direct CLI inspection paths for the request-policy, Delta T, frame, observer, and apparentness summaries so the current request posture stays visible without opening the full report stack;
 - compact lunar baseline with validation for Moon, mean/true node, and mean apogee/perigee;
 - JPL Horizons fixture/snapshot backend with selected asteroid rows, exact fixture epochs, interpolation transparency, equatorial reconstruction, and batch parity evidence; the interpolation-quality corpus now includes a 2451910.5 boundary sample with quadratic coverage;
 - comparison and regression tolerance audits now use body-class-specific release thresholds for the active planetary corpus instead of the earlier flat release posture;

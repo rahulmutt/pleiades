@@ -4119,6 +4119,14 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "delta-t-policy-summary")?;
             Ok(render_delta_t_policy_summary_text())
         }
+        Some("observer-policy-summary") => {
+            ensure_no_extra_args(&args[1..], "observer-policy-summary")?;
+            Ok(render_observer_policy_summary_text())
+        }
+        Some("apparentness-policy-summary") => {
+            ensure_no_extra_args(&args[1..], "apparentness-policy-summary")?;
+            Ok(render_apparentness_policy_summary_text())
+        }
         Some("interpolation-posture-summary") => {
             ensure_no_extra_args(&args[1..], "interpolation-posture-summary")?;
             Ok(render_interpolation_posture_summary_text())
@@ -9463,6 +9471,25 @@ fn render_delta_t_policy_summary_text() -> String {
     }
 }
 
+fn render_observer_policy_summary_text() -> String {
+    match pleiades_backend::observer_policy_summary_for_report().validated_summary_line() {
+        Ok(summary) => format!("Observer policy summary\nObserver policy: {}\n", summary),
+        Err(error) => format!("Observer policy summary\nObserver policy unavailable ({error})\n"),
+    }
+}
+
+fn render_apparentness_policy_summary_text() -> String {
+    match pleiades_backend::apparentness_policy_summary_for_report().validated_summary_line() {
+        Ok(summary) => format!(
+            "Apparentness policy summary\nApparentness policy: {}\n",
+            summary
+        ),
+        Err(error) => {
+            format!("Apparentness policy summary\nApparentness policy unavailable ({error})\n")
+        }
+    }
+}
+
 fn render_interpolation_posture_summary_text() -> String {
     match jpl_interpolation_posture_summary() {
         Some(summary) => {
@@ -12800,7 +12827,7 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = default_corpus().requests.len();
     format!(
-        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  compare-backends-audit    Compare the JPL snapshot against the algorithmic composite backend and fail if the tolerance audit reports regressions\n  backend-matrix            Print the implemented backend capability matrices\n  capability-matrix         Alias for backend-matrix\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  matrix-summary            Alias for backend-matrix-summary\n  compatibility-profile     Print the release compatibility profile\n  profile                   Alias for compatibility-profile\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus and full chart assembly on representative house scenarios\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validation-report-summary [--rounds N]  Render a compact validation report summary\n  report-summary [--rounds N]  Alias for validation-report-summary\n  validation-summary        Alias for validation-report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  workspace-audit-summary   Print the compact workspace audit summary\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  production-generation-boundary-summary  Print the compact production-generation boundary overlay summary\n  production-generation-source-window-summary  Print the compact production-generation source windows summary\n  comparison-snapshot-source-window-summary  Print the compact comparison snapshot source windows summary\n  reference-snapshot-source-window-summary  Print the compact reference snapshot source windows summary\n  reference-high-curvature-summary  Print the compact reference major-body high-curvature evidence summary\n  reference-high-curvature-window-summary  Print the compact reference major-body high-curvature windows summary\n  delta-t-policy-summary   Print the compact Delta T policy summary\n  interpolation-posture-summary  Print the compact JPL interpolation posture summary\n  interpolation-quality-summary  Print the compact JPL interpolation quality summary\n  selected-asteroid-boundary-summary  Print the compact selected-asteroid boundary evidence summary\n  selected-asteroid-source-window-summary  Print the compact selected-asteroid source windows summary\n  reference-holdout-overlap-summary  Print the compact reference/hold-out overlap summary\n  house-validation-summary   Print the compact house-validation corpus summary\n  ayanamsa-catalog-validation-summary  Print the compact ayanamsa catalog validation summary\n  ayanamsa-reference-offsets-summary  Print the compact ayanamsa reference offsets summary\n  frame-policy-summary      Print the compact frame-policy summary\n  request-policy-summary    Print the compact request-policy summary\n  request-semantics-summary Alias for request-policy-summary\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release-profile identifiers, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API stability summary, validation report summary, workspace audit summary, artifact summary, benchmark report, validation report, manifest, and manifest checksum sidecar\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  compare-backends-audit    Compare the JPL snapshot against the algorithmic composite backend and fail if the tolerance audit reports regressions\n  backend-matrix            Print the implemented backend capability matrices\n  capability-matrix         Alias for backend-matrix\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  matrix-summary            Alias for backend-matrix-summary\n  compatibility-profile     Print the release compatibility profile\n  profile                   Alias for compatibility-profile\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus and full chart assembly on representative house scenarios\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validation-report-summary [--rounds N]  Render a compact validation report summary\n  report-summary [--rounds N]  Alias for validation-report-summary\n  validation-summary        Alias for validation-report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  workspace-audit-summary   Print the compact workspace audit summary\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  production-generation-boundary-summary  Print the compact production-generation boundary overlay summary\n  production-generation-source-window-summary  Print the compact production-generation source windows summary\n  comparison-snapshot-source-window-summary  Print the compact comparison snapshot source windows summary\n  reference-snapshot-source-window-summary  Print the compact reference snapshot source windows summary\n  reference-high-curvature-summary  Print the compact reference major-body high-curvature evidence summary\n  reference-high-curvature-window-summary  Print the compact reference major-body high-curvature windows summary\n  delta-t-policy-summary   Print the compact Delta T policy summary\n  observer-policy-summary  Print the compact observer policy summary\n  apparentness-policy-summary  Print the compact apparentness policy summary\n  interpolation-posture-summary  Print the compact JPL interpolation posture summary\n  interpolation-quality-summary  Print the compact JPL interpolation quality summary\n  selected-asteroid-boundary-summary  Print the compact selected-asteroid boundary evidence summary\n  selected-asteroid-source-window-summary  Print the compact selected-asteroid source windows summary\n  reference-holdout-overlap-summary  Print the compact reference/hold-out overlap summary\n  house-validation-summary   Print the compact house-validation corpus summary\n  ayanamsa-catalog-validation-summary  Print the compact ayanamsa catalog validation summary\n  ayanamsa-reference-offsets-summary  Print the compact ayanamsa reference offsets summary\n  frame-policy-summary      Print the compact frame-policy summary\n  request-policy-summary    Print the compact request-policy summary\n  request-semantics-summary Alias for request-policy-summary\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release-profile identifiers, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API stability summary, validation report summary, workspace audit summary, artifact summary, benchmark report, validation report, manifest, and manifest checksum sidecar\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
@@ -15077,6 +15104,8 @@ mod tests {
         assert!(rendered.contains("api-stability-summary"));
         assert!(rendered.contains("compatibility-profile-summary"));
         assert!(rendered.contains("delta-t-policy-summary"));
+        assert!(rendered.contains("observer-policy-summary"));
+        assert!(rendered.contains("apparentness-policy-summary"));
         assert!(rendered.contains("production-generation-boundary-summary"));
         assert!(rendered.contains("production-generation-source-window-summary"));
         assert!(rendered.contains("comparison-snapshot-source-window-summary"));
@@ -19594,6 +19623,24 @@ version = "0.9.0"
 
         assert!(rendered.contains("Delta T policy summary"));
         assert!(rendered.contains("Delta T policy: built-in Delta T modeling remains out of scope; UTC/UT1 inputs require caller-supplied conversion helpers"));
+    }
+
+    #[test]
+    fn observer_policy_summary_command_renders_the_shared_observer_policy_block() {
+        let rendered = render_cli(&["observer-policy-summary"])
+            .expect("observer policy summary should render");
+
+        assert!(rendered.contains("Observer policy summary"));
+        assert!(rendered.contains("Observer policy: chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests; topocentric body positions remain unsupported"));
+    }
+
+    #[test]
+    fn apparentness_policy_summary_command_renders_the_shared_apparentness_policy_block() {
+        let rendered = render_cli(&["apparentness-policy-summary"])
+            .expect("apparentness policy summary should render");
+
+        assert!(rendered.contains("Apparentness policy summary"));
+        assert!(rendered.contains("Apparentness policy: current first-party backends accept mean geometric output only; apparent-place corrections are rejected unless a backend explicitly advertises support"));
     }
 
     #[test]
