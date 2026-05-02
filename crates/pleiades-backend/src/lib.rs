@@ -1244,6 +1244,10 @@ pub enum EphemerisErrorKind {
     MissingDataset,
     /// The backend encountered a numerical failure.
     NumericalFailure,
+    /// The request asks for a value mode the backend does not implement.
+    UnsupportedApparentness,
+    /// The request asks for a zodiac mode the backend does not implement.
+    UnsupportedZodiacMode,
     /// The request is malformed or internally inconsistent.
     InvalidRequest,
 }
@@ -1258,6 +1262,8 @@ impl fmt::Display for EphemerisErrorKind {
             EphemerisErrorKind::OutOfRangeInstant => "OutOfRangeInstant",
             EphemerisErrorKind::MissingDataset => "MissingDataset",
             EphemerisErrorKind::NumericalFailure => "NumericalFailure",
+            EphemerisErrorKind::UnsupportedApparentness => "UnsupportedApparentness",
+            EphemerisErrorKind::UnsupportedZodiacMode => "UnsupportedZodiacMode",
             EphemerisErrorKind::InvalidRequest => "InvalidRequest",
         };
         f.write_str(label)
@@ -2019,7 +2025,7 @@ pub fn validate_request_policy(
     match req.apparent {
         Apparentness::Mean if !supports_mean => {
             return Err(EphemerisError::new(
-                EphemerisErrorKind::InvalidRequest,
+                EphemerisErrorKind::UnsupportedApparentness,
                 format!(
                     "{backend_label} currently returns apparent coordinates only; mean geometric coordinates are not implemented"
                 ),
@@ -2027,7 +2033,7 @@ pub fn validate_request_policy(
         }
         Apparentness::Apparent if !supports_apparent => {
             return Err(EphemerisError::new(
-                EphemerisErrorKind::InvalidRequest,
+                EphemerisErrorKind::UnsupportedApparentness,
                 format!(
                     "{backend_label} currently returns mean geometric coordinates only; apparent corrections are not implemented"
                 ),
@@ -2223,8 +2229,8 @@ pub fn validate_requests_against_metadata(
 ///
 /// Current first-party backends that do not advertise native sidereal support
 /// should call this after higher-priority request checks so sidereal requests
-/// fail with a structured [`EphemerisErrorKind::InvalidRequest`] error rather
-/// than being silently coerced to tropical coordinates.
+/// fail with a structured [`EphemerisErrorKind::UnsupportedZodiacMode`] error
+/// rather than being silently coerced to tropical coordinates.
 pub fn validate_zodiac_policy(
     req: &EphemerisRequest,
     backend_label: &str,
@@ -2243,7 +2249,7 @@ pub fn validate_zodiac_policy(
         };
 
         return Err(EphemerisError::new(
-            EphemerisErrorKind::InvalidRequest,
+            EphemerisErrorKind::UnsupportedZodiacMode,
             message,
         ));
     }
@@ -2701,6 +2707,8 @@ fn should_fallback_to_secondary(kind: &EphemerisErrorKind) -> bool {
             | EphemerisErrorKind::UnsupportedTimeScale
             | EphemerisErrorKind::InvalidObserver
             | EphemerisErrorKind::MissingDataset
+            | EphemerisErrorKind::UnsupportedApparentness
+            | EphemerisErrorKind::UnsupportedZodiacMode
             | EphemerisErrorKind::InvalidRequest
     )
 }
@@ -3800,7 +3808,7 @@ mod tests {
             false,
         )
         .expect_err("apparent requests should be rejected when only mean output is supported");
-        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedApparentness);
         assert_eq!(
             error.message,
             "toy backend currently returns mean geometric coordinates only; apparent corrections are not implemented"
@@ -3819,7 +3827,7 @@ mod tests {
             true,
         )
         .expect_err("mean requests should be rejected when only apparent output is supported");
-        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedApparentness);
         assert_eq!(
             error.message,
             "toy backend currently returns apparent coordinates only; mean geometric coordinates are not implemented"
@@ -3926,7 +3934,7 @@ mod tests {
         };
         let error = validate_request_against_metadata(&sidereal_request, &metadata)
             .expect_err("sidereal requests should be rejected when metadata stays tropical-only");
-        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedZodiacMode);
         assert!(error.message.contains("tropical coordinates only"));
 
         let sidereal_metadata = BackendMetadata {
@@ -3991,7 +3999,7 @@ mod tests {
                 .expect_err(
                     "sidereal requests should be rejected when only tropical output is supported",
                 );
-        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedZodiacMode);
         assert!(error.message.contains("tropical coordinates only"));
         let request_policy = current_request_policy_summary();
         assert_eq!(
@@ -4567,7 +4575,7 @@ mod tests {
         let error =
             validate_requests_against_metadata(&[tropical_request, sidereal_request], &metadata)
                 .expect_err("the batch helper should preserve sidereal request failures");
-        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedZodiacMode);
         assert_eq!(
             error.message,
             "batch request 2: toy backend currently exposes tropical coordinates only"
@@ -4605,7 +4613,7 @@ mod tests {
         let error =
             validate_requests_against_metadata(&[mean_request, apparent_request], &metadata)
                 .expect_err("the batch helper should preserve apparentness failures");
-        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedApparentness);
         assert_eq!(
             error.message,
             "batch request 2: toy backend currently returns mean geometric coordinates only; apparent corrections are not implemented"
@@ -4759,7 +4767,7 @@ mod tests {
         let error = backend
             .positions(&[mean_request, apparent_request])
             .expect_err("batch requests should preserve apparentness rejections");
-        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedApparentness);
         assert_eq!(backend.calls.load(Ordering::SeqCst), 2);
     }
 

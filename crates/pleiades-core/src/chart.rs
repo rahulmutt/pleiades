@@ -4652,7 +4652,10 @@ mod tests {
         let validation_error = engine
             .validate_chart_request(&request)
             .expect_err("apparent chart requests should be rejected before backend dispatch");
-        assert_eq!(validation_error.kind, EphemerisErrorKind::InvalidRequest);
+        assert_eq!(
+            validation_error.kind,
+            EphemerisErrorKind::UnsupportedApparentness
+        );
         assert!(validation_error
             .message
             .contains("currently returns mean geometric coordinates only; apparent corrections are not implemented"));
@@ -4660,7 +4663,10 @@ mod tests {
         let chart_error = engine
             .chart(&request)
             .expect_err("apparent chart requests should be rejected before backend dispatch");
-        assert_eq!(chart_error.kind, EphemerisErrorKind::InvalidRequest);
+        assert_eq!(
+            chart_error.kind,
+            EphemerisErrorKind::UnsupportedApparentness
+        );
         assert!(chart_error
             .message
             .contains("currently returns mean geometric coordinates only; apparent corrections are not implemented"));

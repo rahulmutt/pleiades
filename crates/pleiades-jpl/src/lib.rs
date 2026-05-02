@@ -15301,7 +15301,7 @@ mod tests {
             .position(&request)
             .expect_err("reference snapshot should reject apparent-place requests");
 
-        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedApparentness);
     }
 
     #[test]
@@ -15362,7 +15362,7 @@ mod tests {
             .positions(&requests)
             .expect_err("reference snapshot should reject apparent batch requests");
 
-        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedApparentness);
     }
 
     #[test]

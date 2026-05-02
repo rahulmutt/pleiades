@@ -544,7 +544,7 @@ mod tests {
         let error = engine
             .validate_chart_requests(&requests)
             .expect_err("batch chart validation should reject unsupported apparentness");
-        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedApparentness);
         assert_eq!(
             error.message,
             "chart request #2 failed validation: restricted currently returns mean geometric coordinates only; apparent corrections are not implemented"

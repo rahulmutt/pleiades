@@ -4182,7 +4182,7 @@ mod tests {
             .position(&request)
             .expect_err("packaged data should reject apparent-place requests");
 
-        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedApparentness);
     }
 
     #[test]
@@ -4204,7 +4204,7 @@ mod tests {
             .positions(&[request])
             .expect_err("packaged data should reject apparent batch requests");
 
-        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedApparentness);
     }
 
     #[test]

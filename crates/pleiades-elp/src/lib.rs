@@ -8271,7 +8271,7 @@ mod tests {
         let error = backend
             .position(&request)
             .expect_err("apparent requests should be unsupported");
-        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedApparentness);
     }
 
     #[test]
@@ -8283,7 +8283,7 @@ mod tests {
         let error = backend
             .positions(&[request])
             .expect_err("apparent batch requests should be unsupported");
-        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedApparentness);
     }
 
     #[test]
