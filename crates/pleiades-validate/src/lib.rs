@@ -9492,7 +9492,9 @@ impl fmt::Display for MeanObliquityFrameRoundTripSummary {
 /// Returns the canonical sample corpus used to validate the shared mean-obliquity frame round-trip envelope.
 ///
 /// Downstream tooling can reuse this exact input set instead of reconstructing it from report text.
-pub fn mean_obliquity_frame_round_trip_sample_corpus() -> [(EclipticCoordinates, Instant); 5] {
+/// The corpus intentionally covers a near-polar wraparound case so the report evidence exercises the
+/// same precision edge that the frame regression tests pin.
+pub fn mean_obliquity_frame_round_trip_sample_corpus() -> [(EclipticCoordinates, Instant); 6] {
     [
         (
             EclipticCoordinates::new(
@@ -9533,6 +9535,14 @@ pub fn mean_obliquity_frame_round_trip_sample_corpus() -> [(EclipticCoordinates,
                 Some(0.75),
             ),
             Instant::new(JulianDay::from_days(2_500_000.5), TimeScale::Tt),
+        ),
+        (
+            EclipticCoordinates::new(
+                Longitude::from_degrees(359.875),
+                pleiades_core::Latitude::from_degrees(89.25),
+                Some(0.5),
+            ),
+            Instant::new(JulianDay::from_days(2_450_000.5), TimeScale::Tt),
         ),
     ]
 }
@@ -20067,7 +20077,7 @@ version = "0.9.0"
             .expect("mean-obliquity frame round-trip summary should exist");
 
         assert_eq!(summary.summary_line(), summary.to_string());
-        assert!(summary.summary_line().contains("5 samples"));
+        assert!(summary.summary_line().contains("6 samples"));
         assert!(summary.summary_line().contains("max |Δlon|="));
         assert!(summary.summary_line().contains("mean |Δlon|="));
         assert!(summary.summary_line().contains("p95 |Δlon|="));
@@ -20078,7 +20088,13 @@ version = "0.9.0"
     fn mean_obliquity_frame_round_trip_sample_corpus_matches_the_canonical_summary() {
         let samples = mean_obliquity_frame_round_trip_sample_corpus();
 
-        assert_eq!(samples.len(), 5);
+        assert_eq!(samples.len(), 6);
+        assert!(samples
+            .iter()
+            .any(|(coordinates, _)| coordinates.latitude.degrees() > 80.0));
+        assert!(samples
+            .iter()
+            .any(|(coordinates, _)| coordinates.longitude.degrees() > 350.0));
         assert_eq!(
             samples
                 .first()
