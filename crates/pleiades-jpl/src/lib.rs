@@ -7343,6 +7343,56 @@ impl ReferenceLunarBoundarySummary {
             format_instant(self.latest_epoch),
         )
     }
+
+    /// Returns `Ok(())` when the Moon boundary summary still matches the checked-in slice.
+    pub fn validate(&self) -> Result<(), ReferenceLunarBoundarySummaryValidationError> {
+        let Some(expected) = reference_snapshot_lunar_boundary_summary_details() else {
+            return Err(
+                ReferenceLunarBoundarySummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        };
+
+        if self.sample_count != expected.sample_count {
+            return Err(
+                ReferenceLunarBoundarySummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        }
+        if self.epoch_count != expected.epoch_count {
+            return Err(
+                ReferenceLunarBoundarySummaryValidationError::FieldOutOfSync {
+                    field: "epoch_count",
+                },
+            );
+        }
+        if self.earliest_epoch != expected.earliest_epoch {
+            return Err(
+                ReferenceLunarBoundarySummaryValidationError::FieldOutOfSync {
+                    field: "earliest_epoch",
+                },
+            );
+        }
+        if self.latest_epoch != expected.latest_epoch {
+            return Err(
+                ReferenceLunarBoundarySummaryValidationError::FieldOutOfSync {
+                    field: "latest_epoch",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated Moon boundary summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ReferenceLunarBoundarySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for ReferenceLunarBoundarySummary {
@@ -7350,6 +7400,26 @@ impl fmt::Display for ReferenceLunarBoundarySummary {
         f.write_str(&self.summary_line())
     }
 }
+
+/// Validation error for a Moon boundary summary that drifted from the current slice.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ReferenceLunarBoundarySummaryValidationError {
+    /// A summary field is out of sync with the checked-in lunar boundary evidence.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for ReferenceLunarBoundarySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the reference lunar boundary summary field `{field}` is out of sync with the current slice"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ReferenceLunarBoundarySummaryValidationError {}
 
 fn reference_snapshot_lunar_boundary_summary_details() -> Option<ReferenceLunarBoundarySummary> {
     let entries = reference_snapshot_lunar_boundary_entries()?;
@@ -7394,7 +7464,10 @@ pub fn reference_snapshot_lunar_boundary_summary() -> Option<ReferenceLunarBound
 /// Returns the release-facing Moon high-curvature reference window summary string.
 pub fn reference_snapshot_lunar_boundary_summary_for_report() -> String {
     match reference_snapshot_lunar_boundary_summary() {
-        Some(summary) => summary.summary_line(),
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => format!("Reference lunar boundary evidence: unavailable ({error})"),
+        },
         None => "Reference lunar boundary evidence: unavailable".to_string(),
     }
 }
@@ -7429,6 +7502,68 @@ impl ReferenceHighCurvatureSummary {
             format_bodies(&self.bodies),
         )
     }
+
+    /// Returns `Ok(())` when the major-body high-curvature summary still matches the checked-in slice.
+    pub fn validate(&self) -> Result<(), ReferenceHighCurvatureSummaryValidationError> {
+        let Some(expected) = reference_snapshot_high_curvature_summary_details() else {
+            return Err(
+                ReferenceHighCurvatureSummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        };
+
+        if self.sample_count != expected.sample_count {
+            return Err(
+                ReferenceHighCurvatureSummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        }
+        if self.body_count != expected.body_count {
+            return Err(
+                ReferenceHighCurvatureSummaryValidationError::FieldOutOfSync {
+                    field: "body_count",
+                },
+            );
+        }
+        if self.bodies != expected.bodies {
+            return Err(
+                ReferenceHighCurvatureSummaryValidationError::FieldOutOfSync { field: "bodies" },
+            );
+        }
+        if self.epoch_count != expected.epoch_count {
+            return Err(
+                ReferenceHighCurvatureSummaryValidationError::FieldOutOfSync {
+                    field: "epoch_count",
+                },
+            );
+        }
+        if self.earliest_epoch != expected.earliest_epoch {
+            return Err(
+                ReferenceHighCurvatureSummaryValidationError::FieldOutOfSync {
+                    field: "earliest_epoch",
+                },
+            );
+        }
+        if self.latest_epoch != expected.latest_epoch {
+            return Err(
+                ReferenceHighCurvatureSummaryValidationError::FieldOutOfSync {
+                    field: "latest_epoch",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated major-body high-curvature summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ReferenceHighCurvatureSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for ReferenceHighCurvatureSummary {
@@ -7436,6 +7571,26 @@ impl fmt::Display for ReferenceHighCurvatureSummary {
         f.write_str(&self.summary_line())
     }
 }
+
+/// Validation error for a major-body high-curvature summary that drifted from the current slice.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ReferenceHighCurvatureSummaryValidationError {
+    /// A summary field is out of sync with the checked-in high-curvature evidence.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for ReferenceHighCurvatureSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the reference high-curvature summary field `{field}` is out of sync with the current slice"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ReferenceHighCurvatureSummaryValidationError {}
 
 fn reference_snapshot_high_curvature_summary_details() -> Option<ReferenceHighCurvatureSummary> {
     let entries = reference_snapshot_high_curvature_entries()?;
@@ -7487,7 +7642,12 @@ pub fn reference_snapshot_high_curvature_summary() -> Option<ReferenceHighCurvat
 /// Returns the release-facing major-body high-curvature reference window summary string.
 pub fn reference_snapshot_high_curvature_summary_for_report() -> String {
     match reference_snapshot_high_curvature_summary() {
-        Some(summary) => summary.summary_line(),
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => {
+                format!("Reference major-body high-curvature evidence: unavailable ({error})")
+            }
+        },
         None => "Reference major-body high-curvature evidence: unavailable".to_string(),
     }
 }
@@ -12101,6 +12261,8 @@ mod tests {
         assert_eq!(summary.epoch_count, 2);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_451_911.5);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_451_912.5);
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             summary.summary_line(),
             "Reference lunar boundary evidence: 2 exact Moon samples at JD 2451911.5 (TDB)..JD 2451912.5 (TDB); high-curvature interpolation window"
@@ -12124,6 +12286,8 @@ mod tests {
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_451_914.5);
         assert_eq!(summary.bodies[0], pleiades_backend::CelestialBody::Sun);
         assert_eq!(summary.bodies[9], pleiades_backend::CelestialBody::Jupiter);
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             summary.summary_line(),
             "Reference major-body high-curvature evidence: 40 exact samples across 10 bodies and 4 epochs (JD 2451911.5 (TDB)..JD 2451914.5 (TDB)); bodies: Sun, Moon, Mercury, Venus, Saturn, Uranus, Neptune, Pluto, Mars, Jupiter; high-curvature interpolation window"
@@ -12165,17 +12329,53 @@ mod tests {
         );
         assert_eq!(summary.windows[9].sample_count, 4);
         assert_eq!(summary.windows[9].epoch_count, 4);
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             summary.summary_line(),
             "Reference major-body high-curvature windows: 40 source-backed samples across 10 bodies and 4 epochs (JD 2451911.5 (TDB)..JD 2451914.5 (TDB)); windows: Sun: 4 samples across 4 epochs at JD 2451911.5 (TDB)..JD 2451914.5 (TDB); Moon: 4 samples across 4 epochs at JD 2451911.5 (TDB)..JD 2451914.5 (TDB); Mercury: 4 samples across 4 epochs at JD 2451911.5 (TDB)..JD 2451914.5 (TDB); Venus: 4 samples across 4 epochs at JD 2451911.5 (TDB)..JD 2451914.5 (TDB); Saturn: 4 samples across 4 epochs at JD 2451911.5 (TDB)..JD 2451914.5 (TDB); Uranus: 4 samples across 4 epochs at JD 2451911.5 (TDB)..JD 2451914.5 (TDB); Neptune: 4 samples across 4 epochs at JD 2451911.5 (TDB)..JD 2451914.5 (TDB); Pluto: 4 samples across 4 epochs at JD 2451911.5 (TDB)..JD 2451914.5 (TDB); Mars: 4 samples across 4 epochs at JD 2451911.5 (TDB)..JD 2451914.5 (TDB); Jupiter: 4 samples across 4 epochs at JD 2451911.5 (TDB)..JD 2451914.5 (TDB)"
         );
         assert_eq!(summary.to_string(), summary.summary_line());
-        assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             reference_snapshot_high_curvature_window_summary_for_report(),
             summary.summary_line()
         );
+    }
+
+    #[test]
+    fn reference_snapshot_lunar_boundary_summary_validation_rejects_drift() {
+        let mut summary = reference_snapshot_lunar_boundary_summary()
+            .expect("reference lunar boundary summary should exist");
+        summary.sample_count += 1;
+
+        let error = summary
+            .validate()
+            .expect_err("drifted lunar boundary summary should fail validation");
+
+        assert!(matches!(
+            error,
+            ReferenceLunarBoundarySummaryValidationError::FieldOutOfSync {
+                field: "sample_count"
+            }
+        ));
+    }
+
+    #[test]
+    fn reference_snapshot_high_curvature_summary_validation_rejects_drift() {
+        let mut summary = reference_snapshot_high_curvature_summary()
+            .expect("reference high-curvature summary should exist");
+        summary.body_count += 1;
+
+        let error = summary
+            .validate()
+            .expect_err("drifted high-curvature summary should fail validation");
+
+        assert!(matches!(
+            error,
+            ReferenceHighCurvatureSummaryValidationError::FieldOutOfSync {
+                field: "body_count"
+            }
+        ));
     }
 
     #[test]
