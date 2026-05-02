@@ -50,7 +50,8 @@ use pleiades_core::{
     Instant, JulianDay, Longitude, ReleaseProfileIdentifiers, TimeRange, TimeScale, ZodiacMode,
 };
 use pleiades_data::{
-    packaged_artifact_access_summary_for_report, packaged_artifact_generation_manifest_for_report,
+    packaged_artifact_access_summary_for_report, packaged_artifact_bytes,
+    packaged_artifact_generation_manifest_for_report,
     packaged_artifact_generation_policy_summary_for_report,
     packaged_artifact_generation_residual_bodies_summary_for_report,
     packaged_artifact_output_support_summary_for_report,
@@ -64,7 +65,7 @@ use pleiades_data::{
     packaged_frame_parity_summary_for_report, packaged_frame_treatment_summary_for_report,
     packaged_lookup_epoch_policy_summary_for_report,
     packaged_mixed_tt_tdb_batch_parity_summary_for_report,
-    packaged_request_policy_summary_for_report, PackagedDataBackend,
+    packaged_request_policy_summary_for_report, regenerate_packaged_artifact, PackagedDataBackend,
 };
 use pleiades_elp::{
     lunar_apparent_comparison_evidence, lunar_apparent_comparison_summary,
@@ -4037,6 +4038,14 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("validate-artifact") => {
             ensure_no_extra_args(&args[1..], "validate-artifact")?;
             render_artifact_report().map_err(render_artifact_error)
+        }
+        Some("regenerate-packaged-artifact") => {
+            match parse_packaged_artifact_command(&args[1..])? {
+                PackagedArtifactCommand::Write { output_path } => {
+                    render_packaged_artifact_regeneration(output_path)
+                }
+                PackagedArtifactCommand::Check => render_packaged_artifact_regeneration_check(),
+            }
         }
         Some("artifact-summary") | Some("artifact-posture-summary") => {
             ensure_no_extra_args(&args[1..], "artifact-summary")?;
@@ -13085,7 +13094,7 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = default_corpus().requests.len();
     format!(
-        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  compare-backends-audit    Compare the JPL snapshot against the algorithmic composite backend and fail if the tolerance audit reports regressions\n  backend-matrix            Print the implemented backend capability matrices\n  capability-matrix         Alias for backend-matrix\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  matrix-summary            Alias for backend-matrix-summary\n  compatibility-profile     Print the release compatibility profile\n  profile                   Alias for compatibility-profile\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus and full chart assembly on representative house scenarios\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validation-report-summary [--rounds N]  Render a compact validation report summary\n  report-summary [--rounds N]  Alias for validation-report-summary\n  validation-summary        Alias for validation-report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  artifact-profile-coverage-summary  Print the packaged-artifact profile coverage summary\n  packaged-artifact-output-support-summary  Print the packaged-artifact output support summary\n  packaged-artifact-production-profile-summary  Print the packaged-artifact production profile skeleton summary\n  packaged-artifact-generation-manifest-summary  Print the packaged-artifact generation manifest summary\n  packaged-lookup-epoch-policy-summary  Print the packaged lookup epoch policy summary\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  workspace-audit-summary   Print the compact workspace audit summary\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  jpl-batch-error-taxonomy-summary  Print the compact JPL batch error taxonomy summary\n  production-generation-boundary-summary  Print the compact production-generation boundary overlay summary\n  production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary\n  production-generation-body-class-coverage-summary  Print the compact production-generation body-class coverage summary\n  production-generation-source-window-summary  Print the compact production-generation source windows summary\n  comparison-snapshot-source-window-summary  Print the compact comparison snapshot source windows summary\n  comparison-snapshot-body-class-coverage-summary  Print the compact comparison snapshot body-class coverage summary\n  comparison-snapshot-manifest-summary  Print the compact comparison snapshot manifest summary\n  comparison-snapshot-summary  Print the compact comparison snapshot summary\n  comparison-snapshot-batch-parity-summary  Print the compact comparison snapshot batch parity summary\n  reference-snapshot-source-window-summary  Print the compact reference snapshot source windows summary\n  reference-snapshot-lunar-boundary-summary  Print the compact reference lunar boundary evidence summary\n  reference-snapshot-body-class-coverage-summary  Print the compact reference snapshot body-class coverage summary\n  reference-snapshot-manifest-summary  Print the compact reference snapshot manifest summary\n  reference-snapshot-summary  Print the compact reference snapshot summary\n  reference-snapshot-batch-parity-summary  Print the compact reference snapshot batch parity summary\n  reference-snapshot-equatorial-parity-summary  Print the compact reference snapshot equatorial parity summary\n  reference-high-curvature-summary  Print the compact reference major-body high-curvature evidence summary\n  reference-high-curvature-window-summary  Print the compact reference major-body high-curvature windows summary\n  source-documentation-summary  Print the compact VSOP87 source-documentation summary\n  source-documentation-health-summary  Print the compact VSOP87 source-documentation health summary\n  delta-t-policy-summary   Print the compact Delta T policy summary\n  observer-policy-summary  Print the compact observer policy summary\n  apparentness-policy-summary  Print the compact apparentness policy summary\n  interpolation-posture-summary  Print the compact JPL interpolation posture summary\n  interpolation-quality-summary  Print the compact JPL interpolation quality summary\n  lunar-reference-error-envelope-summary  Print the compact lunar reference error envelope summary\n  lunar-equatorial-reference-error-envelope-summary  Print the compact lunar equatorial reference error envelope summary\n  lunar-apparent-comparison-summary  Print the compact lunar apparent comparison summary\n  lunar-source-window-summary  Print the compact lunar source windows summary\n  lunar-theory-summary      Print the compact ELP lunar theory specification\n  lunar-theory-capability-summary  Print the compact ELP lunar capability summary\n  lunar-theory-source-summary  Print the compact ELP lunar source summary\n  selected-asteroid-boundary-summary  Print the compact selected-asteroid boundary evidence summary\n  selected-asteroid-source-window-summary  Print the compact selected-asteroid source windows summary\n  selected-asteroid-batch-parity-summary  Print the compact selected-asteroid batch-parity summary\n  reference-asteroid-evidence-summary  Print the compact reference asteroid evidence summary\n  reference-asteroid-equatorial-evidence-summary  Print the compact reference asteroid equatorial evidence summary\n  reference-holdout-overlap-summary  Print the compact reference/hold-out overlap summary\n  independent-holdout-source-window-summary  Print the compact independent hold-out source windows summary\n  independent-holdout-body-class-coverage-summary  Print the compact independent hold-out body-class coverage summary\n  independent-holdout-batch-parity-summary  Print the compact independent hold-out batch parity summary\n  independent-holdout-equatorial-parity-summary  Print the compact independent hold-out equatorial parity summary\n  house-validation-summary   Print the compact house-validation corpus summary\n  ayanamsa-catalog-validation-summary  Print the compact ayanamsa catalog validation summary\n  ayanamsa-metadata-coverage-summary  Print the compact ayanamsa sidereal metadata coverage summary\n  ayanamsa-reference-offsets-summary  Print the compact ayanamsa reference offsets summary\n  frame-policy-summary      Print the compact frame-policy summary\n  release-profile-identifiers-summary  Print the compact release-profile identifiers summary\n  request-policy-summary    Print the compact request-policy summary\n  request-semantics-summary Alias for request-policy-summary\n  comparison-tolerance-policy-summary  Print the compact comparison tolerance policy summary\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release-profile identifiers, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API stability summary, validation report summary, workspace audit summary, artifact summary, benchmark report, validation report, manifest, and manifest checksum sidecar\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  compare-backends-audit    Compare the JPL snapshot against the algorithmic composite backend and fail if the tolerance audit reports regressions\n  backend-matrix            Print the implemented backend capability matrices\n  capability-matrix         Alias for backend-matrix\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  matrix-summary            Alias for backend-matrix-summary\n  compatibility-profile     Print the release compatibility profile\n  profile                   Alias for compatibility-profile\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus and full chart assembly on representative house scenarios\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validation-report-summary [--rounds N]  Render a compact validation report summary\n  report-summary [--rounds N]  Alias for validation-report-summary\n  validation-summary        Alias for validation-report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  regenerate-packaged-artifact  Rebuild or verify the packaged artifact fixture from the checked-in reference snapshot; pass a file path, --out FILE, or --check\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  artifact-profile-coverage-summary  Print the packaged-artifact profile coverage summary\n  packaged-artifact-output-support-summary  Print the packaged-artifact output support summary\n  packaged-artifact-production-profile-summary  Print the packaged-artifact production profile skeleton summary\n  packaged-artifact-generation-manifest-summary  Print the packaged-artifact generation manifest summary\n  packaged-lookup-epoch-policy-summary  Print the packaged lookup epoch policy summary\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  workspace-audit-summary   Print the compact workspace audit summary\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  jpl-batch-error-taxonomy-summary  Print the compact JPL batch error taxonomy summary\n  production-generation-boundary-summary  Print the compact production-generation boundary overlay summary\n  production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary\n  production-generation-body-class-coverage-summary  Print the compact production-generation body-class coverage summary\n  production-generation-source-window-summary  Print the compact production-generation source windows summary\n  comparison-snapshot-source-window-summary  Print the compact comparison snapshot source windows summary\n  comparison-snapshot-body-class-coverage-summary  Print the compact comparison snapshot body-class coverage summary\n  comparison-snapshot-manifest-summary  Print the compact comparison snapshot manifest summary\n  comparison-snapshot-summary  Print the compact comparison snapshot summary\n  comparison-snapshot-batch-parity-summary  Print the compact comparison snapshot batch parity summary\n  reference-snapshot-source-window-summary  Print the compact reference snapshot source windows summary\n  reference-snapshot-lunar-boundary-summary  Print the compact reference lunar boundary evidence summary\n  reference-snapshot-body-class-coverage-summary  Print the compact reference snapshot body-class coverage summary\n  reference-snapshot-manifest-summary  Print the compact reference snapshot manifest summary\n  reference-snapshot-summary  Print the compact reference snapshot summary\n  reference-snapshot-batch-parity-summary  Print the compact reference snapshot batch parity summary\n  reference-snapshot-equatorial-parity-summary  Print the compact reference snapshot equatorial parity summary\n  reference-high-curvature-summary  Print the compact reference major-body high-curvature evidence summary\n  reference-high-curvature-window-summary  Print the compact reference major-body high-curvature windows summary\n  source-documentation-summary  Print the compact VSOP87 source-documentation summary\n  source-documentation-health-summary  Print the compact VSOP87 source-documentation health summary\n  delta-t-policy-summary   Print the compact Delta T policy summary\n  observer-policy-summary  Print the compact observer policy summary\n  apparentness-policy-summary  Print the compact apparentness policy summary\n  interpolation-posture-summary  Print the compact JPL interpolation posture summary\n  interpolation-quality-summary  Print the compact JPL interpolation quality summary\n  lunar-reference-error-envelope-summary  Print the compact lunar reference error envelope summary\n  lunar-equatorial-reference-error-envelope-summary  Print the compact lunar equatorial reference error envelope summary\n  lunar-apparent-comparison-summary  Print the compact lunar apparent comparison summary\n  lunar-source-window-summary  Print the compact lunar source windows summary\n  lunar-theory-summary      Print the compact ELP lunar theory specification\n  lunar-theory-capability-summary  Print the compact ELP lunar capability summary\n  lunar-theory-source-summary  Print the compact ELP lunar source summary\n  selected-asteroid-boundary-summary  Print the compact selected-asteroid boundary evidence summary\n  selected-asteroid-source-window-summary  Print the compact selected-asteroid source windows summary\n  selected-asteroid-batch-parity-summary  Print the compact selected-asteroid batch-parity summary\n  reference-asteroid-evidence-summary  Print the compact reference asteroid evidence summary\n  reference-asteroid-equatorial-evidence-summary  Print the compact reference asteroid equatorial evidence summary\n  reference-holdout-overlap-summary  Print the compact reference/hold-out overlap summary\n  independent-holdout-source-window-summary  Print the compact independent hold-out source windows summary\n  independent-holdout-body-class-coverage-summary  Print the compact independent hold-out body-class coverage summary\n  independent-holdout-batch-parity-summary  Print the compact independent hold-out batch parity summary\n  independent-holdout-equatorial-parity-summary  Print the compact independent hold-out equatorial parity summary\n  house-validation-summary   Print the compact house-validation corpus summary\n  ayanamsa-catalog-validation-summary  Print the compact ayanamsa catalog validation summary\n  ayanamsa-metadata-coverage-summary  Print the compact ayanamsa sidereal metadata coverage summary\n  ayanamsa-reference-offsets-summary  Print the compact ayanamsa reference offsets summary\n  frame-policy-summary      Print the compact frame-policy summary\n  release-profile-identifiers-summary  Print the compact release-profile identifiers summary\n  request-policy-summary    Print the compact request-policy summary\n  request-semantics-summary Alias for request-policy-summary\n  comparison-tolerance-policy-summary  Print the compact comparison tolerance policy summary\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release-profile identifiers, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API stability summary, validation report summary, workspace audit summary, artifact summary, benchmark report, validation report, manifest, and manifest checksum sidecar\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
@@ -13127,6 +13136,76 @@ fn parse_release_bundle_args(
     let output_dir =
         output_dir.ok_or_else(|| "missing required --out <dir> argument".to_string())?;
     Ok((output_dir, rounds))
+}
+
+enum PackagedArtifactCommand {
+    Write { output_path: String },
+    Check,
+}
+
+fn parse_packaged_artifact_command(args: &[&str]) -> Result<PackagedArtifactCommand, String> {
+    match args {
+        [] => Err(
+            "missing required output path argument; pass a file path, --out <file>, or --check"
+                .to_string(),
+        ),
+        ["--check"] => Ok(PackagedArtifactCommand::Check),
+        ["--out"] => Err("missing value for --out".to_string()),
+        ["--out", path] => Ok(PackagedArtifactCommand::Write {
+            output_path: (*path).to_string(),
+        }),
+        ["--out", _, extra, ..] => Err(format!("unknown argument: {extra}")),
+        [path] if !path.starts_with('-') => Ok(PackagedArtifactCommand::Write {
+            output_path: (*path).to_string(),
+        }),
+        [other, ..] => Err(format!("unknown argument: {other}")),
+    }
+}
+
+fn render_packaged_artifact_regeneration(output_path: String) -> Result<String, String> {
+    let artifact = regenerate_packaged_artifact();
+    let encoded = artifact.encode().map_err(|error| error.to_string())?;
+    if let Some(parent) = Path::new(&output_path).parent() {
+        if !parent.as_os_str().is_empty() {
+            fs::create_dir_all(parent)
+                .map_err(|error| format!("failed to create {}: {error}", parent.display()))?;
+        }
+    }
+    fs::write(&output_path, &encoded)
+        .map_err(|error| format!("failed to write {}: {error}", output_path))?;
+
+    Ok(format!(
+        "Packaged artifact regenerated\n  path: {}\n  label: {}\n  source: {}\n  checksum: 0x{:016x}\n  bytes: {}\n  {}",
+        output_path,
+        artifact.header.generation_label,
+        artifact.header.source,
+        artifact.checksum,
+        encoded.len(),
+        packaged_artifact_regeneration_summary_for_report(),
+    ))
+}
+
+fn render_packaged_artifact_regeneration_check() -> Result<String, String> {
+    let artifact = regenerate_packaged_artifact();
+    let regenerated = artifact.encode().map_err(|error| error.to_string())?;
+    let committed = packaged_artifact_bytes();
+
+    if regenerated.as_slice() != committed {
+        return Err(format!(
+            "packaged artifact regeneration check failed: regenerated {} bytes did not match the checked-in fixture {} bytes",
+            regenerated.len(),
+            committed.len()
+        ));
+    }
+
+    Ok(format!(
+        "Packaged artifact regeneration check passed\n  label: {}\n  source: {}\n  checksum: 0x{:016x}\n  bytes: {}\n  {}",
+        artifact.header.generation_label,
+        artifact.header.source,
+        artifact.checksum,
+        regenerated.len(),
+        packaged_artifact_regeneration_summary_for_report(),
+    ))
 }
 
 fn render_error(error: EphemerisError) -> String {
@@ -15367,6 +15446,7 @@ mod tests {
         assert!(rendered.contains("report-summary [--rounds N]"));
         assert!(rendered.contains("validation-summary"));
         assert!(rendered.contains("validate-artifact"));
+        assert!(rendered.contains("regenerate-packaged-artifact"));
         assert!(rendered.contains("artifact-summary"));
         assert!(rendered.contains("packaged-artifact-production-profile-summary"));
         assert!(rendered.contains("packaged-artifact-generation-manifest-summary"));
@@ -15429,6 +15509,27 @@ mod tests {
         assert!(rendered.contains("profile-summary"));
         assert!(rendered.contains("backend matrix"));
         assert!(rendered.contains("verify-release-bundle"));
+    }
+
+    #[test]
+    fn regenerate_packaged_artifact_command_checks_and_writes_the_fixture() {
+        let check = render_cli(&["regenerate-packaged-artifact", "--check"])
+            .expect("packaged artifact regeneration check should render");
+        assert!(check.contains("Packaged artifact regeneration check passed"));
+        assert!(check.contains("checksum: 0x"));
+        assert!(check.contains(&packaged_artifact_regeneration_summary_for_report()));
+
+        let output_dir = unique_temp_dir("pleiades-packaged-artifact-regeneration");
+        let output_path = output_dir.join("packaged-artifact.bin");
+        let output_path_string = output_path.to_string_lossy().to_string();
+        let rendered = render_cli(&["regenerate-packaged-artifact", "--out", &output_path_string])
+            .expect("packaged artifact regeneration should write bytes");
+        assert!(rendered.contains("Packaged artifact regenerated"));
+        assert!(rendered.contains("checksum: 0x"));
+        assert_eq!(
+            std::fs::read(&output_path).expect("regenerated artifact should exist"),
+            packaged_artifact_bytes()
+        );
     }
 
     #[test]
