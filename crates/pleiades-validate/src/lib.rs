@@ -4049,6 +4049,10 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
                 packaged_artifact_profile_coverage_summary_for_report()
             ))
         }
+        Some("packaged-artifact-production-profile-summary") => {
+            ensure_no_extra_args(&args[1..], "packaged-artifact-production-profile-summary")?;
+            Ok(packaged_artifact_production_profile_summary_for_report())
+        }
         Some("packaged-artifact-generation-manifest-summary") => {
             ensure_no_extra_args(&args[1..], "packaged-artifact-generation-manifest-summary")?;
             Ok(packaged_artifact_generation_manifest_for_report())
@@ -4286,6 +4290,10 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("request-policy-summary") | Some("request-semantics-summary") => {
             ensure_no_extra_args(&args[1..], "request-policy-summary")?;
             Ok(render_request_policy_summary_text())
+        }
+        Some("comparison-tolerance-policy-summary") => {
+            ensure_no_extra_args(&args[1..], "comparison-tolerance-policy-summary")?;
+            Ok(render_comparison_tolerance_policy_summary_text())
         }
         Some("bundle-release") => {
             let (output_dir, rounds) =
@@ -9687,6 +9695,19 @@ fn render_request_policy_summary_text() -> String {
     text
 }
 
+fn render_comparison_tolerance_policy_summary_text() -> String {
+    let report = compare_backends(
+        &default_reference_backend(),
+        &default_candidate_backend(),
+        &default_corpus(),
+    )
+    .expect("comparison tolerance policy summary should build");
+    format!(
+        "Comparison tolerance policy summary\nComparison tolerance policy: {}\n",
+        format_comparison_tolerance_policy_for_report(&report)
+    )
+}
+
 fn validated_api_stability_profile_for_report() -> Result<pleiades_core::ApiStabilityProfile, String>
 {
     let profile = current_api_stability_profile();
@@ -13007,7 +13028,7 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = default_corpus().requests.len();
     format!(
-        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  compare-backends-audit    Compare the JPL snapshot against the algorithmic composite backend and fail if the tolerance audit reports regressions\n  backend-matrix            Print the implemented backend capability matrices\n  capability-matrix         Alias for backend-matrix\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  matrix-summary            Alias for backend-matrix-summary\n  compatibility-profile     Print the release compatibility profile\n  profile                   Alias for compatibility-profile\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus and full chart assembly on representative house scenarios\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validation-report-summary [--rounds N]  Render a compact validation report summary\n  report-summary [--rounds N]  Alias for validation-report-summary\n  validation-summary        Alias for validation-report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  artifact-profile-coverage-summary  Print the packaged-artifact profile coverage summary\n  packaged-artifact-generation-manifest-summary  Print the packaged-artifact generation manifest summary\n  packaged-lookup-epoch-policy-summary  Print the packaged lookup epoch policy summary\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  workspace-audit-summary   Print the compact workspace audit summary\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  jpl-batch-error-taxonomy-summary  Print the compact JPL batch error taxonomy summary\n  production-generation-boundary-summary  Print the compact production-generation boundary overlay summary\n  production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary\n  production-generation-body-class-coverage-summary  Print the compact production-generation body-class coverage summary\n  production-generation-source-window-summary  Print the compact production-generation source windows summary\n  comparison-snapshot-source-window-summary  Print the compact comparison snapshot source windows summary\n  comparison-snapshot-body-class-coverage-summary  Print the compact comparison snapshot body-class coverage summary\n  comparison-snapshot-manifest-summary  Print the compact comparison snapshot manifest summary\n  comparison-snapshot-summary  Print the compact comparison snapshot summary\n  comparison-snapshot-batch-parity-summary  Print the compact comparison snapshot batch parity summary\n  reference-snapshot-source-window-summary  Print the compact reference snapshot source windows summary\n  reference-snapshot-body-class-coverage-summary  Print the compact reference snapshot body-class coverage summary\n  reference-snapshot-manifest-summary  Print the compact reference snapshot manifest summary\n  reference-snapshot-summary  Print the compact reference snapshot summary\n  reference-snapshot-batch-parity-summary  Print the compact reference snapshot batch parity summary\n  reference-snapshot-equatorial-parity-summary  Print the compact reference snapshot equatorial parity summary\n  reference-high-curvature-summary  Print the compact reference major-body high-curvature evidence summary\n  reference-high-curvature-window-summary  Print the compact reference major-body high-curvature windows summary\n  delta-t-policy-summary   Print the compact Delta T policy summary\n  observer-policy-summary  Print the compact observer policy summary\n  apparentness-policy-summary  Print the compact apparentness policy summary\n  interpolation-posture-summary  Print the compact JPL interpolation posture summary\n  interpolation-quality-summary  Print the compact JPL interpolation quality summary\n  lunar-reference-error-envelope-summary  Print the compact lunar reference error envelope summary\n  lunar-equatorial-reference-error-envelope-summary  Print the compact lunar equatorial reference error envelope summary\n  lunar-apparent-comparison-summary  Print the compact lunar apparent comparison summary\n  lunar-source-window-summary  Print the compact lunar source windows summary\n  selected-asteroid-boundary-summary  Print the compact selected-asteroid boundary evidence summary\n  selected-asteroid-source-window-summary  Print the compact selected-asteroid source windows summary\n  selected-asteroid-batch-parity-summary  Print the compact selected-asteroid batch-parity summary\n  reference-holdout-overlap-summary  Print the compact reference/hold-out overlap summary\n  independent-holdout-source-window-summary  Print the compact independent hold-out source windows summary\n  independent-holdout-body-class-coverage-summary  Print the compact independent hold-out body-class coverage summary\n  independent-holdout-batch-parity-summary  Print the compact independent hold-out batch parity summary\n  independent-holdout-equatorial-parity-summary  Print the compact independent hold-out equatorial parity summary\n  house-validation-summary   Print the compact house-validation corpus summary\n  ayanamsa-catalog-validation-summary  Print the compact ayanamsa catalog validation summary\n  ayanamsa-reference-offsets-summary  Print the compact ayanamsa reference offsets summary\n  frame-policy-summary      Print the compact frame-policy summary\n  release-profile-identifiers-summary  Print the compact release-profile identifiers summary\n  request-policy-summary    Print the compact request-policy summary\n  request-semantics-summary Alias for request-policy-summary\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release-profile identifiers, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API stability summary, validation report summary, workspace audit summary, artifact summary, benchmark report, validation report, manifest, and manifest checksum sidecar\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  compare-backends-audit    Compare the JPL snapshot against the algorithmic composite backend and fail if the tolerance audit reports regressions\n  backend-matrix            Print the implemented backend capability matrices\n  capability-matrix         Alias for backend-matrix\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  matrix-summary            Alias for backend-matrix-summary\n  compatibility-profile     Print the release compatibility profile\n  profile                   Alias for compatibility-profile\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus and full chart assembly on representative house scenarios\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validation-report-summary [--rounds N]  Render a compact validation report summary\n  report-summary [--rounds N]  Alias for validation-report-summary\n  validation-summary        Alias for validation-report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  artifact-profile-coverage-summary  Print the packaged-artifact profile coverage summary\n  packaged-artifact-production-profile-summary  Print the packaged-artifact production profile skeleton summary\n  packaged-artifact-generation-manifest-summary  Print the packaged-artifact generation manifest summary\n  packaged-lookup-epoch-policy-summary  Print the packaged lookup epoch policy summary\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  workspace-audit-summary   Print the compact workspace audit summary\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary\n  profile-summary           Alias for compatibility-profile-summary\n  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  jpl-batch-error-taxonomy-summary  Print the compact JPL batch error taxonomy summary\n  production-generation-boundary-summary  Print the compact production-generation boundary overlay summary\n  production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary\n  production-generation-body-class-coverage-summary  Print the compact production-generation body-class coverage summary\n  production-generation-source-window-summary  Print the compact production-generation source windows summary\n  comparison-snapshot-source-window-summary  Print the compact comparison snapshot source windows summary\n  comparison-snapshot-body-class-coverage-summary  Print the compact comparison snapshot body-class coverage summary\n  comparison-snapshot-manifest-summary  Print the compact comparison snapshot manifest summary\n  comparison-snapshot-summary  Print the compact comparison snapshot summary\n  comparison-snapshot-batch-parity-summary  Print the compact comparison snapshot batch parity summary\n  reference-snapshot-source-window-summary  Print the compact reference snapshot source windows summary\n  reference-snapshot-body-class-coverage-summary  Print the compact reference snapshot body-class coverage summary\n  reference-snapshot-manifest-summary  Print the compact reference snapshot manifest summary\n  reference-snapshot-summary  Print the compact reference snapshot summary\n  reference-snapshot-batch-parity-summary  Print the compact reference snapshot batch parity summary\n  reference-snapshot-equatorial-parity-summary  Print the compact reference snapshot equatorial parity summary\n  reference-high-curvature-summary  Print the compact reference major-body high-curvature evidence summary\n  reference-high-curvature-window-summary  Print the compact reference major-body high-curvature windows summary\n  delta-t-policy-summary   Print the compact Delta T policy summary\n  observer-policy-summary  Print the compact observer policy summary\n  apparentness-policy-summary  Print the compact apparentness policy summary\n  interpolation-posture-summary  Print the compact JPL interpolation posture summary\n  interpolation-quality-summary  Print the compact JPL interpolation quality summary\n  lunar-reference-error-envelope-summary  Print the compact lunar reference error envelope summary\n  lunar-equatorial-reference-error-envelope-summary  Print the compact lunar equatorial reference error envelope summary\n  lunar-apparent-comparison-summary  Print the compact lunar apparent comparison summary\n  lunar-source-window-summary  Print the compact lunar source windows summary\n  selected-asteroid-boundary-summary  Print the compact selected-asteroid boundary evidence summary\n  selected-asteroid-source-window-summary  Print the compact selected-asteroid source windows summary\n  selected-asteroid-batch-parity-summary  Print the compact selected-asteroid batch-parity summary\n  reference-holdout-overlap-summary  Print the compact reference/hold-out overlap summary\n  independent-holdout-source-window-summary  Print the compact independent hold-out source windows summary\n  independent-holdout-body-class-coverage-summary  Print the compact independent hold-out body-class coverage summary\n  independent-holdout-batch-parity-summary  Print the compact independent hold-out batch parity summary\n  independent-holdout-equatorial-parity-summary  Print the compact independent hold-out equatorial parity summary\n  house-validation-summary   Print the compact house-validation corpus summary\n  ayanamsa-catalog-validation-summary  Print the compact ayanamsa catalog validation summary\n  ayanamsa-reference-offsets-summary  Print the compact ayanamsa reference offsets summary\n  frame-policy-summary      Print the compact frame-policy summary\n  release-profile-identifiers-summary  Print the compact release-profile identifiers summary\n  request-policy-summary    Print the compact request-policy summary\n  request-semantics-summary Alias for request-policy-summary\n  comparison-tolerance-policy-summary  Print the compact comparison tolerance policy summary\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release-profile identifiers, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API stability summary, validation report summary, workspace audit summary, artifact summary, benchmark report, validation report, manifest, and manifest checksum sidecar\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
@@ -15289,6 +15310,7 @@ mod tests {
         assert!(rendered.contains("validation-summary"));
         assert!(rendered.contains("validate-artifact"));
         assert!(rendered.contains("artifact-summary"));
+        assert!(rendered.contains("packaged-artifact-production-profile-summary"));
         assert!(rendered.contains("packaged-artifact-generation-manifest-summary"));
         assert!(rendered.contains("workspace-audit"));
         assert!(rendered.contains("api-stability"));
@@ -15329,6 +15351,7 @@ mod tests {
         assert!(rendered.contains("release-profile-identifiers-summary"));
         assert!(rendered.contains("request-policy-summary"));
         assert!(rendered.contains("request-semantics-summary"));
+        assert!(rendered.contains("comparison-tolerance-policy-summary"));
         assert!(rendered.contains("verify-compatibility-profile"));
         assert!(rendered.contains("release-notes"));
         assert!(rendered.contains("release-notes-summary"));
@@ -20026,6 +20049,21 @@ version = "0.9.0"
     }
 
     #[test]
+    fn packaged_artifact_production_profile_summary_command_renders_the_shared_profile_block() {
+        let rendered = render_cli(&["packaged-artifact-production-profile-summary"])
+            .expect("packaged artifact production profile summary should render");
+
+        assert!(rendered.contains("Packaged artifact production profile skeleton:"));
+        assert!(
+            rendered.contains("profile id=pleiades-packaged-artifact-profile/stage-5-prototype")
+        );
+        assert_eq!(
+            rendered,
+            packaged_artifact_production_profile_summary_for_report()
+        );
+    }
+
+    #[test]
     fn packaged_artifact_generation_manifest_summary_command_renders_the_shared_manifest_block() {
         let rendered = render_cli(&["packaged-artifact-generation-manifest-summary"])
             .expect("packaged artifact generation manifest summary should render");
@@ -20207,6 +20245,28 @@ version = "0.9.0"
             rendered,
             render_cli(&["request-semantics-summary"])
                 .expect("request semantics alias should render")
+        );
+    }
+
+    #[test]
+    fn comparison_tolerance_policy_summary_command_renders_the_shared_tolerance_block() {
+        let rendered = render_cli(&["comparison-tolerance-policy-summary"])
+            .expect("comparison tolerance policy summary should render");
+        let comparison = compare_backends(
+            &default_reference_backend(),
+            &default_candidate_backend(),
+            &default_corpus(),
+        )
+        .expect("comparison tolerance policy summary should build");
+
+        assert!(rendered.contains("Comparison tolerance policy summary"));
+        assert!(rendered.contains("Comparison tolerance policy: "));
+        assert_eq!(
+            rendered,
+            format!(
+                "Comparison tolerance policy summary\nComparison tolerance policy: {}\n",
+                format_comparison_tolerance_policy_for_report(&comparison)
+            )
         );
     }
 
