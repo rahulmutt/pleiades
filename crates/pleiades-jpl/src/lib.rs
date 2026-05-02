@@ -8350,10 +8350,13 @@ pub fn reference_snapshot_manifest_summary() -> SnapshotManifestSummary {
 /// Returns the manifest summary for the checked-in reference snapshot.
 pub fn reference_snapshot_manifest_summary_for_report() -> String {
     let summary = reference_snapshot_manifest_summary();
-    match summary
-        .validated_summary_line_with_expected_columns(&["epoch_jd", "body", "x_km", "y_km", "z_km"])
-    {
-        Ok(summary_line) => summary_line,
+    match summary.validate_with_expected_metadata(
+        "JPL Horizons reference snapshot.",
+        "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.",
+        "major bodies sampled at 1749-12-31 for Sun through Neptune, inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; major bodies sampled at 2400000, 2451545, 2453000.5, and 2500000; major bodies sampled at 2001-01-02 through 2001-01-05 for additional boundary coverage; selected asteroids sampled at J2000, 2001-01-01 through 2001-01-06, 2003-12-27, 2132-08-31, and 2500-01-01.",
+        &["epoch_jd", "body", "x_km", "y_km", "z_km"],
+    ) {
+        Ok(()) => summary.summary_line(),
         Err(error) => format!("Reference snapshot manifest: unavailable ({error})"),
     }
 }
@@ -8511,10 +8514,13 @@ pub fn independent_holdout_manifest_summary() -> SnapshotManifestSummary {
 /// Returns the manifest summary for the checked-in hold-out snapshot.
 pub fn independent_holdout_manifest_summary_for_report() -> String {
     let summary = independent_holdout_manifest_summary();
-    match summary
-        .validated_summary_line_with_expected_columns(&["epoch_jd", "body", "x_km", "y_km", "z_km"])
-    {
-        Ok(summary_line) => summary_line,
+    match summary.validate_with_expected_metadata(
+        "Independent JPL Horizons hold-out snapshot used only for interpolation validation.",
+        "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.",
+        "Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2500000, and 2634167, plus Moon at 2451545, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.",
+        &["epoch_jd", "body", "x_km", "y_km", "z_km"],
+    ) {
+        Ok(()) => summary.summary_line(),
         Err(error) => format!("Independent hold-out manifest: unavailable ({error})"),
     }
 }
@@ -10983,6 +10989,12 @@ pub enum SnapshotManifestSummaryValidationError {
     SurroundedByWhitespace { field: &'static str },
     /// The nested manifest failed validation.
     Manifest(SnapshotManifestValidationError),
+    /// The parsed provenance field does not match the expected release-facing value.
+    MetadataMismatch {
+        field: &'static str,
+        expected: String,
+        found: String,
+    },
     /// The parsed column schema does not match the expected release-facing layout.
     ColumnsMismatch { expected: String, found: String },
 }
@@ -10995,6 +11007,11 @@ impl fmt::Display for SnapshotManifestSummaryValidationError {
                 write!(f, "{field} contains surrounding whitespace")
             }
             Self::Manifest(error) => write!(f, "manifest {error}"),
+            Self::MetadataMismatch {
+                field,
+                expected,
+                found,
+            } => write!(f, "{field} mismatch: expected {expected} but found {found}"),
             Self::ColumnsMismatch { expected, found } => {
                 write!(
                     f,
@@ -11021,6 +11038,77 @@ impl SnapshotManifestSummary {
         self.manifest
             .validate()
             .map_err(SnapshotManifestSummaryValidationError::Manifest)
+    }
+
+    /// Validates that the wrapper matches the expected provenance and column layout.
+    pub fn validate_with_expected_metadata(
+        &self,
+        expected_title: &str,
+        expected_source: &str,
+        expected_coverage: &str,
+        expected_columns: &[&str],
+    ) -> Result<(), SnapshotManifestSummaryValidationError> {
+        self.validate()?;
+
+        let Some(title) = self.manifest.title.as_deref() else {
+            return Err(SnapshotManifestSummaryValidationError::MetadataMismatch {
+                field: "title",
+                expected: expected_title.to_string(),
+                found: String::new(),
+            });
+        };
+        if title != expected_title {
+            return Err(SnapshotManifestSummaryValidationError::MetadataMismatch {
+                field: "title",
+                expected: expected_title.to_string(),
+                found: title.to_string(),
+            });
+        }
+
+        let Some(source) = self.manifest.source.as_deref() else {
+            return Err(SnapshotManifestSummaryValidationError::MetadataMismatch {
+                field: "source",
+                expected: expected_source.to_string(),
+                found: String::new(),
+            });
+        };
+        if source != expected_source {
+            return Err(SnapshotManifestSummaryValidationError::MetadataMismatch {
+                field: "source",
+                expected: expected_source.to_string(),
+                found: source.to_string(),
+            });
+        }
+
+        let Some(coverage) = self.manifest.coverage.as_deref() else {
+            return Err(SnapshotManifestSummaryValidationError::MetadataMismatch {
+                field: "coverage",
+                expected: expected_coverage.to_string(),
+                found: String::new(),
+            });
+        };
+        if coverage != expected_coverage {
+            return Err(SnapshotManifestSummaryValidationError::MetadataMismatch {
+                field: "coverage",
+                expected: expected_coverage.to_string(),
+                found: coverage.to_string(),
+            });
+        }
+
+        if !self
+            .manifest
+            .columns
+            .iter()
+            .map(String::as_str)
+            .eq(expected_columns.iter().copied())
+        {
+            return Err(SnapshotManifestSummaryValidationError::ColumnsMismatch {
+                expected: expected_columns.join(", "),
+                found: self.manifest.columns.join(", "),
+            });
+        }
+
+        Ok(())
     }
 
     /// Validates that the wrapper matches the expected column layout.
@@ -14958,6 +15046,23 @@ mod tests {
         );
     }
 
+    #[test]
+    fn reference_snapshot_manifest_summary_rejects_metadata_drift() {
+        let summary = reference_snapshot_manifest_summary();
+        let error = summary
+            .validate_with_expected_metadata(
+                "wrong title",
+                "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.",
+                "major bodies sampled at 1749-12-31 for Sun through Neptune, inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; major bodies sampled at 2400000, 2451545, 2453000.5, and 2500000; major bodies sampled at 2001-01-02 through 2001-01-05 for additional boundary coverage; selected asteroids sampled at J2000, 2001-01-01 through 2001-01-06, 2003-12-27, 2132-08-31, and 2500-01-01.",
+                &["epoch_jd", "body", "x_km", "y_km", "z_km"],
+            )
+            .expect_err("reference snapshot manifest summary should reject title drift");
+
+        assert!(matches!(
+            error,
+            SnapshotManifestSummaryValidationError::MetadataMismatch { field: "title", .. }
+        ));
+    }
     #[test]
     fn independent_holdout_snapshot_manifest_parses_the_documented_header_comments() {
         let manifest = independent_holdout_snapshot_manifest();
