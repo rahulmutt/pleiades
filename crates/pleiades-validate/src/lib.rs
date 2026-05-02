@@ -3390,6 +3390,11 @@ impl fmt::Display for ValidationReport {
         writeln!(f)?;
         writeln!(f, "Comparison corpus")?;
         write_corpus_summary(f, &self.comparison_corpus)?;
+        writeln!(
+            f,
+            "  release-grade guard: {}",
+            comparison_corpus_release_guard_summary()
+        )?;
         writeln!(f, "  {}", comparison_snapshot_summary_for_report())?;
         writeln!(
             f,
@@ -9746,11 +9751,22 @@ fn render_comparison_snapshot_summary_text() -> String {
     )
 }
 
+fn comparison_corpus_release_guard_summary() -> &'static str {
+    "Pluto excluded from tolerance evidence; 2451913.5 boundary day stays out of the audit slice"
+}
+
 fn render_comparison_corpus_summary_text() -> String {
+    use std::fmt::Write as _;
+
     let corpus = release_grade_corpus();
     let summary = corpus.summary();
     let mut text = String::from("Comparison corpus summary\n");
     write_corpus_summary_text(&mut text, &summary);
+    let _ = writeln!(
+        text,
+        "  release-grade guard: {}",
+        comparison_corpus_release_guard_summary()
+    );
     text.push('\n');
     text
 }
@@ -10126,6 +10142,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         text,
         "  {}",
         comparison_snapshot_manifest_summary_for_report()
+    );
+    let _ = writeln!(
+        text,
+        "  release-grade guard: {}",
+        comparison_corpus_release_guard_summary()
     );
     let _ = writeln!(text);
     let _ = writeln!(text, "House validation corpus");
@@ -11431,6 +11452,11 @@ impl fmt::Display for ComparisonReport {
         writeln!(f, "Comparison report")?;
         writeln!(f, "Comparison corpus")?;
         write_corpus_summary(f, &self.corpus_summary)?;
+        writeln!(
+            f,
+            "  release-grade guard: {}",
+            comparison_corpus_release_guard_summary()
+        )?;
         writeln!(f)?;
         writeln!(f, "Reference backend: {}", self.reference_backend.id)?;
         writeln!(f, "Candidate backend: {}", self.candidate_backend.id)?;
@@ -14902,6 +14928,7 @@ mod tests {
             release_profiles.api_stability_profile_id
         )));
         assert!(report.contains("Comparison corpus"));
+        assert!(report.contains("release-grade guard: Pluto excluded from tolerance evidence; 2451913.5 boundary day stays out of the audit slice"));
         assert!(report.contains("epoch labels: JD 2360233.5 (TT)"));
         assert!(report.contains("House validation corpus"));
         assert!(report.contains("House validation corpus: 5 scenarios"));
@@ -20151,6 +20178,7 @@ version = "0.9.0"
             .expect("comparison corpus summary should render");
         assert!(comparison.contains("Comparison corpus summary"));
         assert!(comparison.contains("name: JPL Horizons release-grade comparison window"));
+        assert!(comparison.contains("release-grade guard: Pluto excluded from tolerance evidence; 2451913.5 boundary day stays out of the audit slice"));
         assert_eq!(comparison, render_comparison_corpus_summary_text());
 
         let benchmark = render_cli(&["benchmark-corpus-summary"])

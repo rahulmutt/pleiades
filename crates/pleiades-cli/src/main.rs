@@ -1122,6 +1122,7 @@ mod tests {
         let rendered = render_cli(&["compare-backends"]).expect("compare-backends should render");
         assert!(rendered.contains("Comparison report"));
         assert!(rendered.contains("Comparison corpus"));
+        assert!(rendered.contains("release-grade guard: Pluto excluded from tolerance evidence; 2451913.5 boundary day stays out of the audit slice"));
         assert!(rendered.contains("epoch labels:"));
         assert!(rendered.contains("Reference backend:"));
         assert!(rendered.contains("Candidate backend:"));
@@ -1347,6 +1348,7 @@ mod tests {
             .expect("comparison corpus summary should render");
         assert!(comparison_corpus.contains("Comparison corpus summary"));
         assert!(comparison_corpus.contains("name: JPL Horizons release-grade comparison window"));
+        assert!(comparison_corpus.contains("release-grade guard: Pluto excluded from tolerance evidence; 2451913.5 boundary day stays out of the audit slice"));
         assert_eq!(
             comparison_corpus,
             validate_render_cli(&["comparison-corpus-summary"])
@@ -2163,6 +2165,7 @@ mod tests {
             .expect("report should render through the primary CLI");
         assert!(report.contains("Validation report"));
         assert!(report.contains("Comparison corpus"));
+        assert!(report.contains("release-grade guard: Pluto excluded from tolerance evidence; 2451913.5 boundary day stays out of the audit slice"));
         assert!(report.contains("Benchmark corpus"));
         assert!(report.contains("Packaged-data benchmark corpus"));
 
@@ -2175,6 +2178,7 @@ mod tests {
             render_cli(&["validation-summary"]).expect("validation summary should render");
         assert!(validation_summary.contains("Validation report summary"));
         assert!(validation_summary.contains("Comparison corpus"));
+        assert!(validation_summary.contains("release-grade guard: Pluto excluded from tolerance evidence; 2451913.5 boundary day stays out of the audit slice"));
         assert!(validation_summary.contains("Release bundle verification: verify-release-bundle"));
         assert!(validation_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
