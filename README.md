@@ -123,7 +123,7 @@ Rough command overview:
 - `compatibility-profile`: print the full release compatibility profile
 - `compatibility-profile-summary`: compact compatibility profile summary
 - `verify-compatibility-profile`: verify the release compatibility profile against the canonical catalogs
-- `api-stability`, `api-stability-summary`, `release-notes`, `release-notes-summary`, `release-checklist`, `release-checklist-summary`, `release-summary`, `production-generation-boundary-summary`, `frame-policy-summary`, `observer-policy-summary`, `apparentness-policy-summary`, `request-policy-summary` / `request-semantics-summary`: release-facing report helpers
+- `api-stability`, `api-stability-summary`, `release-notes`, `release-notes-summary`, `release-checklist`, `release-checklist-summary`, `release-summary`, `production-generation-boundary-summary`, `frame-policy-summary`, `observer-policy-summary`, `apparentness-policy-summary`, `lunar-reference-error-envelope-summary`, `lunar-equatorial-reference-error-envelope-summary`, `request-policy-summary` / `request-semantics-summary`: release-facing report helpers
 - `bundle-release --out DIR`: write a staged release bundle to a directory
 - `verify-release-bundle --out DIR`: verify a previously staged release bundle
 - `regenerate-packaged-artifact FILE` or `regenerate-packaged-artifact --out FILE`: rebuild the checked-in packaged artifact fixture from the reference snapshot

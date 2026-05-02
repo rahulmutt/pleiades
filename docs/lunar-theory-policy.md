@@ -77,6 +77,7 @@ The current regression posture is intentionally small and deterministic:
 - a reference-only published 1992-04-12 apparent geocentric Moon comparison datum now broadens the equatorial evidence slice, so the current validation posture carries an extra equatorial cross-check alongside the J2000-adjacent companion pair
 - the release-facing date-range note also names the reference-only 1968-12-24 apparent geocentric Moon comparison datum so the compact lunar provenance line reflects the broader validation slice visible in reporting
 - canonical J2000 checks for the Moon and lunar points
+- release-facing lunar error envelopes for the reference and equatorial channels, surfaced through dedicated `lunar-reference-error-envelope-summary` and `lunar-equatorial-reference-error-envelope-summary` inspection commands
 - published 1913-05-27 true-ascending-node and mean-ascending-node examples
 - a published 1959-12-07 mean-ascending-node example
 - a published 2021-03-05 mean-perigee example
