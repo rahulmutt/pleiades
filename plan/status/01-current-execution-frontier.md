@@ -48,7 +48,7 @@ The following can proceed without distracting from accuracy closure:
 
 - house/ayanamsa formula and alias audits;
 - documentation cleanup for already-explicit request policy;
-- release-bundle smoke-test maintenance;
+- release-bundle smoke-test maintenance, including the `compare-backends-audit` comparison-audit command now mirrored in `pleiades-cli`;
 - artifact-profile identifier groundwork and production-profile skeleton plumbing that do not claim production fit accuracy yet, including the release-profile identifier now threaded through packaged-artifact target thresholds, plus the new `artifact-profile-coverage-summary`, `packaged-artifact-production-profile-summary`, and `packaged-artifact-generation-manifest-summary` direct CLI paths for the packaged-artifact profile coverage, production-profile skeleton, and generation-manifest posture, the validation-CLI `regenerate-packaged-artifact` workflow for mirroring the packaged fixture check/write path, and the new `comparison-snapshot-summary` and `reference-snapshot-summary` direct CLI paths for the overall comparison/reference snapshot coverage posture;
 - direct ayanamsa reference-offset inspection now also has a dedicated `ayanamsa-reference-offsets-summary` command in both CLIs for release-facing archaeology.
 - VSOP87 source-documentation and source-documentation-health summaries now also have direct CLI paths in both CLIs, so the release-facing provenance layer can be inspected without opening the broader validation report.
