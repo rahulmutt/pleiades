@@ -13742,6 +13742,34 @@ mod tests {
     }
 
     #[test]
+    fn production_generation_snapshot_window_summary_validation_rejects_body_order_drift() {
+        let mut summary = production_generation_snapshot_window_summary()
+            .expect("production-generation source window summary should exist");
+        summary.sample_bodies.swap(0, 1);
+        let error = summary
+            .validate()
+            .expect_err("body order drift should be rejected");
+        assert!(matches!(
+            error,
+            ProductionGenerationSnapshotWindowSummaryValidationError::BodyOrderMismatch { .. }
+        ));
+    }
+
+    #[test]
+    fn production_generation_snapshot_window_summary_validation_rejects_derived_summary_drift() {
+        let mut summary = production_generation_snapshot_window_summary()
+            .expect("production-generation source window summary should exist");
+        summary.sample_count += 1;
+        let error = summary
+            .validate()
+            .expect_err("derived summary drift should be rejected");
+        assert_eq!(
+            error,
+            ProductionGenerationSnapshotWindowSummaryValidationError::DerivedSummaryMismatch
+        );
+    }
+
+    #[test]
     fn production_generation_snapshot_body_class_coverage_summary_reports_the_split() {
         let summary = production_generation_snapshot_body_class_coverage_summary()
             .expect("production-generation body-class coverage summary should exist");
