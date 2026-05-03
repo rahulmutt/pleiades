@@ -2053,6 +2053,10 @@ mod tests {
         assert!(ayanamsa_reference_offsets_summary
             .contains("Lahiri (1940): epoch=JD 2415020; offset=22.445972222222224°"));
         assert!(ayanamsa_reference_offsets_summary
+            .contains("True Pushya: epoch=JD 1855769.248315; offset=0°"));
+        assert!(ayanamsa_reference_offsets_summary
+            .contains("Udayagiri: epoch=JD 1825235.164583; offset=0°"));
+        assert!(ayanamsa_reference_offsets_summary
             .contains("Galactic Equator (Fiorenza): epoch=JD 2451544.5; offset=25°"));
         assert!(ayanamsa_reference_offsets_summary
             .contains("Valens Moon: epoch=JD 1775845.5; offset=-2.9422°"));
