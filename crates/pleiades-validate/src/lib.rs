@@ -21135,11 +21135,17 @@ version = "0.9.0"
     ) {
         let rendered = render_cli(&["release-profile-identifiers-summary"])
             .expect("release-profile identifiers summary should render");
+        let release_profiles = current_release_profile_identifiers();
+        let expected = format!(
+            "Release profile identifiers summary\nSummary line: {}\nCompatibility profile: {}\nAPI stability posture: {}\nCompatibility profile summary: compatibility-profile-summary\nAPI stability summary: api-stability-summary\nRelease summary: release-summary\n",
+            release_profiles
+                .validated_summary_line()
+                .expect("current release-profile identifiers should validate"),
+            release_profiles.compatibility_profile_id,
+            release_profiles.api_stability_profile_id,
+        );
 
-        assert!(rendered.contains("Release profile identifiers summary"));
-        assert!(rendered.contains("Summary line: v1 compatibility="));
-        assert!(rendered.contains("Compatibility profile: "));
-        assert!(rendered.contains("API stability posture: "));
+        assert_eq!(rendered, expected);
     }
 
     #[test]
