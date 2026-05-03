@@ -2267,6 +2267,12 @@ mod tests {
         assert!(ayanamsa_reference_offsets_summary
             .contains("Lahiri (1940): epoch=JD 2415020; offset=22.445972222222224°"));
         assert!(ayanamsa_reference_offsets_summary
+            .contains("DeLuce: epoch=JD 2451545; offset=23.245522556°"));
+        assert!(ayanamsa_reference_offsets_summary
+            .contains("Yukteshwar: epoch=JD 2451545; offset=22.6288889°"));
+        assert!(ayanamsa_reference_offsets_summary
+            .contains("PVR Pushya-paksha: epoch=JD 2451545; offset=23°"));
+        assert!(ayanamsa_reference_offsets_summary
             .contains("True Pushya: epoch=JD 1855769.248315; offset=0°"));
         assert!(ayanamsa_reference_offsets_summary
             .contains("Udayagiri: epoch=JD 1825235.164583; offset=0°"));
