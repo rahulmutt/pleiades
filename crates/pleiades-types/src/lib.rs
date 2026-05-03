@@ -2701,6 +2701,32 @@ mod tests {
     }
 
     #[test]
+    fn equatorial_to_ecliptic_round_trip_preserves_negative_declination_near_wraparound() {
+        let equatorial = EquatorialCoordinates::new(
+            Angle::from_degrees(359.5),
+            Latitude::from_degrees(-27.5),
+            Some(3.25),
+        );
+        let obliquity = Angle::from_degrees(23.439_291_11);
+
+        assert_eq!(equatorial.validate(), Ok(()));
+
+        let ecliptic = equatorial.to_ecliptic(obliquity);
+        assert_eq!(ecliptic.validate(), Ok(()));
+        let round_trip = ecliptic.to_equatorial(obliquity);
+
+        assert_eq!(round_trip.validate(), Ok(()));
+        assert!(
+            (round_trip.right_ascension.degrees() - equatorial.right_ascension.degrees()).abs()
+                < 1e-10
+        );
+        assert!(
+            (round_trip.declination.degrees() - equatorial.declination.degrees()).abs() < 1e-10
+        );
+        assert_eq!(round_trip.distance_au, equatorial.distance_au);
+    }
+
+    #[test]
     fn built_in_body_names_are_stable() {
         assert_eq!(CelestialBody::Sun.built_in_name(), Some("Sun"));
         assert_eq!(CelestialBody::Sun.to_string(), "Sun");
