@@ -8081,6 +8081,236 @@ pub fn reference_snapshot_major_body_boundary_summary_for_report() -> String {
     }
 }
 
+/// A single body-window slice inside the major-body boundary-day reference coverage.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReferenceMajorBodyBoundaryWindow {
+    /// The body covered by this window.
+    pub body: pleiades_backend::CelestialBody,
+    /// Number of samples for the body.
+    pub sample_count: usize,
+    /// Number of distinct epochs represented for the body.
+    pub epoch_count: usize,
+    /// Earliest epoch represented for the body.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented for the body.
+    pub latest_epoch: Instant,
+}
+
+impl ReferenceMajorBodyBoundaryWindow {
+    /// Returns a compact body-window summary used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let time_span = if self.earliest_epoch == self.latest_epoch {
+            format_instant(self.earliest_epoch)
+        } else {
+            format!(
+                "{}..{}",
+                format_instant(self.earliest_epoch),
+                format_instant(self.latest_epoch)
+            )
+        };
+
+        format!(
+            "{}: {} samples across {} epochs at {}",
+            self.body, self.sample_count, self.epoch_count, time_span
+        )
+    }
+}
+
+impl fmt::Display for ReferenceMajorBodyBoundaryWindow {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Compact release-facing summary for the major-body boundary-day reference coverage windows.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReferenceMajorBodyBoundaryWindowSummary {
+    /// Number of samples in the boundary slice.
+    pub sample_count: usize,
+    /// Bodies covered by the boundary slice in first-seen order.
+    pub sample_bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Number of distinct epochs covered by the boundary slice.
+    pub epoch_count: usize,
+    /// Earliest epoch represented in the boundary slice.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented in the boundary slice.
+    pub latest_epoch: Instant,
+    /// Per-body window breakdown in first-seen order.
+    pub windows: Vec<ReferenceMajorBodyBoundaryWindow>,
+}
+
+/// Validation errors for a major-body boundary window summary that drifted from the current slice.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ReferenceMajorBodyBoundaryWindowSummaryValidationError {
+    /// The summary no longer matches the checked-in boundary window slice.
+    DerivedSummaryMismatch,
+}
+
+impl fmt::Display for ReferenceMajorBodyBoundaryWindowSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::DerivedSummaryMismatch => write!(
+                f,
+                "the reference major-body boundary window summary is out of sync with the current slice"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ReferenceMajorBodyBoundaryWindowSummaryValidationError {}
+
+impl ReferenceMajorBodyBoundaryWindowSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let window_summary = self
+            .windows
+            .iter()
+            .map(ReferenceMajorBodyBoundaryWindow::summary_line)
+            .collect::<Vec<_>>()
+            .join("; ");
+
+        format!(
+            "Reference major-body boundary windows: {} source-backed samples across {} bodies and {} epochs ({}..{}); windows: {}",
+            self.sample_count,
+            self.sample_bodies.len(),
+            self.epoch_count,
+            format_instant(self.earliest_epoch),
+            format_instant(self.latest_epoch),
+            window_summary,
+        )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current boundary window slice.
+    pub fn validate(&self) -> Result<(), ReferenceMajorBodyBoundaryWindowSummaryValidationError> {
+        let Some(expected) = reference_snapshot_major_body_boundary_window_summary_details() else {
+            return Err(
+                ReferenceMajorBodyBoundaryWindowSummaryValidationError::DerivedSummaryMismatch,
+            );
+        };
+
+        if self != &expected {
+            return Err(
+                ReferenceMajorBodyBoundaryWindowSummaryValidationError::DerivedSummaryMismatch,
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ReferenceMajorBodyBoundaryWindowSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for ReferenceMajorBodyBoundaryWindowSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn reference_snapshot_major_body_boundary_window_summary_details(
+) -> Option<ReferenceMajorBodyBoundaryWindowSummary> {
+    let entries = reference_snapshot_major_body_boundary_entries()?;
+    let mut sample_bodies = Vec::new();
+    for entry in entries {
+        if !sample_bodies.contains(&entry.body) {
+            sample_bodies.push(entry.body.clone());
+        }
+    }
+
+    let mut windows = Vec::new();
+    for body in &sample_bodies {
+        let body_entries = entries
+            .iter()
+            .filter(|entry| entry.body == *body)
+            .collect::<Vec<_>>();
+        if body_entries.is_empty() {
+            continue;
+        }
+
+        let mut earliest_epoch = body_entries[0].epoch;
+        let mut latest_epoch = body_entries[0].epoch;
+        let mut epochs = BTreeSet::new();
+        for entry in &body_entries {
+            epochs.insert(entry.epoch.julian_day.days().to_bits());
+            if entry.epoch.julian_day.days() < earliest_epoch.julian_day.days() {
+                earliest_epoch = entry.epoch;
+            }
+            if entry.epoch.julian_day.days() > latest_epoch.julian_day.days() {
+                latest_epoch = entry.epoch;
+            }
+        }
+
+        windows.push(ReferenceMajorBodyBoundaryWindow {
+            body: body.clone(),
+            sample_count: body_entries.len(),
+            epoch_count: epochs.len(),
+            earliest_epoch,
+            latest_epoch,
+        });
+    }
+
+    if windows.is_empty() {
+        return None;
+    }
+
+    let earliest_epoch = windows
+        .iter()
+        .map(|window| window.earliest_epoch)
+        .min_by(|left, right| left.julian_day.days().total_cmp(&right.julian_day.days()))
+        .expect("reference major-body boundary windows should not be empty after collection");
+    let latest_epoch = windows
+        .iter()
+        .map(|window| window.latest_epoch)
+        .max_by(|left, right| left.julian_day.days().total_cmp(&right.julian_day.days()))
+        .expect("reference major-body boundary windows should not be empty after collection");
+
+    Some(ReferenceMajorBodyBoundaryWindowSummary {
+        sample_count: entries.len(),
+        sample_bodies,
+        epoch_count: entries
+            .iter()
+            .map(|entry| entry.epoch.julian_day.days().to_bits())
+            .collect::<BTreeSet<_>>()
+            .len(),
+        earliest_epoch,
+        latest_epoch,
+        windows,
+    })
+}
+
+/// Returns the compact typed summary for the major-body boundary-day reference coverage windows.
+pub fn reference_snapshot_major_body_boundary_window_summary(
+) -> Option<ReferenceMajorBodyBoundaryWindowSummary> {
+    static SUMMARY: OnceLock<ReferenceMajorBodyBoundaryWindowSummary> = OnceLock::new();
+    Some(
+        SUMMARY
+            .get_or_init(|| {
+                reference_snapshot_major_body_boundary_window_summary_details().expect(
+                    "reference major-body boundary windows should not be empty after collection",
+                )
+            })
+            .clone(),
+    )
+}
+
+/// Returns the release-facing major-body boundary-day window summary string.
+pub fn reference_snapshot_major_body_boundary_window_summary_for_report() -> String {
+    match reference_snapshot_major_body_boundary_window_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => {
+                format!("Reference major-body boundary windows: unavailable ({error})")
+            }
+        },
+        None => "Reference major-body boundary windows: unavailable".to_string(),
+    }
+}
+
 /// A single body-window slice inside the major-body high-curvature reference coverage.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ReferenceHighCurvatureWindow {

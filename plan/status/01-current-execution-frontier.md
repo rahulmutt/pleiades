@@ -40,7 +40,7 @@ Pluto downgrade and corpus cleanup is complete:
 - preserve the full snapshot corpus for provenance and validation archaeology;
 - keep release tolerance audits fail-closed if Pluto is advertised beyond its evidence.
 
-The next slice should focus on broader reference coverage and the remaining request-semantics decisions. As a small step in that direction, the reference major-body boundary evidence at JD 2451917.5 now has a dedicated summary and direct CLI path, and the compact validation-report summary now also surfaces that block for easier archaeology.
+The next slice should focus on broader reference coverage and the remaining request-semantics decisions. As a small step in that direction, the reference major-body boundary evidence at JD 2451917.5 now has a dedicated summary, a dedicated boundary-window summary, and direct CLI paths, and the compact validation-report summary now also surfaces that block for easier archaeology.
 
 ## Parallel safe work
 
