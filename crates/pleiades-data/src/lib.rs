@@ -5227,6 +5227,23 @@ mod tests {
     }
 
     #[test]
+    fn packaged_artifact_generator_parameters_validation_rejects_body_coverage_drift() {
+        let mut parameters = packaged_artifact_generator_parameters_details();
+        parameters.body_coverage.bodies[0] = CelestialBody::Ceres;
+
+        let error = parameters
+            .validate()
+            .expect_err("body coverage drift should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error
+            .message
+            .contains("packaged artifact generator parameters body coverage does not match the current production profile"));
+    }
+
+    #[test]
     fn packaged_artifact_generation_manifest_reflects_the_current_posture() {
         let manifest = packaged_artifact_generation_manifest_details();
         let parameters = packaged_artifact_generator_parameters_details();
@@ -5275,6 +5292,23 @@ mod tests {
         assert!(error.message.contains(
             "packaged artifact generator parameters target thresholds do not match the current production profile"
         ));
+    }
+
+    #[test]
+    fn packaged_artifact_generation_manifest_validation_rejects_regeneration_drift() {
+        let mut manifest = packaged_artifact_generation_manifest_details();
+        manifest.regeneration.fit_envelope.sample_count += 1;
+
+        let error = manifest
+            .validate()
+            .expect_err("drifted regeneration metadata should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error
+            .message
+            .contains("packaged artifact regeneration fit envelope is invalid"));
     }
 
     #[test]
