@@ -15620,17 +15620,22 @@ mod tests {
         assert!(report.contains(&reference_snapshot_body_class_coverage_summary_for_report()));
         assert!(report.contains(&reference_snapshot_equatorial_parity_summary_for_report()));
         assert!(report.contains(&reference_snapshot_source_summary_for_report()));
+        assert!(report.contains(&reference_snapshot_source_window_summary_for_report()));
         assert!(report.contains(&reference_snapshot_major_body_boundary_summary_for_report()));
         assert!(report.contains(&reference_holdout_overlap_summary_for_report()));
         assert!(report.contains(&reference_snapshot_manifest_summary_for_report()));
-        assert!(report.contains(&reference_asteroid_evidence_summary_for_report()));
-        assert!(report.contains(&reference_asteroid_equatorial_evidence_summary_for_report()));
-        assert!(report.contains(&comparison_snapshot_summary_for_report()));
+        assert!(report.contains(&production_generation_snapshot_summary_for_report()));
+        assert!(report.contains(&production_generation_boundary_source_summary_for_report()));
+        assert!(report.contains(&production_generation_boundary_window_summary_for_report()));
         assert!(report
             .contains(&production_generation_boundary_body_class_coverage_summary_for_report()));
         assert!(
             report.contains(&production_generation_boundary_request_corpus_summary_for_report())
         );
+        assert!(report.contains(&reference_asteroid_evidence_summary_for_report()));
+        assert!(report.contains(&reference_asteroid_equatorial_evidence_summary_for_report()));
+        assert!(report.contains(&reference_asteroid_source_window_summary_for_report()));
+        assert!(report.contains(&comparison_snapshot_summary_for_report()));
         assert!(report.contains(&comparison_snapshot_body_class_coverage_summary_for_report()));
         assert!(report.contains(&comparison_snapshot_source_summary_for_report()));
         assert!(report.contains(&comparison_snapshot_source_window_summary_for_report()));
@@ -15641,6 +15646,7 @@ mod tests {
         );
         assert!(report.contains(&independent_holdout_snapshot_batch_parity_summary_for_report()));
         assert!(report.contains(&independent_holdout_source_summary_for_report()));
+        assert!(report.contains(&independent_holdout_snapshot_source_window_summary_for_report()));
         assert!(report.contains(&independent_holdout_manifest_summary_for_report()));
         assert!(report.contains(&jpl_independent_holdout_summary_for_report()));
     }
