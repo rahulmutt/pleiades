@@ -17593,7 +17593,10 @@ mod tests {
             format_packaged_artifact_access_summary()
         )));
         assert!(rendered.contains("Packaged request policy:"));
-        assert!(rendered.contains("Packaged lookup epoch policy:"));
+        assert!(rendered.contains(&format!(
+            "Packaged lookup epoch policy: {}",
+            packaged_lookup_epoch_policy_summary_for_report()
+        )));
         assert!(rendered.lines().any(|line| {
             line == format!(
                 "Packaged batch parity: {}",
@@ -17764,6 +17767,10 @@ mod tests {
             .any(|line| line == profile.target_ayanamsa_scope.join("; ")));
         assert!(rendered.lines().any(|line| line == "Release summary"));
         assert!(rendered.contains("Release summary line:"));
+        assert!(rendered.contains(&format!(
+            "Packaged lookup epoch policy: {}",
+            packaged_lookup_epoch_policy_summary_for_report()
+        )));
         assert!(rendered
             .lines()
             .any(|line| line == "Backend matrix summary: backend-matrix-summary"));
