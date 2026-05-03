@@ -592,6 +592,7 @@ pub struct HouseCatalogValidationSummary {
 impl HouseCatalogValidationSummary {
     /// Returns the compact release-facing summary line for the house catalog validation state.
     pub fn summary_line(&self) -> String {
+        let formula_families = house_formula_families_summary_line();
         let latitude_sensitive_labels = built_in_house_systems()
             .iter()
             .filter(|entry| entry.latitude_sensitive)
@@ -606,11 +607,12 @@ impl HouseCatalogValidationSummary {
 
         match &self.validation_result {
             Ok(()) => format!(
-                "house catalog validation: ok ({} entries, {} labels checked; baseline={}, release={}; latitude-sensitive={}/{} entries; labels: {}; round-trip, alias uniqueness, and notes verified)",
+                "house catalog validation: ok ({} entries, {} labels checked; baseline={}, release={}; formula families: {}; latitude-sensitive={}/{} entries; labels: {}; round-trip, alias uniqueness, and notes verified)",
                 self.entry_count,
                 self.label_count,
                 self.baseline_entry_count,
                 self.release_entry_count,
+                formula_families,
                 latitude_sensitive_count,
                 self.entry_count,
                 latitude_sensitive_labels,
@@ -687,6 +689,57 @@ fn validate_house_catalog_entries(
 /// Validates the built-in house-system catalog for label uniqueness and round-trips.
 pub fn validate_house_catalog() -> Result<(), HouseCatalogValidationError> {
     validate_house_catalog_entries(built_in_house_systems()).map(|_| ())
+}
+
+fn collect_house_formula_families(entries: &[HouseSystemDescriptor]) -> Vec<HouseFormulaFamily> {
+    let mut families = Vec::new();
+
+    for entry in entries {
+        let family = entry.formula_family();
+        if family == HouseFormulaFamily::Custom || family == HouseFormulaFamily::Unknown {
+            continue;
+        }
+        if !families.contains(&family) {
+            families.push(family);
+        }
+    }
+
+    families.sort_by_key(house_formula_family_sort_key);
+    families
+}
+
+fn house_formula_family_sort_key(family: &HouseFormulaFamily) -> u8 {
+    match family {
+        HouseFormulaFamily::Equal => 0,
+        HouseFormulaFamily::WholeSign => 1,
+        HouseFormulaFamily::Quadrant => 2,
+        HouseFormulaFamily::EquatorialProjection => 3,
+        HouseFormulaFamily::GreatCircle => 4,
+        HouseFormulaFamily::SolarArc => 5,
+        HouseFormulaFamily::Sector => 6,
+        HouseFormulaFamily::Custom => 7,
+        HouseFormulaFamily::Unknown => 8,
+    }
+}
+
+/// Returns the distinct formula families represented by the built-in house catalog.
+pub fn house_formula_families() -> Vec<HouseFormulaFamily> {
+    collect_house_formula_families(built_in_house_systems())
+}
+
+/// Returns a compact one-line rendering of the distinct built-in house formula families.
+pub fn house_formula_families_summary_line() -> String {
+    let families = house_formula_families();
+
+    match families.as_slice() {
+        [] => "none".to_string(),
+        [single] => single.to_string(),
+        _ => families
+            .iter()
+            .map(HouseFormulaFamily::to_string)
+            .collect::<Vec<_>>()
+            .join(", "),
+    }
 }
 
 /// Returns a compact validation summary for the built-in house-system catalog.
@@ -2073,6 +2126,7 @@ mod tests {
     #[test]
     fn house_catalog_validation_summary_reports_catalog_health() {
         let summary = house_catalog_validation_summary();
+        let expected_formula_families = house_formula_families_summary_line();
         let expected_latitude_sensitive_labels = built_in_house_systems()
             .iter()
             .filter(|entry| entry.latitude_sensitive)
@@ -2083,10 +2137,24 @@ mod tests {
         assert_eq!(summary.entry_count, built_in_house_systems().len());
         assert_eq!(summary.baseline_entry_count, baseline_house_systems().len());
         assert_eq!(summary.release_entry_count, release_house_systems().len());
+        assert_eq!(
+            house_formula_families(),
+            vec![
+                HouseFormulaFamily::Equal,
+                HouseFormulaFamily::WholeSign,
+                HouseFormulaFamily::Quadrant,
+                HouseFormulaFamily::EquatorialProjection,
+                HouseFormulaFamily::GreatCircle,
+                HouseFormulaFamily::SolarArc,
+                HouseFormulaFamily::Sector,
+            ]
+        );
         assert!(summary.validation_result.is_ok());
         assert!(summary
             .summary_line()
             .contains("house catalog validation: ok"));
+        assert!(summary.summary_line().contains("formula families:"));
+        assert!(summary.summary_line().contains(&expected_formula_families));
         assert!(summary.summary_line().contains("latitude-sensitive="));
         assert!(summary
             .summary_line()
