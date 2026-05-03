@@ -8863,6 +8863,231 @@ pub fn reference_snapshot_major_body_boundary_window_summary_for_report() -> Str
     }
 }
 
+/// A single epoch slice inside the reference snapshot boundary coverage.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReferenceSnapshotBoundaryEpochCoverage {
+    /// The epoch covered by this slice.
+    pub epoch: Instant,
+    /// Number of bodies covered at the epoch.
+    pub body_count: usize,
+    /// Bodies covered by the epoch slice in first-seen order.
+    pub bodies: Vec<pleiades_backend::CelestialBody>,
+}
+
+impl ReferenceSnapshotBoundaryEpochCoverage {
+    /// Returns a compact epoch-coverage summary used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "{}: {} bodies ({})",
+            format_instant(self.epoch),
+            self.body_count,
+            format_bodies(&self.bodies),
+        )
+    }
+}
+
+impl fmt::Display for ReferenceSnapshotBoundaryEpochCoverage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Compact release-facing summary for the reference snapshot boundary-window epoch coverage.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReferenceSnapshotBoundaryEpochCoverageSummary {
+    /// Number of exact samples in the boundary slice.
+    pub sample_count: usize,
+    /// Number of distinct epochs covered by the boundary slice.
+    pub epoch_count: usize,
+    /// Earliest epoch represented in the boundary slice.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented in the boundary slice.
+    pub latest_epoch: Instant,
+    /// Per-epoch body breakdown in first-seen order.
+    pub windows: Vec<ReferenceSnapshotBoundaryEpochCoverage>,
+}
+
+/// Validation error for a boundary-window epoch summary that drifted from the current slice.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ReferenceSnapshotBoundaryEpochCoverageSummaryValidationError {
+    /// A summary field is out of sync with the checked-in epoch coverage.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for ReferenceSnapshotBoundaryEpochCoverageSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the reference snapshot boundary epoch coverage summary field `{field}` is out of sync with the current slice"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ReferenceSnapshotBoundaryEpochCoverageSummaryValidationError {}
+
+impl ReferenceSnapshotBoundaryEpochCoverageSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let window_summary = self
+            .windows
+            .iter()
+            .map(ReferenceSnapshotBoundaryEpochCoverage::summary_line)
+            .collect::<Vec<_>>()
+            .join("; ");
+        format!(
+            "Reference snapshot boundary epoch coverage: {} exact samples across {} epochs ({}..{}); epochs: {}",
+            self.sample_count,
+            self.epoch_count,
+            format_instant(self.earliest_epoch),
+            format_instant(self.latest_epoch),
+            window_summary,
+        )
+    }
+
+    /// Returns `Ok(())` when the epoch coverage summary still matches the checked-in slice.
+    pub fn validate(
+        &self,
+    ) -> Result<(), ReferenceSnapshotBoundaryEpochCoverageSummaryValidationError> {
+        let Some(expected) = reference_snapshot_boundary_epoch_coverage_summary_details() else {
+            return Err(
+                ReferenceSnapshotBoundaryEpochCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        };
+
+        if self.sample_count != expected.sample_count {
+            return Err(
+                ReferenceSnapshotBoundaryEpochCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        }
+        if self.epoch_count != expected.epoch_count {
+            return Err(
+                ReferenceSnapshotBoundaryEpochCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "epoch_count",
+                },
+            );
+        }
+        if self.earliest_epoch != expected.earliest_epoch {
+            return Err(
+                ReferenceSnapshotBoundaryEpochCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "earliest_epoch",
+                },
+            );
+        }
+        if self.latest_epoch != expected.latest_epoch {
+            return Err(
+                ReferenceSnapshotBoundaryEpochCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "latest_epoch",
+                },
+            );
+        }
+        if self.windows != expected.windows {
+            return Err(
+                ReferenceSnapshotBoundaryEpochCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "windows",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated epoch coverage summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ReferenceSnapshotBoundaryEpochCoverageSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for ReferenceSnapshotBoundaryEpochCoverageSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn reference_snapshot_boundary_epoch_coverage_summary_details(
+) -> Option<ReferenceSnapshotBoundaryEpochCoverageSummary> {
+    let entries = reference_snapshot()
+        .iter()
+        .filter(|entry| (2_451_913.5..=2_451_917.5).contains(&entry.epoch.julian_day.days()))
+        .collect::<Vec<_>>();
+    if entries.is_empty() {
+        return None;
+    }
+
+    let earliest_epoch = entries
+        .iter()
+        .min_by(|left, right| {
+            left.epoch
+                .julian_day
+                .days()
+                .total_cmp(&right.epoch.julian_day.days())
+        })
+        .expect("reference snapshot boundary epoch coverage should not be empty after collection")
+        .epoch;
+    let latest_epoch = entries
+        .iter()
+        .max_by(|left, right| {
+            left.epoch
+                .julian_day
+                .days()
+                .total_cmp(&right.epoch.julian_day.days())
+        })
+        .expect("reference snapshot boundary epoch coverage should not be empty after collection")
+        .epoch;
+
+    let mut windows = BTreeMap::<u64, ReferenceSnapshotBoundaryEpochCoverage>::new();
+    for entry in &entries {
+        let epoch_bits = entry.epoch.julian_day.days().to_bits();
+        let window =
+            windows
+                .entry(epoch_bits)
+                .or_insert_with(|| ReferenceSnapshotBoundaryEpochCoverage {
+                    epoch: entry.epoch,
+                    body_count: 0,
+                    bodies: Vec::new(),
+                });
+        if !window.bodies.contains(&entry.body) {
+            window.bodies.push(entry.body.clone());
+            window.body_count = window.bodies.len();
+        }
+    }
+
+    Some(ReferenceSnapshotBoundaryEpochCoverageSummary {
+        sample_count: entries.len(),
+        epoch_count: windows.len(),
+        earliest_epoch,
+        latest_epoch,
+        windows: windows.into_values().collect(),
+    })
+}
+
+/// Returns the compact typed summary for the reference snapshot boundary-window epoch coverage.
+pub fn reference_snapshot_boundary_epoch_coverage_summary(
+) -> Option<ReferenceSnapshotBoundaryEpochCoverageSummary> {
+    reference_snapshot_boundary_epoch_coverage_summary_details()
+}
+
+/// Returns the release-facing reference snapshot boundary-window epoch coverage summary string.
+pub fn reference_snapshot_boundary_epoch_coverage_summary_for_report() -> String {
+    match reference_snapshot_boundary_epoch_coverage_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => {
+                format!("Reference snapshot boundary epoch coverage: unavailable ({error})")
+            }
+        },
+        None => "Reference snapshot boundary epoch coverage: unavailable".to_string(),
+    }
+}
+
 /// A single body-window slice inside the major-body high-curvature reference coverage.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ReferenceHighCurvatureWindow {
@@ -9131,6 +9356,225 @@ pub fn reference_snapshot_high_curvature_window_summary_for_report() -> String {
             }
         },
         None => "Reference major-body high-curvature windows: unavailable".to_string(),
+    }
+}
+
+/// A single epoch slice inside the major-body high-curvature reference coverage.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReferenceHighCurvatureEpochCoverage {
+    /// The epoch covered by this slice.
+    pub epoch: Instant,
+    /// Number of bodies covered at the epoch.
+    pub body_count: usize,
+    /// Bodies covered by the epoch slice in first-seen order.
+    pub bodies: Vec<pleiades_backend::CelestialBody>,
+}
+
+impl ReferenceHighCurvatureEpochCoverage {
+    /// Returns a compact epoch-coverage summary used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "{}: {} bodies ({})",
+            format_instant(self.epoch),
+            self.body_count,
+            format_bodies(&self.bodies),
+        )
+    }
+}
+
+impl fmt::Display for ReferenceHighCurvatureEpochCoverage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Compact release-facing summary for the major-body high-curvature epoch coverage.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReferenceHighCurvatureEpochCoverageSummary {
+    /// Number of exact samples in the high-curvature slice.
+    pub sample_count: usize,
+    /// Number of distinct epochs covered by the high-curvature slice.
+    pub epoch_count: usize,
+    /// Earliest epoch represented in the high-curvature slice.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented in the high-curvature slice.
+    pub latest_epoch: Instant,
+    /// Per-epoch body breakdown in first-seen order.
+    pub windows: Vec<ReferenceHighCurvatureEpochCoverage>,
+}
+
+impl ReferenceHighCurvatureEpochCoverageSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let window_summary = self
+            .windows
+            .iter()
+            .map(ReferenceHighCurvatureEpochCoverage::summary_line)
+            .collect::<Vec<_>>()
+            .join("; ");
+        format!(
+            "Reference major-body high-curvature epoch coverage: {} exact samples across {} epochs ({}..{}); epochs: {}",
+            self.sample_count,
+            self.epoch_count,
+            format_instant(self.earliest_epoch),
+            format_instant(self.latest_epoch),
+            window_summary,
+        )
+    }
+
+    /// Returns `Ok(())` when the epoch coverage summary still matches the checked-in slice.
+    pub fn validate(
+        &self,
+    ) -> Result<(), ReferenceHighCurvatureEpochCoverageSummaryValidationError> {
+        let Some(expected) = reference_snapshot_high_curvature_epoch_coverage_summary_details()
+        else {
+            return Err(
+                ReferenceHighCurvatureEpochCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        };
+
+        if self.sample_count != expected.sample_count {
+            return Err(
+                ReferenceHighCurvatureEpochCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        }
+        if self.epoch_count != expected.epoch_count {
+            return Err(
+                ReferenceHighCurvatureEpochCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "epoch_count",
+                },
+            );
+        }
+        if self.earliest_epoch != expected.earliest_epoch {
+            return Err(
+                ReferenceHighCurvatureEpochCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "earliest_epoch",
+                },
+            );
+        }
+        if self.latest_epoch != expected.latest_epoch {
+            return Err(
+                ReferenceHighCurvatureEpochCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "latest_epoch",
+                },
+            );
+        }
+        if self.windows != expected.windows {
+            return Err(
+                ReferenceHighCurvatureEpochCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "windows",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated epoch coverage summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ReferenceHighCurvatureEpochCoverageSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for ReferenceHighCurvatureEpochCoverageSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Validation error for a high-curvature epoch summary that drifted from the current slice.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ReferenceHighCurvatureEpochCoverageSummaryValidationError {
+    /// A summary field is out of sync with the checked-in epoch coverage.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for ReferenceHighCurvatureEpochCoverageSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the reference high-curvature epoch coverage summary field `{field}` is out of sync with the current slice"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ReferenceHighCurvatureEpochCoverageSummaryValidationError {}
+
+fn reference_snapshot_high_curvature_epoch_coverage_summary_details(
+) -> Option<ReferenceHighCurvatureEpochCoverageSummary> {
+    let entries = reference_snapshot_high_curvature_entries()?;
+    let earliest_epoch = entries
+        .iter()
+        .min_by(|left, right| {
+            left.epoch
+                .julian_day
+                .days()
+                .total_cmp(&right.epoch.julian_day.days())
+        })
+        .map(|entry| entry.epoch)
+        .expect("reference high-curvature evidence should not be empty after collection");
+    let latest_epoch = entries
+        .iter()
+        .max_by(|left, right| {
+            left.epoch
+                .julian_day
+                .days()
+                .total_cmp(&right.epoch.julian_day.days())
+        })
+        .map(|entry| entry.epoch)
+        .expect("reference high-curvature evidence should not be empty after collection");
+
+    let mut windows = BTreeMap::<u64, ReferenceHighCurvatureEpochCoverage>::new();
+    for entry in entries {
+        let epoch_bits = entry.epoch.julian_day.days().to_bits();
+        let window =
+            windows
+                .entry(epoch_bits)
+                .or_insert_with(|| ReferenceHighCurvatureEpochCoverage {
+                    epoch: entry.epoch,
+                    body_count: 0,
+                    bodies: Vec::new(),
+                });
+        if !window.bodies.contains(&entry.body) {
+            window.bodies.push(entry.body.clone());
+            window.body_count = window.bodies.len();
+        }
+    }
+
+    Some(ReferenceHighCurvatureEpochCoverageSummary {
+        sample_count: entries.len(),
+        epoch_count: windows.len(),
+        earliest_epoch,
+        latest_epoch,
+        windows: windows.into_values().collect(),
+    })
+}
+
+/// Returns the compact typed summary for the major-body high-curvature epoch coverage.
+pub fn reference_snapshot_high_curvature_epoch_coverage_summary(
+) -> Option<ReferenceHighCurvatureEpochCoverageSummary> {
+    reference_snapshot_high_curvature_epoch_coverage_summary_details()
+}
+
+/// Returns the release-facing major-body high-curvature epoch coverage summary string.
+pub fn reference_snapshot_high_curvature_epoch_coverage_summary_for_report() -> String {
+    match reference_snapshot_high_curvature_epoch_coverage_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => {
+                format!("Reference major-body high-curvature epoch coverage: unavailable ({error})")
+            }
+        },
+        None => "Reference major-body high-curvature epoch coverage: unavailable".to_string(),
     }
 }
 
@@ -13682,6 +14126,67 @@ mod tests {
         assert_eq!(
             reference_snapshot_high_curvature_summary_for_report(),
             summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn reference_snapshot_boundary_epoch_coverage_summary_reports_the_sparse_epochs() {
+        let summary = reference_snapshot_boundary_epoch_coverage_summary()
+            .expect("reference snapshot boundary epoch coverage summary should exist");
+        assert_eq!(summary.sample_count, 57);
+        assert_eq!(summary.epoch_count, 5);
+        assert_eq!(summary.earliest_epoch.julian_day.days(), 2_451_913.5);
+        assert_eq!(summary.latest_epoch.julian_day.days(), 2_451_917.5);
+        assert_eq!(summary.windows.len(), 5);
+        assert_eq!(summary.windows[0].body_count, 15);
+        assert_eq!(summary.windows[2].body_count, 5);
+        assert_eq!(
+            summary.windows[2].bodies[0],
+            pleiades_backend::CelestialBody::Ceres
+        );
+        assert_eq!(
+            summary.windows[2].bodies[4],
+            pleiades_backend::CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros"))
+        );
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert!(
+            summary
+                .summary_line()
+                .contains("Reference snapshot boundary epoch coverage: 57 exact samples across 5 epochs (JD 2451913.5 (TDB)..JD 2451917.5 (TDB)); epochs:")
+        );
+        assert!(summary.summary_line().contains(
+            "JD 2451915.5 (TDB): 5 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"
+        ));
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            reference_snapshot_boundary_epoch_coverage_summary_for_report(),
+            summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn reference_snapshot_boundary_epoch_coverage_summary_validation_rejects_drift() {
+        let mut summary = reference_snapshot_boundary_epoch_coverage_summary()
+            .expect("reference snapshot boundary epoch coverage summary should exist");
+        summary.windows[2].body_count += 1;
+
+        let error = summary
+            .validate()
+            .expect_err("drifted boundary epoch coverage summary should fail validation");
+
+        assert!(matches!(
+            error,
+            ReferenceSnapshotBoundaryEpochCoverageSummaryValidationError::FieldOutOfSync {
+                field: "windows"
+            }
+        ));
+        assert!(summary.validated_summary_line().is_err());
+        assert_eq!(
+            reference_snapshot_boundary_epoch_coverage_summary_for_report(),
+            reference_snapshot_boundary_epoch_coverage_summary()
+                .expect("reference snapshot boundary epoch coverage summary should exist")
+                .summary_line()
         );
     }
 
