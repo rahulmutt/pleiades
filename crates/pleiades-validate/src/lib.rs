@@ -15519,6 +15519,7 @@ mod tests {
             release_profiles.api_stability_profile_id
         )));
         assert!(report.contains("Comparison corpus"));
+        assert!(report.contains(&request_surface_summary_for_report()));
         assert!(report.contains("Reference snapshot"));
         assert!(report.contains(&reference_snapshot_summary_for_report()));
         assert!(report.contains(&reference_snapshot_source_window_summary_for_report()));
@@ -18048,6 +18049,7 @@ mod tests {
         assert!(rendered.contains("Observer policy: chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests with UnsupportedObserver; malformed observer coordinates remain InvalidObserver; topocentric body positions remain unsupported"));
         assert!(rendered.contains("Apparentness policy: current first-party backends accept mean geometric output only; apparent-place corrections are rejected unless a backend explicitly advertises support"));
         assert!(rendered.contains("Frame policy: ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported; native sidereal backend output remains unsupported unless a backend explicitly advertises it"));
+        assert!(rendered.contains(&request_surface_summary_for_report()));
         let mean_obliquity_frame_round_trip = mean_obliquity_frame_round_trip_summary()
             .expect("mean-obliquity frame round-trip summary should exist");
         assert!(rendered.lines().any(|line| {
