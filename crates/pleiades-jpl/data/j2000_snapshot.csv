@@ -1,5 +1,6 @@
 # JPL Horizons reference snapshot.
 # Source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.
+# Coverage: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.
 # Columns: body,x_km,y_km,z_km
 Sun,26499033.6774305,-144697296.7925493,611.1494259536266
 Moon,-291608.3841877129,-274979.7416731504,36271.19662699287

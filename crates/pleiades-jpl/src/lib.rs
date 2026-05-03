@@ -14485,7 +14485,10 @@ mod tests {
             manifest.source.as_deref(),
             Some("NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.")
         );
-        assert_eq!(manifest.coverage, None);
+        assert_eq!(
+            manifest.coverage.as_deref(),
+            Some("Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.")
+        );
         assert_eq!(manifest.columns, ["body", "x_km", "y_km", "z_km"]);
         assert_eq!(manifest.validate(), Ok(()));
         assert_eq!(
@@ -14551,11 +14554,11 @@ mod tests {
         );
         assert_eq!(
             manifest.summary_line("Comparison snapshot manifest"),
-            "Comparison snapshot manifest: JPL Horizons reference snapshot.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.; coverage=unknown; columns=body, x_km, y_km, z_km"
+            "Comparison snapshot manifest: JPL Horizons reference snapshot.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.; coverage=Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.; columns=body, x_km, y_km, z_km"
         );
         assert_eq!(
             manifest.to_string(),
-            "Snapshot manifest: JPL Horizons reference snapshot.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.; coverage=unknown; columns=body, x_km, y_km, z_km"
+            "Snapshot manifest: JPL Horizons reference snapshot.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.; coverage=Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.; columns=body, x_km, y_km, z_km"
         );
         let comparison_summary = comparison_snapshot_manifest_summary();
         assert_eq!(
