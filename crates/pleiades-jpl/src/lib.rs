@@ -5155,8 +5155,13 @@ pub fn comparison_snapshot_manifest_summary() -> SnapshotManifestSummary {
 /// Returns the manifest summary for the comparison snapshot used by validation.
 pub fn comparison_snapshot_manifest_summary_for_report() -> String {
     let summary = comparison_snapshot_manifest_summary();
-    match summary.validated_summary_line_with_expected_columns(&["body", "x_km", "y_km", "z_km"]) {
-        Ok(summary_line) => summary_line,
+    match summary.validate_with_expected_metadata(
+        "JPL Horizons reference snapshot.",
+        "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.",
+        "Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.",
+        &["body", "x_km", "y_km", "z_km"],
+    ) {
+        Ok(()) => summary.summary_line(),
         Err(error) => format!("Comparison snapshot manifest: unavailable ({error})"),
     }
 }
@@ -16122,12 +16127,40 @@ mod tests {
     fn comparison_snapshot_manifest_summary_uses_the_current_manifest() {
         let summary = comparison_snapshot_manifest_summary();
 
-        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(
+            summary.validate_with_expected_metadata(
+                "JPL Horizons reference snapshot.",
+                "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.",
+                "Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.",
+                &["body", "x_km", "y_km", "z_km"],
+            ),
+            Ok(())
+        );
         assert_eq!(
             summary.summary_line(),
             comparison_snapshot_manifest_summary_for_report()
         );
         assert_eq!(summary.to_string(), summary.summary_line());
+    }
+
+    #[test]
+    fn comparison_snapshot_manifest_summary_validation_rejects_metadata_drift() {
+        let mut summary = comparison_snapshot_manifest_summary();
+        summary.manifest.coverage = Some("Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000, plus drift".to_string());
+
+        assert_eq!(
+            summary.validate_with_expected_metadata(
+                "JPL Horizons reference snapshot.",
+                "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.",
+                "Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.",
+                &["body", "x_km", "y_km", "z_km"],
+            ),
+            Err(SnapshotManifestSummaryValidationError::MetadataMismatch {
+                field: "coverage",
+                expected: "Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.".to_string(),
+                found: "Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000, plus drift".to_string(),
+            })
+        );
     }
 
     #[test]
