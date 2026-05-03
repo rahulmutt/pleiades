@@ -1247,6 +1247,40 @@ pub const fn built_in_ayanamsas() -> &'static [AyanamsaDescriptor] {
     &BUILT_IN_AYANAMSAS
 }
 
+/// Returns the representative release-facing reference-offset sample set used by validation and reports.
+pub const fn reference_offset_sample_ayanamsas() -> &'static [Ayanamsa] {
+    &[
+        Ayanamsa::Lahiri,
+        Ayanamsa::LahiriIcrc,
+        Ayanamsa::Lahiri1940,
+        Ayanamsa::UshaShashi,
+        Ayanamsa::Raman,
+        Ayanamsa::Krishnamurti,
+        Ayanamsa::FaganBradley,
+        Ayanamsa::TrueChitra,
+        Ayanamsa::TrueCitra,
+        Ayanamsa::DeLuce,
+        Ayanamsa::Yukteshwar,
+        Ayanamsa::PvrPushyaPaksha,
+        Ayanamsa::J2000,
+        Ayanamsa::J1900,
+        Ayanamsa::B1950,
+        Ayanamsa::TruePushya,
+        Ayanamsa::Udayagiri,
+        Ayanamsa::LahiriVP285,
+        Ayanamsa::KrishnamurtiVP291,
+        Ayanamsa::TrueSheoran,
+        Ayanamsa::GalacticCenter,
+        Ayanamsa::GalacticCenterRgilbrand,
+        Ayanamsa::GalacticCenterMardyks,
+        Ayanamsa::GalacticCenterCochrane,
+        Ayanamsa::DhruvaGalacticCenterMula,
+        Ayanamsa::GalacticEquatorFiorenza,
+        Ayanamsa::ValensMoon,
+        Ayanamsa::Aryabhata522,
+    ]
+}
+
 const CUSTOM_DEFINITION_ONLY_AYANAMSAS: &[&str] = &[
     "Babylonian (House)",
     "Babylonian (Sissy)",
@@ -1849,6 +1883,43 @@ mod tests {
             .summary_line()
             .contains(&expected_custom_definition_only_labels));
         assert_eq!(validate_ayanamsa_catalog(), Ok(()));
+    }
+
+    #[test]
+    fn reference_offset_sample_ayanamsas_match_the_documented_release_set() {
+        assert_eq!(
+            reference_offset_sample_ayanamsas(),
+            &[
+                Ayanamsa::Lahiri,
+                Ayanamsa::LahiriIcrc,
+                Ayanamsa::Lahiri1940,
+                Ayanamsa::UshaShashi,
+                Ayanamsa::Raman,
+                Ayanamsa::Krishnamurti,
+                Ayanamsa::FaganBradley,
+                Ayanamsa::TrueChitra,
+                Ayanamsa::TrueCitra,
+                Ayanamsa::DeLuce,
+                Ayanamsa::Yukteshwar,
+                Ayanamsa::PvrPushyaPaksha,
+                Ayanamsa::J2000,
+                Ayanamsa::J1900,
+                Ayanamsa::B1950,
+                Ayanamsa::TruePushya,
+                Ayanamsa::Udayagiri,
+                Ayanamsa::LahiriVP285,
+                Ayanamsa::KrishnamurtiVP291,
+                Ayanamsa::TrueSheoran,
+                Ayanamsa::GalacticCenter,
+                Ayanamsa::GalacticCenterRgilbrand,
+                Ayanamsa::GalacticCenterMardyks,
+                Ayanamsa::GalacticCenterCochrane,
+                Ayanamsa::DhruvaGalacticCenterMula,
+                Ayanamsa::GalacticEquatorFiorenza,
+                Ayanamsa::ValensMoon,
+                Ayanamsa::Aryabhata522,
+            ]
+        );
     }
 
     #[test]

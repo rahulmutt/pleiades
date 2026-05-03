@@ -5982,39 +5982,10 @@ impl fmt::Display for AyanamsaReferenceOffsetsSummary {
 
 fn summarize_ayanamsa_reference_offsets() -> Result<AyanamsaReferenceOffsetsSummary, EphemerisError>
 {
-    let samples = [
-        pleiades_core::Ayanamsa::Lahiri,
-        pleiades_core::Ayanamsa::LahiriIcrc,
-        pleiades_core::Ayanamsa::Lahiri1940,
-        pleiades_core::Ayanamsa::UshaShashi,
-        pleiades_core::Ayanamsa::Raman,
-        pleiades_core::Ayanamsa::Krishnamurti,
-        pleiades_core::Ayanamsa::FaganBradley,
-        pleiades_core::Ayanamsa::TrueChitra,
-        pleiades_core::Ayanamsa::TrueCitra,
-        pleiades_core::Ayanamsa::DeLuce,
-        pleiades_core::Ayanamsa::Yukteshwar,
-        pleiades_core::Ayanamsa::PvrPushyaPaksha,
-        pleiades_core::Ayanamsa::J2000,
-        pleiades_core::Ayanamsa::J1900,
-        pleiades_core::Ayanamsa::B1950,
-        pleiades_core::Ayanamsa::TruePushya,
-        pleiades_core::Ayanamsa::Udayagiri,
-        pleiades_core::Ayanamsa::LahiriVP285,
-        pleiades_core::Ayanamsa::KrishnamurtiVP291,
-        pleiades_core::Ayanamsa::TrueSheoran,
-        pleiades_core::Ayanamsa::GalacticCenter,
-        pleiades_core::Ayanamsa::GalacticCenterRgilbrand,
-        pleiades_core::Ayanamsa::GalacticCenterMardyks,
-        pleiades_core::Ayanamsa::GalacticCenterCochrane,
-        pleiades_core::Ayanamsa::DhruvaGalacticCenterMula,
-        pleiades_core::Ayanamsa::GalacticEquatorFiorenza,
-        pleiades_core::Ayanamsa::ValensMoon,
-        pleiades_core::Ayanamsa::Aryabhata522,
-    ];
+    let samples = pleiades_ayanamsa::reference_offset_sample_ayanamsas();
 
     let mut examples = Vec::with_capacity(samples.len());
-    for sample in samples {
+    for sample in samples.iter().cloned() {
         let descriptor = descriptor(&sample).ok_or_else(|| {
             EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,
