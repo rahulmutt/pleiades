@@ -5154,6 +5154,20 @@ pub fn comparison_snapshot_manifest_summary() -> SnapshotManifestSummary {
 
 /// Returns the manifest summary for the comparison snapshot used by validation.
 pub fn comparison_snapshot_manifest_summary_for_report() -> String {
+    let manifest_text = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/data/j2000_snapshot.csv"
+    ));
+    if let Err(error) = validate_snapshot_manifest_header_structure(
+        manifest_text,
+        "JPL Horizons reference snapshot.",
+        "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.",
+        "Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.",
+        &["body", "x_km", "y_km", "z_km"],
+    ) {
+        return format!("Comparison snapshot manifest: unavailable ({error})");
+    }
+
     let summary = comparison_snapshot_manifest_summary();
     match summary.validate_with_expected_metadata(
         "JPL Horizons reference snapshot.",
@@ -10248,6 +10262,20 @@ pub fn reference_snapshot_manifest_summary() -> SnapshotManifestSummary {
 
 /// Returns the manifest summary for the checked-in reference snapshot.
 pub fn reference_snapshot_manifest_summary_for_report() -> String {
+    let manifest_text = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/data/reference_snapshot.csv"
+    ));
+    if let Err(error) = validate_snapshot_manifest_header_structure(
+        manifest_text,
+        "JPL Horizons reference snapshot.",
+        "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.",
+        "major bodies sampled at 1749-12-31 for Sun through Neptune, inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; major bodies sampled at 1800-01-03 for Sun through Pluto; major bodies sampled at 2400000, 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.5, 2451915.5, 2451916.5, 2451917.5, 2451918.5, 2453000.5, and 2500000; Mars sampled at 2600000 and 2634167 for outer boundary coverage; major bodies sampled at 2451913.5 through 2451917.5 for additional boundary coverage; selected asteroids sampled at J2000, 2451910.5 through 2451917.5, with 2451914.5 and 2451915.5 boundary coverage, 2003-12-27, 2132-08-31, and 2500-01-01.",
+        &["epoch_jd", "body", "x_km", "y_km", "z_km"],
+    ) {
+        return format!("Reference snapshot manifest: unavailable ({error})");
+    }
+
     let summary = reference_snapshot_manifest_summary();
     match summary.validate_with_expected_metadata(
         "JPL Horizons reference snapshot.",
@@ -10433,6 +10461,20 @@ pub fn independent_holdout_manifest_summary() -> SnapshotManifestSummary {
 
 /// Returns the manifest summary for the checked-in hold-out snapshot.
 pub fn independent_holdout_manifest_summary_for_report() -> String {
+    let manifest_text = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/data/independent_holdout_snapshot.csv"
+    ));
+    if let Err(error) = validate_snapshot_manifest_header_structure(
+        manifest_text,
+        "Independent JPL Horizons hold-out snapshot used only for interpolation validation.",
+        "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.",
+        "Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2500000, and 2634167, plus Moon at 2451545, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.",
+        &["epoch_jd", "body", "x_km", "y_km", "z_km"],
+    ) {
+        return format!("Independent hold-out manifest: unavailable ({error})");
+    }
+
     let summary = independent_holdout_manifest_summary();
     match summary.validate_with_expected_metadata(
         "Independent JPL Horizons hold-out snapshot used only for interpolation validation.",
@@ -13117,6 +13159,94 @@ fn parse_snapshot_manifest(source: &str) -> SnapshotManifest {
     }
 
     manifest
+}
+
+/// Structured validation errors for a checked-in snapshot manifest header block.
+#[derive(Clone, Debug, Eq, PartialEq)]
+enum SnapshotManifestHeaderStructureError {
+    /// The manifest comment block contained an unexpected number of non-empty lines.
+    CommentCountMismatch { expected: usize, found: usize },
+    /// A specific manifest comment line drifted from the canonical header structure.
+    CommentMismatch {
+        index: usize,
+        field: &'static str,
+        expected: String,
+        found: String,
+    },
+}
+
+impl fmt::Display for SnapshotManifestHeaderStructureError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::CommentCountMismatch { expected, found } => write!(
+                f,
+                "unexpected manifest comment count: expected {expected}, found {found}"
+            ),
+            Self::CommentMismatch {
+                index,
+                field,
+                expected,
+                found,
+            } => write!(
+                f,
+                "manifest comment {index} ({field}) mismatch: expected {expected} but found {found}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for SnapshotManifestHeaderStructureError {}
+
+fn validate_snapshot_manifest_header_structure(
+    source: &str,
+    expected_title: &str,
+    expected_source: &str,
+    expected_coverage: &str,
+    expected_columns: &[&str],
+) -> Result<(), SnapshotManifestHeaderStructureError> {
+    let expected_comments = [
+        expected_title.to_string(),
+        format!("Source: {expected_source}"),
+        format!("Coverage: {expected_coverage}"),
+        format!("Columns: {}", expected_columns.join(",")),
+    ];
+    let comments = source
+        .lines()
+        .filter_map(|line| {
+            let trimmed = line.trim();
+            let comment = trimmed.strip_prefix('#')?.trim();
+            if comment.is_empty() {
+                None
+            } else {
+                Some(comment.to_string())
+            }
+        })
+        .collect::<Vec<_>>();
+
+    if comments.len() != expected_comments.len() {
+        return Err(SnapshotManifestHeaderStructureError::CommentCountMismatch {
+            expected: expected_comments.len(),
+            found: comments.len(),
+        });
+    }
+
+    for (index, (found, expected)) in comments.iter().zip(expected_comments.iter()).enumerate() {
+        if found != expected {
+            return Err(SnapshotManifestHeaderStructureError::CommentMismatch {
+                index,
+                field: match index {
+                    0 => "title",
+                    1 => "source",
+                    2 => "coverage",
+                    _ => "columns",
+                },
+                expected: expected.clone(),
+                found: found.clone(),
+            });
+        }
+    }
+
+    Ok(())
 }
 
 /// Returns the parsed manifest for the checked-in reference snapshot.
@@ -17600,6 +17730,54 @@ mod tests {
             SnapshotManifestSummaryValidationError::MetadataMismatch { field: "title", .. }
         ));
     }
+
+    #[test]
+    fn snapshot_manifest_header_structure_validation_rejects_comment_block_drift() {
+        let duplicate_comment_block = "\
+# JPL Horizons reference snapshot.
+# Source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.
+# Coverage: major bodies sampled at 1749-12-31 for Sun through Neptune
+# Columns: epoch_jd,body,x_km,y_km,z_km
+# Coverage: duplicate
+2451545.0,Sun,1,2,3
+";
+        assert!(matches!(
+            validate_snapshot_manifest_header_structure(
+                duplicate_comment_block,
+                "JPL Horizons reference snapshot.",
+                "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.",
+                "major bodies sampled at 1749-12-31 for Sun through Neptune",
+                &["epoch_jd", "body", "x_km", "y_km", "z_km"],
+            ),
+            Err(SnapshotManifestHeaderStructureError::CommentCountMismatch {
+                expected: 4,
+                found: 5,
+            })
+        ));
+
+        let swapped_comment_block = "\
+# JPL Horizons reference snapshot.
+# Coverage: major bodies sampled at 1749-12-31 for Sun through Neptune
+# Source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.
+# Columns: epoch_jd,body,x_km,y_km,z_km
+2451545.0,Sun,1,2,3
+";
+        assert!(matches!(
+            validate_snapshot_manifest_header_structure(
+                swapped_comment_block,
+                "JPL Horizons reference snapshot.",
+                "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.",
+                "major bodies sampled at 1749-12-31 for Sun through Neptune",
+                &["epoch_jd", "body", "x_km", "y_km", "z_km"],
+            ),
+            Err(SnapshotManifestHeaderStructureError::CommentMismatch {
+                index: 1,
+                field: "source",
+                ..
+            })
+        ));
+    }
+
     #[test]
     fn independent_holdout_snapshot_manifest_parses_the_documented_header_comments() {
         let manifest = independent_holdout_snapshot_manifest();
