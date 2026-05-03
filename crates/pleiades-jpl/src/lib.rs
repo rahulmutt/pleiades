@@ -13065,17 +13065,17 @@ mod tests {
         summary
             .validate()
             .expect("reference snapshot summary should validate");
-        assert_eq!(summary.row_count, 187);
+        assert_eq!(summary.row_count, 192);
         assert_eq!(summary.body_count, 15);
         assert_eq!(summary.bodies, reference_bodies());
         assert_eq!(summary.epoch_count, 17);
-        assert_eq!(summary.asteroid_row_count, 55);
+        assert_eq!(summary.asteroid_row_count, 60);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_360_233.5);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(
             summary.summary_line(),
             format!(
-                "Reference snapshot coverage: 187 rows across 15 bodies and 17 epochs (55 asteroid rows; JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}",
+                "Reference snapshot coverage: 192 rows across 15 bodies and 17 epochs (60 asteroid rows; JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}",
                 format_bodies(reference_bodies())
             )
         );
@@ -13709,8 +13709,8 @@ mod tests {
             summary.validate(),
             Err(
                 ReferenceSnapshotSummaryValidationError::AsteroidRowCountMismatch {
-                    asteroid_row_count: 56,
-                    derived_asteroid_row_count: 55,
+                    asteroid_row_count: 61,
+                    derived_asteroid_row_count: 60,
                 }
             )
         ));
@@ -13720,7 +13720,7 @@ mod tests {
     fn reference_snapshot_equatorial_parity_summary_reports_the_expected_coverage() {
         let summary = reference_snapshot_equatorial_parity_summary()
             .expect("reference snapshot equatorial parity summary should exist");
-        assert_eq!(summary.row_count, 187);
+        assert_eq!(summary.row_count, 192);
         assert_eq!(summary.body_count, 15);
         assert_eq!(summary.bodies, reference_bodies());
         assert_eq!(summary.epoch_count, 17);
@@ -13729,7 +13729,7 @@ mod tests {
         assert_eq!(
             summary.summary_line(),
             format!(
-                "JPL reference snapshot equatorial parity: 187 rows across 15 bodies and 17 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}; mean-obliquity transform against the checked-in ecliptic fixture",
+                "JPL reference snapshot equatorial parity: 192 rows across 15 bodies and 17 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}; mean-obliquity transform against the checked-in ecliptic fixture",
                 format_bodies(reference_bodies())
             )
         );
@@ -13777,8 +13777,8 @@ mod tests {
             Err(
                 ReferenceSnapshotBatchParitySummaryValidationError::Snapshot(
                     ReferenceSnapshotSummaryValidationError::AsteroidRowCountMismatch {
-                        asteroid_row_count: 56,
-                        derived_asteroid_row_count: 55,
+                        asteroid_row_count: 61,
+                        derived_asteroid_row_count: 60,
                     }
                 )
             )
@@ -13789,7 +13789,7 @@ mod tests {
     fn reference_snapshot_batch_parity_summary_reports_the_expected_coverage() {
         let summary = reference_snapshot_batch_parity_summary()
             .expect("reference snapshot batch parity summary should exist");
-        assert_eq!(summary.snapshot.row_count, 187);
+        assert_eq!(summary.snapshot.row_count, 192);
         assert_eq!(summary.snapshot.body_count, 15);
         assert_eq!(summary.snapshot.bodies, reference_bodies());
         assert_eq!(summary.snapshot.epoch_count, 17);
@@ -13798,9 +13798,9 @@ mod tests {
             2_360_233.5
         );
         assert_eq!(summary.snapshot.latest_epoch.julian_day.days(), 2_634_167.0);
-        assert_eq!(summary.ecliptic_request_count, 94);
-        assert_eq!(summary.equatorial_request_count, 93);
-        assert_eq!(summary.exact_count, 187);
+        assert_eq!(summary.ecliptic_request_count, 96);
+        assert_eq!(summary.equatorial_request_count, 96);
+        assert_eq!(summary.exact_count, 192);
         assert_eq!(summary.interpolated_count, 0);
         assert_eq!(summary.approximate_count, 0);
         assert_eq!(summary.unknown_count, 0);
@@ -13808,7 +13808,7 @@ mod tests {
         assert_eq!(
             summary.summary_line(),
             format!(
-                "JPL reference snapshot batch parity: 187 rows across 15 bodies and 17 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}; frame mix: 94 ecliptic, 93 equatorial; quality counts: Exact=187, Interpolated=0, Approximate=0, Unknown=0; batch/single parity preserved",
+                "JPL reference snapshot batch parity: 192 rows across 15 bodies and 17 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}; frame mix: 96 ecliptic, 96 equatorial; quality counts: Exact=192, Interpolated=0, Approximate=0, Unknown=0; batch/single parity preserved",
                 format_bodies(reference_bodies())
             )
         );
@@ -13819,7 +13819,7 @@ mod tests {
             summary.summary_line()
         );
         assert!(jpl_snapshot_evidence_summary_for_report().contains(
-            "JPL reference snapshot batch parity: 187 rows across 15 bodies and 17 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
+            "JPL reference snapshot batch parity: 192 rows across 15 bodies and 17 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
         ));
         assert!(jpl_snapshot_evidence_summary_for_report()
             .contains(&production_generation_snapshot_summary_for_report()));
@@ -14333,13 +14333,13 @@ mod tests {
         let summary = reference_asteroid_source_window_summary()
             .expect("reference asteroid source window summary should exist");
         assert_eq!(summary.windows.len(), summary.sample_bodies.len());
-        assert_eq!(summary.sample_count, 55);
-        assert_eq!(summary.epoch_count, 11);
+        assert_eq!(summary.sample_count, 60);
+        assert_eq!(summary.epoch_count, 12);
         assert_eq!(summary.validate(), Ok(()));
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             summary.summary_line(),
-            "Reference asteroid source windows: 55 source-backed samples across 5 bodies and 11 epochs (JD 2451545.0 (TDB)..JD 2634167.0 (TDB)); windows: Ceres: 11 samples across 11 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Pallas: 11 samples across 11 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Juno: 11 samples across 11 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Vesta: 11 samples across 11 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); asteroid:433-Eros: 11 samples across 11 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB)"
+            "Reference asteroid source windows: 60 source-backed samples across 5 bodies and 12 epochs (JD 2451545.0 (TDB)..JD 2634167.0 (TDB)); windows: Ceres: 12 samples across 12 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Pallas: 12 samples across 12 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Juno: 12 samples across 12 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Vesta: 12 samples across 12 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); asteroid:433-Eros: 12 samples across 12 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB)"
         );
         assert_eq!(
             summary.summary_line(),
@@ -14370,7 +14370,7 @@ mod tests {
             .expect("selected asteroid source evidence summary should exist");
         assert_eq!(
             summary.summary_line(),
-            "Selected asteroid source evidence: 55 source-backed samples across 5 bodies and 11 epochs (JD 2451545.0 (TDB)..JD 2634167.0 (TDB)); bodies: Ceres, Pallas, Juno, Vesta, asteroid:433-Eros"
+            "Selected asteroid source evidence: 60 source-backed samples across 5 bodies and 12 epochs (JD 2451545.0 (TDB)..JD 2634167.0 (TDB)); bodies: Ceres, Pallas, Juno, Vesta, asteroid:433-Eros"
         );
         assert_eq!(
             summary.summary_line(),
@@ -14383,13 +14383,13 @@ mod tests {
         let summary = selected_asteroid_source_window_summary()
             .expect("selected asteroid source window summary should exist");
         assert_eq!(summary.windows.len(), summary.sample_bodies.len());
-        assert_eq!(summary.sample_count, 55);
-        assert_eq!(summary.epoch_count, 11);
+        assert_eq!(summary.sample_count, 60);
+        assert_eq!(summary.epoch_count, 12);
         assert_eq!(summary.validate(), Ok(()));
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             summary.summary_line(),
-            "Selected asteroid source windows: 55 source-backed samples across 5 bodies and 11 epochs (JD 2451545.0 (TDB)..JD 2634167.0 (TDB)); windows: Ceres: 11 samples across 11 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Pallas: 11 samples across 11 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Juno: 11 samples across 11 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Vesta: 11 samples across 11 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); asteroid:433-Eros: 11 samples across 11 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB)"
+            "Selected asteroid source windows: 60 source-backed samples across 5 bodies and 12 epochs (JD 2451545.0 (TDB)..JD 2634167.0 (TDB)); windows: Ceres: 12 samples across 12 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Pallas: 12 samples across 12 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Juno: 12 samples across 12 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Vesta: 12 samples across 12 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); asteroid:433-Eros: 12 samples across 12 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB)"
         );
         assert_eq!(
             summary.summary_line(),
@@ -15321,9 +15321,9 @@ mod tests {
         assert_eq!(body_class_summary.major_bodies.len(), 10);
         assert_eq!(body_class_summary.major_epoch_count, 16);
         assert_eq!(body_class_summary.major_windows.len(), 10);
-        assert_eq!(body_class_summary.asteroid_row_count, 55);
+        assert_eq!(body_class_summary.asteroid_row_count, 60);
         assert_eq!(body_class_summary.asteroid_bodies.len(), 5);
-        assert_eq!(body_class_summary.asteroid_epoch_count, 11);
+        assert_eq!(body_class_summary.asteroid_epoch_count, 12);
         assert_eq!(body_class_summary.asteroid_windows.len(), 5);
         assert_eq!(body_class_summary.validate(), Ok(()));
         assert_eq!(
@@ -15338,7 +15338,7 @@ mod tests {
             .summary_line()
             .contains("Reference snapshot body-class coverage: major bodies: 132 rows across 10 bodies and 16 epochs; major windows: "));
         assert!(body_class_summary.summary_line().contains(
-            "selected asteroids: 55 rows across 5 bodies and 11 epochs; asteroid windows: "
+            "selected asteroids: 60 rows across 5 bodies and 12 epochs; asteroid windows: "
         ));
 
         let window_summary = reference_snapshot_source_window_summary()
@@ -15392,7 +15392,7 @@ mod tests {
             pleiades_backend::CelestialBody::Pluto
         );
         assert_eq!(summary.major_epoch_count, 16);
-        assert_eq!(summary.asteroid_row_count, 55);
+        assert_eq!(summary.asteroid_row_count, 60);
         assert_eq!(summary.asteroid_bodies.len(), 5);
         assert_eq!(
             summary.asteroid_bodies[0],
@@ -15402,7 +15402,7 @@ mod tests {
             summary.asteroid_bodies[4],
             pleiades_backend::CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros"))
         );
-        assert_eq!(summary.asteroid_epoch_count, 11);
+        assert_eq!(summary.asteroid_epoch_count, 12);
         assert_eq!(summary.validate(), Ok(()));
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
@@ -15500,7 +15500,7 @@ mod tests {
         let reference = snapshot_keys(include_str!("../data/reference_snapshot.csv"));
         let holdout = snapshot_keys(include_str!("../data/independent_holdout_snapshot.csv"));
 
-        assert_eq!(reference.row_count, 187);
+        assert_eq!(reference.row_count, 192);
         assert_eq!(reference.row_count, reference.pairs.len());
         assert_eq!(reference.bodies.len(), 15);
         assert_eq!(reference.epochs.len(), 17);
