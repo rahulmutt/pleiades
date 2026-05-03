@@ -8332,12 +8332,18 @@ pub fn reference_snapshot_high_curvature_window_summary_for_report() -> String {
     }
 }
 
+const REFERENCE_SNAPSHOT_SOURCE_EXPECTED: &str =
+    "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.";
 const REFERENCE_SNAPSHOT_SOURCE_FALLBACK: &str = "NASA/JPL Horizons API vector tables (DE441)";
 const REFERENCE_SNAPSHOT_COVERAGE_FALLBACK: &str =
     "major bodies sampled at 1749-12-31 for Sun through Neptune, inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; major bodies sampled at 1800-01-03 for Sun through Pluto; major bodies sampled at 2400000, 2451545, 2451910.5, 2451916.5, 2451917.5, 2453000.5, and 2500000; major bodies sampled at 2001-01-02 through 2001-01-05, plus 2001-01-07, for additional boundary coverage; selected asteroids sampled at J2000, 2001-01-01 through 2001-01-07, with 2451915.5 boundary coverage, 2003-12-27, 2132-08-31, and 2500-01-01.";
+const REFERENCE_SNAPSHOT_FRAME_TREATMENT: &str = "geocentric ecliptic J2000";
+const INDEPENDENT_HOLDOUT_SOURCE_EXPECTED: &str =
+    "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.";
 const INDEPENDENT_HOLDOUT_SOURCE_FALLBACK: &str = "NASA/JPL Horizons API vector tables (DE441)";
 const INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK: &str =
     "Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2500000, and 2634167, plus Moon at 2451545, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.";
+const INDEPENDENT_HOLDOUT_COLUMNS: &str = "epoch_jd, body, x_km, y_km, z_km";
 
 /// Backend-owned provenance summary for the checked-in reference snapshot source material.
 #[derive(Clone, Debug, PartialEq)]
@@ -8365,6 +8371,11 @@ impl ReferenceSnapshotSourceSummary {
                 },
             );
         }
+        if self.source != REFERENCE_SNAPSHOT_SOURCE_EXPECTED {
+            return Err(
+                ReferenceSnapshotSourceSummaryValidationError::FieldOutOfSync { field: "source" },
+            );
+        }
         if self.coverage.trim().is_empty() {
             return Err(ReferenceSnapshotSourceSummaryValidationError::BlankCoverage);
         }
@@ -8375,12 +8386,24 @@ impl ReferenceSnapshotSourceSummary {
                 },
             );
         }
+        if self.coverage != REFERENCE_SNAPSHOT_COVERAGE_FALLBACK {
+            return Err(
+                ReferenceSnapshotSourceSummaryValidationError::FieldOutOfSync { field: "coverage" },
+            );
+        }
         if self.frame_treatment.trim().is_empty() {
             return Err(ReferenceSnapshotSourceSummaryValidationError::BlankFrameTreatment);
         }
         if has_surrounding_whitespace(&self.frame_treatment) {
             return Err(
                 ReferenceSnapshotSourceSummaryValidationError::SurroundedByWhitespace {
+                    field: "frame_treatment",
+                },
+            );
+        }
+        if self.frame_treatment != REFERENCE_SNAPSHOT_FRAME_TREATMENT {
+            return Err(
+                ReferenceSnapshotSourceSummaryValidationError::FieldOutOfSync {
                     field: "frame_treatment",
                 },
             );
@@ -8422,6 +8445,8 @@ pub enum ReferenceSnapshotSourceSummaryValidationError {
     BlankFrameTreatment,
     /// The summary carried surrounding whitespace in one of its labels.
     SurroundedByWhitespace { field: &'static str },
+    /// One of the canonical summary fields drifted from the checked-in slice.
+    FieldOutOfSync { field: &'static str },
     /// The summary carried an unexpected reference epoch.
     ReferenceEpochMismatch,
 }
@@ -8434,6 +8459,7 @@ impl ReferenceSnapshotSourceSummaryValidationError {
             Self::BlankCoverage => "blank coverage",
             Self::BlankFrameTreatment => "blank frame treatment",
             Self::SurroundedByWhitespace { .. } => "surrounded by whitespace",
+            Self::FieldOutOfSync { .. } => "field out of sync",
             Self::ReferenceEpochMismatch => "reference epoch mismatch",
         }
     }
@@ -8445,6 +8471,7 @@ impl fmt::Display for ReferenceSnapshotSourceSummaryValidationError {
             Self::SurroundedByWhitespace { field } => {
                 write!(f, "{field} contains surrounding whitespace")
             }
+            Self::FieldOutOfSync { field } => write!(f, "{field} is out of sync"),
             Self::ReferenceEpochMismatch => f.write_str("reference epoch mismatch"),
             _ => f.write_str(self.label()),
         }
@@ -8801,12 +8828,24 @@ impl IndependentHoldoutSourceSummary {
                 },
             );
         }
+        if self.source != INDEPENDENT_HOLDOUT_SOURCE_EXPECTED {
+            return Err(
+                IndependentHoldoutSourceSummaryValidationError::FieldOutOfSync { field: "source" },
+            );
+        }
         if self.coverage.trim().is_empty() {
             return Err(IndependentHoldoutSourceSummaryValidationError::BlankCoverage);
         }
         if has_surrounding_whitespace(&self.coverage) {
             return Err(
                 IndependentHoldoutSourceSummaryValidationError::SurroundedByWhitespace {
+                    field: "coverage",
+                },
+            );
+        }
+        if self.coverage != INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK {
+            return Err(
+                IndependentHoldoutSourceSummaryValidationError::FieldOutOfSync {
                     field: "coverage",
                 },
             );
@@ -8819,6 +8858,11 @@ impl IndependentHoldoutSourceSummary {
                 IndependentHoldoutSourceSummaryValidationError::SurroundedByWhitespace {
                     field: "columns",
                 },
+            );
+        }
+        if self.columns != INDEPENDENT_HOLDOUT_COLUMNS {
+            return Err(
+                IndependentHoldoutSourceSummaryValidationError::FieldOutOfSync { field: "columns" },
             );
         }
         Ok(())
@@ -8852,6 +8896,8 @@ pub enum IndependentHoldoutSourceSummaryValidationError {
     BlankColumns,
     /// The summary carried surrounding whitespace in one of its labels.
     SurroundedByWhitespace { field: &'static str },
+    /// One of the canonical summary fields drifted from the checked-in slice.
+    FieldOutOfSync { field: &'static str },
 }
 
 impl IndependentHoldoutSourceSummaryValidationError {
@@ -8862,6 +8908,7 @@ impl IndependentHoldoutSourceSummaryValidationError {
             Self::BlankCoverage => "blank coverage",
             Self::BlankColumns => "blank columns",
             Self::SurroundedByWhitespace { .. } => "surrounded by whitespace",
+            Self::FieldOutOfSync { .. } => "field out of sync",
         }
     }
 }
@@ -8872,6 +8919,7 @@ impl fmt::Display for IndependentHoldoutSourceSummaryValidationError {
             Self::SurroundedByWhitespace { field } => {
                 write!(f, "{field} contains surrounding whitespace")
             }
+            Self::FieldOutOfSync { field } => write!(f, "{field} is out of sync"),
             _ => f.write_str(self.label()),
         }
     }
@@ -14852,6 +14900,35 @@ mod tests {
             drifted_summary.validate(),
             Err(ReferenceSnapshotSourceSummaryValidationError::ReferenceEpochMismatch)
         );
+
+        let mut drifted_source = summary.clone();
+        drifted_source.source =
+            "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables (drift)."
+                .to_string();
+        assert_eq!(
+            drifted_source.validate(),
+            Err(ReferenceSnapshotSourceSummaryValidationError::FieldOutOfSync { field: "source" })
+        );
+
+        let mut drifted_coverage = summary.clone();
+        drifted_coverage.coverage = "major-body coverage drift".to_string();
+        assert_eq!(
+            drifted_coverage.validate(),
+            Err(
+                ReferenceSnapshotSourceSummaryValidationError::FieldOutOfSync { field: "coverage" }
+            )
+        );
+
+        let mut drifted_frame_treatment = summary.clone();
+        drifted_frame_treatment.frame_treatment = "geocentric ecliptic J2000 drift".to_string();
+        assert_eq!(
+            drifted_frame_treatment.validate(),
+            Err(
+                ReferenceSnapshotSourceSummaryValidationError::FieldOutOfSync {
+                    field: "frame_treatment"
+                }
+            )
+        );
         assert_eq!(
             reference_snapshot_source_summary_for_report(),
             summary.summary_line()
@@ -15095,9 +15172,9 @@ mod tests {
         );
 
         let blank_coverage = ReferenceSnapshotSourceSummary {
-            source: "source".to_string(),
+            source: REFERENCE_SNAPSHOT_SOURCE_EXPECTED.to_string(),
             coverage: "\n".to_string(),
-            frame_treatment: "geocentric ecliptic J2000".to_string(),
+            frame_treatment: REFERENCE_SNAPSHOT_FRAME_TREATMENT.to_string(),
             reference_epoch: reference_instant(),
         };
         assert_eq!(
@@ -15106,9 +15183,9 @@ mod tests {
         );
 
         let padded_coverage = ReferenceSnapshotSourceSummary {
-            source: "source".to_string(),
+            source: REFERENCE_SNAPSHOT_SOURCE_EXPECTED.to_string(),
             coverage: " coverage ".to_string(),
-            frame_treatment: "geocentric ecliptic J2000".to_string(),
+            frame_treatment: REFERENCE_SNAPSHOT_FRAME_TREATMENT.to_string(),
             reference_epoch: reference_instant(),
         };
         assert_eq!(
@@ -15122,8 +15199,8 @@ mod tests {
 
         let multiline_source = ReferenceSnapshotSourceSummary {
             source: "source\nline".to_string(),
-            coverage: "coverage".to_string(),
-            frame_treatment: "geocentric ecliptic J2000".to_string(),
+            coverage: REFERENCE_SNAPSHOT_COVERAGE_FALLBACK.to_string(),
+            frame_treatment: REFERENCE_SNAPSHOT_FRAME_TREATMENT.to_string(),
             reference_epoch: reference_instant(),
         };
         assert_eq!(
@@ -15136,8 +15213,8 @@ mod tests {
         );
 
         let blank_frame_treatment = ReferenceSnapshotSourceSummary {
-            source: "source".to_string(),
-            coverage: "coverage".to_string(),
+            source: REFERENCE_SNAPSHOT_SOURCE_EXPECTED.to_string(),
+            coverage: REFERENCE_SNAPSHOT_COVERAGE_FALLBACK.to_string(),
             frame_treatment: "\n".to_string(),
             reference_epoch: reference_instant(),
         };
@@ -15147,8 +15224,8 @@ mod tests {
         );
 
         let padded_frame_treatment = ReferenceSnapshotSourceSummary {
-            source: "source".to_string(),
-            coverage: "coverage".to_string(),
+            source: REFERENCE_SNAPSHOT_SOURCE_EXPECTED.to_string(),
+            coverage: REFERENCE_SNAPSHOT_COVERAGE_FALLBACK.to_string(),
             frame_treatment: " geocentric ecliptic J2000 ".to_string(),
             reference_epoch: reference_instant(),
         };
@@ -15201,9 +15278,9 @@ mod tests {
         );
 
         let blank_coverage = IndependentHoldoutSourceSummary {
-            source: "source".to_string(),
+            source: INDEPENDENT_HOLDOUT_SOURCE_EXPECTED.to_string(),
             coverage: "\t".to_string(),
-            columns: "epoch_jd, body, x_km, y_km, z_km".to_string(),
+            columns: INDEPENDENT_HOLDOUT_COLUMNS.to_string(),
         };
         assert_eq!(
             blank_coverage.validate(),
@@ -15211,8 +15288,8 @@ mod tests {
         );
 
         let blank_columns = IndependentHoldoutSourceSummary {
-            source: "source".to_string(),
-            coverage: "coverage".to_string(),
+            source: INDEPENDENT_HOLDOUT_SOURCE_EXPECTED.to_string(),
+            coverage: INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK.to_string(),
             columns: "  ".to_string(),
         };
         assert_eq!(
@@ -15221,8 +15298,8 @@ mod tests {
         );
 
         let padded_columns = IndependentHoldoutSourceSummary {
-            source: "source".to_string(),
-            coverage: "coverage".to_string(),
+            source: INDEPENDENT_HOLDOUT_SOURCE_EXPECTED.to_string(),
+            coverage: INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK.to_string(),
             columns: " epoch_jd, body, x_km, y_km, z_km ".to_string(),
         };
         assert_eq!(
@@ -15235,9 +15312,9 @@ mod tests {
         );
 
         let multiline_coverage = IndependentHoldoutSourceSummary {
-            source: "source".to_string(),
+            source: INDEPENDENT_HOLDOUT_SOURCE_EXPECTED.to_string(),
             coverage: "coverage\nmore".to_string(),
-            columns: "epoch_jd, body, x_km, y_km, z_km".to_string(),
+            columns: INDEPENDENT_HOLDOUT_COLUMNS.to_string(),
         };
         assert_eq!(
             multiline_coverage.validate(),
@@ -15245,6 +15322,35 @@ mod tests {
                 IndependentHoldoutSourceSummaryValidationError::SurroundedByWhitespace {
                     field: "coverage",
                 }
+            )
+        );
+
+        let mut drifted_summary = independent_holdout_source_summary();
+        drifted_summary.source =
+            "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables (drift)."
+                .to_string();
+        assert_eq!(
+            drifted_summary.validate(),
+            Err(IndependentHoldoutSourceSummaryValidationError::FieldOutOfSync { field: "source" })
+        );
+
+        let mut drifted_coverage = independent_holdout_source_summary();
+        drifted_coverage.coverage = "hold-out coverage drift".to_string();
+        assert_eq!(
+            drifted_coverage.validate(),
+            Err(
+                IndependentHoldoutSourceSummaryValidationError::FieldOutOfSync {
+                    field: "coverage"
+                }
+            )
+        );
+
+        let mut drifted_columns = independent_holdout_source_summary();
+        drifted_columns.columns = "body, epoch_jd, x_km, y_km, z_km".to_string();
+        assert_eq!(
+            drifted_columns.validate(),
+            Err(
+                IndependentHoldoutSourceSummaryValidationError::FieldOutOfSync { field: "columns" }
             )
         );
     }
