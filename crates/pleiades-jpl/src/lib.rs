@@ -17479,6 +17479,44 @@ mod tests {
     }
 
     #[test]
+    fn reference_snapshot_source_window_summary_reports_the_current_boundary_windows() {
+        let summary = reference_snapshot_source_window_summary()
+            .expect("reference snapshot source window summary should exist");
+
+        assert_eq!(summary.sample_count, 194);
+        assert_eq!(summary.sample_bodies.len(), 15);
+        assert_eq!(summary.epoch_count, 18);
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            reference_snapshot_source_window_summary_for_report(),
+            summary.summary_line()
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            summary.summary_line(),
+            concat!(
+                "Reference snapshot source windows: 194 source-backed samples across 15 bodies and 18 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); windows: ",
+                "Sun: 14 samples across 14 epochs at JD 2360233.5 (TDB)..JD 2634167.0 (TDB); ",
+                "Moon: 14 samples across 14 epochs at JD 2360233.5 (TDB)..JD 2634167.0 (TDB); ",
+                "Mercury: 14 samples across 14 epochs at JD 2360233.5 (TDB)..JD 2634167.0 (TDB); ",
+                "Venus: 14 samples across 14 epochs at JD 2360233.5 (TDB)..JD 2634167.0 (TDB); ",
+                "Mars: 17 samples across 17 epochs at JD 2360233.5 (TDB)..JD 2634167.0 (TDB); ",
+                "Jupiter: 14 samples across 14 epochs at JD 2360233.5 (TDB)..JD 2500000.0 (TDB); ",
+                "Saturn: 12 samples across 12 epochs at JD 2360233.5 (TDB)..JD 2500000.0 (TDB); ",
+                "Uranus: 12 samples across 12 epochs at JD 2360233.5 (TDB)..JD 2500000.0 (TDB); ",
+                "Neptune: 12 samples across 12 epochs at JD 2360233.5 (TDB)..JD 2500000.0 (TDB); ",
+                "Pluto: 11 samples across 11 epochs at JD 2378498.5 (TDB)..JD 2500000.0 (TDB); ",
+                "Ceres: 12 samples across 12 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); ",
+                "Pallas: 12 samples across 12 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); ",
+                "Juno: 12 samples across 12 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); ",
+                "Vesta: 12 samples across 12 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); ",
+                "asteroid:433-Eros: 12 samples across 12 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB)"
+            )
+        );
+    }
+
+    #[test]
     fn reference_snapshot_body_class_coverage_summary_validation_rejects_row_count_drift() {
         let mut summary = reference_snapshot_body_class_coverage_summary()
             .expect("reference snapshot body-class coverage summary should exist");
