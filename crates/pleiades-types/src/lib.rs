@@ -2521,6 +2521,15 @@ mod tests {
             Angle::from_degrees(190.0).normalized_signed().degrees(),
             -170.0
         );
+        assert_eq!(
+            Angle::from_degrees(180.0).normalized_signed().degrees(),
+            -180.0
+        );
+        assert_eq!(
+            Angle::from_degrees(-180.0).normalized_signed().degrees(),
+            -180.0
+        );
+        assert_eq!(Longitude::from_degrees(-720.0).degrees(), 0.0);
     }
 
     #[test]
