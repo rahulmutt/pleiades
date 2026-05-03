@@ -14833,6 +14833,23 @@ mod tests {
     }
 
     #[test]
+    fn selected_asteroid_source_evidence_summary_validation_rejects_custom_body_drift() {
+        let mut summary = selected_asteroid_source_evidence_summary()
+            .expect("selected asteroid source evidence summary should exist");
+        summary.sample_bodies[4] = pleiades_backend::CelestialBody::Ceres;
+
+        assert!(matches!(
+            summary.validate(),
+            Err(
+                SelectedAsteroidSourceSummaryValidationError::FieldOutOfSync {
+                    field: "sample_bodies"
+                }
+            )
+        ));
+        assert!(summary.validated_summary_line().is_err());
+    }
+
+    #[test]
     fn selected_asteroid_source_evidence_summary_validation_rejects_body_order_drift() {
         let mut summary = selected_asteroid_source_evidence_summary()
             .expect("selected asteroid source evidence summary should exist");
