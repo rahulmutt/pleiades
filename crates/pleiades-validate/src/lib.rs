@@ -15811,6 +15811,8 @@ mod tests {
             .contains(&reference_snapshot_mars_jupiter_boundary_summary_for_report()));
         assert!(validation_report_summary
             .contains(&reference_snapshot_major_body_boundary_window_summary_for_report()));
+        assert!(validation_report_summary
+            .contains(&reference_snapshot_mars_outer_boundary_summary_for_report()));
         assert_report_contains_exact_line(
             &validation_report_summary,
             "Packaged lookup epoch policy: TT-grid retag without relativistic correction; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction",
@@ -19044,6 +19046,9 @@ version = "0.9.0"
         assert!(release_summary.contains(&reference_snapshot_high_curvature_summary_for_report()));
         assert!(release_summary
             .contains(&reference_snapshot_major_body_boundary_window_summary_for_report()));
+        assert!(
+            release_summary.contains(&reference_snapshot_mars_outer_boundary_summary_for_report())
+        );
         assert!(release_summary
             .contains(&reference_snapshot_high_curvature_window_summary_for_report()));
         assert!(
@@ -21185,6 +21190,23 @@ version = "0.9.0"
         );
         let alias = render_cli(&["2500-major-body-boundary-summary"])
             .expect("2500 major-body boundary alias should render");
+        assert_eq!(alias, rendered);
+    }
+
+    #[test]
+    fn reference_snapshot_mars_outer_boundary_summary_command_renders_the_outer_boundary_block() {
+        let rendered = render_cli(&["reference-snapshot-mars-outer-boundary-summary"])
+            .expect("reference snapshot Mars outer-boundary summary should render");
+
+        assert!(rendered.contains("Reference Mars outer-boundary evidence:"));
+        assert!(rendered.contains("JD 2600000.0 (TDB)"));
+        assert!(rendered.contains("JD 2634167.0 (TDB)"));
+        assert_eq!(
+            rendered,
+            reference_snapshot_mars_outer_boundary_summary_for_report()
+        );
+        let alias = render_cli(&["mars-outer-boundary-summary"])
+            .expect("Mars outer-boundary alias should render");
         assert_eq!(alias, rendered);
     }
 }
