@@ -6744,6 +6744,9 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str(&request_surface_summary_for_report());
     text.push('\n');
+    text.push_str("JPL interpolation posture: ");
+    text.push_str(&jpl_interpolation_posture_summary_for_report());
+    text.push('\n');
     text.push_str("Zodiac policy: ");
     text.push_str(&zodiac_policy_summary_for_report(&[ZodiacMode::Tropical]));
     text.push('\n');
@@ -18842,6 +18845,7 @@ version = "0.9.0"
         assert!(release_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(release_summary.contains("Backend matrix summary: backend-matrix-summary"));
+        assert!(release_summary.contains("JPL interpolation posture: source="));
         assert!(release_summary.contains(
             "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); pleiades-cli chart (explicit --tt|--tdb|--utc|--ut1 flags plus caller-supplied TT/TDB offset aliases: --tt-offset-seconds, --tt-from-utc-offset-seconds, --tt-from-ut1-offset-seconds, --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, --tdb-from-tt-offset-seconds, and --tt-from-tdb-offset-seconds)"
         ));

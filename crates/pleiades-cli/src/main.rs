@@ -2499,6 +2499,7 @@ mod tests {
         assert!(release_summary.contains("Wilhelm"));
         assert!(release_summary.contains("Galactic Equator (Fiorenza)"));
         assert!(release_summary.contains("coverage=Luminaries: backend family=composite, profile=phase-1 full-file VSOP87B planetary evidence, bodies=2 (Sun, Moon), samples="));
+        assert!(release_summary.contains("JPL interpolation posture: source="));
         assert!(release_summary.lines().any(|line| {
             line == "JPL request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"
         }));
