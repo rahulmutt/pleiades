@@ -25,12 +25,13 @@ use pleiades_jpl::{
     JplSnapshotBackend,
 };
 use pleiades_validate::{
-    render_api_stability_summary, render_artifact_summary, render_backend_matrix_report,
-    render_backend_matrix_summary, render_benchmark_report, render_catalog_inventory_summary,
-    render_cli as validate_render_cli, render_compatibility_profile_summary, render_release_bundle,
-    render_release_checklist, render_release_checklist_summary, render_release_notes,
-    render_release_notes_summary, render_release_summary, render_request_surface_summary,
-    render_validation_report_summary, verify_compatibility_profile,
+    current_request_surface_summary, render_api_stability_summary, render_artifact_summary,
+    render_backend_matrix_report, render_backend_matrix_summary, render_benchmark_report,
+    render_catalog_inventory_summary, render_cli as validate_render_cli,
+    render_compatibility_profile_summary, render_release_bundle, render_release_checklist,
+    render_release_checklist_summary, render_release_notes, render_release_notes_summary,
+    render_release_summary, render_request_surface_summary, render_validation_report_summary,
+    verify_compatibility_profile,
 };
 use pleiades_vsop87::Vsop87Backend;
 
@@ -625,9 +626,11 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
                 house_system = Some(parse_house_system(label)?);
             }
             "--help" | "-h" => {
+                let chart_request_surface = current_request_surface_summary();
                 return Ok(format!(
-                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--tt|--tdb|--utc|--ut1] [--tt-offset-seconds <seconds>|--tt-from-utc-offset-seconds <seconds>|--tt-from-ut1-offset-seconds <seconds>] [--tdb-offset-seconds <seconds>|--tdb-from-utc-offset-seconds <seconds>|--tdb-from-ut1-offset-seconds <seconds>] [--tdb-from-tt-offset-seconds <seconds>] [--tt-from-tdb-offset-seconds <seconds>] [--mean|--apparent] [--ayanamsa <name>] [--house-system <name>] [--body <name> ...]\n\nAyanamsa names may be built-in entries or custom definitions in the form custom:<name>|<epoch-jd>|<offset-degrees> (or custom-definition:<name>|<epoch-jd>|<offset-degrees>). Body names may be built-in bodies such as Sun or Moon, or custom identifiers in the form catalog:designation. When the chart instant is tagged as UTC or UT1, the caller must also supply the explicit TT offset before chart assembly, either via --tt-offset-seconds or the more explicit --tt-from-utc-offset-seconds / --tt-from-ut1-offset-seconds aliases, and may also supply a signed TDB-TT offset when converting to TDB, either via --tdb-offset-seconds or the more explicit UTC/UT1 aliases. When the chart instant is tagged as TT, the caller may supply that signed TDB-TT offset via --tdb-offset-seconds or the more explicit --tdb-from-tt-offset-seconds alias. When the chart instant is tagged as TDB, the caller may supply a signed TT-TDB offset to re-tag the request as TT before assembly.\n\n{}\n",
+                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--tt|--tdb|--utc|--ut1] [--tt-offset-seconds <seconds>|--tt-from-utc-offset-seconds <seconds>|--tt-from-ut1-offset-seconds <seconds>] [--tdb-offset-seconds <seconds>|--tdb-from-utc-offset-seconds <seconds>|--tdb-from-ut1-offset-seconds <seconds>] [--tdb-from-tt-offset-seconds <seconds>] [--tt-from-tdb-offset-seconds <seconds>] [--mean|--apparent] [--ayanamsa <name>] [--house-system <name>] [--body <name> ...]\n\nAyanamsa names may be built-in entries or custom definitions in the form custom:<name>|<epoch-jd>|<offset-degrees> (or custom-definition:<name>|<epoch-jd>|<offset-degrees>). Body names may be built-in bodies such as Sun or Moon, or custom identifiers in the form catalog:designation. {}\n\n{}\n",
                     banner(),
+                    chart_request_surface.chart_help_clause(),
                     shared_request_policy_help_block()
                 ));
             }
@@ -2962,6 +2965,9 @@ mod tests {
     fn chart_help_text_spells_out_the_shared_request_policy() {
         let help = render_chart(&["--help"]).expect("chart help should render");
         assert!(help.contains(&shared_request_policy_help_block()));
+        assert!(
+            help.contains(pleiades_validate::current_request_surface_summary().chart_help_clause())
+        );
     }
 
     #[test]

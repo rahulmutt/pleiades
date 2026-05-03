@@ -10517,6 +10517,12 @@ impl RequestSurfaceSummary {
         Ok(())
     }
 
+    /// Returns the chart-help clause that spells out the explicit UTC/UT1 and
+    /// TT/TDB aliases used by the chart CLI.
+    pub const fn chart_help_clause(self) -> &'static str {
+        self.cli_chart
+    }
+
     /// Returns the compact `Primary request surfaces:` line.
     pub fn summary_line(self) -> String {
         format!(
