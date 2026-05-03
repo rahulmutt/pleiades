@@ -5227,6 +5227,40 @@ mod tests {
     }
 
     #[test]
+    fn packaged_artifact_generator_parameters_validation_rejects_profile_id_drift() {
+        let mut parameters = packaged_artifact_generator_parameters_details();
+        parameters.profile_id = "pleiades-packaged-artifact-profile/test-drift";
+
+        let error = parameters
+            .validate()
+            .expect_err("profile id drift should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error.message.contains(
+            "packaged artifact generator parameters profile id does not match the current production profile"
+        ));
+    }
+
+    #[test]
+    fn packaged_artifact_generator_parameters_validation_rejects_label_drift() {
+        let mut parameters = packaged_artifact_generator_parameters_details();
+        parameters.label = "drifted label";
+
+        let error = parameters
+            .validate()
+            .expect_err("label drift should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error.message.contains(
+            "packaged artifact generator parameters label does not match the current production profile"
+        ));
+    }
+
+    #[test]
     fn packaged_artifact_generator_parameters_validation_rejects_body_coverage_drift() {
         let mut parameters = packaged_artifact_generator_parameters_details();
         parameters.body_coverage.bodies[0] = CelestialBody::Ceres;
@@ -5269,6 +5303,23 @@ mod tests {
             packaged_artifact_generation_manifest(),
             manifest.summary_line()
         );
+    }
+
+    #[test]
+    fn packaged_artifact_generation_manifest_validation_rejects_profile_id_drift() {
+        let mut manifest = packaged_artifact_generation_manifest_details();
+        manifest.parameters.profile_id = "pleiades-packaged-artifact-profile/test-drift";
+
+        let error = manifest
+            .validate()
+            .expect_err("drifted generation parameters should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error.message.contains(
+            "packaged artifact generator parameters profile id does not match the current production profile"
+        ));
     }
 
     #[test]
