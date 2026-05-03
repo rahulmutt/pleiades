@@ -8009,7 +8009,7 @@ impl ReferenceMajorBodyBoundarySummary {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         format!(
-            "Reference major-body boundary evidence: {} exact samples at {} ({})",
+            "Reference major-body boundary evidence: {} exact samples at {} ({}); 2001-01-08 boundary sample",
             self.sample_count,
             format_instant(self.epoch),
             format_bodies(&self.sample_bodies),
@@ -13704,7 +13704,7 @@ mod tests {
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             summary.summary_line(),
-            "Reference major-body boundary evidence: 2 exact samples at JD 2451917.5 (TDB) (Mars, Jupiter)"
+            "Reference major-body boundary evidence: 2 exact samples at JD 2451917.5 (TDB) (Mars, Jupiter); 2001-01-08 boundary sample"
         );
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
