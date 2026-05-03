@@ -3407,6 +3407,30 @@ mod tests {
     }
 
     #[test]
+    fn sidereal_longitude_wraps_around_when_the_ayanamsa_crosses_zero() {
+        let instant = Instant::new(
+            pleiades_types::JulianDay::from_days(2451545.0),
+            TimeScale::Tt,
+        );
+        let sidereal = sidereal_longitude(
+            Longitude::from_degrees(5.0),
+            instant,
+            &ZodiacMode::Sidereal {
+                ayanamsa: crate::Ayanamsa::Custom(pleiades_types::CustomAyanamsa {
+                    name: "wraparound offset".to_string(),
+                    description: Some("sidereal wraparound regression sample".to_string()),
+                    epoch: Some(pleiades_types::JulianDay::from_days(2451545.0)),
+                    offset_degrees: Some(Angle::from_degrees(6.0)),
+                }),
+            },
+        )
+        .expect("sidereal conversion should normalize into the longitude range");
+
+        assert_eq!(sidereal.degrees(), 359.0);
+        assert_eq!(ZodiacSign::from_longitude(sidereal), ZodiacSign::Pisces);
+    }
+
+    #[test]
     fn chart_snapshot_assigns_signs() {
         let engine = ChartEngine::new(ToyChartBackend);
         let request = ChartRequest::new(Instant::new(
