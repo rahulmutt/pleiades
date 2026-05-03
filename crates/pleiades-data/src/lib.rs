@@ -500,6 +500,14 @@ impl PackagedArtifactTargetThresholdScopeSummary {
         )
     }
 
+    /// Returns the validated scope-specific fit posture as a compact human-readable line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, PackagedArtifactFitEnvelopeSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
     /// Returns `Ok(())` when the scope summary still matches the current packaged-artifact posture.
     pub fn validate(&self) -> Result<(), PackagedArtifactFitEnvelopeSummaryValidationError> {
         let expected =
@@ -1258,10 +1266,15 @@ pub fn packaged_artifact_target_threshold_summary_for_report() -> String {
 pub fn packaged_artifact_target_threshold_scope_envelopes_for_report() -> String {
     let summary = packaged_artifact_target_threshold_summary_details();
     match summary.validate() {
-        Ok(()) => format!(
-            "scope envelopes: {}",
-            join_display(&summary.scope_envelopes)
-        ),
+        Ok(()) => match summary
+            .scope_envelopes
+            .iter()
+            .map(|scope| scope.validated_summary_line())
+            .collect::<Result<Vec<_>, _>>()
+        {
+            Ok(lines) => format!("scope envelopes: {}", lines.join(", ")),
+            Err(error) => format!("scope envelopes: unavailable ({error})"),
+        },
         Err(error) => format!("scope envelopes: unavailable ({error})"),
     }
 }
@@ -5218,6 +5231,10 @@ mod tests {
         assert!(summary
             .summary_line()
             .contains("scope envelopes=scope=luminaries; bodies=2; fit envelope:"));
+        assert!(
+            packaged_artifact_target_threshold_scope_envelopes_for_report()
+                .contains("scope=luminaries; bodies=2; fit envelope:")
+        );
         assert!(packaged_artifact_production_profile_summary_for_report()
             .contains("Packaged artifact production profile skeleton:"));
         assert_eq!(
@@ -5443,6 +5460,29 @@ mod tests {
                 ARTIFACT_PROFILE_ID
             ))
         );
+    }
+
+    #[test]
+    fn packaged_artifact_target_threshold_scope_envelopes_reflect_the_current_posture() {
+        let summary = packaged_artifact_target_threshold_summary_details();
+        let expected = format!(
+            "scope envelopes: {}",
+            join_display(&summary.scope_envelopes)
+        );
+
+        assert_eq!(
+            packaged_artifact_target_threshold_scope_envelopes_for_report(),
+            expected
+        );
+        assert_eq!(
+            summary.scope_envelopes[0].validated_summary_line(),
+            Ok(summary.scope_envelopes[0].summary_line())
+        );
+        assert!(expected.contains("scope=luminaries; bodies="));
+        assert!(expected.contains("scope=major planets; bodies="));
+        assert!(expected.contains("scope=lunar points; bodies="));
+        assert!(expected.contains("scope=selected asteroids; bodies="));
+        assert!(expected.contains("scope=custom bodies; bodies="));
     }
 
     #[test]
