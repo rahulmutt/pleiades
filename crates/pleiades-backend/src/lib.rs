@@ -4621,6 +4621,49 @@ mod tests {
     }
 
     #[test]
+    fn validate_requests_against_metadata_rejects_apparent_requests_before_topocentric_checks() {
+        let metadata = BackendMetadata {
+            id: BackendId::new("toy backend"),
+            version: "0.1.0".to_string(),
+            family: BackendFamily::Algorithmic,
+            provenance: BackendProvenance::new("toy backend"),
+            nominal_range: TimeRange::new(None, None),
+            supported_time_scales: vec![TimeScale::Tt],
+            body_coverage: vec![CelestialBody::Sun],
+            supported_frames: vec![CoordinateFrame::Ecliptic],
+            capabilities: BackendCapabilities {
+                apparent: false,
+                ..BackendCapabilities::default()
+            },
+            accuracy: AccuracyClass::Approximate,
+            deterministic: true,
+            offline: true,
+        };
+        let request = EphemerisRequest {
+            apparent: Apparentness::Apparent,
+            observer: Some(ObserverLocation::new(
+                Latitude::from_degrees(51.5),
+                Longitude::from_degrees(-0.1),
+                Some(45.0),
+            )),
+            ..EphemerisRequest::new(
+                CelestialBody::Sun,
+                Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+            )
+        };
+
+        let error = validate_requests_against_metadata(&[request], &metadata)
+            .expect_err("apparentness should be checked before the observer policy");
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedApparentness);
+        assert!(error.message.contains(
+            "toy backend currently returns mean geometric coordinates only; apparent corrections are not implemented"
+        ));
+        assert!(!error
+            .message
+            .contains("topocentric positions are not implemented"));
+    }
+
+    #[test]
     fn validate_requests_against_metadata_rejects_topocentric_requests_with_batch_index_prefix() {
         let metadata = BackendMetadata {
             id: BackendId::new("toy backend"),
