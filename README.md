@@ -67,6 +67,7 @@ Rough command overview:
 - `frame-policy-summary`: compact frame-policy summary
 - `observer-policy-summary`: compact observer policy summary
 - `apparentness-policy-summary`: compact apparentness policy summary
+- `source-documentation-summary` / `source-documentation-health-summary` / `source-documentation-health`: compact VSOP87 source-documentation provenance and health summaries
 - `production-generation-boundary-summary`: compact production-generation boundary overlay summary
 - `request-policy-summary` / `request-semantics-summary`: compact request-policy summary
 - `request-surface-summary`: compact request-surface inventory, including the explicit chart TT/TDB offset aliases
