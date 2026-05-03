@@ -1625,12 +1625,15 @@ impl AyanamsaCatalogValidationSummary {
     pub fn summary_line(&self) -> String {
         match &self.validation_result {
             Ok(()) => format!(
-                "ayanamsa catalog validation: ok ({} entries, {} labels checked; baseline={}, release={}; {}; round-trip, alias uniqueness, and notes verified)",
+                "ayanamsa catalog validation: ok ({} entries, {} labels checked; baseline={}, release={}; {}; implementation posture: {} baseline entries, {} release-specific entries, {} custom-definition-only labels; round-trip, alias uniqueness, and notes verified)",
                 self.entry_count,
                 self.label_count,
                 self.baseline_entry_count,
                 self.release_entry_count,
                 self.metadata_coverage.summary_line(),
+                self.baseline_entry_count,
+                self.release_entry_count,
+                self.metadata_coverage.custom_definition_only.len(),
             ),
             Err(error) => format!(
                 "ayanamsa catalog validation: error: {} ({} entries; baseline={}, release={})",
@@ -1839,6 +1842,9 @@ mod tests {
             .summary_line()
             .contains("ayanamsa catalog validation: ok"));
         assert!(summary.summary_line().contains("custom-definition-only="));
+        assert!(summary
+            .summary_line()
+            .contains("implementation posture: 5 baseline entries, 54 release-specific entries, 6 custom-definition-only labels"));
         assert!(summary
             .summary_line()
             .contains(&expected_custom_definition_only_labels));

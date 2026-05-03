@@ -264,7 +264,7 @@ impl HouseValidationReport {
         let latitude_sensitive_constraints = self.latitude_sensitive_constraints();
         let scenario_labels = self.scenario_labels();
         format!(
-            "House validation corpus: {} scenarios ({}), {} samples, {} successes, {} failures; formula families: {}; latitude-sensitive systems: {}; constraints: {}",
+            "House validation corpus: {} scenarios ({}), {} samples, {} successes, {} failures; formula families: {}; latitude-sensitive systems: {}; constraints: {}; implementation posture: {} baseline systems validated",
             self.scenarios.len(),
             if scenario_labels.is_empty() {
                 "none".to_string()
@@ -288,7 +288,8 @@ impl HouseValidationReport {
                 "none".to_string()
             } else {
                 latitude_sensitive_constraints.join(", ")
-            }
+            },
+            baseline_house_systems().len()
         )
     }
 
@@ -499,7 +500,7 @@ mod tests {
 
         assert_eq!(
             report.summary_line(),
-            "House validation corpus: 5 scenarios (Mid-latitude reference chart, Equatorial reference chart, Polar stress chart, Southern polar stress chart, Southern hemisphere reference chart), 60 samples, 60 successes, 0 failures; formula families: Equal, Whole Sign, Quadrant, Equatorial projection; latitude-sensitive systems: Koch, Placidus, Topocentric; constraints: Koch [Quadrant system with documented high-latitude pathologies.], Placidus [Quadrant system; can fail or become unstable at extreme latitudes.], Topocentric [Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.]"
+            "House validation corpus: 5 scenarios (Mid-latitude reference chart, Equatorial reference chart, Polar stress chart, Southern polar stress chart, Southern hemisphere reference chart), 60 samples, 60 successes, 0 failures; formula families: Equal, Whole Sign, Quadrant, Equatorial projection; latitude-sensitive systems: Koch, Placidus, Topocentric; constraints: Koch [Quadrant system with documented high-latitude pathologies.], Placidus [Quadrant system; can fail or become unstable at extreme latitudes.], Topocentric [Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.]; implementation posture: 12 baseline systems validated"
         );
         assert_eq!(
             house_validation_summary_line_for_report(&report),
