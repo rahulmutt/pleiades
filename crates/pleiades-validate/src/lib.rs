@@ -5991,6 +5991,7 @@ fn summarize_ayanamsa_reference_offsets() -> Result<AyanamsaReferenceOffsetsSumm
         pleiades_core::Ayanamsa::Krishnamurti,
         pleiades_core::Ayanamsa::FaganBradley,
         pleiades_core::Ayanamsa::TrueChitra,
+        pleiades_core::Ayanamsa::TrueCitra,
         pleiades_core::Ayanamsa::DeLuce,
         pleiades_core::Ayanamsa::Yukteshwar,
         pleiades_core::Ayanamsa::PvrPushyaPaksha,
@@ -16749,6 +16750,7 @@ mod tests {
         assert!(rendered.contains("Krishnamurti: epoch=JD 2415020; offset=22.363889°"));
         assert!(rendered.contains("Fagan/Bradley: epoch=JD 2433282.42346; offset=24.042044444°"));
         assert!(rendered.contains("True Chitra: epoch=JD 2435553.5; offset=23.245524743°"));
+        assert!(rendered.contains("True Citra: epoch=JD 1825182.87233; offset=50.2567483°"));
         assert!(rendered.contains("DeLuce: epoch=JD 2451545; offset=23.245522556°"));
         assert!(rendered.contains("Yukteshwar: epoch=JD 2451545; offset=22.6288889°"));
         assert!(rendered.contains("PVR Pushya-paksha: epoch=JD 2451545; offset=23°"));
@@ -16809,6 +16811,7 @@ mod tests {
         assert!(rendered.contains("Krishnamurti: epoch=JD 2415020; offset=22.363889°"));
         assert!(rendered.contains("Fagan/Bradley: epoch=JD 2433282.42346; offset=24.042044444°"));
         assert!(rendered.contains("True Chitra: epoch=JD 2435553.5; offset=23.245524743°"));
+        assert!(rendered.contains("True Citra: epoch=JD 1825182.87233; offset=50.2567483°"));
         assert!(rendered.contains("DeLuce: epoch=JD 2451545; offset=23.245522556°"));
         assert!(rendered.contains("Yukteshwar: epoch=JD 2451545; offset=22.6288889°"));
         assert!(rendered.contains("PVR Pushya-paksha: epoch=JD 2451545; offset=23°"));
@@ -18081,6 +18084,7 @@ mod tests {
         assert!(rendered.contains("Krishnamurti: epoch=JD 2415020; offset=22.363889°"));
         assert!(rendered.contains("Fagan/Bradley: epoch=JD 2433282.42346; offset=24.042044444°"));
         assert!(rendered.contains("True Chitra: epoch=JD 2435553.5; offset=23.245524743°"));
+        assert!(rendered.contains("True Citra: epoch=JD 1825182.87233; offset=50.2567483°"));
         assert!(rendered.contains("DeLuce: epoch=JD 2451545; offset=23.245522556°"));
         assert!(rendered.contains("Yukteshwar: epoch=JD 2451545; offset=22.6288889°"));
         assert!(rendered.contains("PVR Pushya-paksha: epoch=JD 2451545; offset=23°"));
