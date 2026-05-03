@@ -16229,6 +16229,7 @@ mod tests {
         assert!(rendered.contains("release-checklist"));
         assert!(rendered.contains("release-checklist-summary"));
         assert!(rendered.contains("release-summary"));
+        assert!(rendered.contains("packaged-lookup-epoch-policy-summary"));
         assert!(rendered.contains("jpl-batch-error-taxonomy-summary"));
         assert!(rendered.contains("jpl-snapshot-evidence-summary"));
         assert!(rendered.contains("bundle-release --out DIR"));

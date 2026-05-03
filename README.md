@@ -55,7 +55,7 @@ Rough command overview:
 - `api-stability-summary` / `api-posture-summary`: compact API stability summary
 - `backend-matrix` / `capability-matrix`: print implemented backend capability matrices
 - `backend-matrix-summary` / `matrix-summary`: compact backend matrix summary
-- `release-notes`, `release-notes-summary`, `release-checklist`, `release-checklist-summary` / `checklist-summary`, `release-summary`, `request-policy-summary` / `request-semantics-summary`, `time-scale-policy-summary`, `delta-t-policy-summary`, `verify-compatibility-profile`, `verify-release-bundle`: maintainer-facing release metadata and catalog-alignment checks
+- `release-notes`, `release-notes-summary`, `release-checklist`, `release-checklist-summary` / `checklist-summary`, `release-summary`, `request-policy-summary` / `request-semantics-summary`, `time-scale-policy-summary`, `delta-t-policy-summary`, `packaged-lookup-epoch-policy-summary`, `verify-compatibility-profile`, `verify-release-bundle`: maintainer-facing release metadata and catalog-alignment checks
 - `comparison-corpus-summary` / `comparison-corpus-release-guard-summary` / `comparison-envelope-summary` / `reference-holdout-overlap-summary` / `independent-holdout-summary`: compact release-grade comparison, hold-out, and validation-overlap summaries
 - `comparison-snapshot-manifest-summary`, `reference-snapshot-manifest-summary`: compact source-manifest provenance summaries for the checked-in JPL snapshots (also available through `pleiades-cli`)
 - `artifact-summary` / `artifact-posture-summary`: compact summary of the packaged compressed artifact
@@ -125,7 +125,7 @@ Rough command overview:
 - `compatibility-profile`: print the full release compatibility profile
 - `compatibility-profile-summary`: compact compatibility profile summary
 - `verify-compatibility-profile`: verify the release compatibility profile against the canonical catalogs
-- `api-stability`, `api-stability-summary`, `release-notes`, `release-notes-summary`, `release-checklist`, `release-checklist-summary`, `release-summary`, `production-generation-boundary-summary`, `frame-policy-summary`, `observer-policy-summary`, `apparentness-policy-summary`, `time-scale-policy-summary`, `delta-t-policy-summary`, `lunar-reference-error-envelope-summary`, `lunar-equatorial-reference-error-envelope-summary`, `request-policy-summary` / `request-semantics-summary`: release-facing report helpers
+- `api-stability`, `api-stability-summary`, `release-notes`, `release-notes-summary`, `release-checklist`, `release-checklist-summary`, `release-summary`, `production-generation-boundary-summary`, `frame-policy-summary`, `observer-policy-summary`, `apparentness-policy-summary`, `time-scale-policy-summary`, `delta-t-policy-summary`, `interpolation-posture-summary`, `packaged-lookup-epoch-policy-summary`, `lunar-reference-error-envelope-summary`, `lunar-equatorial-reference-error-envelope-summary`, `request-policy-summary` / `request-semantics-summary`: release-facing report helpers
 - `bundle-release --out DIR`: write a staged release bundle to a directory
 - `verify-release-bundle --out DIR`: verify a previously staged release bundle
 - `regenerate-packaged-artifact FILE` or `regenerate-packaged-artifact --out FILE`: rebuild the checked-in packaged artifact fixture from the reference snapshot
