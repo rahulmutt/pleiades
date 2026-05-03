@@ -130,6 +130,7 @@ use pleiades_jpl::{
     reference_snapshot_boundary_epoch_coverage_summary_for_report,
     reference_snapshot_early_major_body_boundary_summary_for_report,
     reference_snapshot_equatorial_parity_summary_for_report,
+    reference_snapshot_exact_j2000_evidence_summary_for_report,
     reference_snapshot_high_curvature_summary_for_report,
     reference_snapshot_high_curvature_window_summary_for_report,
     reference_snapshot_lunar_boundary_summary_for_report,
@@ -12917,6 +12918,11 @@ fn write_backend_matrix(f: &mut fmt::Formatter<'_>, backend: &BackendMetadata) -
                     )?;
                 }
             }
+            writeln!(
+                f,
+                "  {}",
+                reference_snapshot_exact_j2000_evidence_summary_for_report()
+            )?;
         }
     }
     writeln!(f, "  frames: {}", format_frames(&backend.supported_frames))?;
@@ -19320,6 +19326,9 @@ version = "0.9.0"
         ));
         assert!(backend_matrix.contains(&selected_asteroid_boundary_summary_for_report()));
         assert!(backend_matrix.contains("exact J2000 evidence: 5 bodies at JD 2451545.0"));
+        assert!(backend_matrix.contains(
+            "Reference snapshot exact J2000 evidence: 15 exact J2000 samples at JD 2451545.0"
+        ));
         assert!(api_stability.contains(&format!(
             "API stability posture: {}",
             release_profiles.api_stability_profile_id

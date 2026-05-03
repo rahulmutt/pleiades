@@ -78,7 +78,7 @@ The current contract is intentionally mechanical rather than modeled:
 
 - Chart-level observer locations are currently used for house calculations.
 - Body positions in chart assembly are queried geocentrically unless a future API adds an explicit topocentric position mode.
-- Geocentric-only backends must reject direct backend requests that include an observer location with a structured `InvalidObserver` error.
+- Geocentric-only backends must reject direct backend requests that include an observer location with a structured `UnsupportedObserver` error, while malformed observer coordinates still use `InvalidObserver`.
 - Shared observer-location validation rejects non-finite latitude, longitude, and elevation before house calculations or chart-request preflight uses the value, and the chart request helper now validates observer coordinates even when no house system is requested.
 - House calculations validate obliquity overrides up front; non-finite overrides are rejected with a structured invalid-obliquity house error instead of flowing into the quadrant formulas.
 - This separation prevents an observer used for houses from being mistaken for topocentric planetary or lunar coordinates; topocentric body positions remain unsupported until a dedicated request surface exists.
