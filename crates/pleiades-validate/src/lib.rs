@@ -16775,6 +16775,7 @@ mod tests {
         assert!(rendered.contains("Galactic Center (Rgilbrand): epoch="));
         assert!(rendered.contains("Galactic Center (Mardyks): epoch="));
         assert!(rendered.contains("Galactic Center (Cochrane): epoch="));
+        assert!(rendered.contains("Galactic Center (Mula/Wilhelm): epoch="));
         assert!(rendered.contains("Dhruva Galactic Center (Middle Mula): epoch="));
         assert!(rendered.contains("Galactic Equator (Fiorenza): epoch=JD 2451544.5; offset=25°"));
         assert!(rendered.contains("Valens Moon: epoch=JD 1775845.5; offset=-2.9422°"));
@@ -16838,6 +16839,7 @@ mod tests {
         assert!(rendered.contains("Galactic Center (Rgilbrand): epoch="));
         assert!(rendered.contains("Galactic Center (Mardyks): epoch="));
         assert!(rendered.contains("Galactic Center (Cochrane): epoch="));
+        assert!(rendered.contains("Galactic Center (Mula/Wilhelm): epoch="));
         assert!(rendered.contains("Dhruva Galactic Center (Middle Mula): epoch="));
         assert!(rendered.contains("Galactic Equator (Fiorenza): epoch=JD 2451544.5; offset=25°"));
         assert!(rendered.contains("Valens Moon: epoch=JD 1775845.5; offset=-2.9422°"));
@@ -18107,6 +18109,7 @@ mod tests {
         assert!(rendered.contains("Galactic Center (Rgilbrand): epoch="));
         assert!(rendered.contains("Galactic Center (Mardyks): epoch="));
         assert!(rendered.contains("Galactic Center (Cochrane): epoch="));
+        assert!(rendered.contains("Galactic Center (Mula/Wilhelm): epoch="));
         assert!(rendered.contains("Dhruva Galactic Center (Middle Mula): epoch="));
         assert!(rendered.contains("Galactic Equator (Fiorenza): epoch=JD 2451544.5; offset=25°"));
         assert!(rendered.contains("Valens Moon: epoch=JD 1775845.5; offset=-2.9422°"));
