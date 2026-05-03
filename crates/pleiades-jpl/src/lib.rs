@@ -353,16 +353,7 @@ pub fn production_generation_snapshot_entries() -> Option<&'static [SnapshotEntr
         .get_or_init(|| {
             let mut merged = Vec::new();
             if let Some(reference_entries) = snapshot_entries() {
-                extend_unique_snapshot_entries(
-                    &mut merged,
-                    &reference_entries
-                        .iter()
-                        .filter(|entry| {
-                            !is_reference_snapshot_only_epoch(entry.epoch.julian_day.days())
-                        })
-                        .cloned()
-                        .collect::<Vec<_>>(),
-                );
+                extend_unique_snapshot_entries(&mut merged, reference_entries);
             }
             if let Some(boundary_entries) = production_generation_boundary_entries() {
                 extend_unique_snapshot_entries(&mut merged, boundary_entries);
@@ -15322,10 +15313,10 @@ mod tests {
         summary
             .validate()
             .expect("production-generation snapshot summary should validate");
-        assert_eq!(summary.row_count, 177);
+        assert_eq!(summary.row_count, 194);
         assert_eq!(summary.body_count, 15);
         assert_eq!(summary.bodies, reference_bodies());
-        assert_eq!(summary.epoch_count, 16);
+        assert_eq!(summary.epoch_count, 18);
         assert_eq!(summary.boundary_row_count, 34);
         assert_eq!(summary.boundary_body_count, 10);
         assert_eq!(
@@ -15354,7 +15345,7 @@ mod tests {
         assert_eq!(
             summary.summary_line(),
             format!(
-                "Production generation coverage: 177 rows across 15 bodies and 16 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}; boundary overlay (Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2500000, and 2634167, plus Moon at 2451545, 2500000, and 2634167, plus Pluto at 2451545 and 2500000): 34 rows across 10 bodies and 8 epochs (JD 2400000.0 (TDB)..JD 2634167.0 (TDB)); boundary bodies: Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Moon, Pluto",
+                "Production generation coverage: 194 rows across 15 bodies and 18 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}; boundary overlay (Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2500000, and 2634167, plus Moon at 2451545, 2500000, and 2634167, plus Pluto at 2451545 and 2500000): 34 rows across 10 bodies and 8 epochs (JD 2400000.0 (TDB)..JD 2634167.0 (TDB)); boundary bodies: Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Moon, Pluto",
                 format_bodies(reference_bodies())
             )
         );
@@ -15381,18 +15372,18 @@ mod tests {
         summary
             .validate()
             .expect("production-generation source window summary should validate");
-        assert_eq!(summary.sample_count, 177);
+        assert_eq!(summary.sample_count, 194);
         assert_eq!(summary.sample_bodies.len(), 15);
         assert_eq!(summary.windows.len(), summary.sample_bodies.len());
         assert_eq!(summary.sample_bodies, reference_bodies());
-        assert_eq!(summary.epoch_count, 16);
+        assert_eq!(summary.epoch_count, 18);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_360_233.5);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(summary.windows[0].body, CelestialBody::Sun);
         assert!(summary.windows[0].sample_count >= 8);
         assert!(summary.windows[0].summary_line().starts_with("Sun: "));
         assert!(summary.summary_line().starts_with(
-            "Production generation source windows: 177 source-backed samples across 15 bodies and 16 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); windows: "
+            "Production generation source windows: 194 source-backed samples across 15 bodies and 18 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); windows: "
         ));
         assert!(summary.summary_line().contains("Mars:"));
         assert!(summary.summary_line().contains("Jupiter:"));
@@ -15439,7 +15430,7 @@ mod tests {
         summary
             .validate()
             .expect("production-generation body-class coverage summary should validate");
-        assert_eq!(summary.row_count, 177);
+        assert_eq!(summary.row_count, 194);
         assert_eq!(summary.major_bodies.len(), 10);
         assert_eq!(summary.asteroid_bodies.len(), 5);
         assert!(summary
@@ -15851,9 +15842,9 @@ mod tests {
     fn production_generation_snapshot_summary_reports_the_expected_coverage() {
         let summary = production_generation_snapshot_summary()
             .expect("production generation summary should exist");
-        assert_eq!(summary.row_count, 177);
+        assert_eq!(summary.row_count, 194);
         assert_eq!(summary.body_count, 15);
-        assert_eq!(summary.epoch_count, 16);
+        assert_eq!(summary.epoch_count, 18);
         assert_eq!(summary.boundary_row_count, 34);
         assert_eq!(summary.boundary_body_count, 10);
         assert_eq!(summary.boundary_epoch_count, 8);

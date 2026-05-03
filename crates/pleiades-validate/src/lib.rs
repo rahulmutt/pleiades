@@ -20835,7 +20835,7 @@ version = "0.9.0"
             .expect("production generation source window summary should render");
 
         assert!(rendered.contains("Production generation source windows:"));
-        assert!(rendered.contains("177 source-backed samples"));
+        assert!(rendered.contains("194 source-backed samples"));
         assert_eq!(
             rendered,
             production_generation_snapshot_window_summary_for_report()
@@ -20848,7 +20848,7 @@ version = "0.9.0"
             .expect("production generation summary should render");
 
         assert!(rendered.contains("Production generation coverage:"));
-        assert!(rendered.contains("177 rows across 15 bodies and 16 epochs"));
+        assert!(rendered.contains("194 rows across 15 bodies and 18 epochs"));
         assert_eq!(
             rendered,
             production_generation_snapshot_summary_for_report()
