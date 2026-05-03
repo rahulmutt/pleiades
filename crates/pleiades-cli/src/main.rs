@@ -1144,6 +1144,26 @@ mod tests {
         )
     }
 
+    fn help_command_names(help: &str) -> std::collections::BTreeSet<String> {
+        help.lines()
+            .filter_map(|line| {
+                let trimmed = line.trim_start();
+                if !line.starts_with("  ") {
+                    return None;
+                }
+                let command = trimmed.split_whitespace().next()?;
+                if command.starts_with('-')
+                    || !command
+                        .chars()
+                        .all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '-')
+                {
+                    return None;
+                }
+                Some(command.to_string())
+            })
+            .collect()
+    }
+
     #[test]
     fn banner_mentions_package() {
         assert!(banner().contains("pleiades-cli"));
@@ -1191,6 +1211,22 @@ mod tests {
         assert!(rendered.contains("compare-backends-audit"));
         assert!(rendered.contains("Caller-supplied signed TDB-TT offset for TT-tagged instants"));
         assert!(rendered.contains("Caller-supplied signed TT-TDB offset for TDB-tagged instants"));
+    }
+
+    #[test]
+    fn shared_command_help_is_kept_in_sync_with_the_validation_binary() {
+        let cli_help = render_cli(&["help"]).expect("cli help should render");
+        let validation_help =
+            validate_render_cli(&["help"]).expect("validation help should render");
+
+        let mut cli_commands = help_command_names(&cli_help);
+        let validation_commands = help_command_names(&validation_help);
+
+        assert!(
+            cli_commands.remove("chart"),
+            "cli should remain the only binary with the chart command"
+        );
+        assert_eq!(cli_commands, validation_commands);
     }
 
     #[test]
