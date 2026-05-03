@@ -17561,6 +17561,103 @@ mod tests {
     }
 
     #[test]
+    fn snapshot_backend_resolves_major_bodies_at_1749_boundary() {
+        let backend = JplSnapshotBackend;
+        let epoch = Instant::new(JulianDay::from_days(2_360_233.5), TimeScale::Tdb);
+        let entries = reference_snapshot()
+            .iter()
+            .filter(|entry| entry.epoch == epoch)
+            .collect::<Vec<_>>();
+
+        assert_eq!(entries.len(), 9);
+        assert_eq!(
+            entries
+                .iter()
+                .map(|entry| entry.body.clone())
+                .collect::<Vec<_>>(),
+            vec![
+                pleiades_backend::CelestialBody::Sun,
+                pleiades_backend::CelestialBody::Moon,
+                pleiades_backend::CelestialBody::Mercury,
+                pleiades_backend::CelestialBody::Venus,
+                pleiades_backend::CelestialBody::Mars,
+                pleiades_backend::CelestialBody::Jupiter,
+                pleiades_backend::CelestialBody::Saturn,
+                pleiades_backend::CelestialBody::Uranus,
+                pleiades_backend::CelestialBody::Neptune,
+            ]
+        );
+
+        for entry in entries {
+            let request = EphemerisRequest {
+                body: entry.body.clone(),
+                instant: entry.epoch,
+                observer: None,
+                frame: CoordinateFrame::Ecliptic,
+                zodiac_mode: ZodiacMode::Tropical,
+                apparent: Apparentness::Mean,
+            };
+
+            let result = backend
+                .position(&request)
+                .expect("reference snapshot should resolve the 1749-12-31 boundary row");
+            assert_eq!(result.quality, QualityAnnotation::Exact);
+            assert_eq!(result.instant, request.instant);
+            assert_eq!(result.body, request.body);
+            assert_eq!(result.ecliptic, Some(entry.ecliptic()));
+        }
+    }
+
+    #[test]
+    fn snapshot_backend_resolves_major_bodies_at_1800_boundary() {
+        let backend = JplSnapshotBackend;
+        let epoch = Instant::new(JulianDay::from_days(2_378_498.5), TimeScale::Tdb);
+        let entries = reference_snapshot()
+            .iter()
+            .filter(|entry| entry.epoch == epoch)
+            .collect::<Vec<_>>();
+
+        assert_eq!(entries.len(), 10);
+        assert_eq!(
+            entries
+                .iter()
+                .map(|entry| entry.body.clone())
+                .collect::<Vec<_>>(),
+            vec![
+                pleiades_backend::CelestialBody::Sun,
+                pleiades_backend::CelestialBody::Moon,
+                pleiades_backend::CelestialBody::Mercury,
+                pleiades_backend::CelestialBody::Venus,
+                pleiades_backend::CelestialBody::Mars,
+                pleiades_backend::CelestialBody::Jupiter,
+                pleiades_backend::CelestialBody::Saturn,
+                pleiades_backend::CelestialBody::Uranus,
+                pleiades_backend::CelestialBody::Neptune,
+                pleiades_backend::CelestialBody::Pluto,
+            ]
+        );
+
+        for entry in entries {
+            let request = EphemerisRequest {
+                body: entry.body.clone(),
+                instant: entry.epoch,
+                observer: None,
+                frame: CoordinateFrame::Ecliptic,
+                zodiac_mode: ZodiacMode::Tropical,
+                apparent: Apparentness::Mean,
+            };
+
+            let result = backend
+                .position(&request)
+                .expect("reference snapshot should resolve the 1800-01-03 boundary row");
+            assert_eq!(result.quality, QualityAnnotation::Exact);
+            assert_eq!(result.instant, request.instant);
+            assert_eq!(result.body, request.body);
+            assert_eq!(result.ecliptic, Some(entry.ecliptic()));
+        }
+    }
+
+    #[test]
     fn snapshot_backend_resolves_named_asteroids_at_j2000() {
         let backend = JplSnapshotBackend;
         let cases = [
