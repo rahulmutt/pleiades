@@ -10489,6 +10489,20 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         comparison_corpus_release_guard_summary()
     );
     let _ = writeln!(text);
+    let _ = writeln!(text, "Reference snapshot");
+    let _ = writeln!(text, "  {}", reference_snapshot_summary_for_report());
+    let _ = writeln!(text, "  {}", reference_snapshot_source_summary_for_report());
+    let _ = writeln!(
+        text,
+        "  {}",
+        reference_snapshot_source_window_summary_for_report()
+    );
+    let _ = writeln!(
+        text,
+        "  {}",
+        reference_snapshot_body_class_coverage_summary_for_report()
+    );
+    let _ = writeln!(text);
     let _ = writeln!(text, "House validation corpus");
     let _ = writeln!(
         text,
@@ -15281,6 +15295,10 @@ mod tests {
             release_profiles.api_stability_profile_id
         )));
         assert!(report.contains("Comparison corpus"));
+        assert!(report.contains("Reference snapshot"));
+        assert!(report.contains(&reference_snapshot_summary_for_report()));
+        assert!(report.contains(&reference_snapshot_source_window_summary_for_report()));
+        assert!(report.contains(&reference_snapshot_body_class_coverage_summary_for_report()));
         assert!(report.contains("release-grade guard: Pluto excluded from tolerance evidence; 2451913.5 boundary day stays out of the audit slice"));
         assert!(report.contains("epoch labels: JD 2360233.5 (TT)"));
         assert!(report.contains("House validation corpus"));
@@ -15458,7 +15476,11 @@ mod tests {
             .expect("report summary should render");
         assert!(rendered.contains("Validation report summary"));
         assert!(rendered.contains("Comparison corpus"));
+        assert!(rendered.contains("Reference snapshot"));
         assert!(rendered.contains(&comparison_snapshot_body_class_coverage_summary_for_report()));
+        assert!(rendered.contains(&reference_snapshot_summary_for_report()));
+        assert!(rendered.contains(&reference_snapshot_source_window_summary_for_report()));
+        assert!(rendered.contains(&reference_snapshot_body_class_coverage_summary_for_report()));
         assert_report_contains_exact_line(
             &rendered,
             "  Comparison snapshot coverage: 110 rows across 10 bodies and 13 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto",
@@ -15498,6 +15520,12 @@ mod tests {
                 .expect("validation-report-summary should render");
         assert!(validation_report_summary.contains("Validation report summary"));
         assert!(validation_report_summary.contains("Comparison corpus"));
+        assert!(validation_report_summary.contains("Reference snapshot"));
+        assert!(validation_report_summary.contains(&reference_snapshot_summary_for_report()));
+        assert!(validation_report_summary
+            .contains(&reference_snapshot_source_window_summary_for_report()));
+        assert!(validation_report_summary
+            .contains(&reference_snapshot_body_class_coverage_summary_for_report()));
         assert!(validation_report_summary.contains("Body comparison summaries"));
         assert!(validation_report_summary.contains("Body-class error envelopes"));
         assert!(validation_report_summary.contains("Body-class tolerance posture"));
