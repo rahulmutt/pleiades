@@ -13188,6 +13188,33 @@ mod tests {
     }
 
     #[test]
+    fn reference_snapshot_major_body_boundary_summary_validation_rejects_body_drift() {
+        let mut summary = reference_snapshot_major_body_boundary_summary()
+            .expect("reference major-body boundary summary should exist");
+        summary.sample_bodies[0] = pleiades_backend::CelestialBody::Moon;
+
+        let error = summary
+            .validate()
+            .expect_err("drifted major-body boundary summary should fail validation");
+
+        assert!(matches!(
+            error,
+            ReferenceMajorBodyBoundarySummaryValidationError::BodyOrderMismatch {
+                index: 0,
+                expected: pleiades_backend::CelestialBody::Mars,
+                found: pleiades_backend::CelestialBody::Moon
+            }
+        ));
+        assert!(summary.validated_summary_line().is_err());
+        assert_eq!(
+            reference_snapshot_major_body_boundary_summary_for_report(),
+            reference_snapshot_major_body_boundary_summary()
+                .expect("reference major-body boundary summary should exist")
+                .summary_line()
+        );
+    }
+
+    #[test]
     fn reference_snapshot_high_curvature_window_summary_reports_the_expected_windows() {
         let summary = reference_snapshot_high_curvature_window_summary()
             .expect("reference high-curvature window summary should exist");
@@ -13245,6 +13272,29 @@ mod tests {
             ReferenceHighCurvatureWindowSummaryValidationError::FieldOutOfSync {
                 field: "sample_count"
             }
+        ));
+        assert!(summary.validated_summary_line().is_err());
+        assert_eq!(
+            reference_snapshot_high_curvature_window_summary_for_report(),
+            reference_snapshot_high_curvature_window_summary()
+                .expect("reference high-curvature window summary should exist")
+                .summary_line()
+        );
+    }
+
+    #[test]
+    fn reference_snapshot_high_curvature_window_summary_validation_rejects_window_drift() {
+        let mut summary = reference_snapshot_high_curvature_window_summary()
+            .expect("reference high-curvature window summary should exist");
+        summary.windows[0].body = pleiades_backend::CelestialBody::Moon;
+
+        let error = summary
+            .validate()
+            .expect_err("drifted high-curvature window summary should fail validation");
+
+        assert!(matches!(
+            error,
+            ReferenceHighCurvatureWindowSummaryValidationError::FieldOutOfSync { field: "windows" }
         ));
         assert!(summary.validated_summary_line().is_err());
         assert_eq!(
