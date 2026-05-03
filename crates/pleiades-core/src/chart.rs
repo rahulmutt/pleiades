@@ -3179,7 +3179,7 @@ mod tests {
         fn position(&self, request: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
             if request.observer.is_some() {
                 return Err(EphemerisError::new(
-                    EphemerisErrorKind::InvalidObserver,
+                    EphemerisErrorKind::UnsupportedObserver,
                     "toy chart backend is geocentric only",
                 ));
             }

@@ -8351,7 +8351,7 @@ mod tests {
         let error = backend
             .position(&request)
             .expect_err("topocentric requests should be unsupported");
-        assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedObserver);
     }
 
     #[test]
@@ -8367,7 +8367,7 @@ mod tests {
         let error = backend
             .positions(&[request])
             .expect_err("topocentric batch requests should be unsupported");
-        assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedObserver);
     }
 
     fn mean_request(body: CelestialBody) -> EphemerisRequest {

@@ -21045,6 +21045,10 @@ version = "0.9.0"
         assert!(rendered.contains("JD 2451915.5 (TDB): 5 bodies"));
         assert_eq!(
             rendered,
+            "Reference snapshot boundary epoch coverage: 57 exact samples across 5 epochs (JD 2451913.5 (TDB)..JD 2451917.5 (TDB)); epochs: JD 2451913.5 (TDB): 15 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); JD 2451914.5 (TDB): 15 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); JD 2451915.5 (TDB): 5 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); JD 2451916.5 (TDB): 15 bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); JD 2451917.5 (TDB): 7 bodies (Mars, Jupiter, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"
+        );
+        assert_eq!(
+            rendered,
             reference_snapshot_boundary_epoch_coverage_summary_for_report()
         );
     }

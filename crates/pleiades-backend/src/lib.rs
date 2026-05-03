@@ -1238,6 +1238,8 @@ pub enum EphemerisErrorKind {
     UnsupportedTimeScale,
     /// The observer parameters are invalid for the calculation.
     InvalidObserver,
+    /// The request asks for topocentric observer support the backend does not implement.
+    UnsupportedObserver,
     /// The instant lies outside the backend's nominal range.
     OutOfRangeInstant,
     /// Required data is missing.
@@ -1259,6 +1261,7 @@ impl fmt::Display for EphemerisErrorKind {
             EphemerisErrorKind::UnsupportedCoordinateFrame => "UnsupportedCoordinateFrame",
             EphemerisErrorKind::UnsupportedTimeScale => "UnsupportedTimeScale",
             EphemerisErrorKind::InvalidObserver => "InvalidObserver",
+            EphemerisErrorKind::UnsupportedObserver => "UnsupportedObserver",
             EphemerisErrorKind::OutOfRangeInstant => "OutOfRangeInstant",
             EphemerisErrorKind::MissingDataset => "MissingDataset",
             EphemerisErrorKind::NumericalFailure => "NumericalFailure",
@@ -2199,7 +2202,7 @@ pub fn validate_request_against_metadata(
 /// ];
 /// let error = validate_requests_against_metadata(&observer_requests, &metadata)
 ///     .expect_err("observer-bearing batch requests should preserve the indexed observer failure");
-/// assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
+/// assert_eq!(error.kind, EphemerisErrorKind::UnsupportedObserver);
 /// assert!(error.message.contains("batch request 2:"));
 /// ```
 pub fn validate_requests_against_metadata(
@@ -2298,7 +2301,7 @@ pub fn zodiac_policy_summary_for_report(supported_zodiac_modes: &[ZodiacMode]) -
 ///
 /// Geocentric-only backends should call this after any higher-priority request
 /// checks they want to preserve so observer-bearing requests fail with a
-/// structured [`EphemerisErrorKind::InvalidObserver`] error.
+/// structured [`EphemerisErrorKind::UnsupportedObserver`] error.
 pub fn validate_observer_policy(
     req: &EphemerisRequest,
     backend_label: &str,
@@ -2317,7 +2320,7 @@ pub fn validate_observer_policy(
 
         if !supports_topocentric {
             return Err(EphemerisError::new(
-                EphemerisErrorKind::InvalidObserver,
+                EphemerisErrorKind::UnsupportedObserver,
                 format!(
                     "{backend_label} is geocentric only; topocentric positions are not implemented for {}",
                     observer.summary_line()
@@ -2706,6 +2709,7 @@ fn should_fallback_to_secondary(kind: &EphemerisErrorKind) -> bool {
             | EphemerisErrorKind::UnsupportedCoordinateFrame
             | EphemerisErrorKind::UnsupportedTimeScale
             | EphemerisErrorKind::InvalidObserver
+            | EphemerisErrorKind::UnsupportedObserver
             | EphemerisErrorKind::MissingDataset
             | EphemerisErrorKind::UnsupportedApparentness
             | EphemerisErrorKind::UnsupportedZodiacMode
@@ -3877,7 +3881,7 @@ mod tests {
         };
         let error = validate_request_against_metadata(&topocentric_request, &metadata)
             .expect_err("metadata preflight should reject observer-bearing geocentric requests");
-        assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedObserver);
         assert!(error.message.contains("toy backend is geocentric only"));
         assert!(error.message.contains(
             &topocentric_request
@@ -4046,7 +4050,7 @@ mod tests {
         };
         let error = validate_observer_policy(&observer_request, "toy backend", false)
             .expect_err("topocentric requests should be rejected when unsupported");
-        assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedObserver);
         assert!(error.message.contains("toy backend is geocentric only"));
         assert!(error
             .message
@@ -4317,7 +4321,7 @@ mod tests {
             fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
                 if req.observer.is_some() {
                     return Err(EphemerisError::new(
-                        EphemerisErrorKind::InvalidObserver,
+                        EphemerisErrorKind::UnsupportedObserver,
                         "rejecting Sun backend is geocentric only",
                     ));
                 }
@@ -4445,7 +4449,7 @@ mod tests {
             fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
                 if req.observer.is_some() {
                     return Err(EphemerisError::new(
-                        EphemerisErrorKind::InvalidObserver,
+                        EphemerisErrorKind::UnsupportedObserver,
                         "rejecting Sun batch backend is geocentric only",
                     ));
                 }
@@ -4806,7 +4810,7 @@ mod tests {
             &metadata,
         )
         .expect_err("the batch helper should preserve observer failures");
-        assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedObserver);
         assert!(error
             .message
             .contains("batch request 2: toy backend is geocentric only"));
@@ -5029,7 +5033,7 @@ mod tests {
         let error = backend
             .positions(&[geocentric_request, topocentric_request])
             .expect_err("batch requests should preserve observer rejections");
-        assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedObserver);
         assert_eq!(backend.calls.load(Ordering::SeqCst), 2);
     }
 
@@ -5580,7 +5584,7 @@ mod tests {
             fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
                 if req.observer.is_some() {
                     return Err(EphemerisError::new(
-                        EphemerisErrorKind::InvalidObserver,
+                        EphemerisErrorKind::UnsupportedObserver,
                         "retry with the next provider",
                     ));
                 }

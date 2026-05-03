@@ -14364,6 +14364,7 @@ mod tests {
         assert!(summary.summary_line().contains(
             "JD 2451915.5 (TDB): 5 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"
         ));
+        assert_eq!(summary.summary_line(), "Reference snapshot boundary epoch coverage: 57 exact samples across 5 epochs (JD 2451913.5 (TDB)..JD 2451917.5 (TDB)); epochs: JD 2451913.5 (TDB): 15 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); JD 2451914.5 (TDB): 15 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); JD 2451915.5 (TDB): 5 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); JD 2451916.5 (TDB): 15 bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); JD 2451917.5 (TDB): 7 bodies (Mars, Jupiter, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)");
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             reference_snapshot_boundary_epoch_coverage_summary_for_report(),
@@ -17951,7 +17952,7 @@ mod tests {
             .position(&request)
             .expect_err("reference snapshot should reject topocentric requests");
 
-        assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedObserver);
     }
 
     #[test]
@@ -18012,7 +18013,7 @@ mod tests {
             .positions(&requests)
             .expect_err("reference snapshot should reject topocentric batch requests");
 
-        assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedObserver);
     }
 
     #[test]

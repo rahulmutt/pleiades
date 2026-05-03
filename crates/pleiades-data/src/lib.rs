@@ -4134,7 +4134,7 @@ mod tests {
             .position(&request)
             .expect_err("packaged data should reject topocentric requests");
 
-        assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedObserver);
     }
 
     #[test]
@@ -4160,7 +4160,7 @@ mod tests {
             .positions(&[request])
             .expect_err("packaged data should reject topocentric batch requests");
 
-        assert_eq!(error.kind, EphemerisErrorKind::InvalidObserver);
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedObserver);
     }
 
     #[test]
