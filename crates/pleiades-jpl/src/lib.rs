@@ -7185,7 +7185,193 @@ pub fn selected_asteroid_source_window_summary_for_report() -> String {
     }
 }
 
+const SELECTED_ASTEROID_BRIDGE_EPOCH: f64 = 2_451_915.0;
 const SELECTED_ASTEROID_BOUNDARY_EPOCHS: &[f64] = &[2_451_914.5, 2_451_915.5];
+
+fn selected_asteroid_bridge_entries() -> Option<&'static [SnapshotEntry]> {
+    static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
+    let entries = ENTRIES
+        .get_or_init(|| {
+            snapshot_entries()
+                .into_iter()
+                .flatten()
+                .filter(|entry| {
+                    reference_asteroids().contains(&entry.body)
+                        && entry.epoch.julian_day.days() == SELECTED_ASTEROID_BRIDGE_EPOCH
+                })
+                .cloned()
+                .collect()
+        })
+        .as_slice();
+
+    if entries.is_empty() {
+        None
+    } else {
+        Some(entries)
+    }
+}
+
+/// Compact release-facing summary for the selected-asteroid bridge-day evidence.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SelectedAsteroidBridgeSummary {
+    /// Number of exact samples in the bridge slice.
+    pub sample_count: usize,
+    /// Bodies covered by the bridge slice in first-seen order.
+    pub sample_bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Exact epoch shared by the bridge slice.
+    pub epoch: Instant,
+}
+
+/// Validation errors for a selected-asteroid bridge summary that drifted from the current slice.
+#[derive(Clone, Debug, PartialEq)]
+pub enum SelectedAsteroidBridgeSummaryValidationError {
+    /// The summary did not expose any samples.
+    Empty,
+    /// The summary sample count drifted from the current evidence slice.
+    SampleCountMismatch {
+        sample_count: usize,
+        derived_sample_count: usize,
+    },
+    /// The summary body list drifted from the current evidence slice.
+    BodyOrderMismatch {
+        index: usize,
+        expected: pleiades_backend::CelestialBody,
+        found: pleiades_backend::CelestialBody,
+    },
+    /// The summary epoch drifted from the current evidence slice.
+    EpochMismatch { expected: Instant, found: Instant },
+}
+
+impl fmt::Display for SelectedAsteroidBridgeSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Empty => f.write_str("selected asteroid bridge evidence is unavailable"),
+            Self::SampleCountMismatch {
+                sample_count,
+                derived_sample_count,
+            } => write!(
+                f,
+                "selected asteroid bridge evidence sample count {sample_count} does not match derived sample count {derived_sample_count}"
+            ),
+            Self::BodyOrderMismatch {
+                index,
+                expected,
+                found,
+            } => write!(
+                f,
+                "selected asteroid bridge evidence body order mismatch at index {index}: expected {expected}, found {found}"
+            ),
+            Self::EpochMismatch { expected, found } => write!(
+                f,
+                "selected asteroid bridge evidence epoch mismatch: expected {}, found {}",
+                format_instant(*expected),
+                format_instant(*found)
+            ),
+        }
+    }
+}
+
+impl std::error::Error for SelectedAsteroidBridgeSummaryValidationError {}
+
+impl SelectedAsteroidBridgeSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Selected asteroid bridge evidence: {} exact samples at {} ({}); bridge sample across the asteroid-only gap",
+            self.sample_count,
+            format_instant(self.epoch),
+            format_bodies(&self.sample_bodies),
+        )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current evidence slice.
+    pub fn validate(&self) -> Result<(), SelectedAsteroidBridgeSummaryValidationError> {
+        let evidence = selected_asteroid_bridge_entries()
+            .ok_or(SelectedAsteroidBridgeSummaryValidationError::Empty)?;
+
+        if self.sample_count != evidence.len() {
+            return Err(
+                SelectedAsteroidBridgeSummaryValidationError::SampleCountMismatch {
+                    sample_count: self.sample_count,
+                    derived_sample_count: evidence.len(),
+                },
+            );
+        }
+        if self.sample_bodies.as_slice() != reference_asteroids() {
+            for (index, (expected, found)) in reference_asteroids()
+                .iter()
+                .zip(self.sample_bodies.iter())
+                .enumerate()
+            {
+                if expected != found {
+                    return Err(
+                        SelectedAsteroidBridgeSummaryValidationError::BodyOrderMismatch {
+                            index,
+                            expected: expected.clone(),
+                            found: found.clone(),
+                        },
+                    );
+                }
+            }
+            return Err(
+                SelectedAsteroidBridgeSummaryValidationError::SampleCountMismatch {
+                    sample_count: self.sample_count,
+                    derived_sample_count: evidence.len(),
+                },
+            );
+        }
+
+        if self.epoch != evidence[0].epoch {
+            return Err(
+                SelectedAsteroidBridgeSummaryValidationError::EpochMismatch {
+                    expected: evidence[0].epoch,
+                    found: self.epoch,
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the compact summary line after validating the current evidence slice.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, SelectedAsteroidBridgeSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for SelectedAsteroidBridgeSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn selected_asteroid_bridge_summary_details() -> Option<SelectedAsteroidBridgeSummary> {
+    let evidence = selected_asteroid_bridge_entries()?;
+    Some(SelectedAsteroidBridgeSummary {
+        sample_count: evidence.len(),
+        sample_bodies: reference_asteroids().to_vec(),
+        epoch: evidence[0].epoch,
+    })
+}
+
+/// Returns the compact typed summary for the selected-asteroid bridge-day evidence.
+pub fn selected_asteroid_bridge_summary() -> Option<SelectedAsteroidBridgeSummary> {
+    selected_asteroid_bridge_summary_details()
+}
+
+/// Returns the release-facing selected-asteroid bridge-day summary string.
+pub fn selected_asteroid_bridge_summary_for_report() -> String {
+    match selected_asteroid_bridge_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => format!("Selected asteroid bridge evidence: unavailable ({error})"),
+        },
+        None => "Selected asteroid bridge evidence: unavailable".to_string(),
+    }
+}
 const SELECTED_ASTEROID_TERMINAL_BOUNDARY_EPOCH_JD: f64 = 2_500_000.0;
 
 fn selected_asteroid_boundary_entries() -> Option<&'static [SnapshotEntry]> {
@@ -17441,6 +17627,53 @@ mod tests {
         assert_eq!(
             summary.summary_line(),
             selected_asteroid_boundary_summary_for_report()
+        );
+    }
+
+    #[test]
+    fn selected_asteroid_bridge_summary_reports_the_bridge_day() {
+        let summary = selected_asteroid_bridge_summary()
+            .expect("selected asteroid bridge summary should exist");
+        assert_eq!(summary.sample_count, 5);
+        assert_eq!(summary.sample_bodies, reference_asteroids().to_vec());
+        assert_eq!(summary.epoch.julian_day.days(), 2_451_915.0);
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            summary.summary_line(),
+            "Selected asteroid bridge evidence: 5 exact samples at JD 2451915.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); bridge sample across the asteroid-only gap"
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            selected_asteroid_bridge_summary_for_report(),
+            summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn selected_asteroid_bridge_summary_validation_rejects_drift() {
+        let mut summary = selected_asteroid_bridge_summary()
+            .expect("selected asteroid bridge summary should exist");
+        summary.sample_bodies.swap(0, 1);
+
+        let error = summary
+            .validate()
+            .expect_err("drifted selected asteroid bridge summary should fail validation");
+
+        assert!(matches!(
+            error,
+            SelectedAsteroidBridgeSummaryValidationError::BodyOrderMismatch {
+                index: 0,
+                expected: pleiades_backend::CelestialBody::Ceres,
+                found: pleiades_backend::CelestialBody::Pallas
+            }
+        ));
+        assert!(summary.validated_summary_line().is_err());
+        assert_eq!(
+            selected_asteroid_bridge_summary_for_report(),
+            selected_asteroid_bridge_summary()
+                .expect("selected asteroid bridge summary should exist")
+                .summary_line()
         );
     }
 
