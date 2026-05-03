@@ -8116,7 +8116,7 @@ pub fn reference_snapshot_high_curvature_window_summary_for_report() -> String {
 
 const REFERENCE_SNAPSHOT_SOURCE_FALLBACK: &str = "NASA/JPL Horizons API vector tables (DE441)";
 const REFERENCE_SNAPSHOT_COVERAGE_FALLBACK: &str =
-    "major bodies sampled at 1749-12-31 for Sun through Neptune, inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; major bodies sampled at 2400000, 2451545, 2451910.5, 2451916.5, 2453000.5, and 2500000; major bodies sampled at 2001-01-02 through 2001-01-05, plus 2001-01-07, for additional boundary coverage; selected asteroids sampled at J2000, 2001-01-01 through 2001-01-07, with 2451915.5 boundary coverage, 2003-12-27, 2132-08-31, and 2500-01-01.";
+    "major bodies sampled at 1749-12-31 for Sun through Neptune, inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; major bodies sampled at 1800-01-03 for Sun through Pluto; major bodies sampled at 2400000, 2451545, 2451910.5, 2451916.5, 2453000.5, and 2500000; major bodies sampled at 2001-01-02 through 2001-01-05, plus 2001-01-07, for additional boundary coverage; selected asteroids sampled at J2000, 2001-01-01 through 2001-01-07, with 2451915.5 boundary coverage, 2003-12-27, 2132-08-31, and 2500-01-01.";
 const INDEPENDENT_HOLDOUT_SOURCE_FALLBACK: &str = "NASA/JPL Horizons API vector tables (DE441)";
 const INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK: &str =
     "Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2500000, and 2634167, plus Moon at 2451545, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.";
@@ -8544,7 +8544,7 @@ pub fn reference_snapshot_manifest_summary_for_report() -> String {
     match summary.validate_with_expected_metadata(
         "JPL Horizons reference snapshot.",
         "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.",
-        "major bodies sampled at 1749-12-31 for Sun through Neptune, inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; major bodies sampled at 2400000, 2451545, 2451910.5, 2451916.5, 2453000.5, and 2500000; major bodies sampled at 2001-01-02 through 2001-01-05, plus 2001-01-07, for additional boundary coverage; selected asteroids sampled at J2000, 2001-01-01 through 2001-01-07, with 2451915.5 boundary coverage, 2003-12-27, 2132-08-31, and 2500-01-01.",
+        "major bodies sampled at 1749-12-31 for Sun through Neptune, inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; major bodies sampled at 1800-01-03 for Sun through Pluto; major bodies sampled at 2400000, 2451545, 2451910.5, 2451916.5, 2453000.5, and 2500000; major bodies sampled at 2001-01-02 through 2001-01-05, plus 2001-01-07, for additional boundary coverage; selected asteroids sampled at J2000, 2001-01-01 through 2001-01-07, with 2451915.5 boundary coverage, 2003-12-27, 2132-08-31, and 2500-01-01.",
         &["epoch_jd", "body", "x_km", "y_km", "z_km"],
     ) {
         Ok(()) => summary.summary_line(),
@@ -11718,6 +11718,8 @@ fn snapshot_bodies() -> &'static [pleiades_backend::CelestialBody] {
         .as_slice()
 }
 
+const REFERENCE_SNAPSHOT_REFERENCE_ONLY_EPOCH_JD: f64 = 2_378_498.5;
+
 fn comparison_snapshot_entries() -> &'static [SnapshotEntry] {
     static SNAPSHOT: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
     SNAPSHOT
@@ -11726,7 +11728,10 @@ fn comparison_snapshot_entries() -> &'static [SnapshotEntry] {
                 .into_iter()
                 .flatten()
                 .filter(|entry| {
-                    is_comparison_body(&entry.body) && entry.epoch.julian_day.days() != 2_451_913.5
+                    is_comparison_body(&entry.body)
+                        && entry.epoch.julian_day.days() != 2_451_913.5
+                        && entry.epoch.julian_day.days()
+                            != REFERENCE_SNAPSHOT_REFERENCE_ONLY_EPOCH_JD
                 })
                 .cloned()
                 .collect()
@@ -12086,6 +12091,14 @@ fn interpolation_quality_sample_list() -> &'static [InterpolationQualitySample] 
             let Some(entries) = snapshot_entries() else {
                 return samples;
             };
+
+            let entries = entries
+                .iter()
+                .filter(|entry| {
+                    entry.epoch.julian_day.days() != REFERENCE_SNAPSHOT_REFERENCE_ONLY_EPOCH_JD
+                })
+                .cloned()
+                .collect::<Vec<_>>();
 
             for body in comparison_body_list() {
                 let mut body_entries = entries
@@ -12485,7 +12498,7 @@ mod tests {
             .expect("start epoch should exist");
         let end = metadata.nominal_range.end.expect("end epoch should exist");
         assert!(start.julian_day.days() < end.julian_day.days());
-        assert_eq!(reference_epochs().len(), 15);
+        assert_eq!(reference_epochs().len(), 16);
         assert_eq!(
             reference_snapshot()
                 .iter()
@@ -12516,17 +12529,17 @@ mod tests {
         summary
             .validate()
             .expect("reference snapshot summary should validate");
-        assert_eq!(summary.row_count, 175);
+        assert_eq!(summary.row_count, 185);
         assert_eq!(summary.body_count, 15);
         assert_eq!(summary.bodies, reference_bodies());
-        assert_eq!(summary.epoch_count, 15);
+        assert_eq!(summary.epoch_count, 16);
         assert_eq!(summary.asteroid_row_count, 55);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_360_233.5);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(
             summary.summary_line(),
             format!(
-                "Reference snapshot coverage: 175 rows across 15 bodies and 15 epochs (55 asteroid rows; JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}",
+                "Reference snapshot coverage: 185 rows across 15 bodies and 16 epochs (55 asteroid rows; JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}",
                 format_bodies(reference_bodies())
             )
         );
@@ -12695,10 +12708,10 @@ mod tests {
         summary
             .validate()
             .expect("production-generation snapshot summary should validate");
-        assert_eq!(summary.row_count, 175);
+        assert_eq!(summary.row_count, 185);
         assert_eq!(summary.body_count, 15);
         assert_eq!(summary.bodies, reference_bodies());
-        assert_eq!(summary.epoch_count, 15);
+        assert_eq!(summary.epoch_count, 16);
         assert_eq!(summary.boundary_row_count, 34);
         assert_eq!(summary.boundary_body_count, 10);
         assert_eq!(
@@ -12727,7 +12740,7 @@ mod tests {
         assert_eq!(
             summary.summary_line(),
             format!(
-                "Production generation coverage: 175 rows across 15 bodies and 15 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}; boundary overlay (Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2500000, and 2634167, plus Moon at 2451545, 2500000, and 2634167, plus Pluto at 2451545 and 2500000): 34 rows across 10 bodies and 8 epochs (JD 2400000.0 (TDB)..JD 2634167.0 (TDB)); boundary bodies: Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Moon, Pluto",
+                "Production generation coverage: 185 rows across 15 bodies and 16 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}; boundary overlay (Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2500000, and 2634167, plus Moon at 2451545, 2500000, and 2634167, plus Pluto at 2451545 and 2500000): 34 rows across 10 bodies and 8 epochs (JD 2400000.0 (TDB)..JD 2634167.0 (TDB)); boundary bodies: Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Moon, Pluto",
                 format_bodies(reference_bodies())
             )
         );
@@ -12746,18 +12759,18 @@ mod tests {
         summary
             .validate()
             .expect("production-generation source window summary should validate");
-        assert_eq!(summary.sample_count, 175);
+        assert_eq!(summary.sample_count, 185);
         assert_eq!(summary.sample_bodies.len(), 15);
         assert_eq!(summary.windows.len(), summary.sample_bodies.len());
         assert_eq!(summary.sample_bodies, reference_bodies());
-        assert_eq!(summary.epoch_count, 15);
+        assert_eq!(summary.epoch_count, 16);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_360_233.5);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(summary.windows[0].body, CelestialBody::Sun);
         assert!(summary.windows[0].sample_count >= 8);
         assert!(summary.windows[0].summary_line().starts_with("Sun: "));
         assert!(summary.summary_line().starts_with(
-            "Production generation source windows: 175 source-backed samples across 15 bodies and 15 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); windows: "
+            "Production generation source windows: 185 source-backed samples across 15 bodies and 16 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); windows: "
         ));
         assert!(summary.summary_line().contains("Mars:"));
         assert!(summary.summary_line().contains("Jupiter:"));
@@ -12776,7 +12789,7 @@ mod tests {
         summary
             .validate()
             .expect("production-generation body-class coverage summary should validate");
-        assert_eq!(summary.row_count, 175);
+        assert_eq!(summary.row_count, 185);
         assert_eq!(summary.major_bodies.len(), 10);
         assert_eq!(summary.asteroid_bodies.len(), 5);
         assert!(summary
@@ -13031,8 +13044,8 @@ mod tests {
             summary.validate(),
             Err(
                 ReferenceSnapshotSummaryValidationError::EpochCountMismatch {
-                    epoch_count: 16,
-                    derived_epoch_count: 15,
+                    epoch_count: 17,
+                    derived_epoch_count: 16,
                 }
             )
         ));
@@ -13059,16 +13072,16 @@ mod tests {
     fn reference_snapshot_equatorial_parity_summary_reports_the_expected_coverage() {
         let summary = reference_snapshot_equatorial_parity_summary()
             .expect("reference snapshot equatorial parity summary should exist");
-        assert_eq!(summary.row_count, 175);
+        assert_eq!(summary.row_count, 185);
         assert_eq!(summary.body_count, 15);
         assert_eq!(summary.bodies, reference_bodies());
-        assert_eq!(summary.epoch_count, 15);
+        assert_eq!(summary.epoch_count, 16);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_360_233.5);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(
             summary.summary_line(),
             format!(
-                "JPL reference snapshot equatorial parity: 175 rows across 15 bodies and 15 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}; mean-obliquity transform against the checked-in ecliptic fixture",
+                "JPL reference snapshot equatorial parity: 185 rows across 15 bodies and 16 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}; mean-obliquity transform against the checked-in ecliptic fixture",
                 format_bodies(reference_bodies())
             )
         );
@@ -13128,18 +13141,18 @@ mod tests {
     fn reference_snapshot_batch_parity_summary_reports_the_expected_coverage() {
         let summary = reference_snapshot_batch_parity_summary()
             .expect("reference snapshot batch parity summary should exist");
-        assert_eq!(summary.snapshot.row_count, 175);
+        assert_eq!(summary.snapshot.row_count, 185);
         assert_eq!(summary.snapshot.body_count, 15);
         assert_eq!(summary.snapshot.bodies, reference_bodies());
-        assert_eq!(summary.snapshot.epoch_count, 15);
+        assert_eq!(summary.snapshot.epoch_count, 16);
         assert_eq!(
             summary.snapshot.earliest_epoch.julian_day.days(),
             2_360_233.5
         );
         assert_eq!(summary.snapshot.latest_epoch.julian_day.days(), 2_634_167.0);
-        assert_eq!(summary.ecliptic_request_count, 88);
-        assert_eq!(summary.equatorial_request_count, 87);
-        assert_eq!(summary.exact_count, 175);
+        assert_eq!(summary.ecliptic_request_count, 93);
+        assert_eq!(summary.equatorial_request_count, 92);
+        assert_eq!(summary.exact_count, 185);
         assert_eq!(summary.interpolated_count, 0);
         assert_eq!(summary.approximate_count, 0);
         assert_eq!(summary.unknown_count, 0);
@@ -13147,7 +13160,7 @@ mod tests {
         assert_eq!(
             summary.summary_line(),
             format!(
-                "JPL reference snapshot batch parity: 175 rows across 15 bodies and 15 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}; frame mix: 88 ecliptic, 87 equatorial; quality counts: Exact=175, Interpolated=0, Approximate=0, Unknown=0; batch/single parity preserved",
+                "JPL reference snapshot batch parity: 185 rows across 15 bodies and 16 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}; frame mix: 93 ecliptic, 92 equatorial; quality counts: Exact=185, Interpolated=0, Approximate=0, Unknown=0; batch/single parity preserved",
                 format_bodies(reference_bodies())
             )
         );
@@ -13158,7 +13171,7 @@ mod tests {
             summary.summary_line()
         );
         assert!(jpl_snapshot_evidence_summary_for_report().contains(
-            "JPL reference snapshot batch parity: 175 rows across 15 bodies and 15 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
+            "JPL reference snapshot batch parity: 185 rows across 15 bodies and 16 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
         ));
         assert!(jpl_snapshot_evidence_summary_for_report()
             .contains(&production_generation_snapshot_summary_for_report()));
@@ -13188,9 +13201,9 @@ mod tests {
     fn production_generation_snapshot_summary_reports_the_expected_coverage() {
         let summary = production_generation_snapshot_summary()
             .expect("production generation summary should exist");
-        assert_eq!(summary.row_count, 175);
+        assert_eq!(summary.row_count, 185);
         assert_eq!(summary.body_count, 15);
-        assert_eq!(summary.epoch_count, 15);
+        assert_eq!(summary.epoch_count, 16);
         assert_eq!(summary.boundary_row_count, 34);
         assert_eq!(summary.boundary_body_count, 10);
         assert_eq!(summary.boundary_epoch_count, 8);
@@ -14531,14 +14544,14 @@ mod tests {
         );
         assert_eq!(
             summary.coverage,
-            "major bodies sampled at 1749-12-31 for Sun through Neptune, inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; major bodies sampled at 2400000, 2451545, 2451910.5, 2451916.5, 2453000.5, and 2500000; major bodies sampled at 2001-01-02 through 2001-01-05, plus 2001-01-07, for additional boundary coverage; selected asteroids sampled at J2000, 2001-01-01 through 2001-01-07, with 2451915.5 boundary coverage, 2003-12-27, 2132-08-31, and 2500-01-01."
+            "major bodies sampled at 1749-12-31 for Sun through Neptune, inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; major bodies sampled at 1800-01-03 for Sun through Pluto; major bodies sampled at 2400000, 2451545, 2451910.5, 2451916.5, 2453000.5, and 2500000; major bodies sampled at 2001-01-02 through 2001-01-05, plus 2001-01-07, for additional boundary coverage; selected asteroids sampled at J2000, 2001-01-01 through 2001-01-07, with 2451915.5 boundary coverage, 2003-12-27, 2132-08-31, and 2500-01-01."
         );
         assert_eq!(summary.frame_treatment, "geocentric ecliptic J2000");
         assert_eq!(summary.reference_epoch.julian_day.days(), 2_451_545.0);
         assert_eq!(
             summary.summary_line(),
             format!(
-                "Reference snapshot source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=major bodies sampled at 1749-12-31 for Sun through Neptune, inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; major bodies sampled at 2400000, 2451545, 2451910.5, 2451916.5, 2453000.5, and 2500000; major bodies sampled at 2001-01-02 through 2001-01-05, plus 2001-01-07, for additional boundary coverage; selected asteroids sampled at J2000, 2001-01-01 through 2001-01-07, with 2451915.5 boundary coverage, 2003-12-27, 2132-08-31, and 2500-01-01.; geocentric ecliptic J2000; TDB reference epoch {}",
+                "Reference snapshot source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=major bodies sampled at 1749-12-31 for Sun through Neptune, inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; major bodies sampled at 1800-01-03 for Sun through Pluto; major bodies sampled at 2400000, 2451545, 2451910.5, 2451916.5, 2453000.5, and 2500000; major bodies sampled at 2001-01-02 through 2001-01-05, plus 2001-01-07, for additional boundary coverage; selected asteroids sampled at J2000, 2001-01-01 through 2001-01-07, with 2451915.5 boundary coverage, 2003-12-27, 2132-08-31, and 2500-01-01.; geocentric ecliptic J2000; TDB reference epoch {}",
                 format_instant(summary.reference_epoch)
             )
         );
@@ -14552,9 +14565,9 @@ mod tests {
 
         let body_class_summary = reference_snapshot_body_class_coverage_summary()
             .expect("reference snapshot body-class coverage summary should exist");
-        assert_eq!(body_class_summary.major_body_row_count, 120);
+        assert_eq!(body_class_summary.major_body_row_count, 130);
         assert_eq!(body_class_summary.major_bodies.len(), 10);
-        assert_eq!(body_class_summary.major_epoch_count, 14);
+        assert_eq!(body_class_summary.major_epoch_count, 15);
         assert_eq!(body_class_summary.major_windows.len(), 10);
         assert_eq!(body_class_summary.asteroid_row_count, 55);
         assert_eq!(body_class_summary.asteroid_bodies.len(), 5);
@@ -14571,7 +14584,7 @@ mod tests {
         );
         assert!(body_class_summary
             .summary_line()
-            .contains("Reference snapshot body-class coverage: major bodies: 120 rows across 10 bodies and 14 epochs; major windows: "));
+            .contains("Reference snapshot body-class coverage: major bodies: 130 rows across 10 bodies and 15 epochs; major windows: "));
         assert!(body_class_summary.summary_line().contains(
             "selected asteroids: 55 rows across 5 bodies and 11 epochs; asteroid windows: "
         ));
@@ -14616,7 +14629,7 @@ mod tests {
         let summary = reference_snapshot_body_class_coverage_summary()
             .expect("reference snapshot body-class coverage summary should exist");
 
-        assert_eq!(summary.major_body_row_count, 120);
+        assert_eq!(summary.major_body_row_count, 130);
         assert_eq!(summary.major_bodies.len(), 10);
         assert_eq!(
             summary.major_bodies[0],
@@ -14626,7 +14639,7 @@ mod tests {
             summary.major_bodies[9],
             pleiades_backend::CelestialBody::Pluto
         );
-        assert_eq!(summary.major_epoch_count, 14);
+        assert_eq!(summary.major_epoch_count, 15);
         assert_eq!(summary.asteroid_row_count, 55);
         assert_eq!(summary.asteroid_bodies.len(), 5);
         assert_eq!(
@@ -15262,7 +15275,7 @@ mod tests {
             manifest.source.as_deref(),
             Some("NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.")
         );
-        assert_eq!(manifest.coverage.as_deref(), Some("major bodies sampled at 1749-12-31 for Sun through Neptune, inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; major bodies sampled at 2400000, 2451545, 2451910.5, 2451916.5, 2453000.5, and 2500000; major bodies sampled at 2001-01-02 through 2001-01-05, plus 2001-01-07, for additional boundary coverage; selected asteroids sampled at J2000, 2001-01-01 through 2001-01-07, with 2451915.5 boundary coverage, 2003-12-27, 2132-08-31, and 2500-01-01."));
+        assert_eq!(manifest.coverage.as_deref(), Some("major bodies sampled at 1749-12-31 for Sun through Neptune, inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; major bodies sampled at 1800-01-03 for Sun through Pluto; major bodies sampled at 2400000, 2451545, 2451910.5, 2451916.5, 2453000.5, and 2500000; major bodies sampled at 2001-01-02 through 2001-01-05, plus 2001-01-07, for additional boundary coverage; selected asteroids sampled at J2000, 2001-01-01 through 2001-01-07, with 2451915.5 boundary coverage, 2003-12-27, 2132-08-31, and 2500-01-01."));
         assert_eq!(
             manifest.columns,
             ["epoch_jd", "body", "x_km", "y_km", "z_km"]
@@ -15270,7 +15283,7 @@ mod tests {
         assert_eq!(manifest.validate(), Ok(()));
         assert_eq!(
             manifest.summary_line("Reference snapshot manifest"),
-            "Reference snapshot manifest: JPL Horizons reference snapshot.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=major bodies sampled at 1749-12-31 for Sun through Neptune, inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; major bodies sampled at 2400000, 2451545, 2451910.5, 2451916.5, 2453000.5, and 2500000; major bodies sampled at 2001-01-02 through 2001-01-05, plus 2001-01-07, for additional boundary coverage; selected asteroids sampled at J2000, 2001-01-01 through 2001-01-07, with 2451915.5 boundary coverage, 2003-12-27, 2132-08-31, and 2500-01-01.; columns=epoch_jd, body, x_km, y_km, z_km"
+            "Reference snapshot manifest: JPL Horizons reference snapshot.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=major bodies sampled at 1749-12-31 for Sun through Neptune, inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; major bodies sampled at 1800-01-03 for Sun through Pluto; major bodies sampled at 2400000, 2451545, 2451910.5, 2451916.5, 2453000.5, and 2500000; major bodies sampled at 2001-01-02 through 2001-01-05, plus 2001-01-07, for additional boundary coverage; selected asteroids sampled at J2000, 2001-01-01 through 2001-01-07, with 2451915.5 boundary coverage, 2003-12-27, 2132-08-31, and 2500-01-01.; columns=epoch_jd, body, x_km, y_km, z_km"
         );
     }
 
@@ -15281,7 +15294,7 @@ mod tests {
             .validate_with_expected_metadata(
                 "wrong title",
                 "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.",
-                "major bodies sampled at 1749-12-31 for Sun through Neptune, inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; major bodies sampled at 2400000, 2451545, 2451910.5, 2451916.5, 2453000.5, and 2500000; major bodies sampled at 2001-01-02 through 2001-01-05, plus 2001-01-07, for additional boundary coverage; selected asteroids sampled at J2000, 2001-01-01 through 2001-01-07, with 2451915.5 boundary coverage, 2003-12-27, 2132-08-31, and 2500-01-01.",
+                "major bodies sampled at 1749-12-31 for Sun through Neptune, inner planets sampled across 1800-2500, with an additional 2406 Mars hold-out; major bodies sampled at 1800-01-03 for Sun through Pluto; major bodies sampled at 2400000, 2451545, 2451910.5, 2451916.5, 2453000.5, and 2500000; major bodies sampled at 2001-01-02 through 2001-01-05, plus 2001-01-07, for additional boundary coverage; selected asteroids sampled at J2000, 2001-01-01 through 2001-01-07, with 2451915.5 boundary coverage, 2003-12-27, 2132-08-31, and 2500-01-01.",
                 &["epoch_jd", "body", "x_km", "y_km", "z_km"],
             )
             .expect_err("reference snapshot manifest summary should reject title drift");
