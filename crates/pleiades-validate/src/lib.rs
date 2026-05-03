@@ -2766,8 +2766,9 @@ impl ValidationReport {
 
 /// A generated release bundle containing the compatibility profile, release-profile
 /// identifiers, release notes, release checklist, backend matrix, API posture,
-/// API stability summary, validation report summary, artifact summary, packaged-artifact
-/// generation manifest, benchmark report, validation report, and manifest.
+/// API stability summary, comparison-envelope summary, validation report summary,
+/// artifact summary, packaged-artifact generation manifest, benchmark report,
+/// validation report, and manifest.
 #[derive(Clone, Debug)]
 pub struct ReleaseBundle {
     /// Source revision recorded when the bundle was generated.
@@ -2802,6 +2803,8 @@ pub struct ReleaseBundle {
     pub api_stability_path: PathBuf,
     /// Path to the generated API stability summary file.
     pub api_stability_summary_path: PathBuf,
+    /// Path to the generated comparison-envelope summary file.
+    pub comparison_envelope_summary_path: PathBuf,
     /// Path to the generated validation report summary file.
     pub validation_report_summary_path: PathBuf,
     /// Path to the generated workspace-audit summary file.
@@ -2842,6 +2845,8 @@ pub struct ReleaseBundle {
     pub api_stability_bytes: usize,
     /// Number of bytes written for the API stability summary.
     pub api_stability_summary_bytes: usize,
+    /// Number of bytes written for the comparison-envelope summary.
+    pub comparison_envelope_summary_bytes: usize,
     /// Number of bytes written for the validation report summary.
     pub validation_report_summary_bytes: usize,
     /// Number of bytes written for the workspace-audit summary.
@@ -2880,6 +2885,8 @@ pub struct ReleaseBundle {
     pub api_stability_checksum: u64,
     /// Deterministic checksum for the API stability summary contents.
     pub api_stability_summary_checksum: u64,
+    /// Deterministic checksum for the comparison-envelope summary contents.
+    pub comparison_envelope_summary_checksum: u64,
     /// Deterministic checksum for the validation report summary contents.
     pub validation_report_summary_checksum: u64,
     /// Deterministic checksum for the workspace-audit summary contents.
@@ -3664,6 +3671,11 @@ impl fmt::Display for ReleaseBundle {
         )?;
         writeln!(
             f,
+            "  comparison-envelope summary: {}",
+            self.comparison_envelope_summary_path.display()
+        )?;
+        writeln!(
+            f,
             "  validation report summary: {}",
             self.validation_report_summary_path.display()
         )?;
@@ -3807,6 +3819,11 @@ impl fmt::Display for ReleaseBundle {
         )?;
         writeln!(
             f,
+            "  comparison-envelope summary bytes: {}",
+            self.comparison_envelope_summary_bytes
+        )?;
+        writeln!(
+            f,
             "  validation report summary bytes: {}",
             self.validation_report_summary_bytes
         )?;
@@ -3834,6 +3851,11 @@ impl fmt::Display for ReleaseBundle {
             f,
             "  manifest checksum bytes: {}",
             self.manifest_checksum_bytes
+        )?;
+        writeln!(
+            f,
+            "  comparison-envelope summary checksum: 0x{:016x}",
+            self.comparison_envelope_summary_checksum
         )?;
         writeln!(
             f,
@@ -7199,8 +7221,8 @@ pub fn benchmark_provenance_text() -> String {
 /// Writes a release bundle containing the compatibility profile, release-profile
 /// identifiers, release notes, release notes summary, release summary, release checklist,
 /// release checklist summary, backend matrix, API posture, API stability summary,
-/// validation report summary, artifact summary, packaged-artifact generation manifest,
-/// benchmark report, validation report, and a manifest.
+/// comparison-envelope summary, validation report summary, artifact summary,
+/// packaged-artifact generation manifest, benchmark report, validation report, and a manifest.
 pub fn render_release_bundle(
     rounds: usize,
     output_dir: impl AsRef<Path>,
@@ -7228,6 +7250,7 @@ pub fn render_release_bundle(
     let api_stability_summary_text = render_api_stability_summary();
     let validation_report = build_validation_report(rounds)?;
     let validation_report_text = validation_report.to_string();
+    let comparison_envelope_summary_text = render_comparison_envelope_summary_text();
     let validation_report_summary_text = render_validation_report_summary_text(&validation_report);
     let benchmark_report_text = render_benchmark_report(rounds)?;
     let workspace_audit_summary_text = render_workspace_audit_summary()
@@ -7249,6 +7272,7 @@ pub fn render_release_bundle(
     let backend_matrix_summary_path = output_dir.join("backend-matrix-summary.txt");
     let api_stability_path = output_dir.join("api-stability.txt");
     let api_stability_summary_path = output_dir.join("api-stability-summary.txt");
+    let comparison_envelope_summary_path = output_dir.join("comparison-envelope-summary.txt");
     let validation_report_summary_path = output_dir.join("validation-report-summary.txt");
     let workspace_audit_summary_path = output_dir.join("workspace-audit-summary.txt");
     let artifact_summary_path = output_dir.join("artifact-summary.txt");
@@ -7271,6 +7295,7 @@ pub fn render_release_bundle(
     let backend_matrix_summary_checksum = checksum64(&backend_matrix_summary_text);
     let api_stability_checksum = checksum64(&api_stability_text);
     let api_stability_summary_checksum = checksum64(&api_stability_summary_text);
+    let comparison_envelope_summary_checksum = checksum64(&comparison_envelope_summary_text);
     let validation_report_summary_checksum = checksum64(&validation_report_summary_text);
     let workspace_audit_summary_checksum = checksum64(&workspace_audit_summary_text);
     let artifact_summary_checksum = checksum64(&artifact_summary_text);
@@ -7279,7 +7304,7 @@ pub fn render_release_bundle(
     let benchmark_report_checksum = checksum64(&benchmark_report_text);
     let validation_report_checksum = checksum64(&validation_report_text);
     let manifest_text = format!(
-        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease notes summary: release-notes-summary.txt\nrelease notes summary checksum (fnv1a-64): 0x{release_notes_summary_checksum:016x}\nrelease summary: release-summary.txt\nrelease summary checksum (fnv1a-64): 0x{release_summary_checksum:016x}\nrelease-profile identifiers: release-profile-identifiers.txt\nrelease-profile identifiers checksum (fnv1a-64): 0x{release_profile_identifiers_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nrelease checklist summary: release-checklist-summary.txt\nrelease checklist summary checksum (fnv1a-64): 0x{release_checklist_summary_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\nbackend matrix summary: backend-matrix-summary.txt\nbackend matrix summary checksum (fnv1a-64): 0x{backend_matrix_summary_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\napi stability summary: api-stability-summary.txt\napi stability summary checksum (fnv1a-64): 0x{api_stability_summary_checksum:016x}\nvalidation report summary: validation-report-summary.txt\nvalidation report summary checksum (fnv1a-64): 0x{validation_report_summary_checksum:016x}\nworkspace audit summary: workspace-audit-summary.txt\nworkspace audit summary checksum (fnv1a-64): 0x{workspace_audit_summary_checksum:016x}\nartifact summary: artifact-summary.txt\nartifact summary checksum (fnv1a-64): 0x{artifact_summary_checksum:016x}\npackaged-artifact generation manifest: packaged-artifact-generation-manifest.txt\npackaged-artifact generation manifest checksum (fnv1a-64): 0x{packaged_artifact_generation_manifest_checksum:016x}\nbenchmark report: benchmark-report.txt\nbenchmark report checksum (fnv1a-64): 0x{benchmark_report_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
+        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease notes summary: release-notes-summary.txt\nrelease notes summary checksum (fnv1a-64): 0x{release_notes_summary_checksum:016x}\nrelease summary: release-summary.txt\nrelease summary checksum (fnv1a-64): 0x{release_summary_checksum:016x}\nrelease-profile identifiers: release-profile-identifiers.txt\nrelease-profile identifiers checksum (fnv1a-64): 0x{release_profile_identifiers_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nrelease checklist summary: release-checklist-summary.txt\nrelease checklist summary checksum (fnv1a-64): 0x{release_checklist_summary_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\nbackend matrix summary: backend-matrix-summary.txt\nbackend matrix summary checksum (fnv1a-64): 0x{backend_matrix_summary_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\napi stability summary: api-stability-summary.txt\napi stability summary checksum (fnv1a-64): 0x{api_stability_summary_checksum:016x}\ncomparison-envelope summary: comparison-envelope-summary.txt\ncomparison-envelope summary checksum (fnv1a-64): 0x{comparison_envelope_summary_checksum:016x}\nvalidation report summary: validation-report-summary.txt\nvalidation report summary checksum (fnv1a-64): 0x{validation_report_summary_checksum:016x}\nworkspace audit summary: workspace-audit-summary.txt\nworkspace audit summary checksum (fnv1a-64): 0x{workspace_audit_summary_checksum:016x}\nartifact summary: artifact-summary.txt\nartifact summary checksum (fnv1a-64): 0x{artifact_summary_checksum:016x}\npackaged-artifact generation manifest: packaged-artifact-generation-manifest.txt\npackaged-artifact generation manifest checksum (fnv1a-64): 0x{packaged_artifact_generation_manifest_checksum:016x}\nbenchmark report: benchmark-report.txt\nbenchmark report checksum (fnv1a-64): 0x{benchmark_report_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
         provenance.source_revision,
         provenance.workspace_status,
         provenance.rustc_version,
@@ -7314,6 +7339,10 @@ pub fn render_release_bundle(
     fs::write(
         &api_stability_summary_path,
         api_stability_summary_text.as_bytes(),
+    )?;
+    fs::write(
+        &comparison_envelope_summary_path,
+        comparison_envelope_summary_text.as_bytes(),
     )?;
     fs::write(
         &validation_report_summary_path,
@@ -7364,6 +7393,8 @@ struct ParsedReleaseBundleManifest {
     api_stability_checksum: u64,
     api_stability_summary_path: String,
     api_stability_summary_checksum: u64,
+    comparison_envelope_summary_path: String,
+    comparison_envelope_summary_checksum: u64,
     validation_report_summary_path: String,
     validation_report_summary_checksum: u64,
     workspace_audit_summary_path: String,
@@ -7450,6 +7481,14 @@ impl ParsedReleaseBundleManifest {
                 text,
                 "api stability summary checksum (fnv1a-64):",
             )?,
+            comparison_envelope_summary_path: parse_manifest_string(
+                text,
+                "comparison-envelope summary:",
+            )?,
+            comparison_envelope_summary_checksum: parse_manifest_checksum(
+                text,
+                "comparison-envelope summary checksum (fnv1a-64):",
+            )?,
             validation_report_summary_path: parse_manifest_string(
                 text,
                 "validation report summary:",
@@ -7514,6 +7553,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
         "backend-matrix-summary.txt",
         "api-stability.txt",
         "api-stability-summary.txt",
+        "comparison-envelope-summary.txt",
         "validation-report-summary.txt",
         "workspace-audit-summary.txt",
         "artifact-summary.txt",
@@ -7554,7 +7594,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
 fn ensure_release_bundle_manifest_is_canonical(
     manifest_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    const EXPECTED_MANIFEST_LINES: [&str; 43] = [
+    const EXPECTED_MANIFEST_LINES: [&str; 45] = [
         "Release bundle manifest",
         "profile:",
         "profile checksum (fnv1a-64):",
@@ -7580,6 +7620,8 @@ fn ensure_release_bundle_manifest_is_canonical(
         "api stability checksum (fnv1a-64):",
         "api stability summary:",
         "api stability summary checksum (fnv1a-64):",
+        "comparison-envelope summary:",
+        "comparison-envelope summary checksum (fnv1a-64):",
         "validation report summary:",
         "validation report summary checksum (fnv1a-64):",
         "workspace audit summary:",
@@ -7661,6 +7703,7 @@ fn verify_release_bundle(
     let backend_matrix_summary_path = output_dir.join("backend-matrix-summary.txt");
     let api_stability_path = output_dir.join("api-stability.txt");
     let api_stability_summary_path = output_dir.join("api-stability-summary.txt");
+    let comparison_envelope_summary_path = output_dir.join("comparison-envelope-summary.txt");
     let validation_report_summary_path = output_dir.join("validation-report-summary.txt");
     let workspace_audit_summary_path = output_dir.join("workspace-audit-summary.txt");
     let artifact_summary_path = output_dir.join("artifact-summary.txt");
@@ -7687,6 +7730,10 @@ fn verify_release_bundle(
         (&backend_matrix_summary_path, "backend matrix summary"),
         (&api_stability_path, "API stability"),
         (&api_stability_summary_path, "API stability summary"),
+        (
+            &comparison_envelope_summary_path,
+            "comparison envelope summary",
+        ),
         (&validation_report_summary_path, "validation report summary"),
         (&workspace_audit_summary_path, "workspace audit summary"),
         (&artifact_summary_path, "artifact summary"),
@@ -7719,6 +7766,10 @@ fn verify_release_bundle(
     let api_stability_text = read_required_bundle_text(&api_stability_path, "API stability")?;
     let api_stability_summary_text =
         read_required_bundle_text(&api_stability_summary_path, "API stability summary")?;
+    let comparison_envelope_summary_text = read_required_bundle_text(
+        &comparison_envelope_summary_path,
+        "comparison envelope summary",
+    )?;
     let validation_report_summary_text =
         read_required_bundle_text(&validation_report_summary_path, "validation report summary")?;
     let workspace_audit_summary_text =
@@ -7820,6 +7871,12 @@ fn verify_release_bundle(
             manifest.api_stability_summary_path
         )));
     }
+    if manifest.comparison_envelope_summary_path != "comparison-envelope-summary.txt" {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected comparison envelope summary file entry: {}",
+            manifest.comparison_envelope_summary_path
+        )));
+    }
     if manifest.validation_report_summary_path != "validation-report-summary.txt" {
         return Err(ReleaseBundleError::Verification(format!(
             "unexpected validation report summary file entry: {}",
@@ -7870,6 +7927,7 @@ fn verify_release_bundle(
     let backend_matrix_summary_checksum = checksum64(&backend_matrix_summary_text);
     let api_stability_checksum = checksum64(&api_stability_text);
     let api_stability_summary_checksum = checksum64(&api_stability_summary_text);
+    let comparison_envelope_summary_checksum = checksum64(&comparison_envelope_summary_text);
     let validation_report_summary_checksum = checksum64(&validation_report_summary_text);
     let workspace_audit_summary_checksum = checksum64(&workspace_audit_summary_text);
     let artifact_summary_checksum = checksum64(&artifact_summary_text);
@@ -7995,6 +8053,12 @@ fn verify_release_bundle(
         api_stability_posture_id,
     )?;
 
+    if manifest.comparison_envelope_summary_checksum != comparison_envelope_summary_checksum {
+        return Err(ReleaseBundleError::Verification(format!(
+            "comparison envelope summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.comparison_envelope_summary_checksum, comparison_envelope_summary_checksum
+        )));
+    }
     if manifest.validation_report_summary_checksum != validation_report_summary_checksum {
         return Err(ReleaseBundleError::Verification(format!(
             "validation report summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
@@ -8058,6 +8122,7 @@ fn verify_release_bundle(
         backend_matrix_summary_path,
         api_stability_path,
         api_stability_summary_path,
+        comparison_envelope_summary_path,
         validation_report_summary_path,
         workspace_audit_summary_path,
         artifact_summary_path,
@@ -8078,6 +8143,7 @@ fn verify_release_bundle(
         backend_matrix_summary_bytes: backend_matrix_summary_text.len(),
         api_stability_bytes: api_stability_text.len(),
         api_stability_summary_bytes: api_stability_summary_text.len(),
+        comparison_envelope_summary_bytes: comparison_envelope_summary_text.len(),
         validation_report_summary_bytes: validation_report_summary_text.len(),
         workspace_audit_summary_bytes: workspace_audit_summary_text.len(),
         artifact_summary_bytes: artifact_summary_text.len(),
@@ -8098,6 +8164,7 @@ fn verify_release_bundle(
         backend_matrix_summary_checksum,
         api_stability_checksum,
         api_stability_summary_checksum,
+        comparison_envelope_summary_checksum,
         validation_report_summary_checksum,
         workspace_audit_summary_checksum,
         artifact_summary_checksum,
@@ -18981,6 +19048,7 @@ version = "0.9.0"
         assert!(manifest.contains("backend-matrix-summary.txt"));
         assert!(manifest.contains("api-stability.txt"));
         assert!(manifest.contains("api-stability-summary.txt"));
+        assert!(manifest.contains("comparison-envelope-summary.txt"));
         assert!(manifest.contains("validation-report-summary.txt"));
         assert!(manifest.contains("artifact-summary.txt"));
         assert!(manifest.contains("packaged-artifact-generation-manifest.txt"));
@@ -19002,6 +19070,7 @@ version = "0.9.0"
         assert!(manifest.contains("backend matrix checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("backend matrix summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("api stability checksum (fnv1a-64): 0x"));
+        assert!(manifest.contains("comparison-envelope summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("validation report summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("workspace audit summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("artifact summary checksum (fnv1a-64): 0x"));
@@ -19018,6 +19087,7 @@ version = "0.9.0"
         assert!(verified.contains("release-notes-summary.txt"));
         assert!(verified.contains("release-summary.txt"));
         assert!(verified.contains("release-checklist-summary.txt"));
+        assert!(verified.contains("comparison-envelope-summary.txt"));
         assert!(verified.contains("validation-report-summary.txt"));
         assert!(verified.contains("artifact-summary.txt"));
         assert!(verified.contains("benchmark-report.txt"));
@@ -19032,6 +19102,7 @@ version = "0.9.0"
         assert!(verified.contains("release checklist summary checksum: 0x"));
         assert!(verified.contains("backend matrix checksum: 0x"));
         assert!(verified.contains("backend matrix summary checksum: 0x"));
+        assert!(verified.contains("comparison-envelope summary checksum: 0x"));
         assert!(verified.contains("validation report summary checksum: 0x"));
         assert!(verified.contains("workspace audit summary checksum: 0x"));
         assert!(verified.contains("artifact summary checksum: 0x"));
