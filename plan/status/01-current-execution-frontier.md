@@ -47,7 +47,7 @@ The next slice should focus on broader reference coverage and the remaining requ
 
 The following can proceed without distracting from accuracy closure:
 
-- house/ayanamsa formula and alias audits;
+- house/ayanamsa formula and alias audits; the compatibility-profile display path now validates before rendering so direct profile output fails closed on invalid catalog metadata and unknown house-formula families;
 - documentation cleanup for already-explicit request policy;
 - release-bundle smoke-test maintenance, including the `compare-backends-audit` comparison-audit command now mirrored in `pleiades-cli`, plus the top-level `benchmark` command now mirrored there as well, and the workspace-audit summary now also has a `native-dependency-audit` / `native-dependency-audit-summary` alias in both CLIs;
 - artifact-profile identifier groundwork and production-profile skeleton plumbing that do not claim production fit accuracy yet, including the release-profile identifier now threaded through packaged-artifact target thresholds, plus the new `artifact-profile-coverage-summary`, `packaged-artifact-production-profile-summary`, `packaged-artifact-generation-manifest-summary`, and `packaged-artifact-regeneration-summary` direct CLI paths for the packaged-artifact profile coverage, production-profile skeleton, generation-manifest posture, and regeneration provenance, the validation-CLI `regenerate-packaged-artifact` workflow for mirroring the packaged fixture check/write path, and the new `comparison-snapshot-summary`, `reference-snapshot-summary`, `comparison-corpus-summary`, and `benchmark-corpus-summary` direct CLI paths for the overall snapshot and corpus coverage posture;

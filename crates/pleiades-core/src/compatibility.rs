@@ -16,7 +16,8 @@ use pleiades_ayanamsa::{
 };
 use pleiades_houses::{
     baseline_house_systems, built_in_house_systems, house_system_code_aliases,
-    release_house_systems, resolve_house_system, HouseSystemCodeAlias, HouseSystemDescriptor,
+    release_house_systems, resolve_house_system, HouseFormulaFamily, HouseSystemCodeAlias,
+    HouseSystemDescriptor,
 };
 use pleiades_types::HouseSystem;
 
@@ -319,6 +320,7 @@ impl CompatibilityProfile {
             ("compatibility-caveat", self.known_gaps),
         ])?;
         validate_catalog_label_uniqueness("house-system", self.house_systems)?;
+        validate_house_formula_families(self.house_systems)?;
         validate_catalog_label_uniqueness("ayanamsa", self.ayanamsas)?;
         validate_catalogs_are_disjoint(
             "house-system",
@@ -433,6 +435,11 @@ pub enum CompatibilityProfileValidationError {
         /// Duplicate label that appeared more than once.
         label: &'static str,
     },
+    /// A house-system descriptor resolved to an unknown formula family.
+    HouseFormulaFamilyUnknown {
+        /// House-system label that drifted.
+        label: &'static str,
+    },
     /// Two published catalogs share a canonical name or alias.
     CrossCatalogLabelCollision {
         /// First catalog that provided the duplicate label.
@@ -520,6 +527,10 @@ impl fmt::Display for CompatibilityProfileValidationError {
                 f,
                 "compatibility profile {catalog_label} catalog contains duplicate label '{}'",
                 label
+            ),
+            Self::HouseFormulaFamilyUnknown { label } => write!(
+                f,
+                "compatibility profile house-system '{label}' resolves to an unknown formula family"
             ),
             Self::CrossCatalogLabelCollision {
                 first_catalog_label,
@@ -944,6 +955,25 @@ fn validate_catalog_coverage(
     }
 
     Ok(())
+}
+
+fn validate_house_formula_families(
+    entries: &[HouseSystemDescriptor],
+) -> Result<usize, CompatibilityProfileValidationError> {
+    let mut checked = 0usize;
+
+    for entry in entries {
+        checked += 1;
+        if entry.formula_family() == HouseFormulaFamily::Unknown {
+            return Err(
+                CompatibilityProfileValidationError::HouseFormulaFamilyUnknown {
+                    label: entry.canonical_name,
+                },
+            );
+        }
+    }
+
+    Ok(checked)
 }
 
 fn validate_catalog_coverage_ayanamsa(
@@ -1609,6 +1639,10 @@ fn write_custom_definition_section(
 
 impl fmt::Display for CompatibilityProfile {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Err(error) = self.validate() {
+            return write!(f, "Compatibility profile unavailable ({error})");
+        }
+
         writeln!(f, "Compatibility profile: {}", self.profile_id)?;
         writeln!(f, "{}", self.summary)?;
         writeln!(f)?;
@@ -3116,6 +3150,10 @@ mod tests {
         assert!(invalid_profile
             .validated_release_ayanamsa_canonical_names_summary_line()
             .is_err());
+        assert_eq!(
+            invalid_profile.to_string(),
+            "Compatibility profile unavailable (compatibility profile summary is blank)"
+        );
     }
 
     #[test]
