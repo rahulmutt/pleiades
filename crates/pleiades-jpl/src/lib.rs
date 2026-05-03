@@ -2633,6 +2633,25 @@ pub fn production_generation_snapshot_summary_for_report() -> String {
     }
 }
 
+/// Returns the combined source provenance for the production-generation corpus.
+pub fn production_generation_source_summary_for_report() -> String {
+    let reference_summary = reference_snapshot_source_summary();
+    let boundary_summary = production_generation_boundary_source_summary();
+
+    if let Err(error) = reference_summary.validate() {
+        return format!("Production generation source: unavailable ({error})");
+    }
+    if let Err(error) = boundary_summary.validate() {
+        return format!("Production generation source: unavailable ({error})");
+    }
+
+    format!(
+        "Production generation source: {}; {}",
+        reference_summary.summary_line(),
+        format_production_generation_boundary_source_summary(&boundary_summary)
+    )
+}
+
 /// A single body-window slice inside the production-generation coverage corpus.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ProductionGenerationSnapshotWindow {
@@ -8997,6 +9016,7 @@ pub fn jpl_snapshot_evidence_summary_for_report() -> String {
         reference_snapshot_equatorial_parity_summary_for_report(),
         reference_snapshot_batch_parity_summary_for_report(),
         production_generation_snapshot_summary_for_report(),
+        production_generation_source_summary_for_report(),
         reference_snapshot_source_summary_for_report(),
         reference_snapshot_source_window_summary_for_report(),
         reference_snapshot_major_body_boundary_summary_for_report(),
@@ -13084,6 +13104,14 @@ mod tests {
             production_generation_snapshot_summary_for_report(),
             summary.summary_line()
         );
+        assert_eq!(
+            production_generation_source_summary_for_report(),
+            format!(
+                "Production generation source: {}; {}",
+                reference_snapshot_source_summary_for_report(),
+                production_generation_boundary_source_summary_for_report()
+            )
+        );
     }
 
     #[test]
@@ -15731,6 +15759,7 @@ mod tests {
         assert!(report.contains(&reference_holdout_overlap_summary_for_report()));
         assert!(report.contains(&reference_snapshot_manifest_summary_for_report()));
         assert!(report.contains(&production_generation_snapshot_summary_for_report()));
+        assert!(report.contains(&production_generation_source_summary_for_report()));
         assert!(report.contains(&production_generation_boundary_source_summary_for_report()));
         assert!(report.contains(&production_generation_boundary_window_summary_for_report()));
         assert!(report
