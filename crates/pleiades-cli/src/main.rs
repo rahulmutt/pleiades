@@ -2427,6 +2427,10 @@ mod tests {
         assert!(ayanamsa_reference_offsets_summary
             .contains("PVR Pushya-paksha: epoch=JD 2451545; offset=23°"));
         assert!(ayanamsa_reference_offsets_summary
+            .contains("True Revati: epoch=JD 1926902.658267; offset=0°"));
+        assert!(ayanamsa_reference_offsets_summary
+            .contains("True Mula: epoch=JD 1805889.671313; offset=0°"));
+        assert!(ayanamsa_reference_offsets_summary
             .contains("True Citra: epoch=JD 1825182.87233; offset=50.2567483°"));
         assert!(ayanamsa_reference_offsets_summary
             .contains("True Pushya: epoch=JD 1855769.248315; offset=0°"));
