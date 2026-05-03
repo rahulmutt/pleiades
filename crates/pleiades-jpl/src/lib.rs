@@ -14705,6 +14705,76 @@ mod tests {
     }
 
     #[test]
+    fn reference_snapshot_and_holdout_corpora_remain_anchored_to_the_checked_in_csvs() {
+        struct SnapshotKeys {
+            row_count: usize,
+            bodies: BTreeSet<String>,
+            epochs: BTreeSet<String>,
+            pairs: BTreeSet<(String, String)>,
+        }
+
+        fn snapshot_keys(contents: &str) -> SnapshotKeys {
+            let mut bodies = BTreeSet::new();
+            let mut epochs = BTreeSet::new();
+            let mut pairs = BTreeSet::new();
+            let mut row_count = 0usize;
+
+            for line in contents
+                .lines()
+                .filter(|line| !line.starts_with('#') && !line.trim().is_empty())
+            {
+                let mut columns = line.split(',');
+                let epoch = columns
+                    .next()
+                    .expect("snapshot rows should include an epoch")
+                    .trim()
+                    .to_string();
+                let body = columns
+                    .next()
+                    .expect("snapshot rows should include a body")
+                    .trim()
+                    .to_string();
+
+                row_count += 1;
+                epochs.insert(epoch.clone());
+                bodies.insert(body.clone());
+                pairs.insert((body, epoch));
+            }
+
+            SnapshotKeys {
+                row_count,
+                bodies,
+                epochs,
+                pairs,
+            }
+        }
+
+        let reference = snapshot_keys(include_str!("../data/reference_snapshot.csv"));
+        let holdout = snapshot_keys(include_str!("../data/independent_holdout_snapshot.csv"));
+
+        assert_eq!(reference.row_count, 187);
+        assert_eq!(reference.row_count, reference.pairs.len());
+        assert_eq!(reference.bodies.len(), 15);
+        assert_eq!(reference.epochs.len(), 17);
+        assert_eq!(holdout.row_count, 34);
+        assert_eq!(holdout.row_count, holdout.pairs.len());
+        assert_eq!(holdout.bodies.len(), 10);
+        assert_eq!(holdout.epochs.len(), 8);
+
+        assert_eq!(
+            reference_holdout_overlap_summary().map(|summary| summary.shared_sample_count),
+            Some(34)
+        );
+        assert_eq!(
+            reference.pairs.intersection(&holdout.pairs).count(),
+            34,
+            "reference and hold-out corpora should retain the documented 34 shared body-epoch pairs"
+        );
+        assert_eq!(reference.bodies.intersection(&holdout.bodies).count(), 10);
+        assert_eq!(reference.epochs.intersection(&holdout.epochs).count(), 8);
+    }
+
+    #[test]
     fn reference_snapshot_source_window_summary_validation_rejects_window_order_drift() {
         let mut summary = reference_snapshot_source_window_summary()
             .expect("reference snapshot source window summary should exist");
