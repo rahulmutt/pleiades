@@ -68,6 +68,7 @@ Rough command overview:
 - `apparentness-policy-summary`: compact apparentness policy summary
 - `production-generation-boundary-summary`: compact production-generation boundary overlay summary
 - `request-policy-summary` / `request-semantics-summary`: compact request-policy summary
+- `request-surface-summary`: compact request-surface inventory, including the explicit chart TT/TDB offset aliases
 - `chart`: render a basic chart report from a Julian day and optional observer settings
 
 Example usage:
