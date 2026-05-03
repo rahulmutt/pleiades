@@ -5897,6 +5897,9 @@ fn summarize_ayanamsa_reference_offsets() -> Result<AyanamsaReferenceOffsetsSumm
         pleiades_core::Ayanamsa::Krishnamurti,
         pleiades_core::Ayanamsa::FaganBradley,
         pleiades_core::Ayanamsa::TrueChitra,
+        pleiades_core::Ayanamsa::J2000,
+        pleiades_core::Ayanamsa::J1900,
+        pleiades_core::Ayanamsa::B1950,
         pleiades_core::Ayanamsa::TruePushya,
         pleiades_core::Ayanamsa::Udayagiri,
         pleiades_core::Ayanamsa::LahiriVP285,
@@ -16556,6 +16559,9 @@ mod tests {
         assert!(rendered.contains("Krishnamurti: epoch=JD 2415020; offset=22.363889°"));
         assert!(rendered.contains("Fagan/Bradley: epoch=JD 2433282.42346; offset=24.042044444°"));
         assert!(rendered.contains("True Chitra: epoch=JD 2435553.5; offset=23.245524743°"));
+        assert!(rendered.contains("J2000: epoch=JD 2451545; offset=23.85317778°"));
+        assert!(rendered.contains("J1900: epoch=JD 2415020; offset=0°"));
+        assert!(rendered.contains("B1950: epoch=JD 2433281.5; offset=0°"));
         assert!(rendered.contains("Lahiri (VP285): epoch=JD 1825235.164583; offset=0°"));
         assert!(rendered.contains("Krishnamurti (VP291): epoch=JD 1827424.663554; offset=0°"));
         assert!(rendered.contains("True Sheoran: epoch="));
@@ -16610,6 +16616,9 @@ mod tests {
         assert!(rendered.contains("Krishnamurti: epoch=JD 2415020; offset=22.363889°"));
         assert!(rendered.contains("Fagan/Bradley: epoch=JD 2433282.42346; offset=24.042044444°"));
         assert!(rendered.contains("True Chitra: epoch=JD 2435553.5; offset=23.245524743°"));
+        assert!(rendered.contains("J2000: epoch=JD 2451545; offset=23.85317778°"));
+        assert!(rendered.contains("J1900: epoch=JD 2415020; offset=0°"));
+        assert!(rendered.contains("B1950: epoch=JD 2433281.5; offset=0°"));
         assert!(rendered.contains("True Pushya: epoch=JD 1855769.248315; offset=0°"));
         assert!(rendered.contains("Udayagiri: epoch=JD 1825235.164583; offset=0°"));
         assert!(rendered.contains("Lahiri (VP285): epoch=JD 1825235.164583; offset=0°"));
