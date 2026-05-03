@@ -10499,6 +10499,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(
         text,
         "  {}",
+        reference_snapshot_major_body_boundary_summary_for_report()
+    );
+    let _ = writeln!(
+        text,
+        "  {}",
         jpl_independent_holdout_snapshot_batch_parity_summary_for_report()
     );
     let _ = writeln!(
@@ -15432,6 +15437,8 @@ mod tests {
             ),
         );
         assert!(validation_report_summary.contains("Packaged request policy"));
+        assert!(validation_report_summary
+            .contains(&reference_snapshot_major_body_boundary_summary_for_report()));
         assert_report_contains_exact_line(
             &validation_report_summary,
             "Packaged lookup epoch policy: TT-grid retag without relativistic correction; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction",
