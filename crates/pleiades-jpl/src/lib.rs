@@ -5147,7 +5147,8 @@ pub fn comparison_snapshot_manifest_summary() -> SnapshotManifestSummary {
         label: "Comparison snapshot manifest",
         manifest: comparison_snapshot_manifest().clone(),
         source_fallback: "unknown",
-        coverage_fallback: "unknown",
+        coverage_fallback:
+            "Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.",
     }
 }
 
@@ -14325,6 +14326,19 @@ mod tests {
         assert_eq!(
             manifest.to_string(),
             "Snapshot manifest: JPL Horizons reference snapshot.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.; coverage=unknown; columns=body, x_km, y_km, z_km"
+        );
+        let comparison_summary = comparison_snapshot_manifest_summary();
+        assert_eq!(
+            comparison_summary.summary_line(),
+            "Comparison snapshot manifest: JPL Horizons reference snapshot.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.; coverage=Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.; columns=body, x_km, y_km, z_km"
+        );
+        assert_eq!(
+            comparison_summary.to_string(),
+            comparison_summary.summary_line()
+        );
+        assert_eq!(
+            comparison_snapshot_manifest_summary_for_report(),
+            comparison_summary.summary_line()
         );
     }
 
