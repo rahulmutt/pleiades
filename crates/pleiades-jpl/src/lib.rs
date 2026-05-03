@@ -14696,6 +14696,22 @@ mod tests {
     }
 
     #[test]
+    fn reference_snapshot_body_class_coverage_summary_validation_rejects_row_count_drift() {
+        let mut summary = reference_snapshot_body_class_coverage_summary()
+            .expect("reference snapshot body-class coverage summary should exist");
+        summary.major_body_row_count += 1;
+
+        assert_eq!(
+            summary.validate(),
+            Err(
+                ReferenceSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "major_body_row_count",
+                }
+            )
+        );
+    }
+
+    #[test]
     fn reference_holdout_overlap_summary_reports_the_current_overlap() {
         let summary = reference_holdout_overlap_summary()
             .expect("reference/hold-out overlap summary should exist");
