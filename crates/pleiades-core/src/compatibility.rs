@@ -196,7 +196,9 @@ impl CompatibilityProfile {
         text.push_str(&self.release_house_systems.len().to_string());
         text.push_str(" release-specific, ");
         text.push_str(&house_alias_count.to_string());
-        text.push_str(" aliases); house-code aliases=");
+        text.push_str(" aliases); house formula families=");
+        text.push_str(&self.house_formula_families_summary_line());
+        text.push_str("; house-code aliases=");
         text.push_str(&house_code_alias_count.to_string());
         text.push_str("; ayanamsas=");
         text.push_str(&self.ayanamsas.len().to_string());
@@ -3056,11 +3058,12 @@ mod tests {
             .map(|entry| entry.aliases.len())
             .sum();
         assert!(rendered.contains(&format!(
-            "Compatibility catalog inventory: house systems={} ({} baseline, {} release-specific, {} aliases); house-code aliases={}; ayanamsas={} ({} baseline, {} release-specific, {} aliases); custom-definition labels={}; known gaps={}",
+            "Compatibility catalog inventory: house systems={} ({} baseline, {} release-specific, {} aliases); house formula families={}; house-code aliases={}; ayanamsas={} ({} baseline, {} release-specific, {} aliases); custom-definition labels={}; known gaps={}",
             profile.house_systems.len(),
             profile.baseline_house_systems.len(),
             profile.release_house_systems.len(),
             house_alias_count,
+            profile.house_formula_families_summary_line(),
             pleiades_houses::house_system_code_aliases().len(),
             profile.ayanamsas.len(),
             profile.baseline_ayanamsas.len(),
