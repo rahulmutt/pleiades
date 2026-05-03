@@ -5278,6 +5278,43 @@ mod tests {
     }
 
     #[test]
+    fn packaged_artifact_generator_parameters_validation_rejects_time_range_drift() {
+        let mut parameters = packaged_artifact_generator_parameters_details();
+        parameters.time_range = TimeRange::new(None, None);
+
+        let error = parameters
+            .validate()
+            .expect_err("time range drift should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error
+            .message
+            .contains("packaged artifact generator parameters time range does not match the current production profile"));
+    }
+
+    #[test]
+    fn packaged_artifact_generation_manifest_validation_rejects_request_policy_drift() {
+        let mut manifest = packaged_artifact_generation_manifest_details();
+        manifest
+            .parameters
+            .request_policy
+            .supports_topocentric_observer = true;
+
+        let error = manifest
+            .validate()
+            .expect_err("request policy drift should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error.message.contains(
+            "packaged artifact generator parameters request policy does not match the current production profile"
+        ));
+    }
+
+    #[test]
     fn packaged_artifact_generation_manifest_reflects_the_current_posture() {
         let manifest = packaged_artifact_generation_manifest_details();
         let parameters = packaged_artifact_generator_parameters_details();
