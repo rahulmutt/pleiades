@@ -8086,6 +8086,312 @@ pub fn reference_snapshot_major_body_boundary_summary_for_report() -> String {
     }
 }
 
+fn reference_snapshot_mars_outer_boundary_entries() -> Option<&'static [SnapshotEntry]> {
+    static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
+    let entries = ENTRIES
+        .get_or_init(|| {
+            snapshot_entries()
+                .into_iter()
+                .flatten()
+                .filter(|entry| {
+                    entry.body == pleiades_backend::CelestialBody::Mars
+                        && matches!(
+                            entry.epoch.julian_day.days(),
+                            value if value == 2_600_000.0 || value == 2_634_167.0
+                        )
+                })
+                .cloned()
+                .collect()
+        })
+        .as_slice();
+
+    if entries.is_empty() {
+        None
+    } else {
+        Some(entries)
+    }
+}
+
+/// Compact release-facing summary for the Mars outer-boundary reference window.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReferenceMarsOuterBoundarySummary {
+    /// Number of exact samples in the outer-boundary slice.
+    pub sample_count: usize,
+    /// Bodies covered by the outer-boundary slice in first-seen order.
+    pub sample_bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Number of distinct epochs represented by the outer-boundary slice.
+    pub epoch_count: usize,
+    /// Earliest epoch represented in the outer-boundary slice.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented in the outer-boundary slice.
+    pub latest_epoch: Instant,
+}
+
+/// Validation errors for a Mars outer-boundary summary that drifted from the current slice.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ReferenceMarsOuterBoundarySummaryValidationError {
+    /// The summary did not expose any samples.
+    Empty,
+    /// The summary sample count drifted from the current evidence slice.
+    SampleCountMismatch {
+        sample_count: usize,
+        derived_sample_count: usize,
+    },
+    /// The summary body list drifted from the current evidence slice.
+    BodyOrderMismatch {
+        index: usize,
+        expected: pleiades_backend::CelestialBody,
+        found: pleiades_backend::CelestialBody,
+    },
+    /// The summary epoch count drifted from the current evidence slice.
+    EpochCountMismatch { expected: usize, found: usize },
+    /// The summary earliest epoch drifted from the current evidence slice.
+    EarliestEpochMismatch { expected: Instant, found: Instant },
+    /// The summary latest epoch drifted from the current evidence slice.
+    LatestEpochMismatch { expected: Instant, found: Instant },
+}
+
+impl fmt::Display for ReferenceMarsOuterBoundarySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Empty => f.write_str("reference Mars outer-boundary evidence is unavailable"),
+            Self::SampleCountMismatch {
+                sample_count,
+                derived_sample_count,
+            } => write!(
+                f,
+                "reference Mars outer-boundary evidence sample count {sample_count} does not match derived sample count {derived_sample_count}"
+            ),
+            Self::BodyOrderMismatch {
+                index,
+                expected,
+                found,
+            } => write!(
+                f,
+                "reference Mars outer-boundary evidence body order mismatch at index {index}: expected {expected}, found {found}"
+            ),
+            Self::EpochCountMismatch { expected, found } => write!(
+                f,
+                "reference Mars outer-boundary evidence epoch count mismatch: expected {expected}, found {found}"
+            ),
+            Self::EarliestEpochMismatch { expected, found } => write!(
+                f,
+                "reference Mars outer-boundary evidence earliest epoch mismatch: expected {}, found {}",
+                format_instant(*expected),
+                format_instant(*found)
+            ),
+            Self::LatestEpochMismatch { expected, found } => write!(
+                f,
+                "reference Mars outer-boundary evidence latest epoch mismatch: expected {}, found {}",
+                format_instant(*expected),
+                format_instant(*found)
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ReferenceMarsOuterBoundarySummaryValidationError {}
+
+impl ReferenceMarsOuterBoundarySummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Reference Mars outer-boundary evidence: {} exact samples at {}..{} ({}); outer boundary interpolation window",
+            self.sample_count,
+            format_instant(self.earliest_epoch),
+            format_instant(self.latest_epoch),
+            format_bodies(&self.sample_bodies),
+        )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current evidence slice.
+    pub fn validate(&self) -> Result<(), ReferenceMarsOuterBoundarySummaryValidationError> {
+        let evidence = reference_snapshot_mars_outer_boundary_entries()
+            .ok_or(ReferenceMarsOuterBoundarySummaryValidationError::Empty)?;
+
+        if self.sample_count != evidence.len() {
+            return Err(
+                ReferenceMarsOuterBoundarySummaryValidationError::SampleCountMismatch {
+                    sample_count: self.sample_count,
+                    derived_sample_count: evidence.len(),
+                },
+            );
+        }
+
+        let mut expected_bodies = Vec::new();
+        for entry in evidence {
+            if !expected_bodies.contains(&entry.body) {
+                expected_bodies.push(entry.body.clone());
+            }
+        }
+        if self.sample_bodies.as_slice() != expected_bodies.as_slice() {
+            for (index, (expected, found)) in expected_bodies
+                .iter()
+                .zip(self.sample_bodies.iter())
+                .enumerate()
+            {
+                if expected != found {
+                    return Err(
+                        ReferenceMarsOuterBoundarySummaryValidationError::BodyOrderMismatch {
+                            index,
+                            expected: expected.clone(),
+                            found: found.clone(),
+                        },
+                    );
+                }
+            }
+            return Err(
+                ReferenceMarsOuterBoundarySummaryValidationError::SampleCountMismatch {
+                    sample_count: self.sample_count,
+                    derived_sample_count: evidence.len(),
+                },
+            );
+        }
+
+        let mut epochs = evidence
+            .iter()
+            .map(|entry| entry.epoch.julian_day.days().to_bits())
+            .collect::<BTreeSet<_>>();
+        let expected_epoch_count = epochs.len();
+        if self.epoch_count != expected_epoch_count {
+            return Err(
+                ReferenceMarsOuterBoundarySummaryValidationError::EpochCountMismatch {
+                    expected: expected_epoch_count,
+                    found: self.epoch_count,
+                },
+            );
+        }
+
+        let expected_earliest_epoch = evidence
+            .iter()
+            .min_by(|left, right| {
+                left.epoch
+                    .julian_day
+                    .days()
+                    .total_cmp(&right.epoch.julian_day.days())
+            })
+            .expect("reference Mars outer-boundary evidence should not be empty after collection")
+            .epoch;
+        let expected_latest_epoch = evidence
+            .iter()
+            .max_by(|left, right| {
+                left.epoch
+                    .julian_day
+                    .days()
+                    .total_cmp(&right.epoch.julian_day.days())
+            })
+            .expect("reference Mars outer-boundary evidence should not be empty after collection")
+            .epoch;
+
+        if self.earliest_epoch != expected_earliest_epoch {
+            return Err(
+                ReferenceMarsOuterBoundarySummaryValidationError::EarliestEpochMismatch {
+                    expected: expected_earliest_epoch,
+                    found: self.earliest_epoch,
+                },
+            );
+        }
+        if self.latest_epoch != expected_latest_epoch {
+            return Err(
+                ReferenceMarsOuterBoundarySummaryValidationError::LatestEpochMismatch {
+                    expected: expected_latest_epoch,
+                    found: self.latest_epoch,
+                },
+            );
+        }
+
+        if epochs.remove(&self.earliest_epoch.julian_day.days().to_bits())
+            && epochs.remove(&self.latest_epoch.julian_day.days().to_bits())
+        {
+            Ok(())
+        } else {
+            Err(
+                ReferenceMarsOuterBoundarySummaryValidationError::EpochCountMismatch {
+                    expected: expected_epoch_count,
+                    found: self.epoch_count,
+                },
+            )
+        }
+    }
+
+    /// Returns the compact summary line after validating the current evidence slice.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ReferenceMarsOuterBoundarySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for ReferenceMarsOuterBoundarySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn reference_snapshot_mars_outer_boundary_summary_details(
+) -> Option<ReferenceMarsOuterBoundarySummary> {
+    let evidence = reference_snapshot_mars_outer_boundary_entries()?;
+    let mut sample_bodies = Vec::new();
+    for entry in evidence {
+        if !sample_bodies.contains(&entry.body) {
+            sample_bodies.push(entry.body.clone());
+        }
+    }
+
+    let epochs = evidence
+        .iter()
+        .map(|entry| entry.epoch.julian_day.days().to_bits())
+        .collect::<BTreeSet<_>>();
+    let earliest_epoch = evidence
+        .iter()
+        .min_by(|left, right| {
+            left.epoch
+                .julian_day
+                .days()
+                .total_cmp(&right.epoch.julian_day.days())
+        })
+        .expect("reference Mars outer-boundary evidence should not be empty after collection")
+        .epoch;
+    let latest_epoch = evidence
+        .iter()
+        .max_by(|left, right| {
+            left.epoch
+                .julian_day
+                .days()
+                .total_cmp(&right.epoch.julian_day.days())
+        })
+        .expect("reference Mars outer-boundary evidence should not be empty after collection")
+        .epoch;
+
+    Some(ReferenceMarsOuterBoundarySummary {
+        sample_count: evidence.len(),
+        sample_bodies,
+        epoch_count: epochs.len(),
+        earliest_epoch,
+        latest_epoch,
+    })
+}
+
+/// Returns the compact typed summary for the Mars outer-boundary reference evidence.
+pub fn reference_snapshot_mars_outer_boundary_summary() -> Option<ReferenceMarsOuterBoundarySummary>
+{
+    reference_snapshot_mars_outer_boundary_summary_details()
+}
+
+/// Returns the release-facing Mars outer-boundary summary string.
+pub fn reference_snapshot_mars_outer_boundary_summary_for_report() -> String {
+    match reference_snapshot_mars_outer_boundary_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => {
+                format!("Reference Mars outer-boundary evidence: unavailable ({error})")
+            }
+        },
+        None => "Reference Mars outer-boundary evidence: unavailable".to_string(),
+    }
+}
+
 /// A single body-window slice inside the major-body boundary-day reference coverage.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ReferenceMajorBodyBoundaryWindow {
