@@ -2673,6 +2673,25 @@ mod tests {
     }
 
     #[test]
+    fn ecliptic_to_equatorial_normalizes_negative_right_ascension() {
+        let ecliptic = EclipticCoordinates::new(
+            Longitude::from_degrees(180.0),
+            Latitude::from_degrees(30.0),
+            None,
+        );
+        let obliquity = Angle::from_degrees(23.439_291_11);
+
+        assert_eq!(ecliptic.validate(), Ok(()));
+        let equatorial = ecliptic.to_equatorial(obliquity);
+
+        assert_eq!(equatorial.validate(), Ok(()));
+        assert!(equatorial.right_ascension.degrees() >= 0.0);
+        assert!(equatorial.right_ascension.degrees() < 360.0);
+        assert!((equatorial.right_ascension.degrees() - 192.934_084_332_518_07).abs() < 1e-10);
+        assert!((equatorial.declination.degrees() - 27.305_898_332_307_97).abs() < 1e-10);
+    }
+
+    #[test]
     fn built_in_body_names_are_stable() {
         assert_eq!(CelestialBody::Sun.built_in_name(), Some("Sun"));
         assert_eq!(CelestialBody::Sun.to_string(), "Sun");
