@@ -14389,6 +14389,23 @@ mod tests {
     }
 
     #[test]
+    fn selected_asteroid_source_evidence_summary_validation_rejects_sample_count_drift() {
+        let mut summary = selected_asteroid_source_evidence_summary()
+            .expect("selected asteroid source evidence summary should exist");
+        summary.sample_count += 1;
+
+        assert!(matches!(
+            summary.validate(),
+            Err(
+                SelectedAsteroidSourceSummaryValidationError::FieldOutOfSync {
+                    field: "sample_count"
+                }
+            )
+        ));
+        assert!(summary.validated_summary_line().is_err());
+    }
+
+    #[test]
     fn selected_asteroid_source_evidence_summary_validation_rejects_body_order_drift() {
         let mut summary = selected_asteroid_source_evidence_summary()
             .expect("selected asteroid source evidence summary should exist");
@@ -14399,6 +14416,40 @@ mod tests {
             Err(
                 SelectedAsteroidSourceSummaryValidationError::FieldOutOfSync {
                     field: "sample_bodies"
+                }
+            )
+        ));
+        assert!(summary.validated_summary_line().is_err());
+    }
+
+    #[test]
+    fn selected_asteroid_source_window_summary_validation_rejects_sample_count_drift() {
+        let mut summary = selected_asteroid_source_window_summary()
+            .expect("selected asteroid source window summary should exist");
+        summary.sample_count += 1;
+
+        assert!(matches!(
+            summary.validate(),
+            Err(
+                SelectedAsteroidSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "sample_count"
+                }
+            )
+        ));
+        assert!(summary.validated_summary_line().is_err());
+    }
+
+    #[test]
+    fn selected_asteroid_source_window_summary_validation_rejects_epoch_count_drift() {
+        let mut summary = selected_asteroid_source_window_summary()
+            .expect("selected asteroid source window summary should exist");
+        summary.epoch_count += 1;
+
+        assert!(matches!(
+            summary.validate(),
+            Err(
+                SelectedAsteroidSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "epoch_count"
                 }
             )
         ));
