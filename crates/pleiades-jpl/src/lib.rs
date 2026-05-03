@@ -6996,7 +6996,7 @@ pub fn selected_asteroid_source_window_summary_for_report() -> String {
     }
 }
 
-const SELECTED_ASTEROID_BOUNDARY_EPOCH: f64 = 2_451_914.5;
+const SELECTED_ASTEROID_BOUNDARY_EPOCHS: &[f64] = &[2_451_914.5, 2_451_915.5];
 
 fn selected_asteroid_boundary_entries() -> Option<&'static [SnapshotEntry]> {
     static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
@@ -7007,7 +7007,8 @@ fn selected_asteroid_boundary_entries() -> Option<&'static [SnapshotEntry]> {
                 .flatten()
                 .filter(|entry| {
                     is_reference_asteroid(&entry.body)
-                        && entry.epoch.julian_day.days() == SELECTED_ASTEROID_BOUNDARY_EPOCH
+                        && SELECTED_ASTEROID_BOUNDARY_EPOCHS
+                            .contains(&entry.epoch.julian_day.days())
                 })
                 .cloned()
                 .collect()
@@ -7028,8 +7029,8 @@ pub struct SelectedAsteroidBoundarySummary {
     pub sample_count: usize,
     /// Bodies covered by the boundary slice in first-seen order.
     pub sample_bodies: Vec<pleiades_backend::CelestialBody>,
-    /// Exact epoch shared by the boundary slice.
-    pub epoch: Instant,
+    /// Exact epochs shared by the boundary slice.
+    pub epochs: Vec<Instant>,
 }
 
 /// Validation errors for a selected-asteroid boundary summary that drifted from the current slice.
@@ -7048,8 +7049,12 @@ pub enum SelectedAsteroidBoundarySummaryValidationError {
         expected: pleiades_backend::CelestialBody,
         found: pleiades_backend::CelestialBody,
     },
-    /// The summary epoch drifted from the current evidence slice.
-    EpochMismatch { expected: Instant, found: Instant },
+    /// The summary epoch list drifted from the current evidence slice.
+    EpochOrderMismatch {
+        index: usize,
+        expected: Instant,
+        found: Instant,
+    },
 }
 
 impl fmt::Display for SelectedAsteroidBoundarySummaryValidationError {
@@ -7071,9 +7076,13 @@ impl fmt::Display for SelectedAsteroidBoundarySummaryValidationError {
                 f,
                 "selected asteroid boundary evidence body order mismatch at index {index}: expected {expected}, found {found}"
             ),
-            Self::EpochMismatch { expected, found } => write!(
+            Self::EpochOrderMismatch {
+                index,
+                expected,
+                found,
+            } => write!(
                 f,
-                "selected asteroid boundary evidence epoch mismatch: expected {}, found {}",
+                "selected asteroid boundary evidence epoch order mismatch at index {index}: expected {}, found {}",
                 format_instant(*expected),
                 format_instant(*found)
             ),
@@ -7086,10 +7095,16 @@ impl std::error::Error for SelectedAsteroidBoundarySummaryValidationError {}
 impl SelectedAsteroidBoundarySummary {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
+        let epochs = match self.epochs.as_slice() {
+            [] => String::from("(no epochs)"),
+            [epoch] => format_instant(*epoch),
+            [first, .., last] => format!("{}..{}", format_instant(*first), format_instant(*last)),
+        };
         format!(
-            "Selected asteroid boundary evidence: {} exact samples at {} ({})",
+            "Selected asteroid boundary evidence: {} exact samples across {} epochs at {} ({})",
             self.sample_count,
-            format_instant(self.epoch),
+            self.epochs.len(),
+            epochs,
             format_bodies(&self.sample_bodies),
         )
     }
@@ -7130,13 +7145,31 @@ impl SelectedAsteroidBoundarySummary {
                 },
             );
         }
-        if self.epoch != evidence[0].epoch {
+        let expected_epochs = SELECTED_ASTEROID_BOUNDARY_EPOCHS
+            .iter()
+            .copied()
+            .map(|days| Instant::new(JulianDay::from_days(days), TimeScale::Tdb))
+            .collect::<Vec<_>>();
+        if self.epochs.len() != expected_epochs.len() {
             return Err(
-                SelectedAsteroidBoundarySummaryValidationError::EpochMismatch {
-                    expected: evidence[0].epoch,
-                    found: self.epoch,
+                SelectedAsteroidBoundarySummaryValidationError::EpochOrderMismatch {
+                    index: self.epochs.len(),
+                    expected: expected_epochs[0],
+                    found: self.epochs.first().copied().unwrap_or(expected_epochs[0]),
                 },
             );
+        }
+        for (index, (expected, found)) in expected_epochs.iter().zip(self.epochs.iter()).enumerate()
+        {
+            if expected != found {
+                return Err(
+                    SelectedAsteroidBoundarySummaryValidationError::EpochOrderMismatch {
+                        index,
+                        expected: *expected,
+                        found: *found,
+                    },
+                );
+            }
         }
 
         Ok(())
@@ -7159,13 +7192,17 @@ impl fmt::Display for SelectedAsteroidBoundarySummary {
 
 fn selected_asteroid_boundary_summary_details() -> Option<SelectedAsteroidBoundarySummary> {
     let evidence = selected_asteroid_boundary_entries()?;
-    evidence
-        .first()
-        .map(|first| SelectedAsteroidBoundarySummary {
-            sample_count: evidence.len(),
-            sample_bodies: reference_asteroids().to_vec(),
-            epoch: first.epoch,
-        })
+    let mut epochs = Vec::new();
+    for entry in evidence {
+        if epochs.last().copied() != Some(entry.epoch) {
+            epochs.push(entry.epoch);
+        }
+    }
+    Some(SelectedAsteroidBoundarySummary {
+        sample_count: evidence.len(),
+        sample_bodies: reference_asteroids().to_vec(),
+        epochs,
+    })
 }
 
 /// Returns the compact typed summary for the selected-asteroid boundary-day evidence.
@@ -14737,15 +14774,16 @@ mod tests {
     }
 
     #[test]
-    fn selected_asteroid_boundary_summary_reports_the_boundary_day() {
+    fn selected_asteroid_boundary_summary_reports_the_boundary_days() {
         let summary = selected_asteroid_boundary_summary()
             .expect("selected asteroid boundary summary should exist");
-        assert_eq!(summary.sample_count, 5);
+        assert_eq!(summary.sample_count, 10);
+        assert_eq!(summary.epochs.len(), 2);
         assert_eq!(summary.validate(), Ok(()));
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             summary.summary_line(),
-            "Selected asteroid boundary evidence: 5 exact samples at JD 2451914.5 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"
+            "Selected asteroid boundary evidence: 10 exact samples across 2 epochs at JD 2451914.5 (TDB)..JD 2451915.5 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"
         );
         assert_eq!(
             summary.summary_line(),
@@ -14872,6 +14910,21 @@ mod tests {
         assert!(matches!(
             summary.validate(),
             Err(SelectedAsteroidBoundarySummaryValidationError::BodyOrderMismatch { index: 0, .. })
+        ));
+        assert!(summary.validated_summary_line().is_err());
+    }
+
+    #[test]
+    fn selected_asteroid_boundary_summary_validation_rejects_epoch_order_drift() {
+        let mut summary = selected_asteroid_boundary_summary()
+            .expect("selected asteroid boundary summary should exist");
+        summary.epochs.swap(0, 1);
+
+        assert!(matches!(
+            summary.validate(),
+            Err(
+                SelectedAsteroidBoundarySummaryValidationError::EpochOrderMismatch { index: 0, .. }
+            )
         ));
         assert!(summary.validated_summary_line().is_err());
     }
