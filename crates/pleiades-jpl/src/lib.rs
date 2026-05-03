@@ -16341,6 +16341,23 @@ mod tests {
     }
 
     #[test]
+    fn reference_asteroid_source_window_summary_validation_rejects_custom_body_drift() {
+        let mut summary = reference_asteroid_source_window_summary()
+            .expect("reference asteroid source window summary should exist");
+        summary.sample_bodies[4] = pleiades_backend::CelestialBody::Ceres;
+
+        assert!(matches!(
+            summary.validate(),
+            Err(
+                ReferenceAsteroidSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "sample_bodies"
+                }
+            )
+        ));
+        assert!(summary.validated_summary_line().is_err());
+    }
+
+    #[test]
     fn reference_asteroid_source_window_summary_validation_rejects_window_order_drift() {
         let mut summary = reference_asteroid_source_window_summary()
             .expect("reference asteroid source window summary should exist");
@@ -16551,6 +16568,23 @@ mod tests {
             Err(
                 SelectedAsteroidSourceWindowSummaryValidationError::FieldOutOfSync {
                     field: "epoch_count"
+                }
+            )
+        ));
+        assert!(summary.validated_summary_line().is_err());
+    }
+
+    #[test]
+    fn selected_asteroid_source_window_summary_validation_rejects_custom_body_drift() {
+        let mut summary = selected_asteroid_source_window_summary()
+            .expect("selected asteroid source window summary should exist");
+        summary.sample_bodies[4] = pleiades_backend::CelestialBody::Ceres;
+
+        assert!(matches!(
+            summary.validate(),
+            Err(
+                SelectedAsteroidSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "sample_bodies"
                 }
             )
         ));
