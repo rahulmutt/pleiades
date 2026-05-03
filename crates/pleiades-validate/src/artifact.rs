@@ -2356,7 +2356,7 @@ mod tests {
 
         let summary = report.summary_line();
         assert!(summary.contains("artifact inspection:"));
-        assert!(summary.contains("residual-bearing segments: 6"));
+        assert!(summary.contains("residual-bearing segments: 7"));
         assert!(summary.contains("residual-bearing bodies: Moon"));
         assert!(summary.contains("body classes: luminaries=2; major planets=8; lunar points=0; built-in asteroids=0; custom bodies=1; other bodies=0"));
         assert!(summary.contains("roundtrip=ok"));
