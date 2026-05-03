@@ -9255,9 +9255,15 @@ fn reference_snapshot_source_window_summary_details() -> Option<ReferenceSnapsho
         return None;
     }
 
-    let mut windows = Vec::new();
     let mut sample_bodies = Vec::new();
-    for body in reference_bodies() {
+    for entry in entries {
+        if !sample_bodies.contains(&entry.body) {
+            sample_bodies.push(entry.body.clone());
+        }
+    }
+
+    let mut windows = Vec::new();
+    for body in &sample_bodies {
         let body_entries = entries
             .iter()
             .filter(|entry| entry.body == *body)
@@ -9279,7 +9285,6 @@ fn reference_snapshot_source_window_summary_details() -> Option<ReferenceSnapsho
             }
         }
 
-        sample_bodies.push(body.clone());
         windows.push(ReferenceSnapshotSourceWindow {
             body: body.clone(),
             sample_count: body_entries.len(),
