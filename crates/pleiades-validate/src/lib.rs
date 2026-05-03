@@ -10319,7 +10319,7 @@ impl RequestSurfaceSummary {
             backend_request:
                 "pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight)",
             house_request: "pleiades-houses::HouseRequest (house-only observer calculations)",
-            cli_chart: "pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags)",
+            cli_chart: "pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags plus caller-supplied TT/TDB offset aliases)",
         }
     }
 
@@ -10333,7 +10333,7 @@ impl RequestSurfaceSummary {
             "pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight)";
         const EXPECTED_HOUSE_REQUEST: &str =
             "pleiades-houses::HouseRequest (house-only observer calculations)";
-        const EXPECTED_CLI_CHART: &str = "pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags)";
+        const EXPECTED_CLI_CHART: &str = "pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags plus caller-supplied TT/TDB offset aliases)";
 
         validate_request_surface_label("instant", self.instant, EXPECTED_INSTANT)?;
         validate_request_surface_label(
@@ -14111,7 +14111,7 @@ mod tests {
         assert_eq!(summary.to_string(), request_surface_summary_for_report());
         assert_eq!(
             summary.summary_line(),
-            "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags)"
+            "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags plus caller-supplied TT/TDB offset aliases)"
         );
         assert_eq!(summary.summary_line().lines().count(), 1);
     }
@@ -18266,10 +18266,10 @@ mod tests {
                 .expect("current request policy summary should render")
         );
         assert!(rendered.contains(
-            "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags)"
+            "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags plus caller-supplied TT/TDB offset aliases)"
         ));
         assert!(rendered.lines().any(|line| {
-            line == "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags)"
+            line == "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags plus caller-supplied TT/TDB offset aliases)"
         }));
         assert!(rendered.contains(
             "pleiades-core::ChartRequest (chart assembly plus house-observer preflight)"
@@ -18669,10 +18669,10 @@ version = "0.9.0"
             .contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(release_summary.contains("Backend matrix summary: backend-matrix-summary"));
         assert!(release_summary.contains(
-            "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags)"
+            "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags plus caller-supplied TT/TDB offset aliases)"
         ));
         assert!(release_summary.lines().any(|line| {
-            line == "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags)"
+            line == "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags plus caller-supplied TT/TDB offset aliases)"
         }));
         assert!(release_summary.contains(
             "Validation report summary: validation-report-summary / validation-summary / report-summary"
@@ -19012,11 +19012,11 @@ version = "0.9.0"
             compatibility_profile.house_code_aliases_summary_line()
         )));
         assert!(backend_matrix_summary.contains(
-            "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags)"
+            "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags plus caller-supplied TT/TDB offset aliases)"
         ));
         assert!(
             backend_matrix_summary.lines().any(|line| {
-                line == "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags)"
+                line == "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags plus caller-supplied TT/TDB offset aliases)"
             })
         );
         assert!(backend_matrix_summary.contains(&format!(
@@ -21473,7 +21473,7 @@ version = "0.9.0"
         assert!(
             rendered.contains("pleiades-houses::HouseRequest (house-only observer calculations)")
         );
-        assert!(rendered.contains("pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags)"));
+        assert!(rendered.contains("pleiades-cli chart (explicit TT/TDB/UTC/UT1 flags plus caller-supplied TT/TDB offset aliases)"));
         assert_eq!(
             rendered,
             format!(
