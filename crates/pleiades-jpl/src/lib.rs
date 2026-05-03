@@ -8181,6 +8181,9 @@ impl ReferenceSnapshotSourceSummary {
                 },
             );
         }
+        if self.reference_epoch != reference_instant() {
+            return Err(ReferenceSnapshotSourceSummaryValidationError::ReferenceEpochMismatch);
+        }
         Ok(())
     }
 
@@ -8215,6 +8218,8 @@ pub enum ReferenceSnapshotSourceSummaryValidationError {
     BlankFrameTreatment,
     /// The summary carried surrounding whitespace in one of its labels.
     SurroundedByWhitespace { field: &'static str },
+    /// The summary carried an unexpected reference epoch.
+    ReferenceEpochMismatch,
 }
 
 impl ReferenceSnapshotSourceSummaryValidationError {
@@ -8225,6 +8230,7 @@ impl ReferenceSnapshotSourceSummaryValidationError {
             Self::BlankCoverage => "blank coverage",
             Self::BlankFrameTreatment => "blank frame treatment",
             Self::SurroundedByWhitespace { .. } => "surrounded by whitespace",
+            Self::ReferenceEpochMismatch => "reference epoch mismatch",
         }
     }
 }
@@ -8235,6 +8241,7 @@ impl fmt::Display for ReferenceSnapshotSourceSummaryValidationError {
             Self::SurroundedByWhitespace { field } => {
                 write!(f, "{field} contains surrounding whitespace")
             }
+            Self::ReferenceEpochMismatch => f.write_str("reference epoch mismatch"),
             _ => f.write_str(self.label()),
         }
     }
@@ -14578,6 +14585,14 @@ mod tests {
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validate(), Ok(()));
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        let mut drifted_summary = summary.clone();
+        drifted_summary.reference_epoch = drifted_summary
+            .reference_epoch
+            .with_time_scale_offset(TimeScale::Tt, 1.0);
+        assert_eq!(
+            drifted_summary.validate(),
+            Err(ReferenceSnapshotSourceSummaryValidationError::ReferenceEpochMismatch)
+        );
         assert_eq!(
             reference_snapshot_source_summary_for_report(),
             summary.summary_line()
