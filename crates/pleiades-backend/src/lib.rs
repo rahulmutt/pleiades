@@ -1949,7 +1949,7 @@ pub const fn current_delta_t_policy_summary() -> DeltaTPolicySummary {
 /// Returns the current shared observer policy used by validation and reports.
 pub const fn current_observer_policy_summary() -> ObserverPolicySummary {
     ObserverPolicySummary::new(
-        "chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests; topocentric body positions remain unsupported",
+        "chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests with UnsupportedObserver; malformed observer coordinates remain InvalidObserver; topocentric body positions remain unsupported",
     )
 }
 
@@ -2913,7 +2913,7 @@ mod tests {
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             summary.summary_line(),
-            "time-scale=direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T or UTC convenience model; observer=chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests; topocentric body positions remain unsupported; apparentness=current first-party backends accept mean geometric output only; apparent-place corrections are rejected unless a backend explicitly advertises support; frame=ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported; native sidereal backend output remains unsupported unless a backend explicitly advertises it"
+            "time-scale=direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T or UTC convenience model; observer=chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests with UnsupportedObserver; malformed observer coordinates remain InvalidObserver; topocentric body positions remain unsupported; apparentness=current first-party backends accept mean geometric output only; apparent-place corrections are rejected unless a backend explicitly advertises support; frame=ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported; native sidereal backend output remains unsupported unless a backend explicitly advertises it"
         );
         assert!(summary.summary_line().contains("time-scale="));
         assert!(summary.summary_line().contains("observer="));
@@ -2945,7 +2945,7 @@ mod tests {
     #[test]
     fn request_policy_summary_validate_rejects_whitespace_padded_fields() {
         let mut summary = RequestPolicySummary::current();
-        summary.observer = " chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests; topocentric body positions remain unsupported ";
+        summary.observer = " chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests with UnsupportedObserver; malformed observer coordinates remain InvalidObserver; topocentric body positions remain unsupported ";
 
         let error = summary
             .validate()
@@ -4012,7 +4012,7 @@ mod tests {
         );
         assert_eq!(
             request_policy.observer,
-            "chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests; topocentric body positions remain unsupported"
+            "chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests with UnsupportedObserver; malformed observer coordinates remain InvalidObserver; topocentric body positions remain unsupported"
         );
         assert_eq!(
             request_policy.apparentness,
