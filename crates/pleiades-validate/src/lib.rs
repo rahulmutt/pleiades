@@ -4600,8 +4600,12 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "request-surface-summary")?;
             Ok(render_request_surface_summary_text())
         }
-        Some("request-policy-summary") | Some("request-semantics-summary") => {
+        Some("request-policy-summary") => {
             ensure_no_extra_args(&args[1..], "request-policy-summary")?;
+            Ok(render_request_policy_summary_text())
+        }
+        Some("request-semantics-summary") => {
+            ensure_no_extra_args(&args[1..], "request-semantics-summary")?;
             Ok(render_request_policy_summary_text())
         }
         Some("comparison-tolerance-policy-summary") => {
@@ -21737,6 +21741,12 @@ version = "0.9.0"
             rendered,
             render_cli(&["request-semantics-summary"])
                 .expect("request semantics alias should render")
+        );
+        let alias_error = render_cli(&["request-semantics-summary", "extra"])
+            .expect_err("request semantics alias should reject extra arguments");
+        assert_eq!(
+            alias_error,
+            "request-semantics-summary does not accept extra arguments"
         );
     }
 

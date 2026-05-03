@@ -1746,6 +1746,12 @@ mod tests {
             render_cli(&["request-semantics-summary"])
                 .expect("request semantics summary should render")
         );
+        let request_semantics_error = render_cli(&["request-semantics-summary", "extra"])
+            .expect_err("request semantics alias should reject extra arguments");
+        assert_eq!(
+            request_semantics_error,
+            "request-semantics-summary does not accept extra arguments"
+        );
 
         let comparison_tolerance_policy_summary =
             render_cli(&["comparison-tolerance-policy-summary"])
