@@ -2352,7 +2352,9 @@ mod tests {
         assert!(
             boundary_epoch_coverage_summary.contains("Reference snapshot boundary epoch coverage:")
         );
-        assert!(boundary_epoch_coverage_summary.contains("JD 2451915.5 (TDB): 5 bodies"));
+        assert!(boundary_epoch_coverage_summary.contains(
+            "JD 2451915.5 (TDB): 5 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); sparse asteroid-only day"
+        ));
         assert_eq!(
             boundary_epoch_coverage_alias,
             boundary_epoch_coverage_summary

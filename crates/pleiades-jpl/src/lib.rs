@@ -9498,14 +9498,23 @@ pub struct ReferenceSnapshotBoundaryEpochCoverage {
     pub bodies: Vec<pleiades_backend::CelestialBody>,
 }
 
+const REFERENCE_SPARSE_BOUNDARY_EPOCH_JD: f64 = 2_451_915.5;
+
 impl ReferenceSnapshotBoundaryEpochCoverage {
     /// Returns a compact epoch-coverage summary used in release-facing reporting.
     pub fn summary_line(&self) -> String {
+        let sparse_note = if self.epoch.julian_day.days() == REFERENCE_SPARSE_BOUNDARY_EPOCH_JD {
+            "; sparse asteroid-only day"
+        } else {
+            ""
+        };
+
         format!(
-            "{}: {} bodies ({})",
+            "{}: {} bodies ({}){}",
             format_instant(self.epoch),
             self.body_count,
             format_bodies(&self.bodies),
+            sparse_note,
         )
     }
 }
@@ -14897,10 +14906,10 @@ mod tests {
                 .summary_line()
                 .contains("Reference snapshot boundary epoch coverage: 57 exact samples across 5 epochs (JD 2451913.5 (TDB)..JD 2451917.5 (TDB)); epochs:")
         );
-        assert!(summary.summary_line().contains(
-            "JD 2451915.5 (TDB): 5 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"
-        ));
-        assert_eq!(summary.summary_line(), "Reference snapshot boundary epoch coverage: 57 exact samples across 5 epochs (JD 2451913.5 (TDB)..JD 2451917.5 (TDB)); epochs: JD 2451913.5 (TDB): 15 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); JD 2451914.5 (TDB): 15 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); JD 2451915.5 (TDB): 5 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); JD 2451916.5 (TDB): 15 bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); JD 2451917.5 (TDB): 7 bodies (Mars, Jupiter, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)");
+        assert!(summary
+            .summary_line()
+            .contains("JD 2451915.5 (TDB): 5 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); sparse asteroid-only day"));
+        assert_eq!(summary.summary_line(), "Reference snapshot boundary epoch coverage: 57 exact samples across 5 epochs (JD 2451913.5 (TDB)..JD 2451917.5 (TDB)); epochs: JD 2451913.5 (TDB): 15 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); JD 2451914.5 (TDB): 15 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); JD 2451915.5 (TDB): 5 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); sparse asteroid-only day; JD 2451916.5 (TDB): 15 bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); JD 2451917.5 (TDB): 7 bodies (Mars, Jupiter, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)");
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             reference_snapshot_boundary_epoch_coverage_summary_for_report(),

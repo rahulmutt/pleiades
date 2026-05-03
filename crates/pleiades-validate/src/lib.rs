@@ -21211,11 +21211,13 @@ version = "0.9.0"
             .expect("boundary epoch coverage summary alias should render");
 
         assert!(rendered.contains("Reference snapshot boundary epoch coverage:"));
-        assert!(rendered.contains("JD 2451915.5 (TDB): 5 bodies"));
+        assert!(rendered.contains(
+            "JD 2451915.5 (TDB): 5 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); sparse asteroid-only day"
+        ));
         assert_eq!(alias, rendered);
         assert_eq!(
             rendered,
-            "Reference snapshot boundary epoch coverage: 57 exact samples across 5 epochs (JD 2451913.5 (TDB)..JD 2451917.5 (TDB)); epochs: JD 2451913.5 (TDB): 15 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); JD 2451914.5 (TDB): 15 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); JD 2451915.5 (TDB): 5 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); JD 2451916.5 (TDB): 15 bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); JD 2451917.5 (TDB): 7 bodies (Mars, Jupiter, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"
+            "Reference snapshot boundary epoch coverage: 57 exact samples across 5 epochs (JD 2451913.5 (TDB)..JD 2451917.5 (TDB)); epochs: JD 2451913.5 (TDB): 15 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); JD 2451914.5 (TDB): 15 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); JD 2451915.5 (TDB): 5 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); sparse asteroid-only day; JD 2451916.5 (TDB): 15 bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); JD 2451917.5 (TDB): 7 bodies (Mars, Jupiter, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"
         );
         assert_eq!(
             rendered,
