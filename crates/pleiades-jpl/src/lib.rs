@@ -6997,6 +6997,7 @@ pub fn selected_asteroid_source_window_summary_for_report() -> String {
 }
 
 const SELECTED_ASTEROID_BOUNDARY_EPOCHS: &[f64] = &[2_451_914.5, 2_451_915.5];
+const SELECTED_ASTEROID_TERMINAL_BOUNDARY_EPOCH_JD: f64 = 2_500_000.0;
 
 fn selected_asteroid_boundary_entries() -> Option<&'static [SnapshotEntry]> {
     static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
@@ -7218,6 +7219,210 @@ pub fn selected_asteroid_boundary_summary_for_report() -> String {
             Err(error) => format!("Selected asteroid boundary evidence: unavailable ({error})"),
         },
         None => "Selected asteroid boundary evidence: unavailable".to_string(),
+    }
+}
+
+fn selected_asteroid_terminal_boundary_entries() -> Option<&'static [SnapshotEntry]> {
+    static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
+    let entries = ENTRIES
+        .get_or_init(|| {
+            snapshot_entries()
+                .into_iter()
+                .flatten()
+                .filter(|entry| {
+                    is_reference_asteroid(&entry.body)
+                        && entry.epoch.julian_day.days()
+                            == SELECTED_ASTEROID_TERMINAL_BOUNDARY_EPOCH_JD
+                })
+                .cloned()
+                .collect()
+        })
+        .as_slice();
+
+    if entries.is_empty() {
+        None
+    } else {
+        Some(entries)
+    }
+}
+
+/// Compact release-facing summary for the terminal selected-asteroid boundary day.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SelectedAsteroidTerminalBoundarySummary {
+    /// Number of exact samples in the boundary slice.
+    pub sample_count: usize,
+    /// Bodies covered by the boundary slice in first-seen order.
+    pub sample_bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Exact epoch shared by the boundary slice.
+    pub epoch: Instant,
+}
+
+/// Validation errors for a selected-asteroid terminal boundary summary that drifted from the current slice.
+#[derive(Clone, Debug, PartialEq)]
+pub enum SelectedAsteroidTerminalBoundarySummaryValidationError {
+    /// The summary did not expose any samples.
+    Empty,
+    /// The summary sample count drifted from the current evidence slice.
+    SampleCountMismatch {
+        sample_count: usize,
+        derived_sample_count: usize,
+    },
+    /// The summary body list drifted from the current evidence slice.
+    BodyOrderMismatch {
+        index: usize,
+        expected: pleiades_backend::CelestialBody,
+        found: pleiades_backend::CelestialBody,
+    },
+    /// The summary epoch drifted from the current evidence slice.
+    EpochMismatch { expected: Instant, found: Instant },
+}
+
+impl fmt::Display for SelectedAsteroidTerminalBoundarySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Empty => f.write_str("selected asteroid terminal boundary evidence is unavailable"),
+            Self::SampleCountMismatch {
+                sample_count,
+                derived_sample_count,
+            } => write!(
+                f,
+                "selected asteroid terminal boundary evidence sample count {sample_count} does not match derived sample count {derived_sample_count}"
+            ),
+            Self::BodyOrderMismatch {
+                index,
+                expected,
+                found,
+            } => write!(
+                f,
+                "selected asteroid terminal boundary evidence body order mismatch at index {index}: expected {expected}, found {found}"
+            ),
+            Self::EpochMismatch { expected, found } => write!(
+                f,
+                "selected asteroid terminal boundary evidence epoch mismatch: expected {}, found {}",
+                format_instant(*expected),
+                format_instant(*found)
+            ),
+        }
+    }
+}
+
+impl std::error::Error for SelectedAsteroidTerminalBoundarySummaryValidationError {}
+
+impl SelectedAsteroidTerminalBoundarySummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Reference selected-asteroid terminal boundary evidence: {} exact samples at {} ({}); 2500-01-01 terminal boundary sample",
+            self.sample_count,
+            format_instant(self.epoch),
+            format_bodies(&self.sample_bodies),
+        )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current evidence slice.
+    pub fn validate(&self) -> Result<(), SelectedAsteroidTerminalBoundarySummaryValidationError> {
+        let evidence = selected_asteroid_terminal_boundary_entries()
+            .ok_or(SelectedAsteroidTerminalBoundarySummaryValidationError::Empty)?;
+
+        if self.sample_count != evidence.len() {
+            return Err(
+                SelectedAsteroidTerminalBoundarySummaryValidationError::SampleCountMismatch {
+                    sample_count: self.sample_count,
+                    derived_sample_count: evidence.len(),
+                },
+            );
+        }
+
+        let mut expected_bodies = Vec::new();
+        for entry in evidence {
+            if !expected_bodies.contains(&entry.body) {
+                expected_bodies.push(entry.body.clone());
+            }
+        }
+        if self.sample_bodies.as_slice() != expected_bodies.as_slice() {
+            for (index, (expected, found)) in expected_bodies
+                .iter()
+                .zip(self.sample_bodies.iter())
+                .enumerate()
+            {
+                if expected != found {
+                    return Err(
+                        SelectedAsteroidTerminalBoundarySummaryValidationError::BodyOrderMismatch {
+                            index,
+                            expected: expected.clone(),
+                            found: found.clone(),
+                        },
+                    );
+                }
+            }
+            return Err(
+                SelectedAsteroidTerminalBoundarySummaryValidationError::SampleCountMismatch {
+                    sample_count: self.sample_count,
+                    derived_sample_count: evidence.len(),
+                },
+            );
+        }
+
+        if self.epoch != evidence[0].epoch {
+            return Err(
+                SelectedAsteroidTerminalBoundarySummaryValidationError::EpochMismatch {
+                    expected: evidence[0].epoch,
+                    found: self.epoch,
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the compact summary line after validating the current evidence slice.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, SelectedAsteroidTerminalBoundarySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for SelectedAsteroidTerminalBoundarySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn selected_asteroid_terminal_boundary_summary_details(
+) -> Option<SelectedAsteroidTerminalBoundarySummary> {
+    let evidence = selected_asteroid_terminal_boundary_entries()?;
+    let mut sample_bodies = Vec::new();
+    for entry in evidence {
+        if !sample_bodies.contains(&entry.body) {
+            sample_bodies.push(entry.body.clone());
+        }
+    }
+
+    Some(SelectedAsteroidTerminalBoundarySummary {
+        sample_count: evidence.len(),
+        sample_bodies,
+        epoch: evidence[0].epoch,
+    })
+}
+
+/// Returns the compact typed summary for the terminal selected-asteroid boundary evidence.
+pub fn selected_asteroid_terminal_boundary_summary(
+) -> Option<SelectedAsteroidTerminalBoundarySummary> {
+    selected_asteroid_terminal_boundary_summary_details()
+}
+
+/// Returns the release-facing terminal selected-asteroid boundary summary string.
+pub fn selected_asteroid_terminal_boundary_summary_for_report() -> String {
+    match selected_asteroid_terminal_boundary_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => {
+                format!("Selected asteroid terminal boundary evidence: unavailable ({error})")
+            }
+        },
+        None => "Selected asteroid terminal boundary evidence: unavailable".to_string(),
     }
 }
 
@@ -10261,6 +10466,7 @@ pub fn jpl_snapshot_evidence_summary_for_report() -> String {
         reference_asteroid_evidence_summary_for_report(),
         reference_asteroid_equatorial_evidence_summary_for_report(),
         reference_asteroid_source_window_summary_for_report(),
+        selected_asteroid_terminal_boundary_summary_for_report(),
         comparison_snapshot_summary_for_report(),
         comparison_snapshot_body_class_coverage_summary_for_report(),
         comparison_snapshot_source_summary_for_report(),
@@ -15556,6 +15762,46 @@ mod tests {
     }
 
     #[test]
+    fn selected_asteroid_terminal_boundary_summary_reports_the_terminal_boundary_day() {
+        let summary = selected_asteroid_terminal_boundary_summary()
+            .expect("selected asteroid terminal boundary summary should exist");
+        assert_eq!(summary.sample_count, 5);
+        assert_eq!(summary.sample_bodies, reference_asteroids().to_vec());
+        assert_eq!(
+            summary.epoch,
+            Instant::new(JulianDay::from_days(2_500_000.0), TimeScale::Tdb)
+        );
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            summary.summary_line(),
+            "Reference selected-asteroid terminal boundary evidence: 5 exact samples at JD 2500000.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); 2500-01-01 terminal boundary sample"
+        );
+        assert_eq!(
+            summary.summary_line(),
+            selected_asteroid_terminal_boundary_summary_for_report()
+        );
+    }
+
+    #[test]
+    fn selected_asteroid_terminal_boundary_summary_validation_rejects_epoch_drift() {
+        let mut summary = selected_asteroid_terminal_boundary_summary()
+            .expect("selected asteroid terminal boundary summary should exist");
+        summary.epoch = Instant::new(JulianDay::from_days(2_500_001.0), TimeScale::Tdb);
+
+        assert!(matches!(
+            summary.validate(),
+            Err(
+                SelectedAsteroidTerminalBoundarySummaryValidationError::EpochMismatch {
+                    expected: _,
+                    found: _
+                }
+            )
+        ));
+        assert!(summary.validated_summary_line().is_err());
+    }
+
+    #[test]
     fn selected_asteroid_batch_parity_summary_reports_the_expected_coverage() {
         let summary = selected_asteroid_batch_parity_summary()
             .expect("selected asteroid batch parity summary should exist");
@@ -17296,6 +17542,7 @@ mod tests {
         assert!(report.contains(&reference_asteroid_evidence_summary_for_report()));
         assert!(report.contains(&reference_asteroid_equatorial_evidence_summary_for_report()));
         assert!(report.contains(&reference_asteroid_source_window_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_terminal_boundary_summary_for_report()));
         assert!(report.contains(&comparison_snapshot_summary_for_report()));
         assert!(report.contains(&comparison_snapshot_body_class_coverage_summary_for_report()));
         assert!(report.contains(&comparison_snapshot_source_summary_for_report()));
