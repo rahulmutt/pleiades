@@ -4793,12 +4793,18 @@ mod tests {
             Longitude::from_degrees(-118.25),
             Some(75.0),
         );
+        let body_observer = ObserverLocation::new(
+            Latitude::from_degrees(-33.9),
+            Longitude::from_degrees(151.2),
+            None,
+        );
 
         let request = ChartRequest::new(Instant::new(
             pleiades_types::JulianDay::from_days(2_451_545.0),
             TimeScale::Utc,
         ))
         .with_observer(observer)
+        .with_body_observer(body_observer.clone())
         .with_house_system(HouseSystem::Custom(custom))
         .with_bodies(vec![CelestialBody::Sun, CelestialBody::Moon])
         .with_zodiac_mode(ZodiacMode::Sidereal {
@@ -4817,6 +4823,7 @@ mod tests {
 
         assert_eq!(converted.instant.scale, TimeScale::Tdb);
         assert_eq!(converted.observer, request.observer);
+        assert_eq!(converted.body_observer, request.body_observer);
         assert_eq!(converted.bodies, request.bodies);
         assert_eq!(converted.zodiac_mode, request.zodiac_mode);
         assert_eq!(converted.apparentness, request.apparentness);
@@ -4828,6 +4835,7 @@ mod tests {
         assert!(summary.contains("zodiac=Sidereal (Lahiri);"));
         assert!(summary.contains("apparentness=Apparent;"));
         assert!(summary.contains("observer=house-only;"));
+        assert!(summary.contains("body observer=latitude=-33.9°, longitude=151.2°, elevation=n/a"));
         assert!(summary.contains(
             "house system=My UTC Custom Houses [aliases: My UTC Alias] (uses a local UTC calibration)"
         ));
