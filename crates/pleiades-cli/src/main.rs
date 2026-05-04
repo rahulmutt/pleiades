@@ -10,10 +10,10 @@
 use core::time::Duration;
 
 use pleiades_core::{
-    default_chart_bodies, resolve_ayanamsa, resolve_house_system, Angle, Apparentness, Ayanamsa,
-    CelestialBody, ChartEngine, ChartRequest, CompositeBackend, CustomAyanamsa, CustomBodyId,
-    EphemerisError, HouseSystem, Instant, JulianDay, Latitude, Longitude, ObserverLocation,
-    RoutingBackend, TimeScale, ZodiacMode,
+    default_chart_bodies, native_sidereal_policy_summary_for_report, resolve_ayanamsa,
+    resolve_house_system, Angle, Apparentness, Ayanamsa, CelestialBody, ChartEngine, ChartRequest,
+    CompositeBackend, CustomAyanamsa, CustomBodyId, EphemerisError, HouseSystem, Instant,
+    JulianDay, Latitude, Longitude, ObserverLocation, RoutingBackend, TimeScale, ZodiacMode,
 };
 use pleiades_data::{
     packaged_artifact_bytes, packaged_artifact_regeneration_summary_for_report,
@@ -48,15 +48,17 @@ fn shared_request_policy_help_block() -> String {
     let delta_t_policy = pleiades_core::delta_t_policy_summary_for_report();
     let observer_policy = pleiades_core::observer_policy_summary_for_report();
     let apparentness_policy = pleiades_core::apparentness_policy_summary_for_report();
+    let native_sidereal_policy = native_sidereal_policy_summary_for_report();
     let frame_policy = pleiades_core::frame_policy_summary_for_report();
 
     format!(
-        "  Request policy: {}\n  Time-scale policy: {}\n  Delta T policy: {}\n  Observer policy: {}\n  Apparentness policy: {}\n  Frame policy: {}",
+        "  Request policy: {}\n  Time-scale policy: {}\n  Delta T policy: {}\n  Observer policy: {}\n  Apparentness policy: {}\n  Native sidereal policy: {}\n  Frame policy: {}",
         request_policy.summary_line(),
         time_scale_policy.summary_line(),
         delta_t_policy.summary_line(),
         observer_policy.summary_line(),
         apparentness_policy.summary_line(),
+        native_sidereal_policy.summary_line(),
         frame_policy,
     )
 }
@@ -244,6 +246,14 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("apparentness-policy") => {
             ensure_no_extra_args(&args[1..], "apparentness-policy")?;
+            validate_render_cli(args)
+        }
+        Some("native-sidereal-policy-summary") => {
+            ensure_no_extra_args(&args[1..], "native-sidereal-policy-summary")?;
+            validate_render_cli(args)
+        }
+        Some("native-sidereal-policy") => {
+            ensure_no_extra_args(&args[1..], "native-sidereal-policy")?;
             validate_render_cli(args)
         }
         Some("interpolation-posture-summary") => validate_render_cli(args),
@@ -1855,6 +1865,9 @@ mod tests {
             line == "Apparentness policy: current first-party backends accept mean geometric output only; apparent-place corrections are rejected unless a backend explicitly advertises support"
         }));
         assert!(release_summary.lines().any(|line| {
+            line == "Native sidereal policy: native sidereal backend output remains unsupported unless a backend explicitly advertises it"
+        }));
+        assert!(release_summary.lines().any(|line| {
             line == "Request policy: time-scale=direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T or UTC convenience model; observer=chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests with UnsupportedObserver; malformed observer coordinates remain InvalidObserver; topocentric body positions remain unsupported; apparentness=current first-party backends accept mean geometric output only; apparent-place corrections are rejected unless a backend explicitly advertises support; frame=ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported; native sidereal backend output remains unsupported unless a backend explicitly advertises it"
         }));
 
@@ -2385,6 +2398,15 @@ mod tests {
         assert_eq!(
             render_cli(&["apparentness-policy"]).expect("apparentness policy alias should render"),
             apparentness_policy_summary
+        );
+        let native_sidereal_policy_summary = render_cli(&["native-sidereal-policy-summary"])
+            .expect("native sidereal policy summary should render");
+        assert!(native_sidereal_policy_summary.contains("Native sidereal policy summary"));
+        assert!(native_sidereal_policy_summary.contains("Native sidereal policy: native sidereal backend output remains unsupported unless a backend explicitly advertises it"));
+        assert_eq!(
+            render_cli(&["native-sidereal-policy"])
+                .expect("native sidereal policy alias should render"),
+            native_sidereal_policy_summary
         );
         let interpolation_posture_summary = render_cli(&["interpolation-posture-summary"])
             .expect("interpolation posture summary should render");
@@ -3579,6 +3601,14 @@ mod tests {
             (
                 ["apparentness-policy", "extra"],
                 "apparentness-policy does not accept extra arguments",
+            ),
+            (
+                ["native-sidereal-policy-summary", "extra"],
+                "native-sidereal-policy-summary does not accept extra arguments",
+            ),
+            (
+                ["native-sidereal-policy", "extra"],
+                "native-sidereal-policy does not accept extra arguments",
             ),
             (
                 ["frame-policy-summary", "extra"],

@@ -1932,6 +1932,90 @@ impl fmt::Display for FramePolicySummary {
     }
 }
 
+/// Compact summary of the current native sidereal policy.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct NativeSiderealPolicySummary {
+    summary: &'static str,
+}
+
+/// Validation error for the current native sidereal policy summary.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum NativeSiderealPolicySummaryValidationError {
+    /// The summary text is blank or whitespace-only.
+    BlankSummary,
+    /// The summary text has surrounding whitespace.
+    WhitespacePaddedSummary,
+    /// The summary text contains an embedded line break.
+    EmbeddedLineBreak,
+    /// The summary text no longer matches the current native sidereal posture.
+    CurrentPolicyOutOfSync,
+}
+
+impl fmt::Display for NativeSiderealPolicySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BlankSummary => f.write_str("native sidereal policy summary is blank"),
+            Self::WhitespacePaddedSummary => {
+                f.write_str("native sidereal policy summary has surrounding whitespace")
+            }
+            Self::EmbeddedLineBreak => {
+                f.write_str("native sidereal policy summary contains a line break")
+            }
+            Self::CurrentPolicyOutOfSync => f.write_str(
+                "native sidereal policy summary is out of sync with the current posture",
+            ),
+        }
+    }
+}
+
+impl std::error::Error for NativeSiderealPolicySummaryValidationError {}
+
+impl NativeSiderealPolicySummary {
+    /// Creates a new native sidereal policy summary from a backend-owned note.
+    pub const fn new(summary: &'static str) -> Self {
+        Self { summary }
+    }
+
+    /// Returns the compact one-line rendering of the native sidereal policy posture.
+    pub const fn summary_line(self) -> &'static str {
+        self.summary
+    }
+
+    /// Returns the current native sidereal policy posture.
+    pub const fn current() -> Self {
+        current_native_sidereal_policy_summary()
+    }
+
+    /// Returns `Ok(())` when the summary still contains the current canonical line.
+    pub fn validate(&self) -> Result<(), NativeSiderealPolicySummaryValidationError> {
+        if self.summary.trim().is_empty() {
+            Err(NativeSiderealPolicySummaryValidationError::BlankSummary)
+        } else if self.summary.trim() != self.summary {
+            Err(NativeSiderealPolicySummaryValidationError::WhitespacePaddedSummary)
+        } else if self.summary.contains('\n') || self.summary.contains('\r') {
+            Err(NativeSiderealPolicySummaryValidationError::EmbeddedLineBreak)
+        } else if self.summary != current_native_sidereal_policy_summary().summary_line() {
+            Err(NativeSiderealPolicySummaryValidationError::CurrentPolicyOutOfSync)
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Returns the compact summary line after validating the cached prose.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<&'static str, NativeSiderealPolicySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for NativeSiderealPolicySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.summary_line())
+    }
+}
+
 /// Returns the current shared time-scale policy used by validation and reports.
 pub const fn current_time_scale_policy_summary() -> TimeScalePolicySummary {
     TimeScalePolicySummary::new(
@@ -1973,6 +2057,18 @@ pub const fn current_request_policy_summary() -> RequestPolicySummary {
 /// Returns the current shared frame-policy posture used by validation and reports.
 pub const fn current_frame_policy_summary() -> FramePolicySummary {
     FramePolicySummary::new(current_request_policy_summary().frame)
+}
+
+/// Returns the current native sidereal policy used by validation and reports.
+pub const fn current_native_sidereal_policy_summary() -> NativeSiderealPolicySummary {
+    NativeSiderealPolicySummary::new(
+        "native sidereal backend output remains unsupported unless a backend explicitly advertises it",
+    )
+}
+
+/// Returns the native sidereal policy posture used by validation and release reporting.
+pub const fn native_sidereal_policy_summary_for_report() -> NativeSiderealPolicySummary {
+    current_native_sidereal_policy_summary()
 }
 
 /// Returns the request-policy posture used by validation and release reporting.
@@ -3456,6 +3552,34 @@ mod tests {
             current_request_policy_summary().frame
         );
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+    }
+
+    #[test]
+    fn native_sidereal_policy_summary_tracks_the_current_posture() {
+        let summary = native_sidereal_policy_summary_for_report();
+
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            summary.summary_line(),
+            current_native_sidereal_policy_summary().summary_line()
+        );
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert!(summary
+            .summary_line()
+            .contains("native sidereal backend output"));
+    }
+
+    #[test]
+    fn native_sidereal_policy_summary_rejects_policy_drift() {
+        let summary = NativeSiderealPolicySummary::new(
+            "native sidereal backend output is documented elsewhere",
+        );
+
+        assert_eq!(
+            summary.validate(),
+            Err(NativeSiderealPolicySummaryValidationError::CurrentPolicyOutOfSync)
+        );
     }
 
     struct ToyBackend;

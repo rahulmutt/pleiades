@@ -65,7 +65,7 @@ For each area, either implement the behavior or document the release deferral wi
 - UTC/UT1 convenience conversion and Delta T policy;
 - apparent-place corrections;
 - topocentric body positions;
-- native sidereal backend output versus domain-layer sidereal conversion;
+- native sidereal backend output versus domain-layer sidereal conversion; the current posture is now also exposed through a dedicated `native-sidereal-policy-summary` / `native-sidereal-policy` inspection path in both CLIs.
 - equatorial/ecliptic frame transformations and precision expectations.
 
 ### 5. Strengthen validation evidence

@@ -38,8 +38,9 @@ use pleiades_ayanamsa::{
 };
 use pleiades_backend::{
     delta_t_policy_summary_for_report, frame_policy_summary_details,
-    frame_policy_summary_for_report, request_policy_summary_for_report,
-    time_scale_policy_summary_for_report, zodiac_policy_summary_for_report,
+    frame_policy_summary_for_report, native_sidereal_policy_summary_for_report,
+    request_policy_summary_for_report, time_scale_policy_summary_for_report,
+    zodiac_policy_summary_for_report,
 };
 use pleiades_core::{
     current_api_stability_profile, current_compatibility_profile,
@@ -4684,6 +4685,14 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("apparentness-policy") => {
             ensure_no_extra_args(&args[1..], "apparentness-policy")?;
             Ok(render_apparentness_policy_summary_text())
+        }
+        Some("native-sidereal-policy-summary") => {
+            ensure_no_extra_args(&args[1..], "native-sidereal-policy-summary")?;
+            Ok(render_native_sidereal_policy_summary_text())
+        }
+        Some("native-sidereal-policy") => {
+            ensure_no_extra_args(&args[1..], "native-sidereal-policy")?;
+            Ok(render_native_sidereal_policy_summary_text())
         }
         Some("interpolation-posture-summary") => {
             ensure_no_extra_args(&args[1..], "interpolation-posture-summary")?;
@@ -10707,6 +10716,15 @@ fn format_apparentness_policy_summary_for_report(
     }
 }
 
+fn format_native_sidereal_policy_summary_for_report(
+    summary: &pleiades_backend::NativeSiderealPolicySummary,
+) -> String {
+    match summary.validated_summary_line() {
+        Ok(line) => line.to_string(),
+        Err(error) => format!("native sidereal policy unavailable ({error})"),
+    }
+}
+
 fn format_request_policy_summary_for_report(
     summary: &pleiades_backend::RequestPolicySummary,
 ) -> String {
@@ -10740,6 +10758,13 @@ fn format_request_semantics_summary_for_report(
         text,
         "Delta T policy: {}",
         format_delta_t_policy_summary_for_report(&delta_t_policy)
+    );
+
+    let native_sidereal_policy = native_sidereal_policy_summary_for_report();
+    let _ = writeln!(
+        text,
+        "Native sidereal policy: {}",
+        format_native_sidereal_policy_summary_for_report(&native_sidereal_policy)
     );
 
     let request_policy = match validated_request_policy_summary_for_report() {
@@ -10806,6 +10831,20 @@ fn render_apparentness_policy_summary_text() -> String {
         ),
         Err(error) => {
             format!("Apparentness policy summary\nApparentness policy unavailable ({error})\n")
+        }
+    }
+}
+
+fn render_native_sidereal_policy_summary_text() -> String {
+    match native_sidereal_policy_summary_for_report().validated_summary_line() {
+        Ok(summary) => format!(
+            "Native sidereal policy summary\nNative sidereal policy: {}\n",
+            summary
+        ),
+        Err(error) => {
+            format!(
+                "Native sidereal policy summary\nNative sidereal policy unavailable ({error})\n"
+            )
         }
     }
 }
@@ -11238,6 +11277,12 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     );
     let _ = writeln!(text, "Observer policy: {}", request_policy.observer);
     let _ = writeln!(text, "Apparentness policy: {}", request_policy.apparentness);
+    let native_sidereal_policy = native_sidereal_policy_summary_for_report();
+    let _ = writeln!(
+        text,
+        "Native sidereal policy: {}",
+        format_native_sidereal_policy_summary_for_report(&native_sidereal_policy)
+    );
     let _ = writeln!(text, "Frame policy: {}", request_policy.frame);
     let _ = writeln!(
         text,
@@ -12504,6 +12549,11 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str("Apparentness policy: ");
     text.push_str(&format_apparentness_policy_summary_for_report(
         &pleiades_backend::apparentness_policy_summary_for_report(),
+    ));
+    text.push('\n');
+    text.push_str("Native sidereal policy: ");
+    text.push_str(&format_native_sidereal_policy_summary_for_report(
+        &native_sidereal_policy_summary_for_report(),
     ));
     text.push('\n');
     text.push_str("Zodiac policy: ");
@@ -14408,7 +14458,7 @@ fn help_text() -> String {
   production-generation           Alias for production-generation-summary
   production-generation-boundary-source-summary  Print the compact production-generation boundary source summary
   production-generation-boundary-window-summary  Print the compact production-generation boundary windows summary
-  production-generation-boundary-window  Alias for production-generation-boundary-window-summary\n  production-generation-source-summary  Print the compact production-generation source summary\n  comparison-snapshot-source-window-summary  Print the compact comparison snapshot source windows summary\n  comparison-snapshot-source-summary  Print the compact comparison snapshot source summary\n  comparison-snapshot-body-class-coverage-summary  Print the compact comparison snapshot body-class coverage summary\n  comparison-body-class-coverage-summary  Alias for comparison-snapshot-body-class-coverage-summary\n  comparison-snapshot-manifest-summary  Print the compact comparison snapshot manifest summary\n  comparison-snapshot-summary  Print the compact comparison snapshot summary\n  comparison-snapshot         Alias for comparison-snapshot-summary\n  comparison-snapshot-batch-parity-summary  Print the compact comparison snapshot batch parity summary\n  reference-snapshot-source-window-summary  Print the compact reference snapshot source windows summary\n  reference-snapshot-source-summary  Print the compact reference snapshot source summary\n  reference-snapshot-lunar-boundary-summary  Print the compact reference lunar boundary evidence summary\n  lunar-boundary-summary   Alias for reference-snapshot-lunar-boundary-summary\n  reference-snapshot-1749-major-body-boundary-summary  Print the compact reference 1749 major-body boundary evidence summary\n  1749-major-body-boundary-summary  Alias for reference-snapshot-1749-major-body-boundary-summary\n  reference-snapshot-early-major-body-boundary-summary  Print the compact reference early major-body boundary evidence summary\n  early-major-body-boundary-summary  Alias for reference-snapshot-early-major-body-boundary-summary\n  reference-snapshot-1800-major-body-boundary-summary  Print the compact reference 1800 major-body boundary evidence summary\n  1800-major-body-boundary-summary  Alias for reference-snapshot-1800-major-body-boundary-summary\n  reference-snapshot-2500-major-body-boundary-summary  Print the compact reference 2500 major-body boundary evidence summary\n  2500-major-body-boundary-summary  Alias for reference-snapshot-2500-major-body-boundary-summary\n  reference-snapshot-major-body-boundary-summary  Print the compact reference major-body boundary evidence summary\n  major-body-boundary-summary  Alias for reference-snapshot-major-body-boundary-summary\n  reference-snapshot-major-body-bridge-summary  Print the compact reference major-body bridge evidence summary\n  major-body-bridge-summary  Alias for reference-snapshot-major-body-bridge-summary\n  reference-snapshot-mars-jupiter-boundary-summary  Print the compact reference Mars/Jupiter boundary evidence summary\n  mars-jupiter-boundary-summary  Alias for reference-snapshot-mars-jupiter-boundary-summary\n  reference-snapshot-mars-outer-boundary-summary  Print the compact reference Mars outer-boundary evidence summary\n  mars-outer-boundary-summary  Alias for reference-snapshot-mars-outer-boundary-summary\n  reference-snapshot-major-body-boundary-window-summary  Print the compact reference major-body boundary windows summary\n  major-body-boundary-window-summary  Alias for reference-snapshot-major-body-boundary-window-summary\n  reference-snapshot-body-class-coverage-summary  Print the compact reference snapshot body-class coverage summary\n  reference-body-class-coverage-summary  Alias for reference-snapshot-body-class-coverage-summary\n  reference-snapshot-manifest-summary  Print the compact reference snapshot manifest summary\n  reference-snapshot-summary  Print the compact reference snapshot summary\n  reference-snapshot         Alias for reference-snapshot-summary\n  reference-snapshot-batch-parity-summary  Print the compact reference snapshot batch parity summary\n  reference-snapshot-equatorial-parity-summary  Print the compact reference snapshot equatorial parity summary\n  reference-high-curvature-summary  Print the compact reference major-body high-curvature evidence summary\n  high-curvature-summary  Alias for reference-high-curvature-summary\n  reference-high-curvature-window-summary  Print the compact reference major-body high-curvature windows summary\n  high-curvature-window-summary  Alias for reference-high-curvature-window-summary\n  reference-high-curvature-epoch-coverage-summary  Print the compact reference major-body high-curvature epoch coverage summary\n  high-curvature-epoch-coverage-summary  Alias for reference-high-curvature-epoch-coverage-summary\n  reference-snapshot-boundary-epoch-coverage-summary  Print the compact reference snapshot boundary epoch coverage summary\n  boundary-epoch-coverage-summary  Alias for reference-snapshot-boundary-epoch-coverage-summary\n  reference-snapshot-sparse-boundary-summary  Print the compact reference boundary day summary\n  sparse-boundary-summary  Alias for reference-snapshot-sparse-boundary-summary\n  boundary-day-summary     Alias for reference-snapshot-sparse-boundary-summary\n  reference-snapshot-dense-boundary-summary  Print the compact reference dense boundary day summary\n  dense-boundary-summary  Alias for reference-snapshot-dense-boundary-summary\n  source-documentation-summary  Print the compact VSOP87 source-documentation summary\n  source-documentation-health-summary  Print the compact VSOP87 source-documentation health summary\n  source-documentation-health  Alias for source-documentation-health-summary\n  source-audit-summary      Print the compact VSOP87 source audit summary\n  source-audit              Alias for source-audit-summary\n  generated-binary-audit-summary  Print the compact VSOP87 generated binary audit summary\n  generated-binary-audit    Alias for generated-binary-audit-summary\n  time-scale-policy-summary  Print the compact time-scale policy summary\n  time-scale-policy       Alias for time-scale-policy-summary\n  delta-t-policy-summary   Print the compact Delta T policy summary\n  delta-t-policy         Alias for delta-t-policy-summary\n  observer-policy-summary  Print the compact observer policy summary\n  observer-policy        Alias for observer-policy-summary\n  apparentness-policy-summary  Print the compact apparentness policy summary\n  apparentness-policy     Alias for apparentness-policy-summary\n  interpolation-posture-summary  Print the compact JPL interpolation posture summary\n  interpolation-posture         Alias for interpolation-posture-summary\n  interpolation-quality-summary  Print the compact JPL interpolation quality summary\n  interpolation-quality-kind-coverage-summary  Print the compact JPL interpolation quality kind coverage summary\n  lunar-reference-error-envelope-summary  Print the compact lunar reference error envelope summary\n  lunar-equatorial-reference-error-envelope-summary  Print the compact lunar equatorial reference error envelope summary\n  lunar-apparent-comparison-summary  Print the compact lunar apparent comparison summary\n  lunar-source-window-summary  Print the compact lunar source windows summary\n  lunar-theory-request-policy-summary  Print the compact ELP lunar request policy summary\n  lunar-theory-frame-treatment-summary  Print the compact ELP lunar frame treatment summary\n  lunar-theory-limitations-summary  Print the compact ELP lunar limitations summary\n  lunar-theory-limitations   Alias for lunar-theory-limitations-summary\n  lunar-theory-summary      Print the compact ELP lunar theory specification\n  lunar-theory-capability-summary  Print the compact ELP lunar capability summary\n  lunar-theory-source-summary  Print the compact ELP lunar source summary\n  lunar-theory-catalog-summary  Print the compact ELP lunar theory catalog summary\n  lunar-theory-catalog-validation-summary  Print the compact ELP lunar theory catalog validation summary\n  lunar-theory-catalog      Alias for lunar-theory-catalog-summary\n  lunar-theory-catalog-validation  Alias for lunar-theory-catalog-validation-summary\n  selected-asteroid-boundary-summary  Print the compact selected-asteroid boundary evidence summary\n  reference-snapshot-selected-asteroid-bridge-summary  Print the compact selected-asteroid bridge evidence summary\n  selected-asteroid-bridge-summary  Alias for reference-snapshot-selected-asteroid-bridge-summary\n  reference-snapshot-selected-asteroid-dense-boundary-summary  Print the compact selected-asteroid dense boundary evidence summary\n  selected-asteroid-dense-boundary-summary  Alias for reference-snapshot-selected-asteroid-dense-boundary-summary\n  reference-snapshot-selected-asteroid-terminal-boundary-summary  Print the compact selected-asteroid terminal boundary evidence summary\n  selected-asteroid-terminal-boundary-summary  Alias for reference-snapshot-selected-asteroid-terminal-boundary-summary\n  selected-asteroid-source-evidence-summary  Print the compact selected-asteroid source evidence summary\n  selected-asteroid-source-summary  Alias for selected-asteroid-source-evidence-summary\n  selected-asteroid-source-window-summary  Print the compact selected-asteroid source windows summary\n  selected-asteroid-source-window  Alias for selected-asteroid-source-window-summary\n  selected-asteroid-batch-parity-summary  Print the compact selected-asteroid batch-parity summary\n  reference-asteroid-evidence-summary  Print the compact reference asteroid evidence summary\n  reference-asteroid-equatorial-evidence-summary  Print the compact reference asteroid equatorial evidence summary\n  reference-asteroid-source-window-summary  Print the compact reference asteroid source windows summary\n  reference-asteroid-source-summary  Alias for reference-asteroid-source-window-summary\n  reference-holdout-overlap-summary  Print the compact reference/hold-out overlap summary\n  independent-holdout-source-window-summary  Print the compact independent hold-out source windows summary\n  independent-holdout-summary  Print the compact independent hold-out summary\n  independent-holdout-source-summary  Print the compact independent hold-out source summary\n  independent-holdout-body-class-coverage-summary  Print the compact independent hold-out body-class coverage summary\n  holdout-body-class-coverage-summary  Alias for independent-holdout-body-class-coverage-summary\n  independent-holdout-batch-parity-summary  Print the compact independent hold-out batch parity summary\n  independent-holdout-equatorial-parity-summary  Print the compact independent hold-out equatorial parity summary\n  house-validation-summary   Print the compact house-validation corpus summary\n  house-formula-families-summary  Print the compact house formula families summary\n  house-formula-families    Alias for house-formula-families-summary\n  house-code-aliases-summary  Print the compact house-code alias summary\n  house-code-alias-summary  Alias for house-code-aliases-summary\n  ayanamsa-catalog-validation-summary  Print the compact ayanamsa catalog validation summary\n  ayanamsa-catalog-validation  Alias for ayanamsa-catalog-validation-summary\n  ayanamsa-metadata-coverage-summary  Print the compact ayanamsa sidereal metadata coverage summary\n  ayanamsa-metadata-coverage  Alias for ayanamsa-metadata-coverage-summary\n  ayanamsa-reference-offsets-summary  Print the compact ayanamsa reference offsets summary\n  ayanamsa-reference-offsets  Alias for ayanamsa-reference-offsets-summary\n  frame-policy-summary      Print the compact frame-policy summary\n  frame-policy             Alias for frame-policy-summary\n  mean-obliquity-frame-round-trip-summary  Print the compact mean-obliquity frame round-trip summary\n  mean-obliquity-frame-round-trip  Alias for mean-obliquity-frame-round-trip-summary\n  release-profile-identifiers-summary  Print the compact release-profile identifiers summary\n  release-profile-identifiers  Alias for release-profile-identifiers-summary\n  request-surface-summary  Print the compact request-surface inventory summary\n  request-surface         Alias for request-surface-summary\n  request-policy-summary    Print the compact request-policy summary\n  request-policy           Alias for request-policy-summary\n  request-semantics-summary Alias for request-policy-summary\n  request-semantics        Alias for request-policy-summary\n  comparison-tolerance-policy-summary  Print the compact comparison tolerance policy summary\n  comparison-tolerance-summary  Alias for comparison-tolerance-policy-summary\n  pluto-fallback-summary   Print the compact Pluto fallback summary\n  pluto-fallback           Alias for pluto-fallback-summary\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release-profile identifiers, release-profile identifiers summary, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API stability summary, validation report summary, workspace audit summary, compatibility caveats summary, catalog inventory summary, artifact summary, packaged-artifact generation manifest, benchmark report, validation report, manifest, and manifest checksum sidecar\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+  production-generation-boundary-window  Alias for production-generation-boundary-window-summary\n  production-generation-source-summary  Print the compact production-generation source summary\n  comparison-snapshot-source-window-summary  Print the compact comparison snapshot source windows summary\n  comparison-snapshot-source-summary  Print the compact comparison snapshot source summary\n  comparison-snapshot-body-class-coverage-summary  Print the compact comparison snapshot body-class coverage summary\n  comparison-body-class-coverage-summary  Alias for comparison-snapshot-body-class-coverage-summary\n  comparison-snapshot-manifest-summary  Print the compact comparison snapshot manifest summary\n  comparison-snapshot-summary  Print the compact comparison snapshot summary\n  comparison-snapshot         Alias for comparison-snapshot-summary\n  comparison-snapshot-batch-parity-summary  Print the compact comparison snapshot batch parity summary\n  reference-snapshot-source-window-summary  Print the compact reference snapshot source windows summary\n  reference-snapshot-source-summary  Print the compact reference snapshot source summary\n  reference-snapshot-lunar-boundary-summary  Print the compact reference lunar boundary evidence summary\n  lunar-boundary-summary   Alias for reference-snapshot-lunar-boundary-summary\n  reference-snapshot-1749-major-body-boundary-summary  Print the compact reference 1749 major-body boundary evidence summary\n  1749-major-body-boundary-summary  Alias for reference-snapshot-1749-major-body-boundary-summary\n  reference-snapshot-early-major-body-boundary-summary  Print the compact reference early major-body boundary evidence summary\n  early-major-body-boundary-summary  Alias for reference-snapshot-early-major-body-boundary-summary\n  reference-snapshot-1800-major-body-boundary-summary  Print the compact reference 1800 major-body boundary evidence summary\n  1800-major-body-boundary-summary  Alias for reference-snapshot-1800-major-body-boundary-summary\n  reference-snapshot-2500-major-body-boundary-summary  Print the compact reference 2500 major-body boundary evidence summary\n  2500-major-body-boundary-summary  Alias for reference-snapshot-2500-major-body-boundary-summary\n  reference-snapshot-major-body-boundary-summary  Print the compact reference major-body boundary evidence summary\n  major-body-boundary-summary  Alias for reference-snapshot-major-body-boundary-summary\n  reference-snapshot-major-body-bridge-summary  Print the compact reference major-body bridge evidence summary\n  major-body-bridge-summary  Alias for reference-snapshot-major-body-bridge-summary\n  reference-snapshot-mars-jupiter-boundary-summary  Print the compact reference Mars/Jupiter boundary evidence summary\n  mars-jupiter-boundary-summary  Alias for reference-snapshot-mars-jupiter-boundary-summary\n  reference-snapshot-mars-outer-boundary-summary  Print the compact reference Mars outer-boundary evidence summary\n  mars-outer-boundary-summary  Alias for reference-snapshot-mars-outer-boundary-summary\n  reference-snapshot-major-body-boundary-window-summary  Print the compact reference major-body boundary windows summary\n  major-body-boundary-window-summary  Alias for reference-snapshot-major-body-boundary-window-summary\n  reference-snapshot-body-class-coverage-summary  Print the compact reference snapshot body-class coverage summary\n  reference-body-class-coverage-summary  Alias for reference-snapshot-body-class-coverage-summary\n  reference-snapshot-manifest-summary  Print the compact reference snapshot manifest summary\n  reference-snapshot-summary  Print the compact reference snapshot summary\n  reference-snapshot         Alias for reference-snapshot-summary\n  reference-snapshot-batch-parity-summary  Print the compact reference snapshot batch parity summary\n  reference-snapshot-equatorial-parity-summary  Print the compact reference snapshot equatorial parity summary\n  reference-high-curvature-summary  Print the compact reference major-body high-curvature evidence summary\n  high-curvature-summary  Alias for reference-high-curvature-summary\n  reference-high-curvature-window-summary  Print the compact reference major-body high-curvature windows summary\n  high-curvature-window-summary  Alias for reference-high-curvature-window-summary\n  reference-high-curvature-epoch-coverage-summary  Print the compact reference major-body high-curvature epoch coverage summary\n  high-curvature-epoch-coverage-summary  Alias for reference-high-curvature-epoch-coverage-summary\n  reference-snapshot-boundary-epoch-coverage-summary  Print the compact reference snapshot boundary epoch coverage summary\n  boundary-epoch-coverage-summary  Alias for reference-snapshot-boundary-epoch-coverage-summary\n  reference-snapshot-sparse-boundary-summary  Print the compact reference boundary day summary\n  sparse-boundary-summary  Alias for reference-snapshot-sparse-boundary-summary\n  boundary-day-summary     Alias for reference-snapshot-sparse-boundary-summary\n  reference-snapshot-dense-boundary-summary  Print the compact reference dense boundary day summary\n  dense-boundary-summary  Alias for reference-snapshot-dense-boundary-summary\n  source-documentation-summary  Print the compact VSOP87 source-documentation summary\n  source-documentation-health-summary  Print the compact VSOP87 source-documentation health summary\n  source-documentation-health  Alias for source-documentation-health-summary\n  source-audit-summary      Print the compact VSOP87 source audit summary\n  source-audit              Alias for source-audit-summary\n  generated-binary-audit-summary  Print the compact VSOP87 generated binary audit summary\n  generated-binary-audit    Alias for generated-binary-audit-summary\n  time-scale-policy-summary  Print the compact time-scale policy summary\n  time-scale-policy       Alias for time-scale-policy-summary\n  delta-t-policy-summary   Print the compact Delta T policy summary\n  delta-t-policy         Alias for delta-t-policy-summary\n  observer-policy-summary  Print the compact observer policy summary\n  observer-policy        Alias for observer-policy-summary\n  apparentness-policy-summary  Print the compact apparentness policy summary\n  apparentness-policy     Alias for apparentness-policy-summary\n  native-sidereal-policy-summary  Print the compact native sidereal policy summary\n  native-sidereal-policy   Alias for native-sidereal-policy-summary\n  interpolation-posture-summary  Print the compact JPL interpolation posture summary\n  interpolation-posture         Alias for interpolation-posture-summary\n  interpolation-quality-summary  Print the compact JPL interpolation quality summary\n  interpolation-quality-kind-coverage-summary  Print the compact JPL interpolation quality kind coverage summary\n  lunar-reference-error-envelope-summary  Print the compact lunar reference error envelope summary\n  lunar-equatorial-reference-error-envelope-summary  Print the compact lunar equatorial reference error envelope summary\n  lunar-apparent-comparison-summary  Print the compact lunar apparent comparison summary\n  lunar-source-window-summary  Print the compact lunar source windows summary\n  lunar-theory-request-policy-summary  Print the compact ELP lunar request policy summary\n  lunar-theory-frame-treatment-summary  Print the compact ELP lunar frame treatment summary\n  lunar-theory-limitations-summary  Print the compact ELP lunar limitations summary\n  lunar-theory-limitations   Alias for lunar-theory-limitations-summary\n  lunar-theory-summary      Print the compact ELP lunar theory specification\n  lunar-theory-capability-summary  Print the compact ELP lunar capability summary\n  lunar-theory-source-summary  Print the compact ELP lunar source summary\n  lunar-theory-catalog-summary  Print the compact ELP lunar theory catalog summary\n  lunar-theory-catalog-validation-summary  Print the compact ELP lunar theory catalog validation summary\n  lunar-theory-catalog      Alias for lunar-theory-catalog-summary\n  lunar-theory-catalog-validation  Alias for lunar-theory-catalog-validation-summary\n  selected-asteroid-boundary-summary  Print the compact selected-asteroid boundary evidence summary\n  reference-snapshot-selected-asteroid-bridge-summary  Print the compact selected-asteroid bridge evidence summary\n  selected-asteroid-bridge-summary  Alias for reference-snapshot-selected-asteroid-bridge-summary\n  reference-snapshot-selected-asteroid-dense-boundary-summary  Print the compact selected-asteroid dense boundary evidence summary\n  selected-asteroid-dense-boundary-summary  Alias for reference-snapshot-selected-asteroid-dense-boundary-summary\n  reference-snapshot-selected-asteroid-terminal-boundary-summary  Print the compact selected-asteroid terminal boundary evidence summary\n  selected-asteroid-terminal-boundary-summary  Alias for reference-snapshot-selected-asteroid-terminal-boundary-summary\n  selected-asteroid-source-evidence-summary  Print the compact selected-asteroid source evidence summary\n  selected-asteroid-source-summary  Alias for selected-asteroid-source-evidence-summary\n  selected-asteroid-source-window-summary  Print the compact selected-asteroid source windows summary\n  selected-asteroid-source-window  Alias for selected-asteroid-source-window-summary\n  selected-asteroid-batch-parity-summary  Print the compact selected-asteroid batch-parity summary\n  reference-asteroid-evidence-summary  Print the compact reference asteroid evidence summary\n  reference-asteroid-equatorial-evidence-summary  Print the compact reference asteroid equatorial evidence summary\n  reference-asteroid-source-window-summary  Print the compact reference asteroid source windows summary\n  reference-asteroid-source-summary  Alias for reference-asteroid-source-window-summary\n  reference-holdout-overlap-summary  Print the compact reference/hold-out overlap summary\n  independent-holdout-source-window-summary  Print the compact independent hold-out source windows summary\n  independent-holdout-summary  Print the compact independent hold-out summary\n  independent-holdout-source-summary  Print the compact independent hold-out source summary\n  independent-holdout-body-class-coverage-summary  Print the compact independent hold-out body-class coverage summary\n  holdout-body-class-coverage-summary  Alias for independent-holdout-body-class-coverage-summary\n  independent-holdout-batch-parity-summary  Print the compact independent hold-out batch parity summary\n  independent-holdout-equatorial-parity-summary  Print the compact independent hold-out equatorial parity summary\n  house-validation-summary   Print the compact house-validation corpus summary\n  house-formula-families-summary  Print the compact house formula families summary\n  house-formula-families    Alias for house-formula-families-summary\n  house-code-aliases-summary  Print the compact house-code alias summary\n  house-code-alias-summary  Alias for house-code-aliases-summary\n  ayanamsa-catalog-validation-summary  Print the compact ayanamsa catalog validation summary\n  ayanamsa-catalog-validation  Alias for ayanamsa-catalog-validation-summary\n  ayanamsa-metadata-coverage-summary  Print the compact ayanamsa sidereal metadata coverage summary\n  ayanamsa-metadata-coverage  Alias for ayanamsa-metadata-coverage-summary\n  ayanamsa-reference-offsets-summary  Print the compact ayanamsa reference offsets summary\n  ayanamsa-reference-offsets  Alias for ayanamsa-reference-offsets-summary\n  frame-policy-summary      Print the compact frame-policy summary\n  frame-policy             Alias for frame-policy-summary\n  mean-obliquity-frame-round-trip-summary  Print the compact mean-obliquity frame round-trip summary\n  mean-obliquity-frame-round-trip  Alias for mean-obliquity-frame-round-trip-summary\n  release-profile-identifiers-summary  Print the compact release-profile identifiers summary\n  release-profile-identifiers  Alias for release-profile-identifiers-summary\n  request-surface-summary  Print the compact request-surface inventory summary\n  request-surface         Alias for request-surface-summary\n  request-policy-summary    Print the compact request-policy summary\n  request-policy           Alias for request-policy-summary\n  request-semantics-summary Alias for request-policy-summary\n  request-semantics        Alias for request-policy-summary\n  comparison-tolerance-policy-summary  Print the compact comparison tolerance policy summary\n  comparison-tolerance-summary  Alias for comparison-tolerance-policy-summary\n  pluto-fallback-summary   Print the compact Pluto fallback summary\n  pluto-fallback           Alias for pluto-fallback-summary\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release-profile identifiers, release-profile identifiers summary, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API stability summary, validation report summary, workspace audit summary, compatibility caveats summary, catalog inventory summary, artifact summary, packaged-artifact generation manifest, benchmark report, validation report, manifest, and manifest checksum sidecar\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
@@ -16895,6 +16945,10 @@ mod tests {
         assert!(rendered.contains("observer-policy        Alias for observer-policy-summary"));
         assert!(rendered.contains("apparentness-policy-summary"));
         assert!(rendered.contains("apparentness-policy     Alias for apparentness-policy-summary"));
+        assert!(rendered.contains("native-sidereal-policy-summary"));
+        assert!(
+            rendered.contains("native-sidereal-policy   Alias for native-sidereal-policy-summary")
+        );
         assert!(rendered.contains("frame-policy-summary"));
         assert!(rendered.contains("frame-policy             Alias for frame-policy-summary"));
         assert!(rendered.contains("production-generation-boundary-summary"));
@@ -18980,6 +19034,7 @@ mod tests {
         assert!(rendered.contains("Delta T policy: built-in Delta T modeling remains out of scope; UTC/UT1 inputs require caller-supplied conversion helpers"));
         assert!(rendered.contains("Observer policy: chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests with UnsupportedObserver; malformed observer coordinates remain InvalidObserver; topocentric body positions remain unsupported"));
         assert!(rendered.contains("Apparentness policy: current first-party backends accept mean geometric output only; apparent-place corrections are rejected unless a backend explicitly advertises support"));
+        assert!(rendered.contains("Native sidereal policy: native sidereal backend output remains unsupported unless a backend explicitly advertises it"));
         assert!(rendered.contains("Frame policy: ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported; native sidereal backend output remains unsupported unless a backend explicitly advertises it"));
         assert_eq!(
             render_cli(&["time-scale-policy"]).expect("time-scale policy alias should render"),
@@ -19148,6 +19203,7 @@ mod tests {
         assert!(rendered.contains("Time-scale policy:"));
         assert!(rendered.contains("Observer policy:"));
         assert!(rendered.contains("Apparentness policy:"));
+        assert!(rendered.contains("Native sidereal policy:"));
         assert!(rendered.contains("Zodiac policy:"));
         assert!(rendered.contains("notable regressions"));
         assert!(rendered.contains("outside-tolerance bodies"));
@@ -19518,6 +19574,7 @@ mod tests {
         assert!(rendered.contains(
             "pleiades-core::ChartRequest (chart assembly plus house-observer preflight)"
         ));
+        assert!(rendered.contains("Native sidereal policy:"));
         assert!(rendered.contains("Frame policy:"));
         let mean_obliquity_frame_round_trip = mean_obliquity_frame_round_trip_summary()
             .expect("mean-obliquity frame round-trip summary should exist");
@@ -22368,6 +22425,16 @@ version = "0.9.0"
             render_cli(&["request-semantics"]).expect("request semantics alias should render");
         assert_eq!(request_semantics_alias, request_policy);
 
+        let native_sidereal_policy = render_cli(&["native-sidereal-policy-summary"])
+            .expect("native sidereal policy summary should render");
+        assert!(native_sidereal_policy.contains("Native sidereal policy summary"));
+        assert!(native_sidereal_policy.contains("Native sidereal policy: native sidereal backend output remains unsupported unless a backend explicitly advertises it"));
+        assert_eq!(
+            render_cli(&["native-sidereal-policy"])
+                .expect("native sidereal policy alias should render"),
+            native_sidereal_policy
+        );
+
         let request_policy_summary_error = render_cli(&["request-policy-summary", "extra"])
             .expect_err("request policy summary should reject extra arguments");
         assert_eq!(
@@ -22387,6 +22454,21 @@ version = "0.9.0"
         assert_eq!(
             request_semantics_error,
             "request-semantics does not accept extra arguments"
+        );
+
+        let native_sidereal_policy_summary_error =
+            render_cli(&["native-sidereal-policy-summary", "extra"])
+                .expect_err("native sidereal policy summary should reject extra arguments");
+        assert_eq!(
+            native_sidereal_policy_summary_error,
+            "native-sidereal-policy-summary does not accept extra arguments"
+        );
+
+        let native_sidereal_policy_error = render_cli(&["native-sidereal-policy", "extra"])
+            .expect_err("native sidereal policy alias should reject extra arguments");
+        assert_eq!(
+            native_sidereal_policy_error,
+            "native-sidereal-policy does not accept extra arguments"
         );
     }
 
