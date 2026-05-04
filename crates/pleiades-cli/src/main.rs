@@ -3801,6 +3801,9 @@ mod tests {
         assert!(bundle_dir.join("bundle-manifest.txt").exists());
         assert!(bundle_dir.join("catalog-inventory-summary.txt").exists());
         assert!(bundle_dir
+            .join("custom-definition-ayanamsa-labels-summary.txt")
+            .exists());
+        assert!(bundle_dir
             .join("compatibility-caveats-summary.txt")
             .exists());
         assert!(bundle_dir.join("request-policy-summary.txt").exists());
@@ -3828,6 +3831,7 @@ mod tests {
         assert!(verified.contains("Release bundle"));
         assert!(verified.contains("compatibility-profile.txt"));
         assert!(verified.contains("catalog-inventory-summary.txt"));
+        assert!(verified.contains("custom-definition-ayanamsa-labels-summary.txt"));
         assert!(verified.contains("bundle-manifest.checksum.txt"));
     }
 
