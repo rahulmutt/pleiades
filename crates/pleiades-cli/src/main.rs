@@ -71,7 +71,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             let rounds = parse_rounds(&args[1..], 10_000)?;
             render_benchmark_report(rounds).map_err(render_error)
         }
-        Some("comparison-corpus-summary") => validate_render_cli(args),
+        Some("comparison-corpus-summary") | Some("comparison-corpus") => validate_render_cli(args),
         Some("comparison-corpus-release-guard-summary") => {
             ensure_no_extra_args(&args[1..], "comparison-corpus-release-guard-summary")?;
             validate_render_cli(args)
@@ -1322,6 +1322,7 @@ mod tests {
         assert!(rendered.contains("comparison-snapshot-body-class-coverage-summary"));
         assert!(rendered.contains("comparison-body-class-coverage-summary"));
         assert!(rendered.contains("comparison-corpus-summary"));
+        assert!(rendered.contains("comparison-corpus         Alias for comparison-corpus-summary"));
         assert!(rendered.contains("comparison-corpus-release-guard-summary"));
         assert!(rendered.contains("comparison-corpus-guard-summary"));
         assert!(rendered.contains("comparison-envelope-summary"));
@@ -1686,6 +1687,15 @@ mod tests {
                 .expect("comparison corpus summary should match validation output")
         );
         assert_eq!(
+            render_cli(&["comparison-corpus"]).expect("comparison corpus alias should render"),
+            comparison_corpus
+        );
+        assert_eq!(
+            validate_render_cli(&["comparison-corpus"])
+                .expect("comparison corpus alias should match validation output"),
+            comparison_corpus
+        );
+        assert_eq!(
             render_cli(&["comparison-corpus-summary", "extra"])
                 .expect_err("comparison corpus summary should reject extra arguments"),
             "comparison-corpus-summary does not accept extra arguments"
@@ -1715,6 +1725,11 @@ mod tests {
             render_cli(&["comparison-corpus-guard-summary", "extra"])
                 .expect_err("comparison corpus guard alias should reject extra arguments"),
             "comparison-corpus-guard-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["comparison-corpus", "extra"])
+                .expect_err("comparison corpus alias should reject extra arguments"),
+            "comparison-corpus-summary does not accept extra arguments"
         );
 
         let benchmark_corpus = render_cli(&["benchmark-corpus-summary"])
