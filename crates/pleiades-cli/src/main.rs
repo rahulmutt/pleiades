@@ -63,22 +63,22 @@ fn shared_request_policy_help_block() -> String {
 
 fn render_cli(args: &[&str]) -> Result<String, String> {
     match args.first().copied() {
-        Some("compare-backends") => validate_render_cli(&["compare-backends"]),
-        Some("compare-backends-audit") => validate_render_cli(&["compare-backends-audit"]),
+        Some("compare-backends") => validate_render_cli(args),
+        Some("compare-backends-audit") => validate_render_cli(args),
         Some("benchmark") => {
             let rounds = parse_rounds(&args[1..], 10_000)?;
             render_benchmark_report(rounds).map_err(render_error)
         }
-        Some("comparison-corpus-summary") => validate_render_cli(&["comparison-corpus-summary"]),
+        Some("comparison-corpus-summary") => validate_render_cli(args),
         Some("comparison-corpus-release-guard-summary") => {
             ensure_no_extra_args(&args[1..], "comparison-corpus-release-guard-summary")?;
-            validate_render_cli(&["comparison-corpus-release-guard-summary"])
+            validate_render_cli(args)
         }
         Some("comparison-corpus-guard-summary") => {
             ensure_no_extra_args(&args[1..], "comparison-corpus-release-guard-summary")?;
-            validate_render_cli(&["comparison-corpus-release-guard-summary"])
+            validate_render_cli(args)
         }
-        Some("benchmark-corpus-summary") => validate_render_cli(&["benchmark-corpus-summary"]),
+        Some("benchmark-corpus-summary") => validate_render_cli(args),
         Some("compatibility-profile") | Some("profile") => validate_render_cli(args),
         Some("compatibility-profile-summary") | Some("profile-summary") => {
             validate_render_cli(args)
@@ -116,320 +116,176 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("release-checklist") => validate_render_cli(args),
         Some("release-checklist-summary") | Some("checklist-summary") => validate_render_cli(args),
         Some("release-summary") => validate_render_cli(args),
-        Some("jpl-batch-error-taxonomy-summary") => {
-            validate_render_cli(&["jpl-batch-error-taxonomy-summary"])
-        }
-        Some("jpl-snapshot-evidence-summary") => {
-            validate_render_cli(&["jpl-snapshot-evidence-summary"])
-        }
-        Some("production-generation-boundary-summary") => {
-            validate_render_cli(&["production-generation-boundary-summary"])
-        }
-        Some("production-generation-boundary-request-corpus-summary") => {
-            validate_render_cli(&["production-generation-boundary-request-corpus-summary"])
-        }
-        Some("production-generation-body-class-coverage-summary") => {
-            validate_render_cli(&["production-generation-body-class-coverage-summary"])
-        }
-        Some("production-generation-source-window-summary") => {
-            validate_render_cli(&["production-generation-source-window-summary"])
-        }
-        Some("production-generation-summary") => {
-            validate_render_cli(&["production-generation-summary"])
-        }
-        Some("production-generation-boundary-source-summary") => {
-            validate_render_cli(&["production-generation-boundary-source-summary"])
-        }
-        Some("production-generation-boundary-window-summary") => {
-            validate_render_cli(&["production-generation-boundary-window-summary"])
-        }
-        Some("production-generation-source-summary") => {
-            validate_render_cli(&["production-generation-source-summary"])
-        }
+        Some("jpl-batch-error-taxonomy-summary") => validate_render_cli(args),
+        Some("jpl-snapshot-evidence-summary") => validate_render_cli(args),
+        Some("production-generation-boundary-summary") => validate_render_cli(args),
+        Some("production-generation-boundary-request-corpus-summary") => validate_render_cli(args),
+        Some("production-generation-body-class-coverage-summary") => validate_render_cli(args),
+        Some("production-generation-source-window-summary") => validate_render_cli(args),
+        Some("production-generation-summary") => validate_render_cli(args),
+        Some("production-generation-boundary-source-summary") => validate_render_cli(args),
+        Some("production-generation-boundary-window-summary") => validate_render_cli(args),
+        Some("production-generation-source-summary") => validate_render_cli(args),
         Some("comparison-snapshot-source-summary") => {
             ensure_no_extra_args(&args[1..], "comparison-snapshot-source-summary")?;
             Ok(comparison_snapshot_source_summary_for_report())
         }
-        Some("comparison-snapshot-source-window-summary") => {
-            validate_render_cli(&["comparison-snapshot-source-window-summary"])
-        }
-        Some("comparison-snapshot-body-class-coverage-summary") => {
-            validate_render_cli(&["comparison-snapshot-body-class-coverage-summary"])
-        }
-        Some("comparison-snapshot-manifest-summary") => {
-            validate_render_cli(&["comparison-snapshot-manifest-summary"])
-        }
-        Some("comparison-snapshot-summary") => {
-            validate_render_cli(&["comparison-snapshot-summary"])
-        }
-        Some("comparison-snapshot-batch-parity-summary") => {
-            validate_render_cli(&["comparison-snapshot-batch-parity-summary"])
-        }
+        Some("comparison-snapshot-source-window-summary") => validate_render_cli(args),
+        Some("comparison-snapshot-body-class-coverage-summary") => validate_render_cli(args),
+        Some("comparison-snapshot-manifest-summary") => validate_render_cli(args),
+        Some("comparison-snapshot-summary") => validate_render_cli(args),
+        Some("comparison-snapshot-batch-parity-summary") => validate_render_cli(args),
         Some("reference-snapshot-source-summary") => {
             ensure_no_extra_args(&args[1..], "reference-snapshot-source-summary")?;
             Ok(reference_snapshot_source_summary_for_report())
         }
-        Some("reference-snapshot-source-window-summary") => {
-            validate_render_cli(&["reference-snapshot-source-window-summary"])
-        }
-        Some("reference-snapshot-lunar-boundary-summary") => {
-            validate_render_cli(&["reference-snapshot-lunar-boundary-summary"])
-        }
-        Some("lunar-boundary-summary") => {
-            validate_render_cli(&["reference-snapshot-lunar-boundary-summary"])
-        }
+        Some("reference-snapshot-source-window-summary") => validate_render_cli(args),
+        Some("reference-snapshot-lunar-boundary-summary") => validate_render_cli(args),
+        Some("lunar-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-1749-major-body-boundary-summary")
-        | Some("1749-major-body-boundary-summary") => {
-            validate_render_cli(&["reference-snapshot-1749-major-body-boundary-summary"])
-        }
+        | Some("1749-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-early-major-body-boundary-summary")
-        | Some("early-major-body-boundary-summary") => {
-            validate_render_cli(&["reference-snapshot-early-major-body-boundary-summary"])
-        }
+        | Some("early-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-1800-major-body-boundary-summary")
-        | Some("1800-major-body-boundary-summary") => {
-            validate_render_cli(&["reference-snapshot-1800-major-body-boundary-summary"])
-        }
+        | Some("1800-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2500-major-body-boundary-summary")
-        | Some("2500-major-body-boundary-summary") => {
-            validate_render_cli(&["reference-snapshot-2500-major-body-boundary-summary"])
-        }
-        Some("reference-snapshot-body-class-coverage-summary") => {
-            validate_render_cli(&["reference-snapshot-body-class-coverage-summary"])
-        }
-        Some("reference-snapshot-manifest-summary") => {
-            validate_render_cli(&["reference-snapshot-manifest-summary"])
-        }
-        Some("reference-snapshot-summary") => validate_render_cli(&["reference-snapshot-summary"]),
-        Some("reference-snapshot-batch-parity-summary") => {
-            validate_render_cli(&["reference-snapshot-batch-parity-summary"])
-        }
-        Some("reference-snapshot-equatorial-parity-summary") => {
-            validate_render_cli(&["reference-snapshot-equatorial-parity-summary"])
-        }
+        | Some("2500-major-body-boundary-summary") => validate_render_cli(args),
+        Some("reference-snapshot-body-class-coverage-summary") => validate_render_cli(args),
+        Some("reference-snapshot-manifest-summary") => validate_render_cli(args),
+        Some("reference-snapshot-summary") => validate_render_cli(args),
+        Some("reference-snapshot-batch-parity-summary") => validate_render_cli(args),
+        Some("reference-snapshot-equatorial-parity-summary") => validate_render_cli(args),
         Some("reference-high-curvature-summary") | Some("high-curvature-summary") => {
-            validate_render_cli(&["reference-high-curvature-summary"])
+            validate_render_cli(args)
         }
         Some("reference-snapshot-major-body-boundary-summary")
-        | Some("major-body-boundary-summary") => {
-            validate_render_cli(&["reference-snapshot-major-body-boundary-summary"])
-        }
+        | Some("major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-mars-jupiter-boundary-summary")
-        | Some("mars-jupiter-boundary-summary") => {
-            validate_render_cli(&["reference-snapshot-mars-jupiter-boundary-summary"])
-        }
+        | Some("mars-jupiter-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-mars-outer-boundary-summary")
-        | Some("mars-outer-boundary-summary") => {
-            validate_render_cli(&["reference-snapshot-mars-outer-boundary-summary"])
-        }
+        | Some("mars-outer-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-major-body-boundary-window-summary")
-        | Some("major-body-boundary-window-summary") => {
-            validate_render_cli(&["reference-snapshot-major-body-boundary-window-summary"])
-        }
+        | Some("major-body-boundary-window-summary") => validate_render_cli(args),
         Some("reference-high-curvature-window-summary") | Some("high-curvature-window-summary") => {
-            validate_render_cli(&["reference-high-curvature-window-summary"])
+            validate_render_cli(args)
         }
         Some("reference-high-curvature-epoch-coverage-summary")
-        | Some("high-curvature-epoch-coverage-summary") => {
-            validate_render_cli(&["reference-high-curvature-epoch-coverage-summary"])
-        }
+        | Some("high-curvature-epoch-coverage-summary") => validate_render_cli(args),
         Some("reference-snapshot-boundary-epoch-coverage-summary")
-        | Some("boundary-epoch-coverage-summary") => {
-            validate_render_cli(&["reference-snapshot-boundary-epoch-coverage-summary"])
-        }
+        | Some("boundary-epoch-coverage-summary") => validate_render_cli(args),
         Some("reference-snapshot-sparse-boundary-summary") | Some("sparse-boundary-summary") => {
-            validate_render_cli(&["reference-snapshot-sparse-boundary-summary"])
+            validate_render_cli(args)
         }
         Some("boundary-day-summary") => {
             ensure_no_extra_args(&args[1..], "boundary-day-summary")?;
-            validate_render_cli(&["reference-snapshot-sparse-boundary-summary"])
+            validate_render_cli(args)
         }
         Some("reference-snapshot-dense-boundary-summary") | Some("dense-boundary-summary") => {
-            validate_render_cli(&["reference-snapshot-dense-boundary-summary"])
+            validate_render_cli(args)
         }
-        Some("source-documentation-summary") => {
-            validate_render_cli(&["source-documentation-summary"])
-        }
-        Some("source-documentation-health-summary") => {
-            validate_render_cli(&["source-documentation-health-summary"])
-        }
-        Some("source-documentation-health") => {
-            validate_render_cli(&["source-documentation-health-summary"])
-        }
-        Some("source-audit-summary") => validate_render_cli(&["source-audit-summary"]),
-        Some("generated-binary-audit-summary") => {
-            validate_render_cli(&["generated-binary-audit-summary"])
-        }
+        Some("source-documentation-summary") => validate_render_cli(args),
+        Some("source-documentation-health-summary") => validate_render_cli(args),
+        Some("source-documentation-health") => validate_render_cli(args),
+        Some("source-audit-summary") => validate_render_cli(args),
+        Some("generated-binary-audit-summary") => validate_render_cli(args),
         Some("time-scale-policy-summary") => {
             ensure_no_extra_args(&args[1..], "time-scale-policy-summary")?;
-            validate_render_cli(&["time-scale-policy-summary"])
+            validate_render_cli(args)
         }
         Some("time-scale-policy") => {
             ensure_no_extra_args(&args[1..], "time-scale-policy")?;
-            validate_render_cli(&["time-scale-policy-summary"])
+            validate_render_cli(args)
         }
         Some("delta-t-policy-summary") => {
             ensure_no_extra_args(&args[1..], "delta-t-policy-summary")?;
-            validate_render_cli(&["delta-t-policy-summary"])
+            validate_render_cli(args)
         }
         Some("delta-t-policy") => {
             ensure_no_extra_args(&args[1..], "delta-t-policy")?;
-            validate_render_cli(&["delta-t-policy-summary"])
+            validate_render_cli(args)
         }
         Some("observer-policy-summary") => {
             ensure_no_extra_args(&args[1..], "observer-policy-summary")?;
-            validate_render_cli(&["observer-policy-summary"])
+            validate_render_cli(args)
         }
         Some("observer-policy") => {
             ensure_no_extra_args(&args[1..], "observer-policy")?;
-            validate_render_cli(&["observer-policy-summary"])
+            validate_render_cli(args)
         }
         Some("apparentness-policy-summary") => {
             ensure_no_extra_args(&args[1..], "apparentness-policy-summary")?;
-            validate_render_cli(&["apparentness-policy-summary"])
+            validate_render_cli(args)
         }
         Some("apparentness-policy") => {
             ensure_no_extra_args(&args[1..], "apparentness-policy")?;
-            validate_render_cli(&["apparentness-policy-summary"])
+            validate_render_cli(args)
         }
-        Some("interpolation-posture-summary") => {
-            validate_render_cli(&["interpolation-posture-summary"])
-        }
-        Some("interpolation-quality-summary") => {
-            validate_render_cli(&["interpolation-quality-summary"])
-        }
-        Some("interpolation-quality-kind-coverage-summary") => {
-            validate_render_cli(&["interpolation-quality-kind-coverage-summary"])
-        }
-        Some("lunar-reference-error-envelope-summary") => {
-            validate_render_cli(&["lunar-reference-error-envelope-summary"])
-        }
-        Some("lunar-equatorial-reference-error-envelope-summary") => {
-            validate_render_cli(&["lunar-equatorial-reference-error-envelope-summary"])
-        }
-        Some("lunar-apparent-comparison-summary") => {
-            validate_render_cli(&["lunar-apparent-comparison-summary"])
-        }
-        Some("lunar-source-window-summary") => {
-            validate_render_cli(&["lunar-source-window-summary"])
-        }
-        Some("lunar-theory-request-policy-summary") => {
-            validate_render_cli(&["lunar-theory-request-policy-summary"])
-        }
-        Some("lunar-theory-frame-treatment-summary") => {
-            validate_render_cli(&["lunar-theory-frame-treatment-summary"])
-        }
-        Some("lunar-theory-summary") => validate_render_cli(&["lunar-theory-summary"]),
-        Some("lunar-theory-capability-summary") => {
-            validate_render_cli(&["lunar-theory-capability-summary"])
-        }
-        Some("lunar-theory-source-summary") => {
-            validate_render_cli(&["lunar-theory-source-summary"])
-        }
+        Some("interpolation-posture-summary") => validate_render_cli(args),
+        Some("interpolation-quality-summary") => validate_render_cli(args),
+        Some("interpolation-quality-kind-coverage-summary") => validate_render_cli(args),
+        Some("lunar-reference-error-envelope-summary") => validate_render_cli(args),
+        Some("lunar-equatorial-reference-error-envelope-summary") => validate_render_cli(args),
+        Some("lunar-apparent-comparison-summary") => validate_render_cli(args),
+        Some("lunar-source-window-summary") => validate_render_cli(args),
+        Some("lunar-theory-request-policy-summary") => validate_render_cli(args),
+        Some("lunar-theory-frame-treatment-summary") => validate_render_cli(args),
+        Some("lunar-theory-summary") => validate_render_cli(args),
+        Some("lunar-theory-capability-summary") => validate_render_cli(args),
+        Some("lunar-theory-source-summary") => validate_render_cli(args),
         Some("lunar-theory-catalog-summary") | Some("lunar-theory-catalog") => {
-            validate_render_cli(&["lunar-theory-catalog-summary"])
+            validate_render_cli(args)
         }
         Some("lunar-theory-catalog-validation-summary")
-        | Some("lunar-theory-catalog-validation") => {
-            validate_render_cli(&["lunar-theory-catalog-validation-summary"])
-        }
-        Some("selected-asteroid-boundary-summary") => {
-            validate_render_cli(&["selected-asteroid-boundary-summary"])
-        }
+        | Some("lunar-theory-catalog-validation") => validate_render_cli(args),
+        Some("selected-asteroid-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-selected-asteroid-bridge-summary")
         | Some("selected-asteroid-bridge-summary") => validate_render_cli(args),
         Some("reference-snapshot-selected-asteroid-dense-boundary-summary")
         | Some("selected-asteroid-dense-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-selected-asteroid-terminal-boundary-summary")
         | Some("selected-asteroid-terminal-boundary-summary") => validate_render_cli(args),
-        Some("selected-asteroid-source-evidence-summary") => {
-            validate_render_cli(&["selected-asteroid-source-evidence-summary"])
-        }
-        Some("selected-asteroid-source-summary") => {
-            validate_render_cli(&["selected-asteroid-source-summary"])
-        }
-        Some("selected-asteroid-source-window-summary") => {
-            validate_render_cli(&["selected-asteroid-source-window-summary"])
-        }
-        Some("selected-asteroid-batch-parity-summary") => {
-            validate_render_cli(&["selected-asteroid-batch-parity-summary"])
-        }
-        Some("reference-asteroid-evidence-summary") => {
-            validate_render_cli(&["reference-asteroid-evidence-summary"])
-        }
-        Some("reference-asteroid-equatorial-evidence-summary") => {
-            validate_render_cli(&["reference-asteroid-equatorial-evidence-summary"])
-        }
-        Some("reference-asteroid-source-window-summary") => {
-            validate_render_cli(&["reference-asteroid-source-window-summary"])
-        }
-        Some("reference-asteroid-source-summary") => {
-            validate_render_cli(&["reference-asteroid-source-window-summary"])
-        }
-        Some("reference-holdout-overlap-summary") => {
-            validate_render_cli(&["reference-holdout-overlap-summary"])
-        }
-        Some("independent-holdout-source-window-summary") => {
-            validate_render_cli(&["independent-holdout-source-window-summary"])
-        }
-        Some("independent-holdout-summary") => {
-            validate_render_cli(&["independent-holdout-summary"])
-        }
-        Some("independent-holdout-source-summary") => {
-            validate_render_cli(&["independent-holdout-source-summary"])
-        }
-        Some("independent-holdout-body-class-coverage-summary") => {
-            validate_render_cli(&["independent-holdout-body-class-coverage-summary"])
-        }
-        Some("independent-holdout-batch-parity-summary") => {
-            validate_render_cli(&["independent-holdout-batch-parity-summary"])
-        }
-        Some("independent-holdout-equatorial-parity-summary") => {
-            validate_render_cli(&["independent-holdout-equatorial-parity-summary"])
-        }
-        Some("house-validation-summary") => validate_render_cli(&["house-validation-summary"]),
-        Some("house-formula-families-summary") => {
-            validate_render_cli(&["house-formula-families-summary"])
-        }
-        Some("house-formula-families") => validate_render_cli(&["house-formula-families"]),
-        Some("house-code-aliases-summary") => validate_render_cli(&["house-code-aliases-summary"]),
-        Some("house-code-alias-summary") => validate_render_cli(&["house-code-aliases-summary"]),
-        Some("ayanamsa-catalog-validation-summary") => {
-            validate_render_cli(&["ayanamsa-catalog-validation-summary"])
-        }
-        Some("ayanamsa-catalog-validation") => {
-            validate_render_cli(&["ayanamsa-catalog-validation-summary"])
-        }
-        Some("ayanamsa-metadata-coverage-summary") => {
-            validate_render_cli(&["ayanamsa-metadata-coverage-summary"])
-        }
-        Some("ayanamsa-metadata-coverage") => {
-            validate_render_cli(&["ayanamsa-metadata-coverage-summary"])
-        }
-        Some("ayanamsa-reference-offsets-summary") => {
-            validate_render_cli(&["ayanamsa-reference-offsets-summary"])
-        }
-        Some("ayanamsa-reference-offsets") => {
-            validate_render_cli(&["ayanamsa-reference-offsets-summary"])
-        }
+        Some("selected-asteroid-source-evidence-summary") => validate_render_cli(args),
+        Some("selected-asteroid-source-summary") => validate_render_cli(args),
+        Some("selected-asteroid-source-window-summary") => validate_render_cli(args),
+        Some("selected-asteroid-batch-parity-summary") => validate_render_cli(args),
+        Some("reference-asteroid-evidence-summary") => validate_render_cli(args),
+        Some("reference-asteroid-equatorial-evidence-summary") => validate_render_cli(args),
+        Some("reference-asteroid-source-window-summary") => validate_render_cli(args),
+        Some("reference-asteroid-source-summary") => validate_render_cli(args),
+        Some("reference-holdout-overlap-summary") => validate_render_cli(args),
+        Some("independent-holdout-source-window-summary") => validate_render_cli(args),
+        Some("independent-holdout-summary") => validate_render_cli(args),
+        Some("independent-holdout-source-summary") => validate_render_cli(args),
+        Some("independent-holdout-body-class-coverage-summary") => validate_render_cli(args),
+        Some("independent-holdout-batch-parity-summary") => validate_render_cli(args),
+        Some("independent-holdout-equatorial-parity-summary") => validate_render_cli(args),
+        Some("house-validation-summary") => validate_render_cli(args),
+        Some("house-formula-families-summary") => validate_render_cli(args),
+        Some("house-formula-families") => validate_render_cli(args),
+        Some("house-code-aliases-summary") => validate_render_cli(args),
+        Some("house-code-alias-summary") => validate_render_cli(args),
+        Some("ayanamsa-catalog-validation-summary") => validate_render_cli(args),
+        Some("ayanamsa-catalog-validation") => validate_render_cli(args),
+        Some("ayanamsa-metadata-coverage-summary") => validate_render_cli(args),
+        Some("ayanamsa-metadata-coverage") => validate_render_cli(args),
+        Some("ayanamsa-reference-offsets-summary") => validate_render_cli(args),
+        Some("ayanamsa-reference-offsets") => validate_render_cli(args),
         Some("frame-policy-summary") => {
             ensure_no_extra_args(&args[1..], "frame-policy-summary")?;
-            validate_render_cli(&["frame-policy-summary"])
+            validate_render_cli(args)
         }
         Some("frame-policy") => {
             ensure_no_extra_args(&args[1..], "frame-policy")?;
-            validate_render_cli(&["frame-policy-summary"])
+            validate_render_cli(args)
         }
-        Some("mean-obliquity-frame-round-trip-summary") => {
-            validate_render_cli(&["mean-obliquity-frame-round-trip-summary"])
-        }
+        Some("mean-obliquity-frame-round-trip-summary") => validate_render_cli(args),
         Some("release-profile-identifiers-summary") => {
             ensure_no_extra_args(&args[1..], "release-profile-identifiers-summary")?;
-            validate_render_cli(&["release-profile-identifiers-summary"])
+            validate_render_cli(args)
         }
         Some("release-profile-identifiers") => {
             ensure_no_extra_args(&args[1..], "release-profile-identifiers")?;
-            validate_render_cli(&["release-profile-identifiers-summary"])
+            validate_render_cli(args)
         }
         Some("request-surface-summary") | Some("request-surface") => validate_render_cli(args),
         Some("request-policy-summary") => validate_render_cli(args),
@@ -442,58 +298,32 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("comparison-envelope-summary") | Some("comparison-envelope") => {
             validate_render_cli(args)
         }
-        Some("pluto-fallback-summary") => validate_render_cli(&["pluto-fallback-summary"]),
+        Some("pluto-fallback-summary") => validate_render_cli(args),
         Some("pluto-fallback") => validate_render_cli(args),
         Some("workspace-audit-summary") | Some("native-dependency-audit-summary") => {
-            validate_render_cli(&["workspace-audit-summary"])
+            validate_render_cli(args)
         }
         Some("artifact-summary") | Some("artifact-posture-summary") => validate_render_cli(args),
-        Some("artifact-boundary-envelope-summary") => {
-            validate_render_cli(&["artifact-boundary-envelope-summary"])
-        }
-        Some("artifact-profile-coverage-summary") => {
-            validate_render_cli(&["artifact-profile-coverage-summary"])
-        }
-        Some("packaged-artifact-output-support-summary") => {
-            validate_render_cli(&["packaged-artifact-output-support-summary"])
-        }
-        Some("packaged-artifact-storage-summary") => {
-            validate_render_cli(&["packaged-artifact-storage-summary"])
-        }
-        Some("packaged-artifact-production-profile-summary") => {
-            validate_render_cli(&["packaged-artifact-production-profile-summary"])
-        }
-        Some("packaged-artifact-target-threshold-summary") => {
-            validate_render_cli(&["packaged-artifact-target-threshold-summary"])
-        }
+        Some("artifact-boundary-envelope-summary") => validate_render_cli(args),
+        Some("artifact-profile-coverage-summary") => validate_render_cli(args),
+        Some("packaged-artifact-output-support-summary") => validate_render_cli(args),
+        Some("packaged-artifact-storage-summary") => validate_render_cli(args),
+        Some("packaged-artifact-production-profile-summary") => validate_render_cli(args),
+        Some("packaged-artifact-target-threshold-summary") => validate_render_cli(args),
         Some("packaged-artifact-target-threshold-scope-envelopes-summary") => {
-            validate_render_cli(&["packaged-artifact-target-threshold-scope-envelopes-summary"])
+            validate_render_cli(args)
         }
-        Some("packaged-artifact-generation-manifest-summary") => {
-            validate_render_cli(&["packaged-artifact-generation-manifest-summary"])
-        }
-        Some("packaged-artifact-generation-policy-summary") => {
-            validate_render_cli(&["packaged-artifact-generation-policy-summary"])
-        }
-        Some("packaged-artifact-generation-residual-summary") => {
-            validate_render_cli(&["packaged-artifact-generation-residual-bodies-summary"])
-        }
-        Some("packaged-artifact-generation-residual-bodies-summary") => {
-            validate_render_cli(&["packaged-artifact-generation-residual-bodies-summary"])
-        }
-        Some("packaged-artifact-regeneration-summary") => {
-            validate_render_cli(&["packaged-artifact-regeneration-summary"])
-        }
-        Some("packaged-frame-parity-summary") => {
-            validate_render_cli(&["packaged-frame-parity-summary"])
-        }
-        Some("packaged-frame-treatment-summary") => {
-            validate_render_cli(&["packaged-frame-treatment-summary"])
-        }
+        Some("packaged-artifact-generation-manifest-summary") => validate_render_cli(args),
+        Some("packaged-artifact-generation-policy-summary") => validate_render_cli(args),
+        Some("packaged-artifact-generation-residual-summary") => validate_render_cli(args),
+        Some("packaged-artifact-generation-residual-bodies-summary") => validate_render_cli(args),
+        Some("packaged-artifact-regeneration-summary") => validate_render_cli(args),
+        Some("packaged-frame-parity-summary") => validate_render_cli(args),
+        Some("packaged-frame-treatment-summary") => validate_render_cli(args),
         Some("packaged-lookup-epoch-policy-summary") | Some("packaged-lookup-epoch-policy") => {
-            validate_render_cli(&["packaged-lookup-epoch-policy-summary"])
+            validate_render_cli(args)
         }
-        Some("validate-artifact") => validate_render_cli(&["validate-artifact"]),
+        Some("validate-artifact") => validate_render_cli(args),
         Some("regenerate-packaged-artifact") => {
             if args[1..].iter().any(|arg| *arg == "--help" || *arg == "-h") {
                 return Ok(help_text());
@@ -506,7 +336,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             }
         }
         Some("workspace-audit") | Some("audit") | Some("native-dependency-audit") => {
-            validate_render_cli(&["workspace-audit"])
+            validate_render_cli(args)
         }
         Some("report") | Some("generate-report") => validate_render_cli(args),
         Some("validation-report-summary") | Some("validation-summary") | Some("report-summary") => {
@@ -1731,6 +1561,11 @@ mod tests {
             validate_render_cli(&["comparison-corpus-summary"])
                 .expect("comparison corpus summary should match validation output")
         );
+        assert_eq!(
+            render_cli(&["comparison-corpus-summary", "extra"])
+                .expect_err("comparison corpus summary should reject extra arguments"),
+            "comparison-corpus-summary does not accept extra arguments"
+        );
 
         let comparison_guard = render_cli(&["comparison-corpus-release-guard-summary"])
             .expect("comparison corpus release guard summary should render");
@@ -1766,6 +1601,11 @@ mod tests {
             benchmark_corpus,
             validate_render_cli(&["benchmark-corpus-summary"])
                 .expect("benchmark corpus summary should match validation output")
+        );
+        assert_eq!(
+            render_cli(&["benchmark-corpus-summary", "extra"])
+                .expect_err("benchmark corpus summary should reject extra arguments"),
+            "benchmark-corpus-summary does not accept extra arguments"
         );
 
         let api_stability =
@@ -2726,6 +2566,11 @@ mod tests {
             house_validation_summary,
             house_validation_summary_line_for_report(&house_validation_report())
         );
+        assert_eq!(
+            render_cli(&["house-validation-summary", "extra"])
+                .expect_err("house validation summary should reject extra arguments"),
+            "house-validation-summary does not accept extra arguments"
+        );
         let house_formula_families_summary = render_cli(&["house-formula-families-summary"])
             .expect("house formula families summary should render");
         assert!(house_formula_families_summary.contains("Equal"));
@@ -2789,6 +2634,11 @@ mod tests {
             ayanamsa_metadata_coverage_summary,
             super::validate_render_cli(&["ayanamsa-metadata-coverage-summary"])
                 .expect("validation ayanamsa metadata coverage summary should render")
+        );
+        assert_eq!(
+            render_cli(&["ayanamsa-metadata-coverage-summary", "extra"])
+                .expect_err("ayanamsa metadata coverage summary should reject extra arguments"),
+            "ayanamsa-metadata-coverage-summary does not accept extra arguments"
         );
         let ayanamsa_reference_offsets_summary =
             render_cli(&["ayanamsa-reference-offsets-summary"])
