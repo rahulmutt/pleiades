@@ -48,7 +48,7 @@ cargo run -q -p pleiades-cli -- help
 
 Rough command overview:
 
-- `compare-backends`: compare the checked-in JPL snapshot against the algorithmic composite backend
+- `compare-backends` / `compare-backends-audit`: compare the checked-in JPL snapshot against the algorithmic composite backend and fail the tolerance audit on regressions
 - `compatibility-profile` / `profile`: print the full release compatibility profile
 - `compatibility-profile-summary` / `profile-summary`: compact compatibility summary
 - `catalog-inventory-summary` / `catalog-inventory`: compact compatibility catalog inventory, including house formula-family coverage
@@ -57,13 +57,14 @@ Rough command overview:
 - `api-stability-summary` / `api-posture-summary`: compact API stability summary
 - `backend-matrix` / `capability-matrix`: print implemented backend capability matrices
 - `backend-matrix-summary` / `matrix-summary`: compact backend matrix summary
+- `benchmark [--rounds N]`: benchmark the candidate backend on the representative corpus and full chart assembly
 - `release-notes`, `release-notes-summary`, `release-checklist`, `release-checklist-summary` / `checklist-summary`, `release-summary`, `request-policy-summary` / `request-policy` / `request-semantics-summary` / `request-semantics`, `time-scale-policy-summary`, `delta-t-policy-summary`, `request-surface-summary` / `request-surface`, `catalog-inventory-summary` / `catalog-inventory`, `house-validation-summary`, `house-formula-families-summary`, `house-code-aliases-summary`, `ayanamsa-catalog-validation-summary`, `ayanamsa-metadata-coverage-summary`, `ayanamsa-reference-offsets-summary`, `packaged-lookup-epoch-policy-summary`, `verify-compatibility-profile`, `verify-release-bundle`: maintainer-facing release metadata and catalog-alignment checks
 - `comparison-corpus-summary` / `comparison-corpus-release-guard-summary` / `comparison-envelope-summary` / `reference-holdout-overlap-summary` / `independent-holdout-summary`: compact release-grade comparison, hold-out, and validation-overlap summaries
 - `reference-snapshot-1749-major-body-boundary-summary` / `1749-major-body-boundary-summary`, `reference-snapshot-early-major-body-boundary-summary` / `early-major-body-boundary-summary`, `reference-snapshot-1800-major-body-boundary-summary` / `1800-major-body-boundary-summary`, `reference-snapshot-2500-major-body-boundary-summary` / `2500-major-body-boundary-summary`, `reference-snapshot-selected-asteroid-terminal-boundary-summary` / `selected-asteroid-terminal-boundary-summary`: compact reference boundary archaeology summaries
 - `comparison-snapshot-manifest-summary`, `reference-snapshot-manifest-summary`: compact source-manifest provenance summaries for the checked-in JPL snapshots (also available through `pleiades-cli`)
 - `artifact-summary` / `artifact-posture-summary`: compact summary of the packaged compressed artifact
 - `validate-artifact`: full packaged-artifact inspection mirrored from `pleiades-validate`
-- `workspace-audit` / `audit`: workspace-native dependency audit mirrored from `pleiades-validate`
+- `workspace-audit` / `audit` / `native-dependency-audit`: workspace-native dependency audit mirrored from `pleiades-validate`
 - `report` / `generate-report`: full validation report mirrored from `pleiades-validate`
 - `validation-report-summary` / `validation-summary` / `report-summary`: compact validation report summary
 - `frame-policy-summary`: compact frame-policy summary
@@ -117,7 +118,7 @@ cargo run -q -p pleiades-validate -- help
 
 Rough command overview:
 
-- `compare-backends`: compare the checked-in JPL snapshot against the algorithmic composite backend
+- `compare-backends` / `compare-backends-audit`: compare the checked-in JPL snapshot against the algorithmic composite backend and fail the tolerance audit on regressions
 - `backend-matrix` / `capability-matrix`: print detailed backend capability matrices
 - `backend-matrix-summary` / `matrix-summary`: print compact backend capability matrices
 - `benchmark [--rounds N]`: benchmark the candidate backend on the representative corpus
@@ -125,7 +126,7 @@ Rough command overview:
 - `validation-report-summary` / `validation-summary` / `report-summary`: compact validation report summary
 - `validate-artifact`: inspect and validate the packaged compressed artifact in detail
 - `artifact-summary` / `artifact-posture-summary`: compact packaged-artifact summary
-- `workspace-audit` / `audit`: check the workspace for mandatory native build hooks
+- `workspace-audit` / `audit` / `native-dependency-audit`: check the workspace for mandatory native build hooks
 - `compatibility-profile`: print the full release compatibility profile
 - `compatibility-profile-summary`: compact compatibility profile summary
 - `verify-compatibility-profile`: verify the release compatibility profile against the canonical catalogs
