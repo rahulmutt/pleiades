@@ -17937,6 +17937,8 @@ mod tests {
         assert!(rendered.contains("Lahiri (VP285): epoch=JD 1825235.164583; offset=0°"));
         assert!(rendered.contains("Krishnamurti (VP291): epoch=JD 1827424.663554; offset=0°"));
         assert!(rendered.contains("True Sheoran: epoch="));
+        assert!(rendered.contains("Hipparchus: epoch=JD 1674484; offset=-9.333333333333334°"));
+        assert!(rendered.contains("Djwhal Khul: epoch=JD 1706703.948006; offset=0°"));
         assert!(rendered.contains("Galactic Center: epoch="));
         assert!(rendered.contains("Galactic Center (Rgilbrand): epoch="));
         assert!(rendered.contains("Galactic Center (Mardyks): epoch="));
@@ -18086,6 +18088,8 @@ mod tests {
         assert!(rendered.contains("Lahiri (VP285): epoch=JD 1825235.164583; offset=0°"));
         assert!(rendered.contains("Krishnamurti (VP291): epoch=JD 1827424.663554; offset=0°"));
         assert!(rendered.contains("True Sheoran: epoch="));
+        assert!(rendered.contains("Hipparchus: epoch=JD 1674484; offset=-9.333333333333334°"));
+        assert!(rendered.contains("Djwhal Khul: epoch=JD 1706703.948006; offset=0°"));
         assert!(rendered.contains("Galactic Center: epoch="));
         assert!(rendered.contains("Galactic Center (Rgilbrand): epoch="));
         assert!(rendered.contains("Galactic Center (Mardyks): epoch="));
@@ -19479,6 +19483,8 @@ mod tests {
         assert!(rendered.contains("Lahiri (VP285): epoch=JD 1825235.164583; offset=0°"));
         assert!(rendered.contains("Krishnamurti (VP291): epoch=JD 1827424.663554; offset=0°"));
         assert!(rendered.contains("True Sheoran: epoch="));
+        assert!(rendered.contains("Hipparchus: epoch=JD 1674484; offset=-9.333333333333334°"));
+        assert!(rendered.contains("Djwhal Khul: epoch=JD 1706703.948006; offset=0°"));
         assert!(rendered.contains("Galactic Center: epoch="));
         assert!(rendered.contains("Galactic Center (Rgilbrand): epoch="));
         assert!(rendered.contains("Galactic Center (Mardyks): epoch="));

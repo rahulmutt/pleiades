@@ -42,7 +42,7 @@ Known remaining gaps:
 ### 2. Audit ayanamsa definitions
 
 - For every advertised built-in ayanamsa, document reference epoch, offset/formula, aliases, provenance, and known equivalence caveats.
-- Add golden tests for baseline entries and representative release-specific entries; the representative reference-offset sample set now includes Lahiri (ICRC), Lahiri (1940), Usha Shashi, Aryabhata (522 CE), Valens Moon, True Pushya, Udayagiri, True Sheoran, Suryasiddhanta (Revati/Citra), Babylonian (Huber), Galactic Equator (True/Mula), and the galactic-center / Dhruva anchors.
+- Add golden tests for baseline entries and representative release-specific entries; the representative reference-offset sample set now includes Lahiri (ICRC), Lahiri (1940), Usha Shashi, Aryabhata (522 CE), Valens Moon, True Pushya, Udayagiri, True Sheoran, Hipparchus, Djwhal Khul, Suryasiddhanta (Revati/Citra), Babylonian (Huber), Galactic Equator (True/Mula), and the galactic-center / Dhruva anchors.
 - Ensure custom ayanamsa definitions remain distinguishable from built-ins in reporting and serialization.
 - Resolve or explicitly classify entries with custom-definition-only metadata.
 
