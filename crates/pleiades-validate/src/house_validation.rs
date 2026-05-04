@@ -273,6 +273,28 @@ impl HouseValidationReport {
             .collect()
     }
 
+    /// Returns the number of scenarios whose observer locations fall in each hemisphere bucket.
+    ///
+    /// Exact-zero latitudes are counted as equatorial rather than northern or southern.
+    pub fn hemisphere_coverage(&self) -> (usize, usize, usize) {
+        let mut north = 0;
+        let mut south = 0;
+        let mut equatorial = 0;
+
+        for scenario in &self.scenarios {
+            let latitude = scenario.observer.latitude.degrees();
+            if latitude > 0.0 {
+                north += 1;
+            } else if latitude < 0.0 {
+                south += 1;
+            } else {
+                equatorial += 1;
+            }
+        }
+
+        (north, south, equatorial)
+    }
+
     /// Returns the scenario labels represented by the report.
     pub fn scenario_labels(&self) -> Vec<&'static str> {
         self.scenarios
@@ -287,8 +309,10 @@ impl HouseValidationReport {
         let latitude_sensitive_systems = self.latitude_sensitive_systems();
         let latitude_sensitive_constraints = self.latitude_sensitive_constraints();
         let scenario_labels = self.scenario_labels();
+        let (north_hemispheres, south_hemispheres, equatorial_hemispheres) =
+            self.hemisphere_coverage();
         format!(
-            "House validation corpus: {} scenarios ({}), {} samples, {} successes, {} failures; formula families: {}; latitude-sensitive systems: {}; constraints: {}; implementation posture: {} baseline systems validated",
+            "House validation corpus: {} scenarios ({}), {} samples, {} successes, {} failures; hemisphere coverage: north={}, south={}, equatorial={}; formula families: {}; latitude-sensitive systems: {}; constraints: {}; implementation posture: {} baseline systems validated",
             self.scenarios.len(),
             if scenario_labels.is_empty() {
                 "none".to_string()
@@ -298,6 +322,9 @@ impl HouseValidationReport {
             self.sample_count(),
             self.success_count(),
             self.failure_count(),
+            north_hemispheres,
+            south_hemispheres,
+            equatorial_hemispheres,
             if formula_families.is_empty() {
                 "none".to_string()
             } else {
@@ -513,6 +540,7 @@ mod tests {
                 "Topocentric [Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.]",
             ]
         );
+        assert_eq!(report.hemisphere_coverage(), (4, 3, 1));
         assert_eq!(
             report.scenario_labels(),
             vec![
@@ -539,7 +567,7 @@ mod tests {
         );
         assert_eq!(
             report.summary_line(),
-            "House validation corpus: 8 scenarios (Mid-latitude reference chart, Equatorial reference chart, Polar stress chart, Northern high-latitude stress chart, Northern high-latitude mountain stress chart, Southern high-latitude mountain stress chart, Southern polar stress chart, Southern hemisphere reference chart), 96 samples, 96 successes, 0 failures; formula families: Equal, Whole Sign, Quadrant, Equatorial projection; latitude-sensitive systems: Koch, Placidus, Topocentric; constraints: Koch [Quadrant system with documented high-latitude pathologies.], Placidus [Quadrant system; can fail or become unstable at extreme latitudes.], Topocentric [Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.]; implementation posture: 12 baseline systems validated"
+            "House validation corpus: 8 scenarios (Mid-latitude reference chart, Equatorial reference chart, Polar stress chart, Northern high-latitude stress chart, Northern high-latitude mountain stress chart, Southern high-latitude mountain stress chart, Southern polar stress chart, Southern hemisphere reference chart), 96 samples, 96 successes, 0 failures; hemisphere coverage: north=4, south=3, equatorial=1; formula families: Equal, Whole Sign, Quadrant, Equatorial projection; latitude-sensitive systems: Koch, Placidus, Topocentric; constraints: Koch [Quadrant system with documented high-latitude pathologies.], Placidus [Quadrant system; can fail or become unstable at extreme latitudes.], Topocentric [Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.]; implementation posture: 12 baseline systems validated"
         );
         assert_eq!(
             house_validation_summary_line_for_report(&report),
