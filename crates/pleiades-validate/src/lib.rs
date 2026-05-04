@@ -12291,6 +12291,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_dense_boundary_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_major_body_bridge_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_lunar_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_early_major_body_boundary_summary_for_report());
@@ -20193,6 +20195,8 @@ version = "0.9.0"
         assert!(backend_matrix_summary.contains(
             "JPL reference snapshot equatorial parity: 233 rows across 15 bodies and 19 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
         ));
+        assert!(backend_matrix_summary
+            .contains(&reference_snapshot_major_body_bridge_summary_for_report()));
         assert!(backend_matrix_summary
             .contains("VSOP87 canonical J2000 source-backed evidence: 8 samples"));
         assert!(backend_matrix_summary.contains("VSOP87 canonical J2000 interim outliers: none"));
