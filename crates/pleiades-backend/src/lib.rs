@@ -4099,6 +4099,47 @@ mod tests {
             .message
             .contains("request received invalid observer location"));
 
+        let geocentric_only_request = EphemerisRequest::new(
+            CelestialBody::Sun,
+            Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt),
+        );
+        let geocentric_only_invalid_observer_request = EphemerisRequest {
+            observer: Some(ObserverLocation::new(
+                Latitude::from_degrees(95.0),
+                Longitude::from_degrees(-0.1),
+                Some(45.0),
+            )),
+            ..geocentric_only_request.clone()
+        };
+        let geocentric_only_error = validate_request_against_metadata(
+            &geocentric_only_invalid_observer_request,
+            &metadata,
+        )
+        .expect_err("geocentric-only metadata should still reject malformed observer locations as invalid input");
+        assert_eq!(
+            geocentric_only_error.kind,
+            EphemerisErrorKind::InvalidObserver
+        );
+        assert!(geocentric_only_error
+            .message
+            .contains("request received invalid observer location"));
+
+        let geocentric_only_batch_error = validate_requests_against_metadata(
+            &[
+                geocentric_only_request,
+                geocentric_only_invalid_observer_request.clone(),
+            ],
+            &metadata,
+        )
+        .expect_err("batch metadata should preserve invalid observer precedence for geocentric-only requests");
+        assert_eq!(
+            geocentric_only_batch_error.kind,
+            EphemerisErrorKind::InvalidObserver
+        );
+        assert!(geocentric_only_batch_error
+            .message
+            .contains("batch request 2: request received invalid observer location"));
+
         let unsupported_body_request = EphemerisRequest {
             body: CelestialBody::Mars,
             frame: CoordinateFrame::Ecliptic,
