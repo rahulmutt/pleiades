@@ -792,15 +792,18 @@ enum PackagedArtifactCommand {
 fn parse_packaged_artifact_command(args: &[&str]) -> Result<PackagedArtifactCommand, String> {
     match args {
         [] => Err(
-            "missing required output path argument; pass a file path, --out <file>, or --check"
+            "missing required output path argument; pass a file path, --out <file>, --output <file>, or --check"
                 .to_string(),
         ),
         ["--check"] => Ok(PackagedArtifactCommand::Check),
         ["--out"] => Err("missing value for --out".to_string()),
-        ["--out", path] => Ok(PackagedArtifactCommand::Write {
+        ["--output"] => Err("missing value for --output".to_string()),
+        ["--out", path] | ["--output", path] => Ok(PackagedArtifactCommand::Write {
             output_path: (*path).to_string(),
         }),
-        ["--out", _, extra, ..] => Err(format!("unknown argument: {extra}")),
+        ["--out", _, extra, ..] | ["--output", _, extra, ..] => {
+            Err(format!("unknown argument: {extra}"))
+        }
         [path] if !path.starts_with('-') => Ok(PackagedArtifactCommand::Write {
             output_path: (*path).to_string(),
         }),
@@ -3664,6 +3667,22 @@ mod tests {
             .encode()
             .expect("regenerated packaged artifact should encode");
         assert_eq!(written, expected);
+
+        let output_alias_fixture_path =
+            artifact_fixture_dir.join("packaged-artifact-output-alias.bin");
+        let output_alias_fixture_path_string = output_alias_fixture_path.display().to_string();
+        let regenerated_output = render_cli(&[
+            "regenerate-packaged-artifact",
+            "--output",
+            &output_alias_fixture_path_string,
+        ])
+        .expect("packaged artifact regeneration should accept --output");
+        assert!(regenerated_output.contains("Packaged artifact regenerated"));
+        assert!(regenerated_output.contains("stage-5 packaged-data prototype"));
+        assert!(output_alias_fixture_path.exists());
+        let output_written = std::fs::read(&output_alias_fixture_path)
+            .expect("packaged artifact regeneration should write the output alias path");
+        assert_eq!(output_written, expected);
 
         let positional_fixture_path = artifact_fixture_dir.join("packaged-artifact-positional.bin");
         let positional_fixture_path_string = positional_fixture_path.display().to_string();
