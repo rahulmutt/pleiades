@@ -2662,23 +2662,31 @@ mod tests {
 
     #[test]
     fn mean_obliquity_round_trip_stays_stable_near_the_poles() {
-        let ecliptic = EclipticCoordinates::new(
-            Longitude::from_degrees(0.025),
-            Latitude::from_degrees(89.75),
-            Some(0.42),
-        );
         let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
         let obliquity = instant.mean_obliquity();
 
-        assert_eq!(ecliptic.validate(), Ok(()));
-        let equatorial = ecliptic.to_equatorial(obliquity);
-        assert_eq!(equatorial.validate(), Ok(()));
-        let round_trip = equatorial.to_ecliptic(obliquity);
+        for ecliptic in [
+            EclipticCoordinates::new(
+                Longitude::from_degrees(0.025),
+                Latitude::from_degrees(89.75),
+                Some(0.42),
+            ),
+            EclipticCoordinates::new(
+                Longitude::from_degrees(179.975),
+                Latitude::from_degrees(-89.75),
+                Some(0.42),
+            ),
+        ] {
+            assert_eq!(ecliptic.validate(), Ok(()));
+            let equatorial = ecliptic.to_equatorial(obliquity);
+            assert_eq!(equatorial.validate(), Ok(()));
+            let round_trip = equatorial.to_ecliptic(obliquity);
 
-        assert_eq!(round_trip.validate(), Ok(()));
-        assert!((round_trip.longitude.degrees() - ecliptic.longitude.degrees()).abs() < 1e-10);
-        assert!((round_trip.latitude.degrees() - ecliptic.latitude.degrees()).abs() < 1e-10);
-        assert_eq!(round_trip.distance_au, Some(0.42));
+            assert_eq!(round_trip.validate(), Ok(()));
+            assert!((round_trip.longitude.degrees() - ecliptic.longitude.degrees()).abs() < 1e-10);
+            assert!((round_trip.latitude.degrees() - ecliptic.latitude.degrees()).abs() < 1e-10);
+            assert_eq!(round_trip.distance_au, Some(0.42));
+        }
     }
 
     #[test]
