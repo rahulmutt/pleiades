@@ -3842,6 +3842,12 @@ mod tests {
             .join("release-profile-identifiers-summary.txt")
             .exists());
         assert!(bundle_dir
+            .join("release-house-system-canonical-names-summary.txt")
+            .exists());
+        assert!(bundle_dir
+            .join("release-ayanamsa-canonical-names-summary.txt")
+            .exists());
+        assert!(bundle_dir
             .join("native-dependency-audit-summary.txt")
             .exists());
         assert!(bundle_dir
@@ -3863,6 +3869,8 @@ mod tests {
         assert!(verified.contains("compatibility-profile.txt"));
         assert!(verified.contains("catalog-inventory-summary.txt"));
         assert!(verified.contains("custom-definition-ayanamsa-labels-summary.txt"));
+        assert!(verified.contains("release-house-system-canonical-names-summary.txt"));
+        assert!(verified.contains("release-ayanamsa-canonical-names-summary.txt"));
         assert!(verified.contains("bundle-manifest.checksum.txt"));
     }
 
