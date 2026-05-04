@@ -711,6 +711,7 @@ fn render_chart(args: &[&str]) -> Result<String, String> {
 
 fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
     let mut rounds = default;
+    let mut saw_rounds = false;
     let mut iter = args.iter().copied();
     while let Some(arg) = iter.next() {
         match arg {
@@ -718,6 +719,10 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
                 let value = iter
                     .next()
                     .ok_or_else(|| "missing value for --rounds".to_string())?;
+                if saw_rounds {
+                    return Err("duplicate value for --rounds argument".to_string());
+                }
+                saw_rounds = true;
                 rounds = value
                     .parse::<usize>()
                     .map_err(|error| format!("invalid value for --rounds: {error}"))?;
@@ -4006,6 +4011,13 @@ mod tests {
             render_cli(&["benchmark", "--rounds", "1"]).expect("benchmark should render");
         assert!(rendered.contains("Benchmark report"));
         assert!(rendered.contains("Summary: backend="));
+    }
+
+    #[test]
+    fn benchmark_command_rejects_duplicate_rounds_arguments() {
+        let error = render_cli(&["benchmark", "--rounds", "1", "--rounds", "2"])
+            .expect_err("benchmark should reject duplicate rounds arguments");
+        assert!(error.contains("duplicate value for --rounds argument"));
     }
 
     #[test]

@@ -14448,6 +14448,7 @@ fn ensure_no_extra_args(args: &[&str], command: &str) -> Result<(), String> {
 
 fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
     let mut rounds = default;
+    let mut saw_rounds = false;
     let mut iter = args.iter().copied();
     while let Some(arg) = iter.next() {
         match arg {
@@ -14455,6 +14456,10 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
                 let value = iter
                     .next()
                     .ok_or_else(|| "missing value for --rounds".to_string())?;
+                if saw_rounds {
+                    return Err("duplicate value for --rounds argument".to_string());
+                }
+                saw_rounds = true;
                 rounds = value
                     .parse::<usize>()
                     .map_err(|error| format!("invalid value for --rounds: {error}"))?;
@@ -16606,6 +16611,11 @@ mod tests {
         let benchmark_error = render_cli(&["benchmark", "--rounds", "0"])
             .expect_err("benchmark should reject zero rounds");
         assert!(benchmark_error.contains("invalid value for --rounds: expected a positive integer"));
+
+        let duplicate_benchmark_rounds_error =
+            render_cli(&["benchmark", "--rounds", "1", "--rounds", "2"])
+                .expect_err("benchmark should reject duplicate rounds arguments");
+        assert!(duplicate_benchmark_rounds_error.contains("duplicate value for --rounds argument"));
 
         let bundle_dir = unique_temp_dir("pleiades-release-bundle-zero-rounds-command");
         let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
