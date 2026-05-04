@@ -4758,12 +4758,20 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "request-semantics")?;
             Ok(render_request_policy_summary_text())
         }
-        Some("comparison-tolerance-policy-summary") | Some("comparison-tolerance-summary") => {
+        Some("comparison-tolerance-policy-summary") => {
             ensure_no_extra_args(&args[1..], "comparison-tolerance-policy-summary")?;
             Ok(render_comparison_tolerance_policy_summary_text())
         }
-        Some("comparison-envelope-summary") | Some("comparison-envelope") => {
+        Some("comparison-tolerance-summary") => {
+            ensure_no_extra_args(&args[1..], "comparison-tolerance-summary")?;
+            Ok(render_comparison_tolerance_policy_summary_text())
+        }
+        Some("comparison-envelope-summary") => {
             ensure_no_extra_args(&args[1..], "comparison-envelope-summary")?;
+            Ok(render_comparison_envelope_summary_text())
+        }
+        Some("comparison-envelope") => {
+            ensure_no_extra_args(&args[1..], "comparison-envelope")?;
             Ok(render_comparison_envelope_summary_text())
         }
         Some("pluto-fallback-summary") => {
@@ -21429,6 +21437,21 @@ version = "0.9.0"
         let comparison_envelope_alias =
             render_cli(&["comparison-envelope"]).expect("comparison envelope alias should render");
         assert_eq!(comparison_envelope_alias, comparison_envelope);
+
+        let comparison_tolerance_policy_error =
+            render_cli(&["comparison-tolerance-summary", "extra"])
+                .expect_err("comparison tolerance alias should reject extra arguments");
+        assert_eq!(
+            comparison_tolerance_policy_error,
+            "comparison-tolerance-summary does not accept extra arguments"
+        );
+
+        let comparison_envelope_error = render_cli(&["comparison-envelope", "extra"])
+            .expect_err("comparison envelope alias should reject extra arguments");
+        assert_eq!(
+            comparison_envelope_error,
+            "comparison-envelope does not accept extra arguments"
+        );
 
         let benchmark = render_cli(&["benchmark-corpus-summary"])
             .expect("benchmark corpus summary should render");

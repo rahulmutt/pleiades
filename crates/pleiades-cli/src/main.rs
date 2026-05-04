@@ -398,10 +398,10 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("request-semantics-summary") => validate_render_cli(args),
         Some("request-semantics") => validate_render_cli(args),
         Some("comparison-tolerance-policy-summary") | Some("comparison-tolerance-summary") => {
-            validate_render_cli(&["comparison-tolerance-policy-summary"])
+            validate_render_cli(args)
         }
         Some("comparison-envelope-summary") | Some("comparison-envelope") => {
-            validate_render_cli(&["comparison-envelope-summary"])
+            validate_render_cli(args)
         }
         Some("pluto-fallback-summary") => validate_render_cli(&["pluto-fallback-summary"]),
         Some("workspace-audit-summary") | Some("native-dependency-audit-summary") => {
@@ -1951,6 +1951,17 @@ mod tests {
         let comparison_envelope_alias =
             render_cli(&["comparison-envelope"]).expect("comparison envelope alias should render");
         assert_eq!(comparison_envelope_alias, comparison_envelope_summary);
+
+        let comparison_tolerance_alias_error =
+            render_cli(&["comparison-tolerance-summary", "extra"])
+                .expect_err("comparison tolerance alias should reject extra arguments");
+        assert!(comparison_tolerance_alias_error
+            .contains("comparison-tolerance-summary does not accept extra arguments"));
+
+        let comparison_envelope_alias_error = render_cli(&["comparison-envelope", "extra"])
+            .expect_err("comparison envelope alias should reject extra arguments");
+        assert!(comparison_envelope_alias_error
+            .contains("comparison-envelope does not accept extra arguments"));
 
         let pluto_fallback_summary =
             render_cli(&["pluto-fallback-summary"]).expect("Pluto fallback summary should render");
