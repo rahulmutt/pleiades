@@ -484,6 +484,8 @@ pub struct PackagedArtifactTargetThresholdScopeSummary {
     /// Release-scoped body class that the fit envelope applies to.
     pub scope: &'static str,
     /// Bundled bodies that contribute to the scope envelope.
+    pub bodies: Vec<CelestialBody>,
+    /// Bundled bodies that contribute to the scope envelope.
     pub body_count: usize,
     /// Measured fit envelope for the scoped body set.
     pub fit_envelope: PackagedArtifactFitEnvelopeSummary,
@@ -495,7 +497,7 @@ impl PackagedArtifactTargetThresholdScopeSummary {
         format!(
             "scope={}; bodies={}; {}",
             self.scope,
-            self.body_count,
+            format_scope_bodies(&self.bodies),
             self.fit_envelope.summary_line(),
         )
     }
@@ -827,11 +829,13 @@ fn packaged_artifact_target_threshold_scope_envelope_summary_details(
     scope: &'static str,
 ) -> PackagedArtifactTargetThresholdScopeSummary {
     let artifact = packaged_artifact();
-    let body_count = artifact
+    let bodies: Vec<CelestialBody> = artifact
         .bodies
         .iter()
         .filter(|body| packaged_artifact_body_scope(&body.body) == scope)
-        .count();
+        .map(|body| body.body.clone())
+        .collect();
+    let body_count = bodies.len();
     let samples = packaged_artifact_fit_samples_with_filter(artifact, |body| {
         packaged_artifact_body_scope(body) == scope
     });
@@ -843,6 +847,7 @@ fn packaged_artifact_target_threshold_scope_envelope_summary_details(
         packaged_artifact_fit_envelope_summary_from_samples(&samples, expected_sample_count);
     PackagedArtifactTargetThresholdScopeSummary {
         scope,
+        bodies,
         body_count,
         fit_envelope,
     }
@@ -855,6 +860,14 @@ fn packaged_artifact_target_threshold_scope_envelopes_summary_details(
         .copied()
         .map(packaged_artifact_target_threshold_scope_envelope_summary_details)
         .collect()
+}
+
+fn format_scope_bodies(bodies: &[CelestialBody]) -> String {
+    match bodies {
+        [] => "0 (none)".to_string(),
+        [single] => format!("1 ({single})"),
+        _ => format!("{} ({})", bodies.len(), join_display(bodies)),
+    }
 }
 
 /// Structured regeneration provenance for the packaged artifact.
@@ -5230,10 +5243,10 @@ mod tests {
             .contains("target thresholds: prototype fit envelope recorded; scopes=luminaries, major planets, lunar points, selected asteroids, custom bodies; fit envelope:"));
         assert!(summary
             .summary_line()
-            .contains("scope envelopes=scope=luminaries; bodies=2; fit envelope:"));
+            .contains("scope envelopes=scope=luminaries; bodies=2 (Sun, Moon); fit envelope:"));
         assert!(
             packaged_artifact_target_threshold_scope_envelopes_for_report()
-                .contains("scope=luminaries; bodies=2; fit envelope:")
+                .contains("scope=luminaries; bodies=2 (Sun, Moon); fit envelope:")
         );
         assert!(packaged_artifact_production_profile_summary_for_report()
             .contains("Packaged artifact production profile skeleton:"));

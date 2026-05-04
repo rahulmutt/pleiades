@@ -16447,7 +16447,7 @@ mod tests {
             "Packaged-artifact output support: EclipticCoordinates=derived, EquatorialCoordinates=derived, ApparentCorrections=unsupported, TopocentricCoordinates=unsupported, SiderealCoordinates=unsupported, Motion=unsupported"
         ));
         assert!(rendered.contains("Packaged-artifact target thresholds: profile id=pleiades-packaged-artifact-profile/stage-5-prototype; target thresholds: prototype fit envelope recorded; scopes=luminaries, major planets, lunar points, selected asteroids, custom bodies; fit envelope:"));
-        assert!(rendered.contains("Packaged-artifact target-threshold scope envelopes: scope envelopes: scope=luminaries; bodies=2; fit envelope:"));
+        assert!(rendered.contains("Packaged-artifact target-threshold scope envelopes: scope envelopes: scope=luminaries; bodies=2 (Sun, Moon); fit envelope:"));
         assert!(rendered.contains(
             "Packaged-artifact generation manifest: Packaged artifact generation manifest:"
         ));
@@ -16524,7 +16524,7 @@ mod tests {
             "Packaged-artifact storage/reconstruction: Quantized linear segments stored in pleiades-compression artifact format; equatorial coordinates are reconstructed at runtime from stored channels"
         ));
         assert!(validation_report_summary.contains("Packaged-artifact target thresholds: profile id=pleiades-packaged-artifact-profile/stage-5-prototype; target thresholds: prototype fit envelope recorded; scopes=luminaries, major planets, lunar points, selected asteroids, custom bodies; fit envelope:"));
-        assert!(validation_report_summary.contains("Packaged-artifact target-threshold scope envelopes: scope envelopes: scope=luminaries; bodies=2; fit envelope:"));
+        assert!(validation_report_summary.contains("Packaged-artifact target-threshold scope envelopes: scope envelopes: scope=luminaries; bodies=2 (Sun, Moon); fit envelope:"));
         assert!(validation_report_summary.contains(
             "Packaged-artifact generation manifest: Packaged artifact generation manifest:"
         ));
@@ -20063,7 +20063,7 @@ version = "0.9.0"
             "Packaged-artifact storage/reconstruction: Quantized linear segments stored in pleiades-compression artifact format; equatorial coordinates are reconstructed at runtime from stored channels"
         ));
         assert!(release_summary.contains("Packaged-artifact target thresholds: profile id=pleiades-packaged-artifact-profile/stage-5-prototype; target thresholds: prototype fit envelope recorded; scopes=luminaries, major planets, lunar points, selected asteroids, custom bodies; fit envelope:"));
-        assert!(release_summary.contains("Packaged-artifact target-threshold scope envelopes: scope envelopes: scope=luminaries; bodies=2; fit envelope:"));
+        assert!(release_summary.contains("Packaged-artifact target-threshold scope envelopes: scope envelopes: scope=luminaries; bodies=2 (Sun, Moon); fit envelope:"));
         assert!(release_summary.contains(
             "Packaged-artifact generation manifest: Packaged artifact generation manifest:"
         ));
