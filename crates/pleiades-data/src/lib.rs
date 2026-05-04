@@ -5257,6 +5257,22 @@ mod tests {
     }
 
     #[test]
+    fn packaged_artifact_production_profile_summary_validation_rejects_time_range_drift() {
+        let mut summary = packaged_artifact_production_profile_summary_details();
+        summary.time_range = TimeRange::new(None, None);
+
+        let error = summary
+            .validate()
+            .expect_err("time-range drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactProductionProfileSummaryValidationError::FieldOutOfSync {
+                field: "time_range"
+            }
+        );
+    }
+
+    #[test]
     fn packaged_artifact_generator_parameters_validation_rejects_profile_id_drift() {
         let mut parameters = packaged_artifact_generator_parameters_details();
         parameters.profile_id = "pleiades-packaged-artifact-profile/test-drift";
