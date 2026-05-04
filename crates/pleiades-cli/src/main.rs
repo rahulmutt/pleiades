@@ -1891,7 +1891,7 @@ mod tests {
         assert_eq!(
             render_cli(&["request-surface", "extra"])
                 .expect_err("request surface alias should reject extra arguments"),
-            "request-surface-summary does not accept extra arguments"
+            "request-surface does not accept extra arguments"
         );
 
         let request_policy_summary =

@@ -4928,8 +4928,12 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "release-profile-identifiers")?;
             Ok(render_release_profile_identifiers_summary())
         }
-        Some("request-surface-summary") | Some("request-surface") => {
+        Some("request-surface-summary") => {
             ensure_no_extra_args(&args[1..], "request-surface-summary")?;
+            Ok(render_request_surface_summary_text())
+        }
+        Some("request-surface") => {
+            ensure_no_extra_args(&args[1..], "request-surface")?;
             Ok(render_request_surface_summary_text())
         }
         Some("request-policy-summary") => {
@@ -14935,6 +14939,13 @@ mod tests {
         assert!(error
             .to_string()
             .contains("primary request surface instant mismatch"));
+    }
+
+    #[test]
+    fn request_surface_summary_alias_rejects_extra_arguments_with_alias_specific_diagnostics() {
+        let error = render_cli(&["request-surface", "extra"])
+            .expect_err("request surface alias should reject extra arguments");
+        assert_eq!(error, "request-surface does not accept extra arguments");
     }
 
     #[test]
