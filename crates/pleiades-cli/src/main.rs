@@ -157,6 +157,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             Ok(reference_snapshot_source_summary_for_report())
         }
         Some("reference-snapshot-source-window-summary") => validate_render_cli(args),
+        Some("reference-snapshot-source-window") => validate_render_cli(args),
         Some("reference-snapshot-lunar-boundary-summary") => validate_render_cli(args),
         Some("lunar-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-1749-major-body-boundary-summary")
@@ -2190,6 +2191,28 @@ mod tests {
                 .expect_err("comparison snapshot source summary should reject extra arguments"),
             "comparison-snapshot-source-summary does not accept extra arguments"
         );
+        let reference_snapshot_source_window_summary =
+            render_cli(&["reference-snapshot-source-window-summary"])
+                .expect("reference snapshot source window summary should render");
+        assert!(
+            reference_snapshot_source_window_summary.contains("Reference snapshot source windows:")
+        );
+        assert_eq!(
+            reference_snapshot_source_window_summary,
+            pleiades_jpl::reference_snapshot_source_window_summary_for_report()
+        );
+        let reference_snapshot_source_window_alias =
+            render_cli(&["reference-snapshot-source-window"])
+                .expect("reference snapshot source window alias should render");
+        assert_eq!(
+            reference_snapshot_source_window_alias,
+            reference_snapshot_source_window_summary
+        );
+        assert_eq!(
+            render_cli(&["reference-snapshot-source-window", "extra"])
+                .expect_err("reference snapshot source window alias should reject extra arguments"),
+            "reference-snapshot-source-window does not accept extra arguments"
+        );
         let production_generation_boundary_source_summary =
             render_cli(&["production-generation-boundary-source-summary"])
                 .expect("production generation boundary source summary should render");
@@ -3883,6 +3906,9 @@ mod tests {
             "reference-snapshot-manifest-summary  Print the compact reference snapshot manifest summary"
         ));
         assert!(help.contains("reference-snapshot         Alias for reference-snapshot-summary"));
+        assert!(help.contains(
+            "reference-snapshot-source-window  Alias for reference-snapshot-source-window-summary"
+        ));
         assert!(help.contains(
             "reference-snapshot-source-summary  Print the compact reference snapshot source summary"
         ));
