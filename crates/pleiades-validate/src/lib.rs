@@ -2824,6 +2824,8 @@ pub struct ReleaseBundle {
     pub validation_report_summary_path: PathBuf,
     /// Path to the generated workspace-audit summary file.
     pub workspace_audit_summary_path: PathBuf,
+    /// Path to the generated native-dependency audit summary file.
+    pub native_dependency_audit_summary_path: PathBuf,
     /// Path to the generated artifact summary file.
     pub artifact_summary_path: PathBuf,
     /// Path to the generated packaged-artifact generation manifest file.
@@ -2868,6 +2870,8 @@ pub struct ReleaseBundle {
     pub validation_report_summary_bytes: usize,
     /// Number of bytes written for the workspace-audit summary.
     pub workspace_audit_summary_bytes: usize,
+    /// Number of bytes written for the native-dependency audit summary.
+    pub native_dependency_audit_summary_bytes: usize,
     /// Number of bytes written for the artifact summary.
     pub artifact_summary_bytes: usize,
     /// Number of bytes written for the packaged-artifact generation manifest.
@@ -2910,6 +2914,8 @@ pub struct ReleaseBundle {
     pub validation_report_summary_checksum: u64,
     /// Deterministic checksum for the workspace-audit summary contents.
     pub workspace_audit_summary_checksum: u64,
+    /// Deterministic checksum for the native-dependency audit summary contents.
+    pub native_dependency_audit_summary_checksum: u64,
     /// Deterministic checksum for the artifact summary contents.
     pub artifact_summary_checksum: u64,
     /// Deterministic checksum for the packaged-artifact generation manifest contents.
@@ -3863,6 +3869,11 @@ impl fmt::Display for ReleaseBundle {
         )?;
         writeln!(
             f,
+            "  native-dependency audit summary bytes: {}",
+            self.native_dependency_audit_summary_bytes
+        )?;
+        writeln!(
+            f,
             "  artifact summary bytes: {}",
             self.artifact_summary_bytes
         )?;
@@ -3900,6 +3911,11 @@ impl fmt::Display for ReleaseBundle {
             f,
             "  workspace audit summary checksum: 0x{:016x}",
             self.workspace_audit_summary_checksum
+        )?;
+        writeln!(
+            f,
+            "  native-dependency audit summary checksum: 0x{:016x}",
+            self.native_dependency_audit_summary_checksum
         )?;
         writeln!(
             f,
@@ -3996,6 +4012,11 @@ impl ReleaseBundle {
                 &self.workspace_audit_summary_path,
                 "workspace-audit-summary.txt",
                 "workspace audit summary",
+            ),
+            (
+                &self.native_dependency_audit_summary_path,
+                "native-dependency-audit-summary.txt",
+                "native-dependency audit summary",
             ),
             (
                 &self.artifact_summary_path,
@@ -7606,6 +7627,8 @@ pub fn render_release_bundle(
         output_dir.join("comparison-corpus-release-guard-summary.txt");
     let validation_report_summary_path = output_dir.join("validation-report-summary.txt");
     let workspace_audit_summary_path = output_dir.join("workspace-audit-summary.txt");
+    let native_dependency_audit_summary_path =
+        output_dir.join("native-dependency-audit-summary.txt");
     let artifact_summary_path = output_dir.join("artifact-summary.txt");
     let packaged_artifact_generation_manifest_path =
         output_dir.join("packaged-artifact-generation-manifest.txt");
@@ -7631,13 +7654,14 @@ pub fn render_release_bundle(
         checksum64(&comparison_corpus_release_guard_summary_text);
     let validation_report_summary_checksum = checksum64(&validation_report_summary_text);
     let workspace_audit_summary_checksum = checksum64(&workspace_audit_summary_text);
+    let native_dependency_audit_summary_checksum = workspace_audit_summary_checksum;
     let artifact_summary_checksum = checksum64(&artifact_summary_text);
     let packaged_artifact_generation_manifest_checksum =
         checksum64(&packaged_artifact_generation_manifest_text);
     let benchmark_report_checksum = checksum64(&benchmark_report_text);
     let validation_report_checksum = checksum64(&validation_report_text);
     let manifest_text = format!(
-        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease notes summary: release-notes-summary.txt\nrelease notes summary checksum (fnv1a-64): 0x{release_notes_summary_checksum:016x}\nrelease summary: release-summary.txt\nrelease summary checksum (fnv1a-64): 0x{release_summary_checksum:016x}\nrelease-profile identifiers: release-profile-identifiers.txt\nrelease-profile identifiers checksum (fnv1a-64): 0x{release_profile_identifiers_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nrelease checklist summary: release-checklist-summary.txt\nrelease checklist summary checksum (fnv1a-64): 0x{release_checklist_summary_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\nbackend matrix summary: backend-matrix-summary.txt\nbackend matrix summary checksum (fnv1a-64): 0x{backend_matrix_summary_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\napi stability summary: api-stability-summary.txt\napi stability summary checksum (fnv1a-64): 0x{api_stability_summary_checksum:016x}\ncomparison-envelope summary: comparison-envelope-summary.txt\ncomparison-envelope summary checksum (fnv1a-64): 0x{comparison_envelope_summary_checksum:016x}\ncomparison-corpus release-guard summary: comparison-corpus-release-guard-summary.txt\ncomparison-corpus release-guard summary checksum (fnv1a-64): 0x{comparison_corpus_release_guard_summary_checksum:016x}\nvalidation report summary: validation-report-summary.txt\nvalidation report summary checksum (fnv1a-64): 0x{validation_report_summary_checksum:016x}\nworkspace audit summary: workspace-audit-summary.txt\nworkspace audit summary checksum (fnv1a-64): 0x{workspace_audit_summary_checksum:016x}\nartifact summary: artifact-summary.txt\nartifact summary checksum (fnv1a-64): 0x{artifact_summary_checksum:016x}\npackaged-artifact generation manifest: packaged-artifact-generation-manifest.txt\npackaged-artifact generation manifest checksum (fnv1a-64): 0x{packaged_artifact_generation_manifest_checksum:016x}\nbenchmark report: benchmark-report.txt\nbenchmark report checksum (fnv1a-64): 0x{benchmark_report_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
+        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease notes summary: release-notes-summary.txt\nrelease notes summary checksum (fnv1a-64): 0x{release_notes_summary_checksum:016x}\nrelease summary: release-summary.txt\nrelease summary checksum (fnv1a-64): 0x{release_summary_checksum:016x}\nrelease-profile identifiers: release-profile-identifiers.txt\nrelease-profile identifiers checksum (fnv1a-64): 0x{release_profile_identifiers_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nrelease checklist summary: release-checklist-summary.txt\nrelease checklist summary checksum (fnv1a-64): 0x{release_checklist_summary_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\nbackend matrix summary: backend-matrix-summary.txt\nbackend matrix summary checksum (fnv1a-64): 0x{backend_matrix_summary_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\napi stability summary: api-stability-summary.txt\napi stability summary checksum (fnv1a-64): 0x{api_stability_summary_checksum:016x}\ncomparison-envelope summary: comparison-envelope-summary.txt\ncomparison-envelope summary checksum (fnv1a-64): 0x{comparison_envelope_summary_checksum:016x}\ncomparison-corpus release-guard summary: comparison-corpus-release-guard-summary.txt\ncomparison-corpus release-guard summary checksum (fnv1a-64): 0x{comparison_corpus_release_guard_summary_checksum:016x}\nvalidation report summary: validation-report-summary.txt\nvalidation report summary checksum (fnv1a-64): 0x{validation_report_summary_checksum:016x}\nworkspace audit summary: workspace-audit-summary.txt\nworkspace audit summary checksum (fnv1a-64): 0x{workspace_audit_summary_checksum:016x}\nnative-dependency audit summary: native-dependency-audit-summary.txt\nnative-dependency audit summary checksum (fnv1a-64): 0x{native_dependency_audit_summary_checksum:016x}\nartifact summary: artifact-summary.txt\nartifact summary checksum (fnv1a-64): 0x{artifact_summary_checksum:016x}\npackaged-artifact generation manifest: packaged-artifact-generation-manifest.txt\npackaged-artifact generation manifest checksum (fnv1a-64): 0x{packaged_artifact_generation_manifest_checksum:016x}\nbenchmark report: benchmark-report.txt\nbenchmark report checksum (fnv1a-64): 0x{benchmark_report_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
         provenance.source_revision,
         provenance.workspace_status,
         provenance.rustc_version,
@@ -7689,6 +7713,10 @@ pub fn render_release_bundle(
         &workspace_audit_summary_path,
         workspace_audit_summary_text.as_bytes(),
     )?;
+    fs::write(
+        &native_dependency_audit_summary_path,
+        workspace_audit_summary_text.as_bytes(),
+    )?;
     let manifest_checksum = checksum64(&manifest_text);
     let manifest_checksum_text = format!("0x{manifest_checksum:016x}\n");
     fs::write(&artifact_summary_path, artifact_summary_text.as_bytes())?;
@@ -7738,6 +7766,8 @@ struct ParsedReleaseBundleManifest {
     validation_report_summary_checksum: u64,
     workspace_audit_summary_path: String,
     workspace_audit_summary_checksum: u64,
+    native_dependency_audit_summary_path: String,
+    native_dependency_audit_summary_checksum: u64,
     artifact_summary_path: String,
     artifact_summary_checksum: u64,
     packaged_artifact_generation_manifest_path: String,
@@ -7849,6 +7879,14 @@ impl ParsedReleaseBundleManifest {
                 text,
                 "workspace audit summary checksum (fnv1a-64):",
             )?,
+            native_dependency_audit_summary_path: parse_manifest_string(
+                text,
+                "native-dependency audit summary:",
+            )?,
+            native_dependency_audit_summary_checksum: parse_manifest_checksum(
+                text,
+                "native-dependency audit summary checksum (fnv1a-64):",
+            )?,
             artifact_summary_path: parse_manifest_string(text, "artifact summary:")?,
             artifact_summary_checksum: parse_manifest_checksum(
                 text,
@@ -7904,6 +7942,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
         "comparison-corpus-release-guard-summary.txt",
         "validation-report-summary.txt",
         "workspace-audit-summary.txt",
+        "native-dependency-audit-summary.txt",
         "artifact-summary.txt",
         "packaged-artifact-generation-manifest.txt",
         "benchmark-report.txt",
@@ -7942,7 +7981,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
 fn ensure_release_bundle_manifest_is_canonical(
     manifest_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    const EXPECTED_MANIFEST_LINES: [&str; 47] = [
+    const EXPECTED_MANIFEST_LINES: [&str; 49] = [
         "Release bundle manifest",
         "profile:",
         "profile checksum (fnv1a-64):",
@@ -7976,6 +8015,8 @@ fn ensure_release_bundle_manifest_is_canonical(
         "validation report summary checksum (fnv1a-64):",
         "workspace audit summary:",
         "workspace audit summary checksum (fnv1a-64):",
+        "native-dependency audit summary:",
+        "native-dependency audit summary checksum (fnv1a-64):",
         "artifact summary:",
         "artifact summary checksum (fnv1a-64):",
         "packaged-artifact generation manifest:",
@@ -8058,6 +8099,8 @@ fn verify_release_bundle(
         output_dir.join("comparison-corpus-release-guard-summary.txt");
     let validation_report_summary_path = output_dir.join("validation-report-summary.txt");
     let workspace_audit_summary_path = output_dir.join("workspace-audit-summary.txt");
+    let native_dependency_audit_summary_path =
+        output_dir.join("native-dependency-audit-summary.txt");
     let artifact_summary_path = output_dir.join("artifact-summary.txt");
     let packaged_artifact_generation_manifest_path =
         output_dir.join("packaged-artifact-generation-manifest.txt");
@@ -8092,6 +8135,10 @@ fn verify_release_bundle(
         ),
         (&validation_report_summary_path, "validation report summary"),
         (&workspace_audit_summary_path, "workspace audit summary"),
+        (
+            &native_dependency_audit_summary_path,
+            "native-dependency audit summary",
+        ),
         (&artifact_summary_path, "artifact summary"),
         (&benchmark_report_path, "benchmark report"),
         (&validation_report_path, "validation report"),
@@ -8134,6 +8181,12 @@ fn verify_release_bundle(
         read_required_bundle_text(&validation_report_summary_path, "validation report summary")?;
     let workspace_audit_summary_text =
         read_required_bundle_text(&workspace_audit_summary_path, "workspace audit summary")?;
+    let native_dependency_audit_summary_text = read_required_bundle_text(
+        &native_dependency_audit_summary_path,
+        "native-dependency audit summary",
+    )?;
+    let native_dependency_audit_summary_checksum =
+        checksum64(&native_dependency_audit_summary_text);
     let artifact_summary_text =
         read_required_bundle_text(&artifact_summary_path, "artifact summary")?;
     let packaged_artifact_generation_manifest_text = read_required_bundle_text(
@@ -8255,6 +8308,12 @@ fn verify_release_bundle(
         return Err(ReleaseBundleError::Verification(format!(
             "unexpected workspace audit summary file entry: {}",
             manifest.workspace_audit_summary_path
+        )));
+    }
+    if manifest.native_dependency_audit_summary_path != "native-dependency-audit-summary.txt" {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected native-dependency audit summary file entry: {}",
+            manifest.native_dependency_audit_summary_path
         )));
     }
     if manifest.artifact_summary_path != "artifact-summary.txt" {
@@ -8450,6 +8509,13 @@ fn verify_release_bundle(
             manifest.workspace_audit_summary_checksum, workspace_audit_summary_checksum
         )));
     }
+    if manifest.native_dependency_audit_summary_checksum != native_dependency_audit_summary_checksum
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "native-dependency audit summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.native_dependency_audit_summary_checksum, native_dependency_audit_summary_checksum
+        )));
+    }
     if manifest.artifact_summary_checksum != artifact_summary_checksum {
         return Err(ReleaseBundleError::Verification(format!(
             "artifact summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
@@ -8505,6 +8571,7 @@ fn verify_release_bundle(
         comparison_corpus_release_guard_summary_path,
         validation_report_summary_path,
         workspace_audit_summary_path,
+        native_dependency_audit_summary_path,
         artifact_summary_path,
         packaged_artifact_generation_manifest_path,
         benchmark_report_path,
@@ -8528,6 +8595,7 @@ fn verify_release_bundle(
             .len(),
         validation_report_summary_bytes: validation_report_summary_text.len(),
         workspace_audit_summary_bytes: workspace_audit_summary_text.len(),
+        native_dependency_audit_summary_bytes: workspace_audit_summary_text.len(),
         artifact_summary_bytes: artifact_summary_text.len(),
         packaged_artifact_generation_manifest_bytes: packaged_artifact_generation_manifest_text
             .len(),
@@ -8550,6 +8618,7 @@ fn verify_release_bundle(
         comparison_corpus_release_guard_summary_checksum,
         validation_report_summary_checksum,
         workspace_audit_summary_checksum,
+        native_dependency_audit_summary_checksum,
         artifact_summary_checksum,
         packaged_artifact_generation_manifest_checksum,
         benchmark_report_checksum,

@@ -93,6 +93,8 @@ The bundle currently writes these text artifacts:
 - `backend-matrix-summary.txt`
 - `api-stability.txt`
 - `api-stability-summary.txt`
+- `workspace-audit-summary.txt`
+- `native-dependency-audit-summary.txt`
 - `artifact-summary.txt`
 - `release-profile-identifiers.txt`
 - `benchmark-report.txt`
