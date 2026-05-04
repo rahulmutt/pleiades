@@ -30,8 +30,7 @@ use pleiades_validate::{
     render_catalog_inventory_summary, render_cli as validate_render_cli,
     render_compatibility_profile_summary, render_release_bundle, render_release_checklist,
     render_release_checklist_summary, render_release_notes, render_release_notes_summary,
-    render_release_summary, render_request_surface_summary, render_validation_report_summary,
-    verify_compatibility_profile,
+    render_release_summary, render_validation_report_summary, verify_compatibility_profile,
 };
 use pleiades_vsop87::Vsop87Backend;
 
@@ -390,9 +389,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("release-profile-identifiers-summary") => {
             validate_render_cli(&["release-profile-identifiers-summary"])
         }
-        Some("request-surface-summary") | Some("request-surface") => {
-            Ok(render_request_surface_summary())
-        }
+        Some("request-surface-summary") | Some("request-surface") => validate_render_cli(args),
         Some("request-policy-summary") => validate_render_cli(args),
         Some("request-policy") => validate_render_cli(args),
         Some("request-semantics-summary") => validate_render_cli(args),
@@ -1235,8 +1232,8 @@ mod tests {
 
     use super::{
         banner, parse_ayanamsa, parse_body, regenerate_packaged_artifact, render_chart, render_cli,
-        render_request_surface_summary, shared_request_policy_help_block, validate_render_cli,
-        Angle, Ayanamsa, CelestialBody, CustomAyanamsa, CustomBodyId, JulianDay,
+        shared_request_policy_help_block, validate_render_cli, Angle, Ayanamsa, CelestialBody,
+        CustomAyanamsa, CustomBodyId, JulianDay,
     };
 
     fn unique_temp_dir(prefix: &str) -> std::path::PathBuf {
@@ -1881,7 +1878,20 @@ mod tests {
         assert!(
             request_surface_summary.contains("pleiades-cli chart (explicit --tt|--tdb|--utc|--ut1 flags plus caller-supplied TT/TDB offset aliases: --tt-offset-seconds, --tt-from-utc-offset-seconds, --tt-from-ut1-offset-seconds, --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, --tdb-from-tt-offset-seconds, and --tt-from-tdb-offset-seconds; observer-bearing chart requests stay geocentric and use the observer only for houses)")
         );
-        assert_eq!(request_surface_summary, render_request_surface_summary());
+        assert_eq!(
+            request_surface_summary,
+            pleiades_validate::render_request_surface_summary()
+        );
+        assert_eq!(
+            render_cli(&["request-surface-summary", "extra"])
+                .expect_err("request surface summary should reject extra arguments"),
+            "request-surface-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["request-surface", "extra"])
+                .expect_err("request surface alias should reject extra arguments"),
+            "request-surface-summary does not accept extra arguments"
+        );
 
         let request_policy_summary =
             render_cli(&["request-policy-summary"]).expect("request policy summary should render");
