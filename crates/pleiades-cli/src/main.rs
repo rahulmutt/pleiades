@@ -330,7 +330,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("holdout-body-class-coverage-summary") => validate_render_cli(args),
         Some("independent-holdout-batch-parity-summary") => validate_render_cli(args),
         Some("independent-holdout-equatorial-parity-summary") => validate_render_cli(args),
-        Some("house-validation-summary") => validate_render_cli(args),
+        Some("house-validation-summary") | Some("house-validation") => validate_render_cli(args),
         Some("house-formula-families-summary") => validate_render_cli(args),
         Some("house-formula-families") => validate_render_cli(args),
         Some("house-code-aliases-summary") => validate_render_cli(args),
@@ -2946,6 +2946,14 @@ mod tests {
             render_cli(&["house-validation-summary", "extra"])
                 .expect_err("house validation summary should reject extra arguments"),
             "house-validation-summary does not accept extra arguments"
+        );
+        let house_validation_alias =
+            render_cli(&["house-validation"]).expect("house validation alias should render");
+        assert_eq!(house_validation_alias, house_validation_summary);
+        assert_eq!(
+            render_cli(&["house-validation", "extra"])
+                .expect_err("house validation alias should reject extra arguments"),
+            "house-validation does not accept extra arguments"
         );
         let house_formula_families_summary = render_cli(&["house-formula-families-summary"])
             .expect("house formula families summary should render");
