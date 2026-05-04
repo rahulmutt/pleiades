@@ -7015,6 +7015,9 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str(&request_surface_summary_for_report());
     text.push('\n');
+    text.push_str("Comparison corpus release-grade guard: ");
+    text.push_str(comparison_corpus_release_guard_summary());
+    text.push('\n');
     text.push_str("JPL interpolation posture: ");
     text.push_str(&jpl_interpolation_posture_summary_for_report());
     text.push('\n');
@@ -19647,6 +19650,7 @@ version = "0.9.0"
         assert!(manifest.contains("release-profile-identifiers.txt"));
         assert!(manifest.contains("release-profile-identifiers-summary.txt"));
         assert!(release_summary.contains("Comparison envelope: samples:"));
+        assert!(release_summary.contains("Comparison corpus release-grade guard: Pluto excluded from tolerance evidence; 2451913.5 boundary day stays out of the audit slice"));
         let comparison_report = compare_backends(
             &default_reference_backend(),
             &default_candidate_backend(),
