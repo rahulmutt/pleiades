@@ -128,6 +128,10 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("production-generation-boundary-source-summary") => validate_render_cli(args),
         Some("production-generation-boundary-window-summary") => validate_render_cli(args),
+        Some("production-generation-boundary-window") => {
+            ensure_no_extra_args(&args[1..], "production-generation-boundary-window")?;
+            validate_render_cli(args)
+        }
         Some("production-generation-source-summary") => validate_render_cli(args),
         Some("comparison-snapshot-source-summary") => {
             ensure_no_extra_args(&args[1..], "comparison-snapshot-source-summary")?;
@@ -2190,6 +2194,19 @@ mod tests {
             production_generation_boundary_window_summary,
             pleiades_jpl::production_generation_boundary_window_summary_for_report()
         );
+        let production_generation_boundary_window_alias =
+            render_cli(&["production-generation-boundary-window"])
+                .expect("production generation boundary window alias should render");
+        assert_eq!(
+            production_generation_boundary_window_alias,
+            pleiades_jpl::production_generation_boundary_window_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["production-generation-boundary-window", "extra"]).expect_err(
+                "production generation boundary window alias should reject extra arguments"
+            ),
+            "production-generation-boundary-window does not accept extra arguments"
+        );
         let production_generation_source_summary =
             render_cli(&["production-generation-source-summary"])
                 .expect("production generation source summary should render");
@@ -3620,6 +3637,12 @@ mod tests {
         ));
         assert!(help
             .contains("production-generation           Alias for production-generation-summary"));
+        assert!(help.contains(
+            "production-generation-boundary-window-summary  Print the compact production-generation boundary windows summary"
+        ));
+        assert!(help.contains(
+            "production-generation-boundary-window  Alias for production-generation-boundary-window-summary"
+        ));
         assert!(help.contains(
             "compatibility-caveats-summary  Print the compact compatibility caveats summary"
         ));
