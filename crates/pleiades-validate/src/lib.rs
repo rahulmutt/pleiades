@@ -15478,6 +15478,7 @@ mod tests {
         assert!(report.contains("request: instant="));
         assert!(report.contains("Mid-latitude reference chart"));
         assert!(report.contains("Polar stress chart"));
+        assert!(report.contains("Northern high-latitude stress chart"));
         assert!(report.contains("Equatorial reference chart"));
         assert!(report.contains("Southern hemisphere reference chart"));
         assert!(report.contains("Reference backend"));
@@ -15627,7 +15628,7 @@ mod tests {
         assert!(report.contains("release-grade guard: Pluto excluded from tolerance evidence; 2451913.5 boundary day stays out of the audit slice"));
         assert!(report.contains("epoch labels: JD 2360233.5 (TT)"));
         assert!(report.contains("House validation corpus"));
-        assert!(report.contains("House validation corpus: 5 scenarios"));
+        assert!(report.contains("House validation corpus: 6 scenarios"));
         assert!(report.contains("Comparison summary"));
         assert!(report.contains("95th percentile absolute deltas:"));
         assert!(report.contains("median longitude delta:"));
@@ -16026,7 +16027,7 @@ mod tests {
     #[test]
     fn house_validation_report_includes_representative_scenarios() {
         let report = house_validation_report();
-        assert_eq!(report.scenarios.len(), 5);
+        assert_eq!(report.scenarios.len(), 6);
         assert!(report
             .scenarios
             .iter()
@@ -17000,7 +17001,7 @@ mod tests {
         let rendered = render_cli(&["house-validation-summary"])
             .expect("house validation summary should render");
 
-        assert!(rendered.contains("House validation corpus: 5 scenarios"));
+        assert!(rendered.contains("House validation corpus: 6 scenarios"));
         assert!(rendered
             .contains("formula families: Equal, Whole Sign, Quadrant, Equatorial projection"));
         assert!(rendered.contains("latitude-sensitive systems: Koch, Placidus, Topocentric"));
@@ -18318,7 +18319,7 @@ mod tests {
         assert!(rendered.contains("95th percentile latitude delta:"));
         assert!(rendered.contains("rms latitude delta:"));
         assert!(rendered.contains("Validation evidence:"));
-        assert!(rendered.contains("House validation corpus: 5 scenarios (Mid-latitude reference chart, Equatorial reference chart, Polar stress chart, Southern polar stress chart, Southern hemisphere reference chart), 60 samples, 60 successes, 0 failures; formula families: Equal, Whole Sign, Quadrant, Equatorial projection; latitude-sensitive systems: Koch, Placidus, Topocentric; constraints: Koch [Quadrant system with documented high-latitude pathologies.], Placidus [Quadrant system; can fail or become unstable at extreme latitudes.], Topocentric [Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.]"));
+        assert!(rendered.contains("House validation corpus: 6 scenarios (Mid-latitude reference chart, Equatorial reference chart, Polar stress chart, Northern high-latitude stress chart, Southern polar stress chart, Southern hemisphere reference chart), 72 samples, 72 successes, 0 failures; formula families: Equal, Whole Sign, Quadrant, Equatorial projection; latitude-sensitive systems: Koch, Placidus, Topocentric; constraints: Koch [Quadrant system with documented high-latitude pathologies.], Placidus [Quadrant system; can fail or become unstable at extreme latitudes.], Topocentric [Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.]"));
         assert!(rendered.contains("comparison samples"));
         assert!(rendered.contains("Time-scale policy:"));
         assert!(rendered.contains("Observer policy:"));

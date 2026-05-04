@@ -75,7 +75,7 @@ The lunar source-window summary slice is now complete in both the validation ren
 
 **Work items:**
 
-- Add or verify golden scenarios across hemispheres, latitudes, and polar/high-latitude constraints. The release-facing house-validation corpus now also surfaces the baseline formula-family coverage and the documented latitude-sensitive constraint notes for Placidus, Koch, and Topocentric directly in its summary, and it now includes a mirrored southern polar stress chart so both hemispheres are represented in the high-latitude evidence slice.
+- Add or verify golden scenarios across hemispheres, latitudes, and polar/high-latitude constraints. The release-facing house-validation corpus now also surfaces the baseline formula-family coverage and the documented latitude-sensitive constraint notes for Placidus, Koch, and Topocentric directly in its summary, and it now includes mirrored southern polar and northern high-latitude stress charts so both hemispheres are represented in the high-latitude evidence slice.
 - Check cusp ordering, angle derivation, normalization, and house placement. The compatibility-profile display and shared validation summary now also render the latitude-sensitive house-system set from the same formatter, keeping the release-facing constraint list in sync with the house evidence audit.
 - Update compatibility caveats and profile verification for descriptor-only or constrained entries.
 
