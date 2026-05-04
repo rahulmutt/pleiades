@@ -5390,6 +5390,23 @@ mod tests {
     }
 
     #[test]
+    fn packaged_artifact_generation_manifest_validation_rejects_label_drift() {
+        let mut manifest = packaged_artifact_generation_manifest_details();
+        manifest.parameters.label = "drifted label";
+
+        let error = manifest
+            .validate()
+            .expect_err("drifted generation label should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error.message.contains(
+            "packaged artifact generator parameters label does not match the current production profile"
+        ));
+    }
+
+    #[test]
     fn packaged_artifact_generation_manifest_validation_rejects_parameter_drift() {
         let mut manifest = packaged_artifact_generation_manifest_details();
         manifest.parameters.target_thresholds = PackagedArtifactTargetThresholdSummary {
@@ -5427,6 +5444,23 @@ mod tests {
         assert!(error
             .message
             .contains("packaged artifact regeneration fit envelope is invalid"));
+    }
+
+    #[test]
+    fn packaged_artifact_production_profile_summary_validation_rejects_label_drift() {
+        let mut summary = packaged_artifact_production_profile_summary_details();
+        summary.label = "drifted label";
+
+        let error = summary
+            .validate()
+            .expect_err("label drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactProductionProfileSummaryValidationError::FieldOutOfSync {
+                field: "label",
+            }
+        );
+        assert!(error.to_string().contains("label"));
     }
 
     #[test]

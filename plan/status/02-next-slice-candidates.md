@@ -53,7 +53,7 @@ The lunar source-window summary slice is now complete in both the validation ren
 
 - Define production artifact profile identifiers, body sets, stored/derived/unsupported outputs, and target thresholds. The packaged-data crate now exposes a dedicated production-profile skeleton summary, a structured target-threshold scaffold that captures the current measured fit envelope and body-class scope envelopes, and deterministic generator-parameter/manifest outputs that capture the current prototype posture; the target-threshold scaffold now also carries the release-profile identifier, the compact validation and release summaries now surface the target-threshold posture and generation manifest, the target-threshold and target-threshold scope-envelope summaries now also have direct CLI inspection paths in both CLIs, and the remaining work is to finalize the release thresholds and align the manifest with production fit validation.
 - Keep the prototype artifact labeled as prototype until Phase 2 fit validation passes.
-- Add tests for profile/header validation and claim drift.
+- Add tests for profile/header validation and claim drift. Production-profile label drift and generation-manifest label drift are now covered; extend the remaining header-field drift checks as Phase 2 hardening continues.
 
 ## 5. Artifact fit improvement loop
 
