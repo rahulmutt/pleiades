@@ -19206,6 +19206,9 @@ version = "0.9.0"
         assert!(release_summary.contains("JPL production-generation boundary request corpus:"));
         assert!(release_summary.contains("Production generation boundary overlay source:"));
         assert!(release_summary.contains("Source-backed backend evidence:"));
+        assert!(release_summary
+            .contains(&reference_snapshot_boundary_epoch_coverage_summary_for_report()));
+        assert!(release_summary.contains(&reference_snapshot_sparse_boundary_summary_for_report()));
         assert!(release_summary.contains("Selected asteroid evidence:"));
         assert!(release_summary.contains("Selected asteroid batch parity:"));
         assert!(release_summary.contains("Selected asteroid source windows:"));

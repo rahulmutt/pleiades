@@ -11880,6 +11880,8 @@ pub fn jpl_snapshot_evidence_summary_for_report() -> String {
         production_generation_source_summary_for_report(),
         reference_snapshot_source_summary_for_report(),
         reference_snapshot_source_window_summary_for_report(),
+        reference_snapshot_boundary_epoch_coverage_summary_for_report(),
+        reference_snapshot_sparse_boundary_summary_for_report(),
         reference_snapshot_major_body_boundary_summary_for_report(),
         reference_holdout_overlap_summary_for_report(),
         reference_snapshot_manifest_summary_for_report(),
@@ -17037,6 +17039,10 @@ mod tests {
             .contains(&reference_snapshot_source_window_summary_for_report()));
         assert!(jpl_snapshot_evidence_summary_for_report()
             .contains(&production_generation_boundary_request_corpus_summary_for_report()));
+        assert!(jpl_snapshot_evidence_summary_for_report()
+            .contains(&reference_snapshot_boundary_epoch_coverage_summary_for_report()));
+        assert!(jpl_snapshot_evidence_summary_for_report()
+            .contains(&reference_snapshot_sparse_boundary_summary_for_report()));
     }
 
     #[test]
