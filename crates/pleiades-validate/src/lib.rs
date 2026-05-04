@@ -17028,6 +17028,41 @@ mod tests {
     }
 
     #[test]
+    fn packaged_artifact_summary_commands_reject_extra_arguments() {
+        for (args, expected) in [
+            (
+                &["packaged-artifact-production-profile-summary", "extra"][..],
+                "packaged-artifact-production-profile-summary does not accept extra arguments",
+            ),
+            (
+                &["packaged-artifact-target-threshold-summary", "extra"][..],
+                "packaged-artifact-target-threshold-summary does not accept extra arguments",
+            ),
+            (
+                &["packaged-artifact-target-threshold-scope-envelopes-summary", "extra"][..],
+                "packaged-artifact-target-threshold-scope-envelopes-summary does not accept extra arguments",
+            ),
+            (
+                &["packaged-artifact-generation-manifest-summary", "extra"][..],
+                "packaged-artifact-generation-manifest-summary does not accept extra arguments",
+            ),
+            (
+                &["packaged-artifact-generation-policy-summary", "extra"][..],
+                "packaged-artifact-generation-policy-summary does not accept extra arguments",
+            ),
+            (
+                &["packaged-artifact-regeneration-summary", "extra"][..],
+                "packaged-artifact-regeneration-summary does not accept extra arguments",
+            ),
+        ] {
+            assert_eq!(
+                render_cli(args).expect_err("packaged-artifact summary should reject extra arguments"),
+                expected
+            );
+        }
+    }
+
+    #[test]
     fn regenerate_packaged_artifact_command_checks_and_writes_the_fixture() {
         let check = render_cli(&["regenerate-packaged-artifact", "--check"])
             .expect("packaged artifact regeneration check should render");

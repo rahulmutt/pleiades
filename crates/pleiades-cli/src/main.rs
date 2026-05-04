@@ -3312,6 +3312,38 @@ mod tests {
             pleiades_data::packaged_artifact_generation_policy_summary_for_report()
         );
 
+        for (args, expected) in [
+            (
+                &["packaged-artifact-production-profile-summary", "extra"][..],
+                "packaged-artifact-production-profile-summary does not accept extra arguments",
+            ),
+            (
+                &["packaged-artifact-target-threshold-summary", "extra"][..],
+                "packaged-artifact-target-threshold-summary does not accept extra arguments",
+            ),
+            (
+                &["packaged-artifact-target-threshold-scope-envelopes-summary", "extra"][..],
+                "packaged-artifact-target-threshold-scope-envelopes-summary does not accept extra arguments",
+            ),
+            (
+                &["packaged-artifact-generation-manifest-summary", "extra"][..],
+                "packaged-artifact-generation-manifest-summary does not accept extra arguments",
+            ),
+            (
+                &["packaged-artifact-generation-policy-summary", "extra"][..],
+                "packaged-artifact-generation-policy-summary does not accept extra arguments",
+            ),
+            (
+                &["packaged-artifact-regeneration-summary", "extra"][..],
+                "packaged-artifact-regeneration-summary does not accept extra arguments",
+            ),
+        ] {
+            assert_eq!(
+                render_cli(args).expect_err("packaged-artifact summary should reject extra arguments"),
+                expected
+            );
+        }
+
         let packaged_artifact_generation_residual =
             render_cli(&["packaged-artifact-generation-residual-summary"])
                 .expect("packaged artifact generation residual summary should render");
