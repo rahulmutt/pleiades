@@ -249,6 +249,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("selected-asteroid-source-evidence-summary") => validate_render_cli(args),
         Some("selected-asteroid-source-summary") => validate_render_cli(args),
         Some("selected-asteroid-source-window-summary") => validate_render_cli(args),
+        Some("selected-asteroid-source-window") => validate_render_cli(args),
         Some("selected-asteroid-batch-parity-summary") => validate_render_cli(args),
         Some("reference-asteroid-evidence-summary") => validate_render_cli(args),
         Some("reference-asteroid-equatorial-evidence-summary") => validate_render_cli(args),
@@ -2469,6 +2470,16 @@ mod tests {
             selected_asteroid_source_window_summary,
             pleiades_jpl::selected_asteroid_source_window_summary_for_report()
         );
+        assert_eq!(
+            render_cli(&["selected-asteroid-source-window"])
+                .expect("selected asteroid source window alias should render"),
+            selected_asteroid_source_window_summary
+        );
+        assert_eq!(
+            render_cli(&["selected-asteroid-source-window", "extra"])
+                .expect_err("selected asteroid source window alias should reject extra arguments"),
+            "selected-asteroid-source-window does not accept extra arguments"
+        );
         let selected_asteroid_batch_parity_summary =
             render_cli(&["selected-asteroid-batch-parity-summary"])
                 .expect("selected asteroid batch parity summary should render");
@@ -3591,6 +3602,10 @@ mod tests {
         assert!(help.contains("reference-asteroid-source-window-summary  Print the compact reference asteroid source windows summary"));
         assert!(help.contains(
             "reference-asteroid-source-summary  Alias for reference-asteroid-source-window-summary"
+        ));
+        assert!(help.contains("selected-asteroid-source-window-summary  Print the compact selected-asteroid source windows summary"));
+        assert!(help.contains(
+            "selected-asteroid-source-window  Alias for selected-asteroid-source-window-summary"
         ));
         assert!(help.contains("independent-holdout-source-window-summary  Print the compact independent hold-out source windows summary"));
         assert!(help.contains(
