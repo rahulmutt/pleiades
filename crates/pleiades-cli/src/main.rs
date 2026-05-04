@@ -367,10 +367,19 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("ayanamsa-catalog-validation-summary") => {
             validate_render_cli(&["ayanamsa-catalog-validation-summary"])
         }
+        Some("ayanamsa-catalog-validation") => {
+            validate_render_cli(&["ayanamsa-catalog-validation-summary"])
+        }
         Some("ayanamsa-metadata-coverage-summary") => {
             validate_render_cli(&["ayanamsa-metadata-coverage-summary"])
         }
+        Some("ayanamsa-metadata-coverage") => {
+            validate_render_cli(&["ayanamsa-metadata-coverage-summary"])
+        }
         Some("ayanamsa-reference-offsets-summary") => {
+            validate_render_cli(&["ayanamsa-reference-offsets-summary"])
+        }
+        Some("ayanamsa-reference-offsets") => {
             validate_render_cli(&["ayanamsa-reference-offsets-summary"])
         }
         Some("frame-policy-summary") => validate_render_cli(&["frame-policy-summary"]),
@@ -480,7 +489,7 @@ fn help_text() -> String {
   request-policy          Alias for request-policy-summary
   request-semantics-summary Alias for request-policy-summary
   request-semantics       Alias for request-policy-summary
-  independent-holdout-equatorial-parity-summary  Print the compact independent hold-out equatorial parity summary\n  house-validation-summary   Print the compact house-validation corpus summary\n  house-formula-families-summary  Print the compact house formula families summary\n  house-code-aliases-summary  Print the compact house-code alias summary\n  house-code-alias-summary  Alias for house-code-aliases-summary\n  ayanamsa-catalog-validation-summary  Print the compact ayanamsa catalog validation summary\n  ayanamsa-metadata-coverage-summary  Print the compact ayanamsa sidereal metadata coverage summary\n  ayanamsa-reference-offsets-summary  Print the compact ayanamsa reference offsets summary\n  frame-policy-summary   Print the compact frame-policy summary\n  frame-policy           Alias for frame-policy-summary\n  mean-obliquity-frame-round-trip-summary  Print the compact mean-obliquity frame round-trip summary\n  release-profile-identifiers-summary  Print the compact release-profile identifiers summary\n  request-surface-summary  Print the compact request-surface inventory summary\n  request-surface         Alias for request-surface-summary\n  request-policy-summary  Print the compact request-policy summary\n  request-semantics-summary Alias for request-policy-summary\n  comparison-tolerance-policy-summary  Print the compact comparison tolerance policy summary\n  comparison-tolerance-summary  Alias for comparison-tolerance-policy-summary\n  pluto-fallback-summary   Print the compact Pluto fallback summary\n  workspace-audit-summary  Print the compact workspace audit summary\n  native-dependency-audit-summary  Alias for workspace-audit-summary\n  artifact-summary       Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  artifact-boundary-envelope-summary  Print the compact packaged-artifact boundary envelope summary\n  artifact-profile-coverage-summary  Print the packaged-artifact profile coverage summary\n  packaged-artifact-output-support-summary  Print the packaged-artifact output support summary\n  packaged-artifact-storage-summary  Print the packaged-artifact storage/reconstruction summary\n  packaged-artifact-production-profile-summary  Print the packaged-artifact production profile skeleton summary\n  packaged-artifact-target-threshold-summary  Print the packaged-artifact target thresholds summary\n  packaged-artifact-target-threshold-scope-envelopes-summary  Print the packaged-artifact target-threshold scope envelopes summary\n  packaged-artifact-generation-manifest-summary  Print the packaged-artifact generation manifest summary\n  packaged-artifact-generation-policy-summary  Print the packaged-artifact generation policy summary\n  packaged-artifact-generation-residual-summary  Alias for packaged-artifact-generation-residual-bodies-summary\n  packaged-artifact-generation-residual-bodies-summary  Print the packaged-artifact generation residual bodies summary\n  packaged-artifact-regeneration-summary  Print the packaged-artifact regeneration summary\n  packaged-frame-parity-summary  Print the packaged frame parity summary\n  packaged-frame-treatment-summary  Print the packaged frame treatment summary\n  packaged-lookup-epoch-policy-summary  Print the packaged lookup epoch policy summary\n  packaged-lookup-epoch-policy         Alias for packaged-lookup-epoch-policy-summary\n  validate-artifact      Inspect and validate the bundled compressed artifact\n  regenerate-packaged-artifact  Rebuild or verify the packaged artifact fixture from the checked-in reference snapshot; pass a file path, --out FILE, or --check\n  workspace-audit        Check the workspace for mandatory native build hooks\n  audit                  Alias for workspace-audit\n  native-dependency-audit  Alias for workspace-audit\n  report                 Print the full validation report\n  generate-report        Alias for report\n  validation-report-summary  Print the compact validation report summary\n  validation-summary     Alias for validation-report-summary\n  report-summary         Alias for validation-report-summary\n  chart                  Render a basic chart report\n    --tt|--tdb|--utc|--ut1  Tag the chart instant with a time scale\n    --tt-offset-seconds <seconds>  Caller-supplied TT offset for UTC/UT1-tagged instants\n    --tt-from-utc-offset-seconds <seconds>  Alias for --tt-offset-seconds when the chart instant is tagged as UTC\n    --tt-from-ut1-offset-seconds <seconds>  Alias for --tt-offset-seconds when the chart instant is tagged as UT1\n    --tdb-offset-seconds <seconds> Caller-supplied signed TDB-TT offset for TT/UTC/UT1-tagged instants\n    --tdb-from-utc-offset-seconds <seconds> Explicit UTC-tagged alias for the signed TDB-TT offset\n    --tdb-from-ut1-offset-seconds <seconds> Explicit UT1-tagged alias for the signed TDB-TT offset\n    --tdb-from-tt-offset-seconds <seconds> Caller-supplied signed TDB-TT offset for TT-tagged instants\n    --tt-from-tdb-offset-seconds <seconds> Caller-supplied signed TT-TDB offset for TDB-tagged instants\n    --mean               Force mean positions for backend queries\n    --apparent           Force apparent positions for backend queries\n    --body <name>        Use a built-in body or a custom catalog:designation identifier\n  {}\n  help                   Show this help text",
+  independent-holdout-equatorial-parity-summary  Print the compact independent hold-out equatorial parity summary\n  house-validation-summary   Print the compact house-validation corpus summary\n  house-formula-families-summary  Print the compact house formula families summary\n  house-code-aliases-summary  Print the compact house-code alias summary\n  house-code-alias-summary  Alias for house-code-aliases-summary\n  ayanamsa-catalog-validation-summary  Print the compact ayanamsa catalog validation summary\n  ayanamsa-catalog-validation  Alias for ayanamsa-catalog-validation-summary\n  ayanamsa-metadata-coverage-summary  Print the compact ayanamsa sidereal metadata coverage summary\n  ayanamsa-metadata-coverage  Alias for ayanamsa-metadata-coverage-summary\n  ayanamsa-reference-offsets-summary  Print the compact ayanamsa reference offsets summary\n  ayanamsa-reference-offsets  Alias for ayanamsa-reference-offsets-summary\n  frame-policy-summary   Print the compact frame-policy summary\n  frame-policy           Alias for frame-policy-summary\n  mean-obliquity-frame-round-trip-summary  Print the compact mean-obliquity frame round-trip summary\n  release-profile-identifiers-summary  Print the compact release-profile identifiers summary\n  request-surface-summary  Print the compact request-surface inventory summary\n  request-surface         Alias for request-surface-summary\n  request-policy-summary  Print the compact request-policy summary\n  request-semantics-summary Alias for request-policy-summary\n  comparison-tolerance-policy-summary  Print the compact comparison tolerance policy summary\n  comparison-tolerance-summary  Alias for comparison-tolerance-policy-summary\n  pluto-fallback-summary   Print the compact Pluto fallback summary\n  workspace-audit-summary  Print the compact workspace audit summary\n  native-dependency-audit-summary  Alias for workspace-audit-summary\n  artifact-summary       Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  artifact-boundary-envelope-summary  Print the compact packaged-artifact boundary envelope summary\n  artifact-profile-coverage-summary  Print the packaged-artifact profile coverage summary\n  packaged-artifact-output-support-summary  Print the packaged-artifact output support summary\n  packaged-artifact-storage-summary  Print the packaged-artifact storage/reconstruction summary\n  packaged-artifact-production-profile-summary  Print the packaged-artifact production profile skeleton summary\n  packaged-artifact-target-threshold-summary  Print the packaged-artifact target thresholds summary\n  packaged-artifact-target-threshold-scope-envelopes-summary  Print the packaged-artifact target-threshold scope envelopes summary\n  packaged-artifact-generation-manifest-summary  Print the packaged-artifact generation manifest summary\n  packaged-artifact-generation-policy-summary  Print the packaged-artifact generation policy summary\n  packaged-artifact-generation-residual-summary  Alias for packaged-artifact-generation-residual-bodies-summary\n  packaged-artifact-generation-residual-bodies-summary  Print the packaged-artifact generation residual bodies summary\n  packaged-artifact-regeneration-summary  Print the packaged-artifact regeneration summary\n  packaged-frame-parity-summary  Print the packaged frame parity summary\n  packaged-frame-treatment-summary  Print the packaged frame treatment summary\n  packaged-lookup-epoch-policy-summary  Print the packaged lookup epoch policy summary\n  packaged-lookup-epoch-policy         Alias for packaged-lookup-epoch-policy-summary\n  validate-artifact      Inspect and validate the bundled compressed artifact\n  regenerate-packaged-artifact  Rebuild or verify the packaged artifact fixture from the checked-in reference snapshot; pass a file path, --out FILE, or --check\n  workspace-audit        Check the workspace for mandatory native build hooks\n  audit                  Alias for workspace-audit\n  native-dependency-audit  Alias for workspace-audit\n  report                 Print the full validation report\n  generate-report        Alias for report\n  validation-report-summary  Print the compact validation report summary\n  validation-summary     Alias for validation-report-summary\n  report-summary         Alias for validation-report-summary\n  chart                  Render a basic chart report\n    --tt|--tdb|--utc|--ut1  Tag the chart instant with a time scale\n    --tt-offset-seconds <seconds>  Caller-supplied TT offset for UTC/UT1-tagged instants\n    --tt-from-utc-offset-seconds <seconds>  Alias for --tt-offset-seconds when the chart instant is tagged as UTC\n    --tt-from-ut1-offset-seconds <seconds>  Alias for --tt-offset-seconds when the chart instant is tagged as UT1\n    --tdb-offset-seconds <seconds> Caller-supplied signed TDB-TT offset for TT/UTC/UT1-tagged instants\n    --tdb-from-utc-offset-seconds <seconds> Explicit UTC-tagged alias for the signed TDB-TT offset\n    --tdb-from-ut1-offset-seconds <seconds> Explicit UT1-tagged alias for the signed TDB-TT offset\n    --tdb-from-tt-offset-seconds <seconds> Caller-supplied signed TDB-TT offset for TT-tagged instants\n    --tt-from-tdb-offset-seconds <seconds> Caller-supplied signed TT-TDB offset for TDB-tagged instants\n    --mean               Force mean positions for backend queries\n    --apparent           Force apparent positions for backend queries\n    --body <name>        Use a built-in body or a custom catalog:designation identifier\n  {}\n  help                   Show this help text",
         banner(),
         shared_request_policy_help_block(),
     )
@@ -2503,6 +2512,10 @@ mod tests {
         let ayanamsa_catalog_validation_summary_rendered =
             render_cli(&["ayanamsa-catalog-validation-summary"])
                 .expect("ayanamsa catalog validation summary should render");
+        assert_eq!(
+            render_cli(&["ayanamsa-catalog-validation"]).unwrap(),
+            ayanamsa_catalog_validation_summary_rendered
+        );
         assert!(ayanamsa_catalog_validation_summary_rendered
             .contains("ayanamsa catalog validation: ok"));
         assert!(ayanamsa_catalog_validation_summary_rendered.contains("baseline=5, release=54"));
@@ -2510,6 +2523,10 @@ mod tests {
         let ayanamsa_metadata_coverage_summary =
             render_cli(&["ayanamsa-metadata-coverage-summary"])
                 .expect("ayanamsa metadata coverage summary should render");
+        assert_eq!(
+            render_cli(&["ayanamsa-metadata-coverage"]).unwrap(),
+            ayanamsa_metadata_coverage_summary
+        );
         assert!(ayanamsa_metadata_coverage_summary.contains("ayanamsa sidereal metadata:"));
         assert_eq!(
             ayanamsa_metadata_coverage_summary,
@@ -2519,6 +2536,10 @@ mod tests {
         let ayanamsa_reference_offsets_summary =
             render_cli(&["ayanamsa-reference-offsets-summary"])
                 .expect("ayanamsa reference offsets summary should render");
+        assert_eq!(
+            render_cli(&["ayanamsa-reference-offsets"]).unwrap(),
+            ayanamsa_reference_offsets_summary
+        );
         assert!(ayanamsa_reference_offsets_summary
             .contains("Ayanamsa reference offsets: representative zero-point examples:"));
         assert!(ayanamsa_reference_offsets_summary
@@ -3269,8 +3290,15 @@ mod tests {
             .contains("house-code-aliases-summary  Print the compact house-code alias summary"));
         assert!(error.contains("house-code-alias-summary  Alias for house-code-aliases-summary"));
         assert!(error.contains("ayanamsa-catalog-validation-summary  Print the compact ayanamsa catalog validation summary"));
+        assert!(error.contains(
+            "ayanamsa-catalog-validation  Alias for ayanamsa-catalog-validation-summary"
+        ));
         assert!(error.contains("ayanamsa-metadata-coverage-summary  Print the compact ayanamsa sidereal metadata coverage summary"));
+        assert!(error
+            .contains("ayanamsa-metadata-coverage  Alias for ayanamsa-metadata-coverage-summary"));
         assert!(error.contains("ayanamsa-reference-offsets-summary  Print the compact ayanamsa reference offsets summary"));
+        assert!(error
+            .contains("ayanamsa-reference-offsets  Alias for ayanamsa-reference-offsets-summary"));
         assert!(error
             .contains("time-scale-policy-summary  Print the compact time-scale policy summary"));
         assert!(error.contains("time-scale-policy       Alias for time-scale-policy-summary"));
