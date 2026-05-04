@@ -241,6 +241,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             validate_render_cli(args)
         }
         Some("interpolation-posture-summary") => validate_render_cli(args),
+        Some("interpolation-posture") => validate_render_cli(args),
         Some("interpolation-quality-summary") => validate_render_cli(args),
         Some("interpolation-quality-kind-coverage-summary") => validate_render_cli(args),
         Some("lunar-reference-error-envelope-summary") => validate_render_cli(args),
@@ -2323,6 +2324,23 @@ mod tests {
         assert_eq!(
             render_cli(&["apparentness-policy"]).expect("apparentness policy alias should render"),
             apparentness_policy_summary
+        );
+        let interpolation_posture_summary = render_cli(&["interpolation-posture-summary"])
+            .expect("interpolation posture summary should render");
+        assert_eq!(
+            interpolation_posture_summary,
+            super::validate_render_cli(&["interpolation-posture-summary"])
+                .expect("validation interpolation posture summary should render")
+        );
+        assert_eq!(
+            render_cli(&["interpolation-posture"])
+                .expect("interpolation posture alias should render"),
+            interpolation_posture_summary
+        );
+        assert_eq!(
+            render_cli(&["interpolation-posture", "extra"])
+                .expect_err("interpolation posture alias should reject extra arguments"),
+            "interpolation-posture does not accept extra arguments"
         );
         let interpolation_quality_kind_coverage_summary =
             render_cli(&["interpolation-quality-kind-coverage-summary"])
