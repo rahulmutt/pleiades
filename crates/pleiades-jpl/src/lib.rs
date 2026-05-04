@@ -19907,6 +19907,43 @@ mod tests {
             .starts_with("Reference snapshot source windows: "));
         assert!(window_summary.summary_line().contains("Moon:"));
         assert!(window_summary.summary_line().contains("Pluto:"));
+
+        let sun_window = &window_summary.windows[0];
+        assert_eq!(sun_window.body, pleiades_backend::CelestialBody::Sun);
+        assert_eq!(sun_window.sample_count, 18);
+        assert_eq!(sun_window.epoch_count, 18);
+        assert_eq!(sun_window.earliest_epoch.julian_day.days(), 2_360_233.5);
+        assert_eq!(sun_window.latest_epoch.julian_day.days(), 2_634_167.0);
+
+        let jupiter_window = &window_summary.windows[5];
+        assert_eq!(
+            jupiter_window.body,
+            pleiades_backend::CelestialBody::Jupiter
+        );
+        assert_eq!(jupiter_window.sample_count, 16);
+        assert_eq!(jupiter_window.epoch_count, 16);
+        assert_eq!(jupiter_window.earliest_epoch.julian_day.days(), 2_360_233.5);
+        assert_eq!(jupiter_window.latest_epoch.julian_day.days(), 2_500_000.0);
+
+        let pluto_window = &window_summary.windows[9];
+        assert_eq!(pluto_window.body, pleiades_backend::CelestialBody::Pluto);
+        assert_eq!(pluto_window.sample_count, 15);
+        assert_eq!(pluto_window.epoch_count, 15);
+        assert_eq!(pluto_window.earliest_epoch.julian_day.days(), 2_378_498.5);
+        assert_eq!(pluto_window.latest_epoch.julian_day.days(), 2_500_000.0);
+
+        let asteroid_window = &window_summary.windows[14];
+        assert_eq!(
+            asteroid_window.body,
+            pleiades_backend::CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros"))
+        );
+        assert_eq!(asteroid_window.sample_count, 15);
+        assert_eq!(asteroid_window.epoch_count, 15);
+        assert_eq!(
+            asteroid_window.earliest_epoch.julian_day.days(),
+            2_378_498.5
+        );
+        assert_eq!(asteroid_window.latest_epoch.julian_day.days(), 2_634_167.0);
     }
 
     #[test]
