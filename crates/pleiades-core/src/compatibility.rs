@@ -16,8 +16,8 @@ use pleiades_ayanamsa::{
 };
 use pleiades_houses::{
     baseline_house_systems, built_in_house_systems, house_system_code_aliases,
-    release_house_systems, resolve_house_system, HouseFormulaFamily, HouseSystemCodeAlias,
-    HouseSystemDescriptor,
+    release_house_systems, resolve_house_system, HouseCatalogValidationError, HouseFormulaFamily,
+    HouseSystemCodeAlias, HouseSystemDescriptor,
 };
 use pleiades_types::HouseSystem;
 
@@ -334,6 +334,8 @@ impl CompatibilityProfile {
         validate_custom_definition_labels(self.custom_definition_labels)?;
         validate_custom_definition_ayanamsa_coverage(self.custom_definition_labels)?;
         self.house_code_alias_inventory_summary().validate()?;
+        validate_house_descriptor_metadata(self.house_systems)?;
+        validate_ayanamsa_descriptor_metadata(self.ayanamsas)?;
         validate_profile_text_section("compatibility-caveat", self.known_gaps)?;
         validate_profile_text_sections_are_disjoint(&[
             ("target-house-scope", self.target_house_scope),
@@ -441,6 +443,16 @@ pub enum CompatibilityProfileValidationError {
         /// Label that should be surfaced as an intentional custom-definition ayanamsa.
         label: &'static str,
     },
+    /// A built-in house-system descriptor failed its own normalization or alias checks.
+    HouseDescriptorValidationFailed {
+        /// Underlying descriptor validation error.
+        error: HouseCatalogValidationError,
+    },
+    /// A built-in ayanamsa descriptor failed its own normalization or alias checks.
+    AyanamsaDescriptorValidationFailed {
+        /// Underlying descriptor validation error rendered as a stable summary string.
+        error: String,
+    },
     /// A Swiss-Ephemeris house-code alias does not resolve back to its typed house system.
     HouseCodeAliasDoesNotRoundTrip {
         /// Alias label that failed validation.
@@ -536,6 +548,16 @@ impl fmt::Display for CompatibilityProfileValidationError {
                 f,
                 "compatibility profile custom-definition ayanamsa coverage is missing the documented custom-definition-only label '{}'",
                 label
+            ),
+            Self::HouseDescriptorValidationFailed { error } => write!(
+                f,
+                "compatibility profile house-system descriptor is invalid: {}",
+                error
+            ),
+            Self::AyanamsaDescriptorValidationFailed { error } => write!(
+                f,
+                "compatibility profile ayanamsa descriptor is invalid: {}",
+                error
             ),
             Self::HouseCodeAliasDoesNotRoundTrip {
                 label,
@@ -770,6 +792,36 @@ fn validate_custom_definition_ayanamsa_coverage(
                 },
             );
         }
+    }
+
+    Ok(checked)
+}
+
+fn validate_house_descriptor_metadata(
+    entries: &[HouseSystemDescriptor],
+) -> Result<usize, CompatibilityProfileValidationError> {
+    let mut checked = 0usize;
+    for entry in entries {
+        checked += 1;
+        entry.validate().map_err(|error| {
+            CompatibilityProfileValidationError::HouseDescriptorValidationFailed { error }
+        })?;
+    }
+
+    Ok(checked)
+}
+
+fn validate_ayanamsa_descriptor_metadata(
+    entries: &[AyanamsaDescriptor],
+) -> Result<usize, CompatibilityProfileValidationError> {
+    let mut checked = 0usize;
+    for entry in entries {
+        checked += 1;
+        entry.validate().map_err(|error| {
+            CompatibilityProfileValidationError::AyanamsaDescriptorValidationFailed {
+                error: error.to_string(),
+            }
+        })?;
     }
 
     Ok(checked)
@@ -1801,6 +1853,7 @@ impl fmt::Display for CompatibilityProfile {
 mod tests {
     use super::*;
     use pleiades_ayanamsa::AyanamsaDescriptor;
+    use pleiades_houses::{HouseCatalogValidationError, HouseSystemDescriptor};
     use pleiades_types::{Ayanamsa, HouseSystem};
 
     #[test]
@@ -2285,6 +2338,60 @@ mod tests {
     }
 
     #[test]
+    fn compatibility_profile_validate_rejects_house_descriptor_metadata_drift() {
+        let mut profile = current_compatibility_profile();
+        const HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[HouseSystemDescriptor::new(
+            HouseSystem::Placidus,
+            "Placidus",
+            &[],
+            "Release note with trailing whitespace ",
+            false,
+        )];
+        profile.house_systems = HOUSE_SYSTEMS;
+        profile.baseline_house_systems = HOUSE_SYSTEMS;
+        profile.release_house_systems = &[];
+
+        let error = profile
+            .validate()
+            .expect_err("invalid house descriptors should fail compatibility-profile validation");
+
+        assert!(matches!(
+            error,
+            CompatibilityProfileValidationError::HouseDescriptorValidationFailed {
+                error: HouseCatalogValidationError::DescriptorNotesNotNormalized {
+                    label: "Placidus"
+                }
+            }
+        ));
+    }
+
+    #[test]
+    fn compatibility_profile_validate_rejects_ayanamsa_descriptor_metadata_drift() {
+        let mut profile = current_compatibility_profile();
+        const AYANAMSA_SYSTEMS: &[AyanamsaDescriptor] = &[AyanamsaDescriptor::new(
+            Ayanamsa::Lahiri,
+            "Lahiri",
+            &[],
+            "Release note with trailing whitespace ",
+            None,
+            None,
+        )];
+        profile.ayanamsas = AYANAMSA_SYSTEMS;
+        profile.baseline_ayanamsas = AYANAMSA_SYSTEMS;
+        profile.release_ayanamsas = &[];
+
+        let error = profile.validate().expect_err(
+            "invalid ayanamsa descriptors should fail compatibility-profile validation",
+        );
+
+        assert!(matches!(
+            error,
+            CompatibilityProfileValidationError::AyanamsaDescriptorValidationFailed { error }
+                if error.contains("descriptor note") && error.contains("Lahiri")
+        ));
+    }
+
+    #[test]
     fn compatibility_profile_retains_intentional_case_only_alias_variants() {
         let profile = current_compatibility_profile();
 
@@ -2345,7 +2452,7 @@ mod tests {
             HouseSystemDescriptor::new(
                 HouseSystem::Equal,
                 "Total Equal",
-                &["Total Equal alias", "total equal alias"],
+                &["Total Placidus alias"],
                 "Total house coverage",
                 false,
             ),
@@ -2398,7 +2505,7 @@ mod tests {
             AyanamsaDescriptor::new(
                 Ayanamsa::Krishnamurti,
                 "Total Krishnamurti",
-                &["Total Krishnamurti alias", "total krishnamurti alias"],
+                &["Total Lahiri alias"],
                 "Total ayanamsa coverage",
                 None,
                 None,
