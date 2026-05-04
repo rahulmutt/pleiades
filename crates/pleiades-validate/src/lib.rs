@@ -4392,6 +4392,16 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "custom-definition-ayanamsa-labels-summary")?;
             Ok(render_custom_definition_ayanamsa_labels_summary())
         }
+        Some("release-house-system-canonical-names-summary")
+        | Some("release-house-system-canonical-names") => {
+            ensure_no_extra_args(&args[1..], "release-house-system-canonical-names-summary")?;
+            Ok(render_release_house_system_canonical_names_summary())
+        }
+        Some("release-ayanamsa-canonical-names-summary")
+        | Some("release-ayanamsa-canonical-names") => {
+            ensure_no_extra_args(&args[1..], "release-ayanamsa-canonical-names-summary")?;
+            Ok(render_release_ayanamsa_canonical_names_summary())
+        }
         Some("verify-compatibility-profile") => {
             ensure_no_extra_args(&args[1..], "verify-compatibility-profile")?;
             verify_compatibility_profile().map_err(render_error)
@@ -5204,6 +5214,16 @@ pub fn render_catalog_inventory_summary() -> String {
 /// Renders the compact custom-definition ayanamsa label summary used by release tooling.
 pub fn render_custom_definition_ayanamsa_labels_summary() -> String {
     format_custom_definition_ayanamsa_labels_for_report()
+}
+
+/// Renders the compact release-specific house-system canonical-name summary used by release tooling.
+pub fn render_release_house_system_canonical_names_summary() -> String {
+    format_release_house_system_canonical_names_for_report()
+}
+
+/// Renders the compact release-specific ayanamsa canonical-name summary used by release tooling.
+pub fn render_release_ayanamsa_canonical_names_summary() -> String {
+    format_release_ayanamsa_canonical_names_for_report()
 }
 
 /// Renders the release notes used by release tooling.
@@ -6440,6 +6460,34 @@ fn format_custom_definition_ayanamsa_labels_for_report() -> String {
             Err(error) => format!("custom-definition ayanamsa labels unavailable ({error})"),
         },
         Err(error) => format!("custom-definition ayanamsa labels unavailable ({error})"),
+    }
+}
+
+fn format_release_house_system_canonical_names_for_report() -> String {
+    match validated_compatibility_profile_for_report() {
+        Ok(profile) => {
+            match profile.validated_release_house_system_canonical_names_summary_line() {
+                Ok(summary) => format!("Release-specific house-system canonical names: {summary}"),
+                Err(error) => {
+                    format!("Release-specific house-system canonical names unavailable ({error})")
+                }
+            }
+        }
+        Err(error) => {
+            format!("Release-specific house-system canonical names unavailable ({error})")
+        }
+    }
+}
+
+fn format_release_ayanamsa_canonical_names_for_report() -> String {
+    match validated_compatibility_profile_for_report() {
+        Ok(profile) => match profile.validated_release_ayanamsa_canonical_names_summary_line() {
+            Ok(summary) => format!("Release-specific ayanamsa canonical names: {summary}"),
+            Err(error) => {
+                format!("Release-specific ayanamsa canonical names unavailable ({error})")
+            }
+        },
+        Err(error) => format!("Release-specific ayanamsa canonical names unavailable ({error})"),
     }
 }
 
@@ -14592,6 +14640,10 @@ fn help_text() -> String {
   catalog-inventory        Alias for catalog-inventory-summary
   custom-definition-ayanamsa-labels-summary  Print the compact custom-definition ayanamsa labels summary
   custom-definition-ayanamsa-labels  Alias for custom-definition-ayanamsa-labels-summary
+  release-house-system-canonical-names-summary  Print the compact release-specific house-system canonical names summary
+  release-house-system-canonical-names  Alias for release-house-system-canonical-names-summary
+  release-ayanamsa-canonical-names-summary  Print the compact release-specific ayanamsa canonical names summary
+  release-ayanamsa-canonical-names  Alias for release-ayanamsa-canonical-names-summary
   profile-summary           Alias for compatibility-profile-summary
   verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  jpl-batch-error-taxonomy-summary  Print the compact JPL batch error taxonomy summary\n  jpl-snapshot-evidence-summary  Print the compact combined JPL evidence summary\n  production-generation-boundary-summary  Print the compact production-generation boundary overlay summary\n  production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary\n  production-generation-body-class-coverage-summary  Print the compact production-generation body-class coverage summary\n  production-body-class-coverage-summary  Alias for production-generation-body-class-coverage-summary\n  production-generation-source-window-summary  Print the compact production-generation source windows summary\n  production-generation-summary  Print the compact production-generation coverage summary
   production-generation           Alias for production-generation-summary
@@ -17927,6 +17979,55 @@ mod tests {
         );
         assert!(rendered.contains("Babylonian (House)"));
         assert!(rendered.contains("Babylonian (True Geoc)"));
+    }
+
+    #[test]
+    fn release_specific_canonical_name_summary_commands_render_the_labels() {
+        let profile = current_compatibility_profile();
+
+        let house_names = render_cli(&["release-house-system-canonical-names-summary"])
+            .expect("release-specific house-system canonical names summary should render");
+        assert_eq!(
+            render_cli(&["release-house-system-canonical-names"]).unwrap(),
+            house_names
+        );
+        assert_eq!(
+            house_names,
+            format!(
+                "Release-specific house-system canonical names: {}",
+                profile
+                    .validated_release_house_system_canonical_names_summary_line()
+                    .expect("release-specific house-system canonical names should validate")
+            )
+        );
+        assert_eq!(
+            render_cli(&["release-house-system-canonical-names-summary", "extra"]).unwrap_err(),
+            "release-house-system-canonical-names-summary does not accept extra arguments"
+        );
+        assert!(house_names.contains("Equal (MC)"));
+        assert!(house_names.contains("Gauquelin sectors"));
+
+        let ayanamsa_names = render_cli(&["release-ayanamsa-canonical-names-summary"])
+            .expect("release-specific ayanamsa canonical names summary should render");
+        assert_eq!(
+            render_cli(&["release-ayanamsa-canonical-names"]).unwrap(),
+            ayanamsa_names
+        );
+        assert_eq!(
+            ayanamsa_names,
+            format!(
+                "Release-specific ayanamsa canonical names: {}",
+                profile
+                    .validated_release_ayanamsa_canonical_names_summary_line()
+                    .expect("release-specific ayanamsa canonical names should validate")
+            )
+        );
+        assert_eq!(
+            render_cli(&["release-ayanamsa-canonical-names-summary", "extra"]).unwrap_err(),
+            "release-ayanamsa-canonical-names-summary does not accept extra arguments"
+        );
+        assert!(ayanamsa_names.contains("True Citra"));
+        assert!(ayanamsa_names.contains("Valens Moon"));
     }
 
     #[test]

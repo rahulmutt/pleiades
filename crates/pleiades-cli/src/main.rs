@@ -97,6 +97,10 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("catalog-inventory") => validate_render_cli(args),
         Some("custom-definition-ayanamsa-labels-summary")
         | Some("custom-definition-ayanamsa-labels") => validate_render_cli(args),
+        Some("release-house-system-canonical-names-summary")
+        | Some("release-house-system-canonical-names") => validate_render_cli(args),
+        Some("release-ayanamsa-canonical-names-summary")
+        | Some("release-ayanamsa-canonical-names") => validate_render_cli(args),
         Some("verify-compatibility-profile") => {
             verify_compatibility_profile().map_err(render_error)
         }
@@ -3819,6 +3823,57 @@ mod tests {
     }
 
     #[test]
+    fn release_specific_canonical_name_summary_commands_render_the_labels() {
+        let profile = pleiades_core::current_compatibility_profile();
+
+        let house_names = render_cli(&["release-house-system-canonical-names-summary"])
+            .expect("release-specific house-system canonical names summary should render");
+        assert_eq!(
+            house_names,
+            pleiades_validate::render_cli(&["release-house-system-canonical-names-summary"]).expect(
+                "validation front end should render the release-specific house-system canonical names summary"
+            )
+        );
+        assert_eq!(
+            render_cli(&["release-house-system-canonical-names"])
+                .expect("release-specific house-system canonical names alias should render"),
+            house_names
+        );
+        assert_eq!(
+            house_names,
+            format!(
+                "Release-specific house-system canonical names: {}",
+                profile
+                    .validated_release_house_system_canonical_names_summary_line()
+                    .expect("release-specific house-system canonical names should validate")
+            )
+        );
+
+        let ayanamsa_names = render_cli(&["release-ayanamsa-canonical-names-summary"])
+            .expect("release-specific ayanamsa canonical names summary should render");
+        assert_eq!(
+            ayanamsa_names,
+            pleiades_validate::render_cli(&["release-ayanamsa-canonical-names-summary"]).expect(
+                "validation front end should render the release-specific ayanamsa canonical names summary"
+            )
+        );
+        assert_eq!(
+            render_cli(&["release-ayanamsa-canonical-names"])
+                .expect("release-specific ayanamsa canonical names alias should render"),
+            ayanamsa_names
+        );
+        assert_eq!(
+            ayanamsa_names,
+            format!(
+                "Release-specific ayanamsa canonical names: {}",
+                profile
+                    .validated_release_ayanamsa_canonical_names_summary_line()
+                    .expect("release-specific ayanamsa canonical names should validate")
+            )
+        );
+    }
+
+    #[test]
     fn chart_help_text_spells_out_the_shared_request_policy() {
         let help = render_chart(&["--help"]).expect("chart help should render");
         assert!(help.contains(&shared_request_policy_help_block()));
@@ -3863,6 +3918,18 @@ mod tests {
         ));
         assert!(help.contains(
             "custom-definition-ayanamsa-labels  Alias for custom-definition-ayanamsa-labels-summary"
+        ));
+        assert!(help.contains(
+            "release-house-system-canonical-names-summary  Print the compact release-specific house-system canonical names summary"
+        ));
+        assert!(help.contains(
+            "release-house-system-canonical-names  Alias for release-house-system-canonical-names-summary"
+        ));
+        assert!(help.contains(
+            "release-ayanamsa-canonical-names-summary  Print the compact release-specific ayanamsa canonical names summary"
+        ));
+        assert!(help.contains(
+            "release-ayanamsa-canonical-names  Alias for release-ayanamsa-canonical-names-summary"
         ));
         assert!(help.contains("profile-summary           Alias for compatibility-profile-summary"));
         assert!(help.contains(
