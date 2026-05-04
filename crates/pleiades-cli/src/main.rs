@@ -231,6 +231,9 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("lunar-source-window-summary") => validate_render_cli(args),
         Some("lunar-theory-request-policy-summary") => validate_render_cli(args),
         Some("lunar-theory-frame-treatment-summary") => validate_render_cli(args),
+        Some("lunar-theory-limitations-summary") | Some("lunar-theory-limitations") => {
+            validate_render_cli(args)
+        }
         Some("lunar-theory-summary") => validate_render_cli(args),
         Some("lunar-theory-capability-summary") => validate_render_cli(args),
         Some("lunar-theory-source-summary") => validate_render_cli(args),
@@ -1255,6 +1258,7 @@ mod tests {
         assert!(rendered.contains("independent-holdout-batch-parity-summary"));
         assert!(rendered.contains("independent-holdout-equatorial-parity-summary"));
         assert!(rendered.contains("lunar-theory-summary"));
+        assert!(rendered.contains("lunar-theory-limitations-summary"));
         assert!(rendered.contains("lunar-theory-capability-summary"));
         assert!(rendered.contains("lunar-theory-source-summary"));
         assert!(rendered.contains("lunar-theory-catalog-summary"));
@@ -2332,6 +2336,16 @@ mod tests {
         assert_eq!(
             lunar_theory_frame_treatment_summary,
             pleiades_elp::lunar_theory_frame_treatment_summary_for_report()
+        );
+        let lunar_theory_limitations_summary = render_cli(&["lunar-theory-limitations-summary"])
+            .expect("lunar theory limitations summary should render");
+        assert_eq!(
+            lunar_theory_limitations_summary,
+            pleiades_elp::lunar_theory_limitations_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["lunar-theory-limitations"]).unwrap(),
+            pleiades_elp::lunar_theory_limitations_summary_for_report()
         );
         let lunar_theory_summary =
             render_cli(&["lunar-theory-summary"]).expect("lunar theory summary should render");

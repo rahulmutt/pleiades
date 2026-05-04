@@ -2158,6 +2158,159 @@ pub fn lunar_theory_frame_treatment_summary_for_report() -> String {
     }
 }
 
+/// Compact release-facing summary for the current lunar-theory limitations posture.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct LunarTheoryLimitationsSummary {
+    /// Human-readable baseline label.
+    pub baseline_label: &'static str,
+    /// Built-in lunar channels currently supported by the baseline.
+    pub supported_bodies: &'static [CelestialBody],
+    /// Built-in lunar channels intentionally left unsupported.
+    pub unsupported_bodies: &'static [CelestialBody],
+    /// Release-facing error-envelope label for the reference channel.
+    pub reference_envelope_label: &'static str,
+    /// Release-facing error-envelope label for the equatorial channel.
+    pub equatorial_envelope_label: &'static str,
+}
+
+/// Validation error for a lunar-theory limitations summary that drifted from the current baseline.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LunarTheoryLimitationsSummaryValidationError {
+    /// A rendered limitations field no longer matches the current baseline.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for LunarTheoryLimitationsSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the lunar theory limitations summary field `{field}` is out of sync with the current baseline"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for LunarTheoryLimitationsSummaryValidationError {}
+
+impl LunarTheoryLimitationsSummary {
+    /// Returns the compact release-facing limitations line.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "lunar theory limitations: {}; supported bodies: {}; unsupported bodies: {}; release-grade evidence: {}, {}",
+            self.baseline_label,
+            format_bodies(self.supported_bodies),
+            format_bodies(self.unsupported_bodies),
+            self.reference_envelope_label,
+            self.equatorial_envelope_label,
+        )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current lunar baseline.
+    pub fn validate(&self) -> Result<(), LunarTheoryLimitationsSummaryValidationError> {
+        let theory = lunar_theory_specification();
+        let expected = lunar_theory_limitations_summary();
+
+        if self.baseline_label != expected.baseline_label {
+            return Err(
+                LunarTheoryLimitationsSummaryValidationError::FieldOutOfSync {
+                    field: "baseline_label",
+                },
+            );
+        }
+        if self.supported_bodies != expected.supported_bodies {
+            return Err(
+                LunarTheoryLimitationsSummaryValidationError::FieldOutOfSync {
+                    field: "supported_bodies",
+                },
+            );
+        }
+        if self.unsupported_bodies != expected.unsupported_bodies {
+            return Err(
+                LunarTheoryLimitationsSummaryValidationError::FieldOutOfSync {
+                    field: "unsupported_bodies",
+                },
+            );
+        }
+        if self.reference_envelope_label != expected.reference_envelope_label {
+            return Err(
+                LunarTheoryLimitationsSummaryValidationError::FieldOutOfSync {
+                    field: "reference_envelope_label",
+                },
+            );
+        }
+        if self.equatorial_envelope_label != expected.equatorial_envelope_label {
+            return Err(
+                LunarTheoryLimitationsSummaryValidationError::FieldOutOfSync {
+                    field: "equatorial_envelope_label",
+                },
+            );
+        }
+        if self.supported_bodies != theory.supported_bodies {
+            return Err(
+                LunarTheoryLimitationsSummaryValidationError::FieldOutOfSync {
+                    field: "supported_bodies_vs_specification",
+                },
+            );
+        }
+        if self.unsupported_bodies != theory.unsupported_bodies {
+            return Err(
+                LunarTheoryLimitationsSummaryValidationError::FieldOutOfSync {
+                    field: "unsupported_bodies_vs_specification",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the compact limitations line after validating the current baseline.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, LunarTheoryLimitationsSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for LunarTheoryLimitationsSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Formats the compact lunar-theory limitations summary for release-facing reporting.
+pub fn format_lunar_theory_limitations_summary(summary: &LunarTheoryLimitationsSummary) -> String {
+    summary.summary_line()
+}
+
+fn format_validated_lunar_theory_limitations_summary_for_report(
+    summary: &LunarTheoryLimitationsSummary,
+) -> String {
+    match summary.validated_summary_line() {
+        Ok(summary_line) => summary_line,
+        Err(error) => format!("lunar theory limitations: unavailable ({error})"),
+    }
+}
+
+/// Returns the release-facing one-line summary for the current lunar-theory limitations posture.
+pub fn lunar_theory_limitations_summary_for_report() -> String {
+    format_validated_lunar_theory_limitations_summary_for_report(&lunar_theory_limitations_summary())
+}
+
+/// Returns the structured lunar-theory limitations posture.
+pub fn lunar_theory_limitations_summary() -> LunarTheoryLimitationsSummary {
+    let theory = lunar_theory_specification();
+
+    LunarTheoryLimitationsSummary {
+        baseline_label: theory.model_name,
+        supported_bodies: theory.supported_bodies,
+        unsupported_bodies: theory.unsupported_bodies,
+        reference_envelope_label: "lunar reference error envelope",
+        equatorial_envelope_label: "lunar equatorial reference error envelope",
+    }
+}
+
 /// Returns the current lunar-theory frame-treatment summary.
 pub fn lunar_theory_frame_treatment_summary() -> &'static str {
     lunar_theory_frame_treatment_summary_details().summary_line()
@@ -5914,6 +6067,36 @@ mod tests {
             "lunar theory request policy: unavailable (the lunar theory request policy field `supported_time_scales` is out of sync with the current selection)"
         );
         assert_eq!(lunar_theory_summary_for_report(), theory.summary_line());
+        let limitations_summary = lunar_theory_limitations_summary();
+        assert_eq!(
+            limitations_summary.summary_line(),
+            "lunar theory limitations: Compact Meeus-style truncated lunar baseline; supported bodies: Moon, Mean Node, True Node, Mean Perigee, Mean Apogee; unsupported bodies: True Apogee, True Perigee; release-grade evidence: lunar reference error envelope, lunar equatorial reference error envelope"
+        );
+        assert_eq!(
+            format_lunar_theory_limitations_summary(&limitations_summary),
+            limitations_summary.summary_line()
+        );
+        assert_eq!(
+            lunar_theory_limitations_summary_for_report(),
+            limitations_summary.summary_line()
+        );
+        let drifted_limitations_summary = LunarTheoryLimitationsSummary {
+            unsupported_bodies: &[CelestialBody::TrueApogee],
+            ..limitations_summary
+        };
+        let error = drifted_limitations_summary
+            .validate()
+            .expect_err("drifted limitations summary should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "the lunar theory limitations summary field `unsupported_bodies` is out of sync with the current baseline"
+        );
+        assert_eq!(
+            format_validated_lunar_theory_limitations_summary_for_report(
+                &drifted_limitations_summary
+            ),
+            "lunar theory limitations: unavailable (the lunar theory limitations summary field `unsupported_bodies` is out of sync with the current baseline)"
+        );
         assert!(summary.contains("frames=Ecliptic, Equatorial"));
         assert!(summary.contains("time scales=TT, TDB"));
         assert!(summary.contains("zodiac modes=Tropical"));
