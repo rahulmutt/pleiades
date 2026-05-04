@@ -205,9 +205,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "boundary-day-summary")?;
             validate_render_cli(args)
         }
-        Some("reference-snapshot-dense-boundary-summary") | Some("dense-boundary-summary") => {
-            validate_render_cli(args)
-        }
+        Some("reference-snapshot-dense-boundary-summary") => validate_render_cli(args),
+        Some("dense-boundary-summary") => validate_render_cli(args),
         Some("source-documentation-summary") => validate_render_cli(args),
         Some("source-documentation-health-summary") => validate_render_cli(args),
         Some("source-documentation-health") => validate_render_cli(args),
@@ -3061,6 +3060,17 @@ mod tests {
             dense_boundary_summary,
             super::validate_render_cli(&["reference-snapshot-dense-boundary-summary"])
                 .expect("validation dense boundary summary should render")
+        );
+        assert_eq!(
+            render_cli(&["reference-snapshot-dense-boundary-summary", "extra"]).expect_err(
+                "reference snapshot dense boundary summary should reject extra arguments"
+            ),
+            "reference-snapshot-dense-boundary-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["dense-boundary-summary", "extra"])
+                .expect_err("dense boundary summary alias should reject extra arguments"),
+            "dense-boundary-summary does not accept extra arguments"
         );
         let source_documentation_summary = render_cli(&["source-documentation-summary"])
             .expect("source documentation summary should render");
