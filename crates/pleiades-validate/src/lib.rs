@@ -4360,8 +4360,12 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "compatibility-profile-summary")?;
             Ok(render_compatibility_profile_summary())
         }
-        Some("compatibility-caveats-summary") | Some("compatibility-caveats") => {
+        Some("compatibility-caveats-summary") => {
             ensure_no_extra_args(&args[1..], "compatibility-caveats-summary")?;
+            Ok(render_compatibility_caveats_summary())
+        }
+        Some("compatibility-caveats") => {
+            ensure_no_extra_args(&args[1..], "compatibility-caveats")?;
             Ok(render_compatibility_caveats_summary())
         }
         Some("catalog-inventory-summary") | Some("catalog-inventory") => {
@@ -17661,6 +17665,14 @@ mod tests {
             render_cli(&["compatibility-caveats"])
                 .expect("compatibility caveats alias should render"),
             caveats_summary
+        );
+        assert_eq!(
+            render_cli(&["compatibility-caveats-summary", "extra"]).unwrap_err(),
+            "compatibility-caveats-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["compatibility-caveats", "extra"]).unwrap_err(),
+            "compatibility-caveats does not accept extra arguments"
         );
         let ayanamsa_metadata_coverage_summary =
             render_cli(&["ayanamsa-metadata-coverage-summary"])

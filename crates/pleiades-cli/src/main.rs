@@ -85,7 +85,12 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("compatibility-profile-summary") | Some("profile-summary") => {
             validate_render_cli(args)
         }
-        Some("compatibility-caveats-summary") | Some("compatibility-caveats") => {
+        Some("compatibility-caveats-summary") => {
+            ensure_no_extra_args(&args[1..], "compatibility-caveats-summary")?;
+            validate_render_cli(args)
+        }
+        Some("compatibility-caveats") => {
+            ensure_no_extra_args(&args[1..], "compatibility-caveats")?;
             validate_render_cli(args)
         }
         Some("catalog-inventory-summary") => validate_render_cli(args),
@@ -1565,6 +1570,14 @@ mod tests {
         assert!(caveats.contains(profile.known_gaps[0]));
         assert!(caveats.contains(profile.known_gaps[1]));
         assert_eq!(render_cli(&["compatibility-caveats"]).unwrap(), caveats);
+        assert_eq!(
+            render_cli(&["compatibility-caveats-summary", "extra"]).unwrap_err(),
+            "compatibility-caveats-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["compatibility-caveats", "extra"]).unwrap_err(),
+            "compatibility-caveats does not accept extra arguments"
+        );
         assert!(compatibility.contains("Babylonian (Eta Piscium)"));
         assert!(compatibility.contains("Galactic Equator (Mula)"));
         assert!(compatibility.contains("Galactic Equator (Fiorenza)"));
