@@ -236,6 +236,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("reference-snapshot-dense-boundary-summary") => validate_render_cli(args),
         Some("dense-boundary-summary") => validate_render_cli(args),
         Some("source-documentation-summary") => validate_render_cli(args),
+        Some("source-documentation") => validate_render_cli(args),
         Some("source-documentation-health-summary") => validate_render_cli(args),
         Some("source-documentation-health") => validate_render_cli(args),
         Some("source-audit-summary") => validate_render_cli(args),
@@ -1295,6 +1296,8 @@ mod tests {
         assert!(rendered.contains("early-major-body-boundary-summary"));
         assert!(rendered.contains("1800-major-body-boundary-summary"));
         assert!(rendered.contains("source-documentation-summary"));
+        assert!(rendered
+            .contains("source-documentation         Alias for source-documentation-summary"));
         assert!(rendered.contains("source-documentation-health-summary"));
         assert!(rendered.contains(
             "source-documentation-health  Alias for source-documentation-health-summary"
@@ -3273,6 +3276,18 @@ mod tests {
             source_documentation_summary,
             super::validate_render_cli(&["source-documentation-summary"])
                 .expect("validation source documentation summary should render")
+        );
+        let source_documentation_alias = render_cli(&["source-documentation"])
+            .expect("source documentation alias should render");
+        assert_eq!(
+            source_documentation_alias,
+            super::validate_render_cli(&["source-documentation"])
+                .expect("validation source documentation alias should render")
+        );
+        assert_eq!(
+            render_cli(&["source-documentation", "extra"])
+                .expect_err("source documentation alias should reject extra arguments"),
+            "source-documentation does not accept extra arguments"
         );
         let source_documentation_health_summary =
             render_cli(&["source-documentation-health-summary"])
