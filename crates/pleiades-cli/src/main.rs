@@ -3186,6 +3186,12 @@ mod tests {
                 .expect_err("boundary day summary alias should reject extra arguments"),
             "boundary-day-summary does not accept extra arguments"
         );
+        assert_eq!(
+            render_cli(&["reference-snapshot-sparse-boundary-summary", "extra"]).expect_err(
+                "reference snapshot sparse boundary summary should reject extra arguments"
+            ),
+            "reference-snapshot-sparse-boundary-summary does not accept extra arguments"
+        );
         let pre_bridge_boundary_summary =
             render_cli(&["reference-snapshot-pre-bridge-boundary-summary"])
                 .expect("reference snapshot pre-bridge boundary summary should render");
