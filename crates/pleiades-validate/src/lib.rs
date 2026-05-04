@@ -10811,12 +10811,63 @@ pub fn mean_obliquity_frame_round_trip_sample_corpus() -> [(EclipticCoordinates,
     ]
 }
 
+fn validate_mean_obliquity_frame_round_trip_sample_corpus(
+    samples: &[(EclipticCoordinates, Instant)],
+) -> Result<(), String> {
+    if samples.len() != 7 {
+        return Err(format!(
+            "mean-obliquity frame round-trip sample corpus must contain 7 samples, found {}",
+            samples.len()
+        ));
+    }
+
+    if !samples
+        .iter()
+        .any(|(coordinates, _)| coordinates.latitude.degrees() > 80.0)
+    {
+        return Err(
+            "mean-obliquity frame round-trip sample corpus must include a northern polar sample"
+                .to_string(),
+        );
+    }
+
+    if !samples
+        .iter()
+        .any(|(coordinates, _)| coordinates.latitude.degrees() < -80.0)
+    {
+        return Err(
+            "mean-obliquity frame round-trip sample corpus must include a southern polar sample"
+                .to_string(),
+        );
+    }
+
+    if !samples
+        .iter()
+        .any(|(coordinates, _)| coordinates.longitude.degrees() > 350.0)
+    {
+        return Err(
+            "mean-obliquity frame round-trip sample corpus must include a wraparound longitude sample"
+                .to_string(),
+        );
+    }
+
+    if !samples
+        .iter()
+        .any(|(coordinates, _)| coordinates.latitude.degrees().abs() < 1e-12)
+    {
+        return Err(
+            "mean-obliquity frame round-trip sample corpus must include an equatorial sample"
+                .to_string(),
+        );
+    }
+
+    Ok(())
+}
+
 fn mean_obliquity_frame_round_trip_summary_from_samples(
     samples: &[(EclipticCoordinates, Instant)],
 ) -> Result<MeanObliquityFrameRoundTripSummary, String> {
-    if samples.is_empty() {
-        return Err("mean-obliquity frame round-trip summary has no samples".to_string());
-    }
+    validate_mean_obliquity_frame_round_trip_sample_corpus(samples)?;
 
     let mut sample_count = 0usize;
     let mut max_longitude_delta_deg: f64 = 0.0;
@@ -22427,6 +22478,34 @@ version = "0.9.0"
         let summary = mean_obliquity_frame_round_trip_summary_from_samples(&samples)
             .expect("canonical sample corpus should remain valid");
         assert_eq!(summary, mean_obliquity_frame_round_trip_summary().unwrap());
+    }
+
+    #[test]
+    fn mean_obliquity_frame_round_trip_sample_corpus_rejects_missing_equator() {
+        let mut samples = mean_obliquity_frame_round_trip_sample_corpus();
+        samples[1].0 = EclipticCoordinates::new(
+            Longitude::from_degrees(90.0),
+            pleiades_core::Latitude::from_degrees(1.0),
+            Some(1.0),
+        );
+
+        let error = mean_obliquity_frame_round_trip_summary_from_samples(&samples)
+            .expect_err("sample corpus without an equatorial sample should fail");
+        assert!(error.contains("must include an equatorial sample"));
+    }
+
+    #[test]
+    fn mean_obliquity_frame_round_trip_sample_corpus_rejects_missing_wraparound() {
+        let mut samples = mean_obliquity_frame_round_trip_sample_corpus();
+        samples[5].0 = EclipticCoordinates::new(
+            Longitude::from_degrees(320.0),
+            pleiades_core::Latitude::from_degrees(89.25),
+            Some(0.5),
+        );
+
+        let error = mean_obliquity_frame_round_trip_summary_from_samples(&samples)
+            .expect_err("sample corpus without a wraparound sample should fail");
+        assert!(error.contains("must include a wraparound longitude sample"));
     }
 
     #[test]
