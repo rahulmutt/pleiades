@@ -10,10 +10,10 @@
 use core::time::Duration;
 
 use pleiades_core::{
-    current_api_stability_profile, default_chart_bodies, resolve_ayanamsa, resolve_house_system,
-    Angle, Apparentness, Ayanamsa, CelestialBody, ChartEngine, ChartRequest, CompositeBackend,
-    CustomAyanamsa, CustomBodyId, EphemerisError, HouseSystem, Instant, JulianDay, Latitude,
-    Longitude, ObserverLocation, RoutingBackend, TimeScale, ZodiacMode,
+    default_chart_bodies, resolve_ayanamsa, resolve_house_system, Angle, Apparentness, Ayanamsa,
+    CelestialBody, ChartEngine, ChartRequest, CompositeBackend, CustomAyanamsa, CustomBodyId,
+    EphemerisError, HouseSystem, Instant, JulianDay, Latitude, Longitude, ObserverLocation,
+    RoutingBackend, TimeScale, ZodiacMode,
 };
 use pleiades_data::{
     packaged_artifact_bytes, packaged_artifact_regeneration_summary_for_report,
@@ -25,12 +25,8 @@ use pleiades_jpl::{
     JplSnapshotBackend,
 };
 use pleiades_validate::{
-    current_request_surface_summary, render_api_stability_summary, render_artifact_summary,
-    render_backend_matrix_report, render_backend_matrix_summary, render_benchmark_report,
-    render_catalog_inventory_summary, render_cli as validate_render_cli,
-    render_compatibility_profile_summary, render_release_bundle, render_release_checklist,
-    render_release_checklist_summary, render_release_notes, render_release_notes_summary,
-    render_release_summary, render_validation_report_summary, verify_compatibility_profile,
+    current_request_surface_summary, render_benchmark_report, render_cli as validate_render_cli,
+    render_release_bundle, render_validation_report_summary, verify_compatibility_profile,
 };
 use pleiades_vsop87::Vsop87Backend;
 
@@ -73,14 +69,12 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             validate_render_cli(&["comparison-corpus-release-guard-summary"])
         }
         Some("benchmark-corpus-summary") => validate_render_cli(&["benchmark-corpus-summary"]),
-        Some("compatibility-profile") | Some("profile") => {
-            Ok(pleiades_core::current_compatibility_profile().to_string())
-        }
+        Some("compatibility-profile") | Some("profile") => validate_render_cli(args),
         Some("compatibility-profile-summary") | Some("profile-summary") => {
-            Ok(render_compatibility_profile_summary())
+            validate_render_cli(args)
         }
-        Some("catalog-inventory-summary") => Ok(render_catalog_inventory_summary()),
-        Some("catalog-inventory") => Ok(render_catalog_inventory_summary()),
+        Some("catalog-inventory-summary") => validate_render_cli(args),
+        Some("catalog-inventory") => validate_render_cli(args),
         Some("verify-compatibility-profile") => {
             verify_compatibility_profile().map_err(render_error)
         }
@@ -100,25 +94,15 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             let output_dir = parse_release_bundle_output_dir(&args[1..])?;
             validate_render_cli(&["verify-release-bundle", "--out", output_dir])
         }
-        Some("api-stability") | Some("api-posture") => {
-            Ok(current_api_stability_profile().to_string())
-        }
-        Some("api-stability-summary") | Some("api-posture-summary") => {
-            Ok(render_api_stability_summary())
-        }
-        Some("backend-matrix") | Some("capability-matrix") => {
-            render_backend_matrix_report().map_err(render_error)
-        }
-        Some("backend-matrix-summary") | Some("matrix-summary") => {
-            Ok(render_backend_matrix_summary())
-        }
-        Some("release-notes") => Ok(render_release_notes()),
-        Some("release-notes-summary") => Ok(render_release_notes_summary()),
-        Some("release-checklist") => Ok(render_release_checklist()),
-        Some("release-checklist-summary") | Some("checklist-summary") => {
-            Ok(render_release_checklist_summary())
-        }
-        Some("release-summary") => Ok(render_release_summary()),
+        Some("api-stability") | Some("api-posture") => validate_render_cli(args),
+        Some("api-stability-summary") | Some("api-posture-summary") => validate_render_cli(args),
+        Some("backend-matrix") | Some("capability-matrix") => validate_render_cli(args),
+        Some("backend-matrix-summary") | Some("matrix-summary") => validate_render_cli(args),
+        Some("release-notes") => validate_render_cli(args),
+        Some("release-notes-summary") => validate_render_cli(args),
+        Some("release-checklist") => validate_render_cli(args),
+        Some("release-checklist-summary") | Some("checklist-summary") => validate_render_cli(args),
+        Some("release-summary") => validate_render_cli(args),
         Some("jpl-batch-error-taxonomy-summary") => {
             validate_render_cli(&["jpl-batch-error-taxonomy-summary"])
         }
@@ -404,9 +388,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("workspace-audit-summary") | Some("native-dependency-audit-summary") => {
             validate_render_cli(&["workspace-audit-summary"])
         }
-        Some("artifact-summary") | Some("artifact-posture-summary") => {
-            render_artifact_summary().map_err(|error| error.to_string())
-        }
+        Some("artifact-summary") | Some("artifact-posture-summary") => validate_render_cli(args),
         Some("artifact-boundary-envelope-summary") => {
             validate_render_cli(&["artifact-boundary-envelope-summary"])
         }
@@ -1933,6 +1915,34 @@ mod tests {
             request_semantics_alias_error,
             "request-semantics does not accept extra arguments"
         );
+
+        for (args, expected) in [
+            (
+                ["catalog-inventory-summary", "extra"],
+                "catalog-inventory does not accept extra arguments",
+            ),
+            (
+                ["catalog-inventory", "extra"],
+                "catalog-inventory does not accept extra arguments",
+            ),
+            (
+                ["api-posture-summary", "extra"],
+                "api-stability-summary does not accept extra arguments",
+            ),
+            (
+                ["release-notes", "extra"],
+                "release-notes does not accept extra arguments",
+            ),
+            (
+                ["artifact-posture-summary", "extra"],
+                "artifact-summary does not accept extra arguments",
+            ),
+        ] {
+            assert_eq!(
+                render_cli(&args).expect_err("summary command should reject extra arguments"),
+                expected
+            );
+        }
 
         let comparison_tolerance_policy_summary =
             render_cli(&["comparison-tolerance-policy-summary"])
