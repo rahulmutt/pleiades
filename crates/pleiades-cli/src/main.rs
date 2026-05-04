@@ -312,6 +312,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             validate_render_cli(args)
         }
         Some("mean-obliquity-frame-round-trip-summary") => validate_render_cli(args),
+        Some("mean-obliquity-frame-round-trip") => validate_render_cli(args),
         Some("release-profile-identifiers-summary") => {
             ensure_no_extra_args(&args[1..], "release-profile-identifiers-summary")?;
             validate_render_cli(args)
@@ -1261,6 +1262,9 @@ mod tests {
         );
         assert!(rendered.contains("time-scale-policy-summary"));
         assert!(rendered.contains("mean-obliquity-frame-round-trip-summary"));
+        assert!(rendered.contains(
+            "mean-obliquity-frame-round-trip  Alias for mean-obliquity-frame-round-trip-summary"
+        ));
         assert!(rendered.contains("production-generation-body-class-coverage-summary"));
         assert!(rendered.contains("production-body-class-coverage-summary"));
         assert!(rendered.contains("production-generation-boundary-request-corpus-summary"));
@@ -2399,6 +2403,24 @@ mod tests {
             render_cli(&["interpolation-posture", "extra"])
                 .expect_err("interpolation posture alias should reject extra arguments"),
             "interpolation-posture does not accept extra arguments"
+        );
+        let mean_obliquity_frame_round_trip_summary =
+            render_cli(&["mean-obliquity-frame-round-trip-summary"])
+                .expect("mean-obliquity frame round-trip summary should render");
+        assert_eq!(
+            mean_obliquity_frame_round_trip_summary,
+            super::validate_render_cli(&["mean-obliquity-frame-round-trip-summary"])
+                .expect("validation mean-obliquity frame round-trip summary should render")
+        );
+        assert_eq!(
+            render_cli(&["mean-obliquity-frame-round-trip"])
+                .expect("mean-obliquity frame round-trip alias should render"),
+            mean_obliquity_frame_round_trip_summary
+        );
+        assert_eq!(
+            render_cli(&["mean-obliquity-frame-round-trip", "extra"])
+                .expect_err("mean-obliquity frame round-trip alias should reject extra arguments"),
+            "mean-obliquity-frame-round-trip does not accept extra arguments"
         );
         let interpolation_quality_kind_coverage_summary =
             render_cli(&["interpolation-quality-kind-coverage-summary"])
