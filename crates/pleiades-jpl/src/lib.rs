@@ -11196,6 +11196,208 @@ pub fn reference_snapshot_sparse_boundary_summary_for_report() -> String {
     }
 }
 
+/// Compact release-facing summary for the pre-bridge 2451914.5 boundary day in the reference snapshot.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReferenceSnapshotPreBridgeBoundarySummary {
+    /// Number of exact samples in the pre-bridge boundary day.
+    pub sample_count: usize,
+    /// Bodies covered by the pre-bridge boundary day in first-seen order.
+    pub sample_bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Exact epoch shared by the pre-bridge boundary day.
+    pub epoch: Instant,
+}
+
+/// Validation errors for a pre-bridge boundary summary that drifted from the current slice.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ReferenceSnapshotPreBridgeBoundarySummaryValidationError {
+    /// The summary did not expose any samples.
+    Empty,
+    /// The summary sample count drifted from the current evidence slice.
+    SampleCountMismatch {
+        sample_count: usize,
+        derived_sample_count: usize,
+    },
+    /// The summary body list drifted from the current evidence slice.
+    BodyOrderMismatch {
+        index: usize,
+        expected: pleiades_backend::CelestialBody,
+        found: pleiades_backend::CelestialBody,
+    },
+    /// The summary epoch drifted from the current evidence slice.
+    EpochMismatch { expected: Instant, found: Instant },
+}
+
+impl fmt::Display for ReferenceSnapshotPreBridgeBoundarySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Empty => f.write_str("reference snapshot pre-bridge boundary day is unavailable"),
+            Self::SampleCountMismatch {
+                sample_count,
+                derived_sample_count,
+            } => write!(
+                f,
+                "reference snapshot pre-bridge boundary day sample count {sample_count} does not match derived sample count {derived_sample_count}"
+            ),
+            Self::BodyOrderMismatch {
+                index,
+                expected,
+                found,
+            } => write!(
+                f,
+                "reference snapshot pre-bridge boundary day body order mismatch at index {index}: expected {expected}, found {found}"
+            ),
+            Self::EpochMismatch { expected, found } => write!(
+                f,
+                "reference snapshot pre-bridge boundary day epoch mismatch: expected {}, found {}",
+                format_instant(*expected),
+                format_instant(*found)
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ReferenceSnapshotPreBridgeBoundarySummaryValidationError {}
+
+impl ReferenceSnapshotPreBridgeBoundarySummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Reference snapshot pre-bridge boundary day: {} exact samples at {} ({}); pre-bridge boundary day",
+            self.sample_count,
+            format_instant(self.epoch),
+            format_bodies(&self.sample_bodies),
+        )
+    }
+
+    /// Returns `Ok(())` when the pre-bridge boundary summary still matches the current evidence slice.
+    pub fn validate(&self) -> Result<(), ReferenceSnapshotPreBridgeBoundarySummaryValidationError> {
+        let evidence = reference_snapshot_pre_bridge_boundary_entries()
+            .ok_or(ReferenceSnapshotPreBridgeBoundarySummaryValidationError::Empty)?;
+
+        if self.sample_count != evidence.len() {
+            return Err(
+                ReferenceSnapshotPreBridgeBoundarySummaryValidationError::SampleCountMismatch {
+                    sample_count: self.sample_count,
+                    derived_sample_count: evidence.len(),
+                },
+            );
+        }
+
+        let mut expected_bodies = Vec::new();
+        for entry in evidence {
+            if !expected_bodies.contains(&entry.body) {
+                expected_bodies.push(entry.body.clone());
+            }
+        }
+        if self.sample_bodies.as_slice() != expected_bodies.as_slice() {
+            for (index, (expected, found)) in expected_bodies
+                .iter()
+                .zip(self.sample_bodies.iter())
+                .enumerate()
+            {
+                if expected != found {
+                    return Err(
+                        ReferenceSnapshotPreBridgeBoundarySummaryValidationError::BodyOrderMismatch {
+                            index,
+                            expected: expected.clone(),
+                            found: found.clone(),
+                        },
+                    );
+                }
+            }
+            return Err(
+                ReferenceSnapshotPreBridgeBoundarySummaryValidationError::SampleCountMismatch {
+                    sample_count: self.sample_count,
+                    derived_sample_count: evidence.len(),
+                },
+            );
+        }
+
+        if self.epoch != evidence[0].epoch {
+            return Err(
+                ReferenceSnapshotPreBridgeBoundarySummaryValidationError::EpochMismatch {
+                    expected: evidence[0].epoch,
+                    found: self.epoch,
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the compact summary line after validating the current evidence slice.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ReferenceSnapshotPreBridgeBoundarySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for ReferenceSnapshotPreBridgeBoundarySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn reference_snapshot_pre_bridge_boundary_entries() -> Option<&'static [SnapshotEntry]> {
+    static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
+    let entries = ENTRIES
+        .get_or_init(|| {
+            snapshot_entries()
+                .into_iter()
+                .flatten()
+                .filter(|entry| {
+                    entry.epoch.julian_day.days() == REFERENCE_PRE_BRIDGE_BOUNDARY_EPOCH_JD
+                })
+                .cloned()
+                .collect()
+        })
+        .as_slice();
+
+    if entries.is_empty() {
+        None
+    } else {
+        Some(entries)
+    }
+}
+
+fn reference_snapshot_pre_bridge_boundary_summary_details(
+) -> Option<ReferenceSnapshotPreBridgeBoundarySummary> {
+    let evidence = reference_snapshot_pre_bridge_boundary_entries()?;
+    let mut sample_bodies = Vec::new();
+    for entry in evidence {
+        if !sample_bodies.contains(&entry.body) {
+            sample_bodies.push(entry.body.clone());
+        }
+    }
+
+    Some(ReferenceSnapshotPreBridgeBoundarySummary {
+        sample_count: evidence.len(),
+        sample_bodies,
+        epoch: evidence[0].epoch,
+    })
+}
+
+/// Returns the compact typed summary for the pre-bridge boundary day in the reference snapshot.
+pub fn reference_snapshot_pre_bridge_boundary_summary(
+) -> Option<ReferenceSnapshotPreBridgeBoundarySummary> {
+    reference_snapshot_pre_bridge_boundary_summary_details()
+}
+
+/// Returns the release-facing pre-bridge boundary day summary string.
+pub fn reference_snapshot_pre_bridge_boundary_summary_for_report() -> String {
+    match reference_snapshot_pre_bridge_boundary_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => {
+                format!("Reference snapshot pre-bridge boundary day: unavailable ({error})")
+            }
+        },
+        None => "Reference snapshot pre-bridge boundary day: unavailable".to_string(),
+    }
+}
+
 /// Compact release-facing summary for the dense 2451916.5 boundary day in the reference snapshot.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ReferenceSnapshotDenseBoundarySummary {
@@ -16637,6 +16839,26 @@ mod tests {
             reference_snapshot_boundary_epoch_coverage_summary()
                 .expect("reference snapshot boundary epoch coverage summary should exist")
                 .summary_line()
+        );
+    }
+
+    #[test]
+    fn reference_snapshot_pre_bridge_boundary_summary_reports_the_pre_bridge_day() {
+        let summary = reference_snapshot_pre_bridge_boundary_summary()
+            .expect("reference snapshot pre-bridge boundary summary should exist");
+        assert_eq!(summary.sample_count, 15);
+        assert_eq!(summary.sample_bodies.len(), 15);
+        assert_eq!(summary.epoch.julian_day.days(), 2_451_914.5);
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            summary.summary_line(),
+            "Reference snapshot pre-bridge boundary day: 15 exact samples at JD 2451914.5 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); pre-bridge boundary day"
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            reference_snapshot_pre_bridge_boundary_summary_for_report(),
+            summary.summary_line()
         );
     }
 

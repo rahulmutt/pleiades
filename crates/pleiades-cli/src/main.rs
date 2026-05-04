@@ -215,6 +215,14 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("reference-snapshot-sparse-boundary-summary") | Some("sparse-boundary-summary") => {
             validate_render_cli(args)
         }
+        Some("reference-snapshot-pre-bridge-boundary-summary") => {
+            ensure_no_extra_args(&args[1..], "reference-snapshot-pre-bridge-boundary-summary")?;
+            validate_render_cli(args)
+        }
+        Some("pre-bridge-boundary-summary") => {
+            ensure_no_extra_args(&args[1..], "pre-bridge-boundary-summary")?;
+            validate_render_cli(args)
+        }
         Some("boundary-day-summary") => {
             ensure_no_extra_args(&args[1..], "boundary-day-summary")?;
             validate_render_cli(args)
@@ -1273,6 +1281,8 @@ mod tests {
         assert!(rendered.contains("high-curvature-epoch-coverage-summary"));
         assert!(rendered.contains("reference-snapshot-sparse-boundary-summary"));
         assert!(rendered.contains("sparse-boundary-summary"));
+        assert!(rendered.contains("reference-snapshot-pre-bridge-boundary-summary"));
+        assert!(rendered.contains("pre-bridge-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-dense-boundary-summary"));
         assert!(rendered.contains("dense-boundary-summary"));
         assert!(rendered.contains("early-major-body-boundary-summary"));
@@ -3163,6 +3173,32 @@ mod tests {
             render_cli(&["boundary-day-summary", "extra"])
                 .expect_err("boundary day summary alias should reject extra arguments"),
             "boundary-day-summary does not accept extra arguments"
+        );
+        let pre_bridge_boundary_summary =
+            render_cli(&["reference-snapshot-pre-bridge-boundary-summary"])
+                .expect("reference snapshot pre-bridge boundary summary should render");
+        let pre_bridge_boundary_alias = render_cli(&["pre-bridge-boundary-summary"])
+            .expect("pre-bridge boundary summary alias should render");
+        assert!(pre_bridge_boundary_summary.contains("Reference snapshot pre-bridge boundary day:"));
+        assert!(pre_bridge_boundary_summary.contains(
+            "JD 2451914.5 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); pre-bridge boundary day"
+        ));
+        assert_eq!(pre_bridge_boundary_alias, pre_bridge_boundary_summary);
+        assert_eq!(
+            pre_bridge_boundary_summary,
+            super::validate_render_cli(&["reference-snapshot-pre-bridge-boundary-summary"])
+                .expect("validation pre-bridge boundary summary should render")
+        );
+        assert_eq!(
+            render_cli(&["reference-snapshot-pre-bridge-boundary-summary", "extra"]).expect_err(
+                "reference snapshot pre-bridge boundary summary should reject extra arguments"
+            ),
+            "reference-snapshot-pre-bridge-boundary-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["pre-bridge-boundary-summary", "extra"])
+                .expect_err("pre-bridge boundary summary alias should reject extra arguments"),
+            "pre-bridge-boundary-summary does not accept extra arguments"
         );
         let dense_boundary_summary = render_cli(&["reference-snapshot-dense-boundary-summary"])
             .expect("reference snapshot dense boundary summary should render");
