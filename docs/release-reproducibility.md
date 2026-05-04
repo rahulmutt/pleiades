@@ -95,12 +95,13 @@ The bundle currently writes these text artifacts:
 - `backend-matrix-summary.txt`
 - `api-stability.txt`
 - `api-stability-summary.txt`
+- `validation-report-summary.txt`
+- `request-policy-summary.txt`
 - `workspace-audit-summary.txt`
 - `native-dependency-audit-summary.txt`
 - `artifact-summary.txt`
 - `release-profile-identifiers.txt`
 - `benchmark-report.txt`
-- `validation-report-summary.txt`
 - `validation-report.txt`
 - `bundle-manifest.txt` (includes the recorded source revision, workspace status, Rust compiler version, profile/API identifiers, and validation-round count)
 - `bundle-manifest.checksum.txt` (records the checksum used to verify the staged manifest itself; the verifier expects the canonical single-line `0x...` format with no stray whitespace)
