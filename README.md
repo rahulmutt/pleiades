@@ -61,11 +61,11 @@ Rough command overview:
 - `release-notes`, `release-notes-summary`, `release-checklist`, `release-checklist-summary` / `checklist-summary`, `release-summary`: release metadata and summary views
 - `request-policy-summary` / `request-policy` / `request-semantics-summary` / `request-semantics`: compact request-policy summary
 - `time-scale-policy-summary`, `delta-t-policy-summary`, `observer-policy-summary`, `apparentness-policy-summary`, `frame-policy-summary`: dedicated request-semantics policy summaries
-- `compatibility-caveats-summary`: compact compatibility caveats summary of the known release gaps
-- `native-sidereal-policy-summary`: compact native sidereal policy summary
-- `lunar-theory-limitations-summary`: compact lunar baseline limitations summary
+- `compatibility-caveats-summary` / `compatibility-caveats`: compact compatibility caveats summary of the known release gaps
+- `native-sidereal-policy-summary` / `native-sidereal-policy`: compact native sidereal policy summary
+- `lunar-theory-limitations-summary` / `lunar-theory-limitations`: compact lunar baseline limitations summary
 - `house-validation-summary`, `house-formula-families-summary`, `house-code-aliases-summary`, `ayanamsa-catalog-validation-summary`, `ayanamsa-metadata-coverage-summary`, `ayanamsa-reference-offsets-summary`, `lunar-theory-catalog-summary`, `lunar-theory-catalog-validation-summary`, `lunar-theory-limitations-summary`, `packaged-lookup-epoch-policy-summary`, `verify-compatibility-profile`, `verify-release-bundle`: maintainer-facing catalog-alignment and release checks
-- `comparison-corpus-summary` / `comparison-corpus-release-guard-summary` / `comparison-envelope-summary` / `reference-holdout-overlap-summary` / `independent-holdout-summary`: compact release-grade comparison, hold-out, and validation-overlap summaries
+- `comparison-corpus-summary` / `comparison-corpus-release-guard-summary` / `comparison-corpus-guard-summary` / `comparison-envelope-summary` / `reference-holdout-overlap-summary` / `independent-holdout-summary`: compact release-grade comparison, hold-out, and validation-overlap summaries
 - `reference-snapshot-1749-major-body-boundary-summary` / `1749-major-body-boundary-summary`, `reference-snapshot-early-major-body-boundary-summary` / `early-major-body-boundary-summary`, `reference-snapshot-1800-major-body-boundary-summary` / `1800-major-body-boundary-summary`, `reference-snapshot-major-body-bridge-summary` / `major-body-bridge-summary`, `reference-snapshot-selected-asteroid-bridge-summary` / `selected-asteroid-bridge-summary`, `reference-snapshot-2500-major-body-boundary-summary` / `2500-major-body-boundary-summary`, `reference-snapshot-selected-asteroid-terminal-boundary-summary` / `selected-asteroid-terminal-boundary-summary`: compact reference boundary archaeology summaries
 - `comparison-snapshot-manifest-summary`, `reference-snapshot-manifest-summary`: compact source-manifest provenance summaries for the checked-in JPL snapshots (also available through `pleiades-cli`)
 - `artifact-summary` / `artifact-posture-summary`: compact summary of the packaged compressed artifact
