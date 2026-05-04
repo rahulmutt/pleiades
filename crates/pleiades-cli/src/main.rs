@@ -95,6 +95,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("catalog-inventory-summary") => validate_render_cli(args),
         Some("catalog-inventory") => validate_render_cli(args),
+        Some("custom-definition-ayanamsa-labels-summary")
+        | Some("custom-definition-ayanamsa-labels") => validate_render_cli(args),
         Some("verify-compatibility-profile") => {
             verify_compatibility_profile().map_err(render_error)
         }
@@ -3799,6 +3801,24 @@ mod tests {
     }
 
     #[test]
+    fn custom_definition_ayanamsa_labels_summary_command_renders_the_labels() {
+        let rendered = render_cli(&["custom-definition-ayanamsa-labels-summary"])
+            .expect("custom-definition ayanamsa labels summary should render");
+
+        assert_eq!(
+            rendered,
+            pleiades_validate::render_cli(&["custom-definition-ayanamsa-labels-summary"]).expect(
+                "validation front end should render the custom-definition ayanamsa labels summary"
+            )
+        );
+        assert_eq!(
+            render_cli(&["custom-definition-ayanamsa-labels"])
+                .expect("custom-definition ayanamsa labels alias should render"),
+            rendered
+        );
+    }
+
+    #[test]
     fn chart_help_text_spells_out_the_shared_request_policy() {
         let help = render_chart(&["--help"]).expect("chart help should render");
         assert!(help.contains(&shared_request_policy_help_block()));
@@ -3838,6 +3858,12 @@ mod tests {
             "catalog-inventory-summary  Print the compact compatibility catalog inventory summary"
         ));
         assert!(help.contains("catalog-inventory        Alias for catalog-inventory-summary"));
+        assert!(help.contains(
+            "custom-definition-ayanamsa-labels-summary  Print the compact custom-definition ayanamsa labels summary"
+        ));
+        assert!(help.contains(
+            "custom-definition-ayanamsa-labels  Alias for custom-definition-ayanamsa-labels-summary"
+        ));
         assert!(help.contains("profile-summary           Alias for compatibility-profile-summary"));
         assert!(help.contains(
             "release-profile-identifiers  Alias for release-profile-identifiers-summary"

@@ -4387,6 +4387,11 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "catalog-inventory")?;
             Ok(render_catalog_inventory_summary())
         }
+        Some("custom-definition-ayanamsa-labels-summary")
+        | Some("custom-definition-ayanamsa-labels") => {
+            ensure_no_extra_args(&args[1..], "custom-definition-ayanamsa-labels-summary")?;
+            Ok(render_custom_definition_ayanamsa_labels_summary())
+        }
         Some("verify-compatibility-profile") => {
             ensure_no_extra_args(&args[1..], "verify-compatibility-profile")?;
             verify_compatibility_profile().map_err(render_error)
@@ -5194,6 +5199,11 @@ pub fn render_catalog_inventory_summary() -> String {
         },
         Err(error) => format!("Compatibility catalog inventory unavailable ({error})"),
     }
+}
+
+/// Renders the compact custom-definition ayanamsa label summary used by release tooling.
+pub fn render_custom_definition_ayanamsa_labels_summary() -> String {
+    format_custom_definition_ayanamsa_labels_for_report()
 }
 
 /// Renders the release notes used by release tooling.
@@ -6420,6 +6430,16 @@ fn format_house_formula_families_for_report() -> String {
             format_house_formula_families_summary(&summarize_house_formula_families(&profile))
         }
         Err(error) => format!("house formula families unavailable ({error})"),
+    }
+}
+
+fn format_custom_definition_ayanamsa_labels_for_report() -> String {
+    match validated_compatibility_profile_for_report() {
+        Ok(profile) => match profile.validated_custom_definition_ayanamsa_labels_summary_line() {
+            Ok(summary) => summary,
+            Err(error) => format!("custom-definition ayanamsa labels unavailable ({error})"),
+        },
+        Err(error) => format!("custom-definition ayanamsa labels unavailable ({error})"),
     }
 }
 
@@ -14570,6 +14590,8 @@ fn help_text() -> String {
   compatibility-caveats    Alias for compatibility-caveats-summary
   catalog-inventory-summary  Print the compact compatibility catalog inventory summary
   catalog-inventory        Alias for catalog-inventory-summary
+  custom-definition-ayanamsa-labels-summary  Print the compact custom-definition ayanamsa labels summary
+  custom-definition-ayanamsa-labels  Alias for custom-definition-ayanamsa-labels-summary
   profile-summary           Alias for compatibility-profile-summary
   verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  jpl-batch-error-taxonomy-summary  Print the compact JPL batch error taxonomy summary\n  jpl-snapshot-evidence-summary  Print the compact combined JPL evidence summary\n  production-generation-boundary-summary  Print the compact production-generation boundary overlay summary\n  production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary\n  production-generation-body-class-coverage-summary  Print the compact production-generation body-class coverage summary\n  production-body-class-coverage-summary  Alias for production-generation-body-class-coverage-summary\n  production-generation-source-window-summary  Print the compact production-generation source windows summary\n  production-generation-summary  Print the compact production-generation coverage summary
   production-generation           Alias for production-generation-summary
@@ -17881,6 +17903,30 @@ mod tests {
         assert!(
             rendered.contains("See release-summary for the compact one-screen release overview.")
         );
+    }
+
+    #[test]
+    fn custom_definition_ayanamsa_labels_summary_command_renders_the_labels() {
+        let profile = current_compatibility_profile();
+        let rendered = render_cli(&["custom-definition-ayanamsa-labels-summary"])
+            .expect("custom-definition ayanamsa labels summary should render");
+
+        assert_eq!(
+            render_cli(&["custom-definition-ayanamsa-labels"]).unwrap(),
+            rendered
+        );
+        assert_eq!(
+            rendered,
+            profile
+                .validated_custom_definition_ayanamsa_labels_summary_line()
+                .expect("custom-definition ayanamsa labels summary should validate")
+        );
+        assert_eq!(
+            render_cli(&["custom-definition-ayanamsa-labels-summary", "extra"]).unwrap_err(),
+            "custom-definition-ayanamsa-labels-summary does not accept extra arguments"
+        );
+        assert!(rendered.contains("Babylonian (House)"));
+        assert!(rendered.contains("Babylonian (True Geoc)"));
     }
 
     #[test]

@@ -187,6 +187,16 @@ impl CompatibilityProfile {
         format_canonical_name_summary(&self.custom_definition_ayanamsa_labels())
     }
 
+    /// Returns the custom-definition ayanamsa labels after validating the profile.
+    pub fn validated_custom_definition_ayanamsa_labels_summary_line(
+        &self,
+    ) -> Result<String, CompatibilityProfileValidationError> {
+        self.validate()?;
+        let labels = self.custom_definition_ayanamsa_labels();
+        validate_profile_text_section("custom-definition-ayanamsa-label", labels.as_slice())?;
+        Ok(format_canonical_name_summary(&labels))
+    }
+
     /// Returns a compact inventory line for the current compatibility catalog.
     pub fn catalog_inventory_summary_line(&self) -> String {
         fn alias_count<T>(entries: &[T], aliases: impl Fn(&T) -> &'static [&'static str]) -> usize {
