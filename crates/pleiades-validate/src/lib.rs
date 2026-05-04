@@ -18662,6 +18662,8 @@ mod tests {
         assert!(rendered.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_high_curvature_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_high_curvature_window_summary_for_report()));
+        assert!(rendered
+            .contains(&reference_snapshot_high_curvature_epoch_coverage_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_source_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_manifest_summary_for_report()));
         assert!(rendered.contains("Comparison audit: compare-backends-audit; status="));
@@ -19201,6 +19203,8 @@ version = "0.9.0"
         );
         assert!(release_summary
             .contains(&reference_snapshot_high_curvature_window_summary_for_report()));
+        assert!(release_summary
+            .contains(&reference_snapshot_high_curvature_epoch_coverage_summary_for_report()));
         assert!(
             release_summary.contains(&comparison_snapshot_body_class_coverage_summary_for_report())
         );
