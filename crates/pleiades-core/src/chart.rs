@@ -5154,6 +5154,58 @@ mod tests {
     }
 
     #[test]
+    fn chart_request_tdb_conversion_helpers_preserve_body_and_house_observers() {
+        let mut custom = pleiades_types::CustomHouseSystem::new("My TDB Custom Houses");
+        custom.aliases.push("My TDB Alias".to_string());
+        custom.notes = Some("uses a local TDB calibration".to_string());
+
+        let observer = ObserverLocation::new(
+            Latitude::from_degrees(48.8),
+            Longitude::from_degrees(2.3),
+            Some(35.0),
+        );
+        let body_observer = ObserverLocation::new(
+            Latitude::from_degrees(-23.5),
+            Longitude::from_degrees(-46.6),
+            None,
+        );
+
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Tdb,
+        ))
+        .with_observer(observer)
+        .with_body_observer(body_observer.clone())
+        .with_house_system(HouseSystem::Custom(custom))
+        .with_bodies(vec![CelestialBody::Mercury, CelestialBody::Venus])
+        .with_apparentness(Apparentness::Apparent);
+
+        let tt_converted = request
+            .clone()
+            .with_tt_from_tdb(-0.001_657)
+            .expect("TDB chart request should accept TT conversion helpers");
+
+        assert_eq!(tt_converted.instant.scale, TimeScale::Tt);
+        assert_eq!(tt_converted.observer, request.observer);
+        assert_eq!(tt_converted.body_observer, request.body_observer);
+        assert_eq!(tt_converted.house_system, request.house_system);
+        assert_eq!(tt_converted.bodies, request.bodies);
+        assert_eq!(tt_converted.apparentness, request.apparentness);
+
+        let signed_tt_converted = request
+            .clone()
+            .with_tt_from_tdb_signed(-0.001_657)
+            .expect("TDB chart request should accept signed TT conversion helpers");
+
+        assert_eq!(signed_tt_converted.instant.scale, TimeScale::Tt);
+        assert_eq!(signed_tt_converted.observer, request.observer);
+        assert_eq!(signed_tt_converted.body_observer, request.body_observer);
+        assert_eq!(signed_tt_converted.house_system, request.house_system);
+        assert_eq!(signed_tt_converted.bodies, request.bodies);
+        assert_eq!(signed_tt_converted.apparentness, request.apparentness);
+    }
+
+    #[test]
     fn chart_request_signed_time_scale_helpers_reject_non_finite_offsets() {
         let checked_request = ChartRequest::new(Instant::new(
             pleiades_types::JulianDay::from_days(2_451_545.0),
