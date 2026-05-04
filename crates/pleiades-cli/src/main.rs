@@ -418,6 +418,11 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             validate_render_cli(&["mean-obliquity-frame-round-trip-summary"])
         }
         Some("release-profile-identifiers-summary") => {
+            ensure_no_extra_args(&args[1..], "release-profile-identifiers-summary")?;
+            validate_render_cli(&["release-profile-identifiers-summary"])
+        }
+        Some("release-profile-identifiers") => {
+            ensure_no_extra_args(&args[1..], "release-profile-identifiers")?;
             validate_render_cli(&["release-profile-identifiers-summary"])
         }
         Some("request-surface-summary") | Some("request-surface") => validate_render_cli(args),
@@ -3414,6 +3419,21 @@ mod tests {
             rendered,
             super::validate_render_cli(&["release-profile-identifiers-summary"]).unwrap()
         );
+        assert_eq!(
+            render_cli(&["release-profile-identifiers"])
+                .expect("release-profile identifiers alias should render"),
+            rendered
+        );
+        assert_eq!(
+            render_cli(&["release-profile-identifiers-summary", "extra"])
+                .expect_err("release-profile identifiers summary should reject extra arguments"),
+            "release-profile-identifiers-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["release-profile-identifiers", "extra"])
+                .expect_err("release-profile identifiers alias should reject extra arguments"),
+            "release-profile-identifiers does not accept extra arguments"
+        );
     }
 
     #[test]
@@ -3503,6 +3523,9 @@ mod tests {
             "catalog-inventory-summary  Print the compact compatibility catalog inventory summary"
         ));
         assert!(help.contains("catalog-inventory        Alias for catalog-inventory-summary"));
+        assert!(help.contains(
+            "release-profile-identifiers  Alias for release-profile-identifiers-summary"
+        ));
         assert!(help.contains(
             "artifact-profile-coverage-summary  Print the packaged-artifact profile coverage summary"
         ));
