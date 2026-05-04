@@ -2727,6 +2727,45 @@ mod tests {
     }
 
     #[test]
+    fn equatorial_to_ecliptic_treats_negative_right_ascension_as_normalized_angle() {
+        let obliquity = Angle::from_degrees(23.439_291_11);
+        let normalized = EquatorialCoordinates::new(
+            Angle::from_degrees(359.75),
+            Latitude::from_degrees(12.5),
+            Some(1.23),
+        );
+        let wrapped = EquatorialCoordinates::new(
+            Angle::from_degrees(-0.25),
+            Latitude::from_degrees(12.5),
+            Some(1.23),
+        );
+
+        let normalized_ecliptic = normalized.to_ecliptic(obliquity);
+        let wrapped_ecliptic = wrapped.to_ecliptic(obliquity);
+
+        assert_eq!(normalized_ecliptic.validate(), Ok(()));
+        assert_eq!(wrapped_ecliptic.validate(), Ok(()));
+        assert!(
+            (normalized_ecliptic.longitude.degrees() - wrapped_ecliptic.longitude.degrees()).abs()
+                < 1e-10
+        );
+        assert!(
+            (normalized_ecliptic.latitude.degrees() - wrapped_ecliptic.latitude.degrees()).abs()
+                < 1e-10
+        );
+        assert_eq!(
+            normalized_ecliptic.distance_au,
+            wrapped_ecliptic.distance_au
+        );
+
+        let round_trip = wrapped_ecliptic.to_equatorial(obliquity);
+        assert_eq!(round_trip.validate(), Ok(()));
+        assert!(round_trip.right_ascension.degrees() >= 0.0);
+        assert!(round_trip.right_ascension.degrees() < 360.0);
+        assert!((round_trip.right_ascension.degrees() - 359.75).abs() < 1e-10);
+    }
+
+    #[test]
     fn built_in_body_names_are_stable() {
         assert_eq!(CelestialBody::Sun.built_in_name(), Some("Sun"));
         assert_eq!(CelestialBody::Sun.to_string(), "Sun");
