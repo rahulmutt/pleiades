@@ -13546,6 +13546,7 @@ fn write_backend_matrix(f: &mut fmt::Formatter<'_>, backend: &BackendMetadata) -
                 selected_asteroid_source_window_summary_for_report()
             )?;
             writeln!(f, "  {}", selected_asteroid_boundary_summary_for_report())?;
+            writeln!(f, "  {}", selected_asteroid_bridge_summary_for_report())?;
             let evidence = reference_asteroid_evidence();
             if let Some(first) = evidence.first() {
                 writeln!(
@@ -13566,6 +13567,11 @@ fn write_backend_matrix(f: &mut fmt::Formatter<'_>, backend: &BackendMetadata) -
                 f,
                 "  {}",
                 reference_snapshot_exact_j2000_evidence_summary_for_report()
+            )?;
+            writeln!(
+                f,
+                "  {}",
+                reference_snapshot_major_body_bridge_summary_for_report()
             )?;
         }
     }
@@ -16050,6 +16056,7 @@ mod tests {
         assert!(report.contains("Implemented backend matrices"));
         assert!(report.contains("Selected asteroid coverage"));
         assert!(report.contains(&selected_asteroid_boundary_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_bridge_summary_for_report()));
         assert!(report.contains("exact J2000 evidence: 5 bodies at JD 2451545.0"));
         assert!(report.contains("Ceres"));
         assert!(report.contains("Pallas"));
@@ -19327,7 +19334,9 @@ mod tests {
         assert!(rendered.contains("Selected asteroid source evidence: 75 source-backed samples across 5 bodies and 15 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: Ceres, Pallas, Juno, Vesta, asteroid:433-Eros"));
         assert!(rendered.contains("Selected asteroid source windows: 75 source-backed samples across 5 bodies and 15 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); windows: Ceres: 15 samples across 15 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Pallas: 15 samples across 15 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Juno: 15 samples across 15 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Vesta: 15 samples across 15 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:433-Eros: 15 samples across 15 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB)"));
         assert!(rendered.contains(&selected_asteroid_boundary_summary_for_report()));
+        assert!(rendered.contains(&selected_asteroid_bridge_summary_for_report()));
         assert!(rendered.contains("exact J2000 evidence: 5 bodies at JD 2451545.0"));
+        assert!(rendered.contains(&reference_snapshot_major_body_bridge_summary_for_report()));
         assert!(rendered.contains("nominal range:"));
         assert!(rendered.contains("provenance sources:"));
         assert!(rendered.contains("implementation status: fixture-reference"));
