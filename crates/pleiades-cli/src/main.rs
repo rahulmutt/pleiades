@@ -2851,7 +2851,7 @@ mod tests {
             boundary_epoch_coverage_summary.contains("Reference snapshot boundary epoch coverage:")
         );
         assert!(boundary_epoch_coverage_summary.contains(
-            "JD 2451915.5 (TDB): 14 bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); sparse boundary day; missing bodies: Pluto"
+            "JD 2451915.5 (TDB): 15 bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"
         ));
         assert_eq!(
             boundary_epoch_coverage_alias,
@@ -2866,9 +2866,9 @@ mod tests {
             .expect("reference snapshot sparse boundary summary should render");
         let sparse_boundary_alias = render_cli(&["sparse-boundary-summary"])
             .expect("sparse boundary summary alias should render");
-        assert!(sparse_boundary_summary.contains("Reference snapshot sparse boundary day:"));
+        assert!(sparse_boundary_summary.contains("Reference snapshot boundary day:"));
         assert!(sparse_boundary_summary.contains(
-            "JD 2451915.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); sparse boundary day; missing bodies: Pluto"
+            "JD 2451915.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"
         ));
         assert_eq!(sparse_boundary_alias, sparse_boundary_summary);
         assert_eq!(
