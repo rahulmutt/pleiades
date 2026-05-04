@@ -17266,6 +17266,9 @@ mod tests {
         );
         assert!(rendered.contains("Galactic Equator (Fiorenza): epoch=JD 2451544.5; offset=25°"));
         assert!(rendered.contains("Valens Moon: epoch=JD 1775845.5; offset=-2.9422°"));
+        assert!(
+            rendered.contains("Suryasiddhanta (499 CE): epoch=JD 1903396.8128653935; offset=0°")
+        );
         assert!(rendered.contains("Aryabhata (522 CE): epoch=JD 1911797.740782; offset=0°"));
         assert!(rendered.contains("Release-specific house-system canonical names: 13 (Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter (poli-equatorial), Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen SD, Pullen SR, Sunshine, Gauquelin sectors)"));
         assert!(rendered.contains(&format!(
@@ -17339,6 +17342,9 @@ mod tests {
         );
         assert!(rendered.contains("Galactic Equator (Fiorenza): epoch=JD 2451544.5; offset=25°"));
         assert!(rendered.contains("Valens Moon: epoch=JD 1775845.5; offset=-2.9422°"));
+        assert!(
+            rendered.contains("Suryasiddhanta (499 CE): epoch=JD 1903396.8128653935; offset=0°")
+        );
         assert!(rendered.contains("Aryabhata (522 CE): epoch=JD 1911797.740782; offset=0°"));
     }
 

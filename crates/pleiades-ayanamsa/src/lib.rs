@@ -1282,6 +1282,7 @@ pub const fn reference_offset_sample_ayanamsas() -> &'static [Ayanamsa] {
         Ayanamsa::GalacticEquatorFiorenza,
         Ayanamsa::ValensMoon,
         Ayanamsa::BabylonianBritton,
+        Ayanamsa::Suryasiddhanta499,
         Ayanamsa::Aryabhata522,
     ]
 }
@@ -1927,6 +1928,7 @@ mod tests {
                 Ayanamsa::GalacticEquatorFiorenza,
                 Ayanamsa::ValensMoon,
                 Ayanamsa::BabylonianBritton,
+                Ayanamsa::Suryasiddhanta499,
                 Ayanamsa::Aryabhata522,
             ]
         );
