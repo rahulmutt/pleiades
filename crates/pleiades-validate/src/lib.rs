@@ -17934,6 +17934,10 @@ mod tests {
         assert!(rendered.contains("J2000: epoch=JD 2451545; offset=23.85317778°"));
         assert!(rendered.contains("J1900: epoch=JD 2415020; offset=0°"));
         assert!(rendered.contains("B1950: epoch=JD 2433281.5; offset=0°"));
+        assert!(rendered.contains("Babylonian (Kugler 2): epoch=JD 1797039.20682; offset=0°"));
+        assert!(rendered.contains("Babylonian (Kugler 3): epoch=JD 1774637.420172; offset=0°"));
+        assert!(rendered.contains("Babylonian (Eta Piscium): epoch=JD 1807871.964797; offset=0°"));
+        assert!(rendered.contains("Babylonian (Aldebaran): epoch=JD 1801643.133503; offset=0°"));
         assert!(rendered.contains("Lahiri (VP285): epoch=JD 1825235.164583; offset=0°"));
         assert!(rendered.contains("Krishnamurti (VP291): epoch=JD 1827424.663554; offset=0°"));
         assert!(rendered.contains("True Sheoran: epoch="));
@@ -19478,6 +19482,10 @@ mod tests {
         assert!(rendered.contains("Yukteshwar: epoch=JD 2451545; offset=22.6288889°"));
         assert!(rendered.contains("PVR Pushya-paksha: epoch=JD 2451545; offset=23°"));
         assert!(rendered.contains("Babylonian (Britton): epoch=JD 1805415.712776; offset=0°"));
+        assert!(rendered.contains("Babylonian (Kugler 2): epoch=JD 1797039.20682; offset=0°"));
+        assert!(rendered.contains("Babylonian (Kugler 3): epoch=JD 1774637.420172; offset=0°"));
+        assert!(rendered.contains("Babylonian (Eta Piscium): epoch=JD 1807871.964797; offset=0°"));
+        assert!(rendered.contains("Babylonian (Aldebaran): epoch=JD 1801643.133503; offset=0°"));
         assert!(rendered.contains("Aryabhata (499 CE): epoch=JD 1903396.7895320603; offset=0°"));
         assert!(rendered.contains("Sassanian: epoch=JD 1927135.8747793; offset=0°"));
         assert!(rendered.contains("Lahiri (VP285): epoch=JD 1825235.164583; offset=0°"));

@@ -2996,6 +2996,14 @@ mod tests {
             .contains("Galactic Equator (Fiorenza): epoch=JD 2451544.5; offset=25°"));
         assert!(ayanamsa_reference_offsets_summary
             .contains("Valens Moon: epoch=JD 1775845.5; offset=-2.9422°"));
+        assert!(ayanamsa_reference_offsets_summary
+            .contains("Babylonian (Kugler 2): epoch=JD 1797039.20682; offset=0°"));
+        assert!(ayanamsa_reference_offsets_summary
+            .contains("Babylonian (Kugler 3): epoch=JD 1774637.420172; offset=0°"));
+        assert!(ayanamsa_reference_offsets_summary
+            .contains("Babylonian (Eta Piscium): epoch=JD 1807871.964797; offset=0°"));
+        assert!(ayanamsa_reference_offsets_summary
+            .contains("Babylonian (Aldebaran): epoch=JD 1801643.133503; offset=0°"));
         assert_eq!(
             ayanamsa_reference_offsets_summary,
             super::validate_render_cli(&["ayanamsa-reference-offsets-summary"])
