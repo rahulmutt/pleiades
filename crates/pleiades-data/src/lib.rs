@@ -5491,6 +5491,24 @@ mod tests {
     }
 
     #[test]
+    fn packaged_artifact_generation_manifest_validation_rejects_artifact_profile_drift() {
+        let mut manifest = packaged_artifact_generation_manifest_details();
+        manifest.parameters.artifact_profile.speed_policy =
+            pleiades_compression::SpeedPolicy::Stored;
+
+        let error = manifest
+            .validate()
+            .expect_err("drifted generation artifact profile should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error.message.contains(
+            "packaged artifact generator parameters artifact profile does not match the current production profile"
+        ));
+    }
+
+    #[test]
     fn packaged_artifact_generation_manifest_validation_rejects_source_drift() {
         let mut manifest = packaged_artifact_generation_manifest_details();
         manifest.regeneration.source = "drifted source";
@@ -5616,6 +5634,23 @@ mod tests {
             }
         );
         assert!(error.to_string().contains("artifact_profile"));
+    }
+
+    #[test]
+    fn packaged_artifact_production_profile_summary_validation_rejects_body_coverage_drift() {
+        let mut summary = packaged_artifact_production_profile_summary_details();
+        summary.body_coverage.body_count += 1;
+
+        let error = summary
+            .validate()
+            .expect_err("body coverage drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactProductionProfileSummaryValidationError::FieldOutOfSync {
+                field: "body_coverage",
+            }
+        );
+        assert!(error.to_string().contains("body_coverage"));
     }
 
     #[test]
