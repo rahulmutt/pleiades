@@ -21908,6 +21908,22 @@ version = "0.9.0"
         assert!(guard.contains("Comparison corpus release-grade guard summary"));
         assert!(guard.contains("Release-grade guard: Pluto excluded from tolerance evidence; 2451913.5 boundary day stays out of the audit slice"));
         assert_eq!(guard, render_comparison_corpus_release_guard_summary_text());
+        assert_eq!(
+            render_cli(&["comparison-corpus-guard-summary"])
+                .expect("comparison corpus guard alias should render"),
+            guard
+        );
+        assert_eq!(
+            render_cli(&["comparison-corpus-release-guard-summary", "extra"]).expect_err(
+                "comparison corpus release guard summary should reject extra arguments"
+            ),
+            "comparison-corpus-release-guard-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["comparison-corpus-guard-summary", "extra"])
+                .expect_err("comparison corpus guard alias should reject extra arguments"),
+            "comparison-corpus-release-guard-summary does not accept extra arguments"
+        );
 
         let comparison_envelope = render_cli(&["comparison-envelope-summary"])
             .expect("comparison envelope summary should render");

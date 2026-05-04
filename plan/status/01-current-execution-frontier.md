@@ -5,7 +5,7 @@
 The active frontier is **Phase 1 — Accuracy Closure and Request Semantics**.
 
 The repository is past bootstrap and release-rehearsal scaffolding. The next production blocker is closing the remaining accuracy and request-policy gaps that prevent truthful release-grade ephemeris and packaged-data claims.
-The shared time-scale, Delta T, observer, apparentness, and frame policy summary routes now also fail closed on stray arguments in both CLIs, matching the other compact summary commands.
+The shared time-scale, Delta T, observer, apparentness, and frame policy summary routes now also fail closed on stray arguments in both CLIs, matching the other compact summary commands. The release-grade comparison corpus guard summary and its short alias now also have explicit extra-argument rejection coverage in both CLIs so that release-facing guard surface stays fail-closed too.
 
 ## Evidence reviewed
 
