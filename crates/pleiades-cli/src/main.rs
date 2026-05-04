@@ -384,6 +384,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("request-policy-summary") => validate_render_cli(args),
         Some("request-policy") => validate_render_cli(args),
         Some("request-semantics-summary") => validate_render_cli(args),
+        Some("request-semantics") => validate_render_cli(args),
         Some("comparison-tolerance-policy-summary") | Some("comparison-tolerance-summary") => {
             validate_render_cli(&["comparison-tolerance-policy-summary"])
         }
@@ -469,6 +470,7 @@ fn help_text() -> String {
   request-policy-summary  Print the compact request-policy summary
   request-policy          Alias for request-policy-summary
   request-semantics-summary Alias for request-policy-summary
+  request-semantics       Alias for request-policy-summary
   independent-holdout-equatorial-parity-summary  Print the compact independent hold-out equatorial parity summary\n  house-validation-summary   Print the compact house-validation corpus summary\n  house-formula-families-summary  Print the compact house formula families summary\n  house-code-aliases-summary  Print the compact house-code alias summary\n  house-code-alias-summary  Alias for house-code-aliases-summary\n  ayanamsa-catalog-validation-summary  Print the compact ayanamsa catalog validation summary\n  ayanamsa-metadata-coverage-summary  Print the compact ayanamsa sidereal metadata coverage summary\n  ayanamsa-reference-offsets-summary  Print the compact ayanamsa reference offsets summary\n  frame-policy-summary   Print the compact frame-policy summary\n  frame-policy           Alias for frame-policy-summary\n  mean-obliquity-frame-round-trip-summary  Print the compact mean-obliquity frame round-trip summary\n  release-profile-identifiers-summary  Print the compact release-profile identifiers summary\n  request-surface-summary  Print the compact request-surface inventory summary\n  request-surface         Alias for request-surface-summary\n  request-policy-summary  Print the compact request-policy summary\n  request-semantics-summary Alias for request-policy-summary\n  comparison-tolerance-policy-summary  Print the compact comparison tolerance policy summary\n  comparison-tolerance-summary  Alias for comparison-tolerance-policy-summary\n  pluto-fallback-summary   Print the compact Pluto fallback summary\n  workspace-audit-summary  Print the compact workspace audit summary\n  native-dependency-audit-summary  Alias for workspace-audit-summary\n  artifact-summary       Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  artifact-boundary-envelope-summary  Print the compact packaged-artifact boundary envelope summary\n  artifact-profile-coverage-summary  Print the packaged-artifact profile coverage summary\n  packaged-artifact-output-support-summary  Print the packaged-artifact output support summary\n  packaged-artifact-storage-summary  Print the packaged-artifact storage/reconstruction summary\n  packaged-artifact-production-profile-summary  Print the packaged-artifact production profile skeleton summary\n  packaged-artifact-target-threshold-summary  Print the packaged-artifact target thresholds summary\n  packaged-artifact-target-threshold-scope-envelopes-summary  Print the packaged-artifact target-threshold scope envelopes summary\n  packaged-artifact-generation-manifest-summary  Print the packaged-artifact generation manifest summary\n  packaged-artifact-generation-policy-summary  Print the packaged-artifact generation policy summary\n  packaged-artifact-generation-residual-summary  Alias for packaged-artifact-generation-residual-bodies-summary\n  packaged-artifact-generation-residual-bodies-summary  Print the packaged-artifact generation residual bodies summary\n  packaged-artifact-regeneration-summary  Print the packaged-artifact regeneration summary\n  packaged-lookup-epoch-policy-summary  Print the packaged lookup epoch policy summary\n  packaged-lookup-epoch-policy         Alias for packaged-lookup-epoch-policy-summary\n  validate-artifact      Inspect and validate the bundled compressed artifact\n  regenerate-packaged-artifact  Rebuild or verify the packaged artifact fixture from the checked-in reference snapshot; pass a file path, --out FILE, or --check\n  workspace-audit        Check the workspace for mandatory native build hooks\n  audit                  Alias for workspace-audit\n  native-dependency-audit  Alias for workspace-audit\n  report                 Print the full validation report\n  generate-report        Alias for report\n  validation-report-summary  Print the compact validation report summary\n  validation-summary     Alias for validation-report-summary\n  report-summary         Alias for validation-report-summary\n  chart                  Render a basic chart report\n    --tt|--tdb|--utc|--ut1  Tag the chart instant with a time scale\n    --tt-offset-seconds <seconds>  Caller-supplied TT offset for UTC/UT1-tagged instants\n    --tt-from-utc-offset-seconds <seconds>  Alias for --tt-offset-seconds when the chart instant is tagged as UTC\n    --tt-from-ut1-offset-seconds <seconds>  Alias for --tt-offset-seconds when the chart instant is tagged as UT1\n    --tdb-offset-seconds <seconds> Caller-supplied signed TDB-TT offset for TT/UTC/UT1-tagged instants\n    --tdb-from-utc-offset-seconds <seconds> Explicit UTC-tagged alias for the signed TDB-TT offset\n    --tdb-from-ut1-offset-seconds <seconds> Explicit UT1-tagged alias for the signed TDB-TT offset\n    --tdb-from-tt-offset-seconds <seconds> Caller-supplied signed TDB-TT offset for TT-tagged instants\n    --tt-from-tdb-offset-seconds <seconds> Caller-supplied signed TT-TDB offset for TDB-tagged instants\n    --mean               Force mean positions for backend queries\n    --apparent           Force apparent positions for backend queries\n    --body <name>        Use a built-in body or a custom catalog:designation identifier\n  {}\n  help                   Show this help text",
         banner(),
         shared_request_policy_help_block(),
@@ -1872,6 +1874,11 @@ mod tests {
         let request_policy_alias =
             render_cli(&["request-policy"]).expect("request policy alias should render");
         assert_eq!(request_policy_alias, request_policy_summary);
+
+        let request_semantics_alias =
+            render_cli(&["request-semantics"]).expect("request semantics alias should render");
+        assert_eq!(request_semantics_alias, request_policy_summary);
+
         let request_policy_error = render_cli(&["request-policy", "extra"])
             .expect_err("request policy alias should reject extra arguments");
         assert_eq!(
@@ -1888,6 +1895,13 @@ mod tests {
         assert_eq!(
             request_semantics_error,
             "request-semantics-summary does not accept extra arguments"
+        );
+
+        let request_semantics_alias_error = render_cli(&["request-semantics", "extra"])
+            .expect_err("request-semantics alias should reject extra arguments");
+        assert_eq!(
+            request_semantics_alias_error,
+            "request-semantics does not accept extra arguments"
         );
 
         let comparison_tolerance_policy_summary =
@@ -3238,6 +3252,7 @@ mod tests {
         assert!(error.contains("request-policy-summary  Print the compact request-policy summary"));
         assert!(error.contains("request-policy          Alias for request-policy-summary"));
         assert!(error.contains("request-semantics-summary Alias for request-policy-summary"));
+        assert!(error.contains("request-semantics       Alias for request-policy-summary"));
         assert!(error.contains(
             "comparison-tolerance-policy-summary  Print the compact comparison tolerance policy summary"
         ));
