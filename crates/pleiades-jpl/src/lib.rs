@@ -20441,6 +20441,41 @@ mod tests {
     }
 
     #[test]
+    fn independent_holdout_snapshot_source_window_summary_validation_rejects_sample_body_order_drift(
+    ) {
+        let mut summary = independent_holdout_snapshot_source_window_summary()
+            .expect("independent hold-out source window summary should exist");
+        summary.sample_bodies.swap(0, 1);
+
+        assert!(matches!(
+            summary.validate(),
+            Err(
+                IndependentHoldoutSnapshotSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "sample_bodies"
+                }
+            )
+        ));
+        assert!(summary.validated_summary_line().is_err());
+    }
+
+    #[test]
+    fn independent_holdout_snapshot_source_window_summary_validation_rejects_window_order_drift() {
+        let mut summary = independent_holdout_snapshot_source_window_summary()
+            .expect("independent hold-out source window summary should exist");
+        summary.windows.swap(0, 1);
+
+        assert!(matches!(
+            summary.validate(),
+            Err(
+                IndependentHoldoutSnapshotSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "windows"
+                }
+            )
+        ));
+        assert!(summary.validated_summary_line().is_err());
+    }
+
+    #[test]
     fn independent_holdout_snapshot_summary_validation_rejects_duplicate_bodies() {
         let summary = IndependentHoldoutSnapshotSummary {
             row_count: 2,
