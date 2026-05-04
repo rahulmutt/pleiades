@@ -177,6 +177,16 @@ impl CompatibilityProfile {
         Ok(format_canonical_name_summary(&names))
     }
 
+    /// Returns the custom-definition ayanamsa labels surfaced in the compatibility profile.
+    pub fn custom_definition_ayanamsa_labels(&self) -> Vec<&'static str> {
+        metadata_coverage().custom_definition_only
+    }
+
+    /// Returns the custom-definition ayanamsa labels as a compact human-readable line.
+    pub fn custom_definition_ayanamsa_labels_summary_line(&self) -> String {
+        format_canonical_name_summary(&self.custom_definition_ayanamsa_labels())
+    }
+
     /// Returns a compact inventory line for the current compatibility catalog.
     pub fn catalog_inventory_summary_line(&self) -> String {
         fn alias_count<T>(entries: &[T], aliases: impl Fn(&T) -> &'static [&'static str]) -> usize {
@@ -186,6 +196,7 @@ impl CompatibilityProfile {
         let house_alias_count = alias_count(self.house_systems, |entry| entry.aliases);
         let house_code_alias_count = self.house_code_alias_count();
         let ayanamsa_alias_count = alias_count(self.ayanamsas, |entry| entry.aliases);
+        let custom_definition_ayanamsa_labels = self.custom_definition_ayanamsa_labels();
 
         let mut text = String::from("Compatibility catalog inventory: ");
         text.push_str("house systems=");
@@ -210,7 +221,11 @@ impl CompatibilityProfile {
         text.push_str(&ayanamsa_alias_count.to_string());
         text.push_str(" aliases); custom-definition labels=");
         text.push_str(&self.custom_definition_labels.len().to_string());
-        text.push_str("; known gaps=");
+        text.push_str("; custom-definition ayanamsa labels=");
+        text.push_str(&custom_definition_ayanamsa_labels.len().to_string());
+        text.push_str(" (");
+        text.push_str(&custom_definition_ayanamsa_labels.join(", "));
+        text.push_str("); known gaps=");
         text.push_str(&self.known_gaps.len().to_string());
         text
     }
@@ -3058,7 +3073,7 @@ mod tests {
             .map(|entry| entry.aliases.len())
             .sum();
         assert!(rendered.contains(&format!(
-            "Compatibility catalog inventory: house systems={} ({} baseline, {} release-specific, {} aliases); house formula families={}; house-code aliases={}; ayanamsas={} ({} baseline, {} release-specific, {} aliases); custom-definition labels={}; known gaps={}",
+            "Compatibility catalog inventory: house systems={} ({} baseline, {} release-specific, {} aliases); house formula families={}; house-code aliases={}; ayanamsas={} ({} baseline, {} release-specific, {} aliases); custom-definition labels={}; custom-definition ayanamsa labels={} (Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs)); known gaps={}",
             profile.house_systems.len(),
             profile.baseline_house_systems.len(),
             profile.release_house_systems.len(),
@@ -3070,6 +3085,7 @@ mod tests {
             profile.release_ayanamsas.len(),
             ayanamsa_alias_count,
             profile.custom_definition_labels.len(),
+            profile.custom_definition_ayanamsa_labels().len(),
             profile.known_gaps.len()
         )));
         assert!(rendered.contains("house systems: 25 total"));
@@ -3123,6 +3139,18 @@ mod tests {
             "house-code aliases={}",
             profile.house_code_alias_count()
         )));
+        assert!(rendered.contains(&format!(
+            "custom-definition ayanamsa labels={} (Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs))",
+            profile.custom_definition_ayanamsa_labels().len()
+        )));
+        assert_eq!(
+            profile.custom_definition_ayanamsa_labels(),
+            metadata_coverage().custom_definition_only
+        );
+        assert_eq!(
+            profile.custom_definition_ayanamsa_labels_summary_line(),
+            "6 (Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs))"
+        );
         assert_eq!(
             profile.validated_catalog_inventory_summary_line(),
             Ok(rendered.clone())

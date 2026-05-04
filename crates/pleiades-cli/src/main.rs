@@ -1819,7 +1819,7 @@ mod tests {
             "House code aliases: {}",
             current_compatibility_profile().house_code_aliases_summary_line()
         )));
-        assert!(release_summary.contains("Compatibility catalog inventory: house systems=25 (12 baseline, 13 release-specific, 156 aliases); house formula families=7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign); house-code aliases=22; ayanamsas=59 (5 baseline, 54 release-specific, 183 aliases); custom-definition labels=9; known gaps=2"));
+        assert!(release_summary.contains("Compatibility catalog inventory: house systems=25 (12 baseline, 13 release-specific, 156 aliases); house formula families=7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign); house-code aliases=22; ayanamsas=59 (5 baseline, 54 release-specific, 183 aliases); custom-definition labels=9; custom-definition ayanamsa labels=6 (Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs)); known gaps=2"));
         assert!(release_summary.contains("Comparison corpus release-grade guard: Pluto excluded from tolerance evidence; 2451913.5 boundary day stays out of the audit slice"));
         assert!(release_summary.contains("House formula families: 7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign)"));
         assert!(release_summary.lines().any(|line| {
