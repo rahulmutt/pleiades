@@ -6742,6 +6742,12 @@ fn render_compatibility_caveats_summary_text() -> String {
     text.push_str("Compatibility caveats: ");
     text.push_str(&profile.known_gaps.len().to_string());
     text.push('\n');
+    text.push_str("Latitude-sensitive house systems: ");
+    text.push_str(&profile.latitude_sensitive_house_systems_summary_line());
+    text.push('\n');
+    text.push_str("Descriptor-only ayanamsa labels: ");
+    text.push_str(&profile.custom_definition_ayanamsa_labels_summary_line());
+    text.push('\n');
     for gap in profile.known_gaps {
         text.push_str("- ");
         text.push_str(gap);
@@ -17870,6 +17876,8 @@ mod tests {
             release_profiles.compatibility_profile_id
         )));
         assert!(caveats_summary.contains("Compatibility caveats: 2"));
+        assert!(caveats_summary.contains("Latitude-sensitive house systems: 8 (Placidus, Koch, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Topocentric, Sunshine, Gauquelin sectors)"));
+        assert!(caveats_summary.contains("Descriptor-only ayanamsa labels: 6 (Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs))"));
         assert!(caveats_summary.contains(profile.known_gaps[0]));
         assert!(caveats_summary.contains(profile.known_gaps[1]));
         assert_eq!(

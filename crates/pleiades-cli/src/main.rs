@@ -1581,6 +1581,8 @@ mod tests {
             release_profiles.compatibility_profile_id
         )));
         assert!(caveats.contains("Compatibility caveats: 2"));
+        assert!(caveats.contains("Latitude-sensitive house systems: 8 (Placidus, Koch, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Topocentric, Sunshine, Gauquelin sectors)"));
+        assert!(caveats.contains("Descriptor-only ayanamsa labels: 6 (Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs))"));
         assert!(caveats.contains(profile.known_gaps[0]));
         assert!(caveats.contains(profile.known_gaps[1]));
         assert_eq!(render_cli(&["compatibility-caveats"]).unwrap(), caveats);
