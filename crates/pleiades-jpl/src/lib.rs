@@ -8894,6 +8894,208 @@ pub fn reference_snapshot_major_body_boundary_summary_for_report() -> String {
     }
 }
 
+const REFERENCE_MAJOR_BODY_BRIDGE_EPOCH: f64 = 2_451_915.0;
+
+fn reference_snapshot_major_body_bridge_entries() -> Option<&'static [SnapshotEntry]> {
+    static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
+    let entries = ENTRIES
+        .get_or_init(|| {
+            snapshot_entries()
+                .into_iter()
+                .flatten()
+                .filter(|entry| {
+                    is_comparison_body(&entry.body)
+                        && entry.epoch.julian_day.days() == REFERENCE_MAJOR_BODY_BRIDGE_EPOCH
+                })
+                .cloned()
+                .collect()
+        })
+        .as_slice();
+
+    if entries.is_empty() {
+        None
+    } else {
+        Some(entries)
+    }
+}
+
+/// Compact release-facing summary for the major-body bridge-day reference evidence.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReferenceMajorBodyBridgeSummary {
+    /// Number of exact samples in the bridge slice.
+    pub sample_count: usize,
+    /// Bodies covered by the bridge slice in first-seen order.
+    pub sample_bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Exact epoch shared by the bridge slice.
+    pub epoch: Instant,
+}
+
+/// Validation errors for a major-body bridge summary that drifted from the current slice.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ReferenceMajorBodyBridgeSummaryValidationError {
+    /// The summary did not expose any samples.
+    Empty,
+    /// The summary sample count drifted from the current evidence slice.
+    SampleCountMismatch {
+        sample_count: usize,
+        derived_sample_count: usize,
+    },
+    /// The summary body list drifted from the current evidence slice.
+    BodyOrderMismatch {
+        index: usize,
+        expected: pleiades_backend::CelestialBody,
+        found: pleiades_backend::CelestialBody,
+    },
+    /// The summary epoch drifted from the current evidence slice.
+    EpochMismatch { expected: Instant, found: Instant },
+}
+
+impl fmt::Display for ReferenceMajorBodyBridgeSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Empty => f.write_str("reference major-body bridge evidence is unavailable"),
+            Self::SampleCountMismatch {
+                sample_count,
+                derived_sample_count,
+            } => write!(
+                f,
+                "reference major-body bridge evidence sample count {sample_count} does not match derived sample count {derived_sample_count}"
+            ),
+            Self::BodyOrderMismatch {
+                index,
+                expected,
+                found,
+            } => write!(
+                f,
+                "reference major-body bridge evidence body order mismatch at index {index}: expected {expected}, found {found}"
+            ),
+            Self::EpochMismatch { expected, found } => write!(
+                f,
+                "reference major-body bridge evidence epoch mismatch: expected {}, found {}",
+                format_instant(*expected),
+                format_instant(*found)
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ReferenceMajorBodyBridgeSummaryValidationError {}
+
+impl ReferenceMajorBodyBridgeSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Reference major-body bridge evidence: {} exact samples at {} ({}); bridge sample across the major-body boundary window",
+            self.sample_count,
+            format_instant(self.epoch),
+            format_bodies(&self.sample_bodies),
+        )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current evidence slice.
+    pub fn validate(&self) -> Result<(), ReferenceMajorBodyBridgeSummaryValidationError> {
+        let evidence = reference_snapshot_major_body_bridge_entries()
+            .ok_or(ReferenceMajorBodyBridgeSummaryValidationError::Empty)?;
+
+        if self.sample_count != evidence.len() {
+            return Err(
+                ReferenceMajorBodyBridgeSummaryValidationError::SampleCountMismatch {
+                    sample_count: self.sample_count,
+                    derived_sample_count: evidence.len(),
+                },
+            );
+        }
+
+        let mut expected_bodies = Vec::new();
+        for entry in evidence {
+            if !expected_bodies.contains(&entry.body) {
+                expected_bodies.push(entry.body.clone());
+            }
+        }
+        if self.sample_bodies.as_slice() != expected_bodies.as_slice() {
+            for (index, (expected, found)) in expected_bodies
+                .iter()
+                .zip(self.sample_bodies.iter())
+                .enumerate()
+            {
+                if expected != found {
+                    return Err(
+                        ReferenceMajorBodyBridgeSummaryValidationError::BodyOrderMismatch {
+                            index,
+                            expected: expected.clone(),
+                            found: found.clone(),
+                        },
+                    );
+                }
+            }
+            return Err(
+                ReferenceMajorBodyBridgeSummaryValidationError::SampleCountMismatch {
+                    sample_count: self.sample_count,
+                    derived_sample_count: evidence.len(),
+                },
+            );
+        }
+
+        if self.epoch != evidence[0].epoch {
+            return Err(
+                ReferenceMajorBodyBridgeSummaryValidationError::EpochMismatch {
+                    expected: evidence[0].epoch,
+                    found: self.epoch,
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the compact summary line after validating the current evidence slice.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ReferenceMajorBodyBridgeSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for ReferenceMajorBodyBridgeSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn reference_snapshot_major_body_bridge_summary_details() -> Option<ReferenceMajorBodyBridgeSummary>
+{
+    let evidence = reference_snapshot_major_body_bridge_entries()?;
+    let mut sample_bodies = Vec::new();
+    for entry in evidence {
+        if !sample_bodies.contains(&entry.body) {
+            sample_bodies.push(entry.body.clone());
+        }
+    }
+
+    Some(ReferenceMajorBodyBridgeSummary {
+        sample_count: evidence.len(),
+        sample_bodies,
+        epoch: evidence[0].epoch,
+    })
+}
+
+/// Returns the compact typed summary for the major-body bridge-day reference evidence.
+pub fn reference_snapshot_major_body_bridge_summary() -> Option<ReferenceMajorBodyBridgeSummary> {
+    reference_snapshot_major_body_bridge_summary_details()
+}
+
+/// Returns the release-facing major-body bridge-day summary string.
+pub fn reference_snapshot_major_body_bridge_summary_for_report() -> String {
+    match reference_snapshot_major_body_bridge_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => format!("Reference major-body bridge evidence: unavailable ({error})"),
+        },
+        None => "Reference major-body bridge evidence: unavailable".to_string(),
+    }
+}
+
 fn reference_snapshot_mars_jupiter_boundary_entries() -> Option<&'static [SnapshotEntry]> {
     static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
     let entries = ENTRIES
@@ -16710,6 +16912,52 @@ mod tests {
         assert_eq!(
             reference_snapshot_major_body_boundary_summary_for_report(),
             summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn reference_snapshot_major_body_bridge_summary_reports_the_bridge_day() {
+        let summary = reference_snapshot_major_body_bridge_summary()
+            .expect("reference major-body bridge summary should exist");
+        assert_eq!(summary.sample_count, 10);
+        assert_eq!(summary.sample_bodies.len(), 10);
+        assert_eq!(summary.epoch.julian_day.days(), 2_451_915.0);
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            summary.summary_line(),
+            "Reference major-body bridge evidence: 10 exact samples at JD 2451915.0 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); bridge sample across the major-body boundary window"
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            reference_snapshot_major_body_bridge_summary_for_report(),
+            summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn reference_snapshot_major_body_bridge_summary_validation_rejects_drift() {
+        let mut summary = reference_snapshot_major_body_bridge_summary()
+            .expect("reference major-body bridge summary should exist");
+        summary.sample_count += 1;
+
+        let error = summary
+            .validate()
+            .expect_err("drifted major-body bridge summary should fail validation");
+
+        assert!(matches!(
+            error,
+            ReferenceMajorBodyBridgeSummaryValidationError::SampleCountMismatch {
+                sample_count: 11,
+                derived_sample_count: 10
+            }
+        ));
+        assert!(summary.validated_summary_line().is_err());
+        assert_eq!(
+            reference_snapshot_major_body_bridge_summary_for_report(),
+            reference_snapshot_major_body_bridge_summary()
+                .expect("reference major-body bridge summary should exist")
+                .summary_line()
         );
     }
 

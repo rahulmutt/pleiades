@@ -176,6 +176,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("reference-snapshot-major-body-boundary-summary")
         | Some("major-body-boundary-summary") => validate_render_cli(args),
+        Some("reference-snapshot-major-body-bridge-summary") => validate_render_cli(args),
         Some("reference-snapshot-mars-jupiter-boundary-summary")
         | Some("mars-jupiter-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-mars-outer-boundary-summary")
@@ -2456,6 +2457,22 @@ mod tests {
             ),
             "reference-snapshot-selected-asteroid-bridge-summary does not accept extra arguments"
         );
+        let reference_major_body_bridge_summary =
+            render_cli(&["reference-snapshot-major-body-bridge-summary"])
+                .expect("reference major-body bridge summary should render");
+        assert!(
+            reference_major_body_bridge_summary.contains("Reference major-body bridge evidence")
+        );
+        assert!(reference_major_body_bridge_summary.contains("2451915.0"));
+        assert_eq!(
+            reference_major_body_bridge_summary,
+            pleiades_jpl::reference_snapshot_major_body_bridge_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["reference-snapshot-major-body-bridge-summary", "extra"])
+                .expect_err("reference major-body bridge summary should reject extra arguments"),
+            "reference-snapshot-major-body-bridge-summary does not accept extra arguments"
+        );
         let selected_asteroid_dense_boundary_summary =
             render_cli(&["reference-snapshot-selected-asteroid-dense-boundary-summary"])
                 .expect("selected asteroid dense boundary summary should render");
@@ -3592,6 +3609,9 @@ mod tests {
         ));
         assert!(help.contains(
             "major-body-boundary-summary  Alias for reference-snapshot-major-body-boundary-summary"
+        ));
+        assert!(help.contains(
+            "reference-snapshot-major-body-bridge-summary  Print the compact reference major-body bridge evidence summary"
         ));
         assert!(help.contains(
             "reference-snapshot-major-body-boundary-window-summary  Print the compact reference major-body boundary windows summary"
