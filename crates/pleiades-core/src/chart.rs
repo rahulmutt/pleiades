@@ -5016,7 +5016,7 @@ mod tests {
     }
 
     #[test]
-    fn chart_request_utc_to_tdb_signed_conversion_preserves_body_and_house_observers() {
+    fn chart_request_utc_conversion_helpers_preserve_body_and_house_observers() {
         let mut custom = pleiades_types::CustomHouseSystem::new("My UTC Custom Houses");
         custom.aliases.push("My UTC Alias".to_string());
         custom.notes = Some("uses a local UTC calibration".to_string());
@@ -5042,19 +5042,46 @@ mod tests {
         .with_bodies(vec![CelestialBody::Sun, CelestialBody::Moon])
         .with_apparentness(Apparentness::Apparent);
 
-        let converted = request
+        let tt_converted = request
+            .clone()
+            .with_tt_from_utc(Duration::from_secs_f64(64.184))
+            .expect("UTC chart request should accept TT conversion helpers");
+
+        assert_eq!(tt_converted.instant.scale, TimeScale::Tt);
+        assert_eq!(tt_converted.observer, request.observer);
+        assert_eq!(tt_converted.body_observer, request.body_observer);
+        assert_eq!(tt_converted.house_system, request.house_system);
+        assert_eq!(tt_converted.bodies, request.bodies);
+        assert_eq!(tt_converted.apparentness, request.apparentness);
+
+        let tdb_converted = request
+            .clone()
+            .with_tdb_from_utc(
+                Duration::from_secs_f64(64.184),
+                Duration::from_secs_f64(0.001_657),
+            )
+            .expect("UTC chart request should accept TDB conversion helpers");
+
+        assert_eq!(tdb_converted.instant.scale, TimeScale::Tdb);
+        assert_eq!(tdb_converted.observer, request.observer);
+        assert_eq!(tdb_converted.body_observer, request.body_observer);
+        assert_eq!(tdb_converted.house_system, request.house_system);
+        assert_eq!(tdb_converted.bodies, request.bodies);
+        assert_eq!(tdb_converted.apparentness, request.apparentness);
+
+        let signed_converted = request
             .clone()
             .with_tdb_from_utc_signed(Duration::from_secs_f64(64.184), -0.001_657)
             .expect("UTC chart request should accept signed TDB offsets");
 
-        assert_eq!(converted.instant.scale, TimeScale::Tdb);
-        assert_eq!(converted.observer, request.observer);
-        assert_eq!(converted.body_observer, request.body_observer);
-        assert_eq!(converted.house_system, request.house_system);
-        assert_eq!(converted.bodies, request.bodies);
-        assert_eq!(converted.apparentness, request.apparentness);
+        assert_eq!(signed_converted.instant.scale, TimeScale::Tdb);
+        assert_eq!(signed_converted.observer, request.observer);
+        assert_eq!(signed_converted.body_observer, request.body_observer);
+        assert_eq!(signed_converted.house_system, request.house_system);
+        assert_eq!(signed_converted.bodies, request.bodies);
+        assert_eq!(signed_converted.apparentness, request.apparentness);
 
-        let summary = converted.summary_line();
+        let summary = signed_converted.summary_line();
         assert!(summary.contains("(TDB);"));
         assert!(summary.contains("observer=house-only;"));
         assert!(summary.contains("body observer=latitude=-33.9°, longitude=151.2°, elevation=n/a"));
