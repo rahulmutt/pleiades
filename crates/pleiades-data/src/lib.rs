@@ -5325,6 +5325,74 @@ mod tests {
     }
 
     #[test]
+    fn packaged_artifact_generator_parameters_validation_rejects_artifact_version_drift() {
+        let mut parameters = packaged_artifact_generator_parameters_details();
+        parameters.artifact_version += 1;
+
+        let error = parameters
+            .validate()
+            .expect_err("artifact version drift should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error.message.contains(
+            "packaged artifact generator parameters version does not match the current production profile"
+        ));
+    }
+
+    #[test]
+    fn packaged_artifact_generator_parameters_validation_rejects_artifact_profile_drift() {
+        let mut parameters = packaged_artifact_generator_parameters_details();
+        parameters.artifact_profile.speed_policy = pleiades_compression::SpeedPolicy::Stored;
+
+        let error = parameters
+            .validate()
+            .expect_err("artifact profile drift should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error.message.contains(
+            "packaged artifact generator parameters artifact profile does not match the current production profile"
+        ));
+    }
+
+    #[test]
+    fn packaged_artifact_generator_parameters_validation_rejects_request_policy_drift() {
+        let mut parameters = packaged_artifact_generator_parameters_details();
+        parameters.request_policy.supports_topocentric_observer = true;
+
+        let error = parameters
+            .validate()
+            .expect_err("request policy drift should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error.message.contains(
+            "packaged artifact generator parameters request policy does not match the current production profile"
+        ));
+    }
+
+    #[test]
+    fn packaged_artifact_generator_parameters_validation_rejects_target_threshold_drift() {
+        let mut parameters = packaged_artifact_generator_parameters_details();
+        parameters.target_thresholds.status = "drifted";
+
+        let error = parameters
+            .validate()
+            .expect_err("target threshold drift should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error.message.contains(
+            "packaged artifact generator parameters target thresholds do not match the current production profile"
+        ));
+    }
+
+    #[test]
     fn packaged_artifact_generation_manifest_validation_rejects_request_policy_drift() {
         let mut manifest = packaged_artifact_generation_manifest_details();
         manifest

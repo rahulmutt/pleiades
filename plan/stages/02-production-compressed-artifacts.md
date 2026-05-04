@@ -57,7 +57,7 @@ Known remaining gaps:
 - Validate checksum, header, profile, body index, segment directory, residual consistency, boundary lookups, interior samples, and unsupported-body behavior.
 - Compare decoded results to generation sources and publish measured fit errors by body and body class.
 - Benchmark decode, lookup, batch lookup, memory footprint, and full-chart packaged-data use.
-- Make artifact validation fail on profile/claim drift. The current test suite now covers production-profile label drift and generation-manifest label drift; extend the drift matrix as the artifact profile hardens.
+- Make artifact validation fail on profile/claim drift. The current test suite now covers production-profile label drift, generation-manifest label drift, and the remaining packaged-artifact generator-parameter drift checks for artifact version, artifact profile, request policy, and target thresholds; extend the drift matrix as the artifact profile hardens.
 
 ### 5. Finalize distribution behavior
 
