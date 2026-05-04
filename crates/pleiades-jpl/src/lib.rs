@@ -10275,9 +10275,13 @@ impl ReferenceSnapshotBoundaryEpochCoverage {
     /// Returns a compact epoch-coverage summary used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         let sparse_note = if self.epoch.julian_day.days() == REFERENCE_SPARSE_BOUNDARY_EPOCH_JD {
-            "; sparse boundary day"
+            let missing_bodies = reference_snapshot_sparse_boundary_missing_bodies(&self.bodies);
+            format!(
+                "; sparse boundary day; missing bodies: {}",
+                format_bodies(&missing_bodies)
+            )
         } else {
-            ""
+            String::new()
         };
 
         format!(
@@ -10512,7 +10516,17 @@ fn reference_snapshot_sparse_boundary_entries() -> Option<&'static [SnapshotEntr
     }
 }
 
-/// Compact release-facing summary for the sparse asteroid-only boundary day inside the reference snapshot.
+fn reference_snapshot_sparse_boundary_missing_bodies(
+    sample_bodies: &[pleiades_backend::CelestialBody],
+) -> Vec<pleiades_backend::CelestialBody> {
+    reference_bodies()
+        .iter()
+        .filter(|body| !sample_bodies.contains(body))
+        .cloned()
+        .collect()
+}
+
+/// Compact release-facing summary for the sparse asteroid-only boundary day and its remaining coverage gap inside the reference snapshot.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ReferenceSnapshotSparseBoundarySummary {
     /// Number of exact samples in the sparse boundary day.
@@ -10577,11 +10591,14 @@ impl std::error::Error for ReferenceSnapshotSparseBoundarySummaryValidationError
 impl ReferenceSnapshotSparseBoundarySummary {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
+        let missing_bodies = reference_snapshot_sparse_boundary_missing_bodies(&self.sample_bodies);
+
         format!(
-            "Reference snapshot sparse boundary day: {} exact samples at {} ({}); sparse boundary day",
+            "Reference snapshot sparse boundary day: {} exact samples at {} ({}); sparse boundary day; missing bodies: {}",
             self.sample_count,
             format_instant(self.epoch),
             format_bodies(&self.sample_bodies),
+            format_bodies(&missing_bodies),
         )
     }
 
@@ -16100,8 +16117,8 @@ mod tests {
         );
         assert!(summary
             .summary_line()
-            .contains("JD 2451915.5 (TDB): 7 bodies (Sun, Moon, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); sparse boundary day"));
-        assert_eq!(summary.summary_line(), "Reference snapshot boundary epoch coverage: 82 exact samples across 6 epochs (JD 2451913.5 (TDB)..JD 2451917.5 (TDB)); epochs: JD 2451913.5 (TDB): 15 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); JD 2451914.5 (TDB): 15 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); JD 2451915.0 (TDB): 15 bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); JD 2451915.5 (TDB): 7 bodies (Sun, Moon, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); sparse boundary day; JD 2451916.5 (TDB): 15 bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); JD 2451917.5 (TDB): 15 bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)");
+            .contains("JD 2451915.5 (TDB): 7 bodies (Sun, Moon, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); sparse boundary day; missing bodies: Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto"));
+        assert_eq!(summary.summary_line(), "Reference snapshot boundary epoch coverage: 82 exact samples across 6 epochs (JD 2451913.5 (TDB)..JD 2451917.5 (TDB)); epochs: JD 2451913.5 (TDB): 15 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); JD 2451914.5 (TDB): 15 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); JD 2451915.0 (TDB): 15 bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); JD 2451915.5 (TDB): 7 bodies (Sun, Moon, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); sparse boundary day; missing bodies: Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto; JD 2451916.5 (TDB): 15 bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); JD 2451917.5 (TDB): 15 bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)");
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             reference_snapshot_boundary_epoch_coverage_summary_for_report(),
@@ -16173,7 +16190,7 @@ mod tests {
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             summary.summary_line(),
-            "Reference snapshot sparse boundary day: 7 exact samples at JD 2451915.5 (TDB) (Sun, Moon, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); sparse boundary day"
+            "Reference snapshot sparse boundary day: 7 exact samples at JD 2451915.5 (TDB) (Sun, Moon, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); sparse boundary day; missing bodies: Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto"
         );
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
