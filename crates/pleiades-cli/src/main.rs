@@ -3827,6 +3827,7 @@ mod tests {
             .join("compatibility-caveats-summary.txt")
             .exists());
         assert!(bundle_dir.join("request-policy-summary.txt").exists());
+        assert!(bundle_dir.join("request-surface-summary.txt").exists());
         assert!(bundle_dir
             .join("release-profile-identifiers-summary.txt")
             .exists());
