@@ -122,7 +122,9 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("production-generation-boundary-request-corpus-summary") => validate_render_cli(args),
         Some("production-generation-body-class-coverage-summary") => validate_render_cli(args),
         Some("production-generation-source-window-summary") => validate_render_cli(args),
-        Some("production-generation-summary") => validate_render_cli(args),
+        Some("production-generation") | Some("production-generation-summary") => {
+            validate_render_cli(args)
+        }
         Some("production-generation-boundary-source-summary") => validate_render_cli(args),
         Some("production-generation-boundary-window-summary") => validate_render_cli(args),
         Some("production-generation-source-summary") => validate_render_cli(args),
@@ -2057,6 +2059,15 @@ mod tests {
             production_generation_summary,
             pleiades_jpl::production_generation_snapshot_summary_for_report()
         );
+        let production_generation_alias = render_cli(&["production-generation"])
+            .expect("production generation alias should render");
+        assert_eq!(
+            production_generation_alias,
+            pleiades_jpl::production_generation_snapshot_summary_for_report()
+        );
+        let alias_error = render_cli(&["production-generation", "extra"])
+            .expect_err("production generation alias should reject extra arguments");
+        assert!(alias_error.contains("production-generation does not accept extra arguments"));
         let production_generation_boundary_request_corpus_summary =
             render_cli(&["production-generation-boundary-request-corpus-summary"])
                 .expect("production generation boundary request corpus summary should render");
@@ -3471,6 +3482,11 @@ mod tests {
         assert!(help.contains(
             "packaged-lookup-epoch-policy         Alias for packaged-lookup-epoch-policy-summary"
         ));
+        assert!(help.contains(
+            "production-generation-summary  Print the compact production-generation coverage summary"
+        ));
+        assert!(help
+            .contains("production-generation           Alias for production-generation-summary"));
         assert!(help.contains(
             "compatibility-caveats-summary  Print the compact compatibility caveats summary"
         ));
