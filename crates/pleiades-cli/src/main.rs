@@ -373,7 +373,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("artifact-profile-coverage-summary") => validate_render_cli(args),
         Some("packaged-artifact-output-support-summary") => validate_render_cli(args),
         Some("packaged-artifact-storage-summary") => validate_render_cli(args),
-        Some("packaged-artifact-production-profile-summary") => validate_render_cli(args),
+        Some("packaged-artifact-production-profile-summary")
+        | Some("packaged-artifact-production-profile") => validate_render_cli(args),
         Some("packaged-artifact-target-threshold-summary") => validate_render_cli(args),
         Some("packaged-artifact-target-threshold-scope-envelopes-summary") => {
             validate_render_cli(args)
@@ -3440,6 +3441,11 @@ mod tests {
             packaged_artifact_production_profile,
             pleiades_data::packaged_artifact_production_profile_summary_for_report()
         );
+        assert_eq!(
+            render_cli(&["packaged-artifact-production-profile"])
+                .expect("packaged artifact production profile alias should render"),
+            packaged_artifact_production_profile
+        );
 
         let packaged_artifact_generation_manifest =
             render_cli(&["packaged-artifact-generation-manifest-summary"])
@@ -3521,6 +3527,10 @@ mod tests {
             (
                 &["packaged-artifact-production-profile-summary", "extra"][..],
                 "packaged-artifact-production-profile-summary does not accept extra arguments",
+            ),
+            (
+                &["packaged-artifact-production-profile", "extra"][..],
+                "packaged-artifact-production-profile does not accept extra arguments",
             ),
             (
                 &["packaged-artifact-target-threshold-summary", "extra"][..],
@@ -4052,6 +4062,9 @@ mod tests {
         ));
         assert!(help.contains(
             "packaged-artifact-production-profile-summary  Print the packaged-artifact production profile skeleton summary"
+        ));
+        assert!(help.contains(
+            "packaged-artifact-production-profile  Alias for packaged-artifact-production-profile-summary"
         ));
         assert!(help.contains(
             "packaged-artifact-target-threshold-summary  Print the packaged-artifact target thresholds summary"
