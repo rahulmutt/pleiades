@@ -17,7 +17,7 @@ Convert release rehearsal tooling into a publishable release process backed by c
 
 Implemented and not re-planned here:
 
-- CLI/validation commands for compatibility profiles, backend matrices, API stability posture, validation reports, artifact summaries, comparison-envelope summaries, comparison-corpus release-guard summaries, release notes, release checklists, workspace audits, release summaries, and release bundle generation/verification;
+- CLI/validation commands for compatibility profiles, backend matrices, API stability posture, validation reports, artifact summaries, comparison-envelope summaries, comparison-corpus release-guard summaries, release notes, release checklists, workspace audits, release summaries, release-profile identifiers summaries, and release bundle generation/verification;
 - workspace-native audit for mandatory native build hooks;
 - checksum manifests and release-bundle verification over current rehearsal artifacts;
 - README and workflow documentation for local checks and release smoke commands.
