@@ -302,17 +302,11 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             validate_render_cli(&["selected-asteroid-boundary-summary"])
         }
         Some("reference-snapshot-selected-asteroid-bridge-summary")
-        | Some("selected-asteroid-bridge-summary") => {
-            validate_render_cli(&["selected-asteroid-bridge-summary"])
-        }
+        | Some("selected-asteroid-bridge-summary") => validate_render_cli(args),
         Some("reference-snapshot-selected-asteroid-dense-boundary-summary")
-        | Some("selected-asteroid-dense-boundary-summary") => {
-            validate_render_cli(&["reference-snapshot-selected-asteroid-dense-boundary-summary"])
-        }
+        | Some("selected-asteroid-dense-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-selected-asteroid-terminal-boundary-summary")
-        | Some("selected-asteroid-terminal-boundary-summary") => {
-            validate_render_cli(&["reference-snapshot-selected-asteroid-terminal-boundary-summary"])
-        }
+        | Some("selected-asteroid-terminal-boundary-summary") => validate_render_cli(args),
         Some("selected-asteroid-source-evidence-summary") => {
             validate_render_cli(&["selected-asteroid-source-evidence-summary"])
         }
@@ -2436,6 +2430,21 @@ mod tests {
             selected_asteroid_bridge_summary,
             pleiades_jpl::selected_asteroid_bridge_summary_for_report()
         );
+        assert_eq!(
+            render_cli(&["selected-asteroid-bridge-summary", "extra"])
+                .expect_err("selected asteroid bridge summary alias should reject extra arguments"),
+            "selected-asteroid-bridge-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&[
+                "reference-snapshot-selected-asteroid-bridge-summary",
+                "extra"
+            ])
+            .expect_err(
+                "reference-snapshot-selected-asteroid-bridge-summary should reject extra arguments"
+            ),
+            "reference-snapshot-selected-asteroid-bridge-summary does not accept extra arguments"
+        );
         let selected_asteroid_dense_boundary_summary =
             render_cli(&["reference-snapshot-selected-asteroid-dense-boundary-summary"])
                 .expect("selected asteroid dense boundary summary should render");
@@ -2453,6 +2462,11 @@ mod tests {
             selected_asteroid_dense_boundary_alias,
             selected_asteroid_dense_boundary_summary
         );
+        assert_eq!(
+            render_cli(&["selected-asteroid-dense-boundary-summary", "extra"])
+                .expect_err("selected asteroid dense boundary alias should reject extra arguments"),
+            "selected-asteroid-dense-boundary-summary does not accept extra arguments"
+        );
         let selected_asteroid_terminal_boundary_summary =
             render_cli(&["reference-snapshot-selected-asteroid-terminal-boundary-summary"])
                 .expect("selected asteroid terminal boundary summary should render");
@@ -2468,6 +2482,12 @@ mod tests {
         assert_eq!(
             selected_asteroid_terminal_boundary_alias,
             selected_asteroid_terminal_boundary_summary
+        );
+        assert_eq!(
+            render_cli(&["selected-asteroid-terminal-boundary-summary", "extra"]).expect_err(
+                "selected asteroid terminal boundary alias should reject extra arguments"
+            ),
+            "selected-asteroid-terminal-boundary-summary does not accept extra arguments"
         );
         let selected_asteroid_source_evidence_summary =
             render_cli(&["selected-asteroid-source-evidence-summary"])

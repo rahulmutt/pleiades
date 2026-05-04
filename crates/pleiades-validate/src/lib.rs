@@ -4653,28 +4653,37 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "selected-asteroid-boundary-summary")?;
             Ok(selected_asteroid_boundary_summary_for_report())
         }
-        Some("reference-snapshot-selected-asteroid-bridge-summary")
-        | Some("selected-asteroid-bridge-summary") => {
+        Some("reference-snapshot-selected-asteroid-bridge-summary") => {
             ensure_no_extra_args(
                 &args[1..],
                 "reference-snapshot-selected-asteroid-bridge-summary",
             )?;
             Ok(selected_asteroid_bridge_summary_for_report())
         }
-        Some("reference-snapshot-selected-asteroid-dense-boundary-summary")
-        | Some("selected-asteroid-dense-boundary-summary") => {
+        Some("selected-asteroid-bridge-summary") => {
+            ensure_no_extra_args(&args[1..], "selected-asteroid-bridge-summary")?;
+            Ok(selected_asteroid_bridge_summary_for_report())
+        }
+        Some("reference-snapshot-selected-asteroid-dense-boundary-summary") => {
             ensure_no_extra_args(
                 &args[1..],
                 "reference-snapshot-selected-asteroid-dense-boundary-summary",
             )?;
             Ok(selected_asteroid_dense_boundary_summary_for_report())
         }
-        Some("reference-snapshot-selected-asteroid-terminal-boundary-summary")
-        | Some("selected-asteroid-terminal-boundary-summary") => {
+        Some("selected-asteroid-dense-boundary-summary") => {
+            ensure_no_extra_args(&args[1..], "selected-asteroid-dense-boundary-summary")?;
+            Ok(selected_asteroid_dense_boundary_summary_for_report())
+        }
+        Some("reference-snapshot-selected-asteroid-terminal-boundary-summary") => {
             ensure_no_extra_args(
                 &args[1..],
                 "reference-snapshot-selected-asteroid-terminal-boundary-summary",
             )?;
+            Ok(selected_asteroid_terminal_boundary_summary_for_report())
+        }
+        Some("selected-asteroid-terminal-boundary-summary") => {
+            ensure_no_extra_args(&args[1..], "selected-asteroid-terminal-boundary-summary")?;
             Ok(selected_asteroid_terminal_boundary_summary_for_report())
         }
         Some("selected-asteroid-source-evidence-summary") => {
@@ -21597,6 +21606,22 @@ version = "0.9.0"
         assert!(rendered.contains("Selected asteroid bridge evidence:"));
         assert!(rendered.contains("2451915.0"));
         assert_eq!(rendered, selected_asteroid_bridge_summary_for_report());
+
+        assert_eq!(
+            render_cli(&["selected-asteroid-bridge-summary", "extra"])
+                .expect_err("selected asteroid bridge summary should reject extra arguments"),
+            "selected-asteroid-bridge-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&[
+                "reference-snapshot-selected-asteroid-bridge-summary",
+                "extra"
+            ])
+            .expect_err(
+                "reference-snapshot-selected-asteroid-bridge-summary should reject extra arguments"
+            ),
+            "reference-snapshot-selected-asteroid-bridge-summary does not accept extra arguments"
+        );
     }
 
     #[test]
@@ -21608,6 +21633,32 @@ version = "0.9.0"
         assert_eq!(
             rendered,
             selected_asteroid_dense_boundary_summary_for_report()
+        );
+
+        assert_eq!(
+            render_cli(&["selected-asteroid-dense-boundary-summary", "extra"]).expect_err(
+                "selected asteroid dense boundary summary should reject extra arguments"
+            ),
+            "selected-asteroid-dense-boundary-summary does not accept extra arguments"
+        );
+    }
+
+    #[test]
+    fn selected_asteroid_terminal_boundary_summary_command_renders_the_terminal_day() {
+        let rendered = render_cli(&["selected-asteroid-terminal-boundary-summary"])
+            .expect("selected asteroid terminal boundary summary should render");
+        assert!(rendered.contains("Reference selected-asteroid terminal boundary evidence:"));
+        assert!(rendered.contains("2500-01-01"));
+        assert_eq!(
+            rendered,
+            selected_asteroid_terminal_boundary_summary_for_report()
+        );
+
+        assert_eq!(
+            render_cli(&["selected-asteroid-terminal-boundary-summary", "extra"]).expect_err(
+                "selected asteroid terminal boundary summary should reject extra arguments"
+            ),
+            "selected-asteroid-terminal-boundary-summary does not accept extra arguments"
         );
     }
 
