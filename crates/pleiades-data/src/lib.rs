@@ -5475,6 +5475,43 @@ mod tests {
     }
 
     #[test]
+    fn packaged_artifact_generation_manifest_validation_rejects_source_drift() {
+        let mut manifest = packaged_artifact_generation_manifest_details();
+        manifest.regeneration.source = "drifted source";
+
+        let error = manifest
+            .validate()
+            .expect_err("drifted regeneration source should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error.message.contains(
+            "packaged artifact regeneration summary source does not match the checked-in artifact source"
+        ));
+    }
+
+    #[test]
+    fn packaged_artifact_generation_manifest_validation_rejects_artifact_version_drift() {
+        let mut manifest = packaged_artifact_generation_manifest_details();
+        manifest.regeneration.artifact_version += 1;
+
+        let error = manifest
+            .validate()
+            .expect_err("drifted regeneration artifact version should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error
+            .message
+            .contains("packaged artifact regeneration summary artifact version"));
+        assert!(error
+            .message
+            .contains("does not match the checked-in packaged artifact version"));
+    }
+
+    #[test]
     fn packaged_artifact_generation_manifest_validation_rejects_parameter_drift() {
         let mut manifest = packaged_artifact_generation_manifest_details();
         manifest.parameters.target_thresholds = PackagedArtifactTargetThresholdSummary {
