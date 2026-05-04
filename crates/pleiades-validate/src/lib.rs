@@ -22615,6 +22615,33 @@ version = "0.9.0"
     }
 
     #[test]
+    fn production_generation_boundary_summary_rejects_extra_arguments() {
+        let error = render_cli(&["production-generation-boundary-summary", "extra"])
+            .expect_err("production generation boundary summary should reject extra arguments");
+
+        assert!(error
+            .contains("production-generation-boundary-summary does not accept extra arguments"));
+    }
+
+    #[test]
+    fn production_generation_summary_rejects_extra_arguments() {
+        let error = render_cli(&["production-generation-summary", "extra"])
+            .expect_err("production generation summary should reject extra arguments");
+
+        assert!(error.contains("production-generation-summary does not accept extra arguments"));
+    }
+
+    #[test]
+    fn production_generation_source_summary_rejects_extra_arguments() {
+        let error = render_cli(&["production-generation-source-summary", "extra"])
+            .expect_err("production generation source summary should reject extra arguments");
+
+        assert!(
+            error.contains("production-generation-source-summary does not accept extra arguments")
+        );
+    }
+
+    #[test]
     fn production_generation_boundary_source_summary_command_renders_the_source_block() {
         let rendered = render_cli(&["production-generation-boundary-source-summary"])
             .expect("production generation boundary source summary should render");

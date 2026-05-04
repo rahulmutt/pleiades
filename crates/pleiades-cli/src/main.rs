@@ -2165,6 +2165,18 @@ mod tests {
         let alias_error = render_cli(&["production-generation", "extra"])
             .expect_err("production generation alias should reject extra arguments");
         assert!(alias_error.contains("production-generation does not accept extra arguments"));
+        assert_eq!(
+            render_cli(&["production-generation-boundary-summary", "extra"]).unwrap_err(),
+            "production-generation-boundary-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["production-generation-summary", "extra"]).unwrap_err(),
+            "production-generation-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["production-generation-source-summary", "extra"]).unwrap_err(),
+            "production-generation-source-summary does not accept extra arguments"
+        );
         let production_generation_boundary_request_corpus_summary =
             render_cli(&["production-generation-boundary-request-corpus-summary"])
                 .expect("production generation boundary request corpus summary should render");
