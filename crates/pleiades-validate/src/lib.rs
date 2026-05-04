@@ -14503,12 +14503,18 @@ fn parse_release_bundle_args(
                 let value = iter
                     .next()
                     .ok_or_else(|| format!("missing value for {arg}"))?;
+                if output_dir.is_some() {
+                    return Err("duplicate value for --out <dir> argument".to_string());
+                }
                 output_dir = Some(PathBuf::from(value));
             }
             "--rounds" => {
                 let value = iter
                     .next()
                     .ok_or_else(|| "missing value for --rounds".to_string())?;
+                if rounds != default_rounds {
+                    return Err("duplicate value for --rounds argument".to_string());
+                }
                 rounds = value
                     .parse::<usize>()
                     .map_err(|error| format!("invalid value for --rounds: {error}"))?;
@@ -16596,7 +16602,7 @@ mod tests {
     }
 
     #[test]
-    fn cli_rejects_zero_rounds_for_benchmark_and_bundle_release() {
+    fn cli_rejects_zero_rounds_and_duplicate_bundle_release_args() {
         let benchmark_error = render_cli(&["benchmark", "--rounds", "0"])
             .expect_err("benchmark should reject zero rounds");
         assert!(benchmark_error.contains("invalid value for --rounds: expected a positive integer"));
@@ -16612,6 +16618,28 @@ mod tests {
         ])
         .expect_err("bundle-release should reject zero rounds");
         assert!(bundle_error.contains("invalid value for --rounds: expected a positive integer"));
+
+        let duplicate_out_error = render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--out",
+            &bundle_dir_string,
+        ])
+        .expect_err("bundle-release should reject duplicate --out arguments");
+        assert!(duplicate_out_error.contains("duplicate value for --out <dir> argument"));
+
+        let duplicate_rounds_error = render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+            "--rounds",
+            "2",
+        ])
+        .expect_err("bundle-release should reject duplicate --rounds arguments");
+        assert!(duplicate_rounds_error.contains("duplicate value for --rounds argument"));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
     }

@@ -740,10 +740,13 @@ fn parse_release_bundle_output_dir<'a>(args: &'a [&'a str]) -> Result<&'a str, S
     while let Some(arg) = iter.next() {
         match arg {
             "--out" => {
-                output_dir = Some(
-                    iter.next()
-                        .ok_or_else(|| "missing value for --out".to_string())?,
-                );
+                let value = iter
+                    .next()
+                    .ok_or_else(|| "missing value for --out".to_string())?;
+                if output_dir.is_some() {
+                    return Err("duplicate value for --out <dir> argument".to_string());
+                }
+                output_dir = Some(value);
             }
             other => return Err(format!("unknown argument: {other}")),
         }
@@ -3734,6 +3737,34 @@ mod tests {
         assert!(verified.contains("compatibility-profile.txt"));
         assert!(verified.contains("catalog-inventory-summary.txt"));
         assert!(verified.contains("bundle-manifest.checksum.txt"));
+    }
+
+    #[test]
+    fn bundle_release_commands_reject_duplicate_output_arguments() {
+        let bundle_dir = unique_temp_dir("pleiades-cli-release-bundle-duplicate-out");
+        let bundle_dir_string = bundle_dir.display().to_string();
+
+        let bundle_error = render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--out",
+            &bundle_dir_string,
+        ])
+        .expect_err("bundle-release should reject duplicate output arguments");
+        assert!(bundle_error.contains("duplicate value for --out <dir> argument"));
+
+        let verify_error = render_cli(&[
+            "verify-release-bundle",
+            "--out",
+            &bundle_dir_string,
+            "--out",
+            &bundle_dir_string,
+        ])
+        .expect_err("verify-release-bundle should reject duplicate output arguments");
+        assert!(verify_error.contains("duplicate value for --out <dir> argument"));
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
     }
 
     #[test]

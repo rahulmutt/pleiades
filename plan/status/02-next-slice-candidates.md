@@ -102,6 +102,7 @@ The lunar source-window summary slice is now complete in both the validation ren
 **Work items:**
 
 - Wire final validation thresholds, artifact checksums, compatibility verification, bundle verification, and pure-Rust audit into CI/release workflow.
+- Harden release-bundle argument parsing so duplicate `--out` / `--rounds` inputs fail closed in both CLIs.
 - Regenerate release summaries from current code and production artifacts.
 - Review README/docs/rustdoc for units, frames, time scales, failure modes, and known limitations.
 
