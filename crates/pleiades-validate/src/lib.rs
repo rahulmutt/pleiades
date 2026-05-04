@@ -4184,7 +4184,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             Ok(render_comparison_corpus_release_guard_summary_text())
         }
         Some("comparison-corpus-guard-summary") => {
-            ensure_no_extra_args(&args[1..], "comparison-corpus-release-guard-summary")?;
+            ensure_no_extra_args(&args[1..], "comparison-corpus-guard-summary")?;
             Ok(render_comparison_corpus_release_guard_summary_text())
         }
         Some("benchmark-corpus-summary") => {
@@ -22582,7 +22582,7 @@ version = "0.9.0"
         assert_eq!(
             render_cli(&["comparison-corpus-guard-summary", "extra"])
                 .expect_err("comparison corpus guard alias should reject extra arguments"),
-            "comparison-corpus-release-guard-summary does not accept extra arguments"
+            "comparison-corpus-guard-summary does not accept extra arguments"
         );
 
         let comparison_envelope = render_cli(&["comparison-envelope-summary"])

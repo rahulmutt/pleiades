@@ -77,7 +77,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             validate_render_cli(args)
         }
         Some("comparison-corpus-guard-summary") => {
-            ensure_no_extra_args(&args[1..], "comparison-corpus-release-guard-summary")?;
+            ensure_no_extra_args(&args[1..], "comparison-corpus-guard-summary")?;
             validate_render_cli(args)
         }
         Some("benchmark-corpus-summary") => validate_render_cli(args),
@@ -1653,7 +1653,7 @@ mod tests {
         assert_eq!(
             render_cli(&["comparison-corpus-guard-summary", "extra"])
                 .expect_err("comparison corpus guard alias should reject extra arguments"),
-            "comparison-corpus-release-guard-summary does not accept extra arguments"
+            "comparison-corpus-guard-summary does not accept extra arguments"
         );
 
         let benchmark_corpus = render_cli(&["benchmark-corpus-summary"])
