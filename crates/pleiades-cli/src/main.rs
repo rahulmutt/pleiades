@@ -441,6 +441,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             validate_render_cli(args)
         }
         Some("pluto-fallback-summary") => validate_render_cli(&["pluto-fallback-summary"]),
+        Some("pluto-fallback") => validate_render_cli(args),
         Some("workspace-audit-summary") | Some("native-dependency-audit-summary") => {
             validate_render_cli(&["workspace-audit-summary"])
         }
@@ -2115,6 +2116,15 @@ mod tests {
             pluto_fallback_summary,
             super::validate_render_cli(&["pluto-fallback-summary"])
                 .expect("Pluto fallback summary should match validate CLI")
+        );
+        assert_eq!(
+            render_cli(&["pluto-fallback"]).expect("Pluto fallback alias should render"),
+            pluto_fallback_summary
+        );
+        assert_eq!(
+            render_cli(&["pluto-fallback", "extra"])
+                .expect_err("Pluto fallback alias should reject extra arguments"),
+            "pluto-fallback does not accept extra arguments"
         );
 
         let jpl_batch_error_taxonomy_summary = render_cli(&["jpl-batch-error-taxonomy-summary"])
