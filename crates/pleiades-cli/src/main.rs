@@ -120,7 +120,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("jpl-snapshot-evidence-summary") => validate_render_cli(args),
         Some("production-generation-boundary-summary") => validate_render_cli(args),
         Some("production-generation-boundary-request-corpus-summary") => validate_render_cli(args),
-        Some("production-generation-body-class-coverage-summary") => validate_render_cli(args),
+        Some("production-generation-body-class-coverage-summary")
+        | Some("production-body-class-coverage-summary") => validate_render_cli(args),
         Some("production-generation-source-window-summary") => validate_render_cli(args),
         Some("production-generation") | Some("production-generation-summary") => {
             validate_render_cli(args)
@@ -133,7 +134,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             Ok(comparison_snapshot_source_summary_for_report())
         }
         Some("comparison-snapshot-source-window-summary") => validate_render_cli(args),
-        Some("comparison-snapshot-body-class-coverage-summary") => validate_render_cli(args),
+        Some("comparison-snapshot-body-class-coverage-summary")
+        | Some("comparison-body-class-coverage-summary") => validate_render_cli(args),
         Some("comparison-snapshot-manifest-summary") => validate_render_cli(args),
         Some("comparison-snapshot") => {
             ensure_no_extra_args(&args[1..], "comparison-snapshot")?;
@@ -159,7 +161,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("1800-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2500-major-body-boundary-summary")
         | Some("2500-major-body-boundary-summary") => validate_render_cli(args),
-        Some("reference-snapshot-body-class-coverage-summary") => validate_render_cli(args),
+        Some("reference-snapshot-body-class-coverage-summary")
+        | Some("reference-body-class-coverage-summary") => validate_render_cli(args),
         Some("reference-snapshot-manifest-summary") => validate_render_cli(args),
         Some("reference-snapshot") => {
             ensure_no_extra_args(&args[1..], "reference-snapshot")?;
@@ -281,7 +284,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("independent-holdout-source-window-summary") => validate_render_cli(args),
         Some("independent-holdout-summary") => validate_render_cli(args),
         Some("independent-holdout-source-summary") => validate_render_cli(args),
-        Some("independent-holdout-body-class-coverage-summary") => validate_render_cli(args),
+        Some("independent-holdout-body-class-coverage-summary")
+        | Some("holdout-body-class-coverage-summary") => validate_render_cli(args),
         Some("independent-holdout-batch-parity-summary") => validate_render_cli(args),
         Some("independent-holdout-equatorial-parity-summary") => validate_render_cli(args),
         Some("house-validation-summary") => validate_render_cli(args),
@@ -1254,8 +1258,10 @@ mod tests {
         assert!(rendered.contains("time-scale-policy-summary"));
         assert!(rendered.contains("mean-obliquity-frame-round-trip-summary"));
         assert!(rendered.contains("production-generation-body-class-coverage-summary"));
+        assert!(rendered.contains("production-body-class-coverage-summary"));
         assert!(rendered.contains("production-generation-boundary-request-corpus-summary"));
         assert!(rendered.contains("comparison-snapshot-body-class-coverage-summary"));
+        assert!(rendered.contains("comparison-body-class-coverage-summary"));
         assert!(rendered.contains("comparison-corpus-summary"));
         assert!(rendered.contains("comparison-corpus-release-guard-summary"));
         assert!(rendered.contains("comparison-corpus-guard-summary"));
@@ -1267,6 +1273,7 @@ mod tests {
         assert!(rendered.contains("comparison-snapshot-summary"));
         assert!(rendered.contains("comparison-snapshot-batch-parity-summary"));
         assert!(rendered.contains("reference-snapshot-body-class-coverage-summary"));
+        assert!(rendered.contains("reference-body-class-coverage-summary"));
         assert!(rendered.contains("reference-snapshot-summary"));
         assert!(rendered.contains("reference-snapshot-batch-parity-summary"));
         assert!(rendered.contains("reference-snapshot-equatorial-parity-summary"));
@@ -1274,6 +1281,7 @@ mod tests {
         assert!(rendered.contains("native-dependency-audit-summary"));
         assert!(rendered.contains("independent-holdout-source-window-summary"));
         assert!(rendered.contains("independent-holdout-body-class-coverage-summary"));
+        assert!(rendered.contains("holdout-body-class-coverage-summary"));
         assert!(rendered.contains("independent-holdout-batch-parity-summary"));
         assert!(rendered.contains("independent-holdout-equatorial-parity-summary"));
         assert!(rendered.contains("lunar-theory-summary"));
@@ -2100,11 +2108,44 @@ mod tests {
                 .expect("production generation body-class coverage summary should render");
         assert!(production_generation_body_class_coverage_summary
             .contains("Production generation body-class coverage:"));
+        let production_body_class_coverage_summary =
+            render_cli(&["production-body-class-coverage-summary"])
+                .expect("production body-class coverage summary alias should render");
+        assert_eq!(
+            production_body_class_coverage_summary,
+            production_generation_body_class_coverage_summary
+        );
         assert_eq!(
             production_generation_body_class_coverage_summary,
             super::validate_render_cli(&["production-generation-body-class-coverage-summary"])
                 .expect(
                     "validation production generation body-class coverage summary should render"
+                )
+        );
+        let comparison_body_class_coverage_summary =
+            render_cli(&["comparison-body-class-coverage-summary"])
+                .expect("comparison body-class coverage summary alias should render");
+        assert_eq!(
+            comparison_body_class_coverage_summary,
+            super::validate_render_cli(&["comparison-snapshot-body-class-coverage-summary"])
+                .expect("validation comparison snapshot body-class coverage summary should render")
+        );
+        let reference_body_class_coverage_summary =
+            render_cli(&["reference-body-class-coverage-summary"])
+                .expect("reference body-class coverage summary alias should render");
+        assert_eq!(
+            reference_body_class_coverage_summary,
+            super::validate_render_cli(&["reference-snapshot-body-class-coverage-summary"])
+                .expect("validation reference snapshot body-class coverage summary should render")
+        );
+        let holdout_body_class_coverage_summary =
+            render_cli(&["holdout-body-class-coverage-summary"])
+                .expect("holdout body-class coverage summary alias should render");
+        assert_eq!(
+            holdout_body_class_coverage_summary,
+            super::validate_render_cli(&["independent-holdout-body-class-coverage-summary"])
+                .expect(
+                    "validation independent hold-out body-class coverage summary should render"
                 )
         );
         let comparison_snapshot_source_window_summary =
