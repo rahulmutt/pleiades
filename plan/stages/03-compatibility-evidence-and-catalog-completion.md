@@ -20,7 +20,7 @@ Implemented and not re-planned here:
 - baseline ayanamsa entries and many release-specific ayanamsa descriptors;
 - alias resolution, Swiss Ephemeris-style house code aliases, descriptor validation, built-in formula-family hardening, catalog summaries, and compatibility-profile verification;
 - chart façade support for sidereal conversion, house calculation, sign placement, house placement, aspects, summaries, and report/CLI integration;
-- validation corpus and summaries for current house scenarios and ayanamsa catalog integrity.
+- validation corpus and summaries for current house scenarios and ayanamsa catalog integrity; the ayanamsa metadata coverage summary now also makes the empty `missing-sidereal-metadata` bucket explicit in release-facing reports, so the current no-gap posture is visible without decoding the catalog.
 
 Known remaining gaps:
 

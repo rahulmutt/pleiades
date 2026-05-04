@@ -1503,13 +1503,19 @@ impl AyanamsaMetadataCoverage {
         } else {
             self.custom_definition_only.join(", ")
         };
+        let without_sidereal_metadata_labels = if self.without_sidereal_metadata.is_empty() {
+            "none".to_string()
+        } else {
+            self.without_sidereal_metadata.join(", ")
+        };
 
         format!(
-            "ayanamsa sidereal metadata: {}/{} entries with both a reference epoch and offset; custom-definition-only={} labels: {}",
+            "ayanamsa sidereal metadata: {}/{} entries with both a reference epoch and offset; custom-definition-only={} labels: {}; missing-sidereal-metadata={}",
             self.with_sidereal_metadata,
             self.total,
             self.custom_definition_only.len(),
             custom_definition_only_labels,
+            without_sidereal_metadata_labels,
         )
     }
 }
@@ -2860,11 +2866,11 @@ mod tests {
         assert_eq!(
             coverage.summary_line(),
             format!(
-                "ayanamsa sidereal metadata: {}/{} entries with both a reference epoch and offset; custom-definition-only={} labels: {}",
+                "ayanamsa sidereal metadata: {}/{} entries with both a reference epoch and offset; custom-definition-only={} labels: {}; missing-sidereal-metadata=none",
                 coverage.with_sidereal_metadata,
                 coverage.total,
                 coverage.custom_definition_only.len(),
-                coverage.custom_definition_only.join(", ")
+                coverage.custom_definition_only.join(", "),
             )
         );
         assert_eq!(coverage.to_string(), coverage.summary_line());
