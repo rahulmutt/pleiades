@@ -305,6 +305,10 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("selected-asteroid-bridge-summary") => {
             validate_render_cli(&["selected-asteroid-bridge-summary"])
         }
+        Some("reference-snapshot-selected-asteroid-dense-boundary-summary")
+        | Some("selected-asteroid-dense-boundary-summary") => {
+            validate_render_cli(&["reference-snapshot-selected-asteroid-dense-boundary-summary"])
+        }
         Some("reference-snapshot-selected-asteroid-terminal-boundary-summary")
         | Some("selected-asteroid-terminal-boundary-summary") => {
             validate_render_cli(&["reference-snapshot-selected-asteroid-terminal-boundary-summary"])
@@ -2432,6 +2436,23 @@ mod tests {
             selected_asteroid_bridge_summary,
             pleiades_jpl::selected_asteroid_bridge_summary_for_report()
         );
+        let selected_asteroid_dense_boundary_summary =
+            render_cli(&["reference-snapshot-selected-asteroid-dense-boundary-summary"])
+                .expect("selected asteroid dense boundary summary should render");
+        assert!(selected_asteroid_dense_boundary_summary
+            .contains("Selected asteroid dense boundary evidence"));
+        assert!(selected_asteroid_dense_boundary_summary.contains("2451916.5"));
+        assert_eq!(
+            selected_asteroid_dense_boundary_summary,
+            pleiades_jpl::selected_asteroid_dense_boundary_summary_for_report()
+        );
+        let selected_asteroid_dense_boundary_alias =
+            render_cli(&["selected-asteroid-dense-boundary-summary"])
+                .expect("selected asteroid dense boundary alias should render");
+        assert_eq!(
+            selected_asteroid_dense_boundary_alias,
+            selected_asteroid_dense_boundary_summary
+        );
         let selected_asteroid_terminal_boundary_summary =
             render_cli(&["reference-snapshot-selected-asteroid-terminal-boundary-summary"])
                 .expect("selected asteroid terminal boundary summary should render");
@@ -3473,6 +3494,12 @@ mod tests {
             .contains("reference-snapshot-summary  Print the compact reference snapshot summary"));
         assert!(help.contains(
             "selected-asteroid-source-evidence-summary  Print the compact selected-asteroid source evidence summary"
+        ));
+        assert!(help.contains(
+            "reference-snapshot-selected-asteroid-dense-boundary-summary  Print the compact selected-asteroid dense boundary evidence summary"
+        ));
+        assert!(help.contains(
+            "selected-asteroid-dense-boundary-summary  Alias for reference-snapshot-selected-asteroid-dense-boundary-summary"
         ));
         assert!(help.contains(
             "selected-asteroid-batch-parity-summary  Print the compact selected-asteroid batch-parity summary"
