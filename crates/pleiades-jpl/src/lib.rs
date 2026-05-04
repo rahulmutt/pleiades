@@ -18714,6 +18714,23 @@ mod tests {
     }
 
     #[test]
+    fn reference_snapshot_source_window_summary_validation_rejects_sample_body_order_drift() {
+        let mut summary = reference_snapshot_source_window_summary()
+            .expect("reference snapshot source window summary should exist");
+        summary.sample_bodies.swap(0, 1);
+
+        assert!(matches!(
+            summary.validate(),
+            Err(
+                ReferenceSnapshotSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "sample_bodies"
+                }
+            )
+        ));
+        assert!(summary.validated_summary_line().is_err());
+    }
+
+    #[test]
     fn selected_asteroid_source_evidence_summary_reports_the_expanded_coverage() {
         let summary = selected_asteroid_source_evidence_summary()
             .expect("selected asteroid source evidence summary should exist");
