@@ -3324,6 +3324,11 @@ mod tests {
             source_documentation_health_alias,
             source_documentation_health_summary
         );
+        assert_eq!(
+            render_cli(&["source-documentation-health", "extra"])
+                .expect_err("source documentation health alias should reject extra arguments"),
+            "source-documentation-health does not accept extra arguments"
+        );
         let source_audit_summary =
             render_cli(&["source-audit-summary"]).expect("source audit summary should render");
         assert!(source_audit_summary.contains("VSOP87 source audit:"));

@@ -20208,6 +20208,11 @@ mod tests {
             format_vsop87_source_documentation_health_summary()
         );
         assert_eq!(
+            render_cli(&["source-documentation-health", "extra"])
+                .expect_err("source documentation health alias should reject extra arguments"),
+            "source-documentation-health does not accept extra arguments"
+        );
+        assert_eq!(
             render_cli(&["source-documentation", "extra"])
                 .expect_err("source documentation alias should reject extra arguments"),
             "source-documentation does not accept extra arguments"
