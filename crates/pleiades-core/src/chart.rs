@@ -5091,6 +5091,69 @@ mod tests {
     }
 
     #[test]
+    fn chart_request_ut1_conversion_helpers_preserve_body_and_house_observers() {
+        let mut custom = pleiades_types::CustomHouseSystem::new("My UT1 Custom Houses");
+        custom.aliases.push("My UT1 Alias".to_string());
+        custom.notes = Some("uses a local UT1 calibration".to_string());
+
+        let observer = ObserverLocation::new(
+            Latitude::from_degrees(40.7),
+            Longitude::from_degrees(-74.0),
+            Some(10.0),
+        );
+        let body_observer = ObserverLocation::new(
+            Latitude::from_degrees(35.7),
+            Longitude::from_degrees(139.7),
+            None,
+        );
+
+        let request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Ut1,
+        ))
+        .with_observer(observer)
+        .with_body_observer(body_observer.clone())
+        .with_house_system(HouseSystem::Custom(custom))
+        .with_bodies(vec![CelestialBody::Sun, CelestialBody::Moon])
+        .with_apparentness(Apparentness::Apparent);
+
+        let tt_converted = request
+            .clone()
+            .with_tt_from_ut1(Duration::from_secs_f64(64.184))
+            .expect("UT1 chart request should accept TT conversion helpers");
+
+        assert_eq!(tt_converted.instant.scale, TimeScale::Tt);
+        assert_eq!(tt_converted.observer, request.observer);
+        assert_eq!(tt_converted.body_observer, request.body_observer);
+        assert_eq!(tt_converted.house_system, request.house_system);
+        assert_eq!(tt_converted.bodies, request.bodies);
+        assert_eq!(tt_converted.apparentness, request.apparentness);
+
+        let tdb_converted = request
+            .clone()
+            .with_tdb_from_ut1(
+                Duration::from_secs_f64(64.184),
+                Duration::from_secs_f64(0.001_657),
+            )
+            .expect("UT1 chart request should accept TDB conversion helpers");
+
+        assert_eq!(tdb_converted.instant.scale, TimeScale::Tdb);
+        assert_eq!(tdb_converted.observer, request.observer);
+        assert_eq!(tdb_converted.body_observer, request.body_observer);
+        assert_eq!(tdb_converted.house_system, request.house_system);
+        assert_eq!(tdb_converted.bodies, request.bodies);
+        assert_eq!(tdb_converted.apparentness, request.apparentness);
+
+        let summary = tdb_converted.summary_line();
+        assert!(summary.contains("(TDB);"));
+        assert!(summary.contains("observer=house-only;"));
+        assert!(summary.contains("body observer=latitude=35.7°, longitude=139.7°, elevation=n/a"));
+        assert!(summary.contains(
+            "house system=My UT1 Custom Houses [aliases: My UT1 Alias] (uses a local UT1 calibration)"
+        ));
+    }
+
+    #[test]
     fn chart_request_signed_time_scale_helpers_reject_non_finite_offsets() {
         let checked_request = ChartRequest::new(Instant::new(
             pleiades_types::JulianDay::from_days(2_451_545.0),
